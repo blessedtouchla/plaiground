@@ -3,18 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLAIGROUND • Wanna Plai</title>
+    <title>PLAIGROUND • Wanna Plai?</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body { font-family: system-ui, sans-serif; }
+        .hero-bg { background: linear-gradient(135deg, #f97316, #c026d3, #3b82f6); }
     </style>
 </head>
-<body class="bg-white min-h-screen flex items-center justify-center text-center p-8">
-    <div>
-        <h1 class="text-7xl font-bold tracking-tighter mb-4">PLAIGROUND</h1>
-        <h2 class="text-5xl text-orange-600 mb-8">Wanna Plai?</h2>
-        <p class="text-2xl mb-12 max-w-md mx-auto">Paste lyrics.<br>Get real songs.<br>Instantly.</p>
-        <p class="text-xl text-zinc-600">The AI Music Revolution Starts Here.</p>
+<body class="bg-white">
+
+    <!-- Navbar -->
+    <nav class="border-b bg-white sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
+            <div class="flex items-center gap-x-3">
+                <span class="font-black text-4xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600">PLAIGROUND</span>
+            </div>
+            <button onclick="document.getElementById('create-section').scrollIntoView({ behavior: 'smooth' })" 
+                    class="px-8 py-3 bg-black text-white rounded-3xl font-semibold hover:bg-zinc-800 transition-all">
+                Start Creating Free
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero-bg text-white py-24 text-center">
+        <div class="max-w-4xl mx-auto px-6">
+            <h1 class="text-6xl md:text-7xl font-bold tracking-tighter mb-6">Wanna Plai?</h1>
+            <p class="text-3xl md:text-4xl mb-10">Paste your lyrics.<br>Get a real song in minutes.</p>
+            <button onclick="document.getElementById('create-section').scrollIntoView({ behavior: 'smooth' })" 
+                    class="px-12 py-5 text-2xl bg-white text-black rounded-3xl font-bold hover:scale-105 transition-all shadow-2xl">
+                Make Magic Now →
+            </button>
+        </div>
     </div>
+
+    <!-- Create Section -->
+    <div id="create-section" class="max-w-6xl mx-auto px-6 py-20">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Lyrics Input -->
+            <div class="bg-white border-2 border-orange-200 rounded-3xl p-10 shadow-xl">
+                <h2 class="text-3xl font-bold mb-6">Paste Your Lyrics Here</h2>
+                <textarea id="lyrics-input" rows="10" 
+                          class="w-full border-2 border-zinc-300 rounded-2xl p-6 text-lg focus:outline-none focus:border-orange-500 resize-y"
+                          placeholder="Type or paste your lyrics..."></textarea>
+                
+                <button onclick="generateSong()" 
+                        class="mt-8 w-full py-5 bg-gradient-to-r from-orange-500 to-purple-600 text-white text-xl font-bold rounded-3xl hover:scale-105 transition-all">
+                    ✨ MAKE IT A SONG ✨
+                </button>
+            </div>
+
+            <!-- Preview -->
+            <div class="bg-gradient-to-br from-purple-100 to-pink-100 border-2 border-purple-300 rounded-3xl p-10 shadow-xl flex flex-col justify-center">
+                <h2 class="text-3xl font-bold mb-6 text-center">Your Song Preview</h2>
+                <div class="h-16 bg-white rounded-2xl flex items-center px-6 mb-6 shadow-inner">
+                    <div class="flex-1 h-2 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 rounded-full"></div>
+                </div>
+                <p class="text-center text-zinc-600 italic">"This feels like freedom..."</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button onclick="publishSong()" class="py-6 bg-orange-600 hover:bg-orange-700 text-white rounded-3xl text-xl font-bold shadow-xl">
+                Publish for $9.99/month
+            </button>
+            <button onclick="makeMusicVideo()" class="py-6 bg-purple-600 hover:bg-purple-700 text-white rounded-3xl text-xl font-bold">
+                🎥 Make a Music Video
+            </button>
+            <button onclick="shareSong()" class="py-6 border-2 border-black hover:bg-black hover:text-white rounded-3xl text-xl font-bold">
+                Share Your Song
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function generateSong() {
+            alert("✨ The AI is cooking your song right now... This is the revolution!");
+        }
+        function publishSong() { alert("Taking you to publish — $9.99/month plan coming!"); }
+        function makeMusicVideo() { alert("Music video generation mode activated 🔥"); }
+        function shareSong() { alert("Share options unlocked!"); }
+    </script>
 </body>
 </html>
