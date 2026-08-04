@@ -56,7 +56,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 56px;
+      margin-bottom: 48px;
     }
     .logo img {
       height: 34px;
@@ -75,7 +75,7 @@
       text-decoration: none;
       box-shadow: 0 4px 16px rgba(251,191,36,.25);
     }
-    .hero { text-align: center; margin-bottom: 48px; }
+    .hero { text-align: center; margin-bottom: 40px; }
     .badge {
       display: inline-block;
       background: #7e22ce;
@@ -84,28 +84,28 @@
       font-weight: 600;
       padding: 6px 16px;
       border-radius: 999px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       box-shadow: 0 0 24px rgba(126,34,206,.45);
     }
     h1 {
-      font-size: clamp(2.35rem, 7vw, 3.5rem);
+      font-size: clamp(2.2rem, 7vw, 3.5rem);
       font-weight: 800;
       line-height: 1.08;
       letter-spacing: -.03em;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .sub {
-      font-size: 1.05rem;
+      font-size: 1.02rem;
       color: #d8b4fe;
       line-height: 1.55;
-      max-width: 420px;
-      margin: 0 auto 32px;
+      max-width: 400px;
+      margin: 0 auto 28px;
     }
     .ctas {
       display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
     }
     .btn-purple {
       background: #a21caf;
@@ -116,6 +116,8 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
+      width: 100%;
+      max-width: 300px;
       box-shadow: 0 8px 28px rgba(162,28,175,.45);
     }
     .btn-gold {
@@ -127,67 +129,91 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
+      width: 100%;
+      max-width: 300px;
       box-shadow: 0 8px 28px rgba(251,191,36,.3);
     }
     .plans-title {
       text-align: center;
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 700;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
     }
     .plans {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 16px;
-      max-width: 640px;
-      margin: 0 auto 48px;
+      max-width: 400px;
+      margin: 0 auto 40px;
+      width: 100%;
     }
     .card {
-      border-radius: 20px;
-      padding: 26px 22px 20px;
+      border-radius: 18px;
+      padding: 24px 20px 18px;
       display: flex;
       flex-direction: column;
     }
     .card-basic {
       background: linear-gradient(180deg, #6b21a8 0%, #3b0764 100%);
-      box-shadow: 0 20px 50px rgba(88,28,135,.35);
+      box-shadow: 0 16px 40px rgba(88,28,135,.4);
     }
     .card-pro {
       background: linear-gradient(180deg, #292524 0%, #0c0a09 100%);
-      border: 1px solid rgba(255,255,255,.1);
-      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 16px 40px rgba(0,0,0,.5);
     }
-    .plan-name { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+    .plan-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+      opacity: 0.95;
+    }
     .price {
-      font-size: 2.35rem;
+      font-size: 2.5rem;
       font-weight: 800;
       line-height: 1;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
+      letter-spacing: -0.03em;
     }
     .card-pro .price { color: #fbbf24; }
-    .price span { font-size: 1.15rem; font-weight: 700; }
-    ul { list-style: none; margin-bottom: 26px; flex: 1; }
+    .price span {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-left: 2px;
+    }
+    ul {
+      list-style: none;
+      margin-bottom: 22px;
+      flex: 1;
+      padding: 0;
+    }
     li {
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      font-size: 13.5px;
-      margin-bottom: 10px;
+      font-size: 14px;
+      line-height: 1.35;
+      margin-bottom: 11px;
     }
     .card-basic li { color: #e9d5ff; }
     .card-pro li { color: #d6d3d1; }
-    .check { flex-shrink: 0; font-weight: 700; }
+    .check {
+      flex-shrink: 0;
+      font-weight: 700;
+      margin-top: 1px;
+    }
     .card-basic .check { color: #c084fc; }
     .card-pro .check { color: #fbbf24; }
     .plan-btn {
       width: 100%;
       border: none;
       border-radius: 999px;
-      padding: 14px;
+      padding: 15px;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .card-basic .plan-btn { background: #a21caf; color: #fff; }
     .card-pro .plan-btn { background: #fbbf24; color: #1a0b2e; }
@@ -198,6 +224,7 @@
       color: #fbbf24;
       text-decoration: none;
       font-weight: 500;
+      padding-bottom: 2px;
     }
     .process {
       margin-top: auto;
@@ -208,14 +235,27 @@
       font-size: 13px;
       color: #a78bfa;
       letter-spacing: .3px;
+      padding-bottom: 8px;
     }
     .process .num { font-weight: 600; color: #c4b5fd; }
     .process .active { color: #d946ef; font-weight: 700; }
     .process .arrow { color: rgba(255,255,255,.3); }
-    @media (max-width: 560px) {
-      .plans { grid-template-columns: 1fr; max-width: 360px; }
-      .ctas { flex-direction: column; align-items: center; }
-      .btn-purple, .btn-gold { width: 100%; max-width: 280px; }
+
+    @media (min-width: 640px) {
+      .ctas {
+        flex-direction: row;
+        justify-content: center;
+      }
+      .btn-purple, .btn-gold {
+        width: auto;
+        max-width: none;
+      }
+      .plans {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        max-width: 640px;
+        gap: 18px;
+      }
     }
   </style>
 </head>
