@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PLAIGROUND</title>
+  <title>PLAIGROUND – Upload once. Get paid everywhere.</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0b0514;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #05030a;
       color: white;
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
     }
 
-    /* Rich purple + gold light streaks */
+    /* Neon light streaks */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background: 
-        radial-gradient(ellipse 80% 50% at 15% 20%, rgba(147, 51, 234, 0.35) 0%, transparent 60%),
-        radial-gradient(ellipse 70% 40% at 85% 15%, rgba(234, 179, 8, 0.18) 0%, transparent 55%),
-        radial-gradient(ellipse 60% 50% at 70% 85%, rgba(168, 85, 247, 0.25) 0%, transparent 50%);
+        linear-gradient(115deg, transparent 35%, rgba(236, 72, 153, 0.45) 48%, transparent 58%),
+        linear-gradient(125deg, transparent 55%, rgba(192, 38, 211, 0.35) 65%, transparent 75%),
+        linear-gradient(105deg, transparent 20%, rgba(168, 85, 247, 0.2) 40%, transparent 55%);
       pointer-events: none;
       z-index: 0;
     }
@@ -32,100 +32,235 @@
     .container {
       position: relative;
       z-index: 1;
-      max-width: 900px;
+      max-width: 920px;
       margin: 0 auto;
-      padding: 28px 24px 80px;
+      padding: 24px 20px 70px;
     }
 
+    /* Header */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 100px;
+      margin-bottom: 50px;
     }
 
     .logo {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 20px;
+      gap: 8px;
+      font-size: 18px;
       font-weight: 700;
       letter-spacing: 0.3px;
     }
 
-    .logo span {
-      color: #fbbf24;
-      font-size: 24px;
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: #fbbf24;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1a0b2e;
+      font-size: 16px;
+      font-weight: 800;
     }
 
-    .login {
+    .login-btn {
       background: #fbbf24;
       color: #1a0b2e;
       border: none;
-      padding: 11px 24px;
+      padding: 9px 20px;
       border-radius: 50px;
       font-weight: 700;
       font-size: 14px;
     }
 
+    /* Hero */
     .hero {
       text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #7e22ce;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 50px;
+      margin-bottom: 22px;
     }
 
     .hero h1 {
-      font-size: clamp(2.6rem, 8vw, 3.8rem);
+      font-size: clamp(2.3rem, 7vw, 3.4rem);
       font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 22px;
-      letter-spacing: -1px;
+      line-height: 1.12;
+      margin-bottom: 16px;
+      letter-spacing: -0.8px;
     }
 
     .hero p {
-      font-size: 1.15rem;
-      color: #c4b5fd;
-      line-height: 1.55;
-      max-width: 480px;
-      margin: 0 auto 48px;
+      font-size: 1.05rem;
+      color: #d8b4fe;
+      line-height: 1.5;
+      max-width: 420px;
+      margin: 0 auto 32px;
     }
 
-    .buttons {
+    .cta-row {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
+      margin-bottom: 55px;
     }
 
-    .btn-release {
-      background: #d946ef;
+    .btn-purple {
+      background: #a21caf;
       color: white;
       border: none;
-      padding: 17px 40px;
+      padding: 14px 28px;
       border-radius: 50px;
-      font-size: 16px;
-      font-weight: 700;
-      box-shadow: 0 8px 30px rgba(217, 70, 239, 0.45);
-    }
-
-    .btn-market {
-      background: transparent;
-      color: #fbbf24;
-      border: 2px solid #fbbf24;
-      padding: 15px 36px;
-      border-radius: 50px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
     }
 
-    .process {
-      margin-top: 90px;
+    .btn-gold {
+      background: #fbbf24;
+      color: #1a0b2e;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    /* Plans */
+    .plans-title {
       text-align: center;
-      font-size: 14px;
-      color: #a78bfa;
-      letter-spacing: 0.4px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 22px;
+    }
+
+    .plans {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 640px;
+      margin: 0 auto 50px;
+    }
+
+    .plan-card {
+      border-radius: 20px;
+      padding: 24px 20px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .plan-basic {
+      background: linear-gradient(160deg, #581c87 0%, #3b0764 100%);
+    }
+
+    .plan-pro {
+      background: linear-gradient(160deg, #292524 0%, #1c1917 100%);
+      border: 1px solid #44403c;
+    }
+
+    .plan-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .plan-price {
+      font-size: 2.1rem;
+      font-weight: 800;
+      margin-bottom: 18px;
+      line-height: 1;
+    }
+
+    .plan-pro .plan-price {
+      color: #fbbf24;
+    }
+
+    .plan-list {
+      list-style: none;
+      margin-bottom: 24px;
+      flex-grow: 1;
+    }
+
+    .plan-list li {
+      font-size: 13.5px;
+      color: #e9d5ff;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .plan-pro .plan-list li {
+      color: #d6d3d1;
+    }
+
+    .plan-list li::before {
+      content: "✓";
+      color: #c084fc;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .plan-pro .plan-list li::before {
+      color: #fbbf24;
+    }
+
+    .plan-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 13px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 15px;
+      border: none;
+      margin-bottom: 12px;
+    }
+
+    .plan-basic .plan-btn {
+      background: #a21caf;
+      color: white;
+    }
+
+    .plan-pro .plan-btn {
+      background: #fbbf24;
+      color: #1a0b2e;
+    }
+
+    .learn-more {
+      display: block;
+      text-align: center;
+      font-size: 13px;
+      color: #fbbf24;
+      text-decoration: none;
+    }
+
+    /* Process */
+    .process {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
+      font-size: 13px;
+      color: #a78bfa;
+      letter-spacing: 0.3px;
+    }
+
+    .process .num {
+      font-weight: 600;
+      color: #c4b5fd;
     }
 
     .process .active {
@@ -133,14 +268,10 @@
       font-weight: 700;
     }
 
-    @media (max-width: 520px) {
-      .buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-      .btn-release, .btn-market {
-        width: 100%;
-        max-width: 280px;
+    @media (max-width: 560px) {
+      .plans {
+        grid-template-columns: 1fr;
+        max-width: 340px;
       }
     }
   </style>
@@ -149,29 +280,67 @@
   <div class="container">
     <header>
       <div class="logo">
-        <span>♪</span> PLAIGROUND
+        <div class="logo-icon">♪</div>
+        PLAIGROUND
       </div>
-      <button class="login">LOGIN</button>
+      <button class="login-btn">Login</button>
     </header>
 
     <section class="hero">
-      <h1>Upload. Release.<br>Get paid.</h1>
-      <p>The publishing & distribution home for AI-assisted creators. Turn your songs into real streams and real revenue — fast.</p>
+      <div class="badge">Built for Suno & Udio creators</div>
+      <h1>Upload once.<br>Get paid everywhere.</h1>
+      <p>Upload your tracks. We handle distribution, publishing, and marketing.</p>
       
-      <div class="buttons">
-        <button class="btn-release">Release Now</button>
-        <button class="btn-market">Release + Market</button>
+      <div class="cta-row">
+        <button class="btn-purple">Release Now</button>
+        <button class="btn-gold">Release + Market</button>
       </div>
     </section>
 
+    <h2 class="plans-title">Pick a plan:</h2>
+
+    <div class="plans">
+      <!-- Basic -->
+      <div class="plan-card plan-basic">
+        <div class="plan-name">Basic</div>
+        <div class="plan-price">$0</div>
+        <ul class="plan-list">
+          <li>Free dashboard access</li>
+          <li>Bulk upload</li>
+          <li>Distribution to 220+ platforms</li>
+          <li>Available in 50+ countries</li>
+          <li>Automatic monthly payouts</li>
+          <li>Split sheets included</li>
+        </ul>
+        <button class="plan-btn">Start Free</button>
+        <a href="#" class="learn-more">Learn more ›</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="plan-card plan-pro">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$9.99/mo</div>
+        <ul class="plan-list">
+          <li>Publishing registration</li>
+          <li>Marketing Boost options</li>
+          <li>Multiple sources of payout</li>
+          <li>Advanced earnings dashboard</li>
+          <li>Priority support</li>
+          <li>Deeper analytics</li>
+        </ul>
+        <button class="plan-btn">Go Pro</button>
+        <a href="#" class="learn-more">Learn more ›</a>
+      </div>
+    </div>
+
     <div class="process">
-      <span>01 Upload</span>
+      <span><span class="num">01</span> Upload</span>
       <span>→</span>
-      <span>02 Split</span>
+      <span><span class="num">02</span> Split</span>
       <span>→</span>
-      <span class="active">03 Release</span>
+      <span class="active"><span class="num">03</span> Release</span>
       <span>→</span>
-      <span>04 Get paid</span>
+      <span><span class="num">04</span> Get paid</span>
     </div>
   </div>
 </body>
