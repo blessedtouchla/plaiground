@@ -4,330 +4,695 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PLAIGROUND – Upload once. Get paid everywhere.</title>
-  <meta name="description" content="Upload your tracks. We handle distribution, publishing, and marketing for AI-assisted creators." />
+  <meta name="description" content="One platform that handles it all: distribution, publishing, marketing, and more for AI music creators." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --bg: #0A0A0F;
+      --card: #111111;
+      --purple: #8B3FE8;
+      --purple-bright: #9A4DFF;
+      --magenta: #FF3D8B;
+      --green: #3FE07A;
+      --yellow: #E8C33F;
+      --text: #FFFFFF;
+      --muted: #9A9AA8;
+      --muted-2: #C8C8D0;
+      --line: rgba(255, 255, 255, 0.08);
+      --nav-h: 72px;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
     body {
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: #000;
-      color: #fff;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
     }
-    .page {
-      position: relative;
-      isolation: isolate;
-      min-height: 100vh;
-      overflow: hidden;
-      background:
-        radial-gradient(ellipse 80% 55% at 75% 8%, rgba(168, 85, 247, 0.45) 0%, transparent 55%),
-        radial-gradient(ellipse 60% 45% at 15% 90%, rgba(88, 28, 135, 0.4) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 40% at 90% 70%, rgba(192, 38, 211, 0.2) 0%, transparent 50%),
-        #000;
-    }
-    .beam {
-      position: absolute;
-      height: 3px;
-      border-radius: 999px;
-      pointer-events: none;
-      z-index: 0;
-      background: linear-gradient(90deg, transparent 0%, rgba(236,72,153,.15) 8%, rgba(244,114,182,.95) 35%, #f0abfc 48%, #f9a8d4 52%, rgba(244,114,182,.95) 65%, rgba(236,72,153,.15) 92%, transparent 100%);
-      box-shadow: 0 0 8px 2px rgba(236,72,153,.9), 0 0 24px 6px rgba(217,70,239,.55), 0 0 48px 12px rgba(168,85,247,.35);
-    }
-    .beam-1 { top: 6%; left: -10%; width: 130%; height: 4px; transform: rotate(-18deg); }
-    .beam-2 { top: 14%; left: -5%; width: 125%; height: 3px; transform: rotate(-20deg); opacity: .85; }
-    .beam-3 { top: 48%; left: -15%; width: 90%; height: 2.5px; transform: rotate(-19deg); opacity: .55; }
-    .beam-4 { top: 72%; left: 20%; width: 100%; height: 2.5px; transform: rotate(-18deg); opacity: .45; }
-    .beam-5 { top: 22%; left: 30%; width: 80%; height: 2px; transform: rotate(-21deg); opacity: .4; }
-    .content {
-      position: relative;
-      z-index: 1;
-      max-width: 920px;
+
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; }
+
+    .wrap {
+      width: min(1120px, calc(100% - 48px));
       margin: 0 auto;
-      padding: 28px 20px 40px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
     }
-    header {
-      display: flex;
-      justify-content: space-between;
+
+    /* —— Nav —— */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      height: var(--nav-h);
+      background: rgba(10, 10, 15, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-inner {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      margin-bottom: 48px;
     }
+
     .logo img {
-      height: 34px;
+      height: 36px;
       width: auto;
       display: block;
     }
-    .login {
-      background: #fbbf24;
-      color: #1a0b2e;
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted-2);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: #fff; }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 18px;
+    }
+
+    .nav-actions .login {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted-2);
+      background: none;
       border: none;
-      padding: 9px 20px;
+      padding: 0;
+    }
+
+    .nav-actions .login:hover { color: #fff; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
       border-radius: 999px;
       font-weight: 700;
       font-size: 14px;
-      cursor: pointer;
-      text-decoration: none;
-      box-shadow: 0 4px 16px rgba(251,191,36,.25);
+      letter-spacing: -0.01em;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     }
-    .hero { text-align: center; margin-bottom: 40px; }
-    .badge {
-      display: inline-block;
-      background: #7e22ce;
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-purple {
+      background: var(--purple);
       color: #fff;
+      box-shadow: 0 8px 24px rgba(139, 63, 232, 0.35);
+    }
+
+    .btn-purple:hover {
+      background: var(--purple-bright);
+      box-shadow: 0 10px 28px rgba(154, 77, 255, 0.45);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: #fff;
+      border: 1.5px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-ghost:hover { border-color: #fff; background: rgba(255, 255, 255, 0.04); }
+
+    .btn-white {
+      background: #fff;
+      color: #0A0A0F;
+    }
+
+    .btn-white:hover { background: #f3f3f6; }
+
+    .btn-dark {
+      background: #0A0A0F;
+      color: #fff;
+    }
+
+    .btn-dark:hover { background: #16161d; }
+
+    .btn-sm { padding: 10px 20px; }
+    .btn-md { padding: 13px 26px; font-size: 15px; }
+    .btn-block { width: 100%; }
+
+    /* —— Hero —— */
+    .hero {
+      position: relative;
+      isolation: isolate;
+      padding: calc(var(--nav-h) + 88px) 0 72px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -10% 10% auto auto;
+      width: 720px;
+      height: 520px;
+      background: radial-gradient(circle at 55% 40%, rgba(139, 63, 232, 0.42) 0%, rgba(255, 61, 139, 0.12) 38%, transparent 68%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #E8E8EE;
+      margin-bottom: 22px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.6rem, 7vw, 4.6rem);
+      font-weight: 800;
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 .accent { color: var(--magenta); }
+
+    .hero .sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-ctas {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+
+    .platforms {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      color: #8A8A96;
+    }
+
+    .platforms span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       font-size: 13px;
       font-weight: 600;
-      padding: 6px 16px;
-      border-radius: 999px;
-      margin-bottom: 22px;
-      box-shadow: 0 0 24px rgba(126,34,206,.45);
+      letter-spacing: 0.01em;
     }
-    h1 {
-      font-size: clamp(2.2rem, 7vw, 3.5rem);
+
+    .platforms svg { opacity: 0.85; }
+
+    /* —— Steps —— */
+    .steps {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 48px 0;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .step {
+      padding: 8px 36px;
+    }
+
+    .step + .step {
+      border-left: 1px solid var(--line);
+    }
+
+    .step-num {
+      font-size: 28px;
       font-weight: 800;
-      line-height: 1.08;
-      letter-spacing: -.03em;
-      margin-bottom: 14px;
+      letter-spacing: -0.04em;
+      color: var(--purple-bright);
+      margin-bottom: 10px;
     }
-    .sub {
-      font-size: 1.02rem;
-      color: #d8b4fe;
-      line-height: 1.55;
-      max-width: 400px;
-      margin: 0 auto 28px;
-    }
-    .ctas {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    .btn-purple {
-      background: #a21caf;
-      color: #fff;
-      border: none;
-      padding: 14px 28px;
-      border-radius: 999px;
-      font-size: 15px;
+
+    .step h3 {
+      font-size: 1.25rem;
       font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      max-width: 300px;
-      box-shadow: 0 8px 28px rgba(162,28,175,.45);
-    }
-    .btn-gold {
-      background: #fbbf24;
-      color: #1a0b2e;
-      border: none;
-      padding: 14px 28px;
-      border-radius: 999px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      max-width: 300px;
-      box-shadow: 0 8px 28px rgba(251,191,36,.3);
-    }
-    .plans-title {
-      text-align: center;
-      font-size: 1.35rem;
-      font-weight: 700;
-      margin-bottom: 20px;
-      letter-spacing: -0.02em;
-    }
-    .plans {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      max-width: 400px;
-      margin: 0 auto 40px;
-      width: 100%;
-    }
-    .card {
-      border-radius: 18px;
-      padding: 24px 20px 18px;
-      display: flex;
-      flex-direction: column;
-    }
-    .card-basic {
-      background: linear-gradient(180deg, #6b21a8 0%, #3b0764 100%);
-      box-shadow: 0 16px 40px rgba(88,28,135,.4);
-    }
-    .card-pro {
-      background: linear-gradient(180deg, #292524 0%, #0c0a09 100%);
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow: 0 16px 40px rgba(0,0,0,.5);
-    }
-    .plan-name {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-bottom: 2px;
-      opacity: 0.95;
-    }
-    .price {
-      font-size: 2.5rem;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 18px;
       letter-spacing: -0.03em;
+      margin-bottom: 8px;
     }
-    .card-pro .price { color: #fbbf24; }
-    .price span {
-      font-size: 1.05rem;
+
+    .step p {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 280px;
+    }
+
+    /* —— Pricing —— */
+    .pricing {
+      padding: 88px 0 72px;
+    }
+
+    .pricing-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+
+    .pricing-head h2 {
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .pricing-head p {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 320px;
+      text-align: right;
+    }
+
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 28px 24px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card.popular {
+      border: 1.5px solid var(--purple-bright);
+      box-shadow: 0 0 0 1px rgba(154, 77, 255, 0.15), 0 18px 50px rgba(139, 63, 232, 0.18);
+    }
+
+    .badge-pop {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--magenta);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 5px 9px;
+      border-radius: 999px;
+    }
+
+    .plan-name {
+      font-size: 12px;
       font-weight: 700;
-      margin-left: 2px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #EDEDF2;
+      margin-bottom: 10px;
     }
-    ul {
-      list-style: none;
+
+    .price {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .price strong {
+      font-size: 2.35rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .price em {
+      font-style: normal;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .plan-blurb {
+      color: var(--muted);
+      font-size: 14px;
       margin-bottom: 22px;
-      flex: 1;
-      padding: 0;
+      min-height: 42px;
     }
-    li {
+
+    .card ul {
+      list-style: none;
+      margin-bottom: 28px;
+      flex: 1;
+    }
+
+    .card li {
       display: flex;
       align-items: flex-start;
       gap: 10px;
       font-size: 14px;
-      line-height: 1.35;
+      color: #D4D4DC;
       margin-bottom: 11px;
+      line-height: 1.35;
     }
-    .card-basic li { color: #e9d5ff; }
-    .card-pro li { color: #d6d3d1; }
+
     .check {
       flex-shrink: 0;
-      font-weight: 700;
-      margin-top: 1px;
+      width: 16px;
+      height: 16px;
+      margin-top: 2px;
+      color: #fff;
     }
-    .card-basic .check { color: #c084fc; }
-    .card-pro .check { color: #fbbf24; }
-    .plan-btn {
-      width: 100%;
-      border: none;
-      border-radius: 999px;
-      padding: 15px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-    .card-basic .plan-btn { background: #a21caf; color: #fff; }
-    .card-pro .plan-btn { background: #fbbf24; color: #1a0b2e; }
+
+    .card-cta { margin-top: auto; }
+
     .learn {
       display: block;
       text-align: center;
+      margin-top: 12px;
       font-size: 13px;
-      color: #fbbf24;
-      text-decoration: none;
+      color: var(--muted);
       font-weight: 500;
-      padding-bottom: 2px;
     }
-    .process {
-      margin-top: auto;
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 13px;
-      color: #a78bfa;
-      letter-spacing: .3px;
-      padding-bottom: 8px;
-    }
-    .process .num { font-weight: 600; color: #c4b5fd; }
-    .process .active { color: #d946ef; font-weight: 700; }
-    .process .arrow { color: rgba(255,255,255,.3); }
 
-    @media (min-width: 640px) {
-      .ctas {
-        flex-direction: row;
-        justify-content: center;
+    .learn:hover { color: #fff; }
+
+    /* —— CTA band —— */
+    .cta-band {
+      background: var(--purple);
+    }
+
+    .cta-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      padding: 56px 0;
+    }
+
+    .cta-inner h2 {
+      font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      max-width: 420px;
+    }
+
+    .cta-inner p {
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 15px;
+      margin-bottom: 20px;
+      max-width: 460px;
+    }
+
+    /* —— Footer —— */
+    footer {
+      padding: 64px 0 28px;
+      border-top: 1px solid var(--line);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 48px;
+    }
+
+    .footer-brand p {
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 260px;
+      margin: 14px 0 18px;
+    }
+
+    .socials {
+      display: flex;
+      gap: 10px;
+    }
+
+    .socials a {
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #B8B8C2;
+    }
+
+    .socials a:hover { color: #fff; border-color: #fff; }
+
+    .footer-col h4 {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      margin-bottom: 16px;
+    }
+
+    .footer-col a {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .footer-col a:hover { color: #fff; }
+
+    .copy {
+      font-size: 12px;
+      color: #6E6E7A;
+    }
+
+    @media (max-width: 900px) {
+      .nav-inner { grid-template-columns: auto 1fr; }
+      .nav-links { display: none; }
+      .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head {
+        grid-template-columns: 1fr;
       }
-      .btn-purple, .btn-gold {
-        width: auto;
-        max-width: none;
-      }
-      .plans {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        max-width: 640px;
-        gap: 18px;
-      }
+      .step + .step { border-left: none; border-top: 1px solid var(--line); padding-top: 28px; margin-top: 20px; }
+      .step { padding: 8px 0; }
+      .pricing-head p { text-align: left; }
+      .footer-grid { gap: 28px; }
+    }
+
+    @media (max-width: 560px) {
+      .wrap { width: calc(100% - 32px); }
+      .hero { padding-top: calc(var(--nav-h) + 56px); }
+      .hero-ctas { flex-direction: column; align-items: center; }
+      .hero-ctas .btn { width: 100%; max-width: 280px; }
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="beam beam-1"></div>
-    <div class="beam beam-2"></div>
-    <div class="beam beam-3"></div>
-    <div class="beam beam-4"></div>
-    <div class="beam beam-5"></div>
-
-    <div class="content">
-      <header>
-        <a class="logo" href="/" aria-label="PLAIGROUND">
-          <img src="IMG_6723.jpeg" alt="PLAIGROUND" />
-        </a>
-        <a class="login" href="#login">Login</a>
-      </header>
-
-      <section class="hero">
-        <div class="badge">Built for Suno &amp; Udio creators</div>
-        <h1>Upload once.<br />Get paid everywhere.</h1>
-        <p class="sub">Upload your tracks. We handle distribution, publishing, and marketing.</p>
-        <div class="ctas">
-          <button class="btn-purple" type="button">Release Now</button>
-          <button class="btn-gold" type="button">Release + Market</button>
-        </div>
-      </section>
-
-      <h2 class="plans-title">Pick a plan:</h2>
-      <div class="plans">
-        <article class="card card-basic">
-          <div class="plan-name">Basic</div>
-          <div class="price">$0</div>
-          <ul>
-            <li><span class="check">✓</span> Free dashboard access</li>
-            <li><span class="check">✓</span> Bulk upload</li>
-            <li><span class="check">✓</span> Distribution to 220+ platforms</li>
-            <li><span class="check">✓</span> Available in 50+ countries</li>
-            <li><span class="check">✓</span> Automatic monthly payouts</li>
-            <li><span class="check">✓</span> Split sheets included</li>
-          </ul>
-          <button class="plan-btn" type="button">Start Free</button>
-          <a class="learn" href="#basic">Learn more ›</a>
-        </article>
-
-        <article class="card card-pro">
-          <div class="plan-name">Pro</div>
-          <div class="price">$9.99<span>/mo</span></div>
-          <ul>
-            <li><span class="check">✓</span> Publishing registration</li>
-            <li><span class="check">✓</span> Marketing Boost options</li>
-            <li><span class="check">✓</span> Multiple sources of payout</li>
-            <li><span class="check">✓</span> Advanced earnings dashboard</li>
-            <li><span class="check">✓</span> Priority support</li>
-            <li><span class="check">✓</span> Deeper analytics</li>
-          </ul>
-          <button class="plan-btn" type="button">Go Pro</button>
-          <a class="learn" href="#pro">Learn more ›</a>
-        </article>
-      </div>
-
-      <div class="process">
-        <span><span class="num">01</span> Upload</span>
-        <span class="arrow">→</span>
-        <span><span class="num">02</span> Split</span>
-        <span class="arrow">→</span>
-        <span class="active"><span class="num">03</span> Release</span>
-        <span class="arrow">→</span>
-        <span><span class="num">04</span> Get paid</span>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="/" aria-label="PLAIGROUND">
+        <img src="IMG_6723.jpeg" alt="PLAIGROUND" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="login" type="button">Log in</button>
+        <a class="btn btn-purple btn-sm" href="#pricing">Release Now</a>
       </div>
     </div>
-  </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <p class="eyebrow">Built for any AI music creator, and for all music</p>
+        <h1>Upload once.<br />Get paid <span class="accent">everywhere.</span></h1>
+        <p class="sub">One Platform that handles it all: distribution, publishing, marketing, &amp; more.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-purple btn-md" href="#pricing">Join for free</a>
+          <a class="btn btn-ghost btn-md" href="#how">How it works</a>
+        </div>
+        <div class="platforms" aria-label="Distributed to">
+          <span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.52 17.34c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-1.02-.12-1.14-.6-.12-.48.12-1.02.6-1.14 4.38-1.32 9.78-.66 13.5 1.62.36.18.54.78.24 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.48-1.02.66-1.56.36z"/></svg>
+            Spotify
+          </span>
+          <span>
+            <svg width="16" height="18" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true"><path d="M11.3 0c.08 1.55-.45 3.06-1.4 4.18-.98 1.14-2.56 2.02-4.1 1.9-.1-1.48.54-3.02 1.46-4.08C8.26.9 9.94.08 11.3 0zM15.4 14.6c-.28.64-.43 1.16-.8 1.86-.54 1.02-1.3 2.28-2.26 2.3-.84.02-1.06-.54-2.22-.54-1.16 0-1.4.52-2.26.56-.9.04-1.6-1.1-2.14-2.1-1.12-2.06-1.98-5.82-.82-8.36.56-1.26 1.58-2.06 2.68-2.06.86 0 1.64.58 2.2.58.54 0 1.5-.7 2.62-.6.44.02 1.7.18 2.5 1.36-2.2 1.2-1.84 4.34.5 5.16.46.16.88.46 1.2.84z"/></svg>
+            Apple Music
+          </span>
+          <span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.58 9.99c.2 0 .36.16.36.36v7.3c0 .2-.16.36-.36.36h-1.16a.36.36 0 0 1-.36-.36v-7.3c0-.2.16-.36.36-.36h1.16zm-3.7 2.08c.2 0 .36.16.36.36v5.22c0 .2-.16.36-.36.36H8.36a.36.36 0 0 1-.36-.36v-5.22c0-.2.16-.36.36-.36h1.52zm7.4-3.5c.2 0 .36.16.36.36v8.72c0 .2-.16.36-.36.36h-1.52a.36.36 0 0 1-.36-.36V8.93c0-.2.16-.36.36-.36h1.52zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+            Amazon Music
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="steps" id="how">
+      <div class="wrap steps-grid">
+        <article class="step">
+          <div class="step-num">01</div>
+          <h3>Upload</h3>
+          <p>Track, art, lyrics. Tell us what makes it human.</p>
+        </article>
+        <article class="step">
+          <div class="step-num">02</div>
+          <h3>Release</h3>
+          <p>Splits signed, then live on 150 platforms.</p>
+        </article>
+        <article class="step">
+          <div class="step-num">03</div>
+          <h3>Get paid</h3>
+          <p>Royalties land in your dashboard. Automatically.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+      <div class="wrap">
+        <div class="pricing-head">
+          <h2>Pick a plan</h2>
+          <p>Free tier, upgrade when you're ready. Choose for growth. Pro for publishing and marketing.</p>
+        </div>
+
+        <div class="plans">
+          <article class="card">
+            <div class="plan-name">Basic</div>
+            <div class="price"><strong>$0</strong><em>/forever</em></div>
+            <p class="plan-blurb">Get your music on every platform.</p>
+            <ul>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Free dashboard access</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Bulk upload</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Distribution to 150 platforms</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Available in 80+ countries</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Automatic monthly payouts</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Split sheets included</li>
+            </ul>
+            <div class="card-cta">
+              <button class="btn btn-white btn-md btn-block" type="button">Start Free</button>
+              <a class="learn" href="#how">Learn more</a>
+            </div>
+          </article>
+
+          <article class="card popular">
+            <span class="badge-pop">Most Popular</span>
+            <div class="plan-name">Creator</div>
+            <div class="price"><strong>$14.99</strong><em>/month</em></div>
+            <p class="plan-blurb">Everything in Basic, plus the tools to grow a release.</p>
+            <ul>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Basic</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited releases</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Advanced earnings dashboard</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Deeper analytics by store and territory</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Custom release scheduling</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority email support</li>
+            </ul>
+            <div class="card-cta">
+              <button class="btn btn-purple btn-md btn-block" type="button">Get Started</button>
+              <a class="learn" href="#how">Learn more</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="plan-name">Pro</div>
+            <div class="price"><strong>$149</strong><em>/year</em></div>
+            <p class="plan-blurb">Creator + Master. Everything in Creator, plus publishing.</p>
+            <ul>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Creator</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Publishing registration</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Marketing Boost options</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Multiple sources of payout</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Sync licensing revenue</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority support</li>
+              <li><svg class="check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Downloadable royalty statements</li>
+            </ul>
+            <div class="card-cta">
+              <button class="btn btn-ghost btn-md btn-block" type="button">Go Pro</button>
+              <a class="learn" href="#how">Learn more</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="wrap cta-inner">
+        <h2>Don't miss out on your publishing revenue.</h2>
+        <div>
+          <p>Every PLAIGROUND release has the option to add publishing, so every last dollar your song earns finds its way back to you. Submit your song now.</p>
+          <button class="btn btn-dark btn-md" type="button">Submit your first song</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="logo" href="/" aria-label="PLAIGROUND">
+            <img src="IMG_6723.jpeg" alt="PLAIGROUND" />
+          </a>
+          <p>Distribution, publishing and splits for AI-assisted artists. Human authorship required.</p>
+          <div class="socials">
+            <a href="#" aria-label="TikTok">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.5 3h2.1c.2 1.8 1.3 3.3 2.9 4.1v2.2c-1.1 0-2.2-.3-3.2-.9v6.7c0 3.4-2.8 6.2-6.3 6.2S3.7 18.5 3.7 15.1c0-3.4 2.8-6.2 6.3-6.2.3 0 .7 0 1 .1v2.4c-.3-.1-.7-.2-1-.2-2.1 0-3.8 1.7-3.8 3.8s1.7 3.8 3.8 3.8 3.8-1.7 3.8-3.8V3z"/></svg>
+            </a>
+            <a href="#" aria-label="X">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.2 3H21l-6.5 7.4L22 21h-6.2l-4.3-5.6L6.2 21H3.4l7-8L2.2 3h6.3l3.9 5.2L18.2 3zm-1.1 16.2h1.7L7 4.7H5.2l11.9 14.5z"/></svg>
+            </a>
+            <a href="#" aria-label="Instagram">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#how">How it works</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#terms">Terms of Service</a>
+          <a href="#rights">Rights Attestation</a>
+          <a href="#privacy">Privacy</a>
+        </div>
+        <div class="footer-col">
+          <h4>Account</h4>
+          <a href="#signin">Sign in</a>
+          <a href="#create">Create account</a>
+        </div>
+      </div>
+      <p class="copy">© 2026 PLAIGROUND LLC</p>
+    </div>
+  </footer>
 </body>
 </html>
