@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body>
+  <div class="flow-top">
+    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+  </div>
+  <main class="page wrap-wide">
+    <div class="head-row">
+      <div>
+        <p class="kicker">Submit a song</p>
+        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Upload</h1>
+      </div>
+      <a class="learn" href="dashboard.html">Save and exit</a>
+    </div>
+    <div class="stepper">
+      <div class="st on"><b>01 Upload</b><span>Audio and details</span></div>
+      <div class="st"><b>02 Attest rights</b><span>Human authorship</span></div>
+      <div class="st"><b>03 Split sheet</b><span>Writers and shares</span></div>
+      <div class="st"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
+    </div>
+
+    <section class="flow-card">
+      <h3>Upload your audio</h3>
+      <p class="hint">WAV or FLAC, 16-bit or higher</p>
+      <div class="audio-bar">
+        <div>
+          <b>neon_shadows_master_v3.wav</b>
+          <div style="color:var(--muted);font-size:12px">48 kHz · 24-bit · 62.4 MB · 3:41</div>
+        </div>
+        <div class="wave" aria-hidden="true">
+          <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:35%"></i><i style="height:75%"></i><i style="height:50%"></i><i style="height:85%"></i><i style="height:40%"></i><i style="height:65%"></i><i style="height:30%"></i><i style="height:88%"></i>
+        </div>
+        <button class="play" type="button" aria-label="Play">▶</button>
+      </div>
+      <div class="opt-grid">
+        <div class="dashbox">Add instrumental (Optional, helps sync licensing)</div>
+        <div class="dashbox">Add lyrics file (.txt or .lrc for timed lyrics)</div>
+      </div>
+    </section>
+
+    <section class="flow-card">
+      <h3>Cover art</h3>
+      <div class="art-row">
+        <div>
+          <div class="art" role="img" aria-label="Cover art placeholder"></div>
+          <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button">Replace artwork</button></p>
+          <p class="hint">3000 × 3000 px · JPG · 2.1 MB</p>
+        </div>
+        <div>
+          <p class="hint" style="margin-bottom:10px">Artwork guidelines</p>
+          <ul style="color:var(--muted-2);font-size:14px;padding-left:18px">
+            <li>Recommended size is 3000px, maximum 5000px.</li>
+            <li>Cover artwork must be a square.</li>
+            <li>No store logos, URLs, or contact details.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="flow-card">
+      <h3>Submit the details</h3>
+      <div class="form-grid">
+        <div class="field"><label>Song title</label><input value="Neon Shadows" /></div>
+        <div class="field"><label>Primary artist</label><input value="Victoria Reyes" /></div>
+        <div class="field"><label>Featured artist</label><input placeholder="Optional" /></div>
+        <div class="field"><label>Genre</label><input value="Electronic / Synthwave" /></div>
+        <div class="field"><label>Language</label><input value="English" /></div>
+        <div class="field"><label>Download price</label><input value="$0.99" /></div>
+      </div>
+      <p class="hint" style="margin-top:8px">Explicit content</p>
+      <div class="auth-toggle" style="max-width:200px">
+        <a class="on" href="upload.html">No</a>
+        <a href="upload.html">Yes</a>
+      </div>
+      <p style="margin-top:22px"><a class="btn btn-purple btn-lg" href="attest.html">Continue to attest rights</a></p>
+    </section>
+  </main>
+</body>
+</html>
