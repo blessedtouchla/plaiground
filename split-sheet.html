@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Split sheet – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body>
+  <div class="flow-top">
+    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+  </div>
+  <main class="page wrap-wide">
+    <div class="head-row">
+      <div>
+        <p class="kicker">Submit a song</p>
+        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Split sheet</h1>
+      </div>
+      <a class="learn" href="dashboard.html">Save and exit</a>
+    </div>
+    <div class="stepper">
+      <div class="st"><b>01 Upload</b><span class="done">Complete</span></div>
+      <div class="st"><b>02 Attest rights</b><span class="done">Complete</span></div>
+      <div class="st on"><b>03 Split sheet</b><span>Writers and shares</span></div>
+      <div class="st"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
+    </div>
+
+    <section class="flow-card">
+      <div class="head-row">
+        <div>
+          <h3>Who wrote it</h3>
+          <p class="hint">Every writer signs before we deliver, and shares must total 100%.</p>
+        </div>
+        <div class="total-box">Total 100%</div>
+      </div>
+      <table class="data">
+        <thead><tr><th>Writer</th><th>Email</th><th>Role</th><th>%</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Victoria Reyes (you)</td>
+            <td>victoria@reyes.audio</td>
+            <td>Composer, Lyricist</td>
+            <td><input value="60" style="width:56px;background:#0C0C12;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:6px 8px" /></td>
+          </tr>
+          <tr>
+            <td>M. Hale</td>
+            <td>marcus@haleroom.co</td>
+            <td>Lyricist</td>
+            <td><input value="25" style="width:56px;background:#0C0C12;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:6px 8px" /></td>
+          </tr>
+          <tr>
+            <td>I. Novak</td>
+            <td><input value="" placeholder="email needed" style="width:100%;background:#0C0C12;border:1px solid var(--magenta);color:#fff;border-radius:8px;padding:6px 8px" /></td>
+            <td>Producer</td>
+            <td><input value="15" style="width:56px;background:#0C0C12;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:6px 8px" /></td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top:14px"><button class="btn btn-ghost btn-sm" type="button" style="border-color:var(--yellow);color:var(--yellow)">+ Add collaborator</button></p>
+      <p class="hint">A writer with no PRO can still be added and still gets paid. Their publishing share is held until they have one on file.</p>
+      <div class="alert">1 row incomplete: every collaborator needs an email before this sheet can be sent.</div>
+    </section>
+
+    <div class="pub-band">
+      <div><small>Publisher share</small>PLAIGROUND LLC · publisher's half</div>
+      <div><small>Admin fee</small>5%</div>
+      <div><small>Work code</small>Assigned at delivery</div>
+    </div>
+
+    <p class="hint">Writers are not contacted yet. The sheet goes out for signature after payment clears and the content scan is clean.</p>
+    <div class="flow-actions">
+      <a class="btn btn-ghost btn-md" href="attest.html">Back</a>
+      <a class="btn btn-purple btn-md" href="review.html">Continue to review and pay</a>
+    </div>
+  </main>
+</body>
+</html>

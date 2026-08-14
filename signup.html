@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create account – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="how-it-works.html">How it works</a>
+        <a href="index.html#pricing">Pricing</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="login.html">Log in</a>
+        <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth">
+    <section class="auth-hero">
+      <h1>Upload once. Get paid everywhere.</h1>
+      <p>Distribution to 150 platforms, split sheets, and publishing — handled in one place for AI-assisted artists with human authorship.</p>
+      <div class="auth-stats">
+        <div><strong class="stat-y">150</strong><span>Platforms</span></div>
+        <div><strong class="stat-g">80+</strong><span>Countries</span></div>
+        <div><strong class="stat-p" style="font-size:1.05rem;line-height:1.15">Human</strong><span>Authorship required</span></div>
+      </div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-card">
+        <div class="auth-toggle">
+          <a href="login.html">Sign in</a>
+          <a class="on" href="signup.html">Create account</a>
+        </div>
+        <h2>Make an account</h2>
+        <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
+        <form action="dashboard.html" method="get">
+          <div class="field">
+            <label for="artist">Artist name</label>
+            <input id="artist" name="artist" type="text" placeholder="VICTORIA VOID" />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@label.com" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="8+ characters" />
+          </div>
+          <div class="field">
+            <label for="make">How do you make music?</label>
+            <select id="make" name="make">
+              <option selected>Suno</option>
+              <option>Udio</option>
+              <option>Other AI tool</option>
+              <option>Human-only</option>
+              <option>Mixed / several tools</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="country">Country</label>
+            <input id="country" name="country" type="text" placeholder="United States" />
+          </div>
+          <label class="checkline">
+            <input type="checkbox" required />
+            I agree to the <a href="terms.html">Terms of Service</a> and the <a href="rights.html">Rights Attestation</a>.
+          </label>
+          <button class="btn btn-purple btn-lg" type="submit">Create account</button>
+        </form>
+        <p class="switch">Already released with us? <a href="login.html">Sign in</a></p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

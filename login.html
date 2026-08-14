@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="how-it-works.html">How it works</a>
+        <a href="index.html#pricing">Pricing</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost btn-sm" href="login.html">Log in</a>
+        <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth">
+    <section class="auth-hero">
+      <h1>Upload once. Get paid everywhere.</h1>
+      <p>Distribution to 150 platforms, split sheets, and publishing — handled in one place for AI-assisted artists with human authorship.</p>
+      <div class="auth-stats">
+        <div><strong class="stat-y">150</strong><span>Platforms</span></div>
+        <div><strong class="stat-g">80+</strong><span>Countries</span></div>
+        <div><strong class="stat-p" style="font-size:1.35rem">Splits</strong><span>Included</span></div>
+      </div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-card">
+        <div class="auth-toggle">
+          <a class="on" href="login.html">Sign in</a>
+          <a href="signup.html">Create account</a>
+        </div>
+        <h2>Welcome back</h2>
+        <p class="lead">Sign in to manage your releases and royalties</p>
+        <form action="dashboard.html" method="get">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@label.com" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" value="••••••••" />
+          </div>
+          <div class="row-between">
+            <label class="checkline" style="margin:0"><input type="checkbox" checked /> Keep me signed in</label>
+            <a href="login.html">Forgot password?</a>
+          </div>
+          <button class="btn btn-purple btn-lg" type="submit">Log in</button>
+        </form>
+        <div class="or">OR</div>
+        <div class="social-row">
+          <a class="btn btn-ghost btn-md" href="dashboard.html">Google</a>
+          <a class="btn btn-ghost btn-md" href="dashboard.html">Apple</a>
+        </div>
+        <p class="switch">New here? <a href="signup.html">Create an account</a></p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

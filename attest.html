@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attest rights – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body>
+  <div class="flow-top">
+    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+  </div>
+  <main class="page wrap-wide">
+    <div class="head-row">
+      <div>
+        <p class="kicker">Submit a song</p>
+        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Attest rights</h1>
+      </div>
+      <a class="learn" href="dashboard.html">Save and exit</a>
+    </div>
+    <div class="stepper">
+      <div class="st"><b>01 Upload</b><span class="done">Complete</span></div>
+      <div class="st on"><b>02 Attest rights</b><span>Human authorship</span></div>
+      <div class="st"><b>03 Split sheet</b><span>Writers and shares</span></div>
+      <div class="st"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
+    </div>
+
+    <section class="flow-card">
+      <p class="kicker" style="color:var(--muted)">Required by most stores</p>
+      <h3>How was this song made?</h3>
+      <p class="hint">Stores need to know how much of this recording is AI generated. Answer honestly and your release clears review the first time.</p>
+      <p class="hint">Fully AI-generated tracks can still be distributed and monetized. They just cannot be published, because publishing registration needs a human author.</p>
+      <div class="choice on">
+        <b>AI assisted, human authored</b>
+        <span>AI generated parts of the track, a person wrote and performed the rest</span>
+      </div>
+      <div class="choice">
+        <b>No AI used</b>
+        <span>Written, played and produced entirely by people</span>
+      </div>
+    </section>
+
+    <section class="flow-card">
+      <div class="head-row">
+        <h3>What was the human element?</h3>
+        <span style="color:var(--muted);font-size:13px">4 selected</span>
+      </div>
+      <p class="hint">Pick everything a person did on this record. At least one human contribution is needed to claim authorship and collect royalties.</p>
+      <div class="tags">
+        <button class="tag on" type="button">Original lyrics</button>
+        <button class="tag on" type="button">Lead vocals performed</button>
+        <button class="tag" type="button">Backing vocals</button>
+        <button class="tag" type="button">Played an instrument</button>
+        <button class="tag" type="button">Melody written</button>
+        <button class="tag on" type="button">Arrangement</button>
+        <button class="tag on" type="button">Prompt authorship</button>
+        <button class="tag" type="button">Mixed by a person</button>
+        <button class="tag" type="button">Mastered by a person</button>
+      </div>
+      <div class="field" style="margin-top:18px">
+        <label>Describe the human contribution</label>
+        <textarea rows="4" placeholder="e.g. I wrote the lyrics and topline, recorded the lead vocal at home, and directed the prompts for the instrumental before mixing it myself"></textarea>
+      </div>
+      <p class="hint">A couple of sentences is plenty. Reviewers read this when a track is flagged.</p>
+    </section>
+
+    <section class="flow-card">
+      <label class="checkline">
+        <input type="checkbox" />
+        I confirm I hold the rights to this recording, that the disclosure above is accurate, and that no part of it clones an existing artist's voice or master. I have read and accept the <a href="rights.html" style="color:var(--magenta)">rights attestation</a> and <a href="terms.html" style="color:var(--magenta)">terms of service</a>.
+      </label>
+      <p class="warn">Not yet accepted. Tick the box to read the terms.</p>
+    </section>
+
+    <div class="flow-actions">
+      <a class="btn btn-ghost btn-md" href="upload.html">Back</a>
+      <a class="btn btn-purple btn-md" href="split-sheet.html">Continue to the split sheet</a>
+    </div>
+  </main>
+</body>
+</html>
