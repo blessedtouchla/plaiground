@@ -29,53 +29,311 @@
       <div class="st"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
     </div>
 
-    <section class="flow-card">
+    <div id="config-banner" class="alert is-hidden" role="status">SignWell is not configured. You can still fill in writers and shares.</div>
+
+    <section class="flow-card" id="sheet-form">
       <div class="head-row">
         <div>
-          <h3>Who wrote it</h3>
-          <p class="hint">Every writer signs before we deliver, and shares must total 100%.</p>
+          <h3>Composition split sheet</h3>
+          <p class="hint">This sheet covers the writers’ 50% only. Shares among writers must total 100% of that writer’s half. PLAIGROUND is the publisher and holds the 50% publisher share. There is no admin fee.</p>
         </div>
-        <div class="total-box">Total 100%</div>
+        <div id="total-box" class="total-box">Total 100%</div>
       </div>
-      <table class="data">
-        <thead><tr><th>Writer</th><th>Email</th><th>Role</th><th>%</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>Victoria Reyes (you)</td>
-            <td>victoria@reyes.audio</td>
-            <td>Composer, Lyricist</td>
-            <td><input value="60" style="width:56px;background:#0C0C12;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:6px 8px" /></td>
-          </tr>
-          <tr>
-            <td>M. Hale</td>
-            <td>marcus@haleroom.co</td>
-            <td>Lyricist</td>
-            <td><input value="25" style="width:56px;background:#0C0C12;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:6px 8px" /></td>
-          </tr>
-          <tr>
-            <td>I. Novak</td>
-            <td><input value="" placeholder="email needed" style="width:100%;background:#0C0C12;border:1px solid var(--magenta);color:#fff;border-radius:8px;padding:6px 8px" /></td>
-            <td>Producer</td>
-            <td><input value="15" style="width:56px;background:#0C0C12;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:6px 8px" /></td>
-          </tr>
-        </tbody>
-      </table>
-      <p style="margin-top:14px"><button class="btn btn-ghost btn-sm" type="button" style="border-color:var(--yellow);color:var(--yellow)">+ Add collaborator</button></p>
-      <p class="hint">A writer with no PRO can still be added and still gets paid. Their publishing share is held until they have one on file.</p>
-      <div class="alert">1 row incomplete: every collaborator needs an email before this sheet can be sent.</div>
+
+      <div class="field" style="max-width:420px">
+        <label for="song-title">Song title</label>
+        <input id="song-title" type="text" value="Neon Shadows" autocomplete="off" />
+      </div>
+
+      <div id="writers"></div>
+      <p style="margin-top:14px">
+        <button class="btn btn-ghost btn-sm" id="add-writer" type="button" style="border-color:var(--yellow);color:var(--yellow)">+ Add writer</button>
+      </p>
+      <p id="slot-note" class="hint is-hidden">The signing template currently has two writer slots. Extra writers are collected for the record.</p>
+      <p class="hint">A writer with no PRO can still be added. Their publishing share is held until they have one on file.</p>
+      <p class="hint">PLAIGROUND collects the publisher’s share through BMI only.</p>
+      <div id="form-status" class="alert is-hidden" role="status"></div>
     </section>
 
     <div class="pub-band">
-      <div><small>Publisher share</small>PLAIGROUND LLC · publisher's half</div>
-      <div><small>Admin fee</small>5%</div>
+      <div><small>Publisher share</small>PLAIGROUND LLC · 50%</div>
+      <div><small>Writer share</small>50% among writers on this sheet</div>
       <div><small>Work code</small>Assigned at delivery</div>
     </div>
 
-    <p class="hint">Writers are not contacted yet. The sheet goes out for signature after payment clears and the content scan is clean.</p>
-    <div class="flow-actions">
+    <p class="hint">Writer 1 (you) signs in this page. Co-writers receive a SignWell email. After you finish signing, you go to Review &amp; pay.</p>
+    <div class="flow-actions" id="sign-actions">
       <a class="btn btn-ghost btn-md" href="attest.html">Back</a>
-      <a class="btn btn-purple btn-md" href="review.html">Continue to review and pay</a>
+      <div class="sign-buttons">
+        <button class="btn btn-ghost btn-md" id="email-link" type="button">Email me the link instead</button>
+        <button class="btn btn-purple btn-md" id="sign-in-page" type="button">Sign in this page</button>
+      </div>
     </div>
+
+    <section id="email-done" class="flow-card is-hidden">
+      <h3>Signing link emailed</h3>
+      <p class="hint">SignWell emailed Writer 1 and any co-writer on the template. Extra writers above two slots were collected for the record.</p>
+      <p><a class="btn btn-purple btn-md" href="review.html">Continue to review and pay</a></p>
+    </section>
+
+    <section id="embed-card" class="flow-card embed-card is-hidden">
+      <h3>Sign in this page</h3>
+      <p class="hint">Complete Writer 1’s signature in the SignWell form below. This is not a homemade signature pad.</p>
+      <div id="signwell-embed"></div>
+    </section>
   </main>
+
+  <script src="https://static.signwell.com/assets/embedded.js"></script>
+  <script>
+    (function () {
+      var MAX_WRITERS = 5;
+      var TEMPLATE_SLOTS = 2;
+      var PROS = ['', 'BMI', 'ASCAP', 'SESAC', 'Other', 'None / not yet'];
+      var writers = [
+        { name: 'Victoria Reyes', email: '', share: 100, pro: '' }
+      ];
+
+      var writersEl = document.getElementById('writers');
+      var totalBox = document.getElementById('total-box');
+      var addBtn = document.getElementById('add-writer');
+      var slotNote = document.getElementById('slot-note');
+      var statusEl = document.getElementById('form-status');
+      var configBanner = document.getElementById('config-banner');
+      var signBtn = document.getElementById('sign-in-page');
+      var emailBtn = document.getElementById('email-link');
+      var embedCard = document.getElementById('embed-card');
+      var emailDone = document.getElementById('email-done');
+      var signActions = document.getElementById('sign-actions');
+      var titleInput = document.getElementById('song-title');
+      var configured = true;
+      var busy = false;
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function shareCents() {
+        return writers.reduce(function (sum, writer) {
+          return sum + Math.round(Number(writer.share || 0) * 100);
+        }, 0);
+      }
+
+      function totalLabel() {
+        return (shareCents() / 100).toFixed(2).replace(/\.00$/, '') + '%';
+      }
+
+      function showStatus(kind, message) {
+        if (!message) {
+          statusEl.className = 'alert is-hidden';
+          statusEl.textContent = '';
+          return;
+        }
+        statusEl.className = 'alert ' + (kind || '');
+        statusEl.textContent = message;
+      }
+
+      function setBusy(next) {
+        busy = next;
+        signBtn.disabled = next;
+        emailBtn.disabled = next;
+        addBtn.disabled = next || writers.length >= MAX_WRITERS;
+        signBtn.textContent = next ? 'Working…' : 'Sign in this page';
+        emailBtn.textContent = next ? 'Working…' : 'Email me the link instead';
+      }
+
+      function readRow(index) {
+        var row = writersEl.querySelector('[data-writer="' + index + '"]');
+        if (!row) return;
+        writers[index].name = row.querySelector('[data-field="name"]').value;
+        writers[index].email = row.querySelector('[data-field="email"]').value;
+        writers[index].share = row.querySelector('[data-field="share"]').value;
+        writers[index].pro = row.querySelector('[data-field="pro"]').value;
+      }
+
+      function readAll() {
+        writers.forEach(function (_, index) { readRow(index); });
+      }
+
+      function render() {
+        writersEl.innerHTML = writers.map(function (writer, index) {
+          var options = PROS.map(function (pro) {
+            var selected = pro === writer.pro ? ' selected' : '';
+            var label = pro || 'PRO (optional)';
+            return '<option value="' + escapeHtml(pro) + '"' + selected + '>' + escapeHtml(label) + '</option>';
+          }).join('');
+          var remove = index === 0
+            ? ''
+            : '<button class="learn writer-remove" type="button" data-remove="' + index + '">Remove</button>';
+          var you = index === 0 ? ' (you)' : '';
+          return (
+            '<div class="writer-row" data-writer="' + index + '">' +
+              '<div class="writer-head"><b>Writer ' + (index + 1) + you + '</b>' + remove + '</div>' +
+              '<div class="writer-grid">' +
+                '<div class="field"><label>Name</label><input data-field="name" type="text" value="' + escapeHtml(writer.name) + '" autocomplete="name" /></div>' +
+                '<div class="field"><label>Email</label><input data-field="email" type="email" value="' + escapeHtml(writer.email) + '" placeholder="needed to send the sheet" autocomplete="email" /></div>' +
+                '<div class="field"><label>Share %</label><input data-field="share" type="number" min="0" max="100" step="0.01" value="' + escapeHtml(writer.share) + '" /></div>' +
+                '<div class="field"><label>PRO</label><select data-field="pro">' + options + '</select></div>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+
+        addBtn.disabled = busy || writers.length >= MAX_WRITERS;
+        slotNote.classList.toggle('is-hidden', writers.length <= TEMPLATE_SLOTS);
+        updateTotal();
+      }
+
+      function updateTotal() {
+        readAll();
+        var ok = shareCents() === 10000;
+        totalBox.textContent = 'Total ' + totalLabel();
+        totalBox.classList.toggle('ok', ok);
+        totalBox.classList.toggle('bad', !ok);
+      }
+
+      function collectPayload() {
+        readAll();
+        return {
+          songTitle: titleInput.value.trim(),
+          writers: writers.map(function (writer) {
+            return {
+              name: String(writer.name || '').trim(),
+              email: String(writer.email || '').trim(),
+              share: Number(writer.share),
+              pro: String(writer.pro || '').trim()
+            };
+          })
+        };
+      }
+
+      function clientError(payload) {
+        if (!payload.songTitle) return 'Add the song title.';
+        if (shareCents() !== 10000) return 'Shares among writers must total 100% of the writer’s 50%.';
+        for (var i = 0; i < payload.writers.length; i += 1) {
+          var writer = payload.writers[i];
+          if (!writer.name) return 'Writer ' + (i + 1) + ' needs a name.';
+          if (!writer.email) return 'Writer ' + (i + 1) + ' needs an email.';
+        }
+        return '';
+      }
+
+      function openEmbed(url) {
+        if (typeof SignWellEmbed !== 'function') {
+          showStatus('err', 'SignWell’s signing script did not load. Try the email link instead.');
+          return;
+        }
+        embedCard.classList.remove('is-hidden');
+        signActions.classList.add('is-hidden');
+        embedCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var embed = new SignWellEmbed({
+          url: url,
+          containerId: 'signwell-embed',
+          allowClose: true,
+          redirectionUrl: '/review.html',
+          events: {
+            completed: function () {
+              window.location.href = 'review.html';
+            }
+          }
+        });
+        embed.open();
+      }
+
+      async function createSheet(emailLinkOnly) {
+        var payload = collectPayload();
+        var error = clientError(payload);
+        if (error) {
+          showStatus('bad', error);
+          return;
+        }
+        if (!configured) {
+          showStatus('err', 'SignWell is not configured. Set SIGNWELL_API_KEY and SIGNWELL_TEMPLATE_ID.');
+          return;
+        }
+
+        setBusy(true);
+        showStatus('', '');
+        try {
+          var response = await fetch('/api/signwell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              songTitle: payload.songTitle,
+              writers: payload.writers,
+              emailLinkOnly: emailLinkOnly
+            })
+          });
+          var data = {};
+          try { data = await response.json(); } catch (e) { data = {}; }
+
+          if (!response.ok) {
+            if (data.code === 'not_configured') {
+              configured = false;
+              configBanner.classList.remove('is-hidden');
+            }
+            showStatus('err', data.error || 'Could not create the split sheet.');
+            return;
+          }
+
+          if (emailLinkOnly || data.mode === 'email') {
+            emailDone.classList.remove('is-hidden');
+            signActions.classList.add('is-hidden');
+            showStatus('ok', 'SignWell emailed the signing link. Writer 1 was included.');
+            emailDone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+
+          if (!data.embeddedSigningUrl) {
+            showStatus('err', 'SignWell did not return an in-page signing URL.');
+            return;
+          }
+          showStatus('', '');
+          openEmbed(data.embeddedSigningUrl);
+        } catch (err) {
+          showStatus('err', 'Could not reach the signing service.');
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      writersEl.addEventListener('input', updateTotal);
+      writersEl.addEventListener('change', updateTotal);
+      writersEl.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-remove]');
+        if (!button) return;
+        readAll();
+        var index = Number(button.getAttribute('data-remove'));
+        if (index > 0) writers.splice(index, 1);
+        render();
+      });
+
+      addBtn.addEventListener('click', function () {
+        if (writers.length >= MAX_WRITERS) return;
+        readAll();
+        writers.push({ name: '', email: '', share: 0, pro: '' });
+        render();
+      });
+
+      signBtn.addEventListener('click', function () { createSheet(false); });
+      emailBtn.addEventListener('click', function () { createSheet(true); });
+
+      fetch('/api/signwell')
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          configured = Boolean(data && data.configured);
+          configBanner.classList.toggle('is-hidden', configured);
+        })
+        .catch(function () {
+          configured = false;
+          configBanner.classList.remove('is-hidden');
+        });
+
+      render();
+    })();
+  </script>
 </body>
 </html>
