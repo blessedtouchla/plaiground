@@ -296,9 +296,10 @@ button { cursor: pointer; }
   background: var(--card);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
-  padding: 28px 24px 24px;
+  padding: 28px 24px 36px;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 .card.popular {
   border: 1.5px solid var(--purple-bright);
@@ -352,9 +353,27 @@ button.plan-year:hover { color: #fff; }
 }
 .check { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; color: #fff; }
 .check.green { color: var(--green); }
-.card-cta { margin-top: auto; }
+.card-cta {
+  margin-top: auto;
+  overflow: visible;
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
 .learn { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); font-weight: 500; }
-.learn:hover { color: #fff; }
+.card-cta .learn {
+  display: block;
+  text-align: center;
+  margin-top: 14px;
+  padding-bottom: 2px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--muted-2);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.learn:hover,
+.card-cta .learn:hover { color: #fff; }
 
 .cta-band { background: var(--purple); border-radius: 20px; margin-bottom: 80px; }
 .cta-inner {
@@ -1053,6 +1072,16 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
 .tag-pro {
   background: rgba(255, 60, 142, 0.16);
   color: #ff8ab8;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+}
+.tag-creator {
+  background: rgba(125, 60, 255, 0.16);
+  color: #C4A6FF;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
