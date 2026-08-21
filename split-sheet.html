@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="flow-top">
-    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
   </div>
   <main class="page wrap-wide">
@@ -34,7 +34,8 @@
     <section class="flow-card" id="sheet-form">
       <div class="head-row">
         <div>
-          <h3>Composition split sheet</h3>
+          <h3>Who wrote it</h3>
+          <p class="hint">Every writer signs before we deliver, and shares must total 100%.</p>
           <p class="hint">This sheet covers the writers’ 50% only. Shares among writers must total 100% of that writer’s half. PLAIGROUND is the publisher and holds the 50% publisher share. There is no admin fee.</p>
         </div>
         <div id="total-box" class="total-box">Total 100%</div>
@@ -47,21 +48,27 @@
 
       <div id="writers"></div>
       <p style="margin-top:14px">
-        <button class="btn btn-ghost btn-sm" id="add-writer" type="button" style="border-color:var(--yellow);color:var(--yellow)">+ Add writer</button>
+        <button class="learn" id="add-writer" type="button" style="color:var(--purple-bright);text-align:left">+ Add collaborator</button>
       </p>
+      <p class="hint">Add every writer who contributed. Each one signs their own share before we deliver.</p>
+      <div class="alert" style="margin-top:12px">1 row incomplete: every collaborator needs an email before this sheet can be sent.</div>
       <p id="slot-note" class="hint is-hidden">The signing template currently has two writer slots. Extra writers are collected for the record.</p>
       <p class="hint">A writer with no PRO can still be added. Their publishing share is held until they have one on file.</p>
       <p class="hint">PLAIGROUND collects the publisher’s share through BMI only.</p>
       <div id="form-status" class="alert is-hidden" role="status"></div>
     </section>
 
-    <div class="pub-band">
-      <div><small>Publisher share</small>PLAIGROUND LLC · 50%</div>
-      <div><small>Writer share</small>50% among writers on this sheet</div>
-      <div><small>Work code</small>Assigned at delivery</div>
-    </div>
+    <section class="flow-card">
+      <p class="kicker" style="text-align:right">Before you continue</p>
+      <div class="fees-grid">
+        <div><small>Publishing registration</small>$199.00 one-time, per work</div>
+        <div><small>Distribution load</small>$49.00 one-time, per release</div>
+        <div><small>Commission on royalties</small><span class="live">None taken by PLAIGROUND</span></div>
+      </div>
+      <p class="hint" style="margin-top:14px">Writers are paid their share after store and payment-processor deductions. Fees are shown in full on the next step.</p>
+    </section>
 
-    <p class="hint">Writer 1 (you) signs in this page. Co-writers receive a SignWell email. After you finish signing, you go to Review &amp; pay.</p>
+    <p class="hint">Writers are not contacted yet. The sheet goes out for signature after payment clears and the content scan is clean. Writer 1 (you) signs in this page. Co-writers receive a SignWell email.</p>
     <div class="flow-actions" id="sign-actions">
       <a class="btn btn-ghost btn-md" href="attest.html">Back</a>
       <div class="sign-buttons">

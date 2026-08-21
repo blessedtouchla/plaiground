@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Split sheets – PLAIGROUND</title>
+  <title>Library – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -11,11 +11,12 @@
 </head>
 <body class="app">
   <aside class="side">
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <p class="side-label">Menu</p>
     <nav class="side-nav">
       <a href="dashboard.html">Overview</a>
-      <a href="releases.html">Releases</a>
-      <a class="on" href="splits.html">Split sheets</a>
+      <a class="on" href="releases.html">Releases</a>
+      <a href="splits.html">Split sheets</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
       <a href="boosts.html">Boosts</a>
@@ -25,34 +26,31 @@
     <div class="pro-card">
       <h4 class="stat-g">On Pro</h4>
       <p>Publishing, Boosts and deeper analytics are active on your account.</p>
-      <p style="margin-top:8px">Renews 6 Sep 2026 · $149 a year.</p>
+      <p style="margin-top:8px">Renews 8 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <span></span>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
-      <div class="page-head">
-        <p class="kicker">Rights</p>
-        <h1>Split sheets</h1>
-        <p>Every writer signs before delivery. Shares must total 100%.</p>
+      <div class="head-row page-head">
+        <div>
+          <p class="kicker">Catalog</p>
+          <h1>Releases</h1>
+        </div>
+        <a class="btn btn-purple btn-sm" href="upload.html">New release</a>
       </div>
-      <table class="data">
-        <thead>
-          <tr><th>Work</th><th>Writers</th><th>Signatures</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><div><b>Neon Sermon</b><br /><small style="color:var(--muted)">Work · delivered 22 Jul 2026</small></div></td>
-            <td>2 writers</td>
-            <td>2 of 2</td>
-            <td class="live">Signed</td>
-          </tr>
-        </tbody>
-      </table>
-      <p style="margin-top:18px"><a href="splits-empty.html" style="color:var(--purple-bright)">Preview the empty state</a></p>
+      <div class="empty-card">
+        <div class="empty-ico" aria-hidden="true">♪</div>
+        <h3>Your first release goes here</h3>
+        <p>Nothing is in your catalog yet. Submit a song and you'll follow the content scan, the split sheet signatures and delivery to 150 platforms from this page.</p>
+        <div class="empty-actions">
+          <a class="btn btn-purple btn-md" href="upload.html">Submit your first song</a>
+          <a class="ghost-link" href="releases.html">Show the populated state</a>
+        </div>
+      </div>
     </div>
   </div>
 </body>

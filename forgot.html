@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in – PLAIGROUND</title>
+  <title>Forgot password – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
 </head>
-<body class="auth-full">
+<body>
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
@@ -25,47 +25,24 @@
     </div>
   </header>
 
-  <main class="auth">
-    <section class="auth-hero">
-      <h1>Upload once. Get paid everywhere.</h1>
-      <p>Distribution to 150 platforms, split sheets and publishing handled.</p>
-      <div class="auth-stats cards">
-        <div><strong class="stat-y">150</strong><span>Platforms</span></div>
-        <div><strong class="stat-g">50+</strong><span>Countries</span></div>
-        <div><strong class="stat-p">0%</strong><span>Commission</span></div>
-      </div>
-    </section>
-    <section class="auth-panel">
-      <div class="auth-card">
-        <div class="auth-toggle">
-          <a class="on" href="login.html">Sign in</a>
-          <a href="signup.html">Create account</a>
-        </div>
-        <h2>Welcome back</h2>
-        <p class="lead">Sign in to manage your releases and royalties.</p>
-        <form action="dashboard.html" method="get">
+  <main class="center-page">
+    <div class="wrap">
+      <div class="stack">
+        <p class="eyebrow magenta">Account access</p>
+        <h1>Reset your password</h1>
+        <p class="center-lead">Give us the email on the account and we will send a link that lets you set a new one. The link is good for an hour.</p>
+        <form action="magic.html" method="get">
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@label.com" />
+            <input id="email" name="email" class="accent" type="email" placeholder="you@label.com" />
           </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" value="••••••••" />
-          </div>
-          <div class="row-between">
-            <label class="checkline" style="margin:0"><input type="checkbox" checked /> Keep me signed in</label>
-            <a href="forgot.html">Forgot password?</a>
-          </div>
-          <button class="btn btn-purple btn-lg" type="submit">Log in</button>
+          <button class="btn btn-purple btn-lg" type="submit">Send the reset link</button>
         </form>
         <div class="or">OR</div>
-        <div class="social-row">
-          <a class="btn btn-ghost btn-md" href="dashboard.html">Google</a>
-          <a class="btn btn-ghost btn-md" href="dashboard.html">Apple</a>
-        </div>
-        <p class="switch">New here? <a href="signup.html">Create an account</a></p>
+        <a class="btn btn-ghost btn-lg" href="magic.html">Email me a sign-in link instead</a>
+        <p class="switch">Remembered it? <a href="login.html">Back to sign in</a></p>
       </div>
-    </section>
+    </div>
   </main>
 
   <footer>

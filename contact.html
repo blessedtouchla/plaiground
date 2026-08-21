@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in – PLAIGROUND</title>
+  <title>Contact us – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
 </head>
-<body class="auth-full">
+<body>
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
@@ -25,45 +25,56 @@
     </div>
   </header>
 
-  <main class="auth">
-    <section class="auth-hero">
-      <h1>Upload once. Get paid everywhere.</h1>
-      <p>Distribution to 150 platforms, split sheets and publishing handled.</p>
-      <div class="auth-stats cards">
-        <div><strong class="stat-y">150</strong><span>Platforms</span></div>
-        <div><strong class="stat-g">50+</strong><span>Countries</span></div>
-        <div><strong class="stat-p">0%</strong><span>Commission</span></div>
-      </div>
-    </section>
-    <section class="auth-panel">
-      <div class="auth-card">
-        <div class="auth-toggle">
-          <a class="on" href="login.html">Sign in</a>
-          <a href="signup.html">Create account</a>
+  <main>
+    <section class="page-hero left">
+      <div class="wrap">
+        <p class="eyebrow magenta">Contact</p>
+        <h1>Talk to a person.</h1>
+        <p class="sub">Support is answered by the team that builds the product. One business day, usually much less.</p>
+        <div class="contact-grid">
+          <form class="contact-card" action="contact.html" method="get">
+            <h2 style="font-size:1.4rem;margin-bottom:18px">Send us a message</h2>
+            <div class="field">
+              <label for="name">Your name</label>
+              <input id="name" name="name" type="text" placeholder="Victoria Reyes" />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="you@label.com" />
+            </div>
+            <div class="field">
+              <label for="about">What is this about</label>
+              <select id="about" name="about">
+                <option selected>A release or delivery</option>
+                <option>Splits and publishing</option>
+                <option>Payouts</option>
+                <option>Something else</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="message">Message</label>
+              <textarea id="message" name="message" rows="5" placeholder="How can we help?"></textarea>
+            </div>
+            <div class="hero-ctas" style="justify-content:flex-start;margin:0">
+              <button class="btn btn-purple btn-md" type="submit">Send message</button>
+              <span style="color:var(--muted);font-size:13px">We reply within one business day</span>
+            </div>
+          </form>
+          <div>
+            <div class="contact-card" style="margin-bottom:16px">
+              <p class="eyebrow" style="margin-bottom:8px">Direct</p>
+              <div class="direct-row"><span>Support</span><a href="mailto:support@plaiground.com">support@plaiground.com</a></div>
+              <div class="direct-row"><span>Rights and takedowns</span><a href="mailto:rights@plaiground.com">rights@plaiground.com</a></div>
+              <div class="direct-row"><span>Privacy requests</span><a href="mailto:privacy@plaiground.com">privacy@plaiground.com</a></div>
+              <div class="direct-row"><span>Press and partnerships</span><a href="mailto:hello@plaiground.com">hello@plaiground.com</a></div>
+            </div>
+            <div class="contact-card">
+              <h3 style="margin-bottom:8px">Check the FAQ first</h3>
+              <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Releasing, splits, publishing and getting paid are covered there.</p>
+              <a class="btn btn-ghost btn-sm" href="faq.html">Read the FAQ</a>
+            </div>
+          </div>
         </div>
-        <h2>Welcome back</h2>
-        <p class="lead">Sign in to manage your releases and royalties.</p>
-        <form action="dashboard.html" method="get">
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@label.com" />
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" value="••••••••" />
-          </div>
-          <div class="row-between">
-            <label class="checkline" style="margin:0"><input type="checkbox" checked /> Keep me signed in</label>
-            <a href="forgot.html">Forgot password?</a>
-          </div>
-          <button class="btn btn-purple btn-lg" type="submit">Log in</button>
-        </form>
-        <div class="or">OR</div>
-        <div class="social-row">
-          <a class="btn btn-ghost btn-md" href="dashboard.html">Google</a>
-          <a class="btn btn-ghost btn-md" href="dashboard.html">Apple</a>
-        </div>
-        <p class="switch">New here? <a href="signup.html">Create an account</a></p>
       </div>
     </section>
   </main>

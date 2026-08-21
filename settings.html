@@ -11,37 +11,41 @@
 </head>
 <body class="app">
   <aside class="side">
-    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+    <p class="side-label">Menu</p>
     <nav class="side-nav">
       <a href="dashboard.html">Overview</a>
       <a href="releases.html">Releases</a>
       <a href="splits.html">Split sheets</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
       <a href="payouts.html">Payouts</a>
       <a class="on" href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 9 Sep 2026 · $149 a year.</p>
+      <h4 class="stat-g">On Pro</h4>
+      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px">Renews 9 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY <span>Hi, Victoria</span></div>
+      <span></span>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
       <div class="page-head">
+        <p class="kicker">Account</p>
         <h1>Settings</h1>
       </div>
       <div class="panel">
         <h3>Profile</h3>
-        <div class="rel" style="margin-bottom:18px">
+        <div class="rel" style="margin-bottom:20px">
           <span class="avatar" style="width:56px;height:56px;font-size:16px">VV</span>
           <button class="btn btn-ghost btn-sm" type="button">Change photo</button>
         </div>
-        <div class="form-grid">
+        <div class="form-grid four">
           <div class="field"><label>Artist name</label><input value="VICTORIA VOID" /></div>
           <div class="field"><label>Legal name</label><input value="Victoria Reyes" /></div>
           <div class="field"><label>Email</label><input value="victoria@plaiground.com" /></div>
@@ -49,26 +53,26 @@
         </div>
       </div>
       <div class="panel">
+        <h3>Plan</h3>
         <div class="head-row">
           <div>
-            <h3>Plan</h3>
-            <p style="font-weight:700;margin:8px 0 6px">Pro · $149 a year</p>
-            <p style="color:var(--muted);font-size:14px;max-width:520px">Distribution, publishing registration, Marketing Boosts, split sheets and full analytics. Renews 9 Sep 2026.</p>
+            <p style="font-weight:800;font-size:1.15rem;margin:4px 0 8px">Pro - $149 a year</p>
+            <p style="color:var(--muted);font-size:14px;max-width:560px">Distribution, publishing registration, Marketing Boosts, split sheets and full analytics. Renews 9 Sep 2026.</p>
           </div>
           <button class="btn btn-ghost btn-sm" type="button">Manage plan</button>
         </div>
       </div>
       <div class="panel">
         <h3>Security</h3>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
+        <div class="sec-btns">
           <button class="btn btn-ghost btn-sm" type="button">Change password</button>
           <button class="btn btn-ghost btn-sm" type="button">Two-factor authentication</button>
-          <a class="btn btn-magenta btn-sm" href="index.html">Sign out</a>
+          <a class="btn btn-ghost btn-sm sign-out" href="index.html">Sign out</a>
         </div>
       </div>
-      <div class="flow-actions" style="justify-content:flex-start;gap:20px;align-items:center">
+      <div class="confirm-actions">
         <button class="btn btn-purple btn-md" type="button">Save changes</button>
-        <button class="learn" type="button" style="background:none;border:none">Delete account</button>
+        <button class="ghost-link" type="button" style="background:none;border:none">Delete account</button>
       </div>
     </div>
   </div>

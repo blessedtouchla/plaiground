@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create account – PLAIGROUND</title>
+  <title>Signature received – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
 </head>
-<body class="auth-full">
+<body>
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
@@ -25,60 +25,70 @@
     </div>
   </header>
 
-  <main class="auth">
-    <section class="auth-hero">
-      <h1>Upload once. Get paid everywhere.</h1>
-      <p>Distribution to 150 platforms, split sheets and publishing handled.</p>
-      <div class="auth-stats cards">
-        <div><strong class="stat-y">150</strong><span>Platforms</span></div>
-        <div><strong class="stat-g">50+</strong><span>Countries</span></div>
-        <div><strong class="stat-c">0%</strong><span>Commission</span></div>
+  <main class="center-page wide">
+    <div class="wrap">
+      <p class="status-ok"><i>✓</i> Signature received</p>
+      <h1>Thanks, M. Hale. Your signature is on file.</h1>
+      <p class="center-lead">Victoria Reyes has been notified. Nothing else is needed from you for the release to go out, but your 25% writer share needs somewhere to be paid.</p>
+
+      <div class="signed-grid">
+        <article class="signed-card">
+          <p class="lbl">What you signed</p>
+          <div class="rel" style="margin-bottom:16px">
+            <span class="thumb lg" aria-hidden="true"></span>
+            <div>
+              <b>Neon Sermon</b>
+              <small>Victoria Reyes • Single • 2024</small>
+            </div>
+          </div>
+          <div class="kv"><span>Your role</span><b>Lyricist</b></div>
+          <div class="kv"><span>Your writer share</span><span class="share">25%</span></div>
+          <div class="kv"><span>Signed</span><b>14 Aug 2024, 18:02</b></div>
+          <div class="kv"><span>Document</span><b>Split sheet - PG-2024-0814</b></div>
+          <div class="confirm-actions" style="margin-top:18px">
+            <a class="ghost-link" href="#">Download signed copy</a>
+            <a class="ghost-link" href="#">Email me a copy</a>
+          </div>
+        </article>
+        <article class="signed-card hot">
+          <p class="lbl">One step left</p>
+          <h3>Create a free account to collect your share</h3>
+          <p class="center-lead" style="margin-bottom:8px">Your royalties are held against your name until there is an account and a payout method to send them to. Setting one up takes about two minutes and costs nothing.</p>
+          <ul class="check-list">
+            <li>Add a payout method and get paid monthly</li>
+            <li>See streams and earnings for the songs you wrote on</li>
+            <li>Sign future split sheets in one click</li>
+            <li>Release your own music on the free plan, no commission</li>
+          </ul>
+          <div class="field">
+            <label for="cowriter-email">Email</label>
+            <input id="cowriter-email" type="email" value="marcus@haleroom.co" />
+          </div>
+          <a class="btn btn-purple btn-lg" href="signup.html">Create my free account</a>
+          <p class="switch">Already have an account? <a class="gold-link" href="login.html">Log in instead</a></p>
+        </article>
       </div>
-    </section>
-    <section class="auth-panel">
-      <div class="auth-card">
-        <div class="auth-toggle">
-          <a href="login.html">Sign in</a>
-          <a class="on" href="signup.html">Create account</a>
-        </div>
-        <h2>Make an account</h2>
-        <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
-        <form action="confirm.html" method="get">
-          <div class="field">
-            <label for="artist">Artist name</label>
-            <input id="artist" name="artist" type="text" placeholder="VICTORIA VOID" />
-          </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@label.com" />
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" placeholder="8+ characters" />
-          </div>
-          <div class="field">
-            <label for="make">How do you make music?</label>
-            <select id="make" name="make">
-              <option selected>Suno</option>
-              <option>Udio</option>
-              <option>Other AI tool</option>
-              <option>Human-only</option>
-              <option>Mixed / several tools</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="country">Country</label>
-            <input id="country" name="country" type="text" value="United States" />
-          </div>
-          <label class="checkline">
-            <input type="checkbox" required />
-            I agree to the <a href="terms.html">Terms of Service</a> and the <a href="rights.html">Rights Attestation</a>.
-          </label>
-          <button class="btn btn-purple btn-lg" type="submit">Create account</button>
-        </form>
-        <p class="switch">Already released with us? <a href="login.html">Sign in</a></p>
+
+      <p class="section-lbl" style="margin-top:36px">Good to know</p>
+      <div class="know">
+        <article>
+          <h4>Your signature stands on its own</h4>
+          <p>Creating an account is about payment, not consent. The split sheet you signed is already binding and your 25% is recorded on the work.</p>
+        </article>
+        <article>
+          <h4>Nothing to pay, ever, as a co-writer</h4>
+          <p>Submission fees are paid by whoever releases the song. We take no commission on your royalties.</p>
+        </article>
+        <article>
+          <h4>First payment timing</h4>
+          <p>Stores report on their own cycle, usually four to eight weeks after release. Your share is held until then and paid once your balance clears $10.</p>
+        </article>
+        <article>
+          <h4>Something look wrong?</h4>
+          <p>If the role or share does not match what you agreed, <a class="gold-link" href="contact.html">raise a dispute</a> and we will hold delivery while it is sorted.</p>
+        </article>
       </div>
-    </section>
+    </div>
   </main>
 
   <footer>
@@ -117,7 +127,7 @@
           <a href="signup.html">Create account</a>
         </div>
       </div>
-      <p class="copy">© 2024 PLAIGROUND LLC</p>
+      <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
 </body>

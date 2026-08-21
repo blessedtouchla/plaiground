@@ -11,24 +11,26 @@
 </head>
 <body class="app">
   <aside class="side">
-    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <p class="side-label">Menu</p>
     <nav class="side-nav">
       <a href="dashboard.html">Overview</a>
       <a href="releases.html">Releases</a>
       <a href="splits.html">Split sheets</a>
       <a class="on" href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
       <a href="payouts.html">Payouts</a>
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 11 Sep 2026 · $149 a year.</p>
+      <h4 class="stat-g">On Pro</h4>
+      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px">Renews 8 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY <span>Hi, Victoria</span></div>
+      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
@@ -40,19 +42,24 @@
         </div>
         <button class="btn btn-ghost btn-sm" type="button">Download statement</button>
       </div>
-      <div class="metric-row" style="grid-template-columns:1fr 1fr">
-        <div class="metric"><strong class="stat-g">$18,942.60</strong><span>Lifetime earnings</span></div>
-        <div class="metric"><strong>$3,412.85</strong><span>This month</span></div>
+      <div class="panel">
+        <div class="metric-row" style="grid-template-columns:1fr 1fr;margin:0">
+          <div><strong class="stat-g" style="font-size:2rem;font-weight:800">$18,942.60</strong><span style="display:block;color:var(--muted);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">Lifetime earnings</span></div>
+          <div><strong style="font-size:2rem;font-weight:800">$3,412.85</strong><span style="display:block;color:var(--muted);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">This month</span></div>
+        </div>
       </div>
       <div class="panel">
-        <h3>By source · August 2026</h3>
+        <div class="head-row">
+          <h3>By source</h3>
+          <span style="color:var(--muted);font-size:13px">August 2026</span>
+        </div>
         <table class="data">
           <thead><tr><th>Source</th><th>Streams</th><th>Share</th><th>Earnings</th></tr></thead>
           <tbody>
-            <tr><td>Spotify</td><td>3,482,104</td><td>47%</td><td>$8,904.22</td></tr>
-            <tr><td>Apple Music</td><td>2,140,220</td><td>29%</td><td>$5,488.10</td></tr>
-            <tr><td>YouTube Music</td><td>1,178,905</td><td>16%</td><td>$3,024.88</td></tr>
-            <tr><td>Amazon Music</td><td>613,879</td><td>8%</td><td>$1,527.40</td></tr>
+            <tr><td>Spotify</td><td>3,462,104</td><td>47%</td><td>$3,904.22</td></tr>
+            <tr><td>Apple Music</td><td>2,140,225</td><td>29%</td><td>$2,466.18</td></tr>
+            <tr><td>YouTube Music</td><td>1,178,924</td><td>16%</td><td>$2,024.88</td></tr>
+            <tr><td>Amazon Music</td><td>613,678</td><td>8%</td><td>$1,527.40</td></tr>
           </tbody>
         </table>
       </div>
@@ -60,14 +67,15 @@
         <div class="panel">
           <h3>Last six months</h3>
           <div class="chart" aria-hidden="true">
-            <b style="height:40%"></b><b style="height:55%"></b><b style="height:48%"></b><b style="height:72%"></b><b style="height:64%"></b><b style="height:88%"></b>
+            <b style="height:36%"></b><b style="height:48%"></b><b style="height:58%"></b><b class="zero"></b><b style="height:72%"></b><b style="height:90%"></b>
           </div>
+          <div class="chart-labels"><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span></div>
         </div>
         <div class="panel lock">
-          <h3>Locked on Basic</h3>
+          <h3 class="y">Locked on Basic</h3>
           <p class="y">Publishing royalties: $1,284.40</p>
           <p class="y" style="margin-top:8px">Sync revenue: $1,284.40</p>
-          <p style="color:var(--muted);font-size:13px;margin-top:12px">Upgrade to Pro to collect publishing and sync on new releases.</p>
+          <p class="y" style="margin-top:8px">Marketing Boost: $1,284.40</p>
         </div>
       </div>
     </div>

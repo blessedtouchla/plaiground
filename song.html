@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Song details – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body class="app">
+  <aside class="side">
+    <p class="side-label">Menu</p>
+    <nav class="side-nav">
+      <a href="dashboard.html">Overview</a>
+      <a class="on" href="releases.html">Releases</a>
+      <a href="splits.html">Split sheets</a>
+      <a href="earnings.html">Earnings</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
+      <a href="payouts.html">Payouts</a>
+      <a href="settings.html">Settings</a>
+    </nav>
+    <div class="pro-card">
+      <h4 class="stat-g">On Pro</h4>
+      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 6 Sep 2026 · $149 a year.</p>
+    </div>
+  </aside>
+  <div class="app-main">
+    <div class="topbar">
+      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+    </div>
+    <div class="page">
+      <div class="head-row">
+        <a href="releases.html" style="color:var(--muted-2);font-size:14px">&lt; Back to My Music</a>
+      </div>
+      <div class="head-row">
+        <div class="life">
+          <span>Draft</span>
+          <span>Awaiting Signatures</span>
+          <span>In Review</span>
+          <span class="on">Live</span>
+          <span>Rejected</span>
+        </div>
+        <div class="seg">
+          <a class="on" href="song.html">With data</a>
+          <a href="song.html">Awaiting data</a>
+        </div>
+      </div>
+      <div class="song-top">
+        <div>
+          <h1 style="font-size:2.4rem;letter-spacing:-0.04em;display:inline-block;margin-right:10px">Neon Sermon</h1>
+          <span class="pill pill-green">Live</span>
+          <p style="color:var(--muted);margin-top:8px">Victoria Reyes · Single · 2026 · Electronic</p>
+        </div>
+        <div class="hero-ctas" style="margin:0">
+          <a class="btn btn-purple btn-sm" href="boosts.html">Boost</a>
+          <button class="btn btn-ghost btn-sm" type="button">Download</button>
+          <button class="btn btn-ghost btn-sm" type="button">Share</button>
+        </div>
+      </div>
+      <div class="song-hero">
+        <div>
+          <div class="cover-lg" role="img" aria-label="Cover art"></div>
+          <p class="hint" style="margin-top:8px;color:var(--muted);font-size:11px;letter-spacing:0.12em;text-transform:uppercase">Cover art · 3000 × 3000</p>
+        </div>
+        <div class="metric-row" style="grid-template-columns:1fr 1fr;margin:0">
+          <div class="metric">
+            <strong>128,412</strong>
+            <span>Total streams</span>
+            <p class="delta-up">+18.4% vs previous 28 days</p>
+          </div>
+          <div class="metric">
+            <strong>$486.20</strong>
+            <span>Total earnings</span>
+            <p class="delta-down">-4.1% vs previous 28 days</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="head-row">
+          <h3>Breakdown by platform</h3>
+          <a class="learn" href="analytics.html" style="margin:0">View full analytics</a>
+        </div>
+        <table class="data">
+          <thead><tr><th>Platform</th><th>Streams</th><th>Share</th><th>Revenue</th></tr></thead>
+          <tbody>
+            <tr><td>Spotify</td><td>74,288</td><td><div class="share-bar"><i style="width:80%;background:var(--green)"></i></div></td><td>$282.50</td></tr>
+            <tr><td>Apple Music</td><td>28,946</td><td><div class="share-bar"><i style="width:40%;background:var(--magenta)"></i></div></td><td>$110.10</td></tr>
+            <tr><td>YouTube</td><td>15,250</td><td><div class="share-bar"><i style="width:22%;background:#E24B4B"></i></div></td><td>$52.70</td></tr>
+          </tbody>
+        </table>
+        <p style="color:var(--muted);font-size:12px;margin-top:12px">Last updated 11 Aug 2026, 04:00 UTC</p>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="head-row">
+            <h3>Split sheet</h3>
+            <span class="wait">2 of 3 signed</span>
+          </div>
+          <div class="loc"><span>Victoria Reyes · Composer, Lyricist · 60%</span><span class="live">Signed</span></div>
+          <div class="loc"><span>M. Hale · Lyricist · 25%</span><span class="live">Signed</span></div>
+          <div class="loc"><span>I. Novak · Producer · 15%</span><span class="wait">Awaiting signature <a href="cowriter.html" style="color:var(--magenta);margin-left:8px">Resend</a></span></div>
+          <p style="margin-top:16px">
+            <a class="btn btn-purple btn-sm" href="splits.html">Open full split sheet</a>
+            <a class="learn" href="cowriter.html" style="display:inline;margin-left:12px">Preview co-writer view</a>
+          </p>
+        </div>
+        <div class="panel">
+          <div class="head-row">
+            <h3>Publishing</h3>
+            <span class="pill pill-green">Registered</span>
+          </div>
+          <p style="color:var(--muted-2);font-size:14px;margin-bottom:14px">This work is registered and the publishing share is administered on your behalf.</p>
+          <div class="loc"><span>Work code</span><span>PG-2026-04427</span></div>
+          <div class="loc"><span>Registration fee</span><span>$100.00 one-time</span></div>
+          <div class="loc"><span>Commission on royalties</span><span class="live">None</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="head-row">
+          <h3>Boost history</h3>
+          <a class="learn" href="boosts.html" style="margin:0">View all Boosts</a>
+        </div>
+        <table class="data">
+          <thead><tr><th>Date</th><th>Type</th><th>Reach</th><th>Status</th><th>ROI</th></tr></thead>
+          <tbody>
+            <tr><td>2 Aug 2026</td><td>Chart Push</td><td>82,500</td><td class="live">Completed</td><td>2.5x+</td></tr>
+            <tr><td>22 Jul 2026</td><td>Streaming Push</td><td>46,900</td><td class="wait">In-Progress</td><td>1.1x+</td></tr>
+            <tr><td>14 Jul 2026</td><td>Social Push</td><td>Pending</td><td style="color:var(--muted)">Submitted</td><td>Pending</td></tr>
+          </tbody>
+        </table>
+        <div class="page-foot">
+          <span>3 Boosts on this release</span>
+          <a href="boosts.html">View all Boost history</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

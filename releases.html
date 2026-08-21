@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Releases – PLAIGROUND</title>
+  <title>My Music / Library – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -11,24 +11,26 @@
 </head>
 <body class="app">
   <aside class="side">
-    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <p class="side-label green">Menu</p>
     <nav class="side-nav">
       <a href="dashboard.html">Overview</a>
       <a class="on" href="releases.html">Releases</a>
       <a href="splits.html">Split sheets</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
       <a href="payouts.html">Payouts</a>
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 9 Sep 2026 · $149 a year.</p>
+      <h4 class="stat-g">On Pro</h4>
+      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px">Renews 9 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY <span>Hi, Victoria</span></div>
+      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
@@ -39,11 +41,11 @@
         </div>
         <a class="btn btn-purple btn-sm" href="upload.html">New release</a>
       </div>
-      <div class="stats-bar">
-        <span>2 total releases</span>
-        <span class="g">1 live</span>
-        <span>0 in review</span>
-        <span>1 draft</span>
+      <div class="catalog-stats">
+        <div><strong>2</strong><span>Total releases</span></div>
+        <div><strong class="stat-g">1</strong><span>Live</span></div>
+        <div><strong class="stat-y">0</strong><span>In review</span></div>
+        <div><strong>1</strong><span>Draft</span></div>
       </div>
       <div class="tabs">
         <a class="on" href="releases.html">All</a>
@@ -57,22 +59,28 @@
         </thead>
         <tbody>
           <tr>
-            <td><div class="rel"><span class="thumb"></span><div><b>Neon Sermon</b><small>Single · Released 12 Jul 2026</small></div></div></td>
+            <td><a class="rel" href="song.html"><span class="thumb"></span><div><b>Neon Sermon</b><small>Single · Released 12 Jul 2026</small></div></a></td>
             <td class="live">Live</td>
             <td>Signed 2/2</td>
-            <td>4,182,660</td>
-            <td>$10,412.44</td>
+            <td>4,182,680</td>
+            <td><b>$18,412.44</b></td>
           </tr>
           <tr>
             <td><div class="rel"><span class="thumb grey"></span><div><b>Neon Shadows</b><small>Draft · Last edited 2 hours ago</small></div></div></td>
-            <td>Draft</td>
-            <td>Not started</td>
-            <td>—</td>
-            <td>—</td>
+            <td style="color:var(--muted)">Draft</td>
+            <td style="color:var(--muted)">Not started</td>
+            <td style="color:var(--muted)">No data yet</td>
+            <td style="color:var(--muted)">No data yet</td>
           </tr>
         </tbody>
       </table>
-      <p style="margin-top:24px;text-align:right"><a class="btn btn-ghost btn-sm" href="dashboard.html">Back to overview</a></p>
+      <div class="page-foot">
+        <span>Showing 2 of 2 releases</span>
+        <span>
+          <a href="library.html" style="color:var(--muted-2);margin-right:16px">Preview the empty state</a>
+          <a class="btn btn-ghost btn-sm" href="dashboard.html">Back to overview</a>
+        </span>
+      </div>
     </div>
   </div>
 </body>
