@@ -11,6 +11,8 @@ SIGNWELL_API_KEY=
 SIGNWELL_TEMPLATE_ID=
 XAI_API_KEY=
 STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 ```
 
-`XAI_API_KEY` and `STRIPE_SECRET_KEY` are server-only. Do not put them in frontend files. Live talk and Checkout stay off until they are set on Vercel.
+`XAI_API_KEY` and `STRIPE_SECRET_KEY` are server-only. Do not put them in frontend files. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).

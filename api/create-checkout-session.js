@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * GET  /api/create-checkout-session  → { configured: boolean } (does not mint)
+ * GET  /api/create-checkout-session  → { configured, publishableKey } (does not mint)
  * POST /api/create-checkout-session  → { url } for Stripe-hosted Checkout
  *
  * Server-only env: STRIPE_SECRET_KEY (never echo it).
- * Optional server env: STRIPE_PUBLISHABLE_KEY (unused for hosted Checkout).
+ * Publishable env (pk only): NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY or STRIPE_PUBLISHABLE_KEY.
  */
 
 const crypto = require('crypto');
@@ -34,6 +34,18 @@ const INTERVAL_ALIASES = {
 
 function isConfigured() {
   return Boolean(String(process.env.STRIPE_SECRET_KEY || '').trim());
+}
+
+function publishableKey() {
+  const candidates = [
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    process.env.STRIPE_PUBLISHABLE_KEY,
+  ];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const raw = String(candidates[i] || '').trim();
+    if (raw.startsWith('pk_')) return raw;
+  }
+  return null;
 }
 
 function sendJson(res, status, body) {
@@ -232,7 +244,7 @@ async function createCheckoutSession(req, res) {
 
 module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
-    sendJson(res, 200, { configured: isConfigured() });
+    sendJson(res, 200, { configured: isConfigured(), publishableKey: publishableKey() });
     return;
   }
   if (req.method !== 'POST') {
