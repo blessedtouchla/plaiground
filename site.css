@@ -1886,9 +1886,9 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
     gap: 6px;
   }
   .nav-actions .login {
-    padding: 6px 10px;
+    padding: 8px 10px;
   }
   .nav-actions .btn.btn-sm {
-    padding: 7px 12px;
+    padding: 9px 12px;
   }
 }
