@@ -3,21 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Co-writer signing – PLAIGROUND</title>
+  <title>Signature received – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
 </head>
 <body>
-  <div class="flow-top">
-    <a class="logo" href="index.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
-  </div>
-  <main class="page wrap" style="text-align:center;padding-top:80px">
-    <p class="kicker">Split sheet</p>
-    <h1 style="font-size:2.4rem;letter-spacing:-0.04em;font-weight:800;margin:10px 0 14px">You signed Neon Shadows.</h1>
-    <p style="color:var(--muted);max-width:480px;margin:0 auto 28px">Writer 1 signed in the page. Co-writers receive the SignWell email. There is no admin fee.</p>
-    <a class="btn btn-purple btn-md" href="login.html">Go to sign in</a>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="how-it-works.html">How it works</a>
+        <a href="index.html#pricing">Pricing</a>
+        <a href="boost.html">Boost</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="login" href="login.html">Log in</a>
+        <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="center-page wide">
+    <div class="wrap">
+      <p class="status-ok"><i>✓</i> Signature received</p>
+      <h1>Thanks, M. Hale. Your signature is on file.</h1>
+      <p class="center-lead">Victoria Reyes has been notified. Nothing else is needed from you for the release to go out, but your 25% writer share needs somewhere to be paid.</p>
+
+      <div class="signed-grid">
+        <article class="signed-card">
+          <p class="lbl">What you signed</p>
+          <div class="rel" style="margin-bottom:16px">
+            <span class="thumb lg" aria-hidden="true"></span>
+            <div>
+              <b>Neon Sermon</b>
+              <small>Victoria Reyes • Single • 2024</small>
+            </div>
+          </div>
+          <div class="kv"><span>Your role</span><b>Lyricist</b></div>
+          <div class="kv"><span>Your writer share</span><span class="share">25%</span></div>
+          <div class="kv"><span>Signed</span><b>14 Aug 2024, 18:02</b></div>
+          <div class="kv"><span>Document</span><b>Split sheet - PG-2024-0814</b></div>
+          <div class="confirm-actions" style="margin-top:18px">
+            <a class="ghost-link" href="#">Download signed copy</a>
+            <a class="ghost-link" href="#">Email me a copy</a>
+          </div>
+        </article>
+        <article class="signed-card hot">
+          <p class="lbl">One step left</p>
+          <h3>Create a free account to collect your share</h3>
+          <p class="center-lead" style="margin-bottom:8px">Your royalties are held against your name until there is an account and a payout method to send them to. Setting one up takes about two minutes and costs nothing.</p>
+          <ul class="check-list">
+            <li>Add a payout method and get paid monthly</li>
+            <li>See streams and earnings for the songs you wrote on</li>
+            <li>Sign future split sheets in one click</li>
+            <li>Release your own music on the free plan, no commission</li>
+          </ul>
+          <div class="field">
+            <label for="cowriter-email">Email</label>
+            <input id="cowriter-email" type="email" value="marcus@haleroom.co" />
+          </div>
+          <a class="btn btn-purple btn-lg" href="signup.html">Create my free account</a>
+          <p class="switch">Already have an account? <a class="gold-link" href="login.html">Log in instead</a></p>
+        </article>
+      </div>
+
+      <p class="section-lbl" style="margin-top:36px">Good to know</p>
+      <div class="know">
+        <article>
+          <h4>Your signature stands on its own</h4>
+          <p>Creating an account is about payment, not consent. The split sheet you signed is already binding and your 25% is recorded on the work.</p>
+        </article>
+        <article>
+          <h4>Nothing to pay, ever, as a co-writer</h4>
+          <p>Submission fees are paid by whoever releases the song. We take no commission on your royalties.</p>
+        </article>
+        <article>
+          <h4>First payment timing</h4>
+          <p>Stores report on their own cycle, usually four to eight weeks after release. Your share is held until then and paid once your balance clears $10.</p>
+        </article>
+        <article>
+          <h4>Something look wrong?</h4>
+          <p>If the role or share does not match what you agreed, <a class="gold-link" href="contact.html">raise a dispute</a> and we will hold delivery while it is sorted.</p>
+        </article>
+      </div>
+    </div>
   </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+          <p>Distribution, publishing and splits for AI-assisted artists. Human authorship required.</p>
+          <div class="socials">
+            <a href="https://www.tiktok.com" aria-label="TikTok"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 3c.4 2.4 1.8 4 4.1 4.2v2.3c-1.4 0-2.7-.5-3.8-1.3v6.6c0 3.6-2.8 6.2-6.4 6.2S2 18.4 2 14.8 4.8 8.6 8.4 8.6c.4 0 .8 0 1.1.1v2.5c-.3-.1-.7-.2-1.1-.2-2 0-3.6 1.6-3.6 3.8s1.6 3.8 3.6 3.8 3.5-1.6 3.5-3.8V3h2.6z"/></svg></a>
+            <a href="https://x.com" aria-label="X"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 3H21l-6.5 7.4L22 21h-6.2l-4.8-6.3L5.6 21H2.8l7-8L2 3h6.3l4.4 5.8L18.2 3zm-1.1 16.2h1.7L7 4.7H5.2l11.9 14.5z"/></svg></a>
+            <a href="https://www.instagram.com" aria-label="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="how-it-works.html">How it works</a>
+          <a href="index.html#pricing">Pricing</a>
+          <a href="boost.html">Marketing Boost</a>
+          <a href="faq.html">FAQ</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="about.html">About us</a>
+          <a href="contact.html">Contact us</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="terms.html">Terms of Service</a>
+          <a href="rights.html">Rights Attestation</a>
+          <a href="privacy.html">Privacy</a>
+        </div>
+        <div class="footer-col">
+          <h4>Account</h4>
+          <a href="login.html">Sign in</a>
+          <a href="signup.html">Create account</a>
+        </div>
+      </div>
+      <p class="copy">© 2026 PLAIGROUND LLC</p>
+    </div>
+  </footer>
 </body>
 </html>

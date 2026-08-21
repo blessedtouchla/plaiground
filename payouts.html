@@ -24,13 +24,14 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 11 Sep 2026 · $149 a year.</p>
+      <h4 class="stat-g">On Pro</h4>
+      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px">Renews 8 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY <span>Hi, Victoria</span></div>
+      <span></span>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
@@ -51,23 +52,47 @@
       <div class="two-col">
         <div class="panel">
           <h3>Payout method</h3>
-          <p>ACH · Chase •••• 4417</p>
-          <p style="margin-top:14px"><button class="btn btn-ghost btn-sm" type="button">Change method</button></p>
+          <div class="method">
+            <span class="ach">ACH</span>
+            <div>
+              <b>Chase **** 4417</b>
+              <div style="color:var(--muted);font-size:13px;margin-top:4px">Victoria Reyes · USD</div>
+            </div>
+          </div>
+          <p style="margin-top:16px"><button class="btn btn-ghost btn-sm" type="button">Change method</button></p>
         </div>
         <div class="panel">
           <h3>Tax and compliance</h3>
-          <p>Form W-9 · <span class="live">On file</span></p>
-          <p style="margin-top:8px;color:var(--muted)">Payout currency USD · Minimum payout $10.00</p>
+          <div class="kv"><span>Form W-9</span><b class="live">On file</b></div>
+          <div class="kv"><span>Payout currency</span><b>USD</b></div>
+          <div class="kv"><span>Minimum payout</span><b>$10.00</b></div>
         </div>
       </div>
       <div class="panel">
-        <div class="head-row"><h3>Payout history</h3><span style="color:var(--muted);font-size:12px">Statements available for 24 months</span></div>
+        <div class="head-row">
+          <h3>How this payout is calculated</h3>
+          <span style="color:var(--muted);font-size:12px">Period Jul 2026</span>
+        </div>
+        <div class="deduct"><span>Reported by stores and societies</span><b>$3,950.42</b></div>
+        <div class="deduct"><span>Store and platform share</span><span class="amber">-$428.60</span></div>
+        <div class="deduct"><span>Collection and society deductions</span><span class="amber">-$66.12</span></div>
+        <div class="deduct"><span>Payment processing</span><span class="amber">-$12.85</span></div>
+        <div class="deduct"><span>PLAIGROUND commission</span><span class="ok">$0.00</span></div>
+        <div class="calc-total"><span>Paid to you</span><span class="ok">$3,442.85</span></div>
+        <p class="disclaimer">PLAIGROUND takes no commission on your royalties. The deductions above are taken by the stores, collecting societies and payment providers before the money reaches us, and are shown line by line on every statement. Submission fees are charged once, at the point of release, and never withheld from a payout.</p>
+      </div>
+      <div class="panel">
+        <div class="head-row">
+          <h3>Payout history</h3>
+          <span style="color:var(--muted);font-size:12px">Statements available for 24 months.</span>
+        </div>
         <table class="data">
           <thead><tr><th>Date</th><th>Period</th><th>Method</th><th>Status</th><th>Amount</th></tr></thead>
           <tbody>
-            <tr><td>1 Aug 2026</td><td>Jul 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td>$3,102.44</td></tr>
-            <tr><td>1 Jul 2026</td><td>Jun 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td>$2,884.10</td></tr>
-            <tr><td>1 Jun 2026</td><td>May 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td>$2,441.90</td></tr>
+            <tr><td>1 Aug 2026</td><td>Jul 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$3,102.44</b></td></tr>
+            <tr><td>1 Jul 2026</td><td>Jun 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$2,760.58</b></td></tr>
+            <tr><td>1 Jun 2026</td><td>May 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$2,416.80</b></td></tr>
+            <tr><td>1 May 2026</td><td>Apr 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$1,962.34</b></td></tr>
           </tbody>
         </table>
       </div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Submitted – PLAIGROUND</title>
+  <title>Payment confirmed – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -12,15 +12,47 @@
 <body>
   <div class="flow-top">
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
-    <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+    <span></span>
   </div>
-  <main class="page wrap" style="text-align:center;padding-top:80px">
-    <p class="kicker">Submit a song</p>
-    <h1 style="font-size:2.4rem;letter-spacing:-0.04em;font-weight:800;margin:10px 0 14px">Neon Shadows is in review.</h1>
-    <p style="color:var(--muted);max-width:480px;margin:0 auto 28px">This is a static mock — nothing was charged. In the live product the content scan would run next, then the split sheet would go out for signature.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a class="btn btn-purple btn-md" href="releases.html">Go to releases</a>
-      <a class="btn btn-ghost btn-md" href="dashboard.html">Back to overview</a>
+  <main class="center-page wide">
+    <div class="wrap">
+      <p class="status-ok lime"><i>✓</i> Payment confirmed</p>
+      <h1>Neon Shadows is in the queue.</h1>
+      <p class="center-lead">We charged $248.00 to your Visa ending 4417. A receipt is on its way to victoria@reyes.audio.</p>
+      <div class="confirm-bar">
+        <div><small>Order</small><b>PG-2026-0314</b></div>
+        <div><small>Total paid</small><b class="lime">$248.00</b></div>
+        <div><small>Release date</small><b>12 Sep 2026</b></div>
+        <div><small>Stores</small><b>164 of 163 stores</b></div>
+      </div>
+      <p class="section-lbl">What happens next</p>
+      <div class="next-4">
+        <article>
+          <div class="n">01</div>
+          <h3>Content scan running</h3>
+          <p>Copyright matching and AI detection. Usually minutes.</p>
+        </article>
+        <article>
+          <div class="n">02</div>
+          <h3>Split sheet sent</h3>
+          <p>M. Hale and I. Novak get signing links once the scan clears.</p>
+        </article>
+        <article>
+          <div class="n">03</div>
+          <h3>Track signatures</h3>
+          <p>Follow who has signed from your dashboard and resend links.</p>
+        </article>
+        <article>
+          <div class="n">04</div>
+          <h3>Review and deliver</h3>
+          <p>We deliver on 12 Sep. Publishing is filed within 10 business days.</p>
+        </article>
+      </div>
+      <div class="confirm-actions">
+        <a class="btn btn-purple btn-md" href="dashboard.html">Back to dashboard</a>
+        <a class="btn btn-ghost btn-md" href="song.html">View this song</a>
+        <a class="ghost-link" href="#">Download receipt</a>
+      </div>
     </div>
   </main>
 </body>

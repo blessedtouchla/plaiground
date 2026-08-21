@@ -11,7 +11,6 @@
 </head>
 <body class="app">
   <aside class="side">
-    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <p class="side-label">Menu</p>
     <nav class="side-nav">
       <a href="dashboard.html">Overview</a>
@@ -24,24 +23,32 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 8 Sep 2026 · $149 a year.</p>
+      <h4 class="stat-g">On Pro</h4>
+      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px">Renews 6 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY</div>
+      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
       <div class="page-head">
+        <p class="kicker">Rights</p>
         <h1>Split sheets</h1>
-        <p>Every writer signs before delivery. Shares among writers must total 100% of the writer’s half.</p>
+        <p>Every writer signs before delivery. Shares must total 100%.</p>
       </div>
-      <div class="empty">
-        <h3>No split sheets yet.</h3>
-        <p>They appear here after you start a submission.</p>
-        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html">Submit a song</a></p>
+      <div class="empty-card">
+        <div class="empty-ico blue" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v5h5"/><path d="M10 13h6M10 17h4"/></svg>
+        </div>
+        <h3>Your first split sheet goes here</h3>
+        <p>Split sheets are created as part of a submission. Once you add writers and shares, every signature and its status shows up on this page.</p>
+        <div class="empty-actions">
+          <a class="btn btn-purple btn-md" href="upload.html">Start a submission</a>
+          <a class="ghost-link" href="splits.html">Show the populated state</a>
+        </div>
       </div>
     </div>
   </div>
