@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Split sheets – PLAIGROUND</title>
+  <title>Library – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -15,8 +15,8 @@
     <p class="side-label">Menu</p>
     <nav class="side-nav">
       <a href="dashboard.html">Overview</a>
-      <a href="releases.html">Releases</a>
-      <a class="on" href="splits.html">Split sheets</a>
+      <a class="on" href="releases.html">Releases</a>
+      <a href="splits.html">Split sheets</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
       <a href="boosts.html">Boosts</a>
@@ -25,32 +25,27 @@
     </nav>
     <div class="pro-card">
       <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 9 Sep 2026 · $149 a year.</p>
+      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 8 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY <span>Hi, Victoria</span></div>
+      <div class="ready">● ACCOUNT READY</div>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
-      <div class="page-head">
-        <h1>Split sheets</h1>
-        <p>Every writer signs before delivery. Shares must total 100%. Only the person submitting needs a PRO and IPI on file.</p>
+      <div class="head-row page-head">
+        <div>
+          <p class="kicker">Catalog</p>
+          <h1>Your latest releases</h1>
+        </div>
+        <span style="color:var(--muted)">Nothing here yet</span>
       </div>
-      <table class="data">
-        <thead>
-          <tr><th>Work</th><th>Writers</th><th>Signatures</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><div><b>Neon Sermon</b><br /><small style="color:var(--muted)">Work · delivered 12 Jul 2026</small></div></td>
-            <td>2 writers</td>
-            <td>2 of 2</td>
-            <td class="live">Signed</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="empty">
+        <h3>Your first release goes here.</h3>
+        <p>Once you submit, you’ll track scans and delivery from this panel.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html">Create now</a></p>
+      </div>
     </div>
   </div>
 </body>

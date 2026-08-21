@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="flow-top">
-    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
   </div>
   <main class="page wrap-wide">
@@ -23,28 +23,30 @@
       <a class="learn" href="dashboard.html">Save and exit</a>
     </div>
     <div class="stepper">
-      <div class="st on"><b>01 Upload</b><span>Audio and details</span></div>
-      <div class="st"><b>02 Attest rights</b><span>Human authorship</span></div>
-      <div class="st"><b>03 Split sheet</b><span>Writers and shares</span></div>
-      <div class="st"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
+      <div class="st on"><b>Upload</b><span>Audio and details</span></div>
+      <div class="st"><b>Attest rights</b><span>Human authorship</span></div>
+      <div class="st"><b>Split sheet</b><span>Writers and shares</span></div>
+      <div class="st"><b>Review &amp; pay</b><span>Cost and delivery</span></div>
     </div>
 
     <section class="flow-card">
-      <h3>Upload your audio</h3>
-      <p class="hint">WAV or FLAC, 16-bit or higher</p>
+      <div class="head-row">
+        <h3>Upload your audio</h3>
+        <p class="hint" style="margin:0">WAV or FLAC, 16-bit or higher</p>
+      </div>
       <div class="audio-bar">
         <div>
           <b>neon_shadows_master_v3.wav</b>
           <div style="color:var(--muted);font-size:12px">48 kHz · 24-bit · 62.4 MB · 3:41</div>
         </div>
         <div class="wave" aria-hidden="true">
-          <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:35%"></i><i style="height:75%"></i><i style="height:50%"></i><i style="height:85%"></i><i style="height:40%"></i><i style="height:65%"></i><i style="height:30%"></i><i style="height:88%"></i>
+          <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:60%"></i><i class="dim" style="height:35%"></i><i class="dim" style="height:75%"></i><i class="dim" style="height:50%"></i><i class="dim" style="height:85%"></i><i class="dim" style="height:40%"></i><i class="dim" style="height:65%"></i><i class="dim" style="height:30%"></i><i class="dim" style="height:88%"></i>
         </div>
         <button class="play" type="button" aria-label="Play">▶</button>
       </div>
       <div class="opt-grid">
-        <div class="dashbox">Add instrumental (Optional, helps sync licensing)</div>
-        <div class="dashbox">Add lyrics file (.txt or .lrc for timed lyrics)</div>
+        <div class="dashbox">Add instrumental<br /><span>Optional, helps sync licensing</span></div>
+        <div class="dashbox">Add lyrics file<br /><span>.srt or .lrc for timed lyrics</span></div>
       </div>
     </section>
 
@@ -56,12 +58,13 @@
           <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button">Replace artwork</button></p>
           <p class="hint">3000 × 3000 px · JPG · 2.1 MB</p>
         </div>
-        <div>
-          <p class="hint" style="margin-bottom:10px">Artwork guidelines</p>
+        <div class="art-guide">
+          <h4 style="margin-bottom:8px">Artwork guidelines</h4>
+          <p class="hint">Make sure the artwork meets our guidelines.</p>
           <ul style="color:var(--muted-2);font-size:14px;padding-left:18px">
-            <li>Recommended size is 3000px, maximum 5000px.</li>
-            <li>Cover artwork must be a square.</li>
-            <li>No store logos, URLs, or contact details.</li>
+            <li>Recommended size is 3000px, maximum 5000px</li>
+            <li>Cover artwork must be a square</li>
+            <li>No store logos, URLs, or contact details</li>
           </ul>
         </div>
       </div>
@@ -69,7 +72,7 @@
 
     <section class="flow-card">
       <h3>Submit the details</h3>
-      <div class="form-grid">
+      <div class="form-grid three">
         <div class="field"><label>Song title</label><input value="Neon Shadows" /></div>
         <div class="field"><label>Primary artist</label><input value="Victoria Reyes" /></div>
         <div class="field"><label>Featured artist</label><input placeholder="Optional" /></div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rights Attestation – PLAIGROUND</title>
+  <title>Email confirmation – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -24,15 +24,16 @@
       </div>
     </div>
   </header>
-  <main class="legal wrap">
-    <h1>Rights Attestation</h1>
-    <p class="meta">Placeholder. The live product will require a signed attestation before delivery.</p>
-    <p>By submitting a release you confirm that you hold the rights to the recording, that you have disclosed AI-assisted portions honestly, and that no part of the work clones an existing artist’s voice or master.</p>
-    <h2>Human authorship</h2>
-    <p>Fully AI-generated tracks can still be distributed and monetized. They just cannot be published, because publishing registration needs a human author. At least one human contribution is required to claim authorship and collect writer royalties.</p>
-    <h2>Publisher appointment</h2>
-    <p>If you pay for publishing registration, PLAIGROUND LLC is appointed publisher of record for that work at 100% of the publisher’s half. Your writer share is set on the split sheet and is unaffected by that appointment.</p>
-    <p><a class="btn btn-ghost btn-sm" href="index.html">Back to home</a></p>
+  <main class="auth" style="grid-template-columns:1fr">
+    <section class="auth-panel" style="border:none;min-height:calc(100vh - var(--nav-h))">
+      <div class="auth-card">
+        <p class="eyebrow magenta">Account</p>
+        <h2>Check your email</h2>
+        <p class="lead">We sent a confirmation link. Open it to finish creating the account.</p>
+        <a class="btn btn-purple btn-lg" href="magic.html">Open confirmation</a>
+        <p class="switch"><a href="login.html">Back to sign in</a></p>
+      </div>
+    </section>
   </main>
 </body>
 </html>

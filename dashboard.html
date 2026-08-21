@@ -11,46 +11,81 @@
 </head>
 <body class="app">
   <aside class="side">
-    <a class="logo" href="dashboard.html"><img src="IMG_6723.jpeg" alt="PLAIGROUND" /></a>
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+    <p class="side-label">Menu</p>
     <nav class="side-nav">
       <a class="on" href="dashboard.html">Overview</a>
       <a href="releases.html">Releases</a>
       <a href="splits.html">Split sheets</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
       <a href="payouts.html">Payouts</a>
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
       <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 9 Sep 2026 · $149 a year.</p>
+      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px">Renews 8 Sep 2026 · $149 a year.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <div class="ready">● ACCOUNT READY <span>Hi, Victoria</span></div>
+      <div class="ready">● ACCOUNT READY</div>
       <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
     </div>
     <div class="page">
-      <div class="page-head">
-        <h1>Start your first song submission</h1>
-        <p>Upload a finished track, confirm the rights, sign the split sheet. We register the publishing and deliver it everywhere.</p>
-        <p style="margin-top:18px"><a class="btn btn-purple btn-md" href="upload.html">Submit your first song</a></p>
+      <div class="dash-top">
+        <div class="page-head" style="margin:0">
+          <p class="ready" style="margin-bottom:10px">● ACCOUNT READY</p>
+          <h1>Start your first song submission</h1>
+          <p>Upload a finished track, confirm the rights, sign the split sheet. We register the publishing and deliver it everywhere.</p>
+          <p style="margin-top:18px">
+            <a class="btn btn-purple btn-md" href="upload.html">Submit your first song</a>
+            <span style="color:var(--muted);font-size:13px;margin-left:12px">About 10 minutes, start to finish</span>
+          </p>
+        </div>
+        <div class="account-card">
+          <div class="head-row" style="margin-bottom:8px">
+            <h3 style="letter-spacing:0.14em;font-size:11px;color:var(--muted)">Your account</h3>
+            <span style="color:var(--gold);font-weight:800;font-size:12px">PRO</span>
+          </div>
+          <div class="row"><span>Releases live</span><b>0</b></div>
+          <div class="row"><span>Split sheets signed</span><b>0</b></div>
+          <div class="row"><span>Payout method</span><b style="color:var(--gold)">Not set up</b></div>
+          <div class="row"><span>Plan renews</span><b>8 Sep 2026</b></div>
+          <p style="margin-top:14px"><a class="learn" href="payouts.html" style="text-align:left;color:var(--gold)">Add a payout method</a></p>
+        </div>
       </div>
+
+      <p class="eyebrow" style="margin-bottom:12px">How a submission works</p>
       <div class="workflow">
         <div class="wf"><b>01 Upload</b><span>Audio and details</span></div>
         <div class="wf"><b>02 Attest rights</b><span>Human authorship</span></div>
         <div class="wf"><b>03 Split sheet</b><span>Writers and shares</span></div>
         <div class="wf"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
       </div>
+
+      <div class="pub-call">
+        <div>
+          <p class="ok">PRO • INCLUDED IN YOUR PLAN</p>
+          <h3 style="font-size:1.4rem;margin:8px 0">Register your publishing</h3>
+          <p style="color:var(--muted);max-width:520px">Neon Shadows is live and not registered yet, so its publishing royalties are not being collected.</p>
+        </div>
+        <div style="text-align:right">
+          <a class="btn btn-purple btn-md" href="publishing.html">Register for Publishing</a>
+          <p style="color:var(--muted);font-size:13px;margin-top:8px">1 song eligible</p>
+        </div>
+      </div>
+
       <div class="head-row" style="margin-bottom:12px">
         <h3>Your latest releases</h3>
-        <span class="ready" style="color:var(--muted)">Nothing here yet</span>
+        <span style="color:var(--muted)">Nothing here yet</span>
       </div>
       <div class="empty">
         <h3>Your first release goes here.</h3>
-        <p>Once you submit, you'll track content, plans, signatures and delivery from this panel.</p>
-        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html">Create new</a></p>
+        <p>Once you submit, you’ll track content, plans, signatures and delivery from this panel.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html">Create now</a></p>
       </div>
     </div>
   </div>
