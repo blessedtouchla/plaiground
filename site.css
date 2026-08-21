@@ -324,6 +324,16 @@ button { cursor: pointer; }
 .price strong { font-size: 2.35rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
 .price em { font-style: normal; font-size: 14px; color: var(--muted); font-weight: 500; }
 .plan-year { color: var(--muted); font-size: 14px; font-weight: 500; margin: -6px 0 12px; }
+button.plan-year {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+button.plan-year:hover { color: #fff; }
 .plan-blurb { color: var(--muted); font-size: 14px; margin-bottom: 22px; min-height: 42px; }
 .card ul { list-style: none; margin-bottom: 28px; flex: 1; }
 .card li {
