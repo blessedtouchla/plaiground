@@ -426,7 +426,9 @@
 
   function configureSession() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    // Audio + VAD only besides official resumption opt-in. Never overwrite agent instructions.
+    // Audio + VAD + official TTS replace. Never set instructions (keeps Voice Agent Builder persona).
+    // replace: spoken audio says PLAY; transcript the user sees stays PLAI.
+    // https://docs.x.ai/developers/model-capabilities/audio/voice-agent#pronunciation-replacements
     ws.send(JSON.stringify({
       type: 'session.update',
       session: {
@@ -436,6 +438,7 @@
           output: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
         },
         resumption: { enabled: true },
+        replace: { PLAI: 'PLAY' },
       },
     }));
   }
@@ -771,7 +774,10 @@
     var form = el('form', { className: 'plai-bubble-composer' }, [inputEl, sendBtn]);
     panel = el('div', { className: 'plai-bubble-panel' }, [
       el('div', { className: 'plai-bubble-head' }, [
-        el('div', { className: 'plai-bubble-title', text: 'PLAI' }),
+        el('div', { className: 'plai-bubble-brand' }, [
+          el('div', { className: 'plai-bubble-title', text: 'PLAI' }),
+          el('p', { className: 'plai-bubble-hint', text: 'sounds like PLAY' }),
+        ]),
         xPanel,
       ]),
       statusEl,
