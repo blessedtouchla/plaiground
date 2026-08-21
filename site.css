@@ -1834,3 +1834,61 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
   .hero-ctas .btn { width: 100%; max-width: 280px; }
   .page { padding: 22px 16px 40px; }
 }
+
+/* Phone header only: 72px wordmark (~264px wide) leaves no room for Log in + Release Now. */
+@media (max-width: 640px) {
+  :root {
+    --nav-h: 72px;
+  }
+  .nav-inner {
+    gap: 8px;
+  }
+  .nav .logo {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 42%;
+  }
+  .nav .logo img {
+    height: 40px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: left center;
+  }
+  .nav-actions {
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .nav-actions .login,
+  .nav-actions .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  .nav-actions .login {
+    padding: 7px 12px;
+  }
+  .nav-actions .btn.btn-sm {
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .nav-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 6px;
+  }
+  .nav .logo {
+    max-width: 36%;
+  }
+  .nav-actions {
+    gap: 6px;
+  }
+  .nav-actions .login {
+    padding: 6px 10px;
+  }
+  .nav-actions .btn.btn-sm {
+    padding: 7px 12px;
+  }
+}
