@@ -4,21 +4,40 @@
   var SAMPLE_RATE = 24000;
   var AGENT_ID = 'agent_BDVzp3Ar3ABtyov5';
   var SESSION_URL = '/api/plai-session';
-  var WS_URL = 'wss://api.x.ai/v1/realtime?agent_id=' + encodeURIComponent(AGENT_ID);
+  var WS_BASE = 'wss://api.x.ai/v1/realtime?agent_id=' + encodeURIComponent(AGENT_ID);
   var DISMISS_KEY = 'plai-bubble-dismissed';
+  var STATE_KEY = 'plai-bubble-state';
   var CHUNK_MS = 100;
+  var MAX_TURNS = 8;
+  var MAX_TEXT = 400;
+  var RESUME_TTL_MS = 30 * 60 * 1000;
+  var SEED_PREFIX = 'We were already talking on this site.';
 
   var root;
   var pill;
   var panel;
   var statusEl;
   var endBtn;
+  var logEl;
+  var inputEl;
+  var sendBtn;
   var configured = false;
   var state = 'idle';
   var open = false;
+  var micOn = false;
+  var wantRestoreTalk = false;
 
   var ws = null;
   var sessionReady = false;
+  var talkGen = 0;
+  var conversationId = '';
+  var conversationAt = 0;
+  var usedResume = false;
+  var seededHistory = false;
+  var pendingText = '';
+  var transcript = [];
+  var assistantStreamKind = '';
+
   var audioContext = null;
   var mediaStream = null;
   var processorNode = null;
@@ -40,14 +59,154 @@
     return node;
   }
 
+  function storageGet(key) {
+    try { return sessionStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function storageSet(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (e) {}
+  }
+
+  function storageRemove(key) {
+    try { sessionStorage.removeItem(key); } catch (e) {}
+  }
+
+  function normalizeTranscript(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows.slice(-MAX_TURNS).map(function (row) {
+      var role = row && row.role === 'user' ? 'user' : 'plai';
+      return {
+        role: role,
+        text: String(row && row.text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT),
+        streaming: false,
+      };
+    }).filter(function (row) { return row.text; });
+  }
+
+  function persistState() {
+    if (storageGet(DISMISS_KEY) === '1') return;
+    var clean = normalizeTranscript(transcript);
+    storageSet(STATE_KEY, JSON.stringify({
+      open: open,
+      conversationId: conversationId || '',
+      conversationAt: conversationId ? (conversationAt || Date.now()) : 0,
+      transcript: clean,
+    }));
+  }
+
+  function loadState() {
+    var raw = storageGet(STATE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+  }
+
+  function usableConversationId(saved) {
+    if (!saved || !saved.conversationId) return '';
+    var at = Number(saved.conversationAt) || 0;
+    if (!at || (Date.now() - at) > RESUME_TTL_MS) return '';
+    return String(saved.conversationId);
+  }
+
+  function sameLine(row, role, text) {
+    return row && row.role === role && String(row.text || '').trim() === String(text || '').trim();
+  }
+
+  function renderLog() {
+    if (!logEl) return;
+    logEl.innerHTML = '';
+    if (!transcript.length) {
+      logEl.appendChild(el('p', {
+        className: 'plai-bubble-empty',
+        text: 'Voice or type. PLAI stays with you on this site.',
+      }));
+      return;
+    }
+    transcript.forEach(function (row) {
+      logEl.appendChild(el('div', {
+        className: 'plai-bubble-msg is-' + row.role + (row.streaming ? ' is-streaming' : ''),
+        text: row.text,
+      }));
+    });
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function addLine(role, text) {
+    var clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT);
+    if (!clean) return;
+    var last = transcript[transcript.length - 1];
+    if (sameLine(last, role, clean)) {
+      last.streaming = false;
+      renderLog();
+      persistState();
+      return;
+    }
+    transcript.push({ role: role, text: clean, streaming: false });
+    if (transcript.length > MAX_TURNS) transcript = transcript.slice(-MAX_TURNS);
+    renderLog();
+    persistState();
+  }
+
+  function appendDelta(role, delta, kind) {
+    var piece = String(delta || '');
+    if (!piece) return;
+    if (role === 'plai') {
+      if (assistantStreamKind && assistantStreamKind !== kind) return;
+      assistantStreamKind = kind;
+    }
+    var last = transcript[transcript.length - 1];
+    if (last && last.role === role && last.streaming) {
+      last.text = (last.text + piece).slice(0, MAX_TEXT);
+    } else {
+      transcript.push({ role: role, text: piece.slice(0, MAX_TEXT), streaming: true });
+      if (transcript.length > MAX_TURNS) transcript = transcript.slice(-MAX_TURNS);
+    }
+    renderLog();
+    persistState();
+  }
+
+  function finishStreaming(role) {
+    var last = transcript[transcript.length - 1];
+    if (last && last.role === role && last.streaming) {
+      last.streaming = false;
+      last.text = last.text.replace(/\s+/g, ' ').trim();
+      if (!last.text) transcript.pop();
+      renderLog();
+      persistState();
+    }
+    if (role === 'plai') assistantStreamKind = '';
+  }
+
+  function itemText(item) {
+    if (!item || typeof item !== 'object') return '';
+    if (typeof item.transcript === 'string' && item.transcript.trim()) return item.transcript;
+    var content = item.content;
+    if (!Array.isArray(content)) return '';
+    var parts = [];
+    content.forEach(function (part) {
+      if (!part || typeof part !== 'object') return;
+      if (typeof part.text === 'string' && part.text.trim()) parts.push(part.text);
+      else if (typeof part.transcript === 'string' && part.transcript.trim()) parts.push(part.transcript);
+    });
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function setComposerEnabled(on) {
+    if (!inputEl || !sendBtn) return;
+    inputEl.disabled = !on;
+    sendBtn.disabled = !on;
+  }
+
   function setState(next, message) {
     state = next;
     root.dataset.state = next;
     root.classList.toggle('is-closed', !open);
+    if (pill) pill.setAttribute('aria-expanded', open ? 'true' : 'false');
     var copy = {
-      idle: { title: 'Ready', body: 'Tap Talk to PLAI. Your mic starts only after you do.' },
-      listening: { title: 'Listening', body: 'Speak when you are ready. PLAI is on the line.' },
+      idle: { title: 'Ready', body: 'Talk or type. Your mic starts only after you tap Talk.' },
+      reconnecting: { title: 'Still here', body: 'PLAI is reconnecting…' },
+      listening: { title: 'Listening', body: 'Speak or type. PLAI is on the line.' },
       talking: { title: 'Talking', body: 'PLAI is answering.' },
+      text: { title: 'Ready to chat', body: 'Mic is off. Type a message to PLAI.' },
       error: { title: 'Could not connect', body: message || 'Try again in a moment.' },
       'not-configured': {
         title: 'Coming soon',
@@ -62,13 +221,18 @@
       next === 'not-configured' ? 'Coming soon' :
       next === 'listening' ? 'Listening' :
       next === 'talking' ? 'Talking' :
+      next === 'reconnecting' ? 'Reconnecting' :
+      next === 'text' ? 'Chat with PLAI' :
       next === 'error' ? 'Try again' : 'Talk to PLAI';
-    endBtn.hidden = next !== 'listening' && next !== 'talking';
+    endBtn.hidden = !open || next === 'not-configured';
+    setComposerEnabled(configured && next !== 'not-configured');
   }
 
   function dismiss() {
     stopTalk();
-    try { sessionStorage.setItem(DISMISS_KEY, '1'); } catch (e) {}
+    open = false;
+    storageSet(DISMISS_KEY, '1');
+    storageRemove(STATE_KEY);
     root.classList.add('is-dismissed');
     root.hidden = true;
   }
@@ -152,7 +316,7 @@
     if (!playbackQueue.length) {
       playing = false;
       currentSource = null;
-      if (state === 'talking') setState('listening');
+      if (state === 'talking') setState(micOn ? 'listening' : 'text');
       return;
     }
     var chunk = playbackQueue.shift();
@@ -201,6 +365,7 @@
       mediaStream.getTracks().forEach(function (track) { track.stop(); });
       mediaStream = null;
     }
+    micOn = false;
   }
 
   async function startCapture() {
@@ -249,10 +414,19 @@
     sourceNode.connect(processorNode);
     processorNode.connect(mute);
     mute.connect(ctx.destination);
+    micOn = true;
+  }
+
+  function socketUrl() {
+    if (conversationId) {
+      return WS_BASE + '&conversation_id=' + encodeURIComponent(conversationId);
+    }
+    return WS_BASE;
   }
 
   function configureSession() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    // Audio + VAD only besides official resumption opt-in. Never overwrite agent instructions.
     ws.send(JSON.stringify({
       type: 'session.update',
       session: {
@@ -261,40 +435,188 @@
           input: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
           output: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
         },
+        resumption: { enabled: true },
       },
     }));
   }
 
-  function handleEvent(event) {
-    if (!event || !event.type) return;
-    if (event.type === 'session.updated') {
-      sessionReady = true;
-      if (state !== 'talking') setState('listening');
+  function seedHistory() {
+    if (!ws || ws.readyState !== WebSocket.OPEN || !sessionReady) return;
+    if (usedResume || seededHistory) return;
+    var turns = normalizeTranscript(transcript);
+    if (pendingText) {
+      var last = turns[turns.length - 1];
+      if (last && last.role === 'user' && last.text === pendingText) {
+        turns = turns.slice(0, -1);
+      }
+    }
+    if (!turns.length) {
+      seededHistory = true;
       return;
     }
+    seededHistory = true;
+    var lines = turns.map(function (row) {
+      return (row.role === 'user' ? 'User: ' : 'PLAI: ') + row.text;
+    }).join('\n');
+    ws.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{
+          type: 'input_text',
+          text: SEED_PREFIX + ' Continue the same conversation. Recent turns:\n' + lines,
+        }],
+      },
+    }));
+  }
+
+  function flushPendingText() {
+    if (!pendingText) return;
+    var text = pendingText;
+    pendingText = '';
+    sendTextToSocket(text);
+  }
+
+  function sendTextToSocket(text) {
+    if (!ws || ws.readyState !== WebSocket.OPEN || !sessionReady) return false;
+    stopPlayback();
+    ws.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: text }],
+      },
+    }));
+    ws.send(JSON.stringify({ type: 'response.create' }));
+    return true;
+  }
+
+  function sendTyped() {
+    if (!configured) return;
+    var text = inputEl && inputEl.value ? inputEl.value.replace(/\s+/g, ' ').trim() : '';
+    if (!text) return;
+    inputEl.value = '';
+    addLine('user', text);
+    if (sessionReady) {
+      sendTextToSocket(text);
+      return;
+    }
+    pendingText = text;
+    if (!open) openPanel();
+    else if (!ws) startTalk();
+  }
+
+  function rememberConversation(id) {
+    if (!id || typeof id !== 'string') return;
+    conversationId = id;
+    conversationAt = Date.now();
+    persistState();
+  }
+
+  function handleConversationItem(event) {
+    var item = event.item || (event.conversation && event.conversation.item) || null;
+    if (!item) return;
+    var text = itemText(item);
+    if (!text || text.indexOf(SEED_PREFIX) === 0) return;
+    var role = item.role === 'user' ? 'user' : 'plai';
+    if (usedResume) {
+      // Server is replaying cached turns. UI already restored from sessionStorage.
+      return;
+    }
+    addLine(role, text);
+  }
+
+  function handleEvent(event) {
+    if (!event || !event.type) return;
+
+    if (event.type === 'conversation.created' && event.conversation && event.conversation.id) {
+      rememberConversation(event.conversation.id);
+      return;
+    }
+
+    if (event.type === 'session.updated') {
+      sessionReady = true;
+      seedHistory();
+      flushPendingText();
+      if (state !== 'talking') setState(micOn ? 'listening' : 'text');
+      return;
+    }
+
+    if (event.type === 'conversation.item.created' || event.type === 'conversation.item.added') {
+      handleConversationItem(event);
+      return;
+    }
+
+    if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      var spoken = event.transcript || itemText(event.item) || '';
+      if (spoken) addLine('user', spoken);
+      return;
+    }
+
     if (event.type === 'input_audio_buffer.speech_started') {
       stopPlayback();
+      finishStreaming('plai');
       setState('listening');
       return;
     }
+
+    if (event.type === 'response.created') {
+      assistantStreamKind = '';
+      return;
+    }
+
+    if (
+      event.type === 'response.output_text.delta' ||
+      event.type === 'response.text.delta' ||
+      event.type === 'response.output_audio_transcript.delta'
+    ) {
+      appendDelta('plai', event.delta || event.text || '', event.type);
+      return;
+    }
+
+    if (
+      event.type === 'response.output_text.done' ||
+      event.type === 'response.text.done' ||
+      event.type === 'response.output_audio_transcript.done'
+    ) {
+      finishStreaming('plai');
+      return;
+    }
+
     if (event.type === 'response.output_audio.delta' || event.type === 'response.audio.delta') {
       setState('talking');
       playDelta(event.delta);
       return;
     }
+
     if (event.type === 'response.done') {
-      if (!playing) setState('listening');
+      finishStreaming('plai');
+      if (!playing) setState(micOn ? 'listening' : 'text');
       return;
     }
+
     if (event.type === 'error') {
       var message = event.error && event.error.message ? String(event.error.message) : 'Session error.';
-      setState('error', message.replace(/[A-Za-z0-9_\-]{24,}/g, '[redacted]'));
+      var safe = message.replace(/[A-Za-z0-9_\-]{24,}/g, '[redacted]');
+      if (usedResume && /conversation|resum|expired|not found/i.test(message)) {
+        conversationId = '';
+        conversationAt = 0;
+        usedResume = false;
+        persistState();
+        startTalk();
+        return;
+      }
+      setState('error', safe);
       stopTalk();
     }
   }
 
   function stopTalk() {
     sessionReady = false;
+    talkGen += 1;
+    seededHistory = false;
     if (ws) {
       try { ws.close(); } catch (e) {}
       ws = null;
@@ -309,22 +631,31 @@
       return;
     }
     stopTalk();
-    setState('idle');
+    var gen = talkGen;
+    var restoring = wantRestoreTalk;
+    wantRestoreTalk = false;
+    usedResume = Boolean(conversationId);
+    seededHistory = false;
+    sessionReady = false;
+    setState(restoring ? 'reconnecting' : 'idle');
+
     try {
       await startCapture();
     } catch (e) {
-      setState('error', 'Microphone permission is needed to talk.');
-      return;
+      micOn = false;
     }
+    if (gen !== talkGen) return;
 
     var response;
     try {
       response = await fetch(SESSION_URL, { method: 'POST', headers: { Accept: 'application/json' } });
     } catch (e) {
+      if (gen !== talkGen) return;
       stopCapture();
       setState('error', 'Could not reach the PLAI session route.');
       return;
     }
+    if (gen !== talkGen) return;
 
     var data = {};
     try { data = await response.json(); } catch (e) { data = {}; }
@@ -349,7 +680,7 @@
     }
 
     try {
-      ws = new WebSocket(WS_URL, ['xai-client-secret.' + token]);
+      ws = new WebSocket(socketUrl(), ['xai-client-secret.' + token]);
     } catch (e) {
       stopCapture();
       setState('error', 'Browser could not open the voice socket.');
@@ -357,28 +688,35 @@
     }
 
     ws.onopen = function () {
+      if (gen !== talkGen) return;
       configureSession();
     };
     ws.onmessage = function (message) {
+      if (gen !== talkGen) return;
       if (typeof message.data !== 'string') return;
       var event;
       try { event = JSON.parse(message.data); } catch (e) { return; }
       handleEvent(event);
     };
     ws.onerror = function () {
+      if (gen !== talkGen) return;
       setState('error', 'The voice socket failed.');
     };
     ws.onclose = function () {
+      if (gen !== talkGen) return;
       sessionReady = false;
       stopCapture();
       stopPlayback();
-      if (state === 'listening' || state === 'talking') setState('idle');
+      if (open && (state === 'listening' || state === 'talking' || state === 'text' || state === 'reconnecting')) {
+        setState('idle');
+      }
     };
   }
 
   function openPanel() {
     open = true;
     root.classList.remove('is-closed');
+    persistState();
     if (!configured) {
       setState('not-configured');
       return;
@@ -388,7 +726,10 @@
 
   function closePanel() {
     open = false;
+    wantRestoreTalk = false;
+    pendingText = '';
     stopTalk();
+    persistState();
     if (configured) setState('idle');
     else setState('not-configured');
     root.classList.add('is-closed');
@@ -407,15 +748,37 @@
     statusEl = el('p', { className: 'plai-bubble-status' });
     endBtn = el('button', { className: 'plai-bubble-end', type: 'button', text: 'End' });
     endBtn.hidden = true;
-    panel = el('div', { className: 'plai-bubble-panel', hidden: 'true' }, [
+    logEl = el('div', {
+      className: 'plai-bubble-log',
+      role: 'log',
+      'aria-live': 'polite',
+      'aria-relevant': 'additions',
+    });
+    inputEl = el('input', {
+      className: 'plai-bubble-input',
+      type: 'text',
+      maxlength: '400',
+      autocomplete: 'off',
+      enterkeyhint: 'send',
+      'aria-label': 'Message PLAI',
+      placeholder: 'Type to PLAI…',
+    });
+    sendBtn = el('button', {
+      className: 'plai-bubble-send',
+      type: 'submit',
+      text: 'Send',
+    });
+    var form = el('form', { className: 'plai-bubble-composer' }, [inputEl, sendBtn]);
+    panel = el('div', { className: 'plai-bubble-panel' }, [
       el('div', { className: 'plai-bubble-head' }, [
         el('div', { className: 'plai-bubble-title', text: 'PLAI' }),
         xPanel,
       ]),
       statusEl,
+      logEl,
+      form,
       el('div', { className: 'plai-bubble-actions' }, [endBtn]),
     ]);
-    panel.removeAttribute('hidden');
     pill = el('button', {
       className: 'plai-bubble-pill',
       type: 'button',
@@ -435,20 +798,42 @@
     xPanel.addEventListener('click', dismiss);
     xPill.addEventListener('click', dismiss);
     endBtn.addEventListener('click', closePanel);
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      sendTyped();
+    });
     pill.addEventListener('click', function () {
       if (!configured) {
         open = true;
         root.classList.remove('is-closed');
+        persistState();
         setState('not-configured');
         return;
       }
-      if (open && (state === 'listening' || state === 'talking')) {
+      if (open && (state === 'listening' || state === 'talking' || state === 'text' || state === 'reconnecting')) {
         closePanel();
         return;
       }
       openPanel();
     });
+    window.addEventListener('pagehide', persistState);
     setState('idle');
+    renderLog();
+  }
+
+  function applySavedState() {
+    var saved = loadState();
+    if (!saved) return;
+    transcript = normalizeTranscript(saved.transcript);
+    conversationId = usableConversationId(saved);
+    conversationAt = conversationId ? (Number(saved.conversationAt) || Date.now()) : 0;
+    renderLog();
+    if (saved.open) {
+      open = true;
+      wantRestoreTalk = true;
+      root.classList.remove('is-closed');
+      setState('reconnecting');
+    }
   }
 
   async function checkConfigured() {
@@ -459,16 +844,21 @@
     } catch (e) {
       configured = false;
     }
-    if (!configured) setState('not-configured');
+    if (!configured) {
+      setState('not-configured');
+      setComposerEnabled(false);
+      return;
+    }
+    setComposerEnabled(true);
+    if (wantRestoreTalk && open) startTalk();
     else setState('idle');
   }
 
   function init() {
-    try {
-      if (sessionStorage.getItem(DISMISS_KEY) === '1') return;
-    } catch (e) {}
+    if (storageGet(DISMISS_KEY) === '1') return;
     if (document.getElementById('plai-bubble')) return;
     mount();
+    applySavedState();
     checkConfigured();
   }
 
