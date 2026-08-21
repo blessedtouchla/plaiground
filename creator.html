@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About us – PLAIGROUND</title>
+  <title>Creator plan – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -16,7 +16,7 @@
       <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
       <nav class="nav-links" aria-label="Primary">
         <a href="how-it-works.html">How it works</a>
-        <a href="index.html#pricing">Pricing</a>
+        <a class="active" href="index.html#pricing">Pricing</a>
         <a href="boost.html">Boost</a>
       </nav>
       <div class="nav-actions">
@@ -28,19 +28,82 @@
 
   <main>
     <section class="page-hero left">
-      <div class="wrap">
-        <p class="eyebrow magenta">About</p>
-        <h1>Why PLAIGROUND exists</h1>
-        <div class="about-grid">
-          <div>
-            <p class="lead">PLAIGROUND started because we were already making the music. Once the songs were finished, there was still nowhere legitimate for AI-assisted music to go.</p>
-            <p class="call">So we built a platform that requires transparency.</p>
+      <div class="wrap hero-split">
+        <div>
+          <div class="plan-badge"><i></i> Creator plan • $14.99 a month</div>
+          <h1>Grow a <span class="gold">release.</span></h1>
+          <p class="sub">Everything in Basic, plus the tools to grow a release.</p>
+          <button type="button" class="plan-year" data-checkout-plan="creator" data-checkout-interval="year" aria-label="Start Creator yearly checkout">or $149/year</button>
+          <div class="hero-ctas" style="justify-content:flex-start;margin-top:28px">
+            <button class="btn btn-purple btn-md" type="button" data-checkout-plan="creator" data-checkout-interval="month">Get Started</button>
+            <a class="btn btn-ghost btn-md" href="pro.html">Compare with Pro</a>
           </div>
-          <p class="bio">Founded by Herman Watson and Victoria Imtanes. Herman Watson brought years of real industry experience as an artist and manager, experience that showed how easily musicians get left unprotected. By clearly distinguishing AI-assisted work, we protect traditional musicians while creating fair ground for AI-assisted creators to release, publish, and get paid.</p>
         </div>
-        <div class="hero-ctas" style="justify-content:flex-start">
-          <a class="btn btn-purple btn-md" href="index.html#pricing">See the plans</a>
-          <a class="learn" href="mailto:emailplaiground@gmail.com" style="margin:0">Talk to us</a>
+        <div class="hero-visual" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <ul class="feature-lines">
+          <li>Everything in Basic</li>
+          <li>Unlimited releases</li>
+          <li>Advanced earnings dashboard</li>
+          <li>Deeper analytics by store and territory</li>
+          <li>Custom release scheduling</li>
+          <li>Priority email support</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap process-row">
+        <article>
+          <span class="n">01</span>
+          <h3>Upload</h3>
+          <p>Unlimited finished tracks, art and lyrics.</p>
+        </article>
+        <article>
+          <span class="n">02</span>
+          <h3>Schedule</h3>
+          <p>Custom release dates on the calendar you pick.</p>
+        </article>
+        <article>
+          <span class="n">03</span>
+          <h3>See the numbers</h3>
+          <p>Store and territory analytics on an advanced earnings dashboard.</p>
+        </article>
+        <article>
+          <span class="n">04</span>
+          <h3>Get help</h3>
+          <p>Priority email support when something needs a human.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap exclude-grid">
+        <h2>What Creator does not include</h2>
+        <ul class="exclude-list">
+          <li>Publishing registration <span class="tag-pro">Pro</span></li>
+          <li>Marketing Boost options <span class="tag-pro">Pro</span></li>
+          <li>Sync licensing revenue <span class="tag-pro">Pro</span></li>
+          <li>Multiple sources of payout <span class="tag-pro">Pro</span></li>
+          <li>Downloadable royalty statements <span class="tag-pro">Pro</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="cta-inner">
+        <h2>$14.99 a month to grow the release.</h2>
+        <div>
+          <p>Creator sits between Basic and Pro. Publishing, Boost options, and sync stay on Pro.</p>
+          <button type="button" class="plan-year" data-checkout-plan="creator" data-checkout-interval="year" aria-label="Start Creator yearly checkout">or $149/year</button>
+          <div class="hero-ctas" style="justify-content:flex-start">
+            <button class="btn btn-dark btn-md" type="button" data-checkout-plan="creator" data-checkout-interval="month">Start Creator</button>
+            <a class="btn btn-ghost btn-md" href="basic.html">See Basic</a>
+          </div>
         </div>
       </div>
     </section>
@@ -86,5 +149,6 @@
     </div>
   </footer>
   <script src="plai-bubble.js" defer></script>
+  <script src="checkout.js" defer></script>
 </body>
 </html>
