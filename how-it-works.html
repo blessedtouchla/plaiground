@@ -95,7 +95,7 @@
             <span class="badge-pop">Most Popular</span>
             <div class="plan-name">Creator</div>
             <div class="price"><strong>$14.99</strong><em>/month</em></div>
-            <p class="plan-year">or $149/year</p>
+            <button type="button" class="plan-year" data-checkout-plan="creator" data-checkout-interval="year" aria-label="Start Creator yearly checkout">or $149/year</button>
             <ul>
               <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Basic</li>
               <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited releases</li>
@@ -104,13 +104,13 @@
               <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority email support</li>
             </ul>
             <div class="card-cta">
-              <a class="btn btn-purple btn-md btn-block" href="signup.html">Get Started</a>
+              <button class="btn btn-purple btn-md btn-block" type="button" data-checkout-plan="creator" data-checkout-interval="month">Get Started</button>
             </div>
           </article>
           <article class="card">
             <div class="plan-name">Pro</div>
             <div class="price"><strong>$19.99</strong><em>/month</em></div>
-            <p class="plan-year">or $149/year</p>
+            <button type="button" class="plan-year" data-checkout-plan="pro" data-checkout-interval="year" aria-label="Start Pro yearly checkout">or $149/year</button>
             <ul>
               <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Creator</li>
               <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Publishing registration</li>
@@ -119,7 +119,8 @@
               <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Downloadable royalty statements</li>
             </ul>
             <div class="card-cta">
-              <a class="btn btn-ghost btn-md btn-block" href="pro.html">See Pro plans</a>
+              <button class="btn btn-ghost btn-md btn-block" type="button" data-checkout-plan="pro" data-checkout-interval="month">Go Pro</button>
+              <a class="learn" href="pro.html">See Pro plans</a>
             </div>
           </article>
         </div>
@@ -167,5 +168,6 @@
     </div>
   </footer>
   <script src="plai-bubble.js" defer></script>
+  <script src="checkout.js" defer></script>
 </body>
 </html>
