@@ -33,12 +33,12 @@ button, input, select, textarea { font-family: inherit; }
 button { cursor: pointer; }
 
 .wrap {
-  width: min(1560px, calc(100% - 80px));
+  width: min(1680px, 100%);
   margin: 0 auto;
 }
 
 .wrap-wide {
-  width: min(1600px, calc(100% - 64px));
+  width: min(1680px, 100%);
   margin: 0 auto;
 }
 
@@ -327,7 +327,7 @@ button { cursor: pointer; }
 .learn { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); font-weight: 500; }
 .learn:hover { color: #fff; }
 
-.cta-band { background: var(--purple); border-radius: 20px; margin: 0 auto 80px; width: min(1560px, calc(100% - 80px)); }
+.cta-band { background: var(--purple); border-radius: 20px; margin: 0 auto 80px; width: min(1680px, 100%); }
 .cta-inner {
   display: grid;
   grid-template-columns: 1fr 1fr;
