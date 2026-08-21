@@ -9,46 +9,108 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
 </head>
-<body class="app">
-  <aside class="side">
-    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
-    <p class="side-label">Menu</p>
-    <nav class="side-nav">
-      <a class="on" href="dashboard.html">Overview</a>
-      <a href="releases.html">Releases</a>
-      <a href="splits.html">Split sheets</a>
-      <a href="earnings.html">Earnings</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="boosts.html">Boosts</a>
-      <a href="payouts.html">Payouts</a>
-      <a href="settings.html">Settings</a>
-    </nav>
-    <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account. Renews 8 Sep 2026 · $149 a year.</p>
-    </div>
-  </aside>
-  <div class="app-main">
-    <div class="topbar">
-      <div class="ready">● ACCOUNT READY</div>
-      <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
-    </div>
-    <div class="page">
-      <div class="page-head">
-        <p class="kicker">Publishing</p>
-        <h1>Register your publishing</h1>
-        <p>Neon Shadows is live and not registered yet, so its publishing royalties are not being collected.</p>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="how-it-works.html">How it works</a>
+        <a href="index.html#pricing">Pricing</a>
+        <a href="boost.html">Boost</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="login" href="login.html">Log in</a>
+        <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
       </div>
-      <div class="panel">
-        <div class="head-row">
-          <div>
-            <h3>1 song eligible</h3>
-            <p style="color:var(--muted);margin-top:8px">Included in your Pro plan.</p>
-          </div>
-          <a class="btn btn-purple btn-md" href="publishing-register.html">Register for Publishing</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero left">
+      <div class="wrap">
+        <p class="eyebrow magenta">Publishing</p>
+        <h1>Register for Publishing</h1>
+        <p class="sub">Where the entry point appears: on the dashboard for any work that is not yet registered, and on the song page itself. Both routes open the same pre-filled registration.</p>
+        <div class="entry-grid">
+          <article class="entry-card hot">
+            <p class="eyebrow magenta">● 1 work unregistered</p>
+            <h2 style="font-size:1.6rem;letter-spacing:-0.03em;margin:8px 0 12px">Neon Sermon is not registered</h2>
+            <p style="color:var(--muted);margin-bottom:20px">Publishing royalties are collected by societies, not stores. Register the work and we file it for you — no commission on what comes back.</p>
+            <a class="btn btn-purple btn-md" href="publishing-register.html">Register for publishing</a>
+          </article>
+          <article class="entry-card">
+            <h2 style="font-size:1.6rem;letter-spacing:-0.03em;margin-bottom:8px">Neon Sermon</h2>
+            <p style="color:var(--muted);margin-bottom:16px">Live · splits signed 2 / 2</p>
+            <div class="loc"><span>Recording royalties</span><span class="live">Collected</span></div>
+            <div class="loc"><span>Publishing royalties</span><span style="color:var(--magenta)">Not collected</span></div>
+            <p style="margin-top:20px"><a class="btn btn-magenta btn-md" href="publishing-register.html">Register for publishing</a></p>
+          </article>
+        </div>
+        <h2 style="font-size:1.1rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:12px">What is pre-filled</h2>
+        <div class="prefill">
+          <article>
+            <div class="n">01</div>
+            <h3>Writers and shares</h3>
+            <p style="color:var(--muted);font-size:14px;margin-top:8px">Taken from the signed split sheet, with each signature on record.</p>
+          </article>
+          <article>
+            <div class="n">02</div>
+            <h3>Human authorship</h3>
+            <p style="color:var(--muted);font-size:14px;margin-top:8px">Carried over from the rights attestation you completed at submission.</p>
+          </article>
+          <article>
+            <div class="n">03</div>
+            <h3>Work and release data</h3>
+            <p style="color:var(--muted);font-size:14px;margin-top:8px">Title, ISRC and release data, exactly as delivered to the stores.</p>
+          </article>
+          <article>
+            <div class="n">04</div>
+            <h3>Only BMI fields remain</h3>
+            <p style="color:var(--muted);font-size:14px;margin-top:8px">Society, IPI numbers and the publisher share are all that is left to confirm.</p>
+          </article>
         </div>
       </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+          <p>Distribution, publishing and splits for AI-assisted artists. Human authorship required.</p>
+          <div class="socials">
+            <a href="https://www.tiktok.com" aria-label="TikTok"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 3c.4 2.4 1.8 4 4.1 4.2v2.3c-1.4 0-2.7-.5-3.8-1.3v6.6c0 3.6-2.8 6.2-6.4 6.2S2 18.4 2 14.8 4.8 8.6 8.4 8.6c.4 0 .8 0 1.1.1v2.5c-.3-.1-.7-.2-1.1-.2-2 0-3.6 1.6-3.6 3.8s1.6 3.8 3.6 3.8 3.5-1.6 3.5-3.8V3h2.6z"/></svg></a>
+            <a href="https://x.com" aria-label="X"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 3H21l-6.5 7.4L22 21h-6.2l-4.8-6.3L5.6 21H2.8l7-8L2 3h6.3l4.4 5.8L18.2 3zm-1.1 16.2h1.7L7 4.7H5.2l11.9 14.5z"/></svg></a>
+            <a href="https://www.instagram.com" aria-label="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="how-it-works.html">How it works</a>
+          <a href="index.html#pricing">Pricing</a>
+          <a href="boost.html">Marketing Boost</a>
+          <a href="faq.html">FAQ</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="about.html">About us</a>
+          <a href="contact.html">Contact us</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="terms.html">Terms of Service</a>
+          <a href="rights.html">Rights Attestation</a>
+          <a href="privacy.html">Privacy</a>
+        </div>
+        <div class="footer-col">
+          <h4>Account</h4>
+          <a href="login.html">Sign in</a>
+          <a href="signup.html">Create account</a>
+        </div>
+      </div>
+      <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
-  </div>
+  </footer>
 </body>
 </html>
