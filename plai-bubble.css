@@ -47,7 +47,7 @@
   font-size: 13px;
   line-height: 1.45;
   color: #9A9AA8;
-  min-height: 2.9em;
+  margin-bottom: 10px;
 }
 
 .plai-bubble-status strong {
@@ -56,6 +56,97 @@
   font-weight: 600;
   margin-bottom: 2px;
 }
+
+.plai-bubble-log {
+  max-height: 132px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.plai-bubble-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #9A9AA8;
+}
+
+.plai-bubble-msg {
+  max-width: 92%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.plai-bubble-msg.is-user {
+  align-self: flex-end;
+  background: #7D3CFF;
+  color: #fff;
+}
+
+.plai-bubble-msg.is-plai {
+  align-self: flex-start;
+  background: #16161C;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.plai-bubble-msg.is-streaming { opacity: 0.92; }
+
+.plai-bubble-composer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plai-bubble-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: #111111;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0 12px;
+}
+
+.plai-bubble-input::placeholder { color: #9A9AA8; }
+
+.plai-bubble-input:focus {
+  outline: none;
+  border-color: #7D3CFF;
+}
+
+.plai-bubble-input:disabled,
+.plai-bubble-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.plai-bubble-send {
+  flex: 0 0 auto;
+  height: 36px;
+  border: none;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: #7D3CFF;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plai-bubble-send:hover:not(:disabled) { background: #8A4DFF; }
 
 .plai-bubble-actions {
   display: flex;
@@ -66,7 +157,9 @@
 
 .plai-bubble-pill,
 .plai-bubble-end,
-.plai-bubble-x {
+.plai-bubble-x,
+.plai-bubble-send,
+.plai-bubble-input {
   font-family: inherit;
 }
 
@@ -109,8 +202,13 @@
 }
 
 .plai-bubble[data-state="listening"] .plai-bubble-dot,
-.plai-bubble[data-state="talking"] .plai-bubble-dot {
+.plai-bubble[data-state="talking"] .plai-bubble-dot,
+.plai-bubble[data-state="text"] .plai-bubble-dot {
   background: #3FE07A;
+}
+
+.plai-bubble[data-state="reconnecting"] .plai-bubble-dot {
+  background: #F5C542;
 }
 
 .plai-bubble[data-state="error"] .plai-bubble-dot { background: #FF3C8E; }
