@@ -7,7 +7,7 @@ Artist and release calls go to ToneGrid via the server-only handler in `api/tone
 
 Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
 
-- `auth.js` — signup, login, logout, schema bootstrap
+- `auth.js` — signup, login, logout, schema bootstrap, confirm mail
 - `me.js` — session user + catalog ids
 - `tonegrid.js` — health, artists, releases, tracks, audio, analytics, royalties
 - `create-checkout-session.js`
@@ -29,18 +29,24 @@ TONEGRID_API_KEY=
 TONEGRID_BASE_URL=
 DATABASE_URL=
 SESSION_SECRET=
+RESEND_API_KEY=
+CONFIRM_SECRET=
+SIGNUP_CONFIRM_SECRET=
+CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
 ```
 
-`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `TONEGRID_API_KEY`, `DATABASE_URL`, and `SESSION_SECRET` are server-only. Do not put them in frontend files. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
+`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, and `SIGNUP_CONFIRM_SECRET` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
 Accounts need `DATABASE_URL` (Postgres / Neon) and `SESSION_SECRET` (HMAC cookie). If either is missing, `/api/auth/*` and `/api/me` return `503 { "error": "Accounts are not configured." }` and the signup/login UI says that — they do not claim an account was created. Set both on Vercel before treating preview signup as live.
 
 Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 
 - `GET /api/auth` (schema bootstrap)
-- `POST /api/auth/signup`
+- `POST /api/auth/signup` (creates the account, then tries confirm mail)
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
+- `GET /api/auth/mail` (`{ configured }`; optional `?token=` HMAC check)
+- `POST /api/auth/mail` (`{ email, artist }` resend)
 - `GET /api/me`
 - `POST /api/me` (store Stripe session + plan)
 - `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
@@ -60,3 +66,11 @@ ToneGrid routes (no browser key):
 Song audio is uploaded to ToneGrid with the existing `TONEGRID_API_KEY`. Do not add a second object store or new cloud-storage keys.
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
+
+Signup confirmation mail (same `api/auth.js` function; no `api/signup-confirm.js`):
+
+- After a successful `POST /api/auth/signup`, Resend emails `https://www.wannaplai.com/confirmed.html?email=...` (not `confirm.html`)
+- Missing `RESEND_API_KEY` still creates the account and returns `200 { "mail_sent": false, "error": "Mail is not configured." }`. Signup does not 500 and does not claim the email was sent.
+- `POST /api/auth/mail` is the resend path used by `confirm.html`
+- From address is `CONFIRM_FROM` (docs default `PLAIGROUND <confirm@wannaplai.com>`). Resend rejects Gmail from-addresses.
+- Optional HMAC uses `CONFIRM_SECRET` or `SIGNUP_CONFIRM_SECRET` (about 24 hours)

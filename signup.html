@@ -220,6 +220,13 @@
             window.PlaigroundMembership.recordSignedIn();
             if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
           }
+          try {
+            sessionStorage.setItem('plaigroundMailSent', result.data.mail_sent ? '1' : '0');
+          } catch (err) {}
+          if (result.data.mail_sent) {
+            window.location.href = 'confirm.html';
+            return;
+          }
           window.location.href = 'dashboard.html';
         }).catch(function () {
           if (button) {
