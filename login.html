@@ -108,6 +108,33 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      function markSignedIn() {
+        if (!window.PlaigroundMembership) return;
+        window.PlaigroundMembership.recordSignedIn();
+        var params = new URLSearchParams(window.location.search);
+        var plan = params.get('plan');
+        if (plan) window.PlaigroundMembership.recordPlan(plan);
+      }
+
+      var form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          markSignedIn();
+          window.location.href = form.getAttribute('action') || 'dashboard.html';
+        });
+      }
+
+      document.querySelectorAll('a[href="dashboard.html"]').forEach(function (link) {
+        link.addEventListener('click', function () {
+          markSignedIn();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -106,6 +106,12 @@
       var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
       if (email) rememberEmail(email);
 
+      if (window.PlaigroundMembership) {
+        window.PlaigroundMembership.recordSignedIn();
+        var incomingPlan = params.get('plan');
+        if (incomingPlan) window.PlaigroundMembership.recordPlan(incomingPlan);
+      }
+
       if (params.get('confirmed') === '1' || params.get('token')) {
         var dest = 'confirmed.html';
         if (email) dest += '?email=' + encodeURIComponent(email);
@@ -120,9 +126,16 @@
           window.PlaigroundMembership.recordPaidMembership(plan, sessionId);
         } else {
           try {
-            var pending = String(plan || sessionStorage.getItem('plaigroundMembershipPending') || '').trim().toLowerCase();
-            if (pending === 'creator' || pending === 'pro') sessionStorage.setItem('plaigroundMembership', pending);
-            if (sessionId) sessionStorage.setItem('plaigroundStripeSession', sessionId);
+            var pending = String(plan || localStorage.getItem('plaigroundMembershipPending') || sessionStorage.getItem('plaigroundMembershipPending') || '').trim().toLowerCase();
+            if (pending === 'basic' || pending === 'creator' || pending === 'pro') {
+              localStorage.setItem('plaigroundMembership', pending);
+              sessionStorage.setItem('plaigroundMembership', pending);
+            }
+            if (sessionId) {
+              localStorage.setItem('plaigroundStripeSession', sessionId);
+              sessionStorage.setItem('plaigroundStripeSession', sessionId);
+            }
+            localStorage.removeItem('plaigroundMembershipPending');
             sessionStorage.removeItem('plaigroundMembershipPending');
           } catch (err) {}
         }

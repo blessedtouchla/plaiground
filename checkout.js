@@ -47,7 +47,10 @@
       return;
     }
     try {
+      localStorage.setItem('plaigroundMembershipPending', plan);
+      localStorage.setItem('plaigroundMembership', plan);
       sessionStorage.setItem('plaigroundMembershipPending', plan);
+      sessionStorage.setItem('plaigroundMembership', plan);
     } catch (err) {}
   }
 

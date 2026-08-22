@@ -39,39 +39,39 @@
       <div class="page-head">
         <p class="kicker">Insights</p>
         <h1>Analytics</h1>
+        <p class="hint" data-analytics-status hidden></p>
+        <p class="hint" data-analytics-empty hidden>No plays yet. New uploads will show here when ToneGrid has numbers.</p>
       </div>
-      <div class="metric-row">
-        <div class="metric"><strong>7,412,908</strong><span>Total streams</span></div>
-        <div class="metric"><strong class="stat-g">$18,942.60</strong><span>Royalties paid</span></div>
-        <div class="metric"><strong class="stat-p">412,530</strong><span>Monthly listeners</span></div>
-        <div class="metric"><strong class="stat-y">$3,412.85</strong><span>This month</span></div>
+      <div class="metric-row" data-analytics-metrics>
+        <div class="metric"><strong data-metric="streams">0</strong><span>Total streams</span></div>
+        <div class="metric"><strong class="stat-g" data-metric="revenue">$0.00</strong><span>Royalties paid</span></div>
+        <div class="metric" data-metric-top-release hidden>
+          <strong data-metric="top-release">—</strong>
+          <span data-metric-top-release-note>Top release</span>
+        </div>
+        <div class="metric" data-metric-top-dsp hidden>
+          <strong class="stat-p" data-metric="top-dsp">—</strong>
+          <span>Top DSP</span>
+        </div>
       </div>
       <div class="two-col">
         <div class="panel">
           <h3>Revenue by DSP</h3>
-          <div class="bar-row"><span>Spotify</span><div class="bar"><i style="width:88%;background:var(--green)"></i></div><span>$8,904.22</span></div>
-          <div class="bar-row"><span>Apple Music</span><div class="bar"><i style="width:54%;background:var(--magenta)"></i></div><span>$5,488.10</span></div>
-          <div class="bar-row"><span>YouTube</span><div class="bar"><i style="width:30%;background:#5B8CFF"></i></div><span>$3,024.68</span></div>
-          <div class="bar-row"><span>Amazon Music</span><div class="bar"><i style="width:15%;background:#E89A3F"></i></div><span>$1,527.40</span></div>
+          <div data-analytics-dsps></div>
         </div>
         <div class="panel">
           <h3>Top streaming locations</h3>
-          <div class="loc"><span>Los Angeles</span><span>684,129</span></div>
-          <div class="loc"><span>New York</span><span>549,073</span></div>
-          <div class="loc"><span>London</span><span>402,205</span></div>
-          <div class="loc"><span>Lagos</span><span>333,340</span></div>
-          <div class="loc"><span>São Paulo</span><span>281,500</span></div>
+          <div data-analytics-territories></div>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel" data-analytics-chart hidden>
         <h3>Monthly revenue history</h3>
-        <div class="chart" aria-hidden="true">
-          <b style="height:28%"></b><b style="height:36%"></b><b style="height:42%"></b><b style="height:50%"></b><b style="height:58%"></b><b style="height:70%"></b><b style="height:78%"></b><b style="height:96%"></b>
-        </div>
-        <div class="chart-labels"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span></div>
+        <div class="chart" data-analytics-chart-bars aria-hidden="true"></div>
+        <div class="chart-labels" data-analytics-chart-labels></div>
       </div>
     </div>
   </div>
+  <script src="analytics.js" defer></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

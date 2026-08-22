@@ -16,10 +16,27 @@
     return /^(neon shadows|victoria reyes|victoria void|electronic \/ synthwave)$/i.test(String(value || '').trim());
   }
 
+  function storageGet(key) {
+    try {
+      var local = localStorage.getItem(key);
+      if (local) return local;
+    } catch (err) {}
+    try {
+      return sessionStorage.getItem(key) || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function storageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (err) {}
+    try { sessionStorage.setItem(key, value); } catch (err) {}
+  }
+
   function readDraft() {
     var draft;
     try {
-      draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}') || {};
+      draft = JSON.parse(storageGet(DRAFT_KEY) || '{}') || {};
     } catch (err) {
       draft = {};
     }
@@ -38,7 +55,7 @@
     Object.keys(patch || {}).forEach(function (key) {
       if (patch[key] !== undefined) next[key] = patch[key];
     });
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
+    storageSet(DRAFT_KEY, JSON.stringify(next));
     return next;
   }
 
@@ -74,16 +91,66 @@
     });
   }
 
-  function post(url, body) {
+  function post(url, body, idempotencyKey) {
+    var headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
+    if (idempotencyKey) headers['Idempotency-Key'] = String(idempotencyKey).slice(0, 255);
     return fetch(url, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify(body),
     }).then(parseJson);
   }
 
   function go(href) {
     window.location.href = href;
+  }
+
+  function isUnavailable(result) {
+    return Boolean(result && (result.status === 503 || (result.data && result.data.configured === false)));
+  }
+
+  function releasePayload(draft, releaseDate) {
+    var body = {
+      artist_id: draft.artist_id,
+      title: draft.title,
+      type: draft.type || 'single',
+    };
+    if (draft.genre) body.genre = draft.genre;
+    if (releaseDate) body.release_date = releaseDate;
+    return body;
+  }
+
+  function releaseKey(draft) {
+    if (draft.release_idempotency_key) return draft.release_idempotency_key;
+    return ('plaiground-release-' + String(draft.artist_id || '') + ':' + String(draft.title || '')).slice(0, 255);
+  }
+
+  function createRelease(draft, releaseDate) {
+    if (draft.release_id) {
+      return Promise.resolve({ skipped: true, draft: draft });
+    }
+    if (!draft.artist_id || !draft.title) {
+      return Promise.resolve({ skipped: true, missing: true, draft: draft });
+    }
+    var key = releaseKey(draft);
+    writeDraft({ release_idempotency_key: key });
+    return post(RELEASES_URL, releasePayload(draft, releaseDate), key).then(function (result) {
+      if (isUnavailable(result)) {
+        return { unavailable: true, result: result, draft: draft };
+      }
+      if (!result.ok) {
+        return { failed: true, result: result, draft: draft };
+      }
+      var releaseId = pickUuid(result.data);
+      var next = draft;
+      if (releaseId) next = writeDraft({ release_id: releaseId, release_date: releaseDate || draft.release_date || '' });
+      return { created: true, draft: next, result: result };
+    });
+  }
+
+  function continueAfterCatalog(nextHref, message) {
+    if (message) setStatus('tg-status', message);
+    go(nextHref);
   }
 
   function bindUpload() {
@@ -103,6 +170,10 @@
         setStatus('tg-status', 'Primary artist is required.');
         return;
       }
+      if (!title) {
+        setStatus('tg-status', 'Song title is required.');
+        return;
+      }
 
       writeDraft({ name: name, title: title, genre: genre, type: 'single' });
       trigger.setAttribute('aria-busy', 'true');
@@ -110,19 +181,42 @@
 
       post(ARTISTS_URL, { name: name })
         .then(function (result) {
-          trigger.removeAttribute('aria-busy');
-          if (result.status === 503 || result.data.configured === false) {
-            setStatus('tg-status', 'Catalog sync is not configured yet.');
-            go(nextHref);
+          if (isUnavailable(result)) {
+            trigger.removeAttribute('aria-busy');
+            continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
           if (!result.ok) {
+            trigger.removeAttribute('aria-busy');
             setStatus('tg-status', result.data.error || 'Could not save artist.');
             return;
           }
           var artistId = pickUuid(result.data);
-          if (artistId) writeDraft({ artist_id: artistId, name: name, title: title, genre: genre, type: 'single' });
-          go(nextHref);
+          var draft = writeDraft({
+            artist_id: artistId,
+            name: name,
+            title: title,
+            genre: genre,
+            type: 'single',
+          });
+          if (!artistId) {
+            trigger.removeAttribute('aria-busy');
+            continueAfterCatalog(nextHref, 'Artist saved. Release will retry on the next step.');
+            return;
+          }
+          setStatus('tg-status', 'Creating release…');
+          return createRelease(draft, '').then(function (created) {
+            trigger.removeAttribute('aria-busy');
+            if (created.unavailable) {
+              continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+              return;
+            }
+            if (created.failed) {
+              continueAfterCatalog(nextHref, created.result.data.error || 'Could not create release yet. You can continue.');
+              return;
+            }
+            continueAfterCatalog(nextHref, created.skipped && created.missing ? '' : 'Creating release…');
+          });
         })
         .catch(function () {
           trigger.removeAttribute('aria-busy');
@@ -142,39 +236,37 @@
       var draft = readDraft();
       var nextHref = trigger.getAttribute('href') || 'submitted.html';
       var releaseDate = fieldValue('tg-release-date');
-      var title = draft.title || '';
-      var genre = draft.genre || '';
-      var type = draft.type || 'single';
-      var artistId = draft.artist_id;
+      if (releaseDate) draft = writeDraft({ release_date: releaseDate });
 
-      if (!artistId) {
+      if (!draft.artist_id) {
         setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
+        return;
+      }
+
+      if (draft.release_id) {
+        go(nextHref);
+        return;
+      }
+
+      if (!draft.title) {
+        setStatus('tg-status', 'Song title is required.');
         return;
       }
 
       trigger.setAttribute('aria-busy', 'true');
       setStatus('tg-status', 'Creating release…');
 
-      post(RELEASES_URL, {
-        artist_id: artistId,
-        title: title,
-        type: type,
-        release_date: releaseDate,
-        genre: genre,
-      })
-        .then(function (result) {
+      createRelease(draft, releaseDate)
+        .then(function (created) {
           trigger.removeAttribute('aria-busy');
-          if (result.status === 503 || result.data.configured === false) {
-            setStatus('tg-status', 'Catalog sync is not configured yet.');
-            go(nextHref);
+          if (created.unavailable) {
+            continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
-          if (!result.ok) {
-            setStatus('tg-status', result.data.error || 'Could not create release.');
+          if (created.failed) {
+            setStatus('tg-status', created.result.data.error || 'Could not create release.');
             return;
           }
-          var releaseId = pickUuid(result.data);
-          if (releaseId) writeDraft({ release_id: releaseId, release_date: releaseDate });
           go(nextHref);
         })
         .catch(function () {
@@ -204,8 +296,29 @@
     if (draft.title) titleEl.textContent = draft.title + ' is in the queue.';
   }
 
+  function bindSubmitted() {
+    fillSubmitted();
+    if (!$('tg-status') && !document.querySelector('[data-submit-title]')) return;
+    var draft = readDraft();
+    if (!draft.artist_id || draft.release_id || !draft.title) return;
+    setStatus('tg-status', 'Creating release…');
+    createRelease(draft, draft.release_date || '').then(function (created) {
+      if (created.unavailable) {
+        setStatus('tg-status', 'Catalog sync is not configured yet.');
+        return;
+      }
+      if (created.failed) {
+        setStatus('tg-status', created.result.data.error || 'Could not create release.');
+        return;
+      }
+      if (created.created) setStatus('tg-status', 'Release saved to the catalog.');
+    }).catch(function () {
+      setStatus('tg-status', 'Could not reach catalog.');
+    });
+  }
+
   bindUpload();
   bindReview();
   fillReviewSummary();
-  fillSubmitted();
+  bindSubmitted();
 })();
