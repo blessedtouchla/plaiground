@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
   <link rel="stylesheet" href="plai-bubble.css" />
+  <script src="membership.js" data-require-membership="true"></script>
 </head>
 <body>
   <div class="flow-top">
@@ -35,10 +36,15 @@
         <h3>Upload your audio</h3>
         <p class="hint" style="margin:0">WAV or FLAC, 16-bit or higher</p>
       </div>
-      <div class="audio-bar">
+      <label class="dashbox audio-drop" data-audio-drop>
+        Drop WAV or FLAC here
+        <span>16-bit or higher, or click to choose a file</span>
+        <input type="file" accept=".wav,.flac,audio/wav,audio/flac,audio/x-wav" hidden data-audio-input />
+      </label>
+      <div class="audio-bar" data-audio-preview hidden>
         <div>
-          <b>neon_shadows_master_v3.wav</b>
-          <div style="color:var(--muted);font-size:12px">48 kHz · 24-bit · 62.4 MB · 3:41</div>
+          <b data-audio-name>No file selected</b>
+          <div style="color:var(--muted);font-size:12px" data-audio-meta>WAV or FLAC · 16-bit or higher</div>
         </div>
         <div class="wave" aria-hidden="true">
           <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:60%"></i><i class="dim" style="height:35%"></i><i class="dim" style="height:75%"></i><i class="dim" style="height:50%"></i><i class="dim" style="height:85%"></i><i class="dim" style="height:40%"></i><i class="dim" style="height:65%"></i><i class="dim" style="height:30%"></i><i class="dim" style="height:88%"></i>
@@ -56,8 +62,8 @@
       <div class="art-row">
         <div>
           <div class="art" role="img" aria-label="Cover art placeholder"></div>
-          <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button">Replace artwork</button></p>
-          <p class="hint">3000 × 3000 px · JPG · 2.1 MB</p>
+          <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button">Add artwork</button></p>
+          <p class="hint">3000 × 3000 px · JPG</p>
         </div>
         <div class="art-guide">
           <h4 style="margin-bottom:8px">Artwork guidelines</h4>
@@ -74,12 +80,12 @@
     <section class="flow-card">
       <h3>Submit the details</h3>
       <div class="form-grid three">
-        <div class="field"><label for="tg-title">Song title</label><input id="tg-title" value="Neon Shadows" /></div>
-        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" value="Victoria Reyes" /></div>
+        <div class="field"><label for="tg-title">Song title</label><input id="tg-title" placeholder="SONG TITLE" /></div>
+        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" placeholder="FIRST NAME LAST NAME" /></div>
         <div class="field"><label>Featured artist</label><input placeholder="Optional" /></div>
-        <div class="field"><label for="tg-genre">Genre</label><input id="tg-genre" value="Electronic / Synthwave" /></div>
-        <div class="field"><label>Language</label><input value="English" /></div>
-        <div class="field"><label>Download price</label><input value="$0.99" /></div>
+        <div class="field"><label for="tg-genre">Genre</label><input id="tg-genre" placeholder="Electronic" /></div>
+        <div class="field"><label>Language</label><input placeholder="Language" /></div>
+        <div class="field"><label>Download price</label><input placeholder="$0.00" /></div>
       </div>
       <p class="hint" style="margin-top:8px">Explicit content</p>
       <div class="auth-toggle" style="max-width:200px">
@@ -92,5 +98,44 @@
   </main>
   <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      var drop = document.querySelector('[data-audio-drop]');
+      var input = document.querySelector('[data-audio-input]');
+      var preview = document.querySelector('[data-audio-preview]');
+      var nameEl = document.querySelector('[data-audio-name]');
+      var metaEl = document.querySelector('[data-audio-meta]');
+      if (!drop || !input) return;
+
+      function showFile(file) {
+        if (window.PlaigroundMembership && !window.PlaigroundMembership.hasMembership()) {
+          window.PlaigroundMembership.requireMembership();
+          return;
+        }
+        if (!file) return;
+        if (nameEl) nameEl.textContent = file.name;
+        if (metaEl) metaEl.textContent = file.type || 'Audio file';
+        if (preview) preview.hidden = false;
+        drop.hidden = true;
+      }
+
+      drop.addEventListener('dragover', function (event) {
+        event.preventDefault();
+        drop.classList.add('is-over');
+      });
+      drop.addEventListener('dragleave', function () {
+        drop.classList.remove('is-over');
+      });
+      drop.addEventListener('drop', function (event) {
+        event.preventDefault();
+        drop.classList.remove('is-over');
+        var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        showFile(file);
+      });
+      input.addEventListener('change', function () {
+        showFile(input.files && input.files[0]);
+      });
+    })();
+  </script>
 </body>
 </html>
