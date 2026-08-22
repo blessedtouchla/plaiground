@@ -51,12 +51,8 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'type must be single, ep, or album.' });
     return;
   }
-  if (!releaseDate) {
+  if ((body && (body.release_date || body.releaseDate)) && !releaseDate) {
     sendJson(res, 400, { error: 'release_date must be YYYY-MM-DD.' });
-    return;
-  }
-  if (!genre) {
-    sendJson(res, 400, { error: 'genre is required.' });
     return;
   }
 
@@ -64,9 +60,9 @@ async function createRelease(req, res) {
     artist_id: artistId,
     title,
     type,
-    release_date: releaseDate,
-    genre,
   };
+  if (releaseDate) payload.release_date = releaseDate;
+  if (genre) payload.genre = genre;
 
   const result = await tonegridFetch('/releases', {
     method: 'POST',

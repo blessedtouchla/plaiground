@@ -121,6 +121,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -138,6 +139,12 @@
           if (artist) sessionStorage.setItem('plaigroundSignupArtist', artist);
           else sessionStorage.removeItem('plaigroundSignupArtist');
         } catch (err) {}
+        if (window.PlaigroundMembership) {
+          window.PlaigroundMembership.recordSignedIn();
+          var params = new URLSearchParams(window.location.search);
+          var plan = params.get('plan');
+          if (plan) window.PlaigroundMembership.recordPlan(plan);
+        }
         window.location.href = 'confirm.html';
       });
     })();

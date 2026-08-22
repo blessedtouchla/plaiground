@@ -77,6 +77,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -91,6 +92,12 @@
         try {
           if (value) sessionStorage.setItem(EMAIL_KEY, value);
         } catch (e) {}
+      }
+
+      if (window.PlaigroundMembership) {
+        window.PlaigroundMembership.recordSignedIn();
+        var plan = params.get('plan');
+        if (plan) window.PlaigroundMembership.recordPlan(plan);
       }
 
       var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
