@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },
+    { "source": "/api/me/catalog", "destination": "/api/me?action=catalog" },
+    { "source": "/api/tonegrid/tracks/:id/audio", "destination": "/api/tonegrid?resource=audio&id=:id" },
+    { "source": "/api/tonegrid/:resource", "destination": "/api/tonegrid?resource=:resource" }
+  ]
+}

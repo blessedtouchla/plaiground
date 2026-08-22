@@ -3,7 +3,18 @@
 Static site. Split-sheet signing uses SignWell via `api/signwell.js`.
 The PLAI voice bubble mints an xAI ephemeral token via `api/plai-session.js`.
 Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js`.
-Artist and release calls go to ToneGrid via server-only routes in `api/tonegrid/`.
+Artist and release calls go to ToneGrid via the server-only handler in `api/tonegrid.js`.
+
+Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
+
+- `auth.js` — signup, login, logout, schema bootstrap
+- `me.js` — session user + catalog ids
+- `tonegrid.js` — health, artists, releases, tracks, audio, analytics, royalties
+- `create-checkout-session.js`
+- `plai-session.js`
+- `signwell.js`
+
+`vercel.json` rewrites keep the public URLs (`/api/auth/signup`, `/api/me/catalog`, `/api/tonegrid/tracks/:id/audio`, and the rest).
 
 Environment variables (set on the host; never commit values):
 
