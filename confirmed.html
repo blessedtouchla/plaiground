@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email confirmation – PLAIGROUND</title>
+  <title>You're confirmed – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -29,15 +29,11 @@
   <main class="center-page">
     <div class="wrap">
       <div class="stack">
-        <p class="status-ok" data-confirm-status><i>✓</i> Email sent</p>
-        <h1 data-confirm-title>Check your email</h1>
-        <p class="center-lead" data-confirm-lead>We sent a confirmation link to the email you entered. Open it on any device to confirm the address and finish setting up your account.</p>
-        <div class="help-box" data-confirm-help>
-          <small>If it has not arrived</small>
-          <p>Give it two minutes, then look in spam and promotions. Our mail comes from emailplaiground@gmail.com.</p>
-        </div>
-        <a class="btn btn-purple btn-lg" href="confirm.html" data-confirm-primary>Resend the email</a>
-        <p style="margin-top:12px"><a class="btn btn-ghost btn-lg" href="signup.html" data-confirm-secondary>Use a different email</a></p>
+        <p class="status-ok"><i>✓</i> CONFIRMED</p>
+        <h1>You're confirmed</h1>
+        <p class="center-lead">We confirmed <b data-confirmed-email>your email</b>.</p>
+        <a class="btn btn-purple btn-lg" href="dashboard.html">Go to the dashboard</a>
+        <p style="margin-top:12px"><a class="btn btn-ghost btn-lg" href="index.html">Back home</a></p>
       </div>
     </div>
   </main>
@@ -86,12 +82,7 @@
     (function () {
       var EMAIL_KEY = 'plaigroundSignupEmail';
       var params = new URLSearchParams(window.location.search);
-      var status = document.querySelector('[data-confirm-status]');
-      var title = document.querySelector('[data-confirm-title]');
-      var lead = document.querySelector('[data-confirm-lead]');
-      var help = document.querySelector('[data-confirm-help]');
-      var primary = document.querySelector('[data-confirm-primary]');
-      var secondary = document.querySelector('[data-confirm-secondary]');
+      var emailEl = document.querySelector('[data-confirmed-email]');
 
       function storedEmail() {
         try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; }
@@ -104,45 +95,7 @@
 
       var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
       if (email) rememberEmail(email);
-
-      if (params.get('confirmed') === '1' || params.get('token')) {
-        var dest = 'confirmed.html';
-        if (email) dest += '?email=' + encodeURIComponent(email);
-        window.location.replace(dest);
-        return;
-      }
-
-      if (params.get('session_id')) {
-        if (status) status.innerHTML = '<i>✓</i> Payment received';
-        if (title) title.textContent = 'You are on the plan.';
-        if (lead) lead.textContent = 'Your subscription is set. Stripe will email a receipt.';
-        if (help) help.hidden = true;
-        if (primary) {
-          primary.textContent = 'Go to the dashboard';
-          primary.setAttribute('href', 'dashboard.html');
-        }
-        if (secondary) {
-          secondary.textContent = 'Back home';
-          secondary.setAttribute('href', 'index.html');
-        }
-        return;
-      }
-
-      function setSignupLead(email) {
-        if (!lead) return;
-        lead.textContent = '';
-        lead.appendChild(document.createTextNode('We sent a confirmation link to '));
-        if (email) {
-          var bold = document.createElement('b');
-          bold.textContent = email;
-          lead.appendChild(bold);
-        } else {
-          lead.appendChild(document.createTextNode('the email you entered'));
-        }
-        lead.appendChild(document.createTextNode('. Open it on any device to confirm the address and finish setting up your account.'));
-      }
-
-      setSignupLead(email);
+      if (emailEl) emailEl.textContent = email || 'your email';
     })();
   </script>
 </body>
