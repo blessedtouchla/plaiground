@@ -49,7 +49,16 @@ function run() {
   assert.ok(/id="tg-artist"[^>]*value=""/.test(upload));
   assert.ok(upload.indexOf('placeholder="SONG TITLE"') !== -1);
   assert.ok(upload.indexOf('placeholder="FIRST NAME LAST NAME"') !== -1);
-  assert.ok(upload.indexOf('placeholder="Optional"') !== -1);
+  assert.ok(upload.indexOf('placeholder="Optional featured"') !== -1);
+  assert.ok(upload.indexOf('placeholder="Electronic"') === -1);
+  assert.ok(upload.indexOf('placeholder="$0.00"') === -1);
+  assert.ok(upload.indexOf('placeholder="Price"') === -1);
+  assert.ok(upload.indexOf('<input id="tg-genre"') === -1);
+  assert.ok(upload.indexOf('<input id="tg-language"') === -1);
+  assert.ok(upload.indexOf('<input id="tg-price"') === -1);
+  assert.ok(upload.indexOf('<select id="tg-genre"') !== -1);
+  assert.ok(upload.indexOf('<select id="tg-language"') !== -1);
+  assert.ok(upload.indexOf('<select id="tg-price"') !== -1);
   assert.ok(upload.indexOf('plai-bubble.js') !== -1);
   assert.ok(upload.indexOf('membership.js') !== -1);
   assert.ok(upload.indexOf('data-require-membership="true"') !== -1);
