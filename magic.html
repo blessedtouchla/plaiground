@@ -31,7 +31,7 @@
       <div class="stack">
         <p class="eyebrow magenta">Passwordless sign-in</p>
         <h1>Your sign-in link is on the way</h1>
-        <p class="center-lead">We emailed a one-time link to <b>victoria@voidrecords.com</b>. Open it on this device and you are straight in — no password needed.</p>
+        <p class="center-lead" data-magic-lead>We emailed a one-time link to the email you entered. Open it on this device and you are straight in — no password needed.</p>
         <div class="status-box">
           <div class="row"><span>Link expires in</span><span class="y">14:52</span></div>
           <div class="row"><span>Uses</span><b>One, then it dies</b></div>
@@ -84,5 +84,23 @@
     </div>
   </footer>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      var lead = document.querySelector('[data-magic-lead]');
+      if (!lead) return;
+      var params = new URLSearchParams(window.location.search);
+      var email = String(params.get('email') || '').trim();
+      lead.textContent = '';
+      lead.appendChild(document.createTextNode('We emailed a one-time link to '));
+      if (email) {
+        var bold = document.createElement('b');
+        bold.textContent = email;
+        lead.appendChild(bold);
+      } else {
+        lead.appendChild(document.createTextNode('the email you entered'));
+      }
+      lead.appendChild(document.createTextNode('. Open it on this device and you are straight in — no password needed.'));
+    })();
+  </script>
 </body>
 </html>
