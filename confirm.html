@@ -31,7 +31,7 @@
       <div class="stack">
         <p class="status-ok" data-confirm-status><i>✓</i> Email sent</p>
         <h1 data-confirm-title>Check your email</h1>
-        <p class="center-lead" data-confirm-lead>We sent a confirmation link to <b>victoria@voidrecords.com</b>. Open it on any device to confirm the address and finish setting up your account.</p>
+        <p class="center-lead" data-confirm-lead>We sent a confirmation link to the email you entered. Open it on any device to confirm the address and finish setting up your account.</p>
         <div class="help-box" data-confirm-help>
           <small>If it has not arrived</small>
           <p>Give it two minutes, then look in spam and promotions. Our mail comes from emailplaiground@gmail.com.</p>
@@ -84,26 +84,56 @@
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
+      var EMAIL_KEY = 'plaigroundSignupEmail';
       var params = new URLSearchParams(window.location.search);
-      if (!params.get('session_id')) return;
       var status = document.querySelector('[data-confirm-status]');
       var title = document.querySelector('[data-confirm-title]');
       var lead = document.querySelector('[data-confirm-lead]');
       var help = document.querySelector('[data-confirm-help]');
       var primary = document.querySelector('[data-confirm-primary]');
       var secondary = document.querySelector('[data-confirm-secondary]');
-      if (status) status.innerHTML = '<i>✓</i> Payment received';
-      if (title) title.textContent = 'You are on the plan.';
-      if (lead) lead.textContent = 'Your subscription is set. Stripe will email a receipt.';
-      if (help) help.hidden = true;
-      if (primary) {
-        primary.textContent = 'Go to the dashboard';
-        primary.setAttribute('href', 'dashboard.html');
+
+      if (params.get('session_id')) {
+        if (status) status.innerHTML = '<i>✓</i> Payment received';
+        if (title) title.textContent = 'You are on the plan.';
+        if (lead) lead.textContent = 'Your subscription is set. Stripe will email a receipt.';
+        if (help) help.hidden = true;
+        if (primary) {
+          primary.textContent = 'Go to the dashboard';
+          primary.setAttribute('href', 'dashboard.html');
+        }
+        if (secondary) {
+          secondary.textContent = 'Back home';
+          secondary.setAttribute('href', 'index.html');
+        }
+        return;
       }
-      if (secondary) {
-        secondary.textContent = 'Back home';
-        secondary.setAttribute('href', 'index.html');
+
+      function storedEmail() {
+        try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; }
       }
+      function rememberEmail(value) {
+        try {
+          if (value) sessionStorage.setItem(EMAIL_KEY, value);
+        } catch (e) {}
+      }
+      function setSignupLead(email) {
+        if (!lead) return;
+        lead.textContent = '';
+        lead.appendChild(document.createTextNode('We sent a confirmation link to '));
+        if (email) {
+          var bold = document.createElement('b');
+          bold.textContent = email;
+          lead.appendChild(bold);
+        } else {
+          lead.appendChild(document.createTextNode('the email you entered'));
+        }
+        lead.appendChild(document.createTextNode('. Open it on any device to confirm the address and finish setting up your account.'));
+      }
+
+      var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
+      if (email) rememberEmail(email);
+      setSignupLead(email);
     })();
   </script>
 </body>

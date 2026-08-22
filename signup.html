@@ -44,7 +44,7 @@
         </div>
         <h2>Make an account</h2>
         <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
-        <form action="confirm.html" method="get">
+        <form id="signup-form" action="confirm.html" method="get">
           <div class="field">
             <label for="artist">Artist name</label>
             <input id="artist" name="artist" type="text" placeholder="VICTORIA VOID" />
@@ -55,7 +55,7 @@
           </div>
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" name="password" type="password" placeholder="8+ characters" />
+            <input id="password" type="password" placeholder="8+ characters" autocomplete="new-password" />
           </div>
           <div class="field">
             <label for="make">How do you make music?</label>
@@ -122,5 +122,25 @@
     </div>
   </footer>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      var form = document.getElementById('signup-form');
+      if (!form) return;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var emailEl = document.getElementById('email');
+        var artistEl = document.getElementById('artist');
+        var email = emailEl ? String(emailEl.value || '').trim() : '';
+        var artist = artistEl ? String(artistEl.value || '').trim() : '';
+        try {
+          if (email) sessionStorage.setItem('plaigroundSignupEmail', email);
+          else sessionStorage.removeItem('plaigroundSignupEmail');
+          if (artist) sessionStorage.setItem('plaigroundSignupArtist', artist);
+          else sessionStorage.removeItem('plaigroundSignupArtist');
+        } catch (err) {}
+        window.location.href = 'confirm.html';
+      });
+    })();
+  </script>
 </body>
 </html>
