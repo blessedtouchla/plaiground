@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
   <link rel="stylesheet" href="plai-bubble.css" />
+  <script src="membership.js" data-require-membership="true"></script>
 </head>
 <body>
   <div class="flow-top">
@@ -36,16 +37,16 @@
           <div class="rel">
             <span class="thumb" style="width:56px;height:56px"></span>
             <div>
-              <b>Neon Shadows</b>
-              <div style="color:var(--muted);font-size:13px">Victoria Reyes · Single · Electronic</div>
-              <div style="color:var(--muted);font-size:13px">Release 12 Sep 2026 · 3:51 · ISRC auto-assigned</div>
+              <b data-review-title>SONG TITLE</b>
+              <div style="color:var(--muted);font-size:13px" data-review-meta>FIRST NAME LAST NAME · Single · Electronic</div>
+              <div style="color:var(--muted);font-size:13px">Release date set at submit · Duration after upload · ISRC auto-assigned</div>
             </div>
           </div>
         </section>
         <section class="flow-card">
           <h3>Release date</h3>
           <p class="hint">Pick the date your release goes live. This is the date shown on most stores and platforms.</p>
-          <div class="field"><input id="tg-release-date" type="text" value="09/12/2026" /></div>
+          <div class="field"><input id="tg-release-date" type="text" placeholder="MM/DD/YYYY" /></div>
           <div class="toggle-line"><span class="toggle" aria-hidden="true"></span> Select pre-order date</div>
           <div class="toggle-line"><span class="toggle on" aria-hidden="true"></span> Define time and timezone</div>
         </section>

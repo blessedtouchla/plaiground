@@ -81,6 +81,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -113,6 +114,18 @@
       }
 
       if (params.get('session_id')) {
+        var sessionId = params.get('session_id');
+        var plan = params.get('plan');
+        if (window.PlaigroundMembership) {
+          window.PlaigroundMembership.recordPaidMembership(plan, sessionId);
+        } else {
+          try {
+            var pending = String(plan || sessionStorage.getItem('plaigroundMembershipPending') || '').trim().toLowerCase();
+            if (pending === 'creator' || pending === 'pro') sessionStorage.setItem('plaigroundMembership', pending);
+            if (sessionId) sessionStorage.setItem('plaigroundStripeSession', sessionId);
+            sessionStorage.removeItem('plaigroundMembershipPending');
+          } catch (err) {}
+        }
         if (status) status.innerHTML = '<i>✓</i> Payment received';
         if (title) title.textContent = 'You are on the plan.';
         if (lead) lead.textContent = 'Your subscription is set. Stripe will email a receipt.';

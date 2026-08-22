@@ -1,4 +1,4 @@
-(function () {
+(function (global) {
   var CHECKOUT_URL = '/api/create-checkout-session';
 
   function closestTrigger(target) {
@@ -39,8 +39,21 @@
     return body;
   }
 
+  function rememberPendingPlan(trigger) {
+    var plan = String(trigger.getAttribute('data-checkout-plan') || '').trim().toLowerCase();
+    if (plan !== 'creator' && plan !== 'pro') return;
+    if (global.PlaigroundMembership && global.PlaigroundMembership.rememberPending) {
+      global.PlaigroundMembership.rememberPending(plan);
+      return;
+    }
+    try {
+      sessionStorage.setItem('plaigroundMembershipPending', plan);
+    } catch (err) {}
+  }
+
   function startCheckout(trigger) {
     if (trigger.getAttribute('aria-busy') === 'true') return;
+    rememberPendingPlan(trigger);
     var original = trigger.getAttribute('data-checkout-label') || trigger.textContent;
     trigger.setAttribute('data-checkout-label', original);
     trigger.setAttribute('aria-busy', 'true');
@@ -90,4 +103,4 @@
     event.preventDefault();
     startCheckout(trigger);
   });
-})();
+})(window);

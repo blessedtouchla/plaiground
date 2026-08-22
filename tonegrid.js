@@ -12,12 +12,21 @@
     return el ? String(el.value || '').trim() : '';
   }
 
+  function isDemoCopy(value) {
+    return /^(neon shadows|victoria reyes|victoria void|electronic \/ synthwave)$/i.test(String(value || '').trim());
+  }
+
   function readDraft() {
+    var draft;
     try {
-      return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}') || {};
+      draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}') || {};
     } catch (err) {
-      return {};
+      draft = {};
     }
+    if (isDemoCopy(draft.title)) draft.title = '';
+    if (isDemoCopy(draft.name)) draft.name = '';
+    if (isDemoCopy(draft.genre)) draft.genre = '';
+    return draft;
   }
 
   function writeDraft(patch) {
@@ -133,8 +142,8 @@
       var draft = readDraft();
       var nextHref = trigger.getAttribute('href') || 'submitted.html';
       var releaseDate = fieldValue('tg-release-date');
-      var title = draft.title || 'Neon Shadows';
-      var genre = draft.genre || 'Electronic';
+      var title = draft.title || '';
+      var genre = draft.genre || '';
       var type = draft.type || 'single';
       var artistId = draft.artist_id;
 
@@ -175,6 +184,28 @@
     });
   }
 
+  function fillReviewSummary() {
+    var titleEl = document.querySelector('[data-review-title]');
+    var metaEl = document.querySelector('[data-review-meta]');
+    if (!titleEl && !metaEl) return;
+    var draft = readDraft();
+    if (titleEl && draft.title) titleEl.textContent = draft.title;
+    if (metaEl && draft.name) {
+      metaEl.textContent = draft.genre
+        ? draft.name + ' · Single · ' + draft.genre
+        : draft.name + ' · Single';
+    }
+  }
+
+  function fillSubmitted() {
+    var titleEl = document.querySelector('[data-submit-title]');
+    if (!titleEl) return;
+    var draft = readDraft();
+    if (draft.title) titleEl.textContent = draft.title + ' is in the queue.';
+  }
+
   bindUpload();
   bindReview();
+  fillReviewSummary();
+  fillSubmitted();
 })();
