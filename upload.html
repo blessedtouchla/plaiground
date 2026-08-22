@@ -83,9 +83,40 @@
         <div class="field"><label for="tg-title">Song title</label><input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" /></div>
         <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" name="release-artist" type="text" value="" placeholder="FIRST NAME LAST NAME" autocomplete="off" /></div>
         <div class="field"><label>Featured artist</label><input name="release-featured" type="text" value="" placeholder="Optional" autocomplete="off" /></div>
-        <div class="field"><label for="tg-genre">Genre</label><input id="tg-genre" name="release-genre" type="text" value="" placeholder="Electronic" autocomplete="off" /></div>
-        <div class="field"><label for="tg-language">Language</label><input id="tg-language" name="release-language" type="text" value="" placeholder="Language" autocomplete="off" /></div>
-        <div class="field"><label for="tg-price">Download price</label><input id="tg-price" name="release-price" type="text" value="" placeholder="Price" autocomplete="off" /></div>
+        <div class="field">
+          <label for="tg-genre">Genre</label>
+          <select id="tg-genre" name="release-genre" autocomplete="off">
+            <option value="">Select genre</option>
+            <option value="Electronic">Electronic</option>
+            <option value="Pop">Pop</option>
+            <option value="Hip-Hop">Hip-Hop</option>
+            <option value="Country">Country</option>
+            <option value="R&amp;B">R&amp;B</option>
+            <option value="Latin">Latin</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="tg-language">Language</label>
+          <select id="tg-language" name="release-language" autocomplete="off">
+            <option value="">Select language</option>
+            <option value="English">English</option>
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+            <option value="Portuguese">Portuguese</option>
+            <option value="Korean">Korean</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="tg-price">Download price</label>
+          <select id="tg-price" name="release-price" autocomplete="off">
+            <option value="">Select price</option>
+            <option value="$0.69">$0.69</option>
+            <option value="$0.99">$0.99</option>
+          </select>
+        </div>
       </div>
       <p class="hint" style="margin-top:8px">Explicit content</p>
       <div class="auth-toggle" style="max-width:200px">
@@ -108,8 +139,12 @@
         'english': true,
         '$0.99': true
       };
-      document.querySelectorAll('.form-grid.three input').forEach(function (el) {
-        var raw = String(el.getAttribute('value') || el.value || '').trim();
+      document.querySelectorAll('.form-grid.three input, .form-grid.three select').forEach(function (el) {
+        var raw = String(el.value || '').trim();
+        if (el.tagName === 'SELECT') {
+          if (!raw || DEMO_VALUES[raw.toLowerCase()]) el.selectedIndex = 0;
+          return;
+        }
         if (!raw) {
           el.value = '';
           return;
