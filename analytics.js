@@ -183,7 +183,7 @@
   function load() {
     if (!$('[data-analytics-metrics]')) return;
     setStatus('Loading catalog…');
-    fetch(ANALYTICS_URL, { headers: { Accept: 'application/json' } })
+    fetch(ANALYTICS_URL, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
       .then(function (response) {
         return response.json().then(function (body) {
           return { ok: response.ok, status: response.status, data: body || {} };
@@ -192,8 +192,15 @@
         });
       })
       .then(function (result) {
+        if (result.status === 401) {
+          setStatus('Sign in to see your plays.');
+          render({ summary: {}, dsps: [], territories: [], series: [] });
+          return;
+        }
         if (result.status === 503 || result.data.configured === false) {
-          setStatus('Catalog sync is not configured yet.');
+          setStatus(result.data && result.data.error === 'Accounts are not configured.'
+            ? 'Accounts are not configured.'
+            : 'Catalog sync is not configured yet.');
           render({ summary: {}, dsps: [], territories: [], series: [] });
           return;
         }

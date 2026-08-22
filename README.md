@@ -16,9 +16,23 @@ STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 TONEGRID_API_KEY=
 TONEGRID_BASE_URL=
+DATABASE_URL=
+SESSION_SECRET=
 ```
 
-`XAI_API_KEY`, `STRIPE_SECRET_KEY`, and `TONEGRID_API_KEY` are server-only. Do not put them in frontend files. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
+`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `TONEGRID_API_KEY`, `DATABASE_URL`, and `SESSION_SECRET` are server-only. Do not put them in frontend files. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
+
+Accounts need `DATABASE_URL` (Postgres / Neon) and `SESSION_SECRET` (HMAC cookie). If either is missing, `/api/auth/*` and `/api/me` return `503 { "error": "Accounts are not configured." }` and the signup/login UI says that — they do not claim an account was created. Set both on Vercel before treating preview signup as live.
+
+Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
+
+- `GET /api/auth` (schema bootstrap)
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/me`
+- `POST /api/me` (store Stripe session + plan)
+- `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
 
 ToneGrid routes (no browser key):
 
@@ -26,8 +40,12 @@ ToneGrid routes (no browser key):
 - `GET /api/tonegrid/artists`
 - `POST /api/tonegrid/artists`
 - `POST /api/tonegrid/releases`
-- `GET /api/tonegrid/analytics` (summary, releases, territories, dsps; optional `from` / `to`)
-- `GET /api/tonegrid/releases` (list)
-- `GET /api/tonegrid/royalties` (balance + statements)
+- `POST /api/tonegrid/tracks` (create track on a release; `explicit` defaults to false)
+- `POST /api/tonegrid/tracks/:id/audio` (multipart field `audio`; WAV/FLAC; max 200MB; stored by ToneGrid, not a PLAIGROUND bucket)
+- `GET /api/tonegrid/analytics` (session; filtered to that user’s ToneGrid ids)
+- `GET /api/tonegrid/releases` (session; filtered)
+- `GET /api/tonegrid/royalties` (session; filtered)
+
+Song audio is uploaded to ToneGrid with the existing `TONEGRID_API_KEY`. Do not add a second object store or new cloud-storage keys.
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.

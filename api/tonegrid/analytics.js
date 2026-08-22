@@ -8,6 +8,7 @@
  * Optional query: from, to (YYYY-MM-DD), release_uuid (territories only).
  */
 
+const { personalScope, idAllowed } = require('../../lib/scope');
 const {
   healthPayload,
   isConfigured,
@@ -136,6 +137,60 @@ function sectionError(result) {
   return 'ToneGrid rejected the request.';
 }
 
+function emptyAnalytics(query) {
+  const health = healthPayload();
+  return {
+    configured: true,
+    sandbox: health.sandbox,
+    empty: true,
+    from: (query && query.from) || '',
+    to: (query && query.to) || '',
+    summary: pickSummary({}),
+    releases: [],
+    territories: [],
+    dsps: [],
+    series: [],
+  };
+}
+
+function mergeNamed(rows, keyName) {
+  const map = new Map();
+  rows.forEach((row) => {
+    const key = String((row && row[keyName]) || '').trim();
+    if (!key) return;
+    const current = map.get(key) || Object.assign({}, row, { streams: 0 });
+    current.streams += toNumber(row && row.streams);
+    if (!current[keyName]) current[keyName] = key;
+    map.set(key, current);
+  });
+  return Array.from(map.values()).sort((a, b) => b.streams - a.streams);
+}
+
+function summaryFromReleases(rows, query) {
+  let total = 0;
+  let top = null;
+  rows.forEach((row) => {
+    const streams = toNumber(row && row.streams);
+    total += streams;
+    if (!top || streams > top.streams) {
+      top = {
+        uuid: String((row && row.release_uuid) || ''),
+        title: String((row && row.title) || ''),
+        streams,
+      };
+    }
+  });
+  return {
+    from: (query && query.from) || '',
+    to: (query && query.to) || '',
+    total_streams: total,
+    total_revenue_usd: 0,
+    top_release: top && top.streams ? top : null,
+    top_dsp: '',
+    top_territory: '',
+  };
+}
+
 async function loadAnalytics(req, res) {
   const dates = dateQuery(req);
   if (dates.error) {
@@ -143,48 +198,75 @@ async function loadAnalytics(req, res) {
     return;
   }
 
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+
   const query = dates.query || {};
   const rawRelease = String(queryFromReq(req).release_uuid || queryFromReq(req).releaseUuid || '').trim();
   if (rawRelease && !isUuid(rawRelease)) {
     sendJson(res, 400, { error: 'release_uuid must be a uuid.' });
     return;
   }
+  if (rawRelease && !idAllowed(scope.allow, rawRelease)) {
+    sendJson(res, 200, emptyAnalytics(query));
+    return;
+  }
+  if (scope.empty) {
+    sendJson(res, 200, emptyAnalytics(query));
+    return;
+  }
 
-  const territoryQuery = Object.assign({}, query);
-  if (rawRelease) territoryQuery.release_uuid = rawRelease;
-
-  const [summaryRes, releasesRes, territoriesRes, dspsRes] = await Promise.all([
-    tonegridFetch('/analytics/summary', { method: 'GET', query }),
-    tonegridFetch('/analytics/releases', { method: 'GET', query }),
-    tonegridFetch('/analytics/territories', { method: 'GET', query: territoryQuery }),
-    tonegridFetch('/analytics/dsps', { method: 'GET', query }),
-  ]);
-
+  const releaseFilter = rawRelease || '';
+  const releasesRes = await tonegridFetch('/analytics/releases', { method: 'GET', query });
   const errors = {};
-  if (!summaryRes.ok) errors.summary = sectionError(summaryRes);
   if (!releasesRes.ok) errors.releases = sectionError(releasesRes);
-  if (!territoriesRes.ok) errors.territories = sectionError(territoriesRes);
-  if (!dspsRes.ok) errors.dsps = sectionError(dspsRes);
 
-  const summary = summaryRes.ok ? pickSummary(summaryRes.data) : pickSummary({});
+  const releases = (releasesRes.ok ? pickReleases(releasesRes.data) : []).filter((row) => {
+    if (releaseFilter) return String(row.release_uuid).toLowerCase() === releaseFilter.toLowerCase();
+    return idAllowed(scope.allow, row.release_uuid);
+  });
+
+  const ids = releaseFilter ? [releaseFilter] : scope.releaseIds;
+  const territoryLists = [];
+  const dspLists = [];
+  for (let i = 0; i < ids.length; i += 1) {
+    const id = ids[i];
+    const scopedQuery = Object.assign({}, query, { release_uuid: id });
+    const [territoriesRes, dspsRes] = await Promise.all([
+      tonegridFetch('/analytics/territories', { method: 'GET', query: scopedQuery }),
+      tonegridFetch('/analytics/dsps', { method: 'GET', query: scopedQuery }),
+    ]);
+    if (territoriesRes.ok) territoryLists.push(pickTerritories(territoriesRes.data));
+    else errors.territories = sectionError(territoriesRes);
+    if (dspsRes.ok) dspLists.push(pickDsps(dspsRes.data));
+    else errors.dsps = sectionError(dspsRes);
+  }
+
+  const territories = mergeNamed(territoryLists.flat(), 'territory');
+  let dsps = mergeNamed(dspLists.flat(), 'dsp');
+  const userStreams = releases.reduce((sum, row) => sum + toNumber(row.streams), 0);
+  const dspStreams = dsps.reduce((sum, row) => sum + toNumber(row.streams), 0);
+  if (dspStreams > userStreams + 1) dsps = [];
+
+  const summary = summaryFromReleases(releases, query);
+  if (dsps[0]) summary.top_dsp = dsps[0].dsp;
+  if (territories[0]) summary.top_territory = territories[0].territory || territories[0].country_name || '';
+
   const health = healthPayload();
   const body = {
     configured: true,
     sandbox: health.sandbox,
+    empty: releases.length === 0 && userStreams === 0,
     from: summary.from || query.from || '',
     to: summary.to || query.to || '',
     summary,
-    releases: releasesRes.ok ? pickReleases(releasesRes.data) : [],
-    territories: territoriesRes.ok ? pickTerritories(territoriesRes.data) : [],
-    dsps: dspsRes.ok ? pickDsps(dspsRes.data) : [],
-    series: summaryRes.ok ? pickSeries(summaryRes.data) : [],
+    releases,
+    territories,
+    dsps,
+    series: [],
   };
   if (Object.keys(errors).length) body.errors = errors;
-
-  const statuses = [summaryRes.status, releasesRes.status, territoriesRes.status, dspsRes.status];
-  const anyOk = summaryRes.ok || releasesRes.ok || territoriesRes.ok || dspsRes.ok;
-  const status = anyOk ? 200 : (statuses.find((code) => code >= 400) || 502);
-  sendJson(res, status, body);
+  sendJson(res, 200, body);
 }
 
 module.exports = async function handler(req, res) {

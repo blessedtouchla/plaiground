@@ -119,9 +119,9 @@
         </div>
       </div>
       <p class="hint" style="margin-top:8px">Explicit content</p>
-      <div class="auth-toggle" style="max-width:200px">
-        <a class="on" href="upload.html">No</a>
-        <a href="upload.html">Yes</a>
+      <div class="auth-toggle" style="max-width:200px" data-explicit-toggle>
+        <a class="on" href="#explicit" data-explicit="false">No</a>
+        <a href="#explicit" data-explicit="true">Yes</a>
       </div>
       <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-tonegrid-continue href="attest.html">Continue to attest rights</a></p>
       <p class="hint" id="tg-status" hidden></p>
@@ -165,6 +165,13 @@
           return;
         }
         if (!file) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+        } catch (err) {
+          input._plaigroundFile = file;
+        }
         if (nameEl) nameEl.textContent = file.name;
         if (metaEl) metaEl.textContent = file.type || 'Audio file';
         if (preview) preview.hidden = false;
@@ -187,6 +194,18 @@
       input.addEventListener('change', function () {
         showFile(input.files && input.files[0]);
       });
+
+      var explicitToggle = document.querySelector('[data-explicit-toggle]');
+      if (explicitToggle) {
+        explicitToggle.addEventListener('click', function (event) {
+          var choice = event.target && event.target.closest && event.target.closest('[data-explicit]');
+          if (!choice) return;
+          event.preventDefault();
+          explicitToggle.querySelectorAll('[data-explicit]').forEach(function (el) {
+            el.classList.toggle('on', el === choice);
+          });
+        });
+      }
     })();
   </script>
 </body>

@@ -44,7 +44,7 @@
         </div>
         <h2>Make an account</h2>
         <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
-        <form id="signup-form" action="confirm.html" method="get">
+        <form id="signup-form">
           <div class="field">
             <label for="artist">Artist name</label>
             <input id="artist" name="artist" type="text" placeholder="FIRST NAME LAST NAME" />
@@ -75,6 +75,7 @@
             <input type="checkbox" required />
             I agree to the <a href="terms.html">Terms of Service</a> and the <a href="rights.html">Rights Attestation</a>.
           </label>
+          <p class="hint" id="auth-status" hidden></p>
           <button class="btn btn-purple btn-lg" type="submit">Create account</button>
         </form>
         <p class="switch">Already released with us? <a href="login.html">Sign in</a></p>
@@ -127,25 +128,85 @@
     (function () {
       var form = document.getElementById('signup-form');
       if (!form) return;
+      var status = document.getElementById('auth-status');
+      var button = form.querySelector('button[type="submit"]');
+
+      function setStatus(text) {
+        if (!status) return;
+        status.textContent = text || '';
+        status.hidden = !text;
+      }
+
+      function chosenPlan() {
+        var params = new URLSearchParams(window.location.search);
+        var fromQuery = String(params.get('plan') || '').trim().toLowerCase();
+        if (fromQuery === 'basic' || fromQuery === 'creator' || fromQuery === 'pro') return fromQuery;
+        if (window.PlaigroundMembership && window.PlaigroundMembership.currentPlan) {
+          return window.PlaigroundMembership.currentPlan() || '';
+        }
+        return '';
+      }
+
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var emailEl = document.getElementById('email');
         var artistEl = document.getElementById('artist');
+        var passwordEl = document.getElementById('password');
         var email = emailEl ? String(emailEl.value || '').trim() : '';
         var artist = artistEl ? String(artistEl.value || '').trim() : '';
+        var password = passwordEl ? String(passwordEl.value || '') : '';
+        var plan = chosenPlan();
         try {
           if (email) sessionStorage.setItem('plaigroundSignupEmail', email);
           else sessionStorage.removeItem('plaigroundSignupEmail');
           if (artist) sessionStorage.setItem('plaigroundSignupArtist', artist);
           else sessionStorage.removeItem('plaigroundSignupArtist');
         } catch (err) {}
-        if (window.PlaigroundMembership) {
-          window.PlaigroundMembership.recordSignedIn();
-          var params = new URLSearchParams(window.location.search);
-          var plan = params.get('plan');
-          if (plan) window.PlaigroundMembership.recordPlan(plan);
+
+        var body = { email: email, password: password, artist: artist };
+        if (plan) body.plan = plan;
+        if (button) {
+          button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
         }
-        window.location.href = 'confirm.html';
+        setStatus('');
+
+        fetch('/api/auth/signup', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, status: response.status, data: data || {} };
+          }).catch(function () {
+            return { ok: false, status: response.status, data: {} };
+          });
+        }).then(function (result) {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+          }
+          if (result.status === 503 || (result.data && result.data.error === 'Accounts are not configured.')) {
+            setStatus('Accounts are not configured.');
+            return;
+          }
+          if (!result.ok) {
+            setStatus(result.data.error || 'Could not create the account.');
+            return;
+          }
+          if (window.PlaigroundMembership) {
+            window.PlaigroundMembership.recordSignedIn();
+            if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+          }
+          window.location.href = 'dashboard.html';
+        }).catch(function () {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+          }
+          setStatus('Could not reach accounts.');
+        });
       });
     })();
   </script>

@@ -1,7 +1,9 @@
 (function () {
   var ARTISTS_URL = '/api/tonegrid/artists';
   var RELEASES_URL = '/api/tonegrid/releases';
+  var TRACKS_URL = '/api/tonegrid/tracks';
   var DRAFT_KEY = 'plaiground.tonegrid.draft';
+  var MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 
   function $(id) {
     return document.getElementById(id);
@@ -71,6 +73,7 @@
     if (typeof payload.uuid === 'string') return payload.uuid;
     if (payload.artist && typeof payload.artist.uuid === 'string') return payload.artist.uuid;
     if (payload.release && typeof payload.release.uuid === 'string') return payload.release.uuid;
+    if (payload.track && typeof payload.track.uuid === 'string') return payload.track.uuid;
     if (payload.data && typeof payload.data === 'object') {
       if (typeof payload.data.uuid === 'string') return payload.data.uuid;
       if (payload.data.artist && typeof payload.data.artist.uuid === 'string') {
@@ -78,6 +81,9 @@
       }
       if (payload.data.release && typeof payload.data.release.uuid === 'string') {
         return payload.data.release.uuid;
+      }
+      if (payload.data.track && typeof payload.data.track.uuid === 'string') {
+        return payload.data.track.uuid;
       }
     }
     return '';
@@ -96,9 +102,29 @@
     if (idempotencyKey) headers['Idempotency-Key'] = String(idempotencyKey).slice(0, 255);
     return fetch(url, {
       method: 'POST',
+      credentials: 'same-origin',
       headers: headers,
       body: JSON.stringify(body),
     }).then(parseJson);
+  }
+
+  function saveCatalog(ids) {
+    var body = {};
+    if (ids && ids.artist_id) body.artist_id = ids.artist_id;
+    if (ids && ids.release_id) body.release_id = ids.release_id;
+    if (ids && ids.track_id) body.track_id = ids.track_id;
+    if (!body.artist_id && !body.release_id && !body.track_id) return Promise.resolve();
+    return fetch('/api/me/catalog', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (response) {
+      if (response.status === 401 || response.status === 503) return null;
+      return parseJson(response);
+    }).catch(function () {
+      return null;
+    });
   }
 
   function go(href) {
@@ -118,6 +144,98 @@
     if (draft.genre) body.genre = draft.genre;
     if (releaseDate) body.release_date = releaseDate;
     return body;
+  }
+
+  function selectedAudio() {
+    var input = document.querySelector('[data-audio-input]');
+    if (input && input.files && input.files[0]) return input.files[0];
+    if (input && input._plaigroundFile) return input._plaigroundFile;
+    return null;
+  }
+
+  function selectedExplicit() {
+    var on = document.querySelector('[data-explicit].on, [data-explicit-toggle] .on');
+    if (on && on.getAttribute('data-explicit') === 'true') return true;
+    var draft = readDraft();
+    return draft.explicit === true;
+  }
+
+  function isAudioFile(file) {
+    if (!file) return false;
+    var name = String(file.name || '').toLowerCase();
+    var type = String(file.type || '').toLowerCase();
+    return /\.(wav|flac)$/.test(name) || /audio\/(wav|x-wav|flac|x-flac)/.test(type);
+  }
+
+  function trackKey(draft) {
+    if (draft.track_idempotency_key) return draft.track_idempotency_key;
+    return ('plaiground-track-' + String(draft.release_id || '') + ':1').slice(0, 255);
+  }
+
+  function createTrack(draft) {
+    if (draft.track_id) {
+      return Promise.resolve({ skipped: true, draft: draft });
+    }
+    if (!draft.release_id || !draft.title) {
+      return Promise.resolve({ skipped: true, missing: true, draft: draft });
+    }
+    var key = trackKey(draft);
+    writeDraft({ track_idempotency_key: key });
+    return post(TRACKS_URL, {
+      release_id: draft.release_id,
+      title: draft.title,
+      position: 1,
+      explicit: draft.explicit === true,
+    }, key).then(function (result) {
+      if (isUnavailable(result)) {
+        return { unavailable: true, result: result, draft: draft };
+      }
+      if (!result.ok) {
+        return { failed: true, result: result, draft: draft };
+      }
+      var trackId = pickUuid(result.data);
+      var next = draft;
+      if (trackId) next = writeDraft({ track_id: trackId });
+      if (next.artist_id || next.release_id || trackId) {
+        saveCatalog({ artist_id: next.artist_id, release_id: next.release_id, track_id: trackId });
+      }
+      return { created: true, draft: next, result: result };
+    });
+  }
+
+  function uploadAudio(trackId, file) {
+    if (!trackId || !file) return Promise.resolve({ skipped: true });
+    if (file.size > MAX_AUDIO_BYTES) {
+      return Promise.resolve({ failed: true, result: { data: { error: 'Audio must be 200 MB or smaller.' } } });
+    }
+    if (!isAudioFile(file)) {
+      return Promise.resolve({ failed: true, result: { data: { error: 'Audio must be WAV or FLAC.' } } });
+    }
+    var body = new FormData();
+    body.append('audio', file, file.name || 'audio.wav');
+    return fetch(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      body: body,
+    }).then(parseJson).then(function (result) {
+      if (isUnavailable(result)) return { unavailable: true, result: result };
+      if (!result.ok) return { failed: true, result: result };
+      return { uploaded: true, result: result };
+    });
+  }
+
+  function afterRelease(draft) {
+    return createTrack(draft).then(function (track) {
+      var next = track.draft || draft;
+      if (track.unavailable || track.failed) return track;
+      var file = selectedAudio();
+      if (!file || !next.track_id) return { ok: true, draft: next, track: track };
+      setStatus('tg-status', 'Uploading audio…');
+      return uploadAudio(next.track_id, file).then(function (audio) {
+        return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
+      });
+    });
   }
 
   function releaseKey(draft) {
@@ -144,6 +262,9 @@
       var releaseId = pickUuid(result.data);
       var next = draft;
       if (releaseId) next = writeDraft({ release_id: releaseId, release_date: releaseDate || draft.release_date || '' });
+      if (releaseId || draft.artist_id) {
+        saveCatalog({ artist_id: draft.artist_id, release_id: releaseId });
+      }
       return { created: true, draft: next, result: result };
     });
   }
@@ -164,6 +285,8 @@
       var name = fieldValue('tg-artist');
       var title = fieldValue('tg-title');
       var genre = fieldValue('tg-genre');
+      var explicit = selectedExplicit();
+      var file = selectedAudio();
       var nextHref = trigger.getAttribute('href') || 'attest.html';
 
       if (!name) {
@@ -174,8 +297,16 @@
         setStatus('tg-status', 'Song title is required.');
         return;
       }
+      if (file && file.size > MAX_AUDIO_BYTES) {
+        setStatus('tg-status', 'Audio must be 200 MB or smaller.');
+        return;
+      }
+      if (file && !isAudioFile(file)) {
+        setStatus('tg-status', 'Audio must be WAV or FLAC.');
+        return;
+      }
 
-      writeDraft({ name: name, title: title, genre: genre, type: 'single' });
+      writeDraft({ name: name, title: title, genre: genre, type: 'single', explicit: explicit });
       trigger.setAttribute('aria-busy', 'true');
       setStatus('tg-status', 'Saving artist…');
 
@@ -198,7 +329,9 @@
             title: title,
             genre: genre,
             type: 'single',
+            explicit: explicit,
           });
+          if (artistId) saveCatalog({ artist_id: artistId });
           if (!artistId) {
             trigger.removeAttribute('aria-busy');
             continueAfterCatalog(nextHref, 'Artist saved. Release will retry on the next step.');
@@ -206,16 +339,37 @@
           }
           setStatus('tg-status', 'Creating release…');
           return createRelease(draft, '').then(function (created) {
-            trigger.removeAttribute('aria-busy');
             if (created.unavailable) {
+              trigger.removeAttribute('aria-busy');
               continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
               return;
             }
             if (created.failed) {
-              continueAfterCatalog(nextHref, created.result.data.error || 'Could not create release yet. You can continue.');
+              trigger.removeAttribute('aria-busy');
+              setStatus('tg-status', created.result.data.error || 'Could not create release.');
               return;
             }
-            continueAfterCatalog(nextHref, created.skipped && created.missing ? '' : 'Creating release…');
+            setStatus('tg-status', 'Creating track…');
+            return afterRelease(created.draft || draft).then(function (next) {
+              trigger.removeAttribute('aria-busy');
+              if (next && next.unavailable) {
+                continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+                return;
+              }
+              if (next && next.failed) {
+                setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+                return;
+              }
+              if (next && next.audio && next.audio.failed) {
+                setStatus('tg-status', (next.audio.result && next.audio.result.data && next.audio.result.data.error) || 'Could not upload audio.');
+                return;
+              }
+              if (next && next.audio && next.audio.unavailable) {
+                continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+                return;
+              }
+              continueAfterCatalog(nextHref);
+            });
           });
         })
         .catch(function () {
@@ -258,16 +412,24 @@
 
       createRelease(draft, releaseDate)
         .then(function (created) {
-          trigger.removeAttribute('aria-busy');
           if (created.unavailable) {
+            trigger.removeAttribute('aria-busy');
             continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
           if (created.failed) {
+            trigger.removeAttribute('aria-busy');
             setStatus('tg-status', created.result.data.error || 'Could not create release.');
             return;
           }
-          go(nextHref);
+          return afterRelease(created.draft || draft).then(function (next) {
+            trigger.removeAttribute('aria-busy');
+            if (next && next.failed) {
+              setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+              return;
+            }
+            go(nextHref);
+          });
         })
         .catch(function () {
           trigger.removeAttribute('aria-busy');
@@ -311,7 +473,13 @@
         setStatus('tg-status', created.result.data.error || 'Could not create release.');
         return;
       }
-      if (created.created) setStatus('tg-status', 'Release saved to the catalog.');
+      return afterRelease(created.draft || draft).then(function (next) {
+        if (next && next.failed) {
+          setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+          return;
+        }
+        if (created.created || (next && next.created)) setStatus('tg-status', 'Release saved to the catalog.');
+      });
     }).catch(function () {
       setStatus('tg-status', 'Could not reach catalog.');
     });

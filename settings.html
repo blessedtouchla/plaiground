@@ -33,7 +33,7 @@
   <div class="app-main">
     <div class="topbar">
       <span></span>
-      <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
       <div class="page-head">
@@ -47,9 +47,9 @@
           <button class="btn btn-ghost btn-sm" type="button">Change photo</button>
         </div>
         <div class="form-grid four">
-          <div class="field"><label>Artist name</label><input placeholder="FIRST NAME LAST NAME" /></div>
-          <div class="field"><label>Legal name</label><input value="Victoria Reyes" /></div>
-          <div class="field"><label>Email</label><input value="you@label.com" /></div>
+          <div class="field"><label>Artist name</label><input data-account-artist placeholder="FIRST NAME LAST NAME" /></div>
+          <div class="field"><label>Legal name</label><input placeholder="Legal name" /></div>
+          <div class="field"><label>Email</label><input data-account-email type="email" placeholder="you@label.com" /></div>
           <div class="field"><label>Country</label><input value="United States" /></div>
         </div>
       </div>
@@ -77,6 +77,8 @@
       </div>
     </div>
   </div>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

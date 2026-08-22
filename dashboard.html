@@ -24,7 +24,7 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4><span class="dot"></span>On Pro</h4>
+      <h4 data-account-plan-title><span class="dot"></span>On Pro</h4>
       <p>Publishing, Boosts and deeper analytics are active on your account.</p>
       <p style="margin-top:8px">Renews 9 Sep 2026 · $19.99/month or $149/year.</p>
     </div>
@@ -32,7 +32,7 @@
   <div class="app-main">
     <div class="topbar">
       <div class="ready">● ACCOUNT READY</div>
-      <a class="who" href="settings.html"><span class="avatar">VV</span> Hi Victoria!</a>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
       <div class="dash-top">
@@ -48,9 +48,9 @@
         <div class="account-card">
           <div class="head-row" style="margin-bottom:8px">
             <h3 style="letter-spacing:0.14em;font-size:11px;color:var(--muted)">Your account</h3>
-            <span style="color:var(--gold);font-weight:800;font-size:12px">PRO</span>
+            <span style="color:var(--gold);font-weight:800;font-size:12px" data-account-plan>—</span>
           </div>
-          <div class="row"><span>Releases live</span><b>0</b></div>
+          <div class="row"><span>Releases live</span><b data-account-releases>0</b></div>
           <div class="row"><span>Split sheets signed</span><b>0</b></div>
           <div class="row"><span>Payout method</span><b style="color:var(--gold)">Not set up</b></div>
           <div class="row"><span>Plan renews</span><b>9 Sep 2026</b></div>
@@ -66,7 +66,7 @@
         <div class="wf"><b>04 Review &amp; pay</b><span>Cost and delivery</span></div>
       </div>
 
-      <div class="pub-call">
+      <div class="pub-call" data-pub-call hidden>
         <div>
           <p class="ok">PRO • INCLUDED IN YOUR PLAN</p>
           <h3 style="font-size:1.4rem;margin:8px 0">Register your publishing</h3>
@@ -89,6 +89,8 @@
       </div>
     </div>
   </div>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

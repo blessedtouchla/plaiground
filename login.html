@@ -44,19 +44,20 @@
         </div>
         <h2>Welcome back</h2>
         <p class="lead">Sign in to manage your releases and royalties.</p>
-        <form action="dashboard.html" method="get">
+        <form id="login-form">
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@label.com" />
+            <input id="email" name="email" type="email" placeholder="you@label.com" autocomplete="username" />
           </div>
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" name="password" type="password" value="••••••••" />
+            <input id="password" type="password" autocomplete="current-password" />
           </div>
           <div class="row-between">
             <label class="checkline" style="margin:0"><input type="checkbox" checked /> Keep me signed in</label>
             <a href="forgot.html">Forgot password?</a>
           </div>
+          <p class="hint" id="auth-status" hidden></p>
           <button class="btn btn-purple btn-lg" type="submit">Log in</button>
         </form>
         <div class="or">OR</div>
@@ -112,26 +113,63 @@
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
-      function markSignedIn() {
-        if (!window.PlaigroundMembership) return;
-        window.PlaigroundMembership.recordSignedIn();
-        var params = new URLSearchParams(window.location.search);
-        var plan = params.get('plan');
-        if (plan) window.PlaigroundMembership.recordPlan(plan);
+      var form = document.getElementById('login-form');
+      if (!form) return;
+      var status = document.getElementById('auth-status');
+      var button = form.querySelector('button[type="submit"]');
+
+      function setStatus(text) {
+        if (!status) return;
+        status.textContent = text || '';
+        status.hidden = !text;
       }
 
-      var form = document.querySelector('form');
-      if (form) {
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          markSignedIn();
-          window.location.href = form.getAttribute('action') || 'dashboard.html';
-        });
-      }
-
-      document.querySelectorAll('a[href="dashboard.html"]').forEach(function (link) {
-        link.addEventListener('click', function () {
-          markSignedIn();
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var emailEl = document.getElementById('email');
+        var passwordEl = document.getElementById('password');
+        var email = emailEl ? String(emailEl.value || '').trim() : '';
+        var password = passwordEl ? String(passwordEl.value || '') : '';
+        if (button) {
+          button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
+        }
+        setStatus('');
+        fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password }),
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, status: response.status, data: data || {} };
+          }).catch(function () {
+            return { ok: false, status: response.status, data: {} };
+          });
+        }).then(function (result) {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+          }
+          if (result.status === 503 || (result.data && result.data.error === 'Accounts are not configured.')) {
+            setStatus('Accounts are not configured.');
+            return;
+          }
+          if (!result.ok) {
+            setStatus(result.data.error || 'Invalid email or password.');
+            return;
+          }
+          if (window.PlaigroundMembership) {
+            window.PlaigroundMembership.recordSignedIn();
+            if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+          }
+          window.location.href = 'dashboard.html';
+        }).catch(function () {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+          }
+          setStatus('Could not reach accounts.');
         });
       });
     })();
