@@ -40,47 +40,41 @@
           <p class="kicker">Revenue</p>
           <h1>Earnings</h1>
           <p>Recording, publishing, sync and Boost revenue from every store, collected monthly.</p>
+          <p class="hint" data-earn-status hidden></p>
+          <p class="hint" data-earn-empty hidden>No royalties yet.</p>
         </div>
         <button class="btn btn-ghost btn-sm" type="button">Download statement</button>
       </div>
       <div class="panel">
-        <div class="metric-row" style="grid-template-columns:1fr 1fr;margin:0">
-          <div><strong class="stat-g" style="font-size:2rem;font-weight:800">$18,942.60</strong><span style="display:block;color:var(--muted);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">Lifetime earnings</span></div>
-          <div><strong style="font-size:2rem;font-weight:800">$3,412.85</strong><span style="display:block;color:var(--muted);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">This month</span></div>
+        <div class="metric-row" data-earn-metrics style="grid-template-columns:1fr 1fr;margin:0">
+          <div><strong class="stat-g" data-earn="available" style="font-size:2rem;font-weight:800">$0.00</strong><span style="display:block;color:var(--muted);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">Available</span></div>
+          <div><strong data-earn="pending" style="font-size:2rem;font-weight:800">$0.00</strong><span style="display:block;color:var(--muted);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;margin-top:6px">Pending</span></div>
         </div>
       </div>
       <div class="panel">
         <div class="head-row">
           <h3>By source</h3>
-          <span style="color:var(--muted);font-size:13px">August 2026</span>
+          <span data-earn-period style="color:var(--muted);font-size:13px"></span>
         </div>
         <table class="data">
           <thead><tr><th>Source</th><th>Streams</th><th>Share</th><th>Earnings</th></tr></thead>
-          <tbody>
-            <tr><td>Spotify</td><td>3,462,104</td><td>47%</td><td>$3,904.22</td></tr>
-            <tr><td>Apple Music</td><td>2,140,225</td><td>29%</td><td>$2,466.18</td></tr>
-            <tr><td>YouTube Music</td><td>1,178,924</td><td>16%</td><td>$2,024.88</td></tr>
-            <tr><td>Amazon Music</td><td>613,678</td><td>8%</td><td>$1,527.40</td></tr>
-          </tbody>
+          <tbody data-earn-sources></tbody>
         </table>
       </div>
       <div class="two-col">
-        <div class="panel">
+        <div class="panel" data-earn-chart hidden>
           <h3>Last six months</h3>
-          <div class="chart" aria-hidden="true">
-            <b style="height:36%"></b><b style="height:48%"></b><b style="height:58%"></b><b class="zero"></b><b style="height:72%"></b><b style="height:90%"></b>
-          </div>
-          <div class="chart-labels"><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span></div>
+          <div class="chart" data-earn-chart-bars aria-hidden="true"></div>
+          <div class="chart-labels" data-earn-chart-labels></div>
         </div>
         <div class="panel lock">
           <h3 class="y">Locked on Basic</h3>
-          <p class="y">Publishing royalties: $1,284.40</p>
-          <p class="y" style="margin-top:8px">Sync revenue: $1,284.40</p>
-          <p class="y" style="margin-top:8px">Marketing Boost: $1,284.40</p>
+          <p class="y">Publishing, sync, and Boost royalties show here on Creator or Pro.</p>
         </div>
       </div>
     </div>
   </div>
+  <script src="earnings.js" defer></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

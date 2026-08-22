@@ -42,11 +42,12 @@
         </div>
         <a class="btn btn-purple btn-sm" href="upload.html">New release</a>
       </div>
+      <p class="hint" data-release-status hidden></p>
       <div class="catalog-stats">
-        <div><strong>2</strong><span>Total releases</span></div>
-        <div><strong class="stat-g">1</strong><span>Live</span></div>
-        <div><strong class="stat-y">0</strong><span>In review</span></div>
-        <div><strong>1</strong><span>Draft</span></div>
+        <div><strong data-stat="total">0</strong><span>Total releases</span></div>
+        <div><strong class="stat-g" data-stat="live">0</strong><span>Live</span></div>
+        <div><strong class="stat-y" data-stat="review">0</strong><span>In review</span></div>
+        <div><strong data-stat="draft">0</strong><span>Draft</span></div>
       </div>
       <div class="tabs">
         <a class="on" href="releases.html">All</a>
@@ -54,36 +55,26 @@
         <a href="releases.html">In review</a>
         <a href="releases.html">Drafts</a>
       </div>
-      <table class="data">
+      <table class="data" data-release-table hidden>
         <thead>
           <tr><th>Release</th><th>Status</th><th>Splits</th><th>Streams</th><th>Earnings</th></tr>
         </thead>
-        <tbody>
-          <tr>
-            <td><a class="rel" href="song.html"><span class="thumb"></span><div><b>Neon Sermon</b><small>Single · Released 12 Jul 2026</small></div></a></td>
-            <td class="live">Live</td>
-            <td>Signed 2/2</td>
-            <td>4,182,680</td>
-            <td><b>$18,412.44</b></td>
-          </tr>
-          <tr>
-            <td><div class="rel"><span class="thumb grey"></span><div><b>Neon Shadows</b><small>Draft · Last edited 2 hours ago</small></div></div></td>
-            <td style="color:var(--muted)">Draft</td>
-            <td style="color:var(--muted)">Not started</td>
-            <td style="color:var(--muted)">No data yet</td>
-            <td style="color:var(--muted)">No data yet</td>
-          </tr>
-        </tbody>
+        <tbody data-release-rows></tbody>
       </table>
+      <div class="empty" data-release-empty>
+        <h3>Your first release goes here.</h3>
+        <p>Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html">Submit your first song</a></p>
+      </div>
       <div class="page-foot">
-        <span>Showing 2 of 2 releases</span>
+        <span data-release-count></span>
         <span>
-          <a href="library.html" style="color:var(--muted-2);margin-right:16px">Preview the empty state</a>
           <a class="btn btn-ghost btn-sm" href="dashboard.html">Back to overview</a>
         </span>
       </div>
     </div>
   </div>
+  <script src="catalog.js" defer></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

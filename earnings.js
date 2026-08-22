@@ -1,0 +1,180 @@
+(function (global) {
+  var ROYALTIES_URL = '/api/tonegrid/royalties';
+
+  function $(sel) {
+    return document.querySelector(sel);
+  }
+
+  function toNumber(value) {
+    if (typeof value === 'number' && isFinite(value)) return value;
+    if (typeof value === 'string') {
+      var n = Number(String(value).replace(/[$,]/g, '').trim());
+      return isFinite(n) ? n : 0;
+    }
+    return 0;
+  }
+
+  function formatMoney(value) {
+    var n = toNumber(value);
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatCount(value) {
+    return toNumber(value).toLocaleString('en-US');
+  }
+
+  function setText(sel, text) {
+    var el = $(sel);
+    if (el) el.textContent = text;
+  }
+
+  function setHidden(sel, hidden) {
+    var el = $(sel);
+    if (el) el.hidden = Boolean(hidden);
+  }
+
+  function emptyMessage() {
+    return 'No royalties yet.';
+  }
+
+  function isEmpty(data) {
+    var balance = (data && data.balance) || {};
+    var available = toNumber(balance.available_usd);
+    var pending = toNumber(balance.pending_usd);
+    var statementTotal = ((data && data.statements) || []).reduce(function (sum, row) {
+      return sum + toNumber(row.total_usd);
+    }, 0);
+    var breakdownTotal = ((data && data.breakdown) || []).reduce(function (sum, row) {
+      return sum + toNumber(row.revenue_usd) + toNumber(row.streams);
+    }, 0);
+    return available === 0 && pending === 0 && statementTotal === 0 && breakdownTotal === 0;
+  }
+
+  function renderMetrics(data) {
+    var balance = (data && data.balance) || {};
+    setText('[data-earn="available"]', formatMoney(balance.available_usd));
+    setText('[data-earn="pending"]', formatMoney(balance.pending_usd));
+  }
+
+  function renderSources(data) {
+    var host = $('[data-earn-sources]');
+    var period = $('[data-earn-period]');
+    if (!host) return;
+    host.textContent = '';
+    var rows = (data && data.breakdown) || [];
+    if (period) {
+      var latest = data && data.statements && data.statements[0];
+      period.textContent = latest && latest.period ? latest.period : '';
+    }
+    if (!rows.length) {
+      var empty = document.createElement('tr');
+      var cell = document.createElement('td');
+      cell.colSpan = 4;
+      cell.textContent = emptyMessage();
+      empty.appendChild(cell);
+      host.appendChild(empty);
+      return;
+    }
+    var grouped = {};
+    var totalStreams = 0;
+    rows.forEach(function (row) {
+      var name = row.dsp || 'Other';
+      if (!grouped[name]) grouped[name] = { dsp: name, streams: 0, revenue_usd: 0 };
+      grouped[name].streams += toNumber(row.streams);
+      grouped[name].revenue_usd += toNumber(row.revenue_usd);
+      totalStreams += toNumber(row.streams);
+    });
+    Object.keys(grouped).forEach(function (name) {
+      var row = grouped[name];
+      var tr = document.createElement('tr');
+      var share = totalStreams ? Math.round((row.streams / totalStreams) * 100) + '%' : '0%';
+      [row.dsp, formatCount(row.streams), share, formatMoney(row.revenue_usd)].forEach(function (text) {
+        var td = document.createElement('td');
+        td.textContent = text;
+        tr.appendChild(td);
+      });
+      host.appendChild(tr);
+    });
+  }
+
+  function renderChart(statements) {
+    var panel = $('[data-earn-chart]');
+    var bars = $('[data-earn-chart-bars]');
+    var labels = $('[data-earn-chart-labels]');
+    if (!panel || !bars || !labels) return;
+    var list = (statements || []).slice().reverse().slice(-6);
+    if (!list.length) {
+      panel.hidden = true;
+      bars.textContent = '';
+      labels.textContent = '';
+      return;
+    }
+    panel.hidden = false;
+    bars.textContent = '';
+    labels.textContent = '';
+    var max = 0;
+    list.forEach(function (row) {
+      var value = toNumber(row.total_usd);
+      if (value > max) max = value;
+    });
+    list.forEach(function (row) {
+      var value = toNumber(row.total_usd);
+      var bar = document.createElement('b');
+      bar.style.height = (max ? Math.max(4, Math.round((value / max) * 100)) : 4) + '%';
+      if (!value) bar.className = 'zero';
+      bars.appendChild(bar);
+      var label = document.createElement('span');
+      label.textContent = row.period || '';
+      labels.appendChild(label);
+    });
+  }
+
+  function render(data) {
+    var payload = data || {};
+    renderMetrics(payload);
+    renderSources(payload);
+    renderChart(payload.statements);
+    var empty = isEmpty(payload);
+    setHidden('[data-earn-empty]', !empty);
+    if (empty) setText('[data-earn-empty]', emptyMessage());
+  }
+
+  function setStatus(text) {
+    setText('[data-earn-status]', text || '');
+    setHidden('[data-earn-status]', !text);
+  }
+
+  function load() {
+    if (!$('[data-earn-metrics]')) return;
+    setStatus('Loading earnings…');
+    fetch(ROYALTIES_URL, { headers: { Accept: 'application/json' } })
+      .then(function (response) {
+        return response.json().then(function (body) {
+          return { ok: response.ok, status: response.status, data: body || {} };
+        }).catch(function () {
+          return { ok: false, status: response.status, data: {} };
+        });
+      })
+      .then(function (result) {
+        if (result.status === 503 || result.data.configured === false) {
+          setStatus('Catalog sync is not configured yet.');
+          render({ balance: {}, statements: [], breakdown: [] });
+          return;
+        }
+        if (!result.ok) {
+          setStatus(result.data.error || 'Could not load earnings.');
+          render({ balance: {}, statements: [], breakdown: [] });
+          return;
+        }
+        render(result.data);
+        setStatus(result.data.errors ? 'Some ToneGrid earnings could not be loaded.' : '');
+      })
+      .catch(function () {
+        setStatus('Could not reach catalog.');
+        render({ balance: {}, statements: [], breakdown: [] });
+      });
+  }
+
+  global.PlaigroundEarnings = { render: render, isEmpty: isEmpty };
+  load();
+})(window);

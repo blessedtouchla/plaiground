@@ -27,5 +27,7 @@ ToneGrid routes (no browser key):
 - `POST /api/tonegrid/artists`
 - `POST /api/tonegrid/releases`
 - `GET /api/tonegrid/analytics` (summary, releases, territories, dsps; optional `from` / `to`)
+- `GET /api/tonegrid/releases` (list)
+- `GET /api/tonegrid/royalties` (balance + statements)
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
