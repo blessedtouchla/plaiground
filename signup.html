@@ -51,7 +51,7 @@
           </div>
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@label.com" />
+            <input id="email" name="email" type="email" placeholder="you@label.com" required autocomplete="email" />
           </div>
           <div class="field">
             <label for="password">Password</label>
@@ -75,6 +75,7 @@
             <input type="checkbox" required />
             I agree to the <a href="terms.html">Terms of Service</a> and the <a href="rights.html">Rights Attestation</a>.
           </label>
+          <p class="alert err is-hidden" data-signup-status hidden></p>
           <button class="btn btn-purple btn-lg" type="submit">Create account</button>
         </form>
         <p class="switch">Already released with us? <a href="login.html">Sign in</a></p>
@@ -126,19 +127,78 @@
     (function () {
       var form = document.getElementById('signup-form');
       if (!form) return;
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var emailEl = document.getElementById('email');
-        var artistEl = document.getElementById('artist');
-        var email = emailEl ? String(emailEl.value || '').trim() : '';
-        var artist = artistEl ? String(artistEl.value || '').trim() : '';
+      var status = document.querySelector('[data-signup-status]');
+      var button = form.querySelector('button[type="submit"]');
+
+      function showError(message) {
+        if (!status) return;
+        status.textContent = message || '';
+        status.hidden = !message;
+        status.classList.toggle('is-hidden', !message);
+      }
+
+      function remember(email, artist) {
         try {
           if (email) sessionStorage.setItem('plaigroundSignupEmail', email);
           else sessionStorage.removeItem('plaigroundSignupEmail');
           if (artist) sessionStorage.setItem('plaigroundSignupArtist', artist);
           else sessionStorage.removeItem('plaigroundSignupArtist');
         } catch (err) {}
-        window.location.href = 'confirm.html';
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var emailEl = document.getElementById('email');
+        var artistEl = document.getElementById('artist');
+        var email = emailEl ? String(emailEl.value || '').trim() : '';
+        var artist = artistEl ? String(artistEl.value || '').trim() : '';
+        remember(email, artist);
+        if (!email) {
+          showError('Enter an email.');
+          return;
+        }
+
+        var original = button ? button.textContent : '';
+        if (button) {
+          button.disabled = true;
+          button.textContent = 'Sending…';
+        }
+        showError('');
+
+        fetch('/api/signup-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, artist: artist }),
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, status: response.status, data: data || {} };
+            }).catch(function () {
+              return { ok: false, status: response.status, data: {} };
+            });
+          })
+          .then(function (result) {
+            if (result.ok) {
+              window.location.href = 'confirm.html';
+              return;
+            }
+            if (button) {
+              button.disabled = false;
+              button.textContent = original;
+            }
+            if (result.status === 503 || result.data.error === 'Mail is not configured.') {
+              showError('Mail is not configured.');
+              return;
+            }
+            showError(result.data.error || 'Could not send the confirmation email.');
+          })
+          .catch(function () {
+            if (button) {
+              button.disabled = false;
+              button.textContent = original;
+            }
+            showError('Could not send the confirmation email.');
+          });
       });
     })();
   </script>
