@@ -127,10 +127,9 @@ function verifyToken(token) {
   return { email };
 }
 
-function confirmLink(email, token) {
+function confirmLink(email) {
   const url = new URL('/confirmed.html', SITE_ORIGIN);
   url.searchParams.set('email', email);
-  if (token) url.searchParams.set('token', token);
   return url.toString();
 }
 
@@ -206,8 +205,7 @@ async function sendConfirmEmail(req, res) {
     return;
   }
 
-  const token = signToken(email);
-  const link = confirmLink(email, token);
+  const link = confirmLink(email);
   const mail = mailBodies(email, artist, link);
   const from = fromAddress();
 

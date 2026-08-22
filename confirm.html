@@ -4,15 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Email confirmation – PLAIGROUND</title>
-  <script>
-    (function () {
-      var params = new URLSearchParams(window.location.search);
-      if (params.get('session_id')) return;
-      if (params.get('confirmed') === '1' || String(params.get('token') || '').trim()) {
-        window.location.replace('confirmed.html' + window.location.search);
-      }
-    })();
-  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -113,15 +104,14 @@
           if (value) sessionStorage.setItem(EMAIL_KEY, value);
         } catch (e) {}
       }
-      function storedArtist() {
-        try { return sessionStorage.getItem(ARTIST_KEY) || ''; } catch (e) { return ''; }
-      }
 
       var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
       if (email) rememberEmail(email);
 
-      if (!params.get('session_id') && (params.get('confirmed') === '1' || String(params.get('token') || '').trim())) {
-        window.location.replace('confirmed.html' + window.location.search);
+      if (params.get('confirmed') === '1' || params.get('token')) {
+        var dest = 'confirmed.html';
+        if (email) dest += '?email=' + encodeURIComponent(email);
+        window.location.replace(dest);
         return;
       }
 
@@ -141,18 +131,22 @@
         return;
       }
 
-      function setSignupLead(address) {
+      function setSignupLead(email) {
         if (!lead) return;
         lead.textContent = '';
         lead.appendChild(document.createTextNode('We sent a confirmation link to '));
-        if (address) {
+        if (email) {
           var bold = document.createElement('b');
-          bold.textContent = address;
+          bold.textContent = email;
           lead.appendChild(bold);
         } else {
           lead.appendChild(document.createTextNode('the email you entered'));
         }
         lead.appendChild(document.createTextNode('. Open it on any device to confirm the address and finish setting up your account.'));
+      }
+
+      function storedArtist() {
+        try { return sessionStorage.getItem(ARTIST_KEY) || ''; } catch (e) { return ''; }
       }
       function showError(message) {
         if (errorBox) {
@@ -170,19 +164,6 @@
           errorBox.classList.add('is-hidden');
         }
       }
-      function sendConfirm(address, artist) {
-        return fetch('/api/signup-confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: address, artist: artist || '' }),
-        }).then(function (response) {
-          return response.json().then(function (data) {
-            return { ok: response.ok, status: response.status, data: data || {} };
-          }).catch(function () {
-            return { ok: false, status: response.status, data: {} };
-          });
-        });
-      }
 
       setSignupLead(email);
 
@@ -197,7 +178,17 @@
           var original = primary.textContent;
           primary.setAttribute('aria-busy', 'true');
           primary.textContent = 'Sending…';
-          sendConfirm(address, storedArtist()).then(function (result) {
+          fetch('/api/signup-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: address, artist: storedArtist() }),
+          }).then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, status: response.status, data: data || {} };
+            }).catch(function () {
+              return { ok: false, status: response.status, data: {} };
+            });
+          }).then(function (result) {
             primary.removeAttribute('aria-busy');
             primary.textContent = original;
             if (result.ok) {
