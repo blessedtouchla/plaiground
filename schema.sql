@@ -11,8 +11,11 @@ CREATE TABLE IF NOT EXISTS users (
   stripe_session_id text,
   tonegrid_artist_id text,
   tonegrid_release_ids text[] NOT NULL DEFAULT ARRAY[]::text[],
+  tonegrid_track_ids text[] NOT NULL DEFAULT ARRAY[]::text[],
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT users_email_unique UNIQUE (email),
   CONSTRAINT users_plan_check CHECK (plan IS NULL OR plan IN ('basic', 'creator', 'pro'))
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tonegrid_track_ids text[] NOT NULL DEFAULT ARRAY[]::text[];

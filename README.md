@@ -32,7 +32,7 @@ Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 - `POST /api/auth/logout`
 - `GET /api/me`
 - `POST /api/me` (store Stripe session + plan)
-- `POST /api/me/catalog`
+- `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
 
 ToneGrid routes (no browser key):
 
@@ -40,8 +40,12 @@ ToneGrid routes (no browser key):
 - `GET /api/tonegrid/artists`
 - `POST /api/tonegrid/artists`
 - `POST /api/tonegrid/releases`
+- `POST /api/tonegrid/tracks` (create track on a release; `explicit` defaults to false)
+- `POST /api/tonegrid/tracks/:id/audio` (multipart field `audio`; WAV/FLAC; max 200MB; stored by ToneGrid, not a PLAIGROUND bucket)
 - `GET /api/tonegrid/analytics` (session; filtered to that user’s ToneGrid ids)
 - `GET /api/tonegrid/releases` (session; filtered)
 - `GET /api/tonegrid/royalties` (session; filtered)
+
+Song audio is uploaded to ToneGrid with the existing `TONEGRID_API_KEY`. Do not add a second object store or new cloud-storage keys.
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.

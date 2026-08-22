@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * POST /api/me/catalog { artist_id?, release_id? }
+ * POST /api/me/catalog { artist_id?, release_id?, track_id? }
  * Saves ToneGrid uuids on the signed-in PLAIGROUND user.
  */
 
@@ -48,6 +48,7 @@ module.exports = async function handler(req, res) {
 
   const artistId = String((body && (body.artist_id || body.artistId)) || '').trim();
   const releaseId = String((body && (body.release_id || body.releaseId)) || '').trim();
+  const trackId = String((body && (body.track_id || body.trackId)) || '').trim();
   if (artistId && !isUuid(artistId)) {
     sendJson(res, 400, { error: 'artist_id must be a uuid.' });
     return;
@@ -56,8 +57,12 @@ module.exports = async function handler(req, res) {
     sendJson(res, 400, { error: 'release_id must be a uuid.' });
     return;
   }
-  if (!artistId && !releaseId) {
-    sendJson(res, 400, { error: 'artist_id or release_id is required.' });
+  if (trackId && !isUuid(trackId)) {
+    sendJson(res, 400, { error: 'track_id must be a uuid.' });
+    return;
+  }
+  if (!artistId && !releaseId && !trackId) {
+    sendJson(res, 400, { error: 'artist_id, release_id, or track_id is required.' });
     return;
   }
 
@@ -70,6 +75,7 @@ module.exports = async function handler(req, res) {
     const next = await updateCatalog(row.id, {
       artistId: artistId || undefined,
       releaseId: releaseId || undefined,
+      trackId: trackId || undefined,
     });
     sendJson(res, 200, publicUser(next || row));
   } catch (err) {
