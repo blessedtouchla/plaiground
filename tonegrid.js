@@ -12,12 +12,21 @@
     return el ? String(el.value || '').trim() : '';
   }
 
+  function isDemoCopy(value) {
+    return /^(neon shadows|victoria reyes|victoria void|electronic \/ synthwave)$/i.test(String(value || '').trim());
+  }
+
   function readDraft() {
+    var draft;
     try {
-      return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}') || {};
+      draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}') || {};
     } catch (err) {
-      return {};
+      draft = {};
     }
+    if (isDemoCopy(draft.title)) draft.title = '';
+    if (isDemoCopy(draft.name)) draft.name = '';
+    if (isDemoCopy(draft.genre)) draft.genre = '';
+    return draft;
   }
 
   function writeDraft(patch) {

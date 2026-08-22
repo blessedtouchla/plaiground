@@ -43,7 +43,7 @@
 
       <div class="field" style="max-width:420px">
         <label for="song-title">Song title</label>
-        <input id="song-title" type="text" value="Neon Shadows" autocomplete="off" />
+        <input id="song-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" />
       </div>
 
       <div id="writers"></div>
@@ -97,7 +97,7 @@
       var TEMPLATE_SLOTS = 2;
       var PROS = ['', 'BMI', 'ASCAP', 'SESAC', 'Other', 'None / not yet'];
       var writers = [
-        { name: 'Victoria Reyes', email: '', share: 100, pro: '' }
+        { name: '', email: '', share: 100, pro: '' }
       ];
 
       var writersEl = document.getElementById('writers');
@@ -180,7 +180,7 @@
             '<div class="writer-row" data-writer="' + index + '">' +
               '<div class="writer-head"><b>Writer ' + (index + 1) + you + '</b>' + remove + '</div>' +
               '<div class="writer-grid">' +
-                '<div class="field"><label>Name</label><input data-field="name" type="text" value="' + escapeHtml(writer.name) + '" autocomplete="name" /></div>' +
+                '<div class="field"><label>Name</label><input data-field="name" type="text" value="' + escapeHtml(writer.name) + '" placeholder="FIRST NAME LAST NAME" autocomplete="off" /></div>' +
                 '<div class="field"><label>Email</label><input data-field="email" type="email" value="' + escapeHtml(writer.email) + '" placeholder="needed to send the sheet" autocomplete="email" /></div>' +
                 '<div class="field"><label>Share %</label><input data-field="share" type="number" min="0" max="100" step="0.01" value="' + escapeHtml(writer.share) + '" /></div>' +
                 '<div class="field"><label>PRO</label><select data-field="pro">' + options + '</select></div>' +
@@ -327,6 +327,23 @@
 
       signBtn.addEventListener('click', function () { createSheet(false); });
       emailBtn.addEventListener('click', function () { createSheet(true); });
+
+      function isDemoCopy(value) {
+        return /^(neon shadows|victoria reyes|victoria void)$/i.test(String(value || '').trim());
+      }
+
+      try {
+        var draft = JSON.parse(sessionStorage.getItem('plaiground.tonegrid.draft') || '{}') || {};
+        if (titleInput && !titleInput.value && draft.title && !isDemoCopy(draft.title)) {
+          titleInput.value = draft.title;
+        }
+        if (!writers[0].name && draft.name && !isDemoCopy(draft.name)) {
+          writers[0].name = draft.name;
+        }
+      } catch (err) {}
+
+      if (titleInput && isDemoCopy(titleInput.value)) titleInput.value = '';
+      if (isDemoCopy(writers[0].name)) writers[0].name = '';
 
       fetch('/api/signwell')
         .then(function (response) { return response.json(); })

@@ -80,12 +80,12 @@
     <section class="flow-card">
       <h3>Submit the details</h3>
       <div class="form-grid three">
-        <div class="field"><label for="tg-title">Song title</label><input id="tg-title" placeholder="SONG TITLE" /></div>
-        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" placeholder="FIRST NAME LAST NAME" /></div>
-        <div class="field"><label>Featured artist</label><input placeholder="Optional" /></div>
-        <div class="field"><label for="tg-genre">Genre</label><input id="tg-genre" placeholder="Electronic" /></div>
-        <div class="field"><label>Language</label><input placeholder="Language" /></div>
-        <div class="field"><label>Download price</label><input placeholder="$0.00" /></div>
+        <div class="field"><label for="tg-title">Song title</label><input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" /></div>
+        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" name="release-artist" type="text" value="" placeholder="FIRST NAME LAST NAME" autocomplete="off" /></div>
+        <div class="field"><label>Featured artist</label><input name="release-featured" type="text" value="" placeholder="Optional" autocomplete="off" /></div>
+        <div class="field"><label for="tg-genre">Genre</label><input id="tg-genre" name="release-genre" type="text" value="" placeholder="Electronic" autocomplete="off" /></div>
+        <div class="field"><label for="tg-language">Language</label><input id="tg-language" name="release-language" type="text" value="" placeholder="Language" autocomplete="off" /></div>
+        <div class="field"><label for="tg-price">Download price</label><input id="tg-price" name="release-price" type="text" value="" placeholder="Price" autocomplete="off" /></div>
       </div>
       <p class="hint" style="margin-top:8px">Explicit content</p>
       <div class="auth-toggle" style="max-width:200px">
@@ -100,6 +100,23 @@
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
+      var DEMO_VALUES = {
+        'neon shadows': true,
+        'victoria reyes': true,
+        'victoria void': true,
+        'electronic / synthwave': true,
+        'english': true,
+        '$0.99': true
+      };
+      document.querySelectorAll('.form-grid.three input').forEach(function (el) {
+        var raw = String(el.getAttribute('value') || el.value || '').trim();
+        if (!raw) {
+          el.value = '';
+          return;
+        }
+        if (DEMO_VALUES[raw.toLowerCase()]) el.value = '';
+      });
+
       var drop = document.querySelector('[data-audio-drop]');
       var input = document.querySelector('[data-audio-input]');
       var preview = document.querySelector('[data-audio-preview]');
