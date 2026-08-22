@@ -93,6 +93,13 @@ function load(options) {
     },
     fetch(url, init) {
       calls.push({ url: String(url), init: init || {} });
+      if (String(url).indexOf('/api/me/catalog') !== -1) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ ok: true }),
+        });
+      }
       const queued = (opts.responses || []).shift();
       const response = queued || { ok: true, status: 201, data: { uuid: '11111111-1111-4111-8111-111111111111' } };
       return Promise.resolve({
@@ -137,11 +144,13 @@ async function run() {
   upload.continueBtn.listeners.click({ preventDefault() {} });
   await new Promise(function (resolve) { setImmediate(resolve); });
   await new Promise(function (resolve) { setImmediate(resolve); });
-  assert.strictEqual(upload.calls.length, 2);
-  assert.strictEqual(upload.calls[0].url, '/api/tonegrid/artists');
-  assert.strictEqual(upload.calls[1].url, '/api/tonegrid/releases');
-  const artistBody = JSON.parse(upload.calls[0].init.body);
-  const releaseBody = JSON.parse(upload.calls[1].init.body);
+  const uploadTonegrid = upload.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.strictEqual(uploadTonegrid.length, 2);
+  assert.strictEqual(uploadTonegrid[0].url, '/api/tonegrid/artists');
+  assert.strictEqual(uploadTonegrid[1].url, '/api/tonegrid/releases');
+  assert.ok(upload.calls.some(function (call) { return call.url === '/api/me/catalog'; }));
+  const artistBody = JSON.parse(uploadTonegrid[0].init.body);
+  const releaseBody = JSON.parse(uploadTonegrid[1].init.body);
   assert.strictEqual(artistBody.name, 'Ada Night');
   assert.strictEqual(releaseBody.artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
   assert.strictEqual(releaseBody.title, 'Night Drive');
@@ -188,8 +197,9 @@ async function run() {
     responses: [{ ok: true, status: 201, data: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } }],
   });
   await new Promise(function (resolve) { setImmediate(resolve); });
-  assert.strictEqual(submittedRetry.calls.length, 1);
-  assert.strictEqual(submittedRetry.calls[0].url, '/api/tonegrid/releases');
+  const retryTonegrid = submittedRetry.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.strictEqual(retryTonegrid.length, 1);
+  assert.strictEqual(retryTonegrid[0].url, '/api/tonegrid/releases');
   assert.strictEqual(draftOf(submittedRetry.localStorage).release_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 
   const source = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');

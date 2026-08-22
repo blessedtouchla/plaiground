@@ -8,6 +8,7 @@
  * Roster access is on; every create must include artist_id.
  */
 
+const { personalScope } = require('../../lib/scope');
 const {
   RELEASE_TYPES,
   healthPayload,
@@ -28,15 +29,6 @@ function queryFromReq(req) {
   return req.query && typeof req.query === 'object' ? req.query : {};
 }
 
-function asList(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== 'object') return [];
-  if (Array.isArray(payload.data)) return payload.data;
-  if (payload.data && Array.isArray(payload.data.data)) return payload.data.data;
-  if (Array.isArray(payload.releases)) return payload.releases;
-  return [];
-}
-
 function pickRelease(row) {
   if (!row || typeof row !== 'object') return null;
   const title = String(row.title || '').trim();
@@ -52,18 +44,27 @@ function pickRelease(row) {
   };
 }
 
+function unwrapRelease(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.release && typeof payload.release === 'object') return payload.release;
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    if (payload.data.release && typeof payload.data.release === 'object') return payload.data.release;
+    return payload.data;
+  }
+  return payload;
+}
+
 async function listReleases(req, res) {
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+
   const query = queryFromReq(req);
-  const forwarded = {};
-  if (query.page !== undefined && query.page !== '') forwarded.page = query.page;
-  if (query.per_page !== undefined && query.per_page !== '') forwarded.per_page = query.per_page;
   if (query.status) {
     const status = String(query.status).trim().toLowerCase();
     if (!LIST_STATUSES.has(status)) {
       sendJson(res, 400, { error: 'status must be draft, pending, approved, live, or taken_down.' });
       return;
     }
-    forwarded.status = status;
   }
   if (query.type) {
     const type = normalizeReleaseType(query.type);
@@ -71,25 +72,42 @@ async function listReleases(req, res) {
       sendJson(res, 400, { error: 'type must be single, ep, or album.' });
       return;
     }
-    forwarded.type = type;
   }
 
-  const result = await tonegridFetch('/releases', { method: 'GET', query: forwarded });
-  if (!result.ok) {
-    sendJson(res, result.status, result.data);
+  const health = healthPayload();
+  if (scope.empty) {
+    sendJson(res, 200, {
+      configured: true,
+      sandbox: health.sandbox,
+      empty: true,
+      releases: [],
+      total: 0,
+      page: 1,
+      per_page: 0,
+    });
     return;
   }
 
-  const raw = result.data && typeof result.data === 'object' ? result.data : {};
-  const releases = asList(raw).map(pickRelease).filter(Boolean);
-  const health = healthPayload();
+  const collected = [];
+  for (let i = 0; i < scope.releaseIds.length; i += 1) {
+    const id = scope.releaseIds[i];
+    const result = await tonegridFetch('/releases/' + id, { method: 'GET' });
+    if (!result.ok) continue;
+    const row = pickRelease(unwrapRelease(result.data));
+    if (!row) continue;
+    if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
+    if (query.type && row.type !== normalizeReleaseType(query.type)) continue;
+    collected.push(row);
+  }
+
   sendJson(res, 200, {
     configured: true,
     sandbox: health.sandbox,
-    releases,
-    total: typeof raw.total === 'number' ? raw.total : releases.length,
-    page: typeof raw.page === 'number' ? raw.page : 1,
-    per_page: typeof raw.per_page === 'number' ? raw.per_page : releases.length,
+    empty: collected.length === 0,
+    releases: collected,
+    total: collected.length,
+    page: 1,
+    per_page: collected.length,
   });
 }
 

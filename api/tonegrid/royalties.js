@@ -7,6 +7,7 @@
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
  */
 
+const { personalScope } = require('../../lib/scope');
 const {
   healthPayload,
   isConfigured,
@@ -89,41 +90,94 @@ function sectionError(result) {
   return 'ToneGrid rejected the request.';
 }
 
-async function loadRoyalties(req, res) {
-  const [balanceRes, statementsRes] = await Promise.all([
-    tonegridFetch('/royalties/balance', { method: 'GET' }),
-    tonegridFetch('/royalties/statements', { method: 'GET' }),
-  ]);
+function emptyRoyalties() {
+  const health = healthPayload();
+  return {
+    configured: true,
+    sandbox: health.sandbox,
+    empty: true,
+    balance: pickBalance({}),
+    statements: [],
+    breakdown: [],
+  };
+}
 
+function unwrapRelease(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.release && typeof payload.release === 'object') return payload.release;
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    if (payload.data.release && typeof payload.data.release === 'object') return payload.data.release;
+    return payload.data;
+  }
+  return payload;
+}
+
+function lineMatches(row, allow, titles) {
+  const uuid = String((row && (row.release_uuid || row.uuid)) || '').trim().toLowerCase();
+  if (uuid && allow.has(uuid)) return true;
+  const title = String((row && (row.release_title || row.title)) || '').trim().toLowerCase();
+  return Boolean(title && titles.has(title));
+}
+
+async function loadRoyalties(req, res) {
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+
+  const health = healthPayload();
+  if (scope.empty) {
+    sendJson(res, 200, emptyRoyalties());
+    return;
+  }
+
+  const titles = new Set();
+  for (let i = 0; i < scope.releaseIds.length; i += 1) {
+    const result = await tonegridFetch('/releases/' + scope.releaseIds[i], { method: 'GET' });
+    const row = result.ok ? unwrapRelease(result.data) : null;
+    const title = row && String(row.title || '').trim().toLowerCase();
+    if (title) titles.add(title);
+  }
+
+  const statementsRes = await tonegridFetch('/royalties/statements', { method: 'GET' });
   const errors = {};
-  if (!balanceRes.ok) errors.balance = sectionError(balanceRes);
   if (!statementsRes.ok) errors.statements = sectionError(statementsRes);
 
-  const statements = statementsRes.ok
+  const listed = statementsRes.ok
     ? asStatements(statementsRes.data).map(pickStatement).filter(Boolean)
     : [];
 
+  const statements = [];
   let breakdown = [];
-  const latestId = statements[0] && statements[0].id;
-  if (latestId && isStatementId(latestId)) {
-    const detail = await tonegridFetch('/royalties/statements/' + latestId, { method: 'GET' });
-    if (detail.ok) breakdown = pickBreakdown(detail.data);
-    else errors.statement = sectionError(detail);
+  for (let i = 0; i < listed.length; i += 1) {
+    const item = listed[i];
+    if (!item.id || !isStatementId(item.id)) continue;
+    const detail = await tonegridFetch('/royalties/statements/' + item.id, { method: 'GET' });
+    if (!detail.ok) {
+      errors.statement = sectionError(detail);
+      continue;
+    }
+    const lines = pickBreakdown(detail.data).filter((row) => lineMatches(row, scope.allow, titles));
+    if (!lines.length) continue;
+    const total = lines.reduce((sum, row) => sum + toNumber(row.revenue_usd), 0);
+    statements.push(Object.assign({}, item, { total_usd: total }));
+    if (!breakdown.length) breakdown = lines;
   }
 
-  const health = healthPayload();
+  const lifetime = statements.reduce((sum, row) => sum + toNumber(row.total_usd), 0);
   const body = {
     configured: true,
     sandbox: health.sandbox,
-    balance: balanceRes.ok ? pickBalance(balanceRes.data) : pickBalance({}),
+    empty: statements.length === 0 && breakdown.length === 0,
+    balance: {
+      available_usd: lifetime,
+      pending_usd: 0,
+      currency: 'USD',
+      last_updated: '',
+    },
     statements,
     breakdown,
   };
   if (Object.keys(errors).length) body.errors = errors;
-
-  const anyOk = balanceRes.ok || statementsRes.ok;
-  const status = anyOk ? 200 : (balanceRes.status || statementsRes.status || 502);
-  sendJson(res, status, body);
+  sendJson(res, 200, body);
 }
 
 module.exports = async function handler(req, res) {

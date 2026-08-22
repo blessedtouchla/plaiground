@@ -148,7 +148,7 @@
   }
 
   function getJson(url) {
-    return fetch(url, { headers: { Accept: 'application/json' } }).then(function (response) {
+    return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (response) {
       return response.json().then(function (body) {
         return { ok: response.ok, status: response.status, data: body || {} };
       }).catch(function () {
@@ -164,8 +164,15 @@
       .then(function (results) {
         var list = results[0];
         var analytics = results[1];
+        if (list.status === 401) {
+          setStatus('Sign in to see your releases.');
+          render({ releases: [], total: 0, analytics: {} });
+          return;
+        }
         if (list.status === 503 || list.data.configured === false) {
-          setStatus('Catalog sync is not configured yet.');
+          setStatus(list.data && list.data.error === 'Accounts are not configured.'
+            ? 'Accounts are not configured.'
+            : 'Catalog sync is not configured yet.');
           render({ releases: [], total: 0, analytics: {} });
           return;
         }

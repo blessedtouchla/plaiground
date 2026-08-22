@@ -152,6 +152,10 @@ function run() {
   assert.strictEqual(randomVisit.localStorage.getItem('plaigroundMembership'), null);
   assert.strictEqual(randomVisit.api.hasPlan(), false);
 
+  const servered = load();
+  servered.api.recordSignedIn();
+  assert.ok(typeof servered.api.whenReady === 'function');
+
   console.log('membership.test.js ok');
 }
 

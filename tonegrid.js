@@ -96,9 +96,28 @@
     if (idempotencyKey) headers['Idempotency-Key'] = String(idempotencyKey).slice(0, 255);
     return fetch(url, {
       method: 'POST',
+      credentials: 'same-origin',
       headers: headers,
       body: JSON.stringify(body),
     }).then(parseJson);
+  }
+
+  function saveCatalog(ids) {
+    var body = {};
+    if (ids && ids.artist_id) body.artist_id = ids.artist_id;
+    if (ids && ids.release_id) body.release_id = ids.release_id;
+    if (!body.artist_id && !body.release_id) return Promise.resolve();
+    return fetch('/api/me/catalog', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (response) {
+      if (response.status === 401 || response.status === 503) return null;
+      return parseJson(response);
+    }).catch(function () {
+      return null;
+    });
   }
 
   function go(href) {
@@ -144,6 +163,9 @@
       var releaseId = pickUuid(result.data);
       var next = draft;
       if (releaseId) next = writeDraft({ release_id: releaseId, release_date: releaseDate || draft.release_date || '' });
+      if (releaseId || draft.artist_id) {
+        saveCatalog({ artist_id: draft.artist_id, release_id: releaseId });
+      }
       return { created: true, draft: next, result: result };
     });
   }
@@ -199,6 +221,7 @@
             genre: genre,
             type: 'single',
           });
+          if (artistId) saveCatalog({ artist_id: artistId });
           if (!artistId) {
             trigger.removeAttribute('aria-busy');
             continueAfterCatalog(nextHref, 'Artist saved. Release will retry on the next step.');

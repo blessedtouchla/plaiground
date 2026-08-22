@@ -139,6 +139,12 @@
             sessionStorage.removeItem('plaigroundMembershipPending');
           } catch (err) {}
         }
+        fetch('/api/me', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stripe_session_id: sessionId, plan: plan }),
+        }).catch(function () {});
         if (status) status.innerHTML = '<i>✓</i> Payment received';
         if (title) title.textContent = 'You are on the plan.';
         if (lead) lead.textContent = 'Your subscription is set. Stripe will email a receipt.';
