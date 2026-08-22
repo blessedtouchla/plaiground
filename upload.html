@@ -74,10 +74,10 @@
     <section class="flow-card">
       <h3>Submit the details</h3>
       <div class="form-grid three">
-        <div class="field"><label>Song title</label><input value="Neon Shadows" /></div>
-        <div class="field"><label>Primary artist</label><input value="Victoria Reyes" /></div>
+        <div class="field"><label for="tg-title">Song title</label><input id="tg-title" value="Neon Shadows" /></div>
+        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" value="Victoria Reyes" /></div>
         <div class="field"><label>Featured artist</label><input placeholder="Optional" /></div>
-        <div class="field"><label>Genre</label><input value="Electronic / Synthwave" /></div>
+        <div class="field"><label for="tg-genre">Genre</label><input id="tg-genre" value="Electronic / Synthwave" /></div>
         <div class="field"><label>Language</label><input value="English" /></div>
         <div class="field"><label>Download price</label><input value="$0.99" /></div>
       </div>
@@ -86,9 +86,11 @@
         <a class="on" href="upload.html">No</a>
         <a href="upload.html">Yes</a>
       </div>
-      <p style="margin-top:22px"><a class="btn btn-purple btn-lg" href="attest.html">Continue to attest rights</a></p>
+      <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-tonegrid-continue href="attest.html">Continue to attest rights</a></p>
+      <p class="hint" id="tg-status" hidden></p>
     </section>
   </main>
+  <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

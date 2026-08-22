@@ -45,7 +45,7 @@
         <section class="flow-card">
           <h3>Release date</h3>
           <p class="hint">Pick the date your release goes live. This is the date shown on most stores and platforms.</p>
-          <div class="field"><input type="text" value="09/12/2026" /></div>
+          <div class="field"><input id="tg-release-date" type="text" value="09/12/2026" /></div>
           <div class="toggle-line"><span class="toggle" aria-hidden="true"></span> Select pre-order date</div>
           <div class="toggle-line"><span class="toggle on" aria-hidden="true"></span> Define time and timezone</div>
         </section>
@@ -86,9 +86,11 @@
 
     <div class="flow-actions">
       <a class="btn btn-ghost btn-md" href="split-sheet.html">Back</a>
-      <a class="btn btn-yellow btn-md" href="submitted.html">Pay and submit</a>
+      <a class="btn btn-yellow btn-md" data-tonegrid-submit href="submitted.html">Pay and submit</a>
     </div>
+    <p class="hint" id="tg-status" hidden style="margin-top:12px"></p>
   </main>
+  <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>
