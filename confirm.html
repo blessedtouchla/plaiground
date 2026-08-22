@@ -36,6 +36,7 @@
           <small>If it has not arrived</small>
           <p>Give it two minutes, then look in spam and promotions. Our mail comes from emailplaiground@gmail.com.</p>
         </div>
+        <p class="alert err is-hidden" data-confirm-error hidden></p>
         <a class="btn btn-purple btn-lg" href="confirm.html" data-confirm-primary>Resend the email</a>
         <p style="margin-top:12px"><a class="btn btn-ghost btn-lg" href="signup.html" data-confirm-secondary>Use a different email</a></p>
       </div>
@@ -85,6 +86,7 @@
   <script>
     (function () {
       var EMAIL_KEY = 'plaigroundSignupEmail';
+      var ARTIST_KEY = 'plaigroundSignupArtist';
       var params = new URLSearchParams(window.location.search);
       var status = document.querySelector('[data-confirm-status]');
       var title = document.querySelector('[data-confirm-title]');
@@ -92,6 +94,7 @@
       var help = document.querySelector('[data-confirm-help]');
       var primary = document.querySelector('[data-confirm-primary]');
       var secondary = document.querySelector('[data-confirm-secondary]');
+      var errorBox = document.querySelector('[data-confirm-error]');
 
       function storedEmail() {
         try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; }
@@ -142,7 +145,69 @@
         lead.appendChild(document.createTextNode('. Open it on any device to confirm the address and finish setting up your account.'));
       }
 
+      function storedArtist() {
+        try { return sessionStorage.getItem(ARTIST_KEY) || ''; } catch (e) { return ''; }
+      }
+      function showError(message) {
+        if (errorBox) {
+          errorBox.textContent = message || '';
+          errorBox.hidden = !message;
+          errorBox.classList.toggle('is-hidden', !message);
+        }
+        if (message && status) status.innerHTML = 'Could not send';
+      }
+      function showSent() {
+        if (status) status.innerHTML = '<i>✓</i> Email sent';
+        if (errorBox) {
+          errorBox.textContent = '';
+          errorBox.hidden = true;
+          errorBox.classList.add('is-hidden');
+        }
+      }
+
       setSignupLead(email);
+
+      if (primary) {
+        primary.addEventListener('click', function (e) {
+          e.preventDefault();
+          var address = String(storedEmail() || email || '').trim();
+          if (!address) {
+            showError('Enter an email on the signup page first.');
+            return;
+          }
+          var original = primary.textContent;
+          primary.setAttribute('aria-busy', 'true');
+          primary.textContent = 'Sending…';
+          fetch('/api/signup-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: address, artist: storedArtist() }),
+          }).then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, status: response.status, data: data || {} };
+            }).catch(function () {
+              return { ok: false, status: response.status, data: {} };
+            });
+          }).then(function (result) {
+            primary.removeAttribute('aria-busy');
+            primary.textContent = original;
+            if (result.ok) {
+              showSent();
+              setSignupLead(address);
+              return;
+            }
+            if (result.status === 503 || result.data.error === 'Mail is not configured.') {
+              showError('Mail is not configured.');
+              return;
+            }
+            showError(result.data.error || 'Could not send the confirmation email.');
+          }).catch(function () {
+            primary.removeAttribute('aria-busy');
+            primary.textContent = original;
+            showError('Could not send the confirmation email.');
+          });
+        });
+      }
     })();
   </script>
 </body>
