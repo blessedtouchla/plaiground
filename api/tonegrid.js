@@ -21,6 +21,9 @@
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
  *
+ * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
+ * 404s "Endpoint not found." POST and PUT /releases/:uuid/dsps exist. POST
+ * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
  * Solo 100% submit skips SignWell. Multi-writer submit creates or reuses a
  * SignWell document and emails other writers, then submits to ToneGrid without
@@ -1078,6 +1081,11 @@ function requestedStores(body) {
   return null;
 }
 
+function isMissingEndpoint(result) {
+  if (!result || result.ok || result.status !== 404) return false;
+  return /endpoint not found/i.test(String((result.data && result.data.error) || ''));
+}
+
 async function requireOwnedRelease(req, res, releaseId) {
   const scope = await personalScope(req, res);
   if (!scope) return null;
@@ -1101,10 +1109,8 @@ async function fetchReleaseRow(releaseId) {
     const tracksRes = await tonegridFetch('/releases/' + releaseId + '/tracks', { method: 'GET' });
     if (tracksRes.ok) row.tracks = pickTracks(tracksRes.data);
   }
-  if (row && !row.dsps.length) {
-    const dspsRes = await tonegridFetch('/releases/' + releaseId + '/dsps', { method: 'GET' });
-    if (dspsRes.ok) row.dsps = parseStoreSlugs(dspsRes.data);
-  }
+  // GET /releases/:uuid/dsps is not a ToneGrid route (404 Endpoint not found).
+  // Store selection is on the release row after POST/PUT /releases/:uuid/dsps.
   return { result, row };
 }
 
@@ -1185,19 +1191,25 @@ async function updateRelease(req, res, releaseId) {
   }
 
   const result = await tonegridFetch('/releases/' + releaseId, {
-    method: 'PUT',
+    method: 'PATCH',
     body: parsed.payload,
-    idempotencyKey: idempotencyKey(req, ['release-put', releaseId, JSON.stringify(parsed.payload)].join(':')),
+    idempotencyKey: idempotencyKey(req, ['release-patch', releaseId, JSON.stringify(parsed.payload)].join(':')),
   });
   sendJson(res, result.status, result.data);
 }
 
 async function attachStores(releaseId, slugs, req) {
   const dsps = withYouTubeMusic(slugs && slugs.length ? slugs : DOCUMENTED_DSPS);
-  return tonegridFetch('/releases/' + releaseId + '/dsps', {
+  const posted = await tonegridFetch('/releases/' + releaseId + '/dsps', {
     method: 'POST',
     body: { dsps },
     idempotencyKey: idempotencyKey(req, ['dsps', releaseId, dsps.join(',')].join(':')),
+  });
+  if (posted.ok || !isMissingEndpoint(posted)) return posted;
+  return tonegridFetch('/releases/' + releaseId + '/dsps', {
+    method: 'PUT',
+    body: { dsps },
+    idempotencyKey: idempotencyKey(req, ['dsps-put', releaseId, dsps.join(',')].join(':')),
   });
 }
 
@@ -1244,6 +1256,11 @@ async function submitRelease(req, res, releaseId) {
   }
   if (!isConfigured()) {
     notConfigured(res);
+    return;
+  }
+  const id = String(releaseId || '').trim();
+  if (!id || !isUuid(id)) {
+    sendJson(res, 400, { error: 'Save the upload first.' });
     return;
   }
   const scope = await requireOwnedRelease(req, res, releaseId);
@@ -1353,7 +1370,7 @@ async function submitRelease(req, res, releaseId) {
   if (releaseDate < minDate) releaseDate = minDate;
   if (releaseDate !== row.release_date) {
     const dated = await tonegridFetch('/releases/' + releaseId, {
-      method: 'PUT',
+      method: 'PATCH',
       body: { release_date: releaseDate },
       idempotencyKey: idempotencyKey(req, ['release-date', releaseId, releaseDate].join(':')),
     });
@@ -1366,8 +1383,11 @@ async function submitRelease(req, res, releaseId) {
   const slugs = requestedStores(body);
   const attached = await attachStores(releaseId, slugs || DOCUMENTED_DSPS, req);
   if (!attached.ok) {
-    sendJson(res, attached.status, attached.data);
-    return;
+    const existing = (row.dsps || []).length;
+    if (!isMissingEndpoint(attached) || !existing) {
+      sendJson(res, attached.status, attached.data);
+      return;
+    }
   }
 
   const submitted = await tonegridFetch('/releases/' + releaseId + '/submit', {
@@ -1519,9 +1539,9 @@ async function updateTrack(req, res, trackId) {
   }
 
   const result = await tonegridFetch('/tracks/' + id, {
-    method: 'PUT',
+    method: 'PATCH',
     body: payload,
-    idempotencyKey: idempotencyKey(req, ['track-put', id, JSON.stringify(payload)].join(':')),
+    idempotencyKey: idempotencyKey(req, ['track-patch', id, JSON.stringify(payload)].join(':')),
   });
   sendJson(res, result.status, result.data);
 }
