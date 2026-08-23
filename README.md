@@ -9,12 +9,12 @@ Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
 
 - `auth.js` — signup, login, logout, schema bootstrap, confirm mail
 - `me.js` — session user + catalog ids
-- `tonegrid.js` — health, artists, releases, tracks, audio, analytics, royalties
+- `tonegrid.js` — health, stores, artists, releases, submit, dsps, artwork, tracks, audio, analytics, royalties
 - `create-checkout-session.js` — Checkout + `/api/stripe/webhook`
 - `plai-session.js`
 - `signwell.js`
 
-`vercel.json` rewrites keep the public URLs (`/api/auth/signup`, `/api/me/catalog`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest).
+`vercel.json` rewrites keep the public URLs (`/api/auth/signup`, `/api/me/catalog`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files.
 
 Environment variables (set on the host; never commit values):
 
@@ -97,7 +97,16 @@ ToneGrid routes (no browser key):
 - `POST /api/tonegrid/tracks/:id/audio` (multipart field `audio`; WAV/FLAC; max 200MB; stored by ToneGrid, not a PLAIGROUND bucket)
 - `GET /api/tonegrid/analytics` (session; filtered to that user’s ToneGrid ids)
 - `GET /api/tonegrid/releases` (session; filtered)
+- `GET /api/tonegrid/releases/:id` and `PUT /api/tonegrid/releases/:id` (session; title/date/genre/language)
+- `POST /api/tonegrid/releases/:id/dsps` and `PUT /api/tonegrid/releases/:id/dsps` (always includes `youtube-music`)
+- `POST /api/tonegrid/releases/:id/artwork` (multipart field `artwork`)
+- `POST /api/tonegrid/releases/:id/submit` (SignWell document must be Completed; then attach stores and `POST /releases/:uuid/submit`. Does not call `/distribute` or `/approve`)
+- `PUT /api/tonegrid/tracks/:id` (session; parent must still be draft for ToneGrid)
+- `GET /api/tonegrid/stores`
 - `GET /api/tonegrid/royalties` (session; filtered)
+- `GET /api/signwell` (`{ configured }`)
+- `GET /api/signwell?id=` (document status; `signed` only when SignWell says Completed)
+- `POST /api/signwell` (create the Writer Split Sheet; real embed, no fake pad)
 
 Song audio is uploaded to ToneGrid with the existing `TONEGRID_API_KEY`. Do not add a second object store or new cloud-storage keys.
 
