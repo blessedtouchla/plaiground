@@ -35,7 +35,7 @@
       return body;
     }
     body.plan = trigger.getAttribute('data-checkout-plan');
-    body.interval = trigger.getAttribute('data-checkout-interval');
+    body.interval = trigger.getAttribute('data-checkout-interval') || 'month';
     return body;
   }
 

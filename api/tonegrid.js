@@ -28,7 +28,7 @@
 const accounts = require('../lib/accounts');
 const plans = require('../lib/plans');
 const signwell = require('../lib/signwell');
-const { personalScope, idAllowed } = require('../lib/scope');
+const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
   DOCUMENTED_DSPS,
@@ -776,6 +776,7 @@ async function loadAnalytics(req, res) {
 
   const scope = await personalScope(req, res);
   if (!scope) return;
+  if (rejectHold(res, scope)) return;
 
   const query = dates.query || {};
   const rawRelease = String(queryFromReq(req).release_uuid || queryFromReq(req).releaseUuid || '').trim();
@@ -929,6 +930,7 @@ function lineMatches(row, allow, titles) {
 async function loadRoyalties(req, res) {
   const scope = await personalScope(req, res);
   if (!scope) return;
+  if (rejectHold(res, scope)) return;
 
   const healthInfo = healthPayload();
   if (scope.empty) {
