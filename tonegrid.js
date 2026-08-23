@@ -126,6 +126,43 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function toIsoDate(value) {
+    var raw = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    var mdy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!mdy) return '';
+    return mdy[3] + '-' + String(mdy[1]).padStart(2, '0') + '-' + String(mdy[2]).padStart(2, '0');
+  }
+
+  function normalizePickedDate(value) {
+    var date = toIsoDate(value);
+    if (!date || date < minSubmitDate()) return '';
+    return date;
+  }
+
+  function bindReleaseDatePicker(dateEl) {
+    if (!dateEl) return '';
+    var min = minSubmitDate();
+    dateEl.type = 'date';
+    dateEl.min = min;
+    dateEl.required = true;
+    if (dateEl.setAttribute) {
+      dateEl.setAttribute('type', 'date');
+      dateEl.setAttribute('min', min);
+      dateEl.setAttribute('required', '');
+    }
+    var picked = normalizePickedDate(dateEl.value) || normalizePickedDate(readDraft().release_date);
+    dateEl.value = picked;
+    return picked;
+  }
+
+  function persistReleaseDate(dateEl) {
+    var picked = normalizePickedDate(dateEl && dateEl.value);
+    if (dateEl && dateEl.value !== picked) dateEl.value = picked;
+    writeDraft({ release_date: picked });
+    return picked;
+  }
+
   function documentIdOf(draft) {
     return String((draft && (draft.signwell_document_id || draft.document_id)) || '').trim();
   }
@@ -929,7 +966,7 @@
 
         var draft = readDraft();
         var nextHref = trigger.getAttribute('href') || 'submitted.html';
-        var releaseDate = fieldValue('tg-release-date');
+        var releaseDate = persistReleaseDate($('tg-release-date'));
         var reviewGate = rules();
         var reviewError = '';
         if (reviewGate && typeof reviewGate.validateReviewPage === 'function') {
@@ -1004,7 +1041,11 @@
     }
 
     var draft = readDraft();
-    var readyDate = draft.release_date || fieldValue('tg-release-date');
+    var dateEl = $('tg-release-date');
+    var readyDate = bindReleaseDatePicker(dateEl);
+    if (readyDate !== String(draft.release_date || '').trim()) {
+      draft = writeDraft({ release_date: readyDate });
+    }
     var back = document.querySelector('.flow-actions a[href="split-sheet.html"]');
     if (back && isSoloOwned(draft)) back.setAttribute('href', 'attest.html');
     if (documentIdOf(draft) && !isSoloOwned(draft) && typeof window !== 'undefined' && window.addEventListener) {
@@ -1017,14 +1058,13 @@
     }
     if (trigger) {
       markIncomplete(trigger, !String(readyDate || '').trim());
-      var dateEl = $('tg-release-date');
       if (dateEl && dateEl.addEventListener) {
-        dateEl.addEventListener('input', function () {
-          markIncomplete(trigger, !fieldValue('tg-release-date'));
-        });
-        dateEl.addEventListener('change', function () {
-          markIncomplete(trigger, !fieldValue('tg-release-date'));
-        });
+        var syncPickedDate = function () {
+          var picked = persistReleaseDate(dateEl);
+          markIncomplete(trigger, !picked);
+        };
+        dateEl.addEventListener('input', syncPickedDate);
+        dateEl.addEventListener('change', syncPickedDate);
       }
     }
     if (draft.release_id && !draft.submitted && String(readyDate || '').trim() && (documentIdOf(draft) || isSoloOwned(draft))) {
