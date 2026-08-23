@@ -527,8 +527,9 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 }
 .row-between { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 20px; font-size: 13px; color: var(--muted-2); }
 .row-between a { color: var(--magenta); font-weight: 600; }
-.checkline { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted-2); margin: 8px 0 20px; }
-.checkline input { margin-top: 3px; accent-color: var(--purple); }
+.checkline { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted-2); margin: 8px 0 20px; line-height: 1.45; }
+.checkline input { margin-top: 3px; flex: 0 0 auto; accent-color: var(--purple); }
+.checkline span { min-width: 0; flex: 1 1 auto; }
 .or {
   display: flex;
   align-items: center;
@@ -1797,9 +1798,12 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
   .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head, .auth, .two-col, .review-grid, .form-grid, .art-row, .opt-grid, .workflow, .metric-row, .after, .pub-band, .writer-grid, .hero-split, .process-row, .exclude-grid, .how-cols, .boost-grid, .size-grid, .pro-adds .row, .dash-preview, .about-grid, .contact-grid, .dash-top, .form-grid.three, .form-grid.four, .catalog-stats, .song-hero, .fees-grid, .entry-grid, .prefill, .carry, .pub-bar, .offer-grid, .confirm-bar, .next-4, .know, .signed-grid {
     grid-template-columns: 1fr;
   }
-  .auth {
-    grid-template-columns: 1fr;
+  body.auth-full .auth {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
     min-width: 0;
+    min-height: 0;
   }
   .auth-hero,
   .auth-panel,
@@ -1889,37 +1893,49 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
   :root {
     --nav-h: 72px;
   }
-  .auth-hero {
-    padding: 32px 20px 24px;
+  body.auth-full {
+    overflow-x: hidden;
   }
-  .auth-hero h1 {
-    font-size: 1.65rem;
-    line-height: 1.2;
-    letter-spacing: -0.03em;
-    overflow-wrap: break-word;
+  body.auth-full .auth-hero {
+    display: none;
   }
-  .auth-hero p {
-    font-size: 14px;
-    margin-bottom: 20px;
-  }
-  .auth-stats { gap: 16px; flex-wrap: wrap; }
-  .auth-stats strong { font-size: 1.5rem; }
-  .auth-panel {
-    padding: 24px 16px 96px;
+  body.auth-full .auth-panel {
+    position: relative;
+    padding: 28px 16px 40px;
     border-left: none;
-    border-top: 1px solid var(--line);
+    border-top: none;
+    min-height: calc(100vh - var(--nav-h));
+    align-items: flex-start;
   }
-  .auth-card h2 {
-    font-size: 1.4rem;
-    line-height: 1.2;
+  body.auth-full .auth-panel::before {
+    content: "";
+    position: absolute;
+    inset: 8% auto auto 20%;
+    width: 280px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(139, 63, 232, 0.35) 0%, rgba(255, 61, 139, 0.1) 42%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+  }
+  body.auth-full .auth-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+  body.auth-full .auth-card h2 {
+    font-size: 1.45rem;
+    line-height: 1.25;
     overflow-wrap: break-word;
   }
-  .auth-toggle a {
-    font-size: 12px;
-    padding: 10px 6px;
+  body.auth-full .auth-toggle a {
+    font-size: 13px;
+    padding: 10px 8px;
     white-space: normal;
     overflow: visible;
-    line-height: 1.2;
+    line-height: 1.25;
+  }
+  body.auth-full .plai-bubble {
+    display: none;
   }
   .nav-inner {
     gap: 8px;
@@ -1955,12 +1971,8 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
 }
 
 @media (max-width: 400px) {
-  .auth-hero {
-    padding: 28px 16px 20px;
-  }
-  .auth-hero h1 { font-size: 1.5rem; }
-  .auth-card h2 { font-size: 1.3rem; }
-  .auth-toggle a { font-size: 12px; padding: 9px 4px; }
+  body.auth-full .auth-card h2 { font-size: 1.35rem; }
+  body.auth-full .auth-toggle a { font-size: 13px; padding: 10px 6px; }
   .nav-inner {
     padding-left: 12px;
     padding-right: 12px;
