@@ -47,6 +47,9 @@ function run() {
   assert.ok(dashboard.indexOf('href="upload.html"') !== -1);
   assert.ok(dashboard.indexOf('Submit your first song') !== -1);
   assert.ok(dashboard.indexOf('Create now') !== -1);
+  assert.ok(dashboard.indexOf('data-first-song') !== -1);
+  assert.ok(dashboard.indexOf('data-has-release') !== -1);
+  assert.ok(dashboard.indexOf('In Review') !== -1);
 
   const membership = read('membership.js');
   assert.ok(membership.indexOf('localStorage') !== -1);

@@ -67,14 +67,21 @@
           <div class="chart" data-earn-chart-bars aria-hidden="true"></div>
           <div class="chart-labels" data-earn-chart-labels></div>
         </div>
-        <div class="panel lock">
-          <h3 class="y">Locked on Basic</h3>
-          <p class="y">Publishing, sync, and Boost royalties show here on Creator or Pro.</p>
+        <div>
+          <div class="panel lock" data-for-plans="basic">
+            <h3 class="y">Locked on Basic</h3>
+            <p class="y">Publishing, sync, and Boost royalties show here on Creator or Pro.</p>
+          </div>
+          <div class="panel lock" data-for-plans="basic creator">
+            <h3 class="y">Retrieve payouts on Pro</h3>
+            <p class="y">You can see earnings coming on Basic. Upgrade to Pro to retrieve / get paid.</p>
+            <p style="margin-top:14px"><a class="btn btn-purple btn-sm" href="pro.html">Upgrade to Pro</a></p>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <script src="membership.js" data-require-paid="true"></script>
+  <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
   <script src="earnings.js" defer></script>
   <script src="plai-bubble.js" defer></script>

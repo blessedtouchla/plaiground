@@ -467,22 +467,18 @@ async function run() {
       tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
       upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
     },
-    responses: [
-      { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
-      { ok: true, status: 200, data: { audio_status: 'processing' } },
-      { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
-    ],
+    responses: [],
   }));
+  await flush();
+  assert.strictEqual(leftoverEmptyDraft.limit.hidden, false, 'Basic at lifetime limit sees PLAN_LIMIT on upload load');
+  assert.strictEqual(leftoverEmptyDraft.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
   leftoverEmptyDraft.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   const leftoverTonegrid = leftoverEmptyDraft.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-  assert.ok(!leftoverTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }), 'leftover catalog must not create a second artist');
-  assert.ok(!leftoverTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'leftover catalog must not create a second release');
-  assert.ok(leftoverTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
-  assert.strictEqual(leftoverEmptyDraft.location.href, 'attest.html');
-  assert.strictEqual(leftoverEmptyDraft.status.textContent.indexOf('Saving artist'), -1);
-  assert.strictEqual(draftOf(leftoverEmptyDraft.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-  assert.strictEqual(draftOf(leftoverEmptyDraft.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.ok(!leftoverTonegrid.some(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; }), 'second first upload must not hit ToneGrid');
+  assert.strictEqual(leftoverEmptyDraft.limit.hidden, false);
+  assert.strictEqual(leftoverEmptyDraft.upgrade.hidden, false);
+  assert.ok(leftoverEmptyDraft.location.href.indexOf('attest.html') === -1);
 
   const retrySameIds = load(filledUpload({
     draft: {

@@ -73,7 +73,13 @@ function run() {
 
   assert.ok(read('earnings.html').indexOf('No royalties yet.') !== -1);
   assert.ok(read('releases.html').indexOf('Nothing here yet') !== -1);
-  assert.ok(read('dashboard.html').indexOf('No songs eligible yet') !== -1);
+  assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
+  assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
+  assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
+  assert.ok(read('earnings.html').indexOf('data-require-membership="true"') !== -1);
+  assert.ok(read('earnings.html').indexOf('data-require-paid') === -1, 'earnings must not bounce Basic to Pick a plan');
+  assert.ok(read('earnings.html').indexOf('Upgrade to Pro') !== -1);
+  assert.ok(read('earnings.html').indexOf('retrieve / get paid') !== -1);
   assert.ok(read('dashboard.html').indexOf('On Pro') !== -1);
 
   const earnNodes = {
@@ -128,6 +134,13 @@ function run() {
   assert.strictEqual(catalogNodes['[data-release-table]'].hidden, false);
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[3].textContent, '12');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[4].textContent, '$0.00');
+
+  const extra = catalog.PlaigroundCatalog.accountFallback({
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  }, []);
+  assert.strictEqual(extra.length, 1);
+  assert.strictEqual(extra[0].uuid, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.strictEqual(extra[0].status, 'pending');
 
   console.log('catalog-earnings.test.js ok');
 }

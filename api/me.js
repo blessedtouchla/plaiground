@@ -11,6 +11,7 @@
 
 const { findById, updateCatalog, updateStripe } = require('../lib/accounts');
 const {
+  attachSession,
   bodyHasPassword,
   isConfigured,
   notConfigured,
@@ -44,6 +45,7 @@ async function loadUser(req, res) {
     return null;
   }
   if (rejectUnconfirmed(res, row)) return null;
+  attachSession(req, res, row.id);
   return row;
 }
 
@@ -125,6 +127,7 @@ async function catalog(req, res) {
       return;
     }
     if (rejectUnconfirmed(res, row)) return;
+    attachSession(req, res, row.id);
     const next = await updateCatalog(row.id, {
       artistId: artistId || undefined,
       releaseId: releaseId || undefined,

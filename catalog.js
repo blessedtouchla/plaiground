@@ -32,7 +32,7 @@
   function statusLabel(status) {
     if (status === 'live') return 'live';
     if (status === 'draft') return 'draft';
-    if (status === 'pending') return 'pending';
+    if (status === 'pending') return 'In review';
     if (status === 'approved') return 'approved';
     if (status === 'rejected') return 'rejected';
     if (status === 'taken_down') return 'taken_down';
@@ -184,16 +184,15 @@
     ids.forEach(function (id) {
       var key = String(id || '').toLowerCase();
       if (!key || have[key]) return;
-      if (draft && String(draft.release_id || '').toLowerCase() === key) {
-        extra.push({
-          uuid: String(id),
-          title: String(draft.title || '').trim() || 'Untitled',
-          type: 'single',
-          status: draft.submitted ? 'pending' : 'draft',
-          genre: String(draft.genre || '').trim(),
-          release_date: String(draft.release_date || '').trim(),
-        });
-      }
+      var matchesDraft = Boolean(draft && String(draft.release_id || '').toLowerCase() === key);
+      extra.push({
+        uuid: String(id),
+        title: String((draft && draft.title) || '').trim() || 'Untitled',
+        type: 'single',
+        status: matchesDraft && draft && !draft.submitted ? 'draft' : 'pending',
+        genre: matchesDraft ? String(draft.genre || '').trim() : '',
+        release_date: matchesDraft ? String(draft.release_date || '').trim() : '',
+      });
     });
     return extra;
   }
@@ -223,16 +222,17 @@
           render({ releases: [], total: 0, analytics: {} });
           return;
         }
+        var owned = accountFallback(me, (list.ok && list.data && list.data.releases) || []);
         if (list.status === 503 || list.data.configured === false) {
           setStatus(list.data && list.data.error === 'Accounts are not configured.'
             ? 'Accounts are not configured.'
-            : 'Catalog sync is not configured yet.');
-          render({ releases: [], total: 0, analytics: {} });
+            : (owned.length ? '' : 'Catalog sync is not configured yet.'));
+          render({ releases: owned, total: owned.length, analytics: {} });
           return;
         }
         if (!list.ok) {
-          setStatus(list.data.error || 'Could not load releases.');
-          render({ releases: [], total: 0, analytics: {} });
+          setStatus(owned.length ? '' : (list.data.error || 'Could not load releases.'));
+          render({ releases: owned, total: owned.length, analytics: {} });
           return;
         }
         var releases = list.data.releases || [];
@@ -418,7 +418,7 @@
     if (saveBtn) saveBtn.addEventListener('click', saveEdit);
   }
 
-  global.PlaigroundCatalog = { render: render };
+  global.PlaigroundCatalog = { render: render, accountFallback: accountFallback };
   bindEdit();
   load();
 })(window);
