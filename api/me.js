@@ -2,7 +2,8 @@
 
 /**
  * GET  /api/me          session required
- * POST /api/me          session required; store stripe_session_id + plan
+ * POST /api/me          session required; store stripe_session_id only
+ *                       (plan is set by the signed Stripe webhook, not the client)
  * POST /api/me/catalog  session required; save ToneGrid uuids
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
@@ -12,7 +13,6 @@ const { findById, updateCatalog, updateStripe } = require('../lib/accounts');
 const {
   bodyHasPassword,
   isConfigured,
-  normalizePaidPlan,
   notConfigured,
   publicUser,
   rejectQueryPassword,
@@ -60,10 +60,8 @@ async function updateMembership(req, res, row) {
     return;
   }
   const sessionId = String((body && (body.stripe_session_id || body.session_id || body.stripeSessionId)) || '').trim();
-  const plan = normalizePaidPlan(body && body.plan);
   const customerId = String((body && (body.stripe_customer_id || body.customer_id)) || '').trim();
   const next = await updateStripe(row.id, {
-    plan,
     sessionId: sessionId || undefined,
     customerId: customerId || undefined,
   });

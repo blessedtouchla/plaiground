@@ -2,27 +2,34 @@
 
 /**
  * GET  /api/create-checkout-session  → { configured, publishableKey } (does not mint)
- * POST /api/create-checkout-session  → { url } for Stripe-hosted Checkout
+ * POST /api/create-checkout-session  → { url } for Stripe-hosted Checkout (mode=subscription)
+ * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
- * Server-only env: STRIPE_SECRET_KEY (never echo it).
+ * Hobby-safe: webhook is the same Serverless Function via vercel.json rewrite.
+ *
+ * Stripe Dashboard (add after deploy; do not invent a secret here):
+ *   1. Developers → Webhooks → Add endpoint
+ *   2. Endpoint URL: https://wannaplai.com/api/stripe/webhook
+ *   3. Events: checkout.session.completed, invoice.paid,
+ *      customer.subscription.updated, customer.subscription.deleted
+ *   4. Copy the signing secret into Vercel as STRIPE_WEBHOOK_SECRET
+ *
+ * Server-only env (names only): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
  * Publishable env (pk only): NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY or STRIPE_PUBLISHABLE_KEY.
  */
 
 const crypto = require('crypto');
+const { findById } = require('../lib/accounts');
+const { sessionFromRequest } = require('../lib/auth');
+const { pathnameOf, queryValue } = require('../lib/route');
+const { ALLOWED_PRICE_IDS, PRICE_BY_PLAN, planMetaForPrice } = require('../lib/stripe-plans');
+const { applyStripeEvent, verifyStripeSignature, webhookSecret } = require('../lib/stripe-webhook');
+const { headerValue } = require('../lib/tonegrid');
 
 const STRIPE_SESSIONS_URL = 'https://api.stripe.com/v1/checkout/sessions';
 const STRIPE_API_VERSION = '2026-07-29.dahlia';
 const SUCCESS_URL = 'https://www.wannaplai.com/confirm.html?session_id={CHECKOUT_SESSION_ID}';
 const DEFAULT_CANCEL_URL = 'https://www.wannaplai.com/';
-
-const PRICE_BY_PLAN = {
-  'creator:month': 'price_1U6kDm47ejpgV1ChUQ7V937J',
-  'creator:year': 'price_1U6kE547ejpgV1Chb6vtfjju',
-  'pro:month': 'price_1U6kDz47ejpgV1ChuxQ7yZ86',
-  'pro:year': 'price_1U6kE647ejpgV1ChsovROe7H',
-};
-
-const ALLOWED_PRICE_IDS = new Set(Object.values(PRICE_BY_PLAN));
 
 const PLAN_ALIASES = { creator: 'creator', pro: 'pro' };
 const INTERVAL_ALIASES = {
@@ -85,6 +92,22 @@ function readBody(req) {
   });
 }
 
+function readRawBody(req) {
+  if (Buffer.isBuffer(req.rawBody)) return Promise.resolve(req.rawBody);
+  if (typeof req.rawBody === 'string') return Promise.resolve(Buffer.from(req.rawBody, 'utf8'));
+  if (Buffer.isBuffer(req.body)) return Promise.resolve(req.body);
+  if (typeof req.body === 'string') return Promise.resolve(Buffer.from(req.body, 'utf8'));
+  if (req.body && typeof req.body === 'object') {
+    return Promise.reject(new Error('raw body required'));
+  }
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 function scrub(text) {
   return String(text || '')
     .replace(/\b(?:sk|rk|pk)_[A-Za-z0-9_\-]+/g, '[redacted]')
@@ -128,7 +151,8 @@ function resolvePrice(body) {
   }
 
   const plan = PLAN_ALIASES[String((body && body.plan) || '').trim().toLowerCase()];
-  const interval = INTERVAL_ALIASES[String((body && body.interval) || '').trim().toLowerCase()];
+  let interval = INTERVAL_ALIASES[String((body && body.interval) || '').trim().toLowerCase()];
+  if (plan && !interval) interval = 'month';
   if (!plan || !interval) {
     return { error: 'Provide a valid priceId or plan and interval.' };
   }
@@ -161,11 +185,25 @@ function safeCancelUrl(value) {
   return DEFAULT_CANCEL_URL;
 }
 
-function planMetaForPrice(priceId) {
-  const entry = Object.entries(PRICE_BY_PLAN).find(([, id]) => id === priceId);
-  if (!entry) return { plan: '', interval: '' };
-  const [plan, interval] = entry[0].split(':');
-  return { plan, interval };
+async function attachPayer(params, req) {
+  const session = sessionFromRequest(req);
+  if (!session) return;
+  let user;
+  try {
+    user = await findById(session.userId);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') return;
+    throw err;
+  }
+  if (!user) return;
+  params.append('client_reference_id', user.id);
+  params.append('metadata[userId]', user.id);
+  params.append('subscription_data[metadata][userId]', user.id);
+  if (user.stripe_customer_id) {
+    params.append('customer', user.stripe_customer_id);
+  } else if (user.email) {
+    params.append('customer_email', user.email);
+  }
 }
 
 async function createCheckoutSession(req, res) {
@@ -199,8 +237,20 @@ async function createCheckoutSession(req, res) {
   params.append('success_url', SUCCESS_URL);
   params.append('cancel_url', safeCancelUrl(body && (body.cancelUrl || body.cancel_url)));
   params.append('integration_identifier', 'plaiground_checkout_' + randomLetters(8));
-  if (meta.plan) params.append('metadata[plan]', meta.plan);
-  if (meta.interval) params.append('metadata[interval]', meta.interval);
+  if (meta.plan) {
+    params.append('metadata[plan]', meta.plan);
+    params.append('subscription_data[metadata][plan]', meta.plan);
+  }
+  if (meta.interval) {
+    params.append('metadata[interval]', meta.interval);
+    params.append('subscription_data[metadata][interval]', meta.interval);
+  }
+  try {
+    await attachPayer(params, req);
+  } catch {
+    sendJson(res, 503, { configured: true, error: 'Accounts are not configured.' });
+    return;
+  }
 
   let response;
   try {
@@ -242,7 +292,65 @@ async function createCheckoutSession(req, res) {
   sendJson(res, 200, { url });
 }
 
-module.exports = async function handler(req, res) {
+function isWebhook(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/stripe/webhook' || path === '/api/stripe') return true;
+  return queryValue(req, 'action') === 'webhook';
+}
+
+async function handleWebhook(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const secret = webhookSecret();
+  if (!secret) {
+    sendJson(res, 503, { configured: false, error: 'Webhook is not configured.' });
+    return;
+  }
+
+  let raw;
+  try {
+    raw = await readRawBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid body.' });
+    return;
+  }
+
+  const verified = verifyStripeSignature(raw, headerValue(req, 'stripe-signature'), secret);
+  if (!verified.ok) {
+    sendJson(res, 400, { error: 'Invalid signature.' });
+    return;
+  }
+
+  let event;
+  try {
+    event = JSON.parse(raw.toString('utf8') || '{}');
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  try {
+    await applyStripeEvent(event);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      sendJson(res, 503, { error: 'Accounts are not configured.' });
+      return;
+    }
+    sendJson(res, 500, { error: 'Webhook failed.' });
+    return;
+  }
+
+  sendJson(res, 200, { received: true });
+}
+
+async function handler(req, res) {
+  if (isWebhook(req)) {
+    await handleWebhook(req, res);
+    return;
+  }
   if (req.method === 'GET') {
     sendJson(res, 200, { configured: isConfigured(), publishableKey: publishableKey() });
     return;
@@ -253,4 +361,12 @@ module.exports = async function handler(req, res) {
     return;
   }
   await createCheckoutSession(req, res);
+}
+
+handler.config = {
+  api: {
+    bodyParser: false,
+  },
 };
+
+module.exports = handler;
