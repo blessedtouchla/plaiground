@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
+  <script src="membership.js"></script>
 </head>
 <body>
   <div class="flow-top">
@@ -61,8 +62,9 @@
     <section class="flow-card">
       <p class="kicker" style="text-align:right">Before you continue</p>
       <div class="fees-grid">
-        <div><small>Publishing registration</small>$0 · included in membership</div>
-        <div><small>Distribution</small>$0 · included in membership</div>
+        <div data-for-plans="creator pro" hidden><small>Publishing registration</small>$0 · included in membership</div>
+        <div data-for-plans="basic"><small>Distribution</small>$0 · included</div>
+        <div data-for-plans="creator pro" hidden><small>Distribution</small>$0 · included in membership</div>
         <div><small>Commission on royalties</small><span class="live">None taken by PLAIGROUND</span></div>
       </div>
       <p class="hint" style="margin-top:14px">Writers are paid their share after store and payment-processor deductions. Nothing extra is charged on the next step.</p>

@@ -35,8 +35,14 @@ function run() {
   assert.ok(!/Due now[\s\S]*\$9\.99/.test(review));
 
   assert.ok(submitted.indexOf('$0.00 · included in membership') !== -1);
+  assert.ok(submitted.indexOf('Distribution is included. Nothing extra was charged on this release.') !== -1);
+  assert.ok(submitted.indexOf('Publishing and distribution are included in membership. Nothing extra was charged on this release.') !== -1);
+  assert.ok(review.indexOf('Distribution is included') !== -1);
+  assert.ok(review.indexOf('data-for-plans="basic"') !== -1);
+  assert.ok(review.indexOf('data-for-plans="creator pro"') !== -1);
   assert.ok(split.indexOf('$0 · included in membership') !== -1);
   assert.ok(split.indexOf('None taken by PLAIGROUND') !== -1);
+  assert.ok(split.indexOf('data-for-plans="basic"') !== -1);
 
   const upsell = { hidden: true, classList: { tokens: Object.create(null), toggle(name, force) { if (force) this.tokens[name] = true; else delete this.tokens[name]; } } };
   function bind(plan, paid) {
@@ -64,6 +70,49 @@ function run() {
   assert.strictEqual(bind('creator', true), true, 'Creator should skip checkout and hide the upsell');
   upsell.hidden = true;
   assert.strictEqual(bind('pro', true), true, 'Pro should skip checkout and hide the upsell');
+
+  function planNode(plans, hidden) {
+    return {
+      hidden: Boolean(hidden),
+      attrs: { 'data-for-plans': plans },
+      getAttribute(name) { return this.attrs[name]; },
+      classList: { tokens: Object.create(null), toggle(name, force) { if (force) this.tokens[name] = true; else delete this.tokens[name]; } },
+    };
+  }
+  function applyForPlan(plan) {
+    const nodes = [
+      planNode('basic', false),
+      planNode('creator pro', true),
+    ];
+    const membership = fs.readFileSync(path.join(__dirname, 'membership.js'), 'utf8');
+    const context = {
+      localStorage: { getItem() { return plan; }, setItem() {}, removeItem() {} },
+      sessionStorage: { getItem() { return plan; }, setItem() {}, removeItem() {} },
+      document: {
+        currentScript: { getAttribute() { return null; } },
+        readyState: 'complete',
+        querySelector() { return null; },
+        querySelectorAll(sel) { return sel === '[data-for-plans]' ? nodes : []; },
+        addEventListener() {},
+      },
+      location: { href: 'review.html', pathname: '/review.html', search: '', replace() {} },
+      fetch: undefined,
+    };
+    context.window = context;
+    vm.runInNewContext(membership, context);
+    context.PlaigroundMembership.recordPlan(plan);
+    context.PlaigroundMembership.applyPlanCopy();
+    return nodes;
+  }
+  const basicNodes = applyForPlan('basic');
+  assert.strictEqual(basicNodes[0].hidden, false, 'Basic keeps distribution-only copy');
+  assert.strictEqual(basicNodes[1].hidden, true, 'Basic hides publishing-included copy');
+  const creatorNodes = applyForPlan('creator');
+  assert.strictEqual(creatorNodes[0].hidden, true, 'Creator hides Basic-only copy');
+  assert.strictEqual(creatorNodes[1].hidden, false, 'Creator keeps publishing + distribution copy');
+  const proNodes = applyForPlan('pro');
+  assert.strictEqual(proNodes[0].hidden, true, 'Pro hides Basic-only copy');
+  assert.strictEqual(proNodes[1].hidden, false, 'Pro keeps publishing + distribution copy');
 
   console.log('review-fees.test.js ok');
 }
