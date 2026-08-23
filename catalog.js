@@ -346,10 +346,9 @@
     var genre = $('#edit-genre');
     var language = $('#edit-language');
     var trackTitle = $('#edit-track-title');
+    var catalog = global.PlaigroundUploadCatalog;
     if (title) title.value = release.title || '';
     if (date) date.value = release.release_date || '';
-    if (genre) genre.value = release.genre || '';
-    if (language) language.value = release.language || '';
     var track = (release.tracks && release.tracks[0]) || {};
     if (trackTitle) {
       trackTitle.value = track.title || '';
@@ -358,7 +357,6 @@
     getJson('/api/tonegrid/stores').then(function (result) {
       fillStores((result.ok && result.data.stores) || [], release.dsps || []);
     });
-    var catalog = global.PlaigroundUploadCatalog;
     if (catalog && typeof catalog.fillUploadSelects === 'function') {
       try { catalog.fillUploadSelects(document); } catch (err) {}
     }
@@ -384,11 +382,16 @@
         catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
       }
     }
-    if (genre) genre.value = release.genre || '';
-    if (language) language.value = release.language || '';
-    if (catalog && typeof catalog.syncTypeahead === 'function') {
-      catalog.syncTypeahead(genre);
-      catalog.syncTypeahead(language);
+    if (catalog && typeof catalog.setTypeaheadValue === 'function') {
+      catalog.setTypeaheadValue(genre, release.genre || '');
+      catalog.setTypeaheadValue(language, release.language || '');
+    } else {
+      if (genre) genre.value = release.genre || '';
+      if (language) language.value = release.language || '';
+      if (catalog && typeof catalog.syncTypeahead === 'function') {
+        catalog.syncTypeahead(genre);
+        catalog.syncTypeahead(language);
+      }
     }
     setEditError('');
   }
@@ -403,6 +406,16 @@
     var title = $('#edit-title') ? $('#edit-title').value.trim() : '';
     var date = $('#edit-date') ? $('#edit-date').value.trim() : '';
     var genre = $('#edit-genre') ? $('#edit-genre').value.trim() : '';
+    var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
+      var canon = catalog.canonicalCatalogValue($('#edit-genre'), genre);
+      if (genre && canon == null) {
+        if (saveBtn) saveBtn.removeAttribute('aria-busy');
+        setEditError('Pick a genre from the ToneGrid list.');
+        return;
+      }
+      if (canon) genre = canon;
+    }
     var language = $('#edit-language') ? $('#edit-language').value.trim() : '';
     var trackTitle = $('#edit-track-title') ? $('#edit-track-title').value.trim() : '';
     var trackId = $('#edit-track-title') ? $('#edit-track-title').getAttribute('data-track-id') : '';

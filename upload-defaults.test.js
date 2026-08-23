@@ -292,11 +292,130 @@ function run() {
 
   const song = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
   assert.ok(song.indexOf('id="edit-language"') !== -1);
+  assert.ok(song.indexOf('<select id="edit-genre"') !== -1);
+  assert.ok(song.indexOf('<input id="edit-genre"') === -1);
+  assert.ok(song.indexOf('id="edit-subgenre"') === -1);
+  assert.ok(song.indexOf('name="release-subgenre"') === -1);
   assert.ok(song.indexOf('Pre-select all stores') !== -1);
   assert.ok(song.indexOf('data-store-customize') !== -1);
   assert.ok(song.indexOf('accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga') !== -1);
   assert.ok(song.indexOf('lib/audio-accept.js') !== -1);
   assert.ok(song.indexOf('lib/store-pick.js') !== -1);
+
+  const editSelectHtml = selectById(song, 'edit-genre');
+  const editGenre = options(editSelectHtml);
+  assert.deepStrictEqual(editGenre.map(function (opt) { return opt.value; }), ['']);
+  assert.strictEqual(editGenre[0].label, 'Select genre');
+
+  function realisticSelect(id) {
+    const field = {
+      children: [],
+      classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
+      querySelector(sel) {
+        if (sel && sel.indexOf('label') === 0) return { setAttribute() {} };
+        if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
+        return null;
+      },
+      insertBefore(node) { this.children.push(node); return node; },
+      appendChild(node) { this.children.push(node); return node; },
+    };
+    const optionsArr = [{ value: '', textContent: 'Select genre', parentNode: field }];
+    const select = {
+      parentNode: field,
+      id: id,
+      options: optionsArr,
+      selectedIndex: 0,
+      _value: '',
+      tabIndex: 0,
+      classList: { add() {} },
+      attrs: {},
+      get value() { return this._value; },
+      set value(next) {
+        const found = this.options.find(function (opt) { return opt.value === next; });
+        if (found) {
+          this._value = next;
+          this.selectedIndex = this.options.indexOf(found);
+        } else {
+          this._value = '';
+          this.selectedIndex = 0;
+        }
+      },
+      getAttribute(name) { return this.attrs[name] || null; },
+      setAttribute(name, value) { this.attrs[name] = String(value); },
+      dispatchEvent() {},
+      addEventListener() {},
+      querySelectorAll(sel) { return sel === 'option' ? this.options : []; },
+      appendChild(child) {
+        child.parentNode = this;
+        this.options.push(child);
+        return child;
+      },
+    };
+    return { field: field, select: select };
+  }
+
+  const createdEdit = [];
+  const prevDoc2 = global.document;
+  global.document = {
+    createElement(tag) {
+      const node = {
+        tagName: String(tag).toUpperCase(),
+        type: '',
+        className: '',
+        id: '',
+        value: '',
+        textContent: '',
+        children: [],
+        style: {},
+        attrs: {},
+        listeners: {},
+        classList: {
+          tokens: Object.create(null),
+          add(name) { this.tokens[name] = true; },
+          remove(name) { delete this.tokens[name]; },
+          contains(name) { return Boolean(this.tokens[name]); },
+        },
+        setAttribute(name, value) { this.attrs[name] = String(value); },
+        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
+        addEventListener(type, fn) { this.listeners[type] = fn; },
+        appendChild(child) { this.children.push(child); return child; },
+      };
+      createdEdit.push(node);
+      return node;
+    },
+    activeElement: null,
+  };
+  try {
+    const edit = realisticSelect('edit-genre');
+    catalog.fillSelect = catalog.fillSelect;
+    catalog.fillUploadSelects({
+      getElementById(id) { return id === 'edit-genre' ? edit.select : null; },
+    });
+    assert.ok(edit.select.options.length > 180, 'edit genre must load the same ToneGrid list as upload');
+    catalog.bindTypeahead(edit.select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const editInput = createdEdit.find(function (node) { return node.className === 'typeahead-input'; });
+    const editList = createdEdit.find(function (node) { return String(node.className).indexOf('typeahead-list') !== -1; });
+    assert.ok(editInput);
+    assert.ok(editList);
+    catalog.setTypeaheadValue(edit.select, 'electronic');
+    assert.strictEqual(edit.select.value, 'Electronic');
+    assert.strictEqual(editInput.value, 'Electronic');
+    editInput.value = 'Afrobeat';
+    editInput.listeners.input();
+    assert.ok(editList.children.some(function (btn) { return btn.textContent === 'Afrobeats'; }));
+    const afro = editList.children.find(function (btn) { return btn.textContent === 'Afrobeats'; });
+    afro.listeners.mousedown({ preventDefault() {} });
+    assert.strictEqual(edit.select.value, 'Afrobeats');
+    assert.strictEqual(editInput.value, 'Afrobeats');
+    editInput.value = 'Made Up Genre';
+    editInput.listeners.input();
+    assert.strictEqual(edit.select.value, '');
+    assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Made Up Genre'), null);
+    assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Pop'), 'Pop');
+  } finally {
+    if (prevDoc2 === undefined) delete global.document;
+    else global.document = prevDoc2;
+  }
 
   console.log('upload-defaults.test.js ok');
 }
