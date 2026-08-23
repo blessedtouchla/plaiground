@@ -105,7 +105,7 @@
     });
   }
 
-  var current = { artists: [], selected: null, photo: '' };
+  var current = { artists: [], selected: null, photo: '', me: null, catalog: [] };
 
   function renderList() {
     var host = $('[data-artist-list]');
@@ -133,7 +133,10 @@
     current.photo = artist && artist.photo ? artist.photo : '';
     renderList();
     setHidden('[data-artist-edit]', !artist);
-    if (!artist) return;
+    if (!artist) {
+      renderSongs(null);
+      return;
+    }
     setText('[data-artist-edit-title]', artist.name);
     setText('[data-artist-badge]', artist.badge || (artist.source === 'linked' ? 'Linked' : 'PLAIGROUND'));
     var nameEl = $('#artist-name');
@@ -142,6 +145,7 @@
     var store = $('#artist-store');
     var bio = $('#artist-bio');
     var change = $('#artist-change');
+    renderSongs(artist);
     if (nameEl) {
       nameEl.value = artist.name || '';
       nameEl.disabled = artist.locked === true;
@@ -247,6 +251,7 @@
   }
 
   function applyMe(me) {
+    current.me = me || null;
     current.artists = rosterFromMe(me);
     renderList();
     if (current.selected) {
@@ -255,7 +260,108 @@
         if (row.id === current.selected.id) keep = row;
       });
       selectArtist(keep || current.artists[0] || null);
+    } else if (current.artists[0]) {
+      selectArtist(current.artists[0]);
+    } else {
+      renderSongs(null);
     }
+  }
+
+  function storedRelease(me, release) {
+    var list = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+    var want = String((release && (release.uuid || release.id || release.tonegrid_release_id)) || '').toLowerCase();
+    var i;
+    for (i = 0; i < list.length; i += 1) {
+      var id = String((list[i] && (list[i].tonegrid_release_id || list[i].id)) || '').toLowerCase();
+      if (want && id === want) return list[i];
+    }
+    return null;
+  }
+
+  function releaseBelongs(row, artist, me) {
+    if (!row || !artist) return false;
+    var stored = storedRelease(me, row) || {};
+    if (stored.plaiground_artist_id && stored.plaiground_artist_id === artist.id) return true;
+    if (row.plaiground_artist_id && row.plaiground_artist_id === artist.id) return true;
+    var artistName = String(artist.name || '').toLowerCase();
+    var rowName = String(row.artist || row.artist_name || stored.artist_name || '').toLowerCase();
+    if (artistName && rowName && artistName === rowName) return true;
+    if (current.artists.length === 1) return true;
+    return false;
+  }
+
+  function catalogForArtist(artist) {
+    var me = current.me;
+    var catalog = Array.isArray(current.catalog) ? current.catalog.slice() : [];
+    var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+    stored.forEach(function (item) {
+      var id = String((item && (item.tonegrid_release_id || item.id)) || '');
+      if (!id) return;
+      var exists = catalog.some(function (row) {
+        return String(row.uuid || row.id || '').toLowerCase() === id.toLowerCase();
+      });
+      if (!exists) {
+        catalog.push({
+          uuid: id,
+          title: item.title || 'Untitled',
+          status: item.tonegrid_status || '',
+          artist: '',
+          plaiground_artist_id: item.plaiground_artist_id || '',
+          deliveries: [],
+        });
+      }
+    });
+    return catalog.filter(function (row) { return releaseBelongs(row, artist, me); });
+  }
+
+  function renderSongs(artist) {
+    var host = $('[data-artist-song-list]');
+    var empty = $('[data-artist-songs-empty]');
+    var panel = $('[data-artist-songs]');
+    if (panel) {
+      panel.hidden = !artist;
+      if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', !artist);
+    }
+    if (!host) return;
+    host.textContent = '';
+    if (!artist) {
+      if (empty) empty.hidden = true;
+      return;
+    }
+    var rows = catalogForArtist(artist);
+    if (empty) empty.hidden = rows.length > 0;
+    var statusApi = global.PlaigroundReleaseStatus;
+    var playerApi = global.PlaigroundLivePlayer;
+    rows.forEach(function (row) {
+      var stored = storedRelease(current.me, row);
+      var status = (row && row.status) || (stored && stored.tonegrid_status) || '';
+      var info = statusApi ? statusApi.info(status) : { label: status || 'Draft', live: false };
+      var card = document.createElement('div');
+      card.className = 'artist-song';
+      var top = document.createElement('div');
+      top.className = 'artist-song-top';
+      var title = document.createElement('a');
+      title.href = 'song.html?id=' + encodeURIComponent(row.uuid || '');
+      var strong = document.createElement('strong');
+      strong.textContent = row.title || 'Untitled';
+      title.appendChild(strong);
+      var pill = document.createElement('span');
+      pill.className = 'pill' + (info.live ? ' pill-green' : (info.dot === 'yellow' ? ' is-yellow' : (info.dot === 'red' ? ' is-red' : '')));
+      pill.textContent = info.label || 'Draft';
+      top.appendChild(title);
+      top.appendChild(pill);
+      card.appendChild(top);
+      var player = document.createElement('div');
+      player.className = 'owner-player';
+      if (playerApi) {
+        playerApi.mount(player, {
+          status: info.live ? 'live' : status,
+          deliveries: row.deliveries || [],
+        }, { compact: true });
+      }
+      card.appendChild(player);
+      host.appendChild(card);
+    });
   }
 
   function loadMe() {
@@ -488,8 +594,15 @@
     var detail = $('#artist-ai-detail');
     if (detail) detail.addEventListener('input', paintAiMeter);
 
-    loadMe().then(function (me) {
-      applyMe(me);
+    Promise.all([
+      loadMe(),
+      fetch('/api/tonegrid/releases', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (response) { return response.json(); })
+        .then(function (data) { return (data && data.releases) || []; })
+        .catch(function () { return []; }),
+    ]).then(function (results) {
+      current.catalog = results[1] || [];
+      applyMe(results[0]);
     });
   }
 
@@ -499,6 +612,8 @@
   global.PlaigroundArtists = {
     rosterFromMe: rosterFromMe,
     applyMe: applyMe,
+    catalogForArtist: catalogForArtist,
+    renderSongs: renderSongs,
     selectArtist: selectArtist,
     createArtist: createArtist,
     linkArtist: linkArtist,

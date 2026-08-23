@@ -146,6 +146,13 @@
         <p class="hint" data-artist-error hidden></p>
       </section>
 
+      <section class="panel" data-artist-songs hidden>
+        <h3>This artist's songs</h3>
+        <p class="hint">Owner playback only. Preview waits until ToneGrid says live, then Play opens the store stream.</p>
+        <div data-artist-song-list></div>
+        <p class="hint" data-artist-songs-empty hidden>No songs on this profile yet.</p>
+      </section>
+
       <section class="panel">
         <h3>Create new artist</h3>
         <p class="hint">Name only. The artist page is created instantly when the name is clear.</p>
@@ -196,6 +203,8 @@
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/artist-check.js"></script>
+  <script src="lib/release-status.js"></script>
+  <script src="lib/live-player.js"></script>
   <script src="artists.js" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>

@@ -1730,6 +1730,35 @@ table.data tbody tr.is-pick { cursor: pointer; }
   background-position: center;
   border-color: transparent;
 }
+.owner-player {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+.owner-player.is-wait .owner-play.is-off {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.owner-embed {
+  width: 100%;
+  min-height: 152px;
+  border: 0;
+  border-radius: 12px;
+  background: #0C0C12;
+}
+.artist-song {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-top: 12px;
+}
+.artist-song-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.artist-song-top a { color: inherit; }
 .delta-up { color: var(--green); font-size: 13px; }
 .delta-down { color: #E89A3F; font-size: 13px; }
 .share-bar { height: 8px; background: #222; border-radius: 99px; overflow: hidden; min-width: 80px; }

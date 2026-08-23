@@ -403,6 +403,7 @@
       setHidden('[data-song-edit]', true);
       setHidden('[data-song-split-empty]', false);
       setHidden('[data-song-rejection]', true);
+      mountLivePlayer(null);
       return;
     }
 
@@ -472,7 +473,15 @@
       global.PlaigroundMembership.applyPlanCopy();
     }
     lastEdit = { me: me, draft: draft, release: release };
+    mountLivePlayer(Object.assign({}, release, { status: step }));
     if (queryEdit() && !editClosed) openEdit({ me: me, draft: draft, release: release });
+  }
+
+  function mountLivePlayer(release) {
+    var host = $('[data-song-player]');
+    var api = global.PlaigroundLivePlayer;
+    if (!host || !api) return;
+    api.mount(host, release);
   }
 
   function load() {

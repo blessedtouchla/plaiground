@@ -94,6 +94,7 @@ function loadSong(opts) {
     '[data-song-meta]': makeEl({}),
     '[data-song-cover]': makeEl({}),
     '[data-song-cover-note]': makeEl({}),
+    '[data-song-player]': makeEl({}),
     '[data-song-streams]': makeEl({ textContent: '0' }),
     '[data-song-earnings]': makeEl({ textContent: '$0.00' }),
     '[data-song-breakdown]': makeEl({ hidden: true }),
@@ -188,6 +189,7 @@ function loadSong(opts) {
   };
   context.window = context;
   vm.runInNewContext(read('lib/release-status.js'), context);
+  vm.runInNewContext(read('lib/live-player.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
 }
@@ -218,8 +220,12 @@ function run() {
   });
   assert.ok(!html.includes('class="seg"'));
   assert.ok(html.includes('data-song-title'));
+  assert.ok(html.includes('data-song-player'));
+  assert.ok(html.includes('lib/live-player.js'));
   assert.ok(html.includes('data-song-streams'));
   assert.ok(html.includes('song.js'));
+  assert.ok(!html.includes('indexedDB'));
+  assert.ok(!read('song.js').includes('indexedDB'));
   assert.ok(html.includes('0'));
   assert.ok(html.includes('$0.00'));
   assert.ok(css.includes('.cover-lg.has-art'));
@@ -261,6 +267,9 @@ function run() {
   assert.ok(page.nodes['[data-song-meta]'].textContent.indexOf('Fuvtu') !== -1);
   assert.strictEqual(page.nodes['[data-song-streams]'].textContent, '0');
   assert.strictEqual(page.nodes['[data-song-earnings]'].textContent, '$0.00');
+  assert.ok(page.nodes['[data-song-player]'].children.some(function (child) {
+    return child && child.textContent === 'Available when live.';
+  }), 'pending player stays disabled until live');
   assert.strictEqual(page.nodes['[data-song-breakdown]'].hidden, true, 'Basic locks platform breakdown');
   assert.strictEqual(page.nodes['[data-song-publishing]'].hidden, true, 'Basic hides publishing');
   assert.strictEqual(page.nodes['[data-song-boosts]'].hidden, false, 'Basic can still see locked Boost history');
@@ -291,6 +300,29 @@ function run() {
   });
   assert.strictEqual(live.nodes['[data-song-pill]'].textContent, 'Live');
   assert.ok(live.life.live.classList.contains('on'));
+  assert.ok(live.nodes['[data-song-player]'].children.some(function (child) {
+    return child && String(child.textContent || '').indexOf('Stream links appear') !== -1;
+  }), 'live without a store ID still does not invent audio');
+
+  const streamed = loadSong({ plan: 'basic', me: basicMe });
+  streamed.api.render({
+    me: basicMe,
+    release: {
+      uuid: basicMe.tonegrid_release_ids[0],
+      title: 'Fuvtu',
+      status: 'live',
+      type: 'single',
+      deliveries: [{ dsp: 'spotify', status: 'live', dsp_release_id: 'spotify:album:7v0Ytestalbumid00001' }],
+    },
+    analytics: {},
+  });
+  assert.ok(streamed.nodes['[data-song-player]'].children.some(function (child) {
+    return child && child.href === 'https://open.spotify.com/album/7v0Ytestalbumid00001';
+  }), 'live Play opens the official Spotify link');
+  assert.ok(!streamed.nodes['[data-song-player]'].children.some(function (child) {
+    return child && child.type === 'audio';
+  }), 'live Play does not host a local audio file');
+  assert.strictEqual(streamed.nodes['[data-song-streams]'].textContent, '0');
 
   const picker = loadSong({ plan: 'basic', me: basicMe, search: '' });
   const picked = picker.api.pickRelease(

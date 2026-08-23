@@ -28,7 +28,13 @@ function run() {
   assert.ok(html.includes('href="settings.html">Settings</a>'));
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(!html.includes('data-require-paid'));
+  const js = read('artists.js');
   assert.ok(html.includes('artists.js'));
+  assert.ok(html.includes('This artist\'s songs'));
+  assert.ok(html.includes('data-artist-song-list'));
+  assert.ok(html.includes('lib/live-player.js'));
+  assert.ok(html.includes('waits until ToneGrid says live'));
+  assert.ok(!js.includes('indexedDB'));
   assert.ok(!html.includes('tonegrid.js'));
   assert.ok(html.indexOf('human_contributions') === -1 || html.includes('data-human-contribution'));
 
@@ -38,7 +44,6 @@ function run() {
   assert.ok(!upload.includes('Estimated AI involvement'));
   assert.ok(!upload.includes('data-human-contribution'));
 
-  const js = read('artists.js');
   assert.ok(js.includes('ai_involvement_percent'));
   assert.ok(js.includes('human_contributions'));
   assert.ok(js.includes('/api/me/artists'));

@@ -9,7 +9,7 @@
  * POST /api/tonegrid/artists
  * GET  /api/tonegrid/releases
  * POST /api/tonegrid/releases
- * GET  /api/tonegrid/releases/:id
+ * GET  /api/tonegrid/releases/:id          -> plus ddex/deliveries when live (dsp_release_id only)
  * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
@@ -42,6 +42,7 @@ const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const uploadRequired = require('../lib/upload-required');
 const audioConvert = require('../lib/audio-convert');
+const livePlayer = require('../lib/live-player');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
@@ -439,8 +440,24 @@ function pickRelease(row) {
     artist: artistNameOf(row),
     tracks: pickTracks(row),
     dsps: parseStoreSlugs(row),
+    deliveries: Array.isArray(row.deliveries) ? livePlayer.pickDeliveries(row.deliveries) : [],
     rejection_reason: String(row.rejection_reason || row.reject_reason || row.reason || row.notes || '').trim(),
   };
+}
+
+async function attachDeliveries(row, releaseId) {
+  if (!row) return row;
+  const id = String(releaseId || row.uuid || '').trim();
+  if (!Array.isArray(row.deliveries)) row.deliveries = [];
+  if (!id || !livePlayer.isLiveStatus(row.status)) return row;
+  const result = await tonegridFetch('/releases/' + id + '/ddex/deliveries', { method: 'GET' });
+  if (result.ok) {
+    row.deliveries = livePlayer.pickDeliveries(result.data);
+    return row;
+  }
+  const fallback = await tonegridFetch('/releases/' + id + '/distribution', { method: 'GET' });
+  if (fallback.ok) row.deliveries = livePlayer.pickDeliveries(fallback.data);
+  return row;
 }
 
 function bodyFingerprint(buf) {
@@ -530,6 +547,7 @@ async function listReleases(req, res) {
     if (local && local.rejection_reason && !row.rejection_reason) {
       row.rejection_reason = local.rejection_reason;
     }
+    await attachDeliveries(row, id);
     if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
     if (query.type && row.type !== normalizeReleaseType(query.type)) continue;
     collected.push(row);
@@ -1259,6 +1277,8 @@ async function fetchReleaseRow(releaseId) {
   }
   // GET /releases/:uuid/dsps is not a ToneGrid route (404 Endpoint not found).
   // Store selection is on the release row after POST/PUT /releases/:uuid/dsps.
+  // Live store stream IDs come from GET /releases/:uuid/ddex/deliveries.
+  if (row) await attachDeliveries(row, releaseId);
   return { result, row };
 }
 
@@ -1847,4 +1867,5 @@ module.exports = handler;
 module.exports.pickSummary = pickSummary;
 module.exports.pickDsps = pickDsps;
 module.exports.pickTerritories = pickTerritories;
+module.exports.pickDeliveries = livePlayer.pickDeliveries;
 module.exports.pickSeries = pickSeries;
