@@ -139,6 +139,17 @@ function run() {
   assert.strictEqual(gatedOk.location.href, 'upload.html');
   assert.strictEqual(gatedOk.api.requireMembership(), true);
 
+  const analyticsStay = load({
+    require: true,
+    pathname: '/analytics.html',
+    href: 'analytics.html',
+    seedLocal: { plaigroundSignedIn: '1', plaigroundMembership: 'basic' },
+  });
+  assert.strictEqual(analyticsStay.location.href, 'analytics.html', 'signed-in Basic stays on analytics');
+  assert.strictEqual(analyticsStay.api.requireMembership(), true);
+  assert.strictEqual(analyticsStay.api.requirePaidAccess(), false);
+  assert.ok(analyticsStay.location.href.indexOf('needplan=1') !== -1, 'paid gate would still bounce Basic');
+
   const paidOk = load({
     require: true,
     seedLocal: {

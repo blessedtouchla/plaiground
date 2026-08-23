@@ -854,6 +854,29 @@ table.data tbody tr.is-pick { cursor: pointer; }
 }
 .lock { border: 1px solid rgba(232, 195, 63, 0.35); }
 .lock .y { color: var(--yellow); font-weight: 700; }
+.panel { position: relative; }
+.lock-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 20px;
+  background: rgba(12, 12, 18, 0.82);
+  border-radius: inherit;
+}
+.lock-cover[hidden] { display: none !important; }
+.panel.is-locked { border-color: rgba(232, 195, 63, 0.35); }
+.panel.is-locked [data-analytics-dsps],
+.panel.is-locked [data-analytics-territories],
+.panel.is-locked [data-analytics-chart-bars],
+.panel.is-locked [data-analytics-chart-labels] {
+  filter: blur(2px);
+  pointer-events: none;
+}
 
 /* —— Upload flow —— */
 .flow-top {

@@ -6,6 +6,10 @@
     return document.querySelector(sel);
   }
 
+  function $all(sel) {
+    return document.querySelectorAll(sel);
+  }
+
   function toNumber(value) {
     if (typeof value === 'number' && isFinite(value)) return value;
     if (typeof value === 'string') {
@@ -37,6 +41,40 @@
 
   function emptyMessage() {
     return 'No plays yet. New uploads will show here when ToneGrid has numbers.';
+  }
+
+  function currentPlan() {
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.currentPlan === 'function') {
+      return String(global.PlaigroundMembership.currentPlan() || '').toLowerCase();
+    }
+    return '';
+  }
+
+  function hasPaidAnalytics() {
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.hasPaidAccess === 'function') {
+      return Boolean(global.PlaigroundMembership.hasPaidAccess());
+    }
+    var plan = currentPlan();
+    return plan === 'creator' || plan === 'pro';
+  }
+
+  function applyLock(locked) {
+    $all('[data-analytics-lock]').forEach(function (el) {
+      el.hidden = !locked;
+    });
+    $all('.panel').forEach(function (el) {
+      if (!el.querySelector || !el.querySelector('[data-analytics-lock]')) return;
+      if (el.classList && el.classList.toggle) el.classList.toggle('is-locked', Boolean(locked));
+    });
+    if (locked) {
+      setHidden('[data-metric-top-release]', true);
+      setHidden('[data-metric-top-dsp]', true);
+      var chart = $('[data-analytics-chart]');
+      if (chart) chart.hidden = false;
+    }
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.applyPlanCopy === 'function') {
+      global.PlaigroundMembership.applyPlanCopy();
+    }
   }
 
   function isEmptyCatalog(data) {
@@ -166,10 +204,21 @@
 
   function render(data) {
     var payload = data || {};
-    renderMetrics(payload);
-    renderBars('[data-analytics-dsps]', payload.dsps, 'dsp');
-    renderLocations(payload.territories);
-    renderChart(payload.series);
+    var paid = hasPaidAnalytics();
+    applyLock(!paid);
+    renderMetrics(paid ? payload : {
+      summary: {
+        total_streams: (payload.summary && payload.summary.total_streams) || 0,
+        total_revenue_usd: (payload.summary && payload.summary.total_revenue_usd) || 0,
+      },
+    });
+    renderBars('[data-analytics-dsps]', paid ? payload.dsps : [], 'dsp');
+    renderLocations(paid ? payload.territories : []);
+    renderChart(paid ? payload.series : []);
+    if (!paid) {
+      var chart = $('[data-analytics-chart]');
+      if (chart) chart.hidden = false;
+    }
     var empty = isEmptyCatalog(payload);
     setHidden('[data-analytics-empty]', !empty);
     if (empty) setText('[data-analytics-empty]', emptyMessage());

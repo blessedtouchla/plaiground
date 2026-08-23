@@ -25,9 +25,9 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4 class="stat-g" data-account-plan-title>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
-      <p style="margin-top:8px">Renews 6 Sep 2026 · $19.99/month or $149/year.</p>
+      <h4 data-account-plan-title>Your plan</h4>
+      <p data-for-plans="basic">Distribution is included. Totals stay on. DSP, location, and history unlock on Creator or Pro.</p>
+      <p data-for-plans="creator pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
     </div>
   </aside>
   <div class="app-main">
@@ -45,33 +45,45 @@
       <div class="metric-row" data-analytics-metrics>
         <div class="metric"><strong data-metric="streams">0</strong><span>Total streams</span></div>
         <div class="metric"><strong class="stat-g" data-metric="revenue">$0.00</strong><span>Royalties paid</span></div>
-        <div class="metric" data-metric-top-release hidden>
+        <div class="metric" data-metric-top-release data-analytics-advanced hidden>
           <strong data-metric="top-release">—</strong>
           <span data-metric-top-release-note>Top release</span>
         </div>
-        <div class="metric" data-metric-top-dsp hidden>
+        <div class="metric" data-metric-top-dsp data-analytics-advanced hidden>
           <strong class="stat-p" data-metric="top-dsp">—</strong>
           <span>Top DSP</span>
         </div>
       </div>
-      <div class="two-col">
+      <div class="two-col" data-analytics-advanced>
         <div class="panel">
+          <div class="lock-cover" data-analytics-lock hidden>
+            <h3 class="y">Locked on Basic</h3>
+            <p class="y">DSP breakdown unlocks on Creator or Pro.</p>
+          </div>
           <h3>Revenue by DSP</h3>
           <div data-analytics-dsps></div>
         </div>
         <div class="panel">
+          <div class="lock-cover" data-analytics-lock hidden>
+            <h3 class="y">Locked on Basic</h3>
+            <p class="y">Location breakdown unlocks on Creator or Pro.</p>
+          </div>
           <h3>Top streaming locations</h3>
           <div data-analytics-territories></div>
         </div>
       </div>
-      <div class="panel" data-analytics-chart hidden>
+      <div class="panel" data-analytics-chart data-analytics-advanced hidden>
+        <div class="lock-cover" data-analytics-lock hidden>
+          <h3 class="y">Locked on Basic</h3>
+          <p class="y">History unlocks on Creator or Pro.</p>
+        </div>
         <h3>Monthly revenue history</h3>
         <div class="chart" data-analytics-chart-bars aria-hidden="true"></div>
         <div class="chart-labels" data-analytics-chart-labels></div>
       </div>
     </div>
   </div>
-  <script src="membership.js" data-require-paid="true"></script>
+  <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
   <script src="analytics.js" defer></script>
   <script src="plai-bubble.js" defer></script>
