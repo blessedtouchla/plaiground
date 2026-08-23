@@ -45,8 +45,10 @@
         </section>
         <section class="flow-card">
           <h3>Release date</h3>
-          <p class="hint">Pick the date your release goes live. This is the date shown on most stores and platforms.</p>
-          <div class="field"><input id="tg-release-date" type="text" placeholder="MM/DD/YYYY" /></div>
+          <p class="hint">Pick the day it goes live on the calendar. Stores need 7 days of lead time, so yesterday and anything sooner than 7 days from today stay locked.</p>
+          <div class="field date-picker-field">
+            <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Release date" />
+          </div>
           <div class="toggle-line"><span class="toggle" aria-hidden="true"></span> Select pre-order date</div>
           <div class="toggle-line"><span class="toggle on" aria-hidden="true"></span> Define time and timezone</div>
         </section>

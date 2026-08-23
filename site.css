@@ -1895,6 +1895,41 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .sec-btns { display: flex; flex-wrap: wrap; gap: 10px; }
 .sign-out { color: #FF6B9A !important; border-color: rgba(255,107,154,0.55) !important; }
 .field input.accent { border-color: var(--purple); }
+.date-picker-field {
+  max-width: 220px;
+  margin-bottom: 16px;
+}
+.field input.date-picker,
+.field input[type="date"].date-picker {
+  width: 100%;
+  max-width: 220px;
+  min-height: 48px;
+  color-scheme: dark;
+  accent-color: var(--purple);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  border-color: rgba(125, 60, 255, 0.4);
+}
+.field input.date-picker::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.92;
+  width: 18px;
+  height: 18px;
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(230deg);
+}
+.field input.date-picker:focus {
+  border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(125, 60, 255, 0.22);
+}
+@media (max-width: 640px) {
+  .date-picker-field,
+  .field input.date-picker,
+  .field input[type="date"].date-picker {
+    max-width: 260px;
+    min-height: 52px;
+    font-size: 16px;
+  }
+}
 .note { color: var(--muted); font-size: 13px; text-align: center; margin-top: 18px; }
 .thumb.lg { width: 56px; height: 56px; border-radius: 10px; }
 

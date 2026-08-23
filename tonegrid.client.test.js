@@ -203,6 +203,7 @@ function load(options) {
     languageField,
     loader,
     loaderStep,
+    date,
   };
 }
 
@@ -565,10 +566,32 @@ async function run() {
       signwell_document_id: 'doc_split_sheet_01',
     },
   });
+  const minDate = (function () {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }());
+  assert.strictEqual(payNoDate.date.type, 'date');
+  assert.strictEqual(payNoDate.date.min, minDate);
+  assert.strictEqual(payNoDate.date.required, true);
   payNoDate.payBtn.listeners.click({ preventDefault() {} });
   await flush(2);
   assert.strictEqual(payNoDate.status.textContent, 'Release date is required.');
   assert.ok(!payNoDate.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
+
+  const yesterday = (function () {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }());
+  payNoDate.date.value = yesterday;
+  payNoDate.date.listeners.change();
+  assert.strictEqual(payNoDate.date.value, '');
+  assert.strictEqual(draftOf(payNoDate.localStorage).release_date, '');
+  payNoDate.date.value = minDate;
+  payNoDate.date.listeners.change();
+  assert.strictEqual(payNoDate.date.value, minDate);
+  assert.strictEqual(draftOf(payNoDate.localStorage).release_date, minDate);
 
   const paySkip = load({
     bind: 'review',
