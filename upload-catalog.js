@@ -11,6 +11,9 @@
  * Subgenre is not added: OpenAPI create/update bodies only document genre.
  *
  * Languages: complete ISO 639-1 (two-letter) codes. Option value is the code.
+ *
+ * Human tags: the live attest human-contribution list. Profile specialties
+ * reuse this exact set so community browse can later show lyrics / beats.
  */
 'use strict';
 
@@ -1258,6 +1261,18 @@ const LANGUAGES = [
   }
 ];
 
+const HUMAN_TAGS = [
+  'Original lyrics',
+  'Lead vocals performed',
+  'Backing vocals',
+  'Played an instrument',
+  'Melody written',
+  'Arrangement',
+  'Prompt authorship',
+  'Mixed by a person',
+  'Mastered by a person',
+];
+
 function fillSelect(select, items, getValue, getLabel) {
   if (!select) return;
   var seen = {};
@@ -1408,10 +1423,12 @@ function fillUploadSelects(doc) {
   bindTypeahead(root.getElementById('edit-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
   bindTypeahead(root.getElementById('tg-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
   bindTypeahead(root.getElementById('edit-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  fillSelect(root.getElementById('profile-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
+  bindTypeahead(root.getElementById('profile-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
   return { genre: genre, language: language };
 }
 
-const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, fillUploadSelects: fillUploadSelects, bindTypeahead: bindTypeahead };
+const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, HUMAN_TAGS: HUMAN_TAGS, fillUploadSelects: fillUploadSelects, bindTypeahead: bindTypeahead };
 
 if (typeof module === 'object' && module.exports) {
   module.exports = api;

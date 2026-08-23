@@ -65,7 +65,7 @@ function run() {
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
