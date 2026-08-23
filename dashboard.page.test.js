@@ -17,6 +17,7 @@ const LOGGED_IN_PAGES = [
   'payouts.html',
   'settings.html',
   'boosts.html',
+  'how.html',
   'library.html',
   'song.html',
   'upload.html',
