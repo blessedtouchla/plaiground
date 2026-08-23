@@ -107,6 +107,13 @@ function load(options) {
       };
     },
     fetch(url, init) {
+      if (/\/api\/tonegrid\/(languages|genres|stores)$/.test(String(url))) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ languages: [], genres: [], stores: [] }),
+        });
+      }
       calls.push({ url: String(url), init: init || {} });
       if (String(url).indexOf('/api/me/catalog') !== -1) {
         return Promise.resolve({

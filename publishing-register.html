@@ -26,7 +26,7 @@
     </div>
   </header>
 
-  <main class="page wrap" style="padding-top:calc(var(--nav-h) + 48px)">
+  <main class="page wrap plan-lock" data-plan-lock="publishing" style="padding-top:calc(var(--nav-h) + 48px)">
     <div class="head-row">
       <div>
         <p class="kicker">Publishing</p>
@@ -105,8 +105,9 @@
     <div class="flow-actions">
       <a class="btn btn-ghost btn-md" href="publishing.html">Cancel</a>
       <div>
-        <a id="submit-reg" class="btn btn-purple btn-md is-off" href="publishing-confirm.html" aria-disabled="true">Submit registration · $100.00</a>
+        <a id="submit-reg" class="btn btn-purple btn-md is-off" data-feature-post="publishing" href="publishing-confirm.html" aria-disabled="true">Submit registration · $100.00</a>
         <p id="need-confirm" class="warn" style="margin-top:8px">Confirm the AI disclosure to continue</p>
+        <p class="hint" id="tg-feature-status" hidden></p>
       </div>
     </div>
   </main>
@@ -158,6 +159,8 @@
       });
     })();
   </script>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

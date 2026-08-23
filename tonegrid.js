@@ -2,6 +2,9 @@
   var ARTISTS_URL = '/api/tonegrid/artists';
   var RELEASES_URL = '/api/tonegrid/releases';
   var TRACKS_URL = '/api/tonegrid/tracks';
+  var LANGUAGES_URL = '/api/tonegrid/languages';
+  var GENRES_URL = '/api/tonegrid/genres';
+  var STORES_URL = '/api/tonegrid/stores';
   var DRAFT_KEY = 'plaiground.tonegrid.draft';
   var MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 
@@ -45,6 +48,7 @@
     if (isDemoCopy(draft.title)) draft.title = '';
     if (isDemoCopy(draft.name)) draft.name = '';
     if (isDemoCopy(draft.genre)) draft.genre = '';
+    if (isDemoCopy(draft.language)) draft.language = '';
     return draft;
   }
 
@@ -159,7 +163,9 @@
       type: draft.type || 'single',
     };
     if (draft.genre) body.genre = draft.genre;
+    if (draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
+    if (draft.stores && draft.stores.length) body.stores = draft.stores;
     return body;
   }
 
@@ -198,12 +204,14 @@
     }
     var key = trackKey(draft);
     writeDraft({ track_idempotency_key: key });
-    return post(TRACKS_URL, {
+    var trackBody = {
       release_id: draft.release_id,
       title: draft.title,
       position: 1,
       explicit: draft.explicit === true,
-    }, key).then(function (result) {
+    };
+    if (draft.language) trackBody.language = draft.language;
+    return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
       }
@@ -305,6 +313,7 @@
       var name = fieldValue('tg-artist');
       var title = fieldValue('tg-title');
       var genre = fieldValue('tg-genre');
+      var language = fieldValue('tg-language');
       var explicit = selectedExplicit();
       var file = selectedAudio();
       var nextHref = trigger.getAttribute('href') || 'attest.html';
@@ -326,7 +335,7 @@
         return;
       }
 
-      writeDraft({ name: name, title: title, genre: genre, type: 'single', explicit: explicit });
+      writeDraft({ name: name, title: title, genre: genre, language: language, type: 'single', explicit: explicit });
       trigger.setAttribute('aria-busy', 'true');
       setStatus('tg-status', 'Saving artist…');
 
@@ -355,6 +364,7 @@
             name: name,
             title: title,
             genre: genre,
+            language: language,
             type: 'single',
             explicit: explicit,
           });
@@ -424,7 +434,11 @@
       var draft = readDraft();
       var nextHref = trigger.getAttribute('href') || 'submitted.html';
       var releaseDate = fieldValue('tg-release-date');
-      if (releaseDate) draft = writeDraft({ release_date: releaseDate });
+      var stores = selectedStores();
+      var patch = {};
+      if (releaseDate) patch.release_date = releaseDate;
+      if (stores && stores.length) patch.stores = stores;
+      if (Object.keys(patch).length) draft = writeDraft(patch);
 
       if (!draft.artist_id) {
         setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
@@ -532,8 +546,129 @@
     });
   }
 
+  function fillSelect(el, items, selected) {
+    if (!el) return;
+    var current = selected || el.value || '';
+    var placeholder = el.querySelector('option[value=""]');
+    el.textContent = '';
+    if (placeholder) el.appendChild(placeholder);
+    else {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = el.getAttribute('data-placeholder') || 'Select';
+      el.appendChild(empty);
+    }
+    (items || []).forEach(function (item) {
+      var opt = document.createElement('option');
+      opt.value = item.value;
+      opt.textContent = item.label;
+      el.appendChild(opt);
+    });
+    if (current) el.value = current;
+  }
+
+  function loadJson(url) {
+    return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(parseJson)
+      .catch(function () {
+        return { ok: false, status: 0, data: {} };
+      });
+  }
+
+  function fillCatalogLists() {
+    var genreEl = $('tg-genre');
+    var languageEl = $('tg-language');
+    var draft = readDraft();
+    if (genreEl && genreEl.getAttribute('data-tg-list') === 'genres') {
+      loadJson(GENRES_URL).then(function (result) {
+        var rows = (result.data && result.data.genres) || [];
+        fillSelect(genreEl, rows.map(function (name) {
+          return { value: name, label: name };
+        }), draft.genre);
+      });
+    }
+    if (languageEl && languageEl.getAttribute('data-tg-list') === 'languages') {
+      loadJson(LANGUAGES_URL).then(function (result) {
+        var rows = (result.data && result.data.languages) || [];
+        fillSelect(languageEl, rows.map(function (row) {
+          return { value: row.code || row.value, label: row.name || row.label || row.code };
+        }), draft.language);
+      });
+    }
+  }
+
+  function selectedStores() {
+    var host = document.querySelector('[data-tg-stores]');
+    if (!host) return [];
+    var boxes = host.querySelectorAll('input[type="checkbox"][data-store-slug]');
+    var out = [];
+    boxes.forEach(function (box) {
+      if (box.checked) out.push(box.getAttribute('data-store-slug'));
+    });
+    return out;
+  }
+
+  function renderStores(payload) {
+    var host = document.querySelector('[data-tg-stores]');
+    if (!host) return;
+    var stores = (payload && payload.stores) || [];
+    var draft = readDraft();
+    var chosen = Array.isArray(draft.stores) ? draft.stores : null;
+    host.textContent = '';
+    stores.forEach(function (row) {
+      var slug = row.slug || row.value;
+      if (!slug) return;
+      var label = document.createElement('label');
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.setAttribute('data-store-slug', slug);
+      box.checked = !chosen || chosen.indexOf(slug) !== -1;
+      var name = document.createElement('span');
+      name.textContent = row.name || slug;
+      label.appendChild(box);
+      label.appendChild(name);
+      host.appendChild(label);
+    });
+    var count = document.querySelector('[data-store-count]');
+    if (count) {
+      var on = selectedStores().length;
+      count.textContent = stores.length ? (on + ' of ' + stores.length + ' stores') : 'No stores returned.';
+    }
+  }
+
+  function bindStoreToggles() {
+    function setChecked(on) {
+      var host = document.querySelector('[data-tg-stores]');
+      if (!host) return;
+      var boxes = host.querySelectorAll('input[type="checkbox"][data-store-slug]');
+      boxes.forEach(function (box) { box.checked = on; });
+      var count = document.querySelector('[data-store-count]');
+      if (count) count.textContent = (on ? boxes.length : 0) + ' of ' + boxes.length + ' stores';
+    }
+    var all = document.querySelector('[data-store-all]');
+    var none = document.querySelector('[data-store-none]');
+    if (all) all.addEventListener('click', function (event) {
+      event.preventDefault();
+      setChecked(true);
+    });
+    if (none) none.addEventListener('click', function (event) {
+      event.preventDefault();
+      setChecked(false);
+    });
+  }
+
+  function fillStores() {
+    if (!document.querySelector('[data-tg-stores]')) return;
+    loadJson(STORES_URL).then(function (result) {
+      renderStores(result.data || {});
+    });
+  }
+
   bindUpload();
   bindReview();
   fillReviewSummary();
   bindSubmitted();
+  fillCatalogLists();
+  bindStoreToggles();
+  fillStores();
 })();

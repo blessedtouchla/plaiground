@@ -47,6 +47,8 @@ function run() {
   assert.ok(dashboard.indexOf('href="upload.html"') !== -1);
   assert.ok(dashboard.indexOf('Submit your first song') !== -1);
   assert.ok(dashboard.indexOf('Create now') !== -1);
+  assert.ok(dashboard.indexOf('data-plan-lock="publishing"') !== -1);
+  assert.ok(dashboard.indexOf('data-pub-call hidden') === -1);
 
   const membership = read('membership.js');
   assert.ok(membership.indexOf('localStorage') !== -1);
@@ -66,6 +68,12 @@ function run() {
   assert.ok(upload.indexOf('id="tg-upgrade"') !== -1);
   assert.ok(upload.indexOf('href="creator.html"') !== -1);
   assert.ok(upload.indexOf('href="pro.html"') !== -1);
+
+  assert.ok(index.indexOf('$149/year') !== -1 || index.indexOf('or $149/year') !== -1);
+  const creator = read('creator.html');
+  assert.ok(creator.indexOf('$149') !== -1);
+  const pro = read('pro.html');
+  assert.ok(pro.indexOf('$149') !== -1);
 
   const plans = read('lib/plans.js');
   assert.ok(plans.indexOf('Basic includes one release. Upgrade to Creator or Pro to upload more.') !== -1);

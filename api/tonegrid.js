@@ -4,6 +4,9 @@
  * ToneGrid proxy. Public URLs stay the same via vercel.json rewrites. One Hobby function.
  *
  * GET  /api/tonegrid/health
+ * GET  /api/tonegrid/languages
+ * GET  /api/tonegrid/genres
+ * GET  /api/tonegrid/stores
  * GET  /api/tonegrid/artists
  * POST /api/tonegrid/artists
  * GET  /api/tonegrid/releases
@@ -12,14 +15,18 @@
  * POST /api/tonegrid/tracks/:id/audio
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
+ * POST /api/tonegrid/publishing
+ * POST /api/tonegrid/boost
  *
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
  */
 
 const accounts = require('../lib/accounts');
+const auth = require('../lib/auth');
 const plans = require('../lib/plans');
 const { personalScope, idAllowed } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
+const lists = require('../lib/tonegrid-lists');
 const {
   RELEASE_TYPES,
   headerValue,
@@ -150,6 +157,118 @@ async function health(req, res) {
   }
 
   sendJson(res, 200, payload);
+}
+
+function languages(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  sendJson(res, 200, Object.assign({ configured: isConfigured() }, lists.languagePayload()));
+}
+
+function genres(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  sendJson(res, 200, Object.assign({ configured: isConfigured() }, lists.genrePayload()));
+}
+
+async function loadOfficialStores() {
+  if (!isConfigured()) {
+    return {
+      configured: false,
+      source: 'tonegrid-docs',
+      stores: lists.documentedStores(),
+      youtube_music: lists.YOUTUBE_MUSIC_SLUG,
+    };
+  }
+  const result = await tonegridFetch('/supply-chain/dsps', { method: 'GET' });
+  const parsed = result.ok ? lists.parseStores(result.data) : [];
+  const stores = parsed.length ? parsed : lists.documentedStores();
+  return {
+    configured: true,
+    source: parsed.length ? 'tonegrid' : 'tonegrid-docs',
+    stores,
+    youtube_music: lists.youtubeMusicSlug(stores) || lists.YOUTUBE_MUSIC_SLUG,
+  };
+}
+
+async function stores(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const payload = await loadOfficialStores();
+  sendJson(res, 200, payload);
+}
+
+async function requireAccount(req, res) {
+  if (!auth.isConfigured()) {
+    auth.notConfigured(res);
+    return null;
+  }
+  const session = auth.sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return null;
+  }
+  const row = await accounts.findById(session.userId);
+  if (!row) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return null;
+  }
+  if (auth.rejectUnconfirmed(res, row)) return null;
+  return row;
+}
+
+async function requireExtras(req, res, feature) {
+  const row = await requireAccount(req, res);
+  if (!row) return null;
+  if (!plans.canUseExtras(row.plan)) {
+    sendJson(res, 403, plans.featureBody(feature, row.plan));
+    return null;
+  }
+  return row;
+}
+
+async function publishing(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const row = await requireExtras(req, res, 'publishing');
+  if (!row) return;
+  sendJson(res, 200, {
+    ok: true,
+    feature: 'publishing',
+    plan: String(row.plan || '').toLowerCase(),
+  });
+}
+
+async function boost(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const row = await requireAccount(req, res);
+  if (!row) return;
+  if (!plans.canUseExtras(row.plan)) {
+    sendJson(res, 403, plans.featureBody('boost', row.plan));
+    return;
+  }
+  sendJson(res, 403, {
+    error: plans.BOOST_UNAVAILABLE,
+    code: 'BOOST_UNAVAILABLE',
+    feature: 'boost',
+    plan: String(row.plan || '').toLowerCase(),
+  });
 }
 
 async function requireUpload(req, res) {
@@ -352,6 +471,7 @@ async function createRelease(req, res) {
   const type = normalizeReleaseType(body && body.type);
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
   const genre = String((body && body.genre) || '').trim();
+  const language = lists.normalizeLanguage(body && body.language);
 
   if (!artistId) {
     sendJson(res, 400, { error: 'artist_id is required.' });
@@ -373,6 +493,10 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'release_date must be YYYY-MM-DD.' });
     return;
   }
+  if ((body && body.language) && language == null) {
+    sendJson(res, 400, { error: 'language must be an ISO 639-1 code.' });
+    return;
+  }
 
   const payload = {
     artist_id: artistId,
@@ -381,16 +505,34 @@ async function createRelease(req, res) {
   };
   if (releaseDate) payload.release_date = releaseDate;
   if (genre) payload.genre = genre;
+  if (language) payload.language = language;
 
   const result = await tonegridFetch('/releases', {
     method: 'POST',
     body: payload,
-    idempotencyKey: idempotencyKey(req, ['release', artistId, title, type, releaseDate].join(':')),
+    idempotencyKey: idempotencyKey(req, ['release', artistId, title, type, releaseDate, language].join(':')),
   });
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
     if (releaseId) {
       await accounts.updateCatalog(scope.userId, { artistId, releaseId });
+      const official = await loadOfficialStores();
+      const requested = lists.requestedStores(body);
+      const slugs = lists.withYouTubeMusic(requested == null ? [] : requested, official.stores);
+      if (slugs.length) {
+        const attached = await tonegridFetch('/releases/' + releaseId + '/dsps', {
+          method: 'POST',
+          body: { dsps: slugs },
+          idempotencyKey: idempotencyKey(req, ['dsps', releaseId, slugs.join(',')].join(':')),
+        });
+        if (!attached.ok && result.data && typeof result.data === 'object') {
+          result.data.stores_error = attached.data && attached.data.error
+            ? attached.data.error
+            : 'ToneGrid rejected the store selection.';
+        } else if (result.data && typeof result.data === 'object') {
+          result.data.stores = slugs;
+        }
+      }
     }
   }
   sendJson(res, result.status, result.data);
@@ -460,9 +602,18 @@ async function createTrack(req, res) {
     return;
   }
 
+  const language = lists.normalizeLanguage(body && body.language);
+  if ((body && body.language) && language == null) {
+    sendJson(res, 400, { error: 'language must be an ISO 639-1 code.' });
+    return;
+  }
+
+  const trackBody = { title, position, explicit };
+  if (language) trackBody.language = language;
+
   const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',
-    body: { title, position, explicit },
+    body: trackBody,
     idempotencyKey: idempotencyKey(req, ['track', releaseId, title, String(position)].join(':')),
   });
   sendJson(res, result.status, result.data);
@@ -735,7 +886,8 @@ async function loadAnalytics(req, res) {
     return idAllowed(scope.allow, row.release_uuid);
   });
 
-  const ids = releaseFilter ? [releaseFilter] : scope.releaseIds;
+  const extras = plans.canUseExtras(scope.row && scope.row.plan);
+  const ids = extras ? (releaseFilter ? [releaseFilter] : scope.releaseIds) : [];
   const territoryLists = [];
   const dspLists = [];
   for (let i = 0; i < ids.length; i += 1) {
@@ -751,15 +903,20 @@ async function loadAnalytics(req, res) {
     else errors.dsps = sectionError(dspsRes);
   }
 
-  const territories = mergeNamed(territoryLists.flat(), 'territory');
-  let dsps = mergeNamed(dspLists.flat(), 'dsp');
+  const territories = extras ? mergeNamed(territoryLists.flat(), 'territory') : [];
+  let dsps = extras ? mergeNamed(dspLists.flat(), 'dsp') : [];
   const userStreams = releaseRows.reduce((sum, row) => sum + toNumber(row.streams), 0);
   const dspStreams = dsps.reduce((sum, row) => sum + toNumber(row.streams), 0);
   if (dspStreams > userStreams + 1) dsps = [];
 
   const summary = summaryFromReleases(releaseRows, query);
-  if (dsps[0]) summary.top_dsp = dsps[0].dsp;
-  if (territories[0]) summary.top_territory = territories[0].territory || territories[0].country_name || '';
+  if (extras && dsps[0]) summary.top_dsp = dsps[0].dsp;
+  if (extras && territories[0]) summary.top_territory = territories[0].territory || territories[0].country_name || '';
+  if (!extras) {
+    summary.top_release = null;
+    summary.top_dsp = '';
+    summary.top_territory = '';
+  }
 
   const healthInfo = healthPayload();
   const body = {
@@ -768,13 +925,15 @@ async function loadAnalytics(req, res) {
     empty: releaseRows.length === 0 && userStreams === 0,
     from: summary.from || query.from || '',
     to: summary.to || query.to || '',
+    plan: extras ? (plans.canUseExtras(scope.row && scope.row.plan) ? String(scope.row.plan).toLowerCase() : 'basic') : 'basic',
+    locked: extras ? [] : ['dsps', 'territories', 'series', 'top_release', 'top_dsp'],
     summary,
-    releases: releaseRows,
+    releases: extras ? releaseRows : [],
     territories,
     dsps,
     series: [],
   };
-  if (Object.keys(errors).length) body.errors = errors;
+  if (extras && Object.keys(errors).length) body.errors = errors;
   sendJson(res, 200, body);
 }
 
@@ -937,6 +1096,26 @@ async function handler(req, res) {
   const route = routeOf(req);
   if (route.resource === 'health') {
     await health(req, res);
+    return;
+  }
+  if (route.resource === 'languages') {
+    languages(req, res);
+    return;
+  }
+  if (route.resource === 'genres') {
+    genres(req, res);
+    return;
+  }
+  if (route.resource === 'stores') {
+    await stores(req, res);
+    return;
+  }
+  if (route.resource === 'publishing') {
+    await publishing(req, res);
+    return;
+  }
+  if (route.resource === 'boost') {
+    await boost(req, res);
     return;
   }
   if (route.resource === 'artists') {

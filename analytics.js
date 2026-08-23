@@ -164,12 +164,26 @@
     });
   }
 
+  function isLocked(data) {
+    var plan = String((data && data.plan) || '').toLowerCase();
+    if (plan === 'creator' || plan === 'pro') return false;
+    return !data || plan === 'basic' || (Array.isArray(data.locked) && data.locked.length);
+  }
+
   function render(data) {
     var payload = data || {};
-    renderMetrics(payload);
-    renderBars('[data-analytics-dsps]', payload.dsps, 'dsp');
-    renderLocations(payload.territories);
-    renderChart(payload.series);
+    var locked = isLocked(payload);
+    renderMetrics({
+      summary: {
+        total_streams: payload.summary && payload.summary.total_streams,
+        total_revenue_usd: payload.summary && payload.summary.total_revenue_usd,
+        top_release: locked ? null : payload.summary && payload.summary.top_release,
+        top_dsp: locked ? '' : payload.summary && payload.summary.top_dsp,
+      },
+    });
+    renderBars('[data-analytics-dsps]', locked ? [] : payload.dsps, 'dsp');
+    renderLocations(locked ? [] : payload.territories);
+    renderChart(locked ? [] : payload.series);
     var empty = isEmptyCatalog(payload);
     setHidden('[data-analytics-empty]', !empty);
     if (empty) setText('[data-analytics-empty]', emptyMessage());

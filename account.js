@@ -53,8 +53,80 @@
     });
     var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids : [];
     $all('[data-account-releases]').forEach(function (el) { setText(el, String(ids.length)); });
+    var extras = canUseExtras(me.plan);
     $all('[data-pub-call]').forEach(function (el) {
-      el.hidden = ids.length === 0;
+      el.hidden = false;
+    });
+    applyPlanLocks(extras);
+  }
+
+  function canUseExtras(plan) {
+    var next = String(plan || '').trim().toLowerCase();
+    return next === 'creator' || next === 'pro';
+  }
+
+  function ensureCover(el, extras) {
+    var cover = el.querySelector('.plan-lock-cover');
+    if (!cover) {
+      cover = document.createElement('div');
+      cover.className = 'plan-lock-cover';
+      el.appendChild(cover);
+    }
+    var feature = el.getAttribute('data-plan-lock') || 'extras';
+    if (feature === 'publishing') {
+      cover.innerHTML = extras
+        ? ''
+        : 'Publishing registration is included with Creator and Pro. <a href="creator.html">Upgrade to Creator</a> or <a href="pro.html">Pro</a>.';
+    } else if (feature === 'boost') {
+      cover.innerHTML = extras
+        ? 'Marketing Boost is not for sale.'
+        : 'Marketing Boost is included with Creator and Pro. <a href="creator.html">Upgrade to Creator</a> or <a href="pro.html">Pro</a>.';
+    } else {
+      cover.innerHTML = extras
+        ? ''
+        : 'Deeper analytics are included with Creator and Pro. <a href="creator.html">Upgrade to Creator</a> or <a href="pro.html">Pro</a>.';
+    }
+  }
+
+  function applyPlanLocks(extras) {
+    $all('[data-plan-lock]').forEach(function (el) {
+      var feature = el.getAttribute('data-plan-lock');
+      var locked = feature === 'boost' ? true : !extras;
+      el.classList.add('plan-lock');
+      el.setAttribute('data-locked', locked ? 'true' : 'false');
+      ensureCover(el, extras);
+    });
+  }
+
+  function bindFeaturePosts() {
+    document.addEventListener('click', function (event) {
+      var target = event.target && event.target.closest && event.target.closest('[data-feature-post]');
+      if (!target) return;
+      event.preventDefault();
+      var feature = target.getAttribute('data-feature-post');
+      var href = target.getAttribute('href') || '';
+      fetch('/api/tonegrid/' + feature, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: '{}',
+      }).then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, status: response.status, data: data || {} };
+        }).catch(function () {
+          return { ok: false, status: response.status, data: {} };
+        });
+      }).then(function (result) {
+        if (result.ok && href) {
+          global.location.href = href;
+          return;
+        }
+        var note = document.getElementById('tg-feature-status');
+        if (note) {
+          note.hidden = false;
+          note.textContent = (result.data && result.data.error) || 'This feature is locked on Basic.';
+        }
+      }).catch(function () {});
     });
   }
 
@@ -106,9 +178,12 @@
   }
 
   bindSignOut();
+  bindFeaturePosts();
+  applyPlanLocks(false);
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
+    else applyPlanLocks(false);
   });
 
-  global.PlaigroundAccount = { fill: fillAccount };
+  global.PlaigroundAccount = { fill: fillAccount, applyPlanLocks: applyPlanLocks };
 })(window);

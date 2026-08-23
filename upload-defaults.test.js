@@ -66,18 +66,25 @@ function run() {
   assert.ok(upload.indexOf('href="creator.html"') !== -1);
   assert.ok(upload.indexOf('href="pro.html"') !== -1);
 
+  assert.ok(upload.indexOf('data-tg-list="genres"') !== -1);
+  assert.ok(upload.indexOf('data-tg-list="languages"') !== -1);
+  assert.ok(upload.indexOf('/api/tonegrid/genres') === -1 || upload.indexOf('tonegrid.js') !== -1);
   const genre = options(selectById(upload, 'tg-genre'));
-  assert.deepStrictEqual(genre.map(function (opt) { return opt.value; }), [
-    '', 'Electronic', 'Pop', 'Hip-Hop', 'Country', 'R&amp;B', 'Latin', 'Other',
-  ]);
+  assert.deepStrictEqual(genre.map(function (opt) { return opt.value; }), ['']);
   assert.strictEqual(genre[0].label, 'Select genre');
   assert.ok(genre.every(function (opt) { return !opt.selected; }));
+  assert.ok(upload.indexOf('<option value="Electronic">') === -1);
+  assert.ok(upload.indexOf('<option value="English">') === -1);
 
   const language = options(selectById(upload, 'tg-language'));
   assert.strictEqual(language[0].value, '');
   assert.strictEqual(language[0].label, 'Select language');
-  assert.ok(language.some(function (opt) { return opt.value === 'English'; }));
   assert.ok(language.every(function (opt) { return !opt.selected; }));
+
+  const review = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.ok(review.indexOf('data-tg-stores') !== -1);
+  assert.ok(review.indexOf('✓ YouTube Music') === -1);
+  assert.ok(review.indexOf('164 of 165 stores') === -1);
 
   const price = options(selectById(upload, 'tg-price'));
   assert.deepStrictEqual(price.map(function (opt) { return opt.value; }), ['', '$0.69', '$0.99']);

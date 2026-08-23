@@ -78,11 +78,14 @@
           <h3>Choose where it goes</h3>
           <p class="hint">Every store costs the same one fee. Unlink anywhere you would rather not appear.</p>
         </div>
-        <span style="color:var(--muted);font-size:13px">164 of 165 stores · <a href="review.html">Select all</a> · <a href="review.html">Clear all</a></span>
+        <span style="color:var(--muted);font-size:13px" data-store-count>Loading stores…</span>
       </div>
-      <div class="store-pick">
-        <span>✓ Spotify</span><span>✓ Apple Music</span><span>✓ Amazon Music</span><span>✓ YouTube Music</span><span>✓ Tidal</span><span>✓ Deezer</span><span>✓ TikTok / Instagram</span><span>✓ Pandora</span><span>✓ All 156 other stores</span>
-      </div>
+      <p class="hint" style="margin:0 0 12px">
+        <button type="button" class="learn" data-store-all>Select all</button>
+        ·
+        <button type="button" class="learn" data-store-none>Clear all</button>
+      </p>
+      <div class="store-pick" data-tg-stores></div>
     </section>
 
     <div class="flow-actions">

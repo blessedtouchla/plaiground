@@ -90,6 +90,9 @@ function run() {
   assert.ok(html.indexOf('data-analytics-dsps') !== -1);
   assert.ok(html.indexOf('data-analytics-territories') !== -1);
   assert.ok(html.indexOf('data-analytics-chart') !== -1);
+  assert.ok(html.indexOf('data-plan-lock="analytics"') !== -1);
+  assert.ok(html.indexOf('data-metric="streams"') !== -1);
+  assert.ok(html.indexOf('data-metric="revenue"') !== -1);
   assert.ok(html.indexOf('analytics.js') !== -1);
   assert.ok(html.indexOf('plai-bubble.js') !== -1);
   assert.ok(html.indexOf(['t', 'g', 'k', '_'].join('')) === -1);

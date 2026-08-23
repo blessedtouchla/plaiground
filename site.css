@@ -1185,6 +1185,39 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
   opacity: 0.55;
   pointer-events: none;
 }
+.plan-lock {
+  position: relative;
+}
+.plan-lock[data-locked="true"] > :not(.plan-lock-cover) {
+  pointer-events: none;
+}
+.plan-lock-cover {
+  display: none;
+}
+.plan-lock[data-locked="true"] .plan-lock-cover {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  background: rgba(8, 8, 12, 0.72);
+  color: var(--muted-2);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: inherit;
+}
+.plan-lock-cover a {
+  color: #fff;
+}
+.store-pick label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 10px 0;
+}
 .pro-adds { margin: 40px 0 72px; }
 .pro-adds .row {
   display: grid;

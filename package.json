@@ -2,7 +2,7 @@
   "name": "plaiground",
   "private": true,
   "scripts": {
-    "test": "node membership.test.js && node lib/tonegrid.test.js && node upload-defaults.test.js && node catalog-earnings.test.js && node analytics.page.test.js && node basic-plan-wiring.test.js && node tonegrid.client.test.js && node lib/accounts.test.js && node lib/mail.test.js && node lib/plans.test.js"
+    "test": "node membership.test.js && node lib/tonegrid.test.js && node upload-defaults.test.js && node catalog-earnings.test.js && node analytics.page.test.js && node basic-plan-wiring.test.js && node tonegrid.client.test.js && node lib/accounts.test.js && node lib/mail.test.js && node lib/plans.test.js && node lib/tonegrid-lists.test.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2"
