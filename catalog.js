@@ -113,6 +113,15 @@
       meta.textContent = typeLabel(row.type) + (when ? ' · ' + when : '');
       copy.appendChild(title);
       copy.appendChild(meta);
+      if (row.uuid) {
+        var edit = document.createElement('a');
+        edit.href = 'song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1';
+        edit.textContent = 'Edit release';
+        edit.className = 'learn';
+        edit.style.display = 'inline-block';
+        edit.style.marginTop = '4px';
+        copy.appendChild(edit);
+      }
       wrap.appendChild(thumb);
       wrap.appendChild(copy);
       titleCell.appendChild(wrap);

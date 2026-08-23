@@ -10,13 +10,13 @@
  * GET  /api/tonegrid/releases
  * POST /api/tonegrid/releases
  * GET  /api/tonegrid/releases/:id
- * PUT  /api/tonegrid/releases/:id
- * POST /api/tonegrid/releases/:id/submit
+ * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
+ * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
- * PUT  /api/tonegrid/releases/:id/dsps
- * POST /api/tonegrid/releases/:id/artwork
+ * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
+ * POST /api/tonegrid/releases/:id/artwork  -> ToneGrid POST /releases/:uuid/artwork
  * POST /api/tonegrid/tracks
- * PUT  /api/tonegrid/tracks/:id
+ * PUT  /api/tonegrid/tracks/:id            -> ToneGrid PATCH /tracks/:uuid
  * POST /api/tonegrid/tracks/:id/audio
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
@@ -33,6 +33,7 @@
  * waiting for every signature. Never call /distribute or /approve.
  */
 
+const crypto = require('crypto');
 const accounts = require('../lib/accounts');
 const plans = require('../lib/plans');
 const signwell = require('../lib/signwell');
@@ -338,6 +339,15 @@ function pickTracks(payload) {
   }).filter(Boolean);
 }
 
+function artistNameOf(row) {
+  if (!row || typeof row !== 'object') return '';
+  if (typeof row.artist === 'string') return row.artist.trim();
+  if (row.artist && typeof row.artist === 'object') {
+    return String(row.artist.name || row.artist.title || '').trim();
+  }
+  return String(row.artist_name || row.primary_artist || '').trim();
+}
+
 function pickRelease(row) {
   if (!row || typeof row !== 'object') return null;
   const title = String(row.title || '').trim();
@@ -353,9 +363,14 @@ function pickRelease(row) {
     artwork_url: String(row.artwork_url || row.cover_art_url || '').trim(),
     release_date: normalizeReleaseDate(row.release_date || row.releaseDate) || '',
     created_at: typeof row.created_at === 'string' ? row.created_at : '',
+    artist: artistNameOf(row),
     tracks: pickTracks(row),
     dsps: parseStoreSlugs(row),
   };
+}
+
+function bodyFingerprint(buf) {
+  return crypto.createHash('sha256').update(buf && buf.length ? buf : Buffer.from('')).digest('hex').slice(0, 32);
 }
 
 async function listReleases(req, res) {
@@ -679,7 +694,7 @@ async function trackAudio(req, res, trackId) {
     method: 'POST',
     rawBody: prepared.rawBody,
     contentType: prepared.contentType || contentType,
-    idempotencyKey: idempotencyKey(req, 'audio:' + id),
+    idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(prepared.rawBody || raw)),
   });
   sendJson(res, result.status, result.data);
 }
@@ -1473,7 +1488,7 @@ async function releaseArtwork(req, res, releaseId) {
     method: 'POST',
     rawBody: raw,
     contentType,
-    idempotencyKey: idempotencyKey(req, 'artwork:' + releaseId),
+    idempotencyKey: hopIdempotencyKey('artwork', 'POST', '/releases/' + releaseId + '/artwork', bodyFingerprint(raw)),
   });
   sendJson(res, result.status, result.data);
 }
