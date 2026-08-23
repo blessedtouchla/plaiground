@@ -188,6 +188,27 @@
     return recordPlan(params.get('plan'));
   }
 
+  function isMarketingHome() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop();
+    return path === '/' || file === '' || file === 'index.html';
+  }
+
+  function homeWantsPricing() {
+    try {
+      return new URLSearchParams(global.location.search).get('needplan') === '1';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function goDashboardFromHome() {
+    if (!isMarketingHome() || homeWantsPricing()) return false;
+    if (!isSignedIn()) return false;
+    global.location.replace('dashboard.html');
+    return true;
+  }
+
   function revealPricingHint() {
     var params;
     try {
@@ -235,6 +256,11 @@
   rememberQueryPlan();
   bindPlanClicks();
   probeAccount();
+  if (!goDashboardFromHome()) {
+    accountReady.then(function (result) {
+      if (result && result.ok) goDashboardFromHome();
+    });
+  }
 
   var script = document.currentScript;
   if (script && script.getAttribute('data-require-membership') === 'true') {

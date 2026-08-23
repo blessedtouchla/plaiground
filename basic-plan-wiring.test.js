@@ -48,6 +48,8 @@ function run() {
   assert.ok(membership.indexOf('plaigroundSignedIn') !== -1);
   assert.ok(membership.indexOf('basic: true') !== -1);
   assert.ok(membership.indexOf('login.html') !== -1);
+  assert.ok(membership.indexOf('isMarketingHome') !== -1);
+  assert.ok(membership.indexOf('dashboard.html') !== -1);
 
   const tonegrid = read('tonegrid.js');
   assert.ok(tonegrid.indexOf('Creating release…') !== -1);

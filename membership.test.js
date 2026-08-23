@@ -37,7 +37,9 @@ function load(options) {
     });
   }
   const search = options && options.search ? options.search : '';
-  const location = { href: 'upload.html', search: search, replace(href) { location.href = href; } };
+  const pathname = options && options.pathname ? options.pathname : '/upload.html';
+  const href = options && options.href ? options.href : 'upload.html';
+  const location = { href: href, pathname: pathname, search: search, replace(next) { location.href = next; } };
   const clicks = [];
   const context = {
     URLSearchParams,
@@ -155,6 +157,38 @@ function run() {
   const servered = load();
   servered.api.recordSignedIn();
   assert.ok(typeof servered.api.whenReady === 'function');
+
+  const homeIn = load({
+    pathname: '/index.html',
+    href: 'index.html',
+    seedLocal: { plaigroundSignedIn: '1' },
+  });
+  assert.ok(homeIn.location.href.indexOf('dashboard.html') !== -1);
+
+  const homeRoot = load({
+    pathname: '/',
+    href: '/',
+    seedLocal: { plaigroundSignedIn: '1' },
+  });
+  assert.ok(homeRoot.location.href.indexOf('dashboard.html') !== -1);
+
+  const homeOut = load({ pathname: '/', href: '/' });
+  assert.ok(homeOut.location.href.indexOf('dashboard.html') === -1);
+
+  const homeNeedPlan = load({
+    pathname: '/index.html',
+    href: 'index.html?needplan=1#pricing',
+    search: '?needplan=1',
+    seedLocal: { plaigroundSignedIn: '1' },
+  });
+  assert.ok(homeNeedPlan.location.href.indexOf('dashboard.html') === -1);
+
+  const signupStay = load({
+    pathname: '/signup.html',
+    href: 'signup.html',
+    seedLocal: { plaigroundSignedIn: '1' },
+  });
+  assert.ok(signupStay.location.href.indexOf('dashboard.html') === -1);
 
   console.log('membership.test.js ok');
 }

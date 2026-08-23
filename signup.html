@@ -55,7 +55,8 @@
           </div>
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" type="password" placeholder="8+ characters" autocomplete="new-password" />
+            <input id="password" type="password" placeholder="8+ characters" autocomplete="new-password" minlength="8" />
+            <p class="hint" id="password-rule">Password must be at least 8 characters.</p>
           </div>
           <div class="field">
             <label for="make">How do you make music?</label>
@@ -165,6 +166,10 @@
 
         var body = { email: email, password: password, artist: artist };
         if (plan) body.plan = plan;
+        if (password.length < 8) {
+          setStatus('Password must be at least 8 characters.');
+          return;
+        }
         if (button) {
           button.disabled = true;
           button.setAttribute('aria-busy', 'true');

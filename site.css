@@ -488,6 +488,13 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .auth-toggle a.on { background: var(--purple); color: #fff; }
 .auth-card h2 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
 .auth-card .lead { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.auth-card .hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+#auth-status.hint { margin: 0 0 12px; }
 .field { margin-bottom: 16px; }
 .field label {
   display: block;
@@ -1790,6 +1797,16 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
   .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head, .auth, .two-col, .review-grid, .form-grid, .art-row, .opt-grid, .workflow, .metric-row, .after, .pub-band, .writer-grid, .hero-split, .process-row, .exclude-grid, .how-cols, .boost-grid, .size-grid, .pro-adds .row, .dash-preview, .about-grid, .contact-grid, .dash-top, .form-grid.three, .form-grid.four, .catalog-stats, .song-hero, .fees-grid, .entry-grid, .prefill, .carry, .pub-bar, .offer-grid, .confirm-bar, .next-4, .know, .signed-grid {
     grid-template-columns: 1fr;
   }
+  .auth {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+  .auth-hero,
+  .auth-panel,
+  .auth-card {
+    min-width: 0;
+    max-width: 100%;
+  }
   .sign-buttons { justify-content: stretch; }
   .sign-buttons .btn { width: 100%; }
   .app { grid-template-columns: 1fr; }
@@ -1872,6 +1889,38 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
   :root {
     --nav-h: 72px;
   }
+  .auth-hero {
+    padding: 32px 20px 24px;
+  }
+  .auth-hero h1 {
+    font-size: 1.65rem;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    overflow-wrap: break-word;
+  }
+  .auth-hero p {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .auth-stats { gap: 16px; flex-wrap: wrap; }
+  .auth-stats strong { font-size: 1.5rem; }
+  .auth-panel {
+    padding: 24px 16px 96px;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+  .auth-card h2 {
+    font-size: 1.4rem;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+  }
+  .auth-toggle a {
+    font-size: 12px;
+    padding: 10px 6px;
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.2;
+  }
   .nav-inner {
     gap: 8px;
   }
@@ -1906,6 +1955,12 @@ table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertica
 }
 
 @media (max-width: 400px) {
+  .auth-hero {
+    padding: 28px 16px 20px;
+  }
+  .auth-hero h1 { font-size: 1.5rem; }
+  .auth-card h2 { font-size: 1.3rem; }
+  .auth-toggle a { font-size: 12px; padding: 9px 4px; }
   .nav-inner {
     padding-left: 12px;
     padding-right: 12px;
