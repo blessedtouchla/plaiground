@@ -86,7 +86,14 @@ function run() {
   assert.ok(upload.indexOf('id="tg-subgenre"') === -1);
   assert.ok(upload.indexOf('name="release-subgenre"') === -1);
   assert.ok(upload.indexOf('capture=') === -1);
-  assert.ok(upload.indexOf('accept=".wav,.flac,.mp3,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3"') !== -1);
+  assert.ok(upload.indexOf('accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg"') !== -1);
+  assert.ok(upload.indexOf('lib/audio-accept.js') !== -1);
+  assert.ok(upload.indexOf('lib/store-pick.js') !== -1);
+  assert.ok(upload.indexOf('Pre-select all stores') !== -1);
+  assert.ok(upload.indexOf('data-store-customize') !== -1);
+  assert.ok(upload.indexOf('data-store-all') !== -1);
+  assert.ok(upload.indexOf('data-store-list') !== -1);
+  assert.ok(upload.indexOf('data-store-pick') !== -1);
   assert.ok(upload.indexOf('accept=".jpg,.jpeg,.png,image/jpeg,image/png"') !== -1);
   assert.ok(upload.indexOf('data-art-pick') !== -1);
   assert.ok(upload.indexOf('data-art-input') !== -1);
@@ -209,10 +216,87 @@ function run() {
     input.listeners.input();
     assert.ok(list.children.length > 12, 'A-query must stay scrollable past the first letter');
     assert.ok(list.children.some(function (btn) { return /^B/i.test(btn.textContent); }), 'full A-match set must include items past A');
+
+    const langField = {
+      children: [],
+      classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
+      querySelector() { return { setAttribute() {} }; },
+      insertBefore(node) { this.children.push(node); return node; },
+      appendChild(node) { this.children.push(node); return node; },
+    };
+    const langSelect = {
+      parentNode: langField,
+      id: 'tg-language',
+      options: [{ value: '', textContent: 'Select language' }],
+      selectedIndex: 0,
+      value: '',
+      tabIndex: 0,
+      classList: { add() {} },
+      attrs: {},
+      getAttribute(name) { return this.attrs[name] || null; },
+      setAttribute(name, value) { this.attrs[name] = String(value); },
+      dispatchEvent() {},
+      addEventListener() {},
+    };
+    const langCreated = [];
+    global.document.createElement = function (tag) {
+      const node = {
+        tagName: String(tag).toUpperCase(),
+        type: '',
+        className: '',
+        id: '',
+        value: '',
+        textContent: '',
+        children: [],
+        style: {},
+        attrs: {},
+        listeners: {},
+        classList: {
+          tokens: Object.create(null),
+          add(name) { this.tokens[name] = true; },
+          remove(name) { delete this.tokens[name]; },
+          contains(name) { return Boolean(this.tokens[name]); },
+        },
+        setAttribute(name, value) { this.attrs[name] = String(value); },
+        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
+        addEventListener(type, fn) { this.listeners[type] = fn; },
+        appendChild(child) { this.children.push(child); return child; },
+      };
+      langCreated.push(node);
+      return node;
+    };
+    catalog.bindTypeahead(langSelect, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+    const langInput = langCreated.find(function (node) { return node.className === 'typeahead-input'; });
+    const langList = langCreated.find(function (node) { return String(node.className).indexOf('typeahead-list') !== -1; });
+    assert.ok(langInput);
+    assert.ok(langList);
+    langInput.listeners.focus();
+    assert.ok(langList.children.length >= 180, 'language typeahead must list the full ISO set');
+    langInput.value = 'En';
+    langInput.listeners.input();
+    assert.ok(langList.children.length >= 1);
+    assert.ok(langList.children.some(function (btn) { return btn.textContent === 'English'; }));
+    langInput.value = 'Klingon';
+    langInput.listeners.input();
+    assert.strictEqual(langSelect.value, '');
   } finally {
     if (prevDocument === undefined) delete global.document;
     else global.document = prevDocument;
   }
+
+  const review = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.ok(review.indexOf('Pre-select all stores') !== -1);
+  assert.ok(review.indexOf('data-store-customize') !== -1);
+  assert.ok(review.indexOf('164 of 165 stores') === -1);
+  assert.ok(review.indexOf('All 156 other stores') === -1);
+
+  const song = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
+  assert.ok(song.indexOf('id="edit-language"') !== -1);
+  assert.ok(song.indexOf('Pre-select all stores') !== -1);
+  assert.ok(song.indexOf('data-store-customize') !== -1);
+  assert.ok(song.indexOf('accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga') !== -1);
+  assert.ok(song.indexOf('lib/audio-accept.js') !== -1);
+  assert.ok(song.indexOf('lib/store-pick.js') !== -1);
 
   console.log('upload-defaults.test.js ok');
 }

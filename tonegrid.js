@@ -355,6 +355,7 @@
       title: draft.title || '',
       songTitle: draft.title || draft.songTitle || '',
     };
+    if (Array.isArray(draft.dsps) && draft.dsps.length) submitBody.dsps = draft.dsps;
     if (!solo) {
       submitBody.document_id = documentId;
       if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
@@ -469,11 +470,28 @@
     return draft.explicit === true;
   }
 
+  var AUDIO_ERROR = 'Audio must be WAV, FLAC, or MP3.';
+
+  function audioAccept() {
+    return typeof PlaigroundAudioAccept !== 'undefined' ? PlaigroundAudioAccept : null;
+  }
+
   function isAudioFile(file) {
     if (!file) return false;
+    var helper = audioAccept();
+    if (helper && typeof helper.fileLooksAllowedSync === 'function') {
+      return helper.fileLooksAllowedSync(file);
+    }
     var name = String(file.name || '').toLowerCase();
     var type = String(file.type || '').toLowerCase();
-    return /\.(wav|flac|mp3)$/.test(name) || /audio\/(wav|x-wav|flac|x-flac|mpeg|mp3)/.test(type);
+    return /\.(wav|flac|mp3|mpeg|mpga)$/.test(name) || /audio\/(wav|x-wav|wave|flac|x-flac|mpeg|mp3|x-mpeg|x-mp3|mpeg3|mpg)/.test(type);
+  }
+
+  function fileLooksAllowed(file) {
+    if (isAudioFile(file)) return Promise.resolve(true);
+    var helper = audioAccept();
+    if (helper && typeof helper.fileLooksAllowed === 'function') return helper.fileLooksAllowed(file);
+    return Promise.resolve(false);
   }
 
   function trackKey(draft) {
@@ -517,9 +535,13 @@
 
   function isMp3File(file) {
     if (!file) return false;
+    var helper = audioAccept();
+    if (helper && typeof helper.fileLooksLikeMp3 === 'function') {
+      return helper.fileLooksLikeMp3(file);
+    }
     var name = String(file.name || '').toLowerCase();
     var type = String(file.type || '').toLowerCase();
-    return /\.mp3$/.test(name) || type === 'audio/mpeg' || type === 'audio/mp3';
+    return /\.(mp3|mpeg|mpga)$/.test(name) || /audio\/(x-)?(mpeg|mp3|mpeg3|mpg)/.test(type);
   }
 
   function showUploadLoader(step, percent) {
@@ -587,15 +609,17 @@
     if (file.size > MAX_AUDIO_BYTES) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Audio must be 200 MB or smaller.' } } });
     }
-    if (!isAudioFile(file)) {
-      return Promise.resolve({ failed: true, result: { data: { error: 'Audio must be WAV or FLAC.' } } });
-    }
-    var body = new FormData();
-    body.append('audio', file, file.name || 'audio.wav');
-    return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress).then(function (result) {
-      if (isUnavailable(result)) return { unavailable: true, result: result };
-      if (!result.ok) return { failed: true, result: result };
-      return { uploaded: true, result: result };
+    return fileLooksAllowed(file).then(function (ok) {
+      if (!ok) {
+        return { failed: true, result: { data: { error: AUDIO_ERROR } } };
+      }
+      var body = new FormData();
+      body.append('audio', file, file.name || 'audio.wav');
+      return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress).then(function (result) {
+        if (isUnavailable(result)) return { unavailable: true, result: result };
+        if (!result.ok) return { failed: true, result: result };
+        return { uploaded: true, result: result };
+      });
     });
   }
 
@@ -763,7 +787,44 @@
       price: fieldValue('tg-price'),
       explicit: selectedExplicit(),
       instrumental: instrumental,
+      dsps: selectedUploadStores(),
     };
+  }
+
+  function storePickRoot() {
+    return document.querySelector('[data-store-pick]');
+  }
+
+  function selectedUploadStores() {
+    var root = storePickRoot();
+    if (root && typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selected) {
+      return PlaigroundStorePick.selected(root);
+    }
+    var draft = readDraft();
+    return Array.isArray(draft.dsps) ? draft.dsps.slice() : [];
+  }
+
+  function persistStorePick(slugs, allOn) {
+    writeDraft({ dsps: slugs || [], dsps_all: allOn !== false });
+  }
+
+  function bindStorePick(root, selected) {
+    if (!root || typeof PlaigroundStorePick === 'undefined') return;
+    var draft = readDraft();
+    var picked = Array.isArray(selected) ? selected : (Array.isArray(draft.dsps) ? draft.dsps : null);
+    function apply(stores) {
+      PlaigroundStorePick.bind(root, {
+        stores: stores,
+        selected: picked && picked.length ? picked : null,
+        onChange: persistStorePick,
+      });
+    }
+    var fallback = PlaigroundStorePick.DEFAULT_STORES || [];
+    getJson('/api/tonegrid/stores').then(function (result) {
+      apply((result.ok && result.data && result.data.stores) || fallback);
+    }).catch(function () {
+      apply(fallback);
+    });
   }
 
   function uploadPageError(fields) {
@@ -1087,6 +1148,7 @@
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
     bindArtistSection();
+    bindStorePick(storePickRoot());
     var uploadRunning = false;
 
     function setUploadBusy(busy) {
@@ -1242,10 +1304,6 @@
         fieldError('Audio must be 200 MB or smaller.');
         return;
       }
-      if (file && !isAudioFile(file)) {
-        fieldError('Audio must be WAV, FLAC, or MP3.');
-        return;
-      }
       if (art && art.size > MAX_ARTWORK_BYTES) {
         fieldError('Artwork must be 15 MB or smaller.');
         return;
@@ -1256,6 +1314,8 @@
       }
 
       var titleCheck = artistCheckApi() ? artistCheckApi().checkTitle(title, { artistName: name }) : { flagged: false, flags: [], block: false };
+      var dsps = fields.dsps || selectedUploadStores();
+      function startUpload() {
       writeDraft({
         name: name,
         title: title,
@@ -1266,6 +1326,7 @@
         type: 'single',
         explicit: explicit,
         instrumental: instrumental,
+        dsps: dsps,
         artwork_name: art && art.name ? art.name : '',
         artwork_type: art && art.type ? art.type : '',
         title_check: titleCheck,
@@ -1289,6 +1350,7 @@
             type: 'single',
             explicit: explicit,
             instrumental: instrumental,
+            dsps: dsps,
             artwork_name: art && art.name ? art.name : '',
             artwork_type: art && art.type ? art.type : '',
             title_check: titleCheck,
@@ -1370,6 +1432,19 @@
         .catch(function () {
           failUpload('Could not reach catalog.');
         });
+      }
+
+      if (file) {
+        fileLooksAllowed(file).then(function (ok) {
+          if (!ok) {
+            fieldError(AUDIO_ERROR);
+            return;
+          }
+          startUpload();
+        });
+        return;
+      }
+      startUpload();
     });
   }
 
@@ -1428,6 +1503,7 @@
     var trigger = document.querySelector('[data-tonegrid-submit]');
     var onReview = Boolean(trigger || document.querySelector('[data-review-title]'));
     if (!onReview) return;
+    bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {
       trigger.addEventListener('click', function (event) {
@@ -1451,7 +1527,7 @@
           markIncomplete(trigger, true);
           return;
         }
-        draft = writeDraft({ release_date: releaseDate });
+        draft = writeDraft({ release_date: releaseDate, dsps: selectedUploadStores() });
 
         if (!draft.artist_id) {
           setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');

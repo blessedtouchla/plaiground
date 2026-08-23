@@ -123,12 +123,21 @@
       <div class="head-row">
         <div>
           <h3>Choose where it goes</h3>
-          <p class="hint">Stores are included in membership. $0 per release. Unlink anywhere you would rather not appear.</p>
+          <p class="hint">Stores are included in membership. $0 per release. Customize only if you want to unlink stores.</p>
         </div>
-        <span style="color:var(--muted);font-size:13px">164 of 165 stores · <a href="review.html">Select all</a> · <a href="review.html">Clear all</a></span>
       </div>
-      <div class="store-pick">
-        <span>✓ Spotify</span><span>✓ Apple Music</span><span>✓ Amazon Music</span><span>✓ YouTube Music</span><span>✓ Tidal</span><span>✓ Deezer</span><span>✓ TikTok / Instagram</span><span>✓ Pandora</span><span>✓ All 156 other stores</span>
+      <div class="field" data-store-pick>
+        <label>Stores</label>
+        <div class="store-pick-bar">
+          <label class="toggle-line" for="review-store-all">
+            <input id="review-store-all" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" data-store-all />
+            <span class="toggle on" aria-hidden="true"></span>
+            <span>Pre-select all stores</span>
+          </label>
+          <button class="btn btn-ghost btn-sm" type="button" data-store-customize>Customize</button>
+        </div>
+        <p class="hint" data-store-summary>All stores will receive this release.</p>
+        <div class="store-pick is-hidden" data-store-list hidden></div>
       </div>
     </section>
 
@@ -139,6 +148,7 @@
     <p class="hint" id="tg-status" hidden style="margin-top:12px"></p>
   </main>
   <script src="lib/upload-required.js"></script>
+  <script src="lib/store-pick.js"></script>
   <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>

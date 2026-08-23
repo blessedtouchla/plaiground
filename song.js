@@ -595,7 +595,15 @@
     return message;
   }
 
+  function storePickRoot() {
+    return $('[data-store-pick]') || $('[data-edit-stores]');
+  }
+
   function selectedStores() {
+    var root = storePickRoot();
+    if (root && global.PlaigroundStorePick && typeof global.PlaigroundStorePick.selected === 'function') {
+      return global.PlaigroundStorePick.selected(root);
+    }
     var host = $('[data-edit-stores]');
     if (!host || !host.querySelectorAll) return [];
     return Array.prototype.slice.call(host.querySelectorAll('input[type="checkbox"]:checked')).map(function (box) {
@@ -604,10 +612,19 @@
   }
 
   function fillStores(stores, selected) {
+    var root = storePickRoot();
+    if (root && global.PlaigroundStorePick && typeof global.PlaigroundStorePick.bind === 'function') {
+      global.PlaigroundStorePick.bind(root, {
+        stores: stores,
+        selected: selected && selected.length ? selected : null,
+      });
+      return;
+    }
     var host = $('[data-edit-stores]');
     if (!host) return;
     host.textContent = '';
     var picked = {};
+    var allOn = !selected || !selected.length;
     (selected || []).forEach(function (slug) { picked[String(slug).toLowerCase()] = true; });
     (stores || []).forEach(function (row) {
       var slug = typeof row === 'string' ? row : row.slug;
@@ -616,7 +633,7 @@
       var box = document.createElement('input');
       box.type = 'checkbox';
       box.value = slug;
-      box.checked = Boolean(picked[slug.toLowerCase()] || slug === 'youtube-music');
+      box.checked = allOn || Boolean(picked[slug.toLowerCase()]);
       label.appendChild(box);
       if (document.createTextNode) label.appendChild(document.createTextNode(' ' + (row.name || slug)));
       else label.textContent = (label.textContent || '') + ' ' + (row.name || slug);
@@ -693,6 +710,9 @@
 
   function fillCatalogSelects() {
     var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && typeof catalog.fillUploadSelects === 'function') {
+      try { catalog.fillUploadSelects(document); } catch (err) {}
+    }
     var genre = $('#edit-genre');
     var language = $('#edit-language');
     if (catalog && genre && genre.options && genre.options.length < 3 && catalog.GENRES) {
@@ -711,6 +731,28 @@
         language.appendChild(opt);
       });
     }
+    if (catalog && typeof catalog.bindTypeahead === 'function') {
+      if (genre && catalog.GENRES) catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+      if (language && catalog.LANGUAGES) {
+        catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+      }
+    }
+  }
+
+  function syncCatalogValues() {
+    var catalog = global.PlaigroundUploadCatalog;
+    if (!catalog || typeof catalog.syncTypeahead !== 'function') return;
+    catalog.syncTypeahead($('#edit-genre'));
+    catalog.syncTypeahead($('#edit-language'));
+  }
+
+  function audioAllowed(file) {
+    if (!file) return Promise.resolve(true);
+    var accept = global.PlaigroundAudioAccept;
+    if (accept && typeof accept.fileLooksAllowed === 'function') return accept.fileLooksAllowed(file);
+    var name = String(file.name || '').toLowerCase();
+    var type = String(file.type || '').toLowerCase();
+    return Promise.resolve(/\.(wav|flac|mp3|mpeg|mpga)$/.test(name) || /audio\/(wav|x-wav|wave|flac|x-flac|mpeg|mp3|x-mpeg|x-mp3|mpeg3|mpg)/.test(type));
   }
 
   function currentEditState() {
@@ -751,6 +793,7 @@
     if (featured) featured.value = String(draft.featured || '').trim();
     if (genre) genre.value = release.genre || draft.genre || '';
     if (language) language.value = release.language || track.language || draft.language || '';
+    syncCatalogValues();
     if (price) price.value = draft.price || '';
     if (inst) inst.checked = Boolean(draft.instrumental);
     syncLanguageField(inst && inst.checked);
@@ -849,6 +892,15 @@
     var art = $('#edit-art') && $('#edit-art').files && $('#edit-art').files[0];
     var audio = $('#edit-audio') && $('#edit-audio').files && $('#edit-audio').files[0];
     var trackId = $('#edit-audio') ? $('#edit-audio').getAttribute('data-track-id') : '';
+    if (!instrumental) {
+      var langs = (global.PlaigroundUploadCatalog && global.PlaigroundUploadCatalog.LANGUAGES) || [];
+      var languageOk = !langs.length || langs.some(function (row) { return row.code === language; });
+      if (!language || !languageOk) {
+        setEditError('Language is required.');
+        if (saveBtn) saveBtn.removeAttribute('aria-busy');
+        return Promise.resolve({ ok: false, created: false });
+      }
+    }
     var draft = lastEdit.draft || readDraft();
     var me = lastEdit.me;
     var release = lastEdit.release || {};
@@ -915,14 +967,21 @@
         if (audio && !trackId) errors.push('This release has no track ID yet, so audio cannot be replaced.');
         return { ok: true, skipped: true };
       }
-      var audioForm = new FormData();
-      audioForm.append('audio', audio, audio.name || 'audio.wav');
-      return runHop('audio', fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-        body: audioForm,
-      }).then(parseSave));
+      return audioAllowed(audio).then(function (ok) {
+        if (!ok) {
+          var message = (global.PlaigroundAudioAccept && global.PlaigroundAudioAccept.ERROR) || 'Audio must be WAV, FLAC, or MP3.';
+          errors.push(message);
+          return { ok: false, skipped: false, data: { error: message } };
+        }
+        var audioForm = new FormData();
+        audioForm.append('audio', audio, audio.name || 'audio.wav');
+        return runHop('audio', fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body: audioForm,
+        }).then(parseSave));
+      });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));
       var submitBody = {

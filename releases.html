@@ -83,9 +83,18 @@
           <div class="field"><label for="edit-track-title">Track title</label><input id="edit-track-title" type="text" /></div>
           <div class="field"><label for="edit-art">Cover art</label><input id="edit-art" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" /></div>
         </div>
-        <div class="field">
+        <div class="field" data-store-pick>
           <label>Stores</label>
-          <div class="store-pick" data-edit-stores></div>
+          <div class="store-pick-bar">
+            <label class="toggle-line" for="edit-store-all">
+              <input id="edit-store-all" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" data-store-all />
+              <span class="toggle on" aria-hidden="true"></span>
+              <span>Pre-select all stores</span>
+            </label>
+            <button class="btn btn-ghost btn-sm" type="button" data-store-customize>Customize</button>
+          </div>
+          <p class="hint" data-store-summary>All stores will receive this release.</p>
+          <div class="store-pick is-hidden" data-store-list data-edit-stores hidden></div>
         </div>
         <p><button type="button" class="btn btn-purple btn-sm" data-edit-save>Save to ToneGrid</button></p>
         <p class="hint" data-edit-error hidden></p>
@@ -107,6 +116,7 @@
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
+  <script src="lib/store-pick.js"></script>
   <script src="catalog.js" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>

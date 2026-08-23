@@ -295,6 +295,10 @@
   }
 
   function selectedStores() {
+    var root = $('[data-store-pick]') || $('[data-edit-stores]');
+    if (root && global.PlaigroundStorePick && typeof global.PlaigroundStorePick.selected === 'function') {
+      return global.PlaigroundStorePick.selected(root);
+    }
     var host = $('[data-edit-stores]');
     if (!host) return [];
     return Array.prototype.slice.call(host.querySelectorAll('input[type="checkbox"]:checked')).map(function (el) {
@@ -303,10 +307,19 @@
   }
 
   function fillStores(stores, selected) {
+    var root = $('[data-store-pick]') || $('[data-edit-stores]');
+    if (root && global.PlaigroundStorePick && typeof global.PlaigroundStorePick.bind === 'function') {
+      global.PlaigroundStorePick.bind(root, {
+        stores: stores,
+        selected: selected && selected.length ? selected : null,
+      });
+      return;
+    }
     var host = $('[data-edit-stores]');
     if (!host) return;
     host.textContent = '';
     var picked = {};
+    var allOn = !selected || !selected.length;
     (selected || []).forEach(function (slug) { picked[String(slug).toLowerCase()] = true; });
     (stores || []).forEach(function (row) {
       var slug = typeof row === 'string' ? row : row.slug;
@@ -315,7 +328,7 @@
       var box = document.createElement('input');
       box.type = 'checkbox';
       box.value = slug;
-      box.checked = Boolean(picked[slug.toLowerCase()] || slug === 'youtube-music');
+      box.checked = allOn || Boolean(picked[slug.toLowerCase()]);
       label.appendChild(box);
       label.appendChild(document.createTextNode(' ' + (row.name || slug)));
       host.appendChild(label);
@@ -346,7 +359,10 @@
       fillStores((result.ok && result.data.stores) || [], release.dsps || []);
     });
     var catalog = global.PlaigroundUploadCatalog;
-    if (catalog && genre && genre.options.length < 3 && catalog.GENRES) {
+    if (catalog && typeof catalog.fillUploadSelects === 'function') {
+      try { catalog.fillUploadSelects(document); } catch (err) {}
+    }
+    if (catalog && genre && genre.options && genre.options.length < 3 && catalog.GENRES) {
       catalog.GENRES.forEach(function (name) {
         var opt = document.createElement('option');
         opt.value = name;
@@ -354,7 +370,7 @@
         genre.appendChild(opt);
       });
     }
-    if (catalog && language && language.options.length < 3 && catalog.LANGUAGES) {
+    if (catalog && language && language.options && language.options.length < 3 && catalog.LANGUAGES) {
       catalog.LANGUAGES.forEach(function (row) {
         var opt = document.createElement('option');
         opt.value = row.code;
@@ -362,8 +378,18 @@
         language.appendChild(opt);
       });
     }
+    if (catalog && typeof catalog.bindTypeahead === 'function') {
+      if (genre && catalog.GENRES) catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+      if (language && catalog.LANGUAGES) {
+        catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+      }
+    }
     if (genre) genre.value = release.genre || '';
     if (language) language.value = release.language || '';
+    if (catalog && typeof catalog.syncTypeahead === 'function') {
+      catalog.syncTypeahead(genre);
+      catalog.syncTypeahead(language);
+    }
     setEditError('');
   }
 

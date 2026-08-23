@@ -949,7 +949,17 @@ table.data tbody tr.is-pick { cursor: pointer; }
   opacity: 0.62;
   cursor: not-allowed;
 }
-.release-edit .store-pick label {
+.store-pick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.store-pick-bar .toggle-line { margin: 0; }
+.release-edit .store-pick label,
+.store-pick label {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 7px 12px;

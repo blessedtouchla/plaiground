@@ -32,6 +32,7 @@ function makeEl(attrs) {
         else this.tokens[name] = true;
       },
       add(name) { this.tokens[name] = true; },
+      remove(name) { delete this.tokens[name]; },
       contains(name) { return Boolean(this.tokens[name]); },
     },
     getAttribute(name) {
@@ -57,7 +58,34 @@ function makeEl(attrs) {
     closest(sel) {
       return sel === '.field' ? this.field || el : null;
     },
-    addEventListener() {},
+    addEventListener(type, fn) {
+      this.listeners = this.listeners || {};
+      this.listeners[type] = fn;
+    },
+    querySelector(sel) {
+      const all = el.querySelectorAll(sel);
+      return all[0] || null;
+    },
+  };
+  const prevQueryAll = el.querySelectorAll;
+  el.querySelectorAll = function (sel) {
+    const out = [];
+    function walk(node) {
+      if (!node) return;
+      if (sel === 'input[type="checkbox"]' || sel === 'input[type="checkbox"]:checked') {
+        if (node.type === 'checkbox' && (sel.indexOf(':checked') === -1 || node.checked)) out.push(node);
+      } else if (sel.charAt(0) === '[' && sel.charAt(sel.length - 1) === ']') {
+        const raw = sel.slice(1, -1);
+        const name = raw.split('=')[0];
+        if (node.attrs && node.attrs[name] != null) out.push(node);
+      } else if (sel.charAt(0) === '.' && String(node.className || '').split(/\s+/).indexOf(sel.slice(1)) !== -1) {
+        out.push(node);
+      }
+      (node.children || []).forEach(walk);
+    }
+    walk(el);
+    if (out.length) return out;
+    return prevQueryAll.call(el, sel);
   };
   if (attrs && attrs.life) el.attrs['data-life'] = attrs.life;
   if (attrs && attrs.id) el.id = attrs.id;
@@ -113,6 +141,11 @@ function loadSong(opts) {
     '[data-edit-status]': makeEl({}),
     '[data-edit-error]': makeEl({ hidden: true }),
     '[data-edit-stores]': makeEl({}),
+    '[data-store-pick]': makeEl({}),
+    '[data-store-all]': makeEl({ id: 'edit-store-all', type: 'checkbox', checked: true, attrs: { 'data-store-all': '' } }),
+    '[data-store-customize]': makeEl({ attrs: { 'data-store-customize': '' }, textContent: 'Customize' }),
+    '[data-store-summary]': makeEl({ attrs: { 'data-store-summary': '' } }),
+    '[data-store-list]': makeEl({ attrs: { 'data-store-list': '', 'data-edit-stores': '' } }),
     '[data-edit-attest]': makeEl({ hidden: true }),
     '[data-edit-splits-copy]': makeEl({}),
     '[data-edit-save]': makeEl({}),
@@ -137,6 +170,13 @@ function loadSong(opts) {
     '#edit-release-timezone': ids['edit-release-timezone'],
   };
   Object.keys(ids).forEach((id) => { nodes['#' + id] = ids[id]; });
+  nodes['[data-store-list]'] = nodes['[data-store-list]'] || nodes['[data-edit-stores]'];
+  nodes['[data-edit-stores]'] = nodes['[data-store-list]'];
+  const storePick = nodes['[data-store-pick]'];
+  storePick.appendChild(nodes['[data-store-all]']);
+  storePick.appendChild(nodes['[data-store-customize]']);
+  storePick.appendChild(nodes['[data-store-summary]']);
+  storePick.appendChild(nodes['[data-store-list]']);
   const life = {
     draft: makeEl({ life: 'draft' }),
     signatures: makeEl({ life: 'signatures' }),
@@ -176,6 +216,7 @@ function loadSong(opts) {
     },
     location: { href: opts.href || 'song.html', search: opts.search || '', pathname: '/song.html' },
     window: {},
+    globalThis: null,
     PlaigroundMembership: {
       currentPlan() { return opts.plan || 'basic'; },
       applyPlanCopy() {},
@@ -188,8 +229,13 @@ function loadSong(opts) {
     },
   };
   context.window = context;
+  context.globalThis = context;
+  context.document.createElement = function () { return makeEl({}); };
+  context.document.createTextNode = function (text) { return makeEl({ textContent: text }); };
   vm.runInNewContext(read('lib/release-status.js'), context);
   vm.runInNewContext(read('lib/live-player.js'), context);
+  vm.runInNewContext(read('lib/audio-accept.js'), context);
+  vm.runInNewContext(read('lib/store-pick.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
 }
@@ -224,6 +270,11 @@ function run() {
   assert.ok(html.includes('lib/live-player.js'));
   assert.ok(html.includes('data-song-streams'));
   assert.ok(html.includes('song.js'));
+  assert.ok(html.includes('lib/audio-accept.js'));
+  assert.ok(html.includes('lib/store-pick.js'));
+  assert.ok(html.includes('Pre-select all stores'));
+  assert.ok(html.includes('data-store-customize'));
+  assert.ok(html.includes('accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga'));
   assert.ok(!html.includes('indexedDB'));
   assert.ok(!read('song.js').includes('indexedDB'));
   assert.ok(html.includes('0'));

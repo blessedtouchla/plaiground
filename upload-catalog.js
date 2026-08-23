@@ -1274,12 +1274,12 @@ const HUMAN_TAGS = [
 ];
 
 function fillSelect(select, items, getValue, getLabel) {
-  if (!select) return;
+  if (!select || !items) return;
   var seen = {};
   var i;
-  var existing = select.querySelectorAll('option');
+  var existing = select.querySelectorAll ? select.querySelectorAll('option') : (select.options || []);
   for (i = existing.length - 1; i >= 0; i -= 1) {
-    if (existing[i].value) existing[i].parentNode.removeChild(existing[i]);
+    if (existing[i].value && existing[i].parentNode) existing[i].parentNode.removeChild(existing[i]);
   }
   items.forEach(function (item) {
     var value = getValue(item);
@@ -1338,6 +1338,23 @@ function bindTypeahead(select, items, getValue, getLabel) {
     return null;
   }
 
+  function currentPick() {
+    var value = String(select.value || '');
+    if (!value) return null;
+    var i;
+    for (i = 0; i < items.length; i += 1) {
+      if (String(getValue(items[i])) === value) {
+        return { value: getValue(items[i]), label: getLabel(items[i]) };
+      }
+    }
+    return null;
+  }
+
+  function syncFromSelect() {
+    var pick = currentPick();
+    if (pick) input.value = pick.label;
+  }
+
   function applyPick(pick) {
     select.value = pick ? pick.value : '';
     input.value = pick ? pick.label : String(input.value || '').trim();
@@ -1355,14 +1372,20 @@ function bindTypeahead(select, items, getValue, getLabel) {
   function showMatches(query) {
     var q = String(query || '').trim().toLowerCase();
     var matches = [];
+    var starts = [];
     var i;
     for (i = 0; i < items.length; i += 1) {
       var value = getValue(items[i]);
       var labelText = getLabel(items[i]);
-      if (!q || String(labelText).toLowerCase().indexOf(q) !== -1 || String(value).toLowerCase().indexOf(q) !== -1) {
-        matches.push({ value: value, label: labelText });
+      var labelLow = String(labelText).toLowerCase();
+      var valueLow = String(value).toLowerCase();
+      if (!q || labelLow.indexOf(q) !== -1 || valueLow.indexOf(q) !== -1) {
+        var row = { value: value, label: labelText };
+        if (q && (labelLow.indexOf(q) === 0 || valueLow.indexOf(q) === 0)) starts.push(row);
+        else matches.push(row);
       }
     }
+    matches = starts.concat(matches);
     list.innerHTML = '';
     if (!matches.length) {
       hideList();
@@ -1405,10 +1428,24 @@ function bindTypeahead(select, items, getValue, getLabel) {
       if (pick) applyPick(pick);
       else {
         select.value = '';
+        input.value = '';
         if (select.options[0]) select.selectedIndex = 0;
       }
     }, 120);
   });
+  if (select.addEventListener) select.addEventListener('change', syncFromSelect);
+  syncFromSelect();
+}
+
+function syncTypeahead(select) {
+  if (!select) return;
+  var field = select.parentNode;
+  if (!field || !field.querySelector) return;
+  var input = field.querySelector('.typeahead-input');
+  if (!input) return;
+  var opt = select.options && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
+  if (opt && opt.value) input.value = opt.textContent || opt.label || '';
+  else if (!select.value) input.value = '';
 }
 
 function fillUploadSelects(doc) {
@@ -1428,7 +1465,7 @@ function fillUploadSelects(doc) {
   return { genre: genre, language: language };
 }
 
-const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, HUMAN_TAGS: HUMAN_TAGS, fillUploadSelects: fillUploadSelects, bindTypeahead: bindTypeahead };
+const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, HUMAN_TAGS: HUMAN_TAGS, fillUploadSelects: fillUploadSelects, bindTypeahead: bindTypeahead, syncTypeahead: syncTypeahead };
 
 if (typeof module === 'object' && module.exports) {
   module.exports = api;

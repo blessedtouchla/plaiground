@@ -7,6 +7,8 @@ const vm = require('vm');
 
 const code = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
 const requiredCode = fs.readFileSync(path.join(__dirname, 'lib', 'upload-required.js'), 'utf8');
+const audioAcceptCode = fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8');
+const storePickCode = fs.readFileSync(path.join(__dirname, 'lib', 'store-pick.js'), 'utf8');
 const AUDIO = { name: 'night-drive.wav', type: 'audio/wav', size: 2048 };
 const ART = { name: 'cover.jpg', type: 'image/jpeg', size: 1024 };
 
@@ -177,7 +179,12 @@ function load(options) {
     PlaigroundUploadCatalog: require('./upload-catalog'),
   };
   context.window = context;
+  context.globalThis = context;
   context.window.location = context.location;
+  vm.runInNewContext(audioAcceptCode, context);
+  vm.runInNewContext(storePickCode, context);
+  context.PlaigroundAudioAccept = context.PlaigroundAudioAccept || context.window.PlaigroundAudioAccept;
+  context.PlaigroundStorePick = context.PlaigroundStorePick || context.window.PlaigroundStorePick;
   if (opts.account) {
     context.PlaigroundMembership = {
       account: function () { return opts.account; },
@@ -727,11 +734,41 @@ async function run() {
   audioHold();
   await flush();
 
+  const phoneMp3 = load(filledUpload({
+    file: { name: 'voice-memo.mp3', type: 'audio/x-mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+  }));
+  phoneMp3.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(phoneMp3.calls.some(function (call) {
+    return String(call.url).indexOf('/api/tonegrid/') === 0;
+  }), 'phone MP3 MIME must not be rejected on the client');
+
+  const mpegName = load(filledUpload({
+    file: { name: 'clip.mpeg', type: '', size: 2048 },
+    responses: uploadResponses.slice(),
+  }));
+  mpegName.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(mpegName.calls.some(function (call) {
+    return String(call.url).indexOf('/api/tonegrid/') === 0;
+  }));
+
+  const m4aBlocked = load(filledUpload({
+    file: { name: 'song.m4a', type: 'audio/mp4', size: 2048 },
+  }));
+  m4aBlocked.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.strictEqual(m4aBlocked.calls.length, 0);
+  assert.strictEqual(m4aBlocked.status.textContent, 'Audio must be WAV, FLAC, or MP3.');
+
   const source = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
   assert.ok(source.includes('Uploading audio'));
   assert.ok(source.includes('Uploading artwork'));
   assert.ok(source.includes('Opening SignWell'));
+  assert.ok(source.includes('Audio must be WAV, FLAC, or MP3.'));
+  assert.ok(!source.includes('Audio must be WAV or FLAC.'));
   assert.ok(!source.includes('Neon Shadows'));
   assert.ok(!source.includes('Victoria Reyes'));
   assert.ok(!source.includes(['t', 'g', 'k', '_'].join('')));
