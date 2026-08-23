@@ -85,7 +85,7 @@
       <h3>Submit the details</h3>
       <div class="form-grid three">
         <div class="field"><label for="tg-title">Song title</label><input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" /></div>
-        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" name="release-artist" type="text" value="" placeholder="FIRST NAME LAST NAME" autocomplete="off" /></div>
+        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" name="release-artist" type="text" value="" placeholder="Artist name" autocomplete="off" /></div>
         <div class="field"><label for="tg-featured">Featured artist</label><input id="tg-featured" name="release-featured" type="text" value="" placeholder="Optional featured" autocomplete="off" /></div>
         <div class="field">
           <label for="tg-genre">Genre</label>
@@ -115,6 +115,10 @@
       </div>
       <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-tonegrid-continue href="attest.html">Continue to attest rights</a></p>
       <p class="hint" id="tg-status" hidden></p>
+      <div class="upload-limit" id="tg-limit" hidden>
+        <p>This is a new song. Basic includes one release.</p>
+        <a class="btn btn-purple btn-sm" href="creator.html">Upgrade to Creator</a>
+      </div>
       <p class="hint" id="tg-upgrade" hidden>Need more uploads? Upgrade to <a href="creator.html">Creator</a> or <a href="pro.html">Pro</a>.</p>
     </section>
   </main>

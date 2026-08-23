@@ -48,8 +48,17 @@ function run() {
   assert.ok(/id="tg-title"[^>]*value=""/.test(upload));
   assert.ok(/id="tg-artist"[^>]*value=""/.test(upload));
   assert.ok(upload.indexOf('placeholder="SONG TITLE"') !== -1);
-  assert.ok(upload.indexOf('placeholder="FIRST NAME LAST NAME"') !== -1);
+  assert.ok(upload.indexOf('<label for="tg-artist">Primary artist</label>') !== -1);
+  assert.ok(upload.indexOf('placeholder="Artist name"') !== -1);
+  assert.ok(!/id="tg-artist"[^>]*(legal name|FIRST NAME LAST NAME)/i.test(upload));
   assert.ok(upload.indexOf('placeholder="Optional featured"') !== -1);
+
+  const settings = fs.readFileSync(path.join(__dirname, 'settings.html'), 'utf8');
+  assert.ok(settings.indexOf('<label>Artist name</label>') !== -1);
+  assert.ok(settings.indexOf('data-account-artist') !== -1);
+  assert.ok(settings.indexOf('placeholder="Artist name"') !== -1);
+  assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
+  assert.ok(!/Legal name[\s\S]{0,80}required/i.test(settings));
   assert.ok(upload.indexOf('placeholder="Electronic"') === -1);
   assert.ok(upload.indexOf('placeholder="$0.00"') === -1);
   assert.ok(upload.indexOf('placeholder="Price"') === -1);

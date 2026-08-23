@@ -398,7 +398,7 @@ async function listReleases(req, res) {
 }
 
 async function createRelease(req, res) {
-  const scope = await requireUpload(req, res);
+  const scope = await personalScope(req, res);
   if (!scope) return;
 
   let body;
@@ -406,6 +406,17 @@ async function createRelease(req, res) {
     body = await readBody(req);
   } catch {
     sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const continueId = String((body && (body.release_id || body.releaseId)) || '').trim();
+  const decision = plans.evaluate(scope.row, undefined, { continueReleaseId: continueId });
+  if (!decision.allowed) {
+    sendJson(res, 403, plans.limitBody(decision));
+    return;
+  }
+  if (decision.continuing && isUuid(continueId)) {
+    sendJson(res, 200, { uuid: continueId, continued: true });
     return;
   }
 

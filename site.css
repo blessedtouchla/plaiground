@@ -744,6 +744,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
   font-size: 14px;
   font-weight: 600;
 }
@@ -1239,6 +1240,26 @@ table.data tbody tr.is-pick { cursor: pointer; }
 }
 .btn.is-incomplete {
   opacity: 0.55;
+}
+#tg-status.upload-status-error {
+  color: #ffd2d2;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 14px;
+}
+.upload-limit {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.08);
+}
+.upload-limit[hidden] { display: none; }
+.upload-limit p {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 10px;
 }
 .btn[aria-busy="true"] {
   opacity: 0.55;
