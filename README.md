@@ -38,13 +38,13 @@ CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
 
 `XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, and `SIGNUP_CONFIRM_SECRET` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
-After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro. Basic stays Basic until a signed event for one of the four live prices arrives. Cancel or lapse (`customer.subscription.deleted`, or `customer.subscription.updated` with status canceled / unpaid / incomplete_expired) writes Basic.
+After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for one of the four live prices arrives. A failed charge (`invoice.payment_failed`, `payment_intent.payment_failed`, or subscription `past_due` / `unpaid`) writes `status=hold` and keeps the paid plan on the row. Hold stays signed in; paid features (advanced analytics, royalties, publishing, Boost) stay locked until a later `invoice.paid` or `checkout.session.completed`. Cancel (`customer.subscription.updated` status `canceled`) or `customer.subscription.deleted` writes Basic and `status=active`.
 
 Stripe Dashboard (you add this; the repo has no webhook secret):
 
 1. Developers → Webhooks → Add endpoint
 2. URL: `https://wannaplai.com/api/stripe/webhook`
-3. Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`, `customer.subscription.deleted`
+3. Events: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `payment_intent.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
 4. Put the signing secret in Vercel as `STRIPE_WEBHOOK_SECRET`
 
 Existing live prices only (do not create products or prices):

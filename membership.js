@@ -7,6 +7,7 @@
   var PAID = { creator: true, pro: true };
   var LOGIN = 'login.html';
   var PRICING = 'index.html?needplan=1#pricing';
+  var HOLD_PRICING = 'index.html?hold=1#pricing';
 
   function storageGet(storage, key) {
     if (!storage) return '';
@@ -96,7 +97,7 @@
     serverAccount = me;
     recordSignedIn();
     if (me.plan) recordPlan(me.plan);
-    if (PAID[me.plan] && me.stripe_session_id) {
+    if (PAID[me.plan] && me.stripe_session_id && String(me.status || '').toLowerCase() !== 'hold') {
       recordPaidMembership(me.plan, me.stripe_session_id);
     }
     return me;
@@ -146,6 +147,19 @@
     return false;
   }
 
+  function isOnHold() {
+    if (serverAccount && String(serverAccount.status || '').toLowerCase() === 'hold') return true;
+    return false;
+  }
+
+  function hasPaidAccess() {
+    if (isOnHold()) return false;
+    var plan = currentPlan();
+    if (!PAID[plan]) return false;
+    if (serverAccount) return true;
+    return Boolean(storeGet(SESSION_KEY));
+  }
+
   function hasMembership() {
     return isSignedIn() && hasPlan();
   }
@@ -169,6 +183,13 @@
       return false;
     }
     return true;
+  }
+
+  function requirePaidAccess() {
+    if (!requireMembership()) return false;
+    if (hasPaidAccess()) return true;
+    global.location.replace(isOnHold() ? HOLD_PRICING : PRICING);
+    return false;
   }
 
   function migrateSessionKeys() {
@@ -239,8 +260,11 @@
     recordSignedIn: recordSignedIn,
     isSignedIn: isSignedIn,
     hasPlan: hasPlan,
+    hasPaidAccess: hasPaidAccess,
     hasMembership: hasMembership,
+    isOnHold: isOnHold,
     requireMembership: requireMembership,
+    requirePaidAccess: requirePaidAccess,
     currentPlan: currentPlan,
     account: function () { return serverAccount; },
     whenReady: function (cb) {
@@ -268,6 +292,13 @@
       accountReady.then(function () { requireMembership(); });
     } else {
       requireMembership();
+    }
+  }
+  if (script && script.getAttribute('data-require-paid') === 'true') {
+    if (typeof global.fetch === 'function') {
+      accountReady.then(function () { requirePaidAccess(); });
+    } else {
+      requirePaidAccess();
     }
   }
   revealPricingHint();

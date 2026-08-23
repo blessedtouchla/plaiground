@@ -45,6 +45,15 @@ function load(options) {
     URLSearchParams,
     localStorage: localStorage,
     sessionStorage: sessionStorage,
+    fetch: options && options.account
+      ? function () {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: function () { return Promise.resolve(options.account); },
+          });
+        }
+      : undefined,
     document: {
       currentScript: {
         getAttribute(name) {
@@ -190,7 +199,27 @@ function run() {
   });
   assert.ok(signupStay.location.href.indexOf('dashboard.html') === -1);
 
-  console.log('membership.test.js ok');
+  const held = load({
+    account: {
+      email: 'ada@example.com',
+      artist: 'Ada',
+      plan: 'pro',
+      status: 'hold',
+      stripe_session_id: 'cs_hold',
+    },
+  });
+  return held.api.whenReady().then(function () {
+    assert.strictEqual(held.api.isSignedIn(), true);
+    assert.strictEqual(held.api.isOnHold(), true);
+    assert.strictEqual(held.api.hasMembership(), true, 'hold stays signed in');
+    assert.strictEqual(held.api.hasPaidAccess(), false, 'hold locks paid features');
+    assert.strictEqual(held.api.requirePaidAccess(), false);
+    assert.ok(held.location.href.indexOf('hold=1') !== -1);
+    console.log('membership.test.js ok');
+  });
 }
 
-run();
+Promise.resolve(run()).catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

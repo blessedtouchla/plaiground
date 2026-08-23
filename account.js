@@ -48,6 +48,10 @@
     });
     $all('[data-account-plan]').forEach(function (el) { setText(el, planLabel(me.plan)); });
     $all('[data-account-plan-title]').forEach(function (el) {
+      if (String(me.status || '').toLowerCase() === 'hold') {
+        el.textContent = 'On hold';
+        return;
+      }
       var label = planLabel(me.plan);
       el.textContent = label === '—' ? 'Your plan' : 'On ' + label.charAt(0) + label.slice(1).toLowerCase();
     });

@@ -11,6 +11,7 @@
  *   1. Developers → Webhooks → Add endpoint
  *   2. Endpoint URL: https://wannaplai.com/api/stripe/webhook
  *   3. Events: checkout.session.completed, invoice.paid,
+ *      invoice.payment_failed, payment_intent.payment_failed,
  *      customer.subscription.updated, customer.subscription.deleted
  *   4. Copy the signing secret into Vercel as STRIPE_WEBHOOK_SECRET
  *
