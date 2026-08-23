@@ -72,18 +72,33 @@
     });
   }
 
+  function bounceUnfinished(result) {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop();
+    if (file === 'confirm.html' || file === 'confirmed.html' || file === 'login.html' || file === 'signup.html') {
+      return;
+    }
+    if (result && result.data && result.data.pending) {
+      global.location.replace('confirm.html');
+    }
+  }
+
   function fromMembership() {
     if (global.PlaigroundMembership && typeof global.PlaigroundMembership.whenReady === 'function') {
       return global.PlaigroundMembership.whenReady().then(function (result) {
-        if (result && result.ok && result.data) return result.data;
+        bounceUnfinished(result);
+        if (result && result.ok && result.data && !result.data.pending) return result.data;
         if (global.PlaigroundMembership.account) return global.PlaigroundMembership.account();
         return null;
       });
     }
     return fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
       .then(function (response) {
-        if (!response.ok) return null;
-        return response.json();
+        return response.json().then(function (data) {
+          bounceUnfinished({ ok: response.ok, data: data || {} });
+          if (!response.ok) return null;
+          return data;
+        });
       })
       .catch(function () {
         return null;

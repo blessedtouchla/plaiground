@@ -24,15 +24,17 @@ function run() {
 
   const signup = read('signup.html');
   assert.ok(signup.indexOf('membership.js') !== -1);
-  assert.ok(signup.indexOf('recordSignedIn') !== -1);
-  assert.ok(signup.indexOf('recordPlan') !== -1);
+  assert.ok(signup.indexOf('/api/auth/signup') !== -1);
+  assert.ok(signup.indexOf('confirm.html') !== -1);
+  assert.ok(signup.indexOf('recordSignedIn') === -1);
 
   const login = read('login.html');
   assert.ok(login.indexOf('membership.js') !== -1);
   assert.ok(login.indexOf('recordSignedIn') !== -1);
 
   const confirm = read('confirm.html');
-  assert.ok(confirm.indexOf('recordSignedIn') !== -1);
+  assert.ok(confirm.indexOf('/api/auth/mail') !== -1);
+  assert.ok(confirm.indexOf('recordSignedIn') === -1);
 
   const confirmed = read('confirmed.html');
   assert.ok(confirmed.indexOf('membership.js') !== -1);

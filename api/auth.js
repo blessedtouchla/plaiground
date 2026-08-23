@@ -2,25 +2,37 @@
 
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
- * POST /api/auth/signup    { email, password, artist, plan? }
- * POST /api/auth/login     { email, password }
+ * POST /api/auth/signup    pending user only; no session; tries confirm mail
+ * POST /api/auth/login     confirmed users only
  * POST /api/auth/logout
+ * POST /api/auth/confirm   { token } → mark confirmed + attach session
+ * GET  /api/auth/mail      → { configured } (does not send)
+ * GET  /api/auth/mail?token= → { ok, email } when HMAC verifies
+ * POST /api/auth/mail      { email, artist } → resend confirm mail
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { createUser, findByEmail, ensureReady } = require('../lib/accounts');
+const { confirmEmail, createUser, findByEmail, ensureReady } = require('../lib/accounts');
 const {
   attachSession,
   authPayload,
   clearSession,
   isConfigured,
+  isConfirmed,
   isEmail,
   normalizeEmail,
   notConfigured,
+  pendingPayload,
   rejectQueryPassword,
   verifyPassword,
 } = require('../lib/auth');
+const {
+  MAIL_NOT_CONFIGURED,
+  isMailConfigured,
+  sendConfirmEmail,
+  verifyToken,
+} = require('../lib/mail');
 const { pathnameOf, queryValue } = require('../lib/route');
 const { readBody, sendJson } = require('../lib/tonegrid');
 
@@ -90,8 +102,25 @@ async function signup(req, res) {
 
   try {
     const row = await createUser({ email, password, artist, plan });
-    attachSession(req, res, row.id);
-    sendJson(res, 200, authPayload(row));
+    let mail;
+    try {
+      mail = await sendConfirmEmail({ email: row.email, artist: row.artist_name });
+    } catch {
+      mail = { mail_sent: false, error: 'Could not send the confirmation email.' };
+    }
+    const payload = {
+      ok: true,
+      pending: true,
+      confirmed: false,
+      email: row.email,
+      artist: row.artist_name,
+      plan: row.plan || null,
+      mail_sent: Boolean(mail && mail.mail_sent),
+    };
+    if (!payload.mail_sent) {
+      payload.error = (mail && mail.error) || MAIL_NOT_CONFIGURED;
+    }
+    sendJson(res, 200, payload);
   } catch (err) {
     if (err && err.code === 'EMAIL_EXISTS') {
       sendJson(res, 409, {
@@ -146,8 +175,122 @@ async function login(req, res) {
       sendJson(res, 401, { error: 'Invalid email or password.' });
       return;
     }
+    if (!isConfirmed(row)) {
+      sendJson(res, 403, pendingPayload(row));
+      return;
+    }
     attachSession(req, res, row.id);
     sendJson(res, 200, authPayload(row));
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function mail(req, res) {
+  if (req.method === 'GET') {
+    const token = queryValue(req, 'token');
+    if (token) {
+      const verified = verifyToken(token);
+      if (!verified) {
+        sendJson(res, 400, { ok: false, mail_sent: false, error: 'Invalid or expired token.' });
+        return;
+      }
+      sendJson(res, 200, { ok: true, email: verified.email });
+      return;
+    }
+    sendJson(res, 200, { configured: isMailConfigured() });
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { mail_sent: false, error: 'Invalid JSON.' });
+    return;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body || {}, 'password') || (body && body.password)) {
+    sendJson(res, 400, { mail_sent: false, error: 'Do not send a password.' });
+    return;
+  }
+
+  const email = normalizeEmail(body && body.email);
+  if (!isEmail(email)) {
+    sendJson(res, 400, { mail_sent: false, error: 'A valid email is required.' });
+    return;
+  }
+
+  let result;
+  try {
+    result = await sendConfirmEmail({
+      email,
+      artist: String((body && body.artist) || '').trim(),
+    });
+  } catch {
+    result = { mail_sent: false, error: 'Could not send the confirmation email.' };
+  }
+
+  if (result.mail_sent) {
+    sendJson(res, 200, { ok: true, mail_sent: true });
+    return;
+  }
+
+  const error = result.error || MAIL_NOT_CONFIGURED;
+  const status = error === MAIL_NOT_CONFIGURED ? 503 : 502;
+  sendJson(res, status, { ok: false, mail_sent: false, error });
+}
+
+async function confirm(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+
+  let token = queryValue(req, 'token');
+  if (!token && req.method === 'POST') {
+    let body;
+    try {
+      body = await readBody(req);
+    } catch {
+      sendJson(res, 400, { error: 'Invalid JSON.', confirmed: false });
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(body || {}, 'password') || (body && body.password)) {
+      sendJson(res, 400, { error: 'Do not send a password.', confirmed: false });
+      return;
+    }
+    token = String((body && body.token) || '').trim();
+  }
+
+  const verified = verifyToken(token);
+  if (!verified) {
+    sendJson(res, 400, { ok: false, confirmed: false, error: 'Invalid or expired token.' });
+    return;
+  }
+
+  try {
+    const row = await confirmEmail(verified.email);
+    if (!row) {
+      sendJson(res, 400, { ok: false, confirmed: false, error: 'Invalid or expired token.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    sendJson(res, 200, Object.assign(authPayload(row), { confirmed: true, pending: false }));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       notConfigured(res);
@@ -183,6 +326,14 @@ module.exports = async function handler(req, res) {
   }
   if (action === 'logout') {
     await logout(req, res);
+    return;
+  }
+  if (action === 'mail') {
+    await mail(req, res);
+    return;
+  }
+  if (action === 'confirm') {
+    await confirm(req, res);
     return;
   }
   if (action) {
