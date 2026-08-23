@@ -16,6 +16,7 @@ const {
   notConfigured,
   publicUser,
   rejectQueryPassword,
+  rejectUnconfirmed,
   sessionFromRequest,
 } = require('../lib/auth');
 const { pathnameOf, queryValue } = require('../lib/route');
@@ -42,6 +43,7 @@ async function loadUser(req, res) {
     sendJson(res, 401, { error: 'Sign in required.' });
     return null;
   }
+  if (rejectUnconfirmed(res, row)) return null;
   return row;
 }
 
@@ -124,6 +126,7 @@ async function catalog(req, res) {
       sendJson(res, 401, { error: 'Sign in required.' });
       return;
     }
+    if (rejectUnconfirmed(res, row)) return;
     const next = await updateCatalog(row.id, {
       artistId: artistId || undefined,
       releaseId: releaseId || undefined,

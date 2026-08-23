@@ -29,11 +29,12 @@
   <main class="center-page">
     <div class="wrap">
       <div class="stack">
-        <p class="status-ok"><i>✓</i> CONFIRMED</p>
-        <h1>You're confirmed</h1>
+        <p class="status-ok" data-confirmed-status>Confirming…</p>
+        <h1 data-confirmed-title>You're confirmed</h1>
         <p class="center-lead">We confirmed <b data-confirmed-email>your email</b>.</p>
-        <a class="btn btn-purple btn-lg" href="dashboard.html">Go to the dashboard</a>
-        <p style="margin-top:12px"><a class="btn btn-ghost btn-lg" href="index.html">Back home</a></p>
+        <p class="alert err is-hidden" data-confirmed-error hidden></p>
+        <a class="btn btn-purple btn-lg is-hidden" href="dashboard.html" data-confirmed-dash hidden>Go to the dashboard</a>
+        <p style="margin-top:12px"><a class="btn btn-ghost btn-lg" href="confirm.html" data-confirmed-secondary>Back to check email</a></p>
       </div>
     </div>
   </main>
@@ -84,6 +85,11 @@
       var EMAIL_KEY = 'plaigroundSignupEmail';
       var params = new URLSearchParams(window.location.search);
       var emailEl = document.querySelector('[data-confirmed-email]');
+      var statusEl = document.querySelector('[data-confirmed-status]');
+      var titleEl = document.querySelector('[data-confirmed-title]');
+      var errorEl = document.querySelector('[data-confirmed-error]');
+      var dash = document.querySelector('[data-confirmed-dash]');
+      var secondary = document.querySelector('[data-confirmed-secondary]');
 
       function storedEmail() {
         try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch (e) { return ''; }
@@ -93,16 +99,86 @@
           if (value) sessionStorage.setItem(EMAIL_KEY, value);
         } catch (e) {}
       }
-
-      if (window.PlaigroundMembership) {
-        window.PlaigroundMembership.recordSignedIn();
-        var plan = params.get('plan');
-        if (plan) window.PlaigroundMembership.recordPlan(plan);
+      function showError(message) {
+        if (statusEl) {
+          statusEl.textContent = 'Not confirmed';
+          statusEl.classList.remove('status-ok');
+        }
+        if (titleEl) titleEl.textContent = 'This link did not confirm the account.';
+        if (errorEl) {
+          errorEl.textContent = message || 'Invalid or expired token.';
+          errorEl.hidden = false;
+          errorEl.classList.remove('is-hidden');
+        }
+        if (dash) {
+          dash.hidden = true;
+          dash.classList.add('is-hidden');
+        }
+        if (secondary) {
+          secondary.textContent = 'Resend the email';
+          secondary.setAttribute('href', 'confirm.html');
+        }
+      }
+      function showConfirmed(email) {
+        if (statusEl) {
+          statusEl.innerHTML = '<i>✓</i> CONFIRMED';
+          statusEl.classList.add('status-ok');
+        }
+        if (titleEl) titleEl.textContent = "You're confirmed";
+        if (emailEl) emailEl.textContent = email || 'your email';
+        if (errorEl) {
+          errorEl.textContent = '';
+          errorEl.hidden = true;
+          errorEl.classList.add('is-hidden');
+        }
+        if (dash) {
+          dash.hidden = false;
+          dash.classList.remove('is-hidden');
+        }
+        if (secondary) {
+          secondary.textContent = 'Back home';
+          secondary.setAttribute('href', 'index.html');
+        }
       }
 
       var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
+      var token = String(params.get('token') || '').trim();
       if (email) rememberEmail(email);
       if (emailEl) emailEl.textContent = email || 'your email';
+
+      if (!token) {
+        showError('This confirmation link is missing a token.');
+        return;
+      }
+
+      fetch('/api/auth/confirm', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token, email: email }),
+      }).then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data || {} };
+        }).catch(function () {
+          return { ok: false, data: {} };
+        });
+      }).then(function (result) {
+        if (!result.ok || !result.data.confirmed) {
+          showError(result.data.error || 'Invalid or expired token.');
+          return;
+        }
+        if (result.data.email) {
+          email = result.data.email;
+          rememberEmail(email);
+        }
+        if (window.PlaigroundMembership) {
+          window.PlaigroundMembership.recordSignedIn();
+          if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+        }
+        showConfirmed(email);
+      }).catch(function () {
+        showError('Could not confirm this email.');
+      });
     })();
   </script>
 </body>

@@ -2,9 +2,10 @@
 
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
- * POST /api/auth/signup    { email, password, artist, plan? } → also tries confirm mail
- * POST /api/auth/login     { email, password }
+ * POST /api/auth/signup    pending user only; no session; tries confirm mail
+ * POST /api/auth/login     confirmed users only
  * POST /api/auth/logout
+ * POST /api/auth/confirm   { token } → mark confirmed + attach session
  * GET  /api/auth/mail      → { configured } (does not send)
  * GET  /api/auth/mail?token= → { ok, email } when HMAC verifies
  * POST /api/auth/mail      { email, artist } → resend confirm mail
@@ -12,15 +13,17 @@
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { createUser, findByEmail, ensureReady } = require('../lib/accounts');
+const { confirmEmail, createUser, findByEmail, ensureReady } = require('../lib/accounts');
 const {
   attachSession,
   authPayload,
   clearSession,
   isConfigured,
+  isConfirmed,
   isEmail,
   normalizeEmail,
   notConfigured,
+  pendingPayload,
   rejectQueryPassword,
   verifyPassword,
 } = require('../lib/auth');
@@ -99,16 +102,21 @@ async function signup(req, res) {
 
   try {
     const row = await createUser({ email, password, artist, plan });
-    attachSession(req, res, row.id);
     let mail;
     try {
       mail = await sendConfirmEmail({ email: row.email, artist: row.artist_name });
     } catch {
       mail = { mail_sent: false, error: 'Could not send the confirmation email.' };
     }
-    const payload = Object.assign(authPayload(row), {
+    const payload = {
+      ok: true,
+      pending: true,
+      confirmed: false,
+      email: row.email,
+      artist: row.artist_name,
+      plan: row.plan || null,
       mail_sent: Boolean(mail && mail.mail_sent),
-    });
+    };
     if (!payload.mail_sent) {
       payload.error = (mail && mail.error) || MAIL_NOT_CONFIGURED;
     }
@@ -165,6 +173,10 @@ async function login(req, res) {
     const row = await findByEmail(email);
     if (!row || !verifyPassword(password, row.password_hash)) {
       sendJson(res, 401, { error: 'Invalid email or password.' });
+      return;
+    }
+    if (!isConfirmed(row)) {
+      sendJson(res, 403, pendingPayload(row));
       return;
     }
     attachSession(req, res, row.id);
@@ -238,6 +250,56 @@ async function mail(req, res) {
   sendJson(res, status, { ok: false, mail_sent: false, error });
 }
 
+async function confirm(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+
+  let token = queryValue(req, 'token');
+  if (!token && req.method === 'POST') {
+    let body;
+    try {
+      body = await readBody(req);
+    } catch {
+      sendJson(res, 400, { error: 'Invalid JSON.', confirmed: false });
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(body || {}, 'password') || (body && body.password)) {
+      sendJson(res, 400, { error: 'Do not send a password.', confirmed: false });
+      return;
+    }
+    token = String((body && body.token) || '').trim();
+  }
+
+  const verified = verifyToken(token);
+  if (!verified) {
+    sendJson(res, 400, { ok: false, confirmed: false, error: 'Invalid or expired token.' });
+    return;
+  }
+
+  try {
+    const row = await confirmEmail(verified.email);
+    if (!row) {
+      sendJson(res, 400, { ok: false, confirmed: false, error: 'Invalid or expired token.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    sendJson(res, 200, Object.assign(authPayload(row), { confirmed: true, pending: false }));
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
 async function logout(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -268,6 +330,10 @@ module.exports = async function handler(req, res) {
   }
   if (action === 'mail') {
     await mail(req, res);
+    return;
+  }
+  if (action === 'confirm') {
+    await confirm(req, res);
     return;
   }
   if (action) {

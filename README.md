@@ -42,9 +42,10 @@ Accounts need `DATABASE_URL` (Postgres / Neon) and `SESSION_SECRET` (HMAC cookie
 Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 
 - `GET /api/auth` (schema bootstrap)
-- `POST /api/auth/signup` (creates the account, then tries confirm mail)
-- `POST /api/auth/login`
+- `POST /api/auth/signup` (pending user only; no session; tries confirm mail)
+- `POST /api/auth/login` (confirmed users only)
 - `POST /api/auth/logout`
+- `POST /api/auth/confirm` (`{ token }` marks confirmed and attaches the session)
 - `GET /api/auth/mail` (`{ configured }`; optional `?token=` HMAC check)
 - `POST /api/auth/mail` (`{ email, artist }` resend)
 - `GET /api/me`
@@ -69,8 +70,10 @@ Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do
 
 Signup confirmation mail (same `api/auth.js` function; no `api/signup-confirm.js`):
 
-- After a successful `POST /api/auth/signup`, Resend emails `https://www.wannaplai.com/confirmed.html?email=...` (not `confirm.html`)
-- Missing `RESEND_API_KEY` still creates the account and returns `200 { "mail_sent": false, "error": "Mail is not configured." }`. Signup does not 500 and does not claim the email was sent.
-- `POST /api/auth/mail` is the resend path used by `confirm.html`
+- `POST /api/auth/signup` creates a **pending** row only. It does not attach a session and does not send the browser to `dashboard.html`.
+- Resend emails `https://www.wannaplai.com/confirmed.html?email=...&token=...` (live `confirmed.html`, signed token). Clicking it calls `POST /api/auth/confirm`, marks the account confirmed, then attaches the session.
+- Until confirmed, `GET /api/me` is not a finished account. Login with a pending password returns `403` and says they need to confirm (resend allowed).
+- Duplicate email (pending or confirmed) is still `409`.
+- Missing `RESEND_API_KEY` or a Resend failure keeps the row pending and returns `mail_sent: false`. Signup does not 500 and does not claim the email was sent.
 - From address is `CONFIRM_FROM` (docs default `PLAIGROUND <confirm@wannaplai.com>`). Resend rejects Gmail from-addresses.
-- Optional HMAC uses `CONFIRM_SECRET` or `SIGNUP_CONFIRM_SECRET` (about 24 hours)
+- HMAC uses `CONFIRM_SECRET` or `SIGNUP_CONFIRM_SECRET` (about 24 hours)

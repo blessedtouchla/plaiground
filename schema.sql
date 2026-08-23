@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   tonegrid_artist_id text,
   tonegrid_release_ids text[] NOT NULL DEFAULT ARRAY[]::text[],
   tonegrid_track_ids text[] NOT NULL DEFAULT ARRAY[]::text[],
+  email_confirmed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT users_email_unique UNIQUE (email),
@@ -19,3 +20,18 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tonegrid_track_ids text[] NOT NULL DEFAULT ARRAY[]::text[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmed_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS schema_meta (
+  key text PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+WITH flag AS (
+  INSERT INTO schema_meta (key) VALUES ('users_email_confirmed_backfill')
+  ON CONFLICT (key) DO NOTHING
+  RETURNING key
+)
+UPDATE users SET email_confirmed_at = created_at
+WHERE email_confirmed_at IS NULL
+  AND EXISTS (SELECT 1 FROM flag);

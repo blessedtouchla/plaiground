@@ -58,6 +58,7 @@
             <a href="forgot.html">Forgot password?</a>
           </div>
           <p class="hint" id="auth-status" hidden></p>
+          <p class="hint is-hidden" id="pending-resend" hidden><button type="button" class="btn btn-ghost btn-md" id="resend-confirm">Resend confirmation email</button></p>
           <button class="btn btn-purple btn-lg" type="submit">Log in</button>
         </form>
         <div class="or">OR</div>
@@ -118,10 +119,18 @@
       var status = document.getElementById('auth-status');
       var button = form.querySelector('button[type="submit"]');
 
+      var resendWrap = document.getElementById('pending-resend');
+      var resendBtn = document.getElementById('resend-confirm');
+
       function setStatus(text) {
         if (!status) return;
         status.textContent = text || '';
         status.hidden = !text;
+      }
+      function showResend(show) {
+        if (!resendWrap) return;
+        resendWrap.hidden = !show;
+        resendWrap.classList.toggle('is-hidden', !show);
       }
 
       var params = new URLSearchParams(window.location.search);
@@ -165,6 +174,11 @@
             setStatus('Accounts are not configured.');
             return;
           }
+          if (result.status === 403 || (result.data && result.data.pending)) {
+            setStatus(result.data.error || 'Confirm your email to finish creating this account.');
+            showResend(true);
+            return;
+          }
           if (!result.ok) {
             setStatus(result.data.error || 'Invalid email or password.');
             return;
@@ -182,6 +196,42 @@
           setStatus('Could not reach accounts.');
         });
       });
+
+      if (resendBtn) {
+        resendBtn.addEventListener('click', function () {
+          var emailEl = document.getElementById('email');
+          var address = emailEl ? String(emailEl.value || '').trim() : '';
+          if (!address) {
+            setStatus('Enter the email you signed up with.');
+            return;
+          }
+          try { sessionStorage.setItem('plaigroundSignupEmail', address); } catch (err) {}
+          resendBtn.disabled = true;
+          fetch('/api/auth/mail', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: address }),
+          }).then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, data: data || {} };
+            }).catch(function () {
+              return { ok: false, data: {} };
+            });
+          }).then(function (result) {
+            resendBtn.disabled = false;
+            try { sessionStorage.setItem('plaigroundMailSent', result.data.mail_sent ? '1' : '0'); } catch (err) {}
+            if (result.data.mail_sent) {
+              window.location.href = 'confirm.html';
+              return;
+            }
+            setStatus(result.data.error || 'Mail is not configured.');
+          }).catch(function () {
+            resendBtn.disabled = false;
+            setStatus('Could not send the confirmation email.');
+          });
+        });
+      }
     })();
   </script>
 </body>

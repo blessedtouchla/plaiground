@@ -110,15 +110,12 @@
       var email = String(params.get('email') || '').trim() || String(storedEmail()).trim();
       if (email) rememberEmail(email);
 
-      if (window.PlaigroundMembership) {
-        window.PlaigroundMembership.recordSignedIn();
-        var incomingPlan = params.get('plan');
-        if (incomingPlan) window.PlaigroundMembership.recordPlan(incomingPlan);
-      }
-
       if (params.get('confirmed') === '1' || params.get('token')) {
         var dest = 'confirmed.html';
-        if (email) dest += '?email=' + encodeURIComponent(email);
+        var qs = [];
+        if (email) qs.push('email=' + encodeURIComponent(email));
+        if (params.get('token')) qs.push('token=' + encodeURIComponent(params.get('token')));
+        if (qs.length) dest += '?' + qs.join('&');
         window.location.replace(dest);
         return;
       }
