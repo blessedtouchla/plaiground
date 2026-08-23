@@ -62,6 +62,9 @@ function run() {
   assert.ok(upload.indexOf('plai-bubble.js') !== -1);
   assert.ok(upload.indexOf('membership.js') !== -1);
   assert.ok(upload.indexOf('data-require-membership="true"') !== -1);
+  assert.ok(upload.indexOf('id="tg-upgrade"') !== -1);
+  assert.ok(upload.indexOf('href="creator.html"') !== -1);
+  assert.ok(upload.indexOf('href="pro.html"') !== -1);
 
   const genre = options(selectById(upload, 'tg-genre'));
   assert.deepStrictEqual(genre.map(function (opt) { return opt.value; }), [
