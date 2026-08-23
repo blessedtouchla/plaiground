@@ -16,6 +16,8 @@
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
  */
 
+const accounts = require('../lib/accounts');
+const plans = require('../lib/plans');
 const { personalScope, idAllowed } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
@@ -150,6 +152,39 @@ async function health(req, res) {
   sendJson(res, 200, payload);
 }
 
+async function requireUpload(req, res) {
+  const scope = await personalScope(req, res);
+  if (!scope) return null;
+  const decision = plans.evaluate(scope.row);
+  if (!decision.allowed) {
+    sendJson(res, 403, plans.limitBody(decision));
+    return null;
+  }
+  return scope;
+}
+
+function createdReleaseId(payload) {
+  const row = unwrapRelease(payload);
+  const id = String((row && (row.uuid || row.release_uuid || row.id)) || '').trim();
+  return isUuid(id) ? id : '';
+}
+
+function createdArtistId(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+  const candidates = [
+    payload.uuid,
+    payload.artist_id,
+    payload.artist && payload.artist.uuid,
+    payload.data && payload.data.uuid,
+    payload.data && payload.data.artist && payload.data.artist.uuid,
+  ];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const id = String(candidates[i] || '').trim();
+    if (isUuid(id)) return id;
+  }
+  return '';
+}
+
 async function listArtists(req, res) {
   const query = queryFromReq(req);
   const out = {};
@@ -164,6 +199,9 @@ async function listArtists(req, res) {
 }
 
 async function createArtist(req, res) {
+  const scope = await requireUpload(req, res);
+  if (!scope) return;
+
   let body;
   try {
     body = await readBody(req);
@@ -199,6 +237,12 @@ async function createArtist(req, res) {
     body: payload,
     idempotencyKey: idempotencyKey(req, 'artist:' + slug),
   });
+  if (result.ok) {
+    const artistId = createdArtistId(result.data);
+    if (artistId) {
+      await accounts.updateCatalog(scope.userId, { artistId });
+    }
+  }
   sendJson(res, result.status, result.data);
 }
 
@@ -292,6 +336,9 @@ async function listReleases(req, res) {
 }
 
 async function createRelease(req, res) {
+  const scope = await requireUpload(req, res);
+  if (!scope) return;
+
   let body;
   try {
     body = await readBody(req);
@@ -340,6 +387,12 @@ async function createRelease(req, res) {
     body: payload,
     idempotencyKey: idempotencyKey(req, ['release', artistId, title, type, releaseDate].join(':')),
   });
+  if (result.ok) {
+    const releaseId = createdReleaseId(result.data);
+    if (releaseId) {
+      await accounts.updateCatalog(scope.userId, { artistId, releaseId });
+    }
+  }
   sendJson(res, result.status, result.data);
 }
 
@@ -370,6 +423,8 @@ async function createTrack(req, res) {
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }
+  const scope = await personalScope(req, res);
+  if (!scope) return;
 
   let body;
   try {
@@ -470,6 +525,8 @@ async function trackAudio(req, res, trackId) {
     sendJson(res, 400, { error: 'track id must be a uuid.' });
     return;
   }
+  const scope = await personalScope(req, res);
+  if (!scope) return;
 
   const contentType = headerValue(req, 'content-type');
   if (!/multipart\/form-data/i.test(contentType)) {

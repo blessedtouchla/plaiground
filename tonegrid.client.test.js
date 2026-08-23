@@ -73,6 +73,7 @@ function load(options) {
     'tg-genre': genre,
     'tg-release-date': date,
     'tg-status': status,
+    'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
   };
 
   const context = {
@@ -236,6 +237,38 @@ async function run() {
   const explicitTrack = explicitYes.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
   assert.ok(explicitTrack);
   assert.strictEqual(JSON.parse(explicitTrack.init.body).explicit, true);
+
+  const limited = load({
+    title: 'Night Drive',
+    artist: 'Ada Night',
+    responses: [{
+      ok: false,
+      status: 403,
+      data: { error: 'Basic includes one release. Upgrade to Creator or Pro to upload more.', code: 'PLAN_LIMIT' },
+    }],
+  });
+  limited.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(3);
+  assert.strictEqual(limited.calls.length, 1);
+  assert.strictEqual(limited.calls[0].url, '/api/tonegrid/artists');
+  assert.strictEqual(limited.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
+  assert.notStrictEqual(limited.location.href, 'attest.html');
+  assert.ok(limited.location.href.indexOf('attest.html') === -1);
+
+  const limitedRelease = load({
+    title: 'Night Drive',
+    artist: 'Ada Night',
+    responses: [
+      { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+      { ok: false, status: 403, data: { error: 'Creator includes 8 releases per month. Upgrade to Pro to upload more.', code: 'PLAN_LIMIT' } },
+    ],
+  });
+  limitedRelease.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
+  assert.ok(!limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
+  assert.strictEqual(limitedRelease.status.textContent, 'Creator includes 8 releases per month. Upgrade to Pro to upload more.');
+  assert.ok(limitedRelease.location.href.indexOf('attest.html') === -1);
 
   const unavailable = load({
     title: 'Night Drive',

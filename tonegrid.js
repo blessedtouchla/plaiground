@@ -135,6 +135,23 @@
     return Boolean(result && (result.status === 503 || (result.data && result.data.configured === false)));
   }
 
+  function isPlanLimit(result) {
+    if (!result || (result.status !== 403 && result.status !== 409)) return false;
+    if (result.data && result.data.code === 'PLAN_LIMIT') return true;
+    var msg = result.data && result.data.error ? String(result.data.error) : '';
+    return /upgrade to (creator|pro)/i.test(msg);
+  }
+
+  function showUpgrade(show) {
+    var el = $('tg-upgrade');
+    if (el) el.hidden = !show;
+  }
+
+  function createErrorMessage(result, fallback) {
+    if (result && result.data && result.data.error) return result.data.error;
+    return fallback;
+  }
+
   function releasePayload(draft, releaseDate) {
     var body = {
       artist_id: draft.artist_id,
@@ -256,6 +273,9 @@
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
       }
+      if (isPlanLimit(result)) {
+        return { limited: true, result: result, draft: draft };
+      }
       if (!result.ok) {
         return { failed: true, result: result, draft: draft };
       }
@@ -317,9 +337,16 @@
             continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
+          if (isPlanLimit(result)) {
+            trigger.removeAttribute('aria-busy');
+            setStatus('tg-status', createErrorMessage(result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+            showUpgrade(true);
+            return;
+          }
           if (!result.ok) {
             trigger.removeAttribute('aria-busy');
             setStatus('tg-status', result.data.error || 'Could not save artist.');
+            showUpgrade(false);
             return;
           }
           var artistId = pickUuid(result.data);
@@ -344,9 +371,16 @@
               continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
               return;
             }
+            if (created.limited) {
+              trigger.removeAttribute('aria-busy');
+              setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+              showUpgrade(true);
+              return;
+            }
             if (created.failed) {
               trigger.removeAttribute('aria-busy');
               setStatus('tg-status', created.result.data.error || 'Could not create release.');
+              showUpgrade(false);
               return;
             }
             setStatus('tg-status', 'Creating track…');
@@ -417,9 +451,16 @@
             continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
+          if (created.limited) {
+            trigger.removeAttribute('aria-busy');
+            setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+            showUpgrade(true);
+            return;
+          }
           if (created.failed) {
             trigger.removeAttribute('aria-busy');
             setStatus('tg-status', created.result.data.error || 'Could not create release.');
+            showUpgrade(false);
             return;
           }
           return afterRelease(created.draft || draft).then(function (next) {
@@ -469,8 +510,14 @@
         setStatus('tg-status', 'Catalog sync is not configured yet.');
         return;
       }
+      if (created.limited) {
+        setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+        showUpgrade(true);
+        return;
+      }
       if (created.failed) {
         setStatus('tg-status', created.result.data.error || 'Could not create release.');
+        showUpgrade(false);
         return;
       }
       return afterRelease(created.draft || draft).then(function (next) {

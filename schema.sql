@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   tonegrid_artist_id text,
   tonegrid_release_ids text[] NOT NULL DEFAULT ARRAY[]::text[],
   tonegrid_track_ids text[] NOT NULL DEFAULT ARRAY[]::text[],
+  tonegrid_release_at timestamptz[] NOT NULL DEFAULT ARRAY[]::timestamptz[],
   email_confirmed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tonegrid_track_ids text[] NOT NULL DEFAULT ARRAY[]::text[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tonegrid_release_at timestamptz[] NOT NULL DEFAULT ARRAY[]::timestamptz[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmed_at timestamptz;
 
 CREATE TABLE IF NOT EXISTS schema_meta (

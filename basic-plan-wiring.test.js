@@ -13,6 +13,9 @@ function run() {
   assert.ok(index.indexOf('href="signup.html?plan=basic"') !== -1);
   assert.ok(index.indexOf('data-plan="basic"') !== -1);
   assert.ok(index.indexOf('Join for free') !== -1);
+  assert.ok(index.indexOf('8 releases a month') !== -1);
+  assert.ok(index.indexOf('One release for the life of the account') !== -1);
+  assert.ok(index.indexOf('Unlimited releases') === -1);
 
   const how = read('how-it-works.html');
   assert.ok(how.indexOf('href="signup.html?plan=basic"') !== -1);
@@ -56,6 +59,18 @@ function run() {
   const tonegrid = read('tonegrid.js');
   assert.ok(tonegrid.indexOf('Creating release…') !== -1);
   assert.ok(tonegrid.indexOf('Song title is required.') !== -1);
+  assert.ok(tonegrid.indexOf('PLAN_LIMIT') !== -1);
+  assert.ok(tonegrid.indexOf('Upgrade to Creator or Pro') !== -1);
+
+  const upload = read('upload.html');
+  assert.ok(upload.indexOf('id="tg-upgrade"') !== -1);
+  assert.ok(upload.indexOf('href="creator.html"') !== -1);
+  assert.ok(upload.indexOf('href="pro.html"') !== -1);
+
+  const plans = read('lib/plans.js');
+  assert.ok(plans.indexOf('Basic includes one release. Upgrade to Creator or Pro to upload more.') !== -1);
+  assert.ok(plans.indexOf('Creator includes 8 releases per month. Upgrade to Pro to upload more.') !== -1);
+  assert.ok(plans.indexOf('CREATOR_MONTHLY = 8') !== -1);
 
   ['membership.js', 'tonegrid.js', 'checkout.js', 'signup.html', 'login.html', 'confirm.html', 'confirmed.html', 'index.html', 'basic.html'].forEach(function (file) {
     const text = read(file);
