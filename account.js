@@ -48,12 +48,29 @@
     });
     $all('[data-account-plan]').forEach(function (el) { setText(el, planLabel(me.plan)); });
     $all('[data-account-plan-title]').forEach(function (el) {
-      if (String(me.status || '').toLowerCase() === 'hold') {
+      var status = String(me.status || '').toLowerCase();
+      if (status === 'hold') {
         el.textContent = 'On hold';
+        return;
+      }
+      if (status === 'warning') {
+        el.textContent = 'Payment warning';
         return;
       }
       var label = planLabel(me.plan);
       el.textContent = label === '—' ? 'Your plan' : 'On ' + label.charAt(0) + label.slice(1).toLowerCase();
+    });
+    var warning = String(me.status || '').toLowerCase() === 'warning';
+    var hold = String(me.status || '').toLowerCase() === 'hold';
+    $all('[data-billing-warning]').forEach(function (el) { el.hidden = !warning; });
+    $all('[data-billing-hold]').forEach(function (el) { el.hidden = !hold; });
+    $all('[data-payout-withdraw]').forEach(function (el) {
+      var blocked = warning || hold;
+      el.disabled = blocked;
+      if (blocked) {
+        el.setAttribute('aria-disabled', 'true');
+        el.textContent = 'Payouts paused — update card';
+      }
     });
     var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids : [];
     $all('[data-account-releases]').forEach(function (el) { setText(el, String(ids.length)); });

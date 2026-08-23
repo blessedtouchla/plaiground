@@ -215,7 +215,26 @@ function run() {
     assert.strictEqual(held.api.hasPaidAccess(), false, 'hold locks paid features');
     assert.strictEqual(held.api.requirePaidAccess(), false);
     assert.ok(held.location.href.indexOf('hold=1') !== -1);
-    console.log('membership.test.js ok');
+    assert.strictEqual(held.api.canGetPayout(), false);
+
+    const warned = load({
+      account: {
+        email: 'ada@example.com',
+        artist: 'Ada',
+        plan: 'creator',
+        status: 'warning',
+        stripe_session_id: 'cs_warn',
+      },
+    });
+    return warned.api.whenReady().then(function () {
+      assert.strictEqual(warned.api.isSignedIn(), true);
+      assert.strictEqual(warned.api.isWarning(), true);
+      assert.strictEqual(warned.api.isOnHold(), false);
+      assert.strictEqual(warned.api.hasPaidAccess(), true, 'warning keeps paid features');
+      assert.strictEqual(warned.api.canGetPayout(), false, 'warning blocks payouts');
+      assert.strictEqual(warned.api.requirePaidAccess(), true);
+      console.log('membership.test.js ok');
+    });
   });
 }
 

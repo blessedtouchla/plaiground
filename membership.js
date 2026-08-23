@@ -147,9 +147,21 @@
     return false;
   }
 
+  function accountStatus() {
+    return String((serverAccount && serverAccount.status) || '').toLowerCase();
+  }
+
   function isOnHold() {
-    if (serverAccount && String(serverAccount.status || '').toLowerCase() === 'hold') return true;
-    return false;
+    return accountStatus() === 'hold';
+  }
+
+  function isWarning() {
+    return accountStatus() === 'warning';
+  }
+
+  function canGetPayout() {
+    if (!serverAccount) return true;
+    return accountStatus() !== 'warning' && accountStatus() !== 'hold';
   }
 
   function hasPaidAccess() {
@@ -263,6 +275,8 @@
     hasPaidAccess: hasPaidAccess,
     hasMembership: hasMembership,
     isOnHold: isOnHold,
+    isWarning: isWarning,
+    canGetPayout: canGetPayout,
     requireMembership: requireMembership,
     requirePaidAccess: requirePaidAccess,
     currentPlan: currentPlan,

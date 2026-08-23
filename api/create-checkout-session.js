@@ -10,10 +10,12 @@
  * Stripe Dashboard (add after deploy; do not invent a secret here):
  *   1. Developers → Webhooks → Add endpoint
  *   2. Endpoint URL: https://wannaplai.com/api/stripe/webhook
- *   3. Events: checkout.session.completed, invoice.paid,
+ *   3. Events: checkout.session.completed, invoice.paid, invoice.upcoming,
  *      invoice.payment_failed, payment_intent.payment_failed,
  *      customer.subscription.updated, customer.subscription.deleted
- *   4. Copy the signing secret into Vercel as STRIPE_WEBHOOK_SECRET
+ *   4. Billing → Subscriptions and emails: Upcoming renewal events = 7 days
+ *      and generate invoices 7 days in advance. After retries, mark unpaid.
+ *   5. Copy the signing secret into Vercel as STRIPE_WEBHOOK_SECRET
  *
  * Server-only env (names only): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
  * Publishable env (pk only): NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY or STRIPE_PUBLISHABLE_KEY.
@@ -233,6 +235,7 @@ async function createCheckoutSession(req, res) {
 
   const params = new URLSearchParams();
   params.append('mode', 'subscription');
+  params.append('subscription_data[collection_method]', 'charge_automatically');
   params.append('line_items[0][price]', resolved.priceId);
   params.append('line_items[0][quantity]', '1');
   params.append('success_url', SUCCESS_URL);

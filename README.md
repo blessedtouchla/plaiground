@@ -38,13 +38,30 @@ CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
 
 `XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, and `SIGNUP_CONFIRM_SECRET` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
-After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for one of the four live prices arrives. A failed charge (`invoice.payment_failed`, `payment_intent.payment_failed`, or subscription `past_due` / `unpaid`) writes `status=hold` and keeps the paid plan on the row. Hold stays signed in; paid features (advanced analytics, royalties, publishing, Boost) stay locked until a later `invoice.paid` or `checkout.session.completed`. Cancel (`customer.subscription.updated` status `canceled`) or `customer.subscription.deleted` writes Basic and `status=active`.
+After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for one of the four live prices arrives. Checkout always sends `subscription_data[collection_method]=charge_automatically` (automated monthly/yearly charge; existing live prices only; no new products).
+
+Failed-pay statuses (plan stays Creator/Pro until cancel/delete):
+
+| Account status | Stripe signal | Paid features | Payouts |
+|---|---|---|---|
+| `warning` | `customer.subscription.updated` `past_due`, or `invoice.payment_failed` while `period_end` is still in the future | stay on | blocked (`canGetPayout` false; Withdraw disabled) |
+| `hold` (shutoff) | `customer.subscription.updated` `unpaid`, or `invoice.payment_failed` at/after `period_end` | locked (upload beyond Basic, publishing, Boost, advanced analytics) | blocked |
+| `active` | `invoice.paid` or paid `checkout.session.completed` | restored from the price | allowed |
+
+`invoice.upcoming` is acknowledged only — no status write (still in the paid period). Cancel (`customer.subscription.updated` status `canceled`) or `customer.subscription.deleted` writes Basic and `status=active`. No cron: Stripe `past_due` is the 7-day warning window; `unpaid` / period end is shutoff.
+
+7-day-early collection is Stripe Billing, not an invented job:
+
+1. Checkout field: `subscription_data[collection_method]=charge_automatically`
+2. Dashboard → Settings → Billing → Subscriptions and emails → **Upcoming renewal events = 7 days** (fires `invoice.upcoming`)
+3. Same page / Invoices: **Generate invoices 7 days in advance** (Stripe finalizes and charges then)
+4. After retries: **Mark the subscription as unpaid** so renewal-day shutoff is `unpaid`
 
 Stripe Dashboard (you add this; the repo has no webhook secret):
 
 1. Developers → Webhooks → Add endpoint
 2. URL: `https://wannaplai.com/api/stripe/webhook`
-3. Events: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `payment_intent.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
+3. Events: `checkout.session.completed`, `invoice.paid`, `invoice.upcoming`, `invoice.payment_failed`, `payment_intent.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
 4. Put the signing secret in Vercel as `STRIPE_WEBHOOK_SECRET`
 
 Existing live prices only (do not create products or prices):
