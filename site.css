@@ -777,6 +777,8 @@ table.data th {
   border-bottom: 1px solid var(--line);
 }
 table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.data tbody tr.is-pick { cursor: pointer; }
+.release-edit { margin-top: 24px; }
 .rel { display: flex; align-items: center; gap: 12px; }
 .thumb {
   width: 40px;

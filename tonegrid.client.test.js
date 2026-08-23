@@ -294,9 +294,31 @@ async function run() {
     },
   });
   paySkip.payBtn.listeners.click({ preventDefault() {} });
-  await new Promise(function (resolve) { setImmediate(resolve); });
-  assert.strictEqual(paySkip.calls.length, 0);
-  assert.strictEqual(paySkip.location.href, 'submitted.html');
+  await flush(4);
+  assert.ok(!paySkip.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
+  assert.notStrictEqual(paySkip.location.href, 'submitted.html');
+  assert.ok(/SignWell/i.test(paySkip.status.textContent));
+
+  const signedSubmit = load({
+    bind: 'review',
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      signwell_document_id: 'doc_split_sheet_01',
+    },
+    responses: [
+      { ok: true, status: 200, data: { signed: true, status: 'Completed' } },
+      { ok: true, status: 200, data: { status: 'pending', signed: true } },
+    ],
+  });
+  await flush(8);
+  const submitCall = signedSubmit.calls.find(function (call) {
+    return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+  });
+  assert.ok(submitCall);
+  assert.strictEqual(JSON.parse(submitCall.init.body).document_id, 'doc_split_sheet_01');
+  assert.strictEqual(draftOf(signedSubmit.localStorage).tonegrid_status, 'pending');
 
   const submittedRetry = load({
     bind: 'submitted',

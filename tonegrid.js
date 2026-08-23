@@ -108,6 +108,64 @@
     }).then(parseJson);
   }
 
+  function getJson(url) {
+    return fetch(url, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    }).then(parseJson);
+  }
+
+  function minSubmitDate() {
+    var d = new Date();
+    d.setUTCDate(d.getUTCDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function documentIdOf(draft) {
+    return String((draft && (draft.signwell_document_id || draft.document_id)) || '').trim();
+  }
+
+  function checkSignWell(documentId) {
+    if (!documentId) {
+      return Promise.resolve({
+        ok: false,
+        status: 403,
+        data: { signed: false, error: 'Sign the split sheet in SignWell before submitting.', code: 'SIGNWELL_REQUIRED' },
+      });
+    }
+    return getJson('/api/signwell?id=' + encodeURIComponent(documentId));
+  }
+
+  function submitRelease(draft, releaseDate) {
+    if (!draft || !draft.release_id) {
+      return Promise.resolve({ failed: true, result: { data: { error: 'Save the upload details first so a catalog release exists.' } } });
+    }
+    var documentId = documentIdOf(draft);
+    if (!documentId) {
+      return Promise.resolve({
+        unsigned: true,
+        result: { data: { error: 'Sign the split sheet in SignWell before submitting.', code: 'SIGNWELL_REQUIRED' } },
+      });
+    }
+    var date = releaseDate || draft.release_date || minSubmitDate();
+    return post('/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit', {
+      document_id: documentId,
+      release_date: date,
+    }, 'plaiground-submit-' + draft.release_id).then(function (result) {
+      if (isUnavailable(result)) return { unavailable: true, result: result };
+      if (result.data && result.data.code === 'SIGNWELL_UNSIGNED') return { unsigned: true, result: result };
+      if (result.data && result.data.code === 'SIGNWELL_TRIAL') return { trial: true, result: result };
+      if (result.data && result.data.code === 'SIGNWELL_REQUIRED') return { unsigned: true, result: result };
+      if (!result.ok) return { failed: true, result: result };
+      var next = writeDraft({
+        submitted: true,
+        tonegrid_status: result.data.status || 'pending',
+        release_date: result.data.release_date || date,
+      });
+      return { submitted: true, draft: next, result: result };
+    });
+  }
+
   function saveCatalog(ids) {
     var body = {};
     if (ids && ids.artist_id) body.artist_id = ids.artist_id;
@@ -159,6 +217,7 @@
       type: draft.type || 'single',
     };
     if (draft.genre) body.genre = draft.genre;
+    if (draft.language && /^[a-z]{2}$/.test(String(draft.language))) body.language = String(draft.language);
     if (releaseDate) body.release_date = releaseDate;
     return body;
   }
@@ -420,70 +479,113 @@
     });
   }
 
+  function finishSubmit(draft, releaseDate, trigger, nextHref) {
+    setStatus('tg-status', 'Checking SignWell…');
+    return checkSignWell(documentIdOf(draft)).then(function (gate) {
+      if (!gate.ok || !gate.data.signed) {
+        if (trigger) trigger.removeAttribute('aria-busy');
+        setStatus('tg-status', createErrorMessage(gate, 'Sign the split sheet in SignWell before submitting.'));
+        return;
+      }
+      setStatus('tg-status', 'Submitting to ToneGrid…');
+      return submitRelease(draft, releaseDate).then(function (sent) {
+        if (trigger) trigger.removeAttribute('aria-busy');
+        if (sent.unavailable) {
+          continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+          return;
+        }
+        if (sent.unsigned || sent.trial || sent.failed) {
+          setStatus('tg-status', createErrorMessage(sent.result, 'Could not submit the release.'));
+          return;
+        }
+        setStatus('tg-status', 'ToneGrid status: ' + ((sent.result && sent.result.data && sent.result.data.status) || 'pending'));
+        if (nextHref) go(nextHref);
+      });
+    });
+  }
+
   function bindReview() {
     var trigger = document.querySelector('[data-tonegrid-submit]');
-    if (!trigger) return;
+    var onReview = Boolean(trigger || document.querySelector('[data-review-title]'));
+    if (!onReview) return;
 
-    trigger.addEventListener('click', function (event) {
-      event.preventDefault();
-      if (trigger.getAttribute('aria-busy') === 'true') return;
+    if (trigger) {
+      trigger.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (trigger.getAttribute('aria-busy') === 'true') return;
 
-      var draft = readDraft();
-      var nextHref = trigger.getAttribute('href') || 'submitted.html';
-      var releaseDate = fieldValue('tg-release-date');
-      if (releaseDate) draft = writeDraft({ release_date: releaseDate });
+        var draft = readDraft();
+        var nextHref = trigger.getAttribute('href') || 'submitted.html';
+        var releaseDate = fieldValue('tg-release-date');
+        if (releaseDate) draft = writeDraft({ release_date: releaseDate });
 
-      if (!draft.artist_id) {
-        setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
-        return;
-      }
+        if (!draft.artist_id) {
+          setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
+          return;
+        }
+        if (!documentIdOf(draft)) {
+          setStatus('tg-status', 'Sign the split sheet in SignWell before submitting.');
+          return;
+        }
+        if (!draft.release_id && !draft.title) {
+          setStatus('tg-status', 'Song title is required.');
+          return;
+        }
 
-      if (draft.release_id) {
-        go(nextHref);
-        return;
-      }
-
-      if (!draft.title) {
-        setStatus('tg-status', 'Song title is required.');
-        return;
-      }
-
-      trigger.setAttribute('aria-busy', 'true');
-      setStatus('tg-status', 'Creating release…');
-
-      createRelease(draft, releaseDate)
-        .then(function (created) {
-          if (created.unavailable) {
+        trigger.setAttribute('aria-busy', 'true');
+        if (draft.release_id) {
+          finishSubmit(draft, releaseDate, trigger, nextHref).catch(function () {
             trigger.removeAttribute('aria-busy');
-            continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
-            return;
-          }
-          if (created.limited) {
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
-            showUpgrade(true);
-            return;
-          }
-          if (created.failed) {
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', created.result.data.error || 'Could not create release.');
-            showUpgrade(false);
-            return;
-          }
-          return afterRelease(created.draft || draft).then(function (next) {
-            trigger.removeAttribute('aria-busy');
-            if (next && next.failed) {
-              setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+            setStatus('tg-status', 'Could not reach catalog.');
+          });
+          return;
+        }
+
+        setStatus('tg-status', 'Creating release…');
+        createRelease(draft, releaseDate)
+          .then(function (created) {
+            if (created.unavailable) {
+              trigger.removeAttribute('aria-busy');
+              continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
               return;
             }
-            go(nextHref);
+            if (created.limited) {
+              trigger.removeAttribute('aria-busy');
+              setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+              showUpgrade(true);
+              return;
+            }
+            if (created.failed) {
+              trigger.removeAttribute('aria-busy');
+              setStatus('tg-status', created.result.data.error || 'Could not create release.');
+              showUpgrade(false);
+              return;
+            }
+            return afterRelease(created.draft || draft).then(function (next) {
+              if (next && next.failed) {
+                trigger.removeAttribute('aria-busy');
+                setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+                return;
+              }
+              return finishSubmit(next && next.draft ? next.draft : (created.draft || draft), releaseDate, trigger, nextHref);
+            });
+          })
+          .catch(function () {
+            trigger.removeAttribute('aria-busy');
+            setStatus('tg-status', 'Could not reach catalog.');
           });
-        })
-        .catch(function () {
-          trigger.removeAttribute('aria-busy');
-          setStatus('tg-status', 'Could not reach catalog.');
-        });
-    });
+      });
+    }
+
+    var draft = readDraft();
+    if (draft.release_id && documentIdOf(draft) && !draft.submitted) {
+      setStatus('tg-status', 'Checking SignWell…');
+      finishSubmit(draft, draft.release_date || fieldValue('tg-release-date'), trigger, null).then(function () {
+        /* stay on review after auto-submit so the exact ToneGrid status is visible */
+      }).catch(function () {
+        setStatus('tg-status', 'Could not reach catalog.');
+      });
+    }
   }
 
   function fillReviewSummary() {
@@ -504,13 +606,31 @@
     if (!titleEl) return;
     var draft = readDraft();
     if (draft.title) titleEl.textContent = draft.title + ' is in the queue.';
+    if (draft.tonegrid_status) setStatus('tg-status', 'ToneGrid status: ' + draft.tonegrid_status);
   }
 
   function bindSubmitted() {
     fillSubmitted();
     if (!$('tg-status') && !document.querySelector('[data-submit-title]')) return;
     var draft = readDraft();
-    if (!draft.artist_id || draft.release_id || !draft.title) return;
+    if (!draft.artist_id || !draft.title) return;
+    var afterCreate = function (nextDraft) {
+      if (!documentIdOf(nextDraft) || nextDraft.submitted) {
+        if (!documentIdOf(nextDraft)) setStatus('tg-status', 'Sign the split sheet in SignWell before submitting.');
+        return;
+      }
+      return submitRelease(nextDraft, nextDraft.release_date || '').then(function (sent) {
+        if (sent.unsigned || sent.trial || sent.failed) {
+          setStatus('tg-status', createErrorMessage(sent.result, 'Could not submit the release.'));
+          return;
+        }
+        if (sent.submitted) setStatus('tg-status', 'ToneGrid status: ' + ((sent.result && sent.result.data && sent.result.data.status) || 'pending'));
+      });
+    };
+    if (draft.release_id) {
+      afterCreate(draft);
+      return;
+    }
     setStatus('tg-status', 'Creating release…');
     createRelease(draft, draft.release_date || '').then(function (created) {
       if (created.unavailable) {
@@ -532,7 +652,7 @@
           setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
           return;
         }
-        if (created.created || (next && next.created)) setStatus('tg-status', 'Release saved to the catalog.');
+        return afterCreate(next && next.draft ? next.draft : (created.draft || draft));
       });
     }).catch(function () {
       setStatus('tg-status', 'Could not reach catalog.');

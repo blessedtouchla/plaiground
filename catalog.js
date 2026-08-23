@@ -30,11 +30,13 @@
   }
 
   function statusLabel(status) {
-    if (status === 'live') return 'Live';
-    if (status === 'draft') return 'Draft';
-    if (status === 'pending' || status === 'approved') return 'In review';
-    if (status === 'taken_down') return 'Taken down';
-    return status || 'Draft';
+    if (status === 'live') return 'live';
+    if (status === 'draft') return 'draft';
+    if (status === 'pending') return 'pending';
+    if (status === 'approved') return 'approved';
+    if (status === 'rejected') return 'rejected';
+    if (status === 'taken_down') return 'taken_down';
+    return status || 'draft';
   }
 
   function statusGroup(status) {
@@ -92,6 +94,8 @@
     var streams = streamMap(analytics);
     releases.forEach(function (row) {
       var tr = document.createElement('tr');
+      tr.className = 'is-pick';
+      if (row.uuid && tr.setAttribute) tr.setAttribute('data-release-id', row.uuid);
       var titleCell = document.createElement('td');
       var wrap = document.createElement('div');
       wrap.className = 'rel';
@@ -194,6 +198,179 @@
       });
   }
 
+  function setEditError(text) {
+    setText('[data-edit-error]', text || '');
+    setHidden('[data-edit-error]', !text);
+  }
+
+  function selectedStores() {
+    var host = $('[data-edit-stores]');
+    if (!host) return [];
+    return Array.prototype.slice.call(host.querySelectorAll('input[type="checkbox"]:checked')).map(function (el) {
+      return el.value;
+    });
+  }
+
+  function fillStores(stores, selected) {
+    var host = $('[data-edit-stores]');
+    if (!host) return;
+    host.textContent = '';
+    var picked = {};
+    (selected || []).forEach(function (slug) { picked[String(slug).toLowerCase()] = true; });
+    (stores || []).forEach(function (row) {
+      var slug = typeof row === 'string' ? row : row.slug;
+      if (!slug) return;
+      var label = document.createElement('label');
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = slug;
+      box.checked = Boolean(picked[slug.toLowerCase()] || slug === 'youtube-music');
+      label.appendChild(box);
+      label.appendChild(document.createTextNode(' ' + (row.name || slug)));
+      host.appendChild(label);
+    });
+  }
+
+  function fillEdit(release) {
+    var panel = $('[data-release-edit]');
+    if (!panel || !release) return;
+    panel.hidden = false;
+    panel.setAttribute('data-release-id', release.uuid || '');
+    setText('[data-edit-status]', statusLabel(release.status));
+    var title = $('#edit-title');
+    var date = $('#edit-date');
+    var genre = $('#edit-genre');
+    var language = $('#edit-language');
+    var trackTitle = $('#edit-track-title');
+    if (title) title.value = release.title || '';
+    if (date) date.value = release.release_date || '';
+    if (genre) genre.value = release.genre || '';
+    if (language) language.value = release.language || '';
+    var track = (release.tracks && release.tracks[0]) || {};
+    if (trackTitle) {
+      trackTitle.value = track.title || '';
+      trackTitle.setAttribute('data-track-id', track.uuid || '');
+    }
+    getJson('/api/tonegrid/stores').then(function (result) {
+      fillStores((result.ok && result.data.stores) || [], release.dsps || []);
+    });
+    var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && genre && genre.options.length < 3 && catalog.GENRES) {
+      catalog.GENRES.forEach(function (name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        genre.appendChild(opt);
+      });
+    }
+    if (catalog && language && language.options.length < 3 && catalog.LANGUAGES) {
+      catalog.LANGUAGES.forEach(function (row) {
+        var opt = document.createElement('option');
+        opt.value = row.code;
+        opt.textContent = row.name;
+        language.appendChild(opt);
+      });
+    }
+    if (genre) genre.value = release.genre || '';
+    if (language) language.value = release.language || '';
+    setEditError('');
+  }
+
+  function saveEdit() {
+    var panel = $('[data-release-edit]');
+    var id = panel && panel.getAttribute('data-release-id');
+    if (!id) return;
+    var saveBtn = $('[data-edit-save]');
+    if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
+    setEditError('Saving…');
+    var title = $('#edit-title') ? $('#edit-title').value.trim() : '';
+    var date = $('#edit-date') ? $('#edit-date').value.trim() : '';
+    var genre = $('#edit-genre') ? $('#edit-genre').value.trim() : '';
+    var language = $('#edit-language') ? $('#edit-language').value.trim() : '';
+    var trackTitle = $('#edit-track-title') ? $('#edit-track-title').value.trim() : '';
+    var trackId = $('#edit-track-title') ? $('#edit-track-title').getAttribute('data-track-id') : '';
+    var art = $('#edit-art') && $('#edit-art').files && $('#edit-art').files[0];
+    var body = { title: title };
+    if (date) body.release_date = date;
+    if (genre) body.genre = genre;
+    if (language) body.language = language;
+    var tasks = [
+      fetch('/api/tonegrid/releases/' + encodeURIComponent(id), {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(parseSave),
+      fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/dsps', {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dsps: selectedStores() }),
+      }).then(parseSave),
+    ];
+    if (trackId && trackTitle) {
+      tasks.push(fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId), {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: trackTitle }),
+      }).then(parseSave));
+    }
+    if (art) {
+      var form = new FormData();
+      form.append('artwork', art, art.name || 'artwork.jpg');
+      tasks.push(fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        body: form,
+      }).then(parseSave));
+    }
+    Promise.all(tasks).then(function (results) {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      var failed = results.find(function (row) { return !row.ok; });
+      if (failed) {
+        setEditError((failed.data && failed.data.error) || 'ToneGrid rejected the edit.');
+        return;
+      }
+      setEditError('Saved to ToneGrid.');
+      load();
+    }).catch(function () {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      setEditError('Could not reach ToneGrid.');
+    });
+  }
+
+  function parseSave(response) {
+    return response.json().then(function (data) {
+      return { ok: response.ok, status: response.status, data: data || {} };
+    }).catch(function () {
+      return { ok: false, status: response.status, data: { error: 'ToneGrid rejected the edit.' } };
+    });
+  }
+
+  function bindEdit() {
+    var host = $('[data-release-rows]');
+    if (host && host.addEventListener) {
+      host.addEventListener('click', function (event) {
+        var tr = event.target && event.target.closest ? event.target.closest('tr[data-release-id]') : null;
+        if (!tr) return;
+        var id = tr.getAttribute('data-release-id');
+        setEditError('Loading…');
+        getJson('/api/tonegrid/releases/' + encodeURIComponent(id)).then(function (result) {
+          if (!result.ok) {
+            setEditError((result.data && result.data.error) || 'Could not load this release.');
+            return;
+          }
+          fillEdit(result.data);
+        });
+      });
+    }
+    var saveBtn = $('[data-edit-save]');
+    if (saveBtn) saveBtn.addEventListener('click', saveEdit);
+  }
+
   global.PlaigroundCatalog = { render: render };
+  bindEdit();
   load();
 })(window);
