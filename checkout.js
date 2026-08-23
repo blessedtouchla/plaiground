@@ -87,16 +87,16 @@
         trigger.disabled = false;
         trigger.textContent = original;
         if (result.status === 503 || result.data.configured === false) {
-          setStatus(trigger, 'Checkout is not available yet.');
+          setStatus(trigger, 'Checkout is not available yet. If payment does not come through, you stay signed in on hold until a successful payment.');
           return;
         }
-        setStatus(trigger, result.data.error || 'Could not start checkout.');
+        setStatus(trigger, (result.data.error || 'Could not start checkout.') + ' If payment does not come through, you stay signed in on hold until a successful payment.');
       })
       .catch(function () {
         trigger.removeAttribute('aria-busy');
         trigger.disabled = false;
         trigger.textContent = original;
-        setStatus(trigger, 'Could not start checkout.');
+        setStatus(trigger, 'Could not start checkout. If payment does not come through, you stay signed in on hold until a successful payment.');
       });
   }
 

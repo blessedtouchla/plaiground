@@ -13,17 +13,50 @@ function run() {
   assert.ok(index.indexOf('href="signup.html?plan=basic"') !== -1);
   assert.ok(index.indexOf('data-plan="basic"') !== -1);
   assert.ok(index.indexOf('Join for free') !== -1);
-  assert.ok(index.indexOf('8 releases a month') !== -1);
+  assert.ok(index.indexOf('8 uploads + 8 publishing a month') !== -1);
   assert.ok(index.indexOf('One release for the life of the account') !== -1);
+  assert.ok(index.indexOf('<strong>$0</strong>') !== -1);
+  assert.ok(index.indexOf('<strong>$14.99</strong>') !== -1);
+  assert.ok(index.indexOf('<strong>$19.99</strong>') !== -1);
+  assert.ok(index.indexOf('or $149/year') !== -1);
+  assert.ok(index.indexOf('data-checkout-interval="month"') !== -1);
+  assert.ok(index.indexOf('you stay signed in on hold') !== -1);
   assert.ok(index.indexOf('Unlimited releases') === -1);
 
   const how = read('how-it-works.html');
   assert.ok(how.indexOf('href="signup.html?plan=basic"') !== -1);
+  assert.ok(how.indexOf('8 uploads + 8 publishing a month') !== -1);
+  assert.ok(how.indexOf('Unlimited releases') === -1);
+  assert.ok(how.indexOf('you stay signed in on hold') !== -1);
+
+  const creator = read('creator.html');
+  assert.ok(creator.indexOf('$14.99 a month') !== -1);
+  assert.ok(creator.indexOf('or $149/year') !== -1);
+  assert.ok(creator.indexOf('data-checkout-interval="month"') !== -1);
+  assert.ok(creator.indexOf('8 uploads + 8 publishing a month') !== -1);
+  assert.ok(creator.indexOf('you stay signed in on hold') !== -1);
+
+  const pro = read('pro.html');
+  assert.ok(pro.indexOf('$19.99 a month') !== -1);
+  assert.ok(pro.indexOf('or $149/year') !== -1);
+  assert.ok(pro.indexOf('data-checkout-interval="month"') !== -1);
+  assert.ok(pro.indexOf('Unlimited uploads and publishing') !== -1);
+  assert.ok(pro.indexOf('you stay signed in on hold') !== -1);
+
+  const faq = read('faq.html');
+  assert.ok(faq.indexOf('$14.99 a month') !== -1);
+  assert.ok(faq.indexOf('$19.99 a month') !== -1);
+  assert.ok(faq.indexOf('Your account is on hold') !== -1);
 
   const basic = read('basic.html');
   assert.ok(basic.indexOf('href="signup.html?plan=basic"') !== -1);
   assert.ok(basic.indexOf('data-plan="basic"') !== -1);
   assert.ok(basic.indexOf('membership.js') !== -1);
+  assert.ok(basic.indexOf('$0 forever') !== -1);
+  assert.ok(basic.indexOf('you stay signed in on hold') !== -1);
+
+  const checkout = read('checkout.js');
+  assert.ok(checkout.indexOf('you stay signed in on hold') !== -1);
 
   const signup = read('signup.html');
   assert.ok(signup.indexOf('membership.js') !== -1);
