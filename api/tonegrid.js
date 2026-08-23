@@ -11,6 +11,7 @@
  * POST /api/tonegrid/releases
  * GET  /api/tonegrid/releases/:id          -> plus ddex/deliveries when live (dsp_release_id only)
  * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
+ * DELETE /api/tonegrid/releases/:id        -> draft: ToneGrid DELETE; live: POST /ddex/purge
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
@@ -22,7 +23,9 @@
  * GET  /api/tonegrid/royalties
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
- * 404s "Endpoint not found." POST and PUT /releases/:uuid/dsps exist. POST
+ * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft.
+ * POST /releases/:uuid/ddex/purge is the real store takedown (PurgeReleaseMessage).
+ * POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
  * Each ToneGrid write uses a hop-scoped Idempotency-Key (patch-date,
  * dsps-post, dsps-put, submit) plus method, path, and body fingerprint.
@@ -74,6 +77,7 @@ const {
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
+const STORE_FACING = new Set(['live', 'approved', 'processing', 'delivering', 'delivered', 'takedown_submitted']);
 
 function decodePart(value) {
   try {
@@ -1284,7 +1288,7 @@ async function fetchReleaseRow(releaseId) {
 
 async function getOneRelease(req, res, releaseId) {
   if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET, PUT');
+    res.setHeader('Allow', 'GET, PUT, DELETE');
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }
@@ -1785,6 +1789,103 @@ async function updateTrack(req, res, trackId) {
   sendJson(res, result.status, result.data);
 }
 
+function storeFacingStatus(status) {
+  const raw = String(status || '').trim().toLowerCase();
+  if (STORE_FACING.has(raw)) return true;
+  return raw === 'live' || raw === 'approved' || raw === 'processing' || raw === 'delivering' || raw === 'delivered';
+}
+
+function tonegridErrorOf(result, fallback) {
+  return String((result && result.data && result.data.error) || fallback || 'ToneGrid rejected the request.');
+}
+
+async function dropLocalRelease(row, releaseId) {
+  if (!row || !row.id) return null;
+  return accounts.removeRelease(row.id, releaseId);
+}
+
+async function deleteRelease(req, res, releaseId) {
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const scope = await requireOwnedRelease(req, res, releaseId);
+  if (!scope) return;
+
+  const loaded = await fetchReleaseRow(releaseId);
+  if (loaded.result && !loaded.result.ok && loaded.result.status !== 404) {
+    sendJson(res, loaded.result.status, {
+      error: tonegridErrorOf(loaded.result, 'ToneGrid could not load this release.'),
+      removed: false,
+      takedown: false,
+    });
+    return;
+  }
+  const missing = Boolean(loaded.result && !loaded.result.ok && loaded.result.status === 404);
+  const status = loaded.row ? String(loaded.row.status || '').trim().toLowerCase() : '';
+
+  if (status === 'taken_down') {
+    sendJson(res, 409, {
+      error: 'This release was taken down from stores. It still counts as your lifetime upload.',
+      removed: false,
+      takedown: false,
+      status: 'taken_down',
+    });
+    return;
+  }
+
+  if (storeFacingStatus(status)) {
+    const purged = await tonegridFetch('/releases/' + releaseId + '/ddex/purge', {
+      method: 'POST',
+      body: {},
+      idempotencyKey: hopIdempotencyKey('purge', 'POST', '/releases/' + releaseId + '/ddex/purge', releaseId),
+    });
+    if (!purged.ok) {
+      sendJson(res, purged.status, {
+        error: tonegridErrorOf(purged, 'Stores could not take this release down.'),
+        takedown: false,
+        removed: false,
+      });
+      return;
+    }
+    const nextStatus = 'takedown_submitted';
+    await persistReleaseMeta(scope.row, releaseId, nextStatus, '');
+    sendJson(res, 202, {
+      ok: true,
+      takedown: true,
+      removed: false,
+      release_id: releaseId,
+      status: nextStatus,
+    });
+    return;
+  }
+
+  if (!missing) {
+    const deleted = await tonegridFetch('/releases/' + releaseId, {
+      method: 'DELETE',
+      idempotencyKey: hopIdempotencyKey('delete-release', 'DELETE', '/releases/' + releaseId, releaseId),
+    });
+    if (!deleted.ok && deleted.status !== 404) {
+      sendJson(res, deleted.status, {
+        error: tonegridErrorOf(deleted, 'ToneGrid could not delete this release.'),
+        removed: false,
+        takedown: false,
+      });
+      return;
+    }
+  }
+
+  const next = await dropLocalRelease(scope.row, releaseId);
+  sendJson(res, 200, {
+    ok: true,
+    removed: true,
+    takedown: false,
+    release_id: releaseId,
+    redirect: '/releases.html',
+    upload: plans.evaluate(next || scope.row),
+  });
+}
+
 async function oneRelease(req, res, releaseId) {
   if (req.method === 'GET') {
     await getOneRelease(req, res, releaseId);
@@ -1794,7 +1895,11 @@ async function oneRelease(req, res, releaseId) {
     await updateRelease(req, res, releaseId);
     return;
   }
-  res.setHeader('Allow', 'GET, PUT');
+  if (req.method === 'DELETE') {
+    await deleteRelease(req, res, releaseId);
+    return;
+  }
+  res.setHeader('Allow', 'GET, PUT, DELETE');
   sendJson(res, 405, { error: 'Method not allowed.' });
 }
 

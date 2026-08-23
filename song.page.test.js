@@ -135,6 +135,7 @@ function loadSong(opts) {
     '[data-song-boosts]': makeEl({ hidden: true }),
     '[data-song-boost]': makeEl({ hidden: true }),
     '[data-song-edit]': makeEl({ hidden: true }),
+    '[data-song-remove]': makeEl({ hidden: true }),
     '[data-song-rejection]': makeEl({ hidden: true }),
     '[data-song-rejection-reason]': makeEl({}),
     '[data-release-edit]': panel,
@@ -183,6 +184,7 @@ function loadSong(opts) {
     pending: makeEl({ life: 'pending' }),
     processing: makeEl({ life: 'processing' }),
     live: makeEl({ life: 'live' }),
+    taken_down: makeEl({ life: 'taken_down' }),
     rejected: makeEl({ life: 'rejected' }),
   };
   const context = {
@@ -199,7 +201,7 @@ function loadSong(opts) {
     document: {
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
-        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.rejected];
+        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.taken_down, life.rejected];
         if (sel === '[data-edit-explicit] [data-explicit]') return [];
         if (sel === '[data-edit-made-how]') return [];
         return [];
@@ -213,6 +215,11 @@ function loadSong(opts) {
       calls.push({ url: String(url), method: method, body: options && options.body });
       if (opts.fetch) return opts.fetch(url, options, calls);
       return Promise.resolve({ ok: true, status: 200, json: async () => ({ releases: [], stores: [] }) });
+    },
+    confirm(message) {
+      calls.push({ confirm: message });
+      if (typeof opts.confirm === 'function') return opts.confirm(message);
+      return opts.confirm !== false;
     },
     location: { href: opts.href || 'song.html', search: opts.search || '', pathname: '/song.html' },
     window: {},
@@ -406,6 +413,8 @@ function run() {
   assert.ok(html.includes('Edit release'));
   assert.ok(html.includes('Submit for editing'));
   assert.ok(html.includes('data-song-edit'));
+  assert.ok(html.includes('data-song-remove'));
+  assert.ok(html.includes('data-life="taken_down"'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('id="edit-release-date"'));
   assert.ok(html.includes('id="edit-preorder-on"'));
@@ -551,7 +560,115 @@ function run() {
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
     assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
-    console.log('song.page.test.js ok');
+    assert.strictEqual(page.nodes['[data-song-remove]'].hidden, false, 'owner sees Remove on their release');
+
+    const unsigned = loadSong({ me: null });
+    unsigned.api.render({ error: 'Sign in to see this release.' });
+    assert.strictEqual(unsigned.nodes['[data-song-remove]'].hidden, true, 'signed-out viewers do not see Remove');
+
+    const down = loadSong({ plan: 'basic', me: basicMe });
+    down.api.render({
+      me: basicMe,
+      release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'taken_down', type: 'single' },
+      analytics: {},
+    });
+    assert.strictEqual(down.nodes['[data-song-remove]'].hidden, true, 'taken down releases keep the lifetime slot');
+    assert.ok(down.life.taken_down.classList.contains('on'));
+
+    const cancelCalls = [];
+    const cancelled = loadSong({
+      plan: 'basic',
+      me: basicMe,
+      confirm: false,
+      calls: cancelCalls,
+    });
+    cancelled.api.render({
+      me: basicMe,
+      release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'draft', type: 'single' },
+      analytics: {},
+    });
+    return cancelled.api.removeRelease().then(function (result) {
+      assert.strictEqual(result.cancelled, true);
+      assert.ok(!cancelCalls.some((row) => row.method === 'DELETE'));
+      assert.ok(cancelCalls.some((row) => String(row.confirm || '').indexOf('Remove this release') !== -1));
+
+      const draftCalls = [];
+      const drafted = loadSong({
+        plan: 'basic',
+        me: basicMe,
+        confirm: true,
+        calls: draftCalls,
+        draft: { release_id: basicMe.tonegrid_release_ids[0], title: 'Fuvtu' },
+        fetch(url, options) {
+          const method = (options && options.method) || 'GET';
+          if (method === 'DELETE') {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => ({ ok: true, removed: true, redirect: '/releases.html' }),
+            });
+          }
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'draft' }],
+            }),
+          });
+        },
+      });
+      drafted.api.render({
+        me: basicMe,
+        draft: { release_id: basicMe.tonegrid_release_ids[0], title: 'Fuvtu' },
+        release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'draft', type: 'single' },
+        analytics: {},
+      });
+      return drafted.api.removeRelease().then(function (removed) {
+        assert.ok(removed.ok);
+        assert.strictEqual(removed.redirect, 'releases.html');
+        assert.strictEqual(drafted.context.location.href, 'releases.html');
+        assert.strictEqual(drafted.context.localStorage.getItem('plaiground.tonegrid.draft'), null);
+        assert.ok(draftCalls.some((row) => row.method === 'DELETE' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
+
+        const liveCalls = [];
+        const liveFail = loadSong({
+          plan: 'basic',
+          me: basicMe,
+          confirm: true,
+          calls: liveCalls,
+          href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          fetch(url, options) {
+            const method = (options && options.method) || 'GET';
+            if (method === 'DELETE') {
+              return Promise.resolve({
+                ok: false,
+                status: 422,
+                json: async () => ({ error: 'DSP rejected takedown', removed: false }),
+              });
+            }
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => ({
+                releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'live' }],
+              }),
+            });
+          },
+        });
+        liveFail.api.render({
+          me: basicMe,
+          release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'live', type: 'single' },
+          analytics: {},
+        });
+        return liveFail.api.removeRelease().then(function (failed) {
+          assert.strictEqual(failed.ok, false);
+          assert.ok(liveCalls.some((row) => String(row.confirm || '').indexOf('Ask stores') !== -1));
+          assert.strictEqual(liveFail.nodes['[data-song-status]'].textContent, 'DSP rejected takedown');
+          assert.notStrictEqual(liveFail.context.location.href, 'releases.html');
+          console.log('song.page.test.js ok');
+        });
+      });
+    });
   });
 }
 
