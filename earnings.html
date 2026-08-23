@@ -24,9 +24,10 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4 class="stat-g" data-account-plan-title>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
-      <p style="margin-top:8px">Renews 8 Sep 2026 · $19.99/month or $149/year.</p>
+      <h4 data-account-plan-title>Your plan</h4>
+      <p data-for-plans="basic">Distribution is included. Retrieve / get paid unlocks on Pro.</p>
+      <p data-for-plans="creator" hidden>Advanced earnings and analytics are active on your account.</p>
+      <p data-for-plans="pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
     </div>
   </aside>
   <div class="app-main">
@@ -39,7 +40,8 @@
         <div>
           <p class="kicker">Revenue</p>
           <h1>Earnings</h1>
-          <p>Recording, publishing, sync and Boost revenue from every store, collected monthly.</p>
+          <p data-for-plans="basic">Recording revenue from stores, collected monthly.</p>
+          <p data-for-plans="creator pro" hidden>Recording and extra royalty sources from every store, collected monthly.</p>
           <p class="hint" data-earn-status hidden></p>
           <p class="hint" data-earn-empty hidden>No royalties yet.</p>
         </div>
@@ -70,7 +72,7 @@
         <div>
           <div class="panel lock" data-for-plans="basic">
             <h3 class="y">Locked on Basic</h3>
-            <p class="y">Publishing, sync, and Boost royalties show here on Creator or Pro.</p>
+            <p class="y">Extra royalty sources unlock on Creator or Pro.</p>
           </div>
           <div class="panel lock" data-for-plans="basic creator">
             <h3 class="y">Retrieve payouts on Pro</h3>

@@ -48,7 +48,10 @@ function run() {
   const forbidden = [
     '7,412,908',
     '$18,942.60',
+    '$3,412.85',
     '$18,412.44',
+    'Hi John',
+    'John Doe',
     '4,182,680',
     'Neon Shadows',
     'Neon Sermon',
@@ -62,7 +65,7 @@ function run() {
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
@@ -80,6 +83,16 @@ function run() {
   assert.ok(read('earnings.html').indexOf('data-require-paid') === -1, 'earnings must not bounce Basic to Pick a plan');
   assert.ok(read('earnings.html').indexOf('Upgrade to Pro') !== -1);
   assert.ok(read('earnings.html').indexOf('retrieve / get paid') !== -1);
+  assert.ok(read('payouts.html').indexOf('data-require-membership="true"') !== -1);
+  assert.ok(read('payouts.html').indexOf('data-require-paid') === -1);
+  assert.ok(read('payouts.html').indexOf('Upgrade to Pro') !== -1);
+  assert.ok(read('payouts.html').indexOf('$0.00') !== -1);
+  assert.ok(read('payouts.html').indexOf('No payouts yet.') !== -1);
+  assert.ok(read('payouts.html').indexOf('$19.99') === -1);
+  const payouts = read('payouts.html');
+  assert.ok(payouts.indexOf('Distribution is included. Retrieve / get paid unlocks on Pro.') !== -1);
+  assert.ok(!/data-for-plans="basic"[^>]*>[^<]*publishing/i.test(payouts), 'Basic payouts copy must not mention publishing');
+  assert.ok(read('earnings.html').indexOf('$19.99') === -1);
   assert.ok(read('dashboard.html').indexOf('On Pro') !== -1);
 
   const earnNodes = {

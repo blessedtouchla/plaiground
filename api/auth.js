@@ -13,11 +13,12 @@
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { confirmEmail, createUser, findByEmail, ensureReady, setPassword } = require('../lib/accounts');
+const { confirmEmail, createUser, findByEmail, findById, ensureReady, setPassword } = require('../lib/accounts');
 const {
   attachSession,
   authPayload,
   clearSession,
+  emailsEquivalent,
   isConfigured,
   isConfirmed,
   isEmail,
@@ -25,6 +26,7 @@ const {
   notConfigured,
   pendingPayload,
   rejectQueryPassword,
+  sessionFromRequest,
   verifyPassword,
 } = require('../lib/auth');
 const {
@@ -282,7 +284,7 @@ async function resetPassword(req, res) {
   }
 }
 
-async function sendAccessEmail(email, purpose) {
+async function sendAccessEmail(req, email, purpose) {
   if (!isMailConfigured()) {
     return { mail_sent: false, error: MAIL_NOT_CONFIGURED };
   }
@@ -292,6 +294,13 @@ async function sendAccessEmail(email, purpose) {
   let row;
   try {
     row = await findByEmail(email);
+    if (!row) {
+      const session = sessionFromRequest(req);
+      if (session) {
+        const mine = await findById(session.userId);
+        if (mine && emailsEquivalent(mine.email, email)) row = mine;
+      }
+    }
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       return { mail_sent: false, error: 'Accounts are not configured.' };
@@ -299,12 +308,13 @@ async function sendAccessEmail(email, purpose) {
     throw err;
   }
   if (!row) {
-    return { mail_sent: true, purpose, skipped: true };
+    return { mail_sent: false, error: 'Could not send the email.' };
   }
+  const to = normalizeEmail(row.email) || email;
   if (!isConfirmed(row)) {
-    return sendConfirmEmail({ email, artist: row.artist_name });
+    return sendConfirmEmail({ email: to, artist: row.artist_name });
   }
-  return sendAuthEmail({ email, artist: row.artist_name, purpose });
+  return sendAuthEmail({ email: to, artist: row.artist_name, purpose });
 }
 
 async function mail(req, res) {
@@ -351,7 +361,7 @@ async function mail(req, res) {
   let result;
   try {
     if (purpose === 'magic' || purpose === 'reset') {
-      result = await sendAccessEmail(email, purpose);
+      result = await sendAccessEmail(req, email, purpose);
     } else {
       result = await sendConfirmEmail({
         email,
@@ -359,7 +369,7 @@ async function mail(req, res) {
       });
     }
   } catch {
-    result = { mail_sent: false, error: 'Could not send the confirmation email.' };
+    result = { mail_sent: false, error: 'Could not send the email.' };
   }
 
   if (result.mail_sent) {

@@ -161,6 +161,15 @@ function run() {
   assert.strictEqual(earningsStay.api.requireMembership(), true);
   assert.strictEqual(earningsStay.api.requirePaidAccess(), false);
 
+  const payoutsStay = load({
+    require: true,
+    pathname: '/payouts.html',
+    href: 'payouts.html',
+    seedLocal: { plaigroundSignedIn: '1', plaigroundMembership: 'basic' },
+  });
+  assert.strictEqual(payoutsStay.location.href, 'payouts.html', 'signed-in Basic stays on payouts');
+  assert.strictEqual(payoutsStay.api.requireMembership(), true);
+
   const paidOk = load({
     require: true,
     seedLocal: {

@@ -103,7 +103,6 @@
       if (kind !== 'reset') kind = 'magic';
       var email = String(params.get('email') || '').trim();
       var token = String(params.get('token') || '').trim();
-      var alreadySent = params.get('sent') === '1';
       var status = document.querySelector('[data-magic-status]');
       var title = document.querySelector('[data-magic-title]');
       var lead = document.querySelector('[data-magic-lead]');
@@ -152,11 +151,11 @@
       }
 
       function showSent(address) {
-        alreadySent = true;
         if (status) {
           status.innerHTML = '<i>✓</i> Email sent';
           status.classList.add('status-ok');
         }
+        if (title) title.textContent = kind === 'reset' ? 'Your reset link is on the way' : 'Your sign-in link is on the way';
         showError('');
         if (meta) meta.hidden = false;
         if (form) form.hidden = true;
@@ -175,9 +174,9 @@
       }
 
       if (kicker) kicker.textContent = kind === 'reset' ? 'Password reset' : 'Passwordless sign-in';
-      if (title) title.textContent = kind === 'reset' ? 'Your reset link is on the way' : 'Your sign-in link is on the way';
+      if (title) title.textContent = kind === 'reset' ? 'Send a reset link' : 'Email a sign-in link';
       if (emailEl && email) emailEl.value = email;
-      setLead(email, alreadySent);
+      setLead(email, false);
       setInterval(tick, 1000);
       tick();
 
@@ -267,10 +266,6 @@
         });
       }
 
-      if (alreadySent && email) {
-        showSent(email);
-        return;
-      }
       if (email) {
         sendLink(email);
         return;
