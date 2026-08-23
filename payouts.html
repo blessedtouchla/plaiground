@@ -25,15 +25,16 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4 class="stat-g" data-account-plan-title>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
-      <p style="margin-top:8px">Renews 8 Sep 2026 · $19.99/month or $149/year.</p>
+      <h4 data-account-plan-title>Your plan</h4>
+      <p data-for-plans="basic">Distribution is included. Retrieve / get paid unlocks on Pro.</p>
+      <p data-for-plans="creator" hidden>Advanced earnings and analytics are active on your account.</p>
+      <p data-for-plans="pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
       <span></span>
-      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>VV</span> <span data-account-who>Hi Victoria!</span></a>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
       <div class="draft-banner" data-billing-warning hidden>
@@ -48,31 +49,30 @@
         <div>
           <p class="kicker">Money</p>
           <h1>Payouts</h1>
-          <p>Royalties are collected monthly and paid automatically once your balance clears $10.</p>
+          <p data-for-plans="basic">You can see a balance coming. Retrieve / get paid unlocks on Pro.</p>
+          <p data-for-plans="creator pro" hidden>Royalties are collected monthly and paid automatically once your balance clears $10.</p>
         </div>
-        <button class="btn btn-purple btn-sm" type="button" data-payout-withdraw>Withdraw balance</button>
+        <button class="btn btn-purple btn-sm" type="button" data-payout-withdraw data-for-plans="pro" hidden>Withdraw balance</button>
+      </div>
+      <div class="panel lock" data-for-plans="basic creator">
+        <h3 class="y">Retrieve payouts on Pro</h3>
+        <p class="y">Payouts stay locked on this plan. Upgrade to Pro to retrieve / get paid.</p>
+        <p style="margin-top:14px"><a class="btn btn-purple btn-sm" href="pro.html">Upgrade to Pro</a></p>
       </div>
       <div class="metric-row">
-        <div class="metric"><strong class="stat-g">$3,412.85</strong><span>Available balance</span></div>
-        <div class="metric"><strong>$18,942.60</strong><span>Paid to date</span></div>
-        <div class="metric"><strong class="stat-y">$742.10</strong><span>Pending clearance</span></div>
-        <div class="metric"><strong class="stat-p">1 Sep</strong><span>Next payout</span></div>
+        <div class="metric"><strong class="stat-g">$0.00</strong><span>Available balance</span></div>
+        <div class="metric"><strong>$0.00</strong><span>Paid to date</span></div>
+        <div class="metric"><strong class="stat-y">$0.00</strong><span>Pending clearance</span></div>
+        <div class="metric"><strong>—</strong><span>Next payout</span></div>
       </div>
       <div class="two-col">
         <div class="panel">
           <h3>Payout method</h3>
-          <div class="method">
-            <span class="ach">ACH</span>
-            <div>
-              <b>Chase **** 4417</b>
-              <div style="color:var(--muted);font-size:13px;margin-top:4px">Victoria Reyes · USD</div>
-            </div>
-          </div>
-          <p style="margin-top:16px"><button class="btn btn-ghost btn-sm" type="button">Change method</button></p>
+          <p class="hint">No payout method yet.</p>
         </div>
         <div class="panel">
           <h3>Tax and compliance</h3>
-          <div class="kv"><span>Form W-9</span><b class="live">On file</b></div>
+          <div class="kv"><span>Form W-9</span><b>—</b></div>
           <div class="kv"><span>Payout currency</span><b>USD</b></div>
           <div class="kv"><span>Minimum payout</span><b>$10.00</b></div>
         </div>
@@ -80,34 +80,31 @@
       <div class="panel">
         <div class="head-row">
           <h3>How this payout is calculated</h3>
-          <span style="color:var(--muted);font-size:12px">Period Jul 2026</span>
+          <span style="color:var(--muted);font-size:12px">No period yet</span>
         </div>
-        <div class="deduct"><span>Reported by stores and societies</span><b>$3,950.42</b></div>
-        <div class="deduct"><span>Store and platform share</span><span class="amber">-$428.60</span></div>
-        <div class="deduct"><span>Collection and society deductions</span><span class="amber">-$66.12</span></div>
-        <div class="deduct"><span>Payment processing</span><span class="amber">-$12.85</span></div>
+        <div class="deduct"><span>Reported by stores and societies</span><b>$0.00</b></div>
+        <div class="deduct"><span>Store and platform share</span><span>$0.00</span></div>
+        <div class="deduct"><span>Collection and society deductions</span><span>$0.00</span></div>
+        <div class="deduct"><span>Payment processing</span><span>$0.00</span></div>
         <div class="deduct"><span>PLAIGROUND commission</span><span class="ok">$0.00</span></div>
-        <div class="calc-total"><span>Paid to you</span><span class="ok">$3,442.85</span></div>
-        <p class="disclaimer">PLAIGROUND takes no commission on your royalties. The deductions above are taken by the stores, collecting societies and payment providers before the money reaches us, and are shown line by line on every statement. Submission fees are charged once, at the point of release, and never withheld from a payout.</p>
+        <div class="calc-total"><span>Paid to you</span><span class="ok">$0.00</span></div>
+        <p class="disclaimer">PLAIGROUND takes no commission on your royalties. Submission fees are charged once, at the point of release, and never withheld from a payout.</p>
       </div>
       <div class="panel">
         <div class="head-row">
           <h3>Payout history</h3>
-          <span style="color:var(--muted);font-size:12px">Statements available for 24 months.</span>
+          <span style="color:var(--muted);font-size:12px">No statements yet.</span>
         </div>
         <table class="data">
           <thead><tr><th>Date</th><th>Period</th><th>Method</th><th>Status</th><th>Amount</th></tr></thead>
           <tbody>
-            <tr><td>1 Aug 2026</td><td>Jul 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$3,102.44</b></td></tr>
-            <tr><td>1 Jul 2026</td><td>Jun 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$2,760.58</b></td></tr>
-            <tr><td>1 Jun 2026</td><td>May 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$2,416.80</b></td></tr>
-            <tr><td>1 May 2026</td><td>Apr 2026</td><td>ACH •••• 4417</td><td class="live">Paid</td><td><b>$1,962.34</b></td></tr>
+            <tr><td colspan="5">No payouts yet.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
-  <script src="membership.js"></script>
+  <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

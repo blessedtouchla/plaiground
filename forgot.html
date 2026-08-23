@@ -188,43 +188,11 @@
         requestForm.addEventListener('submit', function (event) {
           event.preventDefault();
           var address = emailEl ? String(emailEl.value || '').trim() : '';
-          var button = document.querySelector('[data-forgot-send]');
           if (!address) {
             showError('A valid email is required.');
             return;
           }
-          if (button) {
-            button.disabled = true;
-            button.setAttribute('aria-busy', 'true');
-          }
-          fetch('/api/auth/mail', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: address, kind: 'reset' }),
-          }).then(function (response) {
-            return response.json().then(function (data) {
-              return { ok: response.ok, status: response.status, data: data || {} };
-            }).catch(function () {
-              return { ok: false, status: response.status, data: {} };
-            });
-          }).then(function (result) {
-            if (button) {
-              button.disabled = false;
-              button.removeAttribute('aria-busy');
-            }
-            if (result.ok && result.data.mail_sent) {
-              window.location.href = 'magic.html?kind=reset&sent=1&email=' + encodeURIComponent(address);
-              return;
-            }
-            showError(result.data.error || 'Could not send the reset email.');
-          }).catch(function () {
-            if (button) {
-              button.disabled = false;
-              button.removeAttribute('aria-busy');
-            }
-            showError('Could not send the reset email.');
-          });
+          window.location.href = 'magic.html?kind=reset&email=' + encodeURIComponent(address);
         });
       }
     })();

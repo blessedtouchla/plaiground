@@ -65,8 +65,12 @@
     $all('[data-billing-warning]').forEach(function (el) { el.hidden = !warning; });
     $all('[data-billing-hold]').forEach(function (el) { el.hidden = !hold; });
     $all('[data-payout-withdraw]').forEach(function (el) {
+      var isPro = String(me.plan || '').toLowerCase() === 'pro';
+      el.hidden = !isPro;
+      if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !isPro);
       var blocked = warning || hold;
-      el.disabled = blocked;
+      el.disabled = !isPro || blocked;
+      if (!isPro) return;
       if (blocked) {
         el.setAttribute('aria-disabled', 'true');
         el.textContent = 'Payouts paused — update card';
