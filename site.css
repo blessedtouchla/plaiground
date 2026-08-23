@@ -155,6 +155,34 @@ button { cursor: pointer; }
   padding: 9px 18px;
 }
 .nav-actions .login:hover { color: #fff; }
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.menu-toggle:hover { border-color: #fff; }
+.menu-toggle-bars {
+  display: block;
+  width: 16px;
+  height: 11px;
+  background:
+    linear-gradient(#fff, #fff) 0 0 / 100% 2px no-repeat,
+    linear-gradient(#fff, #fff) 0 4.5px / 100% 2px no-repeat,
+    linear-gradient(#fff, #fff) 0 9px / 100% 2px no-repeat;
+}
+.nav-drawer { display: contents; }
+.public-nav-backdrop,
+.app-nav-backdrop { display: none; }
 
 /* —— Marketing hero / steps / pricing / footer —— */
 .hero {
@@ -740,6 +768,8 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 }
 .ready { font-size: 13px; color: var(--green); font-weight: 600; }
 .ready span { color: #fff; font-weight: 500; margin-left: 6px; }
+.topbar .menu-toggle,
+.topbar .mobile-only-logo { display: none; }
 .who {
   display: inline-flex;
   align-items: center;
@@ -2020,7 +2050,52 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .thumb.lg { width: 56px; height: 56px; border-radius: 10px; }
 
 @media (max-width: 980px) {
-  .nav-links { display: none; }
+  .nav-links,
+  .nav-actions { display: none; }
+  .public-menu-toggle { display: inline-flex; }
+  .nav.nav-open .nav-drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    transform: none;
+    gap: 16px;
+    padding: 16px 24px 22px;
+    background: #0C0C12;
+    border-bottom: 1px solid var(--line);
+    z-index: 60;
+  }
+  .nav.nav-open .nav-links,
+  .nav.nav-open .nav-actions {
+    display: flex;
+    position: static;
+    transform: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+  .nav.nav-open .nav-links a {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav.nav-open .nav-actions .login,
+  .nav.nav-open .nav-actions .btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  .public-nav-backdrop {
+    display: none;
+    position: fixed;
+    inset: var(--nav-h) 0 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 55;
+  }
+  .nav.nav-open .public-nav-backdrop { display: block; }
+  body.public-nav-open { overflow: hidden; }
   .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head, .auth, .two-col, .review-grid, .form-grid, .art-row, .opt-grid, .workflow, .metric-row, .after, .pub-band, .writer-grid, .hero-split, .process-row, .exclude-grid, .how-cols, .boost-grid, .size-grid, .pro-adds .row, .dash-preview, .about-grid, .contact-grid, .dash-top, .form-grid.three, .form-grid.four, .catalog-stats, .song-hero, .fees-grid, .entry-grid, .prefill, .carry, .pub-bar, .offer-grid, .confirm-bar, .next-4, .know, .signed-grid {
     grid-template-columns: 1fr;
   }
@@ -2040,7 +2115,43 @@ table.data tbody tr.is-pick { cursor: pointer; }
   .sign-buttons { justify-content: stretch; }
   .sign-buttons .btn { width: 100%; }
   .app { grid-template-columns: 1fr; }
-  .side { position: relative; height: auto; }
+  .side {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(var(--side), 86vw);
+    height: 100vh;
+    height: 100dvh;
+    z-index: 90;
+    transform: translateX(-110%);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+  .app.nav-open .side {
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  .app-nav-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 80;
+  }
+  .app.nav-open .app-nav-backdrop { display: block; }
+  .app.nav-open { overflow: hidden; }
+  .topbar { gap: 12px; }
+  .topbar .menu-toggle { display: inline-flex; }
+  .topbar .mobile-only-logo {
+    display: inline-flex;
+    align-items: center;
+  }
+  .topbar .mobile-only-logo img {
+    height: 40px;
+    width: auto;
+  }
   .step + .step { border-left: none; border-top: 1px solid var(--line); padding-top: 28px; margin-top: 20px; }
   .step { padding: 8px 0; }
   .pricing-head p { text-align: left; }
@@ -2114,7 +2225,7 @@ table.data tbody tr.is-pick { cursor: pointer; }
   .page { padding: 22px 16px 40px; }
 }
 
-/* Phone header only: 72px wordmark (~264px wide) leaves no room for Log in + Release Now. */
+/* Phone header: logo + hamburger. Log in / Release Now live in the drawer. */
 @media (max-width: 640px) {
   :root {
     --nav-h: 72px;
@@ -2169,30 +2280,23 @@ table.data tbody tr.is-pick { cursor: pointer; }
   .nav .logo {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: 42%;
+    max-width: none;
   }
   .nav .logo img {
-    height: 40px;
+    height: 48px;
     width: auto;
-    max-width: 100%;
+    max-width: 220px;
     object-fit: contain;
     object-position: left center;
   }
-  .nav-actions {
-    gap: 8px;
-    flex: 0 0 auto;
+  .nav.nav-open .nav-actions {
+    gap: 10px;
   }
-  .nav-actions .login,
-  .nav-actions .btn {
+  .nav.nav-open .nav-actions .login,
+  .nav.nav-open .nav-actions .btn {
     white-space: nowrap;
-    flex-shrink: 0;
-    font-size: 13px;
-  }
-  .nav-actions .login {
-    padding: 7px 12px;
-  }
-  .nav-actions .btn.btn-sm {
-    padding: 8px 14px;
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -2204,16 +2308,8 @@ table.data tbody tr.is-pick { cursor: pointer; }
     padding-right: 12px;
     gap: 6px;
   }
-  .nav .logo {
-    max-width: 36%;
-  }
-  .nav-actions {
-    gap: 6px;
-  }
-  .nav-actions .login {
-    padding: 8px 10px;
-  }
-  .nav-actions .btn.btn-sm {
-    padding: 9px 12px;
+  .nav .logo img {
+    height: 44px;
+    max-width: 200px;
   }
 }
