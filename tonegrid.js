@@ -704,6 +704,49 @@
     if (field.classList && field.classList.toggle) field.classList.toggle('is-hidden', Boolean(instrumental));
   }
 
+  function artistCheckApi() {
+    return (typeof PlaigroundArtistCheck !== 'undefined' && PlaigroundArtistCheck) || null;
+  }
+
+  function rosterFromMe(me) {
+    var row = me || accountRecord() || {};
+    var artists = row.profile && Array.isArray(row.profile.artists) ? row.profile.artists.slice() : [];
+    if (!artists.length && row.artist) {
+      artists.push({
+        id: 'account',
+        name: row.artist,
+        source: 'created',
+        badge: 'PLAIGROUND',
+        tonegrid_artist_id: row.tonegrid_artist_id || '',
+        name_check: 'green',
+      });
+    }
+    return artists;
+  }
+
+  function selectedArtistOption() {
+    var sel = $('tg-artist-select');
+    if (!sel || sel.selectedIndex < 0 || !sel.options) return null;
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) return null;
+    return { id: String(opt.value), name: String(opt.getAttribute('data-name') || opt.textContent || '').trim() };
+  }
+
+  function syncArtistHidden() {
+    var hidden = $('tg-artist');
+    if (!hidden) return fieldValue('tg-artist');
+    var mode = fieldValue('tg-artist-mode') || 'choose';
+    var name = '';
+    if (mode === 'create') name = fieldValue('tg-artist-new');
+    else if (mode === 'link') name = fieldValue('tg-artist-link-name');
+    else {
+      var picked = selectedArtistOption();
+      name = picked ? picked.name : fieldValue('tg-artist');
+    }
+    if (name) hidden.value = name;
+    return hidden.value;
+  }
+
   function collectUploadFields() {
     var instrumental = selectedInstrumental();
     var language = fieldValue('tg-language').toLowerCase();
@@ -713,7 +756,7 @@
       audio: selectedAudio(),
       artwork: selectedArtwork(),
       title: fieldValue('tg-title'),
-      name: fieldValue('tg-artist'),
+      name: syncArtistHidden() || fieldValue('tg-artist'),
       featured: fieldValue('tg-featured'),
       genre: fieldValue('tg-genre'),
       language: language,
@@ -821,9 +864,229 @@
     if (el) el.hidden = !show;
   }
 
+  function setBoxHidden(id, hidden) {
+    var el = $(id);
+    if (!el) return;
+    el.hidden = Boolean(hidden);
+  }
+
+  function bindArtistSection() {
+    var modeEl = $('tg-artist-mode');
+    if (!modeEl) return;
+
+    function showMode(mode) {
+      setBoxHidden('artist-choose-wrap', mode !== 'choose');
+      setBoxHidden('artist-create-wrap', mode !== 'create');
+      setBoxHidden('artist-link-wrap', mode !== 'link');
+    }
+
+    function fillSelect(artists) {
+      var sel = $('tg-artist-select');
+      if (!sel) return;
+      var current = sel.value;
+      sel.textContent = '';
+      var blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = artists.length ? 'Select an artist' : 'No artist profiles yet';
+      sel.appendChild(blank);
+      artists.forEach(function (artist) {
+        var opt = document.createElement('option');
+        opt.value = artist.id;
+        opt.setAttribute('data-name', artist.name);
+        opt.textContent = artist.name + (artist.badge ? ' · ' + artist.badge : '');
+        sel.appendChild(opt);
+      });
+      if (current) sel.value = current;
+      else if (artists.length === 1) sel.value = artists[0].id;
+    }
+
+    function liveNameCheck() {
+      var api = artistCheckApi();
+      var msg = $('artist-name-check');
+      var yellow = $('artist-yellow-actions');
+      var red = $('artist-red-actions');
+      var name = fieldValue('tg-artist-new');
+      if (!api) return { level: 'green' };
+      var check = api.checkArtistName(name, { accountArtists: rosterFromMe() });
+      if (msg) {
+        msg.hidden = !name || check.level === 'empty';
+        msg.textContent = check.level === 'green' && name
+          ? 'No close match. This artist page can be created instantly.'
+          : (check.copy || '');
+        if (msg.classList && msg.classList.toggle) {
+          msg.classList.toggle('is-green', check.level === 'green' && Boolean(name));
+          msg.classList.toggle('is-yellow', check.level === 'yellow');
+          msg.classList.toggle('is-red', check.level === 'red');
+        }
+      }
+      if (yellow) yellow.hidden = check.level !== 'yellow';
+      if (red) red.hidden = check.level !== 'red';
+      if (check.level !== 'yellow') {
+        var wrap = $('artist-impersonation-wrap');
+        var box = $('artist-confirm-different');
+        if (wrap) wrap.hidden = true;
+        if (box) box.checked = false;
+      }
+      return check;
+    }
+
+    function liveTitleCheck() {
+      var api = artistCheckApi();
+      var msg = $('title-check-msg');
+      if (!api || !msg) return;
+      var result = api.checkTitle(fieldValue('tg-title'), { artistName: syncArtistHidden() });
+      msg.hidden = !result.flagged;
+      msg.textContent = result.copy || '';
+    }
+
+    modeEl.addEventListener('change', function () {
+      showMode(modeEl.value || 'choose');
+      syncArtistHidden();
+    });
+    showMode(modeEl.value || 'choose');
+
+    var newName = $('tg-artist-new');
+    if (newName) {
+      newName.addEventListener('input', liveNameCheck);
+      newName.addEventListener('change', liveNameCheck);
+    }
+    var title = $('tg-title');
+    if (title) {
+      title.addEventListener('input', liveTitleCheck);
+      title.addEventListener('change', liveTitleCheck);
+    }
+    document.querySelectorAll('[data-artist-to-link]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        modeEl.value = 'link';
+        showMode('link');
+      });
+    });
+    var continueDifferent = $('artist-continue-different');
+    if (continueDifferent) {
+      continueDifferent.addEventListener('click', function () {
+        var wrap = $('artist-impersonation-wrap');
+        if (wrap) wrap.hidden = false;
+      });
+    }
+    var submitReview = $('artist-submit-review');
+    if (submitReview) {
+      submitReview.addEventListener('click', function () {
+        writeDraft({ artist_review: true });
+        setStatus('tg-status', 'This name will be held for review and will not go to ToneGrid automatically.');
+      });
+    }
+
+    whenAccountReady().then(function (result) {
+      fillSelect(rosterFromMe((result && result.data) || accountRecord()));
+    });
+
+    liveNameCheck();
+    liveTitleCheck();
+  }
+
+  function resolveUploadArtist(fields) {
+    var modeEl = $('tg-artist-mode');
+    if (!modeEl) {
+      return Promise.resolve({
+        name: fields.name,
+        id: '',
+        check: { level: 'green' },
+        confirmDifferent: false,
+        linked: false,
+      });
+    }
+    var mode = fieldValue('tg-artist-mode') || 'choose';
+    var api = artistCheckApi();
+    var me = accountRecord();
+    var artists = rosterFromMe(me);
+
+    if (mode === 'choose') {
+      var picked = selectedArtistOption();
+      if (!picked || !picked.name) {
+        return Promise.resolve({ error: 'Choose an artist profile.' });
+      }
+      var existing = null;
+      artists.forEach(function (row) { if (row.id === picked.id) existing = row; });
+      return Promise.resolve({
+        name: picked.name,
+        id: picked.id === 'account' ? '' : picked.id,
+        check: { level: (existing && existing.name_check) || 'green' },
+        confirmDifferent: Boolean(existing && existing.impersonation_confirmed),
+        linked: Boolean(existing && existing.source === 'linked'),
+        skipTonegrid: Boolean(existing && existing.review_status === 'pending'),
+        tonegridId: existing && existing.tonegrid_artist_id,
+      });
+    }
+
+    if (mode === 'link') {
+      var url = fieldValue('tg-artist-link');
+      var parsed = api ? api.parseStoreLink(url) : { ok: false };
+      if (!parsed.ok) {
+        return Promise.resolve({ error: 'Paste a Spotify, Apple Music, or store artist link.' });
+      }
+      var linkName = fieldValue('tg-artist-link-name') || fields.name || 'Linked artist';
+      return post('/api/me/artists', { action: 'link', url: url, name: linkName }).then(function (result) {
+        if (!result.ok) return { error: (result.data && result.data.error) || 'Could not link artist.' };
+        var created = (result.data && result.data.created) || {};
+        return {
+          name: created.name || linkName,
+          id: created.id || '',
+          check: { level: 'green', skip: true, linked: true },
+          confirmDifferent: false,
+          linked: true,
+        };
+      });
+    }
+
+    var name = fieldValue('tg-artist-new') || fields.name;
+    if (!name) return Promise.resolve({ error: 'Artist name is required.' });
+    var check = api ? api.checkArtistName(name, { accountArtists: artists }) : { level: 'green' };
+    var confirmDifferent = Boolean($('artist-confirm-different') && $('artist-confirm-different').checked);
+    var submitReview = Boolean(readDraft().artist_review) || check.level === 'red';
+    if (check.level === 'yellow' && !confirmDifferent) {
+      return Promise.resolve({ error: (api && api.YELLOW_COPY) || 'Confirm this is a different artist to continue.' });
+    }
+    return post('/api/me/artists', {
+      action: 'create',
+      name: name,
+      confirm_different: confirmDifferent,
+    }).then(function (result) {
+      if (result.status === 409 && result.data && result.data.code === 'ARTIST_NAME_YELLOW' && !confirmDifferent) {
+        return { error: (result.data && result.data.error) || 'Confirm this is a different artist to continue.' };
+      }
+      if (!result.ok) return { error: (result.data && result.data.error) || 'Could not save artist.' };
+      var created = (result.data && result.data.created) || {};
+      return {
+        name: created.name || name,
+        id: created.id || '',
+        check: (result.data && result.data.check) || check,
+        confirmDifferent: confirmDifferent,
+        linked: false,
+        skipTonegrid: check.level === 'red' || submitReview,
+      };
+    });
+  }
+
+  function recordLocalRelease(draft, artist) {
+    return post('/api/me/artists', {
+      action: 'record_release',
+      release: {
+        title: draft.title,
+        plaiground_artist_id: artist && artist.id,
+        title_check: draft.title_check || { flagged: false, flags: [], block: false },
+        artist_check: (artist && artist.check && artist.check.level) || draft.artist_check || '',
+        tonegrid_status: draft.tonegrid_status || '',
+        rejection_reason: draft.rejection_reason || '',
+        tonegrid_release_id: draft.release_id || '',
+        id: draft.release_id || '',
+      },
+    });
+  }
+
   function bindUpload() {
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
+    bindArtistSection();
     var uploadRunning = false;
 
     function setUploadBusy(busy) {
@@ -857,7 +1120,7 @@
       syncLanguageField(selectedInstrumental());
       markIncomplete(trigger, Boolean(uploadPageError(collectUploadFields())));
     }
-    ['tg-title', 'tg-artist', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price', 'tg-instrumental'].forEach(function (id) {
+    ['tg-title', 'tg-artist', 'tg-artist-new', 'tg-artist-select', 'tg-artist-mode', 'tg-artist-link', 'tg-artist-link-name', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price', 'tg-instrumental'].forEach(function (id) {
       var el = $(id);
       if (!el || !el.addEventListener) return;
       el.addEventListener('input', refreshUploadGate);
@@ -945,7 +1208,12 @@
           failUpload(created.result.data.error || 'Could not create release.', false);
           return;
         }
-        return afterCatalogReady(created.draft || draft, nextHref);
+        return afterCatalogReady(created.draft || draft, nextHref).then(function () {
+          return recordLocalRelease(created.draft || draft, {
+            id: (created.draft || draft).plaiground_artist_id,
+            check: { level: (created.draft || draft).artist_check },
+          });
+        });
       });
     }
 
@@ -987,6 +1255,7 @@
         return;
       }
 
+      var titleCheck = artistCheckApi() ? artistCheckApi().checkTitle(title, { artistName: name }) : { flagged: false, flags: [], block: false };
       writeDraft({
         name: name,
         title: title,
@@ -999,6 +1268,7 @@
         instrumental: instrumental,
         artwork_name: art && art.name ? art.name : '',
         artwork_type: art && art.type ? art.type : '',
+        title_check: titleCheck,
       });
       setUploadBusy(true);
       markStatusError(false);
@@ -1021,43 +1291,80 @@
             instrumental: instrumental,
             artwork_name: art && art.name ? art.name : '',
             artwork_type: art && art.type ? art.type : '',
+            title_check: titleCheck,
           }), me);
           var catalog = catalogFromAccount(me);
           if (!continuingSame && catalog.allowed === false) {
             failUpload(planLimitMessage(catalog.plan), true);
             return;
           }
-          var reusing = Boolean(draft.artist_id || draft.release_id);
-          if (reusing) {
-            return afterArtistReady(draft, nextHref);
-          }
-          if (catalog.allowed === false) {
-            failUpload(planLimitMessage(catalog.plan), true);
-            return;
-          }
-          showUploadLoader('Saving artist');
-          setStatus('tg-status', 'Saving artist…');
-          return post(ARTISTS_URL, { name: name }).then(function (artistResult) {
-            if (isUnavailable(artistResult)) {
-              finishToAttest(nextHref, 'Catalog sync is not configured yet.');
+          return resolveUploadArtist(fields).then(function (artist) {
+            if (artist && artist.error) {
+              failUpload(artist.error, false);
               return;
             }
-            if (isPlanLimit(artistResult)) {
-              failUpload(createErrorMessage(artistResult, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
+            var nextDraft = writeDraft({
+              name: (artist && artist.name) || name,
+              plaiground_artist_id: (artist && artist.id) || '',
+              artist_check: (artist && artist.check && artist.check.level) || '',
+              artist_linked: Boolean(artist && artist.linked),
+              confirm_different: Boolean(artist && artist.confirmDifferent),
+            });
+            if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {
+              writeDraft({ pending_review: true, tonegrid_status: 'pending_review', artist_check: 'red' });
+              return recordLocalRelease(readDraft(), artist).then(function () {
+                finishToAttest(nextHref, 'This artist name is held for review and was not sent to ToneGrid.');
+              });
+            }
+            var reusing = Boolean(nextDraft.artist_id || nextDraft.release_id || (artist && artist.tonegridId));
+            if (artist && artist.tonegridId && !nextDraft.artist_id) {
+              nextDraft = writeDraft({ artist_id: artist.tonegridId });
+            }
+            if (reusing) {
+              return afterArtistReady(nextDraft, nextHref);
+            }
+            if (catalog.allowed === false) {
+              failUpload(planLimitMessage(catalog.plan), true);
               return;
             }
-            if (!artistResult.ok) {
-              failUpload(artistResult.data.error || 'Could not save artist.', false);
-              return;
-            }
-            var artistId = pickUuid(artistResult.data);
-            var next = writeDraft({ artist_id: artistId });
-            if (artistId) saveCatalog({ artist_id: artistId });
-            if (!artistId) {
-              finishToAttest(nextHref, 'Artist saved. Release will retry on the next step.');
-              return;
-            }
-            return afterArtistReady(next, nextHref);
+            showUploadLoader('Saving artist');
+            setStatus('tg-status', 'Saving artist…');
+            return post(ARTISTS_URL, {
+              name: (artist && artist.name) || name,
+              plaiground_artist_id: (artist && artist.id) || '',
+              confirm_different: Boolean(artist && artist.confirmDifferent),
+              store_url: fieldValue('tg-artist-link'),
+            }).then(function (artistResult) {
+              if (artistResult.status === 409 && artistResult.data && artistResult.data.code === 'ARTIST_NAME_RED') {
+                writeDraft({ pending_review: true, tonegrid_status: 'pending_review', artist_check: 'red' });
+                return recordLocalRelease(readDraft(), artist).then(function () {
+                  finishToAttest(nextHref, 'This artist name is held for review and was not sent to ToneGrid.');
+                });
+              }
+              if (isUnavailable(artistResult)) {
+                finishToAttest(nextHref, 'Catalog sync is not configured yet.');
+                return;
+              }
+              if (isPlanLimit(artistResult)) {
+                failUpload(createErrorMessage(artistResult, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
+                return;
+              }
+              if (!artistResult.ok) {
+                failUpload(artistResult.data.error || 'Could not save artist.', false);
+                return;
+              }
+              var artistId = pickUuid(artistResult.data);
+              var next = writeDraft({ artist_id: artistId });
+              if (artistId) saveCatalog({ artist_id: artistId });
+              if (artist && artist.id && artistId) {
+                post('/api/me/artists', { action: 'attach_tonegrid', id: artist.id, tonegrid_artist_id: artistId });
+              }
+              if (!artistId) {
+                finishToAttest(nextHref, 'Artist saved. Release will retry on the next step.');
+                return;
+              }
+              return afterArtistReady(next, nextHref);
+            });
           });
         })
         .catch(function () {
@@ -1081,6 +1388,17 @@
   }
 
   function finishSubmit(draft, releaseDate, trigger, nextHref) {
+    if (draft && (draft.pending_review || draft.artist_check === 'red')) {
+      writeDraft({ tonegrid_status: 'pending_review', submitted: true });
+      return recordLocalRelease(readDraft(), {
+        id: draft.plaiground_artist_id,
+        check: { level: 'red' },
+      }).then(function () {
+        if (trigger) trigger.removeAttribute('aria-busy');
+        setStatus('tg-status', 'Held for review. This name was not sent to ToneGrid.');
+        if (nextHref) go(nextHref);
+      });
+    }
     var solo = isSoloOwned(draft);
     setStatus('tg-status', solo ? 'Submitting to ToneGrid…' : 'Sending split sheet…');
     var ready = solo ? Promise.resolve(draft) : refreshSignWellDraft(draft);

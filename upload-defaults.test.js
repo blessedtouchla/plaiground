@@ -48,7 +48,13 @@ function run() {
   assert.ok(/id="tg-title"[^>]*value=""/.test(upload));
   assert.ok(/id="tg-artist"[^>]*value=""/.test(upload));
   assert.ok(upload.indexOf('placeholder="SONG TITLE"') !== -1);
-  assert.ok(upload.indexOf('<label for="tg-artist">Primary artist</label>') !== -1);
+  assert.ok(upload.indexOf('Choose artist profile') !== -1);
+  assert.ok(upload.indexOf('Create new artist profile') !== -1);
+  assert.ok(upload.indexOf('Add external artist') !== -1);
+  assert.ok(upload.indexOf('id="tg-artist-new"') !== -1);
+  assert.ok(upload.indexOf('id="tg-artist-link"') !== -1);
+  assert.ok(upload.indexOf('human_contributions') === -1);
+  assert.ok(upload.indexOf('ai_involvement') === -1);
   assert.ok(upload.indexOf('placeholder="Artist name"') !== -1);
   assert.ok(!/id="tg-artist"[^>]*(legal name|FIRST NAME LAST NAME)/i.test(upload));
   assert.ok(upload.indexOf('placeholder="Optional featured"') !== -1);

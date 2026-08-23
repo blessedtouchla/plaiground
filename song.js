@@ -154,24 +154,49 @@
     return '';
   }
 
+  function statusApi() {
+    return (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus) || null;
+  }
+
   function statusStep(release, draft) {
-    var status = String((release && release.status) || '').toLowerCase();
-    if (status === 'live') return 'live';
-    if (status === 'rejected') return 'rejected';
+    var status = String((release && (release.status || release.tonegrid_status)) || '').toLowerCase();
+    if (draft && draft.tonegrid_status && !status) status = String(draft.tonegrid_status).toLowerCase();
+    var api = statusApi();
+    var g = api ? api.group(status) : '';
+    if (g === 'live' || g === 'rejected' || g === 'processing' || g === 'pending') return g;
+    if (status === 'live' || status === 'delivered') return 'live';
+    if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'rejected';
+    if (status === 'approved' || status === 'processing' || status === 'delivering') return 'processing';
+    if (status === 'pending') return 'pending';
     if (status === 'draft' && !(draft && draft.submitted)) return 'draft';
     var writers = (draft && Array.isArray(draft.writers)) ? draft.writers : [];
     var solo = Boolean(draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true')) && !String((draft && draft.featured) || '').trim();
     var signed = Boolean(draft && (draft.signwell_signed === true || String(draft.signwell_status || '') === 'Completed' || String(draft.signwell_status || '') === 'solo'));
-    if (!solo && writers.length > 1 && !signed) return 'signatures';
-    return 'review';
+    if (!solo && writers.length > 1 && !signed && !(draft && draft.submitted)) return 'signatures';
+    if (draft && draft.submitted) return 'pending';
+    return g || 'draft';
+  }
+
+  function storedRelease(me, release) {
+    var list = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+    var want = String((release && (release.uuid || release.id)) || '').toLowerCase();
+    var i;
+    for (i = 0; i < list.length; i += 1) {
+      var id = String((list[i] && (list[i].tonegrid_release_id || list[i].id)) || '').toLowerCase();
+      if (want && id === want) return list[i];
+    }
+    return null;
   }
 
   function statusLabel(step) {
+    var api = statusApi();
+    if (api) return api.label(step);
     if (step === 'live') return 'Live';
-    if (step === 'rejected') return 'Rejected';
+    if (step === 'rejected') return 'Needs fix';
     if (step === 'draft') return 'Draft';
     if (step === 'signatures') return 'Awaiting signatures';
-    return 'In review';
+    if (step === 'processing') return 'Processing';
+    return 'Pending';
   }
 
   function getJson(url) {
@@ -366,8 +391,8 @@
       setHidden('[data-song-status]', false);
       setText('[data-song-title]', 'Untitled');
       setText('[data-song-meta]', '');
-      setText('[data-song-pill]', 'In review');
-      markLife('review');
+      setText('[data-song-pill]', 'Pending');
+      markLife('pending');
       setCover('');
       setText('[data-song-streams]', '0');
       setText('[data-song-earnings]', '$0.00');
@@ -377,6 +402,7 @@
       setHidden('[data-song-boost]', true);
       setHidden('[data-song-edit]', true);
       setHidden('[data-song-split-empty]', false);
+      setHidden('[data-song-rejection]', true);
       return;
     }
 
@@ -390,7 +416,18 @@
     var pill = $('[data-song-pill]');
     if (pill && pill.classList) {
       pill.classList.toggle('pill-green', step === 'live');
+      pill.classList.toggle('is-yellow', step === 'pending' || step === 'processing');
+      pill.classList.toggle('is-red', step === 'rejected');
     }
+    var stored = storedRelease(me, release);
+    if (stored && stored.tonegrid_status && !(release && release.status)) {
+      release.status = stored.tonegrid_status;
+    }
+    var rejection = String((release && release.rejection_reason) || (stored && stored.rejection_reason) || '').trim();
+    var rejected = step === 'rejected' || Boolean(rejection);
+    setHidden('[data-song-rejection]', !rejected);
+    setText('[data-song-rejection-reason]', rejection || 'ToneGrid sent this release back. Fix the details and resubmit.');
+
     var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
     var meta = [artist, typeLabel(release.type), yearOf(release.release_date), release.genre].filter(Boolean);
     setText('[data-song-meta]', meta.join(' · '));
@@ -400,8 +437,9 @@
     var scoped = ((analytics.releases || []).filter(function (row) {
       return String(row.release_uuid || row.uuid || '').toLowerCase() === String(release.uuid || '').toLowerCase();
     })[0]) || {};
-    setText('[data-song-streams]', formatCount(scoped.streams != null ? scoped.streams : summary.total_streams));
-    setText('[data-song-earnings]', formatMoney(scoped.revenue_usd != null ? scoped.revenue_usd : summary.total_revenue_usd));
+    var showStats = step === 'live';
+    setText('[data-song-streams]', formatCount(showStats && scoped.streams != null ? scoped.streams : (showStats ? summary.total_streams : 0)));
+    setText('[data-song-earnings]', formatMoney(showStats && scoped.revenue_usd != null ? scoped.revenue_usd : (showStats ? summary.total_revenue_usd : 0)));
 
     var dsps = analytics.dsps || [];
     setHidden('[data-song-breakdown]', !paid);

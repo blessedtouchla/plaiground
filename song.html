@@ -22,7 +22,7 @@
       <a href="analytics.html">Analytics</a>
       <a href="boosts.html">Boosts</a>
       <a href="payouts.html">Payouts</a>
-      <a href="profile.html">Profile</a>
+      <a href="artists.html">Artist Profiles</a>
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
@@ -41,17 +41,23 @@
         <a href="releases.html" style="color:var(--muted-2);font-size:14px">&lt; Back to My Music</a>
       </div>
       <p class="hint" data-song-status hidden></p>
+      <div class="draft-banner" data-song-rejection hidden>
+        <strong>Needs a fix</strong>
+        <p data-song-rejection-reason></p>
+        <p class="hint">Use Edit release, then Submit for editing to send the fix back.</p>
+      </div>
       <div class="life" data-song-life>
         <span data-life="draft">Draft</span>
         <span data-life="signatures">Awaiting Signatures</span>
-        <span data-life="review">In Review</span>
+        <span data-life="pending">Pending</span>
+        <span data-life="processing">Processing</span>
         <span data-life="live">Live</span>
-        <span data-life="rejected">Rejected</span>
+        <span data-life="rejected">Needs fix</span>
       </div>
       <div class="song-top">
         <div>
           <h1 style="font-size:2.4rem;letter-spacing:-0.04em;display:inline-block;margin-right:10px" data-song-title>Untitled</h1>
-          <span class="pill" data-song-pill>In review</span>
+          <span class="pill" data-song-pill>Pending</span>
           <p style="color:var(--muted);margin-top:8px" data-song-meta></p>
         </div>
         <div class="hero-ctas" style="margin:0">
@@ -272,6 +278,7 @@
       </div>
     </div>
   </div>
+  <script src="lib/release-status.js"></script>
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>

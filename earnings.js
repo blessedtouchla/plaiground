@@ -144,6 +144,19 @@
     setHidden('[data-earn-status]', !text);
   }
 
+  function loadAccount() {
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.whenReady === 'function') {
+      return global.PlaigroundMembership.whenReady().then(function (result) {
+        return (result && result.data) || null;
+      });
+    }
+    return Promise.resolve(null);
+  }
+
+  function emptyPayload() {
+    return { balance: { available_usd: 0, pending_usd: 0 }, statements: [], breakdown: [] };
+  }
+
   function load() {
     if (!$('[data-earn-metrics]')) return;
     setStatus('Loading earnings…');
@@ -156,24 +169,34 @@
         });
       })
       .then(function (result) {
+        return loadAccount().then(function (me) {
+          return { result: result, me: me };
+        });
+      })
+      .then(function (pack) {
+        var result = pack.result;
+        var me = pack.me;
+        var known = me && me.profile && Array.isArray(me.profile.releases) && me.profile.releases.length;
+        var hasLive = typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus.accountHasLive(me);
+        var hideStats = Boolean(known && !hasLive);
         if (result.status === 401) {
           setStatus('Sign in to see your royalties.');
-          render({ balance: {}, statements: [], breakdown: [] });
+          render(emptyPayload());
           return;
         }
         if (result.status === 503 || result.data.configured === false) {
           setStatus(result.data && result.data.error === 'Accounts are not configured.'
             ? 'Accounts are not configured.'
             : 'Catalog sync is not configured yet.');
-          render({ balance: {}, statements: [], breakdown: [] });
+          render(emptyPayload());
           return;
         }
         if (!result.ok) {
           setStatus(result.data.error || 'Could not load earnings.');
-          render({ balance: {}, statements: [], breakdown: [] });
+          render(emptyPayload());
           return;
         }
-        render(result.data);
+        render(hideStats ? emptyPayload() : result.data);
         setStatus(result.data.errors ? 'Some ToneGrid earnings could not be loaded.' : '');
       })
       .catch(function () {

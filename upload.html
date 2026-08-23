@@ -81,11 +81,70 @@
       </div>
     </section>
 
+    <section class="flow-card" data-upload-artist>
+      <h3>Artist</h3>
+      <p class="hint">Choose who this song is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.</p>
+      <div class="field">
+        <label for="tg-artist-mode">Artist for this song</label>
+        <select id="tg-artist-mode" class="details-select" autocomplete="off">
+          <option value="choose">Choose artist profile</option>
+          <option value="create">Create new artist profile</option>
+          <option value="link">Add external artist</option>
+        </select>
+      </div>
+      <div id="artist-choose-wrap" class="field" style="margin-top:14px">
+        <label for="tg-artist-select">Choose artist profile</label>
+        <select id="tg-artist-select" class="details-select" autocomplete="off">
+          <option value="">Select an artist</option>
+        </select>
+      </div>
+      <div id="artist-create-wrap" hidden>
+        <div class="field" style="margin-top:14px">
+          <label for="tg-artist-new">Artist name</label>
+          <input id="tg-artist-new" name="release-artist-new" type="text" value="" placeholder="Artist name" autocomplete="off" />
+          <p class="hint" id="artist-name-check" hidden></p>
+        </div>
+        <div id="artist-yellow-actions" class="artist-check-box is-yellow" hidden>
+          <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-to-link>Link existing artist</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-continue-different">Continue as a different artist</button>
+          </p>
+          <label class="checkline" id="artist-impersonation-wrap" hidden style="margin-top:12px;display:flex;gap:10px;align-items:flex-start">
+            <input id="artist-confirm-different" type="checkbox" />
+            <span>I confirm this is not impersonation and I understand this release may be reviewed.</span>
+          </label>
+        </div>
+        <div id="artist-red-actions" class="artist-check-box is-red" hidden>
+          <p>This name is too close to an existing artist and can’t be released automatically.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-to-link>Link existing artist</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-submit-review">Submit for review</button>
+          </p>
+        </div>
+      </div>
+      <div id="artist-link-wrap" hidden>
+        <div class="field" style="margin-top:14px">
+          <label for="tg-artist-link">Store artist link</label>
+          <input id="tg-artist-link" type="url" value="" placeholder="Spotify, Apple Music, or store artist URL" autocomplete="off" />
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label for="tg-artist-link-name">Display name</label>
+          <input id="tg-artist-link-name" type="text" value="" placeholder="Name as it should appear" autocomplete="off" />
+          <p class="hint">A valid store link creates a Linked profile and skips the name warning.</p>
+        </div>
+      </div>
+      <input id="tg-artist" name="release-artist" type="hidden" value="" />
+    </section>
+
     <section class="flow-card">
       <h3>Submit the details</h3>
       <div class="form-grid three">
-        <div class="field"><label for="tg-title">Song title</label><input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" /></div>
-        <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" name="release-artist" type="text" value="" placeholder="Artist name" autocomplete="off" /></div>
+        <div class="field">
+          <label for="tg-title">Song title</label>
+          <input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" />
+          <p class="hint" id="title-check-msg" hidden></p>
+        </div>
         <div class="field"><label for="tg-featured">Featured artist</label><input id="tg-featured" name="release-featured" type="text" value="" placeholder="Optional featured" autocomplete="off" /></div>
         <div class="field">
           <label for="tg-genre">Genre</label>
@@ -132,6 +191,7 @@
   </div>
   <script src="upload-catalog.js"></script>
   <script src="lib/upload-required.js"></script>
+  <script src="lib/artist-check.js"></script>
   <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>

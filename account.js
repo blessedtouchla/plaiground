@@ -80,9 +80,12 @@
     var hasRelease = ids.length > 0;
     var latestId = hasRelease ? String(ids[ids.length - 1]) : '';
     var latest = latestReleaseCard(me, latestId);
-    $all('[data-account-releases]').forEach(function (el) { setText(el, String(ids.length)); });
+    var liveN = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
+      ? PlaigroundReleaseStatus.liveCount(me)
+      : 0;
+    $all('[data-account-releases]').forEach(function (el) { setText(el, String(liveN)); });
     $all('[data-pub-call]').forEach(function (el) {
-      el.hidden = !hasRelease;
+      el.hidden = liveN === 0;
     });
     $all('[data-first-song]').forEach(function (el) { el.hidden = hasRelease; });
     $all('[data-has-release]').forEach(function (el) { el.hidden = !hasRelease; });
@@ -116,7 +119,23 @@
     var draft = readDraft();
     var title = String((draft && draft.title) || '').trim() || 'Your release';
     var href = latestId ? ('song.html?id=' + encodeURIComponent(latestId)) : 'releases.html';
-    return { title: title, status: 'In Review', href: href };
+    var stored = '';
+    if (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus && latestId) {
+      stored = PlaigroundReleaseStatus.storedStatus(me, latestId);
+    }
+    if (!stored && me && me.profile && Array.isArray(me.profile.releases) && latestId) {
+      me.profile.releases.forEach(function (row) {
+        if (String((row && (row.tonegrid_release_id || row.id)) || '').toLowerCase() === String(latestId).toLowerCase()) {
+          stored = String((row && row.tonegrid_status) || '').toLowerCase();
+        }
+      });
+    }
+    if (!stored && draft && draft.tonegrid_status) stored = String(draft.tonegrid_status).toLowerCase();
+    if (!stored) stored = (draft && draft.submitted === false) ? 'draft' : 'pending';
+    var status = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
+      ? PlaigroundReleaseStatus.label(stored)
+      : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'Needs fix' : 'Pending');
+    return { title: title, status: status, href: href };
   }
 
   function bindSignOut() {
