@@ -46,11 +46,10 @@
           <b data-audio-name>No file selected</b>
           <div style="color:var(--muted);font-size:12px" data-audio-meta>WAV, FLAC, or MP3 · 16-bit or higher</div>
         </div>
-        <div class="wave" aria-hidden="true">
-          <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:60%"></i><i class="dim" style="height:35%"></i><i class="dim" style="height:75%"></i><i class="dim" style="height:50%"></i><i class="dim" style="height:85%"></i><i class="dim" style="height:40%"></i><i class="dim" style="height:65%"></i><i class="dim" style="height:30%"></i><i class="dim" style="height:88%"></i>
-        </div>
-        <button class="play" type="button" aria-label="Play">▶</button>
+        <audio data-audio-player controls preload="metadata"></audio>
+        <button class="play" type="button" data-audio-play aria-label="Play">▶</button>
       </div>
+      <p class="hint" data-audio-preview-hint hidden>Play this file here to confirm it is the right master before you continue. It stays on this device only.</p>
       <div class="opt-grid">
         <label class="dashbox checkline" for="tg-instrumental">
           <input id="tg-instrumental" name="release-instrumental" type="checkbox" />
@@ -222,6 +221,33 @@
       var preview = document.querySelector('[data-audio-preview]');
       var nameEl = document.querySelector('[data-audio-name]');
       var metaEl = document.querySelector('[data-audio-meta]');
+      var player = document.querySelector('[data-audio-player]');
+      var playBtn = document.querySelector('[data-audio-play]');
+      var previewHint = document.querySelector('[data-audio-preview-hint]');
+      var previewUrl = '';
+
+      function revokeAudioPreview() {
+        if (player) {
+          try { player.pause(); } catch (err) {}
+          player.removeAttribute('src');
+          if (typeof player.load === 'function') player.load();
+        }
+        if (previewUrl && window.URL && URL.revokeObjectURL) {
+          try { URL.revokeObjectURL(previewUrl); } catch (err) {}
+        }
+        previewUrl = '';
+        if (playBtn) {
+          playBtn.textContent = '▶';
+          playBtn.setAttribute('aria-label', 'Play');
+        }
+      }
+
+      function bindAudioPreview(file) {
+        revokeAudioPreview();
+        if (!file || !player || !window.URL || !URL.createObjectURL) return;
+        previewUrl = URL.createObjectURL(file);
+        player.src = previewUrl;
+      }
 
       function showFile(file) {
         if (window.PlaigroundMembership && !window.PlaigroundMembership.hasMembership()) {
@@ -239,7 +265,9 @@
         if (nameEl) nameEl.textContent = file.name;
         if (metaEl) metaEl.textContent = file.type || 'Audio file';
         if (preview) preview.hidden = false;
+        if (previewHint) previewHint.hidden = false;
         if (drop) drop.hidden = true;
+        bindAudioPreview(file);
       }
 
       if (drop && input) {
@@ -260,6 +288,29 @@
           showFile(input.files && input.files[0]);
         });
       }
+
+      if (playBtn && player) {
+        playBtn.addEventListener('click', function (event) {
+          event.preventDefault();
+          if (!player.getAttribute('src') && !player.src) return;
+          if (player.paused === false) player.pause();
+          else if (typeof player.play === 'function') player.play();
+        });
+        player.addEventListener('play', function () {
+          playBtn.textContent = '❚❚';
+          playBtn.setAttribute('aria-label', 'Pause');
+        });
+        player.addEventListener('pause', function () {
+          playBtn.textContent = '▶';
+          playBtn.setAttribute('aria-label', 'Play');
+        });
+        player.addEventListener('ended', function () {
+          playBtn.textContent = '▶';
+          playBtn.setAttribute('aria-label', 'Play');
+        });
+      }
+      window.addEventListener('pagehide', revokeAudioPreview);
+      window.addEventListener('beforeunload', revokeAudioPreview);
 
       var artInput = document.querySelector('[data-art-input]');
       var artBox = document.querySelector('[data-art-box]');

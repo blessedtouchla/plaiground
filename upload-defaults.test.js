@@ -91,6 +91,14 @@ function run() {
   assert.ok(upload.indexOf('data-art-pick') !== -1);
   assert.ok(upload.indexOf('data-art-input') !== -1);
   assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') !== -1);
+  assert.ok(upload.indexOf('data-audio-preview') !== -1);
+  assert.ok(upload.indexOf('data-audio-player') !== -1);
+  assert.ok(upload.indexOf('data-audio-play') !== -1);
+  assert.ok(upload.indexOf('URL.createObjectURL') !== -1);
+  assert.ok(upload.indexOf('URL.revokeObjectURL') !== -1);
+  assert.ok(upload.indexOf('pagehide') !== -1);
+  assert.ok(upload.indexOf('indexedDB') === -1);
+  assert.ok(upload.indexOf('Play this file here to confirm it is the right master') !== -1);
   assert.ok(upload.indexOf('id="tg-instrumental"') !== -1);
   assert.ok(upload.indexOf('type="checkbox"') !== -1);
   assert.ok(upload.indexOf('data-language-field') !== -1);
