@@ -36,11 +36,11 @@
       <h3>How was this song made?</h3>
       <p class="hint">Stores need to know how much of this recording is AI generated. Answer honestly and your release clears review the first time.</p>
       <p class="hint">Full AI tracks are accepted.</p>
-      <div class="choice on">
+      <div class="choice on" data-made-how="ai_assisted">
         <b>AI assisted, human authored</b>
         <span>AI generated parts of the track, a person wrote and performed the rest</span>
       </div>
-      <div class="choice">
+      <div class="choice" data-made-how="no_ai">
         <b>No AI used</b>
         <span>Written, played and produced entirely by people</span>
       </div>
@@ -49,23 +49,23 @@
     <section class="flow-card">
       <div class="head-row">
         <h3>What was the human element?</h3>
-        <span class="live">4 selected</span>
+        <span class="live" data-human-count>4 selected</span>
       </div>
       <p class="hint">Pick everything a person did on this record.</p>
       <div class="tags">
-        <button class="tag on" type="button">Original lyrics</button>
-        <button class="tag on" type="button">Lead vocals performed</button>
-        <button class="tag" type="button">Backing vocals</button>
-        <button class="tag" type="button">Played an instrument</button>
-        <button class="tag" type="button">Melody written</button>
-        <button class="tag on" type="button">Arrangement</button>
-        <button class="tag on" type="button">Prompt authorship</button>
-        <button class="tag" type="button">Mixed by a person</button>
-        <button class="tag" type="button">Mastered by a person</button>
+        <button class="tag on" type="button" data-human-tag>Original lyrics</button>
+        <button class="tag on" type="button" data-human-tag>Lead vocals performed</button>
+        <button class="tag" type="button" data-human-tag>Backing vocals</button>
+        <button class="tag" type="button" data-human-tag>Played an instrument</button>
+        <button class="tag" type="button" data-human-tag>Melody written</button>
+        <button class="tag on" type="button" data-human-tag>Arrangement</button>
+        <button class="tag on" type="button" data-human-tag>Prompt authorship</button>
+        <button class="tag" type="button" data-human-tag>Mixed by a person</button>
+        <button class="tag" type="button" data-human-tag>Mastered by a person</button>
       </div>
       <div class="field" style="margin-top:18px">
-        <label>Describe the human contribution</label>
-        <textarea rows="4" placeholder="e.g. I wrote the lyrics and topline, recorded the lead vocal at home, and directed the prompts for the instrumental before mixing it myself"></textarea>
+        <label for="attest-human">Describe the human contribution</label>
+        <textarea id="attest-human" rows="4" placeholder="e.g. I wrote the lyrics and topline, recorded the lead vocal at home, and directed the prompts for the instrumental before mixing it myself"></textarea>
       </div>
       <p class="hint">A couple of sentences is plenty. Reviewers read this when a track is flagged.</p>
     </section>
@@ -73,7 +73,7 @@
     <section class="flow-card">
       <h3>Rights confirmation</h3>
       <label class="checkline">
-        <input type="checkbox" />
+        <input id="attest-rights" type="checkbox" />
         I confirm I hold the rights to this recording, that the disclosure above is accurate, and that no part of it clones an existing artist's voice or master. I have read and accept the <a href="rights.html" style="color:var(--purple-bright)">rights attestation</a> and <a href="terms.html" style="color:var(--purple-bright)">terms of service</a>.
       </label>
       <p class="warn">Not yet accepted. Tick the box to read the terms.</p>
@@ -81,9 +81,12 @@
 
     <div class="flow-actions">
       <a class="btn btn-ghost btn-md" href="upload.html">Back</a>
-      <a class="btn btn-purple btn-md" href="split-sheet.html">Continue to the split sheet</a>
+      <a class="btn btn-purple btn-md" data-attest-continue href="split-sheet.html">Continue to the split sheet</a>
     </div>
+    <p class="hint" id="attest-status" hidden></p>
   </main>
+  <script src="lib/upload-required.js"></script>
+  <script src="attest.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

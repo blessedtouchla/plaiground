@@ -51,7 +51,7 @@
         <button class="learn" id="add-writer" type="button" style="color:var(--purple-bright);text-align:left">+ Add collaborator</button>
       </p>
       <p class="hint">Add every writer who contributed. Each one signs their own share before we deliver.</p>
-      <div class="alert" style="margin-top:12px">1 row incomplete: every collaborator needs an email before this sheet can be sent.</div>
+      <div id="incomplete-alert" class="alert" style="margin-top:12px">1 row incomplete: every collaborator needs an email before this sheet can be sent.</div>
       <p id="slot-note" class="hint is-hidden">The signing template currently has two writer slots. Extra writers are collected for the record.</p>
       <p class="hint">A writer with no PRO can still be added. Their publishing share is held until they have one on file.</p>
       <p class="hint">PLAIGROUND collects the publisher’s share through BMI only.</p>
@@ -90,6 +90,7 @@
     </section>
   </main>
 
+  <script src="lib/upload-required.js"></script>
   <script src="https://static.signwell.com/assets/embedded.js"></script>
   <script>
     (function () {
@@ -218,14 +219,35 @@
       }
 
       function clientError(payload) {
-        if (!payload.songTitle) return 'Add the song title.';
-        if (shareCents() !== 10000) return 'Shares among writers must total 100% of the writer’s 50%.';
-        for (var i = 0; i < payload.writers.length; i += 1) {
-          var writer = payload.writers[i];
-          if (!writer.name) return 'Writer ' + (i + 1) + ' needs a name.';
-          if (!writer.email) return 'Writer ' + (i + 1) + ' needs an email.';
+        if (window.PlaigroundUploadRequired && PlaigroundUploadRequired.validateSplit) {
+          var gated = PlaigroundUploadRequired.validateSplit(payload);
+          if (gated && gated.error) return gated.error;
+        } else {
+          if (!payload.songTitle) return 'Song title is required.';
+          for (var i = 0; i < payload.writers.length; i += 1) {
+            var writer = payload.writers[i];
+            if (!writer.name) return 'Writer ' + (i + 1) + ' needs a name.';
+            if (!writer.email) return 'Writer ' + (i + 1) + ' needs an email.';
+          }
         }
+        if (shareCents() !== 10000) return 'Shares among writers must total 100% of the writer’s 50%.';
         return '';
+      }
+
+      function markSignButtons(incomplete) {
+        if (signBtn && signBtn.classList) signBtn.classList.toggle('is-incomplete', incomplete);
+        if (emailBtn && emailBtn.classList) emailBtn.classList.toggle('is-incomplete', incomplete);
+      }
+
+      function refreshIncomplete() {
+        var payload = collectPayload();
+        var error = clientError(payload);
+        var alertEl = document.getElementById('incomplete-alert');
+        if (alertEl) {
+          alertEl.classList.toggle('is-hidden', !error);
+          if (error) alertEl.textContent = error;
+        }
+        markSignButtons(Boolean(error));
       }
 
       function saveDraft(patch) {
@@ -272,7 +294,14 @@
               method: 'POST',
               credentials: 'same-origin',
               headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-              body: JSON.stringify({ document_id: documentId, release_date: draft.release_date || '' })
+              body: JSON.stringify({
+                document_id: documentId,
+                release_date: draft.release_date || '',
+                made_how: draft.made_how || '',
+                human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
+                human_contribution: draft.human_contribution || '',
+                rights_confirmed: draft.rights_confirmed === true
+              })
             }).then(function (response) {
               return response.json().then(function (data) { return { ok: response.ok, data: data || {} }; });
             }).then(function (sent) {
@@ -373,8 +402,12 @@
         }
       }
 
-      writersEl.addEventListener('input', updateTotal);
-      writersEl.addEventListener('change', updateTotal);
+      writersEl.addEventListener('input', function () { updateTotal(); refreshIncomplete(); });
+      writersEl.addEventListener('change', function () { updateTotal(); refreshIncomplete(); });
+      if (titleInput) {
+        titleInput.addEventListener('input', refreshIncomplete);
+        titleInput.addEventListener('change', refreshIncomplete);
+      }
       writersEl.addEventListener('click', function (event) {
         var button = event.target.closest('[data-remove]');
         if (!button) return;
@@ -438,6 +471,7 @@
         });
 
       render();
+      refreshIncomplete();
     })();
   </script>
 </body>

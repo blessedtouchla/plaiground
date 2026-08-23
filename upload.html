@@ -34,17 +34,17 @@
     <section class="flow-card">
       <div class="head-row">
         <h3>Upload your audio</h3>
-        <p class="hint" style="margin:0">WAV or FLAC, 16-bit or higher</p>
+        <p class="hint" style="margin:0">WAV, FLAC, or MP3 · MP3 is converted to WAV before it goes to stores</p>
       </div>
       <label class="dashbox audio-drop" data-audio-drop>
-        Drop WAV or FLAC here
-        <span>16-bit or higher, or click to choose a file</span>
-        <input type="file" accept=".wav,.flac,audio/wav,audio/flac,audio/x-wav" hidden data-audio-input />
+        Drop WAV, FLAC, or MP3 here
+        <span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>
+        <input type="file" accept=".wav,.flac,.mp3,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3" hidden data-audio-input />
       </label>
       <div class="audio-bar" data-audio-preview hidden>
         <div>
           <b data-audio-name>No file selected</b>
-          <div style="color:var(--muted);font-size:12px" data-audio-meta>WAV or FLAC · 16-bit or higher</div>
+          <div style="color:var(--muted);font-size:12px" data-audio-meta>WAV, FLAC, or MP3 · 16-bit or higher</div>
         </div>
         <div class="wave" aria-hidden="true">
           <i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:90%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:60%"></i><i class="dim" style="height:35%"></i><i class="dim" style="height:75%"></i><i class="dim" style="height:50%"></i><i class="dim" style="height:85%"></i><i class="dim" style="height:40%"></i><i class="dim" style="height:65%"></i><i class="dim" style="height:30%"></i><i class="dim" style="height:88%"></i>
@@ -61,9 +61,10 @@
       <h3>Cover art</h3>
       <div class="art-row">
         <div>
-          <div class="art" role="img" aria-label="Cover art placeholder"></div>
-          <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button">Add artwork</button></p>
-          <p class="hint">3000 × 3000 px · JPG</p>
+          <div class="art" role="img" aria-label="Cover art placeholder" data-art-box data-art-pick></div>
+          <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-art-pick>Add artwork</button></p>
+          <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
+          <p class="hint" data-art-meta>3000 × 3000 px · JPG or PNG</p>
         </div>
         <div class="art-guide">
           <h4 style="margin-bottom:8px">Artwork guidelines</h4>
@@ -82,7 +83,7 @@
       <div class="form-grid three">
         <div class="field"><label for="tg-title">Song title</label><input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" /></div>
         <div class="field"><label for="tg-artist">Primary artist</label><input id="tg-artist" name="release-artist" type="text" value="" placeholder="FIRST NAME LAST NAME" autocomplete="off" /></div>
-        <div class="field"><label>Featured artist</label><input name="release-featured" type="text" value="" placeholder="Optional featured" autocomplete="off" /></div>
+        <div class="field"><label for="tg-featured">Featured artist</label><input id="tg-featured" name="release-featured" type="text" value="" placeholder="Optional featured" autocomplete="off" /></div>
         <div class="field">
           <label for="tg-genre">Genre</label>
           <select id="tg-genre" name="release-genre" class="details-select" autocomplete="off">
@@ -115,6 +116,7 @@
     </section>
   </main>
   <script src="upload-catalog.js"></script>
+  <script src="lib/upload-required.js"></script>
   <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -145,14 +147,13 @@
       var preview = document.querySelector('[data-audio-preview]');
       var nameEl = document.querySelector('[data-audio-name]');
       var metaEl = document.querySelector('[data-audio-meta]');
-      if (!drop || !input) return;
 
       function showFile(file) {
         if (window.PlaigroundMembership && !window.PlaigroundMembership.hasMembership()) {
           window.PlaigroundMembership.requireMembership();
           return;
         }
-        if (!file) return;
+        if (!file || !input) return;
         try {
           var dt = new DataTransfer();
           dt.items.add(file);
@@ -163,25 +164,76 @@
         if (nameEl) nameEl.textContent = file.name;
         if (metaEl) metaEl.textContent = file.type || 'Audio file';
         if (preview) preview.hidden = false;
-        drop.hidden = true;
+        if (drop) drop.hidden = true;
       }
 
-      drop.addEventListener('dragover', function (event) {
-        event.preventDefault();
-        drop.classList.add('is-over');
-      });
-      drop.addEventListener('dragleave', function () {
-        drop.classList.remove('is-over');
-      });
-      drop.addEventListener('drop', function (event) {
-        event.preventDefault();
-        drop.classList.remove('is-over');
-        var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-        showFile(file);
-      });
-      input.addEventListener('change', function () {
-        showFile(input.files && input.files[0]);
-      });
+      if (drop && input) {
+        drop.addEventListener('dragover', function (event) {
+          event.preventDefault();
+          drop.classList.add('is-over');
+        });
+        drop.addEventListener('dragleave', function () {
+          drop.classList.remove('is-over');
+        });
+        drop.addEventListener('drop', function (event) {
+          event.preventDefault();
+          drop.classList.remove('is-over');
+          var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+          showFile(file);
+        });
+        input.addEventListener('change', function () {
+          showFile(input.files && input.files[0]);
+        });
+      }
+
+      var artInput = document.querySelector('[data-art-input]');
+      var artBox = document.querySelector('[data-art-box]');
+      var artMeta = document.querySelector('[data-art-meta]');
+      var artUrl = '';
+
+      function showArt(file) {
+        if (window.PlaigroundMembership && !window.PlaigroundMembership.hasMembership()) {
+          window.PlaigroundMembership.requireMembership();
+          return;
+        }
+        if (!file || !artInput) return;
+        var name = String(file.name || '').toLowerCase();
+        var type = String(file.type || '').toLowerCase();
+        if (!(/\.(jpe?g|png)$/.test(name) || /image\/(jpeg|jpg|png)/.test(type))) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          artInput.files = dt.files;
+        } catch (err) {
+          artInput._plaigroundFile = file;
+        }
+        if (artMeta) artMeta.textContent = file.name;
+        if (artBox && window.URL && URL.createObjectURL) {
+          if (artUrl) try { URL.revokeObjectURL(artUrl); } catch (err) {}
+          artUrl = URL.createObjectURL(file);
+          artBox.style.backgroundImage = 'url("' + artUrl + '")';
+        }
+        try {
+          var current = JSON.parse(localStorage.getItem('plaiground.tonegrid.draft') || sessionStorage.getItem('plaiground.tonegrid.draft') || '{}') || {};
+          current.artwork_name = file.name;
+          current.artwork_type = file.type || '';
+          var text = JSON.stringify(current);
+          try { localStorage.setItem('plaiground.tonegrid.draft', text); } catch (err) {}
+          try { sessionStorage.setItem('plaiground.tonegrid.draft', text); } catch (err) {}
+        } catch (err) {}
+      }
+
+      if (artInput) {
+        document.querySelectorAll('[data-art-pick]').forEach(function (el) {
+          el.addEventListener('click', function (event) {
+            event.preventDefault();
+            if (typeof artInput.click === 'function') artInput.click();
+          });
+        });
+        artInput.addEventListener('change', function () {
+          showArt(artInput.files && artInput.files[0]);
+        });
+      }
 
       var explicitToggle = document.querySelector('[data-explicit-toggle]');
       if (explicitToggle) {

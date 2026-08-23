@@ -4,6 +4,7 @@
   var TRACKS_URL = '/api/tonegrid/tracks';
   var DRAFT_KEY = 'plaiground.tonegrid.draft';
   var MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+  var MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 
   function $(id) {
     return document.getElementById(id);
@@ -12,6 +13,10 @@
   function fieldValue(id) {
     var el = $(id);
     return el ? String(el.value || '').trim() : '';
+  }
+
+  function rules() {
+    return (typeof PlaigroundUploadRequired !== 'undefined' && PlaigroundUploadRequired) || null;
   }
 
   function isDemoCopy(value) {
@@ -147,11 +152,19 @@
         result: { data: { error: 'Sign the split sheet in SignWell before submitting.', code: 'SIGNWELL_REQUIRED' } },
       });
     }
-    var date = releaseDate || draft.release_date || minSubmitDate();
-    return post('/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit', {
+    var date = releaseDate || draft.release_date || '';
+    if (!String(date || '').trim()) {
+      return Promise.resolve({ failed: true, result: { data: { error: 'Release date is required.' } } });
+    }
+    var submitBody = {
       document_id: documentId,
       release_date: date,
-    }, 'plaiground-submit-' + draft.release_id).then(function (result) {
+      made_how: draft.made_how || '',
+      human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
+      human_contribution: draft.human_contribution || '',
+      rights_confirmed: draft.rights_confirmed === true,
+    };
+    return post('/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit', submitBody, 'plaiground-submit-' + draft.release_id).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result };
       if (result.data && result.data.code === 'SIGNWELL_UNSIGNED') return { unsigned: true, result: result };
       if (result.data && result.data.code === 'SIGNWELL_TRIAL') return { trial: true, result: result };
@@ -215,9 +228,10 @@
       artist_id: draft.artist_id,
       title: draft.title,
       type: draft.type || 'single',
+      genre: draft.genre || '',
+      language: draft.language || '',
+      price: draft.price || '',
     };
-    if (draft.genre) body.genre = draft.genre;
-    if (draft.language && /^[a-z]{2}$/.test(String(draft.language))) body.language = String(draft.language);
     if (releaseDate) body.release_date = releaseDate;
     return body;
   }
@@ -227,6 +241,20 @@
     if (input && input.files && input.files[0]) return input.files[0];
     if (input && input._plaigroundFile) return input._plaigroundFile;
     return null;
+  }
+
+  function selectedArtwork() {
+    var input = document.querySelector('[data-art-input]');
+    if (input && input.files && input.files[0]) return input.files[0];
+    if (input && input._plaigroundFile) return input._plaigroundFile;
+    return null;
+  }
+
+  function isArtFile(file) {
+    if (!file) return false;
+    var name = String(file.name || '').toLowerCase();
+    var type = String(file.type || '').toLowerCase();
+    return /\.(jpe?g|png)$/.test(name) || /image\/(jpeg|jpg|png)/.test(type);
   }
 
   function selectedExplicit() {
@@ -240,7 +268,7 @@
     if (!file) return false;
     var name = String(file.name || '').toLowerCase();
     var type = String(file.type || '').toLowerCase();
-    return /\.(wav|flac)$/.test(name) || /audio\/(wav|x-wav|flac|x-flac)/.test(type);
+    return /\.(wav|flac|mp3)$/.test(name) || /audio\/(wav|x-wav|flac|x-flac|mpeg|mp3)/.test(type);
   }
 
   function trackKey(draft) {
@@ -262,10 +290,8 @@
       title: draft.title,
       position: 1,
       explicit: draft.explicit === true,
+      language: draft.language || '',
     };
-    if (draft.language && /^[a-z]{2}$/.test(String(draft.language))) {
-      trackBody.language = String(draft.language);
-    }
     return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
@@ -305,15 +331,50 @@
     });
   }
 
+  function uploadArtwork(releaseId, file) {
+    if (!releaseId || !file) return Promise.resolve({ skipped: true });
+    if (file.size > MAX_ARTWORK_BYTES) {
+      return Promise.resolve({ failed: true, result: { data: { error: 'Artwork must be 15 MB or smaller.' } } });
+    }
+    if (!isArtFile(file)) {
+      return Promise.resolve({ failed: true, result: { data: { error: 'Artwork must be JPG or PNG.' } } });
+    }
+    var body = new FormData();
+    body.append('artwork', file, file.name || 'artwork.jpg');
+    return fetch(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      body: body,
+    }).then(parseJson).then(function (result) {
+      if (isUnavailable(result)) return { unavailable: true, result: result };
+      if (!result.ok) return { failed: true, result: result };
+      return { uploaded: true, result: result };
+    });
+  }
+
   function afterRelease(draft) {
     return createTrack(draft).then(function (track) {
       var next = track.draft || draft;
       if (track.unavailable || track.failed) return track;
       var file = selectedAudio();
-      if (!file || !next.track_id) return { ok: true, draft: next, track: track };
-      setStatus('tg-status', 'Uploading audio…');
-      return uploadAudio(next.track_id, file).then(function (audio) {
-        return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
+      var art = selectedArtwork();
+      var chain = Promise.resolve({ ok: true, draft: next, track: track });
+      if (file && next.track_id) {
+        setStatus('tg-status', 'Uploading audio…');
+        chain = uploadAudio(next.track_id, file).then(function (audio) {
+          return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
+        });
+      }
+      return chain.then(function (result) {
+        if (!result.ok || result.failed || result.unavailable) return result;
+        if (!art || !next.release_id) return result;
+        setStatus('tg-status', 'Uploading artwork…');
+        return uploadArtwork(next.release_id, art).then(function (artwork) {
+          result.artwork = artwork;
+          result.ok = !artwork.failed && !artwork.unavailable;
+          return result;
+        });
       });
     });
   }
@@ -357,29 +418,85 @@
     go(nextHref);
   }
 
+  function collectUploadFields() {
+    var language = fieldValue('tg-language').toLowerCase();
+    if (!/^[a-z]{2}$/.test(language)) language = '';
+    return {
+      audio: selectedAudio(),
+      artwork: selectedArtwork(),
+      title: fieldValue('tg-title'),
+      name: fieldValue('tg-artist'),
+      featured: fieldValue('tg-featured'),
+      genre: fieldValue('tg-genre'),
+      language: language,
+      price: fieldValue('tg-price'),
+      explicit: selectedExplicit(),
+    };
+  }
+
+  function uploadPageError(fields) {
+    var gate = rules();
+    if (gate && typeof gate.validateUploadPage === 'function') {
+      var checked = gate.validateUploadPage(fields);
+      return checked && checked.error ? checked.error : '';
+    }
+    if (!fields.audio) return 'Audio is required.';
+    if (!fields.artwork) return 'Artwork is required.';
+    if (!fields.name) return 'Primary artist is required.';
+    if (!fields.title) return 'Song title is required.';
+    if (!fields.genre) return 'Genre is required.';
+    if (!fields.language) return 'Language is required.';
+    if (!fields.price) return 'Download price is required.';
+    return '';
+  }
+
+  function markIncomplete(el, incomplete) {
+    if (!el) return;
+    if (el.classList && el.classList.toggle) el.classList.toggle('is-incomplete', Boolean(incomplete));
+  }
+
   function bindUpload() {
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
+
+    function refreshUploadGate() {
+      markIncomplete(trigger, Boolean(uploadPageError(collectUploadFields())));
+    }
+    ['tg-title', 'tg-artist', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price'].forEach(function (id) {
+      var el = $(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', refreshUploadGate);
+      el.addEventListener('change', refreshUploadGate);
+    });
+    var audioInput = document.querySelector('[data-audio-input]');
+    if (audioInput && audioInput.addEventListener) {
+      audioInput.addEventListener('change', refreshUploadGate);
+    }
+    var artInput = document.querySelector('[data-art-input]');
+    if (artInput && artInput.addEventListener) {
+      artInput.addEventListener('change', refreshUploadGate);
+    }
+    refreshUploadGate();
 
     trigger.addEventListener('click', function (event) {
       event.preventDefault();
       if (trigger.getAttribute('aria-busy') === 'true') return;
 
-      var name = fieldValue('tg-artist');
-      var title = fieldValue('tg-title');
-      var genre = fieldValue('tg-genre');
-      var language = fieldValue('tg-language').toLowerCase();
-      if (!/^[a-z]{2}$/.test(language)) language = '';
-      var explicit = selectedExplicit();
-      var file = selectedAudio();
+      var fields = collectUploadFields();
+      var name = fields.name;
+      var title = fields.title;
+      var genre = fields.genre;
+      var language = fields.language;
+      var price = fields.price;
+      var featured = fields.featured;
+      var explicit = fields.explicit;
+      var file = fields.audio;
+      var art = fields.artwork;
       var nextHref = trigger.getAttribute('href') || 'attest.html';
-
-      if (!name) {
-        setStatus('tg-status', 'Primary artist is required.');
-        return;
-      }
-      if (!title) {
-        setStatus('tg-status', 'Song title is required.');
+      var pageError = uploadPageError(fields);
+      if (pageError) {
+        setStatus('tg-status', pageError);
+        markIncomplete(trigger, true);
         return;
       }
       if (file && file.size > MAX_AUDIO_BYTES) {
@@ -387,11 +504,30 @@
         return;
       }
       if (file && !isAudioFile(file)) {
-        setStatus('tg-status', 'Audio must be WAV or FLAC.');
+        setStatus('tg-status', 'Audio must be WAV, FLAC, or MP3.');
+        return;
+      }
+      if (art && art.size > MAX_ARTWORK_BYTES) {
+        setStatus('tg-status', 'Artwork must be 15 MB or smaller.');
+        return;
+      }
+      if (art && !isArtFile(art)) {
+        setStatus('tg-status', 'Artwork must be JPG or PNG.');
         return;
       }
 
-      writeDraft({ name: name, title: title, genre: genre, language: language, type: 'single', explicit: explicit });
+      writeDraft({
+        name: name,
+        title: title,
+        genre: genre,
+        language: language,
+        price: price,
+        featured: featured,
+        type: 'single',
+        explicit: explicit,
+        artwork_name: art && art.name ? art.name : '',
+        artwork_type: art && art.type ? art.type : '',
+      });
       trigger.setAttribute('aria-busy', 'true');
       setStatus('tg-status', 'Saving artist…');
 
@@ -421,8 +557,12 @@
             title: title,
             genre: genre,
             language: language,
+            price: price,
+            featured: featured,
             type: 'single',
             explicit: explicit,
+            artwork_name: art && art.name ? art.name : '',
+            artwork_type: art && art.type ? art.type : '',
           });
           if (artistId) saveCatalog({ artist_id: artistId });
           if (!artistId) {
@@ -465,6 +605,14 @@
                 return;
               }
               if (next && next.audio && next.audio.unavailable) {
+                continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+                return;
+              }
+              if (next && next.artwork && next.artwork.failed) {
+                setStatus('tg-status', (next.artwork.result && next.artwork.result.data && next.artwork.result.data.error) || 'Could not upload artwork.');
+                return;
+              }
+              if (next && next.artwork && next.artwork.unavailable) {
                 continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
                 return;
               }
@@ -517,7 +665,20 @@
         var draft = readDraft();
         var nextHref = trigger.getAttribute('href') || 'submitted.html';
         var releaseDate = fieldValue('tg-release-date');
-        if (releaseDate) draft = writeDraft({ release_date: releaseDate });
+        var reviewGate = rules();
+        var reviewError = '';
+        if (reviewGate && typeof reviewGate.validateReviewPage === 'function') {
+          var reviewed = reviewGate.validateReviewPage({ release_date: releaseDate });
+          if (reviewed && reviewed.error) reviewError = reviewed.error;
+        } else if (!releaseDate) {
+          reviewError = 'Release date is required.';
+        }
+        if (reviewError) {
+          setStatus('tg-status', reviewError);
+          markIncomplete(trigger, true);
+          return;
+        }
+        draft = writeDraft({ release_date: releaseDate });
 
         if (!draft.artist_id) {
           setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
@@ -578,9 +739,22 @@
     }
 
     var draft = readDraft();
-    if (draft.release_id && documentIdOf(draft) && !draft.submitted) {
+    var readyDate = draft.release_date || fieldValue('tg-release-date');
+    if (trigger) {
+      markIncomplete(trigger, !String(readyDate || '').trim());
+      var dateEl = $('tg-release-date');
+      if (dateEl && dateEl.addEventListener) {
+        dateEl.addEventListener('input', function () {
+          markIncomplete(trigger, !fieldValue('tg-release-date'));
+        });
+        dateEl.addEventListener('change', function () {
+          markIncomplete(trigger, !fieldValue('tg-release-date'));
+        });
+      }
+    }
+    if (draft.release_id && documentIdOf(draft) && !draft.submitted && String(readyDate || '').trim()) {
       setStatus('tg-status', 'Checking SignWell…');
-      finishSubmit(draft, draft.release_date || fieldValue('tg-release-date'), trigger, null).then(function () {
+      finishSubmit(draft, readyDate, trigger, null).then(function () {
         /* stay on review after auto-submit so the exact ToneGrid status is visible */
       }).catch(function () {
         setStatus('tg-status', 'Could not reach catalog.');

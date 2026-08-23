@@ -67,8 +67,17 @@ function run() {
   assert.ok(upload.indexOf('href="pro.html"') !== -1);
 
   assert.ok(upload.indexOf('upload-catalog.js') !== -1);
+  assert.ok(upload.indexOf('bindTypeahead') !== -1 || fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8').indexOf('bindTypeahead') !== -1);
   assert.ok(upload.indexOf('id="tg-subgenre"') === -1);
   assert.ok(upload.indexOf('name="release-subgenre"') === -1);
+  assert.ok(upload.indexOf('capture=') === -1);
+  assert.ok(upload.indexOf('accept=".wav,.flac,.mp3,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3"') !== -1);
+  assert.ok(upload.indexOf('accept=".jpg,.jpeg,.png,image/jpeg,image/png"') !== -1);
+  assert.ok(upload.indexOf('data-art-pick') !== -1);
+  assert.ok(upload.indexOf('data-art-input') !== -1);
+  assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') !== -1);
+  assert.ok(!/accept="[^"]*audio\/mp4|m4a|aiff/i.test(upload));
+  assert.ok(upload.indexOf('ToneGrid accepts MP3') === -1);
 
   const catalog = require('./upload-catalog');
   assert.ok(catalog.GENRES.indexOf('Afrobeats') !== -1);
