@@ -744,6 +744,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
   font-size: 14px;
   font-weight: 600;
 }
