@@ -24,6 +24,9 @@
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
  * 404s "Endpoint not found." POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
+ * Each ToneGrid write uses a hop-scoped Idempotency-Key (patch-date,
+ * dsps-post, dsps-put, submit) plus method, path, and body fingerprint.
+ * Never forward the browser plaiground-submit-<id> key to every hop.
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
  * Solo 100% submit skips SignWell. Multi-writer submit creates or reuses a
  * SignWell document and emails other writers, then submits to ToneGrid without
@@ -47,6 +50,7 @@ const {
   headerValue,
   healthPayload,
   deriveSlug,
+  hopIdempotencyKey,
   idempotencyKey,
   isConfigured,
   isUuid,
@@ -1193,32 +1197,34 @@ async function updateRelease(req, res, releaseId) {
   const result = await tonegridFetch('/releases/' + releaseId, {
     method: 'PATCH',
     body: parsed.payload,
-    idempotencyKey: idempotencyKey(req, ['release-patch', releaseId, JSON.stringify(parsed.payload)].join(':')),
+    idempotencyKey: hopIdempotencyKey('patch-release', 'PATCH', '/releases/' + releaseId, JSON.stringify(parsed.payload)),
   });
   sendJson(res, result.status, result.data);
 }
 
-async function attachStores(releaseId, slugs, req) {
+async function attachStores(releaseId, slugs) {
   const dsps = withYouTubeMusic(slugs && slugs.length ? slugs : DOCUMENTED_DSPS);
-  const posted = await tonegridFetch('/releases/' + releaseId + '/dsps', {
+  const path = '/releases/' + releaseId + '/dsps';
+  const posted = await tonegridFetch(path, {
     method: 'POST',
     body: { dsps },
-    idempotencyKey: idempotencyKey(req, ['dsps', releaseId, dsps.join(',')].join(':')),
+    idempotencyKey: hopIdempotencyKey('dsps-post', 'POST', path, dsps.join(',')),
   });
   if (posted.ok || !isMissingEndpoint(posted)) return posted;
-  return tonegridFetch('/releases/' + releaseId + '/dsps', {
+  return tonegridFetch(path, {
     method: 'PUT',
     body: { dsps },
-    idempotencyKey: idempotencyKey(req, ['dsps-put', releaseId, dsps.join(',')].join(':')),
+    idempotencyKey: hopIdempotencyKey('dsps-put', 'PUT', path, dsps.join(',')),
   });
 }
 
-async function replaceStores(releaseId, slugs, req) {
+async function replaceStores(releaseId, slugs) {
   const dsps = withYouTubeMusic(slugs || []);
-  return tonegridFetch('/releases/' + releaseId + '/dsps', {
+  const path = '/releases/' + releaseId + '/dsps';
+  return tonegridFetch(path, {
     method: 'PUT',
     body: { dsps },
-    idempotencyKey: idempotencyKey(req, ['dsps-put', releaseId, dsps.join(',')].join(':')),
+    idempotencyKey: hopIdempotencyKey('dsps-put', 'PUT', path, dsps.join(',')),
   });
 }
 
@@ -1243,8 +1249,8 @@ async function releaseDsps(req, res, releaseId) {
   }
   const slugs = requestedStores(body);
   const result = req.method === 'PUT'
-    ? await replaceStores(releaseId, slugs || [], req)
-    : await attachStores(releaseId, slugs || [], req);
+    ? await replaceStores(releaseId, slugs || [])
+    : await attachStores(releaseId, slugs || []);
   sendJson(res, result.status, result.data);
 }
 
@@ -1372,7 +1378,7 @@ async function submitRelease(req, res, releaseId) {
     const dated = await tonegridFetch('/releases/' + releaseId, {
       method: 'PATCH',
       body: { release_date: releaseDate },
-      idempotencyKey: idempotencyKey(req, ['release-date', releaseId, releaseDate].join(':')),
+      idempotencyKey: hopIdempotencyKey('patch-date', 'PATCH', '/releases/' + releaseId, releaseDate),
     });
     if (!dated.ok) {
       sendJson(res, dated.status, dated.data);
@@ -1381,7 +1387,7 @@ async function submitRelease(req, res, releaseId) {
   }
 
   const slugs = requestedStores(body);
-  const attached = await attachStores(releaseId, slugs || DOCUMENTED_DSPS, req);
+  const attached = await attachStores(releaseId, slugs || DOCUMENTED_DSPS);
   if (!attached.ok) {
     const existing = (row.dsps || []).length;
     if (!isMissingEndpoint(attached) || !existing) {
@@ -1393,7 +1399,7 @@ async function submitRelease(req, res, releaseId) {
   const submitted = await tonegridFetch('/releases/' + releaseId + '/submit', {
     method: 'POST',
     body: {},
-    idempotencyKey: idempotencyKey(req, 'submit:' + releaseId),
+    idempotencyKey: hopIdempotencyKey('submit', 'POST', '/releases/' + releaseId + '/submit', releaseId),
   });
   if (!submitted.ok) {
     sendJson(res, submitted.status, submitted.data);
