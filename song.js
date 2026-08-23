@@ -746,6 +746,29 @@
     catalog.syncTypeahead($('#edit-language'));
   }
 
+  function setCatalogValue(select, value) {
+    var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && typeof catalog.setTypeaheadValue === 'function') {
+      return catalog.setTypeaheadValue(select, value);
+    }
+    if (select) select.value = value || '';
+    return select ? select.value : '';
+  }
+
+  function pickedGenre(fallback) {
+    var raw = $('#edit-genre') ? String($('#edit-genre').value || '').trim() : '';
+    var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
+      var canon = catalog.canonicalCatalogValue($('#edit-genre'), raw);
+      if (canon === '') return '';
+      if (canon) return canon;
+      var keep = String(fallback || '').trim();
+      if (keep && raw && keep.toLowerCase() === raw.toLowerCase()) return keep;
+      return null;
+    }
+    return raw;
+  }
+
   function audioAllowed(file) {
     if (!file) return Promise.resolve(true);
     var accept = global.PlaigroundAudioAccept;
@@ -791,8 +814,8 @@
       artist.disabled = true;
     }
     if (featured) featured.value = String(draft.featured || '').trim();
-    if (genre) genre.value = release.genre || draft.genre || '';
-    if (language) language.value = release.language || track.language || draft.language || '';
+    setCatalogValue(genre, release.genre || draft.genre || '');
+    setCatalogValue(language, release.language || track.language || draft.language || '');
     syncCatalogValues();
     if (price) price.value = draft.price || '';
     if (inst) inst.checked = Boolean(draft.instrumental);
@@ -881,7 +904,13 @@
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
     setEditError('Submitting edit to ToneGrid…');
     var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
-    var genre = $('#edit-genre') ? String($('#edit-genre').value || '').trim() : '';
+    var originalGenre = String((lastEdit.release && lastEdit.release.genre) || (lastEdit.draft && lastEdit.draft.genre) || '').trim();
+    var genre = pickedGenre(originalGenre);
+    if (genre === null) {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      setEditError('Pick a genre from the ToneGrid list.');
+      return Promise.resolve({ ok: false, created: false, releaseId: id });
+    }
     var instrumental = Boolean($('#edit-instrumental') && $('#edit-instrumental').checked);
     var language = $('#edit-language') ? String($('#edit-language').value || '').trim().toLowerCase() : '';
     if (instrumental) language = '';

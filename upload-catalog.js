@@ -1273,11 +1273,87 @@ const HUMAN_TAGS = [
   'Mastered by a person',
 ];
 
+function identity(item) {
+  return item;
+}
+
+function languageValue(row) {
+  return row && row.code;
+}
+
+function languageLabel(row) {
+  return row && row.name;
+}
+
+function itemsForSelect(select) {
+  var id = select && select.id;
+  if (id === 'tg-language' || id === 'edit-language') return LANGUAGES;
+  if (id === 'tg-genre' || id === 'edit-genre' || id === 'profile-genre' || !id) return GENRES;
+  return GENRES;
+}
+
+function gettersForSelect(select) {
+  var id = select && select.id;
+  if (id === 'tg-language' || id === 'edit-language') {
+    return { getValue: languageValue, getLabel: languageLabel };
+  }
+  return { getValue: identity, getLabel: identity };
+}
+
+function optionList(select) {
+  if (!select) return [];
+  if (select.querySelectorAll) return Array.prototype.slice.call(select.querySelectorAll('option'));
+  return Array.prototype.slice.call(select.options || []);
+}
+
+function ensureOption(select, value, label) {
+  if (!select || !value) return;
+  var existing = optionList(select);
+  var i;
+  for (i = 0; i < existing.length; i += 1) {
+    if (String(existing[i].value) === String(value)) return;
+  }
+  var opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = label || value;
+  if (typeof select.appendChild === 'function') select.appendChild(opt);
+  else if (select.options && typeof select.options.push === 'function') select.options.push(opt);
+}
+
+function findPick(items, getValue, getLabel, raw) {
+  var q = String(raw || '').trim();
+  if (!q || !items || !items.length) return null;
+  var i;
+  var value;
+  var label;
+  for (i = 0; i < items.length; i += 1) {
+    value = getValue(items[i]);
+    label = getLabel(items[i]);
+    if (String(value) === q || String(label) === q) return { value: value, label: label };
+  }
+  var low = q.toLowerCase();
+  for (i = 0; i < items.length; i += 1) {
+    value = getValue(items[i]);
+    label = getLabel(items[i]);
+    if (String(value).toLowerCase() === low || String(label).toLowerCase() === low) {
+      return { value: value, label: label };
+    }
+  }
+  return null;
+}
+
+function typeaheadInput(select) {
+  var field = select && select.parentNode;
+  if (!field || !field.querySelector) return null;
+  return field.querySelector('.typeahead-input');
+}
+
 function fillSelect(select, items, getValue, getLabel) {
   if (!select || !items) return;
+  var current = String(select.value || '');
   var seen = {};
   var i;
-  var existing = select.querySelectorAll ? select.querySelectorAll('option') : (select.options || []);
+  var existing = optionList(select);
   for (i = existing.length - 1; i >= 0; i -= 1) {
     if (existing[i].value && existing[i].parentNode) existing[i].parentNode.removeChild(existing[i]);
   }
@@ -1291,6 +1367,14 @@ function fillSelect(select, items, getValue, getLabel) {
     opt.textContent = label;
     select.appendChild(opt);
   });
+  if (current) {
+    var pick = findPick(items, getValue, getLabel, current);
+    if (pick) select.value = pick.value;
+    else {
+      ensureOption(select, current, current);
+      select.value = current;
+    }
+  }
 }
 
 function bindTypeahead(select, items, getValue, getLabel) {
@@ -1325,40 +1409,31 @@ function bindTypeahead(select, items, getValue, getLabel) {
   field.appendChild(list);
 
   function exact(query) {
-    var q = String(query || '').trim().toLowerCase();
-    if (!q) return null;
-    var i;
-    for (i = 0; i < items.length; i += 1) {
-      var value = getValue(items[i]);
-      var labelText = getLabel(items[i]);
-      if (String(value).toLowerCase() === q || String(labelText).toLowerCase() === q) {
-        return { value: value, label: labelText };
-      }
-    }
-    return null;
+    return findPick(items, getValue, getLabel, query);
   }
 
   function currentPick() {
     var value = String(select.value || '');
     if (!value) return null;
-    var i;
-    for (i = 0; i < items.length; i += 1) {
-      if (String(getValue(items[i])) === value) {
-        return { value: getValue(items[i]), label: getLabel(items[i]) };
-      }
-    }
-    return null;
+    return findPick(items, getValue, getLabel, value) || { value: value, label: value };
   }
 
   function syncFromSelect() {
     var pick = currentPick();
+    var active = typeof document !== 'undefined' && document.activeElement === input;
     if (pick) input.value = pick.label;
+    else if (!active) input.value = '';
   }
 
   function applyPick(pick) {
-    select.value = pick ? pick.value : '';
-    input.value = pick ? pick.label : String(input.value || '').trim();
-    if (!pick) select.selectedIndex = 0;
+    if (pick && pick.value) {
+      ensureOption(select, pick.value, pick.label);
+      select.value = pick.value;
+      input.value = pick.label;
+    } else {
+      select.value = '';
+      if (select.options[0]) select.selectedIndex = 0;
+    }
     if (typeof select.dispatchEvent === 'function') {
       try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
     }
@@ -1396,6 +1471,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
       btn.type = 'button';
       btn.textContent = pick.label;
       btn.setAttribute('role', 'option');
+      btn.setAttribute('data-value', pick.value);
       btn.addEventListener('mousedown', function (event) {
         event.preventDefault();
         applyPick(pick);
@@ -1421,6 +1497,19 @@ function bindTypeahead(select, items, getValue, getLabel) {
   input.addEventListener('focus', function () {
     showMatches(input.value);
   });
+  input.addEventListener('keydown', function (event) {
+    var key = event && event.key;
+    if (key !== 'Enter' && key !== 'ArrowDown') return;
+    var first = list.querySelector && list.querySelector('button');
+    if (!first) {
+      showMatches(input.value);
+      first = list.querySelector && list.querySelector('button');
+    }
+    if (!first) return;
+    if (event.preventDefault) event.preventDefault();
+    applyPick({ value: first.getAttribute('data-value') || first.textContent, label: first.textContent });
+    hideList();
+  });
   input.addEventListener('blur', function () {
     window.setTimeout(function () {
       hideList();
@@ -1434,18 +1523,48 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }, 120);
   });
   if (select.addEventListener) select.addEventListener('change', syncFromSelect);
+  select._plaigroundSyncTypeahead = syncFromSelect;
   syncFromSelect();
 }
 
 function syncTypeahead(select) {
   if (!select) return;
-  var field = select.parentNode;
-  if (!field || !field.querySelector) return;
-  var input = field.querySelector('.typeahead-input');
+  if (typeof select._plaigroundSyncTypeahead === 'function') {
+    select._plaigroundSyncTypeahead();
+    return;
+  }
+  var input = typeaheadInput(select);
   if (!input) return;
   var opt = select.options && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
-  if (opt && opt.value) input.value = opt.textContent || opt.label || '';
-  else if (!select.value) input.value = '';
+  if (opt && opt.value) input.value = opt.textContent || opt.label || opt.value;
+  else if (select.value) input.value = select.value;
+  else input.value = '';
+}
+
+function setTypeaheadValue(select, raw) {
+  if (!select) return '';
+  var spec = gettersForSelect(select);
+  var items = itemsForSelect(select);
+  var value = String(raw || '').trim();
+  if (!value) {
+    select.value = '';
+    if (select.options && select.options[0]) select.selectedIndex = 0;
+    syncTypeahead(select);
+    return '';
+  }
+  var pick = findPick(items, spec.getValue, spec.getLabel, value) || { value: value, label: value };
+  ensureOption(select, pick.value, pick.label);
+  select.value = pick.value;
+  syncTypeahead(select);
+  return pick.value;
+}
+
+function canonicalCatalogValue(select, raw) {
+  if (!select) return null;
+  var spec = gettersForSelect(select);
+  var pick = findPick(itemsForSelect(select), spec.getValue, spec.getLabel, raw);
+  if (!String(raw || '').trim()) return '';
+  return pick ? pick.value : null;
 }
 
 function fillUploadSelects(doc) {
@@ -1465,7 +1584,16 @@ function fillUploadSelects(doc) {
   return { genre: genre, language: language };
 }
 
-const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, HUMAN_TAGS: HUMAN_TAGS, fillUploadSelects: fillUploadSelects, bindTypeahead: bindTypeahead, syncTypeahead: syncTypeahead };
+const api = {
+  GENRES: GENRES,
+  LANGUAGES: LANGUAGES,
+  HUMAN_TAGS: HUMAN_TAGS,
+  fillUploadSelects: fillUploadSelects,
+  bindTypeahead: bindTypeahead,
+  syncTypeahead: syncTypeahead,
+  setTypeaheadValue: setTypeaheadValue,
+  canonicalCatalogValue: canonicalCatalogValue,
+};
 
 if (typeof module === 'object' && module.exports) {
   module.exports = api;

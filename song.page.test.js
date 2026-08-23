@@ -415,6 +415,12 @@ function run() {
   assert.ok(!html.includes('tonegrid.js'));
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(html.includes('upload-catalog.js'));
+  assert.ok(html.includes('<select id="edit-genre"'));
+  assert.ok(!html.includes('<input id="edit-genre"'));
+  assert.ok(!html.includes('id="edit-subgenre"'));
+  assert.ok(!html.includes('name="release-subgenre"'));
+  assert.ok(read('song.js').includes('setTypeaheadValue'));
+  assert.ok(read('song.js').includes('canonicalCatalogValue'));
 
   assert.strictEqual(page.nodes['[data-song-edit]'].hidden, false, 'Edit release is on the real song');
   page.api.openEdit({
