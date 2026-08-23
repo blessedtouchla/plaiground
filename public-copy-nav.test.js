@@ -19,6 +19,7 @@ const APP_PAGES = [
   'analytics.html',
   'payouts.html',
   'settings.html',
+  'profile.html',
   'library.html',
   'boosts.html',
 ];
@@ -74,6 +75,8 @@ function run() {
     assert.ok(html.includes('src="site.js"'), file + ' must load the hamburger script');
     assert.ok(html.includes('href="how.html">How it works</a>'), file + ' must list How it works in the signed-in menu');
     assert.ok(html.includes('href="splits.html">Splits</a>'), file + ' menu item must be Splits');
+    assert.ok(html.includes('href="profile.html">Profile</a>'), file + ' must list Profile in the signed-in menu');
+    assert.ok(html.includes('href="settings.html">Settings</a>'), file + ' must keep Settings separate from Profile');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
   });
 

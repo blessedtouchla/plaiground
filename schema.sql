@@ -26,6 +26,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS tonegrid_track_ids text[] NOT NULL DE
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tonegrid_release_at timestamptz[] NOT NULL DEFAULT ARRAY[]::timestamptz[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmed_at timestamptz;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile jsonb NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_status_check;
 ALTER TABLE users ADD CONSTRAINT users_status_check CHECK (status IN ('active', 'warning', 'hold'));
 

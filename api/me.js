@@ -5,11 +5,13 @@
  * POST /api/me          session required; store stripe_session_id only
  *                       (plan is set by the signed Stripe webhook, not the client)
  * POST /api/me/catalog  session required; save ToneGrid uuids
+ * POST /api/me/profile  session required; save public artist profile on this user
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { findById, updateCatalog, updateStripe } = require('../lib/accounts');
+const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
+const profile = require('../lib/profile');
 const {
   attachSession,
   bodyHasPassword,
@@ -27,6 +29,12 @@ function isCatalog(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/catalog') return true;
   return queryValue(req, 'action') === 'catalog';
+}
+
+function isProfile(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/profile') return true;
+  return queryValue(req, 'action') === 'profile';
 }
 
 async function loadUser(req, res) {
@@ -143,9 +151,47 @@ async function catalog(req, res) {
   }
 }
 
+async function saveProfile(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (bodyHasPassword(body)) {
+    sendJson(res, 400, { error: 'Password is not accepted here.' });
+    return;
+  }
+
+  const parsed = profile.validate(body);
+  if (parsed.error) {
+    sendJson(res, 400, { error: parsed.error });
+    return;
+  }
+  const next = await updateProfile(row.id, {
+    artist: parsed.artist,
+    profile: parsed.profile,
+  });
+  sendJson(res, 200, publicUser(next || row));
+}
+
 module.exports = async function handler(req, res) {
   if (isCatalog(req)) {
     await catalog(req, res);
+    return;
+  }
+  if (isProfile(req)) {
+    await saveProfile(req, res);
     return;
   }
   if (rejectQueryPassword(req, res)) return;
