@@ -61,6 +61,33 @@
         </thead>
         <tbody data-release-rows></tbody>
       </table>
+      <section class="flow-card release-edit" data-release-edit hidden>
+        <div class="head-row">
+          <h3>Edit release</h3>
+          <span class="pill" data-edit-status></span>
+        </div>
+        <p class="hint">Edits go to ToneGrid. Pending and live releases only accept the fields ToneGrid allows — if it refuses, the exact error is shown.</p>
+        <div class="form-grid three">
+          <div class="field"><label for="edit-title">Title</label><input id="edit-title" type="text" /></div>
+          <div class="field"><label for="edit-date">Release date</label><input id="edit-date" type="text" placeholder="YYYY-MM-DD" /></div>
+          <div class="field">
+            <label for="edit-genre">Genre</label>
+            <select id="edit-genre" class="details-select"><option value="">Select genre</option></select>
+          </div>
+          <div class="field">
+            <label for="edit-language">Language</label>
+            <select id="edit-language" class="details-select"><option value="">Select language</option></select>
+          </div>
+          <div class="field"><label for="edit-track-title">Track title</label><input id="edit-track-title" type="text" /></div>
+          <div class="field"><label for="edit-art">Cover art</label><input id="edit-art" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" /></div>
+        </div>
+        <div class="field">
+          <label>Stores</label>
+          <div class="store-pick" data-edit-stores></div>
+        </div>
+        <p><button type="button" class="btn btn-purple btn-sm" data-edit-save>Save to ToneGrid</button></p>
+        <p class="hint" data-edit-error hidden></p>
+      </section>
       <div class="empty" data-release-empty>
         <h3>Your first release goes here.</h3>
         <p>Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.</p>
@@ -76,6 +103,7 @@
   </div>
   <script src="membership.js"></script>
   <script src="account.js"></script>
+  <script src="upload-catalog.js"></script>
   <script src="catalog.js" defer></script>
   <script src="plai-bubble.js" defer></script>
 </body>

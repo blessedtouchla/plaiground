@@ -4,58 +4,89 @@
  * ToneGrid proxy. Public URLs stay the same via vercel.json rewrites. One Hobby function.
  *
  * GET  /api/tonegrid/health
+ * GET  /api/tonegrid/stores
  * GET  /api/tonegrid/artists
  * POST /api/tonegrid/artists
  * GET  /api/tonegrid/releases
  * POST /api/tonegrid/releases
+ * GET  /api/tonegrid/releases/:id
+ * PUT  /api/tonegrid/releases/:id
+ * POST /api/tonegrid/releases/:id/submit
+ * POST /api/tonegrid/releases/:id/dsps
+ * PUT  /api/tonegrid/releases/:id/dsps
+ * POST /api/tonegrid/releases/:id/artwork
  * POST /api/tonegrid/tracks
+ * PUT  /api/tonegrid/tracks/:id
  * POST /api/tonegrid/tracks/:id/audio
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
  *
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
+ * Submit is gated by a completed SignWell document. Never call /distribute or /approve.
  */
 
 const accounts = require('../lib/accounts');
 const plans = require('../lib/plans');
+const signwell = require('../lib/signwell');
 const { personalScope, idAllowed } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
+  DOCUMENTED_DSPS,
   RELEASE_TYPES,
+  SUBMITTABLE,
+  YOUTUBE_MUSIC_SLUG,
+  documentedStores,
   headerValue,
   healthPayload,
   deriveSlug,
   idempotencyKey,
   isConfigured,
   isUuid,
+  minSubmitDate,
   normalizeCountry,
+  normalizeLanguage,
   normalizeReleaseDate,
   normalizeReleaseType,
   notConfigured,
+  parseStoreSlugs,
   readBody,
   sendJson,
   tonegridFetch,
+  withYouTubeMusic,
 } = require('../lib/tonegrid');
 
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
+
+function decodePart(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
 function routeOf(req) {
   const path = pathnameOf(req);
+  let match = path.match(/\/tonegrid\/releases\/([^/]+)\/submit$/i);
+  if (match) return { resource: 'submit', id: decodePart(match[1]) };
+  match = path.match(/\/tonegrid\/releases\/([^/]+)\/dsps$/i);
+  if (match) return { resource: 'dsps', id: decodePart(match[1]) };
+  match = path.match(/\/tonegrid\/releases\/([^/]+)\/artwork$/i);
+  if (match) return { resource: 'artwork', id: decodePart(match[1]) };
+  match = path.match(/\/tonegrid\/releases\/([^/]+)$/i);
+  if (match) return { resource: 'release', id: decodePart(match[1]) };
   if (/\/tonegrid\/tracks\/.*audio$/i.test(path) || /\/tonegrid\/tracks\/audio$/i.test(path)) {
     const audioMatch = path.match(/\/tracks\/([^/]+)\/audio$/i);
     let id = '';
-    if (audioMatch) {
-      try {
-        id = decodeURIComponent(audioMatch[1]);
-      } catch {
-        id = audioMatch[1];
-      }
-    }
+    if (audioMatch) id = decodePart(audioMatch[1]);
     if (!id) id = queryValue(req, 'id');
     return { resource: 'audio', id: String(id || '').trim() };
   }
-  const match = path.match(/^\/api\/tonegrid\/([^/]+)$/);
+  match = path.match(/\/tonegrid\/tracks\/([^/]+)$/i);
+  if (match) return { resource: 'track', id: decodePart(match[1]) };
+  match = path.match(/^\/api\/tonegrid\/([^/]+)$/);
   if (match) return { resource: match[1], id: '' };
 
   const resource = queryValue(req, 'resource');
@@ -263,6 +294,26 @@ async function artists(req, res) {
   await createArtist(req, res);
 }
 
+function pickTracks(payload) {
+  let list = [];
+  if (Array.isArray(payload)) list = payload;
+  else if (payload && Array.isArray(payload.tracks)) list = payload.tracks;
+  else if (payload && payload.tracks && Array.isArray(payload.tracks.data)) list = payload.tracks.data;
+  else if (payload && Array.isArray(payload.data)) list = payload.data;
+  return list.map((row) => {
+    if (!row || typeof row !== 'object') return null;
+    const uuid = String(row.uuid || '').trim();
+    if (!uuid) return null;
+    return {
+      uuid,
+      title: String(row.title || '').trim(),
+      position: Number(row.position) || 1,
+      language: String(row.language || '').trim().toLowerCase(),
+      explicit: row.explicit === true,
+    };
+  }).filter(Boolean);
+}
+
 function pickRelease(row) {
   if (!row || typeof row !== 'object') return null;
   const title = String(row.title || '').trim();
@@ -273,8 +324,13 @@ function pickRelease(row) {
     title,
     type: normalizeReleaseType(row.type) || 'single',
     status: String(row.status || '').trim().toLowerCase(),
+    genre: String(row.genre || '').trim(),
+    language: String(row.language || '').trim().toLowerCase(),
+    artwork_url: String(row.artwork_url || row.cover_art_url || '').trim(),
     release_date: normalizeReleaseDate(row.release_date || row.releaseDate) || '',
     created_at: typeof row.created_at === 'string' ? row.created_at : '',
+    tracks: pickTracks(row),
+    dsps: parseStoreSlugs(row),
   };
 }
 
@@ -352,6 +408,7 @@ async function createRelease(req, res) {
   const type = normalizeReleaseType(body && body.type);
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
   const genre = String((body && body.genre) || '').trim();
+  const language = normalizeLanguage(body && body.language);
 
   if (!artistId) {
     sendJson(res, 400, { error: 'artist_id is required.' });
@@ -373,6 +430,10 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'release_date must be YYYY-MM-DD.' });
     return;
   }
+  if ((body && body.language) && language == null) {
+    sendJson(res, 400, { error: 'language must be an ISO 639-1 code.' });
+    return;
+  }
 
   const payload = {
     artist_id: artistId,
@@ -381,6 +442,7 @@ async function createRelease(req, res) {
   };
   if (releaseDate) payload.release_date = releaseDate;
   if (genre) payload.genre = genre;
+  if (language) payload.language = language;
 
   const result = await tonegridFetch('/releases', {
     method: 'POST',
@@ -938,10 +1000,462 @@ async function royalties(req, res) {
   await loadRoyalties(req, res);
 }
 
+async function loadOfficialStores() {
+  if (!isConfigured()) {
+    return {
+      configured: false,
+      source: 'tonegrid-docs',
+      stores: documentedStores().map((slug) => ({ slug, name: slug })),
+      youtube_music: YOUTUBE_MUSIC_SLUG,
+    };
+  }
+  const result = await tonegridFetch('/supply-chain/dsps', { method: 'GET' });
+  const slugs = result.ok ? parseStoreSlugs(result.data) : [];
+  const stores = (slugs.length ? slugs : documentedStores()).map((slug) => ({ slug, name: slug }));
+  return {
+    configured: true,
+    source: slugs.length ? 'tonegrid' : 'tonegrid-docs',
+    stores,
+    youtube_music: YOUTUBE_MUSIC_SLUG,
+  };
+}
+
+async function stores(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  sendJson(res, 200, await loadOfficialStores());
+}
+
+function requestedStores(body) {
+  if (!body) return null;
+  if (Array.isArray(body.dsps)) return body.dsps;
+  if (Array.isArray(body.stores)) return body.stores;
+  return null;
+}
+
+async function requireOwnedRelease(req, res, releaseId) {
+  const scope = await personalScope(req, res);
+  if (!scope) return null;
+  const id = String(releaseId || '').trim();
+  if (!isUuid(id)) {
+    sendJson(res, 400, { error: 'release id must be a uuid.' });
+    return null;
+  }
+  if (!idAllowed(scope.allow, id)) {
+    sendJson(res, 404, { error: 'Release not found.' });
+    return null;
+  }
+  return scope;
+}
+
+async function fetchReleaseRow(releaseId) {
+  const result = await tonegridFetch('/releases/' + releaseId, { method: 'GET' });
+  if (!result.ok) return { result, row: null };
+  const row = pickRelease(unwrapRelease(result.data));
+  if (row && !row.tracks.length) {
+    const tracksRes = await tonegridFetch('/releases/' + releaseId + '/tracks', { method: 'GET' });
+    if (tracksRes.ok) row.tracks = pickTracks(tracksRes.data);
+  }
+  if (row && !row.dsps.length) {
+    const dspsRes = await tonegridFetch('/releases/' + releaseId + '/dsps', { method: 'GET' });
+    if (dspsRes.ok) row.dsps = parseStoreSlugs(dspsRes.data);
+  }
+  return { result, row };
+}
+
+async function getOneRelease(req, res, releaseId) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET, PUT');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const scope = await requireOwnedRelease(req, res, releaseId);
+  if (!scope) return;
+  const loaded = await fetchReleaseRow(releaseId);
+  if (!loaded.result.ok) {
+    sendJson(res, loaded.result.status, loaded.result.data);
+    return;
+  }
+  sendJson(res, 200, Object.assign({ configured: true, sandbox: healthPayload().sandbox }, loaded.row));
+}
+
+function releaseUpdatePayload(body) {
+  const payload = {};
+  if (!body || typeof body !== 'object') return { payload };
+  if (body.title !== undefined) {
+    const title = String(body.title || '').trim();
+    if (!title) return { error: 'title is required.' };
+    payload.title = title;
+  }
+  if (body.release_date !== undefined || body.releaseDate !== undefined) {
+    const date = normalizeReleaseDate(body.release_date || body.releaseDate);
+    if ((body.release_date || body.releaseDate) && !date) {
+      return { error: 'release_date must be YYYY-MM-DD.' };
+    }
+    if (date) payload.release_date = date;
+  }
+  if (body.genre !== undefined) {
+    const genre = String(body.genre || '').trim();
+    if (genre) payload.genre = genre;
+  }
+  if (body.language !== undefined) {
+    const language = normalizeLanguage(body.language);
+    if (body.language && language == null) return { error: 'language must be an ISO 639-1 code.' };
+    if (language) payload.language = language;
+  }
+  return { payload };
+}
+
+async function updateRelease(req, res, releaseId) {
+  if (req.method !== 'PUT') {
+    res.setHeader('Allow', 'GET, PUT');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const scope = await requireOwnedRelease(req, res, releaseId);
+  if (!scope) return;
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const parsed = releaseUpdatePayload(body);
+  if (parsed.error) {
+    sendJson(res, 400, { error: parsed.error });
+    return;
+  }
+  if (!Object.keys(parsed.payload).length) {
+    sendJson(res, 400, { error: 'Provide title, release_date, genre, or language.' });
+    return;
+  }
+
+  const result = await tonegridFetch('/releases/' + releaseId, {
+    method: 'PUT',
+    body: parsed.payload,
+    idempotencyKey: idempotencyKey(req, ['release-put', releaseId, JSON.stringify(parsed.payload)].join(':')),
+  });
+  sendJson(res, result.status, result.data);
+}
+
+async function attachStores(releaseId, slugs, req) {
+  const dsps = withYouTubeMusic(slugs && slugs.length ? slugs : DOCUMENTED_DSPS);
+  return tonegridFetch('/releases/' + releaseId + '/dsps', {
+    method: 'POST',
+    body: { dsps },
+    idempotencyKey: idempotencyKey(req, ['dsps', releaseId, dsps.join(',')].join(':')),
+  });
+}
+
+async function replaceStores(releaseId, slugs, req) {
+  const dsps = withYouTubeMusic(slugs || []);
+  return tonegridFetch('/releases/' + releaseId + '/dsps', {
+    method: 'PUT',
+    body: { dsps },
+    idempotencyKey: idempotencyKey(req, ['dsps-put', releaseId, dsps.join(',')].join(':')),
+  });
+}
+
+async function releaseDsps(req, res, releaseId) {
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  if (req.method !== 'POST' && req.method !== 'PUT') {
+    res.setHeader('Allow', 'POST, PUT');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const scope = await requireOwnedRelease(req, res, releaseId);
+  if (!scope) return;
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  const slugs = requestedStores(body);
+  const result = req.method === 'PUT'
+    ? await replaceStores(releaseId, slugs || [], req)
+    : await attachStores(releaseId, slugs || [], req);
+  sendJson(res, result.status, result.data);
+}
+
+async function submitRelease(req, res, releaseId) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const scope = await requireOwnedRelease(req, res, releaseId);
+  if (!scope) return;
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const documentId = String((body && (body.document_id || body.documentId || body.signwell_document_id)) || '').trim();
+  const gate = await signwell.requireSignedDocument(documentId);
+  if (!gate.ok) {
+    sendJson(res, gate.status, {
+      error: gate.error,
+      code: gate.code,
+      signed: false,
+      document: gate.document || null,
+    });
+    return;
+  }
+
+  const loaded = await fetchReleaseRow(releaseId);
+  if (!loaded.result.ok) {
+    sendJson(res, loaded.result.status, loaded.result.data);
+    return;
+  }
+  const row = loaded.row || {};
+  const status = String(row.status || '').toLowerCase();
+  if (status === 'pending' || status === 'approved' || status === 'live') {
+    sendJson(res, 200, {
+      ok: true,
+      skipped: true,
+      status,
+      signed: true,
+      message: 'Release is already ' + status + '.',
+    });
+    return;
+  }
+  if (status && !SUBMITTABLE.has(status)) {
+    sendJson(res, 409, {
+      error: 'Only draft or rejected releases can be submitted.',
+      status,
+      signed: true,
+    });
+    return;
+  }
+
+  let releaseDate = normalizeReleaseDate((body && (body.release_date || body.releaseDate)) || row.release_date);
+  const minDate = minSubmitDate();
+  if (!releaseDate || releaseDate < minDate) releaseDate = minDate;
+  if (releaseDate !== row.release_date) {
+    const dated = await tonegridFetch('/releases/' + releaseId, {
+      method: 'PUT',
+      body: { release_date: releaseDate },
+      idempotencyKey: idempotencyKey(req, ['release-date', releaseId, releaseDate].join(':')),
+    });
+    if (!dated.ok) {
+      sendJson(res, dated.status, dated.data);
+      return;
+    }
+  }
+
+  const slugs = requestedStores(body);
+  const attached = await attachStores(releaseId, slugs || DOCUMENTED_DSPS, req);
+  if (!attached.ok) {
+    sendJson(res, attached.status, attached.data);
+    return;
+  }
+
+  const submitted = await tonegridFetch('/releases/' + releaseId + '/submit', {
+    method: 'POST',
+    body: {},
+    idempotencyKey: idempotencyKey(req, 'submit:' + releaseId),
+  });
+  if (!submitted.ok) {
+    sendJson(res, submitted.status, submitted.data);
+    return;
+  }
+
+  const next = unwrapRelease(submitted.data) || submitted.data || {};
+  sendJson(res, submitted.status, {
+    ok: true,
+    signed: true,
+    status: String(next.status || 'pending').toLowerCase(),
+    message: typeof next.message === 'string' ? next.message : 'Release submitted for review.',
+    release_date: releaseDate,
+    dsps: withYouTubeMusic(slugs || DOCUMENTED_DSPS),
+    document: gate.document,
+  });
+}
+
+function looksLikeArtPart(buf) {
+  const head = buf.slice(0, 8192).toString('latin1');
+  if (/filename="[^"]+\.(jpe?g|png|webp)"/i.test(head)) return true;
+  if (/filename="/i.test(head) && !/\.(jpe?g|png|webp)"/i.test(head)) return false;
+  return true;
+}
+
+async function releaseArtwork(req, res, releaseId) {
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const scope = await requireOwnedRelease(req, res, releaseId);
+  if (!scope) return;
+
+  const contentType = headerValue(req, 'content-type');
+  if (!/multipart\/form-data/i.test(contentType)) {
+    sendJson(res, 400, { error: 'artwork must be multipart/form-data.' });
+    return;
+  }
+  const declared = Number(headerValue(req, 'content-length') || 0);
+  if (declared > MAX_ARTWORK_BYTES) {
+    sendJson(res, 413, { error: 'Artwork must be 15 MB or smaller.' });
+    return;
+  }
+  let raw;
+  try {
+    raw = await readRawBody(req, MAX_ARTWORK_BYTES);
+  } catch (err) {
+    if (err && err.code === 'TOO_LARGE') {
+      sendJson(res, 413, { error: 'Artwork must be 15 MB or smaller.' });
+      return;
+    }
+    sendJson(res, 400, { error: 'Could not read the artwork upload.' });
+    return;
+  }
+  if (!raw || !raw.length) {
+    sendJson(res, 400, { error: 'artwork file is required.' });
+    return;
+  }
+  if (!looksLikeArtPart(raw)) {
+    sendJson(res, 400, { error: 'Artwork must be JPG or PNG.' });
+    return;
+  }
+  const result = await tonegridFetch('/releases/' + releaseId + '/artwork', {
+    method: 'POST',
+    rawBody: raw,
+    contentType,
+    idempotencyKey: idempotencyKey(req, 'artwork:' + releaseId),
+  });
+  sendJson(res, result.status, result.data);
+}
+
+async function trackOwned(scope, trackId) {
+  if (idAllowed(scope.trackAllow, trackId)) return true;
+  for (let i = 0; i < scope.releaseIds.length; i += 1) {
+    const loaded = await fetchReleaseRow(scope.releaseIds[i]);
+    const tracks = loaded.row && loaded.row.tracks ? loaded.row.tracks : [];
+    if (tracks.some((row) => String(row.uuid).toLowerCase() === trackId.toLowerCase())) return true;
+  }
+  return false;
+}
+
+async function updateTrack(req, res, trackId) {
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  if (req.method !== 'PUT') {
+    res.setHeader('Allow', 'PUT');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const id = String(trackId || '').trim();
+  if (!isUuid(id)) {
+    sendJson(res, 400, { error: 'track id must be a uuid.' });
+    return;
+  }
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+  if (!(await trackOwned(scope, id))) {
+    sendJson(res, 404, { error: 'Track not found.' });
+    return;
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const payload = {};
+  if (body && body.title !== undefined) {
+    const title = String(body.title || '').trim();
+    if (!title) {
+      sendJson(res, 400, { error: 'title is required.' });
+      return;
+    }
+    payload.title = title;
+  }
+  if (body && body.language !== undefined) {
+    const language = normalizeLanguage(body.language);
+    if (body.language && language == null) {
+      sendJson(res, 400, { error: 'language must be an ISO 639-1 code.' });
+      return;
+    }
+    if (language) payload.language = language;
+  }
+  if (body && body.explicit !== undefined) {
+    const explicit = parseExplicit(body.explicit);
+    if (explicit == null) {
+      sendJson(res, 400, { error: 'explicit must be true or false.' });
+      return;
+    }
+    payload.explicit = explicit;
+  }
+  if (!Object.keys(payload).length) {
+    sendJson(res, 400, { error: 'Provide title, language, or explicit.' });
+    return;
+  }
+
+  const result = await tonegridFetch('/tracks/' + id, {
+    method: 'PUT',
+    body: payload,
+    idempotencyKey: idempotencyKey(req, ['track-put', id, JSON.stringify(payload)].join(':')),
+  });
+  sendJson(res, result.status, result.data);
+}
+
+async function oneRelease(req, res, releaseId) {
+  if (req.method === 'GET') {
+    await getOneRelease(req, res, releaseId);
+    return;
+  }
+  if (req.method === 'PUT') {
+    await updateRelease(req, res, releaseId);
+    return;
+  }
+  res.setHeader('Allow', 'GET, PUT');
+  sendJson(res, 405, { error: 'Method not allowed.' });
+}
+
 async function handler(req, res) {
   const route = routeOf(req);
   if (route.resource === 'health') {
     await health(req, res);
+    return;
+  }
+  if (route.resource === 'stores') {
+    await stores(req, res);
     return;
   }
   if (route.resource === 'artists') {
@@ -952,8 +1466,28 @@ async function handler(req, res) {
     await releases(req, res);
     return;
   }
+  if (route.resource === 'release') {
+    await oneRelease(req, res, route.id);
+    return;
+  }
+  if (route.resource === 'submit') {
+    await submitRelease(req, res, route.id);
+    return;
+  }
+  if (route.resource === 'dsps') {
+    await releaseDsps(req, res, route.id);
+    return;
+  }
+  if (route.resource === 'artwork') {
+    await releaseArtwork(req, res, route.id);
+    return;
+  }
   if (route.resource === 'tracks') {
     await createTrack(req, res);
+    return;
+  }
+  if (route.resource === 'track') {
+    await updateTrack(req, res, route.id);
     return;
   }
   if (route.resource === 'audio') {

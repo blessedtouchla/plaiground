@@ -1,24 +1,21 @@
 'use strict';
 
 /**
- * POST /api/signwell
- * Creates a SignWell document from the PLAIGROUND Writer Split Sheet template.
- * Env: SIGNWELL_API_KEY, SIGNWELL_TEMPLATE_ID (never echo these).
+ * GET  /api/signwell            { configured }
+ * GET  /api/signwell?id=        SignWell document status (server-only key)
+ * POST /api/signwell            Create a document from the Writer Split Sheet template
  *
+ * Env: SIGNWELL_API_KEY, SIGNWELL_TEMPLATE_ID (never echo these).
  * Writer 1 can sign in-page (embedded_signing_url). Writers 2+ are emailed.
- * The live template has Writer 1 and Writer 2 slots; extra writers are kept
- * for the record and are not added as invented PDF fields.
  */
 
-const SIGNWELL_URL = 'https://www.signwell.com/api/v1/document_templates/documents/';
+const { queryValue } = require('../lib/route');
+const signwell = require('../lib/signwell');
+
 const TEMPLATE_WRITER_SLOTS = 2;
 const MAX_WRITERS = 5;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BLOCKED_EMAIL = /patrick@|tonegrid|wayne/i;
-
-function isConfigured() {
-  return Boolean(process.env.SIGNWELL_API_KEY && process.env.SIGNWELL_TEMPLATE_ID);
-}
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -55,12 +52,6 @@ function readBody(req) {
     });
     req.on('error', reject);
   });
-}
-
-function scrub(text) {
-  return String(text || '')
-    .replace(/[A-Za-z0-9_\-]{24,}/g, '[redacted]')
-    .slice(0, 400);
 }
 
 function sharesSumTo100(shares) {
@@ -102,18 +93,6 @@ function normalizeWriters(input) {
   return { writers };
 }
 
-function signwellErrorMessage(payload) {
-  if (!payload || typeof payload !== 'object') {
-    return 'SignWell could not create the document.';
-  }
-  if (typeof payload.error === 'string') return scrub(payload.error);
-  if (typeof payload.message === 'string') return scrub(payload.message);
-  if (Array.isArray(payload.errors)) {
-    return scrub(payload.errors.map((item) => item.message || item).join(' '));
-  }
-  return 'SignWell could not create the document.';
-}
-
 function buildRecipients(writers, emailLinkOnly) {
   const slotted = writers.slice(0, TEMPLATE_WRITER_SLOTS);
   return slotted.map((writer, index) => {
@@ -124,18 +103,42 @@ function buildRecipients(writers, emailLinkOnly) {
       email: writer.email,
     };
     if (!emailLinkOnly) {
-      // Embed mode: Writer 1 signs in-page; others get the SignWell email.
       recipient.send_email = index !== 0;
     }
     return recipient;
   });
 }
 
+async function getStatus(req, res) {
+  const id = queryValue(req, 'id') || queryValue(req, 'document_id') || queryValue(req, 'documentId');
+  if (!id) {
+    sendJson(res, 200, { configured: signwell.isConfigured() });
+    return;
+  }
+  if (!signwell.isConfigured()) {
+    sendJson(res, 503, {
+      configured: false,
+      signed: false,
+      error: 'SignWell is not configured. Set SIGNWELL_API_KEY and SIGNWELL_TEMPLATE_ID.',
+      code: 'not_configured',
+    });
+    return;
+  }
+  const result = await signwell.getDocument(id);
+  if (!result.ok) {
+    sendJson(res, result.status, Object.assign({ configured: true }, result.data));
+    return;
+  }
+  const info = signwell.publicDocument(result.data);
+  sendJson(res, 200, Object.assign({ configured: true }, info));
+}
+
 async function createDocument(req, res) {
-  if (!isConfigured()) {
+  if (!signwell.isConfigured()) {
     sendJson(res, 503, {
       error: 'SignWell is not configured. Set SIGNWELL_API_KEY and SIGNWELL_TEMPLATE_ID.',
       code: 'not_configured',
+      signed: false,
     });
     return;
   }
@@ -167,7 +170,7 @@ async function createDocument(req, res) {
 
   const payload = {
     test_mode: true,
-    template_id: process.env.SIGNWELL_TEMPLATE_ID,
+    template_id: signwell.templateId(),
     embedded_signing: !emailLinkOnly,
     name: `${songTitle} – Writer Split Sheet`,
     recipients: buildRecipients(writers, emailLinkOnly),
@@ -176,35 +179,18 @@ async function createDocument(req, res) {
     payload.exclude_placeholders = excludePlaceholders;
   }
 
-  let response;
-  try {
-    response = await fetch(SIGNWELL_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': process.env.SIGNWELL_API_KEY,
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    sendJson(res, 502, { error: 'Could not reach SignWell.' });
+  const result = await signwell.signwellFetch(signwell.CREATE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!result.ok) {
+    sendJson(res, result.status, result.data);
     return;
   }
 
-  let data = {};
-  try {
-    data = await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (!response.ok) {
-    sendJson(res, response.status >= 400 && response.status < 600 ? response.status : 502, {
-      error: signwellErrorMessage(data),
-    });
-    return;
-  }
-
+  const data = result.data || {};
   const extraWriters = writers.slice(TEMPLATE_WRITER_SLOTS).map((writer, index) => ({
     slot: index + TEMPLATE_WRITER_SLOTS + 1,
     name: writer.name,
@@ -213,11 +199,12 @@ async function createDocument(req, res) {
     pro: writer.pro,
   }));
 
-  const result = {
+  const created = {
     mode: emailLinkOnly ? 'email' : 'embed',
     documentId: data.id || null,
     extraWritersRecorded: extraWriters,
     templateWriterSlots: TEMPLATE_WRITER_SLOTS,
+    signed: signwell.documentSigned(data),
   };
 
   if (!emailLinkOnly) {
@@ -228,18 +215,18 @@ async function createDocument(req, res) {
       recipients[0];
     const embedUrl = writer1 && writer1.embedded_signing_url;
     if (!embedUrl) {
-      sendJson(res, 502, { error: 'SignWell did not return an embedded signing URL for Writer 1.' });
+      sendJson(res, 502, { error: 'SignWell did not return an embedded signing URL for Writer 1.', signed: false });
       return;
     }
-    result.embeddedSigningUrl = embedUrl;
+    created.embeddedSigningUrl = embedUrl;
   }
 
-  sendJson(res, 200, result);
+  sendJson(res, 200, created);
 }
 
 module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
-    sendJson(res, 200, { configured: isConfigured() });
+    await getStatus(req, res);
     return;
   }
   if (req.method !== 'POST') {
