@@ -10,6 +10,7 @@ function read(file) {
 
 const APP_PAGES = [
   'dashboard.html',
+  'how.html',
   'releases.html',
   'song.html',
   'splits.html',
@@ -67,7 +68,15 @@ function run() {
     const html = read(file);
     assert.ok(html.includes('class="side"') || html.includes("class='side'"), file + ' is missing the app menu');
     assert.ok(html.includes('src="site.js"'), file + ' must load the hamburger script');
+    assert.ok(html.includes('href="how.html">How it works</a>'), file + ' must list How it works in the signed-in menu');
   });
+
+  const dash = read('dashboard.html');
+  const howApp = read('how.html');
+  assert.ok(!dash.includes('class="workflow"'), 'Overview must not keep the 4-step block in the page body');
+  assert.ok(dash.indexOf('Your latest releases') < dash.indexOf('How a submission works'), 'Overview How it works link stays at the bottom');
+  assert.ok(howApp.includes('01 Upload') && howApp.includes('02 Attest rights') && howApp.includes('03 Split sheet') && howApp.includes('04 Review'), 'signed-in How it works page keeps the 4-step flow');
+  assert.ok(!/data-require-membership|data-require-paid/i.test(howApp), 'How it works must not dump signed-in users to login');
 
   const terms = read('terms.html');
   assert.ok(terms.includes('src="site.js"'), 'terms.html has public nav chrome and needs the hamburger');
