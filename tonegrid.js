@@ -229,9 +229,10 @@
       title: draft.title,
       type: draft.type || 'single',
       genre: draft.genre || '',
-      language: draft.language || '',
       price: draft.price || '',
+      instrumental: draft.instrumental === true,
     };
+    if (!body.instrumental && draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
     return body;
   }
@@ -290,8 +291,9 @@
       title: draft.title,
       position: 1,
       explicit: draft.explicit === true,
-      language: draft.language || '',
+      instrumental: draft.instrumental === true,
     };
+    if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
     return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
@@ -309,7 +311,74 @@
     });
   }
 
-  function uploadAudio(trackId, file) {
+  function isMp3File(file) {
+    if (!file) return false;
+    var name = String(file.name || '').toLowerCase();
+    var type = String(file.type || '').toLowerCase();
+    return /\.mp3$/.test(name) || type === 'audio/mpeg' || type === 'audio/mp3';
+  }
+
+  function showUploadLoader(step, percent) {
+    var loader = document.querySelector('[data-upload-loader]');
+    var stepEl = document.querySelector('[data-upload-loader-step]');
+    var fill = document.querySelector('[data-upload-loader-fill]');
+    var meta = document.querySelector('[data-upload-loader-meta]');
+    if (loader) {
+      loader.hidden = false;
+      if (loader.classList && loader.classList.remove) loader.classList.remove('is-hidden');
+    }
+    if (stepEl) stepEl.textContent = step || '';
+    var hasPercent = typeof percent === 'number' && !isNaN(percent) && percent >= 0;
+    if (loader && loader.classList) {
+      if (loader.classList.toggle) loader.classList.toggle('is-wait', !hasPercent);
+      else if (!hasPercent && loader.classList.add) loader.classList.add('is-wait');
+      else if (hasPercent && loader.classList.remove) loader.classList.remove('is-wait');
+    }
+    if (fill && fill.style) fill.style.width = hasPercent ? Math.max(0, Math.min(100, percent)) + '%' : '32%';
+    if (meta) meta.textContent = hasPercent ? Math.round(percent) + '%' : '';
+  }
+
+  function hideUploadLoader() {
+    var loader = document.querySelector('[data-upload-loader]');
+    if (!loader) return;
+    loader.hidden = true;
+    if (loader.classList && loader.classList.add) loader.classList.add('is-hidden');
+  }
+
+  function postForm(url, body, onProgress) {
+    if (typeof XMLHttpRequest === 'function') {
+      return new Promise(function (resolve) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('Accept', 'application/json');
+        if (xhr.upload && typeof onProgress === 'function') {
+          xhr.upload.onprogress = function (event) {
+            if (event && event.lengthComputable && event.total) {
+              onProgress(Math.round((event.loaded / event.total) * 100));
+            }
+          };
+        }
+        xhr.onerror = function () {
+          resolve({ ok: false, status: 0, data: { error: 'Could not reach catalog.' } });
+        };
+        xhr.onload = function () {
+          var data = {};
+          try { data = JSON.parse(xhr.responseText || '{}') || {}; } catch (err) { data = {}; }
+          resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: data });
+        };
+        xhr.send(body);
+      });
+    }
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      body: body,
+    }).then(parseJson);
+  }
+
+  function uploadAudio(trackId, file, onProgress) {
     if (!trackId || !file) return Promise.resolve({ skipped: true });
     if (file.size > MAX_AUDIO_BYTES) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Audio must be 200 MB or smaller.' } } });
@@ -319,19 +388,14 @@
     }
     var body = new FormData();
     body.append('audio', file, file.name || 'audio.wav');
-    return fetch(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-      body: body,
-    }).then(parseJson).then(function (result) {
+    return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result };
       if (!result.ok) return { failed: true, result: result };
       return { uploaded: true, result: result };
     });
   }
 
-  function uploadArtwork(releaseId, file) {
+  function uploadArtwork(releaseId, file, onProgress) {
     if (!releaseId || !file) return Promise.resolve({ skipped: true });
     if (file.size > MAX_ARTWORK_BYTES) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Artwork must be 15 MB or smaller.' } } });
@@ -341,12 +405,7 @@
     }
     var body = new FormData();
     body.append('artwork', file, file.name || 'artwork.jpg');
-    return fetch(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-      body: body,
-    }).then(parseJson).then(function (result) {
+    return postForm(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', body, onProgress).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result };
       if (!result.ok) return { failed: true, result: result };
       return { uploaded: true, result: result };
@@ -361,16 +420,27 @@
       var art = selectedArtwork();
       var chain = Promise.resolve({ ok: true, draft: next, track: track });
       if (file && next.track_id) {
-        setStatus('tg-status', 'Uploading audio…');
-        chain = uploadAudio(next.track_id, file).then(function (audio) {
+        if (isMp3File(file)) {
+          showUploadLoader('Converting MP3 to WAV');
+          setStatus('tg-status', 'Converting MP3 to WAV…');
+        } else {
+          showUploadLoader('Uploading audio');
+          setStatus('tg-status', 'Uploading audio…');
+        }
+        chain = uploadAudio(next.track_id, file, function (percent) {
+          showUploadLoader('Uploading audio', percent);
+        }).then(function (audio) {
           return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
         });
       }
       return chain.then(function (result) {
         if (!result.ok || result.failed || result.unavailable) return result;
         if (!art || !next.release_id) return result;
+        showUploadLoader('Uploading artwork');
         setStatus('tg-status', 'Uploading artwork…');
-        return uploadArtwork(next.release_id, art).then(function (artwork) {
+        return uploadArtwork(next.release_id, art, function (percent) {
+          showUploadLoader('Uploading artwork', percent);
+        }).then(function (artwork) {
           result.artwork = artwork;
           result.ok = !artwork.failed && !artwork.unavailable;
           return result;
@@ -418,9 +488,23 @@
     go(nextHref);
   }
 
+  function selectedInstrumental() {
+    var el = $('tg-instrumental') || document.querySelector('[data-instrumental]');
+    return Boolean(el && (el.checked === true || el.getAttribute && el.getAttribute('checked') === 'true'));
+  }
+
+  function syncLanguageField(instrumental) {
+    var field = document.querySelector('[data-language-field]');
+    if (!field) return;
+    field.hidden = Boolean(instrumental);
+    if (field.classList && field.classList.toggle) field.classList.toggle('is-hidden', Boolean(instrumental));
+  }
+
   function collectUploadFields() {
+    var instrumental = selectedInstrumental();
     var language = fieldValue('tg-language').toLowerCase();
     if (!/^[a-z]{2}$/.test(language)) language = '';
+    if (instrumental) language = '';
     return {
       audio: selectedAudio(),
       artwork: selectedArtwork(),
@@ -431,6 +515,7 @@
       language: language,
       price: fieldValue('tg-price'),
       explicit: selectedExplicit(),
+      instrumental: instrumental,
     };
   }
 
@@ -445,7 +530,7 @@
     if (!fields.name) return 'Primary artist is required.';
     if (!fields.title) return 'Song title is required.';
     if (!fields.genre) return 'Genre is required.';
-    if (!fields.language) return 'Language is required.';
+    if (!fields.instrumental && !fields.language) return 'Language is required.';
     if (!fields.price) return 'Download price is required.';
     return '';
   }
@@ -458,11 +543,38 @@
   function bindUpload() {
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
+    var uploadRunning = false;
+
+    function setUploadBusy(busy) {
+      uploadRunning = Boolean(busy);
+      if (busy) {
+        trigger.setAttribute('aria-busy', 'true');
+        trigger.setAttribute('aria-disabled', 'true');
+      } else {
+        trigger.removeAttribute('aria-busy');
+        trigger.removeAttribute('aria-disabled');
+        hideUploadLoader();
+      }
+    }
+
+    function failUpload(message, upgrade) {
+      setUploadBusy(false);
+      setStatus('tg-status', message || '');
+      if (upgrade === true) showUpgrade(true);
+      else if (upgrade === false) showUpgrade(false);
+    }
+
+    function finishToAttest(nextHref, message) {
+      showUploadLoader('Opening SignWell');
+      setStatus('tg-status', message || 'Opening SignWell…');
+      continueAfterCatalog(nextHref, message);
+    }
 
     function refreshUploadGate() {
+      syncLanguageField(selectedInstrumental());
       markIncomplete(trigger, Boolean(uploadPageError(collectUploadFields())));
     }
-    ['tg-title', 'tg-artist', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price'].forEach(function (id) {
+    ['tg-title', 'tg-artist', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price', 'tg-instrumental'].forEach(function (id) {
       var el = $(id);
       if (!el || !el.addEventListener) return;
       el.addEventListener('input', refreshUploadGate);
@@ -476,11 +588,14 @@
     if (artInput && artInput.addEventListener) {
       artInput.addEventListener('change', refreshUploadGate);
     }
+    var savedDraft = readDraft();
+    var instEl = $('tg-instrumental');
+    if (instEl && savedDraft.instrumental === true) instEl.checked = true;
     refreshUploadGate();
 
     trigger.addEventListener('click', function (event) {
       event.preventDefault();
-      if (trigger.getAttribute('aria-busy') === 'true') return;
+      if (uploadRunning || trigger.getAttribute('aria-busy') === 'true' || trigger.getAttribute('aria-disabled') === 'true') return;
 
       var fields = collectUploadFields();
       var name = fields.name;
@@ -490,6 +605,7 @@
       var price = fields.price;
       var featured = fields.featured;
       var explicit = fields.explicit;
+      var instrumental = fields.instrumental === true;
       var file = fields.audio;
       var art = fields.artwork;
       var nextHref = trigger.getAttribute('href') || 'attest.html';
@@ -525,29 +641,26 @@
         featured: featured,
         type: 'single',
         explicit: explicit,
+        instrumental: instrumental,
         artwork_name: art && art.name ? art.name : '',
         artwork_type: art && art.type ? art.type : '',
       });
-      trigger.setAttribute('aria-busy', 'true');
+      setUploadBusy(true);
+      showUploadLoader('Saving artist');
       setStatus('tg-status', 'Saving artist…');
 
       post(ARTISTS_URL, { name: name })
         .then(function (result) {
           if (isUnavailable(result)) {
-            trigger.removeAttribute('aria-busy');
-            continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+            finishToAttest(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
           if (isPlanLimit(result)) {
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', createErrorMessage(result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
-            showUpgrade(true);
+            failUpload(createErrorMessage(result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
             return;
           }
           if (!result.ok) {
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', result.data.error || 'Could not save artist.');
-            showUpgrade(false);
+            failUpload(result.data.error || 'Could not save artist.', false);
             return;
           }
           var artistId = pickUuid(result.data);
@@ -561,68 +674,63 @@
             featured: featured,
             type: 'single',
             explicit: explicit,
+            instrumental: instrumental,
             artwork_name: art && art.name ? art.name : '',
             artwork_type: art && art.type ? art.type : '',
           });
           if (artistId) saveCatalog({ artist_id: artistId });
           if (!artistId) {
-            trigger.removeAttribute('aria-busy');
-            continueAfterCatalog(nextHref, 'Artist saved. Release will retry on the next step.');
+            finishToAttest(nextHref, 'Artist saved. Release will retry on the next step.');
             return;
           }
+          showUploadLoader('Creating release');
           setStatus('tg-status', 'Creating release…');
           return createRelease(draft, '').then(function (created) {
             if (created.unavailable) {
-              trigger.removeAttribute('aria-busy');
-              continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+              finishToAttest(nextHref, 'Catalog sync is not configured yet.');
               return;
             }
             if (created.limited) {
-              trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
-              showUpgrade(true);
+              failUpload(createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
               return;
             }
             if (created.failed) {
-              trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', created.result.data.error || 'Could not create release.');
-              showUpgrade(false);
+              failUpload(created.result.data.error || 'Could not create release.', false);
               return;
             }
+            showUploadLoader('Creating track');
             setStatus('tg-status', 'Creating track…');
             return afterRelease(created.draft || draft).then(function (next) {
-              trigger.removeAttribute('aria-busy');
               if (next && next.unavailable) {
-                continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+                finishToAttest(nextHref, 'Catalog sync is not configured yet.');
                 return;
               }
               if (next && next.failed) {
-                setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+                failUpload((next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
                 return;
               }
               if (next && next.audio && next.audio.failed) {
-                setStatus('tg-status', (next.audio.result && next.audio.result.data && next.audio.result.data.error) || 'Could not upload audio.');
+                failUpload((next.audio.result && next.audio.result.data && next.audio.result.data.error) || 'Could not upload audio.');
                 return;
               }
               if (next && next.audio && next.audio.unavailable) {
-                continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+                finishToAttest(nextHref, 'Catalog sync is not configured yet.');
                 return;
               }
               if (next && next.artwork && next.artwork.failed) {
-                setStatus('tg-status', (next.artwork.result && next.artwork.result.data && next.artwork.result.data.error) || 'Could not upload artwork.');
+                failUpload((next.artwork.result && next.artwork.result.data && next.artwork.result.data.error) || 'Could not upload artwork.');
                 return;
               }
               if (next && next.artwork && next.artwork.unavailable) {
-                continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+                finishToAttest(nextHref, 'Catalog sync is not configured yet.');
                 return;
               }
-              continueAfterCatalog(nextHref);
+              finishToAttest(nextHref);
             });
           });
         })
         .catch(function () {
-          trigger.removeAttribute('aria-busy');
-          setStatus('tg-status', 'Could not reach catalog.');
+          failUpload('Could not reach catalog.');
         });
     });
   }

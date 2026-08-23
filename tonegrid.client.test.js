@@ -31,7 +31,9 @@ function makeEl(attrs) {
     value: attrs.value || '',
     textContent: '',
     hidden: true,
+    checked: Boolean(attrs.checked),
     href: attrs.href || '',
+    style: {},
     attrs: Object.assign({}, attrs.attrs || {}),
     listeners: {},
     getAttribute(name) {
@@ -72,6 +74,12 @@ function load(options) {
   const language = makeEl({ id: 'tg-language', value: opts.language || '' });
   const price = makeEl({ id: 'tg-price', value: opts.price || '' });
   const date = makeEl({ id: 'tg-release-date', value: opts.releaseDate || '' });
+  const instrumental = makeEl({ id: 'tg-instrumental', checked: Boolean(opts.instrumental) });
+  const languageField = makeEl({ attrs: { 'data-language-field': '' } });
+  const loader = makeEl({ attrs: { 'data-upload-loader': '' } });
+  const loaderStep = makeEl({ attrs: { 'data-upload-loader-step': '' } });
+  const loaderFill = makeEl({ attrs: { 'data-upload-loader-fill': '' } });
+  const loaderMeta = makeEl({ attrs: { 'data-upload-loader-meta': '' } });
   const status = makeEl({ id: 'tg-status' });
   const continueBtn = makeEl({
     attrs: { href: 'attest.html', 'data-tonegrid-continue': '' },
@@ -94,6 +102,7 @@ function load(options) {
     'tg-language': language,
     'tg-price': price,
     'tg-release-date': date,
+    'tg-instrumental': instrumental,
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
   };
@@ -122,6 +131,12 @@ function load(options) {
             getAttribute: function () { return opts.explicit ? 'true' : 'false'; },
           };
         }
+        if (sel === '[data-language-field]') return languageField;
+        if (sel === '[data-upload-loader]') return loader;
+        if (sel === '[data-upload-loader-step]') return loaderStep;
+        if (sel === '[data-upload-loader-fill]') return loaderFill;
+        if (sel === '[data-upload-loader-meta]') return loaderMeta;
+        if (sel === '[data-instrumental]') return instrumental;
         return null;
       },
     },
@@ -142,11 +157,18 @@ function load(options) {
       }
       const queued = (opts.responses || []).shift();
       const response = queued || { ok: true, status: 201, data: { uuid: '11111111-1111-4111-8111-111111111111' } };
-      return Promise.resolve({
+      const done = Promise.resolve({
         ok: response.ok,
         status: response.status,
         json: async () => response.data,
       });
+      if (opts.holdFirst && (!opts.holdWhen || String(url).indexOf(opts.holdWhen) !== -1)) {
+        if (!opts._held) {
+          opts._held = true;
+          return Promise.resolve(opts.holdFirst).then(function () { return done; });
+        }
+      }
+      return done;
     },
     location: { href: opts.page || 'upload.html' },
     window: {},
@@ -156,7 +178,18 @@ function load(options) {
   context.window.location = context.location;
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
-  return { continueBtn, payBtn, status, calls, localStorage, location: context.location };
+  return {
+    continueBtn,
+    payBtn,
+    status,
+    calls,
+    localStorage,
+    location: context.location,
+    instrumental,
+    languageField,
+    loader,
+    loaderStep,
+  };
 }
 
 function draftOf(localStorage) {
@@ -256,6 +289,7 @@ async function run() {
   ];
   const upload = load(filledUpload({ featured: '', responses: uploadResponses.slice() }));
   upload.continueBtn.listeners.click({ preventDefault() {} });
+  assert.ok(/Saving artist|Uploading|Converting|Opening/i.test(upload.loaderStep.textContent));
   await flush();
   const uploadTonegrid = upload.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
   assert.ok(uploadTonegrid.length >= 3);
@@ -294,6 +328,25 @@ async function run() {
   assert.ok(upload.calls.some(function (call) {
     return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/artwork';
   }));
+
+  const instrumentalOk = load(filledUpload({
+    instrumental: true,
+    language: '',
+    responses: uploadResponses.slice(),
+  }));
+  instrumentalOk.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(instrumentalOk.calls.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+  assert.strictEqual(instrumentalOk.languageField.hidden, true);
+  const instRelease = instrumentalOk.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+  const instTrack = instrumentalOk.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
+  assert.ok(instRelease);
+  assert.ok(instTrack);
+  assert.strictEqual(JSON.parse(instRelease.init.body).instrumental, true);
+  assert.strictEqual(JSON.parse(instRelease.init.body).language, undefined);
+  assert.strictEqual(JSON.parse(instTrack.init.body).language, undefined);
+  assert.strictEqual(draftOf(instrumentalOk.localStorage).instrumental, true);
+  assert.strictEqual(instrumentalOk.location.href, 'attest.html');
 
   const explicitYes = load(filledUpload({
     explicit: true,
@@ -411,7 +464,42 @@ async function run() {
   assert.ok(retryTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
   assert.strictEqual(draftOf(submittedRetry.localStorage).release_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 
+  let releaseHold;
+  const holdFirst = new Promise(function (resolve) { releaseHold = resolve; });
+  const doubleClick = load(filledUpload({
+    responses: uploadResponses.slice(),
+    holdFirst: holdFirst,
+    holdWhen: '/api/tonegrid/artists',
+  }));
+  doubleClick.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(2);
+  doubleClick.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(2);
+  assert.strictEqual(doubleClick.calls.filter(function (call) {
+    return call.url === '/api/tonegrid/artists';
+  }).length, 1);
+  releaseHold();
+  await flush();
+
+  let audioHold;
+  const holdAudio = new Promise(function (resolve) { audioHold = resolve; });
+  const mp3Wait = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdAudio,
+    holdWhen: '/audio',
+  }));
+  mp3Wait.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(/Converting MP3 to WAV|Uploading audio/i.test(mp3Wait.loaderStep.textContent + ' ' + mp3Wait.status.textContent));
+  audioHold();
+  await flush();
+
   const source = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+  assert.ok(source.includes('Converting MP3 to WAV'));
+  assert.ok(source.includes('Uploading audio'));
+  assert.ok(source.includes('Uploading artwork'));
+  assert.ok(source.includes('Opening SignWell'));
   assert.ok(!source.includes('Neon Shadows'));
   assert.ok(!source.includes('Victoria Reyes'));
   assert.ok(!source.includes(['t', 'g', 'k', '_'].join('')));

@@ -62,6 +62,8 @@ function makeEl(attrs) {
 function load() {
   const ai = makeEl({ attrs: { 'data-made-how': 'ai_assisted' }, on: 'on' });
   const noAi = makeEl({ attrs: { 'data-made-how': 'no_ai' } });
+  const fullyAi = makeEl({ attrs: { 'data-made-how': 'fully_ai' } });
+  const humanSection = makeEl({ attrs: { 'data-human-section': '' } });
   const tags = TAGS.map(function (label, index) {
     return makeEl({
       textContent: label,
@@ -89,13 +91,19 @@ function load() {
       return null;
     },
     querySelector(sel) {
-      if (sel === '[data-made-how].on') return ai.classList.contains('on') ? ai : (noAi.classList.contains('on') ? noAi : null);
+      if (sel === '[data-made-how].on') {
+        if (ai.classList.contains('on')) return ai;
+        if (noAi.classList.contains('on')) return noAi;
+        if (fullyAi.classList.contains('on')) return fullyAi;
+        return null;
+      }
       if (sel === '[data-human-count]') return count;
       if (sel === '[data-attest-continue]') return trigger;
+      if (sel === '[data-human-section]') return humanSection;
       return null;
     },
     querySelectorAll(sel) {
-      if (sel === '[data-made-how]') return [ai, noAi];
+      if (sel === '[data-made-how]') return [ai, noAi, fullyAi];
       if (sel === '.tag, [data-human-tag]') return tags;
       return [];
     },
@@ -110,7 +118,7 @@ function load() {
   };
   context.globalThis = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8'), context);
-  return { ai, noAi, tags, count, human, rights, trigger, status, localStorage, location: context.location };
+  return { ai, noAi, fullyAi, humanSection, tags, count, human, rights, trigger, status, localStorage, location: context.location };
 }
 
 function run() {
@@ -118,6 +126,9 @@ function run() {
   assert.ok(html.indexOf('attest.js') !== -1);
   assert.ok(html.indexOf('data-made-how="ai_assisted"') !== -1);
   assert.ok(html.indexOf('data-made-how="no_ai"') !== -1);
+  assert.ok(html.indexOf('data-made-how="fully_ai"') !== -1);
+  assert.ok(html.indexOf('Full AI tracks are accepted.') !== -1);
+  assert.ok(!/human authorship is required/i.test(html));
   TAGS.forEach(function (label) {
     assert.ok(html.indexOf(label) !== -1, 'missing tag ' + label);
   });
@@ -176,6 +187,23 @@ function run() {
   again.human.value = 'I wrote the lyrics.';
   again.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(again.location.href, 'split-sheet.html');
+
+  const full = load();
+  full.fullyAi.listeners.click({ preventDefault() {} });
+  assert.ok(full.fullyAi.classList.contains('on'));
+  assert.ok(!full.ai.classList.contains('on'));
+  assert.ok(!full.noAi.classList.contains('on'));
+  assert.strictEqual(full.humanSection.hidden, true);
+  full.rights.checked = false;
+  full.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(full.status.textContent, 'Rights confirmation is required.');
+  assert.notStrictEqual(full.location.href, 'split-sheet.html');
+  full.rights.checked = true;
+  full.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(full.location.href, 'split-sheet.html');
+  const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.tonegrid.draft'));
+  assert.strictEqual(fullDraft.made_how, 'fully_ai');
+  assert.strictEqual(fullDraft.rights_confirmed, true);
 
   const rules = require('./lib/upload-required');
   assert.strictEqual(rules.validateAttest({
