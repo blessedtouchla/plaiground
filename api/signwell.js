@@ -8,6 +8,8 @@
  * Env: SIGNWELL_API_KEY, SIGNWELL_TEMPLATE_ID (never echo these).
  * Create-from-template uses test_mode: false (live paid Business).
  * Writer 1 can sign in-page (embedded_signing_url). Writers 2+ are emailed.
+ * Every create also assigns the template placeholder SignWell reported as
+ * "document sender" (their docs title-case it "Document Sender").
  */
 
 const { queryValue } = require('../lib/route');
@@ -17,6 +19,13 @@ const TEMPLATE_WRITER_SLOTS = 2;
 const MAX_WRITERS = 5;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BLOCKED_EMAIL = /patrick@|tonegrid|wayne/i;
+// Live create-from-template error: "These placeholder_names do not have a
+// recipient assigned: document sender." SignWell's 422 example also lists
+// recipients.duplicated_emails, so this slot uses the existing PLAIGROUND
+// business address instead of Writer 1's email.
+const DOCUMENT_SENDER_PLACEHOLDER = 'document sender';
+const DOCUMENT_SENDER_NAME = 'PLAIGROUND';
+const DOCUMENT_SENDER_EMAIL = 'emailplaiground@gmail.com';
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -94,9 +103,13 @@ function normalizeWriters(input) {
   return { writers };
 }
 
+function isDocumentSender(row) {
+  return String((row && row.placeholder_name) || '').trim().toLowerCase() === DOCUMENT_SENDER_PLACEHOLDER;
+}
+
 function buildRecipients(writers, emailLinkOnly) {
   const slotted = writers.slice(0, TEMPLATE_WRITER_SLOTS);
-  return slotted.map((writer, index) => {
+  const recipients = slotted.map((writer, index) => {
     const recipient = {
       id: String(index + 1),
       placeholder_name: `Writer ${index + 1}`,
@@ -108,6 +121,21 @@ function buildRecipients(writers, emailLinkOnly) {
     }
     return recipient;
   });
+  recipients.push({
+    id: String(recipients.length + 1),
+    placeholder_name: DOCUMENT_SENDER_PLACEHOLDER,
+    name: DOCUMENT_SENDER_NAME,
+    email: DOCUMENT_SENDER_EMAIL,
+    send_email: false,
+  });
+  return recipients;
+}
+
+function writer1FromResponse(recipients) {
+  return (
+    recipients.find((row) => row && row.placeholder_name === 'Writer 1') ||
+    recipients.find((row) => row && String(row.id) === '1' && !isDocumentSender(row))
+  );
 }
 
 async function getStatus(req, res) {
@@ -210,10 +238,7 @@ async function createDocument(req, res) {
 
   if (!emailLinkOnly) {
     const recipients = Array.isArray(data.recipients) ? data.recipients : [];
-    const writer1 =
-      recipients.find((row) => row.placeholder_name === 'Writer 1') ||
-      recipients.find((row) => String(row.id) === '1') ||
-      recipients[0];
+    const writer1 = writer1FromResponse(recipients);
     const embedUrl = writer1 && writer1.embedded_signing_url;
     if (!embedUrl) {
       sendJson(res, 502, { error: 'SignWell did not return an embedded signing URL for Writer 1.', signed: false });
