@@ -1,8 +1,10 @@
 (function (global) {
   var MEMBERSHIP_KEY = 'plaigroundMembership';
   var SIGNED_IN_KEY = 'plaigroundSignedIn';
+  var SIGNED_IN_AT_KEY = 'plaigroundSignedInAt';
   var SESSION_KEY = 'plaigroundStripeSession';
   var PENDING_KEY = 'plaigroundMembershipPending';
+  var SESSION_TTL_MS = 30 * 60 * 1000;
   var VALID = { basic: true, creator: true, pro: true };
   var PAID = { creator: true, pro: true };
   var LOGIN = 'login.html';
@@ -85,6 +87,27 @@
 
   function recordSignedIn() {
     storeSet(SIGNED_IN_KEY, '1');
+    storeSet(SIGNED_IN_AT_KEY, String(Date.now()));
+    return true;
+  }
+
+  function clearSignedIn() {
+    storeSet(SIGNED_IN_KEY, '');
+    storeSet(SIGNED_IN_AT_KEY, '');
+  }
+
+  function signedInFresh() {
+    var value = String(storeGet(SIGNED_IN_KEY) || '').toLowerCase();
+    if (value !== '1' && value !== 'true' && value !== 'yes') return false;
+    var at = Number(storeGet(SIGNED_IN_AT_KEY) || 0);
+    if (!at) {
+      storeSet(SIGNED_IN_AT_KEY, String(Date.now()));
+      return true;
+    }
+    if (Date.now() - at > SESSION_TTL_MS) {
+      clearSignedIn();
+      return false;
+    }
     return true;
   }
 
@@ -130,8 +153,7 @@
 
   function isSignedIn() {
     if (serverAccount) return true;
-    var value = String(storeGet(SIGNED_IN_KEY) || '').toLowerCase();
-    return value === '1' || value === 'true' || value === 'yes';
+    return signedInFresh();
   }
 
   function currentPlan() {
@@ -207,6 +229,7 @@
   function migrateSessionKeys() {
     storeGet(MEMBERSHIP_KEY);
     storeGet(SIGNED_IN_KEY);
+    storeGet(SIGNED_IN_AT_KEY);
     storeGet(SESSION_KEY);
     storeGet(PENDING_KEY);
   }
@@ -294,6 +317,7 @@
     recordPaidMembership: recordPaidMembership,
     recordPlan: recordPlan,
     recordSignedIn: recordSignedIn,
+    clearSignedIn: clearSignedIn,
     isSignedIn: isSignedIn,
     hasPlan: hasPlan,
     hasPaidAccess: hasPaidAccess,

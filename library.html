@@ -41,19 +41,29 @@
           <p class="kicker">Catalog</p>
           <h1>Releases</h1>
         </div>
-        <a class="btn btn-purple btn-sm" href="upload.html">New release</a>
+        <a class="btn btn-purple btn-sm" href="upload.html" data-new-release>New release</a>
       </div>
-      <div class="empty-card">
+      <div class="empty-card" data-first-song>
         <div class="empty-ico" aria-hidden="true">♪</div>
         <h3>Your first release goes here</h3>
         <p>Nothing is in your catalog yet. Submit a song and you'll follow the content scan, the split sheet signatures and delivery to 150 platforms from this page.</p>
         <div class="empty-actions">
-          <a class="btn btn-purple btn-md" href="upload.html">Submit your first song</a>
+          <a class="btn btn-purple btn-md" href="upload.html" data-first-upload>Submit your first song</a>
           <a class="ghost-link" href="releases.html">Show the populated state</a>
+        </div>
+      </div>
+      <div class="empty-card" data-has-release hidden>
+        <div class="empty-ico" aria-hidden="true">♪</div>
+        <h3 data-latest-title>Your release</h3>
+        <p><span data-latest-status>In Review</span>. Open the submitted song — Basic includes this one lifetime release.</p>
+        <div class="empty-actions">
+          <a class="btn btn-purple btn-md" data-latest-link href="releases.html">View release</a>
         </div>
       </div>
     </div>
   </div>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

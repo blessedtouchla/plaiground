@@ -415,6 +415,12 @@
     if (el) el.hidden = !show;
   }
 
+  function planLimitMessage(plan) {
+    return plan === 'creator'
+      ? 'Creator includes 8 releases per month. Upgrade to Pro to upload more.'
+      : 'Basic includes one release. Upgrade to Creator or Pro to upload more.';
+  }
+
   function createErrorMessage(result, fallback) {
     if (result && result.data && result.data.error) return result.data.error;
     return fallback;
@@ -871,6 +877,17 @@
     refreshUploadGate();
     showUpgrade(false);
     showLimitPanel(false);
+    whenAccountReady().then(function (result) {
+      var me = (result && result.data) || accountRecord();
+      var catalog = catalogFromAccount(me);
+      var draft = readDraft();
+      if (catalog.allowed === false && !draft.release_id) {
+        setStatus('tg-status', planLimitMessage(catalog.plan));
+        markStatusError(true);
+        showLimitPanel(true);
+        showUpgrade(true);
+      }
+    });
 
     function fieldError(message) {
       failUpload(message, false);
@@ -988,6 +1005,7 @@
       showLimitPanel(false);
       showUpgrade(false);
 
+      var continuingSame = Boolean(readDraft().release_id);
       whenAccountReady()
         .then(function (result) {
           var me = (result && result.data) || accountRecord();
@@ -1005,17 +1023,16 @@
             artwork_type: art && art.type ? art.type : '',
           }), me);
           var catalog = catalogFromAccount(me);
+          if (!continuingSame && catalog.allowed === false) {
+            failUpload(planLimitMessage(catalog.plan), true);
+            return;
+          }
           var reusing = Boolean(draft.artist_id || draft.release_id);
           if (reusing) {
             return afterArtistReady(draft, nextHref);
           }
           if (catalog.allowed === false) {
-            failUpload(
-              catalog.plan === 'creator'
-                ? 'Creator includes 8 releases per month. Upgrade to Pro to upload more.'
-                : 'Basic includes one release. Upgrade to Creator or Pro to upload more.',
-              true
-            );
+            failUpload(planLimitMessage(catalog.plan), true);
             return;
           }
           showUploadLoader('Saving artist');

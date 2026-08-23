@@ -72,11 +72,47 @@
         el.textContent = 'Payouts paused — update card';
       }
     });
-    var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids : [];
+    var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
+    var hasRelease = ids.length > 0;
+    var latestId = hasRelease ? String(ids[ids.length - 1]) : '';
+    var latest = latestReleaseCard(me, latestId);
     $all('[data-account-releases]').forEach(function (el) { setText(el, String(ids.length)); });
     $all('[data-pub-call]').forEach(function (el) {
-      el.hidden = ids.length === 0;
+      el.hidden = !hasRelease;
     });
+    $all('[data-first-song]').forEach(function (el) { el.hidden = hasRelease; });
+    $all('[data-has-release]').forEach(function (el) { el.hidden = !hasRelease; });
+    $all('[data-first-upload]').forEach(function (el) { el.hidden = hasRelease; });
+    $all('[data-latest-title]').forEach(function (el) { setText(el, latest.title); });
+    $all('[data-latest-status]').forEach(function (el) { setText(el, latest.status); });
+    $all('[data-latest-link]').forEach(function (el) {
+      if (latest.href) el.setAttribute('href', latest.href);
+    });
+    var upload = me.upload || {};
+    var atLimit = upload.allowed === false;
+    $all('[data-new-release]').forEach(function (el) {
+      if (!atLimit) return;
+      el.setAttribute('href', 'upload.html');
+    });
+  }
+
+  function readDraft() {
+    try {
+      return JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.tonegrid.draft')) || '{}') || {};
+    } catch (err) {
+      try {
+        return JSON.parse((global.sessionStorage && global.sessionStorage.getItem('plaiground.tonegrid.draft')) || '{}') || {};
+      } catch (inner) {
+        return {};
+      }
+    }
+  }
+
+  function latestReleaseCard(me, latestId) {
+    var draft = readDraft();
+    var title = String((draft && draft.title) || '').trim() || 'Your release';
+    var href = latestId ? ('song.html?id=' + encodeURIComponent(latestId)) : 'releases.html';
+    return { title: title, status: 'In Review', href: href };
   }
 
   function bindSignOut() {
@@ -85,6 +121,9 @@
     link.addEventListener('click', function (event) {
       event.preventDefault();
       var dest = link.getAttribute('href') || 'index.html';
+      if (global.PlaigroundMembership && typeof global.PlaigroundMembership.clearSignedIn === 'function') {
+        global.PlaigroundMembership.clearSignedIn();
+      }
       fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' } })
         .catch(function () {})
         .then(function () {

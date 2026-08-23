@@ -29,17 +29,28 @@
   <main class="center-page">
     <div class="wrap">
       <div class="stack">
-        <p class="eyebrow magenta">Passwordless sign-in</p>
-        <h1>Your sign-in link is on the way</h1>
-        <p class="center-lead" data-magic-lead>We emailed a one-time link to the email you entered. Open it on this device and you are straight in — no password needed.</p>
-        <div class="status-box">
-          <div class="row"><span>Link expires in</span><span class="y">14:52</span></div>
-          <div class="row"><span>Uses</span><b>One, then it dies</b></div>
-          <div class="row"><span>Sent to device</span><b>This browser</b></div>
+        <p class="eyebrow magenta" data-magic-kicker>Passwordless sign-in</p>
+        <p class="status-ok" data-magic-status>Sending…</p>
+        <h1 data-magic-title>Your sign-in link is on the way</h1>
+        <p class="center-lead" data-magic-lead>If the email is not in the inbox, check Spam and Promotions. It is from PLAIGROUND / confirm@wannaplai.com.</p>
+        <div class="help-box" data-magic-help>
+          <small>Check Spam and Promotions</small>
+          <p>Confirm-email already landed in spam for some accounts. Look there. It is from PLAIGROUND / confirm@wannaplai.com.</p>
         </div>
-        <a class="btn btn-purple btn-lg" href="magic.html">Send it again</a>
+        <p class="alert err is-hidden" data-magic-error hidden></p>
+        <div class="status-box" data-magic-meta hidden>
+          <div class="row"><span>Link expires in</span><span class="y" data-magic-expires>60:00</span></div>
+          <div class="row"><span>Uses</span><b>One, then it dies</b></div>
+        </div>
+        <form id="magic-form" data-magic-form hidden>
+          <div class="field">
+            <label for="magic-email">Email</label>
+            <input id="magic-email" name="email" class="accent" type="email" placeholder="you@label.com" autocomplete="username" />
+          </div>
+          <button class="btn btn-purple btn-lg" type="submit" data-magic-send>Email me a sign-in link</button>
+        </form>
+        <button class="btn btn-purple btn-lg" type="button" data-magic-resend hidden>Send it again</button>
         <p style="margin-top:12px"><a class="btn btn-ghost btn-lg" href="login.html">Use a password instead</a></p>
-        <p class="note">Opening the link on a different device is fine — you will just be asked to confirm it is you.</p>
       </div>
     </div>
   </main>
@@ -83,23 +94,189 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
-      var lead = document.querySelector('[data-magic-lead]');
-      if (!lead) return;
       var params = new URLSearchParams(window.location.search);
+      var kind = String(params.get('kind') || 'magic').trim().toLowerCase();
+      if (kind !== 'reset') kind = 'magic';
       var email = String(params.get('email') || '').trim();
-      lead.textContent = '';
-      lead.appendChild(document.createTextNode('We emailed a one-time link to '));
-      if (email) {
-        var bold = document.createElement('b');
-        bold.textContent = email;
-        lead.appendChild(bold);
-      } else {
-        lead.appendChild(document.createTextNode('the email you entered'));
+      var token = String(params.get('token') || '').trim();
+      var alreadySent = params.get('sent') === '1';
+      var status = document.querySelector('[data-magic-status]');
+      var title = document.querySelector('[data-magic-title]');
+      var lead = document.querySelector('[data-magic-lead]');
+      var kicker = document.querySelector('[data-magic-kicker]');
+      var errorBox = document.querySelector('[data-magic-error]');
+      var meta = document.querySelector('[data-magic-meta]');
+      var expires = document.querySelector('[data-magic-expires]');
+      var form = document.querySelector('[data-magic-form]');
+      var emailEl = document.getElementById('magic-email');
+      var resend = document.querySelector('[data-magic-resend]');
+      var sendBtn = document.querySelector('[data-magic-send]');
+      var endsAt = Date.now() + (60 * 60 * 1000);
+
+      function showError(message) {
+        if (!errorBox) return;
+        errorBox.textContent = message || '';
+        errorBox.hidden = !message;
+        errorBox.classList.toggle('is-hidden', !message);
+        if (message && status) {
+          status.textContent = 'Could not send';
+          status.classList.remove('status-ok');
+        }
+        if (meta) meta.hidden = Boolean(message);
       }
-      lead.appendChild(document.createTextNode('. Open it on this device and you are straight in — no password needed.'));
+
+      function setLead(address, sent) {
+        if (!lead) return;
+        lead.textContent = '';
+        if (sent) {
+          lead.appendChild(document.createTextNode(kind === 'reset'
+            ? 'We emailed a password-reset link to '
+            : 'We emailed a one-time sign-in link to '));
+        } else {
+          lead.appendChild(document.createTextNode(kind === 'reset'
+            ? 'A password-reset link goes to '
+            : 'A one-time sign-in link goes to '));
+        }
+        if (address) {
+          var bold = document.createElement('b');
+          bold.textContent = address;
+          lead.appendChild(bold);
+        } else {
+          lead.appendChild(document.createTextNode('the email you entered'));
+        }
+        lead.appendChild(document.createTextNode('. If it is not in the inbox, check Spam and Promotions. It is from PLAIGROUND / confirm@wannaplai.com.'));
+      }
+
+      function showSent(address) {
+        alreadySent = true;
+        if (status) {
+          status.innerHTML = '<i>✓</i> Email sent';
+          status.classList.add('status-ok');
+        }
+        showError('');
+        if (meta) meta.hidden = false;
+        if (form) form.hidden = true;
+        if (resend) resend.hidden = false;
+        setLead(address, true);
+        endsAt = Date.now() + (60 * 60 * 1000);
+        tick();
+      }
+
+      function tick() {
+        if (!expires) return;
+        var left = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
+        var minutes = Math.floor(left / 60);
+        var seconds = left % 60;
+        expires.textContent = String(minutes) + ':' + (seconds < 10 ? '0' : '') + String(seconds);
+      }
+
+      if (kicker) kicker.textContent = kind === 'reset' ? 'Password reset' : 'Passwordless sign-in';
+      if (title) title.textContent = kind === 'reset' ? 'Your reset link is on the way' : 'Your sign-in link is on the way';
+      if (emailEl && email) emailEl.value = email;
+      setLead(email, alreadySent);
+      setInterval(tick, 1000);
+      tick();
+
+      if (token) {
+        if (status) status.textContent = 'Signing you in…';
+        fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token }),
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data || {} };
+          }).catch(function () {
+            return { ok: false, data: {} };
+          });
+        }).then(function (result) {
+          if (!result.ok) {
+            showError(result.data.error || 'Invalid or expired sign-in link.');
+            if (resend) resend.hidden = false;
+            return;
+          }
+          if (window.PlaigroundMembership) {
+            window.PlaigroundMembership.recordSignedIn();
+            if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+          }
+          window.location.replace('dashboard.html');
+        }).catch(function () {
+          showError('Could not use the sign-in link.');
+        });
+        return;
+      }
+
+      function sendLink(address) {
+        var button = resend && !resend.hidden ? resend : sendBtn;
+        if (!address) {
+          showError('A valid email is required.');
+          return;
+        }
+        if (button) {
+          button.disabled = true;
+          button.setAttribute('aria-busy', 'true');
+        }
+        if (status) status.textContent = 'Sending…';
+        fetch('/api/auth/mail', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: address, kind: kind }),
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data || {} };
+          }).catch(function () {
+            return { ok: false, data: {} };
+          });
+        }).then(function (result) {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+          }
+          if (result.ok && result.data.mail_sent) {
+            email = address;
+            showSent(address);
+            return;
+          }
+          showError(result.data.error || 'Could not send the email.');
+          if (!email && form) form.hidden = false;
+          if (resend) resend.hidden = !email;
+        }).catch(function () {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+          }
+          showError('Could not send the email.');
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          sendLink(emailEl ? String(emailEl.value || '').trim() : '');
+        });
+      }
+      if (resend) {
+        resend.addEventListener('click', function () {
+          sendLink(email || (emailEl ? String(emailEl.value || '').trim() : ''));
+        });
+      }
+
+      if (alreadySent && email) {
+        showSent(email);
+        return;
+      }
+      if (email) {
+        sendLink(email);
+        return;
+      }
+      if (status) status.textContent = 'Enter your email';
+      if (form) form.hidden = false;
     })();
   </script>
 </body>

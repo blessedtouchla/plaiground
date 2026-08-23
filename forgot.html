@@ -30,17 +30,29 @@
     <div class="wrap">
       <div class="stack">
         <p class="eyebrow magenta">Account access</p>
-        <h1>Reset your password</h1>
-        <p class="center-lead">Give us the email on the account and we will send a link that lets you set a new one. The link is good for an hour.</p>
-        <form action="magic.html" method="get">
+        <h1 data-forgot-title>Reset your password</h1>
+        <p class="center-lead" data-forgot-lead>Give us the email on the account and we will send a link that lets you set a new one. The link is good for an hour. If it is not in the inbox, check Spam and Promotions. It is from PLAIGROUND / confirm@wannaplai.com.</p>
+        <div class="help-box" data-forgot-help>
+          <small>Check Spam and Promotions</small>
+          <p>Confirm-email already landed in spam for some accounts. Look there. It is from PLAIGROUND / confirm@wannaplai.com.</p>
+        </div>
+        <p class="alert err is-hidden" data-forgot-error hidden></p>
+        <form id="forgot-form" data-forgot-request>
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" name="email" class="accent" type="email" placeholder="you@label.com" />
+            <input id="email" name="email" class="accent" type="email" placeholder="you@label.com" autocomplete="username" />
           </div>
-          <button class="btn btn-purple btn-lg" type="submit">Send the reset link</button>
+          <button class="btn btn-purple btn-lg" type="submit" data-forgot-send>Send the reset link</button>
         </form>
-        <div class="or">OR</div>
-        <a class="btn btn-ghost btn-lg" href="magic.html">Email me a sign-in link instead</a>
+        <form id="reset-form" data-forgot-reset hidden>
+          <div class="field">
+            <label for="new-password">New password</label>
+            <input id="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ characters" />
+          </div>
+          <button class="btn btn-purple btn-lg" type="submit" data-forgot-save>Save new password</button>
+        </form>
+        <div class="or" data-forgot-request>OR</div>
+        <a class="btn btn-ghost btn-lg" href="magic.html" data-forgot-magic>Email me a sign-in link instead</a>
         <p class="switch">Remembered it? <a href="login.html">Back to sign in</a></p>
       </div>
     </div>
@@ -85,6 +97,137 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var emailEl = document.getElementById('email');
+      var requestForm = document.getElementById('forgot-form');
+      var resetForm = document.getElementById('reset-form');
+      var errorBox = document.querySelector('[data-forgot-error]');
+      var title = document.querySelector('[data-forgot-title]');
+      var lead = document.querySelector('[data-forgot-lead]');
+      var magicLink = document.querySelector('[data-forgot-magic]');
+      var token = String(params.get('token') || '').trim();
+      var email = String(params.get('email') || '').trim();
+      if (emailEl && email) emailEl.value = email;
+
+      function showError(message) {
+        if (!errorBox) return;
+        errorBox.textContent = message || '';
+        errorBox.hidden = !message;
+        errorBox.classList.toggle('is-hidden', !message);
+      }
+
+      if (magicLink) {
+        magicLink.addEventListener('click', function (event) {
+          var address = emailEl ? String(emailEl.value || '').trim() : email;
+          if (!address) return;
+          event.preventDefault();
+          window.location.href = 'magic.html?email=' + encodeURIComponent(address);
+        });
+      }
+
+      if (token && resetForm && requestForm) {
+        requestForm.hidden = true;
+        document.querySelectorAll('[data-forgot-request]').forEach(function (el) { el.hidden = true; });
+        resetForm.hidden = false;
+        if (title) title.textContent = 'Set a new password';
+        if (lead) lead.textContent = 'Choose a new password for this account. Then you stay signed in.';
+        resetForm.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var passwordEl = document.getElementById('new-password');
+          var password = passwordEl ? String(passwordEl.value || '') : '';
+          var button = document.querySelector('[data-forgot-save]');
+          if (password.length < 8) {
+            showError('Password must be at least 8 characters.');
+            return;
+          }
+          if (button) {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+          }
+          fetch('/api/auth/reset', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, password: password }),
+          }).then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, data: data || {} };
+            }).catch(function () {
+              return { ok: false, data: {} };
+            });
+          }).then(function (result) {
+            if (button) {
+              button.disabled = false;
+              button.removeAttribute('aria-busy');
+            }
+            if (!result.ok) {
+              showError(result.data.error || 'Invalid or expired reset link.');
+              return;
+            }
+            if (window.PlaigroundMembership) {
+              window.PlaigroundMembership.recordSignedIn();
+              if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+            }
+            window.location.href = 'dashboard.html';
+          }).catch(function () {
+            if (button) {
+              button.disabled = false;
+              button.removeAttribute('aria-busy');
+            }
+            showError('Could not save the new password.');
+          });
+        });
+        return;
+      }
+
+      if (requestForm) {
+        requestForm.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var address = emailEl ? String(emailEl.value || '').trim() : '';
+          var button = document.querySelector('[data-forgot-send]');
+          if (!address) {
+            showError('A valid email is required.');
+            return;
+          }
+          if (button) {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+          }
+          fetch('/api/auth/mail', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: address, kind: 'reset' }),
+          }).then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, status: response.status, data: data || {} };
+            }).catch(function () {
+              return { ok: false, status: response.status, data: {} };
+            });
+          }).then(function (result) {
+            if (button) {
+              button.disabled = false;
+              button.removeAttribute('aria-busy');
+            }
+            if (result.ok && result.data.mail_sent) {
+              window.location.href = 'magic.html?kind=reset&sent=1&email=' + encodeURIComponent(address);
+              return;
+            }
+            showError(result.data.error || 'Could not send the reset email.');
+          }).catch(function () {
+            if (button) {
+              button.disabled = false;
+              button.removeAttribute('aria-busy');
+            }
+            showError('Could not send the reset email.');
+          });
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

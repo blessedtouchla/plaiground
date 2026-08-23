@@ -107,6 +107,7 @@ function run() {
   assert.strictEqual(basicClick.api.hasMembership(), false, 'plan alone is not enough');
   basicClick.api.recordSignedIn();
   assert.strictEqual(basicClick.localStorage.getItem('plaigroundSignedIn'), '1');
+  assert.ok(Number(basicClick.localStorage.getItem('plaigroundSignedInAt')) > 0);
   assert.strictEqual(basicClick.api.hasMembership(), true);
 
   const invented = load();
@@ -149,6 +150,16 @@ function run() {
   assert.strictEqual(analyticsStay.api.requireMembership(), true);
   assert.strictEqual(analyticsStay.api.requirePaidAccess(), false);
   assert.ok(analyticsStay.location.href.indexOf('needplan=1') !== -1, 'paid gate would still bounce Basic');
+
+  const earningsStay = load({
+    require: true,
+    pathname: '/earnings.html',
+    href: 'earnings.html',
+    seedLocal: { plaigroundSignedIn: '1', plaigroundMembership: 'basic' },
+  });
+  assert.strictEqual(earningsStay.location.href, 'earnings.html', 'signed-in Basic stays on earnings');
+  assert.strictEqual(earningsStay.api.requireMembership(), true);
+  assert.strictEqual(earningsStay.api.requirePaidAccess(), false);
 
   const paidOk = load({
     require: true,

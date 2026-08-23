@@ -13,7 +13,7 @@
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { confirmEmail, createUser, findByEmail, ensureReady } = require('../lib/accounts');
+const { confirmEmail, createUser, findByEmail, ensureReady, setPassword } = require('../lib/accounts');
 const {
   attachSession,
   authPayload,
@@ -30,6 +30,8 @@ const {
 const {
   MAIL_NOT_CONFIGURED,
   isMailConfigured,
+  normalizePurpose,
+  sendAuthEmail,
   sendConfirmEmail,
   verifyToken,
 } = require('../lib/mail');
@@ -164,6 +166,11 @@ async function login(req, res) {
 
   const email = normalizeEmail(body && body.email);
   const password = body && body.password != null ? String(body.password) : '';
+  const token = String((body && body.token) || '').trim();
+  if (token) {
+    await loginWithToken(req, res, token);
+    return;
+  }
   if (!isEmail(email) || !password) {
     sendJson(res, 401, { error: 'Invalid email or password.' });
     return;
@@ -188,6 +195,116 @@ async function login(req, res) {
     }
     sendJson(res, 503, { error: 'Accounts are not configured.' });
   }
+}
+
+async function loginWithToken(req, res, token) {
+  const verified = verifyToken(token, 'magic');
+  if (!verified) {
+    sendJson(res, 400, { error: 'Invalid or expired sign-in link.' });
+    return;
+  }
+  try {
+    const row = await findByEmail(verified.email);
+    if (!row) {
+      sendJson(res, 400, { error: 'Invalid or expired sign-in link.' });
+      return;
+    }
+    if (!isConfirmed(row)) {
+      sendJson(res, 403, pendingPayload(row));
+      return;
+    }
+    attachSession(req, res, row.id);
+    sendJson(res, 200, authPayload(row));
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function resetPassword(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const token = String((body && body.token) || '').trim();
+  const password = body && body.password != null ? String(body.password) : '';
+  const verified = verifyToken(token, 'reset');
+  if (!verified) {
+    sendJson(res, 400, { error: 'Invalid or expired reset link.' });
+    return;
+  }
+  if (password.length < 8) {
+    sendJson(res, 400, { error: 'Password must be at least 8 characters.' });
+    return;
+  }
+
+  try {
+    const row = await findByEmail(verified.email);
+    if (!row) {
+      sendJson(res, 400, { error: 'Invalid or expired reset link.' });
+      return;
+    }
+    if (!isConfirmed(row)) {
+      sendJson(res, 403, pendingPayload(row));
+      return;
+    }
+    const next = await setPassword(row.id, password);
+    attachSession(req, res, row.id);
+    sendJson(res, 200, authPayload(next || row));
+  } catch (err) {
+    if (err && err.code === 'VALIDATION') {
+      sendJson(res, 400, { error: err.message });
+      return;
+    }
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function sendAccessEmail(email, purpose) {
+  if (!isMailConfigured()) {
+    return { mail_sent: false, error: MAIL_NOT_CONFIGURED };
+  }
+  if (!isConfigured()) {
+    return { mail_sent: false, error: 'Accounts are not configured.' };
+  }
+  let row;
+  try {
+    row = await findByEmail(email);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      return { mail_sent: false, error: 'Accounts are not configured.' };
+    }
+    throw err;
+  }
+  if (!row) {
+    return { mail_sent: true, purpose, skipped: true };
+  }
+  if (!isConfirmed(row)) {
+    return sendConfirmEmail({ email, artist: row.artist_name });
+  }
+  return sendAuthEmail({ email, artist: row.artist_name, purpose });
 }
 
 async function mail(req, res) {
@@ -230,18 +347,23 @@ async function mail(req, res) {
     return;
   }
 
+  const purpose = normalizePurpose(body && (body.kind || body.purpose));
   let result;
   try {
-    result = await sendConfirmEmail({
-      email,
-      artist: String((body && body.artist) || '').trim(),
-    });
+    if (purpose === 'magic' || purpose === 'reset') {
+      result = await sendAccessEmail(email, purpose);
+    } else {
+      result = await sendConfirmEmail({
+        email,
+        artist: String((body && body.artist) || '').trim(),
+      });
+    }
   } catch {
     result = { mail_sent: false, error: 'Could not send the confirmation email.' };
   }
 
   if (result.mail_sent) {
-    sendJson(res, 200, { ok: true, mail_sent: true });
+    sendJson(res, 200, { ok: true, mail_sent: true, kind: result.purpose || purpose });
     return;
   }
 
@@ -277,7 +399,7 @@ async function confirm(req, res) {
     token = String((body && body.token) || '').trim();
   }
 
-  const verified = verifyToken(token);
+  const verified = verifyToken(token, 'confirm');
   if (!verified) {
     sendJson(res, 400, { ok: false, confirmed: false, error: 'Invalid or expired token.' });
     return;
@@ -334,6 +456,10 @@ module.exports = async function handler(req, res) {
   }
   if (action === 'confirm') {
     await confirm(req, res);
+    return;
+  }
+  if (action === 'reset') {
+    await resetPassword(req, res);
     return;
   }
   if (action) {
