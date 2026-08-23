@@ -1549,7 +1549,13 @@ table.data tbody tr.is-pick { cursor: pointer; }
   width: 200px;
   height: 200px;
   border-radius: 16px;
-  background: linear-gradient(160deg, #3a1a4a, #8B3FE8 40%, #1a1a22);
+  background: #16161C;
+  border: 1px solid var(--line);
+}
+.cover-lg.has-art {
+  background-size: cover;
+  background-position: center;
+  border-color: transparent;
 }
 .delta-up { color: var(--green); font-size: 13px; }
 .delta-down { color: #E89A3F; font-size: 13px; }

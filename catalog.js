@@ -102,8 +102,12 @@
       var thumb = document.createElement('span');
       thumb.className = row.status === 'live' ? 'thumb' : 'thumb grey';
       var copy = document.createElement('div');
-      var title = document.createElement('b');
+      var title = document.createElement('a');
+      title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'song.html';
       title.textContent = row.title || 'Untitled';
+      title.style.color = 'inherit';
+      title.style.textDecoration = 'none';
+      title.style.fontWeight = '700';
       var meta = document.createElement('small');
       var when = formatDate(row.release_date);
       meta.textContent = typeLabel(row.type) + (when ? ' · ' + when : '');
@@ -161,13 +165,59 @@
     });
   }
 
+  function readDraft() {
+    try {
+      return JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.tonegrid.draft')) || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function accountFallback(me, existing) {
+    var have = {};
+    (existing || []).forEach(function (row) {
+      if (row && row.uuid) have[String(row.uuid).toLowerCase()] = true;
+    });
+    var ids = (me && Array.isArray(me.tonegrid_release_ids)) ? me.tonegrid_release_ids : [];
+    var draft = readDraft();
+    var extra = [];
+    ids.forEach(function (id) {
+      var key = String(id || '').toLowerCase();
+      if (!key || have[key]) return;
+      if (draft && String(draft.release_id || '').toLowerCase() === key) {
+        extra.push({
+          uuid: String(id),
+          title: String(draft.title || '').trim() || 'Untitled',
+          type: 'single',
+          status: draft.submitted ? 'pending' : 'draft',
+          genre: String(draft.genre || '').trim(),
+          release_date: String(draft.release_date || '').trim(),
+        });
+      }
+    });
+    return extra;
+  }
+
+  function loadAccount() {
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.whenReady === 'function') {
+      return global.PlaigroundMembership.whenReady().then(function (result) {
+        if (result && result.ok && result.data) return result.data;
+        return global.PlaigroundMembership.account ? global.PlaigroundMembership.account() : null;
+      });
+    }
+    return getJson('/api/me').then(function (result) {
+      return result.ok ? result.data : null;
+    });
+  }
+
   function load() {
     if (!$('[data-release-rows]') && !$('[data-release-empty]')) return;
     setStatus('Loading catalog…');
-    Promise.all([getJson(RELEASES_URL), getJson(ANALYTICS_URL)])
+    Promise.all([getJson(RELEASES_URL), getJson(ANALYTICS_URL), loadAccount()])
       .then(function (results) {
         var list = results[0];
         var analytics = results[1];
+        var me = results[2];
         if (list.status === 401) {
           setStatus('Sign in to see your releases.');
           render({ releases: [], total: 0, analytics: {} });
@@ -185,9 +235,12 @@
           render({ releases: [], total: 0, analytics: {} });
           return;
         }
+        var releases = list.data.releases || [];
+        var extra = accountFallback(me, releases);
+        releases = releases.concat(extra);
         render({
-          releases: list.data.releases || [],
-          total: list.data.total,
+          releases: releases,
+          total: list.data.total || releases.length,
           analytics: analytics.ok ? analytics.data : {},
         });
         setStatus('');
@@ -355,15 +408,10 @@
       host.addEventListener('click', function (event) {
         var tr = event.target && event.target.closest ? event.target.closest('tr[data-release-id]') : null;
         if (!tr) return;
+        if (event.target && event.target.closest && event.target.closest('a')) return;
         var id = tr.getAttribute('data-release-id');
-        setEditError('Loading…');
-        getJson('/api/tonegrid/releases/' + encodeURIComponent(id)).then(function (result) {
-          if (!result.ok) {
-            setEditError((result.data && result.data.error) || 'Could not load this release.');
-            return;
-          }
-          fillEdit(result.data);
-        });
+        if (!id) return;
+        global.location.href = 'song.html?id=' + encodeURIComponent(id);
       });
     }
     var saveBtn = $('[data-edit-save]');

@@ -1234,6 +1234,8 @@
     var draft = readDraft();
     if (draft.title) titleEl.textContent = draft.title + ' is in the queue.';
     if (draft.tonegrid_status) setStatus('tg-status', 'ToneGrid status: ' + draft.tonegrid_status);
+    var view = document.querySelector('a[href="song.html"]');
+    if (view && draft.release_id) view.setAttribute('href', 'song.html?id=' + encodeURIComponent(draft.release_id));
   }
 
   function bindSubmitted() {

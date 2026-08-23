@@ -2,7 +2,7 @@
   "name": "plaiground",
   "private": true,
   "scripts": {
-    "test": "node membership.test.js && node lib/tonegrid.test.js && node lib/signwell.test.js && node upload-defaults.test.js && node catalog-earnings.test.js && node analytics.page.test.js && node basic-plan-wiring.test.js && node tonegrid.client.test.js && node lib/accounts.test.js && node lib/mail.test.js && node lib/plans.test.js && node lib/stripe-webhook.test.js && node lib/upload-required.test.js && node lib/audio-convert.test.js && node attest.page.test.js && node review-fees.test.js && node review-date-picker.test.js && node split-sheet.page.test.js && node dashboard.page.test.js"
+    "test": "node membership.test.js && node lib/tonegrid.test.js && node lib/signwell.test.js && node upload-defaults.test.js && node catalog-earnings.test.js && node analytics.page.test.js && node basic-plan-wiring.test.js && node tonegrid.client.test.js && node lib/accounts.test.js && node lib/mail.test.js && node lib/plans.test.js && node lib/stripe-webhook.test.js && node lib/upload-required.test.js && node lib/audio-convert.test.js && node attest.page.test.js && node review-fees.test.js && node review-date-picker.test.js && node split-sheet.page.test.js && node dashboard.page.test.js && node song.page.test.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
