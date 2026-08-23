@@ -52,6 +52,7 @@ function load(options) {
   const title = makeEl({ id: 'tg-title', value: opts.title || '' });
   const artist = makeEl({ id: 'tg-artist', value: opts.artist || '' });
   const genre = makeEl({ id: 'tg-genre', value: opts.genre || '' });
+  const language = makeEl({ id: 'tg-language', value: opts.language || '' });
   const date = makeEl({ id: 'tg-release-date', value: opts.releaseDate || '' });
   const status = makeEl({ id: 'tg-status' });
   const continueBtn = makeEl({
@@ -71,6 +72,7 @@ function load(options) {
     'tg-title': title,
     'tg-artist': artist,
     'tg-genre': genre,
+    'tg-language': language,
     'tg-release-date': date,
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
@@ -158,6 +160,7 @@ async function run() {
     title: 'Night Drive',
     artist: 'Ada Night',
     genre: 'Pop',
+    language: 'en',
     responses: [
       { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
       { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
@@ -184,6 +187,7 @@ async function run() {
   assert.strictEqual(releaseBody.type, 'single');
   assert.strictEqual(releaseBody.genre, 'Pop');
   assert.strictEqual(releaseBody.release_date, undefined);
+  assert.strictEqual(trackBody.language, 'en');
   assert.strictEqual(trackBody.release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
   assert.strictEqual(trackBody.title, 'Night Drive');
   assert.strictEqual(trackBody.position, 1);

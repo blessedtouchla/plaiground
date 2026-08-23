@@ -66,17 +66,30 @@ function run() {
   assert.ok(upload.indexOf('href="creator.html"') !== -1);
   assert.ok(upload.indexOf('href="pro.html"') !== -1);
 
+  assert.ok(upload.indexOf('upload-catalog.js') !== -1);
+  assert.ok(upload.indexOf('id="tg-subgenre"') === -1);
+  assert.ok(upload.indexOf('name="release-subgenre"') === -1);
+
+  const catalog = require('./upload-catalog');
+  assert.ok(catalog.GENRES.indexOf('Afrobeats') !== -1);
+  assert.ok(catalog.GENRES.indexOf('Afropop') !== -1);
+  assert.ok(catalog.GENRES.indexOf('Electronic') !== -1);
+  assert.ok(catalog.GENRES.length >= 180);
+  assert.ok(catalog.LANGUAGES.length >= 180);
+  assert.ok(catalog.LANGUAGES.every(function (row) { return /^[a-z]{2}$/.test(row.code); }));
+  assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'en' && row.name === 'English'; }));
+  assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'es'; }));
+  assert.ok(!catalog.LANGUAGES.some(function (row) { return row.code === 'English'; }));
+
   const genre = options(selectById(upload, 'tg-genre'));
-  assert.deepStrictEqual(genre.map(function (opt) { return opt.value; }), [
-    '', 'Electronic', 'Pop', 'Hip-Hop', 'Country', 'R&amp;B', 'Latin', 'Other',
-  ]);
+  assert.deepStrictEqual(genre.map(function (opt) { return opt.value; }), ['']);
   assert.strictEqual(genre[0].label, 'Select genre');
   assert.ok(genre.every(function (opt) { return !opt.selected; }));
 
   const language = options(selectById(upload, 'tg-language'));
   assert.strictEqual(language[0].value, '');
   assert.strictEqual(language[0].label, 'Select language');
-  assert.ok(language.some(function (opt) { return opt.value === 'English'; }));
+  assert.ok(!language.some(function (opt) { return opt.value === 'English'; }));
   assert.ok(language.every(function (opt) { return !opt.selected; }));
 
   const price = options(selectById(upload, 'tg-price'));

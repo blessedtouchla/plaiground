@@ -198,12 +198,16 @@
     }
     var key = trackKey(draft);
     writeDraft({ track_idempotency_key: key });
-    return post(TRACKS_URL, {
+    var trackBody = {
       release_id: draft.release_id,
       title: draft.title,
       position: 1,
       explicit: draft.explicit === true,
-    }, key).then(function (result) {
+    };
+    if (draft.language && /^[a-z]{2}$/.test(String(draft.language))) {
+      trackBody.language = String(draft.language);
+    }
+    return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
       }
@@ -305,6 +309,8 @@
       var name = fieldValue('tg-artist');
       var title = fieldValue('tg-title');
       var genre = fieldValue('tg-genre');
+      var language = fieldValue('tg-language').toLowerCase();
+      if (!/^[a-z]{2}$/.test(language)) language = '';
       var explicit = selectedExplicit();
       var file = selectedAudio();
       var nextHref = trigger.getAttribute('href') || 'attest.html';
@@ -326,7 +332,7 @@
         return;
       }
 
-      writeDraft({ name: name, title: title, genre: genre, type: 'single', explicit: explicit });
+      writeDraft({ name: name, title: title, genre: genre, language: language, type: 'single', explicit: explicit });
       trigger.setAttribute('aria-busy', 'true');
       setStatus('tg-status', 'Saving artist…');
 
@@ -355,6 +361,7 @@
             name: name,
             title: title,
             genre: genre,
+            language: language,
             type: 'single',
             explicit: explicit,
           });

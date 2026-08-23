@@ -438,6 +438,8 @@ async function createTrack(req, res) {
   const title = String((body && body.title) || '').trim();
   const position = parsePosition(body && body.position);
   const explicit = parseExplicit(body && body.explicit);
+  const language = String((body && body.language) || '').trim().toLowerCase();
+  const languageCode = /^[a-z]{2}$/.test(language) ? language : '';
 
   if (!releaseId) {
     sendJson(res, 400, { error: 'release_id is required.' });
@@ -460,9 +462,12 @@ async function createTrack(req, res) {
     return;
   }
 
+  const trackPayload = { title, position, explicit };
+  if (languageCode) trackPayload.language = languageCode;
+
   const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',
-    body: { title, position, explicit },
+    body: trackPayload,
     idempotencyKey: idempotencyKey(req, ['track', releaseId, title, String(position)].join(':')),
   });
   sendJson(res, result.status, result.data);
