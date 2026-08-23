@@ -235,8 +235,19 @@ async function listArtists(req, res) {
 }
 
 async function createArtist(req, res) {
-  const scope = await requireUpload(req, res);
+  const scope = await personalScope(req, res);
   if (!scope) return;
+
+  if (scope.artistId) {
+    sendJson(res, 200, { uuid: scope.artistId, continued: true });
+    return;
+  }
+
+  const decision = plans.evaluate(scope.row);
+  if (!decision.allowed) {
+    sendJson(res, 403, plans.limitBody(decision));
+    return;
+  }
 
   let body;
   try {
@@ -410,17 +421,26 @@ async function createRelease(req, res) {
   }
 
   const continueId = String((body && (body.release_id || body.releaseId)) || '').trim();
+  const artistId = String((body && (body.artist_id || body.artistId)) || '').trim();
+  const existingIds = plans.uniqueReleaseIds(scope.row);
   const decision = plans.evaluate(scope.row, undefined, { continueReleaseId: continueId });
-  if (!decision.allowed) {
-    sendJson(res, 403, plans.limitBody(decision));
-    return;
-  }
   if (decision.continuing && isUuid(continueId)) {
     sendJson(res, 200, { uuid: continueId, continued: true });
     return;
   }
-
-  const artistId = String((body && (body.artist_id || body.artistId)) || '').trim();
+  if (
+    existingIds.length === 1
+    && isUuid(artistId)
+    && scope.artistId
+    && artistId.toLowerCase() === scope.artistId.toLowerCase()
+  ) {
+    sendJson(res, 200, { uuid: existingIds[0], continued: true });
+    return;
+  }
+  if (!decision.allowed) {
+    sendJson(res, 403, plans.limitBody(decision));
+    return;
+  }
   const type = normalizeReleaseType(body && body.type);
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
   const fields = uploadRequired.validateReleaseCreate(body);
@@ -518,6 +538,10 @@ async function createTrack(req, res) {
   }
   if (!isUuid(releaseId)) {
     sendJson(res, 400, { error: 'release_id must be a uuid.' });
+    return;
+  }
+  if (scope.trackIds.length === 1 && idAllowed(scope.allow, releaseId)) {
+    sendJson(res, 200, { uuid: scope.trackIds[0], continued: true });
     return;
   }
   if (fields.error) {

@@ -257,6 +257,7 @@
       price: draft.price || '',
       instrumental: draft.instrumental === true,
     };
+    if (draft.release_id) body.release_id = draft.release_id;
     if (!body.instrumental && draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
     return body;
@@ -310,7 +311,7 @@
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
     }
     var key = trackKey(draft);
-    writeDraft({ track_idempotency_key: key });
+    if (!draft.track_idempotency_key) writeDraft({ track_idempotency_key: key });
     var trackBody = {
       release_id: draft.release_id,
       title: draft.title,
@@ -487,7 +488,7 @@
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
     }
     var key = releaseKey(draft);
-    writeDraft({ release_idempotency_key: key });
+    if (!draft.release_idempotency_key) writeDraft({ release_idempotency_key: key });
     return post(RELEASES_URL, releasePayload(draft, releaseDate), key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
@@ -609,16 +610,22 @@
     var trackId = isUuidValue(draft.track_id) ? draft.track_id : '';
     var patch = {};
     var onlyRelease = catalog.release_ids.length === 1 ? catalog.release_ids[0] : '';
-    var matchesRelease = releaseId && catalog.release_ids.some(function (id) { return sameUuid(id, releaseId); });
+    var onlyTrack = catalog.track_ids.length === 1 ? catalog.track_ids[0] : '';
     if (releaseId) {
       if (!artistId && catalog.artist_id) patch.artist_id = catalog.artist_id;
-      if (!trackId && catalog.track_ids.length === 1) patch.track_id = catalog.track_ids[0];
+      if (!trackId && onlyTrack) patch.track_id = onlyTrack;
       return Object.keys(patch).length ? writeDraft(patch) : draft;
     }
-    if (artistId && onlyRelease && (!catalog.artist_id || sameUuid(artistId, catalog.artist_id) || matchesRelease)) {
+    if (artistId && onlyRelease && (!catalog.artist_id || sameUuid(artistId, catalog.artist_id))) {
       patch.release_id = onlyRelease;
-      if (!trackId && catalog.track_ids.length === 1) patch.track_id = catalog.track_ids[0];
+      if (!trackId && onlyTrack) patch.track_id = onlyTrack;
       return writeDraft(patch);
+    }
+    if (!artistId && !releaseId && (catalog.artist_id || onlyRelease)) {
+      if (catalog.artist_id) patch.artist_id = catalog.artist_id;
+      if (onlyRelease) patch.release_id = onlyRelease;
+      if (onlyTrack) patch.track_id = onlyTrack;
+      return Object.keys(patch).length ? writeDraft(patch) : draft;
     }
     return draft;
   }
@@ -655,6 +662,7 @@
 
     function failUpload(message, upgrade) {
       setUploadBusy(false);
+      markIncomplete(trigger, false);
       setStatus('tg-status', message || '');
       markStatusError(Boolean(message));
       showLimitPanel(upgrade === true);
@@ -807,8 +815,6 @@
       markStatusError(false);
       showLimitPanel(false);
       showUpgrade(false);
-      showUploadLoader('Saving artist');
-      setStatus('tg-status', 'Saving artist…');
 
       whenAccountReady()
         .then(function (result) {
@@ -828,12 +834,17 @@
           }), me);
           var catalog = catalogFromAccount(me);
           var reusing = Boolean(draft.artist_id || draft.release_id);
-          if (!reusing && catalog.allowed === false) {
-            failUpload('Basic includes one release. Upgrade to Creator or Pro to upload more.', true);
-            return;
-          }
-          if (draft.artist_id) {
+          if (reusing) {
             return afterArtistReady(draft, nextHref);
+          }
+          if (catalog.allowed === false) {
+            failUpload(
+              catalog.plan === 'creator'
+                ? 'Creator includes 8 releases per month. Upgrade to Pro to upload more.'
+                : 'Basic includes one release. Upgrade to Creator or Pro to upload more.',
+              true
+            );
+            return;
           }
           showUploadLoader('Saving artist');
           setStatus('tg-status', 'Saving artist…');

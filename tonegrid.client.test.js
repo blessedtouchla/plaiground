@@ -303,8 +303,8 @@ async function run() {
   ];
   const upload = load(filledUpload({ featured: '', responses: uploadResponses.slice() }));
   upload.continueBtn.listeners.click({ preventDefault() {} });
-  assert.ok(/Saving artist|Uploading|Converting|Opening/i.test(upload.loaderStep.textContent));
   await flush();
+  assert.ok(/Saving artist|Uploading|Converting|Opening|Creating/i.test(upload.loaderStep.textContent));
   const uploadTonegrid = upload.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
   assert.ok(uploadTonegrid.length >= 3);
   assert.strictEqual(uploadTonegrid[0].url, '/api/tonegrid/artists');
@@ -396,6 +396,22 @@ async function run() {
   await flush(3);
   assert.ok(limited.calls.length >= 2, 'later click after PLAN_LIMIT must still run');
 
+  let frozenHold;
+  const held = new Promise(function (resolve) { frozenHold = resolve; });
+  const frozen = load(filledUpload({
+    holdFirst: held,
+    holdWhen: '/api/tonegrid/artists',
+    responses: uploadResponses.slice(),
+  }));
+  frozen.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(3);
+  assert.strictEqual(frozen.continueBtn.getAttribute('aria-busy'), 'true');
+  frozen.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(2);
+  assert.strictEqual(frozen.calls.filter(function (call) { return call.url === '/api/tonegrid/artists'; }).length, 1);
+  frozenHold();
+  await flush();
+
   const limitedRelease = load(filledUpload({
     responses: [
       { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
@@ -439,27 +455,97 @@ async function run() {
   assert.strictEqual(reuseDraft.location.href, 'attest.html');
   assert.strictEqual(draftOf(reuseDraft.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 
-  const secondSong = load(filledUpload({
+  const leftoverEmptyDraft = load(filledUpload({
+    artist: 'Products',
+    genre: 'Cajun',
+    price: '$0.69',
     account: {
       plan: 'basic',
+      artist: 'Products',
       tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
       upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
     },
+    responses: [
+      { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+      { ok: true, status: 200, data: { audio_status: 'processing' } },
+      { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+    ],
+  }));
+  leftoverEmptyDraft.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const leftoverTonegrid = leftoverEmptyDraft.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.ok(!leftoverTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }), 'leftover catalog must not create a second artist');
+  assert.ok(!leftoverTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'leftover catalog must not create a second release');
+  assert.ok(leftoverTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
+  assert.strictEqual(leftoverEmptyDraft.location.href, 'attest.html');
+  assert.strictEqual(leftoverEmptyDraft.status.textContent.indexOf('Saving artist'), -1);
+  assert.strictEqual(draftOf(leftoverEmptyDraft.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.strictEqual(draftOf(leftoverEmptyDraft.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+
+  const retrySameIds = load(filledUpload({
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      release_idempotency_key: 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive',
+      track_idempotency_key: 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1',
+    },
+    account: {
+      plan: 'basic',
+      tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+      tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+      upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+    },
+    responses: [
+      { ok: true, status: 200, data: { audio_status: 'processing' } },
+      { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+    ],
+  }));
+  retrySameIds.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const retryCalls = retrySameIds.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.ok(!retryCalls.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+  assert.ok(!retryCalls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
+  assert.ok(!retryCalls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'second Continue must skip createTrack');
+  assert.ok(retryCalls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
+  assert.ok(retryCalls.some(function (call) { return String(call.url).indexOf('/artwork') !== -1; }));
+  assert.strictEqual(draftOf(retrySameIds.localStorage).release_idempotency_key, 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive');
+  assert.strictEqual(draftOf(retrySameIds.localStorage).track_idempotency_key, 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1');
+  assert.strictEqual(retrySameIds.location.href, 'attest.html');
+
+  const secondSong = load(filledUpload({
+    account: {
+      plan: 'creator',
+      tonegrid_release_ids: [
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0002',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0003',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0004',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0005',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0006',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0007',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0008',
+      ],
+      upload: { allowed: false, used: 8, limit: 8, plan: 'creator' },
+    },
     responses: [{
       ok: false,
       status: 403,
-      data: { error: 'Basic includes one release. Upgrade to Creator or Pro to upload more.', code: 'PLAN_LIMIT' },
+      data: { error: 'Creator includes 8 releases per month. Upgrade to Pro to upload more.', code: 'PLAN_LIMIT' },
     }],
   }));
   secondSong.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   assert.ok(!secondSong.calls.some(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; }));
-  assert.strictEqual(secondSong.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
+  assert.strictEqual(secondSong.status.textContent, 'Creator includes 8 releases per month. Upgrade to Pro to upload more.');
   assert.ok(secondSong.status.classList.contains('upload-status-error'));
   assert.strictEqual(secondSong.limit.hidden, false);
   assert.strictEqual(secondSong.upgrade.hidden, false);
+  assert.notStrictEqual(secondSong.continueBtn.getAttribute('aria-busy'), 'true');
   assert.ok(secondSong.location.href.indexOf('attest.html') === -1);
+  assert.ok(!/Saving artist/.test(secondSong.status.textContent));
 
   const unavailable = load(filledUpload({
     responses: [{ ok: false, status: 503, data: { configured: false, error: 'ToneGrid is not configured.' } }],
