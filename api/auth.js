@@ -94,7 +94,11 @@ async function signup(req, res) {
     sendJson(res, 200, authPayload(row));
   } catch (err) {
     if (err && err.code === 'EMAIL_EXISTS') {
-      sendJson(res, 409, { error: err.message });
+      sendJson(res, 409, {
+        error: err.message,
+        code: 'EMAIL_EXISTS',
+        login: '/login.html',
+      });
       return;
     }
     if (err && err.code === 'VALIDATION') {

@@ -191,6 +191,22 @@
             setStatus('Accounts are not configured.');
             return;
           }
+          var existingError = result.data && result.data.error ? String(result.data.error) : '';
+          var alreadyHasAccount = result.status === 409
+            || (result.data && result.data.code === 'EMAIL_EXISTS')
+            || /already exists/i.test(existingError)
+            || /already have an account/i.test(existingError);
+          if (alreadyHasAccount) {
+            var copy = existingError || 'An account with that email already exists. Log in.';
+            setStatus(copy);
+            var dest = (result.data && result.data.login) || 'login.html';
+            var qs = ['existing=1'];
+            if (email) qs.push('email=' + encodeURIComponent(email));
+            window.setTimeout(function () {
+              window.location.href = dest + (dest.indexOf('?') === -1 ? '?' : '&') + qs.join('&');
+            }, 900);
+            return;
+          }
           if (!result.ok) {
             setStatus(result.data.error || 'Could not create the account.');
             return;
