@@ -124,6 +124,16 @@
         status.hidden = !text;
       }
 
+      var params = new URLSearchParams(window.location.search);
+      var emailEl = document.getElementById('email');
+      var emailFromQuery = String(params.get('email') || '').trim();
+      if (emailFromQuery && emailEl && !emailEl.value) {
+        emailEl.value = emailFromQuery;
+      }
+      if (params.get('existing') === '1') {
+        setStatus('An account with that email already exists. Log in.');
+      }
+
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var emailEl = document.getElementById('email');
