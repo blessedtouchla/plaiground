@@ -6,6 +6,7 @@
  * POST /api/signwell            Create a document from the Writer Split Sheet template
  *
  * Env: SIGNWELL_API_KEY, SIGNWELL_TEMPLATE_ID (never echo these).
+ * Create-from-template uses test_mode: false (live paid Business).
  * Writer 1 can sign in-page (embedded_signing_url). Writers 2+ are emailed.
  */
 
@@ -169,7 +170,7 @@ async function createDocument(req, res) {
   if (writers.length < 2) excludePlaceholders.push('Writer 2');
 
   const payload = {
-    test_mode: true,
+    test_mode: false,
     template_id: signwell.templateId(),
     embedded_signing: !emailLinkOnly,
     name: `${songTitle} – Writer Split Sheet`,
