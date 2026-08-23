@@ -349,8 +349,14 @@
     }
 
     setHidden('[data-song-publishing]', !paid);
-    setHidden('[data-song-boosts]', !paid);
-    setHidden('[data-song-boost]', !paid);
+    setHidden('[data-song-boosts]', false);
+    setHidden('[data-song-boost]', false);
+    var boostCta = $('[data-song-boost]');
+    if (boostCta) {
+      boostCta.classList.toggle('is-off', !paid);
+      if (paid) boostCta.removeAttribute('aria-disabled');
+      else boostCta.setAttribute('aria-disabled', 'true');
+    }
     if (global.PlaigroundMembership && typeof global.PlaigroundMembership.applyPlanCopy === 'function') {
       global.PlaigroundMembership.applyPlanCopy();
     }

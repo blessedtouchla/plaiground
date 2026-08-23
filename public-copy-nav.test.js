@@ -52,6 +52,10 @@ function run() {
   const boosts = read('boosts.html');
   assert.ok(!/Go Pro to unlock/i.test(boosts), 'boosts.html must not pitch Go Pro');
   assert.ok(/Marketing Boosts/i.test(boosts), 'boosts.html stays a marketing dashboard');
+  assert.ok(!/data-require-paid/i.test(boosts), 'boosts.html must not dump Basic to Pick a plan');
+  assert.ok(/data-require-membership="true"/i.test(boosts), 'boosts.html stays a signed-in page');
+  assert.ok(/Boosts are locked on Basic/i.test(boosts), 'Basic sees a Boost lock, not a plan pitch');
+  assert.ok(/Creator and Pro can add a Boost/i.test(boosts), 'Boost lock is Creator + Pro');
 
   const css = read('site.css');
   assert.ok(/@media \(max-width: 980px\)[\s\S]*\.side \{[\s\S]*transform: translateX\(-110%\)/i.test(css), 'mobile CSS must hide the stacked .side menu');
@@ -69,6 +73,8 @@ function run() {
     assert.ok(html.includes('class="side"') || html.includes("class='side'"), file + ' is missing the app menu');
     assert.ok(html.includes('src="site.js"'), file + ' must load the hamburger script');
     assert.ok(html.includes('href="how.html">How it works</a>'), file + ' must list How it works in the signed-in menu');
+    assert.ok(html.includes('href="splits.html">Splits</a>'), file + ' menu item must be Splits');
+    assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
   });
 
   const dash = read('dashboard.html');

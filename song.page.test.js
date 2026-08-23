@@ -32,6 +32,9 @@ function makeEl(attrs) {
     setAttribute(name, value) {
       this.attrs[name] = String(value);
     },
+    removeAttribute(name) {
+      delete this.attrs[name];
+    },
     appendChild(child) {
       this.children.push(child);
       return child;
@@ -173,8 +176,10 @@ function run() {
   assert.strictEqual(page.nodes['[data-song-earnings]'].textContent, '$0.00');
   assert.strictEqual(page.nodes['[data-song-breakdown]'].hidden, true, 'Basic locks platform breakdown');
   assert.strictEqual(page.nodes['[data-song-publishing]'].hidden, true, 'Basic hides publishing');
-  assert.strictEqual(page.nodes['[data-song-boosts]'].hidden, true, 'Basic hides Boost history');
-  assert.strictEqual(page.nodes['[data-song-boost]'].hidden, true, 'Basic hides Boost CTA');
+  assert.strictEqual(page.nodes['[data-song-boosts]'].hidden, false, 'Basic can still see locked Boost history');
+  assert.strictEqual(page.nodes['[data-song-boost]'].hidden, false, 'Basic can still see a locked Boost CTA');
+  assert.ok(page.nodes['[data-song-boost]'].classList.contains('is-off'), 'Basic Boost CTA stays locked');
+  assert.strictEqual(page.nodes['[data-song-boost]'].getAttribute('aria-disabled'), 'true');
   assert.strictEqual(page.nodes['[data-song-writers]'].children.length, 1);
   assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Fuvtu') !== -1);
   assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Hale') === -1);
@@ -188,6 +193,7 @@ function run() {
   });
   assert.strictEqual(creator.nodes['[data-song-publishing]'].hidden, false);
   assert.strictEqual(creator.nodes['[data-song-boosts]'].hidden, false);
+  assert.ok(!creator.nodes['[data-song-boost]'].classList.contains('is-off'), 'Creator Boost CTA stays open');
   assert.strictEqual(creator.nodes['[data-song-breakdown]'].hidden, false);
 
   const live = loadSong({ plan: 'basic', me: basicMe });
