@@ -8,7 +8,8 @@
  * POST /api/auth/confirm   { token } → mark confirmed + attach session
  * GET  /api/auth/mail      → { configured } (does not send)
  * GET  /api/auth/mail?token= → { ok, email } when HMAC verifies
- * POST /api/auth/mail      { email, artist } → resend confirm mail
+ * POST /api/auth/mail      { email, kind } → confirm, magic, or reset.
+ * Reset always sends purpose=reset when the account exists.
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -35,6 +36,7 @@ const {
   normalizePurpose,
   sendAuthEmail,
   sendConfirmEmail,
+  sendResetEmail,
   verifyToken,
 } = require('../lib/mail');
 const { pathnameOf, queryValue } = require('../lib/route');
@@ -264,11 +266,10 @@ async function resetPassword(req, res) {
       sendJson(res, 400, { error: 'Invalid or expired reset link.' });
       return;
     }
-    if (!isConfirmed(row)) {
-      sendJson(res, 403, pendingPayload(row));
-      return;
+    let next = await setPassword(row.id, password);
+    if (!isConfirmed(next || row)) {
+      next = (await confirmEmail(row.email)) || next;
     }
-    const next = await setPassword(row.id, password);
     attachSession(req, res, row.id);
     sendJson(res, 200, authPayload(next || row));
   } catch (err) {
@@ -311,6 +312,9 @@ async function sendAccessEmail(req, email, purpose) {
     return { mail_sent: false, error: 'Could not send the email.' };
   }
   const to = normalizeEmail(row.email) || email;
+  if (purpose === 'reset') {
+    return sendResetEmail({ email: to, artist: row.artist_name });
+  }
   if (!isConfirmed(row)) {
     return sendConfirmEmail({ email: to, artist: row.artist_name });
   }
@@ -379,7 +383,7 @@ async function mail(req, res) {
 
   const error = result.error || MAIL_NOT_CONFIGURED;
   const status = error === MAIL_NOT_CONFIGURED ? 503 : 502;
-  sendJson(res, status, { ok: false, mail_sent: false, error });
+  sendJson(res, status, { ok: false, mail_sent: false, error: error, kind: result.purpose || purpose });
 }
 
 async function confirm(req, res) {
