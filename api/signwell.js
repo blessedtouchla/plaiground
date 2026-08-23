@@ -162,35 +162,28 @@ async function getStatus(req, res) {
   sendJson(res, 200, Object.assign({ configured: true }, info));
 }
 
-async function createDocument(req, res) {
+async function createSplitDocument(body) {
   if (!signwell.isConfigured()) {
-    sendJson(res, 503, {
-      error: 'SignWell is not configured. Set SIGNWELL_API_KEY and SIGNWELL_TEMPLATE_ID.',
-      code: 'not_configured',
-      signed: false,
-    });
-    return;
+    return {
+      ok: false,
+      status: 503,
+      data: {
+        error: 'SignWell is not configured. Set SIGNWELL_API_KEY and SIGNWELL_TEMPLATE_ID.',
+        code: 'not_configured',
+        signed: false,
+      },
+    };
   }
 
-  let body;
-  try {
-    body = await readBody(req);
-  } catch {
-    sendJson(res, 400, { error: 'Invalid JSON.' });
-    return;
-  }
-
-  const songTitle = String(body.songTitle || body.song_title || '').trim();
+  const songTitle = String((body && (body.songTitle || body.song_title)) || '').trim();
   if (!songTitle) {
-    sendJson(res, 400, { error: 'Song title is required.' });
-    return;
+    return { ok: false, status: 400, data: { error: 'Song title is required.', signed: false } };
   }
 
-  const emailLinkOnly = Boolean(body.emailLinkOnly);
-  const parsed = normalizeWriters(body.writers);
+  const emailLinkOnly = Boolean(body && body.emailLinkOnly);
+  const parsed = normalizeWriters(body && body.writers);
   if (parsed.error) {
-    sendJson(res, 400, { error: parsed.error });
-    return;
+    return { ok: false, status: 400, data: { error: parsed.error, signed: false } };
   }
 
   const { writers } = parsed;
@@ -215,8 +208,7 @@ async function createDocument(req, res) {
   });
 
   if (!result.ok) {
-    sendJson(res, result.status, result.data);
-    return;
+    return result;
   }
 
   const data = result.data || {};
@@ -234,6 +226,7 @@ async function createDocument(req, res) {
     extraWritersRecorded: extraWriters,
     templateWriterSlots: TEMPLATE_WRITER_SLOTS,
     signed: signwell.documentSigned(data),
+    signwell_status: signwell.documentSigned(data) ? String(data.status || 'Completed') : 'awaiting_signature',
   };
 
   if (!emailLinkOnly) {
@@ -241,16 +234,27 @@ async function createDocument(req, res) {
     const writer1 = writer1FromResponse(recipients);
     const embedUrl = writer1 && writer1.embedded_signing_url;
     if (!embedUrl) {
-      sendJson(res, 502, { error: 'SignWell did not return an embedded signing URL for Writer 1.', signed: false });
-      return;
+      return { ok: false, status: 502, data: { error: 'SignWell did not return an embedded signing URL for Writer 1.', signed: false } };
     }
     created.embeddedSigningUrl = embedUrl;
   }
 
-  sendJson(res, 200, created);
+  return { ok: true, status: 200, data: created };
 }
 
-module.exports = async function handler(req, res) {
+async function createDocument(req, res) {
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  const result = await createSplitDocument(body);
+  sendJson(res, result.status, result.data || {});
+}
+
+async function handler(req, res) {
   if (req.method === 'GET') {
     await getStatus(req, res);
     return;
@@ -261,4 +265,7 @@ module.exports = async function handler(req, res) {
     return;
   }
   await createDocument(req, res);
-};
+}
+
+handler.createSplitDocument = createSplitDocument;
+module.exports = handler;

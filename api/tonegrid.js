@@ -22,12 +22,15 @@
  * GET  /api/tonegrid/royalties
  *
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
- * Submit is gated by a completed SignWell document. Never call /distribute or /approve.
+ * Solo 100% submit skips SignWell. Multi-writer submit creates or reuses a
+ * SignWell document and emails other writers, then submits to ToneGrid without
+ * waiting for every signature. Never call /distribute or /approve.
  */
 
 const accounts = require('../lib/accounts');
 const plans = require('../lib/plans');
 const signwell = require('../lib/signwell');
+const signwellApi = require('./signwell');
 const uploadRequired = require('../lib/upload-required');
 const audioConvert = require('../lib/audio-convert');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
@@ -1219,16 +1222,59 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
 
-  const documentId = String((body && (body.document_id || body.documentId || body.signwell_document_id)) || '').trim();
-  const gate = await signwell.requireSignedDocument(documentId);
-  if (!gate.ok) {
-    sendJson(res, gate.status, {
-      error: gate.error,
-      code: gate.code,
-      signed: false,
-      document: gate.document || null,
-    });
-    return;
+  let documentId = String((body && (body.document_id || body.documentId || body.signwell_document_id)) || '').trim();
+  const solo = uploadRequired.isSoloOwned(body);
+  let signwellInfo = { signed: false, status: '', document: null };
+
+  if (solo) {
+    documentId = '';
+    signwellInfo = { signed: false, status: 'solo', document: null };
+  } else {
+    if (!documentId) {
+      const songTitle = String((body && (body.songTitle || body.song_title || body.title)) || '').trim();
+      const writers = body && body.writers;
+      if (songTitle && Array.isArray(writers) && writers.length >= 2 && typeof signwellApi.createSplitDocument === 'function') {
+        const created = await signwellApi.createSplitDocument({
+          songTitle: songTitle,
+          writers: writers,
+          emailLinkOnly: true,
+        });
+        if (!created.ok) {
+          sendJson(res, created.status, created.data || { error: 'Could not create the split sheet.', signed: false });
+          return;
+        }
+        documentId = String((created.data && created.data.documentId) || '').trim();
+        signwellInfo = {
+          signed: Boolean(created.data && created.data.signed),
+          status: (created.data && created.data.signwell_status) || 'awaiting_signature',
+          document: created.data || null,
+        };
+      }
+    }
+    if (!documentId) {
+      sendJson(res, 403, {
+        error: 'Create the split sheet before submitting.',
+        code: 'SIGNWELL_REQUIRED',
+        signed: false,
+        document: null,
+      });
+      return;
+    }
+    if (signwell.isConfigured()) {
+      const looked = await signwell.getDocument(documentId);
+      if (looked.ok) {
+        const info = signwell.publicDocument(looked.data);
+        signwellInfo = {
+          signed: Boolean(info.signed),
+          status: info.signed ? info.status : (info.status || 'awaiting_signature'),
+          document: info,
+        };
+      } else if (!signwellInfo.status) {
+        signwellInfo = { signed: false, status: 'awaiting_signature', document: null };
+      }
+    } else if (!signwellInfo.status) {
+      signwellInfo = { signed: false, status: 'awaiting_signature', document: null };
+    }
   }
 
   const loaded = await fetchReleaseRow(releaseId);
@@ -1302,12 +1348,14 @@ async function submitRelease(req, res, releaseId) {
   const next = unwrapRelease(submitted.data) || submitted.data || {};
   sendJson(res, submitted.status, {
     ok: true,
-    signed: true,
+    signed: Boolean(signwellInfo.signed),
+    signwell_status: signwellInfo.status || (solo ? 'solo' : 'awaiting_signature'),
+    document_id: documentId || null,
     status: String(next.status || 'pending').toLowerCase(),
     message: typeof next.message === 'string' ? next.message : 'Release submitted for review.',
     release_date: releaseDate,
     dsps: withYouTubeMusic(slugs || DOCUMENTED_DSPS),
-    document: gate.document,
+    document: signwellInfo.document,
   });
 }
 

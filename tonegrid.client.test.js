@@ -422,7 +422,7 @@ async function run() {
   await flush(4);
   assert.ok(!paySkip.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
   assert.notStrictEqual(paySkip.location.href, 'submitted.html');
-  assert.ok(/SignWell/i.test(paySkip.status.textContent));
+  assert.ok(/split sheet/i.test(paySkip.status.textContent));
 
   const signedSubmit = load({
     bind: 'review',
@@ -447,6 +447,58 @@ async function run() {
   assert.ok(submitCall);
   assert.strictEqual(JSON.parse(submitCall.init.body).document_id, 'doc_split_sheet_01');
   assert.strictEqual(draftOf(signedSubmit.localStorage).tonegrid_status, 'pending');
+
+  const soloSubmit = load({
+    bind: 'review',
+    releaseDate: '2026-09-12',
+    draft: Object.assign(attestDraft(), {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      solo_owned_100: true,
+      release_date: '2026-09-12',
+    }),
+    responses: [
+      { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+    ],
+  });
+  await flush(8);
+  const soloCall = soloSubmit.calls.find(function (call) {
+    return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+  });
+  assert.ok(soloCall);
+  assert.strictEqual(JSON.parse(soloCall.init.body).solo_owned_100, true);
+  assert.ok(!JSON.parse(soloCall.init.body).document_id);
+  assert.ok(!soloSubmit.calls.some(function (call) {
+    return String(call.url).indexOf('/api/signwell') !== -1;
+  }));
+
+  const pendingSubmit = load({
+    bind: 'review',
+    releaseDate: '2026-09-12',
+    draft: Object.assign(attestDraft(), {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      signwell_document_id: 'doc_pending_01',
+      release_date: '2026-09-12',
+      writers: [
+        { name: 'Ada Night', email: 'ada@example.com', share: 50 },
+        { name: 'Bea Night', email: 'bea@example.com', share: 50 },
+      ],
+    }),
+    responses: [
+      { ok: true, status: 200, data: { signed: false, status: 'Pending' } },
+      { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'awaiting_signature' } },
+    ],
+  });
+  await flush(8);
+  const pendingCall = pendingSubmit.calls.find(function (call) {
+    return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+  });
+  assert.ok(pendingCall);
+  assert.strictEqual(JSON.parse(pendingCall.init.body).document_id, 'doc_pending_01');
+  assert.strictEqual(draftOf(pendingSubmit.localStorage).tonegrid_status, 'pending');
 
   const submittedRetry = load({
     bind: 'submitted',

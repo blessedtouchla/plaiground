@@ -31,6 +31,8 @@
     var humanSection = document.querySelector('[data-human-section]');
     var human = document.getElementById('attest-human');
     var rights = document.getElementById('attest-rights');
+    var solo = document.getElementById('attest-solo');
+    var soloCard = document.getElementById('solo-card');
     var status = document.getElementById('attest-status');
     var trigger = document.querySelector('[data-attest-continue]');
     if (!trigger) return null;
@@ -46,13 +48,44 @@
       }).filter(Boolean);
     }
 
+    function featuredName() {
+      var draft = readDraft();
+      return String((draft && draft.featured) || '').trim();
+    }
+
     function collect() {
+      var featured = featuredName();
       return {
         made_how: selectedHow(),
         human_elements: selectedElements(),
         human_contribution: human ? String(human.value || '').trim() : '',
-        rights_confirmed: Boolean(rights && rights.checked)
+        rights_confirmed: Boolean(rights && rights.checked),
+        featured: featured,
+        solo_owned_100: !featured && Boolean(solo && solo.checked)
       };
+    }
+
+    function nextHref(fields) {
+      return fields && fields.solo_owned_100 ? 'review.html' : 'split-sheet.html';
+    }
+
+    function syncSolo() {
+      var featured = featuredName();
+      if (soloCard) {
+        soloCard.hidden = Boolean(featured);
+        if (soloCard.classList && soloCard.classList.toggle) {
+          soloCard.classList.toggle('is-hidden', Boolean(featured));
+        }
+      }
+      if (solo && featured) solo.checked = false;
+      if (!trigger) return;
+      if (!featured && solo && solo.checked) {
+        trigger.setAttribute('href', 'review.html');
+        if ('textContent' in trigger) trigger.textContent = 'Continue to review';
+      } else {
+        trigger.setAttribute('href', 'split-sheet.html');
+        if ('textContent' in trigger) trigger.textContent = 'Continue to the split sheet';
+      }
     }
 
     function pageError(fields) {
@@ -95,6 +128,9 @@
       if (rights && draft.rights_confirmed != null) {
         rights.checked = draft.rights_confirmed === true || draft.rights_confirmed === 'true';
       }
+      if (solo && !featuredName()) {
+        solo.checked = draft.solo_owned_100 === true || draft.solo_owned_100 === 'true';
+      }
     }
 
     function syncHumanSection() {
@@ -108,6 +144,7 @@
 
     function refresh() {
       syncHumanSection();
+      syncSolo();
       if (countEl) countEl.textContent = selectedElements().length + ' selected';
       if (trigger.classList) trigger.classList.toggle('is-incomplete', Boolean(pageError(collect())));
       writeDraft(collect());
@@ -140,6 +177,7 @@
     });
     if (human) human.addEventListener('input', refresh);
     if (rights) rights.addEventListener('change', refresh);
+    if (solo) solo.addEventListener('change', refresh);
 
     trigger.addEventListener('click', function (event) {
       if (event && event.preventDefault) event.preventDefault();
@@ -152,7 +190,7 @@
       }
       writeDraft(fields);
       setStatus('');
-      if (root.location) root.location.href = trigger.getAttribute('href') || 'split-sheet.html';
+      if (root.location) root.location.href = nextHref(fields);
       return true;
     });
 
