@@ -14,7 +14,8 @@
   var SEED_PREFIX = 'We were already talking on this site.';
 
   var root;
-  var pill;
+  var talkPill;
+  var textPill;
   var panel;
   var statusEl;
   var endBtn;
@@ -25,6 +26,7 @@
   var state = 'idle';
   var open = false;
   var micOn = false;
+  var wantMic = false;
   var wantRestoreTalk = false;
 
   var ws = null;
@@ -88,6 +90,7 @@
     var clean = normalizeTranscript(transcript);
     storageSet(STATE_KEY, JSON.stringify({
       open: open,
+      wantMic: wantMic,
       conversationId: conversationId || '',
       conversationAt: conversationId ? (conversationAt || Date.now()) : 0,
       transcript: clean,
@@ -117,7 +120,9 @@
     if (!transcript.length) {
       logEl.appendChild(el('p', {
         className: 'plai-bubble-empty',
-        text: 'Voice or type. PLAI stays with you on this site.',
+        text: wantMic
+          ? 'Talk to PLAI. Her name sounds like PLAY.'
+          : 'Text PLAI. Type only — the mic stays off.',
       }));
       return;
     }
@@ -196,36 +201,40 @@
     sendBtn.disabled = !on;
   }
 
+  function syncPills() {
+    if (talkPill) {
+      talkPill.setAttribute('aria-expanded', open && wantMic ? 'true' : 'false');
+      talkPill.classList.toggle('is-on', open && wantMic && state !== 'not-configured');
+    }
+    if (textPill) {
+      textPill.setAttribute('aria-expanded', open && !wantMic ? 'true' : 'false');
+      textPill.classList.toggle('is-on', open && !wantMic && state !== 'not-configured');
+    }
+  }
+
   function setState(next, message) {
     state = next;
     root.dataset.state = next;
     root.classList.toggle('is-closed', !open);
-    if (pill) pill.setAttribute('aria-expanded', open ? 'true' : 'false');
     var copy = {
-      idle: { title: 'Ready', body: 'Talk or type. Your mic starts only after you tap Talk.' },
+      idle: { title: 'Ready', body: 'Talk to PLAI uses the mic. Text PLAI never turns the mic on.' },
       reconnecting: { title: 'Still here', body: 'PLAI is reconnecting…' },
-      listening: { title: 'Listening', body: 'Speak or type. PLAI is on the line.' },
-      talking: { title: 'Talking', body: 'PLAI is answering.' },
-      text: { title: 'Ready to chat', body: 'Mic is off. Type a message to PLAI.' },
+      listening: { title: 'Listening', body: 'Speak or type. PLAI is on the line. Her name sounds like PLAY.' },
+      talking: { title: 'Talking', body: 'PLAI is answering. Pronounced PLAY.' },
+      text: { title: 'Text PLAI', body: 'Mic is off. Type a message. PLAI is pronounced PLAY.' },
       error: { title: 'Could not connect', body: message || 'Try again in a moment.' },
       'not-configured': {
         title: 'Coming soon',
-        body: 'PLAI voice is not live on this site yet.',
+        body: 'PLAI is not live on this site yet.',
       },
     };
     var row = copy[next] || copy.idle;
     statusEl.innerHTML = '';
     statusEl.appendChild(el('strong', { text: row.title }));
     statusEl.appendChild(document.createTextNode(row.body));
-    pill.querySelector('.plai-bubble-label').textContent =
-      next === 'not-configured' ? 'Coming soon' :
-      next === 'listening' ? 'Listening' :
-      next === 'talking' ? 'Talking' :
-      next === 'reconnecting' ? 'Reconnecting' :
-      next === 'text' ? 'Chat with PLAI' :
-      next === 'error' ? 'Try again' : 'Talk to PLAI';
     endBtn.hidden = !open || next === 'not-configured';
     setComposerEnabled(configured && next !== 'not-configured');
+    syncPills();
   }
 
   function dismiss() {
@@ -426,7 +435,9 @@
 
   function configureSession() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    // Audio + VAD only besides official resumption opt-in. Never overwrite agent instructions.
+    // Audio + VAD + official TTS replace. Never set instructions (keeps Voice Agent Builder persona).
+    // replace: spoken audio says PLAY; transcript the user sees stays PLAI.
+    // https://docs.x.ai/developers/model-capabilities/audio/voice-agent#pronunciation-replacements
     ws.send(JSON.stringify({
       type: 'session.update',
       session: {
@@ -436,6 +447,7 @@
           output: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
         },
         resumption: { enabled: true },
+        replace: { PLAI: 'PLAY' },
       },
     }));
   }
@@ -504,7 +516,7 @@
       return;
     }
     pendingText = text;
-    if (!open) openPanel();
+    if (!open) openMode(false);
     else if (!ws) startTalk();
   }
 
@@ -637,12 +649,16 @@
     usedResume = Boolean(conversationId);
     seededHistory = false;
     sessionReady = false;
-    setState(restoring ? 'reconnecting' : 'idle');
+    setState(restoring ? 'reconnecting' : (wantMic ? 'idle' : 'text'));
 
-    try {
-      await startCapture();
-    } catch (e) {
-      micOn = false;
+    if (wantMic) {
+      try {
+        await startCapture();
+      } catch (e) {
+        micOn = false;
+      }
+    } else {
+      stopCapture();
     }
     if (gen !== talkGen) return;
 
@@ -713,12 +729,41 @@
     };
   }
 
-  function openPanel() {
+  function isLive() {
+    return open && (state === 'listening' || state === 'talking' || state === 'text' || state === 'reconnecting');
+  }
+
+  function openMode(useMic) {
+    if (!configured) {
+      wantMic = useMic;
+      open = true;
+      root.classList.remove('is-closed');
+      persistState();
+      setState('not-configured');
+      return;
+    }
+    if (isLive() && wantMic === useMic) {
+      closePanel();
+      return;
+    }
+    wantMic = useMic;
     open = true;
     root.classList.remove('is-closed');
     persistState();
-    if (!configured) {
-      setState('not-configured');
+    if (ws && sessionReady) {
+      if (useMic && !micOn) {
+        startCapture().then(function () {
+          if (state !== 'talking') setState('listening');
+        }).catch(function () {
+          micOn = false;
+          setState('text');
+        });
+      } else if (!useMic && micOn) {
+        stopCapture();
+        if (state !== 'talking') setState('text');
+      } else if (!useMic) {
+        setState('text');
+      }
       return;
     }
     startTalk();
@@ -771,7 +816,10 @@
     var form = el('form', { className: 'plai-bubble-composer' }, [inputEl, sendBtn]);
     panel = el('div', { className: 'plai-bubble-panel' }, [
       el('div', { className: 'plai-bubble-head' }, [
-        el('div', { className: 'plai-bubble-title', text: 'PLAI' }),
+        el('div', { className: 'plai-bubble-brand' }, [
+          el('div', { className: 'plai-bubble-title', text: 'PLAI' }),
+          el('p', { className: 'plai-bubble-hint', text: 'sounds like PLAY' }),
+        ]),
         xPanel,
       ]),
       statusEl,
@@ -779,19 +827,31 @@
       form,
       el('div', { className: 'plai-bubble-actions' }, [endBtn]),
     ]);
-    pill = el('button', {
-      className: 'plai-bubble-pill',
+    talkPill = el('button', {
+      className: 'plai-bubble-pill is-talk',
       type: 'button',
       'aria-expanded': 'false',
       'aria-controls': 'plai-bubble-panel',
+      'aria-label': 'Talk to PLAI, pronounced PLAY',
+      title: 'Talk to PLAI — pronounced PLAY',
     }, [
       el('span', { className: 'plai-bubble-dot', 'aria-hidden': 'true' }),
       el('span', { className: 'plai-bubble-label', text: 'Talk to PLAI' }),
     ]);
+    textPill = el('button', {
+      className: 'plai-bubble-pill is-text',
+      type: 'button',
+      'aria-expanded': 'false',
+      'aria-controls': 'plai-bubble-panel',
+      'aria-label': 'Text PLAI, text only, microphone stays off',
+      title: 'Text PLAI — type only, no microphone',
+    }, [
+      el('span', { className: 'plai-bubble-label', text: 'Text PLAI' }),
+    ]);
     panel.id = 'plai-bubble-panel';
     root.appendChild(el('div', { className: 'plai-bubble-shell' }, [
       panel,
-      el('div', { className: 'plai-bubble-row' }, [pill, xPill]),
+      el('div', { className: 'plai-bubble-row' }, [talkPill, textPill, xPill]),
     ]));
     document.body.appendChild(root);
 
@@ -802,20 +862,8 @@
       event.preventDefault();
       sendTyped();
     });
-    pill.addEventListener('click', function () {
-      if (!configured) {
-        open = true;
-        root.classList.remove('is-closed');
-        persistState();
-        setState('not-configured');
-        return;
-      }
-      if (open && (state === 'listening' || state === 'talking' || state === 'text' || state === 'reconnecting')) {
-        closePanel();
-        return;
-      }
-      openPanel();
-    });
+    talkPill.addEventListener('click', function () { openMode(true); });
+    textPill.addEventListener('click', function () { openMode(false); });
     window.addEventListener('pagehide', persistState);
     setState('idle');
     renderLog();
@@ -827,6 +875,7 @@
     transcript = normalizeTranscript(saved.transcript);
     conversationId = usableConversationId(saved);
     conversationAt = conversationId ? (Number(saved.conversationAt) || Date.now()) : 0;
+    wantMic = Boolean(saved.wantMic);
     renderLog();
     if (saved.open) {
       open = true;
