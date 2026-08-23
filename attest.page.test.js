@@ -75,8 +75,10 @@ function load() {
   const count = makeEl({ textContent: '4 selected', attrs: { 'data-human-count': '' } });
   const human = makeEl({ id: 'attest-human', value: '' });
   const rights = makeEl({ id: 'attest-rights' });
+  const solo = makeEl({ id: 'attest-solo' });
+  const soloCard = makeEl({ id: 'solo-card' });
   const status = makeEl({ id: 'attest-status' });
-  const trigger = makeEl({ attrs: { href: 'split-sheet.html', 'data-attest-continue': '' } });
+  const trigger = makeEl({ attrs: { href: 'split-sheet.html', 'data-attest-continue': '' }, textContent: 'Continue to the split sheet' });
   const localStorage = {
     data: Object.create(null),
     getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
@@ -87,6 +89,8 @@ function load() {
     getElementById(id) {
       if (id === 'attest-human') return human;
       if (id === 'attest-rights') return rights;
+      if (id === 'attest-solo') return solo;
+      if (id === 'solo-card') return soloCard;
       if (id === 'attest-status') return status;
       return null;
     },
@@ -118,7 +122,7 @@ function load() {
   };
   context.globalThis = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8'), context);
-  return { ai, noAi, fullyAi, humanSection, tags, count, human, rights, trigger, status, localStorage, location: context.location };
+  return { ai, noAi, fullyAi, humanSection, tags, count, human, rights, solo, soloCard, trigger, status, localStorage, location: context.location };
 }
 
 function run() {
@@ -133,6 +137,8 @@ function run() {
     assert.ok(html.indexOf(label) !== -1, 'missing tag ' + label);
   });
   assert.ok(html.indexOf('data-attest-continue') !== -1);
+  assert.ok(html.indexOf('id="attest-solo"') !== -1);
+  assert.ok(html.indexOf('I own 100% / I attest') !== -1);
 
   const page = load();
   assert.ok(page.ai.classList.contains('on'));
@@ -204,6 +210,28 @@ function run() {
   const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.tonegrid.draft'));
   assert.strictEqual(fullDraft.made_how, 'fully_ai');
   assert.strictEqual(fullDraft.rights_confirmed, true);
+
+  const soloPage = load();
+  soloPage.noAi.listeners.click({ preventDefault() {} });
+  soloPage.rights.checked = true;
+  soloPage.solo.checked = true;
+  if (soloPage.solo.listeners.change) soloPage.solo.listeners.change();
+  soloPage.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(soloPage.location.href, 'review.html');
+  const soloDraft = JSON.parse(soloPage.localStorage.getItem('plaiground.tonegrid.draft'));
+  assert.strictEqual(soloDraft.solo_owned_100, true);
+  assert.strictEqual(soloDraft.made_how, 'no_ai');
+
+  const featured = load();
+  featured.localStorage.setItem('plaiground.tonegrid.draft', JSON.stringify({ featured: 'Guest Star' }));
+  featured.noAi.listeners.click({ preventDefault() {} });
+  featured.rights.checked = true;
+  featured.solo.checked = true;
+  if (featured.solo.listeners.change) featured.solo.listeners.change();
+  featured.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(featured.location.href, 'split-sheet.html');
+  const featuredDraft = JSON.parse(featured.localStorage.getItem('plaiground.tonegrid.draft'));
+  assert.strictEqual(featuredDraft.solo_owned_100, false);
 
   const rules = require('./lib/upload-required');
   assert.strictEqual(rules.validateAttest({

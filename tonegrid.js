@@ -130,26 +130,42 @@
     return String((draft && (draft.signwell_document_id || draft.document_id)) || '').trim();
   }
 
+  function isSoloOwned(draft) {
+    var gate = rules();
+    if (gate && typeof gate.isSoloOwned === 'function') return gate.isSoloOwned(draft);
+    return draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true') && !String((draft && draft.featured) || '').trim();
+  }
+
   function checkSignWell(documentId) {
     if (!documentId) {
       return Promise.resolve({
         ok: false,
         status: 403,
-        data: { signed: false, error: 'Sign the split sheet in SignWell before submitting.', code: 'SIGNWELL_REQUIRED' },
+        data: { signed: false, error: 'Create the split sheet before submitting.', code: 'SIGNWELL_REQUIRED' },
       });
     }
     return getJson('/api/signwell?id=' + encodeURIComponent(documentId));
+  }
+
+  function persistSignWellStatus(documentId, data) {
+    var signed = Boolean(data && data.signed);
+    return writeDraft({
+      signwell_document_id: documentId,
+      signwell_signed: signed,
+      signwell_status: signed ? (data.status || 'Completed') : ((data && data.status) || 'awaiting_signature'),
+    });
   }
 
   function submitRelease(draft, releaseDate) {
     if (!draft || !draft.release_id) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Save the upload details first so a catalog release exists.' } } });
     }
+    var solo = isSoloOwned(draft);
     var documentId = documentIdOf(draft);
-    if (!documentId) {
+    if (!solo && !documentId) {
       return Promise.resolve({
         unsigned: true,
-        result: { data: { error: 'Sign the split sheet in SignWell before submitting.', code: 'SIGNWELL_REQUIRED' } },
+        result: { data: { error: 'Create the split sheet before submitting.', code: 'SIGNWELL_REQUIRED' } },
       });
     }
     var date = releaseDate || draft.release_date || '';
@@ -157,22 +173,31 @@
       return Promise.resolve({ failed: true, result: { data: { error: 'Release date is required.' } } });
     }
     var submitBody = {
-      document_id: documentId,
       release_date: date,
       made_how: draft.made_how || '',
       human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
       human_contribution: draft.human_contribution || '',
       rights_confirmed: draft.rights_confirmed === true,
+      solo_owned_100: solo,
+      featured: draft.featured || '',
+      title: draft.title || '',
+      songTitle: draft.title || draft.songTitle || '',
     };
+    if (!solo) {
+      submitBody.document_id = documentId;
+      if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
+    }
     return post('/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit', submitBody, 'plaiground-submit-' + draft.release_id).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result };
-      if (result.data && result.data.code === 'SIGNWELL_UNSIGNED') return { unsigned: true, result: result };
       if (result.data && result.data.code === 'SIGNWELL_TRIAL') return { trial: true, result: result };
       if (result.data && result.data.code === 'SIGNWELL_REQUIRED') return { unsigned: true, result: result };
       if (!result.ok) return { failed: true, result: result };
       var next = writeDraft({
         submitted: true,
         tonegrid_status: result.data.status || 'pending',
+        signwell_status: result.data.signwell_status || (solo ? 'solo' : 'awaiting_signature'),
+        signwell_signed: Boolean(result.data.signed),
+        signwell_document_id: result.data.document_id || documentId || '',
         release_date: result.data.release_date || date,
       });
       return { submitted: true, draft: next, result: result };
@@ -735,16 +760,27 @@
     });
   }
 
-  function finishSubmit(draft, releaseDate, trigger, nextHref) {
-    setStatus('tg-status', 'Checking SignWell…');
-    return checkSignWell(documentIdOf(draft)).then(function (gate) {
-      if (!gate.ok || !gate.data.signed) {
-        if (trigger) trigger.removeAttribute('aria-busy');
-        setStatus('tg-status', createErrorMessage(gate, 'Sign the split sheet in SignWell before submitting.'));
-        return;
+  function refreshSignWellDraft(draft) {
+    var documentId = documentIdOf(draft);
+    if (!documentId || isSoloOwned(draft)) return Promise.resolve(draft);
+    return checkSignWell(documentId).then(function (gate) {
+      if (gate && gate.data && gate.data.error && !gate.data.signed) {
+        setStatus('tg-status', createErrorMessage(gate, gate.data.error));
       }
+      if (gate && gate.ok && gate.data) {
+        return persistSignWellStatus(documentId, gate.data);
+      }
+      return draft;
+    });
+  }
+
+  function finishSubmit(draft, releaseDate, trigger, nextHref) {
+    var solo = isSoloOwned(draft);
+    setStatus('tg-status', solo ? 'Submitting to ToneGrid…' : 'Sending split sheet…');
+    var ready = solo ? Promise.resolve(draft) : refreshSignWellDraft(draft);
+    return ready.then(function (next) {
       setStatus('tg-status', 'Submitting to ToneGrid…');
-      return submitRelease(draft, releaseDate).then(function (sent) {
+      return submitRelease(next || draft, releaseDate).then(function (sent) {
         if (trigger) trigger.removeAttribute('aria-busy');
         if (sent.unavailable) {
           continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
@@ -754,7 +790,11 @@
           setStatus('tg-status', createErrorMessage(sent.result, 'Could not submit the release.'));
           return;
         }
-        setStatus('tg-status', 'ToneGrid status: ' + ((sent.result && sent.result.data && sent.result.data.status) || 'pending'));
+        var toneStatus = (sent.result && sent.result.data && sent.result.data.status) || 'pending';
+        var sheetStatus = (sent.result && sent.result.data && sent.result.data.signwell_status) || '';
+        setStatus('tg-status', sheetStatus && sheetStatus !== 'solo' && sheetStatus !== 'Completed'
+          ? 'ToneGrid status: ' + toneStatus + ' · awaiting signature'
+          : 'ToneGrid status: ' + toneStatus);
         if (nextHref) go(nextHref);
       });
     });
@@ -792,8 +832,8 @@
           setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
           return;
         }
-        if (!documentIdOf(draft)) {
-          setStatus('tg-status', 'Sign the split sheet in SignWell before submitting.');
+        if (!isSoloOwned(draft) && !documentIdOf(draft)) {
+          setStatus('tg-status', 'Create the split sheet before submitting.');
           return;
         }
         if (!draft.release_id && !draft.title) {
@@ -848,6 +888,16 @@
 
     var draft = readDraft();
     var readyDate = draft.release_date || fieldValue('tg-release-date');
+    var back = document.querySelector('.flow-actions a[href="split-sheet.html"]');
+    if (back && isSoloOwned(draft)) back.setAttribute('href', 'attest.html');
+    if (documentIdOf(draft) && !isSoloOwned(draft) && typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('focus', function () { refreshSignWellDraft(readDraft()); });
+      if (document.addEventListener) {
+        document.addEventListener('visibilitychange', function () {
+          if (!document.hidden) refreshSignWellDraft(readDraft());
+        });
+      }
+    }
     if (trigger) {
       markIncomplete(trigger, !String(readyDate || '').trim());
       var dateEl = $('tg-release-date');
@@ -860,7 +910,7 @@
         });
       }
     }
-    if (draft.release_id && documentIdOf(draft) && !draft.submitted && String(readyDate || '').trim()) {
+    if (draft.release_id && !draft.submitted && String(readyDate || '').trim() && (documentIdOf(draft) || isSoloOwned(draft))) {
       setStatus('tg-status', 'Checking SignWell…');
       finishSubmit(draft, readyDate, trigger, null).then(function () {
         /* stay on review after auto-submit so the exact ToneGrid status is visible */
@@ -897,8 +947,9 @@
     var draft = readDraft();
     if (!draft.artist_id || !draft.title) return;
     var afterCreate = function (nextDraft) {
-      if (!documentIdOf(nextDraft) || nextDraft.submitted) {
-        if (!documentIdOf(nextDraft)) setStatus('tg-status', 'Sign the split sheet in SignWell before submitting.');
+      if (nextDraft.submitted) return;
+      if (!documentIdOf(nextDraft) && !isSoloOwned(nextDraft)) {
+        setStatus('tg-status', 'Create the split sheet before submitting.');
         return;
       }
       return submitRelease(nextDraft, nextDraft.release_date || '').then(function (sent) {

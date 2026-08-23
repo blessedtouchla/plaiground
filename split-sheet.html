@@ -250,13 +250,22 @@
         markSignButtons(Boolean(error));
       }
 
-      function saveDraft(patch) {
+      function parseDraft(raw) {
+        try { return JSON.parse(raw || '{}') || {}; } catch (err) { return {}; }
+      }
+
+      function readDraft() {
         var current = {};
-        try { current = JSON.parse(sessionStorage.getItem('plaiground.tonegrid.draft') || '{}') || {}; } catch (err) { current = {}; }
+        try { current = parseDraft(sessionStorage.getItem('plaiground.tonegrid.draft')); } catch (err) { current = {}; }
         try {
-          var local = JSON.parse(localStorage.getItem('plaiground.tonegrid.draft') || '{}') || {};
+          var local = parseDraft(localStorage.getItem('plaiground.tonegrid.draft'));
           Object.keys(local).forEach(function (key) { if (current[key] == null) current[key] = local[key]; });
         } catch (err) {}
+        return current;
+      }
+
+      function saveDraft(patch) {
+        var current = readDraft();
         Object.keys(patch || {}).forEach(function (key) {
           if (patch[key] !== undefined) current[key] = patch[key];
         });
@@ -266,56 +275,64 @@
         return current;
       }
 
-      function readDraft() {
-        try { return JSON.parse(sessionStorage.getItem('plaiground.tonegrid.draft') || localStorage.getItem('plaiground.tonegrid.draft') || '{}') || {}; } catch (err) { return {}; }
+      function draftSongTitle(draft) {
+        var title = String((draft && (draft.title || draft.songTitle)) || '').trim();
+        if (!title || isDemoCopy(title)) return '';
+        return title;
       }
 
-      function afterSigned(documentId) {
+      function applyDraftTitle() {
+        if (!titleInput) return;
+        if (isDemoCopy(titleInput.value)) titleInput.value = '';
+        if (!titleInput.value) titleInput.value = draftSongTitle(readDraft());
+      }
+
+      function persistSongTitle() {
+        if (!titleInput) return;
+        var title = String(titleInput.value || '').trim();
+        if (isDemoCopy(title)) title = '';
+        saveDraft({ title: title });
+      }
+
+      function persistSheet(documentId, extra) {
+        var payload = collectPayload();
+        var patch = {
+          signwell_document_id: documentId || '',
+          title: payload.songTitle,
+          writers: payload.writers,
+          solo_owned_100: false,
+        };
+        Object.keys(extra || {}).forEach(function (key) {
+          if (extra[key] !== undefined) patch[key] = extra[key];
+        });
+        return saveDraft(patch);
+      }
+
+      function refreshSignWellStatus(documentId) {
+        if (!documentId) return Promise.resolve(null);
         return fetch('/api/signwell?id=' + encodeURIComponent(documentId), { headers: { Accept: 'application/json' } })
           .then(function (response) { return response.json().then(function (data) { return { ok: response.ok, data: data || {} }; }); })
           .catch(function () { return { ok: false, data: { error: 'Could not reach SignWell.' } }; })
           .then(function (gate) {
             if (!gate.ok) {
-              showStatus('err', gate.data.error || 'Could not check SignWell.');
-              return false;
+              if (gate.data && gate.data.error) showStatus('err', gate.data.error);
+              persistSheet(documentId, { signwell_signed: false, signwell_status: 'awaiting_signature' });
+              return gate;
             }
-            if (!gate.data.signed) {
-              showStatus('bad', gate.data.error || 'Waiting for every required SignWell signer.');
-              return false;
+            if (gate.data.signed) {
+              persistSheet(documentId, {
+                signwell_signed: true,
+                signwell_status: gate.data.status || 'Completed',
+              });
+              showStatus('ok', 'Split sheet signed.');
+            } else {
+              persistSheet(documentId, {
+                signwell_signed: false,
+                signwell_status: gate.data.status || 'awaiting_signature',
+              });
+              if (gate.data.error) showStatus('bad', gate.data.error);
             }
-            saveDraft({ signwell_document_id: documentId, signwell_signed: true });
-            var draft = readDraft();
-            if (!draft.release_id) {
-              showStatus('ok', 'Split sheet signed. Continue to send the release.');
-              return true;
-            }
-            showStatus('ok', 'Split sheet signed. Submitting to ToneGrid…');
-            return fetch('/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                document_id: documentId,
-                release_date: draft.release_date || '',
-                made_how: draft.made_how || '',
-                human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
-                human_contribution: draft.human_contribution || '',
-                rights_confirmed: draft.rights_confirmed === true
-              })
-            }).then(function (response) {
-              return response.json().then(function (data) { return { ok: response.ok, data: data || {} }; });
-            }).then(function (sent) {
-              if (!sent.ok) {
-                showStatus('err', sent.data.error || 'Could not submit the release.');
-                return false;
-              }
-              saveDraft({ submitted: true, tonegrid_status: sent.data.status || 'pending' });
-              showStatus('ok', 'ToneGrid status: ' + (sent.data.status || 'pending'));
-              return true;
-            }).catch(function () {
-              showStatus('err', 'Could not reach catalog.');
-              return false;
-            });
+            return gate;
           });
       }
 
@@ -334,8 +351,8 @@
           redirectionUrl: '/review.html',
           events: {
             completed: function () {
-              afterSigned(documentId).then(function (ok) {
-                window.location.href = ok ? 'submitted.html' : 'review.html';
+              refreshSignWellStatus(documentId).then(function () {
+                window.location.href = 'review.html';
               });
             }
           }
@@ -379,7 +396,12 @@
             return;
           }
 
-          if (data.documentId) saveDraft({ signwell_document_id: data.documentId, signwell_signed: false });
+          if (data.documentId) {
+            persistSheet(data.documentId, {
+              signwell_signed: Boolean(data.signed),
+              signwell_status: data.signed ? (data.status || 'Completed') : 'awaiting_signature',
+            });
+          }
 
           if (emailLinkOnly || data.mode === 'email') {
             emailDone.classList.remove('is-hidden');
@@ -405,8 +427,14 @@
       writersEl.addEventListener('input', function () { updateTotal(); refreshIncomplete(); });
       writersEl.addEventListener('change', function () { updateTotal(); refreshIncomplete(); });
       if (titleInput) {
-        titleInput.addEventListener('input', refreshIncomplete);
-        titleInput.addEventListener('change', refreshIncomplete);
+        titleInput.addEventListener('input', function () {
+          persistSongTitle();
+          refreshIncomplete();
+        });
+        titleInput.addEventListener('change', function () {
+          persistSongTitle();
+          refreshIncomplete();
+        });
       }
       writersEl.addEventListener('click', function (event) {
         var button = event.target.closest('[data-remove]');
@@ -426,19 +454,38 @@
 
       signBtn.addEventListener('click', function () { createSheet(false); });
       emailBtn.addEventListener('click', function () { createSheet(true); });
+      function goToReview(event) {
+        if (event && event.preventDefault) event.preventDefault();
+        persistSongTitle();
+        var draft = readDraft();
+        var documentId = draft.signwell_document_id;
+        if (!documentId) {
+          showStatus('bad', 'Create the split sheet before continuing.');
+          return;
+        }
+        persistSheet(documentId, {
+          signwell_signed: Boolean(draft.signwell_signed),
+          signwell_status: draft.signwell_status || 'awaiting_signature',
+        });
+        refreshSignWellStatus(documentId).then(function () {
+          window.location.href = 'review.html';
+        });
+      }
       var continueReview = document.querySelector('#email-done a[href="review.html"]');
-      if (continueReview) {
-        continueReview.addEventListener('click', function (event) {
-          event.preventDefault();
-          var draft = readDraft();
-          var documentId = draft.signwell_document_id;
-          if (!documentId) {
-            showStatus('bad', 'Sign the split sheet in SignWell before submitting.');
-            return;
-          }
-          afterSigned(documentId).then(function (ok) {
-            window.location.href = ok ? 'submitted.html' : 'review.html';
-          });
+      if (continueReview) continueReview.addEventListener('click', goToReview);
+      if (typeof window !== 'undefined' && window.addEventListener) {
+        window.addEventListener('focus', function () {
+          var id = readDraft().signwell_document_id;
+          if (id) refreshSignWellStatus(id);
+        });
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) return;
+          var id = readDraft().signwell_document_id;
+          if (id) refreshSignWellStatus(id);
+        });
+        window.addEventListener('pageshow', function () {
+          var id = readDraft().signwell_document_id;
+          if (id) refreshSignWellStatus(id);
         });
       }
 
@@ -446,17 +493,11 @@
         return /^(neon shadows|victoria reyes|victoria void)$/i.test(String(value || '').trim());
       }
 
-      try {
-        var draft = JSON.parse(sessionStorage.getItem('plaiground.tonegrid.draft') || '{}') || {};
-        if (titleInput && !titleInput.value && draft.title && !isDemoCopy(draft.title)) {
-          titleInput.value = draft.title;
-        }
-        if (!writers[0].name && draft.name && !isDemoCopy(draft.name)) {
-          writers[0].name = draft.name;
-        }
-      } catch (err) {}
-
-      if (titleInput && isDemoCopy(titleInput.value)) titleInput.value = '';
+      var draft = readDraft();
+      applyDraftTitle();
+      if (!writers[0].name && draft.name && !isDemoCopy(draft.name)) {
+        writers[0].name = draft.name;
+      }
       if (isDemoCopy(writers[0].name)) writers[0].name = '';
 
       fetch('/api/signwell')
@@ -472,6 +513,8 @@
 
       render();
       refreshIncomplete();
+      var existingId = readDraft().signwell_document_id;
+      if (existingId) refreshSignWellStatus(existingId);
     })();
   </script>
 </body>
