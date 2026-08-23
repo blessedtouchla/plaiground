@@ -76,6 +76,11 @@ function run() {
   assert.ok(upload.indexOf('data-art-pick') !== -1);
   assert.ok(upload.indexOf('data-art-input') !== -1);
   assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') !== -1);
+  assert.ok(upload.indexOf('id="tg-instrumental"') !== -1);
+  assert.ok(upload.indexOf('type="checkbox"') !== -1);
+  assert.ok(upload.indexOf('data-language-field') !== -1);
+  assert.ok(upload.indexOf('data-upload-loader') !== -1);
+  assert.ok(upload.indexOf('hidden') !== -1);
   assert.ok(!/accept="[^"]*audio\/mp4|m4a|aiff/i.test(upload));
   assert.ok(upload.indexOf('ToneGrid accepts MP3') === -1);
 
@@ -105,6 +110,86 @@ function run() {
   assert.deepStrictEqual(price.map(function (opt) { return opt.value; }), ['', '$0.69', '$0.99']);
   assert.strictEqual(price[0].label, 'Select price');
   assert.ok(price.every(function (opt) { return !opt.selected; }));
+
+  const catalogSrc = fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8');
+  assert.ok(catalogSrc.indexOf('if (matches.length >= 12) break;') === -1);
+  const css = fs.readFileSync(path.join(__dirname, 'site.css'), 'utf8');
+  assert.ok(/\.typeahead-list\s*\{[\s\S]*?overflow-y:\s*auto/.test(css));
+  assert.ok(/\.typeahead-list\s*\{[\s\S]*?max-height:\s*240px/.test(css));
+
+  const aGenres = catalog.GENRES.filter(function (name) { return /^a/i.test(name); });
+  assert.ok(aGenres.length > 12, 'catalog must have more than 12 A-genres so the old 12-cap was stuck on A');
+  assert.ok(catalog.GENRES.some(function (name) { return /^b/i.test(name); }));
+
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
+    querySelector() { return { setAttribute() {} }; },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    dispatchEvent() {},
+  };
+  const created = [];
+  const prevDocument = global.document;
+  global.document = {
+    createElement(tag) {
+      const node = {
+        tagName: String(tag).toUpperCase(),
+        type: '',
+        className: '',
+        id: '',
+        value: '',
+        textContent: '',
+        children: [],
+        style: {},
+        attrs: {},
+        listeners: {},
+        classList: {
+          tokens: Object.create(null),
+          add(name) { this.tokens[name] = true; },
+          remove(name) { delete this.tokens[name]; },
+          contains(name) { return Boolean(this.tokens[name]); },
+        },
+        setAttribute(name, value) { this.attrs[name] = String(value); },
+        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
+        addEventListener(type, fn) { this.listeners[type] = fn; },
+        appendChild(child) { this.children.push(child); return child; },
+      };
+      created.push(node);
+      return node;
+    },
+  };
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = created.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = created.find(function (node) { return String(node.className).indexOf('typeahead-list') !== -1; });
+    assert.ok(input);
+    assert.ok(list);
+    input.listeners.focus();
+    assert.ok(list.children.length > 12, 'empty query must render the full match set, not a 12-item clip');
+    assert.ok(list.children.length === catalog.GENRES.length);
+    assert.strictEqual(list.style.overflowY, 'auto');
+    assert.ok(Number(String(list.style.maxHeight).replace('px', '')) >= 240);
+    input.value = 'A';
+    input.listeners.input();
+    assert.ok(list.children.length > 12, 'A-query must stay scrollable past the first letter');
+    assert.ok(list.children.some(function (btn) { return /^B/i.test(btn.textContent); }), 'full A-match set must include items past A');
+  } finally {
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
 
   console.log('upload-defaults.test.js ok');
 }

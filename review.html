@@ -62,13 +62,18 @@
       </div>
       <aside class="flow-card due">
         <h3>Due now</h3>
-        <p style="display:flex;justify-content:space-between;margin:10px 0;color:var(--muted-2)"><span>Publishing registration</span><span>$199.00</span></p>
-        <p style="display:flex;justify-content:space-between;margin:10px 0;color:var(--muted-2)"><span>Distribution lead</span><span>$49.00</span></p>
-        <p style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px"><span>Total</span><strong class="total">$248.00</strong></p>
-        <div class="panel" style="margin:12px 0">
-          <p>Visa ending 4407 · <button class="learn" type="button" style="background:none;border:none;display:inline">Change</button></p>
+        <p style="display:flex;justify-content:space-between;margin:10px 0;color:var(--muted-2)"><span>Publishing registration</span><span>$0 · included in membership</span></p>
+        <p style="display:flex;justify-content:space-between;margin:10px 0;color:var(--muted-2)"><span>Distribution</span><span>$0 · included in membership</span></p>
+        <p style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px"><span>Total</span><strong class="total">$0.00</strong></p>
+        <p class="hint">Nothing is charged on this screen. Publishing and distribution are included in membership. PLAIGROUND takes no commission.</p>
+        <div class="flow-card" data-review-upsell hidden style="margin:12px 0 0">
+          <h3>One upgrade offer</h3>
+          <p class="hint">Basic already includes this release. Creator and Pro add more uploads and extras. Checkout is a separate step, not here.</p>
+          <p style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn-ghost btn-sm" href="creator.html">See Creator</a>
+            <a class="btn btn-ghost btn-sm" href="pro.html">See Pro</a>
+          </p>
         </div>
-        <p class="hint">Charged now. Your split sheet only goes out to co-writers after payment clears and the content scan comes back clean. If your song is rejected at any point, 75% of the fees are refunded.</p>
       </aside>
     </div>
 
@@ -76,7 +81,7 @@
       <div class="head-row">
         <div>
           <h3>Choose where it goes</h3>
-          <p class="hint">Every store costs the same one fee. Unlink anywhere you would rather not appear.</p>
+          <p class="hint">Stores are included in membership. $0 per release. Unlink anywhere you would rather not appear.</p>
         </div>
         <span style="color:var(--muted);font-size:13px">164 of 165 stores · <a href="review.html">Select all</a> · <a href="review.html">Clear all</a></span>
       </div>
@@ -87,12 +92,35 @@
 
     <div class="flow-actions">
       <a class="btn btn-ghost btn-md" href="split-sheet.html">Back</a>
-      <a class="btn btn-yellow btn-md" data-tonegrid-submit href="submitted.html">Pay and submit</a>
+      <a class="btn btn-yellow btn-md" data-tonegrid-submit href="submitted.html">Submit</a>
     </div>
     <p class="hint" id="tg-status" hidden style="margin-top:12px"></p>
   </main>
   <script src="lib/upload-required.js"></script>
   <script src="tonegrid.js" defer></script>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      function showBasicUpsell() {
+        var el = document.querySelector('[data-review-upsell]');
+        if (!el) return;
+        var plan = '';
+        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.currentPlan === 'function') {
+          plan = String(window.PlaigroundMembership.currentPlan() || '').toLowerCase();
+        }
+        var paid = window.PlaigroundMembership && typeof window.PlaigroundMembership.hasPaidAccess === 'function'
+          ? window.PlaigroundMembership.hasPaidAccess()
+          : (plan === 'creator' || plan === 'pro');
+        var show = plan === 'basic' && !paid;
+        el.hidden = !show;
+        if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
+      }
+      if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
+        window.PlaigroundMembership.whenReady(showBasicUpsell);
+      } else {
+        showBasicUpsell();
+      }
+    })();
+  </script>
 </body>
 </html>

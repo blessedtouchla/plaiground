@@ -52,7 +52,10 @@
         <button class="play" type="button" aria-label="Play">▶</button>
       </div>
       <div class="opt-grid">
-        <div class="dashbox">Add instrumental<br /><span>Optional, helps sync licensing</span></div>
+        <label class="dashbox checkline" for="tg-instrumental">
+          <input id="tg-instrumental" name="release-instrumental" type="checkbox" />
+          <span>Instrumental<br /><span>Optional, helps sync licensing</span></span>
+        </label>
         <div class="dashbox">Add lyrics file<br /><span>.srt or .lrc for timed lyrics</span></div>
       </div>
     </section>
@@ -90,7 +93,7 @@
             <option value="">Select genre</option>
           </select>
         </div>
-        <div class="field">
+        <div class="field" data-language-field>
           <label for="tg-language">Language</label>
           <select id="tg-language" name="release-language" class="details-select" autocomplete="off">
             <option value="">Select language</option>
@@ -115,6 +118,14 @@
       <p class="hint" id="tg-upgrade" hidden>Need more uploads? Upgrade to <a href="creator.html">Creator</a> or <a href="pro.html">Pro</a>.</p>
     </section>
   </main>
+  <div class="upload-loader is-hidden" data-upload-loader hidden>
+    <div class="flow-card upload-loader-card">
+      <p class="kicker">Working</p>
+      <h3 data-upload-loader-step>Uploading audio</h3>
+      <div class="bar" data-upload-loader-bar><i data-upload-loader-fill></i></div>
+      <p class="hint" data-upload-loader-meta></p>
+    </div>
+  </div>
   <script src="upload-catalog.js"></script>
   <script src="lib/upload-required.js"></script>
   <script src="tonegrid.js" defer></script>
@@ -245,6 +256,21 @@
             el.classList.toggle('on', el === choice);
           });
         });
+      }
+
+      var instrumental = document.getElementById('tg-instrumental');
+      var languageField = document.querySelector('[data-language-field]');
+      function syncInstrumental() {
+        var on = Boolean(instrumental && instrumental.checked);
+        if (!languageField) return;
+        languageField.hidden = on;
+        if (languageField.classList && languageField.classList.toggle) {
+          languageField.classList.toggle('is-hidden', on);
+        }
+      }
+      if (instrumental) {
+        instrumental.addEventListener('change', syncInstrumental);
+        syncInstrumental();
       }
     })();
   </script>

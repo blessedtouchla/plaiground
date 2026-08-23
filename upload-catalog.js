@@ -1347,7 +1347,6 @@ function bindTypeahead(select, items, getValue, getLabel) {
       if (!q || String(labelText).toLowerCase().indexOf(q) !== -1 || String(value).toLowerCase().indexOf(q) !== -1) {
         matches.push({ value: value, label: labelText });
       }
-      if (matches.length >= 12) break;
     }
     list.innerHTML = '';
     if (!matches.length) {
@@ -1367,7 +1366,14 @@ function bindTypeahead(select, items, getValue, getLabel) {
       list.appendChild(btn);
     });
     list.classList.remove('is-hidden');
+    list.style.maxHeight = '240px';
+    list.style.overflowY = 'auto';
+    list.style.overflowX = 'hidden';
   }
+
+  list.addEventListener('wheel', function (event) {
+    if (list.scrollHeight > list.clientHeight) event.stopPropagation();
+  }, { passive: true });
 
   input.addEventListener('input', function () {
     var pick = exact(input.value);

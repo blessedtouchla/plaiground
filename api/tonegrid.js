@@ -437,8 +437,8 @@ async function createRelease(req, res) {
     title: fields.title,
     type,
     genre: fields.genre,
-    language: fields.language,
   };
+  if (fields.language) payload.language = fields.language;
   if (releaseDate) payload.release_date = releaseDate;
 
   const result = await tonegridFetch('/releases', {
@@ -519,7 +519,8 @@ async function createTrack(req, res) {
     return;
   }
 
-  const trackPayload = { title: fields.title, position, explicit, language: fields.language };
+  const trackPayload = { title: fields.title, position, explicit };
+  if (fields.language) trackPayload.language = fields.language;
 
   const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',

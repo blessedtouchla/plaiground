@@ -28,6 +28,7 @@
     var choices = document.querySelectorAll('[data-made-how]');
     var tags = document.querySelectorAll('.tag, [data-human-tag]');
     var countEl = document.querySelector('[data-human-count]');
+    var humanSection = document.querySelector('[data-human-section]');
     var human = document.getElementById('attest-human');
     var rights = document.getElementById('attest-rights');
     var status = document.getElementById('attest-status');
@@ -96,7 +97,17 @@
       }
     }
 
+    function syncHumanSection() {
+      var show = selectedHow() === 'ai_assisted';
+      if (!humanSection) return;
+      humanSection.hidden = !show;
+      if (humanSection.classList && humanSection.classList.toggle) {
+        humanSection.classList.toggle('is-hidden', !show);
+      }
+    }
+
     function refresh() {
+      syncHumanSection();
       if (countEl) countEl.textContent = selectedElements().length + ' selected';
       if (trigger.classList) trigger.classList.toggle('is-incomplete', Boolean(pageError(collect())));
       writeDraft(collect());
