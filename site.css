@@ -517,6 +517,37 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--purple-bright); }
 .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #999 50%), linear-gradient(135deg, #999 50%, transparent 50%); background-position: calc(100% - 18px) 18px, calc(100% - 12px) 18px; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
+.typeahead-field { position: relative; }
+.field select.is-typeahead-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.typeahead-list {
+  position: absolute;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #0C0C12;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  max-height: 240px;
+  overflow: auto;
+}
+.typeahead-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 15px;
+}
+.typeahead-list button:hover { background: rgba(125, 60, 255, 0.22); }
 .field select.details-select {
   cursor: pointer;
   padding-right: 40px;
@@ -894,6 +925,9 @@ table.data tbody tr.is-pick { cursor: pointer; }
   height: 140px;
   border-radius: 12px;
   background: linear-gradient(160deg, #3a1a4a, #8B3FE8 40%, #1a1a22);
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
 }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .choice {
@@ -915,6 +949,7 @@ table.data tbody tr.is-pick { cursor: pointer; }
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
 }
 .tag.on { background: var(--purple); color: #fff; }
 .warn { color: var(--yellow); font-size: 13px; margin-top: 8px; }
@@ -1186,6 +1221,9 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .btn[aria-disabled="true"], .btn.is-off {
   opacity: 0.55;
   pointer-events: none;
+}
+.btn.is-incomplete {
+  opacity: 0.55;
 }
 .pro-adds { margin: 40px 0 72px; }
 .pro-adds .row {

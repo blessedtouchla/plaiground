@@ -28,6 +28,8 @@
 const accounts = require('../lib/accounts');
 const plans = require('../lib/plans');
 const signwell = require('../lib/signwell');
+const uploadRequired = require('../lib/upload-required');
+const audioConvert = require('../lib/audio-convert');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
@@ -241,11 +243,12 @@ async function createArtist(req, res) {
     return;
   }
 
-  const name = String((body && body.name) || '').trim();
-  if (!name) {
-    sendJson(res, 400, { error: 'Artist name is required.' });
+  const artistGate = uploadRequired.validateArtist(body);
+  if (artistGate.error) {
+    sendJson(res, 400, { error: artistGate.error });
     return;
   }
+  const name = artistGate.name;
 
   const slug = deriveSlug((body && body.slug) || name);
   if (!slug) {
@@ -404,11 +407,9 @@ async function createRelease(req, res) {
   }
 
   const artistId = String((body && (body.artist_id || body.artistId)) || '').trim();
-  const title = String((body && body.title) || '').trim();
   const type = normalizeReleaseType(body && body.type);
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
-  const genre = String((body && body.genre) || '').trim();
-  const language = normalizeLanguage(body && body.language);
+  const fields = uploadRequired.validateReleaseCreate(body);
 
   if (!artistId) {
     sendJson(res, 400, { error: 'artist_id is required.' });
@@ -418,8 +419,8 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'artist_id must be a uuid.' });
     return;
   }
-  if (!title) {
-    sendJson(res, 400, { error: 'title is required.' });
+  if (fields.error) {
+    sendJson(res, 400, { error: fields.error });
     return;
   }
   if (!RELEASE_TYPES.has(type)) {
@@ -430,24 +431,20 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'release_date must be YYYY-MM-DD.' });
     return;
   }
-  if ((body && body.language) && language == null) {
-    sendJson(res, 400, { error: 'language must be an ISO 639-1 code.' });
-    return;
-  }
 
   const payload = {
     artist_id: artistId,
-    title,
+    title: fields.title,
     type,
+    genre: fields.genre,
+    language: fields.language,
   };
   if (releaseDate) payload.release_date = releaseDate;
-  if (genre) payload.genre = genre;
-  if (language) payload.language = language;
 
   const result = await tonegridFetch('/releases', {
     method: 'POST',
     body: payload,
-    idempotencyKey: idempotencyKey(req, ['release', artistId, title, type, releaseDate].join(':')),
+    idempotencyKey: idempotencyKey(req, ['release', artistId, fields.title, type, releaseDate].join(':')),
   });
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
@@ -497,11 +494,9 @@ async function createTrack(req, res) {
   }
 
   const releaseId = String((body && (body.release_id || body.releaseId)) || '').trim();
-  const title = String((body && body.title) || '').trim();
   const position = parsePosition(body && body.position);
   const explicit = parseExplicit(body && body.explicit);
-  const language = String((body && body.language) || '').trim().toLowerCase();
-  const languageCode = /^[a-z]{2}$/.test(language) ? language : '';
+  const fields = uploadRequired.validateTrackCreate(body);
 
   if (!releaseId) {
     sendJson(res, 400, { error: 'release_id is required.' });
@@ -511,8 +506,8 @@ async function createTrack(req, res) {
     sendJson(res, 400, { error: 'release_id must be a uuid.' });
     return;
   }
-  if (!title) {
-    sendJson(res, 400, { error: 'title is required.' });
+  if (fields.error) {
+    sendJson(res, 400, { error: fields.error });
     return;
   }
   if (position == null) {
@@ -524,22 +519,18 @@ async function createTrack(req, res) {
     return;
   }
 
-  const trackPayload = { title, position, explicit };
-  if (languageCode) trackPayload.language = languageCode;
+  const trackPayload = { title: fields.title, position, explicit, language: fields.language };
 
   const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',
     body: trackPayload,
-    idempotencyKey: idempotencyKey(req, ['track', releaseId, title, String(position)].join(':')),
+    idempotencyKey: idempotencyKey(req, ['track', releaseId, fields.title, String(position)].join(':')),
   });
   sendJson(res, result.status, result.data);
 }
 
 function looksLikeAudioPart(buf) {
-  const head = buf.slice(0, 8192).toString('latin1');
-  if (/filename="[^"]+\.(wav|flac)"/i.test(head)) return true;
-  if (/filename="/i.test(head) && !/\.(wav|flac)"/i.test(head)) return false;
-  return true;
+  return audioConvert.incomingAudioAllowed(buf);
 }
 
 function readRawBody(req, maxBytes) {
@@ -624,14 +615,24 @@ async function trackAudio(req, res, trackId) {
     return;
   }
   if (!looksLikeAudioPart(raw)) {
-    sendJson(res, 400, { error: 'Audio must be WAV or FLAC.' });
+    sendJson(res, 400, { error: 'Audio must be WAV, FLAC, or MP3.' });
+    return;
+  }
+
+  const prepared = await audioConvert.prepareToneGridAudio(raw);
+  if (prepared.error) {
+    sendJson(res, 400, { error: prepared.error });
+    return;
+  }
+  if (prepared.converted && !audioConvert.toneGridBodyIsWav(prepared.rawBody)) {
+    sendJson(res, 400, { error: 'MP3 must be converted to WAV before ToneGrid.' });
     return;
   }
 
   const result = await tonegridFetch('/tracks/' + id + '/audio', {
     method: 'POST',
-    rawBody: raw,
-    contentType,
+    rawBody: prepared.rawBody,
+    contentType: prepared.contentType || contentType,
     idempotencyKey: idempotencyKey(req, 'audio:' + id),
   });
   sendJson(res, result.status, result.data);
@@ -1091,10 +1092,10 @@ async function getOneRelease(req, res, releaseId) {
 function releaseUpdatePayload(body) {
   const payload = {};
   if (!body || typeof body !== 'object') return { payload };
+  const fields = uploadRequired.validateReleaseUpdate(body);
+  if (fields.error) return { error: fields.error };
   if (body.title !== undefined) {
-    const title = String(body.title || '').trim();
-    if (!title) return { error: 'title is required.' };
-    payload.title = title;
+    payload.title = String(body.title || '').trim();
   }
   if (body.release_date !== undefined || body.releaseDate !== undefined) {
     const date = normalizeReleaseDate(body.release_date || body.releaseDate);
@@ -1104,12 +1105,10 @@ function releaseUpdatePayload(body) {
     if (date) payload.release_date = date;
   }
   if (body.genre !== undefined) {
-    const genre = String(body.genre || '').trim();
-    if (genre) payload.genre = genre;
+    payload.genre = String(body.genre || '').trim();
   }
   if (body.language !== undefined) {
     const language = normalizeLanguage(body.language);
-    if (body.language && language == null) return { error: 'language must be an ISO 639-1 code.' };
     if (language) payload.language = language;
   }
   return { payload };
@@ -1257,9 +1256,19 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
 
+  const submitFields = uploadRequired.validateSubmit(body, row);
+  if (submitFields.error) {
+    sendJson(res, 400, { error: submitFields.error });
+    return;
+  }
+
   let releaseDate = normalizeReleaseDate((body && (body.release_date || body.releaseDate)) || row.release_date);
   const minDate = minSubmitDate();
-  if (!releaseDate || releaseDate < minDate) releaseDate = minDate;
+  if (!releaseDate) {
+    sendJson(res, 400, { error: 'release_date is required.' });
+    return;
+  }
+  if (releaseDate < minDate) releaseDate = minDate;
   if (releaseDate !== row.release_date) {
     const dated = await tonegridFetch('/releases/' + releaseId, {
       method: 'PUT',
@@ -1303,8 +1312,8 @@ async function submitRelease(req, res, releaseId) {
 
 function looksLikeArtPart(buf) {
   const head = buf.slice(0, 8192).toString('latin1');
-  if (/filename="[^"]+\.(jpe?g|png|webp)"/i.test(head)) return true;
-  if (/filename="/i.test(head) && !/\.(jpe?g|png|webp)"/i.test(head)) return false;
+  if (/filename="[^"]+\.(jpe?g|png)"/i.test(head)) return true;
+  if (/filename="/i.test(head) && !/\.(jpe?g|png)"/i.test(head)) return false;
   return true;
 }
 
@@ -1400,20 +1409,16 @@ async function updateTrack(req, res, trackId) {
   }
 
   const payload = {};
+  const trackFields = uploadRequired.validateTrackUpdate(body);
+  if (trackFields.error) {
+    sendJson(res, 400, { error: trackFields.error });
+    return;
+  }
   if (body && body.title !== undefined) {
-    const title = String(body.title || '').trim();
-    if (!title) {
-      sendJson(res, 400, { error: 'title is required.' });
-      return;
-    }
-    payload.title = title;
+    payload.title = String(body.title || '').trim();
   }
   if (body && body.language !== undefined) {
     const language = normalizeLanguage(body.language);
-    if (body.language && language == null) {
-      sendJson(res, 400, { error: 'language must be an ISO 639-1 code.' });
-      return;
-    }
     if (language) payload.language = language;
   }
   if (body && body.explicit !== undefined) {

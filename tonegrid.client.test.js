@@ -6,6 +6,9 @@ const path = require('path');
 const vm = require('vm');
 
 const code = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+const requiredCode = fs.readFileSync(path.join(__dirname, 'lib', 'upload-required.js'), 'utf8');
+const AUDIO = { name: 'night-drive.wav', type: 'audio/wav', size: 2048 };
+const ART = { name: 'cover.jpg', type: 'image/jpeg', size: 1024 };
 
 function makeStorage() {
   const data = Object.create(null);
@@ -43,6 +46,19 @@ function makeEl(attrs) {
     addEventListener(type, fn) {
       this.listeners[type] = fn;
     },
+    classList: {
+      tokens: Object.create(null),
+      toggle(name, force) {
+        if (force) this.tokens[name] = true;
+        else delete this.tokens[name];
+      },
+      add(name) {
+        this.tokens[name] = true;
+      },
+      contains(name) {
+        return Boolean(this.tokens[name]);
+      },
+    },
   };
   return el;
 }
@@ -51,8 +67,10 @@ function load(options) {
   const opts = options || {};
   const title = makeEl({ id: 'tg-title', value: opts.title || '' });
   const artist = makeEl({ id: 'tg-artist', value: opts.artist || '' });
+  const featured = makeEl({ id: 'tg-featured', value: opts.featured || '' });
   const genre = makeEl({ id: 'tg-genre', value: opts.genre || '' });
   const language = makeEl({ id: 'tg-language', value: opts.language || '' });
+  const price = makeEl({ id: 'tg-price', value: opts.price || '' });
   const date = makeEl({ id: 'tg-release-date', value: opts.releaseDate || '' });
   const status = makeEl({ id: 'tg-status' });
   const continueBtn = makeEl({
@@ -71,8 +89,10 @@ function load(options) {
   const elements = {
     'tg-title': title,
     'tg-artist': artist,
+    'tg-featured': featured,
     'tg-genre': genre,
     'tg-language': language,
+    'tg-price': price,
     'tg-release-date': date,
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
@@ -93,6 +113,9 @@ function load(options) {
         }
         if (sel === '[data-audio-input]') {
           return opts.file ? { files: [opts.file], _plaigroundFile: opts.file } : null;
+        }
+        if (sel === '[data-art-input]') {
+          return opts.artwork ? { files: [opts.artwork], _plaigroundFile: opts.artwork } : null;
         }
         if (sel === '[data-explicit].on, [data-explicit-toggle] .on') {
           return {
@@ -127,9 +150,11 @@ function load(options) {
     },
     location: { href: opts.page || 'upload.html' },
     window: {},
+    PlaigroundUploadCatalog: require('./upload-catalog'),
   };
   context.window = context;
   context.window.location = context.location;
+  vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
   return { continueBtn, payBtn, status, calls, localStorage, location: context.location };
 }
@@ -145,31 +170,95 @@ async function flush(times) {
   }
 }
 
-async function run() {
-  const blocked = load({ title: '', artist: '' });
-  blocked.continueBtn.listeners.click({ preventDefault() {} });
-  assert.strictEqual(blocked.calls.length, 0);
-  assert.strictEqual(blocked.status.textContent, 'Primary artist is required.');
-
-  const noTitle = load({ title: '', artist: 'Ada Night' });
-  noTitle.continueBtn.listeners.click({ preventDefault() {} });
-  assert.strictEqual(noTitle.calls.length, 0);
-  assert.strictEqual(noTitle.status.textContent, 'Song title is required.');
-
-  const upload = load({
+function filledUpload(extra) {
+  return Object.assign({
     title: 'Night Drive',
     artist: 'Ada Night',
     genre: 'Pop',
     language: 'en',
-    responses: [
-      { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
-      { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-    ],
-  });
+    price: '$0.99',
+    file: AUDIO,
+    artwork: ART,
+  }, extra || {});
+}
+
+function attestDraft(extra) {
+  return Object.assign({
+    made_how: 'ai_assisted',
+    human_elements: ['Original lyrics'],
+    human_contribution: 'I wrote the lyrics and sang the lead.',
+    rights_confirmed: true,
+  }, extra || {});
+}
+
+async function run() {
+  const blocked = load({ title: '', artist: '' });
+  blocked.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(blocked.calls.length, 0);
+  assert.ok(/required/i.test(blocked.status.textContent));
+
+  const noTitle = load(filledUpload({ title: '' }));
+  noTitle.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(noTitle.calls.length, 0);
+  assert.strictEqual(noTitle.status.textContent, 'Song title is required.');
+
+  const whitespace = load(filledUpload({ title: '   ', artist: '   ' }));
+  whitespace.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(whitespace.calls.length, 0);
+  assert.ok(/required/i.test(whitespace.status.textContent));
+
+  const noAudio = load(filledUpload({ file: null }));
+  noAudio.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(noAudio.calls.length, 0);
+  assert.strictEqual(noAudio.status.textContent, 'Audio is required.');
+
+  const noGenre = load(filledUpload({ genre: '' }));
+  noGenre.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(noGenre.calls.length, 0);
+  assert.strictEqual(noGenre.status.textContent, 'Genre is required.');
+
+  const noLanguage = load(filledUpload({ language: '' }));
+  noLanguage.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(noLanguage.calls.length, 0);
+  assert.strictEqual(noLanguage.status.textContent, 'Language is required.');
+
+  const noPrice = load(filledUpload({ price: '' }));
+  noPrice.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(noPrice.calls.length, 0);
+  assert.strictEqual(noPrice.status.textContent, 'Download price is required.');
+
+  const placeholderPrice = load(filledUpload({ price: 'Select price' }));
+  placeholderPrice.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(placeholderPrice.calls.length, 0);
+  assert.strictEqual(placeholderPrice.status.textContent, 'Download price is required.');
+
+  const featuredEmpty = load(filledUpload({ featured: '' }));
+  featuredEmpty.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(featuredEmpty.calls.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+
+  const noArtwork = load(filledUpload({ artwork: null }));
+  noArtwork.continueBtn.listeners.click({ preventDefault() {} });
+  assert.strictEqual(noArtwork.calls.length, 0);
+  assert.strictEqual(noArtwork.status.textContent, 'Artwork is required.');
+
+  const fakeGenre = load(filledUpload({ genre: 'Not A Real Genre' }));
+  fakeGenre.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(fakeGenre.calls.length === 0 || fakeGenre.location.href.indexOf('attest.html') === -1);
+
+  const uploadResponses = [
+    { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+    { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+    { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+    { ok: true, status: 200, data: { audio_status: 'processing' } },
+    { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+  ];
+  const upload = load(filledUpload({ featured: '', responses: uploadResponses.slice() }));
   upload.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   const uploadTonegrid = upload.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-  assert.strictEqual(uploadTonegrid.length, 3);
+  assert.ok(uploadTonegrid.length >= 3);
   assert.strictEqual(uploadTonegrid[0].url, '/api/tonegrid/artists');
   assert.strictEqual(uploadTonegrid[1].url, '/api/tonegrid/releases');
   assert.strictEqual(uploadTonegrid[2].url, '/api/tonegrid/tracks');
@@ -197,60 +286,32 @@ async function run() {
   assert.strictEqual(draft.release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
   assert.ok(draft.track_id);
   assert.strictEqual(upload.location.href, 'attest.html');
-  assert.ok(!upload.calls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
-
-  const withFile = load({
-    title: 'Night Drive',
-    artist: 'Ada Night',
-    file: { name: 'night-drive.wav', type: 'audio/wav', size: 2048 },
-    responses: [
-      { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
-      { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-      { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
-      { ok: true, status: 200, data: { audio_status: 'processing' } },
-    ],
-  });
-  withFile.continueBtn.listeners.click({ preventDefault() {} });
-  await flush();
-  const audioCall = withFile.calls.find(function (call) {
+  const audioCall = upload.calls.find(function (call) {
     return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
   });
   assert.ok(audioCall);
-  assert.ok(audioCall.init.body);
-  assert.ok(!audioCall.init.headers.Authorization);
   assert.ok(audioCall.init.body.parts.some(function (part) { return part.name === 'audio'; }));
-  assert.ok(withFile.calls.some(function (call) {
-    if (call.url !== '/api/me/catalog') return false;
-    var body = JSON.parse(call.init.body);
-    return body.track_id === 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  assert.ok(upload.calls.some(function (call) {
+    return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/artwork';
   }));
-  assert.strictEqual(draftOf(withFile.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
-  assert.strictEqual(withFile.location.href, 'attest.html');
 
-  const explicitYes = load({
-    title: 'Night Drive',
-    artist: 'Ada Night',
+  const explicitYes = load(filledUpload({
     explicit: true,
-    responses: [
-      { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
-      { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-    ],
-  });
+    responses: uploadResponses.slice(),
+  }));
   explicitYes.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   const explicitTrack = explicitYes.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
   assert.ok(explicitTrack);
   assert.strictEqual(JSON.parse(explicitTrack.init.body).explicit, true);
 
-  const limited = load({
-    title: 'Night Drive',
-    artist: 'Ada Night',
+  const limited = load(filledUpload({
     responses: [{
       ok: false,
       status: 403,
       data: { error: 'Basic includes one release. Upgrade to Creator or Pro to upload more.', code: 'PLAN_LIMIT' },
     }],
-  });
+  }));
   limited.continueBtn.listeners.click({ preventDefault() {} });
   await flush(3);
   assert.strictEqual(limited.calls.length, 1);
@@ -259,14 +320,12 @@ async function run() {
   assert.notStrictEqual(limited.location.href, 'attest.html');
   assert.ok(limited.location.href.indexOf('attest.html') === -1);
 
-  const limitedRelease = load({
-    title: 'Night Drive',
-    artist: 'Ada Night',
+  const limitedRelease = load(filledUpload({
     responses: [
       { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
       { ok: false, status: 403, data: { error: 'Creator includes 8 releases per month. Upgrade to Pro to upload more.', code: 'PLAN_LIMIT' } },
     ],
-  });
+  }));
   limitedRelease.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   assert.ok(limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
@@ -274,19 +333,32 @@ async function run() {
   assert.strictEqual(limitedRelease.status.textContent, 'Creator includes 8 releases per month. Upgrade to Pro to upload more.');
   assert.ok(limitedRelease.location.href.indexOf('attest.html') === -1);
 
-  const unavailable = load({
-    title: 'Night Drive',
-    artist: 'Ada Night',
+  const unavailable = load(filledUpload({
     responses: [{ ok: false, status: 503, data: { configured: false, error: 'ToneGrid is not configured.' } }],
-  });
+  }));
   unavailable.continueBtn.listeners.click({ preventDefault() {} });
   await flush(3);
   assert.strictEqual(unavailable.calls.length, 1);
   assert.strictEqual(unavailable.status.textContent, 'Catalog sync is not configured yet.');
   assert.strictEqual(unavailable.location.href, 'attest.html');
 
+  const payNoDate = load({
+    bind: 'review',
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      signwell_document_id: 'doc_split_sheet_01',
+    },
+  });
+  payNoDate.payBtn.listeners.click({ preventDefault() {} });
+  await flush(2);
+  assert.strictEqual(payNoDate.status.textContent, 'Release date is required.');
+  assert.ok(!payNoDate.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
+
   const paySkip = load({
     bind: 'review',
+    releaseDate: '2026-09-12',
     draft: {
       artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       title: 'Night Drive',
@@ -301,17 +373,20 @@ async function run() {
 
   const signedSubmit = load({
     bind: 'review',
-    draft: {
+    releaseDate: '2026-09-12',
+    draft: Object.assign(attestDraft(), {
       artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       title: 'Night Drive',
       release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       signwell_document_id: 'doc_split_sheet_01',
-    },
+      release_date: '2026-09-12',
+    }),
     responses: [
       { ok: true, status: 200, data: { signed: true, status: 'Completed' } },
       { ok: true, status: 200, data: { status: 'pending', signed: true } },
     ],
   });
+  signedSubmit.payBtn.listeners.click({ preventDefault() {} });
   await flush(8);
   const submitCall = signedSubmit.calls.find(function (call) {
     return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';

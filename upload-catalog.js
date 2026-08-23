@@ -1278,13 +1278,134 @@ function fillSelect(select, items, getValue, getLabel) {
   });
 }
 
-function fillUploadSelects(doc) {
-  var root = doc || document;
-  fillSelect(root.getElementById('tg-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
-  fillSelect(root.getElementById('tg-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+function bindTypeahead(select, items, getValue, getLabel) {
+  if (!select || !items || !items.length) return;
+  if (select.getAttribute('data-typeahead') === 'on') return;
+  var field = select.parentNode;
+  if (!field) return;
+  select.setAttribute('data-typeahead', 'on');
+  field.classList.add('typeahead-field');
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'typeahead-input';
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('spellcheck', 'false');
+  input.id = select.id ? select.id + '-type' : '';
+  input.setAttribute('placeholder', select.options[0] && !select.options[0].value ? select.options[0].textContent : 'Select');
+  select.classList.add('is-typeahead-source');
+  select.tabIndex = -1;
+  select.setAttribute('aria-hidden', 'true');
+
+  var list = document.createElement('div');
+  list.className = 'typeahead-list is-hidden';
+  list.setAttribute('role', 'listbox');
+
+  if (select.id) {
+    var label = field.querySelector('label[for="' + select.id + '"]');
+    if (label && input.id) label.setAttribute('for', input.id);
+  }
+
+  field.insertBefore(input, select);
+  field.appendChild(list);
+
+  function exact(query) {
+    var q = String(query || '').trim().toLowerCase();
+    if (!q) return null;
+    var i;
+    for (i = 0; i < items.length; i += 1) {
+      var value = getValue(items[i]);
+      var labelText = getLabel(items[i]);
+      if (String(value).toLowerCase() === q || String(labelText).toLowerCase() === q) {
+        return { value: value, label: labelText };
+      }
+    }
+    return null;
+  }
+
+  function applyPick(pick) {
+    select.value = pick ? pick.value : '';
+    input.value = pick ? pick.label : String(input.value || '').trim();
+    if (!pick) select.selectedIndex = 0;
+    if (typeof select.dispatchEvent === 'function') {
+      try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
+    }
+  }
+
+  function hideList() {
+    list.classList.add('is-hidden');
+    list.innerHTML = '';
+  }
+
+  function showMatches(query) {
+    var q = String(query || '').trim().toLowerCase();
+    var matches = [];
+    var i;
+    for (i = 0; i < items.length; i += 1) {
+      var value = getValue(items[i]);
+      var labelText = getLabel(items[i]);
+      if (!q || String(labelText).toLowerCase().indexOf(q) !== -1 || String(value).toLowerCase().indexOf(q) !== -1) {
+        matches.push({ value: value, label: labelText });
+      }
+      if (matches.length >= 12) break;
+    }
+    list.innerHTML = '';
+    if (!matches.length) {
+      hideList();
+      return;
+    }
+    matches.forEach(function (pick) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = pick.label;
+      btn.setAttribute('role', 'option');
+      btn.addEventListener('mousedown', function (event) {
+        event.preventDefault();
+        applyPick(pick);
+        hideList();
+      });
+      list.appendChild(btn);
+    });
+    list.classList.remove('is-hidden');
+  }
+
+  input.addEventListener('input', function () {
+    var pick = exact(input.value);
+    applyPick(pick);
+    showMatches(input.value);
+  });
+  input.addEventListener('focus', function () {
+    showMatches(input.value);
+  });
+  input.addEventListener('blur', function () {
+    window.setTimeout(function () {
+      hideList();
+      var pick = exact(input.value);
+      if (pick) applyPick(pick);
+      else {
+        select.value = '';
+        if (select.options[0]) select.selectedIndex = 0;
+      }
+    }, 120);
+  });
 }
 
-const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, fillUploadSelects: fillUploadSelects };
+function fillUploadSelects(doc) {
+  var root = doc || document;
+  var genre = root.getElementById('tg-genre') || root.getElementById('edit-genre');
+  var language = root.getElementById('tg-language') || root.getElementById('edit-language');
+  fillSelect(root.getElementById('tg-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
+  fillSelect(root.getElementById('edit-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
+  fillSelect(root.getElementById('tg-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  fillSelect(root.getElementById('edit-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  bindTypeahead(root.getElementById('tg-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
+  bindTypeahead(root.getElementById('edit-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
+  bindTypeahead(root.getElementById('tg-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  bindTypeahead(root.getElementById('edit-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  return { genre: genre, language: language };
+}
+
+const api = { GENRES: GENRES, LANGUAGES: LANGUAGES, fillUploadSelects: fillUploadSelects, bindTypeahead: bindTypeahead };
 
 if (typeof module === 'object' && module.exports) {
   module.exports = api;
