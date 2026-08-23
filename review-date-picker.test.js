@@ -42,11 +42,15 @@ function makeEl(attrs) {
     value: attrs.value || '',
     type: attrs.type || 'text',
     min: attrs.min || '',
+    max: attrs.max || '',
     required: Boolean(attrs.required),
+    checked: Boolean(attrs.checked),
     textContent: '',
-    hidden: true,
+    hidden: attrs.hidden != null ? Boolean(attrs.hidden) : true,
     href: attrs.href || '',
     style: {},
+    options: attrs.options || [],
+    nextElementSibling: attrs.nextElementSibling || null,
     attrs: Object.assign({}, attrs.attrs || {}),
     listeners: {},
     getAttribute(name) {
@@ -55,29 +59,45 @@ function makeEl(attrs) {
     setAttribute(name, value) {
       this.attrs[name] = String(value);
       if (name === 'min') this.min = String(value);
+      if (name === 'max') this.max = String(value);
       if (name === 'type') this.type = String(value);
       if (name === 'required') this.required = true;
+      if (name === 'aria-checked') this.attrs['aria-checked'] = String(value);
     },
     removeAttribute(name) {
       delete this.attrs[name];
+      if (name === 'max') this.max = '';
     },
     addEventListener(type, fn) {
       this.listeners[type] = fn;
     },
+    appendChild(child) {
+      this.options.push(child);
+      return child;
+    },
     classList: {
       tokens: Object.create(null),
       toggle(name, force) {
+        if (force === undefined) {
+          if (this.tokens[name]) delete this.tokens[name];
+          else this.tokens[name] = true;
+          return;
+        }
         if (force) this.tokens[name] = true;
         else delete this.tokens[name];
       },
       add(name) {
         this.tokens[name] = true;
       },
+      remove(name) {
+        delete this.tokens[name];
+      },
       contains(name) {
         return Boolean(this.tokens[name]);
       },
     },
   };
+  if (attrs.on) el.classList.add('on');
   return el;
 }
 
@@ -89,6 +109,41 @@ function loadReview(opts) {
     value: opts.releaseDate || '',
     required: true,
   });
+  const preorderKnob = makeEl({});
+  const timeKnob = makeEl({ on: true });
+  const preorderOn = makeEl({
+    id: 'tg-preorder-on',
+    type: 'checkbox',
+    checked: false,
+    nextElementSibling: preorderKnob,
+  });
+  const timeOn = makeEl({
+    id: 'tg-time-on',
+    type: 'checkbox',
+    checked: true,
+    nextElementSibling: timeKnob,
+  });
+  const preorderDate = makeEl({
+    id: 'tg-preorder-date',
+    type: 'date',
+    value: '',
+  });
+  const releaseTime = makeEl({
+    id: 'tg-release-time',
+    type: 'time',
+    value: '00:00',
+  });
+  const releaseTimezone = makeEl({
+    id: 'tg-release-timezone',
+    value: 'UTC',
+    options: [
+      { value: 'UTC' },
+      { value: 'America/New_York' },
+      { value: 'America/Los_Angeles' },
+    ],
+  });
+  const preorderPanel = makeEl({ id: 'tg-preorder-panel', hidden: true });
+  const timePanel = makeEl({ id: 'tg-time-panel', hidden: false });
   const status = makeEl({ id: 'tg-status' });
   const payBtn = makeEl({
     attrs: { href: 'submitted.html', 'data-tonegrid-submit': '' },
@@ -100,11 +155,19 @@ function loadReview(opts) {
   }
   const elements = {
     'tg-release-date': date,
+    'tg-preorder-on': preorderOn,
+    'tg-time-on': timeOn,
+    'tg-preorder-date': preorderDate,
+    'tg-release-time': releaseTime,
+    'tg-release-timezone': releaseTimezone,
+    'tg-preorder-panel': preorderPanel,
+    'tg-time-panel': timePanel,
     'tg-status': status,
   };
   const context = {
     localStorage,
     sessionStorage,
+    Intl,
     document: {
       getElementById(id) {
         return elements[id] || null;
@@ -113,6 +176,9 @@ function loadReview(opts) {
         if (sel === '[data-tonegrid-submit]') return payBtn;
         if (sel === '[data-review-title]') return makeEl({});
         return null;
+      },
+      createElement(tag) {
+        return { tag: tag, value: '', textContent: '' };
       },
     },
     fetch() {
@@ -134,6 +200,15 @@ function loadReview(opts) {
     payBtn,
     status,
     localStorage,
+    preorderOn,
+    timeOn,
+    preorderDate,
+    releaseTime,
+    releaseTimezone,
+    preorderPanel,
+    timePanel,
+    preorderKnob,
+    timeKnob,
   };
 }
 
@@ -158,6 +233,13 @@ function run() {
   assert.ok(!/id="tg-release-date"/.test(attest), 'do not add a second required date on attest');
   assert.ok(css.includes('.date-picker') || css.includes('input[type="date"]'));
   assert.ok(css.includes('color-scheme: dark'));
+  assert.ok(review.includes('id="tg-preorder-on"'));
+  assert.ok(review.includes('id="tg-time-on"'));
+  assert.ok(review.includes('id="tg-preorder-date"'));
+  assert.ok(review.includes('id="tg-release-time"'));
+  assert.ok(review.includes('id="tg-release-timezone"'));
+  assert.ok(review.includes('type="checkbox"'));
+  assert.ok(!/<div class="toggle-line"><span class="toggle"/.test(review), 'toggles must not stay visual-only');
 
   const empty = loadReview({
     draft: {
@@ -202,6 +284,50 @@ function run() {
   assert.strictEqual(saved.date.min, min);
   assert.strictEqual(saved.date.value, later);
   assert.strictEqual(draftOf(saved.localStorage).release_date, later);
+
+  assert.strictEqual(empty.preorderOn.checked, false);
+  assert.strictEqual(empty.preorderPanel.hidden, true);
+  assert.strictEqual(empty.timeOn.checked, true);
+  assert.strictEqual(empty.timePanel.hidden, false);
+  empty.preorderOn.checked = true;
+  empty.preorderOn.listeners.change();
+  assert.strictEqual(empty.preorderOn.checked, true);
+  assert.strictEqual(empty.preorderOn.attrs['aria-checked'], 'true');
+  assert.strictEqual(empty.preorderPanel.hidden, false);
+  assert.strictEqual(draftOf(empty.localStorage).select_preorder, true);
+  empty.preorderDate.value = min;
+  empty.preorderDate.listeners.change();
+  assert.strictEqual(draftOf(empty.localStorage).preorder_date, min);
+  empty.timeOn.checked = false;
+  empty.timeOn.listeners.change();
+  assert.strictEqual(empty.timeOn.checked, false);
+  assert.strictEqual(empty.timePanel.hidden, true);
+  assert.strictEqual(draftOf(empty.localStorage).define_time, false);
+
+  const restored = loadReview({
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      release_date: later,
+      select_preorder: true,
+      preorder_date: min,
+      define_time: false,
+      release_time: '09:30',
+      release_timezone: 'America/Los_Angeles',
+    },
+  });
+  assert.strictEqual(restored.preorderOn.checked, true);
+  assert.strictEqual(restored.preorderPanel.hidden, false);
+  assert.strictEqual(restored.preorderDate.value, min);
+  assert.strictEqual(restored.timeOn.checked, false);
+  assert.strictEqual(restored.timePanel.hidden, true);
+  assert.strictEqual(restored.releaseTime.value, '09:30');
+  assert.strictEqual(restored.releaseTimezone.value, 'America/Los_Angeles');
+  assert.strictEqual(draftOf(restored.localStorage).select_preorder, true);
+  assert.strictEqual(draftOf(restored.localStorage).define_time, false);
+  assert.strictEqual(draftOf(restored.localStorage).preorder_date, min);
+  assert.strictEqual(draftOf(restored.localStorage).release_time, '09:30');
+  assert.strictEqual(draftOf(restored.localStorage).release_timezone, 'America/Los_Angeles');
 
   console.log('review-date-picker.test.js ok');
 }

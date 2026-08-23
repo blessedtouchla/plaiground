@@ -242,6 +242,30 @@
     return true;
   }
 
+  function applyPlanCopy() {
+    var doc = global.document;
+    if (!doc || typeof doc.querySelectorAll !== 'function') return;
+    var plan = currentPlan() || 'basic';
+    var nodes = doc.querySelectorAll('[data-for-plans]');
+    for (var i = 0; i < nodes.length; i += 1) {
+      var el = nodes[i];
+      var allowed = String(el.getAttribute('data-for-plans') || '').toLowerCase().split(/\s+/);
+      var show = allowed.indexOf(plan) !== -1;
+      el.hidden = !show;
+      if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
+    }
+  }
+
+  function whenDomReady(cb) {
+    var doc = global.document;
+    if (!doc || typeof cb !== 'function') return;
+    if (doc.readyState === 'loading' && typeof doc.addEventListener === 'function') {
+      doc.addEventListener('DOMContentLoaded', cb);
+      return;
+    }
+    cb();
+  }
+
   function revealPricingHint() {
     var params;
     try {
@@ -280,6 +304,7 @@
     requireMembership: requireMembership,
     requirePaidAccess: requirePaidAccess,
     currentPlan: currentPlan,
+    applyPlanCopy: applyPlanCopy,
     account: function () { return serverAccount; },
     whenReady: function (cb) {
       var next = accountReady.then(function (result) {
@@ -316,4 +341,8 @@
     }
   }
   revealPricingHint();
+  whenDomReady(function () {
+    applyPlanCopy();
+    accountReady.then(function () { applyPlanCopy(); });
+  });
 })(window);

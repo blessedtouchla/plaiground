@@ -1570,7 +1570,36 @@ table.data tbody tr.is-pick { cursor: pointer; }
   padding: 7px 12px;
   font-size: 13px;
 }
-.toggle-line { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 14px; color: var(--muted-2); }
+.toggle-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 14px;
+  color: var(--muted-2);
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  min-height: 44px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.toggle-input {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  transform: translateY(-50%);
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  appearance: none;
+  -webkit-appearance: none;
+}
 .toggle {
   width: 36px;
   height: 20px;
@@ -1578,8 +1607,11 @@ table.data tbody tr.is-pick { cursor: pointer; }
   background: #333;
   position: relative;
   display: inline-block;
+  flex: 0 0 36px;
+  pointer-events: none;
 }
-.toggle.on { background: var(--yellow); }
+.toggle.on,
+.toggle-input:checked + .toggle { background: var(--yellow); }
 .toggle::after {
   content: "";
   position: absolute;
@@ -1590,7 +1622,26 @@ table.data tbody tr.is-pick { cursor: pointer; }
   top: 3px;
   left: 3px;
 }
-.toggle.on::after { left: 19px; }
+.toggle.on::after,
+.toggle-input:checked + .toggle::after { left: 19px; }
+.toggle-input:focus-visible + .toggle {
+  box-shadow: 0 0 0 3px rgba(125, 60, 255, 0.22);
+}
+.release-extra { margin: 0 0 8px; }
+.release-time-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(160px, 1fr);
+  gap: 12px;
+  max-width: 420px;
+}
+.due-line {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+  color: var(--muted-2);
+}
+[data-for-plans][hidden],
+[data-for-plans].is-hidden { display: none !important; }
 .prescreen { border: 1px solid #4C7DFF; }
 .prescreen .pill { background: #4C7DFF; }
 .entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 28px 0; }
@@ -1921,14 +1972,20 @@ table.data tbody tr.is-pick { cursor: pointer; }
   border-color: var(--purple-bright);
   box-shadow: 0 0 0 3px rgba(125, 60, 255, 0.22);
 }
+.field input[type="time"].date-picker {
+  color-scheme: dark;
+  min-height: 48px;
+}
 @media (max-width: 640px) {
   .date-picker-field,
   .field input.date-picker,
-  .field input[type="date"].date-picker {
+  .field input[type="date"].date-picker,
+  .field input[type="time"].date-picker {
     max-width: 260px;
     min-height: 52px;
     font-size: 16px;
   }
+  .release-time-row { grid-template-columns: 1fr; }
 }
 .note { color: var(--muted); font-size: 13px; text-align: center; margin-top: 18px; }
 .thumb.lg { width: 56px; height: 56px; border-radius: 10px; }

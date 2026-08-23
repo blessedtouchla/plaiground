@@ -163,6 +163,141 @@
     return picked;
   }
 
+  function todayUtc() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function truthyFlag(value, fallback) {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    return fallback;
+  }
+
+  function setSwitch(input, on) {
+    if (!input) return;
+    input.checked = Boolean(on);
+    if (input.setAttribute) input.setAttribute('aria-checked', on ? 'true' : 'false');
+    var knob = input.nextElementSibling;
+    if (knob && knob.classList) {
+      if (on) knob.classList.add('on');
+      else knob.classList.remove('on');
+    }
+  }
+
+  function setPanel(panel, show) {
+    if (!panel) return;
+    panel.hidden = !show;
+    if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', !show);
+  }
+
+  function browserTimezone() {
+    try {
+      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return tz ? String(tz) : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function ensureTimezoneOption(select, value) {
+    if (!select || !value) return;
+    var options = select.options || [];
+    for (var i = 0; i < options.length; i += 1) {
+      if (String(options[i].value) === value) return;
+    }
+    if (typeof document === 'undefined' || !document.createElement) return;
+    var opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
+  }
+
+  function normalizePreorderDate(value, releaseDate) {
+    var date = toIsoDate(value);
+    if (!date || date < todayUtc()) return '';
+    var release = toIsoDate(releaseDate);
+    if (release && date > release) return release;
+    return date;
+  }
+
+  function collectReleaseSchedule() {
+    var preorderOn = $('tg-preorder-on');
+    var timeOn = $('tg-time-on');
+    var preorderEl = $('tg-preorder-date');
+    var timeEl = $('tg-release-time');
+    var zoneEl = $('tg-release-timezone');
+    var releaseDate = persistReleaseDate($('tg-release-date')) || toIsoDate(readDraft().release_date);
+    var selectPreorder = Boolean(preorderOn && preorderOn.checked);
+    var defineTime = Boolean(timeOn && timeOn.checked);
+    var preorderDate = '';
+    if (preorderEl) {
+      preorderEl.min = todayUtc();
+      if (releaseDate) preorderEl.max = releaseDate;
+      else if (preorderEl.removeAttribute) preorderEl.removeAttribute('max');
+      preorderDate = normalizePreorderDate(preorderEl.value, releaseDate);
+      if (preorderEl.value !== preorderDate) preorderEl.value = preorderDate;
+    }
+    var releaseTime = timeEl ? String(timeEl.value || '').trim() : '';
+    var releaseTimezone = zoneEl ? String(zoneEl.value || '').trim() : '';
+    setSwitch(preorderOn, selectPreorder);
+    setSwitch(timeOn, defineTime);
+    setPanel($('tg-preorder-panel'), selectPreorder);
+    setPanel($('tg-time-panel'), defineTime);
+    return writeDraft({
+      select_preorder: selectPreorder,
+      preorder_date: preorderDate,
+      define_time: defineTime,
+      release_time: releaseTime,
+      release_timezone: releaseTimezone,
+    });
+  }
+
+  function bindReleaseSchedule() {
+    var preorderOn = $('tg-preorder-on');
+    var timeOn = $('tg-time-on');
+    if (!preorderOn && !timeOn) return;
+    var draft = readDraft();
+    var preorderEl = $('tg-preorder-date');
+    var timeEl = $('tg-release-time');
+    var zoneEl = $('tg-release-timezone');
+    var selectPreorder = truthyFlag(draft.select_preorder, Boolean(toIsoDate(draft.preorder_date)));
+    var defineTime = truthyFlag(draft.define_time, true);
+    if (preorderEl) {
+      preorderEl.type = 'date';
+      preorderEl.min = todayUtc();
+      if (preorderEl.setAttribute) {
+        preorderEl.setAttribute('type', 'date');
+        preorderEl.setAttribute('min', todayUtc());
+      }
+      preorderEl.value = normalizePreorderDate(draft.preorder_date, draft.release_date);
+    }
+    if (timeEl) {
+      timeEl.value = draft.release_time || timeEl.value || '00:00';
+    }
+    if (zoneEl) {
+      var zone = draft.release_timezone || browserTimezone() || zoneEl.value || 'UTC';
+      ensureTimezoneOption(zoneEl, zone);
+      zoneEl.value = zone;
+    }
+    setSwitch(preorderOn, selectPreorder);
+    setSwitch(timeOn, defineTime);
+    setPanel($('tg-preorder-panel'), selectPreorder);
+    setPanel($('tg-time-panel'), defineTime);
+    var sync = function () { collectReleaseSchedule(); };
+    [preorderOn, timeOn, preorderEl, timeEl, zoneEl].forEach(function (el) {
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('change', sync);
+      el.addEventListener('input', sync);
+      el.addEventListener('click', function () {
+        if (el === preorderOn || el === timeOn) {
+          /* native checkbox already flipped; persist after the tap */
+          sync();
+        }
+      });
+    });
+    collectReleaseSchedule();
+  }
+
   function documentIdOf(draft) {
     return String((draft && (draft.signwell_document_id || draft.document_id)) || '').trim();
   }
@@ -966,6 +1101,7 @@
 
         var draft = readDraft();
         var nextHref = trigger.getAttribute('href') || 'submitted.html';
+        if ($('tg-preorder-on') || $('tg-time-on')) collectReleaseSchedule();
         var releaseDate = persistReleaseDate($('tg-release-date'));
         var reviewGate = rules();
         var reviewError = '';
@@ -1046,6 +1182,7 @@
     if (readyDate !== String(draft.release_date || '').trim()) {
       draft = writeDraft({ release_date: readyDate });
     }
+    bindReleaseSchedule();
     var back = document.querySelector('.flow-actions a[href="split-sheet.html"]');
     if (back && isSoloOwned(draft)) back.setAttribute('href', 'attest.html');
     if (documentIdOf(draft) && !isSoloOwned(draft) && typeof window !== 'undefined' && window.addEventListener) {
@@ -1061,6 +1198,7 @@
       if (dateEl && dateEl.addEventListener) {
         var syncPickedDate = function () {
           var picked = persistReleaseDate(dateEl);
+          if ($('tg-preorder-on') || $('tg-time-on')) collectReleaseSchedule();
           markIncomplete(trigger, !picked);
         };
         dateEl.addEventListener('input', syncPickedDate);

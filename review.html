@@ -49,8 +49,47 @@
           <div class="field date-picker-field">
             <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Release date" />
           </div>
-          <div class="toggle-line"><span class="toggle" aria-hidden="true"></span> Select pre-order date</div>
-          <div class="toggle-line"><span class="toggle on" aria-hidden="true"></span> Define time and timezone</div>
+          <label class="toggle-line" for="tg-preorder-on">
+            <input id="tg-preorder-on" class="toggle-input" type="checkbox" role="switch" aria-checked="false" aria-controls="tg-preorder-panel" />
+            <span class="toggle" aria-hidden="true"></span>
+            <span>Select pre-order date</span>
+          </label>
+          <div id="tg-preorder-panel" class="release-extra is-hidden" hidden>
+            <div class="field date-picker-field">
+              <label for="tg-preorder-date">Pre-order date</label>
+              <input id="tg-preorder-date" class="date-picker" type="date" autocomplete="off" />
+            </div>
+          </div>
+          <label class="toggle-line" for="tg-time-on">
+            <input id="tg-time-on" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" aria-controls="tg-time-panel" />
+            <span class="toggle on" aria-hidden="true"></span>
+            <span>Define time and timezone</span>
+          </label>
+          <div id="tg-time-panel" class="release-extra">
+            <div class="release-time-row">
+              <div class="field">
+                <label for="tg-release-time">Time</label>
+                <input id="tg-release-time" class="date-picker" type="time" value="00:00" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="tg-release-timezone">Timezone</label>
+                <select id="tg-release-timezone">
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">Eastern Time</option>
+                  <option value="America/Chicago">Central Time</option>
+                  <option value="America/Denver">Mountain Time</option>
+                  <option value="America/Los_Angeles">Pacific Time</option>
+                  <option value="America/Anchorage">Alaska Time</option>
+                  <option value="Pacific/Honolulu">Hawaii Time</option>
+                  <option value="Europe/London">London</option>
+                  <option value="Europe/Paris">Paris</option>
+                  <option value="Europe/Berlin">Berlin</option>
+                  <option value="Asia/Tokyo">Tokyo</option>
+                  <option value="Australia/Sydney">Sydney</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </section>
         <section class="flow-card prescreen">
           <div class="head-row">
@@ -64,10 +103,11 @@
       </div>
       <aside class="flow-card due">
         <h3>Due now</h3>
-        <p style="display:flex;justify-content:space-between;margin:10px 0;color:var(--muted-2)"><span>Publishing registration</span><span>$0 · included in membership</span></p>
-        <p style="display:flex;justify-content:space-between;margin:10px 0;color:var(--muted-2)"><span>Distribution</span><span>$0 · included in membership</span></p>
+        <p class="due-line" data-for-plans="creator pro" hidden><span>Publishing registration</span><span>$0 · included in membership</span></p>
+        <p class="due-line"><span>Distribution</span><span data-for-plans="basic">$0 · included</span><span data-for-plans="creator pro" hidden>$0 · included in membership</span></p>
         <p style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px"><span>Total</span><strong class="total">$0.00</strong></p>
-        <p class="hint">Nothing is charged on this screen. Publishing and distribution are included in membership. PLAIGROUND takes no commission.</p>
+        <p class="hint" data-for-plans="basic">Nothing is charged on this screen. Distribution is included. PLAIGROUND takes no commission.</p>
+        <p class="hint" data-for-plans="creator pro" hidden>Nothing is charged on this screen. Publishing and distribution are included in membership. PLAIGROUND takes no commission.</p>
         <div class="flow-card" data-review-upsell hidden style="margin:12px 0 0">
           <h3>One upgrade offer</h3>
           <p class="hint">Basic already includes this release. Creator and Pro add more uploads and extras. Checkout is a separate step, not here.</p>
@@ -117,10 +157,16 @@
         el.hidden = !show;
         if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
       }
-      if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
-        window.PlaigroundMembership.whenReady(showBasicUpsell);
-      } else {
+      function applyCopy() {
+        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.applyPlanCopy === 'function') {
+          window.PlaigroundMembership.applyPlanCopy();
+        }
         showBasicUpsell();
+      }
+      if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
+        window.PlaigroundMembership.whenReady(applyCopy);
+      } else {
+        applyCopy();
       }
     })();
   </script>
