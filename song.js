@@ -5,6 +5,10 @@
   var DSP_COLORS = ['var(--green)', 'var(--magenta)', '#E24B4B', '#5B8CFF', 'var(--purple)'];
 
   function $(sel) {
+    if (sel && sel.charAt(0) === '#' && document.getElementById) {
+      var byId = document.getElementById(sel.slice(1));
+      if (byId) return byId;
+    }
     return document.querySelector(sel);
   }
 
@@ -49,6 +53,14 @@
     }
   }
 
+  function queryEdit() {
+    try {
+      return String(new URLSearchParams(global.location.search).get('edit') || '').trim() === '1';
+    } catch (err) {
+      return false;
+    }
+  }
+
   function readDraft() {
     try {
       return JSON.parse(global.localStorage.getItem(DRAFT_KEY) || '{}') || {};
@@ -59,6 +71,62 @@
         return {};
       }
     }
+  }
+
+  function writeDraftFor(releaseId, patch) {
+    var draft = readDraft();
+    var current = String(draft.release_id || '').toLowerCase();
+    var want = String(releaseId || '').toLowerCase();
+    if (current && want && current !== want) return draft;
+    Object.keys(patch || {}).forEach(function (key) {
+      if (patch[key] !== undefined) draft[key] = patch[key];
+    });
+    if (want && !draft.release_id) draft.release_id = releaseId;
+    var text = JSON.stringify(draft);
+    try { global.localStorage.setItem(DRAFT_KEY, text); } catch (err) {}
+    try { global.sessionStorage.setItem(DRAFT_KEY, text); } catch (err) {}
+    return draft;
+  }
+
+  function toIsoDate(value) {
+    var raw = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    var mdy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (!mdy) return '';
+    return mdy[3] + '-' + String(mdy[1]).padStart(2, '0') + '-' + String(mdy[2]).padStart(2, '0');
+  }
+
+  function minSubmitDate() {
+    var d = new Date();
+    d.setUTCDate(d.getUTCDate() + 7);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function todayUtc() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function truthyFlag(value, fallback) {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    return fallback;
+  }
+
+  function setSwitch(input, on) {
+    if (!input) return;
+    input.checked = Boolean(on);
+    if (input.setAttribute) input.setAttribute('aria-checked', on ? 'true' : 'false');
+    var knob = input.nextElementSibling;
+    if (knob && knob.classList) {
+      if (on) knob.classList.add('on');
+      else knob.classList.remove('on');
+    }
+  }
+
+  function setPanel(panel, show) {
+    if (!panel) return;
+    panel.hidden = !show;
+    if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', !show);
   }
 
   function currentPlan(me) {
@@ -148,9 +216,12 @@
       type: 'single',
       status: draft.submitted ? 'pending' : 'draft',
       genre: String(draft.genre || '').trim(),
+      language: String(draft.language || '').trim(),
       artwork_url: String(draft.artwork_url || '').trim(),
       release_date: String(draft.release_date || '').trim(),
       artist: String(draft.name || (me && me.artist) || '').trim(),
+      dsps: Array.isArray(draft.dsps) ? draft.dsps.slice() : [],
+      tracks: draft.track_id ? [{ uuid: String(draft.track_id), title: String(draft.title || '').trim(), language: String(draft.language || '').trim() }] : [],
     };
   }
 
@@ -304,6 +375,7 @@
       setHidden('[data-song-publishing]', true);
       setHidden('[data-song-boosts]', true);
       setHidden('[data-song-boost]', true);
+      setHidden('[data-song-edit]', true);
       setHidden('[data-song-split-empty]', false);
       return;
     }
@@ -351,6 +423,7 @@
     setHidden('[data-song-publishing]', !paid);
     setHidden('[data-song-boosts]', false);
     setHidden('[data-song-boost]', false);
+    setHidden('[data-song-edit]', false);
     var boostCta = $('[data-song-boost]');
     if (boostCta) {
       boostCta.classList.toggle('is-off', !paid);
@@ -360,6 +433,8 @@
     if (global.PlaigroundMembership && typeof global.PlaigroundMembership.applyPlanCopy === 'function') {
       global.PlaigroundMembership.applyPlanCopy();
     }
+    lastEdit = { me: me, draft: draft, release: release };
+    if (queryEdit() && !editClosed) openEdit({ me: me, draft: draft, release: release });
   }
 
   function load() {
@@ -422,12 +497,468 @@
     });
   }
 
+  function parseSave(response) {
+    return response.json().then(function (data) {
+      return { ok: response.ok, status: response.status, data: data || {} };
+    }).catch(function () {
+      return { ok: false, status: response.status, data: { error: 'ToneGrid rejected the edit.' } };
+    });
+  }
+
+  function sendJson(url, method, body) {
+    return fetch(url, {
+      method: method,
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: body == null ? undefined : JSON.stringify(body),
+    }).then(parseSave);
+  }
+
+  function isCreateReleaseUrl(url, method) {
+    if (String(method || '').toUpperCase() !== 'POST') return false;
+    var path = String(url || '').split('?')[0].replace(/\/$/, '');
+    return /\/api\/tonegrid\/releases$/.test(path) || /\/api\/tonegrid\/artists$/.test(path);
+  }
+
+  function setEditError(text) {
+    setText('[data-edit-error]', text || '');
+    setHidden('[data-edit-error]', !text);
+  }
+
+  function setFieldWhy(name, text) {
+    var el = $('[data-edit-why="' + name + '"]');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+  }
+
+  function lockControl(el, whyName, reason) {
+    if (el) {
+      el.disabled = true;
+      if (el.setAttribute) el.setAttribute('aria-disabled', 'true');
+      var field = el.closest ? el.closest('.field') : null;
+      if (field && field.classList) field.classList.add('is-locked');
+    }
+    if (whyName && reason) setFieldWhy(whyName, reason);
+  }
+
+  function applyToneGridError(result, whyName, el) {
+    var message = (result && result.data && result.data.error) || 'ToneGrid rejected the edit.';
+    if (el || whyName) lockControl(el, whyName, message);
+    return message;
+  }
+
+  function selectedStores() {
+    var host = $('[data-edit-stores]');
+    if (!host || !host.querySelectorAll) return [];
+    return Array.prototype.slice.call(host.querySelectorAll('input[type="checkbox"]:checked')).map(function (box) {
+      return box.value;
+    });
+  }
+
+  function fillStores(stores, selected) {
+    var host = $('[data-edit-stores]');
+    if (!host) return;
+    host.textContent = '';
+    var picked = {};
+    (selected || []).forEach(function (slug) { picked[String(slug).toLowerCase()] = true; });
+    (stores || []).forEach(function (row) {
+      var slug = typeof row === 'string' ? row : row.slug;
+      if (!slug) return;
+      var label = document.createElement('label');
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = slug;
+      box.checked = Boolean(picked[slug.toLowerCase()] || slug === 'youtube-music');
+      label.appendChild(box);
+      if (document.createTextNode) label.appendChild(document.createTextNode(' ' + (row.name || slug)));
+      else label.textContent = (label.textContent || '') + ' ' + (row.name || slug);
+      host.appendChild(label);
+    });
+  }
+
+  function selectedExplicit() {
+    var on = document.querySelector('[data-edit-explicit] [data-explicit].on');
+    return Boolean(on && on.getAttribute('data-explicit') === 'true');
+  }
+
+  function selectedMadeHow() {
+    var on = document.querySelector('[data-edit-made-how].on');
+    return on ? on.getAttribute('data-edit-made-how') : '';
+  }
+
+  function setExplicit(on) {
+    $all('[data-edit-explicit] [data-explicit]').forEach(function (el) {
+      var yes = el.getAttribute('data-explicit') === 'true';
+      if (el.classList && el.classList.toggle) el.classList.toggle('on', Boolean(on) === yes);
+    });
+  }
+
+  function setMadeHow(value) {
+    $all('[data-edit-made-how]').forEach(function (el) {
+      if (el.classList && el.classList.toggle) el.classList.toggle('on', el.getAttribute('data-edit-made-how') === value);
+    });
+  }
+
+  function collectSchedule() {
+    var preorderOn = $('#edit-preorder-on');
+    var timeOn = $('#edit-time-on');
+    var preorderEl = $('#edit-preorder-date');
+    var timeEl = $('#edit-release-time');
+    var zoneEl = $('#edit-release-timezone');
+    var releaseDate = toIsoDate($('#edit-release-date') && $('#edit-release-date').value);
+    var selectPreorder = Boolean(preorderOn && preorderOn.checked);
+    var defineTime = Boolean(timeOn && timeOn.checked);
+    if (preorderEl) {
+      preorderEl.min = todayUtc();
+      if (releaseDate) preorderEl.max = releaseDate;
+      else if (preorderEl.removeAttribute) preorderEl.removeAttribute('max');
+    }
+    setSwitch(preorderOn, selectPreorder);
+    setSwitch(timeOn, defineTime);
+    setPanel($('#edit-preorder-panel'), selectPreorder);
+    setPanel($('#edit-time-panel'), defineTime);
+    return {
+      select_preorder: selectPreorder,
+      preorder_date: selectPreorder ? toIsoDate(preorderEl && preorderEl.value) : '',
+      define_time: defineTime,
+      release_time: timeEl ? String(timeEl.value || '').trim() : '',
+      release_timezone: zoneEl ? String(zoneEl.value || '').trim() : '',
+      release_date: releaseDate,
+    };
+  }
+
+  function bindSchedule() {
+    ['edit-preorder-on', 'edit-time-on', 'edit-preorder-date', 'edit-release-time', 'edit-release-timezone', 'edit-release-date'].forEach(function (id) {
+      var el = $('#' + id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('change', collectSchedule);
+      el.addEventListener('input', collectSchedule);
+    });
+  }
+
+  function syncLanguageField(instrumental) {
+    var field = $('[data-language-field]');
+    if (!field) return;
+    field.hidden = Boolean(instrumental);
+    if (field.classList && field.classList.toggle) field.classList.toggle('is-hidden', Boolean(instrumental));
+  }
+
+  function fillCatalogSelects() {
+    var catalog = global.PlaigroundUploadCatalog;
+    var genre = $('#edit-genre');
+    var language = $('#edit-language');
+    if (catalog && genre && genre.options && genre.options.length < 3 && catalog.GENRES) {
+      catalog.GENRES.forEach(function (name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        genre.appendChild(opt);
+      });
+    }
+    if (catalog && language && language.options && language.options.length < 3 && catalog.LANGUAGES) {
+      catalog.LANGUAGES.forEach(function (row) {
+        var opt = document.createElement('option');
+        opt.value = row.code;
+        opt.textContent = row.name;
+        language.appendChild(opt);
+      });
+    }
+  }
+
+  function currentEditState() {
+    return lastEdit || {};
+  }
+
+  var lastEdit = { me: null, draft: {}, release: null };
+  var editClosed = false;
+
+  function openEdit(opts) {
+    opts = opts || {};
+    var panel = $('[data-release-edit]');
+    var release = opts.release || lastEdit.release;
+    var draft = opts.draft || lastEdit.draft || {};
+    var me = opts.me || lastEdit.me;
+    if (!panel || !release || !release.uuid) return false;
+    lastEdit = { me: me, draft: draft, release: release };
+    editClosed = false;
+    panel.hidden = false;
+    if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', false);
+    panel.setAttribute('data-release-id', release.uuid);
+    setText('[data-edit-status]', statusLabel(statusStep(release, draft)));
+    fillCatalogSelects();
+    var title = $('#edit-title');
+    var artist = $('#edit-artist');
+    var featured = $('#edit-featured');
+    var genre = $('#edit-genre');
+    var language = $('#edit-language');
+    var price = $('#edit-price');
+    var dateEl = $('#edit-release-date');
+    var inst = $('#edit-instrumental');
+    var track = (release.tracks && release.tracks[0]) || {};
+    if (title) title.value = release.title || draft.title || '';
+    if (artist) {
+      artist.value = String(release.artist || draft.name || (me && me.artist) || '').trim();
+      artist.disabled = true;
+    }
+    if (featured) featured.value = String(draft.featured || '').trim();
+    if (genre) genre.value = release.genre || draft.genre || '';
+    if (language) language.value = release.language || track.language || draft.language || '';
+    if (price) price.value = draft.price || '';
+    if (inst) inst.checked = Boolean(draft.instrumental);
+    syncLanguageField(inst && inst.checked);
+    var existingDate = toIsoDate(release.release_date || draft.release_date);
+    if (dateEl) {
+      var min = minSubmitDate();
+      dateEl.type = 'date';
+      if (existingDate && existingDate < min) dateEl.min = existingDate;
+      else dateEl.min = min;
+      dateEl.value = existingDate || '';
+    }
+    var preorderOn = $('#edit-preorder-on');
+    var timeOn = $('#edit-time-on');
+    var preorderEl = $('#edit-preorder-date');
+    var timeEl = $('#edit-release-time');
+    var zoneEl = $('#edit-release-timezone');
+    setSwitch(preorderOn, truthyFlag(draft.select_preorder, Boolean(toIsoDate(draft.preorder_date))));
+    setSwitch(timeOn, truthyFlag(draft.define_time, true));
+    if (preorderEl) preorderEl.value = toIsoDate(draft.preorder_date);
+    if (timeEl) timeEl.value = draft.release_time || timeEl.value || '00:00';
+    if (zoneEl && draft.release_timezone) zoneEl.value = draft.release_timezone;
+    collectSchedule();
+    setExplicit(track.explicit === true || draft.explicit === true);
+    var attest = $('[data-edit-attest]');
+    if (attest) {
+      var haveAttest = Boolean(draft.made_how);
+      attest.hidden = !haveAttest;
+      if (haveAttest) setMadeHow(draft.made_how);
+    }
+    var writers = splitWriters(release, draft, me);
+    var splitCopy = $('[data-edit-splits-copy]');
+    if (splitCopy) {
+      splitCopy.textContent = writers.length
+        ? ('Splits stay on this release · ' + writers.map(function (row) { return row.name; }).join(', ') + '.')
+        : 'No split sheet on file for this release.';
+    }
+    if (track.uuid && $('#edit-audio')) {
+      $('#edit-audio').removeAttribute('disabled');
+      $('#edit-audio').setAttribute('data-track-id', track.uuid);
+    } else if ($('#edit-audio')) {
+      lockControl($('#edit-audio'), 'audio', 'This release has no track ID yet, so audio cannot be replaced.');
+    }
+    getJson('/api/tonegrid/stores').then(function (result) {
+      fillStores((result.ok && result.data && result.data.stores) || [], release.dsps || draft.dsps || []);
+    });
+    setEditError('');
+    ['title', 'genre', 'language', 'release_date', 'stores', 'artwork'].forEach(function (name) {
+      setFieldWhy(name, '');
+    });
+    return true;
+  }
+
+  function closeEdit() {
+    editClosed = true;
+    var panel = $('[data-release-edit]');
+    if (!panel) return;
+    panel.hidden = true;
+    if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', true);
+    try {
+      var id = queryId() || (lastEdit.release && lastEdit.release.uuid) || '';
+      if (global.history && global.history.replaceState) {
+        global.history.replaceState({}, '', id ? ('song.html?id=' + encodeURIComponent(id)) : 'song.html');
+      }
+    } catch (err) {}
+  }
+
+  function stayOnRelease(releaseId) {
+    var id = String(releaseId || '').trim();
+    try {
+      if (global.history && global.history.replaceState) {
+        global.history.replaceState({}, '', id ? ('song.html?id=' + encodeURIComponent(id)) : 'song.html');
+      }
+    } catch (err) {}
+    return load();
+  }
+
+  function submitEdit() {
+    var panel = $('[data-release-edit]');
+    var id = (panel && panel.getAttribute('data-release-id')) || (lastEdit.release && lastEdit.release.uuid) || queryId();
+    if (!id) {
+      setEditError('Open a release before submitting an edit.');
+      return Promise.resolve({ ok: false, created: false });
+    }
+    var saveBtn = $('[data-edit-save]');
+    if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
+    setEditError('Submitting edit to ToneGrid…');
+    var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
+    var genre = $('#edit-genre') ? String($('#edit-genre').value || '').trim() : '';
+    var instrumental = Boolean($('#edit-instrumental') && $('#edit-instrumental').checked);
+    var language = $('#edit-language') ? String($('#edit-language').value || '').trim().toLowerCase() : '';
+    if (instrumental) language = '';
+    var price = $('#edit-price') ? String($('#edit-price').value || '').trim() : '';
+    var featured = $('#edit-featured') ? String($('#edit-featured').value || '').trim() : '';
+    var schedule = collectSchedule();
+    var date = schedule.release_date;
+    var art = $('#edit-art') && $('#edit-art').files && $('#edit-art').files[0];
+    var audio = $('#edit-audio') && $('#edit-audio').files && $('#edit-audio').files[0];
+    var trackId = $('#edit-audio') ? $('#edit-audio').getAttribute('data-track-id') : '';
+    var draft = lastEdit.draft || readDraft();
+    var me = lastEdit.me;
+    var release = lastEdit.release || {};
+    var artistId = String((me && me.tonegrid_artist_id) || draft.artist_id || '').trim();
+    writeDraftFor(id, {
+      title: title,
+      genre: genre,
+      language: language,
+      price: price,
+      featured: featured,
+      instrumental: instrumental,
+      explicit: selectedExplicit(),
+      made_how: selectedMadeHow() || draft.made_how || '',
+      release_date: date,
+      select_preorder: schedule.select_preorder,
+      preorder_date: schedule.preorder_date,
+      define_time: schedule.define_time,
+      release_time: schedule.release_time,
+      release_timezone: schedule.release_timezone,
+      release_id: id,
+      artist_id: artistId || draft.artist_id || '',
+      track_id: trackId || draft.track_id || '',
+    });
+
+    var errors = [];
+    var hops = [];
+
+    function runHop(label, task) {
+      return task.then(function (result) {
+        hops.push({ label: label, ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data });
+        return result;
+      });
+    }
+
+    var releaseBody = { title: title };
+    if (date) releaseBody.release_date = date;
+    if (genre) releaseBody.genre = genre;
+    if (language || instrumental) releaseBody.language = language;
+
+    var chain = runHop('release', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'PUT', releaseBody)).then(function (result) {
+      if (!result.ok) errors.push(applyToneGridError(result, result.data && /date/i.test(result.data.error || '') ? 'release_date' : 'title', $('#edit-title')));
+      return runHop('dsps', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/dsps', 'PUT', { dsps: selectedStores() }));
+    }).then(function (result) {
+      if (!result.ok) errors.push(applyToneGridError(result, 'stores', null));
+      if (!trackId) return { ok: true, skipped: true };
+      var trackBody = { title: title || (release.title || '') };
+      if (language || instrumental) trackBody.language = language;
+      trackBody.explicit = selectedExplicit();
+      return runHop('track', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId), 'PUT', trackBody));
+    }).then(function (result) {
+      if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'language', $('#edit-language')));
+      if (!art) return { ok: true, skipped: true };
+      var form = new FormData();
+      form.append('artwork', art, art.name || 'artwork.jpg');
+      return runHop('artwork', fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        body: form,
+      }).then(parseSave));
+    }).then(function (result) {
+      if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
+      if (!audio || !trackId) {
+        if (audio && !trackId) errors.push('This release has no track ID yet, so audio cannot be replaced.');
+        return { ok: true, skipped: true };
+      }
+      var audioForm = new FormData();
+      audioForm.append('audio', audio, audio.name || 'audio.wav');
+      return runHop('audio', fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        body: audioForm,
+      }).then(parseSave));
+    }).then(function (result) {
+      if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));
+      var submitBody = {
+        release_date: date || release.release_date || draft.release_date || '',
+        made_how: selectedMadeHow() || draft.made_how || '',
+        human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
+        human_contribution: draft.human_contribution || '',
+        rights_confirmed: draft.rights_confirmed === true,
+        solo_owned_100: draft.solo_owned_100 === true || draft.solo_owned_100 === 'true',
+        featured: featured,
+        title: title,
+        songTitle: title,
+      };
+      if (draft.signwell_document_id) submitBody.document_id = draft.signwell_document_id;
+      if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
+      return runHop('submit', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/submit', 'POST', submitBody));
+    }).then(function (result) {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      if (result && !result.ok) errors.push(applyToneGridError(result, 'release_date', $('#edit-release-date')));
+      if (errors.length) {
+        setEditError(errors.join(' '));
+        return { ok: false, created: false, hops: hops, errors: errors, releaseId: id };
+      }
+      var nextStatus = (result && result.data && result.data.status) || release.status || 'pending';
+      setEditError('');
+      closeEdit();
+      return stayOnRelease(id).then(function (next) {
+        return { ok: true, created: false, hops: hops, releaseId: id, status: nextStatus, release: next };
+      });
+    }).catch(function () {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      setEditError('Could not reach ToneGrid.');
+      return { ok: false, created: false, hops: hops, releaseId: id };
+    });
+
+    return chain;
+  }
+
+  function bindEdit() {
+    var openBtn = $('[data-song-edit]');
+    if (openBtn && openBtn.addEventListener) {
+      openBtn.addEventListener('click', function () {
+        openEdit(lastEdit);
+      });
+    }
+    var saveBtn = $('[data-edit-save]');
+    if (saveBtn && saveBtn.addEventListener) {
+      saveBtn.addEventListener('click', function () { submitEdit(); });
+    }
+    var cancelBtn = $('[data-edit-cancel]');
+    if (cancelBtn && cancelBtn.addEventListener) {
+      cancelBtn.addEventListener('click', closeEdit);
+    }
+    var inst = $('#edit-instrumental');
+    if (inst && inst.addEventListener) {
+      inst.addEventListener('change', function () { syncLanguageField(inst.checked); });
+    }
+    $all('[data-edit-explicit] [data-explicit]').forEach(function (el) {
+      if (!el.addEventListener) return;
+      el.addEventListener('click', function (event) {
+        event.preventDefault();
+        setExplicit(el.getAttribute('data-explicit') === 'true');
+      });
+    });
+    $all('[data-edit-made-how]').forEach(function (el) {
+      if (!el.addEventListener) return;
+      el.addEventListener('click', function () { setMadeHow(el.getAttribute('data-edit-made-how')); });
+    });
+    bindSchedule();
+  }
+
   global.PlaigroundSong = {
     render: render,
     pickRelease: pickRelease,
     statusStep: statusStep,
     splitWriters: splitWriters,
     load: load,
+    openEdit: openEdit,
+    closeEdit: closeEdit,
+    submitEdit: submitEdit,
+    isCreateReleaseUrl: isCreateReleaseUrl,
+    currentEditState: currentEditState,
   };
+  bindEdit();
   load();
 })(window);

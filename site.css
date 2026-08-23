@@ -845,6 +845,34 @@ table.data th {
 table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 table.data tbody tr.is-pick { cursor: pointer; }
 .release-edit { margin-top: 24px; }
+.release-edit .field-why,
+.field-why {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 6px;
+}
+.release-edit .field.is-locked input,
+.release-edit .field.is-locked select {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+.release-edit .store-pick label {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
 .rel { display: flex; align-items: center; gap: 12px; }
 .thumb {
   width: 40px;

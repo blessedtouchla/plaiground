@@ -54,6 +54,7 @@
           <p style="color:var(--muted);margin-top:8px" data-song-meta></p>
         </div>
         <div class="hero-ctas" style="margin:0">
+          <button class="btn btn-purple btn-sm" type="button" data-song-edit hidden>Edit release</button>
           <a class="btn btn-purple btn-sm" href="boosts.html" data-song-boost hidden>Boost</a>
           <button class="btn btn-ghost btn-sm" type="button">Download</button>
           <button class="btn btn-ghost btn-sm" type="button">Share</button>
@@ -75,6 +76,158 @@
           </div>
         </div>
       </div>
+
+      <section class="panel release-edit" data-release-edit hidden>
+        <div class="head-row">
+          <div>
+            <h3>Edit release</h3>
+            <p class="hint">This updates the same ToneGrid release. It is not a second upload.</p>
+          </div>
+          <span class="pill" data-edit-status></span>
+        </div>
+        <div class="form-grid three">
+          <div class="field">
+            <label for="edit-title">Title</label>
+            <input id="edit-title" type="text" autocomplete="off" />
+            <p class="field-why" data-edit-why="title" hidden></p>
+          </div>
+          <div class="field is-locked">
+            <label for="edit-artist">Primary artist</label>
+            <input id="edit-artist" type="text" autocomplete="off" disabled aria-disabled="true" placeholder="Artist name" />
+            <p class="field-why" data-edit-why="artist">ToneGrid locks the catalog artist after the first save. This release stays on the same artist ID.</p>
+          </div>
+          <div class="field">
+            <label for="edit-featured">Featured artist</label>
+            <input id="edit-featured" type="text" autocomplete="off" placeholder="Optional featured" />
+            <p class="field-why">Saved on this Plaiground release. ToneGrid has no featured-artist field on update.</p>
+          </div>
+          <div class="field">
+            <label for="edit-genre">Genre</label>
+            <select id="edit-genre" class="details-select"><option value="">Select genre</option></select>
+            <p class="field-why" data-edit-why="genre" hidden></p>
+          </div>
+          <div class="field" data-language-field>
+            <label for="edit-language">Language</label>
+            <select id="edit-language" class="details-select"><option value="">Select language</option></select>
+            <p class="field-why" data-edit-why="language" hidden></p>
+          </div>
+          <div class="field">
+            <label for="edit-price">Download price</label>
+            <select id="edit-price" class="details-select">
+              <option value="">Select price</option>
+              <option value="$0.69">$0.69</option>
+              <option value="$0.99">$0.99</option>
+            </select>
+            <p class="field-why">Saved on this Plaiground release. ToneGrid does not store download price.</p>
+          </div>
+          <div class="field">
+            <label for="edit-art">Cover art</label>
+            <input id="edit-art" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" />
+            <p class="field-why" data-edit-why="artwork" hidden></p>
+          </div>
+          <div class="field">
+            <label for="edit-audio">Audio</label>
+            <input id="edit-audio" type="file" accept=".wav,.flac,.mp3,audio/wav,audio/x-wav,audio/flac,audio/mpeg,audio/mp3" />
+            <p class="field-why" data-edit-why="audio">Replace the master on this same track if ToneGrid allows it. This is not a new release.</p>
+          </div>
+          <div class="field">
+            <label class="checkline" for="edit-instrumental">
+              <input id="edit-instrumental" type="checkbox" />
+              <span>Instrumental</span>
+            </label>
+            <p class="field-why">Saved on this Plaiground release. ToneGrid does not store an instrumental flag; language is cleared when this is on.</p>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:8px">Explicit content</p>
+        <div class="auth-toggle" style="max-width:200px" data-edit-explicit>
+          <a class="on" href="#explicit" data-explicit="false">No</a>
+          <a href="#explicit" data-explicit="true">Yes</a>
+        </div>
+
+        <h4 style="margin:22px 0 8px">Release date</h4>
+        <p class="hint">Pick the day it goes live. Stores need 7 days of lead time unless this release already has an earlier date.</p>
+        <div class="field date-picker-field">
+          <label for="edit-release-date">Release date</label>
+          <input id="edit-release-date" class="date-picker" type="date" required autocomplete="off" />
+          <p class="field-why" data-edit-why="release_date" hidden></p>
+        </div>
+        <label class="toggle-line" for="edit-preorder-on">
+          <input id="edit-preorder-on" class="toggle-input" type="checkbox" role="switch" aria-checked="false" aria-controls="edit-preorder-panel" />
+          <span class="toggle" aria-hidden="true"></span>
+          <span>Select pre-order date</span>
+        </label>
+        <div id="edit-preorder-panel" class="release-extra is-hidden" hidden>
+          <div class="field date-picker-field">
+            <label for="edit-preorder-date">Pre-order date</label>
+            <input id="edit-preorder-date" class="date-picker" type="date" autocomplete="off" />
+          </div>
+        </div>
+        <label class="toggle-line" for="edit-time-on">
+          <input id="edit-time-on" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" aria-controls="edit-time-panel" />
+          <span class="toggle on" aria-hidden="true"></span>
+          <span>Define time and timezone</span>
+        </label>
+        <div id="edit-time-panel" class="release-extra">
+          <div class="release-time-row">
+            <div class="field">
+              <label for="edit-release-time">Time</label>
+              <input id="edit-release-time" class="date-picker" type="time" value="00:00" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="edit-release-timezone">Timezone</label>
+              <select id="edit-release-timezone">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time</option>
+                <option value="America/Chicago">Central Time</option>
+                <option value="America/Denver">Mountain Time</option>
+                <option value="America/Los_Angeles">Pacific Time</option>
+                <option value="America/Anchorage">Alaska Time</option>
+                <option value="Pacific/Honolulu">Hawaii Time</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Europe/Berlin">Berlin</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="Australia/Sydney">Sydney</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:18px">
+          <label>Stores</label>
+          <div class="store-pick" data-edit-stores></div>
+          <p class="field-why" data-edit-why="stores" hidden></p>
+        </div>
+
+        <div class="field" data-edit-attest hidden>
+          <label>How this song was made</label>
+          <p class="hint">ToneGrid already received this at submit. Changing it updates your Plaiground copy. A second submit is not created.</p>
+          <div class="choice" data-edit-made-how="ai_assisted">
+            <b>AI assisted, human authored</b>
+            <span>AI generated parts of the track, a person wrote and performed the rest</span>
+          </div>
+          <div class="choice" data-edit-made-how="no_ai">
+            <b>No AI used</b>
+            <span>Written, played and produced entirely by people</span>
+          </div>
+          <div class="choice" data-edit-made-how="fully_ai">
+            <b>Fully AI</b>
+            <span>Generated entirely by AI</span>
+          </div>
+        </div>
+
+        <div class="field" data-edit-splits>
+          <label>Splits</label>
+          <p class="hint" data-edit-splits-copy>Splits stay on this release.</p>
+          <p><a class="learn" href="splits.html">Open split sheet</a></p>
+        </div>
+
+        <div class="edit-actions">
+          <button type="button" class="btn btn-purple" data-edit-save>Submit for editing</button>
+          <button type="button" class="btn btn-ghost" data-edit-cancel>Cancel</button>
+        </div>
+        <p class="hint" data-edit-error hidden></p>
+      </section>
 
       <div class="panel" data-song-breakdown hidden>
         <div class="head-row">
@@ -120,6 +273,7 @@
   </div>
   <script src="membership.js"></script>
   <script src="account.js"></script>
+  <script src="upload-catalog.js"></script>
   <script src="song.js" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
