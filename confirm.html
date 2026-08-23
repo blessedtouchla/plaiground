@@ -31,10 +31,10 @@
       <div class="stack">
         <p class="status-ok" data-confirm-status>Check your email</p>
         <h1 data-confirm-title>Check your email</h1>
-        <p class="center-lead" data-confirm-lead>We sent a confirmation link to the email you entered. Open it on any device to confirm the address and finish setting up your account.</p>
+        <p class="center-lead" data-confirm-lead>We sent a confirmation link to the email you entered. Open it on any device to confirm the address and finish setting up your account. If it is not in the inbox, check Spam and Promotions.</p>
         <div class="help-box" data-confirm-help>
-          <small>If it has not arrived</small>
-          <p>Give it two minutes, then look in spam and promotions. Our mail comes from confirm@wannaplai.com.</p>
+          <small>Check Spam and Promotions</small>
+          <p>If the confirm email is not in the inbox, look there. It is from PLAIGROUND / confirm@wannaplai.com.</p>
         </div>
         <p class="alert err is-hidden" data-confirm-error hidden></p>
         <a class="btn btn-purple btn-lg" href="confirm.html" data-confirm-primary>Resend the email</a>
@@ -209,7 +209,7 @@
         } else {
           lead.appendChild(document.createTextNode('the email you entered'));
         }
-        lead.appendChild(document.createTextNode('. Open it on any device to confirm the address and finish setting up your account.'));
+        lead.appendChild(document.createTextNode('. Open it on any device to confirm the address and finish setting up your account. If it is not in the inbox, check Spam and Promotions.'));
       }
 
       var sent = mailWasSent();
