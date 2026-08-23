@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile – PLAIGROUND</title>
+  <title>Artist Profiles – PLAIGROUND</title>
+  <meta http-equiv="refresh" content="0; url=artists.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -23,13 +24,12 @@
       <a href="analytics.html">Analytics</a>
       <a href="boosts.html">Boosts</a>
       <a href="payouts.html">Payouts</a>
-      <a class="on" href="profile.html">Profile</a>
+      <a href="artists.html">Artist Profiles</a>
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
       <h4 data-account-plan-title>Your plan</h4>
-      <p data-for-plans="basic">Distribution is included. Publishing and Boost stay on Creator and Pro.</p>
-      <p data-for-plans="creator pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p>Artist names now live on Artist Profiles.</p>
     </div>
   </aside>
   <div class="app-main">
@@ -39,69 +39,13 @@
     </div>
     <div class="page">
       <div class="page-head">
-        <p class="kicker">Artist</p>
-        <h1>Profile</h1>
+        <p class="kicker">Release names</p>
+        <h1>Artist Profiles</h1>
       </div>
-      <p class="hint" data-profile-status hidden></p>
-
-      <section class="panel profile-public">
-        <div class="profile-hero">
-          <div class="profile-photo" data-profile-photo role="img" aria-label="Profile photo"></div>
-          <div>
-            <h2 data-profile-name>Artist name</h2>
-            <p class="hint" data-profile-photo-note>No photo yet</p>
-            <p class="hint" data-profile-empty>Add a photo, top genres, and specialties when you are ready.</p>
-          </div>
-        </div>
-        <div class="profile-block">
-          <h3>Top genres</h3>
-          <div class="tags" data-profile-genres></div>
-          <p class="hint" data-profile-genres-empty>No genres yet</p>
-        </div>
-        <div class="profile-block">
-          <h3>Specialties</h3>
-          <div class="tags" data-profile-specialties></div>
-          <p class="hint" data-profile-specialties-empty>No specialties yet</p>
-        </div>
-      </section>
-
-      <section class="panel" data-profile-edit hidden>
-        <h3>Edit profile</h3>
-        <p class="hint">Owner view. Saved on this account. Artist name is the same Primary artist name used on upload.</p>
-        <div class="rel" style="margin-bottom:20px">
-          <div class="profile-photo is-sm" data-profile-photo-edit role="img" aria-label="Profile photo preview"></div>
-          <div>
-            <button class="btn btn-ghost btn-sm" type="button" data-profile-photo-pick>Add photo</button>
-            <input id="profile-photo" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden />
-            <p class="hint">JPG or PNG. Empty until you add one.</p>
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="field">
-            <label for="profile-artist">Artist name</label>
-            <input id="profile-artist" type="text" placeholder="Artist name" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="profile-genre">Top genres</label>
-            <select id="profile-genre" class="details-select"><option value="">Pick a ToneGrid genre</option></select>
-            <p class="hint">Pick from the real ToneGrid list. No custom free-text.</p>
-          </div>
-        </div>
-        <div class="tags" data-profile-genre-picks></div>
-        <div class="field" style="margin-top:18px">
-          <label>Specialties</label>
-          <p class="hint">What you actually do on the human side — the same tags as attest rights.</p>
-          <div class="tags" data-profile-specialty-picks></div>
-        </div>
-        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-profile-save>Save profile</button></p>
-        <p class="hint" data-profile-error hidden></p>
-      </section>
+      <p class="hint">This page moved. Open <a href="artists.html">Artist Profiles</a> to manage the names music is released under.</p>
     </div>
   </div>
-  <script src="membership.js"></script>
-  <script src="account.js"></script>
-  <script src="upload-catalog.js"></script>
-  <script src="profile.js" defer></script>
+  <script>location.replace('artists.html');</script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

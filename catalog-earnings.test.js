@@ -65,7 +65,7 @@ function run() {
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
@@ -145,7 +145,7 @@ function run() {
   assert.strictEqual(catalogNodes['[data-stat="draft"]'].textContent, '1');
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, true);
   assert.strictEqual(catalogNodes['[data-release-table]'].hidden, false);
-  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[3].textContent, '12');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[3].textContent, '0');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[4].textContent, '$0.00');
 
   const extra = catalog.PlaigroundCatalog.accountFallback({

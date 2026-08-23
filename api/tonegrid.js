@@ -35,7 +35,9 @@
 
 const crypto = require('crypto');
 const accounts = require('../lib/accounts');
+const artistCheck = require('../lib/artist-check');
 const plans = require('../lib/plans');
+const profileLib = require('../lib/profile');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const uploadRequired = require('../lib/upload-required');
@@ -242,26 +244,66 @@ async function listArtists(req, res) {
   sendJson(res, result.status, result.data);
 }
 
+function rosterOf(row) {
+  return profileLib.seedFromAccount(profileLib.readStored(row), row && row.artist_name, row && row.tonegrid_artist_id);
+}
+
+function matchingTonegridArtist(row, body) {
+  const stored = rosterOf(row);
+  const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
+  const name = String((body && body.name) || '').trim();
+  if (pgId) {
+    const found = profileLib.findArtist(stored, pgId);
+    if (found && found.tonegrid_artist_id) return found.tonegrid_artist_id;
+  }
+  if (name) {
+    const want = artistCheck.normalizeName(name);
+    const list = stored.artists || [];
+    for (let i = 0; i < list.length; i += 1) {
+      if (artistCheck.normalizeName(list[i].name) === want && list[i].tonegrid_artist_id) {
+        return list[i].tonegrid_artist_id;
+      }
+    }
+  }
+  return '';
+}
+
+async function attachTonegridArtist(row, plaigroundId, tonegridId) {
+  if (!plaigroundId || !tonegridId) return;
+  const stored = rosterOf(row);
+  const current = profileLib.findArtist(stored, plaigroundId);
+  if (!current) return;
+  await accounts.updateProfile(row.id, {
+    profile: profileLib.upsertArtist(stored, Object.assign({}, current, { tonegrid_artist_id: tonegridId })),
+  });
+}
+
+async function persistReleaseMeta(row, releaseId, status, reason) {
+  if (!row || !releaseId) return;
+  const stored = rosterOf(row);
+  const next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
+  await accounts.updateProfile(row.id, { profile: next });
+}
+
 async function createArtist(req, res) {
   const scope = await personalScope(req, res);
   if (!scope) return;
 
-  if (scope.artistId) {
-    sendJson(res, 200, { uuid: scope.artistId, continued: true });
-    return;
-  }
-
-  const decision = plans.evaluate(scope.row);
-  if (!decision.allowed) {
-    sendJson(res, 403, plans.limitBody(decision));
-    return;
-  }
-
-  let body;
+  let body = {};
   try {
-    body = await readBody(req);
+    if (req.method === 'POST') body = await readBody(req);
   } catch {
     sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const reuseId = matchingTonegridArtist(scope.row, body);
+  if (reuseId) {
+    sendJson(res, 200, { uuid: reuseId, continued: true });
+    return;
+  }
+  if (scope.artistId && !String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim()) {
+    sendJson(res, 200, { uuid: scope.artistId, continued: true });
     return;
   }
 
@@ -271,6 +313,34 @@ async function createArtist(req, res) {
     return;
   }
   const name = artistGate.name;
+  const parsed = artistCheck.parseStoreLink(body && (body.store_url || body.link || body.url));
+  const check = artistCheck.checkArtistName(name, {
+    accountArtists: rosterOf(scope.row).artists,
+    storeLink: parsed.ok ? parsed.url : '',
+    skipId: String((body && body.plaiground_artist_id) || '').trim(),
+  });
+  if (check.level === 'red' && !parsed.ok) {
+    sendJson(res, 409, {
+      error: artistCheck.RED_COPY,
+      code: 'ARTIST_NAME_RED',
+      check: check,
+    });
+    return;
+  }
+  if (check.level === 'yellow' && !parsed.ok && body.confirm_different !== true) {
+    sendJson(res, 409, {
+      error: artistCheck.YELLOW_COPY,
+      code: 'ARTIST_NAME_YELLOW',
+      check: check,
+    });
+    return;
+  }
+
+  const decision = plans.evaluate(scope.row);
+  if (!decision.allowed) {
+    sendJson(res, 403, plans.limitBody(decision));
+    return;
+  }
 
   const slug = deriveSlug((body && body.slug) || name);
   if (!slug) {
@@ -296,7 +366,10 @@ async function createArtist(req, res) {
   if (result.ok) {
     const artistId = createdArtistId(result.data);
     if (artistId) {
-      await accounts.updateCatalog(scope.userId, { artistId });
+      if (!scope.artistId) {
+        await accounts.updateCatalog(scope.userId, { artistId });
+      }
+      await attachTonegridArtist(scope.row, String((body && body.plaiground_artist_id) || '').trim(), artistId);
     }
   }
   sendJson(res, result.status, result.data);
@@ -366,6 +439,7 @@ function pickRelease(row) {
     artist: artistNameOf(row),
     tracks: pickTracks(row),
     dsps: parseStoreSlugs(row),
+    rejection_reason: String(row.rejection_reason || row.reject_reason || row.reason || row.notes || '').trim(),
   };
 }
 
@@ -408,15 +482,70 @@ async function listReleases(req, res) {
   }
 
   const collected = [];
+  const stored = rosterOf(scope.row);
+  const storedById = {};
+  (stored.releases || []).forEach((item) => {
+    const key = String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase();
+    if (key) storedById[key] = item;
+  });
   for (let i = 0; i < scope.releaseIds.length; i += 1) {
     const id = scope.releaseIds[i];
     const result = await tonegridFetch('/releases/' + id, { method: 'GET' });
-    if (!result.ok) continue;
-    const row = pickRelease(unwrapRelease(result.data));
-    if (!row) continue;
+    let row = result.ok ? pickRelease(unwrapRelease(result.data)) : null;
+    const local = storedById[String(id).toLowerCase()];
+    if (!row && local) {
+      row = {
+        uuid: id,
+        title: local.title || '',
+        type: 'single',
+        status: local.tonegrid_status || 'pending',
+        genre: '',
+        language: '',
+        artwork_url: '',
+        release_date: '',
+        created_at: '',
+        artist: '',
+        tracks: [],
+        dsps: [],
+        rejection_reason: local.rejection_reason || '',
+      };
+    }
+    if (!row) {
+      row = {
+        uuid: id,
+        title: '',
+        type: 'single',
+        status: 'pending',
+        genre: '',
+        language: '',
+        artwork_url: '',
+        release_date: '',
+        created_at: '',
+        artist: '',
+        tracks: [],
+        dsps: [],
+        rejection_reason: '',
+      };
+    }
+    if (local && local.rejection_reason && !row.rejection_reason) {
+      row.rejection_reason = local.rejection_reason;
+    }
     if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
     if (query.type && row.type !== normalizeReleaseType(query.type)) continue;
     collected.push(row);
+  }
+  let nextProfile = stored;
+  collected.forEach((row) => {
+    nextProfile = profileLib.upsertRelease(nextProfile, {
+      id: row.uuid,
+      title: row.title,
+      tonegrid_release_id: row.uuid,
+      tonegrid_status: row.status,
+      rejection_reason: row.rejection_reason,
+    });
+  });
+  if (collected.length) {
+    await accounts.updateProfile(scope.userId, { profile: nextProfile });
   }
 
   sendJson(res, 200, {
@@ -1150,7 +1279,74 @@ async function getOneRelease(req, res, releaseId) {
     sendJson(res, loaded.result.status, loaded.result.data);
     return;
   }
+  if (loaded.row) {
+    await persistReleaseMeta(scope.row, releaseId, loaded.row.status, loaded.row.rejection_reason);
+  }
   sendJson(res, 200, Object.assign({ configured: true, sandbox: healthPayload().sandbox }, loaded.row));
+}
+
+function webhookSecret() {
+  return String(process.env.TONEGRID_WEBHOOK_SECRET || '').trim();
+}
+
+async function webhook(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+
+  const secret = webhookSecret();
+  if (secret) {
+    const got = headerValue(req, 'x-tonegrid-signature')
+      || headerValue(req, 'x-webhook-secret')
+      || headerValue(req, 'authorization').replace(/^Bearer\s+/i, '');
+    if (got !== secret) {
+      sendJson(res, 401, { error: 'Invalid webhook signature.' });
+      return;
+    }
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const data = body && typeof body === 'object' ? body : {};
+  const nested = data.data && typeof data.data === 'object' ? data.data : {};
+  const release = nested.release && typeof nested.release === 'object' ? nested.release : (data.release || {});
+  const releaseId = String(
+    data.release_id
+    || data.releaseId
+    || release.uuid
+    || release.id
+    || nested.release_id
+    || ''
+  ).trim();
+  const status = String(data.status || data.tonegrid_status || release.status || nested.status || '').trim().toLowerCase();
+  const reason = String(
+    data.rejection_reason
+    || data.reason
+    || data.message
+    || release.rejection_reason
+    || release.reason
+    || ''
+  ).trim();
+  if (!isUuid(releaseId)) {
+    sendJson(res, 400, { error: 'release_id must be a uuid.' });
+    return;
+  }
+
+  const row = await accounts.findByReleaseId(releaseId);
+  if (!row) {
+    sendJson(res, 404, { error: 'Release not found.' });
+    return;
+  }
+  await persistReleaseMeta(row, releaseId, status, reason);
+  sendJson(res, 200, { ok: true, release_id: releaseId, status: status || undefined });
 }
 
 function releaseUpdatePayload(body) {
@@ -1422,6 +1618,8 @@ async function submitRelease(req, res, releaseId) {
   }
 
   const next = unwrapRelease(submitted.data) || submitted.data || {};
+  const submittedStatus = String(next.status || 'pending').toLowerCase();
+  await persistReleaseMeta(scope.row, releaseId, submittedStatus, '');
   sendJson(res, submitted.status, {
     ok: true,
     signed: Boolean(signwellInfo.signed),
@@ -1592,6 +1790,10 @@ async function handler(req, res) {
   }
   if (route.resource === 'artists') {
     await artists(req, res);
+    return;
+  }
+  if (route.resource === 'webhook') {
+    await webhook(req, res);
     return;
   }
   if (route.resource === 'releases') {

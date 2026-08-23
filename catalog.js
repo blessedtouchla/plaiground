@@ -29,19 +29,29 @@
     if (el) el.hidden = Boolean(hidden);
   }
 
+  function statusApi() {
+    return (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus) || null;
+  }
+
   function statusLabel(status) {
-    if (status === 'live') return 'live';
-    if (status === 'draft') return 'draft';
-    if (status === 'pending') return 'In review';
-    if (status === 'approved') return 'approved';
-    if (status === 'rejected') return 'rejected';
-    if (status === 'taken_down') return 'taken_down';
-    return status || 'draft';
+    var api = statusApi();
+    if (api) return api.label(status);
+    if (status === 'live' || status === 'delivered') return 'Live';
+    if (status === 'draft') return 'Draft';
+    if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'Needs fix';
+    if (status === 'approved' || status === 'processing' || status === 'delivering') return 'Processing';
+    if (status === 'pending') return 'Pending';
+    return 'Pending';
   }
 
   function statusGroup(status) {
-    if (status === 'live') return 'live';
-    if (status === 'pending' || status === 'approved') return 'review';
+    var api = statusApi();
+    var g = api ? api.group(status) : '';
+    if (g === 'live') return 'live';
+    if (g === 'pending' || g === 'processing') return 'review';
+    if (g === 'rejected') return 'review';
+    if (status === 'live' || status === 'delivered') return 'live';
+    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'rejected') return 'review';
     return 'draft';
   }
 
@@ -100,7 +110,8 @@
       var wrap = document.createElement('div');
       wrap.className = 'rel';
       var thumb = document.createElement('span');
-      thumb.className = row.status === 'live' ? 'thumb' : 'thumb grey';
+      var live = statusApi() ? statusApi().isLive(row.status) : row.status === 'live';
+      thumb.className = live ? 'thumb' : 'thumb grey';
       var copy = document.createElement('div');
       var title = document.createElement('a');
       title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'song.html';
@@ -127,14 +138,20 @@
       titleCell.appendChild(wrap);
 
       var statusCell = document.createElement('td');
-      statusCell.textContent = statusLabel(row.status);
-      if (row.status === 'live') statusCell.className = 'live';
+      var mapped = statusApi() ? statusApi().info(row.status) : { label: statusLabel(row.status), dot: live ? 'green' : 'yellow', live: live };
+      statusCell.className = 'status-cell is-' + mapped.dot + (mapped.live ? ' live' : '');
+      var dot = document.createElement('i');
+      dot.className = 'status-dot';
+      statusCell.appendChild(dot);
+      var statusText = document.createElement('span');
+      statusText.textContent = mapped.label;
+      statusCell.appendChild(statusText);
 
       var splits = document.createElement('td');
       splits.textContent = '—';
 
       var streamCell = document.createElement('td');
-      streamCell.textContent = formatCount(streams[row.uuid] || 0);
+      streamCell.textContent = formatCount(live ? (streams[row.uuid] || 0) : 0);
 
       var earnCell = document.createElement('td');
       earnCell.textContent = '$0.00';
@@ -198,7 +215,19 @@
         uuid: String(id),
         title: String((draft && draft.title) || '').trim() || 'Untitled',
         type: 'single',
-        status: matchesDraft && draft && !draft.submitted ? 'draft' : 'pending',
+        status: (function () {
+          var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+          var found = '';
+          stored.forEach(function (item) {
+            if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() === key) {
+              found = String((item && item.tonegrid_status) || '').toLowerCase();
+            }
+          });
+          if (found) return found;
+          if (matchesDraft && draft && draft.tonegrid_status) return String(draft.tonegrid_status).toLowerCase();
+          return matchesDraft && draft && !draft.submitted ? 'draft' : 'pending';
+        })(),
+        rejection_reason: '',
         genre: matchesDraft ? String(draft.genre || '').trim() : '',
         release_date: matchesDraft ? String(draft.release_date || '').trim() : '',
       });

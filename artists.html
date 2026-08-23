@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Artist Profiles – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="plai-bubble.css" />
+</head>
+<body class="app">
+  <aside class="side">
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+    <p class="side-label">Menu</p>
+    <nav class="side-nav">
+      <a href="dashboard.html">Overview</a>
+      <a href="how.html">How it works</a>
+      <a href="releases.html">Releases</a>
+      <a href="splits.html">Splits</a>
+      <a href="earnings.html">Earnings</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
+      <a href="payouts.html">Payouts</a>
+      <a class="on" href="artists.html">Artist Profiles</a>
+      <a href="settings.html">Settings</a>
+    </nav>
+    <div class="pro-card">
+      <h4 data-account-plan-title>Your plan</h4>
+      <p data-for-plans="basic">Distribution is included. Publishing and Boost stay on Creator and Pro.</p>
+      <p data-for-plans="creator pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
+    </div>
+  </aside>
+  <div class="app-main">
+    <div class="topbar">
+      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
+    </div>
+    <div class="page">
+      <div class="page-head">
+        <p class="kicker">Release names</p>
+        <h1>Artist Profiles</h1>
+      </div>
+      <p class="hint">Manage the names music is released under. Each profile can have a photo, bio, genres, and platform pages. Settings stays account, login, and billing.</p>
+      <p class="hint" data-artists-status hidden></p>
+
+      <section class="panel">
+        <h3>Your artists</h3>
+        <p class="hint">Select a profile to edit extras. New names on upload only need a name — extras live here.</p>
+        <div class="artist-list" data-artist-list></div>
+        <p class="hint" data-artist-empty>No artist profiles yet. Create one or link an existing store page.</p>
+      </section>
+
+      <section class="panel" data-artist-edit hidden>
+        <div class="head-row">
+          <h3 data-artist-edit-title>Edit artist</h3>
+          <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
+        </div>
+        <div class="rel" style="margin-bottom:20px">
+          <div class="profile-photo is-sm" data-artist-photo-edit role="img" aria-label="Artist photo preview"></div>
+          <div>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-photo-pick>Add photo</button>
+            <input id="artist-photo" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden />
+            <p class="hint">JPG or PNG. Empty until you add one.</p>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="field" data-artist-name-field>
+            <label for="artist-name">Artist name</label>
+            <input id="artist-name" type="text" placeholder="Artist name" autocomplete="off" />
+            <p class="hint" id="artist-name-check" hidden></p>
+            <p class="field-why" data-artist-locked-note hidden>Name and platform IDs lock after the first successful release. Submit a change request below.</p>
+          </div>
+          <div class="field">
+            <label for="artist-genre">Genres</label>
+            <select id="artist-genre" class="details-select"><option value="">Pick a ToneGrid genre</option></select>
+            <p class="hint">Pick from the ToneGrid list. Extra details stay here, not on upload.</p>
+          </div>
+        </div>
+        <div class="tags" data-artist-genre-picks></div>
+        <div class="field" style="margin-top:18px">
+          <label for="artist-bio">Bio</label>
+          <textarea id="artist-bio" rows="4" placeholder="Optional bio"></textarea>
+        </div>
+        <div class="form-grid" style="margin-top:18px">
+          <div class="field">
+            <label for="artist-spotify">Spotify ID</label>
+            <input id="artist-spotify" type="text" placeholder="If known" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="artist-apple">Apple Music ID</label>
+            <input id="artist-apple" type="text" placeholder="If known" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field" style="margin-top:18px">
+          <label for="artist-store">Platform page</label>
+          <input id="artist-store" type="url" placeholder="Spotify, Apple Music, or store artist URL" autocomplete="off" />
+        </div>
+        <div class="artist-create-block" data-artist-ai>
+          <h3>How this artist usually creates</h3>
+          <p class="hint">AI musician type. Describe how this artist usually works. Checkboxes + meter show the balance. Helps fans, partners, and platforms understand the creative process.</p>
+          <p class="hint" data-artist-ai-empty>Not set yet</p>
+          <p class="hint" data-artist-ai-summary hidden></p>
+          <div class="artist-ai-cols">
+            <div>
+              <h4>Human</h4>
+              <label class="checkline"><input type="checkbox" data-human-contribution="lyrics" /> <span>Lyrics</span></label>
+              <label class="checkline"><input type="checkbox" data-human-contribution="vocals_performance" /> <span>Vocals / performance</span></label>
+              <label class="checkline"><input type="checkbox" data-human-contribution="melody_topline" /> <span>Melody / topline</span></label>
+              <label class="checkline"><input type="checkbox" data-human-contribution="beats_production" /> <span>Beats / production</span></label>
+              <label class="checkline"><input type="checkbox" data-human-contribution="arrangement_mix" /> <span>Arrangement / mix</span></label>
+              <label class="checkline"><input type="checkbox" data-human-contribution="concept_direction" /> <span>Concept / direction</span></label>
+            </div>
+            <div>
+              <h4>AI-assisted</h4>
+              <label class="checkline"><input type="checkbox" data-ai-contribution="lyrics" /> <span>Lyrics</span></label>
+              <label class="checkline"><input type="checkbox" data-ai-contribution="vocals_performance" /> <span>Vocals / performance</span></label>
+              <label class="checkline"><input type="checkbox" data-ai-contribution="melody_topline" /> <span>Melody / topline</span></label>
+              <label class="checkline"><input type="checkbox" data-ai-contribution="beats_production" /> <span>Beats / production</span></label>
+              <label class="checkline"><input type="checkbox" data-ai-contribution="arrangement_mix" /> <span>Arrangement / mix</span></label>
+              <label class="checkline"><input type="checkbox" data-ai-contribution="full_track_support" /> <span>Full-track support</span></label>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px">
+            <label for="artist-ai-detail">Optional detail</label>
+            <textarea id="artist-ai-detail" rows="3" maxlength="500" placeholder="I write all lyrics and sing. AI builds the beat and helps with arrangement."></textarea>
+          </div>
+          <div class="field" style="margin-top:16px">
+            <label for="artist-ai-percent">Estimated AI involvement 0–100</label>
+            <div class="artist-ai-meter">
+              <input id="artist-ai-range" type="range" min="0" max="100" step="1" value="0" />
+              <input id="artist-ai-percent" type="number" min="0" max="100" step="1" placeholder="Not set" />
+            </div>
+            <p class="hint" data-artist-ai-meter>Not set yet</p>
+            <p class="hint">Examples: 10% light ideas, 50% human core + major AI production, 90% mostly AI with human direction/edits.</p>
+            <p class="hint">Self-declared. This is a profile average, not a verified score for every song.</p>
+            <p class="hint">If AI involvement is very high, songs that need publishing still need meaningful human authorship. Distribution still allows Fully AI tracks.</p>
+          </div>
+        </div>
+        <div class="field" style="margin-top:18px" data-artist-change-wrap hidden>
+          <label for="artist-change">Change request</label>
+          <textarea id="artist-change" rows="3" placeholder="What should change, and why"></textarea>
+        </div>
+        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-artist-save>Save artist</button></p>
+        <p class="hint" data-artist-error hidden></p>
+      </section>
+
+      <section class="panel">
+        <h3>Create new artist</h3>
+        <p class="hint">Name only. The artist page is created instantly when the name is clear.</p>
+        <div class="field">
+          <label for="artist-create-name">Artist name</label>
+          <input id="artist-create-name" type="text" placeholder="Artist name" autocomplete="off" />
+          <p class="hint" id="artist-create-check" hidden></p>
+        </div>
+        <div id="artist-create-yellow" class="artist-check-box is-yellow" hidden>
+          <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Link existing artist</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-create-continue">Continue as a different artist</button>
+          </p>
+          <label class="checkline" id="artist-create-confirm-wrap" hidden style="margin-top:12px;display:flex;gap:10px;align-items:flex-start">
+            <input id="artist-create-confirm" type="checkbox" />
+            <span>I confirm this is not impersonation and I understand this release may be reviewed.</span>
+          </label>
+        </div>
+        <div id="artist-create-red" class="artist-check-box is-red" hidden>
+          <p>This name is too close to an existing artist and can’t be released automatically.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Link existing artist</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-create-review">Submit for review</button>
+          </p>
+        </div>
+        <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-create>Create artist</button></p>
+      </section>
+
+      <section class="panel" id="artist-link-panel">
+        <h3>Link existing artist</h3>
+        <p class="hint">Paste a Spotify, Apple Music, or store artist link. Creates a Linked profile so you do not open a duplicate store page.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="artist-link-url">Store artist link</label>
+            <input id="artist-link-url" type="url" placeholder="https://open.spotify.com/artist/…" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="artist-link-name">Display name</label>
+            <input id="artist-link-name" type="text" placeholder="Name as it should appear" autocomplete="off" />
+          </div>
+        </div>
+        <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-link>Link artist</button></p>
+      </section>
+    </div>
+  </div>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
+  <script src="upload-catalog.js"></script>
+  <script src="lib/artist-check.js"></script>
+  <script src="artists.js" defer></script>
+  <script src="site.js"></script>
+  <script src="plai-bubble.js" defer></script>
+</body>
+</html>

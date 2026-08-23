@@ -106,6 +106,8 @@ function loadSong(opts) {
     '[data-song-boosts]': makeEl({ hidden: true }),
     '[data-song-boost]': makeEl({ hidden: true }),
     '[data-song-edit]': makeEl({ hidden: true }),
+    '[data-song-rejection]': makeEl({ hidden: true }),
+    '[data-song-rejection-reason]': makeEl({}),
     '[data-release-edit]': panel,
     '[data-edit-status]': makeEl({}),
     '[data-edit-error]': makeEl({ hidden: true }),
@@ -137,7 +139,8 @@ function loadSong(opts) {
   const life = {
     draft: makeEl({ life: 'draft' }),
     signatures: makeEl({ life: 'signatures' }),
-    review: makeEl({ life: 'review' }),
+    pending: makeEl({ life: 'pending' }),
+    processing: makeEl({ life: 'processing' }),
     live: makeEl({ life: 'live' }),
     rejected: makeEl({ life: 'rejected' }),
   };
@@ -155,7 +158,7 @@ function loadSong(opts) {
     document: {
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
-        if (sel === '[data-life]') return [life.draft, life.signatures, life.review, life.live, life.rejected];
+        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.rejected];
         if (sel === '[data-edit-explicit] [data-explicit]') return [];
         if (sel === '[data-edit-made-how]') return [];
         return [];
@@ -184,6 +187,7 @@ function loadSong(opts) {
     },
   };
   context.window = context;
+  vm.runInNewContext(read('lib/release-status.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
 }
@@ -251,8 +255,8 @@ function run() {
     analytics: { summary: { total_streams: 0, total_revenue_usd: 0 }, releases: [], dsps: [] },
   });
   assert.strictEqual(page.nodes['[data-song-title]'].textContent, 'Fuvtu');
-  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'In review');
-  assert.ok(page.life.review.classList.contains('on'));
+  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Pending');
+  assert.ok(page.life.pending.classList.contains('on'));
   assert.ok(!page.life.live.classList.contains('on'), 'pending must not show Live');
   assert.ok(page.nodes['[data-song-meta]'].textContent.indexOf('Fuvtu') !== -1);
   assert.strictEqual(page.nodes['[data-song-streams]'].textContent, '0');
@@ -456,7 +460,7 @@ function run() {
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
-    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'In review');
+    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
     console.log('song.page.test.js ok');
   });

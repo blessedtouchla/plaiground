@@ -229,6 +229,19 @@
     setHidden('[data-analytics-status]', !text);
   }
 
+  function loadAccount() {
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.whenReady === 'function') {
+      return global.PlaigroundMembership.whenReady().then(function (result) {
+        return (result && result.data) || null;
+      });
+    }
+    return Promise.resolve(null);
+  }
+
+  function emptyPayload() {
+    return { summary: { total_streams: 0, total_revenue_usd: 0 }, dsps: [], territories: [], series: [] };
+  }
+
   function load() {
     if (!$('[data-analytics-metrics]')) return;
     setStatus('Loading catalog…');
@@ -241,24 +254,34 @@
         });
       })
       .then(function (result) {
+        return loadAccount().then(function (me) {
+          return { result: result, me: me };
+        });
+      })
+      .then(function (pack) {
+        var result = pack.result;
+        var me = pack.me;
+        var known = me && me.profile && Array.isArray(me.profile.releases) && me.profile.releases.length;
+        var hasLive = typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus.accountHasLive(me);
+        var hideStats = Boolean(known && !hasLive);
         if (result.status === 401) {
           setStatus('Sign in to see your plays.');
-          render({ summary: {}, dsps: [], territories: [], series: [] });
+          render(emptyPayload());
           return;
         }
         if (result.status === 503 || result.data.configured === false) {
           setStatus(result.data && result.data.error === 'Accounts are not configured.'
             ? 'Accounts are not configured.'
             : 'Catalog sync is not configured yet.');
-          render({ summary: {}, dsps: [], territories: [], series: [] });
+          render(emptyPayload());
           return;
         }
         if (!result.ok) {
           setStatus(result.data.error || 'Could not load analytics.');
-          render({ summary: {}, dsps: [], territories: [], series: [] });
+          render(emptyPayload());
           return;
         }
-        render(result.data);
+        render(hideStats ? emptyPayload() : result.data);
         if (result.data.errors) {
           setStatus('Some ToneGrid analytics could not be loaded.');
         } else {

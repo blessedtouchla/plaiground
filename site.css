@@ -865,6 +865,78 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .profile-block { margin-top: 18px; }
 .profile-block h3 { margin-bottom: 8px; }
 .profile-public h2 { font-size: 2rem; letter-spacing: -0.04em; margin: 0 0 6px; }
+.artist-list { display: grid; gap: 10px; margin-top: 14px; }
+.artist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--panel, #15151b);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: inherit;
+  cursor: pointer;
+}
+.artist-row.is-on { border-color: #8b5cf6; }
+.artist-check-box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+.artist-check-box.is-yellow { border-color: #d4a017; background: rgba(212, 160, 23, 0.08); }
+.artist-check-box.is-red { border-color: #d14b4b; background: rgba(209, 75, 75, 0.08); }
+#artist-name-check.is-green,
+#artist-create-check.is-green,
+#title-check-msg { color: var(--muted); }
+#artist-name-check.is-yellow,
+#artist-create-check.is-yellow { color: #d4a017; }
+#artist-name-check.is-red,
+#artist-create-check.is-red { color: #d14b4b; }
+.artist-create-block { margin-top: 28px; padding-top: 8px; }
+.artist-create-block h3 { margin-bottom: 8px; }
+.artist-create-block h4 { margin: 0 0 10px; font-size: 14px; }
+.artist-ai-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 16px;
+}
+.artist-ai-cols .checkline {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 8px;
+  color: var(--muted-2);
+  font-size: 14px;
+}
+.artist-ai-meter {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 12px;
+  align-items: center;
+}
+.status-cell { white-space: nowrap; }
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background: #6b6b76;
+  vertical-align: middle;
+}
+.status-cell.is-yellow .status-dot,
+.pill.is-yellow::before { background: #d4a017; }
+.status-cell.is-green .status-dot { background: #3dba6c; }
+.status-cell.is-red .status-dot,
+.pill.is-red::before { background: #d14b4b; }
+@media (max-width: 720px) {
+  .artist-ai-cols { grid-template-columns: 1fr; }
+}
 .release-edit .field-why,
 .field-why {
   color: var(--muted);

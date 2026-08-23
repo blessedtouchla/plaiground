@@ -92,7 +92,7 @@ function run() {
   assert.ok(dash.includes('Submit your first song'), 'first-song CTA is missing');
   assert.ok(dash.includes('data-first-song'), 'first-song empty state hook is missing');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hook is missing');
-  assert.ok(dash.includes('In Review'), 'submitted In Review copy is missing');
+  assert.ok(dash.includes('Pending'), 'submitted Pending copy is missing');
   assert.ok(dash.includes('data-account-who'), 'dashboard greeting name slot is missing');
   assert.ok(dash.includes('class="topbar"'), 'dashboard menu/topbar is missing');
   assert.ok(dash.includes('class="side-nav"'), 'dashboard menu is missing');
@@ -122,7 +122,7 @@ function run() {
   assert.strictEqual(session.api.isSignedIn(), true);
   assert.ok(dash.includes('data-first-song'), 'empty first-song hero stays in markup');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hero is in markup');
-  assert.ok(dash.includes('In Review'), 'submitted state shows In Review');
+  assert.ok(dash.includes('Pending'), 'submitted state shows Pending');
   const injected = session.nodes.map(function (el) { return String(el.textContent || ''); }).join(' ');
   assert.ok(!BADGE.test(injected), 'logged-in dashboard JS injected ACCOUNT READY');
 
@@ -161,11 +161,11 @@ function run() {
   assert.strictEqual(nodes['[data-first-song]'].hidden, true, 'first-song hero hides after Basic submit');
   assert.strictEqual(nodes['[data-has-release]'].hidden, false);
   assert.strictEqual(nodes['[data-first-upload]'].hidden, true);
-  assert.strictEqual(nodes['[data-latest-status]'].textContent, 'In Review');
+  assert.strictEqual(nodes['[data-latest-status]'].textContent, 'Pending');
   assert.ok(String(nodes['[data-latest-link]'].href).indexOf('song.html?id=') !== -1);
 
   const upload = read('upload.html');
-  assert.ok(upload.includes('<label for="tg-artist">Primary artist</label>'));
+  assert.ok(upload.includes('Choose artist profile'));
   assert.ok(upload.includes('placeholder="Artist name"'));
   assert.ok(!/id="tg-artist"[^>]*legal name/i.test(upload));
 
