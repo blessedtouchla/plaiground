@@ -52,13 +52,17 @@ function run() {
     '4,182,680',
     'Neon Shadows',
     'Neon Sermon',
+    'Victoria Reyes',
+    '128,412',
+    '$486.20',
+    'PG-2026-04427',
     'Neon Santos',
     'Los Angeles',
     '$1,284.40',
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
