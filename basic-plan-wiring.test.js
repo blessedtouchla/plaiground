@@ -61,11 +61,15 @@ function run() {
   assert.ok(tonegrid.indexOf('Song title is required.') !== -1);
   assert.ok(tonegrid.indexOf('PLAN_LIMIT') !== -1);
   assert.ok(tonegrid.indexOf('Upgrade to Creator or Pro') !== -1);
+  assert.ok(tonegrid.indexOf('mergeCatalogIds') !== -1);
+  assert.ok(tonegrid.indexOf('showLimitPanel') !== -1);
 
   const upload = read('upload.html');
   assert.ok(upload.indexOf('id="tg-upgrade"') !== -1);
+  assert.ok(upload.indexOf('id="tg-limit"') !== -1);
   assert.ok(upload.indexOf('href="creator.html"') !== -1);
   assert.ok(upload.indexOf('href="pro.html"') !== -1);
+  assert.ok(upload.indexOf('Upgrade to Creator') !== -1);
 
   const plans = read('lib/plans.js');
   assert.ok(plans.indexOf('Basic includes one release. Upgrade to Creator or Pro to upload more.') !== -1);

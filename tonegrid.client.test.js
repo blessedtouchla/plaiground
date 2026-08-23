@@ -81,6 +81,7 @@ function load(options) {
   const loaderFill = makeEl({ attrs: { 'data-upload-loader-fill': '' } });
   const loaderMeta = makeEl({ attrs: { 'data-upload-loader-meta': '' } });
   const status = makeEl({ id: 'tg-status' });
+  const limit = makeEl({ id: 'tg-limit' });
   const continueBtn = makeEl({
     attrs: { href: 'attest.html', 'data-tonegrid-continue': '' },
   });
@@ -105,6 +106,7 @@ function load(options) {
     'tg-instrumental': instrumental,
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
+    'tg-limit': limit,
   };
 
   const context = {
@@ -176,12 +178,24 @@ function load(options) {
   };
   context.window = context;
   context.window.location = context.location;
+  if (opts.account) {
+    context.PlaigroundMembership = {
+      account: function () { return opts.account; },
+      whenReady: function (cb) {
+        const result = Promise.resolve({ ok: true, data: opts.account });
+        if (typeof cb === 'function') result.then(cb);
+        return result;
+      },
+    };
+  }
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
   return {
     continueBtn,
     payBtn,
     status,
+    limit,
+    upgrade: elements['tg-upgrade'],
     calls,
     localStorage,
     location: context.location,
@@ -370,8 +384,17 @@ async function run() {
   assert.strictEqual(limited.calls.length, 1);
   assert.strictEqual(limited.calls[0].url, '/api/tonegrid/artists');
   assert.strictEqual(limited.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
+  assert.ok(limited.status.classList.contains('upload-status-error'));
+  assert.strictEqual(limited.limit.hidden, false);
+  assert.strictEqual(limited.upgrade.hidden, false);
+  assert.notStrictEqual(limited.continueBtn.getAttribute('aria-busy'), 'true');
+  assert.notStrictEqual(limited.continueBtn.getAttribute('aria-disabled'), 'true');
   assert.notStrictEqual(limited.location.href, 'attest.html');
   assert.ok(limited.location.href.indexOf('attest.html') === -1);
+
+  limited.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(3);
+  assert.ok(limited.calls.length >= 2, 'later click after PLAN_LIMIT must still run');
 
   const limitedRelease = load(filledUpload({
     responses: [
@@ -384,7 +407,59 @@ async function run() {
   assert.ok(limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
   assert.ok(!limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
   assert.strictEqual(limitedRelease.status.textContent, 'Creator includes 8 releases per month. Upgrade to Pro to upload more.');
+  assert.ok(limitedRelease.status.classList.contains('upload-status-error'));
+  assert.strictEqual(limitedRelease.limit.hidden, false);
+  assert.notStrictEqual(limitedRelease.continueBtn.getAttribute('aria-busy'), 'true');
   assert.ok(limitedRelease.location.href.indexOf('attest.html') === -1);
+
+  const reuseDraft = load(filledUpload({
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    },
+    account: {
+      plan: 'basic',
+      artist: 'Products',
+      tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+      upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+    },
+    responses: [
+      { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+      { ok: true, status: 200, data: { audio_status: 'processing' } },
+      { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+    ],
+  }));
+  reuseDraft.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const reuseTonegrid = reuseDraft.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.ok(!reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }), 'reuse must not create a second artist');
+  assert.ok(!reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'reuse must not create a second release');
+  assert.ok(reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
+  assert.strictEqual(reuseDraft.location.href, 'attest.html');
+  assert.strictEqual(draftOf(reuseDraft.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+
+  const secondSong = load(filledUpload({
+    account: {
+      plan: 'basic',
+      tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+      upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+    },
+    responses: [{
+      ok: false,
+      status: 403,
+      data: { error: 'Basic includes one release. Upgrade to Creator or Pro to upload more.', code: 'PLAN_LIMIT' },
+    }],
+  }));
+  secondSong.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(!secondSong.calls.some(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; }));
+  assert.strictEqual(secondSong.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
+  assert.ok(secondSong.status.classList.contains('upload-status-error'));
+  assert.strictEqual(secondSong.limit.hidden, false);
+  assert.strictEqual(secondSong.upgrade.hidden, false);
+  assert.ok(secondSong.location.href.indexOf('attest.html') === -1);
 
   const unavailable = load(filledUpload({
     responses: [{ ok: false, status: 503, data: { configured: false, error: 'ToneGrid is not configured.' } }],
