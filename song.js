@@ -163,7 +163,7 @@
     if (draft && draft.tonegrid_status && !status) status = String(draft.tonegrid_status).toLowerCase();
     var api = statusApi();
     var g = api ? api.group(status) : '';
-    if (g === 'live' || g === 'rejected' || g === 'processing' || g === 'pending') return g;
+    if (g === 'live' || g === 'rejected' || g === 'processing' || g === 'pending' || g === 'taken_down') return g;
     if (status === 'live' || status === 'delivered') return 'live';
     if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'rejected';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'processing';
@@ -401,6 +401,7 @@
       setHidden('[data-song-boosts]', true);
       setHidden('[data-song-boost]', true);
       setHidden('[data-song-edit]', true);
+      setHidden('[data-song-remove]', true);
       setHidden('[data-song-split-empty]', false);
       setHidden('[data-song-rejection]', true);
       mountLivePlayer(null);
@@ -463,6 +464,7 @@
     setHidden('[data-song-boosts]', false);
     setHidden('[data-song-boost]', false);
     setHidden('[data-song-edit]', false);
+    setHidden('[data-song-remove]', !me || !release || !release.uuid || step === 'taken_down');
     var boostCta = $('[data-song-boost]');
     if (boostCta) {
       boostCta.classList.toggle('is-off', !paid);
@@ -1049,6 +1051,67 @@
     return chain;
   }
 
+  function clearDraftIf(releaseId) {
+    var draft = readDraft();
+    var want = String(releaseId || '').toLowerCase();
+    if (!want || String(draft.release_id || '').toLowerCase() !== want) return;
+    try { if (global.localStorage) global.localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    try { if (global.sessionStorage) global.sessionStorage.removeItem(DRAFT_KEY); } catch (err) {}
+  }
+
+  function confirmRemove(release) {
+    var step = statusStep(release, lastEdit.draft);
+    var live = step === 'live' || step === 'processing';
+    var message = live
+      ? 'Ask stores to take this release down? It stays listed until ToneGrid confirms. This cannot be undone.'
+      : 'Remove this release from PLAIGROUND? This cannot be undone.';
+    if (typeof global.confirm !== 'function') return false;
+    return global.confirm(message);
+  }
+
+  function removeRelease() {
+    var release = lastEdit.release;
+    var id = (release && release.uuid) || queryId();
+    var btn = $('[data-song-remove]');
+    if (!id) {
+      setText('[data-song-status]', 'Open a release before removing it.');
+      setHidden('[data-song-status]', false);
+      return Promise.resolve({ ok: false });
+    }
+    if (!confirmRemove(release || { uuid: id, status: (lastEdit.release && lastEdit.release.status) || '' })) {
+      return Promise.resolve({ ok: false, cancelled: true });
+    }
+    if (btn) btn.setAttribute('aria-busy', 'true');
+    setText('[data-song-status]', 'Removing…');
+    setHidden('[data-song-status]', false);
+    return sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'DELETE', {}).then(function (result) {
+      if (btn) btn.removeAttribute('aria-busy');
+      if (!result.ok) {
+        setText('[data-song-status]', (result.data && result.data.error) || 'ToneGrid could not remove this release.');
+        setHidden('[data-song-status]', false);
+        return { ok: false, result: result };
+      }
+      if (result.data && result.data.removed) {
+        clearDraftIf(id);
+        try { global.location.href = 'releases.html'; } catch (err) {}
+        return { ok: true, removed: true, redirect: 'releases.html', result: result };
+      }
+      var status = (result.data && result.data.status) || 'takedown_submitted';
+      if (lastEdit.release) lastEdit.release.status = status;
+      setText('[data-song-pill]', statusLabel(statusStep({ status: status }, lastEdit.draft)));
+      markLife(statusStep({ status: status }, lastEdit.draft));
+      setHidden('[data-song-remove]', true);
+      setText('[data-song-status]', 'Takedown submitted to stores. This release stays listed until ToneGrid confirms.');
+      setHidden('[data-song-status]', false);
+      return { ok: true, takedown: true, status: status, result: result };
+    }).catch(function () {
+      if (btn) btn.removeAttribute('aria-busy');
+      setText('[data-song-status]', 'Could not reach ToneGrid.');
+      setHidden('[data-song-status]', false);
+      return { ok: false };
+    });
+  }
+
   function bindEdit() {
     var openBtn = $('[data-song-edit]');
     if (openBtn && openBtn.addEventListener) {
@@ -1063,6 +1126,10 @@
     var cancelBtn = $('[data-edit-cancel]');
     if (cancelBtn && cancelBtn.addEventListener) {
       cancelBtn.addEventListener('click', closeEdit);
+    }
+    var removeBtn = $('[data-song-remove]');
+    if (removeBtn && removeBtn.addEventListener) {
+      removeBtn.addEventListener('click', function () { removeRelease(); });
     }
     var inst = $('#edit-instrumental');
     if (inst && inst.addEventListener) {
@@ -1091,6 +1158,7 @@
     openEdit: openEdit,
     closeEdit: closeEdit,
     submitEdit: submitEdit,
+    removeRelease: removeRelease,
     isCreateReleaseUrl: isCreateReleaseUrl,
     currentEditState: currentEditState,
   };
