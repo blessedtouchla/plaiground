@@ -712,6 +712,12 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 }
 .typeahead-list button:hover,
 .typeahead-list button:focus { background: rgba(125, 60, 255, 0.22); }
+.typeahead-hint {
+  padding: 10px 14px 4px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  pointer-events: none;
+}
 .field select.details-select {
   cursor: pointer;
   padding-right: 40px;
