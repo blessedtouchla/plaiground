@@ -430,6 +430,9 @@ function run() {
   assert.ok(!html.includes('name="release-subgenre"'));
   assert.ok(read('song.js').includes('setTypeaheadValue'));
   assert.ok(read('song.js').includes('canonicalCatalogValue'));
+  assert.ok(read('song.js').includes('persistEditReleaseDate'));
+  assert.ok(read('song.js').includes('ignoreEmpty'));
+  assert.ok(css.includes('::-webkit-datetime-edit'));
 
   assert.strictEqual(page.nodes['[data-song-edit]'].hidden, false, 'Edit release is on the real song');
   page.api.openEdit({
@@ -466,6 +469,16 @@ function run() {
   assert.strictEqual(page.ids['edit-artist'].disabled, true, 'catalog artist stays locked');
   assert.strictEqual(page.ids['edit-genre'].value, 'Electronic');
   assert.ok(page.nodes['[data-edit-attest]'].hidden === false, 'AI attest stays visible when already collected');
+
+  const pickedDate = '2026-09-12';
+  page.ids['edit-release-date'].value = pickedDate;
+  page.ids['edit-release-date'].listeners.input({ type: 'input' });
+  assert.strictEqual(page.ids['edit-release-date'].value, pickedDate, 'clicked edit-release date must stay visible');
+  assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.tonegrid.draft')).release_date, pickedDate);
+  page.ids['edit-release-date'].value = '';
+  page.ids['edit-release-date'].listeners.input({ type: 'input' });
+  assert.strictEqual(page.ids['edit-release-date'].value, pickedDate, 'empty input during edit-release pick must not wipe the shown date');
+  assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.tonegrid.draft')).release_date, pickedDate);
 
   const editCalls = [];
   const editor = loadSong({

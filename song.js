@@ -666,13 +666,31 @@
     });
   }
 
+  function persistEditReleaseDate(dateEl, opts) {
+    opts = opts || {};
+    if (!dateEl) return '';
+    var raw = String(dateEl.value || '').trim();
+    var picked = toIsoDate(raw);
+    var release = lastEdit && lastEdit.release;
+    var releaseId = release && release.uuid;
+    if (!raw && opts.ignoreEmpty) {
+      var kept = toIsoDate(readDraft().release_date);
+      if (kept && dateEl.value !== kept) dateEl.value = kept;
+      return kept;
+    }
+    if (picked) dateEl.value = picked;
+    else if (!opts.ignoreEmpty) dateEl.value = '';
+    if (releaseId) writeDraftFor(releaseId, { release_date: picked || '' });
+    return picked;
+  }
+
   function collectSchedule() {
     var preorderOn = $('#edit-preorder-on');
     var timeOn = $('#edit-time-on');
     var preorderEl = $('#edit-preorder-date');
     var timeEl = $('#edit-release-time');
     var zoneEl = $('#edit-release-timezone');
-    var releaseDate = toIsoDate($('#edit-release-date') && $('#edit-release-date').value);
+    var releaseDate = persistEditReleaseDate($('#edit-release-date'), { ignoreEmpty: true });
     var selectPreorder = Boolean(preorderOn && preorderOn.checked);
     var defineTime = Boolean(timeOn && timeOn.checked);
     if (preorderEl) {
@@ -698,8 +716,14 @@
     ['edit-preorder-on', 'edit-time-on', 'edit-preorder-date', 'edit-release-time', 'edit-release-timezone', 'edit-release-date'].forEach(function (id) {
       var el = $('#' + id);
       if (!el || !el.addEventListener) return;
-      el.addEventListener('change', collectSchedule);
-      el.addEventListener('input', collectSchedule);
+      el.addEventListener('change', function () {
+        if (id === 'edit-release-date') persistEditReleaseDate(el);
+        collectSchedule();
+      });
+      el.addEventListener('input', function () {
+        if (id === 'edit-release-date') persistEditReleaseDate(el, { ignoreEmpty: true });
+        collectSchedule();
+      });
     });
   }
 
