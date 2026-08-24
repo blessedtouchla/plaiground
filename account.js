@@ -281,6 +281,26 @@
     return '$' + (n / 100).toFixed(2);
   }
 
+  function nextPeriodPrice(plan, interval, cents) {
+    var fromServer = dollars(cents);
+    if (fromServer) return fromServer;
+    var next = String(plan || '').trim().toLowerCase();
+    var billed = String(interval || '').trim().toLowerCase();
+    if (next === 'creator' && billed === 'month') return '$14.99';
+    if (next === 'creator' && billed === 'year') return '$149.00';
+    if (next === 'pro' && billed === 'month') return '$19.99';
+    if (next === 'pro' && billed === 'year') return '$199.00';
+    return '';
+  }
+
+  function upgradeChargeCopy(due, next) {
+    if (due && next) {
+      return 'You pay the difference now: ' + due + '. Next period you pay ' + next + '. Same billing date.';
+    }
+    if (due) return 'You pay the difference now: ' + due + '. Then the new price next period.';
+    return 'You pay the difference now, then the new price next period.';
+  }
+
   function bindPlanConfirm() {
     var root = document.querySelector('[data-plan-confirm]');
     if (!root) return;
@@ -310,9 +330,9 @@
       submit.setAttribute('data-checkout-interval', interval);
       submit.setAttribute('data-checkout-switch', '');
     }
-    setText(title, planPitch(plan, interval));
+    setText(title, 'Confirm ' + planPitch(plan, interval));
     setText(change, 'Switch to ' + planPitch(plan, interval) + '.' + (plan === 'pro' ? ' ' + PLAN_DETAIL.pro : ''));
-    setText(charge, 'Submit charges an upgrade now, or applies a downgrade with no refund.');
+    setText(charge, 'You pay the difference now, then the new price next period. Downgrades take effect now with no refund.');
     if (typeof global.fetch !== 'function') return;
     global.fetch('/api/create-checkout-session', {
       method: 'POST',
@@ -345,17 +365,18 @@
         }
         setText(change, 'Switch from ' + from + ' to ' + to + '.' + (plan === 'pro' ? ' ' + PLAN_DETAIL.pro : ''));
         if (data.proration === 'none') {
+          setText(title, 'No refund');
           setText(charge, 'This is a downgrade. The change takes effect now. No refund for unused time.');
           return;
         }
-        if (data.checkout) {
+        if (data.checkout && !data.existing) {
           setText(charge, 'Submit continues to Stripe Checkout to start this plan.');
           return;
         }
         var due = dollars(data.amount_due);
-        setText(charge, due
-          ? 'This is an upgrade. Submit charges the prorated difference now: ' + due + '.'
-          : 'This is an upgrade. Submit charges the prorated difference now.');
+        var next = nextPeriodPrice(data.plan || plan, data.interval || interval, data.recurring_amount);
+        if (due) setText(title, 'Due now: ' + due);
+        setText(charge, upgradeChargeCopy(due, next));
       })
       .catch(function () {});
   }
