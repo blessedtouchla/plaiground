@@ -38,7 +38,7 @@ CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
 
 `XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, and `SIGNUP_CONFIRM_SECRET` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
-After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for one of the four live prices arrives. Checkout always sends `subscription_data[collection_method]=charge_automatically` (automated monthly/yearly charge; existing live prices only; no new products).
+After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for one of the four live prices arrives. Checkout uses `mode=subscription` on the four existing live prices (automated monthly/yearly charge; no new products). Do not send `subscription_data[collection_method]` — Checkout Sessions reject it.
 
 Failed-pay statuses (plan stays Creator/Pro until cancel/delete):
 
@@ -52,7 +52,7 @@ Failed-pay statuses (plan stays Creator/Pro until cancel/delete):
 
 7-day-early collection is Stripe Billing, not an invented job:
 
-1. Checkout field: `subscription_data[collection_method]=charge_automatically`
+1. Checkout: `mode=subscription` (automatic collection is the Checkout default; do not send `subscription_data[collection_method]`)
 2. Dashboard → Settings → Billing → Subscriptions and emails → **Upcoming renewal events = 7 days** (fires `invoice.upcoming`)
 3. Same page / Invoices: **Generate invoices 7 days in advance** (Stripe finalizes and charges then)
 4. After retries: **Mark the subscription as unpaid** so renewal-day shutoff is `unpaid`

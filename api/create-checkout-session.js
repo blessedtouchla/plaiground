@@ -235,7 +235,6 @@ async function createCheckoutSession(req, res) {
 
   const params = new URLSearchParams();
   params.append('mode', 'subscription');
-  params.append('subscription_data[collection_method]', 'charge_automatically');
   params.append('line_items[0][price]', resolved.priceId);
   params.append('line_items[0][quantity]', '1');
   params.append('success_url', SUCCESS_URL);
