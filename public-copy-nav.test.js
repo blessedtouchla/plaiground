@@ -293,7 +293,219 @@ function run() {
   assert.ok(!split.includes('class="side"'), 'split-sheet.html is flow chrome, not the app sidebar');
   assert.ok(!split.includes('Learn more: Basic'), 'do not overwrite split-sheet.html');
 
+  const publicNav = runPublicNav({ signedIn: false, app: false });
+  assert.ok(publicNav.tools, 'logged-out public header builds the Login + Menu cluster');
+  assert.strictEqual(publicNav.login.getAttribute('href'), 'login.html', 'pinned Login uses the existing sign-in page');
+  assert.strictEqual(publicNav.login.hidden, false, 'logged-out public header shows Login');
+  assert.ok(publicNav.toggle, 'Menu pill stays next to the pinned Login');
+  assert.strictEqual(publicNav.tools.children[0], publicNav.login, 'Login is first in the header cluster');
+  assert.strictEqual(publicNav.tools.children[1], publicNav.toggle, 'Menu sits under / after Login');
+  assert.strictEqual(publicNav.header.querySelectorAll('a.login').length, 1, 'only one header Login');
+  assert.ok(publicNav.heroJoin, 'Join for free stays in the hero');
+
+  const signedInPublic = runPublicNav({ signedIn: true, app: false });
+  assert.strictEqual(signedInPublic.login.hidden, true, 'signed-in visitors do not get the public header Login');
+  assert.ok(signedInPublic.toggle, 'signed-in public pages still keep Menu');
+
+  const appNav = runPublicNav({ signedIn: true, app: true });
+  assert.ok(!appNav.tools, 'signed-in app chrome does not gain the public Login cluster');
+  assert.ok(!appNav.login, 'signed-in Hi there / PG pages do not get a header Login');
+  assert.ok(!appNav.toggle || !appNav.toggle.classList.contains('public-menu-toggle'), 'app Menu is not the public header cluster');
+
   console.log('public-copy-nav.test.js ok');
+}
+
+function el(tag, attrs, kids) {
+  const node = {
+    tagName: String(tag).toUpperCase(),
+    className: '',
+    id: '',
+    hidden: false,
+    href: '',
+    type: '',
+    parentNode: null,
+    children: [],
+    attributes: Object.create(null),
+    textContent: '',
+    innerHTML: '',
+    classList: {
+      contains: function (name) {
+        return (' ' + node.className + ' ').indexOf(' ' + name + ' ') !== -1;
+      },
+      add: function (name) {
+        if (!node.classList.contains(name)) node.className = (node.className + ' ' + name).trim();
+      },
+      remove: function (name) {
+        node.className = node.className.split(/\s+/).filter(function (part) { return part && part !== name; }).join(' ');
+      },
+      toggle: function (name, on) {
+        if (on === false) node.classList.remove(name);
+        else if (on === true || !node.classList.contains(name)) node.classList.add(name);
+        else node.classList.remove(name);
+        return node.classList.contains(name);
+      },
+    },
+    setAttribute: function (key, value) {
+      node.attributes[key] = String(value);
+      if (key === 'class') node.className = String(value);
+      if (key === 'id') node.id = String(value);
+      if (key === 'href') node.href = String(value);
+      if (key === 'type') node.type = String(value);
+    },
+    getAttribute: function (key) {
+      if (key === 'class') return node.className;
+      if (key === 'id') return node.id;
+      if (key === 'href') return node.href;
+      if (key === 'type') return node.type;
+      return Object.prototype.hasOwnProperty.call(node.attributes, key) ? node.attributes[key] : null;
+    },
+    appendChild: function (child) {
+      if (child.parentNode) child.parentNode.removeChild(child);
+      child.parentNode = node;
+      node.children.push(child);
+      return child;
+    },
+    insertBefore: function (child, ref) {
+      if (child.parentNode) child.parentNode.removeChild(child);
+      child.parentNode = node;
+      const index = node.children.indexOf(ref);
+      if (index === -1) node.children.push(child);
+      else node.children.splice(index, 0, child);
+      return child;
+    },
+    removeChild: function (child) {
+      node.children = node.children.filter(function (item) { return item !== child; });
+      child.parentNode = null;
+      return child;
+    },
+    addEventListener: function () {},
+    contains: function (other) {
+      if (other === node) return true;
+      return node.children.some(function (child) { return child.contains(other); });
+    },
+    querySelector: function (sel) { return qsa(node, sel)[0] || null; },
+    querySelectorAll: function (sel) { return qsa(node, sel); },
+  };
+  Object.keys(attrs || {}).forEach(function (key) { node.setAttribute(key, attrs[key]); });
+  (kids || []).forEach(function (child) { node.appendChild(child); });
+  return node;
+}
+
+function match(node, sel) {
+  sel = String(sel || '');
+  var attr = '';
+  if (sel.indexOf('[') !== -1) {
+    attr = sel.slice(sel.indexOf('[') + 1, sel.lastIndexOf(']'));
+    sel = sel.slice(0, sel.indexOf('['));
+  }
+  var parts = sel.split('.');
+  var tag = parts[0];
+  var classes = parts.slice(1);
+  if (tag && node.tagName !== tag.toUpperCase()) return false;
+  for (var i = 0; i < classes.length; i += 1) {
+    if (!node.classList.contains(classes[i])) return false;
+  }
+  if (!attr) return true;
+  if (attr.indexOf('=') === -1) return node.getAttribute(attr) != null;
+  var name = attr.split('=')[0];
+  var value = attr.split('=').slice(1).join('=').replace(/^["']|["']$/g, '');
+  return String(node.getAttribute(name) || '') === value;
+}
+
+function qsa(root, selector) {
+  const parts = String(selector || '').trim().split(/\s+/);
+  function walk(node, acc) {
+    acc.push(node);
+    node.children.forEach(function (child) { walk(child, acc); });
+    return acc;
+  }
+  let current = [root];
+  parts.forEach(function (part) {
+    const next = [];
+    current.forEach(function (node) {
+      walk(node, []).forEach(function (candidate) {
+        if (candidate !== node && match(candidate, part) && next.indexOf(candidate) === -1) next.push(candidate);
+      });
+    });
+    current = next;
+  });
+  current.forEach = Array.prototype.forEach;
+  return current;
+}
+
+function runPublicNav(options) {
+  const vm = require('vm');
+  const document = {
+    body: null,
+    querySelector: function (sel) { return document.body.querySelector(sel); },
+    querySelectorAll: function (sel) { return document.body.querySelectorAll(sel); },
+    createElement: function (tag) { return el(tag); },
+    addEventListener: function () {},
+  };
+  const context = {
+    document: document,
+    window: {
+      PlaigroundMembership: {
+        isSignedIn: function () { return !!options.signedIn; },
+        whenReady: function (cb) { if (typeof cb === 'function') cb(); },
+      },
+    },
+    NodeList: Array,
+  };
+  context.window.document = document;
+
+  if (options.app) {
+    const who = el('a', { class: 'who', href: 'settings.html' });
+    who.textContent = 'Hi there';
+    const topbar = el('div', { class: 'topbar' }, [who]);
+    const side = el('aside', { class: 'side' }, [el('a', { href: 'dashboard.html' })]);
+    document.body = el('body', { class: 'app' }, [side, el('div', { class: 'app-main' }, [topbar])]);
+    vm.runInNewContext(read('site.js'), context);
+    return {
+      header: null,
+      tools: document.body.querySelector('.public-header-tools'),
+      login: document.body.querySelector('a.login'),
+      toggle: document.body.querySelector('.public-menu-toggle'),
+      heroJoin: null,
+    };
+  }
+
+  const login = el('a', { class: 'login', href: 'login.html' });
+  login.textContent = 'Log in';
+  const actions = el('div', { class: 'nav-actions' }, [
+    login,
+    el('a', { class: 'btn btn-purple btn-sm', href: 'signup.html' }),
+  ]);
+  const links = el('nav', { class: 'nav-links' }, [
+    el('a', { href: 'how-it-works.html' }),
+    el('a', { href: 'index.html#pricing' }),
+    el('a', { href: 'basic.html' }),
+    el('a', { href: 'creator.html' }),
+    el('a', { href: 'pro.html' }),
+    el('a', { href: 'royalties.html' }),
+    el('a', { href: 'faq.html' }),
+  ]);
+  const inner = el('div', { class: 'nav-inner wrap' }, [
+    el('a', { class: 'logo', href: 'index.html' }),
+    links,
+    actions,
+  ]);
+  const header = el('header', { class: 'nav' }, [inner]);
+  const heroJoin = el('a', { class: 'btn btn-purple btn-md', href: 'signup.html?plan=basic' });
+  heroJoin.setAttribute('data-plan', 'basic');
+  heroJoin.textContent = 'Join for free';
+  document.body = el('body', {}, [
+    header,
+    el('main', {}, [el('div', { class: 'hero-ctas' }, [heroJoin])]),
+  ]);
+  vm.runInNewContext(read('site.js'), context);
+  return {
+    header: header,
+    tools: inner.querySelector('.public-header-tools'),
+    login: header.querySelector('a.login'),
+    toggle: inner.querySelector('.menu-toggle'),
+    heroJoin: heroJoin,
+  };
 }
 
 run();
