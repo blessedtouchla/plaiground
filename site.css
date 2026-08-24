@@ -548,20 +548,35 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--purple-bright); }
 .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #999 50%), linear-gradient(135deg, #999 50%, transparent 50%); background-position: calc(100% - 18px) 18px, calc(100% - 12px) 18px; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
 .typeahead-field { position: relative; z-index: 1; overflow: visible; }
-.typeahead-field:focus-within { z-index: 20; }
+.typeahead-field:focus-within,
+.typeahead-field.is-typeahead-open { z-index: 30; }
 .form-grid .field,
+.flow-card,
 .release-edit,
 .release-edit .form-grid,
 .panel.release-edit { overflow: visible; }
 .field select.is-typeahead-source {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   opacity: 0;
   pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
 }
 .field input.typeahead-input {
   cursor: text;
+  font-size: 16px;
   padding-right: 40px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23C8C8D0' d='M1 1.2 6 6.2 11 1.2'/></svg>");
   background-position: right 14px center;
@@ -570,7 +585,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 }
 .typeahead-list {
   position: absolute;
-  z-index: 21;
+  z-index: 40;
   left: 0;
   right: 0;
   top: calc(100% + 4px);
@@ -582,6 +597,11 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.typeahead-list.is-above {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 .typeahead-list button {
   display: block;
@@ -590,10 +610,13 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   background: none;
   border: none;
   color: #fff;
-  padding: 10px 14px;
-  font-size: 15px;
+  padding: 12px 14px;
+  min-height: 44px;
+  font-size: 16px;
+  touch-action: manipulation;
 }
-.typeahead-list button:hover { background: rgba(125, 60, 255, 0.22); }
+.typeahead-list button:hover,
+.typeahead-list button:focus { background: rgba(125, 60, 255, 0.22); }
 .field select.details-select {
   cursor: pointer;
   padding-right: 40px;

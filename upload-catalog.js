@@ -1389,7 +1389,14 @@ function bindTypeahead(select, items, getValue, getLabel) {
   input.type = 'text';
   input.className = 'typeahead-input';
   input.setAttribute('autocomplete', 'off');
+  input.setAttribute('autocorrect', 'off');
+  input.setAttribute('autocapitalize', 'none');
   input.setAttribute('spellcheck', 'false');
+  input.setAttribute('inputmode', 'search');
+  input.setAttribute('enterkeyhint', 'done');
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-expanded', 'false');
   input.id = select.id ? select.id + '-type' : '';
   input.setAttribute('placeholder', select.options[0] && !select.options[0].value ? select.options[0].textContent : 'Select');
   select.classList.add('is-typeahead-source');
@@ -1398,7 +1405,9 @@ function bindTypeahead(select, items, getValue, getLabel) {
 
   var list = document.createElement('div');
   list.className = 'typeahead-list is-hidden';
+  list.id = input.id ? input.id + '-list' : '';
   list.setAttribute('role', 'listbox');
+  if (list.id) input.setAttribute('aria-controls', list.id);
 
   if (select.id) {
     var label = field.querySelector('label[for="' + select.id + '"]');
@@ -1407,6 +1416,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
 
   field.insertBefore(input, select);
   field.appendChild(list);
+
+  var picking = false;
+  var placeTimer = 0;
+  var win = typeof window !== 'undefined' ? window : null;
 
   function exact(query) {
     return findPick(items, getValue, getLabel, query);
@@ -1439,9 +1452,93 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
   }
 
+  function typedMatch(query) {
+    var pick = exact(query);
+    if (!pick) {
+      applyPick(null);
+      return null;
+    }
+    var typed = String(query || '').trim().toLowerCase();
+    var labelLow = String(pick.label || '').toLowerCase();
+    // Autofill the visible field only on a real label. ISO codes like "en"
+    // must not jump the input to "English" while the user is still typing.
+    if (typed && typed === labelLow) applyPick(pick);
+    else {
+      select.value = '';
+      if (select.options[0]) select.selectedIndex = 0;
+    }
+    return pick;
+  }
+
+  function viewportBox() {
+    var vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (vv && typeof vv.height === 'number') {
+      return {
+        top: vv.offsetTop || 0,
+        left: vv.offsetLeft || 0,
+        width: vv.width,
+        height: vv.height,
+      };
+    }
+    var height = (typeof window !== 'undefined' && window.innerHeight) || 0;
+    var width = (typeof window !== 'undefined' && window.innerWidth) || 0;
+    return { top: 0, left: 0, width: width, height: height };
+  }
+
+  function keepInputVisible() {
+    if (!input.getBoundingClientRect) return;
+    var rect = input.getBoundingClientRect();
+    var box = viewportBox();
+    if (!box.height || !rect || typeof rect.top !== 'number') return;
+    var desired = box.top + Math.min(88, Math.max(12, Math.round(box.height * 0.14)));
+    var delta = rect.top - desired;
+    if (Math.abs(delta) > 10 && typeof window !== 'undefined' && window.scrollBy) {
+      window.scrollBy(0, delta);
+    }
+  }
+
+  function placeList() {
+    if (!list.classList || list.classList.contains('is-hidden')) return;
+    var maxH = 240;
+    var above = false;
+    if (input.getBoundingClientRect) {
+      var rect = input.getBoundingClientRect();
+      var box = viewportBox();
+      if (rect && typeof rect.bottom === 'number' && box.height) {
+        var spaceBelow = box.top + box.height - rect.bottom - 8;
+        var spaceAbove = rect.top - box.top - 8;
+        above = spaceBelow < 140 && spaceAbove > spaceBelow;
+        maxH = Math.max(120, Math.min(240, above ? spaceAbove : (spaceBelow > 0 ? spaceBelow : 240)));
+      }
+    }
+    if (list.classList.toggle) list.classList.toggle('is-above', above);
+    list.style.top = above ? 'auto' : 'calc(100% + 4px)';
+    list.style.bottom = above ? 'calc(100% + 4px)' : 'auto';
+    list.style.maxHeight = maxH + 'px';
+    list.style.overflowY = 'auto';
+    list.style.overflowX = 'hidden';
+  }
+
   function hideList() {
     list.classList.add('is-hidden');
+    if (list.classList.remove) list.classList.remove('is-above');
     list.innerHTML = '';
+    list.style.top = '';
+    list.style.bottom = '';
+    if (field.classList && field.classList.remove) field.classList.remove('is-typeahead-open');
+    input.setAttribute('aria-expanded', 'false');
+  }
+
+  function pickOption(pick, event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (event && event.stopPropagation) event.stopPropagation();
+    if (picking) return;
+    picking = true;
+    applyPick(pick);
+    hideList();
+    if (input.blur) input.blur();
+    if (win && win.setTimeout) win.setTimeout(function () { picking = false; }, 320);
+    else picking = false;
   }
 
   function showMatches(query) {
@@ -1472,30 +1569,40 @@ function bindTypeahead(select, items, getValue, getLabel) {
       btn.textContent = pick.label;
       btn.setAttribute('role', 'option');
       btn.setAttribute('data-value', pick.value);
-      btn.addEventListener('mousedown', function (event) {
-        event.preventDefault();
-        applyPick(pick);
-        hideList();
-      });
+      btn.setAttribute('tabindex', '-1');
+      function onPick(event) { pickOption(pick, event); }
+      btn.addEventListener('pointerdown', onPick);
+      btn.addEventListener('mousedown', onPick);
+      btn.addEventListener('click', onPick);
       list.appendChild(btn);
     });
     list.classList.remove('is-hidden');
-    list.style.maxHeight = '240px';
-    list.style.overflowY = 'auto';
-    list.style.overflowX = 'hidden';
+    if (field.classList && field.classList.add) field.classList.add('is-typeahead-open');
+    input.setAttribute('aria-expanded', 'true');
+    placeList();
   }
 
   list.addEventListener('wheel', function (event) {
     if (list.scrollHeight > list.clientHeight) event.stopPropagation();
   }, { passive: true });
+  list.addEventListener('touchstart', function (event) {
+    if (event && event.stopPropagation) event.stopPropagation();
+  }, { passive: true });
 
   input.addEventListener('input', function () {
-    var pick = exact(input.value);
-    applyPick(pick);
+    typedMatch(input.value);
     showMatches(input.value);
   });
   input.addEventListener('focus', function () {
     showMatches(input.value);
+    keepInputVisible();
+    if (win && win.setTimeout) {
+      if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
+      placeTimer = win.setTimeout(function () {
+        keepInputVisible();
+        placeList();
+      }, 280);
+    }
   });
   input.addEventListener('keydown', function (event) {
     var key = event && event.key;
@@ -1507,11 +1614,11 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
     if (!first) return;
     if (event.preventDefault) event.preventDefault();
-    applyPick({ value: first.getAttribute('data-value') || first.textContent, label: first.textContent });
-    hideList();
+    pickOption({ value: first.getAttribute('data-value') || first.textContent, label: first.textContent }, event);
   });
   input.addEventListener('blur', function () {
-    window.setTimeout(function () {
+    function finishBlur() {
+      if (picking) return;
       hideList();
       var pick = exact(input.value);
       if (pick) applyPick(pick);
@@ -1520,8 +1627,21 @@ function bindTypeahead(select, items, getValue, getLabel) {
         input.value = '';
         if (select.options[0]) select.selectedIndex = 0;
       }
-    }, 120);
+    }
+    if (win && win.setTimeout) win.setTimeout(finishBlur, 160);
+    else finishBlur();
   });
+  function onViewport() {
+    if (list.classList.contains('is-hidden')) return;
+    placeList();
+  }
+  if (win) {
+    if (win.visualViewport && win.visualViewport.addEventListener) {
+      win.visualViewport.addEventListener('resize', onViewport);
+      win.visualViewport.addEventListener('scroll', onViewport);
+    }
+    if (win.addEventListener) win.addEventListener('resize', onViewport);
+  }
   if (select.addEventListener) select.addEventListener('change', syncFromSelect);
   select._plaigroundSyncTypeahead = syncFromSelect;
   syncFromSelect();
