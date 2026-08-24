@@ -108,6 +108,7 @@ function loadSong(opts) {
     'edit-art': makeEl({ id: 'edit-art', files: [] }),
     'edit-audio': makeEl({ id: 'edit-audio', files: [], attrs: { 'data-track-id': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } }),
     'edit-instrumental': makeEl({ id: 'edit-instrumental', type: 'checkbox' }),
+    'edit-lyrics': makeEl({ id: 'edit-lyrics', value: '' }),
     'edit-release-date': makeEl({ id: 'edit-release-date', value: '2026-09-12' }),
     'edit-preorder-on': makeEl({ id: 'edit-preorder-on', type: 'checkbox' }),
     'edit-preorder-date': makeEl({ id: 'edit-preorder-date', value: '' }),
@@ -155,6 +156,8 @@ function loadSong(opts) {
     '[data-edit-save]': makeEl({}),
     '[data-edit-cancel]': makeEl({}),
     '[data-language-field]': makeEl({}),
+    '[data-edit-lyrics-field]': makeEl({}),
+    '#edit-lyrics': ids['edit-lyrics'],
     '#edit-title': ids['edit-title'],
     '#edit-artist': ids['edit-artist'],
     '#edit-featured': ids['edit-featured'],
@@ -424,6 +427,9 @@ function run() {
   assert.ok(html.includes('id="edit-preorder-on"'));
   assert.ok(html.includes('id="edit-time-on"'));
   assert.ok(html.includes('id="edit-artist"'));
+  assert.ok(html.includes('id="edit-lyrics"'));
+  assert.ok(html.includes('<label for="edit-lyrics">Lyrics</label>'));
+  assert.ok(html.includes('data-edit-lyrics-field'));
   assert.ok(html.includes('ToneGrid locks the catalog artist'));
   assert.ok(!html.includes('tonegrid.js'));
   assert.ok(!html.includes('data-require-membership'));
@@ -473,6 +479,29 @@ function run() {
   assert.strictEqual(page.ids['edit-artist'].disabled, true, 'catalog artist stays locked');
   assert.strictEqual(page.ids['edit-genre'].value, 'Electronic');
   assert.ok(page.nodes['[data-edit-attest]'].hidden === false, 'AI attest stays visible when already collected');
+  page.ids['edit-lyrics'].value = '';
+  page.api.openEdit({
+    me: basicMe,
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      language: 'en',
+      lyrics: 'Night after night',
+      instrumental: false,
+    },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      status: 'pending',
+      language: 'en',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+    },
+  });
+  assert.strictEqual(page.ids['edit-lyrics'].value, 'Night after night');
+  assert.strictEqual(page.nodes['[data-edit-lyrics-field]'].hidden, false);
+  page.ids['edit-instrumental'].checked = true;
+  page.ids['edit-instrumental'].listeners.change();
+  assert.strictEqual(page.nodes['[data-edit-lyrics-field]'].hidden, true);
 
   const pickedDate = '2026-09-12';
   page.ids['edit-release-date'].value = pickedDate;
@@ -576,6 +605,7 @@ function run() {
   editor.ids['edit-genre'].value = 'Electronic';
   editor.ids['edit-language'].value = 'en';
   editor.ids['edit-release-date'].value = '2026-09-12';
+  editor.ids['edit-lyrics'].value = 'City lights, I stay';
   editor.api.openEdit({
     me: basicMe,
     draft: {
@@ -600,6 +630,7 @@ function run() {
     },
   });
   editor.ids['edit-title'].value = 'Fuvtu Edit';
+  editor.ids['edit-lyrics'].value = 'City lights, I stay';
   return editor.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'Basic edit submit must succeed');
     assert.strictEqual(result.created, false);
@@ -610,6 +641,14 @@ function run() {
     assert.ok(mutating.some((row) => row.method === 'PUT' && /\/tracks\//.test(row.url)));
     assert.ok(mutating.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
     assert.ok(!mutating.some((row) => editor.api.isCreateReleaseUrl(row.url, row.method)), 'edit must not POST a new release or artist');
+    const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.tonegrid.draft'));
+    assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
+    mutating.filter((row) => typeof row.body === 'string').forEach((row) => {
+      let body = {};
+      try { body = JSON.parse(row.body); } catch (err) { body = {}; }
+      assert.strictEqual(body.lyrics, undefined, 'edit must not invent a ToneGrid lyrics field');
+      assert.strictEqual(body.lyric_text, undefined);
+    });
     assert.ok(!mutating.some((row) => row.method === 'POST' && /PLAN_LIMIT/.test(String(row.body || ''))));
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));

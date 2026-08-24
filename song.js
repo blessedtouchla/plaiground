@@ -791,6 +791,19 @@
     if (field.classList && field.classList.toggle) field.classList.toggle('is-hidden', Boolean(instrumental));
   }
 
+  function syncLyricsField(instrumental) {
+    var field = $('[data-edit-lyrics-field]');
+    if (!field) return;
+    field.hidden = Boolean(instrumental);
+    if (field.classList && field.classList.toggle) field.classList.toggle('is-hidden', Boolean(instrumental));
+  }
+
+  function selectedEditLyrics(instrumental) {
+    if (instrumental) return '';
+    var el = $('#edit-lyrics');
+    return el ? String(el.value || '') : '';
+  }
+
   function fillCatalogSelects() {
     var catalog = global.PlaigroundUploadCatalog;
     if (catalog && typeof catalog.fillUploadSelects === 'function') {
@@ -890,6 +903,7 @@
     var price = $('#edit-price');
     var dateEl = $('#edit-release-date');
     var inst = $('#edit-instrumental');
+    var lyrics = $('#edit-lyrics');
     var track = (release.tracks && release.tracks[0]) || {};
     if (title) title.value = release.title || draft.title || '';
     if (artist) {
@@ -902,7 +916,9 @@
     syncCatalogValues();
     if (price) price.value = draft.price || '';
     if (inst) inst.checked = Boolean(draft.instrumental);
+    if (lyrics) lyrics.value = String(draft.lyrics || (track && track.lyrics) || '');
     syncLanguageField(inst && inst.checked);
+    syncLyricsField(inst && inst.checked);
     var existingDate = toIsoDate(release.release_date || draft.release_date);
     if (dateEl) {
       dateEl.type = 'date';
@@ -1002,6 +1018,7 @@
     var instrumental = Boolean($('#edit-instrumental') && $('#edit-instrumental').checked);
     var language = $('#edit-language') ? String($('#edit-language').value || '').trim().toLowerCase() : '';
     if (instrumental) language = '';
+    var lyrics = selectedEditLyrics(instrumental);
     var price = $('#edit-price') ? String($('#edit-price').value || '').trim() : '';
     var featured = $('#edit-featured') ? String($('#edit-featured').value || '').trim() : '';
     var schedule = collectSchedule();
@@ -1029,6 +1046,7 @@
       price: price,
       featured: featured,
       instrumental: instrumental,
+      lyrics: lyrics,
       explicit: selectedExplicit(),
       made_how: selectedMadeHow() || draft.made_how || '',
       release_date: date,
@@ -1219,7 +1237,10 @@
     }
     var inst = $('#edit-instrumental');
     if (inst && inst.addEventListener) {
-      inst.addEventListener('change', function () { syncLanguageField(inst.checked); });
+      inst.addEventListener('change', function () {
+        syncLanguageField(inst.checked);
+        syncLyricsField(inst.checked);
+      });
     }
     $all('[data-edit-explicit] [data-explicit]').forEach(function (el) {
       if (!el.addEventListener) return;

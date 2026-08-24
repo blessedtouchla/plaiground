@@ -1273,6 +1273,30 @@ a.st:hover,
   font-size: 12px;
   margin-top: 4px;
 }
+button.dashbox {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+button.dashbox span {
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.lyrics-field textarea,
+.lyrics-preview {
+  min-height: 140px;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+.lyrics-preview {
+  margin: 0;
+  font: inherit;
+}
 .audio-drop {
   display: block;
   cursor: pointer;
