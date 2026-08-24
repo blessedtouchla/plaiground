@@ -37,7 +37,7 @@
         <a class="on" href="upload.html" data-type="single">Single</a>
         <a href="upload.html?type=album" data-type="album">Album</a>
       </div>
-      <p class="hint" data-album-hint hidden>An album is one ToneGrid release with multiple tracks under the same artist. Creator and Pro only.</p>
+      <p class="hint" data-album-hint hidden>An album is one store release with multiple tracks under the same artist. Creator and Pro only.</p>
     </section>
 
     <section class="flow-card" data-album-count hidden>
@@ -229,6 +229,9 @@
       </div>
       <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-tonegrid-continue href="attest.html">Continue to attest rights</a></p>
       <p class="hint" id="tg-status" hidden></p>
+      <p id="tg-retry-wrap" data-upload-retry-wrap hidden>
+        <button type="button" class="btn btn-purple btn-sm" data-upload-retry>Retry</button>
+      </p>
       <div class="upload-limit" id="tg-limit" hidden>
         <p id="tg-limit-copy">This is a new song. Basic includes one release.</p>
         <p class="hero-ctas" style="margin:0">

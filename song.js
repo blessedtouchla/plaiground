@@ -33,9 +33,17 @@
     return '$' + toNumber(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function sanitizePartnerCopy(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
+    next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+    return next;
+  }
+
   function setText(sel, text) {
     var el = $(sel);
-    if (el) el.textContent = text == null ? '' : String(text);
+    if (el) el.textContent = text == null ? '' : sanitizePartnerCopy(text);
   }
 
   function setHidden(sel, hidden) {
@@ -476,7 +484,7 @@
     var rejection = String((release && release.rejection_reason) || (stored && stored.rejection_reason) || '').trim();
     var rejected = step === 'rejected' || Boolean(rejection);
     setHidden('[data-song-rejection]', !rejected);
-    setText('[data-song-rejection-reason]', rejection || 'ToneGrid sent this release back. Fix the details and resubmit.');
+    setText('[data-song-rejection-reason]', rejection || 'The store sent this release back. Fix the details and resubmit.');
 
     var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
     var meta = [artist, typeLabel(release.type), yearOf(release.release_date), release.genre].filter(Boolean);
@@ -598,7 +606,7 @@
     return response.json().then(function (data) {
       return { ok: response.ok, status: response.status, data: data || {} };
     }).catch(function () {
-      return { ok: false, status: response.status, data: { error: 'ToneGrid rejected the edit.' } };
+      return { ok: false, status: response.status, data: { error: 'The store rejected the edit.' } };
     });
   }
 
@@ -640,7 +648,7 @@
   }
 
   function applyToneGridError(result, whyName, el) {
-    var message = (result && result.data && result.data.error) || 'ToneGrid rejected the edit.';
+    var message = sanitizePartnerCopy((result && result.data && result.data.error) || 'The store rejected the edit.');
     if (el || whyName) lockControl(el, whyName, message);
     return message;
   }
@@ -1006,13 +1014,13 @@
     }
     var saveBtn = $('[data-edit-save]');
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
-    setEditError('Submitting edit to ToneGrid…');
+    setEditError('Submitting edit to the store…');
     var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
     var originalGenre = String((lastEdit.release && lastEdit.release.genre) || (lastEdit.draft && lastEdit.draft.genre) || '').trim();
     var genre = pickedGenre(originalGenre);
     if (genre === null) {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
-      setEditError('Pick a genre from the ToneGrid list.');
+      setEditError('Pick a genre from the list.');
       return Promise.resolve({ ok: false, created: false, releaseId: id });
     }
     var instrumental = Boolean($('#edit-instrumental') && $('#edit-instrumental').checked);
@@ -1148,7 +1156,7 @@
       });
     }).catch(function () {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
-      setEditError('Could not reach ToneGrid.');
+      setEditError('We could not reach the store.');
       return { ok: false, created: false, hops: hops, releaseId: id };
     });
 
@@ -1167,7 +1175,7 @@
     var step = statusStep(release, lastEdit.draft);
     var live = step === 'live' || step === 'processing';
     var message = live
-      ? 'Ask stores to take this release down? It stays listed until ToneGrid confirms. This cannot be undone.'
+      ? 'Ask stores to take this release down? It stays listed until the store confirms. This cannot be undone.'
       : 'Remove this release from PLAIGROUND? This cannot be undone.';
     if (typeof global.confirm !== 'function') return false;
     return global.confirm(message);
@@ -1191,7 +1199,7 @@
     return sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'DELETE', {}).then(function (result) {
       if (btn) btn.removeAttribute('aria-busy');
       if (!result.ok) {
-        setText('[data-song-status]', (result.data && result.data.error) || 'ToneGrid could not remove this release.');
+        setText('[data-song-status]', (result.data && result.data.error) || 'The store could not remove this release.');
         setHidden('[data-song-status]', false);
         return { ok: false, result: result };
       }
@@ -1205,12 +1213,12 @@
       setText('[data-song-pill]', statusLabel(statusStep({ status: status }, lastEdit.draft)));
       markLife(statusStep({ status: status }, lastEdit.draft));
       setHidden('[data-song-remove]', true);
-      setText('[data-song-status]', 'Takedown submitted to stores. This release stays listed until ToneGrid confirms.');
+      setText('[data-song-status]', 'Takedown submitted to stores. This release stays listed until the store confirms.');
       setHidden('[data-song-status]', false);
       return { ok: true, takedown: true, status: status, result: result };
     }).catch(function () {
       if (btn) btn.removeAttribute('aria-busy');
-      setText('[data-song-status]', 'Could not reach ToneGrid.');
+      setText('[data-song-status]', 'We could not reach the store.');
       setHidden('[data-song-status]', false);
       return { ok: false };
     });

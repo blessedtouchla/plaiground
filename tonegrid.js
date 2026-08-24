@@ -72,11 +72,20 @@
     return next;
   }
 
+  function sanitizePartnerCopy(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
+    next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+    return next;
+  }
+
   function setStatus(id, text) {
     var el = $(id);
     if (!el) return;
-    el.textContent = text || '';
-    el.hidden = !text;
+    var shown = sanitizePartnerCopy(text || '');
+    el.textContent = shown;
+    el.hidden = !shown;
   }
 
   function pickUuid(payload) {
@@ -121,7 +130,17 @@
   }
 
   function catalogTimeoutMessage() {
-    return 'ToneGrid did not respond. Check your connection and try again.';
+    return 'We could not reach the store. Try again.';
+  }
+
+  function isNoStoreResponse(result, err) {
+    if (err && (err.timedOut === true || /did not respond|could not reach|timed out/i.test(String(err.message || '')))) {
+      return true;
+    }
+    if (!result) return Boolean(err);
+    if (result.timedOut === true) return true;
+    if (result.status === 0) return true;
+    return false;
   }
 
   function withCatalogTimeout(work) {
@@ -1007,8 +1026,8 @@
   }
 
   function createErrorMessage(result, fallback) {
-    if (result && result.data && result.data.error) return result.data.error;
-    return fallback;
+    if (result && result.data && result.data.error) return sanitizePartnerCopy(result.data.error);
+    return sanitizePartnerCopy(fallback || '');
   }
 
   function releasePayload(draft, releaseDate) {
@@ -1271,35 +1290,53 @@
     if (loader.classList && loader.classList.add) loader.classList.add('is-hidden');
   }
 
+  function sanitizeResultError(result) {
+    if (result && result.data && result.data.error) {
+      result.data.error = sanitizePartnerCopy(result.data.error);
+    }
+    return result;
+  }
+
   function postForm(url, body, onProgress) {
     if (typeof XMLHttpRequest === 'function') {
-      return withCatalogTimeout(function () {
-        return new Promise(function (resolve) {
-          var xhr = new XMLHttpRequest();
-          xhr.open('POST', url);
-          xhr.withCredentials = true;
-          xhr.timeout = catalogTimeoutMs();
-          xhr.setRequestHeader('Accept', 'application/json');
-          if (xhr.upload && typeof onProgress === 'function') {
-            xhr.upload.onprogress = function (event) {
-              if (event && event.lengthComputable && event.total) {
-                onProgress(Math.round((event.loaded / event.total) * 100));
-              }
-            };
-          }
-          xhr.onerror = function () {
-            resolve({ ok: false, status: 0, data: { error: 'Could not reach catalog.' } });
+      return new Promise(function (resolve) {
+        var settled = false;
+        function done(result) {
+          if (settled) return;
+          settled = true;
+          resolve(sanitizeResultError(result));
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.withCredentials = true;
+        xhr.timeout = catalogTimeoutMs();
+        xhr.setRequestHeader('Accept', 'application/json');
+        if (xhr.upload && typeof onProgress === 'function') {
+          xhr.upload.onprogress = function (event) {
+            if (event && event.lengthComputable && event.total) {
+              onProgress(Math.round((event.loaded / event.total) * 100));
+            }
           };
-          xhr.ontimeout = function () {
-            resolve({ ok: false, status: 0, timedOut: true, data: { error: catalogTimeoutMessage() } });
-          };
-          xhr.onload = function () {
-            var data = {};
-            try { data = JSON.parse(xhr.responseText || '{}') || {}; } catch (err) { data = {}; }
-            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: data });
-          };
-          xhr.send(body);
-        });
+        }
+        var timer = setTimeout(function () {
+          try { xhr.abort(); } catch (err) {}
+          done({ ok: false, status: 0, timedOut: true, data: { error: catalogTimeoutMessage() } });
+        }, catalogTimeoutMs() + 250);
+        xhr.onerror = function () {
+          clearTimeout(timer);
+          done({ ok: false, status: 0, data: { error: catalogTimeoutMessage() } });
+        };
+        xhr.ontimeout = function () {
+          clearTimeout(timer);
+          done({ ok: false, status: 0, timedOut: true, data: { error: catalogTimeoutMessage() } });
+        };
+        xhr.onload = function () {
+          clearTimeout(timer);
+          var data = {};
+          try { data = JSON.parse(xhr.responseText || '{}') || {}; } catch (err) { data = {}; }
+          done({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: data });
+        };
+        xhr.send(body);
       });
     }
     return withCatalogTimeout(function () {
@@ -1309,7 +1346,11 @@
         headers: { Accept: 'application/json' },
         body: body,
       }).then(parseJson);
-    });
+    }).then(sanitizeResultError);
+  }
+
+  function storeUnreachableResult() {
+    return { ok: false, status: 0, timedOut: true, data: { error: catalogTimeoutMessage() } };
   }
 
   function uploadAudio(trackId, file, onProgress) {
@@ -1321,12 +1362,39 @@
       if (!ok) {
         return { failed: true, result: { data: { error: AUDIO_ERROR } } };
       }
-      var body = new FormData();
-      body.append('audio', file, file.name || 'audio.wav');
-      return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress).then(function (result) {
+      function postOnce() {
+        var body = new FormData();
+        body.append('audio', file, file.name || 'audio.wav');
+        return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress);
+      }
+      function interpret(result, err) {
+        if (result && result.ok) return { uploaded: true, result: result };
         if (isUnavailable(result)) return { unavailable: true, result: result };
-        if (!result.ok) return { failed: true, result: result };
-        return { uploaded: true, result: result };
+        if (isNoStoreResponse(result, err)) {
+          return { failed: true, timedOut: true, result: storeUnreachableResult() };
+        }
+        return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: catalogTimeoutMessage() } }) };
+      }
+      return postOnce().then(function (result) {
+        if (result && result.ok) return { uploaded: true, result: result };
+        if (isUnavailable(result)) return { unavailable: true, result: result };
+        if (isNoStoreResponse(result)) {
+          return postOnce().then(function (retry) {
+            return interpret(retry);
+          }).catch(function (retryErr) {
+            return interpret(null, retryErr);
+          });
+        }
+        return interpret(result);
+      }).catch(function (err) {
+        if (isNoStoreResponse(null, err)) {
+          return postOnce().then(function (retry) {
+            return interpret(retry);
+          }).catch(function (retryErr) {
+            return interpret(null, retryErr);
+          });
+        }
+        return interpret(null, err);
       });
     });
   }
@@ -1366,11 +1434,11 @@
     var prefix = 'Track ' + (index + 1) + ' of ' + total;
     var detail = '';
     if (source && source.result && source.result.data && source.result.data.error) {
-      detail = String(source.result.data.error);
+      detail = sanitizePartnerCopy(source.result.data.error);
     } else if (source && source.message) {
-      detail = String(source.message);
+      detail = sanitizePartnerCopy(source.message);
     } else {
-      detail = 'ToneGrid did not create the track.';
+      detail = 'The store did not create the track.';
     }
     if (/^Track \d+ of \d+/.test(detail)) return detail;
     return prefix + ' failed. ' + detail;
@@ -1959,7 +2027,7 @@
     if (submitReview) {
       submitReview.addEventListener('click', function () {
         writeDraft({ artist_review: true });
-        setStatus('tg-status', 'This name will be held for review and will not go to ToneGrid automatically.');
+        setStatus('tg-status', 'This name will be held for review and will not go to the store automatically.');
       });
     }
 
@@ -2530,6 +2598,19 @@
     bindStorePick(storePickRoot());
     bindAlbumUi(refreshUploadGate);
     var uploadRunning = false;
+    var retryBtn = document.querySelector('[data-upload-retry]');
+    if (retryBtn && retryBtn.addEventListener) {
+      retryBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (uploadRunning) return;
+        var ev = { preventDefault: function () {} };
+        if (trigger && trigger.listeners && typeof trigger.listeners.click === 'function') {
+          trigger.listeners.click(ev);
+          return;
+        }
+        if (trigger && typeof trigger.click === 'function') trigger.click();
+      });
+    }
 
     function setUploadBusy(busy) {
       uploadRunning = Boolean(busy);
@@ -2543,6 +2624,11 @@
       }
     }
 
+    function showUploadRetry(on) {
+      var wrap = document.querySelector('[data-upload-retry-wrap]') || $('tg-retry-wrap');
+      if (wrap) wrap.hidden = !on;
+    }
+
     function failUpload(message, upgrade) {
       setUploadBusy(false);
       markIncomplete(trigger, false);
@@ -2550,6 +2636,9 @@
       markStatusError(Boolean(message));
       showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
       showUpgrade(upgrade === true);
+      var shown = sanitizePartnerCopy(message || '');
+      var retryable = !upgrade && Boolean(shown) && !/is required|must be|Upgrade to|Albums are on|Pick how many/i.test(shown);
+      showUploadRetry(retryable);
     }
 
     function finishToAttest(nextHref, message) {
@@ -2631,6 +2720,8 @@
     function fieldError(message) {
       failUpload(message, false);
       markIncomplete(trigger, true);
+      var wrap = document.querySelector('[data-upload-retry-wrap]') || $('tg-retry-wrap');
+      if (wrap) wrap.hidden = true;
     }
 
     function afterCatalogReady(draft, nextHref) {
@@ -2771,6 +2862,7 @@
       markStatusError(false);
       showLimitPanel(false);
       showUpgrade(false);
+      showUploadRetry(false);
 
       var continuingSame = Boolean(readDraft().release_id);
       whenAccountReady()
@@ -2819,7 +2911,7 @@
             if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {
               writeDraft({ pending_review: true, tonegrid_status: 'pending_review', artist_check: 'red' });
               return recordLocalRelease(readDraft(), artist).then(function () {
-                finishToAttest(nextHref, 'This artist name is held for review and was not sent to ToneGrid.');
+                finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
               });
             }
             var reusing = Boolean(nextDraft.artist_id || nextDraft.release_id || (artist && artist.tonegridId));
@@ -2844,7 +2936,7 @@
               if (artistResult.status === 409 && artistResult.data && artistResult.data.code === 'ARTIST_NAME_RED') {
                 writeDraft({ pending_review: true, tonegrid_status: 'pending_review', artist_check: 'red' });
                 return recordLocalRelease(readDraft(), artist).then(function () {
-                  finishToAttest(nextHref, 'This artist name is held for review and was not sent to ToneGrid.');
+                  finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
                 });
               }
               if (isUnavailable(artistResult)) {
@@ -2917,15 +3009,15 @@
         check: { level: 'red' },
       }).then(function () {
         if (trigger) trigger.removeAttribute('aria-busy');
-        setStatus('tg-status', 'Held for review. This name was not sent to ToneGrid.');
+        setStatus('tg-status', 'Held for review. This name was not sent to the store.');
         if (nextHref) go(nextHref);
       });
     }
     var solo = isSoloOwned(draft);
-    setStatus('tg-status', solo ? 'Submitting to ToneGrid…' : 'Sending split sheet…');
+    setStatus('tg-status', solo ? 'Submitting to the store…' : 'Sending split sheet…');
     var ready = solo ? Promise.resolve(draft) : refreshSignWellDraft(draft);
     return ready.then(function (next) {
-      setStatus('tg-status', 'Submitting to ToneGrid…');
+      setStatus('tg-status', 'Submitting to the store…');
       return submitRelease(next || draft, releaseDate).then(function (sent) {
         if (trigger) trigger.removeAttribute('aria-busy');
         if (sent.unavailable) {
@@ -2945,8 +3037,8 @@
         var toneStatus = (sent.result && sent.result.data && sent.result.data.status) || 'pending';
         var sheetStatus = (sent.result && sent.result.data && sent.result.data.signwell_status) || '';
         setStatus('tg-status', sheetStatus && sheetStatus !== 'solo' && sheetStatus !== 'Completed'
-          ? 'ToneGrid status: ' + toneStatus + ' · awaiting signature'
-          : 'ToneGrid status: ' + toneStatus);
+          ? 'Store status: ' + toneStatus + ' · awaiting signature'
+          : 'Store status: ' + toneStatus);
         if (nextHref) go(nextHref);
       });
     });
@@ -3092,7 +3184,7 @@
     if (draft.release_id && !draft.submitted && String(readyDate || '').trim() && (documentIdOf(draft) || isSoloOwned(draft))) {
       setStatus('tg-status', 'Checking SignWell…');
       finishSubmit(draft, readyDate, trigger, null).then(function () {
-        /* stay on review after auto-submit so the exact ToneGrid status is visible */
+        /* stay on review after auto-submit so the exact store status is visible */
       }).catch(function () {
         setStatus('tg-status', 'Could not reach catalog.');
       });
@@ -3133,7 +3225,7 @@
     if (!titleEl) return;
     var draft = readDraft();
     if (draft.title) titleEl.textContent = draft.title + ' is in the queue.';
-    if (draft.tonegrid_status) setStatus('tg-status', 'ToneGrid status: ' + draft.tonegrid_status);
+    if (draft.tonegrid_status) setStatus('tg-status', 'Store status: ' + draft.tonegrid_status);
     var view = document.querySelector('a[href="song.html"]');
     if (view && draft.release_id) view.setAttribute('href', 'song.html?id=' + encodeURIComponent(draft.release_id));
   }
@@ -3158,7 +3250,7 @@
           setStatus('tg-status', createErrorMessage(sent.result, 'Could not submit the release.'));
           return;
         }
-        if (sent.submitted) setStatus('tg-status', 'ToneGrid status: ' + ((sent.result && sent.result.data && sent.result.data.status) || 'pending'));
+        if (sent.submitted) setStatus('tg-status', 'Store status: ' + ((sent.result && sent.result.data && sent.result.data.status) || 'pending'));
       });
     };
     if (draft.release_id) {

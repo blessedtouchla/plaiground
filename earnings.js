@@ -23,9 +23,17 @@
     return toNumber(value).toLocaleString('en-US');
   }
 
+  function sanitizePartnerCopy(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
+    next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+    return next;
+  }
+
   function setText(sel, text) {
     var el = $(sel);
-    if (el) el.textContent = text;
+    if (el) el.textContent = text == null ? '' : sanitizePartnerCopy(text);
   }
 
   function setHidden(sel, hidden) {
@@ -265,7 +273,7 @@
           return;
         }
         render(hideStats ? emptyPayload() : result.data);
-        setStatus(result.data.errors ? 'Some ToneGrid earnings could not be loaded.' : '');
+        setStatus(result.data.errors ? 'Some store earnings could not be loaded.' : '');
       })
       .catch(function () {
         setStatus('Could not reach catalog.');

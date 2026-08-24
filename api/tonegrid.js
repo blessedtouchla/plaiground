@@ -180,7 +180,7 @@ function unwrapRelease(payload) {
 function sectionError(result) {
   if (!result || result.ok) return '';
   if (result.data && typeof result.data.error === 'string') return result.data.error;
-  return 'ToneGrid rejected the request.';
+  return 'The store rejected the request.';
 }
 
 async function health(req, res) {
@@ -195,7 +195,7 @@ async function health(req, res) {
     sendJson(res, 503, {
       configured: false,
       sandbox: false,
-      error: 'ToneGrid is not configured.',
+      error: 'Catalog sync is not configured yet.',
     });
     return;
   }
@@ -898,7 +898,7 @@ async function trackAudio(req, res, trackId) {
     return;
   }
   if (prepared.converted && !audioConvert.toneGridBodyIsWav(prepared.rawBody)) {
-    sendJson(res, 400, { error: 'MP3 must be converted to WAV before ToneGrid.' });
+    sendJson(res, 400, { error: 'MP3 must be converted to WAV before it goes to the store.' });
     return;
   }
 
@@ -1872,7 +1872,7 @@ function storeFacingStatus(status) {
 }
 
 function tonegridErrorOf(result, fallback) {
-  return String((result && result.data && result.data.error) || fallback || 'ToneGrid rejected the request.');
+  return String((result && result.data && result.data.error) || fallback || 'The store rejected the request.');
 }
 
 async function dropLocalRelease(row, releaseId) {
@@ -1891,7 +1891,7 @@ async function deleteRelease(req, res, releaseId) {
   const loaded = await fetchReleaseRow(releaseId);
   if (loaded.result && !loaded.result.ok && loaded.result.status !== 404) {
     sendJson(res, loaded.result.status, {
-      error: tonegridErrorOf(loaded.result, 'ToneGrid could not load this release.'),
+      error: tonegridErrorOf(loaded.result, 'The store could not load this release.'),
       removed: false,
       takedown: false,
     });
@@ -1943,7 +1943,7 @@ async function deleteRelease(req, res, releaseId) {
     });
     if (!deleted.ok && deleted.status !== 404) {
       sendJson(res, deleted.status, {
-        error: tonegridErrorOf(deleted, 'ToneGrid could not delete this release.'),
+        error: tonegridErrorOf(deleted, 'The store could not delete this release.'),
         removed: false,
         takedown: false,
       });

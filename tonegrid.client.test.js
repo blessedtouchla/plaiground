@@ -115,6 +115,8 @@ function load(options) {
   const loaderMeta = makeEl({ attrs: { 'data-upload-loader-meta': '' } });
   const status = makeEl({ id: 'tg-status' });
   const limit = makeEl({ id: 'tg-limit' });
+  const retryWrap = makeEl({ id: 'tg-retry-wrap', attrs: { 'data-upload-retry-wrap': '' } });
+  const retryBtn = makeEl({ attrs: { 'data-upload-retry': '' } });
   const continueBtn = makeEl({
     attrs: { href: 'attest.html', 'data-tonegrid-continue': '' },
   });
@@ -142,6 +144,7 @@ function load(options) {
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
     'tg-limit': limit,
+    'tg-retry-wrap': retryWrap,
     'tg-album-count': makeEl({ id: 'tg-album-count', value: opts.albumCount || '' }),
   };
 
@@ -241,6 +244,8 @@ function load(options) {
         if (sel === '[data-upload-loader-fill]') return loaderFill;
         if (sel === '[data-upload-loader-meta]') return loaderMeta;
         if (sel === '[data-instrumental]') return instrumental;
+        if (sel === '[data-upload-retry]') return retryBtn;
+        if (sel === '[data-upload-retry-wrap]') return retryWrap;
         return null;
       },
     },
@@ -269,6 +274,12 @@ function load(options) {
       if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
         opts._neverHits = (opts._neverHits || 0) + 1;
         if (opts._neverHits >= (opts.neverResolveAfter || 1)) {
+          return new Promise(function () {});
+        }
+      }
+      if (opts.hangWhen && String(url) === opts.hangWhen) {
+        opts._hangHits = (opts._hangHits || 0) + 1;
+        if (opts._hangHits <= (opts.hangCount || 1)) {
           return new Promise(function () {});
         }
       }
@@ -342,6 +353,8 @@ function load(options) {
     albumTracksPanel,
     addTrackBtn,
     liveRows,
+    retryBtn,
+    retryWrap,
   };
 }
 
@@ -1087,7 +1100,8 @@ async function run() {
     await flush();
     assert.strictEqual(hung.loader.hidden, true, 'hung createTrack for track 2 must hide the Working modal');
     assert.ok(/track 2 of 2/i.test(hung.status.textContent + ' ' + hung.loaderStep.textContent), 'error must name track 2 of 2');
-    assert.ok(/ToneGrid did not respond|timed out|failed/i.test(hung.status.textContent), 'error must include ToneGrid/network text');
+    assert.ok(/We could not reach the store|failed/i.test(hung.status.textContent), 'error must include store/network text');
+    assert.ok(!/ToneGrid/i.test(hung.status.textContent), 'timeout copy must not name the partner');
     assert.notStrictEqual(hung.continueBtn.getAttribute('aria-busy'), 'true');
     assert.notStrictEqual(hung.continueBtn.getAttribute('aria-disabled'), 'true');
     assert.ok(String(hung.location.href).indexOf('attest.html') === -1, 'must not invent a success');
@@ -1117,7 +1131,8 @@ async function run() {
     rejected.payBtn.listeners.click({ preventDefault() {} });
     await flush();
     assert.strictEqual(rejected.loader.hidden, true, 'rejected afterRelease must not leave the modal open');
-    assert.ok(/ToneGrid sandbox exploded|Could not reach catalog/i.test(rejected.status.textContent));
+    assert.ok(/the store sandbox exploded|Could not reach catalog/i.test(rejected.status.textContent));
+    assert.ok(!/ToneGrid/i.test(rejected.status.textContent), 'rejected copy must not name the partner');
     assert.notStrictEqual(rejected.payBtn.getAttribute('aria-busy'), 'true');
   }
 
@@ -1534,6 +1549,122 @@ async function run() {
     assert.ok(/artist/i.test(noArtist.status.textContent));
   }
 
+  async function audioTimeoutRetriesSameTrackThenSucceeds() {
+    const page = load(filledUpload({
+      catalogTimeoutMs: 40,
+      hangWhen: '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio',
+      hangCount: 1,
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 80); });
+    await flush();
+    const audioPosts = page.calls.filter(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
+    });
+    assert.ok(audioPosts.length >= 2, 'timeout must retry the same audio POST');
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'retry must not create a second release');
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'must reuse track_id and not create another track');
+    assert.strictEqual(draftOf(page.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+  }
+
+  async function audioTimeoutStillDownShowsRetry() {
+    const page = load(filledUpload({
+      catalogTimeoutMs: 40,
+      hangWhen: '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio',
+      hangCount: 4,
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 120); });
+    await flush();
+    assert.strictEqual(page.status.textContent, 'We could not reach the store. Try again.');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'must not invent a success');
+    assert.strictEqual(page.retryWrap.hidden, false, 'must show Retry after store timeout');
+    assert.strictEqual(draftOf(page.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+    const before = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }).length;
+    assert.ok(before >= 2, 'automatic retry must POST audio at least twice');
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 120); });
+    await flush();
+    const after = page.calls.filter(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
+    });
+    assert.ok(after.length > before, 'Retry control must re-POST the same track_id');
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'Retry must not create a second release');
+    assert.strictEqual(page.status.textContent, 'We could not reach the store. Try again.');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+    assert.strictEqual(draftOf(page.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+  }
+
+  async function audioFakeSuccessImpossible() {
+    const page = load(filledUpload({
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 502, data: { error: 'ToneGrid did not respond. Check your connection and try again.' } },
+        { ok: false, status: 502, data: { error: 'ToneGrid did not respond. Check your connection and try again.' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'ok only when response.ok');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent), 'partner body must be stripped');
+    assert.ok(/could not reach the store|the store did not respond|failed/i.test(page.status.textContent));
+    assert.strictEqual(page.retryWrap.hidden, false);
+  }
+
+  await audioTimeoutRetriesSameTrackThenSucceeds();
+  await audioTimeoutStillDownShowsRetry();
+  await audioFakeSuccessImpossible();
   await draftTrackIdNoFileStillSubmits();
   await albumUploadedRowIsNotEmpty();
   await tonegridZeroTrackErrorRetriesCreate();
@@ -1583,6 +1714,13 @@ async function run() {
   assert.ok(uploadHtml.includes('plan-confirm.html?plan=pro'));
   assert.ok(!uploadHtml.includes('data-checkout-plan="pro"'), 'album upgrade must not open a second Checkout');
   assert.ok(!/catalog-migrate|catalogMigrate/.test(source + uploadHtml));
+  assert.ok(source.includes("return 'We could not reach the store. Try again.';"));
+  assert.ok(!source.includes('ToneGrid did not respond'));
+  assert.ok(source.includes('result.ok'));
+  assert.ok(source.includes('xhr.status >= 200 && xhr.status < 300'));
+  assert.ok(uploadHtml.includes('data-upload-retry'));
+  assert.ok(uploadHtml.includes('Retry'));
+  assert.ok(!/An album is one ToneGrid/.test(uploadHtml));
 
   console.log('tonegrid.client.test.js ok');
 }

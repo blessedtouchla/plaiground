@@ -430,7 +430,7 @@ function run() {
   assert.ok(html.includes('id="edit-lyrics"'));
   assert.ok(html.includes('<label for="edit-lyrics">Lyrics</label>'));
   assert.ok(html.includes('data-edit-lyrics-field'));
-  assert.ok(html.includes('ToneGrid locks the catalog artist'));
+  assert.ok(html.includes('The store locks the catalog artist'));
   assert.ok(!html.includes('tonegrid.js'));
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(html.includes('upload-catalog.js'));
