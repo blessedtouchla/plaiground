@@ -71,6 +71,8 @@ function run() {
   const upload = read('upload.html');
   assert.ok(upload.includes('data-type="album"'), 'Album control stays on upload');
   assert.ok(upload.includes('upload.html?type=album'), 'Album href still navigates when JS is late');
+  assert.ok(upload.includes('data-album-count'), 'album step 1 asks for a song count before audio');
+  assert.ok(upload.includes('plan-confirm.html?plan=pro'), 'Creator 9+ uses the existing plan confirm page');
   assert.ok(!/John ham|John Ham|Patrick/.test(upload), 'upload.html must not hardcode John/Patrick');
   assert.ok(/id="tg-artist-select"[\s\S]*?<option value="">Select an artist<\/option>/.test(upload), 'artist picker starts empty');
 

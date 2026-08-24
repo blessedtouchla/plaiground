@@ -53,6 +53,28 @@ function makeEl(attrs) {
     setCustomValidity(msg) {
       this.customValidity = String(msg || '');
     },
+    children: [],
+    appendChild(child) {
+      this.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const i = this.children.indexOf(child);
+      if (i !== -1) this.children.splice(i, 1);
+      return child;
+    },
+    querySelector() {
+      return makeEl({});
+    },
+    querySelectorAll() {
+      return [];
+    },
+    closest() {
+      return null;
+    },
+    hasAttribute(name) {
+      return this.attrs[name] != null;
+    },
     classList: {
       tokens: Object.create(null),
       toggle(name, force) {
@@ -115,10 +137,47 @@ function load(options) {
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
     'tg-limit': limit,
+    'tg-album-count': makeEl({ id: 'tg-album-count', value: opts.albumCount || '' }),
   };
+
+  const liveRows = (opts.trackRows || []).slice();
+  const albumCount = makeEl({ attrs: { 'data-album-count': '' }, hidden: true });
+  const albumCountInput = elements['tg-album-count'];
+  albumCountInput.attrs['data-album-count-input'] = '';
+  const albumCountGo = makeEl({ attrs: { 'data-album-count-go': '' } });
+  const albumProUpgrade = makeEl({ attrs: { 'data-album-pro-upgrade': '' }, hidden: true });
+  const albumProConfirm = makeEl({
+    attrs: { 'data-album-pro-confirm': '', href: 'plan-confirm.html?plan=pro&interval=month' },
+  });
+  albumProUpgrade.querySelector = function (sel) {
+    if (sel === '[data-album-pro-confirm]') return albumProConfirm;
+    return null;
+  };
+  const albumTracksPanel = makeEl({ attrs: { 'data-album-tracks': '' }, hidden: true });
+  const trackList = makeEl({ attrs: { 'data-track-list': '' } });
+  trackList.appendChild = function (child) {
+    liveRows.push(child);
+    this.children.push(child);
+    return child;
+  };
+  trackList.removeChild = function (child) {
+    const i = liveRows.indexOf(child);
+    if (i !== -1) liveRows.splice(i, 1);
+    const j = this.children.indexOf(child);
+    if (j !== -1) this.children.splice(j, 1);
+    return child;
+  };
+  trackList.querySelectorAll = function (sel) {
+    if (sel === '[data-track-row]') return liveRows;
+    return [];
+  };
+  const addTrackBtn = makeEl({ attrs: { 'data-add-track': '' } });
 
   const context = {
     URLSearchParams,
+    Promise,
+    setTimeout,
+    clearTimeout,
     localStorage,
     sessionStorage,
     document: {
@@ -129,7 +188,7 @@ function load(options) {
         return makeEl({ id: String(tag || '') });
       },
       querySelectorAll(sel) {
-        if (sel === '[data-track-row]') return opts.trackRows || [];
+        if (sel === '[data-track-row]') return liveRows;
         if (sel === '[data-type]') return opts.typeLinks || [];
         return [];
       },
@@ -156,8 +215,16 @@ function load(options) {
           };
         }
         if (sel === '[data-type-toggle]') return makeEl({ attrs: { 'data-type-toggle': '' } });
-        if (sel === '[data-track-list]') return makeEl({ attrs: { 'data-track-list': '' } });
-        if (sel === '[data-add-track]') return makeEl({ attrs: { 'data-add-track': '' } });
+        if (sel === '[data-track-list]') return trackList;
+        if (sel === '[data-add-track]') return addTrackBtn;
+        if (sel === '[data-album-count]') return albumCount;
+        if (sel === '[data-album-count-go]') return albumCountGo;
+        if (sel === '[data-album-count-input]') return albumCountInput;
+        if (sel === '[data-album-pro-upgrade]') return albumProUpgrade;
+        if (sel === '[data-album-pro-confirm]') return albumProConfirm;
+        if (sel === '[data-album-tracks]') return albumTracksPanel;
+        if (sel === '[data-album-hint]') return makeEl({ attrs: { 'data-album-hint': '' }, hidden: true });
+        if (sel === '[data-single-audio]') return makeEl({ attrs: { 'data-single-audio': '' } });
         if (sel === '[data-language-field]') return languageField;
         if (sel === '[data-upload-loader]') return loader;
         if (sel === '[data-upload-loader-step]') return loaderStep;
@@ -181,6 +248,15 @@ function load(options) {
           status: 200,
           json: async () => ({ ok: true }),
         });
+      }
+      if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
+        opts._neverHits = (opts._neverHits || 0) + 1;
+        if (opts._neverHits >= (opts.neverResolveAfter || 1)) {
+          return new Promise(function () {});
+        }
+      }
+      if (opts.rejectWhen && String(url) === opts.rejectWhen) {
+        return Promise.reject(new Error(opts.rejectMessage || 'ToneGrid sandbox exploded.'));
       }
       const queued = (opts.responses || []).shift();
       const response = queued || { ok: true, status: 201, data: { uuid: '11111111-1111-4111-8111-111111111111' } };
@@ -207,6 +283,7 @@ function load(options) {
   context.window = context;
   context.globalThis = context;
   context.window.location = context.location;
+  if (opts.catalogTimeoutMs) context.PlaigroundCatalogTimeoutMs = opts.catalogTimeoutMs;
   vm.runInNewContext(audioAcceptCode, context);
   vm.runInNewContext(storePickCode, context);
   context.PlaigroundAudioAccept = context.PlaigroundAudioAccept || context.window.PlaigroundAudioAccept;
@@ -237,6 +314,14 @@ function load(options) {
     loader,
     loaderStep,
     date,
+    albumCount,
+    albumCountInput,
+    albumCountGo,
+    albumProUpgrade,
+    albumProConfirm,
+    albumTracksPanel,
+    addTrackBtn,
+    liveRows,
   };
 }
 
@@ -894,7 +979,217 @@ async function run() {
   assert.strictEqual(JSON.parse(afterSingleRelease[0].init.body).type, 'album');
   assert.notStrictEqual(draftOf(albumAfterSingle.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001');
 
+  async function hungCreateTrackTrack2HidesLoader() {
+    const hung = load(filledUpload({
+      type: 'album',
+      title: 'Night Drive LP',
+      trackRows: [makeTrackRow('Intro', AUDIO), makeTrackRow('Outro', AUDIO)],
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      catalogTimeoutMs: 40,
+      neverResolveWhen: '/api/tonegrid/tracks',
+      neverResolveAfter: 2,
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+      ],
+    }));
+    hung.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 80); });
+    await flush();
+    assert.strictEqual(hung.loader.hidden, true, 'hung createTrack for track 2 must hide the Working modal');
+    assert.ok(/track 2 of 2/i.test(hung.status.textContent + ' ' + hung.loaderStep.textContent), 'error must name track 2 of 2');
+    assert.ok(/ToneGrid did not respond|timed out|failed/i.test(hung.status.textContent), 'error must include ToneGrid/network text');
+    assert.notStrictEqual(hung.continueBtn.getAttribute('aria-busy'), 'true');
+    assert.notStrictEqual(hung.continueBtn.getAttribute('aria-disabled'), 'true');
+    assert.ok(String(hung.location.href).indexOf('attest.html') === -1, 'must not invent a success');
+    assert.strictEqual(draftOf(hung.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  }
+
+  async function rejectedAfterReleaseHidesLoader() {
+    const rejected = load({
+      bind: 'review',
+      title: 'Night Drive',
+      artist: 'Ada Night',
+      releaseDate: '2035-01-15',
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        solo_owned_100: true,
+        rights_confirmed: true,
+        made_how: 'no_ai',
+      },
+      rejectWhen: '/api/tonegrid/tracks',
+      rejectMessage: 'ToneGrid sandbox exploded.',
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+      ],
+    });
+    rejected.payBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.strictEqual(rejected.loader.hidden, true, 'rejected afterRelease must not leave the modal open');
+    assert.ok(/ToneGrid sandbox exploded|Could not reach catalog/i.test(rejected.status.textContent));
+    assert.notStrictEqual(rejected.payBtn.getAttribute('aria-busy'), 'true');
+  }
+
+  async function albumRetryKeepsSameRelease() {
+    const retry = load(filledUpload({
+      type: 'album',
+      title: 'Night Drive LP',
+      trackRows: [
+        makeTrackRow('Intro', AUDIO, { 'data-track-id': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'data-audio-uploaded': 'true' }),
+        makeTrackRow('Outro', AUDIO),
+      ],
+      draft: {
+        type: 'album',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        album_count: 2,
+        tracks: [
+          { title: 'Intro', track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', audio_uploaded: true, position: 1 },
+          { title: 'Outro', track_id: '', audio_uploaded: false, position: 2 },
+        ],
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { track: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    retry.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    const retryTonegrid = retry.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+    assert.ok(!retryTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'retry must not create a second album');
+    assert.ok(!retryTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+    const retryTracks = retryTonegrid.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    assert.strictEqual(retryTracks.length, 1, 'retry only creates the failed remaining track');
+    assert.strictEqual(JSON.parse(retryTracks[0].init.body).position, 2);
+    assert.strictEqual(JSON.parse(retryTracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(draftOf(retry.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(retry.location.href, 'attest.html');
+  }
+
+  async function albumCountBeforeAudio() {
+    const page = load({
+      type: 'album',
+      page: 'upload.html?type=album',
+      account: {
+        plan: 'creator',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    });
+    await flush();
+    assert.strictEqual(page.albumCount.hidden, false, 'album step 1 is the song count');
+    assert.strictEqual(page.albumTracksPanel.hidden, true, 'audio rows stay hidden until the count is set');
+    assert.strictEqual(page.liveRows.length, 0, 'must not dump two empty audio rows first');
+    page.albumCountInput.value = '3';
+    page.albumCountGo.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.strictEqual(page.liveRows.length, 3);
+    assert.strictEqual(page.albumCount.hidden, true);
+    assert.strictEqual(page.albumTracksPanel.hidden, false);
+    assert.strictEqual(draftOf(page.localStorage).album_count, 3);
+  }
+
+  async function creatorNineTracksPingsPro() {
+    const page = load({
+      type: 'album',
+      page: 'upload.html?type=album',
+      account: {
+        plan: 'creator',
+        billing_interval: 'month',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    });
+    await flush();
+    page.albumCountInput.value = '9';
+    page.albumCountGo.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.strictEqual(page.liveRows.length, 0, 'Creator cannot start a 9-track album');
+    assert.ok(/Pro is \$5 extra/i.test(page.status.textContent));
+    assert.ok(/14\.99/.test(page.status.textContent) && /19\.99/.test(page.status.textContent));
+    assert.ok(page.albumProConfirm.getAttribute('href').indexOf('plan-confirm.html?plan=pro') !== -1);
+    assert.ok(!/data-checkout-plan/.test(page.albumProConfirm.getAttribute('href') || ''));
+    assert.strictEqual(page.albumTracksPanel.hidden, true);
+
+    const yearly = load({
+      type: 'album',
+      account: {
+        plan: 'creator',
+        billing_interval: 'year',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    });
+    await flush();
+    yearly.albumCountInput.value = '9';
+    yearly.albumCountGo.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.ok(yearly.albumProConfirm.getAttribute('href').indexOf('interval=year') !== -1, 'yearly Creator uses same-interval Pro confirm');
+    assert.ok(!/ \$5 /.test(yearly.albumProConfirm.getAttribute('href') || ''));
+  }
+
+  async function proAlbumCountUnlimited() {
+    const page = load({
+      type: 'album',
+      account: {
+        plan: 'pro',
+        upload: { allowed: true, album_allowed: true, plan: 'pro' },
+      },
+    });
+    await flush();
+    page.albumCountInput.value = '12';
+    page.albumCountGo.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.strictEqual(page.liveRows.length, 12);
+    assert.ok(!/upgrade/i.test(page.status.textContent));
+    page.addTrackBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(page.liveRows.length, 13);
+  }
+
+  async function basicAlbumStaysLocked() {
+    const page = load({
+      type: 'album',
+      page: 'upload.html?type=album',
+      account: {
+        plan: 'basic',
+        upload: { allowed: true, album_allowed: false, plan: 'basic' },
+      },
+    });
+    await flush();
+    assert.strictEqual(page.albumCount.hidden, true, 'Basic must not see a count step that starts an album');
+    assert.strictEqual(page.albumTracksPanel.hidden, true);
+    page.albumCountInput.value = '2';
+    page.albumCountGo.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.strictEqual(page.liveRows.length, 0);
+    assert.ok(/Albums are on Creator and Pro/.test(page.status.textContent));
+  }
+
+  await hungCreateTrackTrack2HidesLoader();
+  await rejectedAfterReleaseHidesLoader();
+  await albumRetryKeepsSameRelease();
+  await albumCountBeforeAudio();
+  await creatorNineTracksPingsPro();
+  await proAlbumCountUnlimited();
+  await basicAlbumStaysLocked();
+
   const source = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+  const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
   assert.ok(source.includes('Uploading audio'));
   assert.ok(source.includes('Uploading artwork'));
@@ -904,6 +1199,15 @@ async function run() {
   assert.ok(!source.includes('Neon Shadows'));
   assert.ok(!source.includes('Victoria Reyes'));
   assert.ok(!source.includes(['t', 'g', 'k', '_'].join('')));
+  assert.ok(source.includes('withCatalogTimeout'));
+  assert.ok(source.includes('DEFAULT_CATALOG_TIMEOUT_MS'));
+  assert.ok(source.includes('.catch(function (err)'));
+  assert.ok(!source.includes("length < 2) addTrackRow()"));
+  assert.ok(uploadHtml.includes('data-album-count'));
+  assert.ok(uploadHtml.includes('data-album-count-go'));
+  assert.ok(uploadHtml.includes('plan-confirm.html?plan=pro'));
+  assert.ok(!uploadHtml.includes('data-checkout-plan="pro"'), 'album upgrade must not open a second Checkout');
+  assert.ok(!/catalog-migrate|catalogMigrate/.test(source + uploadHtml));
 
   console.log('tonegrid.client.test.js ok');
 }

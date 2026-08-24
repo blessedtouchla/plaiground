@@ -40,6 +40,22 @@
       <p class="hint" data-album-hint hidden>An album is one ToneGrid release with multiple tracks under the same artist. Creator and Pro only.</p>
     </section>
 
+    <section class="flow-card" data-album-count hidden>
+      <h3>How many songs?</h3>
+      <p class="hint">Pick the track count first. Audio rows show after that.</p>
+      <div class="field" style="max-width:220px">
+        <label for="tg-album-count">Songs / tracks</label>
+        <input id="tg-album-count" type="number" min="1" step="1" inputmode="numeric" data-album-count-input placeholder="e.g. 4" autocomplete="off" />
+      </div>
+      <p style="margin-top:16px"><button class="btn btn-purple btn-sm" type="button" data-album-count-go>Set track count</button></p>
+      <div class="upload-limit" data-album-pro-upgrade hidden>
+        <p>Albums with 9 or more tracks are on Pro. Pro is $5 extra on monthly (Creator $14.99 → Pro $19.99). Yearly Creator upgrades to yearly Pro and you pay the same-interval difference — Confirm shows the real amount due. Charge only after Submit. This updates your existing Stripe subscription.</p>
+        <p class="hero-ctas" style="margin:12px 0 0">
+          <a class="btn btn-purple btn-sm" data-album-pro-confirm href="plan-confirm.html?plan=pro&amp;interval=month">Confirm Pro upgrade</a>
+        </p>
+      </div>
+    </section>
+
     <section class="flow-card" data-single-audio>
       <div class="head-row">
         <h3>Upload your audio</h3>
@@ -72,7 +88,7 @@
       <div class="head-row">
         <div>
           <h3>Tracks</h3>
-          <p class="hint" style="margin:6px 0 0">Add, reorder, or remove tracks before you continue. Each track needs its own audio and title.</p>
+          <p class="hint" style="margin:6px 0 0">Add, reorder, or remove tracks after you set the count. Each track needs its own audio and title.</p>
         </div>
         <button class="btn btn-ghost btn-sm" type="button" data-add-track>Add track</button>
       </div>
