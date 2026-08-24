@@ -809,6 +809,12 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .page-head h1 { font-size: clamp(2rem, 3vw, 2.6rem); font-weight: 800; letter-spacing: -0.04em; }
 .page-head p { color: var(--muted); margin-top: 8px; max-width: 560px; }
 .head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.plan-switch { display: grid; gap: 10px; margin-top: 16px; max-width: 420px; }
+.plan-switch .btn { justify-content: flex-start; }
+.plan-switch .btn.is-current {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 
 .workflow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 28px 0 36px; max-width: 640px; }
 .wf {

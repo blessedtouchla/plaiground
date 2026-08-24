@@ -19,12 +19,45 @@
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
+  var PLAN_PITCH = {
+    creator: 'Creator · $14.99/month or $12.42/month billed yearly',
+    pro: 'Pro · $19.99/month or $16.58/month billed yearly',
+    basic: 'Basic · $0 forever',
+  };
+  var PLAN_DETAIL = {
+    creator: 'Same product as Pro — only the cap differs. 8 distribution uploads and 8 publishing registrations this UTC month.',
+    pro: 'Same product as Creator — only the cap differs. Unlimited distribution uploads and publishing registrations.',
+    basic: 'One release for the life of the account. Canceling a paid plan drops you here.',
+  };
+
   function planLabel(plan) {
     var next = String(plan || '').trim().toLowerCase();
     if (next === 'pro') return 'PRO';
     if (next === 'creator') return 'CREATOR';
     if (next === 'basic') return 'BASIC';
     return '—';
+  }
+
+  function planPitch(plan, interval) {
+    var next = String(plan || '').trim().toLowerCase();
+    var billed = String(interval || '').trim().toLowerCase();
+    if (next === 'creator' && billed === 'month') return 'Creator · $14.99/month';
+    if (next === 'creator' && billed === 'year') return 'Creator · $12.42/month billed yearly';
+    if (next === 'pro' && billed === 'month') return 'Pro · $19.99/month';
+    if (next === 'pro' && billed === 'year') return 'Pro · $16.58/month billed yearly';
+    return PLAN_PITCH[next] || 'Your plan';
+  }
+
+  function markPlanOption(plan, interval) {
+    var key = String(plan || '').trim().toLowerCase();
+    var billed = String(interval || '').trim().toLowerCase();
+    $all('[data-plan-option]').forEach(function (el) {
+      var option = String(el.getAttribute('data-plan-option') || '');
+      var current = billed ? option === key + ':' + billed : option.indexOf(key + ':') === 0;
+      if (el.classList && el.classList.toggle) el.classList.toggle('is-current', current);
+      if (current) el.setAttribute('aria-current', 'true');
+      else el.removeAttribute('aria-current');
+    });
   }
 
   function setText(el, text) {
@@ -47,6 +80,12 @@
       else setText(el, artist);
     });
     $all('[data-account-plan]').forEach(function (el) { setText(el, planLabel(me.plan)); });
+    var interval = String(me.billing_interval || me.interval || '').toLowerCase();
+    $all('[data-account-plan-pitch]').forEach(function (el) { setText(el, planPitch(me.plan, interval)); });
+    $all('[data-account-plan-detail]').forEach(function (el) {
+      setText(el, PLAN_DETAIL[String(me.plan || '').toLowerCase()] || PLAN_DETAIL.basic);
+    });
+    markPlanOption(me.plan, interval);
     $all('[data-account-plan-title]').forEach(function (el) {
       var status = String(me.status || '').toLowerCase();
       if (status === 'hold') {
@@ -189,10 +228,44 @@
       });
   }
 
+  function bindManagePlan() {
+    var toggle = document.querySelector('[data-manage-plan-toggle]');
+    var panel = document.querySelector('[data-manage-plan]');
+    if (!toggle || !panel) return;
+    toggle.addEventListener('click', function () {
+      var open = panel.hidden;
+      panel.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open || typeof global.fetch !== 'function') return;
+      global.fetch('/api/create-checkout-session', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ action: 'billing' }),
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data || {} };
+          }).catch(function () {
+            return { ok: false, data: {} };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok) return;
+          markPlanOption(result.data.plan, result.data.interval);
+          $all('[data-account-plan-pitch]').forEach(function (el) {
+            setText(el, planPitch(result.data.plan, result.data.interval));
+          });
+        })
+        .catch(function () {});
+    });
+  }
+
   bindSignOut();
+  bindManagePlan();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
   });
 
-  global.PlaigroundAccount = { fill: fillAccount };
+  global.PlaigroundAccount = { fill: fillAccount, markPlanOption: markPlanOption };
 })(window);
