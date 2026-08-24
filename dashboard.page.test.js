@@ -151,6 +151,9 @@ function run() {
       '[data-account-artist]': makeNode({ tagName: 'INPUT', value: '' }),
       '[data-pub-call]': makeNode({ hidden: true }),
       '[data-pub-badge]': makeNode({ textContent: 'INCLUDED IN YOUR PLAN' }),
+      '[data-account-plan-title]': makeNode({ textContent: 'Your plan' }),
+      '[data-account-plan-price]': makeNode({ textContent: 'Your plan' }),
+      '[data-account-plan-year]': makeNode({ hidden: true }),
     };
   }
 
@@ -171,6 +174,8 @@ function run() {
       fetch() { return Promise.resolve({ ok: false, status: 401, json: async () => ({}) }); },
     };
     fillCtx.window = fillCtx;
+    fillCtx.globalThis = fillCtx;
+    vm.runInNewContext(read('lib/release-status.js'), fillCtx);
     vm.runInNewContext(read('account.js'), fillCtx);
     fillCtx.PlaigroundAccount.fill(me);
     return nodes;
@@ -195,6 +200,10 @@ function run() {
   assert.strictEqual(named['[data-account-who]'].textContent, 'Hi Victoria!');
   assert.strictEqual(named['[data-account-avatar]'].textContent, 'VI');
   assert.strictEqual(named['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
+  assert.strictEqual(named['[data-account-plan-title]'].textContent, 'On Creator');
+  assert.strictEqual(named['[data-account-plan-price]'].textContent, 'Creator · $14.99/month');
+  assert.strictEqual(named['[data-account-plan-year]'].textContent, 'or $149/year');
+  assert.strictEqual(named['[data-account-plan-year]'].hidden, false);
 
   const creator = fillAccount({ artist: 'Fuvtu', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
   assert.strictEqual(creator['[data-account-who]'].textContent, 'Hi Fuvtu!');
@@ -237,12 +246,23 @@ function run() {
   const realArtist = fillAccount({ artist: 'Fuvtu', plan: 'creator' });
   assert.strictEqual(realArtist['[data-account-artist]'].value, 'Fuvtu');
 
+  const leftoverLive = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: [],
+    profile: { releases: [{ title: 'Neon Sermon', tonegrid_status: 'live' }] },
+  });
+  assert.strictEqual(leftoverLive['[data-pub-call]'].hidden, true, 'empty catalog must not claim a live release');
+  assert.strictEqual(leftoverLive['[data-account-releases]'].textContent, '0');
+
   const namedField = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator' });
   assert.strictEqual(namedField['[data-account-artist]'].value, 'Victoria Imtanes', 'a real stored name stays');
   assert.strictEqual(named['[data-account-artist]'].value, 'Victoria Imtanes');
 
   assert.ok(!dash.includes('Hi John'), 'dashboard.html must not hardcode Hi John');
   assert.ok(dash.includes('data-account-who>Hi there'), 'unsigned greeting stays Hi there');
+  assert.ok(dash.includes('data-account-plan-price'), 'Overview sidebar price is filled from /api/me');
+  assert.ok(dash.includes('data-account-plan-year'), 'Overview yearly price stays on its own line');
   assert.ok(!/PRO\s*•/.test(dash), 'dashboard must not tag publishing as Pro-only');
   assert.ok(dash.includes('data-pub-badge'), 'publishing badge is filled from the signed-in plan');
   assert.ok(dash.includes('INCLUDED IN YOUR PLAN'), 'paid publishing badge copy is present');
@@ -263,10 +283,11 @@ function run() {
   assert.ok(settings.includes('data-account-avatar>PG'), 'settings unsigned initials stay PG');
   assert.ok(settings.includes('placeholder="Artist name"'), 'settings artist field stays an artist-name placeholder');
   assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
-  ['earnings.html', 'payouts.html'].forEach(function (file) {
+  ['earnings.html', 'payouts.html', 'splits.html', 'splits-empty.html', 'releases.html', 'how.html', 'upload.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(!html.includes('Hi John'), file + ' must not hardcode Hi John');
     assert.ok(!html.includes('John ham'), file + ' must not hardcode John ham');
+    assert.ok(!html.includes('Hi Victoria!'), file + ' must not hardcode Hi Victoria');
     assert.ok(html.includes('data-account-who>Hi there'), file + ' unsigned greeting stays Hi there');
     assert.ok(html.includes('data-account-avatar>PG'), file + ' unsigned initials stay PG');
   });

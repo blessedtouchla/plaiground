@@ -34,19 +34,20 @@ function run() {
   assert.ok(!/\$19\.99\/month or \$199\/year/.test(settings), 'Settings must not keep the yearly dollar on the plan pitch');
   assert.ok(settings.indexOf('data-checkout-plan="basic"') === -1, 'Basic is not a paid switch target');
 
-  const pitchPages = [
-    'settings.html',
-    'dashboard.html',
-    'releases.html',
-    'splits.html',
-    'splits-empty.html',
-    'library.html',
-    'boosts.html',
-  ];
-  pitchPages.forEach(function (file) {
+  const settingsPitch = read('settings.html');
+  assert.ok(!/\$19\.99\/month or \$149\/year/.test(settingsPitch), 'settings.html still has the old month-or-year pitch');
+  assert.ok(settingsPitch.includes('$16.58/month billed yearly'), 'settings.html is missing the yearly-as-monthly pitch');
+  assert.ok(read('dashboard.html').includes('$16.58/month billed yearly'), 'dashboard keeps Pro yearly-as-monthly on the Pro-only line');
+
+  ['releases.html', 'splits.html', 'splits-empty.html', 'library.html', 'boosts.html'].forEach(function (file) {
     const html = read(file);
-    assert.ok(!/\$19\.99\/month or \$149\/year/.test(html), file + ' still has the old month-or-year pitch');
-    assert.ok(html.includes('$16.58/month billed yearly'), file + ' is missing the yearly-as-monthly pitch');
+    assert.ok(!/>On Pro</.test(html), file + ' must not default to leftover On Pro');
+    assert.ok(html.includes('data-account-plan-title'), file + ' plan title comes from /api/me');
+    assert.ok(html.includes('data-account-plan-price'), file + ' Creator price comes from /api/me');
+    assert.ok(html.includes('data-account-plan-year'), file + ' yearly price stays on its own line');
+    assert.ok(!html.includes('$16.58/month billed yearly'), file + ' must not use Pro yearly-as-monthly as the live Creator price');
+    assert.ok(!html.includes('Hi Victoria!'), file + ' must not hardcode Hi Victoria');
+    assert.ok(html.includes('data-account-who>Hi there'), file + ' unsigned greeting stays Hi there');
   });
 
   const index = read('index.html');

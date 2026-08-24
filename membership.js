@@ -259,16 +259,33 @@
     return false;
   }
 
-  function bindPublishingClicks() {
+  function destinationForPublishing() {
+    if (hasPaidAccess()) return PUBLISHING;
+    if (isSignedIn() || serverStatus === 200) return publishingHref();
+    return LOGIN;
+  }
+
+  function destinationForSignedInUpload(href) {
+    var dest = href || 'upload.html';
+    if (isSignedIn() || serverStatus === 200) return dest;
+    return LOGIN;
+  }
+
+  function bindAccountClicks() {
     if (!global.document || !global.document.addEventListener) return;
     global.document.addEventListener('click', function (event) {
       var target = event.target;
       if (!target || !target.closest) return;
-      var el = target.closest('[data-publishing-register]');
-      if (!el) return;
-      if (hasPaidAccess()) return;
+      var publishing = target.closest('[data-publishing-register]');
+      var upload = target.closest('[data-signed-in-upload]');
+      if (!publishing && !upload) return;
       event.preventDefault();
-      global.location.href = isSignedIn() || serverStatus === 200 ? publishingHref() : LOGIN;
+      var href = (publishing || upload).getAttribute('href') || (publishing ? PUBLISHING : 'upload.html');
+      accountReady.then(function () {
+        global.location.href = publishing
+          ? destinationForPublishing()
+          : destinationForSignedInUpload(href);
+      });
     });
   }
 
@@ -375,6 +392,8 @@
     requirePaidAccess: requirePaidAccess,
     requirePublishingAccess: requirePublishingAccess,
     publishingHref: publishingHref,
+    destinationForPublishing: destinationForPublishing,
+    destinationForSignedInUpload: destinationForSignedInUpload,
     currentPlan: currentPlan,
     applyPlanCopy: applyPlanCopy,
     account: function () { return serverAccount; },
@@ -390,7 +409,7 @@
   migrateSessionKeys();
   rememberQueryPlan();
   bindPlanClicks();
-  bindPublishingClicks();
+  bindAccountClicks();
   probeAccount();
   if (!goDashboardFromHome()) {
     accountReady.then(function (result) {

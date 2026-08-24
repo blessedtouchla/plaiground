@@ -67,7 +67,7 @@ function run() {
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html', 'settings.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html', 'settings.html', 'splits.html', 'splits-empty.html', 'publishing-register.html', 'boosts.html', 'how.html', 'upload.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
@@ -107,6 +107,15 @@ function run() {
   assert.ok(read('earnings.html').indexOf('$19.99') === -1);
   assert.ok(read('dashboard.html').indexOf('data-account-plan-title') !== -1);
   assert.ok(read('dashboard.html').indexOf('>On Pro<') === -1, 'Overview must not default to leftover On Pro');
+  assert.ok(read('releases.html').indexOf('>On Pro<') === -1, 'Releases must not default to leftover On Pro');
+  assert.ok(read('releases.html').indexOf('data-release-filter="live"') !== -1, 'Live tab must be a real filter');
+  assert.ok(read('splits.html').indexOf('data-account-who>Hi there') !== -1);
+  assert.ok(read('splits-empty.html').indexOf('membership.js') !== -1, 'splits-empty must refresh the session');
+  assert.ok(read('splits-empty.html').indexOf('href="earnings.html">Earnings</a>') !== -1);
+  assert.ok(read('publishing-register.html').indexOf('data-require-publishing="true"') !== -1);
+  assert.ok(read('publishing-register.html').indexOf('data-require-paid') === -1, 'publishing register must not use the public paid dump');
+  assert.ok(read('publishing-register.html').indexOf('class="side"') !== -1, 'publishing register stays a signed-in page');
+  assert.ok(read('how.html').indexOf('data-signed-in-upload') !== -1);
   assert.ok(read('earnings.html').indexOf('Upgrade to Pro only') === -1);
   assert.ok(read('payouts.html').indexOf('Upgrade to Pro only') === -1);
   assert.ok(read('earnings.html').indexOf('Hi John') === -1);
@@ -175,6 +184,36 @@ function run() {
   assert.strictEqual(extra.length, 1);
   assert.strictEqual(extra[0].uuid, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
   assert.strictEqual(extra[0].status, 'pending');
+
+  const filtered = catalog.PlaigroundCatalog.applyFilter([
+    { uuid: '1', status: 'live' },
+    { uuid: '2', status: 'pending' },
+    { uuid: '3', status: 'draft' },
+  ], 'live');
+  assert.strictEqual(filtered.length, 1);
+  assert.strictEqual(filtered[0].status, 'live');
+
+  catalogNodes['[data-release-empty-title]'] = makeEl({ textContent: 'Your first release goes here.' });
+  catalogNodes['[data-release-empty-body]'] = makeEl({});
+  catalog.PlaigroundCatalog.setFilter('live');
+  catalog.PlaigroundCatalog.render({ releases: [], total: 0, analytics: {} });
+  assert.ok(catalogNodes['[data-release-empty-title]'].textContent.indexOf('No live releases') !== -1);
+  assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, false);
+
+  const splits = loadScript('splits.js', {
+    '[data-splits-empty]': makeEl({}),
+    '[data-splits-table]': makeEl({ hidden: true }),
+    '[data-splits-rows]': makeEl({}),
+  });
+  assert.strictEqual(splits.PlaigroundSplits.realWorks({
+    tonegrid_release_ids: [],
+    profile: { releases: [{ title: 'Neon Sermon', tonegrid_status: 'live' }] },
+  }).length, 0);
+  splits.PlaigroundSplits.render({
+    tonegrid_release_ids: [],
+    profile: { releases: [{ title: 'Neon Sermon', tonegrid_status: 'live' }] },
+  });
+  assert.strictEqual(splits.document.querySelector('[data-splits-empty]').hidden, false);
 
   console.log('catalog-earnings.test.js ok');
 }

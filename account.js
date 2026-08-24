@@ -89,6 +89,21 @@
     return PLAN_PITCH[next] || 'Your plan';
   }
 
+  function sidebarPrice(plan) {
+    var next = String(plan || '').trim().toLowerCase();
+    if (next === 'creator') return 'Creator · $14.99/month';
+    if (next === 'pro') return 'Pro · $19.99/month';
+    if (next === 'basic') return 'Basic · $0 forever';
+    return 'Your plan';
+  }
+
+  function sidebarYear(plan) {
+    var next = String(plan || '').trim().toLowerCase();
+    if (next === 'creator') return 'or $149/year';
+    if (next === 'pro') return 'or $199/year';
+    return '';
+  }
+
   function markPlanOption(plan, interval) {
     var key = String(plan || '').trim().toLowerCase();
     var billed = String(interval || '').trim().toLowerCase();
@@ -124,6 +139,12 @@
     $all('[data-account-plan]').forEach(function (el) { setText(el, planLabel(me.plan)); });
     var interval = String(me.billing_interval || me.interval || '').toLowerCase();
     $all('[data-account-plan-pitch]').forEach(function (el) { setText(el, planPitch(me.plan, interval)); });
+    $all('[data-account-plan-price]').forEach(function (el) { setText(el, sidebarPrice(me.plan)); });
+    $all('[data-account-plan-year]').forEach(function (el) {
+      var year = sidebarYear(me.plan);
+      setText(el, year);
+      el.hidden = !year;
+    });
     $all('[data-account-plan-detail]').forEach(function (el) {
       setText(el, PLAN_DETAIL[String(me.plan || '').toLowerCase()] || PLAN_DETAIL.basic);
     });
