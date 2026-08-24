@@ -438,7 +438,7 @@ module.exports = async function handler(req, res) {
       return;
     }
     let next = row;
-    if (!normalizePaidPlan(row.plan)) {
+    if (!normalizePaidPlan(row.plan, row.email)) {
       next = await recoverPaidPlan(row);
     }
     sendJson(res, 200, publicUser(next || row));

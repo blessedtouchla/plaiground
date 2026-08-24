@@ -385,7 +385,28 @@ function run() {
                   return Promise.resolve().then(function () {
                     assert.strictEqual(uploadClick.location.href, 'upload.html', 'signed-in Start a submission opens upload');
                     assert.ok(uploadClick.location.href.indexOf('login.html') === -1);
-                    console.log('membership.test.js ok');
+
+                    const staffPro = load({
+                      requirePaid: true,
+                      pathname: '/publishing-register.html',
+                      href: 'publishing-register.html',
+                      account: {
+                        email: 'emailplaiground@gmail.com',
+                        artist: 'Staff Pro',
+                        plan: 'pro',
+                        status: 'active',
+                      },
+                    });
+                    return staffPro.api.whenReady().then(function () {
+                      assert.strictEqual(staffPro.api.currentPlan(), 'pro');
+                      assert.strictEqual(staffPro.api.hasPlan(), true, 'server Pro does not need a Stripe session');
+                      assert.strictEqual(staffPro.api.hasPaidAccess(), true, 'staff Pro unlocks publishing, boosts, payouts');
+                      assert.strictEqual(staffPro.api.requirePaidAccess(), true);
+                      assert.strictEqual(staffPro.api.requirePublishingAccess(), true);
+                      assert.strictEqual(staffPro.api.canGetPayout(), true);
+                      assert.strictEqual(staffPro.location.href, 'publishing-register.html');
+                      console.log('membership.test.js ok');
+                    });
                   });
                 });
               });
