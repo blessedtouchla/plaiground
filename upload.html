@@ -19,8 +19,8 @@
   <main class="page wrap-wide">
     <div class="head-row">
       <div>
-        <p class="kicker">Submit a song</p>
-        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Upload</h1>
+        <p class="kicker" data-upload-kicker>Submit a song</p>
+        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800" data-upload-heading>Upload</h1>
       </div>
       <a class="learn" href="dashboard.html">Save and exit</a>
     </div>
@@ -31,7 +31,16 @@
       <div class="st"><b>Review &amp; pay</b><span>Cost and delivery</span></div>
     </div>
 
-    <section class="flow-card">
+    <section class="flow-card" data-release-type>
+      <h3>Release type</h3>
+      <div class="auth-toggle" style="max-width:240px" data-type-toggle>
+        <a class="on" href="upload.html" data-type="single">Single</a>
+        <a href="upload.html?type=album" data-type="album">Album</a>
+      </div>
+      <p class="hint" data-album-hint hidden>An album is one ToneGrid release with multiple tracks under the same artist. Creator and Pro only.</p>
+    </section>
+
+    <section class="flow-card" data-single-audio>
       <div class="head-row">
         <h3>Upload your audio</h3>
         <p class="hint" style="margin:0">WAV, FLAC, or MP3 · MP3 is converted to WAV before it goes to stores</p>
@@ -59,6 +68,17 @@
       </div>
     </section>
 
+    <section class="flow-card" data-album-tracks hidden>
+      <div class="head-row">
+        <div>
+          <h3>Tracks</h3>
+          <p class="hint" style="margin:6px 0 0">Add, reorder, or remove tracks before you continue. Each track needs its own audio and title.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" data-add-track>Add track</button>
+      </div>
+      <div data-track-list></div>
+    </section>
+
     <section class="flow-card">
       <h3>Cover art</h3>
       <div class="art-row">
@@ -82,9 +102,9 @@
 
     <section class="flow-card" data-upload-artist>
       <h3>Artist</h3>
-      <p class="hint">Choose who this song is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.</p>
+      <p class="hint" data-artist-copy>Choose who this song is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.</p>
       <div class="field">
-        <label for="tg-artist-mode">Artist for this song</label>
+        <label for="tg-artist-mode" data-artist-mode-label>Artist for this song</label>
         <select id="tg-artist-mode" class="details-select" autocomplete="off">
           <option value="choose">Choose artist profile</option>
           <option value="create">Create new artist profile</option>
@@ -140,7 +160,7 @@
       <h3>Submit the details</h3>
       <div class="form-grid three">
         <div class="field">
-          <label for="tg-title">Song title</label>
+          <label for="tg-title" data-title-label>Song title</label>
           <input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" />
           <p class="hint" id="title-check-msg" hidden></p>
         </div>
@@ -187,8 +207,11 @@
       <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-tonegrid-continue href="attest.html">Continue to attest rights</a></p>
       <p class="hint" id="tg-status" hidden></p>
       <div class="upload-limit" id="tg-limit" hidden>
-        <p>This is a new song. Basic includes one release.</p>
-        <a class="btn btn-purple btn-sm" href="creator.html">Upgrade to Creator</a>
+        <p id="tg-limit-copy">This is a new song. Basic includes one release.</p>
+        <p class="hero-ctas" style="margin:0">
+          <a class="btn btn-purple btn-sm" href="creator.html">Upgrade to Creator</a>
+          <a class="btn btn-ghost btn-sm" href="pro.html">Upgrade to Pro</a>
+        </p>
       </div>
       <p class="hint" id="tg-upgrade" hidden>Need more uploads? Upgrade to <a href="creator.html">Creator</a> or <a href="pro.html">Pro</a>.</p>
     </section>

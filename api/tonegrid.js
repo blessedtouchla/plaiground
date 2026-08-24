@@ -220,6 +220,25 @@ function createdReleaseId(payload) {
   return isUuid(id) ? id : '';
 }
 
+function createdTrackId(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+  const candidates = [
+    payload.uuid,
+    payload.track && payload.track.uuid,
+    payload.data && payload.data.uuid,
+    payload.data && payload.data.track && payload.data.track.uuid,
+  ];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const id = String(candidates[i] || '').trim();
+    if (isUuid(id)) return id;
+  }
+  return '';
+}
+
+function sameCatalogId(a, b) {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase() && Boolean(String(a || '').trim());
+}
+
 function createdArtistId(payload) {
   if (!payload || typeof payload !== 'object') return '';
   const candidates = [
@@ -596,13 +615,19 @@ async function createRelease(req, res) {
   const continueId = String((body && (body.release_id || body.releaseId)) || '').trim();
   const artistId = String((body && (body.artist_id || body.artistId)) || '').trim();
   const existingIds = plans.uniqueReleaseIds(scope.row);
-  const decision = plans.evaluate(scope.row, undefined, { continueReleaseId: continueId });
+  const type = normalizeReleaseType(body && body.type);
+  const decision = plans.evaluate(scope.row, undefined, { continueReleaseId: continueId, type });
+  if (type === 'album' && decision.album_allowed === false) {
+    sendJson(res, 403, plans.limitBody(decision));
+    return;
+  }
   if (decision.continuing && isUuid(continueId)) {
     sendJson(res, 200, { uuid: continueId, continued: true });
     return;
   }
   if (
-    existingIds.length === 1
+    type !== 'album'
+    && existingIds.length === 1
     && isUuid(artistId)
     && scope.artistId
     && artistId.toLowerCase() === scope.artistId.toLowerCase()
@@ -614,7 +639,6 @@ async function createRelease(req, res) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
-  const type = normalizeReleaseType(body && body.type);
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
   const fields = uploadRequired.validateReleaseCreate(body);
 
@@ -701,6 +725,7 @@ async function createTrack(req, res) {
   }
 
   const releaseId = String((body && (body.release_id || body.releaseId)) || '').trim();
+  const continueTrackId = String((body && (body.track_id || body.trackId)) || '').trim();
   const position = parsePosition(body && body.position);
   const explicit = parseExplicit(body && body.explicit);
   const fields = uploadRequired.validateTrackCreate(body);
@@ -713,7 +738,16 @@ async function createTrack(req, res) {
     sendJson(res, 400, { error: 'release_id must be a uuid.' });
     return;
   }
-  if (scope.trackIds.length === 1 && idAllowed(scope.allow, releaseId)) {
+  if (continueTrackId && isUuid(continueTrackId) && idAllowed(scope.trackAllow, continueTrackId)) {
+    sendJson(res, 200, { uuid: continueTrackId, continued: true });
+    return;
+  }
+  if (
+    position === 1
+    && scope.trackIds.length === 1
+    && scope.releaseIds.length === 1
+    && sameCatalogId(scope.releaseIds[0], releaseId)
+  ) {
     sendJson(res, 200, { uuid: scope.trackIds[0], continued: true });
     return;
   }
@@ -738,6 +772,12 @@ async function createTrack(req, res) {
     body: trackPayload,
     idempotencyKey: idempotencyKey(req, ['track', releaseId, fields.title, String(position)].join(':')),
   });
+  if (result.ok) {
+    const trackId = createdTrackId(result.data);
+    if (trackId) {
+      await accounts.updateCatalog(scope.userId, { trackId });
+    }
+  }
   sendJson(res, result.status, result.data);
 }
 

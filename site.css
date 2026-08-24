@@ -1520,6 +1520,23 @@ table.data tbody tr.is-pick { cursor: pointer; }
   font-weight: 600;
   margin: 0 0 10px;
 }
+.track-list { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.track-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--card-2);
+}
+.track-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.track-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.track-row .audio-drop { margin-top: 12px; }
+.track-row .audio-bar { margin-top: 12px; }
 .btn[aria-busy="true"] {
   opacity: 0.55;
   pointer-events: none;

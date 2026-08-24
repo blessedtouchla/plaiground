@@ -10,6 +10,12 @@
     return document.getElementById(id);
   }
 
+  function qsAll(sel) {
+    if (!document || typeof document.querySelectorAll !== 'function') return [];
+    var found = document.querySelectorAll(sel);
+    return found || [];
+  }
+
   function fieldValue(id) {
     var el = $(id);
     return el ? String(el.value || '').trim() : '';
@@ -416,10 +422,19 @@
     if (el) el.hidden = !show;
   }
 
-  function planLimitMessage(plan) {
+  function planLimitMessage(plan, kind) {
+    if (kind === 'album') return 'Albums are on Creator and Pro. Upgrade to upload a multi-track release.';
     return plan === 'creator'
       ? 'Creator includes 8 releases per month. Upgrade to Pro to upload more.'
       : 'Basic includes one release. Upgrade to Creator or Pro to upload more.';
+  }
+
+  function albumAllowedFor(me) {
+    var row = me || accountRecord() || {};
+    if (row.upload && row.upload.album_allowed === true) return true;
+    if (row.upload && row.upload.album_allowed === false) return false;
+    var plan = String((row.upload && row.upload.plan) || row.plan || '').toLowerCase();
+    return plan === 'creator' || plan === 'pro';
   }
 
   function createErrorMessage(result, fallback) {
@@ -454,6 +469,68 @@
     if (input && input.files && input.files[0]) return input.files[0];
     if (input && input._plaigroundFile) return input._plaigroundFile;
     return null;
+  }
+
+  function queryTypeAlbum() {
+    try {
+      return new URLSearchParams((window.location && window.location.search) || '').get('type') === 'album';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function selectedReleaseType() {
+    var on = document.querySelector('[data-type].on');
+    if (on && on.getAttribute('data-type') === 'album') return 'album';
+    if (on && on.getAttribute('data-type') === 'single') return 'single';
+    if (queryTypeAlbum()) return 'album';
+    return readDraft().type === 'album' ? 'album' : 'single';
+  }
+
+  function setPanelHidden(el, hidden) {
+    if (!el) return;
+    el.hidden = Boolean(hidden);
+    if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', Boolean(hidden));
+  }
+
+  function audioFileOf(input) {
+    if (!input) return null;
+    if (input.files && input.files[0]) return input.files[0];
+    if (input._plaigroundFile) return input._plaigroundFile;
+    return null;
+  }
+
+  function collectAlbumTracks() {
+    var rows = qsAll('[data-track-row]');
+    var out = [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+      var row = rows[i];
+      var titleEl = row.querySelector('[data-track-title]');
+      var input = row.querySelector('[data-audio-input]');
+      out.push({
+        title: titleEl ? String(titleEl.value || '').trim() : '',
+        audio: audioFileOf(input),
+        file: audioFileOf(input),
+        track_id: row.getAttribute('data-track-id') || '',
+        audio_uploaded: row.getAttribute('data-audio-uploaded') === 'true',
+        position: i + 1,
+      });
+    }
+    return out;
+  }
+
+  function persistAlbumTracks(tracks) {
+    var stored = (tracks || []).map(function (track, i) {
+      return {
+        title: String((track && track.title) || '').trim(),
+        track_id: (track && track.track_id) || '',
+        audio_uploaded: Boolean(track && track.audio_uploaded),
+        audio_name: track && track.audio && track.audio.name ? track.audio.name : ((track && track.audio_name) || ''),
+        position: i + 1,
+      };
+    });
+    return writeDraft({ tracks: stored, type: 'album' });
   }
 
   function isArtFile(file) {
@@ -494,27 +571,33 @@
     return Promise.resolve(false);
   }
 
-  function trackKey(draft) {
-    if (draft.track_idempotency_key) return draft.track_idempotency_key;
-    return ('plaiground-track-' + String(draft.release_id || '') + ':1').slice(0, 255);
+  function trackKey(draft, position) {
+    var pos = position || 1;
+    if (pos === 1 && draft.track_idempotency_key) return draft.track_idempotency_key;
+    return ('plaiground-track-' + String(draft.release_id || '') + ':' + pos).slice(0, 255);
   }
 
-  function createTrack(draft) {
-    if (draft.track_id) {
-      return Promise.resolve({ skipped: true, draft: draft });
+  function createTrack(draft, trackInfo) {
+    var info = trackInfo || {};
+    var title = info.title || draft.title;
+    var position = info.position || 1;
+    var existingId = info.track_id || (position === 1 ? draft.track_id : '');
+    if (existingId) {
+      return Promise.resolve({ skipped: true, draft: draft, track_id: existingId });
     }
-    if (!draft.release_id || !draft.title) {
+    if (!draft.release_id || !title) {
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
     }
-    var key = trackKey(draft);
-    if (!draft.track_idempotency_key) writeDraft({ track_idempotency_key: key });
+    var key = trackKey(draft, position);
+    if (position === 1 && !draft.track_idempotency_key) writeDraft({ track_idempotency_key: key });
     var trackBody = {
       release_id: draft.release_id,
-      title: draft.title,
-      position: 1,
+      title: title,
+      position: position,
       explicit: draft.explicit === true,
       instrumental: draft.instrumental === true,
     };
+    if (existingId) trackBody.track_id = existingId;
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
     return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
@@ -525,11 +608,11 @@
       }
       var trackId = pickUuid(result.data);
       var next = draft;
-      if (trackId) next = writeDraft({ track_id: trackId });
+      if (trackId && position === 1) next = writeDraft({ track_id: trackId });
       if (next.artist_id || next.release_id || trackId) {
         saveCatalog({ artist_id: next.artist_id, release_id: next.release_id, track_id: trackId });
       }
-      return { created: true, draft: next, result: result };
+      return { created: true, draft: next, result: result, track_id: trackId };
     });
   }
 
@@ -640,7 +723,73 @@
     });
   }
 
+  function uploadTrackAudio(trackId, file, label) {
+    if (!trackId || !file) return Promise.resolve({ skipped: true });
+    if (isMp3File(file)) {
+      showUploadLoader('Converting MP3 to WAV');
+      setStatus('tg-status', 'Converting MP3 to WAV…');
+    } else {
+      showUploadLoader(label || 'Uploading audio');
+      setStatus('tg-status', (label || 'Uploading audio') + '…');
+    }
+    return uploadAudio(trackId, file, function (percent) {
+      showUploadLoader(label || 'Uploading audio', percent);
+    });
+  }
+
+  function afterAlbumRelease(draft) {
+    var tracks = collectAlbumTracks();
+    persistAlbumTracks(tracks);
+    var next = draft;
+    var chain = Promise.resolve({ ok: true, draft: next });
+    tracks.forEach(function (track, index) {
+      chain = chain.then(function (result) {
+        if (!result.ok || result.failed || result.unavailable) return result;
+        next = result.draft || next;
+        var label = 'Creating track ' + (index + 1) + ' of ' + tracks.length;
+        showUploadLoader(label);
+        setStatus('tg-status', label + '…');
+        return createTrack(next, {
+          title: track.title,
+          position: index + 1,
+          track_id: track.track_id,
+        }).then(function (created) {
+          if (created.unavailable || created.failed) return created;
+          next = created.draft || next;
+          var trackId = created.track_id || track.track_id;
+          tracks[index].track_id = trackId;
+          persistAlbumTracks(tracks);
+          if (track.audio_uploaded || !track.audio || !trackId) {
+            return { ok: true, draft: next };
+          }
+          return uploadTrackAudio(trackId, track.audio, 'Uploading audio ' + (index + 1) + ' of ' + tracks.length).then(function (audio) {
+            if (audio.failed || audio.unavailable) return audio;
+            tracks[index].audio_uploaded = true;
+            persistAlbumTracks(tracks);
+            return { ok: true, draft: next, audio: audio };
+          });
+        });
+      });
+    });
+    return chain.then(function (result) {
+      if (!result.ok || result.failed || result.unavailable) return result;
+      next = result.draft || next;
+      var art = selectedArtwork();
+      if (!art || !next.release_id) return result;
+      showUploadLoader('Uploading artwork');
+      setStatus('tg-status', 'Uploading artwork…');
+      return uploadArtwork(next.release_id, art, function (percent) {
+        showUploadLoader('Uploading artwork', percent);
+      }).then(function (artwork) {
+        result.artwork = artwork;
+        result.ok = !artwork.failed && !artwork.unavailable;
+        return result;
+      });
+    });
+  }
+
   function afterRelease(draft) {
+    if (draft.type === 'album') return afterAlbumRelease(draft);
     return createTrack(draft).then(function (track) {
       var next = track.draft || draft;
       if (track.unavailable || track.failed) return track;
@@ -648,16 +797,7 @@
       var art = selectedArtwork();
       var chain = Promise.resolve({ ok: true, draft: next, track: track });
       if (file && next.track_id) {
-        if (isMp3File(file)) {
-          showUploadLoader('Converting MP3 to WAV');
-          setStatus('tg-status', 'Converting MP3 to WAV…');
-        } else {
-          showUploadLoader('Uploading audio');
-          setStatus('tg-status', 'Uploading audio…');
-        }
-        chain = uploadAudio(next.track_id, file, function (percent) {
-          showUploadLoader('Uploading audio', percent);
-        }).then(function (audio) {
+        chain = uploadTrackAudio(next.track_id, file).then(function (audio) {
           return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
         });
       }
@@ -776,8 +916,10 @@
     var language = fieldValue('tg-language').toLowerCase();
     if (!/^[a-z]{2}$/.test(language)) language = '';
     if (instrumental) language = '';
+    var type = selectedReleaseType();
+    var tracks = type === 'album' ? collectAlbumTracks() : [];
     return {
-      audio: selectedAudio(),
+      audio: type === 'album' ? (tracks[0] && tracks[0].audio) : selectedAudio(),
       artwork: selectedArtwork(),
       title: fieldValue('tg-title'),
       name: syncArtistHidden() || fieldValue('tg-artist'),
@@ -788,6 +930,8 @@
       explicit: selectedExplicit(),
       instrumental: instrumental,
       dsps: selectedUploadStores(),
+      type: type,
+      tracks: tracks,
     };
   }
 
@@ -893,6 +1037,10 @@
     var patch = {};
     var onlyRelease = catalog.release_ids.length === 1 ? catalog.release_ids[0] : '';
     var onlyTrack = catalog.track_ids.length === 1 ? catalog.track_ids[0] : '';
+    if (String(draft.type || '') === 'album') {
+      if (!artistId && catalog.artist_id) return writeDraft({ artist_id: catalog.artist_id });
+      return draft;
+    }
     if (releaseId) {
       if (!artistId && catalog.artist_id) patch.artist_id = catalog.artist_id;
       if (!trackId && onlyTrack) patch.track_id = onlyTrack;
@@ -920,8 +1068,11 @@
     else if (!on && el.classList.remove) el.classList.remove('upload-status-error');
   }
 
-  function showLimitPanel(show) {
+  function showLimitPanel(show, kind) {
     var el = $('tg-limit');
+    var copy = $('tg-limit-copy');
+    if (copy && kind === 'album') copy.textContent = 'Albums are on Creator and Pro.';
+    else if (copy && show) copy.textContent = 'This is a new song. Basic includes one release.';
     if (el) el.hidden = !show;
   }
 
@@ -1144,11 +1295,274 @@
     });
   }
 
+  function bindAlbumUi(onChange) {
+    var list = document.querySelector('[data-track-list]');
+    var addBtn = document.querySelector('[data-add-track]');
+    var typeToggle = document.querySelector('[data-type-toggle]');
+    if (typeToggle) {
+      typeToggle.addEventListener('click', function (event) {
+        var choice = event.target && event.target.closest && event.target.closest('[data-type]');
+        if (!choice) return;
+        event.preventDefault();
+        applyReleaseType(choice.getAttribute('data-type') === 'album' ? 'album' : 'single');
+        if (typeof onChange === 'function') onChange();
+      });
+    }
+    if (addBtn) {
+      addBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (selectedReleaseType() !== 'album') return;
+        addTrackRow();
+        if (typeof onChange === 'function') onChange();
+      });
+    }
+    if (list) {
+      list.addEventListener('click', function (event) {
+        var btn = event.target && event.target.closest && event.target.closest('[data-track-up], [data-track-down], [data-track-remove]');
+        if (!btn) return;
+        event.preventDefault();
+        var row = btn.closest('[data-track-row]');
+        if (!row || !list) return;
+        if (btn.hasAttribute('data-track-remove')) {
+          if (list.querySelectorAll('[data-track-row]').length <= 2) return;
+          revokeTrackPreview(row);
+          list.removeChild(row);
+        } else if (btn.hasAttribute('data-track-up') && row.previousElementSibling) {
+          list.insertBefore(row, row.previousElementSibling);
+        } else if (btn.hasAttribute('data-track-down') && row.nextElementSibling) {
+          list.insertBefore(row.nextElementSibling, row);
+        }
+        numberTrackRows();
+        persistAlbumTracks(collectAlbumTracks());
+        if (typeof onChange === 'function') onChange();
+      });
+      list.addEventListener('input', function () {
+        persistAlbumTracks(collectAlbumTracks());
+        if (typeof onChange === 'function') onChange();
+      });
+      list.addEventListener('change', function (event) {
+        var input = event.target && event.target.closest && event.target.closest('[data-audio-input]');
+        if (input) bindTrackAudio(input.closest('[data-track-row]'), audioFileOf(input));
+        persistAlbumTracks(collectAlbumTracks());
+        if (typeof onChange === 'function') onChange();
+      });
+    }
+    applyReleaseType(queryTypeAlbum() || readDraft().type === 'album' ? 'album' : selectedReleaseType(), { initial: true });
+  }
+
+  function applyReleaseType(type, opts) {
+    var next = type === 'album' ? 'album' : 'single';
+    var draft = readDraft();
+    if (!(opts && opts.initial && draft.type === next)) {
+      if (next === 'album' && draft.type !== 'album') {
+        writeDraft({
+          type: 'album',
+          release_id: '',
+          track_id: '',
+          tracks: Array.isArray(draft.tracks) ? draft.tracks : [],
+          release_idempotency_key: '',
+          track_idempotency_key: '',
+        });
+      } else if (next === 'single' && draft.type === 'album') {
+        writeDraft({
+          type: 'single',
+          release_id: '',
+          track_id: '',
+          tracks: [],
+          release_idempotency_key: '',
+          track_idempotency_key: '',
+        });
+      } else {
+        writeDraft({ type: next });
+      }
+    } else {
+      writeDraft({ type: next });
+    }
+    syncAlbumUi();
+  }
+
+  function syncAlbumUi() {
+    var album = selectedReleaseType() === 'album';
+    qsAll('[data-type]').forEach(function (el) {
+      if (el.classList && el.classList.toggle) {
+        el.classList.toggle('on', el.getAttribute('data-type') === (album ? 'album' : 'single'));
+      }
+    });
+    setPanelHidden(document.querySelector('[data-single-audio]'), album);
+    setPanelHidden(document.querySelector('[data-album-tracks]'), !album);
+    setPanelHidden(document.querySelector('[data-album-hint]'), !album);
+    var kicker = document.querySelector('[data-upload-kicker]');
+    var heading = document.querySelector('[data-upload-heading]');
+    var titleLabel = document.querySelector('[data-title-label]');
+    var artistCopy = document.querySelector('[data-artist-copy]');
+    var artistMode = document.querySelector('[data-artist-mode-label]');
+    if (kicker) kicker.textContent = album ? 'Submit an album' : 'Submit a song';
+    if (heading) heading.textContent = album ? 'Upload album' : 'Upload';
+    if (titleLabel) titleLabel.textContent = album ? 'Album title' : 'Song title';
+    if (artistCopy) {
+      artistCopy.textContent = album
+        ? 'Choose who this album is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.'
+        : 'Choose who this song is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.';
+    }
+    if (artistMode) artistMode.textContent = album ? 'Artist for this album' : 'Artist for this song';
+    var titleInput = $('tg-title');
+    if (titleInput) titleInput.setAttribute('placeholder', album ? 'ALBUM TITLE' : 'SONG TITLE');
+    if (album) ensureAlbumTracks();
+  }
+
+  function ensureAlbumTracks() {
+    var list = document.querySelector('[data-track-list]');
+    if (!list) return;
+    if (!qsAll('[data-track-row]').length) {
+      var saved = readDraft().tracks;
+      if (Array.isArray(saved) && saved.length) {
+        saved.forEach(function (track) { addTrackRow(track); });
+      }
+      while (qsAll('[data-track-row]').length < 2) addTrackRow();
+    }
+    numberTrackRows();
+  }
+
+  function addTrackRow(track) {
+    var list = document.querySelector('[data-track-list]');
+    if (!list || !document.createElement) return;
+    var row = document.createElement('div');
+    row.className = 'track-row';
+    row.setAttribute('data-track-row', '');
+    if (track && track.track_id) row.setAttribute('data-track-id', track.track_id);
+    if (track && track.audio_uploaded) row.setAttribute('data-audio-uploaded', 'true');
+    row.innerHTML = ''
+      + '<div class="track-row-head">'
+      + '<strong data-track-index>Track</strong>'
+      + '<div class="track-row-actions">'
+      + '<button class="btn btn-ghost btn-sm" type="button" data-track-up>Up</button>'
+      + '<button class="btn btn-ghost btn-sm" type="button" data-track-down>Down</button>'
+      + '<button class="btn btn-ghost btn-sm" type="button" data-track-remove>Remove</button>'
+      + '</div></div>'
+      + '<div class="field"><label>Track title</label>'
+      + '<input type="text" data-track-title placeholder="Track title" autocomplete="off" /></div>'
+      + '<label class="dashbox audio-drop" data-audio-drop>Drop WAV, FLAC, or MP3 here'
+      + '<span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>'
+      + '<input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input /></label>'
+      + '<div class="audio-bar" data-audio-preview hidden><div>'
+      + '<b data-audio-name>No file selected</b>'
+      + '<div style="color:var(--muted);font-size:12px" data-audio-meta>WAV, FLAC, or MP3 · 16-bit or higher</div></div>'
+      + '<audio data-audio-player controls preload="metadata"></audio>'
+      + '<button class="play" type="button" data-audio-play aria-label="Play">▶</button></div>';
+    list.appendChild(row);
+    var titleEl = row.querySelector('[data-track-title]');
+    if (titleEl && track && track.title) titleEl.value = track.title;
+    var drop = row.querySelector('[data-audio-drop]');
+    var input = row.querySelector('[data-audio-input]');
+    if (drop && input) {
+      drop.addEventListener('click', function () {
+        if (typeof input.click === 'function') input.click();
+      });
+      drop.addEventListener('dragover', function (event) {
+        event.preventDefault();
+        drop.classList.add('is-over');
+      });
+      drop.addEventListener('dragleave', function () {
+        drop.classList.remove('is-over');
+      });
+      drop.addEventListener('drop', function (event) {
+        event.preventDefault();
+        drop.classList.remove('is-over');
+        var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        bindTrackAudio(row, file);
+      });
+    }
+    var playBtn = row.querySelector('[data-audio-play]');
+    var player = row.querySelector('[data-audio-player]');
+    if (playBtn && player) {
+      playBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (!player.getAttribute('src') && !player.src) return;
+        if (player.paused === false) player.pause();
+        else if (typeof player.play === 'function') player.play();
+      });
+      player.addEventListener('play', function () {
+        playBtn.textContent = '❚❚';
+        playBtn.setAttribute('aria-label', 'Pause');
+      });
+      player.addEventListener('pause', function () {
+        playBtn.textContent = '▶';
+        playBtn.setAttribute('aria-label', 'Play');
+      });
+      player.addEventListener('ended', function () {
+        playBtn.textContent = '▶';
+        playBtn.setAttribute('aria-label', 'Play');
+      });
+    }
+    if (track && track.audio_name) {
+      var nameEl = row.querySelector('[data-audio-name]');
+      var preview = row.querySelector('[data-audio-preview]');
+      if (nameEl) nameEl.textContent = track.audio_name;
+      if (preview) preview.hidden = false;
+      if (drop) drop.hidden = true;
+    }
+    numberTrackRows();
+  }
+
+  function numberTrackRows() {
+    var rows = qsAll('[data-track-row]');
+    for (var i = 0; i < rows.length; i += 1) {
+      var label = rows[i].querySelector('[data-track-index]');
+      if (label) label.textContent = 'Track ' + (i + 1);
+    }
+  }
+
+  function revokeTrackPreview(row) {
+    if (!row) return;
+    var player = row.querySelector('[data-audio-player]');
+    var url = row.getAttribute('data-preview-url');
+    if (player) {
+      try { player.pause(); } catch (err) {}
+      player.removeAttribute('src');
+      if (typeof player.load === 'function') player.load();
+    }
+    if (url && window.URL && URL.revokeObjectURL) {
+      try { URL.revokeObjectURL(url); } catch (err) {}
+    }
+    row.removeAttribute('data-preview-url');
+  }
+
+  function bindTrackAudio(row, file) {
+    if (!row || !file) return;
+    var input = row.querySelector('[data-audio-input]');
+    var drop = row.querySelector('[data-audio-drop]');
+    var preview = row.querySelector('[data-audio-preview]');
+    var nameEl = row.querySelector('[data-audio-name]');
+    var metaEl = row.querySelector('[data-audio-meta]');
+    var player = row.querySelector('[data-audio-player]');
+    if (input) {
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+      } catch (err) {
+        input._plaigroundFile = file;
+      }
+    }
+    if (nameEl) nameEl.textContent = file.name;
+    if (metaEl) metaEl.textContent = file.type || 'Audio file';
+    if (preview) preview.hidden = false;
+    if (drop) drop.hidden = true;
+    revokeTrackPreview(row);
+    if (player && window.URL && URL.createObjectURL) {
+      var url = URL.createObjectURL(file);
+      row.setAttribute('data-preview-url', url);
+      player.src = url;
+    }
+    row.removeAttribute('data-audio-uploaded');
+  }
+
   function bindUpload() {
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
     bindArtistSection();
     bindStorePick(storePickRoot());
+    bindAlbumUi(refreshUploadGate);
     var uploadRunning = false;
 
     function setUploadBusy(busy) {
@@ -1168,7 +1582,7 @@
       markIncomplete(trigger, false);
       setStatus('tg-status', message || '');
       markStatusError(Boolean(message));
-      showLimitPanel(upgrade === true);
+      showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
       showUpgrade(upgrade === true);
     }
 
@@ -1206,6 +1620,13 @@
       var me = (result && result.data) || accountRecord();
       var catalog = catalogFromAccount(me);
       var draft = readDraft();
+      if (selectedReleaseType() === 'album' && !albumAllowedFor(me)) {
+        setStatus('tg-status', planLimitMessage(catalog.plan, 'album'));
+        markStatusError(true);
+        showLimitPanel(true, 'album');
+        showUpgrade(true);
+        return;
+      }
       if (catalog.allowed === false && !draft.release_id) {
         setStatus('tg-status', planLimitMessage(catalog.plan));
         markStatusError(true);
@@ -1292,6 +1713,8 @@
       var featured = fields.featured;
       var explicit = fields.explicit;
       var instrumental = fields.instrumental === true;
+      var releaseType = fields.type === 'album' ? 'album' : 'single';
+      var albumTracks = fields.tracks || [];
       var file = fields.audio;
       var art = fields.artwork;
       var nextHref = trigger.getAttribute('href') || 'attest.html';
@@ -1300,7 +1723,14 @@
         fieldError(pageError);
         return;
       }
-      if (file && file.size > MAX_AUDIO_BYTES) {
+      if (releaseType === 'album') {
+        for (var t = 0; t < albumTracks.length; t += 1) {
+          if (albumTracks[t].audio && albumTracks[t].audio.size > MAX_AUDIO_BYTES) {
+            fieldError('Track ' + (t + 1) + ' must be 200 MB or smaller.');
+            return;
+          }
+        }
+      } else if (file && file.size > MAX_AUDIO_BYTES) {
         fieldError('Audio must be 200 MB or smaller.');
         return;
       }
@@ -1323,13 +1753,14 @@
         language: language,
         price: price,
         featured: featured,
-        type: 'single',
+        type: releaseType,
         explicit: explicit,
         instrumental: instrumental,
         dsps: dsps,
         artwork_name: art && art.name ? art.name : '',
         artwork_type: art && art.type ? art.type : '',
         title_check: titleCheck,
+        tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : [],
       });
       setUploadBusy(true);
       markStatusError(false);
@@ -1347,15 +1778,21 @@
             language: language,
             price: price,
             featured: featured,
-            type: 'single',
+            type: releaseType,
             explicit: explicit,
             instrumental: instrumental,
             dsps: dsps,
             artwork_name: art && art.name ? art.name : '',
             artwork_type: art && art.type ? art.type : '',
             title_check: titleCheck,
+            tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,
           }), me);
           var catalog = catalogFromAccount(me);
+          if (releaseType === 'album' && !albumAllowedFor(me)) {
+            failUpload(planLimitMessage(catalog.plan, 'album'), true);
+            showLimitPanel(true, 'album');
+            return;
+          }
           if (!continuingSame && catalog.allowed === false) {
             failUpload(planLimitMessage(catalog.plan), true);
             return;
@@ -1434,9 +1871,12 @@
         });
       }
 
-      if (file) {
-        fileLooksAllowed(file).then(function (ok) {
-          if (!ok) {
+      var filesToCheck = releaseType === 'album'
+        ? albumTracks.map(function (track) { return track.audio; }).filter(Boolean)
+        : (file ? [file] : []);
+      if (filesToCheck.length) {
+        Promise.all(filesToCheck.map(function (item) { return fileLooksAllowed(item); })).then(function (oks) {
+          if (oks.some(function (ok) { return !ok; })) {
             fieldError(AUDIO_ERROR);
             return;
           }
