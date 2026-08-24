@@ -171,9 +171,9 @@ function run() {
   assert.ok(!/Same product as Pro/i.test(read('lib/stripe-plans.js')), 'checkout plan detail must not say same product as Pro');
   assert.ok(/Creator is Basic with the paid features unlocked/i.test(read('account.js')), 'Settings JS uses Creator 1-2-3 voice');
   assert.ok(/Same product as Creator, unlimited, plus catalog migration/i.test(read('account.js')), 'Pro Settings copy may say same as Creator plus catalog migration');
-  assert.ok(!/plus catalog migration/.test(read('account.js').match(/creator:\s*'[^']+'/)[0]), 'Creator Settings line must not get catalog migration');
-  assert.ok(/plus catalog migration/.test(read('lib/stripe-plans.js').match(/pro:\s*'[^']+'/)[0]), 'checkout Pro detail includes catalog migration');
-  assert.ok(!/plus catalog migration/.test(read('lib/stripe-plans.js').match(/creator:\s*'[^']+'/)[0]), 'checkout Creator detail must not get catalog migration');
+  assert.ok(!/plus catalog migration/.test(read('account.js').match(/PLAN_DETAIL = \{[\s\S]*?creator:\s*'[^']+'/)[0]), 'Creator Settings line must not get catalog migration');
+  assert.ok(/plus catalog migration/.test(read('lib/stripe-plans.js').match(/PLAN_DETAIL = \{[\s\S]*?pro:\s*'[^']+'/)[0]), 'checkout Pro detail includes catalog migration');
+  assert.ok(!/plus catalog migration/.test(read('lib/stripe-plans.js').match(/PLAN_DETAIL = \{[\s\S]*?creator:\s*'[^']+'/)[0]), 'checkout Creator detail must not get catalog migration');
 
   const pro = read('pro.html');
   assert.ok(pro.includes('The same product as Creator'), 'Pro Learn more is the same product');
