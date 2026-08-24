@@ -151,6 +151,21 @@
     });
   }
 
+  var PUBLIC_SOCIALS_HTML =
+    '<a href="https://www.facebook.com/profile.php?id=61593116849937" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg>' +
+    '</a>' +
+    '<a href="https://www.instagram.com/plaigroundmusic" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z"/></svg>' +
+    '</a>';
+
+  function setupPublicSocials() {
+    document.querySelectorAll(".socials").forEach(function (el) {
+      el.innerHTML = PUBLIC_SOCIALS_HTML;
+    });
+  }
+
   setupAppMenu();
   setupPublicMenu();
+  setupPublicSocials();
 })();
