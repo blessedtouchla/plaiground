@@ -79,6 +79,11 @@ function run() {
     assert.ok(nav[0].includes('href="faq.html">FAQ</a>'), file + ' keeps FAQ on the public menu');
     assert.ok(!/<details[\s\S]{0,500}href="royalties.html"/.test(nav[0]), file + ' must not nest How you get paid inside a Plans submenu');
     assert.ok(!/class="[^"]*(sub-?menu|dropdown)[^"]*"[\s\S]{0,400}href="royalties.html"/.test(nav[0]), file + ' How you get paid stays outside any Plans dropdown');
+    assert.ok(nav[0].includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' Plans and Pricing must stay a real compare-page link');
+    assert.ok(nav[0].includes('href="basic.html">Learn more: Basic</a>'), file + ' header still lists Learn more: Basic for the shared menu to nest');
+    assert.ok(nav[0].includes('href="creator.html">Learn more: Creator</a>'), file + ' header still lists Learn more: Creator for the shared menu to nest');
+    assert.ok(nav[0].includes('href="pro.html">Learn more: Pro</a>'), file + ' header still lists Learn more: Pro for the shared menu to nest');
+    assert.ok(!/href="boost.html">Marketing Boost<\/a>/.test(nav[0]), file + ' must not put Marketing Boost in the public header');
   });
 
   const royalties = read('royalties.html');
@@ -163,9 +168,21 @@ function run() {
   assert.ok(/\.app\.nav-open \.side/i.test(css), 'open app drawer must show .side');
   assert.ok(/\.topbar \.menu-toggle \{ display: inline-flex; \}/i.test(css), 'mobile topbar shows the hamburger');
   assert.ok(/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), 'public mobile bar hides the full menu and actions');
+  assert.ok(css.includes('.nav-submenu'), 'public nav has a plans submenu');
+  assert.ok(css.includes('.nav-submenu-toggle'), 'public nav has a chevron toggle');
+  assert.ok(css.includes('.nav-links > a[href="basic.html"]'), 'un-nested Learn more stays hidden until the shared menu nests it');
+  assert.ok(/hover: hover[\s\S]*\.nav-item\.has-submenu:hover \.nav-submenu/i.test(css), 'desktop hover reveals the plan submenu');
+  assert.ok(/\.nav\.nav-open \.nav-item\.has-submenu\.open \.nav-submenu/i.test(css), 'phone open chevron reveals Basic / Creator / Pro');
 
   const js = read('site.js');
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
+  assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav nests plan pages once');
+  assert.ok(js.includes('nav-submenu-toggle'), 'phone chevron expands Basic / Creator / Pro');
+  assert.ok(js.includes('Show Basic, Creator, and Pro'), 'chevron is labeled for the plan pages');
+  assert.ok(js.includes('chevron.type = "button"'), 'chevron must not be a link that blocks the compare page');
+  assert.ok(js.includes('submenu.appendChild(basic)') && js.includes('submenu.appendChild(creator)') && js.includes('submenu.appendChild(pro)'), 'submenu nests Basic, Creator, and Pro');
+  assert.ok(!/boost\.html/.test(js), 'shared public nav must not nest Boost');
+  assert.ok(!/royalties\.html/.test(js), 'shared public nav must not nest How you get paid');
   assert.ok(js.includes('setupPublicSocials'), 'site.js keeps footer socials from one shared block');
   assert.ok(js.includes('https://www.facebook.com/profile.php?id=61593116849937'), 'shared socials use the PLAIGROUND Facebook profile');
   assert.ok(js.includes('https://www.instagram.com/plaigroundmusic'), 'shared socials use the PLAIGROUND Instagram');

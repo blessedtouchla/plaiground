@@ -132,6 +132,8 @@
       header.appendChild(backdrop);
     }
 
+    setupPublicPlansMenu(links);
+
     function isOpen() {
       return header.classList.contains("nav-open");
     }
@@ -142,6 +144,11 @@
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
       backdrop.hidden = !open;
+      if (!open && links) {
+        links.querySelectorAll(".nav-item.has-submenu.open").forEach(function (item) {
+          setSubmenuOpen(item, false);
+        });
+      }
     }
 
     wireToggle(toggle, isOpen, setOpen);
@@ -149,6 +156,99 @@
     drawer.querySelectorAll("a").forEach(function (link) {
       link.addEventListener("click", function () { setOpen(false); });
     });
+  }
+
+  function hrefFile(href) {
+    if (!href) return "";
+    var path = href.split("?")[0].split("#")[0];
+    var parts = path.split("/");
+    return parts[parts.length - 1] || "";
+  }
+
+  function setSubmenuOpen(item, open) {
+    if (!item) return;
+    var chevron = item.querySelector(".nav-submenu-toggle");
+    item.classList.toggle("open", open);
+    if (chevron) {
+      chevron.setAttribute("aria-expanded", open ? "true" : "false");
+      chevron.setAttribute("aria-label", open ? "Hide Basic, Creator, and Pro" : "Show Basic, Creator, and Pro");
+    }
+  }
+
+  function wirePlansSubmenu(item) {
+    if (!item || item.getAttribute("data-submenu-wired") === "1") return;
+    var chevron = item.querySelector(".nav-submenu-toggle");
+    if (!chevron) return;
+    item.setAttribute("data-submenu-wired", "1");
+    chevron.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      setSubmenuOpen(item, !item.classList.contains("open"));
+    });
+    document.addEventListener("click", function (event) {
+      if (!item.contains(event.target)) setSubmenuOpen(item, false);
+    });
+  }
+
+  function setupPublicPlansMenu(links) {
+    if (!links) return;
+    var existing = links.querySelector(".nav-item.has-submenu");
+    if (existing) {
+      wirePlansSubmenu(existing);
+      return;
+    }
+
+    var pricing = null;
+    var basic = null;
+    var creator = null;
+    var pro = null;
+    Array.prototype.forEach.call(links.children, function (el) {
+      if (!el || el.tagName !== "A") return;
+      var href = el.getAttribute("href") || "";
+      var file = hrefFile(href);
+      var text = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (href.indexOf("#pricing") !== -1 && /plans and pricing|pricing/i.test(text)) {
+        pricing = el;
+      } else if (file === "basic.html") {
+        basic = el;
+      } else if (file === "creator.html") {
+        creator = el;
+      } else if (file === "pro.html") {
+        pro = el;
+      }
+    });
+    if (!pricing || !basic || !creator || !pro) return;
+
+    var item = document.createElement("div");
+    item.className = "nav-item has-submenu";
+    var row = document.createElement("div");
+    row.className = "nav-item-row";
+    var chevron = document.createElement("button");
+    chevron.type = "button";
+    chevron.className = "nav-submenu-toggle";
+    chevron.setAttribute("aria-expanded", "false");
+    chevron.setAttribute("aria-label", "Show Basic, Creator, and Pro");
+    chevron.innerHTML = '<span class="nav-submenu-chevron" aria-hidden="true"></span>';
+    var submenu = document.createElement("div");
+    submenu.className = "nav-submenu";
+    submenu.id = "public-plans-submenu";
+    chevron.setAttribute("aria-controls", "public-plans-submenu");
+
+    links.insertBefore(item, pricing);
+    row.appendChild(pricing);
+    row.appendChild(chevron);
+    item.appendChild(row);
+    submenu.appendChild(basic);
+    submenu.appendChild(creator);
+    submenu.appendChild(pro);
+    item.appendChild(submenu);
+
+    if (basic.classList.contains("active") || creator.classList.contains("active") || pro.classList.contains("active")) {
+      item.classList.add("is-current");
+      pricing.classList.add("active");
+    }
+
+    wirePlansSubmenu(item);
   }
 
   var PUBLIC_SOCIALS_HTML =
