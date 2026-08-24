@@ -97,6 +97,23 @@
     storeSet(SIGNED_IN_AT_KEY, '');
   }
 
+  function expireHintCookie() {
+    try {
+      if (global.document) {
+        global.document.cookie = 'plaiground_signed=; Path=/; Max-Age=0; SameSite=Lax';
+      }
+    } catch (err) {}
+  }
+
+  function clearDeadSession() {
+    serverAccount = null;
+    clearSignedIn();
+    storeSet(MEMBERSHIP_KEY, '');
+    storeSet(PENDING_KEY, '');
+    storeSet(SESSION_KEY, '');
+    expireHintCookie();
+  }
+
   function signedInFresh() {
     var value = String(storeGet(SIGNED_IN_KEY) || '').toLowerCase();
     if (value !== '1' && value !== 'true' && value !== 'yes') return false;
@@ -223,6 +240,7 @@
     }).then(function (result) {
       serverStatus = (result && result.status) || 0;
       if (result && result.ok) applyServerAccount(result.data);
+      else if (serverStatus === 401) clearDeadSession();
       return settleAccount(result);
     }).catch(function () {
       serverStatus = 503;
@@ -432,17 +450,70 @@
     return true;
   }
 
+  function planForCopy() {
+    if (!accountSettled || serverStatus === 401) return '';
+    return currentPlan() || 'basic';
+  }
+
   function applyPlanCopy() {
     var doc = global.document;
     if (!doc || typeof doc.querySelectorAll !== 'function') return;
-    var plan = currentPlan() || 'basic';
+    var plan = planForCopy();
     var nodes = doc.querySelectorAll('[data-for-plans]');
     for (var i = 0; i < nodes.length; i += 1) {
       var el = nodes[i];
       var allowed = String(el.getAttribute('data-for-plans') || '').toLowerCase().split(/\s+/);
-      var show = allowed.indexOf(plan) !== -1;
+      var show = Boolean(plan) && allowed.indexOf(plan) !== -1;
       el.hidden = !show;
       if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
+    }
+  }
+
+  function hideAll(doc, sel) {
+    if (!doc || typeof doc.querySelectorAll !== 'function') return;
+    var nodes = doc.querySelectorAll(sel);
+    var i;
+    for (i = 0; i < nodes.length; i += 1) {
+      nodes[i].hidden = true;
+    }
+  }
+
+  function clearText(doc, sel) {
+    if (!doc || typeof doc.querySelectorAll !== 'function') return;
+    var nodes = doc.querySelectorAll(sel);
+    var i;
+    for (i = 0; i < nodes.length; i += 1) {
+      nodes[i].textContent = '';
+    }
+  }
+
+  function applyLoggedOutChrome() {
+    var doc = global.document;
+    if (!doc) return;
+    var loggedOut = accountSettled && serverStatus === 401;
+    var body = doc.body;
+    if (body && body.classList && typeof body.classList.toggle === 'function') {
+      body.classList.toggle('is-logged-out', loggedOut);
+    }
+    if (!loggedOut) return;
+    hideAll(doc, '.who');
+    hideAll(doc, '.side');
+    hideAll(doc, '.pro-card');
+    clearText(doc, '[data-account-who]');
+    clearText(doc, '[data-account-avatar]');
+    clearText(doc, '[data-account-plan]');
+    clearText(doc, '[data-account-plan-title]');
+    clearText(doc, '[data-account-plan-price]');
+    clearText(doc, '[data-account-plan-pitch]');
+    clearText(doc, '[data-account-plan-year]');
+    var topbar = typeof doc.querySelector === 'function' ? doc.querySelector('.topbar') : null;
+    if (topbar && typeof doc.createElement === 'function' && !topbar.querySelector('[data-logged-out-login]')) {
+      var login = doc.createElement('a');
+      login.className = 'login';
+      login.setAttribute('data-logged-out-login', 'true');
+      login.href = LOGIN;
+      login.textContent = 'Log in';
+      topbar.appendChild(login);
     }
   }
 
@@ -551,6 +622,7 @@
     isConfirmedLoggedOut: isConfirmedLoggedOut,
     currentPlan: currentPlan,
     applyPlanCopy: applyPlanCopy,
+    applyLoggedOutChrome: applyLoggedOutChrome,
     account: function () { return serverAccount; },
     whenReady: function (cb) {
       var next = accountReady.then(function (result) {
@@ -606,6 +678,9 @@
   whenDomReady(function () {
     applyPlanCopy();
     bindFlowStepper();
-    accountReady.then(function () { applyPlanCopy(); });
+    accountReady.then(function () {
+      applyPlanCopy();
+      applyLoggedOutChrome();
+    });
   });
 })(window);

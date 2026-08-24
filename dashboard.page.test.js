@@ -120,6 +120,127 @@ function run() {
 
   const session = loadDashboardScripts(true);
   assert.strictEqual(session.api.isSignedIn(), true);
+
+  function makeChromeNode(attrs) {
+    const node = {
+      hidden: Boolean(attrs && attrs.hidden),
+      textContent: (attrs && attrs.textContent) || '',
+      className: (attrs && attrs.className) || '',
+      href: (attrs && attrs.href) || '',
+      children: [],
+      classList: {
+        tokens: Object.create(null),
+        contains(name) { return Boolean(this.tokens[name]); },
+        toggle(name, force) {
+          if (force) this.tokens[name] = true;
+          else if (force === false) delete this.tokens[name];
+          else if (this.tokens[name]) delete this.tokens[name];
+          else this.tokens[name] = true;
+        },
+      },
+      getAttribute(name) { return (attrs && attrs.attrs && attrs.attrs[name]) || null; },
+      setAttribute(name, value) {
+        if (!attrs) attrs = {};
+        if (!attrs.attrs) attrs.attrs = {};
+        attrs.attrs[name] = value;
+      },
+      querySelector(sel) {
+        return this.children.filter(function (child) {
+          return child.sel === sel || (sel === '[data-logged-out-login]' && child.loggedOutLogin);
+        })[0] || null;
+      },
+      appendChild(child) { this.children.push(child); return child; },
+    };
+    if (attrs && attrs.containsApp) node.classList.tokens.app = true;
+    return node;
+  }
+
+  function loadStaleProDashboard() {
+    const membershipCode = read('membership.js');
+    const localStorage = {
+      data: {
+        plaigroundSignedIn: '1',
+        plaigroundSignedInAt: String(Date.now()),
+        plaigroundMembership: 'pro',
+      },
+      getItem(key) {
+        return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null;
+      },
+      setItem(key, value) { this.data[key] = String(value); },
+      removeItem(key) { delete this.data[key]; },
+    };
+    const proCopy = makeChromeNode({
+      hidden: true,
+      textContent: 'Pro · $19.99/month or $16.58/month billed yearly.',
+      attrs: { 'data-for-plans': 'pro' },
+    });
+    const paidCopy = makeChromeNode({
+      hidden: true,
+      textContent: 'Publishing, Boosts and deeper analytics are active on your account.',
+      attrs: { 'data-for-plans': 'creator pro' },
+    });
+    const who = makeChromeNode({ className: 'who', textContent: 'Hi there' });
+    const avatar = makeChromeNode({ textContent: 'PG' });
+    const planTitle = makeChromeNode({ textContent: 'Your plan' });
+    const planPrice = makeChromeNode({ textContent: 'Your plan' });
+    const side = makeChromeNode({ className: 'side' });
+    const topbar = makeChromeNode({ className: 'topbar' });
+    const body = makeChromeNode({ containsApp: true });
+    const created = [];
+    const nodesBySel = {
+      '[data-for-plans]': [proCopy, paidCopy],
+      '.who': [who],
+      '.side': [side],
+      '.pro-card': [makeChromeNode({})],
+      '[data-account-who]': [who],
+      '[data-account-avatar]': [avatar],
+      '[data-account-plan-title]': [planTitle],
+      '[data-account-plan-price]': [planPrice],
+      '[data-account-plan]': [makeChromeNode({ textContent: 'PRO' })],
+      '[data-account-plan-pitch]': [makeChromeNode({})],
+      '[data-account-plan-year]': [makeChromeNode({})],
+      '.topbar': [topbar],
+    };
+    const document = {
+      body,
+      currentScript: { getAttribute() { return null; } },
+      readyState: 'complete',
+      querySelector(sel) { return (nodesBySel[sel] && nodesBySel[sel][0]) || null; },
+      querySelectorAll(sel) { return nodesBySel[sel] || []; },
+      addEventListener() {},
+      createElement(tag) {
+        const el = makeChromeNode({ className: '' });
+        el.tagName = String(tag).toUpperCase();
+        el.loggedOutLogin = false;
+        const origSet = el.setAttribute;
+        el.setAttribute = function (name, value) {
+          origSet.call(el, name, value);
+          if (name === 'data-logged-out-login') el.loggedOutLogin = true;
+        };
+        created.push(el);
+        return el;
+      },
+    };
+    const context = {
+      URLSearchParams,
+      localStorage,
+      sessionStorage: localStorage,
+      document,
+      location: { href: 'dashboard.html', pathname: '/dashboard.html', search: '', replace() {} },
+      fetch() {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: function () { return Promise.resolve({ error: 'Sign in required.' }); },
+        });
+      },
+    };
+    context.window = context;
+    vm.runInNewContext(membershipCode, context);
+    return context.PlaigroundMembership.whenReady().then(function () {
+      return { api: context.PlaigroundMembership, localStorage, location: context.location, proCopy, paidCopy, who, avatar, planTitle, side, body, topbar, created };
+    });
+  }
   assert.ok(dash.includes('data-first-song'), 'empty first-song hero stays in markup');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hero is in markup');
   assert.ok(dash.includes('Pending'), 'submitted state shows Pending');
@@ -303,8 +424,32 @@ function run() {
   assert.ok(dash.includes('href="publishing-register.html"'), 'paid Register opens the registration page');
   assert.ok(dash.includes('upload.html?type=album'), 'dashboard can start an album');
   assert.ok(read('releases.html').includes('upload.html?type=album'), 'releases can start an album');
+  assert.ok(!/data-require-membership="true"/.test(dash), 'dashboard stays on-page for a 401 and clears chrome instead of bouncing');
+  assert.ok(!/data-require-membership="true"/.test(read('releases.html')), 'releases stays on-page for a 401 and clears chrome instead of bouncing');
+  assert.ok(read('upload.html').includes('data-require-membership="true"'), 'upload keeps the membership gate');
 
-  console.log('dashboard.page.test.js ok');
+  return loadStaleProDashboard().then(function (stale) {
+    assert.strictEqual(stale.location.href, 'dashboard.html', 'dashboard does not replace a 401 with login.html');
+    assert.strictEqual(stale.api.isConfirmedLoggedOut(), true);
+    assert.strictEqual(stale.api.isSignedIn(), false);
+    assert.strictEqual(stale.api.currentPlan(), '', 'stale localStorage Pro is cleared');
+    assert.strictEqual(stale.localStorage.getItem('plaigroundMembership'), null);
+    assert.strictEqual(stale.localStorage.getItem('plaigroundSignedIn'), null);
+    assert.strictEqual(stale.proCopy.hidden, true, '401 must not unhide Your plan Pro copy');
+    assert.strictEqual(stale.paidCopy.hidden, true, '401 must not claim Boosts are active');
+    assert.strictEqual(stale.who.hidden, true, 'PG / Hi there is not signed-in chrome');
+    assert.strictEqual(stale.avatar.textContent, '', 'PG initials are cleared');
+    assert.strictEqual(stale.planTitle.textContent, '', 'Your plan title is cleared');
+    assert.strictEqual(stale.side.hidden, true, 'signed-in sidebar is hidden');
+    assert.strictEqual(stale.body.classList.contains('is-logged-out'), true);
+    assert.ok(stale.topbar.children.some(function (el) {
+      return el.loggedOutLogin && el.href === 'login.html' && el.textContent === 'Log in';
+    }), 'logged-out dashboard offers Log in without looking signed in');
+    console.log('dashboard.page.test.js ok');
+  });
 }
 
-run();
+Promise.resolve(run()).catch(function (err) {
+  console.error(err);
+  process.exit(1);
+});
