@@ -2,8 +2,9 @@
 
 /**
  * GET  /api/me          session required
- * POST /api/me          session required; store stripe_session_id only
- *                       (plan is set by the signed Stripe webhook, not the client)
+ * POST /api/me          session required; store stripe_session_id and, when the
+ *                       Checkout Session is paid, write Creator/Pro on this row.
+ *                       Client-sent plan is ignored. Webhook is the other writer.
  * POST /api/me/catalog  session required; save ToneGrid uuids
  * POST /api/me/profile  session required; save public artist profile on this user
  * POST /api/me/artists  session required; create / link / update Artist Profiles
@@ -18,12 +19,14 @@ const {
   attachSession,
   bodyHasPassword,
   isConfigured,
+  normalizePaidPlan,
   notConfigured,
   publicUser,
   rejectQueryPassword,
   rejectUnconfirmed,
   sessionFromRequest,
 } = require('../lib/auth');
+const { applyPaidSessionToAccount, recoverPaidPlan } = require('../lib/stripe-webhook');
 const { pathnameOf, queryValue } = require('../lib/route');
 const { isUuid, readBody, sendJson } = require('../lib/tonegrid');
 
@@ -79,6 +82,13 @@ async function updateMembership(req, res, row) {
   }
   const sessionId = String((body && (body.stripe_session_id || body.session_id || body.stripeSessionId)) || '').trim();
   const customerId = String((body && (body.stripe_customer_id || body.customer_id)) || '').trim();
+  if (sessionId) {
+    const applied = await applyPaidSessionToAccount(sessionId, row);
+    if (applied.applied && applied.row) {
+      sendJson(res, 200, publicUser(applied.row));
+      return;
+    }
+  }
   const next = await updateStripe(row.id, {
     sessionId: sessionId || undefined,
     customerId: customerId || undefined,
@@ -427,7 +437,11 @@ module.exports = async function handler(req, res) {
       await updateMembership(req, res, row);
       return;
     }
-    sendJson(res, 200, publicUser(row));
+    let next = row;
+    if (!normalizePaidPlan(row.plan)) {
+      next = await recoverPaidPlan(row);
+    }
+    sendJson(res, 200, publicUser(next || row));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       notConfigured(res);

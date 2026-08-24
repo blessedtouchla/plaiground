@@ -170,6 +170,8 @@ function run() {
   assert.ok(!/id="tg-artist"[^>]*legal name/i.test(upload));
   assert.ok(upload.includes('data-type="album"'), 'upload page can start an album');
   assert.ok(upload.includes('data-track-list'), 'album track list is on the upload page');
+  assert.ok(dash.includes('data-publishing-register'), 'Register for publishing is gated in JS');
+  assert.ok(dash.includes('href="publishing-register.html"'), 'paid Register opens the registration page');
   assert.ok(dash.includes('upload.html?type=album'), 'dashboard can start an album');
   assert.ok(read('releases.html').includes('upload.html?type=album'), 'releases can start an album');
 

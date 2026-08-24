@@ -190,23 +190,28 @@ function safeCancelUrl(value) {
 
 async function attachPayer(params, req) {
   const session = sessionFromRequest(req);
-  if (!session) return;
+  if (!session) return { ok: false, status: 401, error: 'Sign in required.' };
   let user;
   try {
     user = await findById(session.userId);
   } catch (err) {
-    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') return;
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      return { ok: false, status: 503, error: 'Accounts are not configured.' };
+    }
     throw err;
   }
-  if (!user) return;
+  if (!user) return { ok: false, status: 401, error: 'Sign in required.' };
   params.append('client_reference_id', user.id);
   params.append('metadata[userId]', user.id);
+  params.append('metadata[email]', user.email);
   params.append('subscription_data[metadata][userId]', user.id);
+  params.append('subscription_data[metadata][email]', user.email);
   if (user.stripe_customer_id) {
     params.append('customer', user.stripe_customer_id);
   } else if (user.email) {
     params.append('customer_email', user.email);
   }
+  return { ok: true, user };
 }
 
 async function createCheckoutSession(req, res) {
@@ -248,10 +253,18 @@ async function createCheckoutSession(req, res) {
     params.append('metadata[interval]', meta.interval);
     params.append('subscription_data[metadata][interval]', meta.interval);
   }
+  let payer;
   try {
-    await attachPayer(params, req);
+    payer = await attachPayer(params, req);
   } catch {
     sendJson(res, 503, { configured: true, error: 'Accounts are not configured.' });
+    return;
+  }
+  if (!payer || !payer.ok) {
+    sendJson(res, (payer && payer.status) || 401, {
+      configured: true,
+      error: (payer && payer.error) || 'Sign in required.',
+    });
     return;
   }
 

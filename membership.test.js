@@ -58,6 +58,8 @@ function load(options) {
       currentScript: {
         getAttribute(name) {
           if (name === 'data-require-membership') return options && options.require ? 'true' : null;
+          if (name === 'data-require-paid') return options && options.requirePaid ? 'true' : null;
+          if (name === 'data-require-publishing') return options && options.requirePublishing ? 'true' : null;
           return null;
         },
       },
@@ -264,7 +266,61 @@ function run() {
       assert.strictEqual(warned.api.hasPaidAccess(), true, 'warning keeps paid features');
       assert.strictEqual(warned.api.canGetPayout(), false, 'warning blocks payouts');
       assert.strictEqual(warned.api.requirePaidAccess(), true);
-      console.log('membership.test.js ok');
+
+      const creatorPublishing = load({
+        requirePublishing: true,
+        pathname: '/publishing-register.html',
+        href: 'publishing-register.html',
+        account: {
+          email: 'ada@example.com',
+          artist: 'Ada',
+          plan: 'creator',
+          status: 'active',
+          stripe_session_id: 'cs_creator',
+        },
+      });
+      return creatorPublishing.api.whenReady().then(function () {
+        assert.strictEqual(creatorPublishing.api.hasPaidAccess(), true);
+        assert.strictEqual(creatorPublishing.api.publishingHref(), 'publishing-register.html');
+        assert.strictEqual(creatorPublishing.api.requirePublishingAccess(), true);
+        assert.strictEqual(creatorPublishing.location.href, 'publishing-register.html');
+
+        const explainer = load({
+          requirePublishing: true,
+          pathname: '/publishing.html',
+          href: 'publishing.html',
+          account: {
+            email: 'ada@example.com',
+            artist: 'Ada',
+            plan: 'pro',
+            status: 'active',
+            stripe_session_id: 'cs_pro',
+          },
+        });
+        return explainer.api.whenReady().then(function () {
+          assert.strictEqual(explainer.api.requirePublishingAccess(), false);
+          assert.ok(explainer.location.href.indexOf('publishing-register.html') !== -1);
+
+          const basicPublishing = load({
+            requirePublishing: true,
+            pathname: '/publishing-register.html',
+            href: 'publishing-register.html',
+            account: {
+              email: 'ada@example.com',
+              artist: 'Ada',
+              plan: 'basic',
+              status: 'active',
+            },
+          });
+          return basicPublishing.api.whenReady().then(function () {
+            assert.strictEqual(basicPublishing.api.hasPaidAccess(), false);
+            assert.strictEqual(basicPublishing.api.requirePublishingAccess(), false);
+            assert.ok(basicPublishing.location.href.indexOf('index.html?needplan=1#pricing') !== -1);
+            assert.ok(basicPublishing.location.href.indexOf('pro.html') === -1);
+            console.log('membership.test.js ok');
+          });
+        });
+      });
     });
   });
 }

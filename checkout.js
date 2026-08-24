@@ -86,6 +86,13 @@
         trigger.removeAttribute('aria-busy');
         trigger.disabled = false;
         trigger.textContent = original;
+        if (result.status === 401) {
+          var plan = trigger.getAttribute('data-checkout-plan') || '';
+          var dest = 'login.html';
+          if (plan) dest += '?plan=' + encodeURIComponent(plan);
+          window.location.href = dest;
+          return;
+        }
         if (result.status === 503 || result.data.configured === false) {
           setStatus(trigger, 'Checkout is not available yet.');
           return;
