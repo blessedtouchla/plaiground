@@ -25,7 +25,7 @@ const crypto = require('crypto');
 const { findById } = require('../lib/accounts');
 const { sessionFromRequest } = require('../lib/auth');
 const { pathnameOf, queryValue } = require('../lib/route');
-const { ALLOWED_PRICE_IDS, PRICE_BY_PLAN, planMetaForPrice } = require('../lib/stripe-plans');
+const { ALLOWED_PRICE_IDS, PRICE_BY_PLAN, checkoutUnavailableReason, planMetaForPrice } = require('../lib/stripe-plans');
 const { applyStripeEvent, verifyStripeSignature, webhookSecret } = require('../lib/stripe-webhook');
 const { headerValue } = require('../lib/tonegrid');
 
@@ -158,6 +158,11 @@ function resolvePrice(body) {
   if (plan && !interval) interval = 'month';
   if (!plan || !interval) {
     return { error: 'Provide a valid priceId or plan and interval.' };
+  }
+
+  const gap = checkoutUnavailableReason(plan, interval);
+  if (gap) {
+    return { error: gap };
   }
 
   const priceId = PRICE_BY_PLAN[plan + ':' + interval];
