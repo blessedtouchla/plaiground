@@ -258,12 +258,74 @@ function run() {
       },
       account() { return null; },
       isSignedIn() { return true; },
+      hasLiveSession() { return true; },
     },
     window: {},
     location: { search: '' },
   };
   signedInCatalog.window = signedInCatalog;
   vm.runInNewContext(read('catalog.js'), signedInCatalog);
+
+  const cookieOnlyEmpty = {
+    '[data-stat="total"]': makeEl({ textContent: '0' }),
+    '[data-stat="live"]': makeEl({ textContent: '0' }),
+    '[data-stat="review"]': makeEl({ textContent: '0' }),
+    '[data-stat="draft"]': makeEl({ textContent: '0' }),
+    '[data-release-rows]': makeEl({}),
+    '[data-release-empty]': makeEl({}),
+    '[data-release-empty-title]': makeEl({ textContent: 'Your first release goes here.' }),
+    '[data-release-empty-body]': makeEl({ textContent: 'Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.' }),
+    '[data-release-table]': makeEl({ hidden: true }),
+    '[data-release-count]': makeEl({}),
+    '[data-release-status]': makeEl({ hidden: true, textContent: '' }),
+  };
+  const cookieOnlyCatalog = {
+    URLSearchParams,
+    document: {
+      cookie: 'plaiground_signed=1',
+      querySelector(sel) {
+        return cookieOnlyEmpty[sel] || null;
+      },
+      querySelectorAll() {
+        return [];
+      },
+      createElement() {
+        return makeEl({});
+      },
+    },
+    fetch(url) {
+      if (String(url).indexOf('/api/tonegrid/releases') !== -1) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: async function () { return { error: 'Sign in required.' }; },
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async function () { return {}; },
+      });
+    },
+    PlaigroundMembership: {
+      whenReady(cb) {
+        if (typeof cb === 'function') cb(null);
+        return Promise.resolve(null);
+      },
+      account() { return null; },
+      isSignedIn() { return false; },
+      hasLiveSession() { return false; },
+    },
+    window: {},
+    location: { search: '' },
+  };
+  cookieOnlyCatalog.window = cookieOnlyCatalog;
+  vm.runInNewContext(read('catalog.js'), cookieOnlyCatalog);
+
+  assert.ok(read('releases.html').indexOf('data-signed-in-upload') !== -1, 'releases upload links wait for the session');
+  assert.ok(read('dashboard.html').indexOf('href="upload.html?type=album" data-album-upload data-signed-in-upload') !== -1
+    || /upload\.html\?type=album[^>]*data-signed-in-upload/.test(read('dashboard.html')),
+    'dashboard Upload an album waits for the session');
 
   const splits = loadScript('splits.js', {
     '[data-splits-empty]': makeEl({}),
@@ -288,6 +350,10 @@ function run() {
     assert.strictEqual(signedInEmpty['[data-release-empty]'].hidden, false);
     assert.ok(signedInEmpty['[data-release-empty-title]'].textContent.indexOf('Your first release goes here') !== -1);
     assert.strictEqual(signedInEmpty['[data-stat="total"]'].textContent, '0');
+    const cookieStatus = cookieOnlyEmpty['[data-release-status]'].textContent;
+    assert.ok(cookieStatus.indexOf('Sign in to see') === -1, 'plaiground_signed empty catalog must not say Sign in to see your releases');
+    assert.strictEqual(cookieOnlyEmpty['[data-release-empty]'].hidden, false);
+    assert.ok(cookieOnlyEmpty['[data-release-empty-title]'].textContent.indexOf('Your first release goes here') !== -1);
     console.log('catalog-earnings.test.js ok');
   });
 }

@@ -106,6 +106,10 @@
       return true;
     }
     if (Date.now() - at > SESSION_TTL_MS) {
+      if (hasSessionCookie()) {
+        storeSet(SIGNED_IN_AT_KEY, String(Date.now()));
+        return true;
+      }
       clearSignedIn();
       return false;
     }
@@ -137,6 +141,12 @@
       if ((name === 'plaiground_session' || name === 'plaiground_signed') && value) return true;
     }
     return false;
+  }
+
+  function hydrateSignedInFromCookie() {
+    if (!hasSessionCookie()) return false;
+    recordSignedIn();
+    return true;
   }
 
   function hasLiveSession() {
@@ -205,6 +215,10 @@
 
   function isSignedIn() {
     if (serverAccount) return true;
+    if (hasSessionCookie()) {
+      recordSignedIn();
+      return true;
+    }
     return signedInFresh();
   }
 
@@ -501,6 +515,7 @@
     publishingHref: publishingHref,
     destinationForPublishing: destinationForPublishing,
     destinationForSignedInUpload: destinationForSignedInUpload,
+    hasLiveSession: hasLiveSession,
     currentPlan: currentPlan,
     applyPlanCopy: applyPlanCopy,
     account: function () { return serverAccount; },
@@ -515,6 +530,7 @@
 
   migrateSessionKeys();
   rememberQueryPlan();
+  hydrateSignedInFromCookie();
   bindPlanClicks();
   bindAccountClicks();
   probeAccount();
