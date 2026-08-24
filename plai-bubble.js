@@ -325,7 +325,7 @@
     if (!playbackQueue.length) {
       playing = false;
       currentSource = null;
-      if (state === 'talking') setState(micOn ? 'listening' : 'text');
+      if (state === 'talking') setState(wantMic ? 'listening' : 'text');
       return;
     }
     var chunk = playbackQueue.shift();
@@ -343,7 +343,7 @@
   }
 
   function playDelta(base64) {
-    if (!base64) return;
+    if (!wantMic || !base64) return;
     var ctx = getAudioContext();
     playbackQueue.push(base64PCM16ToFloat32(base64));
     if (!playing) {
@@ -552,7 +552,9 @@
       sessionReady = true;
       seedHistory();
       flushPendingText();
-      if (state !== 'talking') setState(micOn ? 'listening' : 'text');
+      if (state !== 'talking' && state !== 'error') {
+        setState(wantMic ? 'listening' : 'text');
+      }
       return;
     }
 
@@ -568,6 +570,7 @@
     }
 
     if (event.type === 'input_audio_buffer.speech_started') {
+      if (!wantMic) return;
       stopPlayback();
       finishStreaming('plai');
       setState('listening');
@@ -598,6 +601,7 @@
     }
 
     if (event.type === 'response.output_audio.delta' || event.type === 'response.audio.delta') {
+      if (!wantMic) return;
       setState('talking');
       playDelta(event.delta);
       return;
@@ -605,7 +609,7 @@
 
     if (event.type === 'response.done') {
       finishStreaming('plai');
-      if (!playing) setState(micOn ? 'listening' : 'text');
+      if (!playing) setState(wantMic ? 'listening' : 'text');
       return;
     }
 
@@ -656,9 +660,13 @@
         await startCapture();
       } catch (e) {
         micOn = false;
+        if (gen !== talkGen) return;
+        setState('error', 'Allow the microphone to Talk to PLAI.');
+        return;
       }
     } else {
       stopCapture();
+      stopPlayback();
     }
     if (gen !== talkGen) return;
 
@@ -751,17 +759,20 @@
     root.classList.remove('is-closed');
     persistState();
     if (ws && sessionReady) {
-      if (useMic && !micOn) {
-        startCapture().then(function () {
-          if (state !== 'talking') setState('listening');
-        }).catch(function () {
-          micOn = false;
-          setState('text');
-        });
-      } else if (!useMic && micOn) {
+      if (useMic) {
+        if (!micOn) {
+          startCapture().then(function () {
+            if (state !== 'talking') setState('listening');
+          }).catch(function () {
+            micOn = false;
+            setState('error', 'Allow the microphone to Talk to PLAI.');
+          });
+        } else if (state !== 'talking') {
+          setState('listening');
+        }
+      } else {
         stopCapture();
-        if (state !== 'talking') setState('text');
-      } else if (!useMic) {
+        stopPlayback();
         setState('text');
       }
       return;
@@ -830,6 +841,7 @@
     talkPill = el('button', {
       className: 'plai-bubble-pill is-talk',
       type: 'button',
+      'data-mode': 'talk',
       'aria-expanded': 'false',
       'aria-controls': 'plai-bubble-panel',
       'aria-label': 'Talk to PLAI, pronounced PLAY',
@@ -841,6 +853,7 @@
     textPill = el('button', {
       className: 'plai-bubble-pill is-text',
       type: 'button',
+      'data-mode': 'text',
       'aria-expanded': 'false',
       'aria-controls': 'plai-bubble-panel',
       'aria-label': 'Text PLAI, text only, microphone stays off',
@@ -862,8 +875,13 @@
       event.preventDefault();
       sendTyped();
     });
-    talkPill.addEventListener('click', function () { openMode(true); });
-    textPill.addEventListener('click', function () { openMode(false); });
+    function onPillClick(event) {
+      var mode = event.currentTarget.getAttribute('data-mode');
+      // Talk to PLAI = mic + speaker. Text PLAI = type only — never flip these.
+      openMode(mode === 'talk');
+    }
+    talkPill.addEventListener('click', onPillClick);
+    textPill.addEventListener('click', onPillClick);
     window.addEventListener('pagehide', persistState);
     setState('idle');
     renderLog();

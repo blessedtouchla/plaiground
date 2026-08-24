@@ -175,6 +175,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
+  position: relative;
   border: none;
   border-radius: 999px;
   padding: 11px 16px;
