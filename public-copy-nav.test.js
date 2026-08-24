@@ -40,14 +40,52 @@ function run() {
   const faq = read('faq.html');
   assert.ok(!/PLAIGROUND is built for AI-assisted artists/i.test(faq), 'FAQ must not use AI-only slogan language');
   assert.ok(/You declare what is human and what is AI-assisted on upload/i.test(faq), 'FAQ keeps the upload attest');
+  assert.ok(faq.indexOf('What is PLAI?') < faq.indexOf('Frequently asked questions'), 'FAQ opens with what PLAI is');
+  assert.ok(/pronounced[\s\S]*PLAY/i.test(faq), 'FAQ says PLAI is pronounced PLAY');
+  assert.ok(/she\/her/i.test(faq), 'FAQ says PLAI uses she/her');
+  assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ points to Talk and Text PLAI');
+  assert.ok(/does not turn on your microphone/i.test(faq), 'FAQ says Text PLAI does not use the mic');
+
+  const PUBLIC_PAGES = [
+    'index.html',
+    'how-it-works.html',
+    'faq.html',
+    'basic.html',
+    'creator.html',
+    'pro.html',
+    'boost.html',
+    'about.html',
+    'contact.html',
+    'login.html',
+    'signup.html',
+  ];
+  PUBLIC_PAGES.forEach(function (file) {
+    const html = read(file);
+    assert.ok(html.includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' must rename Pricing to Plans and Pricing');
+    assert.ok(html.includes('href="basic.html">Learn more: Basic</a>'), file + ' must list Learn more: Basic');
+    assert.ok(html.includes('href="creator.html">Learn more: Creator</a>'), file + ' must list Learn more: Creator');
+    assert.ok(html.includes('href="pro.html">Learn more: Pro</a>'), file + ' must list Learn more: Pro');
+    assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must feature FAQ on the public menu');
+    assert.ok(html.includes('href="how-it-works.html">How it works</a>'), file + ' keeps How it works public');
+    assert.ok(html.includes('href="login.html">Log in</a>'), file + ' keeps Log in');
+    assert.ok(html.includes('Release Now'), file + ' keeps Release Now');
+    assert.ok(!/href="boost.html">Boost<\/a>/.test(html), file + ' must not put Boost on the public menu');
+  });
+
+  assert.ok(index.includes('class="plans"'), 'landing still has the 3 PLAN cards');
+  assert.ok(index.includes('plan-name">Basic</div>') && index.includes('plan-name">Creator</div>') && index.includes('plan-name">Pro</div>'), 'plan cards stay Basic / Creator / Pro');
+  assert.ok(index.includes('or $149/year'), 'yearly stays on the 3 PLAN cards');
+  assert.ok(index.includes('landing-tease'), 'logged-out landing teases publishing / boosts / sync');
+  assert.ok(!/Starter[\s\S]*\$49/i.test(index), 'landing must not show Boost size cards');
 
   const boost = read('boost.html');
   assert.ok(!/Go Pro to unlock/i.test(boost), 'boost.html must not lead with a plan pitch CTA');
   assert.ok(!/Every Pro release can add a Boost/i.test(boost), 'boost.html must not say Pro-only');
   assert.ok(!/Pro-only/i.test(boost), 'boost.html must not say Pro-only');
-  assert.ok(boost.includes('Add a Boost'), 'boost.html CTA is about adding a Boost');
-  assert.ok(boost.includes('See the Boost dashboard'), 'boost.html still links the Boost dashboard');
-  assert.ok(/Starter[\s\S]*\$49/i.test(boost) && /Momentum[\s\S]*\$149/i.test(boost) && /Launch[\s\S]*\$349/i.test(boost), 'Boost sizes stay Starter / Momentum / Launch');
+  assert.ok(!/Add a Starter Boost|Add a Momentum Boost|Add a Launch Boost|#boost-sizes/i.test(boost), 'logged-out Boost page is not a live buy');
+  assert.ok(!/class="size-grid"/i.test(boost), 'logged-out Boost page must not show the 3 Boost size cards');
+  assert.ok(/Starter[\s\S]*\$49/i.test(boost) === false, 'Starter $49 is not a public buy option');
+  assert.ok(/publishing/i.test(boost) && /marketing boosts/i.test(boost) && /sync/i.test(boost), 'logged-out Boost page teases publishing, boosts, sync');
   assert.ok(/Creator and Pro can add a Boost/i.test(boost), 'Boost lock is Creator + Pro');
   assert.ok(!/class="plans"/i.test(boost), 'boost.html must not become membership plan cards');
 
@@ -90,8 +128,10 @@ function run() {
 
   const terms = read('terms.html');
   assert.ok(terms.includes('src="site.js"'), 'terms.html has public nav chrome and needs the hamburger');
+  assert.ok(terms.includes('href="index.html#pricing">Pricing</a>'), 'do not overwrite terms.html public copy');
   const split = read('split-sheet.html');
   assert.ok(!split.includes('class="side"'), 'split-sheet.html is flow chrome, not the app sidebar');
+  assert.ok(!split.includes('Learn more: Basic'), 'do not overwrite split-sheet.html');
 
   console.log('public-copy-nav.test.js ok');
 }

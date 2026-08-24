@@ -31,7 +31,7 @@
 
 .plai-bubble-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
@@ -41,6 +41,14 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.plai-bubble-hint {
+  margin: 1px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #9A9AA8;
 }
 
 .plai-bubble-status {
@@ -178,7 +186,19 @@
   box-shadow: 0 8px 24px rgba(125, 60, 255, 0.35);
 }
 
+.plai-bubble-pill.is-text {
+  background: #1A1A22;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+}
+
+.plai-bubble-pill.is-on {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.28);
+}
+
 .plai-bubble-pill:hover { background: #8A4DFF; }
+
+.plai-bubble-pill.is-text:hover { background: #22222C; }
 
 .plai-bubble-pill:disabled,
 .plai-bubble[data-state="not-configured"] .plai-bubble-pill {
@@ -249,7 +269,10 @@
 .plai-bubble-row {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
 }
 
 .plai-bubble.is-closed .plai-bubble-panel,
@@ -258,3 +281,14 @@
 }
 
 .plai-bubble[hidden] { display: none !important; }
+
+@media (max-width: 640px) {
+  .plai-bubble {
+    right: 12px;
+    bottom: 12px;
+  }
+  .plai-bubble-pill {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
