@@ -168,6 +168,10 @@ function run() {
   assert.ok(upload.includes('Choose artist profile'));
   assert.ok(upload.includes('placeholder="Artist name"'));
   assert.ok(!/id="tg-artist"[^>]*legal name/i.test(upload));
+  assert.ok(upload.includes('data-type="album"'), 'upload page can start an album');
+  assert.ok(upload.includes('data-track-list'), 'album track list is on the upload page');
+  assert.ok(dash.includes('upload.html?type=album'), 'dashboard can start an album');
+  assert.ok(read('releases.html').includes('upload.html?type=album'), 'releases can start an album');
 
   console.log('dashboard.page.test.js ok');
 }

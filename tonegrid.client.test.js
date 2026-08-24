@@ -118,6 +118,14 @@ function load(options) {
       getElementById(id) {
         return elements[id] || null;
       },
+      createElement(tag) {
+        return makeEl({ id: String(tag || '') });
+      },
+      querySelectorAll(sel) {
+        if (sel === '[data-track-row]') return opts.trackRows || [];
+        if (sel === '[data-type]') return opts.typeLinks || [];
+        return [];
+      },
       querySelector(sel) {
         if (sel === '[data-tonegrid-continue]') return opts.bind === 'review' || opts.bind === 'submitted' ? null : continueBtn;
         if (sel === '[data-tonegrid-submit]') return opts.bind === 'review' ? payBtn : null;
@@ -135,6 +143,14 @@ function load(options) {
             getAttribute: function () { return opts.explicit ? 'true' : 'false'; },
           };
         }
+        if (sel === '[data-type].on') {
+          return {
+            getAttribute: function () { return opts.type === 'album' ? 'album' : 'single'; },
+          };
+        }
+        if (sel === '[data-type-toggle]') return makeEl({ attrs: { 'data-type-toggle': '' } });
+        if (sel === '[data-track-list]') return makeEl({ attrs: { 'data-track-list': '' } });
+        if (sel === '[data-add-track]') return makeEl({ attrs: { 'data-add-track': '' } });
         if (sel === '[data-language-field]') return languageField;
         if (sel === '[data-upload-loader]') return loader;
         if (sel === '[data-upload-loader-step]') return loaderStep;
@@ -174,7 +190,10 @@ function load(options) {
       }
       return done;
     },
-    location: { href: opts.page || 'upload.html' },
+    location: {
+      href: opts.page || 'upload.html',
+      search: opts.type === 'album' ? '?type=album' : '',
+    },
     window: {},
     PlaigroundUploadCatalog: require('./upload-catalog'),
   };
@@ -235,6 +254,22 @@ function filledUpload(extra) {
     file: AUDIO,
     artwork: ART,
   }, extra || {});
+}
+
+function makeTrackRow(title, file, attrs) {
+  const titleEl = { value: title || '' };
+  const input = { files: file ? [file] : [], _plaigroundFile: file };
+  const extra = attrs || {};
+  return {
+    getAttribute(name) {
+      return extra[name] == null ? '' : extra[name];
+    },
+    querySelector(sel) {
+      if (sel === '[data-track-title]') return titleEl;
+      if (sel === '[data-audio-input]') return input;
+      return null;
+    },
+  };
 }
 
 function attestDraft(extra) {
@@ -761,6 +796,95 @@ async function run() {
   await flush();
   assert.strictEqual(m4aBlocked.calls.length, 0);
   assert.strictEqual(m4aBlocked.status.textContent, 'Audio must be WAV, FLAC, or MP3.');
+
+  const albumResponses = [
+    { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+    { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+    { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+    { ok: true, status: 200, data: { audio_status: 'processing' } },
+    { ok: true, status: 201, data: { track: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } } },
+    { ok: true, status: 200, data: { audio_status: 'processing' } },
+    { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+  ];
+  const album = load(filledUpload({
+    type: 'album',
+    title: 'Night Drive LP',
+    trackRows: [makeTrackRow('Intro', AUDIO), makeTrackRow('Outro', AUDIO)],
+    account: {
+      plan: 'creator',
+      artist: 'Ada Night',
+      upload: { allowed: true, album_allowed: true, plan: 'creator' },
+    },
+    responses: albumResponses.slice(),
+  }));
+  album.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const albumTonegrid = album.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  const albumRelease = albumTonegrid.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+  const albumTracks = albumTonegrid.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+  assert.ok(albumRelease);
+  assert.strictEqual(JSON.parse(albumRelease.init.body).type, 'album');
+  assert.strictEqual(JSON.parse(albumRelease.init.body).title, 'Night Drive LP');
+  assert.strictEqual(albumTracks.length, 2, 'album must add both tracks to one release');
+  assert.strictEqual(JSON.parse(albumTracks[0].init.body).title, 'Intro');
+  assert.strictEqual(JSON.parse(albumTracks[0].init.body).position, 1);
+  assert.strictEqual(JSON.parse(albumTracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.strictEqual(JSON.parse(albumTracks[1].init.body).title, 'Outro');
+  assert.strictEqual(JSON.parse(albumTracks[1].init.body).position, 2);
+  assert.strictEqual(JSON.parse(albumTracks[1].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.ok(album.calls.some(function (call) {
+    return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
+  }));
+  assert.ok(album.calls.some(function (call) {
+    return String(call.url) === '/api/tonegrid/tracks/dddddddd-dddd-4ddd-8ddd-dddddddddddd/audio';
+  }));
+  assert.strictEqual(draftOf(album.localStorage).type, 'album');
+  assert.strictEqual(draftOf(album.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.strictEqual(album.location.href, 'attest.html');
+
+  const basicAlbum = load(filledUpload({
+    type: 'album',
+    title: 'Night Drive LP',
+    page: 'upload.html?type=album',
+    trackRows: [makeTrackRow('Intro', AUDIO), makeTrackRow('Outro', AUDIO)],
+    account: {
+      plan: 'basic',
+      artist: 'Ada Night',
+      upload: { allowed: true, album_allowed: false, plan: 'basic' },
+    },
+    responses: [],
+  }));
+  await flush();
+  assert.strictEqual(basicAlbum.limit.hidden, false);
+  assert.strictEqual(basicAlbum.upgrade.hidden, false);
+  assert.ok(/Albums are on Creator and Pro/.test(basicAlbum.status.textContent));
+  assert.ok(String(basicAlbum.location.href).indexOf('login.html') === -1);
+  basicAlbum.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(!basicAlbum.calls.some(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; }));
+  assert.ok(String(basicAlbum.location.href).indexOf('login.html') === -1);
+  assert.ok(String(basicAlbum.location.href).indexOf('attest.html') === -1);
+
+  const albumAfterSingle = load(filledUpload({
+    type: 'album',
+    title: 'Night Drive LP',
+    trackRows: [makeTrackRow('Intro', AUDIO), makeTrackRow('Outro', AUDIO)],
+    account: {
+      plan: 'creator',
+      artist: 'Ada Night',
+      tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001'],
+      tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccc0001'],
+      upload: { allowed: true, album_allowed: true, used: 1, limit: 8, plan: 'creator' },
+    },
+    responses: albumResponses.slice(),
+  }));
+  albumAfterSingle.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const afterSingleRelease = albumAfterSingle.calls.filter(function (call) { return call.url === '/api/tonegrid/releases'; });
+  assert.strictEqual(afterSingleRelease.length, 1, 'new album must not reuse the existing single release');
+  assert.strictEqual(JSON.parse(afterSingleRelease[0].init.body).type, 'album');
+  assert.notStrictEqual(draftOf(albumAfterSingle.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001');
 
   const source = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
