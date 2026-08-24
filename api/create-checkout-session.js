@@ -3,8 +3,9 @@
 /**
  * GET  /api/create-checkout-session  → { configured, publishableKey } (does not mint)
  * POST /api/create-checkout-session  → { url } for Stripe-hosted Checkout (mode=subscription)
- * POST { action: "switch" }          → update the signed-in customer's subscription
+ * POST { action: "switch" }          → update the signed-in customer's ONE subscription
  * POST { action: "preview" }         → confirm-page copy only (does not charge)
+ * Existing Creator/Pro members never get a second Checkout Session.
  * POST { action: "billing" }         → current paid price for that customer (no email lookup)
  * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
@@ -31,6 +32,7 @@ const { pathnameOf, queryValue } = require('../lib/route');
 const {
   ALLOWED_PRICE_IDS,
   PRICE_BY_PLAN,
+  amountForPriceId,
   planMetaForPrice,
   prorationBehaviorForChange,
 } = require('../lib/stripe-plans');
@@ -216,14 +218,39 @@ function priceIdOfSubscription(sub) {
   return '';
 }
 
+function isPaidMember(user) {
+  const plan = String((user && user.plan) || '').trim().toLowerCase();
+  return plan === 'creator' || plan === 'pro';
+}
+
+function refuseSecondSubscription(res, extra) {
+  sendJson(res, 409, Object.assign({
+    configured: true,
+    existing: true,
+    error: 'You already have a subscription. This change updates that plan instead of starting a second one.',
+  }, extra || {}));
+}
+
 function pickLiveSubscription(list) {
   const rows = list && Array.isArray(list.data) ? list.data : Array.isArray(list) ? list : [];
+  let fallback = null;
   for (let i = 0; i < rows.length; i += 1) {
     const sub = rows[i];
     if (!sub || !LIVE_SUB_STATUSES[String(sub.status || '')]) continue;
+    if (!fallback) fallback = sub;
     if (priceIdOfSubscription(sub) || firstSubscriptionItem(sub)) return sub;
   }
-  return null;
+  return fallback;
+}
+
+async function hydrateSubscription(sub) {
+  if (!sub || !sub.id) return sub;
+  if (firstSubscriptionItem(sub) && priceIdOfSubscription(sub)) return sub;
+  const got = await stripeRequest('GET', 'subscriptions/' + sub.id, null, {
+    'expand[0]': 'items.data.price',
+  });
+  if (got.ok && got.data) return got.data;
+  return sub;
 }
 
 async function stripeRequest(method, path, params, query) {
@@ -281,9 +308,15 @@ async function loadSignedInUser(req, res) {
 async function subscriptionForCustomer(customerId) {
   const id = String(customerId || '').trim();
   if (!id || id.indexOf('cus_') !== 0) return null;
-  const listed = await stripeRequest('GET', 'subscriptions', null, { customer: id, limit: '10' });
+  const listed = await stripeRequest('GET', 'subscriptions', null, {
+    customer: id,
+    limit: '10',
+    'expand[0]': 'data.items.data.price',
+  });
   if (!listed.ok) return { error: stripeErrorMessage(listed.data), status: listed.status };
-  return { sub: pickLiveSubscription(listed.data) };
+  let sub = pickLiveSubscription(listed.data);
+  if (sub) sub = await hydrateSubscription(sub);
+  return { sub };
 }
 
 function safeCancelUrl(value) {
@@ -404,15 +437,18 @@ async function previewSubscription(req, res, body) {
   const user = await loadSignedInUser(req, res);
   if (!user) return;
 
+  const recurringAmount = amountForPriceId(resolved.priceId);
   const customerId = String(user.stripe_customer_id || '').trim();
   if (!customerId) {
     sendJson(res, 200, {
       preview: true,
-      checkout: true,
+      checkout: !isPaidMember(user),
+      existing: isPaidMember(user),
       plan: meta.plan,
       interval: meta.interval,
       currentPlan: user.plan || 'basic',
       currentInterval: '',
+      recurring_amount: recurringAmount,
     });
     return;
   }
@@ -423,21 +459,26 @@ async function previewSubscription(req, res, body) {
   } catch {
     sendJson(res, 200, {
       preview: true,
+      checkout: !isPaidMember(user),
+      existing: isPaidMember(user),
       plan: meta.plan,
       interval: meta.interval,
       currentPlan: user.plan || 'basic',
       currentInterval: '',
+      recurring_amount: recurringAmount,
     });
     return;
   }
   if (!found || found.error || !found.sub) {
     sendJson(res, 200, {
       preview: true,
-      checkout: !found || !found.sub,
+      checkout: !isPaidMember(user),
+      existing: isPaidMember(user),
       plan: meta.plan,
       interval: meta.interval,
       currentPlan: user.plan || 'basic',
       currentInterval: '',
+      recurring_amount: recurringAmount,
     });
     return;
   }
@@ -450,11 +491,13 @@ async function previewSubscription(req, res, body) {
     sendJson(res, 200, {
       preview: true,
       unchanged: true,
+      existing: true,
       plan: meta.plan,
       interval: meta.interval,
       currentPlan: currentMeta.plan || user.plan,
       currentInterval: currentMeta.interval || '',
       priceId: resolved.priceId,
+      recurring_amount: recurringAmount,
     });
     return;
   }
@@ -478,6 +521,8 @@ async function previewSubscription(req, res, body) {
 
   sendJson(res, 200, {
     preview: true,
+    existing: true,
+    checkout: false,
     plan: meta.plan,
     interval: meta.interval,
     currentPlan: currentMeta.plan || user.plan || 'basic',
@@ -485,6 +530,7 @@ async function previewSubscription(req, res, body) {
     priceId: resolved.priceId,
     proration,
     amount_due: amountDue,
+    recurring_amount: recurringAmount,
   });
 }
 
@@ -512,6 +558,10 @@ async function switchSubscription(req, res, body) {
 
   const customerId = String(user.stripe_customer_id || '').trim();
   if (!customerId) {
+    if (isPaidMember(user)) {
+      refuseSecondSubscription(res, { confirm: true, plan: meta.plan, interval: meta.interval });
+      return;
+    }
     await createCheckoutSession(req, res, body);
     return;
   }
@@ -531,6 +581,10 @@ async function switchSubscription(req, res, body) {
     return;
   }
   if (!found || !found.sub) {
+    if (isPaidMember(user)) {
+      refuseSecondSubscription(res, { confirm: true, plan: meta.plan, interval: meta.interval });
+      return;
+    }
     await createCheckoutSession(req, res, body);
     return;
   }
@@ -594,6 +648,8 @@ async function switchSubscription(req, res, body) {
   account.interval = interval;
   sendJson(res, 200, {
     switched: true,
+    existing: true,
+    one_subscription: true,
     plan,
     interval,
     priceId: nextPriceId,
@@ -654,6 +710,33 @@ async function createCheckoutSession(req, res, preloaded) {
     sendJson(res, (payer && payer.status) || 401, {
       configured: true,
       error: (payer && payer.error) || 'Sign in required.',
+    });
+    return;
+  }
+
+  const payerUser = payer.user;
+  const existingCustomerId = String((payerUser && payerUser.stripe_customer_id) || '').trim();
+  if (existingCustomerId) {
+    let existing;
+    try {
+      existing = await subscriptionForCustomer(existingCustomerId);
+    } catch {
+      existing = null;
+    }
+    if (existing && existing.sub) {
+      refuseSecondSubscription(res, {
+        confirm: true,
+        plan: meta.plan,
+        interval: meta.interval,
+      });
+      return;
+    }
+  }
+  if (isPaidMember(payerUser)) {
+    refuseSecondSubscription(res, {
+      confirm: true,
+      plan: meta.plan,
+      interval: meta.interval,
     });
     return;
   }

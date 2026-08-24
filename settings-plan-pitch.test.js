@@ -33,6 +33,19 @@ function run() {
   assert.ok(!/\$19\.99\/month or \$149\/year/.test(settings), 'Settings must not keep the yearly dollar on the plan pitch');
   assert.ok(!/\$19\.99\/month or \$199\/year/.test(settings), 'Settings must not keep the yearly dollar on the plan pitch');
   assert.ok(settings.indexOf('data-checkout-plan="basic"') === -1, 'Basic is not a paid switch target');
+  assert.ok(settings.includes('difference now'), 'Settings says upgrades pay the difference now');
+  assert.ok(settings.includes('new price next period'), 'Settings says the new price is next period');
+  assert.ok(settings.includes('no refund'), 'Settings keeps downgrade no-refund copy');
+  assert.ok(settings.includes('does not start a second plan'), 'Settings says the switch updates one subscription');
+
+  const account = read('account.js');
+  assert.ok(account.includes('You pay the difference now'), 'confirm copy names the difference');
+  assert.ok(account.includes('Next period you pay') || account.includes('new price next period'), 'confirm copy names the next-period price');
+  assert.ok(account.includes('Due now:'), 'confirm title can show the Stripe due-now amount');
+  assert.ok(account.includes('No refund for unused time'), 'downgrade copy stays no refund');
+  assert.ok(account.includes('data.checkout && !data.existing'), 'Checkout copy is only for first-time unpaid');
+  assert.ok(!/Due now: \$19\.99/.test(account), 'confirm must not hardcode a full Pro monthly due-now');
+  assert.ok(!/Due now: \$199/.test(account), 'confirm must not hardcode a full Pro yearly due-now');
 
   const settingsPitch = read('settings.html');
   assert.ok(!/\$19\.99\/month or \$149\/year/.test(settingsPitch), 'settings.html still has the old month-or-year pitch');

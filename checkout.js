@@ -124,6 +124,20 @@
           setStatus(trigger, 'Plan updated.');
           return;
         }
+        if (result.data && result.data.existing) {
+          trigger.removeAttribute('aria-busy');
+          trigger.disabled = false;
+          trigger.textContent = original;
+          if (!isSwitch(trigger) && !isPlanConfirmPage()) {
+            var nextPlan = result.data.plan || trigger.getAttribute('data-checkout-plan') || '';
+            var nextInterval = result.data.interval || trigger.getAttribute('data-checkout-interval') || 'month';
+            var dest = 'plan-confirm.html?plan=' + encodeURIComponent(nextPlan) + '&interval=' + encodeURIComponent(nextInterval);
+            global.location.href = dest;
+            return;
+          }
+          setStatus(trigger, result.data.error || 'Could not start a second subscription.');
+          return;
+        }
         if (result.data && result.data.url) {
           window.location.href = result.data.url;
           return;
