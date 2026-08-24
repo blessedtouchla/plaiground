@@ -321,7 +321,10 @@
         var analytics = results[1];
         var me = results[2];
         if (list.status === 401) {
-          if (me && !me.pending) {
+          var signedIn = Boolean(me && !me.pending)
+            || (global.PlaigroundMembership && typeof global.PlaigroundMembership.isSignedIn === 'function' && global.PlaigroundMembership.isSignedIn())
+            || Boolean(global.PlaigroundMembership && global.PlaigroundMembership.account && global.PlaigroundMembership.account());
+          if (signedIn) {
             var signedInOwned = accountFallback(me, []);
             setStatus('');
             render({ releases: signedInOwned, total: signedInOwned.length, analytics: {} });

@@ -41,20 +41,50 @@ function load(options) {
   const href = options && options.href ? options.href : 'upload.html';
   const location = { href: href, pathname: pathname, search: search, replace(next) { location.href = next; } };
   const clicks = [];
+  let cookie = options && options.cookie ? String(options.cookie) : '';
+  const fetches = [];
+  let fetchImpl;
+  if (options && typeof options.fetch === 'function') {
+    fetchImpl = function () {
+      fetches.push('/api/me');
+      return options.fetch.apply(this, arguments);
+    };
+  } else if (options && Array.isArray(options.accountResponses)) {
+    const queue = options.accountResponses.slice();
+    fetchImpl = function () {
+      fetches.push('/api/me');
+      const next = queue.length ? queue.shift() : { ok: false, status: 401, data: {} };
+      const status = next.status == null ? 200 : next.status;
+      const data = next.data || next.account || {};
+      const ok = next.ok == null ? status === 200 : Boolean(next.ok);
+      return Promise.resolve({
+        ok: ok,
+        status: status,
+        json: function () { return Promise.resolve(data); },
+      });
+    };
+  } else if (options && options.account) {
+    fetchImpl = function () {
+      fetches.push('/api/me');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: function () { return Promise.resolve(options.account); },
+      });
+    };
+  }
   const context = {
     URLSearchParams,
     localStorage: localStorage,
     sessionStorage: sessionStorage,
-    fetch: options && options.account
-      ? function () {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            json: function () { return Promise.resolve(options.account); },
-          });
-        }
-      : undefined,
+    fetch: fetchImpl,
     document: {
+      get cookie() {
+        return cookie;
+      },
+      set cookie(value) {
+        cookie = String(value);
+      },
       currentScript: {
         getAttribute(name) {
           if (name === 'data-require-membership') return options && options.require ? 'true' : null;
@@ -74,7 +104,147 @@ function load(options) {
   };
   context.window = context;
   vm.runInNewContext(code, context);
-  return { api: context.PlaigroundMembership, localStorage, sessionStorage, location, clicks };
+  return { api: context.PlaigroundMembership, localStorage, sessionStorage, location, clicks, fetches };
+}
+
+function clickEvent(sel, href) {
+  return {
+    preventDefault() { this.prevented = true; },
+    target: {
+      closest(name) {
+        if (name === sel) return { getAttribute() { return href; } };
+        return null;
+      },
+    },
+  };
+}
+
+function fireClicks(loaded, event) {
+  loaded.clicks.forEach(function (handler) { handler(event); });
+}
+
+function staffAccount() {
+  return {
+    email: 'emailplaiground@gmail.com',
+    artist: 'Staff Pro',
+    plan: 'pro',
+    status: 'active',
+  };
+}
+
+function runLoginWall() {
+  const unpaidPro = load({
+    require: true,
+    pathname: '/upload.html',
+    href: 'upload.html',
+    account: staffAccount(),
+  });
+  return unpaidPro.api.whenReady().then(function () {
+    assert.strictEqual(unpaidPro.api.currentPlan(), 'pro');
+    assert.strictEqual(unpaidPro.api.hasPlan(), true, 'unpaid Pro from /api/me does not need stripe_session_id');
+    assert.strictEqual(unpaidPro.api.hasPaidAccess(), true);
+    assert.strictEqual(unpaidPro.api.requireMembership(), true);
+    assert.strictEqual(unpaidPro.location.href, 'upload.html', 'signed-in unpaid Pro stays on a gated page');
+    assert.ok(unpaidPro.location.href.indexOf('login.html') === -1);
+
+    const retryThenPro = load({
+      require: true,
+      pathname: '/earnings.html',
+      href: 'earnings.html',
+      cookie: 'plaiground_session=alive',
+      accountResponses: [
+        { ok: false, status: 401, data: { error: 'Sign in required.' } },
+        { ok: true, status: 200, data: staffAccount() },
+      ],
+    });
+    return retryThenPro.api.whenReady().then(function () {
+      assert.ok(retryThenPro.fetches.length >= 2, '401 /api/me retries once');
+      assert.strictEqual(retryThenPro.api.hasPlan(), true);
+      assert.strictEqual(retryThenPro.api.requireMembership(), true);
+      assert.strictEqual(retryThenPro.location.href, 'earnings.html', 'retry 200 unpaid Pro must not replace location with login.html');
+      assert.ok(retryThenPro.location.href.indexOf('login.html') === -1);
+
+      const cookieStay = load({
+        require: true,
+        pathname: '/boosts.html',
+        href: 'boosts.html',
+        cookie: 'plaiground_session=alive',
+        accountResponses: [
+          { ok: false, status: 401, data: { error: 'Sign in required.' } },
+          { ok: false, status: 503, data: { error: 'Accounts are not configured.' } },
+        ],
+      });
+      return cookieStay.api.whenReady().then(function () {
+        assert.strictEqual(cookieStay.api.requireMembership(), true);
+        assert.strictEqual(cookieStay.location.href, 'boosts.html', 'session cookie present: stay even if /api/me stays 401/503');
+        assert.ok(cookieStay.location.href.indexOf('login.html') === -1);
+
+        const publishingStay = load({
+          requirePublishing: true,
+          pathname: '/publishing-register.html',
+          href: 'publishing-register.html',
+          cookie: 'plaiground_signed=1',
+          accountResponses: [
+            { ok: false, status: 0, data: {} },
+            { ok: true, status: 200, data: staffAccount() },
+          ],
+        });
+        return publishingStay.api.whenReady().then(function () {
+          assert.strictEqual(publishingStay.api.requirePublishingAccess(), true);
+          assert.strictEqual(publishingStay.location.href, 'publishing-register.html');
+          assert.ok(publishingStay.location.href.indexOf('login.html') === -1);
+
+          let releaseDeferred;
+          const clickBefore = load({
+            pathname: '/dashboard.html',
+            href: 'dashboard.html',
+            cookie: 'plaiground_session=alive',
+            fetch: function () {
+              return new Promise(function (resolve) {
+                releaseDeferred = function () {
+                  resolve({
+                    ok: true,
+                    status: 200,
+                    json: function () { return Promise.resolve(staffAccount()); },
+                  });
+                };
+              });
+            },
+          });
+          const uploadEvent = clickEvent('[data-signed-in-upload]', 'upload.html');
+          fireClicks(clickBefore, uploadEvent);
+          assert.ok(uploadEvent.prevented, 'upload click waits for /api/me');
+          assert.ok(
+            clickBefore.api.destinationForSignedInUpload('upload.html').indexOf('login.html') === -1,
+            'click-before-probe must not send them to login'
+          );
+          assert.strictEqual(clickBefore.location.href, 'dashboard.html', 'must not rewrite to login.html before accountReady');
+          releaseDeferred();
+          return clickBefore.api.whenReady().then(function () {
+            return Promise.resolve().then(function () {
+              assert.strictEqual(clickBefore.location.href, 'upload.html');
+              assert.ok(clickBefore.location.href.indexOf('login.html') === -1);
+              assert.strictEqual(clickBefore.api.hasPaidAccess(), true, 'staff Pro unlocks after probe without Stripe');
+
+              const loggedOut401 = load({
+                require: true,
+                pathname: '/payouts.html',
+                href: 'payouts.html',
+                accountResponses: [
+                  { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                  { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                ],
+              });
+              return loggedOut401.api.whenReady().then(function () {
+                assert.ok(loggedOut401.location.href.indexOf('login.html') !== -1, 'true logged-out 401 still goes to login');
+                console.log('membership.test.js ok');
+              });
+            });
+          });
+        });
+      });
+    });
+  });
 }
 
 function run() {
@@ -405,7 +575,7 @@ function run() {
                       assert.strictEqual(staffPro.api.requirePublishingAccess(), true);
                       assert.strictEqual(staffPro.api.canGetPayout(), true);
                       assert.strictEqual(staffPro.location.href, 'publishing-register.html');
-                      console.log('membership.test.js ok');
+                      return runLoginWall();
                     });
                   });
                 });
