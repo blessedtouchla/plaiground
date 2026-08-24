@@ -54,7 +54,7 @@ function run() {
   assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'three steps stay Upload / Release / Get paid');
   assert.ok(how.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), 'Upload step copy stays');
   assert.ok(how.includes('We generate the split sheet, everyone signs, and we deliver to 150 platforms on the date you choose.'), 'Release step copy stays');
-  assert.ok(how.includes('Royalties hit your dashboard automatically. Creator and Pro are the same product'), 'Get paid step copy stays');
+  assert.ok(how.includes('Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked.'), 'Get paid step copy stays');
   assert.ok(!read('how.html').includes('class="how-who"') && !read('how.html').includes('Who this is for'), 'signed-in how.html is a different 4-step page and stays unsynced');
 
   const faq = read('faq.html');
@@ -363,6 +363,15 @@ function run() {
   const split = read('split-sheet.html');
   assert.ok(!split.includes('class="side"'), 'split-sheet.html is flow chrome, not the app sidebar');
   assert.ok(!split.includes('Learn more: Basic'), 'do not overwrite split-sheet.html');
+  ['upload.html', 'attest.html', 'review.html'].forEach(function (file) {
+    const html = read(file);
+    assert.ok(/class="stepper"/.test(html), file + ' keeps the 4-step bar');
+    assert.ok(/href="upload.html"/.test(html) && /href="attest.html"/.test(html), file + ' stepper is tappable back to Upload and Attest');
+    assert.ok(/href="split-sheet.html"/.test(html) && /href="review.html"/.test(html), file + ' stepper is tappable to Split sheet and Review');
+  });
+  assert.ok(split.includes('class="stepper"'), 'split-sheet.html keeps the stepper for JS to wire');
+  assert.ok(read('membership.js').includes('bindFlowStepper'), 'membership.js wires the stepper on split-sheet.html without editing that page');
+  assert.ok(/cursor:\s*pointer/.test(read('site.css')), 'stepper steps look tappable');
 
   const publicNav = runPublicNav({ signedIn: false, app: false });
   assert.ok(publicNav.tools, 'logged-out public header builds the Login + Menu cluster');

@@ -450,6 +450,277 @@
     });
   }
 
+  function releaseTrackList(data) {
+    if (!data || typeof data !== 'object') return [];
+    if (Array.isArray(data.tracks)) return data.tracks;
+    if (data.release && Array.isArray(data.release.tracks)) return data.release.tracks;
+    if (data.tracks && Array.isArray(data.tracks.data)) return data.tracks.data;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+  }
+
+  function trackIdOf(row) {
+    if (!row || typeof row !== 'object') return '';
+    return String(row.uuid || row.track_id || row.id || '').trim();
+  }
+
+  function draftTrackIds(draft) {
+    var ids = [];
+    if (draft && draft.track_id) ids.push(String(draft.track_id));
+    if (Array.isArray(draft && draft.tracks)) {
+      draft.tracks.forEach(function (track) {
+        if (track && track.track_id) ids.push(String(track.track_id));
+      });
+    }
+    return ids.filter(Boolean);
+  }
+
+  function draftHasTrackId(draft) {
+    return draftTrackIds(draft).length > 0;
+  }
+
+  function albumRowsForSubmit(draft) {
+    var live = collectAlbumTracks();
+    if (live.length) return live;
+    if (Array.isArray(draft && draft.tracks)) {
+      return draft.tracks.map(function (track, i) {
+        return {
+          title: (track && track.title) || '',
+          audio: (track && (track.audio || track.file)) || null,
+          file: (track && (track.file || track.audio)) || null,
+          track_id: (track && track.track_id) || '',
+          audio_uploaded: Boolean(track && track.audio_uploaded),
+          audio_name: (track && track.audio_name) || '',
+          position: (track && track.position) || (i + 1),
+        };
+      });
+    }
+    return [];
+  }
+
+  function pickedAudioEvidence(draft) {
+    if (selectedAudio()) return true;
+    if (draft && (draft.audio_name || draft.audio_uploaded || draft.track_id)) return true;
+    var rows = albumRowsForSubmit(draft);
+    for (var i = 0; i < rows.length; i += 1) {
+      var track = rows[i] || {};
+      if (track.audio || track.file || track.audio_name || track.audio_uploaded || track.track_id) return true;
+    }
+    return false;
+  }
+
+  function isMissingTrackError(result) {
+    var msg = String((result && result.data && (result.data.error || result.data.message)) || '');
+    return /at least one track|add (a |one )?track|no tracks/i.test(msg);
+  }
+
+  function recoverUploadMessage() {
+    return 'The audio file is no longer on this page. Go back to Upload and re-attach it, then return to Review.';
+  }
+
+  function genuineEmptyMessage() {
+    return 'Please add at least one track.';
+  }
+
+  function persistFoundTracks(draft, tracks) {
+    var ids = [];
+    (tracks || []).forEach(function (row) {
+      var id = trackIdOf(row);
+      if (id) ids.push(id);
+    });
+    if (!ids.length) return draft;
+    var patch = {};
+    if (!draft.track_id) patch.track_id = ids[0];
+    if (draft.type === 'album') {
+      var stored = Array.isArray(draft.tracks) ? draft.tracks.slice() : [];
+      if (!stored.length) {
+        stored = ids.map(function (id, i) {
+          return { title: draft.title || '', track_id: id, audio_uploaded: true, position: i + 1 };
+        });
+      } else {
+        stored = stored.map(function (track, i) {
+          var next = {};
+          Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
+          if (!next.track_id && ids[i]) next.track_id = ids[i];
+          if (next.track_id) next.audio_uploaded = true;
+          return next;
+        });
+      }
+      patch.tracks = stored;
+    }
+    return Object.keys(patch).length ? writeDraft(patch) : draft;
+  }
+
+  function fetchReleaseTracks(releaseId) {
+    return getJson(RELEASES_URL + '/' + encodeURIComponent(releaseId)).then(function (result) {
+      if (!result.ok) return { ok: false, tracks: [], result: result };
+      return { ok: true, tracks: releaseTrackList(result.data).filter(trackIdOf), result: result, data: result.data };
+    }).catch(function () {
+      return { ok: false, tracks: [], result: { data: { error: 'Could not reach catalog.' } } };
+    });
+  }
+
+  function createMissingTracks(draft, opts) {
+    var force = Boolean(opts && opts.force);
+    var next = draft;
+    if ((draft && draft.type) === 'album') {
+      var rows = albumRowsForSubmit(draft);
+      if (!rows.length && draft.title) {
+        rows = [{ title: draft.title, audio: selectedAudio(), track_id: force ? '' : draft.track_id, position: 1 }];
+      }
+      if (!rows.length) {
+        return Promise.resolve({
+          failed: true,
+          draft: next,
+          result: { data: { error: genuineEmptyMessage() } },
+        });
+      }
+      var chain = Promise.resolve({ ok: true, draft: next });
+      rows.forEach(function (track, index) {
+        chain = chain.then(function (result) {
+          if (!result.ok || result.failed || result.unavailable) return result;
+          next = result.draft || next;
+          return createTrack(next, {
+            title: track.title || next.title,
+            position: track.position || (index + 1),
+            track_id: force ? '' : track.track_id,
+            force: force,
+          }).then(function (created) {
+            if (created.unavailable) return created;
+            var trackId = created.track_id || track.track_id;
+            if (created.failed || created.missing || !trackId) {
+              return {
+                failed: true,
+                result: created.result || { data: { error: 'Could not create the track.' } },
+                draft: created.draft || next,
+              };
+            }
+            next = created.draft || next;
+            if (index === 0 && !next.track_id) next = writeDraft({ track_id: trackId });
+            var stored = Array.isArray(next.tracks) ? next.tracks.slice() : [];
+            stored[index] = Object.assign({}, stored[index] || {}, {
+              title: track.title || (stored[index] && stored[index].title) || next.title,
+              track_id: trackId,
+              position: index + 1,
+            });
+            next = persistAlbumTracks(stored);
+            var file = track.audio || track.file;
+            if (file && trackId && !track.audio_uploaded) {
+              return uploadTrackAudio(trackId, file).then(function (audio) {
+                if (audio.failed || audio.unavailable) return audio;
+                stored[index] = Object.assign({}, stored[index], { audio_uploaded: true, audio_name: file.name || '' });
+                next = persistAlbumTracks(stored);
+                return { ok: true, draft: next, created: true };
+              });
+            }
+            return { ok: true, draft: next, created: true };
+          });
+        });
+      });
+      return chain;
+    }
+    return createTrack(next, { force: force, title: next && next.title }).then(function (created) {
+      if (created.unavailable) return created;
+      var trackId = created.track_id || (created.draft && created.draft.track_id);
+      if (created.failed || created.missing || !trackId) {
+        return {
+          failed: true,
+          result: created.result || { data: { error: 'Could not create the track.' } },
+          draft: created.draft || next,
+        };
+      }
+      next = created.draft || next;
+      if (!next.track_id) next = writeDraft({ track_id: trackId });
+      var file = selectedAudio();
+      if (file && trackId) {
+        return uploadTrackAudio(trackId, file).then(function (audio) {
+          if (audio.failed || audio.unavailable) return audio;
+          next = writeDraft({ audio_uploaded: true, audio_name: file.name || next.audio_name || '' });
+          return { ok: true, draft: next, created: true };
+        });
+      }
+      return { ok: true, draft: next, created: Boolean(created.created || created.skipped) };
+    });
+  }
+
+  function resolveSubmitTracks(draft) {
+    if (!draft || !draft.release_id) {
+      return Promise.resolve({
+        failed: true,
+        result: { data: { error: 'Save the upload details first so a catalog release exists.' } },
+      });
+    }
+    var hasId = draftHasTrackId(draft);
+    var hasFile = Boolean(selectedAudio()) || albumRowsForSubmit(draft).some(function (track) {
+      return track && (track.audio || track.file);
+    });
+    var uploaded = draft.audio_uploaded === true || albumRowsForSubmit(draft).some(function (track) {
+      return track && track.audio_uploaded;
+    });
+    var picked = pickedAudioEvidence(draft);
+    return fetchReleaseTracks(draft.release_id).then(function (loaded) {
+      if (loaded.ok && loaded.tracks && loaded.tracks.length) {
+        return { ok: true, draft: persistFoundTracks(draft, loaded.tracks) };
+      }
+      if (!loaded.ok && hasId) {
+        return { ok: true, draft: draft };
+      }
+      if (hasId || hasFile || uploaded) {
+        return createMissingTracks(draft, { force: loaded.ok }).then(function (created) {
+          if (created.ok) return created;
+          if (created.unavailable) return created;
+          if (hasId) return { ok: true, draft: created.draft || draft };
+          if (picked && !hasFile) {
+            return {
+              recover: true,
+              draft: created.draft || draft,
+              result: { data: { error: recoverUploadMessage(), code: 'TRACK_REATTACH' } },
+            };
+          }
+          return {
+            failed: true,
+            result: created.result || { data: { error: genuineEmptyMessage() } },
+            draft: created.draft || draft,
+          };
+        });
+      }
+      if (picked && !hasFile && !hasId) {
+        return {
+          recover: true,
+          draft: draft,
+          result: { data: { error: recoverUploadMessage(), code: 'TRACK_REATTACH' } },
+        };
+      }
+      return { failed: true, result: { data: { error: genuineEmptyMessage() } }, draft: draft };
+    });
+  }
+
+  function applySubmitResult(draft, date, documentId, solo, result) {
+    if (isUnavailable(result)) return { unavailable: true, result: result };
+    if (result.data && result.data.code === 'SIGNWELL_TRIAL') return { trial: true, result: result };
+    if (result.data && result.data.code === 'SIGNWELL_REQUIRED') return { unsigned: true, result: result };
+    if (!result.ok) return { failed: true, result: result };
+    var next = writeDraft({
+      submitted: true,
+      tonegrid_status: result.data.status || 'pending',
+      signwell_status: result.data.signwell_status || (solo ? 'solo' : 'awaiting_signature'),
+      signwell_signed: Boolean(result.data.signed),
+      signwell_document_id: result.data.document_id || documentId || '',
+      release_date: result.data.release_date || date,
+    });
+    return { submitted: true, draft: next, result: result };
+  }
+
+  function postSubmitRelease(draft, submitBody, date, documentId, solo) {
+    return post(
+      '/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit',
+      submitBody,
+      'plaiground-submit-' + draft.release_id
+    ).then(function (result) {
+      return applySubmitResult(draft, date, documentId, solo, result);
+    });
+  }
+
   function submitRelease(draft, releaseDate) {
     if (!draft || !draft.release_id) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Save the upload details first so a catalog release exists.' } } });
@@ -482,20 +753,31 @@
       submitBody.document_id = documentId;
       if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
     }
-    return post('/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit', submitBody, 'plaiground-submit-' + draft.release_id).then(function (result) {
-      if (isUnavailable(result)) return { unavailable: true, result: result };
-      if (result.data && result.data.code === 'SIGNWELL_TRIAL') return { trial: true, result: result };
-      if (result.data && result.data.code === 'SIGNWELL_REQUIRED') return { unsigned: true, result: result };
-      if (!result.ok) return { failed: true, result: result };
-      var next = writeDraft({
-        submitted: true,
-        tonegrid_status: result.data.status || 'pending',
-        signwell_status: result.data.signwell_status || (solo ? 'solo' : 'awaiting_signature'),
-        signwell_signed: Boolean(result.data.signed),
-        signwell_document_id: result.data.document_id || documentId || '',
-        release_date: result.data.release_date || date,
+    var ids = draftTrackIds(draft);
+    if (ids.length) submitBody.track_id = ids[0];
+    if (ids.length > 1) submitBody.track_ids = ids;
+    return resolveSubmitTracks(draft).then(function (ready) {
+      if (ready.recover) return { recover: true, result: ready.result, draft: ready.draft || draft };
+      if (ready.failed) return { failed: true, result: ready.result, draft: ready.draft || draft };
+      if (ready.unavailable) return { unavailable: true, result: ready.result, draft: ready.draft || draft };
+      var next = ready.draft || draft;
+      var nextIds = draftTrackIds(next);
+      if (nextIds.length) submitBody.track_id = nextIds[0];
+      if (nextIds.length > 1) submitBody.track_ids = nextIds;
+      return postSubmitRelease(next, submitBody, date, documentId, solo).then(function (sent) {
+        if (sent.failed && isMissingTrackError(sent.result) && !ready.created) {
+          return createMissingTracks(next, { force: true }).then(function (created) {
+            if (created.recover) return { recover: true, result: created.result, draft: created.draft || next };
+            if (created.failed) return { failed: true, result: created.result, draft: created.draft || next };
+            if (created.unavailable) return created;
+            var createdIds = draftTrackIds(created.draft || next);
+            if (createdIds.length) submitBody.track_id = createdIds[0];
+            if (createdIds.length > 1) submitBody.track_ids = createdIds;
+            return postSubmitRelease(created.draft || next, submitBody, date, documentId, solo);
+          });
+        }
+        return sent;
       });
-      return { submitted: true, draft: next, result: result };
     });
   }
 
@@ -752,7 +1034,8 @@
     var info = trackInfo || {};
     var title = info.title || draft.title;
     var position = info.position || 1;
-    var existingId = info.track_id || (position === 1 ? draft.track_id : '');
+    var force = info.force === true;
+    var existingId = force ? '' : (info.track_id || (position === 1 ? draft.track_id : ''));
     if (existingId) {
       return Promise.resolve({ skipped: true, draft: draft, track_id: existingId });
     }
@@ -1027,9 +1310,16 @@
       }
       var file = selectedAudio();
       var art = selectedArtwork();
+      if (file && file.name) next = writeDraft({ audio_name: file.name });
+      if (next.track_id && (next.audio_uploaded || !file)) {
+        next = writeDraft({ audio_uploaded: Boolean(next.audio_uploaded || next.track_id) });
+      }
       var chain = Promise.resolve({ ok: true, draft: next, track: track });
       if (file && next.track_id) {
         chain = uploadTrackAudio(next.track_id, file).then(function (audio) {
+          if (!audio.failed && !audio.unavailable) {
+            next = writeDraft({ audio_uploaded: true, audio_name: file.name || next.audio_name || '' });
+          }
           return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
         });
       }
@@ -1171,21 +1461,34 @@
     if (!/^[a-z]{2}$/.test(language)) language = '';
     if (instrumental) language = '';
     var type = selectedReleaseType();
+    var draft = readDraft();
     var tracks = type === 'album' ? collectAlbumTracks() : [];
+    var audio = type === 'album' ? (tracks[0] && tracks[0].audio) : selectedAudio();
+    var art = selectedArtwork();
+    var first = tracks[0] || {};
     return {
-      audio: type === 'album' ? (tracks[0] && tracks[0].audio) : selectedAudio(),
-      artwork: selectedArtwork(),
-      title: fieldValue('tg-title'),
-      name: syncArtistHidden() || fieldValue('tg-artist'),
-      featured: fieldValue('tg-featured'),
-      genre: fieldValue('tg-genre'),
-      language: language,
-      price: fieldValue('tg-price'),
+      audio: audio,
+      artwork: art,
+      artwork_name: (art && art.name) || draft.artwork_name || '',
+      title: fieldValue('tg-title') || draft.title || '',
+      name: syncArtistHidden() || fieldValue('tg-artist') || draft.name || '',
+      featured: fieldValue('tg-featured') || draft.featured || '',
+      genre: fieldValue('tg-genre') || draft.genre || '',
+      language: language || draft.language || '',
+      price: fieldValue('tg-price') || draft.price || '',
       explicit: selectedExplicit(),
       instrumental: instrumental,
       dsps: selectedUploadStores(),
       type: type,
       tracks: tracks,
+      track_id: type === 'album' ? (first.track_id || '') : (draft.track_id || ''),
+      audio_uploaded: type === 'album'
+        ? Boolean(first.audio_uploaded)
+        : (draft.audio_uploaded === true || Boolean(draft.track_id)),
+      audio_name: type === 'album'
+        ? (first.audio_name || '')
+        : ((audio && audio.name) || draft.audio_name || ''),
+      release_id: draft.release_id || '',
     };
   }
 
@@ -1231,8 +1534,8 @@
       var checked = gate.validateUploadPage(fields);
       return checked && checked.error ? checked.error : '';
     }
-    if (!fields.audio) return 'Audio is required.';
-    if (!fields.artwork) return 'Artwork is required.';
+    if (!fields.audio && !fields.track_id && !fields.audio_uploaded) return 'Audio is required.';
+    if (!fields.artwork && !fields.artwork_name) return 'Artwork is required.';
     if (!fields.name) return 'Primary artist is required.';
     if (!fields.title) return 'Song title is required.';
     if (!fields.genre) return 'Genre is required.';
@@ -1958,6 +2261,43 @@
     }
   }
 
+  function restoreUploadDraft(draft) {
+    draft = draft || readDraft();
+    function fill(id, value) {
+      var el = $(id);
+      if (!el || value == null || value === '') return;
+      if (!el.value || isDemoCopy(el.value)) el.value = value;
+    }
+    fill('tg-title', draft.title);
+    fill('tg-artist', draft.name);
+    fill('tg-featured', draft.featured);
+    fill('tg-price', draft.price);
+    fill('tg-genre', draft.genre);
+    fill('tg-language', draft.language);
+    if (draft.explicit === true) {
+      var toggle = document.querySelector('[data-explicit-toggle]');
+      if (toggle && toggle.querySelectorAll) {
+        var choices = toggle.querySelectorAll('[data-explicit]');
+        for (var i = 0; i < choices.length; i += 1) {
+          var on = choices[i].getAttribute('data-explicit') === 'true';
+          if (choices[i].classList && choices[i].classList.toggle) choices[i].classList.toggle('on', on);
+        }
+      }
+    }
+    if (draft.artwork_name && !selectedArtwork()) {
+      var artMeta = document.querySelector('[data-art-meta]');
+      if (artMeta) artMeta.textContent = draft.artwork_name;
+    }
+    if (draft.type !== 'album' && (draft.track_id || draft.audio_uploaded) && !selectedAudio()) {
+      var nameEl = document.querySelector('[data-audio-name]');
+      var preview = document.querySelector('[data-audio-preview]');
+      var drop = document.querySelector('[data-audio-drop]');
+      if (nameEl) nameEl.textContent = draft.audio_name || 'Audio already uploaded';
+      if (preview) preview.hidden = false;
+      if (drop) drop.hidden = true;
+    }
+  }
+
   function bindUpload() {
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
@@ -2006,13 +2346,18 @@
     });
     var audioInput = document.querySelector('[data-audio-input]');
     if (audioInput && audioInput.addEventListener) {
-      audioInput.addEventListener('change', refreshUploadGate);
+      audioInput.addEventListener('change', function () {
+        var picked = audioFileOf(audioInput);
+        if (picked && picked.name) writeDraft({ audio_name: picked.name, audio_uploaded: false });
+        refreshUploadGate();
+      });
     }
     var artInput = document.querySelector('[data-art-input]');
     if (artInput && artInput.addEventListener) {
       artInput.addEventListener('change', refreshUploadGate);
     }
     var savedDraft = readDraft();
+    restoreUploadDraft(savedDraft);
     var instEl = $('tg-instrumental');
     if (instEl && savedDraft.instrumental === true) instEl.checked = true;
     refreshUploadGate();
@@ -2174,10 +2519,11 @@
         explicit: explicit,
         instrumental: instrumental,
         dsps: dsps,
-        artwork_name: art && art.name ? art.name : '',
-        artwork_type: art && art.type ? art.type : '',
+        artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
+        artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
+        audio_name: file && file.name ? file.name : (readDraft().audio_name || ''),
         title_check: titleCheck,
-        tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : [],
+        tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,
       });
       setUploadBusy(true);
       markStatusError(false);
@@ -2199,8 +2545,9 @@
             explicit: explicit,
             instrumental: instrumental,
             dsps: dsps,
-            artwork_name: art && art.name ? art.name : '',
-            artwork_type: art && art.type ? art.type : '',
+            artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
+            artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
+            audio_name: file && file.name ? file.name : (readDraft().audio_name || ''),
             title_check: titleCheck,
             tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,
           }), me);
@@ -2340,6 +2687,12 @@
         if (trigger) trigger.removeAttribute('aria-busy');
         if (sent.unavailable) {
           continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+          return;
+        }
+        if (sent.recover) {
+          setStatus('tg-status', createErrorMessage(sent.result, recoverUploadMessage()));
+          var back = document.querySelector('.flow-actions a[href="split-sheet.html"], .flow-actions a[href="attest.html"], .flow-actions a.btn-ghost');
+          if (back && back.setAttribute) back.setAttribute('href', 'upload.html');
           return;
         }
         if (sent.unsigned || sent.trial || sent.failed) {
@@ -2528,7 +2881,7 @@
 
   function bindSubmitted() {
     fillSubmitted();
-    if (!$('tg-status') && !document.querySelector('[data-submit-title]')) return;
+    if (!document.querySelector('[data-submit-title]')) return;
     var draft = readDraft();
     if (!draft.artist_id || !draft.title) return;
     var afterCreate = function (nextDraft) {
@@ -2538,6 +2891,10 @@
         return;
       }
       return submitRelease(nextDraft, nextDraft.release_date || '').then(function (sent) {
+        if (sent.recover) {
+          setStatus('tg-status', createErrorMessage(sent.result, recoverUploadMessage()));
+          return;
+        }
         if (sent.unsigned || sent.trial || sent.failed) {
           setStatus('tg-status', createErrorMessage(sent.result, 'Could not submit the release.'));
           return;
