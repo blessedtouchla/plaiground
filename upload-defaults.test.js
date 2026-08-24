@@ -65,6 +65,9 @@ function run() {
   assert.ok(settings.indexOf('placeholder="Artist name"') !== -1);
   assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
   assert.ok(!/Legal name[\s\S]{0,80}required/i.test(settings));
+  assert.ok(settings.indexOf('John ham') === -1);
+  assert.ok(settings.indexOf('>VV<') === -1);
+  assert.ok(settings.indexOf('data-account-avatar>PG') !== -1);
   assert.ok(upload.indexOf('placeholder="Electronic"') === -1);
   assert.ok(upload.indexOf('placeholder="$0.00"') === -1);
   assert.ok(upload.indexOf('placeholder="Price"') === -1);

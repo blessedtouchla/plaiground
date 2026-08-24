@@ -131,6 +131,8 @@ function run() {
       hidden: Boolean(attrs && attrs.hidden),
       textContent: (attrs && attrs.textContent) || '',
       href: (attrs && attrs.href) || '',
+      tagName: (attrs && attrs.tagName) || 'DIV',
+      value: (attrs && attrs.value) || '',
       setAttribute(name, value) { this[name] = value; },
     };
   }
@@ -146,6 +148,7 @@ function run() {
       '[data-account-releases]': makeNode({ textContent: '0' }),
       '[data-account-who]': makeNode({ textContent: 'Hi there' }),
       '[data-account-avatar]': makeNode({ textContent: 'PG' }),
+      '[data-account-artist]': makeNode({ tagName: 'INPUT', value: '' }),
       '[data-pub-call]': makeNode({ hidden: true }),
       '[data-pub-badge]': makeNode({ textContent: 'INCLUDED IN YOUR PLAN' }),
     };
@@ -208,14 +211,35 @@ function run() {
   const leftoverJohn = fillAccount({ artist: 'John Harper', plan: 'creator' });
   assert.strictEqual(leftoverJohn['[data-account-who]'].textContent, 'Hi there', 'Patrick/John mock must not greet as John');
   assert.strictEqual(leftoverJohn['[data-account-avatar]'].textContent, 'PG');
+  assert.strictEqual(leftoverJohn['[data-account-artist]'].value, '', 'Settings must not prefill a John mock');
+
+  const leftoverHam = fillAccount({ artist: 'John ham', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
+  assert.strictEqual(leftoverHam['[data-account-who]'].textContent, 'Hi there', 'John ham leftover must not greet as John');
+  assert.strictEqual(leftoverHam['[data-account-avatar]'].textContent, 'PG');
+  assert.strictEqual(leftoverHam['[data-account-artist]'].value, '', 'Settings artist field must stay empty for John ham');
+
+  ['John Ham', 'Patrick', 'Neon Shadows', 'Victoria Reyes', 'Victoria Void'].forEach(function (name) {
+    const leftover = fillAccount({ artist: name, plan: 'creator' });
+    assert.strictEqual(leftover['[data-account-who]'].textContent, 'Hi there', name + ' leftover must greet as Hi there');
+    assert.strictEqual(leftover['[data-account-avatar]'].textContent, 'PG', name + ' leftover must use PG initials');
+    assert.strictEqual(leftover['[data-account-artist]'].value, '', name + ' leftover must not prefill Settings');
+  });
 
   const fromRoster = fillAccount({
-    artist: 'John Doe',
+    artist: 'John ham',
     plan: 'creator',
     profile: { artists: [{ name: 'Fuvtu' }] },
   });
   assert.strictEqual(fromRoster['[data-account-who]'].textContent, 'Hi Fuvtu!', 'use the real roster name over a John mock');
   assert.strictEqual(fromRoster['[data-account-avatar]'].textContent, 'FU');
+  assert.strictEqual(fromRoster['[data-account-artist]'].value, '', 'Settings must not copy a roster name over a leftover account artist');
+
+  const realArtist = fillAccount({ artist: 'Fuvtu', plan: 'creator' });
+  assert.strictEqual(realArtist['[data-account-artist]'].value, 'Fuvtu');
+
+  const namedField = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator' });
+  assert.strictEqual(namedField['[data-account-artist]'].value, 'Victoria Imtanes', 'a real stored name stays');
+  assert.strictEqual(named['[data-account-artist]'].value, 'Victoria Imtanes');
 
   assert.ok(!dash.includes('Hi John'), 'dashboard.html must not hardcode Hi John');
   assert.ok(dash.includes('data-account-who>Hi there'), 'unsigned greeting stays Hi there');
@@ -229,6 +253,23 @@ function run() {
   assert.ok(!dash.includes('Upgrade to Pro only'), 'dashboard must not say Upgrade to Pro only');
   assert.ok(!dash.includes('Hi John!'), 'dashboard must not greet John');
   assert.ok(!/>On Pro</.test(dash), 'dashboard sidebar must not default to On Pro');
+
+  const settings = read('settings.html');
+  assert.ok(!settings.includes('Hi John'), 'settings.html must not hardcode Hi John');
+  assert.ok(!settings.includes('John ham'), 'settings.html must not hardcode John ham');
+  assert.ok(!/>JH</.test(settings), 'settings.html must not hardcode JH initials');
+  assert.ok(!/>VV</.test(settings), 'settings.html must not hardcode leftover VV initials');
+  assert.ok(settings.includes('data-account-who>Hi there'), 'settings unsigned greeting stays Hi there');
+  assert.ok(settings.includes('data-account-avatar>PG'), 'settings unsigned initials stay PG');
+  assert.ok(settings.includes('placeholder="Artist name"'), 'settings artist field stays an artist-name placeholder');
+  assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
+  ['earnings.html', 'payouts.html'].forEach(function (file) {
+    const html = read(file);
+    assert.ok(!html.includes('Hi John'), file + ' must not hardcode Hi John');
+    assert.ok(!html.includes('John ham'), file + ' must not hardcode John ham');
+    assert.ok(html.includes('data-account-who>Hi there'), file + ' unsigned greeting stays Hi there');
+    assert.ok(html.includes('data-account-avatar>PG'), file + ' unsigned initials stay PG');
+  });
 
   const upload = read('upload.html');
   assert.ok(upload.includes('Choose artist profile'));
