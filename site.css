@@ -1208,6 +1208,14 @@ table.data tbody tr.is-pick { cursor: pointer; }
   background: var(--card);
   border-radius: 12px;
   padding: 12px 14px;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+a.st:hover,
+.st[role="link"]:hover {
+  outline: 1px solid var(--line);
 }
 .st.on { background: var(--purple); }
 .st b { display: block; font-size: 13px; }

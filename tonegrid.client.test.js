@@ -249,6 +249,13 @@ function load(options) {
           json: async () => ({ ok: true }),
         });
       }
+      if (String(url).indexOf('/api/tonegrid/stores') !== -1) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ stores: [] }),
+        });
+      }
       if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
         opts._neverHits = (opts._neverHits || 0) + 1;
         if (opts._neverHits >= (opts.neverResolveAfter || 1)) {
@@ -746,11 +753,13 @@ async function run() {
       artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       title: 'Night Drive',
       release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       signwell_document_id: 'doc_split_sheet_01',
       release_date: '2026-09-12',
     }),
     responses: [
       { ok: true, status: 200, data: { signed: true, status: 'Completed' } },
+      { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
       { ok: true, status: 200, data: { status: 'pending', signed: true } },
     ],
   });
@@ -770,10 +779,12 @@ async function run() {
       artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       title: 'Night Drive',
       release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       solo_owned_100: true,
       release_date: '2026-09-12',
     }),
     responses: [
+      { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
       { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
     ],
   });
@@ -795,6 +806,7 @@ async function run() {
       artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       title: 'Night Drive',
       release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       signwell_document_id: 'doc_pending_01',
       release_date: '2026-09-12',
       writers: [
@@ -804,6 +816,7 @@ async function run() {
     }),
     responses: [
       { ok: true, status: 200, data: { signed: false, status: 'Pending' } },
+      { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
       { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'awaiting_signature' } },
     ],
   });
@@ -1180,6 +1193,138 @@ async function run() {
     assert.ok(/Albums are on Creator and Pro/.test(page.status.textContent));
   }
 
+  async function draftTrackIdNoFileStillSubmits() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(10);
+    const submitCalls = page.calls.filter(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    });
+    assert.ok(submitCalls.length, 'draft with release_id + track_id and no File still submits');
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    }), 'must not create a second release');
+    assert.strictEqual(JSON.parse(page.calls.find(function (call) {
+      return call.url === '/api/tonegrid/tracks';
+    }).init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
+  async function albumUploadedRowIsNotEmpty() {
+    const page = load(filledUpload({
+      type: 'album',
+      title: 'Night Drive LP',
+      file: null,
+      trackRows: [
+        makeTrackRow('Intro', null, {
+          'data-track-id': 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          'data-audio-uploaded': 'true',
+        }),
+      ],
+      draft: {
+        type: 'album',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        artwork_name: 'cover.jpg',
+        album_count: 1,
+        tracks: [{
+          title: 'Intro',
+          track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          audio_uploaded: true,
+          position: 1,
+        }],
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(8);
+    assert.notStrictEqual(page.status.textContent, 'Track 1 needs audio.');
+    assert.ok(page.location.href === 'attest.html' || !/needs audio/i.test(page.status.textContent));
+  }
+
+  async function tonegridZeroTrackErrorRetriesCreate() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 400, data: { error: 'please add at least one track' } },
+        { ok: true, status: 201, data: { track: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(12);
+    const tracks = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    const submits = page.calls.filter(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    });
+    assert.strictEqual(tracks.length, 1, '0-track submit error creates the missing track');
+    assert.strictEqual(JSON.parse(tracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.ok(submits.length >= 2, 'submit is retried after creating the missing track');
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'retry stays on the same release');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
+  async function genuineEmptyStillErrors() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+      ],
+    });
+    await flush(8);
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('/submit') !== -1;
+    }), 'genuine empty must not POST submit');
+    assert.ok(/please add at least one track/i.test(page.status.textContent));
+    assert.notStrictEqual(page.location.href, 'submitted.html');
+  }
+
+  await draftTrackIdNoFileStillSubmits();
+  await albumUploadedRowIsNotEmpty();
+  await tonegridZeroTrackErrorRetriesCreate();
+  await genuineEmptyStillErrors();
   await hungCreateTrackTrack2HidesLoader();
   await rejectedAfterReleaseHidesLoader();
   await albumRetryKeepsSameRelease();
@@ -1200,6 +1345,8 @@ async function run() {
   assert.ok(!source.includes('Victoria Reyes'));
   assert.ok(!source.includes(['t', 'g', 'k', '_'].join('')));
   assert.ok(source.includes('withCatalogTimeout'));
+  assert.ok(source.includes('resolveSubmitTracks'));
+  assert.ok(source.includes('createMissingTracks'));
   assert.ok(source.includes('DEFAULT_CATALOG_TIMEOUT_MS'));
   assert.ok(source.includes('.catch(function (err)'));
   assert.ok(!source.includes("length < 2) addTrackRow()"));

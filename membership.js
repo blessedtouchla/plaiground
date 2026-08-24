@@ -410,6 +410,55 @@
     cb();
   }
 
+  var FLOW_STEPS = ['upload.html', 'attest.html', 'split-sheet.html', 'review.html'];
+
+  function bindFlowStepper() {
+    var doc = global.document;
+    if (!doc || typeof doc.querySelector !== 'function') return;
+    var root = doc.querySelector('.stepper');
+    if (!root || root.getAttribute('data-flow-bound') === 'true') return;
+    if (typeof root.setAttribute === 'function') root.setAttribute('data-flow-bound', 'true');
+    var steps = root.querySelectorAll ? root.querySelectorAll('.st') : [];
+    var i;
+    for (i = 0; i < steps.length && i < FLOW_STEPS.length; i += 1) {
+      var el = steps[i];
+      var href = FLOW_STEPS[i];
+      var tag = el.tagName ? String(el.tagName).toLowerCase() : '';
+      if (tag === 'a') {
+        if (!el.getAttribute('href') && el.setAttribute) el.setAttribute('href', href);
+      } else if (el.setAttribute) {
+        el.setAttribute('role', 'link');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('data-flow-step', href);
+      }
+    }
+    function hrefOf(step) {
+      if (!step) return '';
+      return step.getAttribute('href') || step.getAttribute('data-flow-step') || '';
+    }
+    function goStep(step) {
+      var href = hrefOf(step);
+      if (href && global.location) global.location.href = href;
+    }
+    if (typeof root.addEventListener !== 'function') return;
+    root.addEventListener('click', function (event) {
+      var target = event && event.target;
+      var step = target && target.closest ? target.closest('.st') : target;
+      if (!step || (root.contains && !root.contains(step))) return;
+      var tag = step.tagName ? String(step.tagName).toLowerCase() : '';
+      if (tag === 'a' && hrefOf(step)) return;
+      if (event && event.preventDefault) event.preventDefault();
+      goStep(step);
+    });
+    root.addEventListener('keydown', function (event) {
+      if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+      var step = event.target && event.target.closest ? event.target.closest('.st') : event.target;
+      if (!step || (root.contains && !root.contains(step))) return;
+      if (event.preventDefault) event.preventDefault();
+      goStep(step);
+    });
+  }
+
   function revealPricingHint() {
     var params;
     try {
@@ -505,6 +554,7 @@
   revealPricingHint();
   whenDomReady(function () {
     applyPlanCopy();
+    bindFlowStepper();
     accountReady.then(function () { applyPlanCopy(); });
   });
 })(window);

@@ -247,7 +247,59 @@ function runLoginWall() {
   });
 }
 
+function runFlowStepper() {
+  const steps = [
+    { tagName: 'DIV', className: 'st', attrs: {}, listeners: {}, textContent: 'Upload Audio', getAttribute(name) { return this.attrs[name] || null; }, setAttribute(name, value) { this.attrs[name] = String(value); } },
+    { tagName: 'DIV', className: 'st', attrs: {}, listeners: {}, textContent: 'Attest rights', getAttribute(name) { return this.attrs[name] || null; }, setAttribute(name, value) { this.attrs[name] = String(value); } },
+    { tagName: 'DIV', className: 'st', attrs: {}, listeners: {}, textContent: 'Split sheet', getAttribute(name) { return this.attrs[name] || null; }, setAttribute(name, value) { this.attrs[name] = String(value); } },
+    { tagName: 'DIV', className: 'st', attrs: {}, listeners: {}, textContent: 'Review & pay', getAttribute(name) { return this.attrs[name] || null; }, setAttribute(name, value) { this.attrs[name] = String(value); } },
+  ];
+  const stepper = {
+    attrs: {},
+    listeners: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    querySelectorAll(sel) { return sel === '.st' ? steps : []; },
+    contains(node) { return steps.indexOf(node) !== -1; },
+    addEventListener(type, fn) { this.listeners[type] = fn; },
+  };
+  steps.forEach(function (step) {
+    step.closest = function (sel) { return sel === '.st' ? step : null; };
+  });
+  const localStorage = makeStorage();
+  const sessionStorage = makeStorage();
+  const location = { href: 'split-sheet.html', pathname: '/split-sheet.html', search: '', replace(next) { location.href = next; } };
+  const context = {
+    URLSearchParams,
+    localStorage,
+    sessionStorage,
+    document: {
+      readyState: 'complete',
+      currentScript: { getAttribute() { return null; } },
+      querySelector(sel) { return sel === '.stepper' ? stepper : null; },
+      querySelectorAll() { return []; },
+      addEventListener() {},
+    },
+    location,
+  };
+  context.window = context;
+  vm.runInNewContext(code, context);
+  assert.strictEqual(steps[0].getAttribute('data-flow-step'), 'upload.html');
+  assert.strictEqual(steps[3].getAttribute('data-flow-step'), 'review.html');
+  stepper.listeners.click({
+    preventDefault() {},
+    target: steps[0],
+  });
+  assert.strictEqual(location.href, 'upload.html', 'stepper must navigate back to Upload');
+  stepper.listeners.click({
+    preventDefault() {},
+    target: steps[3],
+  });
+  assert.strictEqual(location.href, 'review.html', 'stepper must navigate forward to Review');
+}
+
 function run() {
+  runFlowStepper();
   const fresh = load();
   assert.strictEqual(fresh.api.hasMembership(), false);
   assert.strictEqual(fresh.api.isSignedIn(), false);
