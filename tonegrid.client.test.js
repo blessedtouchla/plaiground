@@ -50,6 +50,9 @@ function makeEl(attrs) {
     addEventListener(type, fn) {
       this.listeners[type] = fn;
     },
+    setCustomValidity(msg) {
+      this.customValidity = String(msg || '');
+    },
     classList: {
       tokens: Object.create(null),
       toggle(name, force) {
@@ -58,6 +61,9 @@ function makeEl(attrs) {
       },
       add(name) {
         this.tokens[name] = true;
+      },
+      remove(name) {
+        delete this.tokens[name];
       },
       contains(name) {
         return Boolean(this.tokens[name]);
@@ -607,11 +613,12 @@ async function run() {
   });
   const minDate = (function () {
     const d = new Date();
-    d.setUTCDate(d.getUTCDate() + 7);
-    return d.toISOString().slice(0, 10);
+    d.setDate(d.getDate() + 7);
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   }());
   assert.strictEqual(payNoDate.date.type, 'date');
-  assert.strictEqual(payNoDate.date.min, minDate);
+  assert.ok(!payNoDate.date.min, 'native min must not be the 7-day lock');
   assert.strictEqual(payNoDate.date.required, true);
   payNoDate.payBtn.listeners.click({ preventDefault() {} });
   await flush(2);
@@ -620,13 +627,13 @@ async function run() {
 
   const yesterday = (function () {
     const d = new Date();
-    d.setUTCDate(d.getUTCDate() - 1);
-    return d.toISOString().slice(0, 10);
+    d.setDate(d.getDate() - 1);
+    const pad = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   }());
   payNoDate.date.value = yesterday;
   payNoDate.date.listeners.change();
-  assert.strictEqual(payNoDate.date.value, '');
-  assert.strictEqual(draftOf(payNoDate.localStorage).release_date, '');
+  assert.strictEqual(payNoDate.date.value, yesterday, 'calendar tap before the 7-day minimum must stay visible');
   payNoDate.date.value = minDate;
   payNoDate.date.listeners.change();
   assert.strictEqual(payNoDate.date.value, minDate);

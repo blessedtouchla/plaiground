@@ -9,10 +9,28 @@ function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
 }
 
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function toLocalIsoDate(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
 function minSubmitDate() {
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 7);
-  return d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() + 7);
+  return toLocalIsoDate(d);
+}
+
+function todayLocal() {
+  return toLocalIsoDate(new Date());
+}
+
+function localShift(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return toLocalIsoDate(d);
 }
 
 function utcShift(days) {
@@ -66,10 +84,14 @@ function makeEl(attrs) {
     },
     removeAttribute(name) {
       delete this.attrs[name];
+      if (name === 'min') this.min = '';
       if (name === 'max') this.max = '';
     },
     addEventListener(type, fn) {
       this.listeners[type] = fn;
+    },
+    setCustomValidity(msg) {
+      this.customValidity = String(msg || '');
     },
     appendChild(child) {
       this.options.push(child);
@@ -216,6 +238,34 @@ function draftOf(localStorage) {
   return JSON.parse(localStorage.getItem('plaiground.tonegrid.draft') || '{}');
 }
 
+function testNormalizePickedDateDoesNotEmptyWindowPick(empty) {
+  const inside = localShift(1);
+  empty.date.value = inside;
+  empty.date.listeners.change();
+  assert.strictEqual(empty.date.value, inside, 'normalizePickedDate / persistReleaseDate must not empty a date inside the 7-day window');
+  assert.ok(empty.date.customValidity || empty.date.attrs['aria-invalid'] === 'true', 'too-soon pick stays visible and is marked invalid');
+}
+
+function testPersistReleaseDateKeepsWindowPick(empty) {
+  const today = todayLocal();
+  empty.date.value = today;
+  empty.date.listeners.change();
+  assert.strictEqual(empty.date.value, today, 'persistReleaseDate must keep today visible instead of writing empty');
+  assert.notStrictEqual(empty.date.value, '', 'persistReleaseDate must never silently write empty for a calendar tap');
+}
+
+function testPersistReleaseDateKeepsValidFuture(empty, min) {
+  empty.date.value = min;
+  empty.date.listeners.change();
+  assert.strictEqual(empty.date.value, min, 'persistReleaseDate must keep a valid future date');
+  assert.strictEqual(draftOf(empty.localStorage).release_date, min);
+  const later = localShift(14);
+  empty.date.value = later;
+  empty.date.listeners.change();
+  assert.strictEqual(empty.date.value, later, 'persistReleaseDate must keep a valid future date');
+  assert.strictEqual(draftOf(empty.localStorage).release_date, later);
+}
+
 function run() {
   const review = read('review.html');
   const upload = read('upload.html');
@@ -224,6 +274,7 @@ function run() {
 
   assert.ok(/id="tg-release-date"[^>]*type="date"/.test(review) || /type="date"[^>]*id="tg-release-date"/.test(review), 'review date picker is missing');
   assert.ok(review.includes('id="tg-release-date"'));
+  assert.ok(review.includes('id="tg-release-date-hint"'));
   assert.ok(review.includes('type="date"'));
   assert.ok(/\srequired[\s>]/.test(review.match(/<input[^>]*id="tg-release-date"[^>]*>/)[0]) || review.includes('required'), 'release date stays required');
   assert.ok(review.includes('class="date-picker"') || review.includes('date-picker'));
@@ -251,27 +302,16 @@ function run() {
   });
   const min = minSubmitDate();
   assert.strictEqual(empty.date.type, 'date');
-  assert.strictEqual(empty.date.min, min);
+  assert.ok(!empty.date.min || empty.date.min <= todayLocal(), 'native min must not be the 7-day lock');
   assert.strictEqual(empty.date.required, true);
   assert.strictEqual(empty.date.value, '');
   empty.payBtn.listeners.click({ preventDefault() {} });
   assert.strictEqual(empty.status.textContent, 'Release date is required.');
   assert.ok(!String(draftOf(empty.localStorage).release_date || '').trim());
 
-  empty.date.value = utcShift(-1);
-  empty.date.listeners.change();
-  assert.strictEqual(empty.date.value, '', 'yesterday is not selectable');
-  assert.strictEqual(draftOf(empty.localStorage).release_date, '');
-
-  empty.date.value = utcShift(1);
-  empty.date.listeners.change();
-  assert.strictEqual(empty.date.value, '', 'tomorrow under +7 days is not selectable');
-  assert.strictEqual(draftOf(empty.localStorage).release_date, '');
-
-  empty.date.value = min;
-  empty.date.listeners.change();
-  assert.strictEqual(empty.date.value, min);
-  assert.strictEqual(draftOf(empty.localStorage).release_date, min);
+  testNormalizePickedDateDoesNotEmptyWindowPick(empty);
+  testPersistReleaseDateKeepsWindowPick(empty);
+  testPersistReleaseDateKeepsValidFuture(empty, min);
 
   empty.date.value = min;
   empty.date.listeners.input({ type: 'input' });
@@ -290,7 +330,7 @@ function run() {
       release_date: later,
     },
   });
-  assert.strictEqual(saved.date.min, min);
+  assert.ok(!saved.date.min || saved.date.min <= todayLocal(), 'saved picker must not lock the native min to +7 days');
   assert.strictEqual(saved.date.value, later);
   assert.strictEqual(draftOf(saved.localStorage).release_date, later);
 

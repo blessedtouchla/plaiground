@@ -96,10 +96,58 @@
     return mdy[3] + '-' + String(mdy[1]).padStart(2, '0') + '-' + String(mdy[2]).padStart(2, '0');
   }
 
+  function pad2(n) {
+    return String(n).padStart ? String(n).padStart(2, '0') : ('0' + n).slice(-2);
+  }
+
+  function toLocalIsoDate(d) {
+    if (!d || typeof d.getFullYear !== 'function') return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
   function minSubmitDate() {
     var d = new Date();
-    d.setUTCDate(d.getUTCDate() + 7);
-    return d.toISOString().slice(0, 10);
+    d.setDate(d.getDate() + 7);
+    return toLocalIsoDate(d);
+  }
+
+  function todayLocal() {
+    return toLocalIsoDate(new Date());
+  }
+
+  function isReadyEditDate(date, existing) {
+    var picked = toIsoDate(date);
+    if (!picked) return false;
+    if (picked >= minSubmitDate()) return true;
+    var keep = toIsoDate(existing);
+    return Boolean(keep && picked === keep);
+  }
+
+  function markEditDateState(dateEl, date, existing) {
+    var ready = isReadyEditDate(date, existing);
+    var tooSoon = Boolean(date && !ready);
+    var message = tooSoon ? 'Stores need 7 days of lead time.' : '';
+    if (dateEl && typeof dateEl.setCustomValidity === 'function') {
+      dateEl.setCustomValidity(message);
+    }
+    if (dateEl && dateEl.classList) {
+      if (dateEl.classList.toggle) dateEl.classList.toggle('is-invalid', tooSoon);
+      else if (tooSoon && dateEl.classList.add) dateEl.classList.add('is-invalid');
+      else if (dateEl.classList.remove) dateEl.classList.remove('is-invalid');
+    }
+    if (dateEl && dateEl.setAttribute) {
+      if (tooSoon) dateEl.setAttribute('aria-invalid', 'true');
+      else if (dateEl.removeAttribute) dateEl.removeAttribute('aria-invalid');
+    }
+    var hint = typeof document !== 'undefined' && document.getElementById
+      ? document.getElementById('edit-release-date-hint')
+      : null;
+    if (hint && hint.classList) {
+      if (hint.classList.toggle) hint.classList.toggle('is-error', tooSoon);
+      else if (tooSoon && hint.classList.add) hint.classList.add('is-error');
+      else if (hint.classList.remove) hint.classList.remove('is-error');
+    }
+    return ready;
   }
 
   function todayUtc() {
@@ -673,15 +721,24 @@
     var picked = toIsoDate(raw);
     var release = lastEdit && lastEdit.release;
     var releaseId = release && release.uuid;
+    var existing = toIsoDate(release && release.release_date);
     if (!raw && opts.ignoreEmpty) {
-      var kept = toIsoDate(readDraft().release_date);
-      if (kept && dateEl.value !== kept) dateEl.value = kept;
-      return kept;
+      var kept = toIsoDate(readDraft().release_date) || existing;
+      if (kept && !dateEl.value) dateEl.value = kept;
+      markEditDateState(dateEl, dateEl.value || kept, existing);
+      return toIsoDate(dateEl.value) || kept || '';
     }
-    if (picked) dateEl.value = picked;
-    else if (!opts.ignoreEmpty) dateEl.value = '';
-    if (releaseId) writeDraftFor(releaseId, { release_date: picked || '' });
-    return picked;
+    if (picked) {
+      if (dateEl.value !== picked) dateEl.value = picked;
+      markEditDateState(dateEl, picked, existing);
+      if (releaseId) writeDraftFor(releaseId, { release_date: picked });
+      return picked;
+    }
+    var snap = (existing && existing < minSubmitDate()) ? existing : minSubmitDate();
+    dateEl.value = snap;
+    markEditDateState(dateEl, snap, existing);
+    if (releaseId) writeDraftFor(releaseId, { release_date: snap });
+    return snap;
   }
 
   function collectSchedule() {
@@ -848,11 +905,16 @@
     syncLanguageField(inst && inst.checked);
     var existingDate = toIsoDate(release.release_date || draft.release_date);
     if (dateEl) {
-      var min = minSubmitDate();
       dateEl.type = 'date';
-      if (existingDate && existingDate < min) dateEl.min = existingDate;
-      else dateEl.min = min;
+      // Do not set min to the 7-day lock — iOS clears any tap below min.
+      if (existingDate && existingDate < todayLocal()) dateEl.min = existingDate;
+      else {
+        dateEl.min = '';
+        if (dateEl.removeAttribute) dateEl.removeAttribute('min');
+      }
+      if (dateEl.setAttribute) dateEl.setAttribute('aria-describedby', 'edit-release-date-hint');
       dateEl.value = existingDate || '';
+      markEditDateState(dateEl, existingDate, existingDate);
     }
     var preorderOn = $('#edit-preorder-on');
     var timeOn = $('#edit-time-on');

@@ -35,6 +35,181 @@ function options(selectHtml) {
   });
 }
 
+function testTypeaheadPrefixBlurKeepsFirstOption(select, input, prefix, expectedLabel) {
+  input.value = prefix;
+  if (input.listeners && input.listeners.input) input.listeners.input();
+  input.listeners.blur();
+  assert.strictEqual(input.value, expectedLabel, 'typeahead prefix blur keeps first real option');
+  assert.ok(String(select.value || ''), 'typeahead prefix blur must apply a real catalog option');
+}
+
+function testTypeaheadGarbageStillClears(select, input) {
+  input.value = 'zzzz-not-a-real-genre';
+  if (input.listeners && input.listeners.input) input.listeners.input();
+  input.listeners.blur();
+  assert.strictEqual(select.value, '', 'typeahead custom garbage still clears');
+  assert.strictEqual(input.value, '', 'typeahead custom garbage still clears the visible field');
+}
+
+function testTypeaheadDelayedBlurKeepsListPick(catalog, created) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove() {} },
+    querySelector(sel) {
+      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
+      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
+      return { setAttribute() {} };
+    },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre-delay',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const timers = [];
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  global.window = {
+    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
+    clearTimeout() {},
+    addEventListener() {},
+  };
+  global.document = {
+    addEventListener(type, fn) {
+      this.listeners = this.listeners || {};
+      this.listeners[type] = fn;
+    },
+    createElement(tag) {
+      const node = {
+        tagName: String(tag).toUpperCase(),
+        type: '',
+        className: '',
+        id: '',
+        value: '',
+        textContent: '',
+        children: [],
+        style: {},
+        attrs: {},
+        listeners: {},
+        classList: {
+          tokens: Object.create(null),
+          add(name) { this.tokens[name] = true; },
+          remove(name) { delete this.tokens[name]; },
+          contains(name) { return Boolean(this.tokens[name]); },
+          toggle(name, on) {
+            if (on === false) delete this.tokens[name];
+            else this.tokens[name] = true;
+          },
+        },
+        setAttribute(name, value) { this.attrs[name] = String(value); },
+        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
+        addEventListener(type, fn) { this.listeners[type] = fn; },
+        appendChild(child) { this.children.push(child); return child; },
+      };
+      created.push(node);
+      return node;
+    },
+  };
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = field.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    assert.ok(input);
+    assert.ok(list);
+    input.listeners.focus();
+    const hip = list.children.find(function (btn) { return btn.textContent === 'Hip-Hop'; });
+    assert.ok(hip, 'Hip-Hop must be in the open list');
+    input.value = 'Hip';
+    input.listeners.blur();
+    const blurTimer = timers.find(function (row) { return row.ms >= 400; });
+    assert.ok(blurTimer, 'typeahead blur delay must be ~400ms so an iOS list tap can win');
+    if (hip.listeners.pointerdown) hip.listeners.pointerdown({ preventDefault() {}, stopPropagation() {} });
+    timers.forEach(function (row) { row.fn(); });
+    assert.strictEqual(select.value, 'Hip-Hop', 'typeahead list pick after delayed blur stays');
+    assert.strictEqual(input.value, 'Hip-Hop', 'typeahead list pick after delayed blur stays');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
+function testTypeaheadRebindsIfInputMissing(catalog) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove() {} },
+    querySelector() { return null; },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'edit-genre',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: { 'data-typeahead': 'on' },
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const created = [];
+  const prevDocument = global.document;
+  global.document = {
+    createElement(tag) {
+      const node = {
+        tagName: String(tag).toUpperCase(),
+        type: '',
+        className: '',
+        id: '',
+        value: '',
+        textContent: '',
+        children: [],
+        style: {},
+        attrs: {},
+        listeners: {},
+        classList: {
+          tokens: Object.create(null),
+          add(name) { this.tokens[name] = true; },
+          remove(name) { delete this.tokens[name]; },
+          contains(name) { return Boolean(this.tokens[name]); },
+        },
+        setAttribute(name, value) { this.attrs[name] = String(value); },
+        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
+        addEventListener(type, fn) { this.listeners[type] = fn; },
+        appendChild(child) { this.children.push(child); return child; },
+      };
+      created.push(node);
+      return node;
+    },
+  };
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = created.find(function (node) { return node.className === 'typeahead-input'; });
+    assert.ok(input, 'bindTypeahead must run again when the typeahead input is missing');
+  } finally {
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function run() {
   WIZARD.forEach(function (file) {
     const html = fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -250,6 +425,9 @@ function run() {
     assert.ok(list.children.length > 12, 'A-query must stay scrollable past the first letter');
     assert.ok(list.children.some(function (btn) { return /^B/i.test(btn.textContent); }), 'full A-match set must include items past A');
 
+    testTypeaheadPrefixBlurKeepsFirstOption(select, input, 'Hip', 'Hip-Hop');
+    testTypeaheadGarbageStillClears(select, input);
+
     const langField = {
       children: [],
       classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
@@ -333,6 +511,8 @@ function run() {
     langInput.listeners.blur();
     assert.strictEqual(langSelect.value, 'en');
     assert.strictEqual(langInput.value, 'English');
+    testTypeaheadPrefixBlurKeepsFirstOption(langSelect, langInput, 'Engl', 'English');
+    assert.strictEqual(langSelect.value, 'en');
     langInput.value = 'Klingon';
     langInput.listeners.input();
     assert.strictEqual(langSelect.value, '');
@@ -497,6 +677,8 @@ function run() {
     assert.strictEqual(edit.select.value, '');
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Made Up Genre'), null);
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Pop'), 'Pop');
+    testTypeaheadDelayedBlurKeepsListPick(catalog, createdEdit);
+    testTypeaheadRebindsIfInputMissing(catalog);
   } finally {
     if (prevDoc2 === undefined) delete global.document;
     else global.document = prevDoc2;

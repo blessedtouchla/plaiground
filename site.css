@@ -639,6 +639,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--purple-bright); }
 .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #999 50%), linear-gradient(135deg, #999 50%, transparent 50%); background-position: calc(100% - 18px) 18px, calc(100% - 12px) 18px; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
+.field { overflow: visible; }
 .typeahead-field { position: relative; z-index: 1; overflow: visible; }
 .typeahead-field:focus-within,
 .typeahead-field.is-typeahead-open { z-index: 4100; }
@@ -2425,7 +2426,13 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .date-picker-field {
   max-width: 220px;
   margin-bottom: 16px;
+  overflow: visible;
 }
+.field input.date-picker.is-invalid,
+.field input.date-picker[aria-invalid="true"] {
+  border-color: var(--magenta);
+}
+.hint.is-error { color: var(--magenta); }
 .field input.date-picker,
 .field input[type="date"].date-picker {
   width: 100%;

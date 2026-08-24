@@ -126,10 +126,23 @@
     }).then(parseJson);
   }
 
+  function pad2(n) {
+    return String(n).padStart ? String(n).padStart(2, '0') : ('0' + n).slice(-2);
+  }
+
+  function toLocalIsoDate(d) {
+    if (!d || typeof d.getFullYear !== 'function') return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
   function minSubmitDate() {
     var d = new Date();
-    d.setUTCDate(d.getUTCDate() + 7);
-    return d.toISOString().slice(0, 10);
+    d.setDate(d.getDate() + 7);
+    return toLocalIsoDate(d);
+  }
+
+  function todayLocal() {
+    return toLocalIsoDate(new Date());
   }
 
   function toIsoDate(value) {
@@ -141,25 +154,61 @@
   }
 
   function normalizePickedDate(value) {
+    return toIsoDate(value);
+  }
+
+  function isReadyReleaseDate(value) {
     var date = toIsoDate(value);
-    if (!date || date < minSubmitDate()) return '';
-    return date;
+    return Boolean(date && date >= minSubmitDate());
+  }
+
+  function releaseDateHint(dateEl) {
+    if (!dateEl || typeof document === 'undefined' || !document.getElementById) return null;
+    var id = dateEl.id === 'edit-release-date' ? 'edit-release-date-hint' : 'tg-release-date-hint';
+    return document.getElementById(id);
+  }
+
+  function markReleaseDateState(dateEl, date) {
+    var ready = isReadyReleaseDate(date);
+    var tooSoon = Boolean(date && !ready);
+    var message = tooSoon ? 'Stores need 7 days of lead time.' : '';
+    if (dateEl && typeof dateEl.setCustomValidity === 'function') {
+      dateEl.setCustomValidity(message);
+    }
+    if (dateEl && dateEl.classList) {
+      if (dateEl.classList.toggle) dateEl.classList.toggle('is-invalid', tooSoon);
+      else if (tooSoon && dateEl.classList.add) dateEl.classList.add('is-invalid');
+      else if (dateEl.classList.remove) dateEl.classList.remove('is-invalid');
+    }
+    if (dateEl && dateEl.setAttribute) {
+      if (tooSoon) dateEl.setAttribute('aria-invalid', 'true');
+      else if (dateEl.removeAttribute) dateEl.removeAttribute('aria-invalid');
+    }
+    var hint = releaseDateHint(dateEl);
+    if (hint && hint.classList) {
+      if (hint.classList.toggle) hint.classList.toggle('is-error', tooSoon);
+      else if (tooSoon && hint.classList.add) hint.classList.add('is-error');
+      else if (hint.classList.remove) hint.classList.remove('is-error');
+    }
+    return ready;
   }
 
   function bindReleaseDatePicker(dateEl) {
     if (!dateEl) return '';
-    var min = minSubmitDate();
     dateEl.type = 'date';
-    dateEl.min = min;
     dateEl.required = true;
+    // Do not set min to the 7-day lock — iOS clears any tap below min.
+    dateEl.min = '';
     if (dateEl.setAttribute) {
       dateEl.setAttribute('type', 'date');
-      dateEl.setAttribute('min', min);
       dateEl.setAttribute('required', '');
+      dateEl.setAttribute('aria-describedby', 'tg-release-date-hint');
     }
-    var picked = normalizePickedDate(dateEl.value) || normalizePickedDate(readDraft().release_date);
-    dateEl.value = picked;
-    return picked;
+    if (dateEl.removeAttribute) dateEl.removeAttribute('min');
+    var shown = normalizePickedDate(dateEl.value) || normalizePickedDate(readDraft().release_date);
+    if (shown) dateEl.value = shown;
+    markReleaseDateState(dateEl, shown);
+    return isReadyReleaseDate(shown) ? shown : '';
   }
 
   function persistReleaseDate(dateEl, opts) {
@@ -168,12 +217,27 @@
     var picked = normalizePickedDate(raw);
     if (!raw && opts.ignoreEmpty) {
       var kept = normalizePickedDate(readDraft().release_date);
-      if (dateEl && kept && dateEl.value !== kept) dateEl.value = kept;
-      return kept;
+      if (dateEl && kept && !dateEl.value) dateEl.value = kept;
+      markReleaseDateState(dateEl, dateEl ? normalizePickedDate(dateEl.value) : kept);
+      var restored = normalizePickedDate(dateEl && dateEl.value) || kept;
+      return isReadyReleaseDate(restored) ? restored : '';
     }
-    if (dateEl) dateEl.value = picked;
-    writeDraft({ release_date: picked });
-    return picked;
+    if (picked) {
+      if (dateEl && dateEl.value !== picked) dateEl.value = picked;
+      markReleaseDateState(dateEl, picked);
+      writeDraft({ release_date: picked });
+      return isReadyReleaseDate(picked) ? picked : '';
+    }
+    if (opts.snapIfEmpty) {
+      var snap = minSubmitDate();
+      if (dateEl) dateEl.value = snap;
+      markReleaseDateState(dateEl, snap);
+      writeDraft({ release_date: snap });
+      return snap;
+    }
+    markReleaseDateState(dateEl, '');
+    writeDraft({ release_date: '' });
+    return '';
   }
 
   function todayUtc() {
@@ -239,7 +303,7 @@
     var preorderEl = $('tg-preorder-date');
     var timeEl = $('tg-release-time');
     var zoneEl = $('tg-release-timezone');
-    var releaseDate = persistReleaseDate($('tg-release-date'), { ignoreEmpty: true }) || toIsoDate(readDraft().release_date);
+    var releaseDate = persistReleaseDate($('tg-release-date'), { ignoreEmpty: true });
     var selectPreorder = Boolean(preorderOn && preorderOn.checked);
     var defineTime = Boolean(timeOn && timeOn.checked);
     var preorderDate = '';
@@ -2043,9 +2107,16 @@
         var reviewError = '';
         if (reviewGate && typeof reviewGate.validateReviewPage === 'function') {
           var reviewed = reviewGate.validateReviewPage({ release_date: releaseDate });
-          if (reviewed && reviewed.error) reviewError = reviewed.error;
+          if (reviewed && reviewed.error) {
+            var shownDate = toIsoDate($('tg-release-date') && $('tg-release-date').value);
+            reviewError = shownDate && !isReadyReleaseDate(shownDate)
+              ? 'Stores need 7 days of lead time.'
+              : reviewed.error;
+          }
         } else if (!releaseDate) {
-          reviewError = 'Release date is required.';
+          reviewError = toIsoDate($('tg-release-date') && $('tg-release-date').value)
+            ? 'Stores need 7 days of lead time.'
+            : 'Release date is required.';
         }
         if (reviewError) {
           setStatus('tg-status', reviewError);
@@ -2134,9 +2205,9 @@
       if (dateEl && dateEl.addEventListener) {
         var syncPickedDate = function (event) {
           var ignoreEmpty = Boolean(event && event.type === 'input');
-          var picked = persistReleaseDate(dateEl, { ignoreEmpty: ignoreEmpty });
+          var picked = persistReleaseDate(dateEl, { ignoreEmpty: ignoreEmpty, snapIfEmpty: true });
           if ($('tg-preorder-on') || $('tg-time-on')) collectReleaseSchedule();
-          markIncomplete(trigger, !picked && !ignoreEmpty);
+          markIncomplete(trigger, !picked);
         };
         dateEl.addEventListener('input', syncPickedDate);
         dateEl.addEventListener('change', syncPickedDate);
