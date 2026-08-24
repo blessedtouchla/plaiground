@@ -210,6 +210,61 @@ function run() {
   assert.ok(catalogNodes['[data-release-empty-title]'].textContent.indexOf('No live releases') !== -1);
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, false);
 
+  const signedInEmpty = {
+    '[data-stat="total"]': makeEl({ textContent: '0' }),
+    '[data-stat="live"]': makeEl({ textContent: '0' }),
+    '[data-stat="review"]': makeEl({ textContent: '0' }),
+    '[data-stat="draft"]': makeEl({ textContent: '0' }),
+    '[data-release-rows]': makeEl({}),
+    '[data-release-empty]': makeEl({}),
+    '[data-release-empty-title]': makeEl({ textContent: 'Your first release goes here.' }),
+    '[data-release-empty-body]': makeEl({ textContent: 'Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.' }),
+    '[data-release-table]': makeEl({ hidden: true }),
+    '[data-release-count]': makeEl({}),
+    '[data-release-status]': makeEl({ hidden: true, textContent: '' }),
+  };
+  const signedInCatalog = {
+    URLSearchParams,
+    document: {
+      querySelector(sel) {
+        return signedInEmpty[sel] || null;
+      },
+      querySelectorAll() {
+        return [];
+      },
+      createElement() {
+        return makeEl({});
+      },
+    },
+    fetch(url) {
+      if (String(url).indexOf('/api/tonegrid/releases') !== -1) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: async function () { return { error: 'Sign in required.' }; },
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async function () { return {}; },
+      });
+    },
+    PlaigroundMembership: {
+      whenReady(cb) {
+        const result = null;
+        if (typeof cb === 'function') cb(result);
+        return Promise.resolve(result);
+      },
+      account() { return null; },
+      isSignedIn() { return true; },
+    },
+    window: {},
+    location: { search: '' },
+  };
+  signedInCatalog.window = signedInCatalog;
+  vm.runInNewContext(read('catalog.js'), signedInCatalog);
+
   const splits = loadScript('splits.js', {
     '[data-splits-empty]': makeEl({}),
     '[data-splits-table]': makeEl({ hidden: true }),
@@ -225,7 +280,19 @@ function run() {
   });
   assert.strictEqual(splits.document.querySelector('[data-splits-empty]').hidden, false);
 
-  console.log('catalog-earnings.test.js ok');
+  return new Promise(function (resolve) { setImmediate(resolve); }).then(function () {
+    return new Promise(function (resolve) { setImmediate(resolve); });
+  }).then(function () {
+    const status = signedInEmpty['[data-release-status]'].textContent;
+    assert.ok(status.indexOf('Sign in to see') === -1, 'signed-in empty catalog must not say Sign in to see your releases');
+    assert.strictEqual(signedInEmpty['[data-release-empty]'].hidden, false);
+    assert.ok(signedInEmpty['[data-release-empty-title]'].textContent.indexOf('Your first release goes here') !== -1);
+    assert.strictEqual(signedInEmpty['[data-stat="total"]'].textContent, '0');
+    console.log('catalog-earnings.test.js ok');
+  });
 }
 
-run();
+Promise.resolve(run()).catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

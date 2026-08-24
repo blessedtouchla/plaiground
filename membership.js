@@ -114,7 +114,64 @@
 
   var serverAccount = null;
   var serverStatus = 0;
-  var accountReady = Promise.resolve(null);
+  var accountSettled = false;
+  var resolveAccountReady;
+  var accountReady = new Promise(function (resolve) {
+    resolveAccountReady = resolve;
+  });
+
+  function hasSessionCookie() {
+    var raw = '';
+    try {
+      raw = String((global.document && global.document.cookie) || '');
+    } catch (err) {
+      return false;
+    }
+    var parts = raw.split(';');
+    for (var i = 0; i < parts.length; i += 1) {
+      var piece = String(parts[i] || '').replace(/^\s+/, '');
+      var eq = piece.indexOf('=');
+      if (eq <= 0) continue;
+      var name = piece.slice(0, eq);
+      var value = piece.slice(eq + 1);
+      if ((name === 'plaiground_session' || name === 'plaiground_signed') && value) return true;
+    }
+    return false;
+  }
+
+  function hasLiveSession() {
+    return isSignedIn() || hasSessionCookie() || Boolean(serverAccount);
+  }
+
+  function settleAccount(result) {
+    accountSettled = true;
+    if (typeof resolveAccountReady === 'function') {
+      resolveAccountReady(result);
+      resolveAccountReady = null;
+    }
+    accountReady = Promise.resolve(result);
+    return result;
+  }
+
+  function fetchMe() {
+    return global.fetch('/api/me', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        return { ok: response.ok, status: response.status, data: data || {} };
+      }).catch(function () {
+        return { ok: false, status: response.status, data: {} };
+      });
+    }).catch(function () {
+      return { ok: false, status: 503, data: { error: 'Accounts are not configured.' } };
+    });
+  }
+
+  function shouldRetryMe(result) {
+    var status = result && result.status ? result.status : 0;
+    return status === 401 || status === 0 || status === 503;
+  }
 
   function applyServerAccount(me) {
     if (!me || typeof me !== 'object') return null;
@@ -129,25 +186,19 @@
 
   function probeAccount() {
     if (typeof global.fetch !== 'function') {
-      accountReady = Promise.resolve({ status: 0, data: null });
-      return accountReady;
+      serverStatus = 0;
+      return settleAccount({ ok: false, status: 0, data: null });
     }
-    accountReady = global.fetch('/api/me', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    }).then(function (response) {
-      return response.json().then(function (data) {
-        return { ok: response.ok, status: response.status, data: data || {} };
-      }).catch(function () {
-        return { ok: false, status: response.status, data: {} };
-      });
-    }).then(function (result) {
-      serverStatus = result.status || 0;
-      if (result.ok) applyServerAccount(result.data);
+    fetchMe().then(function (result) {
+      if (shouldRetryMe(result)) return fetchMe();
       return result;
+    }).then(function (result) {
+      serverStatus = (result && result.status) || 0;
+      if (result && result.ok) applyServerAccount(result.data);
+      return settleAccount(result);
     }).catch(function () {
       serverStatus = 503;
-      return { ok: false, status: 503, data: { error: 'Accounts are not configured.' } };
+      return settleAccount({ ok: false, status: 503, data: { error: 'Accounts are not configured.' } });
     });
     return accountReady;
   }
@@ -200,24 +251,20 @@
   }
 
   function requireMembership() {
-    if (serverStatus === 401) {
-      global.location.replace(LOGIN);
-      return false;
-    }
     if (serverStatus === 200) {
       if (hasPlan()) return true;
       global.location.replace(PRICING);
       return false;
     }
-    if (!isSignedIn()) {
-      global.location.replace(LOGIN);
-      return false;
-    }
-    if (!hasPlan()) {
+    if (hasLiveSession()) {
+      if (hasPlan()) return true;
+      if (serverStatus === 401 || serverStatus === 503 || hasSessionCookie()) return true;
       global.location.replace(PRICING);
       return false;
     }
-    return true;
+    if (!accountSettled) return true;
+    global.location.replace(LOGIN);
+    return false;
   }
 
   function requirePaidAccess() {
@@ -240,14 +287,6 @@
   }
 
   function requirePublishingAccess() {
-    if (serverStatus === 401) {
-      global.location.replace(LOGIN);
-      return false;
-    }
-    if (!isSignedIn() && serverStatus !== 200) {
-      global.location.replace(LOGIN);
-      return false;
-    }
     if (hasPaidAccess()) {
       if (isPublishingExplainer()) {
         global.location.replace(PUBLISHING);
@@ -255,19 +294,25 @@
       }
       return true;
     }
-    global.location.replace(isOnHold() ? HOLD_PRICING : PRICING);
+    if (serverStatus === 200) {
+      global.location.replace(isOnHold() ? HOLD_PRICING : PRICING);
+      return false;
+    }
+    if (hasLiveSession() || !accountSettled) return true;
+    global.location.replace(LOGIN);
     return false;
   }
 
   function destinationForPublishing() {
     if (hasPaidAccess()) return PUBLISHING;
-    if (isSignedIn() || serverStatus === 200) return publishingHref();
+    if (!accountSettled) return PUBLISHING;
+    if (hasLiveSession() || serverStatus === 200) return publishingHref();
     return LOGIN;
   }
 
   function destinationForSignedInUpload(href) {
     var dest = href || 'upload.html';
-    if (isSignedIn() || serverStatus === 200) return dest;
+    if (!accountSettled || hasLiveSession() || serverStatus === 200) return dest;
     return LOGIN;
   }
 
