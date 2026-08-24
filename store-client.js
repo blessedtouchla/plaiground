@@ -2,7 +2,7 @@
   var ARTISTS_URL = '/api/tonegrid/artists';
   var RELEASES_URL = '/api/tonegrid/releases';
   var TRACKS_URL = '/api/tonegrid/tracks';
-  var DRAFT_KEY = 'plaiground.tonegrid.draft';
+  var DRAFT_KEY = 'plaiground.store.draft';
   var MAX_AUDIO_BYTES = 200 * 1024 * 1024;
   var MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 
@@ -2591,7 +2591,7 @@
   }
 
   function bindUpload() {
-    var trigger = document.querySelector('[data-tonegrid-continue]');
+    var trigger = document.querySelector('[data-store-continue]');
     if (!trigger) return;
     bindUploadCatalog();
     bindArtistSection();
@@ -3045,7 +3045,7 @@
   }
 
   function bindReview() {
-    var trigger = document.querySelector('[data-tonegrid-submit]');
+    var trigger = document.querySelector('[data-store-submit]');
     var onReview = Boolean(trigger || document.querySelector('[data-review-title]'));
     if (!onReview) return;
     bindStorePick(storePickRoot(), readDraft().dsps);

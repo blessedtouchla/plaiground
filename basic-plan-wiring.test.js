@@ -60,7 +60,7 @@ function run() {
   assert.ok(membership.indexOf('isMarketingHome') !== -1);
   assert.ok(membership.indexOf('dashboard.html') !== -1);
 
-  const tonegrid = read('tonegrid.js');
+  const tonegrid = read('store-client.js');
   assert.ok(tonegrid.indexOf('Creating release…') !== -1);
   assert.ok(tonegrid.indexOf('Song title is required.') !== -1);
   assert.ok(tonegrid.indexOf('PLAN_LIMIT') !== -1);
@@ -80,7 +80,7 @@ function run() {
   assert.ok(plans.indexOf('Creator includes 8 releases per month. Upgrade to Pro to upload more.') !== -1);
   assert.ok(plans.indexOf('CREATOR_MONTHLY = 8') !== -1);
 
-  ['membership.js', 'tonegrid.js', 'checkout.js', 'signup.html', 'login.html', 'confirm.html', 'confirmed.html', 'index.html', 'basic.html'].forEach(function (file) {
+  ['membership.js', 'store-client.js', 'checkout.js', 'signup.html', 'login.html', 'confirm.html', 'confirmed.html', 'index.html', 'basic.html'].forEach(function (file) {
     const text = read(file);
     assert.ok(!text.includes(['t', 'g', 'k', '_'].join('')), file + ' must not contain a key prefix');
     assert.ok(!/sk_live_|sk_test_|pk_live_/.test(text), file + ' must not contain Stripe secrets');

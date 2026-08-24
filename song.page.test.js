@@ -195,7 +195,7 @@ function loadSong(opts) {
   };
   const context = {
     localStorage: {
-      data: opts.draft ? { 'plaiground.tonegrid.draft': JSON.stringify(opts.draft) } : {},
+      data: opts.draft ? { 'plaiground.store.draft': JSON.stringify(opts.draft) } : {},
       getItem(key) { return this.data[key] || null; },
       setItem(key, value) { this.data[key] = String(value); },
       removeItem(key) { delete this.data[key]; },
@@ -507,11 +507,11 @@ function run() {
   page.ids['edit-release-date'].value = pickedDate;
   page.ids['edit-release-date'].listeners.input({ type: 'input' });
   assert.strictEqual(page.ids['edit-release-date'].value, pickedDate, 'clicked edit-release date must stay visible');
-  assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.tonegrid.draft')).release_date, pickedDate);
+  assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.store.draft')).release_date, pickedDate);
   page.ids['edit-release-date'].value = '';
   page.ids['edit-release-date'].listeners.input({ type: 'input' });
   assert.strictEqual(page.ids['edit-release-date'].value, pickedDate, 'empty input during edit-release pick must not wipe the shown date');
-  assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.tonegrid.draft')).release_date, pickedDate);
+  assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.store.draft')).release_date, pickedDate);
 
   function pad2(n) { return String(n).padStart(2, '0'); }
   function localShift(days) {
@@ -641,7 +641,7 @@ function run() {
     assert.ok(mutating.some((row) => row.method === 'PUT' && /\/tracks\//.test(row.url)));
     assert.ok(mutating.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
     assert.ok(!mutating.some((row) => editor.api.isCreateReleaseUrl(row.url, row.method)), 'edit must not POST a new release or artist');
-    const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.tonegrid.draft'));
+    const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.store.draft'));
     assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
     mutating.filter((row) => typeof row.body === 'string').forEach((row) => {
       let body = {};
@@ -722,7 +722,7 @@ function run() {
         assert.ok(removed.ok);
         assert.strictEqual(removed.redirect, 'releases.html');
         assert.strictEqual(drafted.context.location.href, 'releases.html');
-        assert.strictEqual(drafted.context.localStorage.getItem('plaiground.tonegrid.draft'), null);
+        assert.strictEqual(drafted.context.localStorage.getItem('plaiground.store.draft'), null);
         assert.ok(draftCalls.some((row) => row.method === 'DELETE' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
 
         const liveCalls = [];

@@ -266,7 +266,7 @@
 
   function readDraft() {
     try {
-      return JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.tonegrid.draft')) || '{}') || {};
+      return JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.store.draft')) || '{}') || {};
     } catch (err) {
       return {};
     }

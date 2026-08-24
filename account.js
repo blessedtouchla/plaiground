@@ -213,10 +213,10 @@
 
   function readDraft() {
     try {
-      return JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.tonegrid.draft')) || '{}') || {};
+      return JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.store.draft')) || '{}') || {};
     } catch (err) {
       try {
-        return JSON.parse((global.sessionStorage && global.sessionStorage.getItem('plaiground.tonegrid.draft')) || '{}') || {};
+        return JSON.parse((global.sessionStorage && global.sessionStorage.getItem('plaiground.store.draft')) || '{}') || {};
       } catch (inner) {
         return {};
       }

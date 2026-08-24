@@ -20,7 +20,7 @@ const USER_FILES = [
   'review.html',
   'song.html',
   'song.js',
-  'tonegrid.js',
+  'store-client.js',
   'upload.html',
   'lib/upload-required.js',
 ];
@@ -38,9 +38,6 @@ function stringLiterals(src) {
 function isAllowedUserString(value) {
   if (!/ToneGrid|Tonegrid/.test(value)) return true;
   if (/\/api\/tonegrid\//.test(value)) return true;
-  if (/plaiground\.tonegrid\.draft/.test(value)) return true;
-  if (/^data-tonegrid-/.test(value)) return true;
-  if (/tonegrid\.js/.test(value)) return true;
   return false;
 }
 
@@ -81,9 +78,28 @@ function run() {
 
   assert.strictEqual(leaks.length, 0, 'user-facing ToneGrid/Tonegrid leaks:\n' + leaks.join('\n'));
 
-  const timeoutSrc = fs.readFileSync(path.join(root, 'tonegrid.js'), 'utf8');
+  const timeoutSrc = fs.readFileSync(path.join(root, 'store-client.js'), 'utf8');
   assert.ok(timeoutSrc.includes("return 'We could not reach the store. Try again.';"));
   assert.ok(!timeoutSrc.includes('ToneGrid did not respond'));
+
+  const uploadShipped = [
+    'upload.html',
+    'membership.js',
+    'account.js',
+    'upload-catalog.js',
+    'lib/upload-required.js',
+    'lib/artist-check.js',
+    'lib/audio-accept.js',
+    'lib/store-pick.js',
+    'store-client.js',
+    'plai-bubble.js',
+  ];
+  uploadShipped.forEach(function (rel) {
+    const raw = fs.readFileSync(path.join(root, rel), 'utf8');
+    assert.ok(raw.indexOf('tonegrid.js') === -1, rel + ' must not ship tonegrid.js');
+    assert.ok(raw.indexOf('data-tonegrid-') === -1, rel + ' must not ship data-tonegrid- attributes');
+    assert.ok(raw.indexOf('plaiground.tonegrid.draft') === -1, rel + ' must not ship the old draft key');
+  });
 
   console.log('partner-copy-lock.test.js ok');
 }

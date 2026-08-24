@@ -45,7 +45,7 @@ function run() {
   const upload = read('upload.html');
   const song = read('song.html');
   const review = read('review.html');
-  const tonegrid = read('tonegrid.js');
+  const tonegrid = read('store-client.js');
   const songJs = read('song.js');
 
   assert.ok(upload.includes('id="tg-lyrics-open"'), 'upload has a Lyrics control');

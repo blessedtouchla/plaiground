@@ -1,11 +1,12 @@
 (function (root) {
-  var DRAFT_KEY = 'plaiground.tonegrid.draft';
+  var DRAFT_KEY = 'plaiground.store.draft';
+  var SHEET_KEY = 'plaiground.tonegrid.draft';
   var HUMAN_SAVED_KEY = 'plaiground.attest.human_saved';
 
   function readDraft() {
     try {
-      var local = root.localStorage && root.localStorage.getItem(DRAFT_KEY);
-      var session = root.sessionStorage && root.sessionStorage.getItem(DRAFT_KEY);
+      var local = root.localStorage && (root.localStorage.getItem(DRAFT_KEY) || root.localStorage.getItem(SHEET_KEY));
+      var session = root.sessionStorage && (root.sessionStorage.getItem(DRAFT_KEY) || root.sessionStorage.getItem(SHEET_KEY));
       return JSON.parse(local || session || '{}') || {};
     } catch (err) {
       return {};
@@ -20,6 +21,8 @@
     var text = JSON.stringify(next);
     try { root.localStorage.setItem(DRAFT_KEY, text); } catch (err) {}
     try { root.sessionStorage.setItem(DRAFT_KEY, text); } catch (err) {}
+    try { root.localStorage.setItem(SHEET_KEY, text); } catch (err) {}
+    try { root.sessionStorage.setItem(SHEET_KEY, text); } catch (err) {}
     return next;
   }
 

@@ -380,7 +380,7 @@ function run() {
   assert.ok(catalogSrc.indexOf('pointerdown') !== -1);
   assert.ok(catalogSrc.indexOf('must not jump the input') !== -1);
   assert.ok(/if \(typeof module === 'object' && module.exports\) \{[\s\S]*?\}\s*if \(typeof window !== 'undefined'\)/.test(catalogSrc), 'catalog must attach on window even when CommonJS module exists');
-  const tonegridSrc = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+  const tonegridSrc = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   assert.ok(tonegridSrc.indexOf('function bindUploadCatalog') !== -1, 'upload must bind typeahead itself, not only wait for DOMContentLoaded');
   assert.ok(tonegridSrc.indexOf('fillUploadSelects') !== -1);
   assert.ok(tonegridSrc.indexOf('bindTypeahead') !== -1);
