@@ -8,7 +8,7 @@
 
   function statusHost(trigger) {
     return (
-      trigger.closest('.card-cta, .hero-ctas, .cta-inner, .card') ||
+      trigger.closest('.card-cta, .hero-ctas, .cta-inner, .card, .plan-switch, [data-manage-plan], .panel') ||
       trigger.parentNode
     );
   }
@@ -27,8 +27,13 @@
     el.hidden = !text;
   }
 
+  function isSwitch(trigger) {
+    return trigger.hasAttribute('data-checkout-switch');
+  }
+
   function requestBody(trigger) {
     var body = { cancelUrl: window.location.href };
+    if (isSwitch(trigger)) body.action = 'switch';
     var priceId = trigger.getAttribute('data-checkout-price');
     if (priceId) {
       body.priceId = priceId;
@@ -37,6 +42,19 @@
     body.plan = trigger.getAttribute('data-checkout-plan');
     body.interval = trigger.getAttribute('data-checkout-interval') || 'month';
     return body;
+  }
+
+  function applySwitched(result) {
+    var data = result && result.data ? result.data : {};
+    if (data.account && global.PlaigroundAccount && typeof global.PlaigroundAccount.fill === 'function') {
+      global.PlaigroundAccount.fill(data.account);
+    }
+    if (data.plan && global.PlaigroundMembership && typeof global.PlaigroundMembership.recordPlan === 'function') {
+      global.PlaigroundMembership.recordPlan(data.plan);
+    }
+    if (global.PlaigroundAccount && typeof global.PlaigroundAccount.markPlanOption === 'function') {
+      global.PlaigroundAccount.markPlanOption(data.plan, data.interval);
+    }
   }
 
   function rememberPendingPlan(trigger) {
@@ -62,12 +80,13 @@
     trigger.setAttribute('aria-busy', 'true');
     trigger.disabled = true;
     if (trigger.classList.contains('btn')) {
-      trigger.textContent = 'Redirecting…';
+      trigger.textContent = isSwitch(trigger) ? 'Updating…' : 'Redirecting…';
     }
     setStatus(trigger, '');
 
     fetch(CHECKOUT_URL, {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody(trigger)),
     })
@@ -79,6 +98,14 @@
         });
       })
       .then(function (result) {
+        if (result.data && result.data.switched) {
+          trigger.removeAttribute('aria-busy');
+          trigger.disabled = false;
+          trigger.textContent = original;
+          applySwitched(result);
+          setStatus(trigger, result.data.unchanged ? 'You are already on this plan.' : 'Plan updated.');
+          return;
+        }
         if (result.data && result.data.url) {
           window.location.href = result.data.url;
           return;
@@ -86,18 +113,22 @@
         trigger.removeAttribute('aria-busy');
         trigger.disabled = false;
         trigger.textContent = original;
-        if (result.status === 401) {
+        if (result.status === 401 && !isSwitch(trigger)) {
           var plan = trigger.getAttribute('data-checkout-plan') || '';
           var dest = 'login.html';
           if (plan) dest += '?plan=' + encodeURIComponent(plan);
           window.location.href = dest;
           return;
         }
+        if (result.status === 401) {
+          setStatus(trigger, 'Still signed in. Try again.');
+          return;
+        }
         if (result.status === 503 || result.data.configured === false) {
           setStatus(trigger, 'Checkout is not available yet.');
           return;
         }
-        setStatus(trigger, result.data.error || 'Could not start checkout.');
+        setStatus(trigger, result.data.error || (isSwitch(trigger) ? 'Could not update the plan.' : 'Could not start checkout.'));
       })
       .catch(function () {
         trigger.removeAttribute('aria-busy');

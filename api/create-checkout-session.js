@@ -3,6 +3,8 @@
 /**
  * GET  /api/create-checkout-session  → { configured, publishableKey } (does not mint)
  * POST /api/create-checkout-session  → { url } for Stripe-hosted Checkout (mode=subscription)
+ * POST { action: "switch" }          → update the signed-in customer's subscription
+ * POST { action: "billing" }         → current paid price for that customer (no email lookup)
  * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
  * Hobby-safe: webhook is the same Serverless Function via vercel.json rewrite.
@@ -22,17 +24,30 @@
  */
 
 const crypto = require('crypto');
-const { findById } = require('../lib/accounts');
-const { sessionFromRequest } = require('../lib/auth');
+const { findById, updateStripe } = require('../lib/accounts');
+const { attachSession, publicUser, sessionFromRequest } = require('../lib/auth');
 const { pathnameOf, queryValue } = require('../lib/route');
-const { ALLOWED_PRICE_IDS, PRICE_BY_PLAN, planMetaForPrice } = require('../lib/stripe-plans');
+const {
+  ALLOWED_PRICE_IDS,
+  PRICE_BY_PLAN,
+  planMetaForPrice,
+  prorationBehaviorForChange,
+} = require('../lib/stripe-plans');
 const { applyStripeEvent, verifyStripeSignature, webhookSecret } = require('../lib/stripe-webhook');
 const { headerValue } = require('../lib/tonegrid');
 
-const STRIPE_SESSIONS_URL = 'https://api.stripe.com/v1/checkout/sessions';
+const STRIPE_API_BASE = 'https://api.stripe.com/v1/';
+const STRIPE_SESSIONS_URL = STRIPE_API_BASE + 'checkout/sessions';
 const STRIPE_API_VERSION = '2026-07-29.dahlia';
 const SUCCESS_URL = 'https://www.wannaplai.com/confirm.html?session_id={CHECKOUT_SESSION_ID}';
 const DEFAULT_CANCEL_URL = 'https://www.wannaplai.com/';
+const LIVE_SUB_STATUSES = {
+  active: true,
+  past_due: true,
+  unpaid: true,
+  trialing: true,
+  paused: true,
+};
 
 const PLAN_ALIASES = { creator: 'creator', pro: 'pro' };
 const INTERVAL_ALIASES = {
@@ -167,6 +182,104 @@ function resolvePrice(body) {
   return { priceId, plan, interval };
 }
 
+function actionOf(body) {
+  return String((body && (body.action || body.intent)) || '').trim().toLowerCase();
+}
+
+function wantsSwitch(body) {
+  if (!body || typeof body !== 'object') return false;
+  return actionOf(body) === 'switch' || body.switch === true;
+}
+
+function wantsBilling(body) {
+  if (!body || typeof body !== 'object') return false;
+  return actionOf(body) === 'billing';
+}
+
+function firstSubscriptionItem(sub) {
+  const bag = sub && sub.items;
+  const rows = Array.isArray(bag) ? bag : bag && Array.isArray(bag.data) ? bag.data : [];
+  return rows[0] || null;
+}
+
+function priceIdOfSubscription(sub) {
+  const item = firstSubscriptionItem(sub);
+  if (!item) return '';
+  if (typeof item.price === 'string') return item.price;
+  if (item.price && typeof item.price === 'object') return String(item.price.id || '');
+  return '';
+}
+
+function pickLiveSubscription(list) {
+  const rows = list && Array.isArray(list.data) ? list.data : Array.isArray(list) ? list : [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const sub = rows[i];
+    if (!sub || !LIVE_SUB_STATUSES[String(sub.status || '')]) continue;
+    if (priceIdOfSubscription(sub) || firstSubscriptionItem(sub)) return sub;
+  }
+  return null;
+}
+
+async function stripeRequest(method, path, params, query) {
+  const url = new URL(STRIPE_API_BASE + String(path || '').replace(/^\//, ''));
+  if (query && typeof query === 'object') {
+    Object.keys(query).forEach((key) => {
+      const value = query[key];
+      if (value == null || value === '') return;
+      url.searchParams.append(key, String(value));
+    });
+  }
+  const headers = {
+    Authorization: 'Bearer ' + process.env.STRIPE_SECRET_KEY,
+    'Stripe-Version': STRIPE_API_VERSION,
+  };
+  const opts = { method: method || 'GET', headers };
+  if (params) {
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    opts.body = params instanceof URLSearchParams ? params.toString() : String(params);
+  }
+  const response = await fetch(url.toString(), opts);
+  let data = {};
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+  return { ok: response.ok, status: response.status, data, url: url.toString() };
+}
+
+async function loadSignedInUser(req, res) {
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { configured: isConfigured(), error: 'Sign in required.' });
+    return null;
+  }
+  let user;
+  try {
+    user = await findById(session.userId);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      sendJson(res, 503, { configured: true, error: 'Accounts are not configured.' });
+      return null;
+    }
+    throw err;
+  }
+  if (!user) {
+    sendJson(res, 401, { configured: isConfigured(), error: 'Sign in required.' });
+    return null;
+  }
+  attachSession(req, res, user.id);
+  return user;
+}
+
+async function subscriptionForCustomer(customerId) {
+  const id = String(customerId || '').trim();
+  if (!id || id.indexOf('cus_') !== 0) return null;
+  const listed = await stripeRequest('GET', 'subscriptions', null, { customer: id, limit: '10' });
+  if (!listed.ok) return { error: stripeErrorMessage(listed.data), status: listed.status };
+  return { sub: pickLiveSubscription(listed.data) };
+}
+
 function safeCancelUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return DEFAULT_CANCEL_URL;
@@ -214,18 +327,173 @@ async function attachPayer(params, req) {
   return { ok: true, user };
 }
 
-async function createCheckoutSession(req, res) {
+async function showBilling(req, res) {
+  if (!isConfigured()) {
+    sendJson(res, 503, { configured: false });
+    return;
+  }
+  const user = await loadSignedInUser(req, res);
+  if (!user) return;
+  const customerId = String(user.stripe_customer_id || '').trim();
+  if (!customerId) {
+    sendJson(res, 200, {
+      plan: user.plan || 'basic',
+      interval: '',
+      priceId: '',
+    });
+    return;
+  }
+  let found;
+  try {
+    found = await subscriptionForCustomer(customerId);
+  } catch {
+    sendJson(res, 502, { configured: true, error: 'Could not reach Stripe.' });
+    return;
+  }
+  if (found && found.error) {
+    sendJson(res, found.status >= 400 && found.status < 600 ? found.status : 502, {
+      configured: true,
+      error: found.error,
+    });
+    return;
+  }
+  const priceId = found && found.sub ? priceIdOfSubscription(found.sub) : '';
+  const meta = planMetaForPrice(priceId);
+  sendJson(res, 200, {
+    plan: meta.plan || user.plan || 'basic',
+    interval: meta.interval || '',
+    priceId: priceId || '',
+  });
+}
+
+async function switchSubscription(req, res, body) {
   if (!isConfigured()) {
     sendJson(res, 503, { configured: false });
     return;
   }
 
-  let body;
-  try {
-    body = await readBody(req);
-  } catch {
-    sendJson(res, 400, { error: 'Invalid JSON.' });
+  const resolved = resolvePrice(body);
+  if (resolved.error) {
+    sendJson(res, 400, { error: resolved.error });
     return;
+  }
+  const meta = resolved.plan
+    ? { plan: resolved.plan, interval: resolved.interval }
+    : planMetaForPrice(resolved.priceId);
+  if (meta.plan !== 'creator' && meta.plan !== 'pro') {
+    sendJson(res, 400, { error: 'Basic is not a paid switch target.' });
+    return;
+  }
+
+  const user = await loadSignedInUser(req, res);
+  if (!user) return;
+
+  const customerId = String(user.stripe_customer_id || '').trim();
+  if (!customerId) {
+    await createCheckoutSession(req, res, body);
+    return;
+  }
+
+  let found;
+  try {
+    found = await subscriptionForCustomer(customerId);
+  } catch {
+    sendJson(res, 502, { configured: true, error: 'Could not reach Stripe.' });
+    return;
+  }
+  if (found && found.error) {
+    sendJson(res, found.status >= 400 && found.status < 600 ? found.status : 502, {
+      configured: true,
+      error: found.error,
+    });
+    return;
+  }
+  if (!found || !found.sub) {
+    await createCheckoutSession(req, res, body);
+    return;
+  }
+
+  const sub = found.sub;
+  const item = firstSubscriptionItem(sub);
+  const currentPriceId = priceIdOfSubscription(sub);
+  if (!item || !item.id) {
+    sendJson(res, 502, { configured: true, error: 'Could not find the current plan item.' });
+    return;
+  }
+  if (currentPriceId === resolved.priceId) {
+    sendJson(res, 200, {
+      switched: true,
+      unchanged: true,
+      plan: meta.plan,
+      interval: meta.interval,
+      priceId: resolved.priceId,
+      account: publicUser(user),
+    });
+    return;
+  }
+
+  const proration = prorationBehaviorForChange(currentPriceId, resolved.priceId) || 'none';
+  const params = new URLSearchParams();
+  params.append('items[0][id]', item.id);
+  params.append('items[0][price]', resolved.priceId);
+  params.append('proration_behavior', proration);
+  if (proration === 'always_invoice') {
+    params.append('payment_behavior', 'error_if_incomplete');
+  }
+  if (meta.plan) params.append('metadata[plan]', meta.plan);
+  if (meta.interval) params.append('metadata[interval]', meta.interval);
+
+  let updated;
+  try {
+    updated = await stripeRequest('POST', 'subscriptions/' + sub.id, params);
+  } catch {
+    sendJson(res, 502, { configured: true, error: 'Could not reach Stripe.' });
+    return;
+  }
+  if (!updated.ok) {
+    sendJson(res, updated.status >= 400 && updated.status < 600 ? updated.status : 502, {
+      configured: true,
+      error: stripeErrorMessage(updated.data),
+    });
+    return;
+  }
+
+  const nextPriceId = priceIdOfSubscription(updated.data) || resolved.priceId;
+  const nextMeta = planMetaForPrice(nextPriceId);
+  const plan = nextMeta.plan || meta.plan;
+  const interval = nextMeta.interval || meta.interval;
+  const next = await updateStripe(user.id, {
+    plan,
+    status: 'active',
+    customerId: customerId,
+  });
+  const account = publicUser(next || user) || {};
+  account.billing_interval = interval;
+  account.interval = interval;
+  sendJson(res, 200, {
+    switched: true,
+    plan,
+    interval,
+    priceId: nextPriceId,
+    proration,
+    account,
+  });
+}
+
+async function createCheckoutSession(req, res, preloaded) {
+  if (!isConfigured()) {
+    sendJson(res, 503, { configured: false });
+    return;
+  }
+
+  let body = preloaded;
+  if (!body) {
+    try {
+      body = await readBody(req);
+    } catch {
+      sendJson(res, 400, { error: 'Invalid JSON.' });
+      return;
+    }
   }
 
   const resolved = resolvePrice(body);
@@ -376,7 +644,22 @@ async function handler(req, res) {
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }
-  await createCheckoutSession(req, res);
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (wantsBilling(body)) {
+    await showBilling(req, res);
+    return;
+  }
+  if (wantsSwitch(body)) {
+    await switchSubscription(req, res, body);
+    return;
+  }
+  await createCheckoutSession(req, res, body);
 }
 
 handler.config = {
