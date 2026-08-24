@@ -229,6 +229,7 @@ function runLoginWall() {
               const dumpedUrls = [
                 { pathname: '/upload.html', href: 'upload.html' },
                 { pathname: '/upload.html', href: 'upload.html?type=album', search: '?type=album' },
+                { pathname: '/attest.html', href: 'attest.html' },
                 { pathname: '/boosts.html', href: 'boosts.html' },
                 { pathname: '/payouts.html', href: 'payouts.html' },
                 { pathname: '/earnings.html', href: 'earnings.html' },
@@ -303,7 +304,16 @@ function runLoginWall() {
                     });
                     return loggedOut401.api.whenReady().then(function () {
                       assert.ok(loggedOut401.location.href.indexOf('login.html') !== -1, 'true logged-out 401 still goes to login');
-                      console.log('membership.test.js ok');
+
+                      const loginBounce = load({
+                        pathname: '/login.html',
+                        href: 'login.html',
+                        account: staffAccount(),
+                      });
+                      return loginBounce.api.whenReady().then(function () {
+                        assert.strictEqual(loginBounce.location.href, 'dashboard.html', 'live /api/me on login.html returns to the dashboard');
+                        console.log('membership.test.js ok');
+                      });
                     });
                   });
                 });
@@ -369,7 +379,7 @@ function runFlowStepper() {
 
 function run() {
   runFlowStepper();
-  const dumpedPages = ['upload.html', 'boosts.html', 'payouts.html', 'earnings.html', 'analytics.html'];
+  const dumpedPages = ['upload.html', 'attest.html', 'boosts.html', 'payouts.html', 'earnings.html', 'analytics.html'];
   dumpedPages.forEach(function (file) {
     const html = fs.readFileSync(path.join(__dirname, file), 'utf8');
     assert.ok(/data-require-membership="true"/.test(html), file + ' still uses the membership gate');
@@ -428,14 +438,49 @@ function run() {
   assert.strictEqual(sessionOnly.api.hasPlan(), false, 'session id is extra proof, not a plan');
   assert.strictEqual(sessionOnly.api.hasMembership(), false);
 
-  const loggedOut = load({ require: true });
-  assert.ok(loggedOut.location.href.indexOf('login.html') !== -1);
-
-  const noPlan = load({
+  const loggedOut = load({
     require: true,
-    seedLocal: { plaigroundSignedIn: '1' },
+    accountResponses: [
+      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+    ],
   });
-  assert.ok(noPlan.location.href.indexOf('index.html?needplan=1#pricing') !== -1);
+  return loggedOut.api.whenReady().then(function () {
+    assert.ok(loggedOut.location.href.indexOf('login.html') !== -1, 'confirmed 401 still goes to login');
+    assert.strictEqual(loggedOut.api.isConfirmedLoggedOut(), true);
+
+    const ambiguous503 = load({
+      require: true,
+      pathname: '/upload.html',
+      href: 'upload.html',
+      accountResponses: [
+        { ok: false, status: 503, data: { error: 'Accounts are not configured.' } },
+        { ok: false, status: 503, data: { error: 'Accounts are not configured.' } },
+      ],
+    });
+    return ambiguous503.api.whenReady().then(function () {
+      assert.strictEqual(ambiguous503.api.requireMembership(), true, '503 is not a confirmed logout');
+      assert.strictEqual(ambiguous503.api.isConfirmedLoggedOut(), false);
+      assert.strictEqual(ambiguous503.location.href, 'upload.html', 'dashboard path: stay when /api/me is 503 and JS cannot see the HttpOnly cookie');
+      assert.ok(ambiguous503.location.href.indexOf('login.html') === -1);
+      assert.strictEqual(ambiguous503.api.destinationForSignedInUpload('upload.html'), 'upload.html');
+
+      const noPlan = load({
+        require: true,
+        pathname: '/upload.html',
+        href: 'upload.html',
+        account: { email: 'free@example.com', plan: null, status: 'active' },
+      });
+      return noPlan.api.whenReady().then(function () {
+        assert.ok(noPlan.location.href.indexOf('index.html?needplan=1#pricing') !== -1, 'signed-in /api/me 200 without a plan still goes to pricing');
+
+        return continueMembershipSyncTests();
+      });
+    });
+  });
+}
+
+function continueMembershipSyncTests() {
 
   const gatedOk = load({
     require: true,

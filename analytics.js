@@ -273,7 +273,12 @@
         var hasLive = typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus.accountHasLive(me);
         var hideStats = Boolean(known && !hasLive);
         if (result.status === 401) {
-          setStatus('Sign in to see your plays.');
+          var playsApi = global.PlaigroundMembership;
+          var playsSignedIn = Boolean(me && (me.email || me.plan))
+            || (playsApi && typeof playsApi.isConfirmedLoggedOut === 'function' && !playsApi.isConfirmedLoggedOut())
+            || (playsApi && typeof playsApi.hasLiveSession === 'function' && playsApi.hasLiveSession())
+            || (playsApi && typeof playsApi.isSignedIn === 'function' && playsApi.isSignedIn());
+          setStatus(playsSignedIn ? '' : 'Sign in to see your plays.');
           render(emptyPayload());
           return;
         }

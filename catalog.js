@@ -320,6 +320,7 @@
   function sessionLooksSignedIn(me) {
     if (me && (me.email || me.plan || me.pending === false)) return true;
     var api = global.PlaigroundMembership;
+    if (api && typeof api.isConfirmedLoggedOut === 'function' && !api.isConfirmedLoggedOut()) return true;
     if (api && typeof api.hasLiveSession === 'function' && api.hasLiveSession()) return true;
     if (api && typeof api.isSignedIn === 'function' && api.isSignedIn()) return true;
     if (api && api.account && api.account()) return true;
@@ -353,7 +354,7 @@
             render({ releases: signedInOwned, total: signedInOwned.length, analytics: {} });
             return;
           }
-          setStatus('Sign in to see your releases.');
+          setStatus('');
           render({ releases: [], total: 0, analytics: {} });
           return;
         }

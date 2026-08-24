@@ -354,7 +354,73 @@ function run() {
     assert.ok(cookieStatus.indexOf('Sign in to see') === -1, 'plaiground_signed empty catalog must not say Sign in to see your releases');
     assert.strictEqual(cookieOnlyEmpty['[data-release-empty]'].hidden, false);
     assert.ok(cookieOnlyEmpty['[data-release-empty-title]'].textContent.indexOf('Your first release goes here') !== -1);
-    console.log('catalog-earnings.test.js ok');
+
+    const ambiguousEmpty = {
+      '[data-stat="total"]': makeEl({ textContent: '0' }),
+      '[data-stat="live"]': makeEl({ textContent: '0' }),
+      '[data-stat="review"]': makeEl({ textContent: '0' }),
+      '[data-stat="draft"]': makeEl({ textContent: '0' }),
+      '[data-release-rows]': makeEl({}),
+      '[data-release-empty]': makeEl({}),
+      '[data-release-empty-title]': makeEl({ textContent: 'Your first release goes here.' }),
+      '[data-release-empty-body]': makeEl({ textContent: 'Nothing here yet. Submit a song and it will show in this catalog when the store has it.' }),
+      '[data-release-table]': makeEl({ hidden: true }),
+      '[data-release-count]': makeEl({}),
+      '[data-release-status]': makeEl({ hidden: true, textContent: '' }),
+    };
+    const ambiguousCatalog = {
+      URLSearchParams,
+      document: {
+        cookie: '',
+        querySelector(sel) {
+          return ambiguousEmpty[sel] || null;
+        },
+        querySelectorAll() {
+          return [];
+        },
+        createElement() {
+          return makeEl({});
+        },
+      },
+      fetch(url) {
+        if (String(url).indexOf('/api/tonegrid/releases') !== -1) {
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async function () { return { error: 'Sign in required.' }; },
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 503,
+          json: async function () { return { error: 'Accounts are not configured.' }; },
+        });
+      },
+      PlaigroundMembership: {
+        whenReady(cb) {
+          const result = { ok: false, status: 503, data: {} };
+          if (typeof cb === 'function') cb(result);
+          return Promise.resolve(result);
+        },
+        account() { return null; },
+        isSignedIn() { return false; },
+        hasLiveSession() { return false; },
+        isConfirmedLoggedOut() { return false; },
+      },
+      window: {},
+      location: { search: '' },
+    };
+    ambiguousCatalog.window = ambiguousCatalog;
+    vm.runInNewContext(read('catalog.js'), ambiguousCatalog);
+    return new Promise(function (resolve) { setImmediate(resolve); }).then(function () {
+      return new Promise(function (resolve) { setImmediate(resolve); });
+    }).then(function () {
+      const ambiguousStatus = ambiguousEmpty['[data-release-status]'].textContent;
+      assert.ok(ambiguousStatus.indexOf('Sign in to see') === -1, '/api/me 503 plus store 401 must not say Sign in to see your releases');
+      assert.strictEqual(ambiguousEmpty['[data-release-empty]'].hidden, false);
+      assert.strictEqual(ambiguousEmpty['[data-stat="total"]'].textContent, '0');
+      console.log('catalog-earnings.test.js ok');
+    });
   });
 }
 
