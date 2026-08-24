@@ -126,8 +126,46 @@ function run() {
 
   const js = read('site.js');
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
+  assert.ok(js.includes('setupPublicSocials'), 'site.js keeps footer socials from one shared block');
+  assert.ok(js.includes('https://www.facebook.com/profile.php?id=61593116849937'), 'shared socials use the PLAIGROUND Facebook profile');
+  assert.ok(js.includes('https://www.instagram.com/plaigroundmusic'), 'shared socials use the PLAIGROUND Instagram');
+  assert.ok(!js.includes('https://www.tiktok.com') && !js.includes('https://x.com'), 'shared socials drop TikTok and X');
+  assert.ok(js.includes('aria-label="Facebook"') && js.includes('aria-label="Instagram"'), 'shared socials stay labeled Facebook and Instagram');
   assert.ok(js.includes('menu-toggle'), 'site.js injects a hamburger');
   assert.ok(js.includes('nav-open'), 'site.js toggles the drawer');
+
+  const FACEBOOK_HREF = 'https://www.facebook.com/profile.php?id=61593116849937';
+  const INSTAGRAM_HREF = 'https://www.instagram.com/plaigroundmusic';
+  const FACEBOOK_GLYPH = 'M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z';
+  const INSTAGRAM_GLYPH = 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z';
+  const TIKTOK_GLYPH = 'M14.5 3c.4 2.4 1.8 4 4.1 4.2v2.3';
+  const X_GLYPH = 'M18.2 3H21l-6.5 7.4L22 21h-6.2';
+  const htmlFiles = fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); });
+  const socialPages = htmlFiles.filter(function (file) { return read(file).includes('class="socials"'); });
+  assert.ok(socialPages.length >= 20, 'every public footer copy is still scanned');
+  socialPages.forEach(function (file) {
+    const html = read(file);
+    const socials = html.match(/<div class="socials">[\s\S]*?<\/div>/);
+    assert.ok(socials, file + ' must keep a socials block');
+    const block = socials[0];
+    assert.ok(block.includes(FACEBOOK_HREF), file + ' Facebook must be the PLAIGROUND profile');
+    assert.ok(block.includes(INSTAGRAM_HREF), file + ' Instagram must be @plaigroundmusic');
+    assert.ok(block.includes('aria-label="Facebook"') && block.includes('title="Facebook"'), file + ' Facebook needs an accessible name');
+    assert.ok(block.includes('aria-label="Instagram"') && block.includes('title="Instagram"'), file + ' Instagram needs an accessible name');
+    assert.ok(block.includes(FACEBOOK_GLYPH), file + ' Facebook icon must look like Facebook');
+    assert.ok(block.includes(INSTAGRAM_GLYPH), file + ' Instagram icon must look like Instagram');
+    assert.ok(!block.includes(TIKTOK_GLYPH) && !block.includes(X_GLYPH), file + ' must not keep TikTok or X glyphs');
+    assert.ok(!block.includes('href="https://www.tiktok.com"') && !block.includes('href="https://x.com"'), file + ' must not keep TikTok or X homepage links');
+    assert.ok(!/href="https:\/\/www\.instagram\.com["?#]/i.test(block), file + ' must not keep a bare Instagram homepage link');
+    assert.ok((block.match(/target="_blank"/g) || []).length === 2, file + ' socials open in a new tab');
+    assert.ok((block.match(/rel="noopener"/g) || []).length === 2, file + ' socials use rel=noopener');
+    assert.ok((block.match(/<a /g) || []).length === 2, file + ' footer has Facebook and Instagram only');
+  });
+  htmlFiles.forEach(function (file) {
+    const html = read(file);
+    assert.ok(!/href="https:\/\/www\.tiktok\.com"|href="https:\/\/x\.com"/i.test(html), file + ' must not link TikTok or X homepages');
+    assert.ok(!/mibextid|igsi/i.test(html), file + ' must not keep share-tracking params');
+  });
 
   APP_PAGES.forEach(function (file) {
     const html = read(file);
