@@ -583,6 +583,7 @@ async function run() {
       upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
     },
     responses: [
+      { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
       { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
       { ok: true, status: 200, data: { audio_status: 'processing' } },
       { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
@@ -591,6 +592,9 @@ async function run() {
   reuseDraft.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   const reuseTonegrid = reuseDraft.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.ok(reuseTonegrid.some(function (call) {
+    return call.url === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  }), 'live draft.release_id must GET /api/tonegrid/releases/:id');
   assert.ok(!reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }), 'reuse must not create a second artist');
   assert.ok(!reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'reuse must not create a second release');
   assert.ok(reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
@@ -637,6 +641,7 @@ async function run() {
       upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
     },
     responses: [
+      { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
       { ok: true, status: 200, data: { audio_status: 'processing' } },
       { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
     ],
@@ -1079,6 +1084,7 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: true, status: 201, data: { track: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
@@ -1258,6 +1264,7 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
       ],
     }));
@@ -1321,10 +1328,156 @@ async function run() {
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
+  async function staleReleaseIdRecreatesWithLiveFile() {
+    const page = load(filledUpload({
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        release_idempotency_key: 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive',
+        track_idempotency_key: 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'release not found' } },
+        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(14);
+    assert.ok(page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    }), 'stale id must GET /api/tonegrid/releases/:id');
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1, '404 release must mint one fresh release');
+    const key = createCalls[0].init.headers['Idempotency-Key'];
+    assert.ok(key);
+    assert.notStrictEqual(key, 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).replace_release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    const track = page.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    assert.ok(track, 'live File must create a track on the new release');
+    assert.strictEqual(JSON.parse(track.init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+  }
+
+  async function liveReleaseIdIsReused() {
+    const page = load(filledUpload({
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.ok(page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    }));
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    }), 'live release_id must not create a second release');
+    assert.strictEqual(JSON.parse(page.calls.find(function (call) {
+      return call.url === '/api/tonegrid/tracks';
+    }).init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(page.location.href, 'attest.html');
+  }
+
+  async function staleAlbumReleaseRecreatesOnce() {
+    const page = load(filledUpload({
+      type: 'album',
+      title: 'Night Drive LP',
+      trackRows: [makeTrackRow('Intro', AUDIO), makeTrackRow('Outro', AUDIO)],
+      draft: {
+        type: 'album',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        release_idempotency_key: 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive LP',
+        album_count: 2,
+        tracks: [
+          { title: 'Intro', track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', audio_uploaded: true, position: 1 },
+          { title: 'Outro', track_id: '', audio_uploaded: false, position: 2 },
+        ],
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 201, data: { track: { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1, 'stale album release must recreate once');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).type, 'album');
+    const tracks = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    assert.strictEqual(tracks.length, 2);
+    assert.strictEqual(JSON.parse(tracks[0].init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(JSON.parse(tracks[1].init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+  }
+
+  async function genuineMissingTitleArtistStillErrors() {
+    const noTitle = load(filledUpload({ title: '' }));
+    noTitle.continueBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(noTitle.calls.length, 0);
+    assert.strictEqual(noTitle.status.textContent, 'Song title is required.');
+
+    const noArtist = load(filledUpload({ artist: '' }));
+    noArtist.continueBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(noArtist.calls.length, 0);
+    assert.ok(/artist/i.test(noArtist.status.textContent));
+  }
+
   await draftTrackIdNoFileStillSubmits();
   await albumUploadedRowIsNotEmpty();
   await tonegridZeroTrackErrorRetriesCreate();
   await genuineEmptyStillErrors();
+  await staleReleaseIdRecreatesWithLiveFile();
+  await liveReleaseIdIsReused();
+  await staleAlbumReleaseRecreatesOnce();
+  await genuineMissingTitleArtistStillErrors();
   await hungCreateTrackTrack2HidesLoader();
   await rejectedAfterReleaseHidesLoader();
   await albumRetryKeepsSameRelease();
@@ -1347,6 +1500,10 @@ async function run() {
   assert.ok(source.includes('withCatalogTimeout'));
   assert.ok(source.includes('resolveSubmitTracks'));
   assert.ok(source.includes('createMissingTracks'));
+  assert.ok(source.includes('resolveLiveRelease'));
+  assert.ok(source.includes('clearDeadReleaseIds'));
+  assert.ok(source.includes('freshReleaseKey'));
+  assert.ok(source.includes('isReleaseMissing'));
   assert.ok(source.includes('DEFAULT_CATALOG_TIMEOUT_MS'));
   assert.ok(source.includes('.catch(function (err)'));
   assert.ok(!source.includes("length < 2) addTrackRow()"));

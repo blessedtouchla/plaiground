@@ -613,6 +613,7 @@ async function createRelease(req, res) {
   }
 
   const continueId = String((body && (body.release_id || body.releaseId)) || '').trim();
+  const replaceId = String((body && (body.replace_release_id || body.replaceReleaseId)) || '').trim();
   const artistId = String((body && (body.artist_id || body.artistId)) || '').trim();
   const existingIds = plans.uniqueReleaseIds(scope.row);
   const type = normalizeReleaseType(body && body.type);
@@ -621,21 +622,34 @@ async function createRelease(req, res) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
-  if (decision.continuing && isUuid(continueId)) {
-    sendJson(res, 200, { uuid: continueId, continued: true });
-    return;
+  let deadReplaceId = '';
+  if (isUuid(replaceId) && existingIds.some((id) => sameCatalogId(id, replaceId))) {
+    if (await tonegridReleaseExists(replaceId)) {
+      sendJson(res, 200, { uuid: replaceId, continued: true });
+      return;
+    }
+    deadReplaceId = replaceId;
   }
-  if (
-    type !== 'album'
-    && existingIds.length === 1
-    && isUuid(artistId)
-    && scope.artistId
-    && artistId.toLowerCase() === scope.artistId.toLowerCase()
-  ) {
-    sendJson(res, 200, { uuid: existingIds[0], continued: true });
-    return;
+  const candidateId = (decision.continuing && isUuid(continueId))
+    ? continueId
+    : (
+      type !== 'album'
+      && !deadReplaceId
+      && existingIds.length === 1
+      && isUuid(artistId)
+      && scope.artistId
+      && artistId.toLowerCase() === scope.artistId.toLowerCase()
+        ? existingIds[0]
+        : ''
+    );
+  if (candidateId && !sameCatalogId(candidateId, deadReplaceId)) {
+    if (await tonegridReleaseExists(candidateId)) {
+      sendJson(res, 200, { uuid: candidateId, continued: true });
+      return;
+    }
+    deadReplaceId = candidateId;
   }
-  if (!decision.allowed) {
+  if (!decision.allowed && !deadReplaceId) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
@@ -672,14 +686,21 @@ async function createRelease(req, res) {
   if (fields.language) payload.language = fields.language;
   if (releaseDate) payload.release_date = releaseDate;
 
+  const browserKey = headerValue(req, 'idempotency-key');
+  const classicKey = ('plaiground-release-' + artistId + ':' + fields.title).slice(0, 255);
+  const hopParts = ['release', artistId, fields.title, type, releaseDate || ''];
+  if (browserKey && browserKey !== classicKey) hopParts.push(browserKey);
   const result = await tonegridFetch('/releases', {
     method: 'POST',
     body: payload,
-    idempotencyKey: idempotencyKey(req, ['release', artistId, fields.title, type, releaseDate].join(':')),
+    idempotencyKey: idempotencyKey(req, hopParts.join(':')),
   });
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
     if (releaseId) {
+      if (deadReplaceId) {
+        await accounts.removeRelease(scope.userId, deadReplaceId);
+      }
       await accounts.updateCatalog(scope.userId, { artistId, releaseId });
     }
   }
@@ -1294,6 +1315,21 @@ function requestedStores(body) {
 function isMissingEndpoint(result) {
   if (!result || result.ok || result.status !== 404) return false;
   return /endpoint not found/i.test(String((result.data && result.data.error) || ''));
+}
+
+function isReleaseGoneResult(result) {
+  if (!result || result.ok) return false;
+  if (result.status === 404) return true;
+  const msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+  return /release not found/.test(msg);
+}
+
+async function tonegridReleaseExists(releaseId) {
+  if (!isUuid(releaseId)) return false;
+  const loaded = await fetchReleaseRow(releaseId);
+  if (loaded.result && loaded.result.ok) return true;
+  if (isReleaseGoneResult(loaded.result)) return false;
+  return true;
 }
 
 async function requireOwnedRelease(req, res, releaseId) {

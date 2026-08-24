@@ -560,6 +560,131 @@
     });
   }
 
+  var sessionReleaseId = '';
+  var sessionReleaseChecked = '';
+  var releaseRecreatedThisSession = false;
+
+  function rememberSessionRelease(id) {
+    var next = String(id || '').trim();
+    if (!next) return;
+    sessionReleaseId = next;
+    sessionReleaseChecked = next;
+  }
+
+  function isReleaseMissing(result) {
+    if (!result) return false;
+    if (result.status === 404) return true;
+    var msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+    return /release not found/.test(msg);
+  }
+
+  function freshReleaseKey(draft) {
+    return ('plaiground-release-' + String((draft && draft.artist_id) || '') + ':' + String((draft && draft.title) || '') + ':' + String(Date.now())).slice(0, 255);
+  }
+
+  function clearDeadReleaseIds(draft) {
+    var current = draft || readDraft();
+    var deadId = String(current.release_id || '').trim();
+    var stored = Array.isArray(current.tracks) ? current.tracks.map(function (track) {
+      var next = {};
+      Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
+      next.track_id = '';
+      next.audio_uploaded = false;
+      return next;
+    }) : current.tracks;
+    var next = writeDraft({
+      release_id: '',
+      track_id: '',
+      release_idempotency_key: freshReleaseKey(current),
+      track_idempotency_key: '',
+      audio_uploaded: false,
+      replaced_release_id: deadId || current.replaced_release_id || '',
+      tracks: stored,
+    });
+    sessionReleaseId = '';
+    sessionReleaseChecked = '';
+    var rows = qsAll('[data-track-row]');
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+      stampTrackRow(i, { track_id: '', audio_uploaded: false });
+    }
+    return next;
+  }
+
+  function asResolvedRelease(created) {
+    if (!created) return { failed: true, result: { data: { error: 'Could not create release.' } } };
+    if (created.unavailable || created.limited || created.failed || created.missing) return created;
+    var draft = created.draft || readDraft();
+    if (draft && draft.release_id) {
+      rememberSessionRelease(draft.release_id);
+      if (draft.replaced_release_id) draft = writeDraft({ replaced_release_id: '' });
+      return Object.assign({ ok: true }, created, { draft: draft });
+    }
+    return {
+      failed: true,
+      result: created.result || { data: { error: 'Could not create release.' } },
+      draft: draft,
+    };
+  }
+
+  function createFreshRelease(draft) {
+    var current = draft || readDraft();
+    if (!current.artist_id || !current.title) {
+      return Promise.resolve({
+        failed: true,
+        missing: true,
+        draft: current,
+        result: {
+          data: {
+            error: !current.title
+              ? 'Song title is required.'
+              : 'Save the upload details first so a catalog artist exists.',
+          },
+        },
+      });
+    }
+    return createRelease(current, current.release_date || '').then(asResolvedRelease);
+  }
+
+  function resolveLiveRelease(draft) {
+    var current = draft || readDraft();
+    var id = String(current.release_id || '').trim();
+    if (id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
+      return Promise.resolve({ ok: true, draft: current, reused: true, justCreated: true });
+    }
+    if (id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
+      return Promise.resolve({ ok: true, draft: current, reused: true });
+    }
+    if (!id) return createFreshRelease(current);
+    return fetchReleaseTracks(id).then(function (loaded) {
+      if (loaded.ok) {
+        rememberSessionRelease(id);
+        return { ok: true, draft: current, found: true, tracks: loaded.tracks, result: loaded.result };
+      }
+      if (isUnavailable(loaded.result)) {
+        return { unavailable: true, result: loaded.result, draft: current };
+      }
+      if (isPlanLimit(loaded.result)) {
+        return { limited: true, result: loaded.result, draft: current };
+      }
+      if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status >= 500) {
+        return { failed: true, result: loaded.result, draft: current };
+      }
+      if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status && loaded.result.status !== 404) {
+        return { failed: true, result: loaded.result || { data: { error: 'Could not load release.' } }, draft: current };
+      }
+      if (releaseRecreatedThisSession) {
+        return {
+          failed: true,
+          result: loaded.result || { data: { error: 'Release not found.' } },
+          draft: current,
+        };
+      }
+      releaseRecreatedThisSession = true;
+      return createFreshRelease(clearDeadReleaseIds(current));
+    });
+  }
+
   function createMissingTracks(draft, opts) {
     var force = Boolean(opts && opts.force);
     var next = draft;
@@ -644,54 +769,63 @@
   }
 
   function resolveSubmitTracks(draft) {
-    if (!draft || !draft.release_id) {
-      return Promise.resolve({
-        failed: true,
-        result: { data: { error: 'Save the upload details first so a catalog release exists.' } },
-      });
-    }
-    var hasId = draftHasTrackId(draft);
-    var hasFile = Boolean(selectedAudio()) || albumRowsForSubmit(draft).some(function (track) {
+    var current = draft || readDraft();
+    var hasFile = Boolean(selectedAudio()) || albumRowsForSubmit(current).some(function (track) {
       return track && (track.audio || track.file);
     });
-    var uploaded = draft.audio_uploaded === true || albumRowsForSubmit(draft).some(function (track) {
+    var uploaded = current.audio_uploaded === true || albumRowsForSubmit(current).some(function (track) {
       return track && track.audio_uploaded;
     });
-    var picked = pickedAudioEvidence(draft);
-    return fetchReleaseTracks(draft.release_id).then(function (loaded) {
-      if (loaded.ok && loaded.tracks && loaded.tracks.length) {
-        return { ok: true, draft: persistFoundTracks(draft, loaded.tracks) };
+    var picked = pickedAudioEvidence(current);
+    return resolveLiveRelease(current).then(function (resolved) {
+      if (resolved.unavailable) return resolved;
+      if (resolved.limited) return { failed: true, result: resolved.result, draft: resolved.draft || current };
+      if (resolved.failed || resolved.missing) {
+        return {
+          failed: true,
+          result: resolved.result || { data: { error: 'Save the upload details first so a catalog release exists.' } },
+          draft: resolved.draft || current,
+        };
       }
-      if (!loaded.ok && hasId) {
-        return { ok: true, draft: draft };
+      var next = resolved.draft || current;
+      if (!next.release_id) {
+        return {
+          failed: true,
+          result: { data: { error: 'Save the upload details first so a catalog release exists.' } },
+          draft: next,
+        };
+      }
+      var hasId = draftHasTrackId(next);
+      if (resolved.found && resolved.tracks && resolved.tracks.length) {
+        return { ok: true, draft: persistFoundTracks(next, resolved.tracks) };
       }
       if (hasId || hasFile || uploaded) {
-        return createMissingTracks(draft, { force: loaded.ok }).then(function (created) {
+        return createMissingTracks(next, { force: Boolean(resolved.found || resolved.created) }).then(function (created) {
           if (created.ok) return created;
           if (created.unavailable) return created;
-          if (hasId) return { ok: true, draft: created.draft || draft };
+          if (hasId) return { ok: true, draft: created.draft || next };
           if (picked && !hasFile) {
             return {
               recover: true,
-              draft: created.draft || draft,
+              draft: created.draft || next,
               result: { data: { error: recoverUploadMessage(), code: 'TRACK_REATTACH' } },
             };
           }
           return {
             failed: true,
             result: created.result || { data: { error: genuineEmptyMessage() } },
-            draft: created.draft || draft,
+            draft: created.draft || next,
           };
         });
       }
       if (picked && !hasFile && !hasId) {
         return {
           recover: true,
-          draft: draft,
+          draft: next,
           result: { data: { error: recoverUploadMessage(), code: 'TRACK_REATTACH' } },
         };
       }
-      return { failed: true, result: { data: { error: genuineEmptyMessage() } }, draft: draft };
+      return { failed: true, result: { data: { error: genuineEmptyMessage() } }, draft: next };
     });
   }
 
@@ -887,6 +1021,7 @@
       instrumental: draft.instrumental === true,
     };
     if (draft.release_id) body.release_id = draft.release_id;
+    if (draft.replaced_release_id) body.replace_release_id = draft.replaced_release_id;
     if (!body.instrumental && draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
     return body;
@@ -969,8 +1104,12 @@
     var rows = qsAll('[data-track-row]');
     var row = rows[index];
     if (!row || !row.setAttribute) return;
-    if (patch && patch.track_id) row.setAttribute('data-track-id', patch.track_id);
-    if (patch && patch.audio_uploaded) row.setAttribute('data-audio-uploaded', 'true');
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'track_id')) {
+      row.setAttribute('data-track-id', patch.track_id || '');
+    }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'audio_uploaded')) {
+      row.setAttribute('data-audio-uploaded', patch.audio_uploaded ? 'true' : 'false');
+    }
   }
 
   function persistAlbumTracks(tracks) {
@@ -1061,6 +1200,19 @@
     return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
+      }
+      if (!result.ok && isReleaseMissing(result) && info.retriedRelease !== true) {
+        return resolveLiveRelease(clearDeadReleaseIds(draft)).then(function (resolved) {
+          if (resolved.unavailable) return resolved;
+          if (resolved.limited || resolved.failed || resolved.missing) {
+            return { failed: true, result: resolved.result || result, draft: resolved.draft || draft };
+          }
+          return createTrack(resolved.draft || readDraft(), Object.assign({}, info, {
+            retriedRelease: true,
+            track_id: '',
+            force: true,
+          }));
+        });
       }
       if (!result.ok) {
         return { failed: true, result: result, draft: draft };
@@ -1297,7 +1449,15 @@
   }
 
   function afterRelease(draft) {
-    if (draft.type === 'album') return afterAlbumRelease(draft);
+    return resolveLiveRelease(draft).then(function (resolved) {
+      if (resolved.unavailable || resolved.limited || resolved.failed || resolved.missing) return resolved;
+      var ready = resolved.draft || draft;
+      if (ready.type === 'album') return afterAlbumRelease(ready);
+      return createTrackOnRelease(ready);
+    });
+  }
+
+  function createTrackOnRelease(draft) {
     return createTrack(draft).then(function (track) {
       var next = track.draft || draft;
       if (track.unavailable || track.failed) return track;
@@ -1346,6 +1506,7 @@
 
   function createRelease(draft, releaseDate) {
     if (draft.release_id) {
+      rememberSessionRelease(draft.release_id);
       return Promise.resolve({ skipped: true, draft: draft });
     }
     if (!draft.artist_id || !draft.title) {
@@ -1365,7 +1526,14 @@
       }
       var releaseId = pickUuid(result.data);
       var next = draft;
-      if (releaseId) next = writeDraft({ release_id: releaseId, release_date: releaseDate || draft.release_date || '' });
+      if (releaseId) {
+        next = writeDraft({
+          release_id: releaseId,
+          release_date: releaseDate || draft.release_date || '',
+          replaced_release_id: '',
+        });
+        rememberSessionRelease(releaseId);
+      }
       if (releaseId || draft.artist_id) {
         saveCatalog({ artist_id: draft.artist_id, release_id: releaseId });
       }
@@ -2432,12 +2600,11 @@
     }
 
     function afterArtistReady(draft, nextHref) {
-      if (draft.release_id) {
-        return afterCatalogReady(draft, nextHref);
-      }
-      showUploadLoader('Creating release');
-      setStatus('tg-status', 'Creating release…');
-      return createRelease(draft, '').then(function (created) {
+      var known = Boolean(draft.release_id && sessionReleaseId && sameUuid(draft.release_id, sessionReleaseId));
+      if (known) return afterCatalogReady(draft, nextHref);
+      showUploadLoader(draft.release_id ? 'Opening release' : 'Creating release');
+      setStatus('tg-status', draft.release_id ? 'Opening release…' : 'Creating release…');
+      return resolveLiveRelease(draft).then(function (created) {
         if (created.unavailable) {
           finishToAttest(nextHref, 'Catalog sync is not configured yet.');
           return;
@@ -2446,8 +2613,8 @@
           failUpload(createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
           return;
         }
-        if (created.failed) {
-          failUpload(created.result.data.error || 'Could not create release.', false);
+        if (created.failed || created.missing) {
+          failUpload((created.result && created.result.data && created.result.data.error) || 'Could not create release.', false);
           return;
         }
         return afterCatalogReady(created.draft || draft, nextHref).then(function (ok) {
