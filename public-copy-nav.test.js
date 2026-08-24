@@ -129,7 +129,7 @@ function run() {
   assert.ok(/paid features unlocked/i.test(index), 'Creator card uses Basic + paid unlocks voice');
   assert.ok(/Pro unlocks unlimited/i.test(index), 'pricing then says Pro unlocks unlimited');
   assert.ok(!/The same product as Pro/i.test(index), 'Creator card must not say same as Pro');
-  assert.ok(index.includes('The same product as Creator, unlimited.'), 'Pro card may say same as Creator');
+  assert.ok(index.includes('The same product as Creator, unlimited, plus catalog migration.'), 'Pro card may say same as Creator plus catalog migration');
   assert.ok(!/grow a release/i.test(index), 'do not sell Creator as a different product');
   assert.ok(index.includes('landing-tease'), 'logged-out landing teases publishing / boosts / sync');
   assert.ok(!/Starter[\s\S]*\$49/i.test(index), 'landing must not show Boost size cards');
@@ -177,6 +177,54 @@ function run() {
   assert.ok(pro.includes('or $199/year'), 'Pro yearly displays $199');
   assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(pro), 'Pro yearly starts live $199 checkout');
   assert.ok(!/Everything in Creator, plus publishing/i.test(pro), 'Pro must not sell extras Creator already has');
+  assert.ok(/catalog migration/i.test(pro), 'Pro Learn more unlocks catalog migration');
+  assert.ok(/moving an existing catalog onto PLAIGROUND/i.test(pro), 'Pro catalog migration stays a soft move-onto-PLAIGROUND line');
+  assert.ok(/Pro includes catalog migration\. Creator does not/i.test(read('faq.html')), 'FAQ plan-difference answer names Pro catalog migration and says Creator does not');
+  assert.ok(!/instant DSP|take over|takeover|ToneGrid/i.test(pro), 'Pro must not invent DSP takeover or name ToneGrid');
+  assert.ok(!/Migrate catalog|data-migrate|migrate-catalog/i.test(pro), 'Pro Learn more must not add a migrate UI');
+
+  const PRO_COPY = [
+    'pro.html',
+    'index.html',
+    'how-it-works.html',
+    'faq.html',
+    'royalties.html',
+    'settings.html',
+    'plan-confirm.html',
+    'earnings.html',
+    'payouts.html',
+    'account.js',
+    'lib/stripe-plans.js',
+  ];
+  PRO_COPY.forEach(function (file) {
+    assert.ok(/catalog migration/i.test(read(file)), file + ' must name catalog migration on a Pro surface');
+  });
+  assert.ok(/plus catalog migration/i.test(read('account.js')), 'Pro Settings detail includes catalog migration');
+  assert.ok(/plus catalog migration/i.test(read('lib/stripe-plans.js')), 'shared Pro plan detail includes catalog migration');
+  assert.ok(!/catalog migration/i.test(read('account.js').match(/creator:\s*'[^']+'/)[0]), 'Creator Settings detail must not include catalog migration');
+  assert.ok(!/catalog migration/i.test(read('lib/stripe-plans.js').match(/creator:\s*'[^']+'/)[0]), 'shared Creator plan detail must not include catalog migration');
+  assert.ok(!/catalog migration/i.test(read('creator.html')), 'Creator Learn more must not claim catalog migration');
+  assert.ok(!/catalog migration/i.test(read('basic.html')), 'Basic Learn more must not claim catalog migration');
+  const creatorCard = index.match(/plan-name">Creator[\s\S]*?<\/article>/);
+  const basicCard = index.match(/plan-name">Basic[\s\S]*?<\/article>/);
+  const proCard = index.match(/plan-name">Pro[\s\S]*?<\/article>/);
+  assert.ok(creatorCard && !/catalog migration/i.test(creatorCard[0]), 'Creator pricing card must not list catalog migration');
+  assert.ok(basicCard && !/catalog migration/i.test(basicCard[0]), 'Basic pricing card must not list catalog migration');
+  assert.ok(proCard && /catalog migration/i.test(proCard[0]), 'Pro pricing card lists catalog migration');
+  const howCreator = how.match(/plan-name">Creator[\s\S]*?<\/article>/);
+  const howBasic = how.match(/plan-name">Basic[\s\S]*?<\/article>/);
+  const howPro = how.match(/plan-name">Pro[\s\S]*?<\/article>/);
+  assert.ok(howCreator && !/catalog migration/i.test(howCreator[0]), 'How it works Creator card must not list catalog migration');
+  assert.ok(howBasic && !/catalog migration/i.test(howBasic[0]), 'How it works Basic card must not list catalog migration');
+  assert.ok(howPro && /catalog migration/i.test(howPro[0]), 'How it works Pro card lists catalog migration');
+  const creatorEarn = read('earnings.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
+  const creatorPay = read('payouts.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
+  assert.ok(creatorEarn && !/catalog migration/i.test(creatorEarn[0]), 'Earnings Creator sidebar must not claim catalog migration');
+  assert.ok(creatorPay && !/catalog migration/i.test(creatorPay[0]), 'Payouts Creator sidebar must not claim catalog migration');
+  ['dashboard.html', 'site.js', 'creator.html', 'basic.html', 'terms.html', 'split-sheet.html'].forEach(function (file) {
+    const text = read(file);
+    assert.ok(!/Migrate catalog|data-migrate|migrate-catalog/i.test(text), file + ' must not add a migrate UI');
+  });
 
   const boost = read('boost.html');
   assert.ok(!/Go Pro to unlock/i.test(boost), 'boost.html must not lead with a plan pitch CTA');

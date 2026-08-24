@@ -67,7 +67,7 @@
   };
   var PLAN_DETAIL = {
     creator: 'Creator is Basic with the paid features unlocked. 8 distribution uploads and 8 publishing registrations this UTC month, counted separately. Pro unlocks unlimited.',
-    pro: 'Same product as Creator, unlimited. Unlimited distribution uploads and publishing registrations.',
+    pro: 'Same product as Creator, unlimited, plus catalog migration. Unlimited distribution uploads and publishing registrations.',
     basic: 'One release for the life of the account. Canceling a paid plan drops you here.',
   };
 
@@ -311,7 +311,7 @@
       submit.setAttribute('data-checkout-switch', '');
     }
     setText(title, planPitch(plan, interval));
-    setText(change, 'Switch to ' + planPitch(plan, interval) + '.');
+    setText(change, 'Switch to ' + planPitch(plan, interval) + '.' + (plan === 'pro' ? ' ' + PLAN_DETAIL.pro : ''));
     setText(charge, 'Submit charges an upgrade now, or applies a downgrade with no refund.');
     if (typeof global.fetch !== 'function') return;
     global.fetch('/api/create-checkout-session', {
@@ -343,7 +343,7 @@
           setText(charge, 'Submit will not charge again.');
           return;
         }
-        setText(change, 'Switch from ' + from + ' to ' + to + '.');
+        setText(change, 'Switch from ' + from + ' to ' + to + '.' + (plan === 'pro' ? ' ' + PLAN_DETAIL.pro : ''));
         if (data.proration === 'none') {
           setText(charge, 'This is a downgrade. The change takes effect now. No refund for unused time.');
           return;
