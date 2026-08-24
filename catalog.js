@@ -165,15 +165,80 @@
     });
   }
 
+  var lastReleases = [];
+  var lastAnalytics = {};
+  var lastTotal = 0;
+  var currentFilter = 'all';
+
+  function filterFromSearch() {
+    try {
+      var status = new URLSearchParams(global.location.search).get('status');
+      if (status === 'live') return 'live';
+      if (status === 'pending' || status === 'review') return 'review';
+      if (status === 'draft' || status === 'drafts') return 'draft';
+    } catch (err) {}
+    return 'all';
+  }
+
+  function applyFilter(releases, filter) {
+    var list = releases || [];
+    if (!filter || filter === 'all') return list;
+    return list.filter(function (row) {
+      return statusGroup(row && row.status) === filter;
+    });
+  }
+
+  function emptyCopy(filter) {
+    if (filter === 'live') {
+      return {
+        title: 'No live releases yet.',
+        body: 'Nothing is live. When a release is delivered, it will show in Live.',
+      };
+    }
+    if (filter === 'review') {
+      return {
+        title: 'No pending releases.',
+        body: 'Nothing is waiting for review in this catalog.',
+      };
+    }
+    if (filter === 'draft') {
+      return {
+        title: 'No drafts.',
+        body: 'Nothing is saved as a draft in this catalog.',
+      };
+    }
+    return {
+      title: 'Your first release goes here.',
+      body: 'Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.',
+    };
+  }
+
+  function highlightFilters(filter) {
+    var doc = global.document;
+    if (!doc || typeof doc.querySelectorAll !== 'function') return;
+    var tabs = doc.querySelectorAll('[data-release-filter]');
+    for (var i = 0; i < tabs.length; i += 1) {
+      var on = String(tabs[i].getAttribute('data-release-filter') || 'all') === filter;
+      if (tabs[i].classList && tabs[i].classList.toggle) tabs[i].classList.toggle('on', on);
+    }
+  }
+
   function render(data) {
-    var releases = (data && data.releases) || [];
-    var analytics = (data && data.analytics) || {};
-    renderStats(releases);
-    renderRows(releases, analytics);
-    var empty = !releases.length;
+    lastReleases = (data && data.releases) || [];
+    lastAnalytics = (data && data.analytics) || {};
+    lastTotal = (data && data.total) || lastReleases.length;
+    if (!currentFilter) currentFilter = filterFromSearch();
+    var shown = applyFilter(lastReleases, currentFilter);
+    renderStats(lastReleases);
+    renderRows(shown, lastAnalytics);
+    var empty = !shown.length;
     setHidden('[data-release-empty]', !empty);
     setHidden('[data-release-table]', empty);
-    setText('[data-release-count]', empty ? '' : ('Showing ' + releases.length + ' of ' + (data.total || releases.length) + ' releases'));
+    var copy = emptyCopy(currentFilter);
+    setText('[data-release-empty-title]', copy.title);
+    setText('[data-release-empty-body]', copy.body);
+    highlightFilters(currentFilter);
+    setText('[data-release-count]', empty ? '' : ('Showing ' + shown.length + ' of ' + lastTotal + ' releases'));
   }
 
   function setStatus(text) {
@@ -256,6 +321,12 @@
         var analytics = results[1];
         var me = results[2];
         if (list.status === 401) {
+          if (me && !me.pending) {
+            var signedInOwned = accountFallback(me, []);
+            setStatus('');
+            render({ releases: signedInOwned, total: signedInOwned.length, analytics: {} });
+            return;
+          }
           setStatus('Sign in to see your releases.');
           render({ releases: [], total: 0, analytics: {} });
           return;
@@ -495,7 +566,32 @@
     if (saveBtn) saveBtn.addEventListener('click', saveEdit);
   }
 
-  global.PlaigroundCatalog = { render: render, accountFallback: accountFallback };
+  function bindFilters() {
+    var host = document.querySelector('[data-release-filters]') || document.querySelector('.tabs');
+    if (!host || !host.addEventListener) return;
+    host.addEventListener('click', function (event) {
+      var link = event.target && event.target.closest ? event.target.closest('[data-release-filter]') : null;
+      if (!link) return;
+      event.preventDefault();
+      currentFilter = String(link.getAttribute('data-release-filter') || 'all');
+      try {
+        if (global.history && global.history.replaceState) {
+          var url = currentFilter === 'all' ? 'releases.html' : ('releases.html?status=' + encodeURIComponent(currentFilter === 'review' ? 'pending' : currentFilter));
+          global.history.replaceState({}, '', url);
+        }
+      } catch (err) {}
+      render({ releases: lastReleases, analytics: lastAnalytics, total: lastTotal });
+    });
+  }
+
+  global.PlaigroundCatalog = {
+    render: render,
+    accountFallback: accountFallback,
+    applyFilter: applyFilter,
+    setFilter: function (next) { currentFilter = String(next || 'all'); },
+  };
+  bindFilters();
+  currentFilter = filterFromSearch();
   bindEdit();
   load();
 })(window);

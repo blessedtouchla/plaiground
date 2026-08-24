@@ -317,7 +317,65 @@ function run() {
             assert.strictEqual(basicPublishing.api.requirePublishingAccess(), false);
             assert.ok(basicPublishing.location.href.indexOf('index.html?needplan=1#pricing') !== -1);
             assert.ok(basicPublishing.location.href.indexOf('pro.html') === -1);
-            console.log('membership.test.js ok');
+
+            function clickEvent(sel, href) {
+              return {
+                preventDefault() { this.prevented = true; },
+                target: {
+                  closest(name) {
+                    if (name === sel) return { getAttribute() { return href; } };
+                    return null;
+                  },
+                },
+              };
+            }
+
+            function fireClicks(loaded, event) {
+              loaded.clicks.forEach(function (handler) { handler(event); });
+            }
+
+            const publishingClick = load({
+              pathname: '/dashboard.html',
+              href: 'dashboard.html',
+              account: {
+                email: 'ada@example.com',
+                artist: 'Ada',
+                plan: 'creator',
+                status: 'active',
+                stripe_session_id: 'cs_creator',
+              },
+            });
+            const publishingEvent = clickEvent('[data-publishing-register]', 'publishing-register.html');
+            fireClicks(publishingClick, publishingEvent);
+            assert.ok(publishingEvent.prevented, 'publishing click waits for /api/me');
+            assert.strictEqual(publishingClick.location.href, 'dashboard.html', 'must not dump to login before the session probe');
+            return publishingClick.api.whenReady().then(function () {
+              return Promise.resolve().then(function () {
+                assert.strictEqual(publishingClick.location.href, 'publishing-register.html');
+                assert.ok(publishingClick.location.href.indexOf('login.html') === -1);
+
+                const uploadClick = load({
+                  pathname: '/how.html',
+                  href: 'how.html',
+                  account: {
+                    email: 'ada@example.com',
+                    artist: 'Ada',
+                    plan: 'creator',
+                    status: 'active',
+                    stripe_session_id: 'cs_creator',
+                  },
+                });
+                const uploadEvent = clickEvent('[data-signed-in-upload]', 'upload.html');
+                fireClicks(uploadClick, uploadEvent);
+                return uploadClick.api.whenReady().then(function () {
+                  return Promise.resolve().then(function () {
+                    assert.strictEqual(uploadClick.location.href, 'upload.html', 'signed-in Start a submission opens upload');
+                    assert.ok(uploadClick.location.href.indexOf('login.html') === -1);
+                    console.log('membership.test.js ok');
+                  });
+                });
+              });
+            });
           });
         });
       });

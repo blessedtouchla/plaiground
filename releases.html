@@ -26,9 +26,11 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4 class="stat-g" data-account-plan-title>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
-      <p style="margin-top:8px">Renews 9 Sep 2026 · $19.99/month or $16.58/month billed yearly.</p>
+      <h4 data-account-plan-title>Your plan</h4>
+      <p data-for-plans="basic">Distribution is included. Publishing, Boosts, and deeper analytics unlock on Creator or Pro.</p>
+      <p data-for-plans="creator pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px" data-account-plan-price>Your plan</p>
+      <p style="margin-top:4px" data-account-plan-year hidden></p>
     </div>
   </aside>
   <div class="app-main">
@@ -54,11 +56,11 @@
         <div><strong class="stat-y" data-stat="review">0</strong><span>Pending</span></div>
         <div><strong data-stat="draft">0</strong><span>Draft</span></div>
       </div>
-      <div class="tabs">
-        <a class="on" href="releases.html">All</a>
-        <a href="releases.html">Live</a>
-        <a href="releases.html">Pending</a>
-        <a href="releases.html">Drafts</a>
+      <div class="tabs" data-release-filters>
+        <a class="on" href="releases.html" data-release-filter="all">All</a>
+        <a href="releases.html?status=live" data-release-filter="live">Live</a>
+        <a href="releases.html?status=pending" data-release-filter="review">Pending</a>
+        <a href="releases.html?status=draft" data-release-filter="draft">Drafts</a>
       </div>
       <table class="data" data-release-table hidden>
         <thead>
@@ -105,9 +107,9 @@
         <p class="hint" data-edit-error hidden></p>
       </section>
       <div class="empty" data-release-empty>
-        <h3>Your first release goes here.</h3>
-        <p>Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.</p>
-        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload>Submit your first song</a></p>
+        <h3 data-release-empty-title>Your first release goes here.</h3>
+        <p data-release-empty-body>Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.</p>
+        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload data-signed-in-upload>Submit your first song</a></p>
       </div>
       <div class="page-foot">
         <span data-release-count></span>

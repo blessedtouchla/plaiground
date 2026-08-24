@@ -24,6 +24,7 @@ const APP_PAGES = [
   'profile.html',
   'library.html',
   'boosts.html',
+  'publishing-register.html',
 ];
 
 function run() {
