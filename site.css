@@ -1565,6 +1565,23 @@ table.data tbody tr.is-pick { cursor: pointer; }
   text-transform: uppercase;
   padding: 4px 8px;
 }
+.how-who {
+  padding: 0 0 48px;
+}
+.how-who h2 {
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+  max-width: 680px;
+  margin: 8px 0 14px;
+}
+.how-who p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  max-width: 640px;
+  line-height: 1.55;
+}
 .how-cols {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

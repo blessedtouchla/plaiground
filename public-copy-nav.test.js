@@ -38,6 +38,24 @@ function run() {
   const how = read('how-it-works.html');
   assert.ok(!/Built for AI-assisted creators/i.test(how), 'how-it-works must not lead as AI-only');
   assert.ok(/For artists who’d rather be making the next one/i.test(how), 'how-it-works sub stays all-music');
+  const whoIdx = how.indexOf('class="how-who"');
+  const stepsIdx = how.indexOf('class="wrap how-cols"');
+  assert.ok(whoIdx !== -1 && stepsIdx !== -1 && whoIdx < stepsIdx, 'who-this-is-for sits above the three steps');
+  assert.ok(how.includes('Who this is for'), 'how-it-works names who this is for');
+  assert.ok(/Independent artists/i.test(how) && /human, AI-assisted, or full AI/i.test(how), 'how-it-works is for human, AI-assisted, or full AI artists');
+  assert.ok(/one membership that gets the song into stores/i.test(how), 'how-it-works states the membership need');
+  assert.ok(/publishing, boosts, and payouts/i.test(how), 'how-it-works names publishing, boosts, and payouts');
+  assert.ok(/PLAIGROUND takes 0%/i.test(how) && /Membership is the only fee/i.test(how), 'how-it-works states 0% take and membership-only fee');
+  assert.ok(!/human authorship is required/i.test(how), 'do not require human authorship');
+  assert.ok(!/Keep 100%/i.test(how), 'do not invent keep-100% copy on how-it-works');
+  assert.ok(!/\d+\s*%\s*(of (streams|revenue)|DSP|Spotify|Apple)/i.test(how), 'do not invent DSP percentages on how-it-works');
+  assert.ok(!/ToneGrid (takes|take|fee|commission|cut)/i.test(how), 'do not invent a ToneGrid take on how-it-works');
+  assert.ok(!/migrate/i.test(how), 'how-it-works must not add catalog migrate UI');
+  assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'three steps stay Upload / Release / Get paid');
+  assert.ok(how.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), 'Upload step copy stays');
+  assert.ok(how.includes('We generate the split sheet, everyone signs, and we deliver to 150 platforms on the date you choose.'), 'Release step copy stays');
+  assert.ok(how.includes('Royalties hit your dashboard automatically. Creator and Pro are the same product'), 'Get paid step copy stays');
+  assert.ok(!read('how.html').includes('class="how-who"') && !read('how.html').includes('Who this is for'), 'signed-in how.html is a different 4-step page and stays unsynced');
 
   const faq = read('faq.html');
   assert.ok(!/PLAIGROUND is built for AI-assisted artists/i.test(faq), 'FAQ must not use AI-only slogan language');
