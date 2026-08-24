@@ -38,7 +38,7 @@ CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
 
 `XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, and `SIGNUP_CONFIRM_SECRET` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
-After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for a mapped live price arrives. New Checkout Sessions use Creator month/year and Pro month only. Pro yearly `$199` is display-only until a live price id exists. Do not invent a price id. The old Pro yearly `$149` id is webhook-only. Checkout uses `mode=subscription`. Do not send `subscription_data[collection_method]` — Checkout Sessions reject it.
+After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for a mapped live price arrives. New Checkout Sessions use Creator month/year and Pro month/year. Old yearly ids stay webhook-only. Checkout uses `mode=subscription`. Do not send `subscription_data[collection_method]` — Checkout Sessions reject it.
 
 Failed-pay statuses (plan stays Creator/Pro until cancel/delete):
 
@@ -66,10 +66,10 @@ Stripe Dashboard (you add this; the repo has no webhook secret):
 
 Existing live prices only (do not create products or prices):
 
-- Creator month `$14.99` `price_1U6kDm47ejpgV1ChUQ7V937J`
-- Creator year `$149` `price_1U6kE547ejpgV1Chb6vtfjju`
-- Pro month `$19.99` `price_1U6kDz47ejpgV1ChuxQ7yZ86`
-- Pro year displays `$199`. There is no live `$199` price id yet. Do not send new checkouts to old Pro yearly `$149` `price_1U6kE647ejpgV1ChsovROe7H` (webhook mapping only).
+- Creator month `$14.99` `price_1U6kDm47ejpgV1ChUQ7V937J` (`prod_V6yAuvAiyZV8Jn`)
+- Creator year `$149` `price_1U7nE647ejpgV1ChOARh5tC3` (`prod_V83KtcIQcKaCn4`) — do not send new checkouts to old `price_1U6kE547ejpgV1Chb6vtfjju`
+- Pro month `$19.99` `price_1U6kDz47ejpgV1ChuxQ7yZ86` (`prod_V6yA0MmLFSeetg`)
+- Pro year `$199` `price_1U7nDG47ejpgV1ChqpY9Swvb` (`prod_V83JukLyqvB9CN`) — do not send new checkouts to old `price_1U6kE647ejpgV1ChsovROe7H`
 
 Accounts need `DATABASE_URL` (Postgres / Neon) and `SESSION_SECRET` (HMAC cookie). If either is missing, `/api/auth/*` and `/api/me` return `503 { "error": "Accounts are not configured." }` and the signup/login UI says that — they do not claim an account was created. Set both on Vercel before treating preview signup as live.
 
