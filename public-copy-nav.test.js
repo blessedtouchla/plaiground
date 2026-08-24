@@ -59,6 +59,7 @@ function run() {
     'contact.html',
     'login.html',
     'signup.html',
+    'royalties.html',
   ];
   PUBLIC_PAGES.forEach(function (file) {
     const html = read(file);
@@ -71,7 +72,46 @@ function run() {
     assert.ok(html.includes('href="login.html">Log in</a>'), file + ' keeps Log in');
     assert.ok(html.includes('Release Now'), file + ' keeps Release Now');
     assert.ok(!/href="boost.html">Boost<\/a>/.test(html), file + ' must not put Boost on the public menu');
+    const nav = html.match(/<nav class="nav-links"[^>]*>[\s\S]*?<\/nav>/);
+    assert.ok(nav, file + ' must keep the public nav');
+    assert.ok(nav[0].includes('href="royalties.html"'), file + ' must list How you get paid as its own top-level public menu item');
+    assert.ok(nav[0].includes('How you get paid') || nav[0].includes('Royalties'), file + ' menu label is How you get paid or Royalties');
+    assert.ok(nav[0].includes('href="faq.html">FAQ</a>'), file + ' keeps FAQ on the public menu');
+    assert.ok(!/<details[\s\S]{0,500}href="royalties.html"/.test(nav[0]), file + ' must not nest How you get paid inside a Plans submenu');
+    assert.ok(!/class="[^"]*(sub-?menu|dropdown)[^"]*"[\s\S]{0,400}href="royalties.html"/.test(nav[0]), file + ' How you get paid stays outside any Plans dropdown');
   });
+
+  const royalties = read('royalties.html');
+  assert.ok(royalties.includes('WANNA PLAI?'), 'royalties page keeps the WANNA PLAI? landing look');
+  assert.ok(/PLAIGROUND takes no commission/i.test(royalties), 'royalties page states no commission');
+  assert.ok(/0% cut of royalties/i.test(royalties), 'royalties page states a 0% cut');
+  assert.ok(/only PLAIGROUND fee is membership/i.test(royalties), 'royalties page says membership is the only PLAIGROUND fee');
+  assert.ok(royalties.includes('Basic is free, 1 song') || /Basic is free/i.test(royalties), 'royalties page states Basic is free, 1 song');
+  assert.ok(royalties.includes('$14.99/mo or $149/yr'), 'royalties page states Creator membership');
+  assert.ok(royalties.includes('$19.99/mo or $199/yr'), 'royalties page states Pro membership');
+  assert.ok(/Creator and Pro are the same product/i.test(royalties), 'royalties page keeps Creator and Pro as the same product');
+  assert.ok(/8 distribution uploads/i.test(royalties) && /8 publishing registrations/i.test(royalties), 'royalties page states the Creator caps');
+  assert.ok(/Publishing registration is separate from distribution/i.test(royalties), 'publishing stays separate from distribution');
+  assert.ok(/not included on Basic/i.test(royalties), 'do not say publishing is included on Basic');
+  assert.ok(/Stores \(Spotify, Apple/i.test(royalties), 'royalties page says stores take their usual cut');
+  assert.ok(!/\d+\s*%\s*(of (streams|revenue)|DSP|Spotify|Apple)/i.test(royalties), 'do not invent DSP percentages');
+  assert.ok(/Royalties pass through after the stores pay/i.test(royalties), 'no invented ToneGrid take: royalties pass through after stores pay');
+  assert.ok(!/ToneGrid (takes|take|fee|commission|cut)/i.test(royalties), 'do not invent a ToneGrid take rate');
+  assert.ok(/Money shows as \$0 until a release is actually live/i.test(royalties), 'money stays $0 until a live release reports');
+  assert.ok(/Payouts only after real royalties arrive/i.test(royalties), 'payouts wait for real royalties');
+  assert.ok(/Basic can see totals but cannot withdraw/i.test(royalties), 'Basic can see totals and cannot withdraw');
+  assert.ok(/Creator and Pro can retrieve payouts/i.test(royalties), 'Creator and Pro can retrieve payouts');
+  assert.ok(!/\$199 per work/i.test(royalties) || royalties.includes('no $199 per work'), 'do not sell a $199 per-work fee');
+  assert.ok(royalties.includes('no $199 per work') && royalties.includes('no $49 per release'), 'page denies per-work and per-release PLAIGROUND fees');
+  assert.ok(!/Keep 100% of your royalties/i.test(royalties), 'do not invent keep-100% copy');
+
+  const faqPaid = read('faq.html');
+  assert.ok(faqPaid.includes('href="royalties.html">How you get paid</a>'), 'FAQ links to How you get paid');
+  assert.ok(/PLAIGROUND takes no commission/i.test(faqPaid), 'FAQ commission answer matches the lock');
+  assert.ok(read('index.html').includes('href="royalties.html">How you get paid</a>'), 'Plans and Pricing landing links Get paid to the royalties page');
+  assert.ok(read('how-it-works.html').includes('href="royalties.html">How you get paid</a>'), 'How it works Get paid step links the royalties page');
+  assert.ok(read('creator.html').includes('href="royalties.html">How you get paid</a>'), 'Creator Learn more links Get paid to the royalties page');
+  assert.ok(read('basic.html').includes('href="royalties.html">How you get paid</a>'), 'Basic Learn more links the royalties page from the existing payout copy');
 
   assert.ok(index.includes('class="plans"'), 'landing still has the 3 PLAN cards');
   assert.ok(index.includes('plan-name">Basic</div>') && index.includes('plan-name">Creator</div>') && index.includes('plan-name">Pro</div>'), 'plan cards stay Basic / Creator / Pro');

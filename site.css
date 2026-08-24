@@ -141,6 +141,11 @@ button { cursor: pointer; }
   transition: color 0.2s;
 }
 .nav-links a:hover, .nav-links a.active { color: #fff; }
+.nav-paid-short { display: none; }
+@media (max-width: 1480px) and (min-width: 1181px) {
+  .nav-paid-long { display: none; }
+  .nav-paid-short { display: inline; }
+}
 .nav-actions {
   display: flex;
   align-items: center;
@@ -1313,6 +1318,7 @@ table.data tbody tr.is-pick { cursor: pointer; }
 }
 .page-hero .sub { color: var(--muted); font-size: 1.05rem; max-width: 560px; }
 .page-hero .gold { color: var(--gold); }
+.page-hero .accent { color: var(--magenta); }
 .faq-lead {
   max-width: 720px;
   margin: 0 0 40px;
