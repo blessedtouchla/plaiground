@@ -91,7 +91,7 @@
         <div class="head-row">
           <div>
             <h3>Edit release</h3>
-            <p class="hint">This updates the same ToneGrid release. It is not a second upload.</p>
+            <p class="hint">This updates the same store release. It is not a second upload.</p>
           </div>
           <span class="pill" data-edit-status></span>
         </div>
@@ -104,12 +104,12 @@
           <div class="field is-locked">
             <label for="edit-artist">Primary artist</label>
             <input id="edit-artist" type="text" autocomplete="off" disabled aria-disabled="true" placeholder="Artist name" />
-            <p class="field-why" data-edit-why="artist">ToneGrid locks the catalog artist after the first save. This release stays on the same artist ID.</p>
+            <p class="field-why" data-edit-why="artist">The store locks the catalog artist after the first save. This release stays on the same artist ID.</p>
           </div>
           <div class="field">
             <label for="edit-featured">Featured artist</label>
             <input id="edit-featured" type="text" autocomplete="off" placeholder="Optional featured" />
-            <p class="field-why">Saved on this Plaiground release. ToneGrid has no featured-artist field on update.</p>
+            <p class="field-why">Saved on this Plaiground release. The store has no featured-artist field on update.</p>
           </div>
           <div class="field">
             <label for="edit-genre">Genre</label>
@@ -130,7 +130,7 @@
               <option value="$0.69">$0.69</option>
               <option value="$0.99">$0.99</option>
             </select>
-            <p class="field-why">Saved on this Plaiground release. ToneGrid does not store download price.</p>
+            <p class="field-why">Saved on this Plaiground release. The store does not store download price.</p>
           </div>
           <div class="field">
             <label for="edit-art">Cover art</label>
@@ -140,19 +140,19 @@
           <div class="field">
             <label for="edit-audio">Audio</label>
             <input id="edit-audio" type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" />
-            <p class="field-why" data-edit-why="audio">Replace the master on this same track if ToneGrid allows it. This is not a new release.</p>
+            <p class="field-why" data-edit-why="audio">Replace the master on this same track if the store allows it. This is not a new release.</p>
           </div>
           <div class="field">
             <label class="checkline" for="edit-instrumental">
               <input id="edit-instrumental" type="checkbox" />
               <span>Instrumental</span>
             </label>
-            <p class="field-why">Saved on this Plaiground release. ToneGrid does not store an instrumental flag; language is cleared when this is on.</p>
+            <p class="field-why">Saved on this Plaiground release. The store does not store an instrumental flag; language is cleared when this is on.</p>
           </div>
           <div class="field" data-edit-lyrics-field>
             <label for="edit-lyrics">Lyrics</label>
             <textarea id="edit-lyrics" rows="8" placeholder="Type or paste lyrics" autocomplete="off"></textarea>
-            <p class="field-why">Saved on this Plaiground release. ToneGrid create/update has no lyrics field, so these stay here.</p>
+            <p class="field-why">Saved on this Plaiground release. The store has no lyrics field on create or update, so these stay here.</p>
           </div>
         </div>
         <p class="hint" style="margin-top:8px">Explicit content</p>
@@ -227,7 +227,7 @@
 
         <div class="field" data-edit-attest hidden>
           <label>How this song was made</label>
-          <p class="hint">ToneGrid already received this at submit. Changing it updates your Plaiground copy. A second submit is not created.</p>
+          <p class="hint">The store already received this at submit. Changing it updates your Plaiground copy. A second submit is not created.</p>
           <div class="choice" data-edit-made-how="ai_assisted">
             <b>AI assisted, human authored</b>
             <span>AI generated parts of the track, a person wrote and performed the rest</span>

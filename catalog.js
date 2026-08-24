@@ -19,9 +19,17 @@
     return toNumber(value).toLocaleString('en-US');
   }
 
+  function sanitizePartnerCopy(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
+    next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+    return next;
+  }
+
   function setText(sel, text) {
     var el = $(sel);
-    if (el) el.textContent = text;
+    if (el) el.textContent = text == null ? '' : sanitizePartnerCopy(text);
   }
 
   function setHidden(sel, hidden) {
@@ -209,7 +217,7 @@
     }
     return {
       title: 'Your first release goes here.',
-      body: 'Nothing here yet. Submit a song and it will show in this catalog when ToneGrid has it.',
+        body: 'Nothing here yet. Submit a song and it will show in this catalog when the store has it.',
     };
   }
 
@@ -500,7 +508,7 @@
       var canon = catalog.canonicalCatalogValue($('#edit-genre'), genre);
       if (genre && canon == null) {
         if (saveBtn) saveBtn.removeAttribute('aria-busy');
-        setEditError('Pick a genre from the ToneGrid list.');
+        setEditError('Pick a genre from the list.');
         return;
       }
       if (canon) genre = canon;
@@ -549,14 +557,14 @@
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       var failed = results.find(function (row) { return !row.ok; });
       if (failed) {
-        setEditError((failed.data && failed.data.error) || 'ToneGrid rejected the edit.');
+        setEditError((failed.data && failed.data.error) || 'The store rejected the edit.');
         return;
       }
-      setEditError('Saved to ToneGrid.');
+      setEditError('Saved to the store.');
       load();
     }).catch(function () {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
-      setEditError('Could not reach ToneGrid.');
+      setEditError('We could not reach the store.');
     });
   }
 
@@ -564,7 +572,7 @@
     return response.json().then(function (data) {
       return { ok: response.ok, status: response.status, data: data || {} };
     }).catch(function () {
-      return { ok: false, status: response.status, data: { error: 'ToneGrid rejected the edit.' } };
+      return { ok: false, status: response.status, data: { error: 'The store rejected the edit.' } };
     });
   }
 

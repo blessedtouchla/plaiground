@@ -33,7 +33,7 @@ function run() {
   assert.ok(html.includes('This artist\'s songs'));
   assert.ok(html.includes('data-artist-song-list'));
   assert.ok(html.includes('lib/live-player.js'));
-  assert.ok(html.includes('waits until ToneGrid says live'));
+  assert.ok(html.includes('waits until the store says live'));
   assert.ok(!js.includes('indexedDB'));
   assert.ok(!html.includes('tonegrid.js'));
   assert.ok(html.indexOf('human_contributions') === -1 || html.includes('data-human-contribution'));

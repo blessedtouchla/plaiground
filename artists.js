@@ -10,9 +10,17 @@
     return document.querySelector(sel);
   }
 
+  function sanitizePartnerCopy(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
+    next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+    return next;
+  }
+
   function setText(sel, text) {
     var el = $(sel);
-    if (el) el.textContent = text == null ? '' : String(text);
+    if (el) el.textContent = text == null ? '' : sanitizePartnerCopy(text);
   }
 
   function setHidden(sel, hidden) {
@@ -102,7 +110,7 @@
     sel.textContent = '';
     var blank = document.createElement('option');
     blank.value = '';
-    blank.textContent = 'Pick a ToneGrid genre';
+    blank.textContent = 'Pick a genre';
     sel.appendChild(blank);
     (catalog().GENRES || []).forEach(function (name) {
       var opt = document.createElement('option');
@@ -450,7 +458,7 @@
       if (nameEl) nameEl.value = '';
       paintCreateCheck();
       showStatus(check.level === 'red' || forceReview
-        ? 'Held for review. This name was not sent to ToneGrid.'
+        ? 'Held for review. This name was not sent to the store.'
         : 'Artist profile created.');
       return result.data;
     });

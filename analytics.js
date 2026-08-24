@@ -29,9 +29,17 @@
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function sanitizePartnerCopy(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
+    next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+    return next;
+  }
+
   function setText(sel, text) {
     var el = $(sel);
-    if (el) el.textContent = text;
+    if (el) el.textContent = text == null ? '' : sanitizePartnerCopy(text);
   }
 
   function setHidden(sel, hidden) {
@@ -40,7 +48,7 @@
   }
 
   function emptyMessage() {
-    return 'No plays yet. New uploads will show here when ToneGrid has numbers.';
+    return 'No plays yet. New uploads will show here when the store has numbers.';
   }
 
   function currentPlan() {
@@ -283,7 +291,7 @@
         }
         render(hideStats ? emptyPayload() : result.data);
         if (result.data.errors) {
-          setStatus('Some ToneGrid analytics could not be loaded.');
+          setStatus('Some store analytics could not be loaded.');
         } else {
           setStatus('');
         }

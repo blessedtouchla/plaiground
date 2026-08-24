@@ -1,0 +1,91 @@
+'use strict';
+
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+
+const USER_FILES = [
+  'analytics.html',
+  'analytics.js',
+  'artists.html',
+  'artists.js',
+  'catalog.js',
+  'dashboard.html',
+  'earnings.html',
+  'earnings.js',
+  'faq.html',
+  'how.html',
+  'how-it-works.html',
+  'releases.html',
+  'review.html',
+  'song.html',
+  'song.js',
+  'tonegrid.js',
+  'upload.html',
+  'lib/upload-required.js',
+];
+
+function stringLiterals(src) {
+  const out = [];
+  String(src).split('\n').forEach(function (line) {
+    const re = /'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g;
+    let m;
+    while ((m = re.exec(line))) out.push(m[0].slice(1, -1));
+  });
+  return out;
+}
+
+function isAllowedUserString(value) {
+  if (!/ToneGrid|Tonegrid/.test(value)) return true;
+  if (/\/api\/tonegrid\//.test(value)) return true;
+  if (/plaiground\.tonegrid\.draft/.test(value)) return true;
+  if (/^data-tonegrid-/.test(value)) return true;
+  if (/tonegrid\.js/.test(value)) return true;
+  return false;
+}
+
+function htmlVisibleLeaks(src) {
+  const withoutScripts = src
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  const text = withoutScripts.replace(/<[^>]+>/g, ' ');
+  const hits = [];
+  const re = /ToneGrid|Tonegrid/g;
+  let m;
+  while ((m = re.exec(text))) hits.push(text.slice(Math.max(0, m.index - 24), m.index + 32).replace(/\s+/g, ' ').trim());
+  return hits;
+}
+
+function run() {
+  const root = __dirname;
+  const leaks = [];
+
+  fs.readdirSync(root).forEach(function (name) {
+    if (!/\.html$/.test(name)) return;
+    if (name === 'terms.html' || name === 'split-sheet.html') return;
+    const raw = fs.readFileSync(path.join(root, name), 'utf8');
+    htmlVisibleLeaks(raw).forEach(function (snippet) {
+      leaks.push(name + ' html text: ' + snippet);
+    });
+  });
+
+  USER_FILES.forEach(function (rel) {
+    const full = path.join(root, rel);
+    if (!fs.existsSync(full)) return;
+    const raw = fs.readFileSync(full, 'utf8');
+    stringLiterals(raw).forEach(function (value) {
+      if (isAllowedUserString(value)) return;
+      leaks.push(rel + ' string: ' + JSON.stringify(value));
+    });
+  });
+
+  assert.strictEqual(leaks.length, 0, 'user-facing ToneGrid/Tonegrid leaks:\n' + leaks.join('\n'));
+
+  const timeoutSrc = fs.readFileSync(path.join(root, 'tonegrid.js'), 'utf8');
+  assert.ok(timeoutSrc.includes("return 'We could not reach the store. Try again.';"));
+  assert.ok(!timeoutSrc.includes('ToneGrid did not respond'));
+
+  console.log('partner-copy-lock.test.js ok');
+}
+
+run();
