@@ -74,7 +74,7 @@ function loadDashboardScripts(signedIn) {
         ok: signedIn,
         status: signedIn ? 200 : 401,
         json: function () {
-          return Promise.resolve(signedIn ? { artist: 'John Doe', plan: 'basic', email: 'john@example.com' } : {});
+          return Promise.resolve(signedIn ? { artist: 'Fuvtu', plan: 'creator', email: 'victoriaimtanes@gmail.com' } : {});
         },
       });
     },
@@ -126,33 +126,54 @@ function run() {
   const injected = session.nodes.map(function (el) { return String(el.textContent || ''); }).join(' ');
   assert.ok(!BADGE.test(injected), 'logged-in dashboard JS injected ACCOUNT READY');
 
-  const nodes = {
-    '[data-first-song]': { hidden: false },
-    '[data-has-release]': { hidden: true },
-    '[data-first-upload]': { hidden: false },
-    '[data-latest-title]': { textContent: '' },
-    '[data-latest-status]': { textContent: '' },
-    '[data-latest-link]': { href: 'releases.html', setAttribute(name, value) { this[name] = value; } },
-    '[data-account-releases]': { textContent: '0' },
-    '[data-pub-call]': { hidden: true },
-  };
-  const fillDoc = {
-    currentScript: { getAttribute() { return null; } },
-    querySelector() { return null; },
-    querySelectorAll(sel) { return nodes[sel] ? [nodes[sel]] : []; },
-    addEventListener() {},
-  };
-  const fillCtx = {
-    URLSearchParams,
-    localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
-    sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
-    document: fillDoc,
-    location: { href: 'dashboard.html', pathname: '/dashboard.html', search: '', replace() {} },
-    fetch() { return Promise.resolve({ ok: false, status: 401, json: async () => ({}) }); },
-  };
-  fillCtx.window = fillCtx;
-  vm.runInNewContext(read('account.js'), fillCtx);
-  fillCtx.PlaigroundAccount.fill({
+  function makeNode(attrs) {
+    return {
+      hidden: Boolean(attrs && attrs.hidden),
+      textContent: (attrs && attrs.textContent) || '',
+      href: (attrs && attrs.href) || '',
+      setAttribute(name, value) { this[name] = value; },
+    };
+  }
+
+  function fillNodes() {
+    return {
+      '[data-first-song]': makeNode({ hidden: false }),
+      '[data-has-release]': makeNode({ hidden: true }),
+      '[data-first-upload]': makeNode({ hidden: false }),
+      '[data-latest-title]': makeNode({}),
+      '[data-latest-status]': makeNode({}),
+      '[data-latest-link]': makeNode({ href: 'releases.html' }),
+      '[data-account-releases]': makeNode({ textContent: '0' }),
+      '[data-account-who]': makeNode({ textContent: 'Hi there' }),
+      '[data-account-avatar]': makeNode({ textContent: 'PG' }),
+      '[data-pub-call]': makeNode({ hidden: true }),
+      '[data-pub-badge]': makeNode({ textContent: 'INCLUDED IN YOUR PLAN' }),
+    };
+  }
+
+  function fillAccount(me) {
+    const nodes = fillNodes();
+    const fillDoc = {
+      currentScript: { getAttribute() { return null; } },
+      querySelector() { return null; },
+      querySelectorAll(sel) { return nodes[sel] ? [nodes[sel]] : []; },
+      addEventListener() {},
+    };
+    const fillCtx = {
+      URLSearchParams,
+      localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+      sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+      document: fillDoc,
+      location: { href: 'dashboard.html', pathname: '/dashboard.html', search: '', replace() {} },
+      fetch() { return Promise.resolve({ ok: false, status: 401, json: async () => ({}) }); },
+    };
+    fillCtx.window = fillCtx;
+    vm.runInNewContext(read('account.js'), fillCtx);
+    fillCtx.PlaigroundAccount.fill(me);
+    return nodes;
+  }
+
+  const nodes = fillAccount({
     artist: 'Fuvtu',
     plan: 'basic',
     tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
@@ -163,6 +184,51 @@ function run() {
   assert.strictEqual(nodes['[data-first-upload]'].hidden, true);
   assert.strictEqual(nodes['[data-latest-status]'].textContent, 'Pending');
   assert.ok(String(nodes['[data-latest-link]'].href).indexOf('song.html?id=') !== -1);
+  assert.strictEqual(nodes['[data-account-who]'].textContent, 'Hi Fuvtu!');
+  assert.strictEqual(nodes['[data-account-avatar]'].textContent, 'FU');
+  assert.strictEqual(nodes['[data-pub-badge]'].textContent, 'INCLUDED ON CREATOR AND PRO');
+
+  const named = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
+  assert.strictEqual(named['[data-account-who]'].textContent, 'Hi Victoria!');
+  assert.strictEqual(named['[data-account-avatar]'].textContent, 'VI');
+  assert.strictEqual(named['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
+
+  const creator = fillAccount({ artist: 'Fuvtu', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
+  assert.strictEqual(creator['[data-account-who]'].textContent, 'Hi Fuvtu!');
+  assert.strictEqual(creator['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
+  assert.ok(creator['[data-pub-badge]'].textContent.indexOf('PRO') === -1, 'Creator publishing badge must not say Pro-only');
+
+  const pro = fillAccount({ artist: 'Fuvtu', plan: 'pro' });
+  assert.strictEqual(pro['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
+
+  const missing = fillAccount({ artist: '', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
+  assert.strictEqual(missing['[data-account-who]'].textContent, 'Hi there');
+  assert.strictEqual(missing['[data-account-avatar]'].textContent, 'PG');
+
+  const leftoverJohn = fillAccount({ artist: 'John Harper', plan: 'creator' });
+  assert.strictEqual(leftoverJohn['[data-account-who]'].textContent, 'Hi there', 'Patrick/John mock must not greet as John');
+  assert.strictEqual(leftoverJohn['[data-account-avatar]'].textContent, 'PG');
+
+  const fromRoster = fillAccount({
+    artist: 'John Doe',
+    plan: 'creator',
+    profile: { artists: [{ name: 'Fuvtu' }] },
+  });
+  assert.strictEqual(fromRoster['[data-account-who]'].textContent, 'Hi Fuvtu!', 'use the real roster name over a John mock');
+  assert.strictEqual(fromRoster['[data-account-avatar]'].textContent, 'FU');
+
+  assert.ok(!dash.includes('Hi John'), 'dashboard.html must not hardcode Hi John');
+  assert.ok(dash.includes('data-account-who>Hi there'), 'unsigned greeting stays Hi there');
+  assert.ok(!/PRO\s*•/.test(dash), 'dashboard must not tag publishing as Pro-only');
+  assert.ok(dash.includes('data-pub-badge'), 'publishing badge is filled from the signed-in plan');
+  assert.ok(dash.includes('INCLUDED IN YOUR PLAN'), 'paid publishing badge copy is present');
+  assert.ok(dash.includes('data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.'), 'Basic lifetime copy is Basic-only');
+  assert.ok(dash.includes('data-for-plans="creator pro" hidden>Your song is in the catalog.'), 'Creator/Pro catalog copy omits Basic lifetime language');
+  assert.ok(dash.includes('data-for-plans="basic">Submitted and in the queue. Open it anytime — a second first upload is not included on Basic.'), 'Basic queue copy stays Basic-only');
+  assert.ok(!/data-for-plans="creator[^"]*"[^>]*>[^<]*lifetime release/.test(dash), 'Creator/Pro must not see Basic lifetime language');
+  assert.ok(!dash.includes('Upgrade to Pro only'), 'dashboard must not say Upgrade to Pro only');
+  assert.ok(!dash.includes('Hi John!'), 'dashboard must not greet John');
+  assert.ok(!/>On Pro</.test(dash), 'dashboard sidebar must not default to On Pro');
 
   const upload = read('upload.html');
   assert.ok(upload.includes('Choose artist profile'));
