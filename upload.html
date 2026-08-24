@@ -312,9 +312,8 @@
       }
 
       function showFile(file) {
-        if (window.PlaigroundMembership && !window.PlaigroundMembership.hasMembership()) {
-          window.PlaigroundMembership.requireMembership();
-          return;
+        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
+          if (!window.PlaigroundMembership.requireMembership()) return;
         }
         if (!file || !input) return;
         try {
@@ -380,9 +379,8 @@
       var artUrl = '';
 
       function showArt(file) {
-        if (window.PlaigroundMembership && !window.PlaigroundMembership.hasMembership()) {
-          window.PlaigroundMembership.requireMembership();
-          return;
+        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
+          if (!window.PlaigroundMembership.requireMembership()) return;
         }
         if (!file || !artInput) return;
         var name = String(file.name || '').toLowerCase();

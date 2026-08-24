@@ -226,18 +226,87 @@ function runLoginWall() {
               assert.ok(clickBefore.location.href.indexOf('login.html') === -1);
               assert.strictEqual(clickBefore.api.hasPaidAccess(), true, 'staff Pro unlocks after probe without Stripe');
 
-              const loggedOut401 = load({
-                require: true,
-                pathname: '/payouts.html',
-                href: 'payouts.html',
-                accountResponses: [
-                  { ok: false, status: 401, data: { error: 'Sign in required.' } },
-                  { ok: false, status: 401, data: { error: 'Sign in required.' } },
-                ],
-              });
-              return loggedOut401.api.whenReady().then(function () {
-                assert.ok(loggedOut401.location.href.indexOf('login.html') !== -1, 'true logged-out 401 still goes to login');
-                console.log('membership.test.js ok');
+              const dumpedUrls = [
+                { pathname: '/upload.html', href: 'upload.html' },
+                { pathname: '/upload.html', href: 'upload.html?type=album', search: '?type=album' },
+                { pathname: '/boosts.html', href: 'boosts.html' },
+                { pathname: '/payouts.html', href: 'payouts.html' },
+                { pathname: '/earnings.html', href: 'earnings.html' },
+                { pathname: '/analytics.html', href: 'analytics.html' },
+              ];
+
+              function assertUnpaidProStays(page) {
+                const hintOnly = load({
+                  require: true,
+                  pathname: page.pathname,
+                  href: page.href,
+                  search: page.search || '',
+                  cookie: 'plaiground_signed=1',
+                  accountResponses: [
+                    { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                    { ok: true, status: 200, data: staffAccount() },
+                  ],
+                });
+                return hintOnly.api.whenReady().then(function () {
+                  assert.strictEqual(hintOnly.api.currentPlan(), 'pro', page.href + ' unpaid Pro is Pro');
+                  assert.strictEqual(hintOnly.api.hasPlan(), true, page.href + ' unpaid Pro does not need Stripe');
+                  assert.strictEqual(hintOnly.api.hasPaidAccess(), true, page.href + ' unpaid Pro keeps paid access');
+                  assert.strictEqual(hintOnly.api.requireMembership(), true, page.href + ' membership gate stays');
+                  assert.strictEqual(hintOnly.location.href, page.href, 'signed-in unpaid Pro stays on ' + page.href);
+                  assert.ok(hintOnly.location.href.indexOf('login.html') === -1, page.href + ' must not dump to login.html');
+                  assert.strictEqual(hintOnly.api.isSignedIn(), true, page.href + ' cookie hydrates isSignedIn');
+                  assert.strictEqual(hintOnly.api.hasLiveSession(), true, page.href + ' live session includes plaiground_signed');
+
+                  const cookieOnly = load({
+                    require: true,
+                    pathname: page.pathname,
+                    href: page.href,
+                    search: page.search || '',
+                    cookie: 'plaiground_signed=1',
+                    accountResponses: [
+                      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                    ],
+                  });
+                  return cookieOnly.api.whenReady().then(function () {
+                    assert.strictEqual(cookieOnly.api.requireMembership(), true);
+                    assert.strictEqual(cookieOnly.location.href, page.href, 'readable session hint keeps ' + page.href);
+                    assert.ok(cookieOnly.location.href.indexOf('login.html') === -1);
+                  });
+                });
+              }
+
+              return dumpedUrls.reduce(function (prev, page) {
+                return prev.then(function () { return assertUnpaidProStays(page); });
+              }, Promise.resolve()).then(function () {
+                const albumClick = load({
+                  pathname: '/dashboard.html',
+                  href: 'dashboard.html',
+                  cookie: 'plaiground_signed=1',
+                  account: staffAccount(),
+                });
+                const albumEvent = clickEvent('[data-signed-in-upload]', 'upload.html?type=album');
+                fireClicks(albumClick, albumEvent);
+                return albumClick.api.whenReady().then(function () {
+                  return Promise.resolve().then(function () {
+                    assert.strictEqual(albumClick.location.href, 'upload.html?type=album', 'dashboard Upload an album stays signed in');
+                    assert.ok(albumClick.location.href.indexOf('login.html') === -1);
+
+                    const loggedOut401 = load({
+                      require: true,
+                      pathname: '/payouts.html',
+                      href: 'payouts.html',
+                      accountResponses: [
+                        { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                        { ok: false, status: 401, data: { error: 'Sign in required.' } },
+                      ],
+                    });
+                    return loggedOut401.api.whenReady().then(function () {
+                      assert.ok(loggedOut401.location.href.indexOf('login.html') !== -1, 'true logged-out 401 still goes to login');
+                      console.log('membership.test.js ok');
+                    });
+                  });
+                });
               });
             });
           });
@@ -300,6 +369,17 @@ function runFlowStepper() {
 
 function run() {
   runFlowStepper();
+  const dumpedPages = ['upload.html', 'boosts.html', 'payouts.html', 'earnings.html', 'analytics.html'];
+  dumpedPages.forEach(function (file) {
+    const html = fs.readFileSync(path.join(__dirname, file), 'utf8');
+    assert.ok(/data-require-membership="true"/.test(html), file + ' still uses the membership gate');
+    assert.ok(!/data-require-paid="true"/.test(html), file + ' must not use the paid dump');
+  });
+  const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
+  assert.ok(uploadHtml.indexOf('hasMembership()') === -1, 'upload.html must not use the stricter hasMembership file gate');
+  const dash = fs.readFileSync(path.join(__dirname, 'dashboard.html'), 'utf8');
+  assert.ok(/data-signed-in-upload/.test(dash) && /type=album/.test(dash), 'dashboard album CTA waits for the session');
+
   const fresh = load();
   assert.strictEqual(fresh.api.hasMembership(), false);
   assert.strictEqual(fresh.api.isSignedIn(), false);

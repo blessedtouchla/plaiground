@@ -300,6 +300,24 @@
     return extra;
   }
 
+  function hasReadableSessionCookie() {
+    try {
+      var raw = String((global.document && global.document.cookie) || '');
+      return /(?:^|;\s*)plaiground_signed=/.test(raw) || /(?:^|;\s*)plaiground_session=/.test(raw);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function sessionLooksSignedIn(me) {
+    if (me && (me.email || me.plan || me.pending === false)) return true;
+    var api = global.PlaigroundMembership;
+    if (api && typeof api.hasLiveSession === 'function' && api.hasLiveSession()) return true;
+    if (api && typeof api.isSignedIn === 'function' && api.isSignedIn()) return true;
+    if (api && api.account && api.account()) return true;
+    return hasReadableSessionCookie();
+  }
+
   function loadAccount() {
     if (global.PlaigroundMembership && typeof global.PlaigroundMembership.whenReady === 'function') {
       return global.PlaigroundMembership.whenReady().then(function (result) {
@@ -321,10 +339,7 @@
         var analytics = results[1];
         var me = results[2];
         if (list.status === 401) {
-          var signedIn = Boolean(me && !me.pending)
-            || (global.PlaigroundMembership && typeof global.PlaigroundMembership.isSignedIn === 'function' && global.PlaigroundMembership.isSignedIn())
-            || Boolean(global.PlaigroundMembership && global.PlaigroundMembership.account && global.PlaigroundMembership.account());
-          if (signedIn) {
+          if (sessionLooksSignedIn(me)) {
             var signedInOwned = accountFallback(me, []);
             setStatus('');
             render({ releases: signedInOwned, total: signedInOwned.length, analytics: {} });

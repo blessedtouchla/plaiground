@@ -3,6 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -12,6 +13,10 @@ function run() {
   const settings = read('settings.html');
   assert.ok(settings.includes('data-account-plan-pitch'), 'Settings PLAN card is filled from the signed-in plan');
   assert.ok(settings.includes('data-manage-plan-toggle'), 'Settings must expose Manage plan');
+  assert.ok(read('site.css').includes('.plan-switch[hidden]'), 'Manage plan panel stays hidden until the button opens it');
+  assert.ok(read('account.js').includes('scrollIntoView'), 'Manage plan scrolls to the plan options');
+  assert.ok(read('account.js').includes('data-plan-option'), 'Manage plan focuses a plan option');
+  assert.ok(!/location\.(href|replace).*create-checkout-session/.test(read('account.js')), 'Manage plan click must not open Checkout');
   assert.ok(settings.indexOf('data-checkout-switch') === -1, 'Settings picker must not charge on first tap');
   assert.ok(settings.includes('plan-confirm.html?plan=creator&amp;interval=year'), 'yearly redirects to the confirm page');
   assert.ok(settings.includes('plan-confirm.html?plan=creator&amp;interval=month'), 'monthly redirects to the confirm page');
@@ -62,6 +67,56 @@ function run() {
     assert.ok(!html.includes('Hi Victoria!'), file + ' must not hardcode Hi Victoria');
     assert.ok(html.includes('data-account-who>Hi there'), file + ' unsigned greeting stays Hi there');
   });
+
+  const toggle = {
+    attrs: { 'data-manage-plan-toggle': '' },
+    focused: false,
+    listeners: {},
+    getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    addEventListener(type, fn) { this.listeners[type] = fn; },
+  };
+  const firstOption = {
+    focused: false,
+    getAttribute(name) { return name === 'data-plan-option' ? 'pro:month' : null; },
+    focus() { this.focused = true; },
+  };
+  const panel = {
+    hidden: true,
+    attrs: { hidden: '' },
+    scrolled: false,
+    querySelector(sel) { return sel.indexOf('data-plan-option') !== -1 ? firstOption : null; },
+    scrollIntoView() { this.scrolled = true; },
+    getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+    removeAttribute(name) { delete this.attrs[name]; },
+  };
+  const accountContext = {
+    document: {
+      readyState: 'complete',
+      querySelector(sel) {
+        if (sel === '[data-manage-plan-toggle]') return toggle;
+        if (sel === '[data-manage-plan]') return panel;
+        if (sel === '[data-plan-confirm]') return null;
+        if (sel === '.sign-out') return null;
+        return null;
+      },
+      querySelectorAll() { return []; },
+      addEventListener() {},
+    },
+    location: { href: 'settings.html', pathname: '/settings.html', search: '' },
+    fetch() { return Promise.reject(new Error('no checkout on manage plan')); },
+    window: {},
+  };
+  accountContext.window = accountContext;
+  vm.runInNewContext(read('account.js'), accountContext);
+  assert.ok(typeof toggle.listeners.click === 'function', 'Manage plan must bind a click handler');
+  toggle.listeners.click({ preventDefault() {} });
+  assert.strictEqual(panel.hidden, false, 'Manage plan reveals the four plan options');
+  assert.ok(!Object.prototype.hasOwnProperty.call(panel.attrs, 'hidden'), 'Manage plan clears the hidden attribute');
+  assert.strictEqual(toggle.getAttribute('aria-expanded'), 'true');
+  assert.strictEqual(panel.scrolled, true, 'Manage plan scrolls to the plan options');
+  assert.strictEqual(firstOption.focused, true, 'Manage plan focuses a plan option');
+  assert.ok(settings.includes('href="plan-confirm.html?plan=pro&amp;interval=month"'), 'plan options still go to plan-confirm');
 
   const index = read('index.html');
   assert.ok(index.includes('or $149/year'), 'public Creator yearly stays $149');

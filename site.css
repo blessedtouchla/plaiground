@@ -948,6 +948,8 @@ body.app > .plai-bubble {
 .page-head p { color: var(--muted); margin-top: 8px; max-width: 560px; }
 .head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .plan-switch { display: grid; gap: 10px; margin-top: 16px; max-width: 420px; }
+.plan-switch[hidden],
+[data-manage-plan][hidden] { display: none !important; }
 .plan-switch .btn { justify-content: flex-start; }
 .plan-switch .btn.is-current {
   border-color: var(--gold);

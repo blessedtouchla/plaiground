@@ -406,11 +406,20 @@
     var toggle = document.querySelector('[data-manage-plan-toggle]');
     var panel = document.querySelector('[data-manage-plan]');
     if (!toggle || !panel) return;
-    toggle.addEventListener('click', function () {
-      var open = panel.hidden;
-      panel.hidden = !open;
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (!open || typeof global.fetch !== 'function') return;
+    if (toggle.getAttribute('data-manage-bound') === 'true') return;
+    toggle.setAttribute('data-manage-bound', 'true');
+    toggle.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      panel.hidden = false;
+      panel.removeAttribute('hidden');
+      toggle.setAttribute('aria-expanded', 'true');
+      if (typeof panel.scrollIntoView === 'function') {
+        panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      var current = panel.querySelector('[data-plan-option][aria-current="true"], [data-plan-option].is-current');
+      var first = current || panel.querySelector('[data-plan-option]');
+      if (first && typeof first.focus === 'function') first.focus();
+      if (typeof global.fetch !== 'function') return;
       global.fetch('/api/create-checkout-session', {
         method: 'POST',
         credentials: 'same-origin',
@@ -435,7 +444,18 @@
     });
   }
 
+  function whenDomReady(cb) {
+    var doc = global.document;
+    if (!doc || typeof cb !== 'function') return;
+    if (doc.readyState === 'loading' && typeof doc.addEventListener === 'function') {
+      doc.addEventListener('DOMContentLoaded', cb);
+      return;
+    }
+    cb();
+  }
+
   bindSignOut();
+  whenDomReady(bindManagePlan);
   bindManagePlan();
   bindPlanConfirm();
   fromMembership().then(function (me) {
