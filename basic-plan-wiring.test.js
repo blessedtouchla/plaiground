@@ -13,8 +13,9 @@ function run() {
   assert.ok(index.indexOf('href="signup.html?plan=basic"') !== -1);
   assert.ok(index.indexOf('data-plan="basic"') !== -1);
   assert.ok(index.indexOf('Join for free') !== -1);
-  assert.ok(index.indexOf('8 releases a month') !== -1);
-  assert.ok(index.indexOf('One release for the life of the account') !== -1);
+  assert.ok(index.indexOf('8 distribution uploads a month') !== -1);
+  assert.ok(index.indexOf('8 publishing registrations a month') !== -1);
+  assert.ok(index.indexOf('One song for the life of the account') !== -1);
   assert.ok(index.indexOf('Unlimited releases') === -1);
 
   const how = read('how-it-works.html');
