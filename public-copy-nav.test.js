@@ -94,7 +94,9 @@ function run() {
   assert.ok(royalties.includes('Basic is free, 1 song') || /Basic is free/i.test(royalties), 'royalties page states Basic is free, 1 song');
   assert.ok(royalties.includes('$14.99/mo or $149/yr'), 'royalties page states Creator membership');
   assert.ok(royalties.includes('$19.99/mo or $199/yr'), 'royalties page states Pro membership');
-  assert.ok(/Creator and Pro are the same product/i.test(royalties), 'royalties page keeps Creator and Pro as the same product');
+  assert.ok(/Creator is Basic with the paid features unlocked/i.test(royalties), 'royalties page uses Creator 1-2-3 voice');
+  assert.ok(/Pro unlocks unlimited/i.test(royalties), 'royalties page then says Pro unlocks unlimited');
+  assert.ok(!/Creator and Pro are the same product/i.test(royalties), 'royalties page must not use same-product Creator framing');
   assert.ok(/8 distribution uploads/i.test(royalties) && /8 publishing registrations/i.test(royalties), 'royalties page states the Creator caps');
   assert.ok(/Publishing registration is separate from distribution/i.test(royalties), 'publishing stays separate from distribution');
   assert.ok(/not included on Basic/i.test(royalties), 'do not say publishing is included on Basic');
@@ -124,19 +126,51 @@ function run() {
   assert.ok(index.includes('or $199/year'), 'Pro yearly displays $199');
   assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly starts live $199 checkout');
   assert.ok(/data-checkout-plan="creator"\s+data-checkout-interval="year"/.test(index), 'Creator yearly starts live $149 checkout');
-  assert.ok(index.includes('The same product as Pro, with a monthly cap.'), 'Creator card is Pro with a cap');
-  assert.ok(index.includes('The same product as Creator, unlimited.'), 'Pro card is the same product');
+  assert.ok(/paid features unlocked/i.test(index), 'Creator card uses Basic + paid unlocks voice');
+  assert.ok(/Pro unlocks unlimited/i.test(index), 'pricing then says Pro unlocks unlimited');
+  assert.ok(!/The same product as Pro/i.test(index), 'Creator card must not say same as Pro');
+  assert.ok(index.includes('The same product as Creator, unlimited.'), 'Pro card may say same as Creator');
   assert.ok(!/grow a release/i.test(index), 'do not sell Creator as a different product');
   assert.ok(index.includes('landing-tease'), 'logged-out landing teases publishing / boosts / sync');
   assert.ok(!/Starter[\s\S]*\$49/i.test(index), 'landing must not show Boost size cards');
 
   const creator = read('creator.html');
-  assert.ok(creator.includes('The same product as'), 'Creator Learn more is Pro with a cap');
+  assert.ok(/Basic[\s\S]*paid features[\s\S]*unlocked/i.test(creator), 'Creator Learn more leads with Basic + paid unlocks');
   assert.ok(creator.includes('8 distribution uploads a month'), 'Creator states the distribution cap');
   assert.ok(creator.includes('8 publishing registrations a month'), 'Creator states the separate publishing cap');
+  assert.ok(/Pro unlocks unlimited/i.test(creator), 'Creator then says Pro unlocks unlimited');
+  assert.ok(creator.includes('or $149/year'), 'Creator yearly stays on its own line');
+  assert.ok(!/The same product as/i.test(creator), 'Creator must not headline same product as Pro');
+  assert.ok(!/same as Pro|same product as Pro|Creator is Pro|It is Pro|Same features as Pro|only difference from Pro|a month for Pro|Pro with a monthly cap|Pro with the monthly cap|Pro with 8|Same release tools as Pro/i.test(creator), 'Creator-facing same-as-Pro copy is banned');
   assert.ok(!/grow a release/i.test(creator), 'Creator Learn more must not sell a different product');
   assert.ok(!/What Creator does not include/i.test(creator), 'Creator must not list Pro-only extras');
   assert.ok(creator.includes('data-checkout-plan="creator"') && creator.includes('data-checkout-interval="year"'), 'Creator yearly checkout stays');
+
+  const CREATOR_FACING = [
+    'creator.html',
+    'index.html',
+    'how-it-works.html',
+    'faq.html',
+    'royalties.html',
+    'basic.html',
+    'settings.html',
+    'plan-confirm.html',
+    'earnings.html',
+    'payouts.html',
+    'account.js',
+  ];
+  CREATOR_FACING.forEach(function (file) {
+    const text = read(file);
+    assert.ok(!/same product as Pro/i.test(text), file + ' must not say same product as Pro');
+    assert.ok(!/same as Pro/i.test(text), file + ' must not say same as Pro');
+    assert.ok(!/Creator is Pro/i.test(text), file + ' must not say Creator is Pro');
+    assert.ok(!/It is Pro with/i.test(text), file + ' must not say it is Pro');
+    assert.ok(!/Same features as Pro/i.test(text), file + ' must not say same features as Pro');
+    assert.ok(!/Creator and Pro are the same product/i.test(text), file + ' must not use same-product Creator framing');
+  });
+  assert.ok(!/Same product as Pro/i.test(read('lib/stripe-plans.js')), 'checkout plan detail must not say same product as Pro');
+  assert.ok(/Creator is Basic with the paid features unlocked/i.test(read('account.js')), 'Settings JS uses Creator 1-2-3 voice');
+  assert.ok(/Same product as Creator, unlimited/i.test(read('account.js')), 'Pro Settings copy may say same as Creator');
 
   const pro = read('pro.html');
   assert.ok(pro.includes('The same product as Creator'), 'Pro Learn more is the same product');
