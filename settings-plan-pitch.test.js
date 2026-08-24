@@ -12,8 +12,19 @@ function run() {
   const settings = read('settings.html');
   assert.ok(settings.includes('data-account-plan-pitch'), 'Settings PLAN card is filled from the signed-in plan');
   assert.ok(settings.includes('data-manage-plan-toggle'), 'Settings must expose Manage plan');
-  assert.ok(settings.includes('data-checkout-switch'), 'Manage plan switches on the existing checkout function');
+  assert.ok(settings.indexOf('data-checkout-switch') === -1, 'Settings picker must not charge on first tap');
+  assert.ok(settings.includes('plan-confirm.html?plan=creator&amp;interval=year'), 'yearly redirects to the confirm page');
+  assert.ok(settings.includes('plan-confirm.html?plan=creator&amp;interval=month'), 'monthly redirects to the confirm page');
+  assert.ok(settings.includes('plan-confirm.html?plan=pro&amp;interval=month'), 'Pro monthly redirects to the confirm page');
+  assert.ok(settings.includes('plan-confirm.html?plan=pro&amp;interval=year'), 'Pro yearly redirects to the confirm page');
   assert.ok(settings.includes('checkout.js'), 'Settings reuses checkout.js');
+
+  const confirm = read('plan-confirm.html');
+  assert.ok(confirm.includes('data-checkout-switch'), 'Submit on the confirm page starts the switch');
+  assert.ok(confirm.includes('data-plan-confirm-submit'), 'confirm page has Submit');
+  assert.ok(confirm.includes('data-checkout-status'), 'Stripe errors stay on the confirm page');
+  assert.ok(!/data-require-membership|data-require-paid/i.test(confirm), 'confirm page must not dump to login');
+  assert.ok(confirm.includes('checkout.js'), 'confirm page reuses checkout.js');
   assert.ok(settings.includes('Creator · $14.99/month'), 'locked Creator monthly');
   assert.ok(settings.includes('Creator · $12.42/month billed yearly'), 'locked Creator yearly as monthly');
   assert.ok(settings.includes('Pro · $19.99/month'), 'locked Pro monthly');

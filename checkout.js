@@ -3,14 +3,24 @@
 
   function closestTrigger(target) {
     if (!target || !target.closest) return null;
-    return target.closest('[data-checkout-plan], [data-checkout-price]');
+    var switcher = target.closest('[data-checkout-switch]');
+    if (switcher) return switcher;
+    var trigger = target.closest('[data-checkout-plan], [data-checkout-price]');
+    if (!trigger) return null;
+    if (trigger.hasAttribute('data-plan-option')) return null;
+    return trigger;
   }
 
   function statusHost(trigger) {
     return (
-      trigger.closest('.card-cta, .hero-ctas, .cta-inner, .card, .plan-switch, [data-manage-plan], .panel') ||
+      trigger.closest('[data-plan-confirm], .card-cta, .hero-ctas, .cta-inner, .card, .plan-switch, [data-manage-plan], .panel') ||
       trigger.parentNode
     );
+  }
+
+  function isPlanConfirmPage() {
+    var path = String((global.location && global.location.pathname) || '');
+    return path.split('/').pop() === 'plan-confirm.html';
   }
 
   function setStatus(trigger, text) {
@@ -103,7 +113,15 @@
           trigger.disabled = false;
           trigger.textContent = original;
           applySwitched(result);
-          setStatus(trigger, result.data.unchanged ? 'You are already on this plan.' : 'Plan updated.');
+          if (result.data.unchanged) {
+            setStatus(trigger, 'You are already on this plan.');
+            return;
+          }
+          if (isPlanConfirmPage()) {
+            global.location.replace('settings.html');
+            return;
+          }
+          setStatus(trigger, 'Plan updated.');
           return;
         }
         if (result.data && result.data.url) {

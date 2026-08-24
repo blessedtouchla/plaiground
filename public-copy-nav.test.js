@@ -19,6 +19,7 @@ const APP_PAGES = [
   'analytics.html',
   'payouts.html',
   'settings.html',
+  'plan-confirm.html',
   'artists.html',
   'profile.html',
   'library.html',

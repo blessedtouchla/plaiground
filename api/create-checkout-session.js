@@ -4,6 +4,7 @@
  * GET  /api/create-checkout-session  → { configured, publishableKey } (does not mint)
  * POST /api/create-checkout-session  → { url } for Stripe-hosted Checkout (mode=subscription)
  * POST { action: "switch" }          → update the signed-in customer's subscription
+ * POST { action: "preview" }         → confirm-page copy only (does not charge)
  * POST { action: "billing" }         → current paid price for that customer (no email lookup)
  * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
@@ -196,6 +197,11 @@ function wantsBilling(body) {
   return actionOf(body) === 'billing';
 }
 
+function wantsPreview(body) {
+  if (!body || typeof body !== 'object') return false;
+  return actionOf(body) === 'preview';
+}
+
 function firstSubscriptionItem(sub) {
   const bag = sub && sub.items;
   const rows = Array.isArray(bag) ? bag : bag && Array.isArray(bag.data) ? bag.data : [];
@@ -363,6 +369,122 @@ async function showBilling(req, res) {
     plan: meta.plan || user.plan || 'basic',
     interval: meta.interval || '',
     priceId: priceId || '',
+  });
+}
+
+function centsDue(invoice) {
+  if (!invoice || typeof invoice !== 'object') return null;
+  const keys = ['amount_due', 'amount_remaining', 'total'];
+  for (let i = 0; i < keys.length; i += 1) {
+    const n = Number(invoice[keys[i]]);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+async function previewSubscription(req, res, body) {
+  if (!isConfigured()) {
+    sendJson(res, 503, { configured: false });
+    return;
+  }
+
+  const resolved = resolvePrice(body);
+  if (resolved.error) {
+    sendJson(res, 400, { error: resolved.error });
+    return;
+  }
+  const meta = resolved.plan
+    ? { plan: resolved.plan, interval: resolved.interval }
+    : planMetaForPrice(resolved.priceId);
+  if (meta.plan !== 'creator' && meta.plan !== 'pro') {
+    sendJson(res, 400, { error: 'Basic is not a paid switch target.' });
+    return;
+  }
+
+  const user = await loadSignedInUser(req, res);
+  if (!user) return;
+
+  const customerId = String(user.stripe_customer_id || '').trim();
+  if (!customerId) {
+    sendJson(res, 200, {
+      preview: true,
+      checkout: true,
+      plan: meta.plan,
+      interval: meta.interval,
+      currentPlan: user.plan || 'basic',
+      currentInterval: '',
+    });
+    return;
+  }
+
+  let found;
+  try {
+    found = await subscriptionForCustomer(customerId);
+  } catch {
+    sendJson(res, 200, {
+      preview: true,
+      plan: meta.plan,
+      interval: meta.interval,
+      currentPlan: user.plan || 'basic',
+      currentInterval: '',
+    });
+    return;
+  }
+  if (!found || found.error || !found.sub) {
+    sendJson(res, 200, {
+      preview: true,
+      checkout: !found || !found.sub,
+      plan: meta.plan,
+      interval: meta.interval,
+      currentPlan: user.plan || 'basic',
+      currentInterval: '',
+    });
+    return;
+  }
+
+  const sub = found.sub;
+  const item = firstSubscriptionItem(sub);
+  const currentPriceId = priceIdOfSubscription(sub);
+  const currentMeta = planMetaForPrice(currentPriceId);
+  if (currentPriceId === resolved.priceId) {
+    sendJson(res, 200, {
+      preview: true,
+      unchanged: true,
+      plan: meta.plan,
+      interval: meta.interval,
+      currentPlan: currentMeta.plan || user.plan,
+      currentInterval: currentMeta.interval || '',
+      priceId: resolved.priceId,
+    });
+    return;
+  }
+
+  const proration = prorationBehaviorForChange(currentPriceId, resolved.priceId) || 'none';
+  let amountDue = null;
+  if (proration === 'always_invoice' && item && item.id) {
+    const params = new URLSearchParams();
+    params.append('customer', customerId);
+    params.append('subscription', sub.id);
+    params.append('subscription_details[items][0][id]', item.id);
+    params.append('subscription_details[items][0][price]', resolved.priceId);
+    params.append('subscription_details[proration_behavior]', 'always_invoice');
+    try {
+      const previewed = await stripeRequest('POST', 'invoices/create_preview', params);
+      if (previewed.ok) amountDue = centsDue(previewed.data);
+    } catch {
+      amountDue = null;
+    }
+  }
+
+  sendJson(res, 200, {
+    preview: true,
+    plan: meta.plan,
+    interval: meta.interval,
+    currentPlan: currentMeta.plan || user.plan || 'basic',
+    currentInterval: currentMeta.interval || '',
+    priceId: resolved.priceId,
+    proration,
+    amount_due: amountDue,
   });
 }
 
@@ -653,6 +775,10 @@ async function handler(req, res) {
   }
   if (wantsBilling(body)) {
     await showBilling(req, res);
+    return;
+  }
+  if (wantsPreview(body)) {
+    await previewSubscription(req, res, body);
     return;
   }
   if (wantsSwitch(body)) {

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm plan – PLAIGROUND</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="plai-bubble.css" />
+</head>
+<body class="app">
+  <aside class="side">
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+    <p class="side-label">Menu</p>
+    <nav class="side-nav">
+      <a href="dashboard.html">Overview</a>
+      <a href="how.html">How it works</a>
+      <a href="releases.html">Releases</a>
+      <a href="splits.html">Splits</a>
+      <a href="earnings.html">Earnings</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
+      <a href="payouts.html">Payouts</a>
+      <a href="artists.html">Artist Profiles</a>
+      <a class="on" href="settings.html">Settings</a>
+    </nav>
+    <div class="pro-card">
+      <h4 class="stat-g" data-account-plan-title>Your plan</h4>
+      <p>Publishing, Boosts and deeper analytics are on Creator and Pro. Only the cap differs.</p>
+      <p style="margin-top:8px" data-account-plan-pitch>Your plan</p>
+    </div>
+  </aside>
+  <div class="app-main">
+    <div class="topbar">
+      <span></span>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
+    </div>
+    <div class="page">
+      <div class="page-head">
+        <p class="kicker">Account</p>
+        <h1>Confirm plan</h1>
+      </div>
+      <div class="panel" data-plan-confirm>
+        <h3>Review this switch</h3>
+        <p style="font-weight:800;font-size:1.15rem;margin:4px 0 8px" data-plan-confirm-title>Confirm this plan</p>
+        <p style="color:var(--muted);font-size:14px;max-width:560px" data-plan-confirm-change>Creator and Pro are the same product. Only the cap differs.</p>
+        <p style="color:var(--muted);font-size:14px;max-width:560px;margin-top:10px" data-plan-confirm-charge></p>
+        <div class="confirm-actions" style="margin-top:20px">
+          <button class="btn btn-purple btn-md" type="button" data-checkout-switch data-checkout-plan="creator" data-checkout-interval="month" data-plan-confirm-submit>Submit</button>
+          <a class="ghost-link" href="settings.html">Back to Settings</a>
+        </div>
+        <p class="learn" data-checkout-status hidden></p>
+      </div>
+    </div>
+  </div>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
+  <script src="checkout.js"></script>
+  <script src="site.js"></script>
+  <script src="plai-bubble.js" defer></script>
+</body>
+</html>

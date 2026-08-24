@@ -228,6 +228,91 @@
       });
   }
 
+  function dollars(cents) {
+    var n = Number(cents);
+    if (!Number.isFinite(n)) return '';
+    return '$' + (n / 100).toFixed(2);
+  }
+
+  function bindPlanConfirm() {
+    var root = document.querySelector('[data-plan-confirm]');
+    if (!root) return;
+    var params;
+    try {
+      params = new URLSearchParams(global.location.search);
+    } catch (err) {
+      params = { get: function () { return ''; } };
+    }
+    var plan = String(params.get('plan') || '').trim().toLowerCase();
+    var interval = String(params.get('interval') || 'month').trim().toLowerCase();
+    if (interval === 'yearly') interval = 'year';
+    if (interval === 'monthly') interval = 'month';
+    var title = document.querySelector('[data-plan-confirm-title]');
+    var change = document.querySelector('[data-plan-confirm-change]');
+    var charge = document.querySelector('[data-plan-confirm-charge]');
+    var submit = document.querySelector('[data-plan-confirm-submit]');
+    var status = document.querySelector('[data-checkout-status]');
+    if (plan !== 'creator' && plan !== 'pro') {
+      setText(title, 'Choose a paid plan');
+      setText(change, 'Basic is not a paid switch target. Pick Creator or Pro from Settings.');
+      if (submit) submit.hidden = true;
+      return;
+    }
+    if (submit) {
+      submit.setAttribute('data-checkout-plan', plan);
+      submit.setAttribute('data-checkout-interval', interval);
+      submit.setAttribute('data-checkout-switch', '');
+    }
+    setText(title, planPitch(plan, interval));
+    setText(change, 'Switch to ' + planPitch(plan, interval) + '.');
+    setText(charge, 'Submit charges an upgrade now, or applies a downgrade with no refund.');
+    if (typeof global.fetch !== 'function') return;
+    global.fetch('/api/create-checkout-session', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ action: 'preview', plan: plan, interval: interval }),
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data || {} };
+        }).catch(function () {
+          return { ok: false, data: {} };
+        });
+      })
+      .then(function (result) {
+        var data = result.data || {};
+        if (!result.ok) {
+          if (status) {
+            status.textContent = '';
+            status.hidden = true;
+          }
+          return;
+        }
+        var from = planPitch(data.currentPlan || data.from_plan, data.currentInterval || data.from_interval);
+        var to = planPitch(data.plan || plan, data.interval || interval);
+        if (data.unchanged) {
+          setText(change, 'You are already on ' + to + '.');
+          setText(charge, 'Submit will not charge again.');
+          return;
+        }
+        setText(change, 'Switch from ' + from + ' to ' + to + '.');
+        if (data.proration === 'none') {
+          setText(charge, 'This is a downgrade. The change takes effect now. No refund for unused time.');
+          return;
+        }
+        if (data.checkout) {
+          setText(charge, 'Submit continues to Stripe Checkout to start this plan.');
+          return;
+        }
+        var due = dollars(data.amount_due);
+        setText(charge, due
+          ? 'This is an upgrade. Submit charges the prorated difference now: ' + due + '.'
+          : 'This is an upgrade. Submit charges the prorated difference now.');
+      })
+      .catch(function () {});
+  }
+
   function bindManagePlan() {
     var toggle = document.querySelector('[data-manage-plan-toggle]');
     var panel = document.querySelector('[data-manage-plan]');
@@ -263,6 +348,7 @@
 
   bindSignOut();
   bindManagePlan();
+  bindPlanConfirm();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
   });
