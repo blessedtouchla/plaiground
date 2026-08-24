@@ -35,7 +35,7 @@ function run() {
   assert.ok(index.includes('or $199/year'), 'public Pro yearly displays $199');
   assert.ok(index.includes('$14.99'), 'public Creator monthly price stays');
   assert.ok(index.includes('$19.99'), 'public Pro monthly price stays');
-  assert.ok(!/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'do not checkout old Pro yearly $149');
+  assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly checkout is live at $199');
 
   console.log('settings-plan-pitch.test.js ok');
 }

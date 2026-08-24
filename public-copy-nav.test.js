@@ -76,7 +76,8 @@ function run() {
   assert.ok(index.includes('plan-name">Basic</div>') && index.includes('plan-name">Creator</div>') && index.includes('plan-name">Pro</div>'), 'plan cards stay Basic / Creator / Pro');
   assert.ok(index.includes('or $149/year'), 'Creator yearly checkout stays available');
   assert.ok(index.includes('or $199/year'), 'Pro yearly displays $199');
-  assert.ok(!/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly is display-only until a $199 price exists');
+  assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly starts live $199 checkout');
+  assert.ok(/data-checkout-plan="creator"\s+data-checkout-interval="year"/.test(index), 'Creator yearly starts live $149 checkout');
   assert.ok(index.includes('The same product as Pro, with a monthly cap.'), 'Creator card is Pro with a cap');
   assert.ok(index.includes('The same product as Creator, unlimited.'), 'Pro card is the same product');
   assert.ok(!/grow a release/i.test(index), 'do not sell Creator as a different product');
@@ -94,7 +95,7 @@ function run() {
   const pro = read('pro.html');
   assert.ok(pro.includes('The same product as Creator'), 'Pro Learn more is the same product');
   assert.ok(pro.includes('or $199/year'), 'Pro yearly displays $199');
-  assert.ok(!/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(pro), 'Pro yearly is not a new checkout');
+  assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(pro), 'Pro yearly starts live $199 checkout');
   assert.ok(!/Everything in Creator, plus publishing/i.test(pro), 'Pro must not sell extras Creator already has');
 
   const boost = read('boost.html');
