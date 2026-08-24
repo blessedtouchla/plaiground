@@ -151,7 +151,10 @@ function run() {
   assert.ok(/\.typeahead-list\s*\{[\s\S]*?max-height:\s*240px/.test(css));
   assert.ok(/input\.typeahead-input[\s\S]*?font-size:\s*16px/.test(css));
   assert.ok(/select\.is-typeahead-source[\s\S]*?width:\s*0/.test(css));
+  assert.ok(/select\.details-select\.is-typeahead-source/.test(css));
   assert.ok(/select\.is-typeahead-source[\s\S]*?pointer-events:\s*none/.test(css));
+  assert.ok(catalog.LANGUAGES.filter(function (row) { return row.name === 'Akan'; }).length === 1);
+  assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'tw' && row.name === 'Twi'; }));
   assert.ok(/\.typeahead-list\.is-above/.test(css));
   assert.ok(/\.typeahead-list button[\s\S]*?min-height:\s*44px/.test(css));
 

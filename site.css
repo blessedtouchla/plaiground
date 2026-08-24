@@ -555,7 +555,8 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .release-edit,
 .release-edit .form-grid,
 .panel.release-edit { overflow: visible; }
-.field select.is-typeahead-source {
+.field select.is-typeahead-source,
+.field select.details-select.is-typeahead-source {
   position: absolute;
   left: 0;
   top: 0;
@@ -573,6 +574,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   appearance: none;
   -webkit-appearance: none;
   background: none;
+  background-image: none;
 }
 .field input.typeahead-input {
   cursor: text;

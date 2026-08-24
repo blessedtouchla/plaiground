@@ -545,7 +545,7 @@ const LANGUAGES = [
   },
   {
     "code": "tw",
-    "name": "Akan"
+    "name": "Twi"
   },
   {
     "code": "sq",
