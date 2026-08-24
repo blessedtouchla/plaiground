@@ -10,6 +10,7 @@
   var LOGIN = 'login.html';
   var PRICING = 'index.html?needplan=1#pricing';
   var HOLD_PRICING = 'index.html?hold=1#pricing';
+  var PUBLISHING = 'publishing-register.html';
 
   function storageGet(storage, key) {
     if (!storage) return '';
@@ -226,6 +227,51 @@
     return false;
   }
 
+  function isPublishingExplainer() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop();
+    return file === 'publishing.html';
+  }
+
+  function publishingHref() {
+    if (hasPaidAccess()) return PUBLISHING;
+    if (isOnHold()) return HOLD_PRICING;
+    return PRICING;
+  }
+
+  function requirePublishingAccess() {
+    if (serverStatus === 401) {
+      global.location.replace(LOGIN);
+      return false;
+    }
+    if (!isSignedIn() && serverStatus !== 200) {
+      global.location.replace(LOGIN);
+      return false;
+    }
+    if (hasPaidAccess()) {
+      if (isPublishingExplainer()) {
+        global.location.replace(PUBLISHING);
+        return false;
+      }
+      return true;
+    }
+    global.location.replace(isOnHold() ? HOLD_PRICING : PRICING);
+    return false;
+  }
+
+  function bindPublishingClicks() {
+    if (!global.document || !global.document.addEventListener) return;
+    global.document.addEventListener('click', function (event) {
+      var target = event.target;
+      if (!target || !target.closest) return;
+      var el = target.closest('[data-publishing-register]');
+      if (!el) return;
+      if (hasPaidAccess()) return;
+      event.preventDefault();
+      global.location.href = isSignedIn() || serverStatus === 200 ? publishingHref() : LOGIN;
+    });
+  }
+
   function migrateSessionKeys() {
     storeGet(MEMBERSHIP_KEY);
     storeGet(SIGNED_IN_KEY);
@@ -327,6 +373,8 @@
     canGetPayout: canGetPayout,
     requireMembership: requireMembership,
     requirePaidAccess: requirePaidAccess,
+    requirePublishingAccess: requirePublishingAccess,
+    publishingHref: publishingHref,
     currentPlan: currentPlan,
     applyPlanCopy: applyPlanCopy,
     account: function () { return serverAccount; },
@@ -342,6 +390,7 @@
   migrateSessionKeys();
   rememberQueryPlan();
   bindPlanClicks();
+  bindPublishingClicks();
   probeAccount();
   if (!goDashboardFromHome()) {
     accountReady.then(function (result) {
@@ -362,6 +411,13 @@
       accountReady.then(function () { requirePaidAccess(); });
     } else {
       requirePaidAccess();
+    }
+  }
+  if (script && script.getAttribute('data-require-publishing') === 'true') {
+    if (typeof global.fetch === 'function') {
+      accountReady.then(function () { requirePublishingAccess(); });
+    } else {
+      requirePublishingAccess();
     }
   }
   revealPricingHint();
