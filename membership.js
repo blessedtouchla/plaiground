@@ -153,6 +153,24 @@
     return isSignedIn() || hasSessionCookie() || Boolean(serverAccount);
   }
 
+  function isConfirmedLoggedOut() {
+    return accountSettled && serverStatus === 401 && !hasLiveSession();
+  }
+
+  function scriptFlag(name) {
+    var doc = global.document;
+    if (!doc) return false;
+    try {
+      var current = doc.currentScript;
+      if (current && current.getAttribute(name) === 'true') return true;
+      if (typeof doc.querySelector === 'function') {
+        var tagged = doc.querySelector('script[' + name + '="true"]');
+        if (tagged) return true;
+      }
+    } catch (err) {}
+    return false;
+  }
+
   function settleAccount(result) {
     accountSettled = true;
     if (typeof resolveAccountReady === 'function') {
@@ -265,20 +283,16 @@
   }
 
   function requireMembership() {
-    if (serverStatus === 200) {
-      if (hasPlan()) return true;
-      global.location.replace(PRICING);
-      return false;
-    }
-    if (hasLiveSession()) {
-      if (hasPlan()) return true;
-      if (serverStatus === 401 || serverStatus === 503 || hasSessionCookie()) return true;
-      global.location.replace(PRICING);
-      return false;
-    }
     if (!accountSettled) return true;
-    global.location.replace(LOGIN);
-    return false;
+    if (isConfirmedLoggedOut()) {
+      global.location.replace(LOGIN);
+      return false;
+    }
+    if (serverStatus === 200 && !hasPlan()) {
+      global.location.replace(PRICING);
+      return false;
+    }
+    return true;
   }
 
   function requirePaidAccess() {
@@ -308,25 +322,30 @@
       }
       return true;
     }
+    if (!accountSettled) return true;
+    if (isConfirmedLoggedOut()) {
+      global.location.replace(LOGIN);
+      return false;
+    }
     if (serverStatus === 200) {
       global.location.replace(isOnHold() ? HOLD_PRICING : PRICING);
       return false;
     }
-    if (hasLiveSession() || !accountSettled) return true;
-    global.location.replace(LOGIN);
-    return false;
+    return true;
   }
 
   function destinationForPublishing() {
     if (hasPaidAccess()) return PUBLISHING;
-    if (!accountSettled) return PUBLISHING;
-    if (hasLiveSession() || serverStatus === 200) return publishingHref();
+    if (!accountSettled || !isConfirmedLoggedOut()) {
+      if (hasLiveSession() || serverStatus === 200) return publishingHref();
+      return PUBLISHING;
+    }
     return LOGIN;
   }
 
   function destinationForSignedInUpload(href) {
     var dest = href || 'upload.html';
-    if (!accountSettled || hasLiveSession() || serverStatus === 200) return dest;
+    if (!accountSettled || !isConfirmedLoggedOut()) return dest;
     return LOGIN;
   }
 
@@ -383,6 +402,19 @@
   function goDashboardFromHome() {
     if (!isMarketingHome() || homeWantsPricing()) return false;
     if (!isSignedIn()) return false;
+    global.location.replace('dashboard.html');
+    return true;
+  }
+
+  function isLoginPage() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop();
+    return file === 'login.html';
+  }
+
+  function goDashboardFromLogin() {
+    if (!isLoginPage()) return false;
+    if (!(serverStatus === 200 && serverAccount)) return false;
     global.location.replace('dashboard.html');
     return true;
   }
@@ -516,6 +548,7 @@
     destinationForPublishing: destinationForPublishing,
     destinationForSignedInUpload: destinationForSignedInUpload,
     hasLiveSession: hasLiveSession,
+    isConfirmedLoggedOut: isConfirmedLoggedOut,
     currentPlan: currentPlan,
     applyPlanCopy: applyPlanCopy,
     account: function () { return serverAccount; },
@@ -536,7 +569,10 @@
   probeAccount();
   if (!goDashboardFromHome()) {
     accountReady.then(function (result) {
-      if (result && result.ok) goDashboardFromHome();
+      if (result && result.ok) {
+        goDashboardFromHome();
+        goDashboardFromLogin();
+      }
     });
   }
   if (!goSignedInBoosts()) {
@@ -545,22 +581,21 @@
     });
   }
 
-  var script = document.currentScript;
-  if (script && script.getAttribute('data-require-membership') === 'true') {
+  if (scriptFlag('data-require-membership')) {
     if (typeof global.fetch === 'function') {
       accountReady.then(function () { requireMembership(); });
     } else {
       requireMembership();
     }
   }
-  if (script && script.getAttribute('data-require-paid') === 'true') {
+  if (scriptFlag('data-require-paid')) {
     if (typeof global.fetch === 'function') {
       accountReady.then(function () { requirePaidAccess(); });
     } else {
       requirePaidAccess();
     }
   }
-  if (script && script.getAttribute('data-require-publishing') === 'true') {
+  if (scriptFlag('data-require-publishing')) {
     if (typeof global.fetch === 'function') {
       accountReady.then(function () { requirePublishingAccess(); });
     } else {

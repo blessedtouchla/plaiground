@@ -298,7 +298,7 @@ function run() {
   assert.ok(!/id="tg-artist"[^>]*legal name/i.test(upload));
   assert.ok(upload.includes('data-type="album"'), 'upload page can start an album');
   assert.ok(upload.includes('data-track-list'), 'album track list is on the upload page');
-  assert.ok(read('tonegrid.js').includes('syncAlbumUi(next)'), 'Album click applies album, not the leftover Single class');
+  assert.ok(read('store-client.js').includes('syncAlbumUi(next)'), 'Album click applies album, not the leftover Single class');
   assert.ok(dash.includes('data-publishing-register'), 'Register for publishing is gated in JS');
   assert.ok(dash.includes('href="publishing-register.html"'), 'paid Register opens the registration page');
   assert.ok(dash.includes('upload.html?type=album'), 'dashboard can start an album');

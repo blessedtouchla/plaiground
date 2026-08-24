@@ -95,10 +95,10 @@ function load(opts) {
   const localStorage = opts.localStorage || makeStorage();
   const sessionStorage = opts.sessionStorage || makeStorage();
   if (opts.draft) {
-    localStorage.setItem('plaiground.tonegrid.draft', JSON.stringify(opts.draft));
+    localStorage.setItem('plaiground.store.draft', JSON.stringify(opts.draft));
   }
   if (opts.sessionDraft) {
-    sessionStorage.setItem('plaiground.tonegrid.draft', JSON.stringify(opts.sessionDraft));
+    sessionStorage.setItem('plaiground.store.draft', JSON.stringify(opts.sessionDraft));
   }
   if (opts.humanSaved) {
     sessionStorage.setItem('plaiground.attest.human_saved', '1');
@@ -213,9 +213,14 @@ function run() {
   page.rights.checked = true;
   page.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(page.location.href, 'split-sheet.html');
-  const noAiDraft = JSON.parse(page.localStorage.getItem('plaiground.tonegrid.draft'));
+  const noAiDraft = JSON.parse(page.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(noAiDraft.made_how, 'no_ai');
   assert.strictEqual(noAiDraft.rights_confirmed, true);
+  assert.strictEqual(
+    page.localStorage.getItem('plaiground.tonegrid.draft'),
+    page.localStorage.getItem('plaiground.store.draft'),
+    'attest mirrors the draft for split-sheet.html, which we must not edit'
+  );
 
   const again = load();
   again.ai.listeners.click({ preventDefault() {} });
@@ -247,7 +252,7 @@ function run() {
   full.rights.checked = true;
   full.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(full.location.href, 'split-sheet.html');
-  const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.tonegrid.draft'));
+  const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(fullDraft.made_how, 'fully_ai');
   assert.strictEqual(fullDraft.rights_confirmed, true);
 
@@ -258,19 +263,19 @@ function run() {
   if (soloPage.solo.listeners.change) soloPage.solo.listeners.change();
   soloPage.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(soloPage.location.href, 'review.html');
-  const soloDraft = JSON.parse(soloPage.localStorage.getItem('plaiground.tonegrid.draft'));
+  const soloDraft = JSON.parse(soloPage.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(soloDraft.solo_owned_100, true);
   assert.strictEqual(soloDraft.made_how, 'no_ai');
 
   const featured = load();
-  featured.localStorage.setItem('plaiground.tonegrid.draft', JSON.stringify({ featured: 'Guest Star' }));
+  featured.localStorage.setItem('plaiground.store.draft', JSON.stringify({ featured: 'Guest Star' }));
   featured.noAi.listeners.click({ preventDefault() {} });
   featured.rights.checked = true;
   featured.solo.checked = true;
   if (featured.solo.listeners.change) featured.solo.listeners.change();
   featured.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(featured.location.href, 'split-sheet.html');
-  const featuredDraft = JSON.parse(featured.localStorage.getItem('plaiground.tonegrid.draft'));
+  const featuredDraft = JSON.parse(featured.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(featuredDraft.solo_owned_100, false);
 
   const leftoverEmpty = load({

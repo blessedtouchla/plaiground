@@ -1,14 +1,12 @@
 /**
  * Upload form catalogs.
  *
- * Genres: ToneGrid changelog (v1.0.7) says they have one canonical list of 187
- * genres. OpenAPI https://api-docs.tonegrid.pro/openapi.json has no genre enum
- * and no subgenre/sub_genre. GET /genres and /supply-chain/genres 404 on
- * api-sandbox.tonegrid.pro. This list is the complete public Apple Music
- * (iTunes) Music genre tree plus ToneGrid's documented example strings
- * Afrobeats and Afropop. Not ToneGrid's unpublished 187.
+ * Genres: the store documents one canonical list. Public OpenAPI has no genre
+ * enum and no subgenre field. This list is the complete public Apple Music
+ * (iTunes) Music genre tree plus the store's documented example strings
+ * Afrobeats and Afropop.
  *
- * Subgenre is not added: OpenAPI create/update bodies only document genre.
+ * Subgenre is not added: create/update bodies only document genre.
  *
  * Languages: complete ISO 639-1 (two-letter) codes. Option value is the code.
  *

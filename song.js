@@ -1,5 +1,5 @@
 (function (global) {
-  var DRAFT_KEY = 'plaiground.tonegrid.draft';
+  var DRAFT_KEY = 'plaiground.store.draft';
   var RELEASES_URL = '/api/tonegrid/releases';
   var ANALYTICS_URL = '/api/tonegrid/analytics';
   var DSP_COLORS = ['var(--green)', 'var(--magenta)', '#E24B4B', '#5B8CFF', 'var(--purple)'];

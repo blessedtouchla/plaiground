@@ -61,7 +61,7 @@ function makeEl(attrs) {
 }
 
 function run() {
-  const tonegrid = read('tonegrid.js');
+  const tonegrid = read('store-client.js');
   assert.ok(tonegrid.includes('syncAlbumUi(next)'), 'album apply must sync the chosen type, not the stale Single class');
   assert.ok(tonegrid.includes('function syncAlbumUi(type)'), 'syncAlbumUi takes the type being applied');
   assert.ok(tonegrid.indexOf('if (draft && draft.type === \'album\') return \'album\'') < tonegrid.indexOf('querySelector(\'[data-type].on\')'), 'draft/query beat the leftover Single .on class');

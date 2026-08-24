@@ -256,7 +256,12 @@
         var hasLive = typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus.accountHasLive(me);
         var hideStats = Boolean(known && !hasLive);
         if (result.status === 401) {
-          setStatus('Sign in to see your royalties.');
+          var earnApi = global.PlaigroundMembership;
+          var earnSignedIn = Boolean(me && (me.email || me.plan))
+            || (earnApi && typeof earnApi.isConfirmedLoggedOut === 'function' && !earnApi.isConfirmedLoggedOut())
+            || (earnApi && typeof earnApi.hasLiveSession === 'function' && earnApi.hasLiveSession())
+            || (earnApi && typeof earnApi.isSignedIn === 'function' && earnApi.isSignedIn());
+          setStatus(earnSignedIn ? '' : 'Sign in to see your royalties.');
           render(emptyPayload());
           return;
         }

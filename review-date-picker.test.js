@@ -168,12 +168,12 @@ function loadReview(opts) {
   const timePanel = makeEl({ id: 'tg-time-panel', hidden: false });
   const status = makeEl({ id: 'tg-status' });
   const payBtn = makeEl({
-    attrs: { href: 'submitted.html', 'data-tonegrid-submit': '' },
+    attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
   const localStorage = makeStorage();
   const sessionStorage = makeStorage();
   if (opts.draft) {
-    localStorage.setItem('plaiground.tonegrid.draft', JSON.stringify(opts.draft));
+    localStorage.setItem('plaiground.store.draft', JSON.stringify(opts.draft));
   }
   const elements = {
     'tg-release-date': date,
@@ -195,7 +195,7 @@ function loadReview(opts) {
         return elements[id] || null;
       },
       querySelector(sel) {
-        if (sel === '[data-tonegrid-submit]') return payBtn;
+        if (sel === '[data-store-submit]') return payBtn;
         if (sel === '[data-review-title]') return makeEl({});
         return null;
       },
@@ -216,7 +216,7 @@ function loadReview(opts) {
   context.window = context;
   context.window.location = context.location;
   vm.runInNewContext(read('lib/upload-required.js'), context);
-  vm.runInNewContext(read('tonegrid.js'), context);
+  vm.runInNewContext(read('store-client.js'), context);
   return {
     date,
     payBtn,
@@ -235,7 +235,7 @@ function loadReview(opts) {
 }
 
 function draftOf(localStorage) {
-  return JSON.parse(localStorage.getItem('plaiground.tonegrid.draft') || '{}');
+  return JSON.parse(localStorage.getItem('plaiground.store.draft') || '{}');
 }
 
 function testNormalizePickedDateDoesNotEmptyWindowPick(empty) {

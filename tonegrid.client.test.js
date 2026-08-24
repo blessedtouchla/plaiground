@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const code = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+const code = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
 const requiredCode = fs.readFileSync(path.join(__dirname, 'lib', 'upload-required.js'), 'utf8');
 const audioAcceptCode = fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8');
 const storePickCode = fs.readFileSync(path.join(__dirname, 'lib', 'store-pick.js'), 'utf8');
@@ -118,16 +118,16 @@ function load(options) {
   const retryWrap = makeEl({ id: 'tg-retry-wrap', attrs: { 'data-upload-retry-wrap': '' } });
   const retryBtn = makeEl({ attrs: { 'data-upload-retry': '' } });
   const continueBtn = makeEl({
-    attrs: { href: 'attest.html', 'data-tonegrid-continue': '' },
+    attrs: { href: 'attest.html', 'data-store-continue': '' },
   });
   const payBtn = makeEl({
-    attrs: { href: 'submitted.html', 'data-tonegrid-submit': '' },
+    attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
   const calls = [];
   const localStorage = makeStorage();
   const sessionStorage = makeStorage();
   if (opts.draft) {
-    localStorage.setItem('plaiground.tonegrid.draft', JSON.stringify(opts.draft));
+    localStorage.setItem('plaiground.store.draft', JSON.stringify(opts.draft));
   }
 
   const elements = {
@@ -201,8 +201,8 @@ function load(options) {
         return [];
       },
       querySelector(sel) {
-        if (sel === '[data-tonegrid-continue]') return opts.bind === 'review' || opts.bind === 'submitted' ? null : continueBtn;
-        if (sel === '[data-tonegrid-submit]') return opts.bind === 'review' ? payBtn : null;
+        if (sel === '[data-store-continue]') return opts.bind === 'review' || opts.bind === 'submitted' ? null : continueBtn;
+        if (sel === '[data-store-submit]') return opts.bind === 'review' ? payBtn : null;
         if (sel === '[data-review-title]' || sel === '[data-review-meta]' || sel === '[data-submit-title]') {
           return opts.bind === 'submitted' ? makeEl({}) : null;
         }
@@ -359,7 +359,7 @@ function load(options) {
 }
 
 function draftOf(localStorage) {
-  return JSON.parse(localStorage.getItem('plaiground.tonegrid.draft') || '{}');
+  return JSON.parse(localStorage.getItem('plaiground.store.draft') || '{}');
 }
 
 async function flush(times) {
@@ -1681,7 +1681,7 @@ async function run() {
   await proAlbumCountUnlimited();
   await basicAlbumStaysLocked();
 
-  const source = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
   assert.ok(source.includes('Uploading audio'));

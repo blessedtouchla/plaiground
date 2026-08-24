@@ -227,7 +227,7 @@
         <p class="hint" data-store-summary>All stores will receive this release.</p>
         <div class="store-pick is-hidden" data-store-list hidden></div>
       </div>
-      <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-tonegrid-continue href="attest.html">Continue to attest rights</a></p>
+      <p style="margin-top:22px"><a class="btn btn-purple btn-lg" data-store-continue href="attest.html">Continue to attest rights</a></p>
       <p class="hint" id="tg-status" hidden></p>
       <p id="tg-retry-wrap" data-upload-retry-wrap hidden>
         <button type="button" class="btn btn-purple btn-sm" data-upload-retry>Retry</button>
@@ -256,7 +256,7 @@
   <script src="lib/artist-check.js"></script>
   <script src="lib/audio-accept.js"></script>
   <script src="lib/store-pick.js"></script>
-  <script src="tonegrid.js" defer></script>
+  <script src="store-client.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -403,12 +403,12 @@
           artBox.style.backgroundImage = 'url("' + artUrl + '")';
         }
         try {
-          var current = JSON.parse(localStorage.getItem('plaiground.tonegrid.draft') || sessionStorage.getItem('plaiground.tonegrid.draft') || '{}') || {};
+          var current = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
           current.artwork_name = file.name;
           current.artwork_type = file.type || '';
           var text = JSON.stringify(current);
-          try { localStorage.setItem('plaiground.tonegrid.draft', text); } catch (err) {}
-          try { sessionStorage.setItem('plaiground.tonegrid.draft', text); } catch (err) {}
+          try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
+          try { sessionStorage.setItem('plaiground.store.draft', text); } catch (err) {}
         } catch (err) {}
       }
 
