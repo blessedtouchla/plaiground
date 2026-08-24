@@ -202,6 +202,9 @@ function run() {
   assert.ok(/\.app\.nav-open \.side/i.test(css), 'open app drawer must show .side');
   assert.ok(/\.topbar \.menu-toggle \{ display: inline-flex; \}/i.test(css), 'mobile topbar shows the hamburger');
   assert.ok(/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), 'public mobile bar hides the full menu and actions');
+  assert.ok(css.includes('.public-header-tools'), 'public header keeps a Login + Menu cluster outside the drawer');
+  assert.ok(/\.public-header-tools \{[\s\S]*flex-direction: column/i.test(css), 'phone stacks Login above the Menu pill');
+  assert.ok(css.includes('.public-header-tools .login'), 'pinned Login keeps the existing pill look');
   assert.ok(css.includes('.nav-submenu'), 'public nav has a plans submenu');
   assert.ok(css.includes('.nav-submenu-toggle'), 'public nav has a chevron toggle');
   assert.ok(css.includes('.nav-links > a[href="basic.html"]'), 'un-nested Learn more stays hidden until the shared menu nests it');
@@ -210,6 +213,11 @@ function run() {
 
   const js = read('site.js');
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
+  assert.ok(js.includes('setupPublicHeaderLogin') && js.includes('public-header-tools'), 'shared public nav pins Login above Menu');
+  assert.ok(js.includes('public-header-login'), 'shared public nav reuses one header Login');
+  assert.ok(js.includes('href = "login.html"') || js.includes('href="login.html"'), 'pinned Login reuses the existing sign-in page');
+  assert.ok(js.includes('isSignedIn'), 'pinned Login hides when already signed in');
+  assert.ok(js.includes('document.body.classList.contains("app")'), 'signed-in app chrome does not get the public Login');
   assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav nests plan pages once');
   assert.ok(js.includes('nav-submenu-toggle'), 'phone chevron expands Basic / Creator / Pro');
   assert.ok(js.includes('Show Basic, Creator, and Pro'), 'chevron is labeled for the plan pages');
@@ -223,7 +231,9 @@ function run() {
   assert.ok(!js.includes('https://www.tiktok.com') && !js.includes('https://x.com'), 'shared socials drop TikTok and X');
   assert.ok(js.includes('aria-label="Facebook"') && js.includes('aria-label="Instagram"'), 'shared socials stay labeled Facebook and Instagram');
   assert.ok(js.includes('menu-toggle'), 'site.js injects a hamburger');
+  assert.ok(js.includes('public-menu-toggle'), 'Menu pill stays on the public header');
   assert.ok(js.includes('nav-open'), 'site.js toggles the drawer');
+  assert.ok(!/catalog-migrate|catalogMigrate/.test(js), 'shared public nav must not add catalog migrate');
 
   const FACEBOOK_HREF = 'https://www.facebook.com/profile.php?id=61593116849937';
   const INSTAGRAM_HREF = 'https://www.instagram.com/plaigroundmusic';

@@ -123,8 +123,8 @@
       toggle = makeToggle("public-menu-toggle");
       toggle.setAttribute("aria-controls", "public-menu");
       drawer.id = drawer.id || "public-menu";
-      inner.appendChild(toggle);
     }
+    setupPublicHeaderLogin(header, inner, drawer, toggle);
 
     var backdrop = header.querySelector(".public-nav-backdrop");
     if (!backdrop) {
@@ -156,6 +156,57 @@
     drawer.querySelectorAll("a").forEach(function (link) {
       link.addEventListener("click", function () { setOpen(false); });
     });
+  }
+
+  function isSignedInPublic() {
+    var api = window.PlaigroundMembership;
+    return !!(api && typeof api.isSignedIn === "function" && api.isSignedIn());
+  }
+
+  function existingPublicLogin(header) {
+    return header.querySelector(".public-header-login") ||
+      header.querySelector(".nav-actions a.login") ||
+      header.querySelector("a.login[href]");
+  }
+
+  function makePublicLogin() {
+    var login = document.createElement("a");
+    login.className = "login public-header-login";
+    login.href = "login.html";
+    login.textContent = "Log in";
+    return login;
+  }
+
+  function setupPublicHeaderLogin(header, inner, drawer, toggle) {
+    var tools = inner.querySelector(".public-header-tools");
+    if (!tools) {
+      tools = document.createElement("div");
+      tools.className = "public-header-tools";
+    }
+
+    var login = existingPublicLogin(header);
+    if (login) {
+      login.classList.add("public-header-login");
+    } else {
+      login = makePublicLogin();
+    }
+
+    header.querySelectorAll("a.login").forEach(function (el) {
+      if (el !== login && el.parentNode) el.parentNode.removeChild(el);
+    });
+
+    if (login.parentNode !== tools) tools.appendChild(login);
+    if (toggle && toggle.parentNode !== tools) tools.appendChild(toggle);
+    if (tools.parentNode !== inner) inner.insertBefore(tools, drawer);
+
+    function syncSignedIn() {
+      var signedIn = isSignedInPublic();
+      login.hidden = !!signedIn;
+      tools.classList.toggle("is-signed-in", signedIn);
+    }
+    syncSignedIn();
+    var api = window.PlaigroundMembership;
+    if (api && typeof api.whenReady === "function") api.whenReady(syncSignedIn);
   }
 
   function hrefFile(href) {
