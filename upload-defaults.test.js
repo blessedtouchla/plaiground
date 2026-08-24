@@ -35,6 +35,69 @@ function options(selectHtml) {
   });
 }
 
+function attachInnerHtml(node) {
+  Object.defineProperty(node, 'innerHTML', {
+    configurable: true,
+    get: function () { return this._html || ''; },
+    set: function (value) {
+      this._html = String(value);
+      if (String(value) === '' && this.children) this.children.length = 0;
+    },
+  });
+  return node;
+}
+
+function listButtons(list) {
+  return (list.children || []).filter(function (node) {
+    return String(node.tagName || '').toUpperCase() === 'BUTTON' || (node.getAttribute && node.getAttribute('data-value'));
+  });
+}
+
+function pickFromList(list, label) {
+  const btn = listButtons(list).find(function (node) { return node.textContent === label; });
+  assert.ok(btn, label + ' must be in the open list');
+  const ev = { target: btn, preventDefault: function () {}, stopPropagation: function () {} };
+  if (list.listeners && list.listeners.pointerdown) list.listeners.pointerdown(ev);
+  else if (list.listeners && list.listeners.click) list.listeners.click(ev);
+  else if (btn.listeners && btn.listeners.pointerdown) btn.listeners.pointerdown(ev);
+  return btn;
+}
+
+function mockTypeaheadEl(tag) {
+  const node = {
+    tagName: String(tag).toUpperCase(),
+    type: '',
+    className: '',
+    id: '',
+    value: '',
+    textContent: '',
+    children: [],
+    style: {},
+    attrs: {},
+    listeners: {},
+    classList: {
+      tokens: Object.create(null),
+      add(name) { this.tokens[name] = true; },
+      remove(name) { delete this.tokens[name]; },
+      contains(name) { return Boolean(this.tokens[name]); },
+      toggle(name, on) {
+        if (on === false) delete this.tokens[name];
+        else this.tokens[name] = true;
+      },
+    },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
+    addEventListener(type, fn) { this.listeners[type] = fn; },
+    appendChild(child) {
+      child.parentNode = this;
+      this.children.push(child);
+      return child;
+    },
+    dispatchEvent() {},
+  };
+  return attachInnerHtml(node);
+}
+
 function testTypeaheadPrefixBlurKeepsFirstOption(select, input, prefix, expectedLabel) {
   input.value = prefix;
   if (input.listeners && input.listeners.input) input.listeners.input();
@@ -92,32 +155,7 @@ function testTypeaheadDelayedBlurKeepsListPick(catalog, created) {
       this.listeners[type] = fn;
     },
     createElement(tag) {
-      const node = {
-        tagName: String(tag).toUpperCase(),
-        type: '',
-        className: '',
-        id: '',
-        value: '',
-        textContent: '',
-        children: [],
-        style: {},
-        attrs: {},
-        listeners: {},
-        classList: {
-          tokens: Object.create(null),
-          add(name) { this.tokens[name] = true; },
-          remove(name) { delete this.tokens[name]; },
-          contains(name) { return Boolean(this.tokens[name]); },
-          toggle(name, on) {
-            if (on === false) delete this.tokens[name];
-            else this.tokens[name] = true;
-          },
-        },
-        setAttribute(name, value) { this.attrs[name] = String(value); },
-        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
-        addEventListener(type, fn) { this.listeners[type] = fn; },
-        appendChild(child) { this.children.push(child); return child; },
-      };
+      const node = mockTypeaheadEl(tag);
       created.push(node);
       return node;
     },
@@ -129,13 +167,14 @@ function testTypeaheadDelayedBlurKeepsListPick(catalog, created) {
     assert.ok(input);
     assert.ok(list);
     input.listeners.focus();
-    const hip = list.children.find(function (btn) { return btn.textContent === 'Hip-Hop'; });
-    assert.ok(hip, 'Hip-Hop must be in the open list');
     input.value = 'Hip';
+    input.listeners.input();
+    const hip = listButtons(list).find(function (btn) { return btn.textContent === 'Hip-Hop'; });
+    assert.ok(hip, 'Hip-Hop must be in the filtered list');
     input.listeners.blur();
     const blurTimer = timers.find(function (row) { return row.ms >= 400; });
     assert.ok(blurTimer, 'typeahead blur delay must be ~400ms so an iOS list tap can win');
-    if (hip.listeners.pointerdown) hip.listeners.pointerdown({ preventDefault() {}, stopPropagation() {} });
+    pickFromList(list, 'Hip-Hop');
     timers.forEach(function (row) { row.fn(); });
     assert.strictEqual(select.value, 'Hip-Hop', 'typeahead list pick after delayed blur stays');
     assert.strictEqual(input.value, 'Hip-Hop', 'typeahead list pick after delayed blur stays');
@@ -327,6 +366,11 @@ function run() {
 
   const catalogSrc = fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8');
   assert.ok(catalogSrc.indexOf('if (matches.length >= 12) break;') === -1);
+  assert.ok(catalogSrc.indexOf("new Event('pointerdown'") === -1, 'document pick must not re-dispatch pointerdown');
+  assert.ok(catalogSrc.indexOf('bindTypeaheadDocumentPick') === -1, 'recursive pointerdown dispatcher must be gone');
+  assert.ok(catalogSrc.indexOf('Type to search') !== -1);
+  assert.ok(catalog.TYPEAHEAD_LIST_CAP >= 20 && catalog.TYPEAHEAD_LIST_CAP <= 30);
+  assert.ok(!/setTimeout\(function \(\) \{ fillUploadSelects/.test(catalogSrc), 'fillUploadSelects must not rebind on 0ms/400ms timers');
   assert.ok(catalogSrc.indexOf('visualViewport') !== -1);
   assert.ok(catalogSrc.indexOf('pointerdown') !== -1);
   assert.ok(catalogSrc.indexOf('must not jump the input') !== -1);
@@ -378,33 +422,10 @@ function run() {
   const created = [];
   const prevDocument = global.document;
   global.document = {
+    listeners: {},
+    addEventListener(type, fn) { this.listeners[type] = fn; },
     createElement(tag) {
-      const node = {
-        tagName: String(tag).toUpperCase(),
-        type: '',
-        className: '',
-        id: '',
-        value: '',
-        textContent: '',
-        children: [],
-        style: {},
-        attrs: {},
-        listeners: {},
-        classList: {
-          tokens: Object.create(null),
-          add(name) { this.tokens[name] = true; },
-          remove(name) { delete this.tokens[name]; },
-          contains(name) { return Boolean(this.tokens[name]); },
-          toggle(name, on) {
-            if (on === false) delete this.tokens[name];
-            else this.tokens[name] = true;
-          },
-        },
-        setAttribute(name, value) { this.attrs[name] = String(value); },
-        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
-        addEventListener(type, fn) { this.listeners[type] = fn; },
-        appendChild(child) { this.children.push(child); return child; },
-      };
+      const node = mockTypeaheadEl(tag);
       created.push(node);
       return node;
     },
@@ -416,17 +437,35 @@ function run() {
     assert.ok(input);
     assert.ok(list);
     input.listeners.focus();
-    assert.ok(list.children.length > 12, 'empty query must render the full match set, not a 12-item clip');
-    assert.ok(list.children.length === catalog.GENRES.length);
+    assert.ok(listButtons(list).length <= catalog.TYPEAHEAD_LIST_CAP, 'empty query must not dump the full catalog into the DOM');
+    assert.ok(listButtons(list).length >= 1, 'empty focus still shows a short option list');
+    assert.ok(list.children.some(function (node) { return /type to search/i.test(node.textContent); }), 'empty focus shows Type to search');
+    assert.ok(listButtons(list).length < catalog.GENRES.length, 'empty list is capped, not every genre');
     assert.strictEqual(list.style.overflowY, 'auto');
     assert.ok(Number(String(list.style.maxHeight).replace('px', '')) >= 240);
-    input.value = 'A';
+    input.value = 'Zydeco';
     input.listeners.input();
-    assert.ok(list.children.length > 12, 'A-query must stay scrollable past the first letter');
-    assert.ok(list.children.some(function (btn) { return /^B/i.test(btn.textContent); }), 'full A-match set must include items past A');
+    assert.ok(listButtons(list).some(function (btn) { return btn.textContent === 'Zydeco'; }), 'typing searches the full catalog, not a stuck A-prefix clip');
 
     testTypeaheadPrefixBlurKeepsFirstOption(select, input, 'Hip', 'Hip-Hop');
     testTypeaheadGarbageStillClears(select, input);
+
+    input.value = 'Pop';
+    input.listeners.input();
+    const popBtn = listButtons(list).find(function (btn) { return btn.textContent === 'Pop'; });
+    assert.ok(popBtn, 'prefix tap still finds a real catalog option');
+    let pointerDispatch = 0;
+    popBtn.dispatchEvent = function () { pointerDispatch += 1; };
+    if (global.document.listeners && global.document.listeners.pointerdown) {
+      global.document.listeners.pointerdown({ target: popBtn, preventDefault: function () {}, stopPropagation: function () {} });
+      assert.ok(pointerDispatch <= 1, 'document capture pointerdown must not recurse');
+    } else {
+      assert.strictEqual(pointerDispatch, 0, 'recursive document pointerdown dispatcher is gone');
+    }
+    pickFromList(list, 'Pop');
+    assert.strictEqual(select.value, 'Pop', 'tapping a real genre commits and stays');
+    assert.strictEqual(input.value, 'Pop');
+    assert.ok(list.classList.contains('is-hidden') || listButtons(list).length === 0, 'pick hides the list instead of rebuilding it');
 
     const langField = {
       children: [],
@@ -451,34 +490,9 @@ function run() {
     };
     const langCreated = [];
     global.document.createElement = function (tag) {
-      const node = {
-        tagName: String(tag).toUpperCase(),
-        type: '',
-        className: '',
-        id: '',
-        value: '',
-        textContent: '',
-        children: [],
-        style: {},
-        attrs: {},
-        listeners: {},
-        classList: {
-          tokens: Object.create(null),
-          add(name) { this.tokens[name] = true; },
-          remove(name) { delete this.tokens[name]; },
-          contains(name) { return Boolean(this.tokens[name]); },
-          toggle(name, on) {
-            if (on === false) delete this.tokens[name];
-            else this.tokens[name] = true;
-          },
-        },
-        setAttribute(name, value) { this.attrs[name] = String(value); },
-        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
-        addEventListener(type, fn) { this.listeners[type] = fn; },
-        appendChild(child) { this.children.push(child); return child; },
-        getBoundingClientRect() {
-          return this._rect || { top: 40, bottom: 84, left: 16, width: 280, height: 44 };
-        },
+      const node = mockTypeaheadEl(tag);
+      node.getBoundingClientRect = function () {
+        return this._rect || { top: 40, bottom: 84, left: 16, width: 280, height: 44 };
       };
       langCreated.push(node);
       return node;
@@ -489,20 +503,19 @@ function run() {
     assert.ok(langInput);
     assert.ok(langList);
     langInput.listeners.focus();
-    assert.ok(langList.children.length >= 180, 'language typeahead must list the full ISO set');
+    assert.ok(listButtons(langList).length <= catalog.TYPEAHEAD_LIST_CAP, 'language empty list must stay under the cap');
+    assert.ok(listButtons(langList).length < catalog.LANGUAGES.length, 'language empty list must not dump every ISO row');
     langInput.value = 'En';
     langInput.listeners.input();
-    assert.ok(langList.children.length >= 1);
-    assert.ok(langList.children.some(function (btn) { return btn.textContent === 'English'; }));
+    assert.ok(listButtons(langList).length >= 1);
+    assert.ok(listButtons(langList).some(function (btn) { return btn.textContent === 'English'; }));
     assert.strictEqual(langInput.value, 'En', 'ISO code must not jump the visible field to English');
     assert.strictEqual(langSelect.value, '', 'ISO code is a filter, not a mid-type pick');
     langInput.value = 'English';
     langInput.listeners.input();
     assert.strictEqual(langSelect.value, 'en');
     assert.strictEqual(langInput.value, 'English');
-    const english = langList.children.find(function (btn) { return btn.textContent === 'English'; });
-    assert.ok(english);
-    english.listeners.pointerdown({ preventDefault() {}, stopPropagation() {} });
+    pickFromList(langList, 'English');
     assert.strictEqual(langSelect.value, 'en');
     assert.strictEqual(langInput.value, 'English');
     langInput.value = 'en';
@@ -623,28 +636,7 @@ function run() {
   const prevDoc2 = global.document;
   global.document = {
     createElement(tag) {
-      const node = {
-        tagName: String(tag).toUpperCase(),
-        type: '',
-        className: '',
-        id: '',
-        value: '',
-        textContent: '',
-        children: [],
-        style: {},
-        attrs: {},
-        listeners: {},
-        classList: {
-          tokens: Object.create(null),
-          add(name) { this.tokens[name] = true; },
-          remove(name) { delete this.tokens[name]; },
-          contains(name) { return Boolean(this.tokens[name]); },
-        },
-        setAttribute(name, value) { this.attrs[name] = String(value); },
-        getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
-        addEventListener(type, fn) { this.listeners[type] = fn; },
-        appendChild(child) { this.children.push(child); return child; },
-      };
+      const node = mockTypeaheadEl(tag);
       createdEdit.push(node);
       return node;
     },
@@ -656,7 +648,11 @@ function run() {
     catalog.fillUploadSelects({
       getElementById(id) { return id === 'edit-genre' ? edit.select : null; },
     });
+    catalog.fillUploadSelects({
+      getElementById(id) { return id === 'edit-genre' ? edit.select : null; },
+    });
     assert.ok(edit.select.options.length > 180, 'edit genre must load the same ToneGrid list as upload');
+    assert.strictEqual(createdEdit.filter(function (node) { return node.className === 'typeahead-input'; }).length, 1, 'fillUploadSelects binds once when the input already exists');
     catalog.bindTypeahead(edit.select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
     const editInput = createdEdit.find(function (node) { return node.className === 'typeahead-input'; });
     const editList = createdEdit.find(function (node) { return String(node.className).indexOf('typeahead-list') !== -1; });
@@ -667,9 +663,8 @@ function run() {
     assert.strictEqual(editInput.value, 'Electronic');
     editInput.value = 'Afrobeat';
     editInput.listeners.input();
-    assert.ok(editList.children.some(function (btn) { return btn.textContent === 'Afrobeats'; }));
-    const afro = editList.children.find(function (btn) { return btn.textContent === 'Afrobeats'; });
-    afro.listeners.mousedown({ preventDefault() {} });
+    assert.ok(listButtons(editList).some(function (btn) { return btn.textContent === 'Afrobeats'; }));
+    pickFromList(editList, 'Afrobeats');
     assert.strictEqual(edit.select.value, 'Afrobeats');
     assert.strictEqual(editInput.value, 'Afrobeats');
     editInput.value = 'Made Up Genre';

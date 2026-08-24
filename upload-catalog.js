@@ -1394,30 +1394,11 @@ function fillSelect(select, items, getValue, getLabel) {
   }
 }
 
-var typeaheadDocBound = false;
+var TYPEAHEAD_LIST_CAP = 24;
+var typeaheadApplying = false;
 
-function bindTypeaheadDocumentPick() {
-  var doc = typeof document !== 'undefined' ? document : null;
-  if (typeaheadDocBound || !doc || !doc.addEventListener) return;
-  typeaheadDocBound = true;
-  doc.addEventListener('pointerdown', function (event) {
-    var node = event && event.target;
-    while (node && node !== doc) {
-      var value = node.getAttribute && node.getAttribute('data-value');
-      var parent = node.parentNode;
-      var pcls = parent && parent.className;
-      if (value != null && pcls && String(pcls).indexOf('typeahead-list') !== -1) {
-        if (node.listeners && typeof node.listeners.pointerdown === 'function') {
-          node.listeners.pointerdown(event);
-        } else if (typeof node.dispatchEvent === 'function') {
-          try { node.dispatchEvent(new Event('pointerdown', { bubbles: true })); } catch (err) {}
-        }
-        if (event && event.preventDefault) event.preventDefault();
-        return;
-      }
-      node = node.parentNode;
-    }
-  }, true);
+function isTypeaheadBound(select) {
+  return !!(select && select.getAttribute && select.getAttribute('data-typeahead') === 'on' && typeaheadInput(select));
 }
 
 function bindTypeahead(select, items, getValue, getLabel) {
@@ -1446,7 +1427,6 @@ function bindTypeahead(select, items, getValue, getLabel) {
   if (select.removeAttribute) select.removeAttribute('data-typeahead');
   select.setAttribute('data-typeahead', 'on');
   field.classList.add('typeahead-field');
-  bindTypeaheadDocumentPick();
 
   var input = document.createElement('input');
   input.type = 'text';
@@ -1502,16 +1482,21 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }
 
   function applyPick(pick) {
-    if (pick && pick.value) {
-      ensureOption(select, pick.value, pick.label);
-      select.value = pick.value;
-      input.value = pick.label;
-    } else {
-      select.value = '';
-      if (select.options[0]) select.selectedIndex = 0;
-    }
-    if (typeof select.dispatchEvent === 'function') {
-      try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
+    typeaheadApplying = true;
+    try {
+      if (pick && pick.value) {
+        ensureOption(select, pick.value, pick.label);
+        select.value = pick.value;
+        input.value = pick.label;
+      } else {
+        select.value = '';
+        if (select.options[0]) select.selectedIndex = 0;
+      }
+      if (typeof select.dispatchEvent === 'function') {
+        try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
+      }
+    } finally {
+      typeaheadApplying = false;
     }
   }
 
@@ -1625,6 +1610,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }
 
   function showMatches(query) {
+    if (picking) return;
     var q = String(query || '').trim().toLowerCase();
     var matches = [];
     var starts = [];
@@ -1641,10 +1627,18 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }
     }
     matches = starts.concat(matches);
+    if (matches.length > TYPEAHEAD_LIST_CAP) matches = matches.slice(0, TYPEAHEAD_LIST_CAP);
     list.innerHTML = '';
     if (!matches.length) {
       hideList();
       return;
+    }
+    if (!q) {
+      var hint = document.createElement('div');
+      hint.className = 'typeahead-hint';
+      hint.setAttribute('role', 'note');
+      hint.textContent = 'Type to search';
+      list.appendChild(hint);
     }
     matches.forEach(function (pick) {
       var btn = document.createElement('button');
@@ -1653,10 +1647,6 @@ function bindTypeahead(select, items, getValue, getLabel) {
       btn.setAttribute('role', 'option');
       btn.setAttribute('data-value', pick.value);
       btn.setAttribute('tabindex', '-1');
-      function onPick(event) { pickOption(pick, event); }
-      btn.addEventListener('pointerdown', onPick);
-      btn.addEventListener('mousedown', onPick);
-      btn.addEventListener('click', onPick);
       list.appendChild(btn);
     });
     list.classList.remove('is-hidden');
@@ -1667,7 +1657,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
 
   if (list.addEventListener) {
     list.addEventListener('pointerdown', commitListEvent, true);
-    list.addEventListener('mousedown', commitListEvent, true);
+    list.addEventListener('click', commitListEvent);
   }
   list.addEventListener('wheel', function (event) {
     if (list.scrollHeight > list.clientHeight) event.stopPropagation();
@@ -1774,20 +1764,24 @@ function canonicalCatalogValue(select, raw) {
   return pick ? pick.value : null;
 }
 
+function fillOneSelect(select, items, getValue, getLabel) {
+  if (!select) return;
+  if (isTypeaheadBound(select)) return;
+  fillSelect(select, items, getValue, getLabel);
+  bindTypeahead(select, items, getValue, getLabel);
+}
+
 function fillUploadSelects(doc) {
   var root = doc || document;
+  if (!root || typeof root.getElementById !== 'function') return { genre: null, language: null };
   var genre = root.getElementById('tg-genre') || root.getElementById('edit-genre');
   var language = root.getElementById('tg-language') || root.getElementById('edit-language');
-  fillSelect(root.getElementById('tg-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
-  fillSelect(root.getElementById('edit-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
-  fillSelect(root.getElementById('tg-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-  fillSelect(root.getElementById('edit-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-  bindTypeahead(root.getElementById('tg-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
-  bindTypeahead(root.getElementById('edit-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
-  bindTypeahead(root.getElementById('tg-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-  bindTypeahead(root.getElementById('edit-language'), LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-  fillSelect(root.getElementById('profile-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
-  bindTypeahead(root.getElementById('profile-genre'), GENRES, function (name) { return name; }, function (name) { return name; });
+  if (typeaheadApplying) return { genre: genre, language: language };
+  fillOneSelect(root.getElementById('tg-genre'), GENRES, identity, identity);
+  fillOneSelect(root.getElementById('edit-genre'), GENRES, identity, identity);
+  fillOneSelect(root.getElementById('tg-language'), LANGUAGES, languageValue, languageLabel);
+  fillOneSelect(root.getElementById('edit-language'), LANGUAGES, languageValue, languageLabel);
+  fillOneSelect(root.getElementById('profile-genre'), GENRES, identity, identity);
   return { genre: genre, language: language };
 }
 
@@ -1795,6 +1789,7 @@ const api = {
   GENRES: GENRES,
   LANGUAGES: LANGUAGES,
   HUMAN_TAGS: HUMAN_TAGS,
+  TYPEAHEAD_LIST_CAP: TYPEAHEAD_LIST_CAP,
   fillUploadSelects: fillUploadSelects,
   bindTypeahead: bindTypeahead,
   syncTypeahead: syncTypeahead,
@@ -1809,10 +1804,6 @@ if (typeof window !== 'undefined') {
   window.PlaigroundUploadCatalog = api;
   function bootCatalog() {
     fillUploadSelects(window.document);
-    if (window.setTimeout) {
-      window.setTimeout(function () { fillUploadSelects(window.document); }, 0);
-      window.setTimeout(function () { fillUploadSelects(window.document); }, 400);
-    }
   }
   if (window.document && window.document.readyState === 'loading') {
     window.document.addEventListener('DOMContentLoaded', bootCatalog);
