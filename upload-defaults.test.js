@@ -143,9 +143,20 @@ function run() {
 
   const catalogSrc = fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8');
   assert.ok(catalogSrc.indexOf('if (matches.length >= 12) break;') === -1);
+  assert.ok(catalogSrc.indexOf('visualViewport') !== -1);
+  assert.ok(catalogSrc.indexOf('pointerdown') !== -1);
+  assert.ok(catalogSrc.indexOf('must not jump the input') !== -1);
   const css = fs.readFileSync(path.join(__dirname, 'site.css'), 'utf8');
   assert.ok(/\.typeahead-list\s*\{[\s\S]*?overflow-y:\s*auto/.test(css));
   assert.ok(/\.typeahead-list\s*\{[\s\S]*?max-height:\s*240px/.test(css));
+  assert.ok(/input\.typeahead-input[\s\S]*?font-size:\s*16px/.test(css));
+  assert.ok(/select\.is-typeahead-source[\s\S]*?width:\s*0/.test(css));
+  assert.ok(/select\.details-select\.is-typeahead-source/.test(css));
+  assert.ok(/select\.is-typeahead-source[\s\S]*?pointer-events:\s*none/.test(css));
+  assert.ok(catalog.LANGUAGES.filter(function (row) { return row.name === 'Akan'; }).length === 1);
+  assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'tw' && row.name === 'Twi'; }));
+  assert.ok(/\.typeahead-list\.is-above/.test(css));
+  assert.ok(/\.typeahead-list button[\s\S]*?min-height:\s*44px/.test(css));
 
   const aGenres = catalog.GENRES.filter(function (name) { return /^a/i.test(name); });
   assert.ok(aGenres.length > 12, 'catalog must have more than 12 A-genres so the old 12-cap was stuck on A');
@@ -191,6 +202,10 @@ function run() {
           add(name) { this.tokens[name] = true; },
           remove(name) { delete this.tokens[name]; },
           contains(name) { return Boolean(this.tokens[name]); },
+          toggle(name, on) {
+            if (on === false) delete this.tokens[name];
+            else this.tokens[name] = true;
+          },
         },
         setAttribute(name, value) { this.attrs[name] = String(value); },
         getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
@@ -256,11 +271,18 @@ function run() {
           add(name) { this.tokens[name] = true; },
           remove(name) { delete this.tokens[name]; },
           contains(name) { return Boolean(this.tokens[name]); },
+          toggle(name, on) {
+            if (on === false) delete this.tokens[name];
+            else this.tokens[name] = true;
+          },
         },
         setAttribute(name, value) { this.attrs[name] = String(value); },
         getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
         addEventListener(type, fn) { this.listeners[type] = fn; },
         appendChild(child) { this.children.push(child); return child; },
+        getBoundingClientRect() {
+          return this._rect || { top: 40, bottom: 84, left: 16, width: 280, height: 44 };
+        },
       };
       langCreated.push(node);
       return node;
@@ -276,9 +298,54 @@ function run() {
     langInput.listeners.input();
     assert.ok(langList.children.length >= 1);
     assert.ok(langList.children.some(function (btn) { return btn.textContent === 'English'; }));
+    assert.strictEqual(langInput.value, 'En', 'ISO code must not jump the visible field to English');
+    assert.strictEqual(langSelect.value, '', 'ISO code is a filter, not a mid-type pick');
+    langInput.value = 'English';
+    langInput.listeners.input();
+    assert.strictEqual(langSelect.value, 'en');
+    assert.strictEqual(langInput.value, 'English');
+    const english = langList.children.find(function (btn) { return btn.textContent === 'English'; });
+    assert.ok(english);
+    english.listeners.pointerdown({ preventDefault() {}, stopPropagation() {} });
+    assert.strictEqual(langSelect.value, 'en');
+    assert.strictEqual(langInput.value, 'English');
+    langInput.value = 'en';
+    langInput.listeners.input();
+    assert.strictEqual(langInput.value, 'en');
+    langInput.listeners.blur();
+    assert.strictEqual(langSelect.value, 'en');
+    assert.strictEqual(langInput.value, 'English');
     langInput.value = 'Klingon';
     langInput.listeners.input();
     assert.strictEqual(langSelect.value, '');
+    langInput._rect = { top: 80, bottom: 124, left: 16, width: 280, height: 44 };
+    const prevWindow = global.window;
+    global.window = {
+      innerHeight: 280,
+      innerWidth: 390,
+      visualViewport: { offsetTop: 0, offsetLeft: 0, width: 390, height: 280, addEventListener() {} },
+      addEventListener() {},
+      scrolled: 0,
+      scrollBy(x, y) { this.scrolled += y; },
+      setTimeout(fn) { fn(); return 1; },
+      clearTimeout() {},
+    };
+    try {
+      langInput.value = '';
+      langInput.listeners.focus();
+      const maxH = Number(String(langList.style.maxHeight).replace('px', ''));
+      assert.ok(maxH <= 148, 'list must shrink to the space above the keyboard');
+      assert.ok(maxH >= 120);
+      assert.ok(global.window.scrolled !== 0, 'focused language field must scroll into the visible viewport');
+      langInput._rect = { top: 430, bottom: 474, left: 16, width: 280, height: 44 };
+      global.window.innerHeight = 520;
+      global.window.visualViewport.height = 520;
+      langInput.listeners.focus();
+      assert.ok(langList.classList.contains('is-above'), 'list flips above when the keyboard leaves no room below');
+    } finally {
+      if (prevWindow === undefined) delete global.window;
+      else global.window = prevWindow;
+    }
   } finally {
     if (prevDocument === undefined) delete global.document;
     else global.document = prevDocument;
