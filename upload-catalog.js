@@ -1717,7 +1717,8 @@ const api = {
 
 if (typeof module === 'object' && module.exports) {
   module.exports = api;
-} else if (typeof window !== 'undefined') {
+}
+if (typeof window !== 'undefined') {
   window.PlaigroundUploadCatalog = api;
   if (window.document && window.document.readyState === 'loading') {
     window.document.addEventListener('DOMContentLoaded', function () { fillUploadSelects(window.document); });

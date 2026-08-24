@@ -118,6 +118,12 @@ function run() {
   assert.ok(upload.indexOf('ToneGrid accepts MP3') === -1);
 
   const catalog = require('./upload-catalog');
+  const vm = require('vm');
+  const dual = { module: { exports: {} }, window: { document: null }, document: null };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8'), dual);
+  assert.strictEqual(dual.window.PlaigroundUploadCatalog, dual.module.exports, 'window catalog must exist even when module.exports is set');
+  assert.ok(dual.window.PlaigroundUploadCatalog.GENRES.length >= 180);
+  assert.ok(typeof dual.window.PlaigroundUploadCatalog.bindTypeahead === 'function');
   assert.ok(catalog.GENRES.indexOf('Afrobeats') !== -1);
   assert.ok(catalog.GENRES.indexOf('Afropop') !== -1);
   assert.ok(catalog.GENRES.indexOf('Electronic') !== -1);
@@ -149,6 +155,12 @@ function run() {
   assert.ok(catalogSrc.indexOf('visualViewport') !== -1);
   assert.ok(catalogSrc.indexOf('pointerdown') !== -1);
   assert.ok(catalogSrc.indexOf('must not jump the input') !== -1);
+  assert.ok(/if \(typeof module === 'object' && module.exports\) \{[\s\S]*?\}\s*if \(typeof window !== 'undefined'\)/.test(catalogSrc), 'catalog must attach on window even when CommonJS module exists');
+  const tonegridSrc = fs.readFileSync(path.join(__dirname, 'tonegrid.js'), 'utf8');
+  assert.ok(tonegridSrc.indexOf('function bindUploadCatalog') !== -1, 'upload must bind typeahead itself, not only wait for DOMContentLoaded');
+  assert.ok(tonegridSrc.indexOf('fillUploadSelects') !== -1);
+  assert.ok(tonegridSrc.indexOf('bindTypeahead') !== -1);
+  assert.ok(tonegridSrc.indexOf('ignoreEmpty') !== -1, 'calendar input must not wipe a just-picked date');
   const css = fs.readFileSync(path.join(__dirname, 'site.css'), 'utf8');
   assert.ok(/\.typeahead-list\s*\{[\s\S]*?overflow-y:\s*auto/.test(css));
   assert.ok(/\.typeahead-list\s*\{[\s\S]*?max-height:\s*240px/.test(css));
@@ -156,6 +168,9 @@ function run() {
   assert.ok(/select\.is-typeahead-source[\s\S]*?width:\s*0/.test(css));
   assert.ok(/select\.details-select\.is-typeahead-source/.test(css));
   assert.ok(/select\.is-typeahead-source[\s\S]*?pointer-events:\s*none/.test(css));
+  assert.ok(/\.typeahead-field\.is-typeahead-open\s*\{[^}]*z-index:\s*4100/.test(css), 'open typeahead must sit above the PLAI bubble');
+  assert.ok(/\.typeahead-list\s*\{[\s\S]*?z-index:\s*4200/.test(css), 'typeahead list must sit above the PLAI bubble');
+  assert.ok(css.indexOf('::-webkit-datetime-edit') !== -1, 'picked calendar date must keep visible text');
   assert.ok(catalog.LANGUAGES.filter(function (row) { return row.name === 'Akan'; }).length === 1);
   assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'tw' && row.name === 'Twi'; }));
   assert.ok(/\.typeahead-list\.is-above/.test(css));

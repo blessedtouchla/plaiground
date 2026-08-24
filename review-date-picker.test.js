@@ -273,6 +273,15 @@ function run() {
   assert.strictEqual(empty.date.value, min);
   assert.strictEqual(draftOf(empty.localStorage).release_date, min);
 
+  empty.date.value = min;
+  empty.date.listeners.input({ type: 'input' });
+  assert.strictEqual(empty.date.value, min, 'clicked calendar date must stay visible');
+  assert.strictEqual(draftOf(empty.localStorage).release_date, min);
+  empty.date.value = '';
+  empty.date.listeners.input({ type: 'input' });
+  assert.strictEqual(empty.date.value, min, 'empty input during pick must not wipe the shown date');
+  assert.strictEqual(draftOf(empty.localStorage).release_date, min, 'empty input during pick must keep the draft date');
+
   const later = utcShift(14);
   const saved = loadReview({
     draft: {

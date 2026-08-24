@@ -162,9 +162,16 @@
     return picked;
   }
 
-  function persistReleaseDate(dateEl) {
-    var picked = normalizePickedDate(dateEl && dateEl.value);
-    if (dateEl && dateEl.value !== picked) dateEl.value = picked;
+  function persistReleaseDate(dateEl, opts) {
+    opts = opts || {};
+    var raw = dateEl ? String(dateEl.value || '').trim() : '';
+    var picked = normalizePickedDate(raw);
+    if (!raw && opts.ignoreEmpty) {
+      var kept = normalizePickedDate(readDraft().release_date);
+      if (dateEl && kept && dateEl.value !== kept) dateEl.value = kept;
+      return kept;
+    }
+    if (dateEl) dateEl.value = picked;
     writeDraft({ release_date: picked });
     return picked;
   }
@@ -232,7 +239,7 @@
     var preorderEl = $('tg-preorder-date');
     var timeEl = $('tg-release-time');
     var zoneEl = $('tg-release-timezone');
-    var releaseDate = persistReleaseDate($('tg-release-date')) || toIsoDate(readDraft().release_date);
+    var releaseDate = persistReleaseDate($('tg-release-date'), { ignoreEmpty: true }) || toIsoDate(readDraft().release_date);
     var selectPreorder = Boolean(preorderOn && preorderOn.checked);
     var defineTime = Boolean(timeOn && timeOn.checked);
     var preorderDate = '';
@@ -1597,9 +1604,47 @@
     row.removeAttribute('data-audio-uploaded');
   }
 
+  function bindUploadCatalog() {
+    var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
+    var genre = $('tg-genre');
+    var language = $('tg-language');
+    if (!genre && !language) return;
+    if (catalog && typeof catalog.fillUploadSelects === 'function') {
+      try { catalog.fillUploadSelects(document); } catch (err) {}
+    }
+    if (catalog && genre && genre.appendChild && genre.options && genre.options.length < 3 && catalog.GENRES) {
+      catalog.GENRES.forEach(function (name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        genre.appendChild(opt);
+      });
+    }
+    if (catalog && language && language.appendChild && language.options && language.options.length < 3 && catalog.LANGUAGES) {
+      catalog.LANGUAGES.forEach(function (row) {
+        var opt = document.createElement('option');
+        opt.value = row.code;
+        opt.textContent = row.name;
+        language.appendChild(opt);
+      });
+    }
+    if (catalog && typeof catalog.bindTypeahead === 'function') {
+      if (genre && catalog.GENRES) catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+      if (language && catalog.LANGUAGES) {
+        catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+      }
+    }
+    if (catalog && typeof catalog.setTypeaheadValue === 'function') {
+      var draft = readDraft();
+      if (genre && draft.genre) catalog.setTypeaheadValue(genre, draft.genre);
+      if (language && draft.language) catalog.setTypeaheadValue(language, draft.language);
+    }
+  }
+
   function bindUpload() {
     var trigger = document.querySelector('[data-tonegrid-continue]');
     if (!trigger) return;
+    bindUploadCatalog();
     bindArtistSection();
     bindStorePick(storePickRoot());
     bindAlbumUi(refreshUploadGate);
@@ -2087,10 +2132,11 @@
     if (trigger) {
       markIncomplete(trigger, !String(readyDate || '').trim());
       if (dateEl && dateEl.addEventListener) {
-        var syncPickedDate = function () {
-          var picked = persistReleaseDate(dateEl);
+        var syncPickedDate = function (event) {
+          var ignoreEmpty = Boolean(event && event.type === 'input');
+          var picked = persistReleaseDate(dateEl, { ignoreEmpty: ignoreEmpty });
           if ($('tg-preorder-on') || $('tg-time-on')) collectReleaseSchedule();
-          markIncomplete(trigger, !picked);
+          markIncomplete(trigger, !picked && !ignoreEmpty);
         };
         dateEl.addEventListener('input', syncPickedDate);
         dateEl.addEventListener('change', syncPickedDate);
