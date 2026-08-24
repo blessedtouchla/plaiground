@@ -129,8 +129,76 @@
     });
   }
 
+  function latestStatement(data) {
+    var list = (data && data.statements) || [];
+    return list.length ? list[0] : null;
+  }
+
+  function csvEscape(value) {
+    var text = String(value == null ? '' : value);
+    if (/[",\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
+    return text;
+  }
+
+  function statementCsv(data) {
+    var statement = latestStatement(data);
+    var rows = [['Period', 'Source', 'Streams', 'Earnings']];
+    var period = statement && statement.period ? statement.period : '';
+    var breakdown = (data && data.breakdown) || [];
+    if (!breakdown.length) {
+      rows.push([period || '', 'No statement yet', '0', formatMoney(0)]);
+    } else {
+      breakdown.forEach(function (row) {
+        rows.push([
+          period,
+          row.dsp || 'Other',
+          formatCount(row.streams),
+          formatMoney(row.revenue_usd),
+        ]);
+      });
+    }
+    return rows.map(function (line) {
+      return line.map(csvEscape).join(',');
+    }).join('\n');
+  }
+
+  function downloadBlob(filename, text) {
+    var blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+    var url = (global.URL && URL.createObjectURL) ? URL.createObjectURL(blob) : '';
+    var link = document.createElement('a');
+    link.href = url || ('data:text/csv;charset=utf-8,' + encodeURIComponent(text));
+    link.download = filename;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    if (link.parentNode) link.parentNode.removeChild(link);
+    if (url && global.URL && URL.revokeObjectURL) {
+      try { URL.revokeObjectURL(url); } catch (err) {}
+    }
+  }
+
+  function noStatementMessage() {
+    return 'No statement yet';
+  }
+
+  function downloadStatement(data) {
+    var payload = data || emptyPayload();
+    if (isEmpty(payload) || !latestStatement(payload)) {
+      setStatus(noStatementMessage());
+      setHidden('[data-earn-empty]', false);
+      setText('[data-earn-empty]', noStatementMessage() + '. $0.00 available.');
+      renderMetrics(emptyPayload());
+      return false;
+    }
+    downloadBlob('plaiground-statement.csv', statementCsv(payload));
+    return true;
+  }
+
+  var lastPayload = emptyPayload();
+
   function render(data) {
     var payload = data || {};
+    lastPayload = payload;
     renderMetrics(payload);
     renderSources(payload);
     renderChart(payload.statements);
@@ -205,6 +273,21 @@
       });
   }
 
-  global.PlaigroundEarnings = { render: render, isEmpty: isEmpty };
+  function bindDownload() {
+    var btn = $('[data-earn-download]');
+    if (!btn || !btn.addEventListener) return;
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      downloadStatement(lastPayload);
+    });
+  }
+
+  global.PlaigroundEarnings = {
+    render: render,
+    isEmpty: isEmpty,
+    downloadStatement: downloadStatement,
+    statementCsv: statementCsv,
+  };
+  bindDownload();
   load();
 })(window);

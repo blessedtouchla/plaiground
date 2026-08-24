@@ -217,6 +217,20 @@ function run() {
   const homeOut = load({ pathname: '/', href: '/' });
   assert.ok(homeOut.location.href.indexOf('dashboard.html') === -1);
 
+  const boostTeaseIn = load({
+    pathname: '/boost.html',
+    href: 'boost.html',
+    seedLocal: { plaigroundSignedIn: '1', plaigroundMembership: 'creator' },
+  });
+  assert.ok(boostTeaseIn.location.href.indexOf('boosts.html') !== -1, 'signed-in boost.html goes to signed-in boosts');
+  assert.ok(boostTeaseIn.location.href.indexOf('login.html') === -1, 'signed-in boost.html must not dump to login');
+
+  const boostTeaseOut = load({
+    pathname: '/boost.html',
+    href: 'boost.html',
+  });
+  assert.strictEqual(boostTeaseOut.location.href, 'boost.html', 'logged-out visitors keep the public Boost tease');
+
   const homeNeedPlan = load({
     pathname: '/index.html',
     href: 'index.html?needplan=1#pricing',

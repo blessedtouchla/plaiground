@@ -112,6 +112,7 @@ function load(options) {
   };
 
   const context = {
+    URLSearchParams,
     localStorage,
     sessionStorage,
     document: {

@@ -328,6 +328,19 @@
     return true;
   }
 
+  function isBoostTease() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop();
+    return file === 'boost.html';
+  }
+
+  function goSignedInBoosts() {
+    if (!isBoostTease()) return false;
+    if (!isSignedIn()) return false;
+    global.location.replace('boosts.html');
+    return true;
+  }
+
   function applyPlanCopy() {
     var doc = global.document;
     if (!doc || typeof doc.querySelectorAll !== 'function') return;
@@ -414,6 +427,11 @@
   if (!goDashboardFromHome()) {
     accountReady.then(function (result) {
       if (result && result.ok) goDashboardFromHome();
+    });
+  }
+  if (!goSignedInBoosts()) {
+    accountReady.then(function (result) {
+      if (result && result.ok) goSignedInBoosts();
     });
   }
 

@@ -473,18 +473,24 @@
 
   function queryTypeAlbum() {
     try {
-      return new URLSearchParams((window.location && window.location.search) || '').get('type') === 'album';
+      var search = (window.location && window.location.search) || '';
+      if (typeof URLSearchParams === 'function') {
+        return new URLSearchParams(search).get('type') === 'album';
+      }
+      return /(?:^\?|&)type=album(?:&|$)/i.test(String(search));
     } catch (err) {
       return false;
     }
   }
 
   function selectedReleaseType() {
+    var draft = readDraft();
+    if (draft && draft.type === 'album') return 'album';
+    if (draft && draft.type === 'single') return 'single';
+    if (queryTypeAlbum()) return 'album';
     var on = document.querySelector('[data-type].on');
     if (on && on.getAttribute('data-type') === 'album') return 'album';
-    if (on && on.getAttribute('data-type') === 'single') return 'single';
-    if (queryTypeAlbum()) return 'album';
-    return readDraft().type === 'album' ? 'album' : 'single';
+    return 'single';
   }
 
   function setPanelHidden(el, hidden) {
@@ -872,10 +878,32 @@
     return (typeof PlaigroundArtistCheck !== 'undefined' && PlaigroundArtistCheck) || null;
   }
 
+  function isLeftoverArtistName(name) {
+    var next = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!next) return false;
+    if (
+      next === 'john'
+      || next === 'john ham'
+      || next === 'john doe'
+      || next === 'john harper'
+      || next === 'patrick'
+      || next === 'neon shadows'
+      || next === 'neon sermon'
+      || next === 'neon santos'
+      || next === 'victoria reyes'
+      || next === 'victoria void'
+    ) return true;
+    var first = next.split(' ')[0];
+    return first === 'john' || first === 'patrick';
+  }
+
   function rosterFromMe(me) {
     var row = me || accountRecord() || {};
     var artists = row.profile && Array.isArray(row.profile.artists) ? row.profile.artists.slice() : [];
-    if (!artists.length && row.artist) {
+    artists = artists.filter(function (artist) {
+      return artist && artist.name && !isLeftoverArtistName(artist.name);
+    });
+    if (!artists.length && row.artist && !isLeftoverArtistName(row.artist)) {
       artists.push({
         id: 'account',
         name: row.artist,
@@ -1108,8 +1136,9 @@
         opt.textContent = artist.name + (artist.badge ? ' · ' + artist.badge : '');
         sel.appendChild(opt);
       });
-      if (current) sel.value = current;
+      if (current && artists.some(function (artist) { return artist.id === current; })) sel.value = current;
       else if (artists.length === 1) sel.value = artists[0].id;
+      else sel.value = '';
     }
 
     function liveNameCheck() {
@@ -1347,7 +1376,17 @@
         if (typeof onChange === 'function') onChange();
       });
     }
-    applyReleaseType(queryTypeAlbum() || readDraft().type === 'album' ? 'album' : selectedReleaseType(), { initial: true });
+    applyReleaseType(queryTypeAlbum() || readDraft().type === 'album' ? 'album' : 'single', { initial: true });
+  }
+
+  function syncTypeUrl(type) {
+    try {
+      if (!window.history || !history.replaceState) return;
+      var next = type === 'album' ? 'upload.html?type=album' : 'upload.html';
+      var current = String((window.location && (window.location.pathname || '')) || '').split('/').pop();
+      if (current && current !== 'upload.html') return;
+      history.replaceState(null, '', next);
+    } catch (err) {}
   }
 
   function applyReleaseType(type, opts) {
@@ -1378,11 +1417,12 @@
     } else {
       writeDraft({ type: next });
     }
-    syncAlbumUi();
+    if (!(opts && opts.initial)) syncTypeUrl(next);
+    syncAlbumUi(next);
   }
 
-  function syncAlbumUi() {
-    var album = selectedReleaseType() === 'album';
+  function syncAlbumUi(type) {
+    var album = (type || selectedReleaseType()) === 'album';
     qsAll('[data-type]').forEach(function (el) {
       if (el.classList && el.classList.toggle) {
         el.classList.toggle('on', el.getAttribute('data-type') === (album ? 'album' : 'single'));

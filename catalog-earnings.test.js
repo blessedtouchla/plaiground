@@ -77,6 +77,7 @@ function run() {
   });
 
   assert.ok(read('earnings.html').indexOf('No royalties yet.') !== -1);
+  assert.ok(read('earnings.html').indexOf('data-earn-download') !== -1, 'Download statement must have a handler');
   assert.ok(read('releases.html').indexOf('Nothing here yet') !== -1);
   assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
@@ -136,6 +137,7 @@ function run() {
     '[data-earn-chart-labels]': makeEl({}),
     '[data-earn-empty]': makeEl({ hidden: true }),
     '[data-earn-status]': makeEl({ hidden: true }),
+    '[data-earn-download]': makeEl({}),
   };
   const earn = loadScript('earnings.js', earnNodes);
   earn.PlaigroundEarnings.render({
@@ -150,6 +152,14 @@ function run() {
     statements: [],
     breakdown: [],
   }), true);
+  assert.strictEqual(earn.PlaigroundEarnings.downloadStatement({
+    balance: { available_usd: 0, pending_usd: 0 },
+    statements: [],
+    breakdown: [],
+  }), false);
+  assert.strictEqual(earnNodes['[data-earn-status]'].textContent, 'No statement yet');
+  assert.ok(/No statement yet/.test(earnNodes['[data-earn-empty]'].textContent));
+  assert.strictEqual(earnNodes['[data-earn="available"]'].textContent, '$0.00');
 
   const catalogNodes = {
     '[data-stat="total"]': makeEl({ textContent: '0' }),

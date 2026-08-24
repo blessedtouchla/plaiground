@@ -41,10 +41,32 @@
     return '';
   }
 
+  function isLeftoverArtistName(name) {
+    var next = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!next) return false;
+    if (
+      next === 'john'
+      || next === 'john ham'
+      || next === 'john doe'
+      || next === 'john harper'
+      || next === 'patrick'
+      || next === 'neon shadows'
+      || next === 'neon sermon'
+      || next === 'neon santos'
+      || next === 'victoria reyes'
+      || next === 'victoria void'
+    ) return true;
+    var first = next.split(' ')[0];
+    return first === 'john' || first === 'patrick';
+  }
+
   function rosterFromMe(me) {
     var raw = me && me.profile && Array.isArray(me.profile.artists) ? me.profile.artists : [];
-    if (raw.length) return raw.slice();
-    if (me && me.artist) {
+    var artists = raw.filter(function (artist) {
+      return artist && artist.name && !isLeftoverArtistName(artist.name);
+    });
+    if (artists.length) return artists.slice();
+    if (me && me.artist && !isLeftoverArtistName(me.artist)) {
       return [{ id: 'account', name: me.artist, source: 'created', badge: 'PLAIGROUND', genres: [], photo: '', bio: '' }];
     }
     return [];
