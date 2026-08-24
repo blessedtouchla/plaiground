@@ -19,6 +19,27 @@
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
+  function isPlaceholderName(name) {
+    var first = String(name || '').trim().toLowerCase().split(/\s+/)[0] || '';
+    return first === 'john' || first === 'patrick';
+  }
+
+  function accountDisplayName(me) {
+    var names = [];
+    if (me && me.artist) names.push(me.artist);
+    var roster = me && me.profile && me.profile.artists;
+    if (Array.isArray(roster)) {
+      roster.forEach(function (row) {
+        if (row && row.name) names.push(row.name);
+      });
+    }
+    for (var i = 0; i < names.length; i += 1) {
+      var name = String(names[i] || '').trim();
+      if (name && !isPlaceholderName(name)) return name;
+    }
+    return '';
+  }
+
   var PLAN_PITCH = {
     creator: 'Creator · $14.99/month or $12.42/month billed yearly',
     pro: 'Pro · $19.99/month or $16.58/month billed yearly',
@@ -67,10 +88,11 @@
   function fillAccount(me) {
     if (!me) return;
     var artist = String(me.artist || '').trim();
-    var first = firstName(artist);
+    var display = accountDisplayName(me);
+    var first = firstName(display);
     var who = first ? 'Hi ' + first + '!' : 'Hi there';
     $all('[data-account-who]').forEach(function (el) { setText(el, who); });
-    $all('[data-account-avatar]').forEach(function (el) { setText(el, initials(artist)); });
+    $all('[data-account-avatar]').forEach(function (el) { setText(el, initials(display)); });
     $all('[data-account-email]').forEach(function (el) {
       if (el.tagName === 'INPUT') el.value = me.email || '';
       else setText(el, me.email || '');
@@ -126,6 +148,11 @@
     $all('[data-account-releases]').forEach(function (el) { setText(el, String(liveN)); });
     $all('[data-pub-call]').forEach(function (el) {
       el.hidden = liveN === 0;
+    });
+    var plan = String(me.plan || '').toLowerCase();
+    var paid = plan === 'creator' || plan === 'pro';
+    $all('[data-pub-badge]').forEach(function (el) {
+      setText(el, paid ? 'INCLUDED IN YOUR PLAN' : 'INCLUDED ON CREATOR AND PRO');
     });
     $all('[data-first-song]').forEach(function (el) { el.hidden = hasRelease; });
     $all('[data-has-release]').forEach(function (el) { el.hidden = !hasRelease; });

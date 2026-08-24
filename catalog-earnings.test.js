@@ -79,6 +79,10 @@ function run() {
   assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
+  assert.ok(read('dashboard.html').indexOf('data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.') !== -1);
+  assert.ok(read('dashboard.html').indexOf('PRO •') === -1, 'publishing badge must not say Pro-only');
+  assert.ok(read('dashboard.html').indexOf('INCLUDED IN YOUR PLAN') !== -1);
+  assert.ok(read('dashboard.html').indexOf('Upgrade to Pro only') === -1);
   assert.ok(read('earnings.html').indexOf('data-require-membership="true"') !== -1);
   assert.ok(read('earnings.html').indexOf('data-require-paid') === -1, 'earnings must not bounce Basic to Pick a plan');
   assert.ok(read('earnings.html').indexOf('Upgrade to Creator') !== -1);
@@ -99,7 +103,12 @@ function run() {
   assert.ok(payouts.indexOf('data-for-plans="basic creator"') === -1, 'Creator is not locked out of payouts');
   assert.ok(!/data-for-plans="basic"[^>]*>[^<]*publishing/i.test(payouts), 'Basic payouts copy must not mention publishing');
   assert.ok(read('earnings.html').indexOf('$19.99') === -1);
-  assert.ok(read('dashboard.html').indexOf('On Pro') !== -1);
+  assert.ok(read('dashboard.html').indexOf('data-account-plan-title') !== -1);
+  assert.ok(read('dashboard.html').indexOf('>On Pro<') === -1, 'Overview must not default to leftover On Pro');
+  assert.ok(read('earnings.html').indexOf('Upgrade to Pro only') === -1);
+  assert.ok(read('payouts.html').indexOf('Upgrade to Pro only') === -1);
+  assert.ok(read('earnings.html').indexOf('Hi John') === -1);
+  assert.ok(read('payouts.html').indexOf('Hi John') === -1);
 
   const earnNodes = {
     '[data-earn-metrics]': makeEl({}),

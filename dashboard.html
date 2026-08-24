@@ -27,9 +27,11 @@
       <a href="settings.html">Settings</a>
     </nav>
     <div class="pro-card">
-      <h4 data-account-plan-title><span class="dot"></span>On Pro</h4>
-      <p>Publishing, Boosts and deeper analytics are active on your account.</p>
-      <p style="margin-top:8px">Renews 9 Sep 2026 · $19.99/month or $16.58/month billed yearly.</p>
+      <h4 data-account-plan-title>Your plan</h4>
+      <p data-for-plans="basic">Distribution is included. Publishing, Boosts, and deeper analytics unlock on Creator or Pro.</p>
+      <p data-for-plans="creator pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
+      <p style="margin-top:8px" data-account-plan-pitch>Your plan</p>
+      <p data-for-plans="pro" hidden>Pro · $19.99/month or $16.58/month billed yearly.</p>
     </div>
   </aside>
   <div class="app-main">
@@ -57,7 +59,8 @@
         </div>
         <div class="page-head" style="margin:0" data-has-release hidden>
           <h1 data-latest-title>Your release</h1>
-          <p>Your song is in the catalog. Basic includes this one lifetime release.</p>
+          <p data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.</p>
+          <p data-for-plans="creator pro" hidden>Your song is in the catalog.</p>
           <p style="margin-top:18px">
             <a class="btn btn-purple btn-md" data-latest-link href="releases.html">View release</a>
             <span style="color:var(--gold);font-size:13px;margin-left:12px" data-latest-status>Pending</span>
@@ -71,14 +74,14 @@
           <div class="row"><span>Releases live</span><b data-account-releases>0</b></div>
           <div class="row"><span>Split sheets signed</span><b>0</b></div>
           <div class="row"><span>Payout method</span><b style="color:var(--gold)">Not set up</b></div>
-          <div class="row"><span>Plan renews</span><b>9 Sep 2026</b></div>
+          <div class="row"><span>Plan renews</span><b>—</b></div>
           <p style="margin-top:14px"><a class="learn" href="payouts.html" style="text-align:left;color:var(--gold)">Add a payout method</a></p>
         </div>
       </div>
 
       <div class="pub-call" data-pub-call hidden>
         <div>
-          <p class="ok">PRO • INCLUDED IN YOUR PLAN</p>
+          <p class="ok" data-pub-badge>INCLUDED IN YOUR PLAN</p>
           <h3 style="font-size:1.4rem;margin:8px 0">Register your publishing</h3>
           <p style="color:var(--muted);max-width:520px">Publishing royalties are collected by societies, not stores. Register after your first release is live.</p>
         </div>
@@ -103,7 +106,8 @@
       </div>
       <div class="empty" data-has-release hidden>
         <h3 data-latest-title>Your release</h3>
-        <p>Submitted and in the queue. Open it anytime — a second first upload is not included on Basic.</p>
+        <p data-for-plans="basic">Submitted and in the queue. Open it anytime — a second first upload is not included on Basic.</p>
+        <p data-for-plans="creator pro" hidden>Submitted and in the queue. Open it anytime.</p>
         <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" data-latest-link href="releases.html">Open release</a></p>
       </div>
       <p class="how-link" style="margin-top:36px">
