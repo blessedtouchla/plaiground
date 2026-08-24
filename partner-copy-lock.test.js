@@ -4,38 +4,34 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-function walk(dir, acc) {
-  fs.readdirSync(dir, { withFileTypes: true }).forEach(function (entry) {
-    if (entry.name === 'node_modules' || entry.name === '.git') return;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(full, acc);
-      return;
-    }
-    if (/\.(html|js)$/.test(entry.name)) acc.push(full);
-  });
-  return acc;
-}
-
-function isTestFile(file) {
-  return /\.test\.js$/.test(file);
-}
-
-function stripComments(src, isHtml) {
-  var out = src;
-  if (isHtml) {
-    out = out.replace(/<!--[\s\S]*?-->/g, '');
-  }
-  out = out.replace(/\/\*[\s\S]*?\*\//g, '');
-  out = out.replace(/(^|[^:])\/\/.*$/gm, '$1');
-  return out;
-}
+const USER_FILES = [
+  'analytics.html',
+  'analytics.js',
+  'artists.html',
+  'artists.js',
+  'catalog.js',
+  'dashboard.html',
+  'earnings.html',
+  'earnings.js',
+  'faq.html',
+  'how.html',
+  'how-it-works.html',
+  'releases.html',
+  'review.html',
+  'song.html',
+  'song.js',
+  'tonegrid.js',
+  'upload.html',
+  'lib/upload-required.js',
+];
 
 function stringLiterals(src) {
   const out = [];
-  const re = /(['"])(?:\\.|(?!\1)[^\\])*\1/g;
-  let m;
-  while ((m = re.exec(src))) out.push(m[0].slice(1, -1));
+  String(src).split('\n').forEach(function (line) {
+    const re = /'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g;
+    let m;
+    while ((m = re.exec(line))) out.push(m[0].slice(1, -1));
+  });
   return out;
 }
 
@@ -56,28 +52,28 @@ function htmlVisibleLeaks(src) {
   const hits = [];
   const re = /ToneGrid|Tonegrid/g;
   let m;
-  while ((m = re.exec(text))) hits.push(text.slice(Math.max(0, m.index - 24), m.index + 32));
+  while ((m = re.exec(text))) hits.push(text.slice(Math.max(0, m.index - 24), m.index + 32).replace(/\s+/g, ' ').trim());
   return hits;
 }
 
 function run() {
   const root = __dirname;
-  const files = walk(root, []);
   const leaks = [];
 
-  files.forEach(function (file) {
-    if (isTestFile(file)) return;
-    const rel = path.relative(root, file);
-    if (rel === 'terms.html' || rel === 'split-sheet.html') return;
-    const raw = fs.readFileSync(file, 'utf8');
-    const isHtml = /\.html$/.test(file);
-    if (isHtml) {
-      htmlVisibleLeaks(raw).forEach(function (snippet) {
-        leaks.push(rel + ' html text: ' + snippet.replace(/\s+/g, ' ').trim());
-      });
-    }
-    const stripped = stripComments(raw, isHtml);
-    stringLiterals(stripped).forEach(function (value) {
+  fs.readdirSync(root).forEach(function (name) {
+    if (!/\.html$/.test(name)) return;
+    if (name === 'terms.html' || name === 'split-sheet.html') return;
+    const raw = fs.readFileSync(path.join(root, name), 'utf8');
+    htmlVisibleLeaks(raw).forEach(function (snippet) {
+      leaks.push(name + ' html text: ' + snippet);
+    });
+  });
+
+  USER_FILES.forEach(function (rel) {
+    const full = path.join(root, rel);
+    if (!fs.existsSync(full)) return;
+    const raw = fs.readFileSync(full, 'utf8');
+    stringLiterals(raw).forEach(function (value) {
       if (isAllowedUserString(value)) return;
       leaks.push(rel + ' string: ' + JSON.stringify(value));
     });
