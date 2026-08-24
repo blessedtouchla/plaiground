@@ -20,8 +20,28 @@
   }
 
   function isPlaceholderName(name) {
-    var first = String(name || '').trim().toLowerCase().split(/\s+/)[0] || '';
+    var next = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!next) return false;
+    if (
+      next === 'john'
+      || next === 'john ham'
+      || next === 'john doe'
+      || next === 'john harper'
+      || next === 'patrick'
+      || next === 'neon shadows'
+      || next === 'neon sermon'
+      || next === 'neon santos'
+      || next === 'victoria reyes'
+      || next === 'victoria void'
+    ) return true;
+    var first = next.split(' ')[0];
     return first === 'john' || first === 'patrick';
+  }
+
+  function accountArtistField(me) {
+    var artist = String((me && me.artist) || '').trim();
+    if (!artist || isPlaceholderName(artist)) return '';
+    return artist;
   }
 
   function accountDisplayName(me) {
@@ -87,7 +107,7 @@
 
   function fillAccount(me) {
     if (!me) return;
-    var artist = String(me.artist || '').trim();
+    var artist = accountArtistField(me);
     var display = accountDisplayName(me);
     var first = firstName(display);
     var who = first ? 'Hi ' + first + '!' : 'Hi there';

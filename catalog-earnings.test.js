@@ -52,6 +52,8 @@ function run() {
     '$18,412.44',
     'Hi John',
     'John Doe',
+    'John ham',
+    'John Ham',
     '4,182,680',
     'Neon Shadows',
     'Neon Sermon',
@@ -65,7 +67,7 @@ function run() {
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html', 'settings.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
@@ -109,6 +111,10 @@ function run() {
   assert.ok(read('payouts.html').indexOf('Upgrade to Pro only') === -1);
   assert.ok(read('earnings.html').indexOf('Hi John') === -1);
   assert.ok(read('payouts.html').indexOf('Hi John') === -1);
+  assert.ok(read('settings.html').indexOf('Hi John') === -1);
+  assert.ok(read('settings.html').indexOf('John ham') === -1);
+  assert.ok(read('settings.html').indexOf('>VV<') === -1);
+  assert.ok(read('settings.html').indexOf('data-account-artist') !== -1);
 
   const earnNodes = {
     '[data-earn-metrics]': makeEl({}),
