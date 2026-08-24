@@ -67,7 +67,7 @@
   };
   var PLAN_DETAIL = {
     creator: 'Creator is Basic with the paid features unlocked. 8 distribution uploads and 8 publishing registrations this UTC month, counted separately. Pro unlocks unlimited.',
-    pro: 'Same product as Creator, unlimited. Unlimited distribution uploads and publishing registrations.',
+    pro: 'Same product as Creator, unlimited, plus catalog migration. Unlimited distribution uploads and publishing registrations.',
     basic: 'One release for the life of the account. Canceling a paid plan drops you here.',
   };
 
@@ -311,7 +311,7 @@
       submit.setAttribute('data-checkout-switch', '');
     }
     setText(title, planPitch(plan, interval));
-    setText(change, 'Switch to ' + planPitch(plan, interval) + '.');
+    setText(change, 'Switch to ' + planPitch(plan, interval) + '.' + (plan === 'pro' ? ' Same product as Creator, unlimited, plus catalog migration.' : ''));
     setText(charge, 'Submit charges an upgrade now, or applies a downgrade with no refund.');
     if (typeof global.fetch !== 'function') return;
     global.fetch('/api/create-checkout-session', {
@@ -338,12 +338,13 @@
         }
         var from = planPitch(data.currentPlan || data.from_plan, data.currentInterval || data.from_interval);
         var to = planPitch(data.plan || plan, data.interval || interval);
+        var proNote = (plan === 'pro' ? ' Same product as Creator, unlimited, plus catalog migration.' : '');
         if (data.unchanged) {
-          setText(change, 'You are already on ' + to + '.');
+          setText(change, 'You are already on ' + to + '.' + proNote);
           setText(charge, 'Submit will not charge again.');
           return;
         }
-        setText(change, 'Switch from ' + from + ' to ' + to + '.');
+        setText(change, 'Switch from ' + from + ' to ' + to + '.' + proNote);
         if (data.proration === 'none') {
           setText(charge, 'This is a downgrade. The change takes effect now. No refund for unused time.');
           return;
