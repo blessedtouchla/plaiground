@@ -80,7 +80,14 @@
           <input id="tg-instrumental" name="release-instrumental" type="checkbox" />
           <span>Instrumental<br /><span>Optional, helps sync licensing</span></span>
         </label>
-        <div class="dashbox">Add lyrics file<br /><span>.srt or .lrc for timed lyrics</span></div>
+        <button type="button" class="dashbox" id="tg-lyrics-open" data-lyrics-open aria-expanded="false" aria-controls="tg-lyrics-panel">
+          Lyrics<br /><span>Type or paste lyrics</span>
+        </button>
+      </div>
+      <div class="field lyrics-field" id="tg-lyrics-panel" data-lyrics-field hidden>
+        <label for="tg-lyrics">Lyrics</label>
+        <textarea id="tg-lyrics" name="release-lyrics" rows="8" placeholder="Type or paste lyrics" autocomplete="off"></textarea>
+        <p class="hint">Optional timed .srt or .lrc file. Lyrics save with this release on PLAIGROUND.</p>
       </div>
     </section>
 
@@ -430,13 +437,39 @@
 
       var instrumental = document.getElementById('tg-instrumental');
       var languageField = document.querySelector('[data-language-field]');
+      var lyricsOpen = document.querySelector('[data-lyrics-open]');
+      var lyricsField = document.querySelector('[data-lyrics-field]');
+      var lyricsInput = document.getElementById('tg-lyrics');
+      function setHiddenEl(el, hidden) {
+        if (!el) return;
+        el.hidden = Boolean(hidden);
+        if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', Boolean(hidden));
+      }
+      function openLyrics() {
+        if (!lyricsField || (instrumental && instrumental.checked)) return;
+        setHiddenEl(lyricsField, false);
+        if (lyricsOpen && lyricsOpen.setAttribute) lyricsOpen.setAttribute('aria-expanded', 'true');
+        if (lyricsInput && typeof lyricsInput.focus === 'function') lyricsInput.focus();
+      }
       function syncInstrumental() {
         var on = Boolean(instrumental && instrumental.checked);
-        if (!languageField) return;
-        languageField.hidden = on;
-        if (languageField.classList && languageField.classList.toggle) {
-          languageField.classList.toggle('is-hidden', on);
+        if (languageField) {
+          languageField.hidden = on;
+          if (languageField.classList && languageField.classList.toggle) {
+            languageField.classList.toggle('is-hidden', on);
+          }
         }
+        setHiddenEl(lyricsOpen, on);
+        if (on) {
+          setHiddenEl(lyricsField, true);
+          if (lyricsOpen && lyricsOpen.setAttribute) lyricsOpen.setAttribute('aria-expanded', 'false');
+        }
+      }
+      if (lyricsOpen) {
+        lyricsOpen.addEventListener('click', function (event) {
+          event.preventDefault();
+          openLyrics();
+        });
       }
       if (instrumental) {
         instrumental.addEventListener('change', syncInstrumental);

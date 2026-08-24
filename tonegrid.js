@@ -1088,8 +1088,10 @@
       var prior = (Array.isArray(saved) && saved[i]) || {};
       var trackId = row.getAttribute('data-track-id') || prior.track_id || '';
       var uploaded = row.getAttribute('data-audio-uploaded') === 'true' || prior.audio_uploaded === true;
+      var lyricsEl = row.querySelector('[data-track-lyrics]');
       out.push({
         title: titleEl ? String(titleEl.value || '').trim() : '',
+        lyrics: lyricsEl ? lyricsText(lyricsEl.value) : lyricsText(prior.lyrics),
         audio: audioFileOf(input),
         file: audioFileOf(input),
         track_id: trackId,
@@ -1116,6 +1118,7 @@
     var stored = (tracks || []).map(function (track, i) {
       return {
         title: String((track && track.title) || '').trim(),
+        lyrics: lyricsText(track && track.lyrics),
         track_id: (track && track.track_id) || '',
         audio_uploaded: Boolean(track && track.audio_uploaded),
         audio_name: track && track.audio && track.audio.name ? track.audio.name : ((track && track.audio_name) || ''),
@@ -1558,6 +1561,51 @@
     if (field.classList && field.classList.toggle) field.classList.toggle('is-hidden', Boolean(instrumental));
   }
 
+  function lyricsText(value) {
+    return String(value == null ? '' : value);
+  }
+
+  function selectedLyrics() {
+    if (selectedInstrumental()) return '';
+    var el = $('tg-lyrics') || document.querySelector('[data-lyrics]');
+    if (el) return lyricsText(el.value);
+    return '';
+  }
+
+  function setHiddenEl(el, hidden) {
+    if (!el) return;
+    el.hidden = Boolean(hidden);
+    if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', Boolean(hidden));
+  }
+
+  function openLyricsField() {
+    if (selectedInstrumental()) return false;
+    var field = document.querySelector('[data-lyrics-field]');
+    var open = document.querySelector('[data-lyrics-open]');
+    if (!field) return false;
+    setHiddenEl(field, false);
+    if (open && open.setAttribute) open.setAttribute('aria-expanded', 'true');
+    var el = $('tg-lyrics');
+    if (el && typeof el.focus === 'function') el.focus();
+    return true;
+  }
+
+  function syncLyricsField(instrumental) {
+    var on = Boolean(instrumental);
+    var open = document.querySelector('[data-lyrics-open]');
+    var field = document.querySelector('[data-lyrics-field]');
+    var wraps = qsAll('[data-track-lyrics-wrap]');
+    var i;
+    setHiddenEl(open, on);
+    if (on) {
+      setHiddenEl(field, true);
+      if (open && open.setAttribute) open.setAttribute('aria-expanded', 'false');
+    }
+    for (i = 0; i < wraps.length; i += 1) {
+      setHiddenEl(wraps[i], on);
+    }
+  }
+
   function artistCheckApi() {
     return (typeof PlaigroundArtistCheck !== 'undefined' && PlaigroundArtistCheck) || null;
   }
@@ -1646,6 +1694,7 @@
       price: fieldValue('tg-price') || draft.price || '',
       explicit: selectedExplicit(),
       instrumental: instrumental,
+      lyrics: instrumental ? '' : (selectedLyrics() || draft.lyrics || ''),
       dsps: selectedUploadStores(),
       type: type,
       tracks: tracks,
@@ -2276,6 +2325,9 @@
       + '</div></div>'
       + '<div class="field"><label>Track title</label>'
       + '<input type="text" data-track-title placeholder="Track title" autocomplete="off" /></div>'
+      + '<div class="field" data-track-lyrics-wrap><label>Lyrics</label>'
+      + '<textarea data-track-lyrics rows="4" placeholder="Type or paste lyrics" autocomplete="off"></textarea>'
+      + '<p class="hint">Optional. Timed .srt or .lrc can be added later.</p></div>'
       + '<label class="dashbox audio-drop" data-audio-drop>Drop WAV, FLAC, or MP3 here'
       + '<span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>'
       + '<input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input /></label>'
@@ -2287,6 +2339,8 @@
     list.appendChild(row);
     var titleEl = row.querySelector('[data-track-title]');
     if (titleEl && track && track.title) titleEl.value = track.title;
+    var lyricsEl = row.querySelector('[data-track-lyrics]');
+    if (lyricsEl && track && track.lyrics) lyricsEl.value = track.lyrics;
     var drop = row.querySelector('[data-audio-drop]');
     var input = row.querySelector('[data-audio-input]');
     if (drop && input) {
@@ -2442,6 +2496,8 @@
     fill('tg-price', draft.price);
     fill('tg-genre', draft.genre);
     fill('tg-language', draft.language);
+    fill('tg-lyrics', draft.lyrics);
+    if (draft.lyrics && !draft.instrumental) openLyricsField();
     if (draft.explicit === true) {
       var toggle = document.querySelector('[data-explicit-toggle]');
       if (toggle && toggle.querySelectorAll) {
@@ -2502,11 +2558,17 @@
       continueAfterCatalog(nextHref, message);
     }
 
+    function persistLyricsFromUi() {
+      var instrumental = selectedInstrumental();
+      writeDraft({ lyrics: instrumental ? '' : selectedLyrics() });
+    }
+
     function refreshUploadGate() {
       syncLanguageField(selectedInstrumental());
+      syncLyricsField(selectedInstrumental());
       markIncomplete(trigger, Boolean(uploadPageError(collectUploadFields())));
     }
-    ['tg-title', 'tg-artist', 'tg-artist-new', 'tg-artist-select', 'tg-artist-mode', 'tg-artist-link', 'tg-artist-link-name', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price', 'tg-instrumental'].forEach(function (id) {
+    ['tg-title', 'tg-artist', 'tg-artist-new', 'tg-artist-select', 'tg-artist-mode', 'tg-artist-link', 'tg-artist-link-name', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price', 'tg-instrumental', 'tg-lyrics'].forEach(function (id) {
       var el = $(id);
       if (!el || !el.addEventListener) return;
       el.addEventListener('input', refreshUploadGate);
@@ -2528,6 +2590,18 @@
     restoreUploadDraft(savedDraft);
     var instEl = $('tg-instrumental');
     if (instEl && savedDraft.instrumental === true) instEl.checked = true;
+    var lyricsOpen = document.querySelector('[data-lyrics-open]');
+    if (lyricsOpen && lyricsOpen.addEventListener) {
+      lyricsOpen.addEventListener('click', function (event) {
+        event.preventDefault();
+        openLyricsField();
+      });
+    }
+    var lyricsInput = $('tg-lyrics');
+    if (lyricsInput && lyricsInput.addEventListener) {
+      lyricsInput.addEventListener('input', persistLyricsFromUi);
+      lyricsInput.addEventListener('change', persistLyricsFromUi);
+    }
     refreshUploadGate();
     showUpgrade(false);
     showLimitPanel(false);
@@ -2685,6 +2759,7 @@
         type: releaseType,
         explicit: explicit,
         instrumental: instrumental,
+        lyrics: instrumental ? '' : (fields.lyrics || ''),
         dsps: dsps,
         artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
         artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
@@ -2711,6 +2786,7 @@
             type: releaseType,
             explicit: explicit,
             instrumental: instrumental,
+            lyrics: instrumental ? '' : (fields.lyrics || ''),
             dsps: dsps,
             artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
             artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
@@ -3034,6 +3110,22 @@
         ? draft.name + ' · Single · ' + draft.genre
         : draft.name + ' · Single';
     }
+    var lyricsBox = document.querySelector('[data-review-lyrics]');
+    var lyricsTextEl = document.querySelector('[data-review-lyrics-text]');
+    var lyricsCopy = '';
+    if (!draft.instrumental) {
+      if (draft.type === 'album' && Array.isArray(draft.tracks)) {
+        lyricsCopy = draft.tracks.map(function (track, i) {
+          var text = lyricsText(track && track.lyrics).trim();
+          if (!text) return '';
+          return (track.title || ('Track ' + (i + 1))) + '\n' + text;
+        }).filter(Boolean).join('\n\n');
+      } else {
+        lyricsCopy = lyricsText(draft.lyrics).trim();
+      }
+    }
+    if (lyricsTextEl) lyricsTextEl.textContent = lyricsCopy;
+    setHiddenEl(lyricsBox, !lyricsCopy);
   }
 
   function fillSubmitted() {

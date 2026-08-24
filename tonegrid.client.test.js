@@ -106,6 +106,9 @@ function load(options) {
   const date = makeEl({ id: 'tg-release-date', value: opts.releaseDate || '' });
   const instrumental = makeEl({ id: 'tg-instrumental', checked: Boolean(opts.instrumental) });
   const languageField = makeEl({ attrs: { 'data-language-field': '' } });
+  const lyrics = makeEl({ id: 'tg-lyrics', value: opts.lyrics || '' });
+  const lyricsField = makeEl({ attrs: { 'data-lyrics-field': '' }, hidden: true });
+  const lyricsOpen = makeEl({ id: 'tg-lyrics-open', attrs: { 'data-lyrics-open': '', 'aria-expanded': 'false' } });
   const loader = makeEl({ attrs: { 'data-upload-loader': '' } });
   const loaderStep = makeEl({ attrs: { 'data-upload-loader-step': '' } });
   const loaderFill = makeEl({ attrs: { 'data-upload-loader-fill': '' } });
@@ -134,6 +137,8 @@ function load(options) {
     'tg-price': price,
     'tg-release-date': date,
     'tg-instrumental': instrumental,
+    'tg-lyrics': lyrics,
+    'tg-lyrics-open': lyricsOpen,
     'tg-status': status,
     'tg-upgrade': makeEl({ id: 'tg-upgrade' }),
     'tg-limit': limit,
@@ -226,6 +231,11 @@ function load(options) {
         if (sel === '[data-album-hint]') return makeEl({ attrs: { 'data-album-hint': '' }, hidden: true });
         if (sel === '[data-single-audio]') return makeEl({ attrs: { 'data-single-audio': '' } });
         if (sel === '[data-language-field]') return languageField;
+        if (sel === '[data-lyrics-field]') return lyricsField;
+        if (sel === '[data-lyrics-open]') return lyricsOpen;
+        if (sel === '[data-lyrics]') return lyrics;
+        if (sel === '[data-review-lyrics]') return makeEl({ attrs: { 'data-review-lyrics': '' }, hidden: true });
+        if (sel === '[data-review-lyrics-text]') return makeEl({ attrs: { 'data-review-lyrics-text': '' } });
         if (sel === '[data-upload-loader]') return loader;
         if (sel === '[data-upload-loader-step]') return loaderStep;
         if (sel === '[data-upload-loader-fill]') return loaderFill;
@@ -317,6 +327,9 @@ function load(options) {
     localStorage,
     location: context.location,
     instrumental,
+    lyrics,
+    lyricsField,
+    lyricsOpen,
     languageField,
     loader,
     loaderStep,
@@ -366,6 +379,7 @@ function makeTrackRow(title, file, attrs) {
     querySelector(sel) {
       if (sel === '[data-track-title]') return titleEl;
       if (sel === '[data-audio-input]') return input;
+      if (sel === '[data-track-lyrics]') return extra.lyricsEl || { value: extra.lyrics || '' };
       return null;
     },
   };
@@ -502,7 +516,57 @@ async function run() {
   assert.strictEqual(JSON.parse(instRelease.init.body).language, undefined);
   assert.strictEqual(JSON.parse(instTrack.init.body).language, undefined);
   assert.strictEqual(draftOf(instrumentalOk.localStorage).instrumental, true);
+  assert.strictEqual(draftOf(instrumentalOk.localStorage).lyrics, '');
+  assert.strictEqual(instrumentalOk.lyricsField.hidden, true);
   assert.strictEqual(instrumentalOk.location.href, 'attest.html');
+
+  const lyricsPage = load(filledUpload({
+    lyrics: '',
+    responses: uploadResponses.slice(),
+  }));
+  assert.strictEqual(lyricsPage.lyricsField.hidden, true);
+  lyricsPage.lyricsOpen.listeners.click({ preventDefault() {} });
+  assert.strictEqual(lyricsPage.lyricsField.hidden, false, 'click Lyrics must open the textarea');
+  lyricsPage.lyrics.value = 'Verse one\nI wrote this tonight';
+  if (lyricsPage.lyrics.listeners.input) lyricsPage.lyrics.listeners.input();
+  assert.strictEqual(draftOf(lyricsPage.localStorage).lyrics, 'Verse one\nI wrote this tonight');
+  lyricsPage.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.strictEqual(draftOf(lyricsPage.localStorage).lyrics, 'Verse one\nI wrote this tonight');
+  const lyricsRelease = lyricsPage.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+  const lyricsTrack = lyricsPage.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
+  assert.ok(lyricsRelease);
+  assert.ok(lyricsTrack);
+  assert.strictEqual(JSON.parse(lyricsRelease.init.body).lyrics, undefined, 'ToneGrid create/update has no lyrics field');
+  assert.strictEqual(JSON.parse(lyricsTrack.init.body).lyrics, undefined, 'ToneGrid create/update has no lyrics field');
+  assert.strictEqual(JSON.parse(lyricsTrack.init.body).lyric_text, undefined);
+
+  const lyricsRestore = load(filledUpload({
+    draft: { lyrics: 'Saved from the step bar', instrumental: false },
+  }));
+  assert.strictEqual(lyricsRestore.lyrics.value, 'Saved from the step bar');
+  assert.strictEqual(lyricsRestore.lyricsField.hidden, false);
+
+  const albumLyrics = load(filledUpload({
+    type: 'album',
+    title: 'Night Drive LP',
+    file: null,
+    trackRows: [
+      makeTrackRow('Intro', AUDIO, { lyrics: 'Intro words' }),
+    ],
+    draft: { type: 'album', album_count: 1 },
+    account: {
+      plan: 'creator',
+      artist: 'Ada Night',
+      upload: { allowed: true, album_allowed: true, plan: 'creator' },
+    },
+    responses: uploadResponses.slice(),
+  }));
+  albumLyrics.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const albumDraft = draftOf(albumLyrics.localStorage);
+  assert.ok(Array.isArray(albumDraft.tracks));
+  assert.strictEqual(albumDraft.tracks[0].lyrics, 'Intro words');
 
   const explicitYes = load(filledUpload({
     explicit: true,
@@ -1507,6 +1571,13 @@ async function run() {
   assert.ok(source.includes('DEFAULT_CATALOG_TIMEOUT_MS'));
   assert.ok(source.includes('.catch(function (err)'));
   assert.ok(!source.includes("length < 2) addTrackRow()"));
+  assert.ok(uploadHtml.includes('id="tg-lyrics"'));
+  assert.ok(uploadHtml.includes('data-lyrics-open'));
+  assert.ok(uploadHtml.includes('data-lyrics-field'));
+  assert.ok(!uploadHtml.includes('Add lyrics file'));
+  assert.ok(source.includes('selectedLyrics'));
+  assert.ok(source.includes('openLyricsField'));
+  assert.ok(!source.includes('lyric_text'));
   assert.ok(uploadHtml.includes('data-album-count'));
   assert.ok(uploadHtml.includes('data-album-count-go'));
   assert.ok(uploadHtml.includes('plan-confirm.html?plan=pro'));
