@@ -1339,13 +1339,30 @@ function findPick(items, getValue, getLabel, raw) {
       return { value: value, label: label };
     }
   }
+  for (i = 0; i < items.length; i += 1) {
+    value = getValue(items[i]);
+    label = getLabel(items[i]);
+    if (String(label).toLowerCase().indexOf(low) === 0 || String(value).toLowerCase().indexOf(low) === 0) {
+      return { value: value, label: label };
+    }
+  }
   return null;
 }
 
 function typeaheadInput(select) {
   var field = select && select.parentNode;
-  if (!field || !field.querySelector) return null;
-  return field.querySelector('.typeahead-input');
+  if (!field) return null;
+  var input = field.querySelector && field.querySelector('.typeahead-input');
+  if (input && input.className && String(input.className).indexOf('typeahead-input') !== -1) return input;
+  if (field.children && field.children.length) {
+    var i;
+    for (i = 0; i < field.children.length; i += 1) {
+      if (field.children[i] && String(field.children[i].className || '').indexOf('typeahead-input') !== -1) {
+        return field.children[i];
+      }
+    }
+  }
+  return null;
 }
 
 function fillSelect(select, items, getValue, getLabel) {
@@ -1377,13 +1394,59 @@ function fillSelect(select, items, getValue, getLabel) {
   }
 }
 
+var typeaheadDocBound = false;
+
+function bindTypeaheadDocumentPick() {
+  var doc = typeof document !== 'undefined' ? document : null;
+  if (typeaheadDocBound || !doc || !doc.addEventListener) return;
+  typeaheadDocBound = true;
+  doc.addEventListener('pointerdown', function (event) {
+    var node = event && event.target;
+    while (node && node !== doc) {
+      var value = node.getAttribute && node.getAttribute('data-value');
+      var parent = node.parentNode;
+      var pcls = parent && parent.className;
+      if (value != null && pcls && String(pcls).indexOf('typeahead-list') !== -1) {
+        if (node.listeners && typeof node.listeners.pointerdown === 'function') {
+          node.listeners.pointerdown(event);
+        } else if (typeof node.dispatchEvent === 'function') {
+          try { node.dispatchEvent(new Event('pointerdown', { bubbles: true })); } catch (err) {}
+        }
+        if (event && event.preventDefault) event.preventDefault();
+        return;
+      }
+      node = node.parentNode;
+    }
+  }, true);
+}
+
 function bindTypeahead(select, items, getValue, getLabel) {
   if (!select || !items || !items.length) return;
-  if (select.getAttribute('data-typeahead') === 'on') return;
   var field = select.parentNode;
   if (!field) return;
+  var existingInput = typeaheadInput(select);
+  if (select.getAttribute('data-typeahead') === 'on' && existingInput) return;
+  if (existingInput && existingInput.parentNode && existingInput.parentNode.removeChild) {
+    existingInput.parentNode.removeChild(existingInput);
+  }
+  var existingList = field.querySelector && field.querySelector('.typeahead-list');
+  if (existingList && String(existingList.className || '').indexOf('typeahead-list') === -1) existingList = null;
+  if (!existingList && field.children) {
+    var i;
+    for (i = 0; i < field.children.length; i += 1) {
+      if (field.children[i] && String(field.children[i].className || '').indexOf('typeahead-list') !== -1) {
+        existingList = field.children[i];
+        break;
+      }
+    }
+  }
+  if (existingList && existingList.parentNode && existingList.parentNode.removeChild) {
+    existingList.parentNode.removeChild(existingList);
+  }
+  if (select.removeAttribute) select.removeAttribute('data-typeahead');
   select.setAttribute('data-typeahead', 'on');
   field.classList.add('typeahead-field');
+  bindTypeaheadDocumentPick();
 
   var input = document.createElement('input');
   input.type = 'text';
@@ -1529,6 +1592,13 @@ function bindTypeahead(select, items, getValue, getLabel) {
     input.setAttribute('aria-expanded', 'false');
   }
 
+  function pickFromNode(node) {
+    if (!node || !node.getAttribute) return null;
+    var value = node.getAttribute('data-value');
+    if (value == null || value === '') return null;
+    return { value: value, label: node.textContent || value };
+  }
+
   function pickOption(pick, event) {
     if (event && event.preventDefault) event.preventDefault();
     if (event && event.stopPropagation) event.stopPropagation();
@@ -1537,8 +1607,21 @@ function bindTypeahead(select, items, getValue, getLabel) {
     applyPick(pick);
     hideList();
     if (input.blur) input.blur();
-    if (win && win.setTimeout) win.setTimeout(function () { picking = false; }, 320);
+    if (win && win.setTimeout) win.setTimeout(function () { picking = false; }, 450);
     else picking = false;
+  }
+
+  function commitListEvent(event) {
+    var node = event && event.target;
+    while (node && node !== list) {
+      var pick = pickFromNode(node);
+      if (pick) {
+        pickOption(pick, event);
+        return true;
+      }
+      node = node.parentNode;
+    }
+    return false;
   }
 
   function showMatches(query) {
@@ -1582,6 +1665,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
     placeList();
   }
 
+  if (list.addEventListener) {
+    list.addEventListener('pointerdown', commitListEvent, true);
+    list.addEventListener('mousedown', commitListEvent, true);
+  }
   list.addEventListener('wheel', function (event) {
     if (list.scrollHeight > list.clientHeight) event.stopPropagation();
   }, { passive: true });
@@ -1628,7 +1715,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
         if (select.options[0]) select.selectedIndex = 0;
       }
     }
-    if (win && win.setTimeout) win.setTimeout(finishBlur, 160);
+    if (win && win.setTimeout) win.setTimeout(finishBlur, 400);
     else finishBlur();
   });
   function onViewport() {
@@ -1720,9 +1807,16 @@ if (typeof module === 'object' && module.exports) {
 }
 if (typeof window !== 'undefined') {
   window.PlaigroundUploadCatalog = api;
-  if (window.document && window.document.readyState === 'loading') {
-    window.document.addEventListener('DOMContentLoaded', function () { fillUploadSelects(window.document); });
-  } else if (window.document) {
+  function bootCatalog() {
     fillUploadSelects(window.document);
+    if (window.setTimeout) {
+      window.setTimeout(function () { fillUploadSelects(window.document); }, 0);
+      window.setTimeout(function () { fillUploadSelects(window.document); }, 400);
+    }
+  }
+  if (window.document && window.document.readyState === 'loading') {
+    window.document.addEventListener('DOMContentLoaded', bootCatalog);
+  } else if (window.document) {
+    bootCatalog();
   }
 }

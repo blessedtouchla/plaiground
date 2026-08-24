@@ -45,9 +45,9 @@
         </section>
         <section class="flow-card">
           <h3>Release date</h3>
-          <p class="hint">Pick the day it goes live on the calendar. Stores need 7 days of lead time, so yesterday and anything sooner than 7 days from today stay locked.</p>
+          <p class="hint" id="tg-release-date-hint">Pick the day it goes live on the calendar. Stores need 7 days of lead time, so yesterday and anything sooner than 7 days from today stay locked.</p>
           <div class="field date-picker-field">
-            <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Release date" />
+            <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Release date" aria-describedby="tg-release-date-hint" />
           </div>
           <label class="toggle-line" for="tg-preorder-on">
             <input id="tg-preorder-on" class="toggle-input" type="checkbox" role="switch" aria-checked="false" aria-controls="tg-preorder-panel" />

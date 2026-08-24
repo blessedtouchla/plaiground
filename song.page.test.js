@@ -62,6 +62,9 @@ function makeEl(attrs) {
       this.listeners = this.listeners || {};
       this.listeners[type] = fn;
     },
+    setCustomValidity(msg) {
+      this.customValidity = String(msg || '');
+    },
     querySelector(sel) {
       const all = el.querySelectorAll(sel);
       return all[0] || null;
@@ -417,6 +420,7 @@ function run() {
   assert.ok(html.includes('data-life="taken_down"'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('id="edit-release-date"'));
+  assert.ok(html.includes('id="edit-release-date-hint"'));
   assert.ok(html.includes('id="edit-preorder-on"'));
   assert.ok(html.includes('id="edit-time-on"'));
   assert.ok(html.includes('id="edit-artist"'));
@@ -479,6 +483,45 @@ function run() {
   page.ids['edit-release-date'].listeners.input({ type: 'input' });
   assert.strictEqual(page.ids['edit-release-date'].value, pickedDate, 'empty input during edit-release pick must not wipe the shown date');
   assert.strictEqual(JSON.parse(page.context.localStorage.getItem('plaiground.tonegrid.draft')).release_date, pickedDate);
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function localShift(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function todayLocal() {
+    return localShift(0);
+  }
+  const futureEdit = loadSong({
+    plan: 'basic',
+    me: basicMe,
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      release_date: localShift(14),
+    },
+  });
+  futureEdit.api.openEdit({
+    me: basicMe,
+    draft: { release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', release_date: localShift(14) },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      status: 'pending',
+      release_date: localShift(14),
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+    },
+  });
+  assert.ok(
+    !futureEdit.ids['edit-release-date'].min || futureEdit.ids['edit-release-date'].min <= todayLocal(),
+    'edit-release native min must not be the 7-day lock'
+  );
+  const insideEdit = localShift(1);
+  futureEdit.ids['edit-release-date'].value = insideEdit;
+  futureEdit.ids['edit-release-date'].listeners.change();
+  assert.strictEqual(futureEdit.ids['edit-release-date'].value, insideEdit, 'persistEditReleaseDate must not empty a date inside the 7-day window');
 
   const editCalls = [];
   const editor = loadSong({
