@@ -310,6 +310,13 @@ function runStatic() {
 
   assert.ok(css.includes('.plai-bubble-pill.is-text'), 'Text PLAI has its own chrome');
   assert.ok(css.includes('.plai-bubble-hint'), 'PLAY pronunciation hint is styled');
+  const siteCss = read('site.css');
+  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome keeps Talk/Text PLAI on screen');
+  assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text PLAI');
+  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html'].forEach(function (file) {
+    const html = read(file);
+    assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
+  });
 
   assert.ok(session.includes('process.env.XAI_API_KEY'), 'session route keeps the server key');
   assert.ok(session.includes("method === 'GET'"), 'GET still reports configured without minting');

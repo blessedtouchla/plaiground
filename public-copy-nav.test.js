@@ -246,6 +246,8 @@ function run() {
   });
 
   const boost = read('boost.html');
+  assert.ok(boost.includes('membership.js'), 'boost.html can detect a signed-in session');
+  assert.ok(!/data-require-membership="true"/.test(boost), 'boost.html must not dump signed-in users to login');
   assert.ok(!/Go Pro to unlock/i.test(boost), 'boost.html must not lead with a plan pitch CTA');
   assert.ok(!/Every Pro release can add a Boost/i.test(boost), 'boost.html must not say Pro-only');
   assert.ok(!/Pro-only/i.test(boost), 'boost.html must not say Pro-only');
@@ -261,6 +263,8 @@ function run() {
   assert.ok(/Marketing Boosts/i.test(boosts), 'boosts.html stays a marketing dashboard');
   assert.ok(!/data-require-paid/i.test(boosts), 'boosts.html must not dump Basic to Pick a plan');
   assert.ok(/data-require-membership="true"/i.test(boosts), 'boosts.html stays a signed-in page');
+  assert.ok(boosts.includes('data-boost-state="not-live"'), 'Song not live is a real state tab');
+  assert.ok(boosts.includes('boosts.js'), 'boosts tabs have a handler');
   assert.ok(/Boosts are locked on Basic/i.test(boosts), 'Basic sees a Boost lock, not a plan pitch');
   assert.ok(/Creator and Pro can add a Boost/i.test(boosts), 'Boost lock is Creator + Pro');
 

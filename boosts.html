@@ -41,10 +41,10 @@
     </div>
     <div class="page">
       <a class="back-link" href="releases.html">← Back to Releases</a>
-      <div class="proto" aria-label="Prototype states">
-        <span class="on">Available</span>
-        <span>Song not live</span>
-        <span>Boost active</span>
+      <div class="proto" data-boost-states aria-label="Boost states">
+        <button class="on" type="button" data-boost-state="available">Available</button>
+        <button type="button" data-boost-state="not-live">Song not live</button>
+        <button type="button" data-boost-state="active">Boost active</button>
       </div>
       <div class="page-head">
         <p class="kicker">Marketing Boosts</p>
@@ -55,7 +55,15 @@
         <strong>Boosts are locked on Basic</strong>
         <p>Creator and Pro can add a Boost to a release. Basic can see the packages. Buying a Boost stays locked.</p>
       </div>
-      <div class="offer-grid">
+      <div class="empty" data-boost-panel="not-live" hidden>
+        <h3>Song not live</h3>
+        <p>Boosts attach to a live release. This song is not live yet, so there is nothing to boost here.</p>
+      </div>
+      <div class="empty" data-boost-panel="active" hidden>
+        <h3>No boost is active</h3>
+        <p>None of these packages can be purchased on this site, so no Boost is active.</p>
+      </div>
+      <div class="offer-grid" data-boost-panel="available">
         <article class="offer">
           <h3>Chart Push</h3>
           <div class="price">$203 one-time</div>
@@ -106,6 +114,7 @@
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
+  <script src="boosts.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
