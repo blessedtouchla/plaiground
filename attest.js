@@ -1,5 +1,6 @@
 (function (root) {
   var DRAFT_KEY = 'plaiground.tonegrid.draft';
+  var HUMAN_SAVED_KEY = 'plaiground.attest.human_saved';
 
   function readDraft() {
     try {
@@ -95,8 +96,9 @@
       }
       if (!fields.made_how) return 'How the song was made is required.';
       if (fields.made_how === 'ai_assisted') {
-        if (!fields.human_elements.length) return 'Human element is required.';
-        if (!fields.human_contribution) return 'Describe the human contribution is required.';
+        if (!fields.human_elements.length && !fields.human_contribution) {
+          return 'Human element is required.';
+        }
       }
       if (!fields.rights_confirmed) return 'Rights confirmation is required.';
       return '';
@@ -108,6 +110,38 @@
       status.hidden = !text;
     }
 
+    function humanSavedThisSession() {
+      try {
+        return Boolean(root.sessionStorage && root.sessionStorage.getItem(HUMAN_SAVED_KEY));
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function markHumanSaved() {
+      try {
+        if (root.sessionStorage) root.sessionStorage.setItem(HUMAN_SAVED_KEY, '1');
+      } catch (err) {}
+    }
+
+    function applyHumanElements(items) {
+      var wanted = Object.create(null);
+      (Array.isArray(items) ? items : []).forEach(function (item) {
+        var label = String(item || '').trim();
+        if (label) wanted[label] = true;
+      });
+      Array.prototype.forEach.call(tags, function (tag) {
+        tag.classList.toggle('on', Boolean(wanted[String(tag.textContent || '').trim()]));
+      });
+    }
+
+    function savedHumanElements(draft) {
+      draft = draft || {};
+      if (!Array.isArray(draft.human_elements) || !draft.human_elements.length) return [];
+      if (!humanSavedThisSession()) return [];
+      return draft.human_elements;
+    }
+
     function applyDraft(draft) {
       draft = draft || {};
       if (draft.made_how) {
@@ -115,15 +149,7 @@
           el.classList.toggle('on', el.getAttribute('data-made-how') === draft.made_how);
         });
       }
-      if (Array.isArray(draft.human_elements)) {
-        var wanted = Object.create(null);
-        draft.human_elements.forEach(function (item) {
-          wanted[String(item || '').trim()] = true;
-        });
-        Array.prototype.forEach.call(tags, function (tag) {
-          tag.classList.toggle('on', Boolean(wanted[String(tag.textContent || '').trim()]));
-        });
-      }
+      applyHumanElements(savedHumanElements(draft));
       if (human && draft.human_contribution != null) human.value = String(draft.human_contribution);
       if (rights && draft.rights_confirmed != null) {
         rights.checked = draft.rights_confirmed === true || draft.rights_confirmed === 'true';
@@ -160,6 +186,7 @@
     function toggleTag(tag) {
       if (!tag) return;
       tag.classList.toggle('on');
+      markHumanSaved();
       refresh();
     }
 
@@ -188,6 +215,7 @@
         if (trigger.classList) trigger.classList.add('is-incomplete');
         return false;
       }
+      markHumanSaved();
       writeDraft(fields);
       setStatus('');
       if (root.location) root.location.href = nextHref(fields);

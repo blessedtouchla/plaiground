@@ -59,7 +59,17 @@ function makeEl(attrs) {
   return el;
 }
 
-function load() {
+function makeStorage() {
+  return {
+    data: Object.create(null),
+    getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
+    setItem(key, value) { this.data[key] = String(value); },
+  };
+}
+
+function load(opts) {
+  opts = opts || {};
+  const defaultOn = Boolean(opts.defaultOn);
   const ai = makeEl({ attrs: { 'data-made-how': 'ai_assisted' }, on: 'on' });
   const noAi = makeEl({ attrs: { 'data-made-how': 'no_ai' } });
   const fullyAi = makeEl({ attrs: { 'data-made-how': 'fully_ai' } });
@@ -69,21 +79,30 @@ function load() {
       textContent: label,
       className: 'tag',
       attrs: { 'data-human-tag': '' },
-      on: index === 0 || index === 1 || index === 5 || index === 6 ? 'on' : '',
+      on: defaultOn && (index === 0 || index === 1 || index === 5 || index === 6) ? 'on' : '',
     });
   });
-  const count = makeEl({ textContent: '4 selected', attrs: { 'data-human-count': '' } });
+  const count = makeEl({
+    textContent: defaultOn ? '4 selected' : '0 selected',
+    attrs: { 'data-human-count': '' },
+  });
   const human = makeEl({ id: 'attest-human', value: '' });
   const rights = makeEl({ id: 'attest-rights' });
   const solo = makeEl({ id: 'attest-solo' });
   const soloCard = makeEl({ id: 'solo-card' });
   const status = makeEl({ id: 'attest-status' });
   const trigger = makeEl({ attrs: { href: 'split-sheet.html', 'data-attest-continue': '' }, textContent: 'Continue to the split sheet' });
-  const localStorage = {
-    data: Object.create(null),
-    getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
-    setItem(key, value) { this.data[key] = String(value); },
-  };
+  const localStorage = opts.localStorage || makeStorage();
+  const sessionStorage = opts.sessionStorage || makeStorage();
+  if (opts.draft) {
+    localStorage.setItem('plaiground.tonegrid.draft', JSON.stringify(opts.draft));
+  }
+  if (opts.sessionDraft) {
+    sessionStorage.setItem('plaiground.tonegrid.draft', JSON.stringify(opts.sessionDraft));
+  }
+  if (opts.humanSaved) {
+    sessionStorage.setItem('plaiground.attest.human_saved', '1');
+  }
 
   const document = {
     getElementById(id) {
@@ -115,14 +134,30 @@ function load() {
 
   const context = {
     localStorage,
-    sessionStorage: localStorage,
+    sessionStorage,
     document,
     location: { href: 'attest.html' },
     PlaigroundUploadRequired: require('./lib/upload-required'),
   };
   context.globalThis = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8'), context);
-  return { ai, noAi, fullyAi, humanSection, tags, count, human, rights, solo, soloCard, trigger, status, localStorage, location: context.location };
+  return {
+    ai,
+    noAi,
+    fullyAi,
+    humanSection,
+    tags,
+    count,
+    human,
+    rights,
+    solo,
+    soloCard,
+    trigger,
+    status,
+    localStorage,
+    sessionStorage,
+    location: context.location,
+  };
 }
 
 function run() {
@@ -139,10 +174,17 @@ function run() {
   assert.ok(html.indexOf('data-attest-continue') !== -1);
   assert.ok(html.indexOf('id="attest-solo"') !== -1);
   assert.ok(html.indexOf('I own 100% / I attest') !== -1);
+  assert.ok(html.indexOf('0 selected') !== -1);
+  assert.ok(html.indexOf('4 selected') === -1);
+  assert.ok(!/class="tag on"/.test(html), 'chips must not be preselected in HTML');
 
   const page = load();
   assert.ok(page.ai.classList.contains('on'));
   assert.ok(!page.noAi.classList.contains('on'));
+  assert.strictEqual(page.count.textContent, '0 selected');
+  page.tags.forEach(function (tag) {
+    assert.ok(!tag.classList.contains('on'), 'fresh page must not preselect ' + tag.textContent);
+  });
 
   page.noAi.listeners.click({ preventDefault() {} });
   assert.ok(page.noAi.classList.contains('on'));
@@ -187,11 +229,9 @@ function run() {
   assert.notStrictEqual(again.location.href, 'split-sheet.html');
 
   again.tags[0].listeners.click({ preventDefault() {} });
+  again.human.value = '';
   again.trigger.listeners.click({ preventDefault() {} });
-  assert.strictEqual(again.status.textContent, 'Describe the human contribution is required.');
-
-  again.human.value = 'I wrote the lyrics.';
-  again.trigger.listeners.click({ preventDefault() {} });
+  assert.notStrictEqual(again.status.textContent, 'Describe the human contribution is required.');
   assert.strictEqual(again.location.href, 'split-sheet.html');
 
   const full = load();
@@ -233,6 +273,44 @@ function run() {
   const featuredDraft = JSON.parse(featured.localStorage.getItem('plaiground.tonegrid.draft'));
   assert.strictEqual(featuredDraft.solo_owned_100, false);
 
+  const leftoverEmpty = load({
+    defaultOn: true,
+    draft: { made_how: 'ai_assisted', human_elements: [] },
+  });
+  leftoverEmpty.tags.forEach(function (tag) {
+    assert.ok(!tag.classList.contains('on'), 'empty leftover must not restore ' + tag.textContent);
+  });
+  assert.strictEqual(leftoverEmpty.count.textContent, '0 selected');
+
+  const leftoverMissing = load({
+    defaultOn: true,
+    draft: { made_how: 'ai_assisted' },
+  });
+  leftoverMissing.tags.forEach(function (tag) {
+    assert.ok(!tag.classList.contains('on'), 'missing leftover must not restore ' + tag.textContent);
+  });
+  assert.strictEqual(leftoverMissing.count.textContent, '0 selected');
+
+  const leftoverStale = load({
+    defaultOn: true,
+    draft: {
+      made_how: 'ai_assisted',
+      human_elements: ['Original lyrics', 'Lead vocals performed', 'Arrangement', 'Prompt authorship'],
+    },
+  });
+  leftoverStale.tags.forEach(function (tag) {
+    assert.ok(!tag.classList.contains('on'), 'stale leftover chips must not restore unless saved this session');
+  });
+  assert.strictEqual(leftoverStale.count.textContent, '0 selected');
+
+  const savedThisSession = load({
+    draft: { made_how: 'ai_assisted', human_elements: ['Original lyrics'] },
+    sessionDraft: { made_how: 'ai_assisted', human_elements: ['Original lyrics'] },
+    humanSaved: true,
+  });
+  assert.ok(savedThisSession.tags[0].classList.contains('on'));
+  assert.strictEqual(savedThisSession.count.textContent, '1 selected');
+
   const rules = require('./lib/upload-required');
   assert.strictEqual(rules.validateAttest({
     made_how: 'no_ai',
@@ -241,6 +319,18 @@ function run() {
   assert.ok(rules.validateAttest({
     made_how: 'ai_assisted',
     human_elements: [],
+    human_contribution: '',
+    rights_confirmed: true,
+  }).error);
+  assert.ok(rules.validateAttest({
+    made_how: 'ai_assisted',
+    human_elements: ['Original lyrics'],
+    human_contribution: '',
+    rights_confirmed: true,
+  }).ok);
+  assert.ok(!rules.validateAttestPage({
+    made_how: 'ai_assisted',
+    human_elements: ['Original lyrics'],
     human_contribution: '',
     rights_confirmed: true,
   }).error);
