@@ -255,6 +255,17 @@ function sameCatalogId(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase() && Boolean(String(a || '').trim());
 }
 
+function sameSongText(a, b) {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
+
+function releaseBelongsToCreateBody(row, body) {
+  if (!row) return false;
+  const wantTitle = String((body && body.title) || '').trim();
+  const gotTitle = String((row && row.title) || '').trim();
+  return Boolean(wantTitle && gotTitle && sameSongText(wantTitle, gotTitle));
+}
+
 function createdArtistId(payload) {
   if (!payload || typeof payload !== 'object') return '';
   const candidates = [
@@ -638,32 +649,35 @@ async function createRelease(req, res) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
-  let deadReplaceId = '';
-  if (isUuid(replaceId) && existingIds.some((id) => sameCatalogId(id, replaceId))) {
-    if (await tonegridReleaseExists(replaceId)) {
-      sendJson(res, 200, { uuid: replaceId, continued: true });
+  // Client already decided this id is dead. Never 200-continue it, even if the store still has a row.
+  let deadReplaceId = isUuid(replaceId) ? replaceId : '';
+  const explicitId = (decision.continuing && isUuid(continueId)) ? continueId : '';
+  if (explicitId && !sameCatalogId(explicitId, deadReplaceId)) {
+    const live = await fetchReleaseRow(explicitId);
+    if (live.result && live.result.ok) {
+      sendJson(res, 200, { uuid: explicitId, continued: true });
       return;
     }
-    deadReplaceId = replaceId;
-  }
-  const candidateId = (decision.continuing && isUuid(continueId))
-    ? continueId
-    : (
-      type !== 'album'
-      && !deadReplaceId
-      && existingIds.length === 1
-      && isUuid(artistId)
-      && scope.artistId
-      && artistId.toLowerCase() === scope.artistId.toLowerCase()
-        ? existingIds[0]
-        : ''
-    );
-  if (candidateId && !sameCatalogId(candidateId, deadReplaceId)) {
-    if (await tonegridReleaseExists(candidateId)) {
-      sendJson(res, 200, { uuid: candidateId, continued: true });
+    if (isReleaseGoneResult(live.result)) {
+      deadReplaceId = explicitId;
+    }
+  } else if (
+    !deadReplaceId
+    && type !== 'album'
+    && existingIds.length === 1
+    && isUuid(artistId)
+    && scope.artistId
+    && artistId.toLowerCase() === scope.artistId.toLowerCase()
+  ) {
+    const leftoverId = existingIds[0];
+    const live = await fetchReleaseRow(leftoverId);
+    if (live.result && live.result.ok && releaseBelongsToCreateBody(live.row, body)) {
+      sendJson(res, 200, { uuid: leftoverId, continued: true });
       return;
     }
-    deadReplaceId = candidateId;
+    if (isReleaseGoneResult(live.result)) {
+      deadReplaceId = leftoverId;
+    }
   }
   if (!decision.allowed && !deadReplaceId) {
     sendJson(res, 403, plans.limitBody(decision));
