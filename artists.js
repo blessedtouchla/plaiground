@@ -137,11 +137,21 @@
 
   var current = { artists: [], selected: null, photo: '', me: null, catalog: [] };
 
+  function isAccepted(artist) {
+    if (!artist || !artist.name) return false;
+    var review = String(artist.review_status || '').toLowerCase();
+    if (review === 'pending' || review === 'in_review' || review === 'review') return false;
+    if (String(artist.name_check || '').toLowerCase() === 'red' && review !== 'accepted') return false;
+    return artist.source === 'created' || artist.source === 'linked';
+  }
+
   function renderList() {
     var host = $('[data-artist-list]');
     if (!host) return;
     host.textContent = '';
     current.artists.forEach(function (artist) {
+      var wrap = document.createElement('div');
+      wrap.className = 'artist-row-wrap';
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'artist-row' + (current.selected && current.selected.id === artist.id ? ' is-on' : '');
@@ -153,7 +163,20 @@
       badge.textContent = artist.badge || (artist.source === 'linked' ? 'Linked' : 'PLAIGROUND');
       btn.appendChild(title);
       btn.appendChild(badge);
-      host.appendChild(btn);
+      if (artist.edit_status === 'pending') {
+        var pending = document.createElement('span');
+        pending.className = 'plan-badge is-yellow';
+        pending.textContent = 'Pending edit';
+        btn.appendChild(pending);
+      }
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-ghost btn-sm';
+      del.setAttribute('data-artist-delete', artist.id);
+      del.textContent = 'Delete';
+      wrap.appendChild(btn);
+      wrap.appendChild(del);
+      host.appendChild(wrap);
     });
     setHidden('[data-artist-empty]', current.artists.length > 0);
   }
@@ -199,8 +222,12 @@
     paintAiFields(artist);
     setHidden('[data-artist-locked-note]', !artist.locked);
     setHidden('[data-artist-change-wrap]', !artist.locked);
+    setHidden('[data-artist-edit-pending]', artist.edit_status !== 'pending');
+    setHidden('[data-artist-pending-note]', artist.edit_status !== 'pending');
     var field = $('[data-artist-name-field]');
     if (field && field.classList) field.classList.toggle('is-locked', artist.locked === true);
+    var saveBtn = $('[data-artist-save]');
+    if (saveBtn) saveBtn.textContent = isAccepted(artist) ? 'Submit for edit' : 'Save artist';
   }
 
   function setChecks(sel, values) {
@@ -523,9 +550,10 @@
       return Promise.resolve(null);
     }
     showError('');
+    var accepted = isAccepted(current.selected);
     var nameEl = $('#artist-name');
     return post('/api/me/artists', {
-      action: 'update',
+      action: accepted ? 'submit_edit' : 'update',
       id: current.selected.id,
       artist_id: current.selected.artist_id || current.selected.id,
       name: nameEl ? nameEl.value : current.selected.name,
@@ -543,12 +571,58 @@
       confirm_different: true,
     }).then(function (result) {
       if (!result.ok) {
-        showError((result.data && result.data.error) || 'Could not save artist.');
+        showError((result.data && result.data.error) || (accepted ? 'Could not submit this edit.' : 'Could not save artist.'));
         return null;
       }
       applyMe(result.data);
       if (result.data && result.data.updated) selectArtist(result.data.updated);
-      showStatus('Artist profile saved.');
+      showStatus(accepted
+        ? 'Edit submitted. Waiting on the store / the distributor.'
+        : 'Artist profile saved.');
+      return result.data;
+    });
+  }
+
+  function confirmDelete(artist) {
+    var name = artist && artist.name ? (' “' + artist.name + '”') : '';
+    var message = 'Delete this artist profile' + name + ' from PLAIGROUND? This cannot be undone.';
+    if (typeof global.confirm !== 'function') return false;
+    return global.confirm(message);
+  }
+
+  function deleteArtist(id) {
+    var want = String(id || (current.selected && current.selected.id) || '').trim();
+    var found = null;
+    current.artists.forEach(function (row) { if (row.id === want || row.artist_id === want) found = row; });
+    if (!found) {
+      showError('Select an artist first.');
+      return Promise.resolve(null);
+    }
+    if (!confirmDelete(found)) return Promise.resolve({ cancelled: true });
+    showError('');
+    return post('/api/me/artists', {
+      action: 'delete',
+      id: found.id,
+      artist_id: found.artist_id || found.id,
+    }).then(function (result) {
+      if (!result.ok) {
+        var err = (result.data && result.data.error) || 'The store / the distributor cannot delete this artist.';
+        showError(err);
+        showStatus(err);
+        return null;
+      }
+      var keepId = current.selected && current.selected.id === found.id ? '' : (current.selected && current.selected.id);
+      current.selected = null;
+      applyMe(result.data);
+      if (keepId) {
+        var keep = null;
+        current.artists.forEach(function (row) { if (row.id === keepId) keep = row; });
+        if (keep) selectArtist(keep);
+      } else if (!current.artists.length) {
+        selectArtist(null);
+        setHidden('[data-artist-edit]', true);
+      }
+      showStatus('Artist profile deleted.');
       return result.data;
     });
   }
@@ -653,6 +727,20 @@
     if (linkBtn) linkBtn.addEventListener('click', function () { linkArtist(); });
     var saveBtn = $('[data-artist-save]');
     if (saveBtn) saveBtn.addEventListener('click', function () { saveArtist(); });
+    document.querySelectorAll('[data-artist-delete]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        deleteArtist(btn.getAttribute('data-artist-delete') || '');
+      });
+    });
+    if (list) {
+      list.addEventListener('click', function (event) {
+        var del = event.target && event.target.closest && event.target.closest('[data-artist-delete]');
+        if (!del) return;
+        event.preventDefault();
+        event.stopPropagation();
+        deleteArtist(del.getAttribute('data-artist-delete') || '');
+      });
+    }
     var range = $('#artist-ai-range');
     var num = $('#artist-ai-percent');
     if (range && num) {
@@ -695,6 +783,8 @@
     createArtist: createArtist,
     linkArtist: linkArtist,
     saveArtist: saveArtist,
+    deleteArtist: deleteArtist,
+    isAccepted: isAccepted,
     paintCreateCheck: paintCreateCheck,
     paintAiFields: paintAiFields,
     involvementValue: involvementValue,

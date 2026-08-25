@@ -315,11 +315,41 @@ async function saveArtists(req, res) {
     return;
   }
 
-  if (action === 'update') {
+  if (action === 'delete') {
     const id = String((body && (body.id || body.artist_id)) || '').trim();
     const current = profile.findArtist(stored, id);
     if (!current) {
       sendJson(res, 404, { error: 'Artist profile not found.' });
+      return;
+    }
+    const blocked = profile.artistHasBlockingRelease(stored, current);
+    if (blocked) {
+      sendJson(res, 409, Object.assign(publicUser(row), {
+        error: 'This artist still has a live or pending store release. The store / the distributor cannot delete it.',
+        code: 'ARTIST_HAS_STORE_RELEASE',
+        release_status: blocked.tonegrid_status || blocked.status || '',
+      }));
+      return;
+    }
+    const nextProfile = profile.removeArtist(stored, current.id);
+    const next = await persistRoster(row, nextProfile);
+    sendJson(res, 200, Object.assign(publicUser(next || row), { deleted: { id: current.id } }));
+    return;
+  }
+
+  if (action === 'update' || action === 'submit_edit') {
+    const id = String((body && (body.id || body.artist_id)) || '').trim();
+    const current = profile.findArtist(stored, id);
+    if (!current) {
+      sendJson(res, 404, { error: 'Artist profile not found.' });
+      return;
+    }
+    const accepted = profile.isAccepted(current);
+    if (action === 'update' && accepted) {
+      sendJson(res, 409, {
+        error: 'Accepted artist changes must be submitted for edit.',
+        code: 'ARTIST_SUBMIT_EDIT',
+      });
       return;
     }
     const locked = current.locked === true;
@@ -327,7 +357,8 @@ async function saveArtists(req, res) {
     const nextSpotify = body.spotify_id !== undefined ? String(body.spotify_id || '').trim() : current.spotify_id;
     const nextApple = body.apple_id !== undefined ? String(body.apple_id || '').trim() : current.apple_id;
     const nextUrl = body.store_url !== undefined ? String(body.store_url || '').trim() : current.store_url;
-    if (locked && (nextName !== current.name || nextSpotify !== current.spotify_id || nextApple !== current.apple_id || nextUrl !== current.store_url)) {
+    const nameLockedChange = locked && (nextName !== current.name || nextSpotify !== current.spotify_id || nextApple !== current.apple_id || nextUrl !== current.store_url);
+    if (action === 'update' && nameLockedChange) {
       sendJson(res, 409, {
         error: 'Name and platform IDs are locked after the first successful release. Submit a change request.',
         code: 'ARTIST_LOCKED',
@@ -335,7 +366,8 @@ async function saveArtists(req, res) {
       return;
     }
     let nameCheck = current.name_check;
-    if (!locked && nextName !== current.name && current.source !== 'linked') {
+    const applyName = !locked;
+    if (applyName && nextName !== current.name && current.source !== 'linked') {
       const check = artistCheck.checkArtistName(nextName, { accountArtists: stored.artists, skipId: current.id });
       if (check.level === 'red') {
         sendJson(res, 409, { error: artistCheck.RED_COPY, code: 'ARTIST_NAME_RED', check: check });
@@ -360,14 +392,29 @@ async function saveArtists(req, res) {
       sendJson(res, 400, { error: 'AI process detail must be 500 characters or fewer.' });
       return;
     }
-    const artist = profile.normalizeArtist(Object.assign({}, current, {
-      name: nextName,
+    const pendingEdit = accepted ? {
+      name: applyName ? nextName : current.name,
       photo: photo,
       bio: body.bio !== undefined ? body.bio : current.bio,
       genres: genres,
-      spotify_id: nextSpotify,
-      apple_id: nextApple,
-      store_url: nextUrl,
+      spotify_id: applyName ? nextSpotify : current.spotify_id,
+      apple_id: applyName ? nextApple : current.apple_id,
+      store_url: applyName ? nextUrl : current.store_url,
+      human_contributions: body.human_contributions !== undefined ? body.human_contributions : current.human_contributions,
+      ai_contributions: body.ai_contributions !== undefined ? body.ai_contributions : current.ai_contributions,
+      ai_process_detail: body.ai_process_detail !== undefined ? body.ai_process_detail : current.ai_process_detail,
+      ai_involvement_percent: body.ai_involvement_percent !== undefined ? body.ai_involvement_percent : current.ai_involvement_percent,
+      change_request: body.change_request !== undefined ? body.change_request : current.change_request,
+      submitted_at: new Date().toISOString(),
+    } : current.pending_edit;
+    const artist = profile.normalizeArtist(Object.assign({}, current, {
+      name: applyName ? nextName : current.name,
+      photo: photo,
+      bio: body.bio !== undefined ? body.bio : current.bio,
+      genres: genres,
+      spotify_id: applyName ? nextSpotify : current.spotify_id,
+      apple_id: applyName ? nextApple : current.apple_id,
+      store_url: applyName ? nextUrl : current.store_url,
       human_contributions: body.human_contributions !== undefined ? body.human_contributions : current.human_contributions,
       ai_contributions: body.ai_contributions !== undefined ? body.ai_contributions : current.ai_contributions,
       ai_process_detail: body.ai_process_detail !== undefined ? body.ai_process_detail : current.ai_process_detail,
@@ -375,6 +422,8 @@ async function saveArtists(req, res) {
       change_request: body.change_request !== undefined ? body.change_request : current.change_request,
       name_check: nameCheck,
       impersonation_confirmed: body.confirm_different === true || current.impersonation_confirmed,
+      edit_status: accepted ? 'pending' : current.edit_status,
+      pending_edit: pendingEdit,
     }));
     if (artist.photo === '' && photo && String(photo).indexOf('data:image') === 0) {
       sendJson(res, 400, { error: 'Photo must be a JPG or PNG.' });
@@ -382,7 +431,10 @@ async function saveArtists(req, res) {
     }
     const nextProfile = profile.upsertArtist(stored, artist);
     const next = await persistRoster(row, nextProfile);
-    sendJson(res, 200, Object.assign(publicUser(next || row), { updated: artist }));
+    sendJson(res, 200, Object.assign(publicUser(next || row), {
+      updated: artist,
+      submitted_edit: accepted,
+    }));
     return;
   }
 

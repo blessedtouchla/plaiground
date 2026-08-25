@@ -92,8 +92,11 @@ function loadArtists() {
     fetch() { return Promise.resolve({ ok: true, status: 200, json: async () => ({}) }); },
     setTimeout(fn) { fn(); },
     URL,
+    confirm() { context.confirmCalls += 1; return context.confirmResult !== false; },
     PlaigroundMembership: { whenReady() { return Promise.resolve({ ok: true, data: { profile: { artists: [] } } }); } },
   };
+  context.confirmCalls = 0;
+  context.confirmResult = true;
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(read('lib/artist-check.js'), context);
@@ -141,6 +144,10 @@ function run() {
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(!html.includes('data-require-paid'));
   assert.ok(html.includes('skips the name warning'));
+  assert.ok(html.includes('Submit for edit'));
+  assert.ok(html.includes('data-artist-delete'));
+  assert.ok(html.includes('Pending edit'));
+  assert.ok(html.includes('Edit submitted. Waiting on the store / the distributor.'));
   assert.ok(!/ToneGrid|Tonegrid/.test(html.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
 
   const createAt = html.indexOf('id="artist-create-panel"');
@@ -172,6 +179,10 @@ function run() {
   assert.ok(js.includes("openArtistForm('add')"));
   assert.ok(js.includes("openArtistForm('import')"));
   assert.ok(js.includes("Held for review. This name was not sent to the store."));
+  assert.ok(js.includes("submit_edit"));
+  assert.ok(js.includes("action: 'delete'"));
+  assert.ok(js.includes('The store / the distributor cannot delete this artist.'));
+  assert.ok(js.indexOf('/api/tonegrid/artists') === -1, 'do not fake a store artist delete');
   assert.ok(js.includes("classList.toggle('is-green'"));
   assert.ok(js.includes("classList.toggle('is-yellow'"));
   assert.ok(js.includes("classList.toggle('is-red'"));
@@ -244,6 +255,10 @@ function run() {
   assert.ok(page.checkMsg.classList.contains('is-red'));
   assert.strictEqual(page.yellow.hidden, true);
   assert.strictEqual(page.red.hidden, false);
+
+  assert.strictEqual(page.api.isAccepted({ name: 'Ada', source: 'created', review_status: '' }), true);
+  assert.strictEqual(page.api.isAccepted({ name: 'Ada', source: 'linked' }), true);
+  assert.strictEqual(page.api.isAccepted({ name: 'Drake', source: 'created', name_check: 'red', review_status: 'pending' }), false);
 
   console.log('artists.page.test.js ok');
 }

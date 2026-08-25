@@ -112,8 +112,13 @@
       <section class="panel" data-artist-edit hidden>
         <div class="head-row">
           <h3 data-artist-edit-title>Edit artist</h3>
-          <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
+          <span class="page-head-actions">
+            <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
+            <span class="plan-badge is-yellow" data-artist-edit-pending hidden>Pending edit</span>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-delete>Delete</button>
+          </span>
         </div>
+        <p class="hint" data-artist-pending-note hidden>Edit submitted. Waiting on the store / the distributor.</p>
         <div class="rel" style="margin-bottom:20px">
           <div class="profile-photo is-sm" data-artist-photo-edit role="img" aria-label="Artist photo preview"></div>
           <div>
@@ -127,7 +132,7 @@
             <label for="artist-name">Artist name</label>
             <input id="artist-name" type="text" placeholder="Artist name" autocomplete="off" />
             <p class="hint" id="artist-name-check" hidden></p>
-            <p class="field-why" data-artist-locked-note hidden>Name and platform IDs lock after the first successful release. Submit a change request below.</p>
+            <p class="field-why" data-artist-locked-note hidden>Name and platform IDs lock after the first successful release. Submit for edit to request a change. The store artist name is not patched after that first save.</p>
           </div>
           <div class="field">
             <label for="artist-genre">Genres</label>
@@ -199,7 +204,7 @@
           <label for="artist-change">Change request</label>
           <textarea id="artist-change" rows="3" placeholder="What should change, and why"></textarea>
         </div>
-        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-artist-save>Save artist</button></p>
+        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-artist-save>Submit for edit</button></p>
         <p class="hint" data-artist-error hidden></p>
       </section>
 
