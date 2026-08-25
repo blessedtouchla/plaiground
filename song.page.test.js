@@ -603,11 +603,87 @@ function testEditSubmitLeftovers() {
         return hangCover.api.submitEdit().then(function (again) {
           assert.ok(again.ok, 'Retry after a hung live cover upload must confirm');
           assert.ok(/edit-submitted\.html/.test(String(hangCover.context.location.href)));
+          return testAllPlanEditRule();
         });
       });
     });
   });
   });
+}
+
+function testAllPlanEditRule() {
+  assert.ok(read('song.js').includes('var liveEdit = isLiveConfirmed'));
+  assert.ok(!/liveEdit = .*\.plan/.test(read('song.js')), 'pending vs live is not a plan gate');
+  function one(plan, status, title) {
+    const me = {
+      artist: 'Fuvtu',
+      plan: plan,
+      tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    };
+    const calls = [];
+    const page = loadSong({
+      plan: plan,
+      me: me,
+      search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      calls: calls,
+      fetch() {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ok: true,
+            status: status,
+            uuid: me.tonegrid_release_ids[0],
+            title: 'Fuvtu',
+            releases: [{ uuid: me.tonegrid_release_ids[0], title: 'Fuvtu', status: status }],
+          }),
+        });
+      },
+    });
+    page.ids['edit-title'].value = title;
+    page.ids['edit-genre'].value = 'Electronic';
+    page.ids['edit-language'].value = 'en';
+    page.ids['edit-release-date'].value = '2026-09-12';
+    page.api.openEdit({
+      me: me,
+      draft: {
+        release_id: me.tonegrid_release_ids[0],
+        title: 'Fuvtu',
+        made_how: 'no_ai',
+        submitted: true,
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      release: {
+        uuid: me.tonegrid_release_ids[0],
+        title: 'Fuvtu',
+        status: status,
+        genre: 'Electronic',
+        language: 'en',
+        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        dsps: ['spotify'],
+      },
+    });
+    page.ids['edit-title'].value = title;
+    page.ids['edit-genre'].value = 'Electronic';
+    page.ids['edit-language'].value = 'en';
+    return page.api.submitEdit().then(function (result) {
+      if (status === 'live') {
+        assert.ok(result.ok, plan + ' live edit still goes to the store');
+        assert.ok(!result.applied);
+        assert.ok(calls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)));
+        assert.ok(/edit-submitted\.html/.test(String(page.context.location.href)));
+        return;
+      }
+      assert.ok(result.applied, plan + ' pending applies immediately');
+      assert.ok(!calls.some((row) => row.method && row.method !== 'GET' && /\/api\/tonegrid\//.test(row.url)));
+      assert.strictEqual(page.nodes['[data-song-title]'].textContent, title);
+    });
+  }
+  return one('basic', 'pending', 'Basic Pending')
+    .then(function () { return one('creator', 'pending', 'Creator Pending'); })
+    .then(function () { return one('pro', 'pending', 'Pro Pending'); })
+    .then(function () { return one('creator', 'live', 'Creator Live'); })
+    .then(function () { return one('pro', 'live', 'Pro Live'); });
 }
 
 function testSongLoadHangRetry() {
