@@ -530,6 +530,139 @@ function testBasicMobileGenreSticksWithLanguageBound(catalog) {
   }
 }
 
+function coarseMatchMedia(query) {
+  return { matches: String(query || '').indexOf('pointer: coarse') !== -1, media: query, addListener() {}, removeListener() {} };
+}
+
+function testIphoneBasicGenreAndLanguageBothStick(catalog) {
+  const genreSelect = mockSelect('tg-genre', 'Select genre');
+  const langSelect = mockSelect('tg-language', 'Select language');
+  const timers = [];
+  const docListeners = {};
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  const rootClass = { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; }, contains(name) { return Boolean(this.tokens[name]); } };
+  global.window = {
+    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
+    clearTimeout() {},
+    addEventListener() {},
+    matchMedia: coarseMatchMedia,
+    visualViewport: { offsetTop: 0, offsetLeft: 0, width: 390, height: 520, addEventListener() {} },
+    innerWidth: 390,
+    innerHeight: 520,
+  };
+  global.document = {
+    documentElement: { classList: rootClass },
+    listeners: docListeners,
+    addEventListener(type, fn) {
+      this.listenerList = this.listenerList || {};
+      this.listenerList[type] = this.listenerList[type] || [];
+      this.listenerList[type].push(fn);
+      const list = this.listenerList;
+      this.listeners[type] = function (ev) {
+        list[type].slice().forEach(function (handler) { handler(ev); });
+      };
+    },
+    createElement(tag) {
+      const node = mockTypeaheadEl(tag);
+      node.getBoundingClientRect = function () {
+        return this._rect || { top: 120, bottom: 164, left: 16, right: 300, width: 284, height: 44 };
+      };
+      return node;
+    },
+    elementFromPoint() { return this._fromPoint || null; },
+  };
+  try {
+    catalog.bindTypeahead(genreSelect, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    catalog.bindTypeahead(langSelect, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+    const genreInput = genreSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const genreList = genreSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    const langInput = langSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const langList = langSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    assert.ok(genreInput && genreList && langInput && langList, 'Basic upload binds both genre and language typeaheads');
+
+    genreInput.listeners.focus();
+    assert.ok(listButtons(genreList).length >= 1, 'iPhone genre field still opens');
+    assert.notStrictEqual(genreList.style.position, 'fixed', 'iPhone genre list stays attached to the field');
+    assert.ok(!genreList.classList.contains('is-fixed'), 'iPhone must not pin a fixed overlay over language');
+
+    genreInput.value = 'Hip';
+    genreInput.listeners.input();
+    const hip = listButtons(genreList).find(function (btn) { return btn.textContent === 'Hip-Hop'; });
+    assert.ok(hip, 'Basic iPhone genre search must find Hip-Hop');
+    hip._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
+
+    const missed = mockTypeaheadEl('input');
+    missed.id = 'tg-language-type';
+    missed.className = 'typeahead-input';
+    global.document._fromPoint = missed;
+    let blocked = 0;
+    const overlayStart = iosTapEvent(missed, 48, 240, {
+      preventDefault() { blocked += 1; },
+      stopImmediatePropagation() { blocked += 1; },
+    });
+    if (docListeners.touchstart) docListeners.touchstart(overlayStart);
+    genreList.listeners.touchstart(iosTapEvent(hip, 48, 240));
+    genreInput.listeners.blur();
+    if (langInput.listeners.focus) langInput.listeners.focus();
+    assert.ok(blocked >= 1, 'iPhone overlay tap must keep language from taking the genre pick');
+    assert.ok(listButtons(langList).length === 0 || langList.classList.contains('is-hidden'), 'language must not open over the genre tap');
+    if (docListeners.touchend) docListeners.touchend(iosTapEvent(missed, 50, 242));
+    timers.forEach(function (row) { row.fn(); });
+    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'iPhone genre tap that lands on language still writes the catalog genre');
+    assert.strictEqual(genreInput.value, 'Hip-Hop', 'visible Basic genre text stays after the overlay tap');
+    assert.strictEqual(langSelect.value, '', 'language must not steal the genre pick');
+    assert.notStrictEqual(langInput.value, 'Hip-Hop', 'language visible field must not take the genre label');
+
+    langSelect.value = '';
+    langInput.value = '';
+    if (langSelect.options[0]) langSelect.selectedIndex = 0;
+    langInput.listeners.focus();
+    assert.ok(listButtons(langList).length >= 1, 'iPhone language field still opens after a genre pick');
+    langInput.value = 'En';
+    langInput.listeners.input();
+    const english = listButtons(langList).find(function (btn) { return btn.textContent === 'English'; });
+    assert.ok(english, 'iPhone language search must find English');
+    english._rect = { top: 300, bottom: 344, left: 16, right: 300, width: 284, height: 44 };
+    let langBlocked = 0;
+    const langMiss = mockTypeaheadEl('input');
+    langMiss.id = 'tg-price';
+    langMiss.className = 'details-select';
+    global.document._fromPoint = langMiss;
+    if (docListeners.touchstart) {
+      docListeners.touchstart(iosTapEvent(langMiss, 40, 320, {
+        preventDefault() { langBlocked += 1; },
+      }));
+    }
+    langList.listeners.touchstart(iosTapEvent(english, 40, 320));
+    langInput.listeners.blur();
+    if (docListeners.touchend) docListeners.touchend(iosTapEvent(langMiss, 41, 322));
+    timers.forEach(function (row) { row.fn(); });
+    assert.ok(langBlocked >= 1, 'iPhone language overlay tap must still commit');
+    assert.strictEqual(langSelect.value, 'en', 'iPhone language tap that lands on the next field still sticks English');
+    assert.strictEqual(langInput.value, 'English', 'visible Basic language name still sticks on iPhone');
+    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'genre stays after a later language pick');
+
+    genreSelect.value = '';
+    genreInput.value = '';
+    if (genreSelect.options[0]) genreSelect.selectedIndex = 0;
+    genreInput.listeners.focus();
+    const afro = listButtons(genreList).find(function (btn) { return btn.textContent === 'Afrobeats'; }) || listButtons(genreList)[0];
+    assert.ok(afro, 'empty iPhone genre list still shows a real option');
+    afro._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
+    if (docListeners.touchstart) docListeners.touchstart(iosTapEvent(afro, 48, 240));
+    if (docListeners.touchend) docListeners.touchend(iosTapEvent(afro, 48, 320));
+    langInput.listeners.focus();
+    assert.ok(listButtons(langList).length >= 1, 'a missed genre tap must not freeze language');
+    assert.strictEqual(genreSelect.value, '', 'a vertical finger move is a scroll, not a freeze');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function testTypeaheadRebindsIfInputMissing(catalog) {
   const field = {
     children: [],
@@ -775,8 +908,10 @@ function run() {
   assert.ok(catalogSrc.indexOf('pickFromClientPoint') !== -1, 'iOS tap that misses the option node must still use the tap point');
   assert.ok(catalogSrc.indexOf('claimTypeahead') !== -1, 'only one Basic typeahead list may own the tap');
   assert.ok(catalogSrc.indexOf('is-fixed') !== -1, 'genre list must escape the form-grid overlay');
+  assert.ok(catalogSrc.indexOf('isCoarsePointer') !== -1 && catalogSrc.indexOf('pointer: coarse') !== -1, 'iPhone must not use the desktop fixed overlay');
   assert.ok(catalogSrc.indexOf('Do not rewrite the visible field while') !== -1, 'genre labels must not autofill mid-type');
-  assert.ok(/html\.is-typeahead-open[\s\S]*?pointer-events:\s*none/.test(css), 'open genre must disable the language field under the list');
+  assert.ok(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{[\s\S]*?html\.is-typeahead-open[\s\S]*?pointer-events:\s*none/.test(css), 'desktop open genre still disables the language field under the list');
+  assert.ok(!/^html\.is-typeahead-open \.typeahead-field:not\(\.is-typeahead-open\) \{\s*pointer-events: none;/m.test(css), 'iPhone must keep sibling typeaheads tappable');
   assert.ok(/\.typeahead-list\.is-fixed[\s\S]*?position:\s*fixed/.test(css), 'fixed typeahead list sits above the next field');
   assert.ok(catalogSrc.indexOf("new Event('pointerdown'") === -1, 'document pick must not re-dispatch pointerdown');
 
@@ -1086,6 +1221,7 @@ function run() {
     testIosSafariTapSticksWithoutClick(catalog);
     testIosSafariLanguageTapSticks(catalog);
     testBasicMobileGenreSticksWithLanguageBound(catalog);
+    testIphoneBasicGenreAndLanguageBothStick(catalog);
   } finally {
     if (prevDoc2 === undefined) delete global.document;
     else global.document = prevDoc2;
