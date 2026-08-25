@@ -370,6 +370,16 @@ function run() {
   assert.ok(price.every(function (opt) { return !opt.selected; }));
 
   const catalogSrc = fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8');
+  assert.ok(catalogSrc.indexOf('const api =') === -1, 'top-level const api collides with var api on the song page');
+  const shared = { window: { document: { readyState: 'complete', getElementById() { return null; }, addEventListener() {} } }, document: null };
+  shared.document = shared.window.document;
+  shared.window.window = shared.window;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'lib/release-status.js'), 'utf8'), shared);
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'lib/live-player.js'), 'utf8'), shared);
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'lib/statement-pdf.js'), 'utf8'), shared);
+  vm.runInNewContext(catalogSrc, shared);
+  assert.ok(shared.window.PlaigroundUploadCatalog, 'catalog must boot after other song-page scripts that use var api');
+  assert.ok(shared.window.PlaigroundUploadCatalog.GENRES.length >= 180);
   assert.ok(catalogSrc.indexOf('if (matches.length >= 12) break;') === -1);
   assert.ok(catalogSrc.indexOf("new Event('pointerdown'") === -1, 'document pick must not re-dispatch pointerdown');
   assert.ok(catalogSrc.indexOf('bindTypeaheadDocumentPick') === -1, 'recursive pointerdown dispatcher must be gone');

@@ -1799,7 +1799,7 @@ function fillUploadSelects(doc) {
   return { genre: genre, language: language };
 }
 
-const api = {
+const catalogApi = {
   GENRES: GENRES,
   LANGUAGES: LANGUAGES,
   HUMAN_TAGS: HUMAN_TAGS,
@@ -1812,10 +1812,10 @@ const api = {
 };
 
 if (typeof module === 'object' && module.exports) {
-  module.exports = api;
+  module.exports = catalogApi;
 }
 if (typeof window !== 'undefined') {
-  window.PlaigroundUploadCatalog = api;
+  window.PlaigroundUploadCatalog = catalogApi;
   function bootCatalog() {
     try { fillUploadSelects(window.document); } catch (err) {}
   }
