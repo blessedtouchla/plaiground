@@ -72,8 +72,34 @@
     return next;
   }
 
+  function humanErrorText(value, fallback) {
+    if (value == null || value === '') return fallback || '';
+    if (typeof value === 'string') {
+      var trimmed = String(value).replace(/^\s+|\s+$/g, '');
+      if (!trimmed || trimmed === '[object Object]') return fallback || 'Something went wrong. Retry.';
+      return trimmed;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (typeof value === 'object') {
+      if (typeof value.message === 'string' && value.message) return humanErrorText(value.message, fallback);
+      if (typeof value.error === 'string' && value.error) return humanErrorText(value.error, fallback);
+      if (value.error && value.error !== value) return humanErrorText(value.error, fallback);
+      if (typeof value.detail === 'string' && value.detail) return humanErrorText(value.detail, fallback);
+      if (typeof value.description === 'string' && value.description) return humanErrorText(value.description, fallback);
+      try {
+        var keys = Object.keys(value);
+        var i;
+        for (i = 0; i < keys.length; i += 1) {
+          var next = value[keys[i]];
+          if (typeof next === 'string' && next && next !== '[object Object]') return next;
+        }
+      } catch (err) {}
+    }
+    return fallback || 'Something went wrong. Retry.';
+  }
+
   function sanitizePartnerCopy(text) {
-    var next = String(text == null ? '' : text);
+    var next = humanErrorText(text, '');
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -90,23 +116,20 @@
 
   function pickUuid(payload) {
     if (!payload || typeof payload !== 'object') return '';
-    if (typeof payload.uuid === 'string') return payload.uuid;
-    if (payload.artist && typeof payload.artist.uuid === 'string') return payload.artist.uuid;
-    if (payload.release && typeof payload.release.uuid === 'string') return payload.release.uuid;
-    if (payload.track && typeof payload.track.uuid === 'string') return payload.track.uuid;
-    if (payload.data && typeof payload.data === 'object') {
-      if (typeof payload.data.uuid === 'string') return payload.data.uuid;
-      if (payload.data.artist && typeof payload.data.artist.uuid === 'string') {
-        return payload.data.artist.uuid;
-      }
-      if (payload.data.release && typeof payload.data.release.uuid === 'string') {
-        return payload.data.release.uuid;
-      }
-      if (payload.data.track && typeof payload.data.track.uuid === 'string') {
-        return payload.data.track.uuid;
-      }
+    function asId(value) {
+      var next = String(value || '').trim();
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(next) ? next : '';
     }
-    return '';
+    return asId(payload.uuid)
+      || asId(payload.id)
+      || asId(payload.artist && (payload.artist.uuid || payload.artist.id))
+      || asId(payload.release && (payload.release.uuid || payload.release.id))
+      || asId(payload.track && (payload.track.uuid || payload.track.id))
+      || asId(payload.data && payload.data.uuid)
+      || asId(payload.data && payload.data.id)
+      || asId(payload.data && payload.data.artist && (payload.data.artist.uuid || payload.data.artist.id))
+      || asId(payload.data && payload.data.release && (payload.data.release.uuid || payload.data.release.id))
+      || asId(payload.data && payload.data.track && (payload.data.track.uuid || payload.data.track.id));
   }
 
   function parseJson(response) {
@@ -1365,7 +1388,9 @@
   }
 
   function createErrorMessage(result, fallback) {
-    if (result && result.data && result.data.error) return sanitizePartnerCopy(result.data.error);
+    var raw = result && result.data ? result.data.error : '';
+    var shown = sanitizePartnerCopy(raw);
+    if (shown) return shown;
     return sanitizePartnerCopy(fallback || '');
   }
 
@@ -1830,7 +1855,12 @@
       var hook = convertHook();
       if (!hook) return { file: file, didConvert: false, copy: copy };
       return Promise.resolve(hook(file)).then(function (next) {
-        return { file: next || file, didConvert: true, copy: copy };
+        var ready = next;
+        if (ready && typeof ready === 'object' && ready.file) ready = ready.file;
+        if (ready && typeof ready.name === 'string' && (ready.size != null || typeof ready.slice === 'function')) {
+          return { file: ready, didConvert: true, copy: copy };
+        }
+        return { file: file, didConvert: true, copy: copy };
       }).catch(function () {
         return { file: file, didConvert: false, copy: copy };
       });
@@ -2145,6 +2175,9 @@
     var artists = row.profile && Array.isArray(row.profile.artists) ? row.profile.artists.slice() : [];
     artists = artists.filter(function (artist) {
       return artist && artist.name && !isLeftoverArtistName(artist.name);
+    }).map(function (artist) {
+      var id = String((artist && (artist.id || artist.artist_id)) || '').trim();
+      return Object.assign({}, artist, { id: id || artist.name });
     });
     if (!artists.length && row.artist && !isLeftoverArtistName(row.artist)) {
       artists.push({
@@ -2161,10 +2194,13 @@
 
   function selectedArtistOption() {
     var sel = $('tg-artist-select');
-    if (!sel || sel.selectedIndex < 0 || !sel.options) return null;
-    var opt = sel.options[sel.selectedIndex];
-    if (!opt || !opt.value) return null;
-    return { id: String(opt.value), name: String(opt.getAttribute('data-name') || opt.textContent || '').trim() };
+    if (!sel) return null;
+    var opt = null;
+    if (sel.options && sel.selectedIndex >= 0) opt = sel.options[sel.selectedIndex];
+    var id = String((opt && opt.value) || sel.value || '').trim();
+    if (!id) return null;
+    var name = String((opt && (opt.getAttribute && opt.getAttribute('data-name') || opt.textContent)) || '').trim();
+    return { id: id, name: name };
   }
 
   function syncArtistHidden() {
@@ -2401,32 +2437,62 @@
       setBoxHidden('artist-link-wrap', mode !== 'link');
     }
 
+    function clearSelect(sel) {
+      if (!sel) return;
+      if (sel.options && typeof sel.options.length === 'number') {
+        sel.options.length = 0;
+        return;
+      }
+      while (sel.firstChild) sel.removeChild(sel.firstChild);
+    }
+
+    function artistPickValue(artist) {
+      return String((artist && (artist.id || artist.artist_id || artist.name)) || '').trim();
+    }
+
     function fillSelect(artists) {
       var sel = $('tg-artist-select');
       if (!sel) return;
       var current = sel.value;
-      sel.textContent = '';
+      clearSelect(sel);
       var blank = document.createElement('option');
       blank.value = '';
       blank.textContent = artists.length ? 'Select an artist' : 'No artist profiles yet';
       sel.appendChild(blank);
       artists.forEach(function (artist) {
         var opt = document.createElement('option');
-        opt.value = artist.id;
-        opt.setAttribute('data-name', artist.name);
-        opt.textContent = artist.name + (artist.badge ? ' · ' + artist.badge : '');
+        opt.value = artistPickValue(artist);
+        if (opt.setAttribute) opt.setAttribute('data-name', artist.name);
+        opt.textContent = artist.name;
         sel.appendChild(opt);
       });
-      if (current && artists.some(function (artist) { return artist.id === current; })) sel.value = current;
-      else if (artists.length === 1) sel.value = artists[0].id;
+      if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) sel.value = current;
+      else if (artists.length === 1) sel.value = artistPickValue(artists[0]);
       else sel.value = '';
+      syncArtistHidden();
+      var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
+      if (catalog && typeof catalog.bindTypeahead === 'function' && artists.length) {
+        if (sel.removeAttribute) sel.removeAttribute('data-typeahead');
+        catalog.bindTypeahead(sel, artists, artistPickValue, function (artist) { return artist.name; });
+        if (catalog.setTypeaheadValue && sel.value) catalog.setTypeaheadValue(sel, sel.value);
+      }
     }
 
     function liveNameCheck() {
+      var mode = fieldValue('tg-artist-mode') || 'choose';
       var api = artistCheckApi();
       var msg = $('artist-name-check');
       var yellow = $('artist-yellow-actions');
       var red = $('artist-red-actions');
+      if (mode !== 'create') {
+        if (msg) {
+          msg.hidden = true;
+          msg.textContent = '';
+        }
+        if (yellow) yellow.hidden = true;
+        if (red) red.hidden = true;
+        return { level: 'green' };
+      }
       var name = fieldValue('tg-artist-new');
       if (!api) return { level: 'green' };
       var check = api.checkArtistName(name, { accountArtists: rosterFromMe() });
@@ -2464,8 +2530,16 @@
     modeEl.addEventListener('change', function () {
       showMode(modeEl.value || 'choose');
       syncArtistHidden();
+      liveNameCheck();
     });
     showMode(modeEl.value || 'choose');
+    var artistSel = $('tg-artist-select');
+    if (artistSel && artistSel.addEventListener) {
+      artistSel.addEventListener('change', function () {
+        syncArtistHidden();
+        liveNameCheck();
+      });
+    }
 
     var newName = $('tg-artist-new');
     if (newName) {
@@ -2524,15 +2598,23 @@
 
     if (mode === 'choose') {
       var picked = selectedArtistOption();
-      if (!picked || !picked.name) {
+      if (!picked || !picked.id) {
         return Promise.resolve({ error: 'Choose an artist profile.' });
       }
       var existing = null;
-      artists.forEach(function (row) { if (row.id === picked.id) existing = row; });
+      artists.forEach(function (row) {
+        if (row.id === picked.id || row.artist_id === picked.id || row.name === picked.name || row.name === picked.id) {
+          existing = row;
+        }
+      });
+      var chosenName = (existing && existing.name) || picked.name;
+      if (!chosenName) {
+        return Promise.resolve({ error: 'Choose an artist profile.' });
+      }
       return Promise.resolve({
-        name: picked.name,
+        name: chosenName,
         id: picked.id === 'account' ? '' : picked.id,
-        check: { level: (existing && existing.name_check) || 'green' },
+        check: { level: 'green' },
         confirmDifferent: Boolean(existing && existing.impersonation_confirmed),
         linked: Boolean(existing && existing.source === 'linked'),
         skipTonegrid: Boolean(existing && existing.review_status === 'pending'),
@@ -2880,9 +2962,6 @@
     var drop = row.querySelector('[data-audio-drop]');
     var input = row.querySelector('[data-audio-input]');
     if (drop && input) {
-      drop.addEventListener('click', function () {
-        if (typeof input.click === 'function') input.click();
-      });
       drop.addEventListener('dragover', function (event) {
         event.preventDefault();
         drop.classList.add('is-over');
@@ -2896,6 +2975,11 @@
         var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
         bindTrackAudio(row, file);
       });
+      if (input.addEventListener) {
+        input.addEventListener('change', function () {
+          bindTrackAudio(row, audioFileOf(input));
+        });
+      }
     }
     var playBtn = row.querySelector('[data-audio-play]');
     var player = row.querySelector('[data-audio-player]');
@@ -2953,8 +3037,10 @@
   }
 
   function bindTrackAudio(row, file) {
-    if (!row || !file) return;
+    if (!row) return;
     var input = row.querySelector('[data-audio-input]');
+    if (!file) file = audioFileOf(input);
+    if (!file) return;
     var drop = row.querySelector('[data-audio-drop]');
     var preview = row.querySelector('[data-audio-preview]');
     var nameEl = row.querySelector('[data-audio-name]');
@@ -2965,12 +3051,11 @@
         var dt = new DataTransfer();
         dt.items.add(file);
         input.files = dt.files;
-      } catch (err) {
-        input._plaigroundFile = file;
-      }
+      } catch (err) {}
+      input._plaigroundFile = file;
     }
     rememberAudioFile(file);
-    if (nameEl) nameEl.textContent = file.name;
+    if (nameEl) nameEl.textContent = file.name || 'Audio file';
     if (metaEl) metaEl.textContent = file.type || 'Audio file';
     if (preview) preview.hidden = false;
     if (drop) drop.hidden = true;

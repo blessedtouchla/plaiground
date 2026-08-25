@@ -148,6 +148,8 @@ function run() {
   assert.ok(read('publishing-register.html').indexOf('data-require-publishing="true"') !== -1);
   assert.ok(read('publishing-register.html').indexOf('data-require-paid') === -1, 'publishing register must not use the public paid dump');
   assert.ok(read('publishing-register.html').indexOf('class="side"') !== -1, 'publishing register stays a signed-in page');
+  assert.ok(read('publishing-register.html').indexOf('data-publishing-release') !== -1);
+  assert.ok(!/>Your release</.test(read('publishing-register.html')), 'publishing register must not hardcode Your release');
   assert.ok(read('how.html').indexOf('data-signed-in-upload') !== -1);
   assert.ok(read('earnings.html').indexOf('Upgrade to Pro only') === -1);
   assert.ok(read('payouts.html').indexOf('Upgrade to Pro only') === -1);

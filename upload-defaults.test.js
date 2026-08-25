@@ -582,6 +582,13 @@ function run() {
     else global.document = prevDocument;
   }
 
+  const faq = fs.readFileSync(path.join(__dirname, 'faq.html'), 'utf8');
+  assert.ok(faq.indexOf('data-faq-store-list') !== -1);
+  assert.ok(faq.indexOf('lib/store-pick.js') !== -1);
+  assert.ok(!/\b150 platforms\b/.test(faq));
+  assert.ok(!/\b55 stores\b/.test(faq));
+  assert.ok(!/\b164\b/.test(faq.replace(/facebook\.com\/profile\.php\?id=61593116849937/g, '')));
+
   const review = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(review.indexOf('Pre-select all stores') !== -1);
   assert.ok(review.indexOf('data-store-customize') !== -1);

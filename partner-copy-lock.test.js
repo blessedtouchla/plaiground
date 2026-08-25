@@ -28,6 +28,8 @@ const USER_FILES = [
   'upload.html',
   'lib/upload-required.js',
   'lib/cover-preview.js',
+  'publishing-register.html',
+  'publishing-register.js',
 ];
 
 function stringLiterals(src) {

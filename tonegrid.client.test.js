@@ -54,8 +54,14 @@ function makeEl(attrs) {
       this.customValidity = String(msg || '');
     },
     children: [],
+    options: [],
+    selectedIndex: -1,
+    files: attrs.files || [],
+    _plaigroundFile: attrs._plaigroundFile || null,
+    _kids: Object.create(null),
     appendChild(child) {
       this.children.push(child);
+      if (child && this.options && this.options.indexOf(child) === -1) this.options.push(child);
       return child;
     },
     removeChild(child) {
@@ -63,7 +69,8 @@ function makeEl(attrs) {
       if (i !== -1) this.children.splice(i, 1);
       return child;
     },
-    querySelector() {
+    querySelector(sel) {
+      if (this._kids && this._kids[sel]) return this._kids[sel];
       return makeEl({});
     },
     querySelectorAll() {
@@ -95,6 +102,28 @@ function makeEl(attrs) {
       },
     },
   };
+  Object.defineProperty(el, 'innerHTML', {
+    set(html) {
+      const src = String(html || '');
+      el._innerHTML = src;
+      const re = /data-([a-z0-9-]+)/g;
+      let m;
+      const seen = {};
+      while ((m = re.exec(src))) {
+        const key = '[data-' + m[1] + ']';
+        if (seen[key]) continue;
+        seen[key] = true;
+        const child = makeEl({ attrs: { ['data-' + m[1]]: '' } });
+        if (m[1] === 'audio-input') {
+          child.files = [];
+          child._plaigroundFile = null;
+        }
+        if (m[1] === 'audio-preview') child.hidden = true;
+        el._kids[key] = child;
+      }
+    },
+    get() { return el._innerHTML || ''; },
+  });
   return el;
 }
 
@@ -151,6 +180,23 @@ function load(options) {
     'tg-retry-wrap': retryWrap,
     'tg-album-count': makeEl({ id: 'tg-album-count', value: opts.albumCount || '' }),
   };
+  const artistMode = makeEl({ id: 'tg-artist-mode', value: 'choose' });
+  const artistSelect = makeEl({ id: 'tg-artist-select', value: '' });
+  const artistNew = makeEl({ id: 'tg-artist-new', value: '' });
+  const artistNameCheck = makeEl({ id: 'artist-name-check' });
+  const artistYellow = makeEl({ id: 'artist-yellow-actions' });
+  const artistRed = makeEl({ id: 'artist-red-actions' });
+  if (opts.artistPicker) {
+    elements['tg-artist-mode'] = artistMode;
+    elements['tg-artist-select'] = artistSelect;
+    elements['tg-artist-new'] = artistNew;
+    elements['artist-name-check'] = artistNameCheck;
+    elements['artist-yellow-actions'] = artistYellow;
+    elements['artist-red-actions'] = artistRed;
+    elements['artist-choose-wrap'] = makeEl({ id: 'artist-choose-wrap' });
+    elements['artist-create-wrap'] = makeEl({ id: 'artist-create-wrap' });
+    elements['artist-link-wrap'] = makeEl({ id: 'artist-link-wrap' });
+  }
 
   const liveRows = (opts.trackRows || []).slice();
   const albumCount = makeEl({ attrs: { 'data-album-count': '' }, hidden: true });
@@ -326,9 +372,14 @@ function load(options) {
       search: opts.type === 'album' ? '?type=album' : '',
     },
     window: {},
+    URL: {
+      createObjectURL: function () { return 'blob:local-preview'; },
+      revokeObjectURL: function () {},
+    },
     PlaigroundUploadCatalog: require('./upload-catalog'),
   };
   context.window = context;
+  context.window.URL = context.URL;
   context.globalThis = context;
   context.window.location = context.location;
   if (opts.catalogTimeoutMs) context.PlaigroundCatalogTimeoutMs = opts.catalogTimeoutMs;
@@ -385,6 +436,12 @@ function load(options) {
     attestStep,
     reviewStep,
     submitStores,
+    artistMode,
+    artistSelect,
+    artistNew,
+    artistNameCheck,
+    artistYellow,
+    artistRed,
   };
 }
 
@@ -2438,6 +2495,110 @@ async function run() {
   assert.ok(uploadHtml.includes('data-upload-retry'));
   assert.ok(uploadHtml.includes('Retry'));
   assert.ok(!/An album is one ToneGrid/.test(uploadHtml));
+  assert.ok(source.includes('function humanErrorText'));
+  assert.ok(source.includes("trimmed === '[object Object]'"));
+  assert.ok(source.includes('input._plaigroundFile = file'));
+  assert.ok(!source.includes("drop.addEventListener('click', function () {\n        if (typeof input.click === 'function') input.click();"));
+
+  async function albumPickedFileSticksWithEmptyMime() {
+    const page = load(filledUpload({
+      type: 'album',
+      page: 'upload.html?type=album',
+      account: {
+        plan: 'creator',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    page.albumCountInput.value = '4';
+    page.albumCountGo.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.ok(page.liveRows.length >= 1, 'track rows exist so a pick can stick');
+    const row = page.liveRows[0];
+    const input = row.querySelector('[data-audio-input]');
+    const preview = row.querySelector('[data-audio-preview]');
+    const nameEl = row.querySelector('[data-audio-name]');
+    const drop = row.querySelector('[data-audio-drop]');
+    const file = { name: 'my-only.mp3', type: '', size: 4096 };
+    input.files = [file];
+    if (input.listeners.change) input.listeners.change();
+    assert.strictEqual(input._plaigroundFile, file, 'empty MIME must keep the File');
+    assert.strictEqual(nameEl.textContent, 'my-only.mp3');
+    assert.strictEqual(preview.hidden, false);
+    assert.strictEqual(drop.hidden, true);
+    const player = row.querySelector('[data-audio-player]');
+    assert.ok(player.src, 'local preview must use the picked File');
+  }
+
+  async function objectErrorNeverPaintsObjectObject() {
+    const page = load(filledUpload({
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 400, data: { error: { message: 'The store rejected the file.' } } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.ok(page.status.textContent.indexOf('[object Object]') === -1);
+    assert.ok(/store rejected the file/i.test(page.status.textContent));
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'must not invent a success');
+    assert.strictEqual(page.retryWrap.hidden, false);
+  }
+
+  async function continueReachesAttestWhenStoreStepOk() {
+    const page = load(filledUpload({
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(page.status.textContent.indexOf('[object Object]') === -1);
+  }
+
+  async function rosterPickerListsRealArtists() {
+    const page = load(filledUpload({
+      artistPicker: true,
+      account: {
+        plan: 'creator',
+        artist: 'John ham',
+        profile: {
+          artists: [
+            { id: 'art-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND' },
+            { id: 'art-2', name: 'Night Drive', source: 'created' },
+            { id: 'mock', name: 'John ham', source: 'created' },
+          ],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    await flush();
+    const names = page.artistSelect.options.map(function (opt) { return opt.textContent; });
+    assert.ok(names.indexOf('Fuvtu') !== -1, 'roster must list a real profile');
+    assert.ok(names.indexOf('Night Drive') !== -1);
+    assert.ok(names.indexOf('John ham') === -1, 'leftover John ham must not be a picker option');
+    page.artistSelect.value = 'art-1';
+    page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === 'art-1'; });
+    if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
+    assert.strictEqual(page.artistNameCheck.hidden, true, 'existing pick must not run a new-name check');
+  }
+
+  await albumPickedFileSticksWithEmptyMime();
+  await objectErrorNeverPaintsObjectObject();
+  await continueReachesAttestWhenStoreStepOk();
+  await rosterPickerListsRealArtists();
 
   console.log('tonegrid.client.test.js ok');
 }
