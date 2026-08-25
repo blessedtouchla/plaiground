@@ -316,6 +316,11 @@
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
+  <script>
+    if (window.PlaigroundUploadCatalog && window.PlaigroundUploadCatalog.fillUploadSelects) {
+      window.PlaigroundUploadCatalog.fillUploadSelects(document);
+    }
+  </script>
   <script src="lib/audio-accept.js"></script>
   <script src="lib/store-pick.js"></script>
   <script src="lib/statement-pdf.js"></script>

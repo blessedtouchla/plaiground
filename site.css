@@ -1188,24 +1188,27 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .release-edit .store-pick label,
 .store-pick label,
 .store-pick-item {
-  display: inline-flex;
-  flex-wrap: nowrap;
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
-  flex: 0 0 auto;
-  width: auto;
-  max-width: 100%;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: max-content;
+  max-width: none;
   box-sizing: border-box;
   position: relative;
+  float: none;
   margin: 0;
-  white-space: nowrap;
+  white-space: nowrap !important;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
-  text-transform: none;
+  text-transform: none !important;
   color: var(--muted-2);
   cursor: pointer;
 }
@@ -2285,26 +2288,26 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .store-pick label input,
 .store-pick label input[type="checkbox"],
 .store-pick input.store-pick-box {
-  position: static;
-  left: auto;
-  top: auto;
-  transform: none;
-  width: 16px;
-  min-width: 16px;
-  max-width: 16px;
-  height: 16px;
-  margin: 0;
-  padding: 0;
-  opacity: 1;
-  appearance: auto;
-  -webkit-appearance: checkbox;
-  background: none;
-  background-image: none;
-  border: 0;
-  border-radius: 0;
-  flex: 0 0 auto;
-  z-index: auto;
-  pointer-events: auto;
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  margin: 0 2px 0 0 !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  appearance: auto !important;
+  -webkit-appearance: checkbox !important;
+  background: none !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  flex: 0 0 auto !important;
+  z-index: auto !important;
+  pointer-events: auto !important;
   cursor: pointer;
   accent-color: var(--purple);
 }

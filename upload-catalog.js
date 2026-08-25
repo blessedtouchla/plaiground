@@ -1780,7 +1780,9 @@ function fillOneSelect(select, items, getValue, getLabel) {
   if (!select) return;
   if (isTypeaheadBound(select)) return;
   fillSelect(select, items, getValue, getLabel);
-  bindTypeahead(select, items, getValue, getLabel);
+  try {
+    bindTypeahead(select, items, getValue, getLabel);
+  } catch (err) {}
 }
 
 function fillUploadSelects(doc) {
@@ -1815,7 +1817,7 @@ if (typeof module === 'object' && module.exports) {
 if (typeof window !== 'undefined') {
   window.PlaigroundUploadCatalog = api;
   function bootCatalog() {
-    fillUploadSelects(window.document);
+    try { fillUploadSelects(window.document); } catch (err) {}
   }
   if (window.document && window.document.readyState === 'loading') {
     window.document.addEventListener('DOMContentLoaded', bootCatalog);

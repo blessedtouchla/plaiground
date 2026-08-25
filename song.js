@@ -1499,6 +1499,7 @@
     releaseStatementPdf: releaseStatementPdf,
     releaseStatementDoc: releaseStatementDoc,
   };
+  fillCatalogSelects();
   bindEdit();
   bindDownload();
   load();
