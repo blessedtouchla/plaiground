@@ -34,6 +34,8 @@ function run() {
   assert.ok(review.indexOf('Optional · $9.99') !== -1);
   assert.ok(!/Due now[\s\S]*\$9\.99/.test(review));
 
+  assert.ok(submitted.indexOf('164 of 163 stores') === -1);
+  assert.ok(submitted.indexOf('data-submit-stores') !== -1);
   assert.ok(submitted.indexOf('$0.00 · included in membership') !== -1);
   assert.ok(submitted.indexOf('Distribution is included. Nothing extra was charged on this release.') !== -1);
   assert.ok(submitted.indexOf('Publishing and distribution are included in membership. Nothing extra was charged on this release.') !== -1);

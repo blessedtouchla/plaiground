@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Split sheets – PLAIGROUND</title>
+  <title>Signups – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -18,7 +18,7 @@
       <a href="dashboard.html">Overview</a>
       <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
       <a href="releases.html">Releases</a>
-      <a class="on" href="splits.html">Splits</a>
+      <a href="splits.html">Splits</a>
       <a href="publishing-register.html" data-publishing-register>Publishing</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
@@ -34,40 +34,41 @@
       <p data-for-plans="basic">Distribution is included. Publishing, Boosts, and deeper analytics unlock on Creator or Pro.</p>
       <p data-for-plans="creator pro" hidden>Publishing, Boosts and deeper analytics are active on your account.</p>
       <p style="margin-top:8px" data-account-plan-price>Your plan</p>
-      <p style="margin-top:4px" data-account-plan-year hidden></p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
+      <span></span>
       <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
       <div class="page-head">
-        <p class="kicker">Rights</p>
-        <h1>Split sheets</h1>
-        <p>Every writer signs before delivery. Shares must total 100%.</p>
+        <p class="kicker">Owner</p>
+        <h1>Signups</h1>
+        <p>Every account in the store, newest first.</p>
       </div>
-      <table class="data" data-splits-table hidden>
-        <thead>
-          <tr><th>Work</th><th>Writers</th><th>Signatures</th><th>Status</th></tr>
-        </thead>
-        <tbody data-splits-rows></tbody>
-      </table>
-      <div class="empty-card" data-splits-empty>
-        <div class="empty-ico blue" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v5h5"/><path d="M10 13h6M10 17h4"/></svg>
-        </div>
-        <h3>Your first split sheet goes here</h3>
-        <p>Split sheets are created as part of a submission. Once you add writers and shares, every signature and its status shows up on this page.</p>
-        <div class="empty-actions">
-          <a class="btn btn-purple btn-md" href="upload.html" data-signed-in-upload>Start a submission</a>
-        </div>
+      <p class="hint" data-signups-status>Loading signups…</p>
+      <p class="hint" data-signups-empty hidden>No accounts yet.</p>
+      <div class="panel" data-signups-table hidden>
+        <h3>Accounts</h3>
+        <table class="data">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Signed up</th>
+              <th>Stripe</th>
+            </tr>
+          </thead>
+          <tbody data-signups-body></tbody>
+        </table>
       </div>
     </div>
   </div>
   <script src="membership.js"></script>
   <script src="account.js"></script>
-  <script src="splits.js"></script>
+  <script src="admin.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

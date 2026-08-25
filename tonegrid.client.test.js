@@ -69,7 +69,10 @@ function makeEl(attrs) {
     querySelectorAll() {
       return [];
     },
-    closest() {
+    closest(sel) {
+      if (sel === '.st' && (this.className === 'st' || this.getAttribute('class') === 'st')) return this;
+      if (sel === '[data-flow-step]' && this.getAttribute('data-flow-step')) return this;
+      if (sel === 'a[href]' && this.getAttribute('href')) return this;
       return null;
     },
     hasAttribute(name) {
@@ -123,6 +126,7 @@ function load(options) {
   const payBtn = makeEl({
     attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
+  const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
   const calls = [];
   const localStorage = makeStorage();
   const sessionStorage = makeStorage();
@@ -180,6 +184,18 @@ function load(options) {
     return [];
   };
   const addTrackBtn = makeEl({ attrs: { 'data-add-track': '' } });
+  const uploadStep = makeEl({ href: 'upload.html', attrs: { href: 'upload.html', class: 'st' } });
+  uploadStep.tagName = 'A';
+  uploadStep.className = 'st';
+  const attestStep = makeEl({ href: 'attest.html', attrs: { href: 'attest.html', class: 'st' } });
+  attestStep.tagName = 'A';
+  attestStep.className = 'st';
+  const reviewStep = makeEl({ href: 'review.html', attrs: { href: 'review.html', class: 'st' } });
+  reviewStep.tagName = 'A';
+  reviewStep.className = 'st';
+  const stepper = makeEl({ attrs: { class: 'stepper' } });
+  stepper.className = 'stepper';
+  stepper.contains = function () { return true; };
 
   const context = {
     URLSearchParams,
@@ -205,6 +221,9 @@ function load(options) {
         if (sel === '[data-store-submit]') return opts.bind === 'review' ? payBtn : null;
         if (sel === '[data-review-title]' || sel === '[data-review-meta]' || sel === '[data-submit-title]') {
           return opts.bind === 'submitted' ? makeEl({}) : null;
+        }
+        if (sel === '[data-submit-stores]') {
+          return opts.bind === 'submitted' ? submitStores : null;
         }
         if (sel === '[data-audio-input]') {
           return opts.file ? { files: [opts.file], _plaigroundFile: opts.file } : null;
@@ -246,6 +265,7 @@ function load(options) {
         if (sel === '[data-instrumental]') return instrumental;
         if (sel === '[data-upload-retry]') return retryBtn;
         if (sel === '[data-upload-retry-wrap]') return retryWrap;
+        if (sel === '.stepper') return stepper;
         return null;
       },
     },
@@ -268,7 +288,7 @@ function load(options) {
         return Promise.resolve({
           ok: true,
           status: 200,
-          json: async () => ({ stores: [] }),
+          json: async () => ({ stores: opts.catalogStores || [] }),
         });
       }
       if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
@@ -326,6 +346,11 @@ function load(options) {
       },
     };
   }
+  if (opts.convertHold) {
+    context.PlaigroundConvertUploadAudio = function () {
+      return Promise.resolve(opts.convertHold);
+    };
+  }
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
   return {
@@ -344,6 +369,7 @@ function load(options) {
     languageField,
     loader,
     loaderStep,
+    loaderMeta,
     date,
     albumCount,
     albumCountInput,
@@ -355,6 +381,10 @@ function load(options) {
     liveRows,
     retryBtn,
     retryWrap,
+    stepper,
+    attestStep,
+    reviewStep,
+    submitStores,
   };
 }
 
@@ -953,9 +983,119 @@ async function run() {
   }));
   mp3Wait.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Converting MP3 to WAV|Uploading audio/i.test(mp3Wait.loaderStep.textContent + ' ' + mp3Wait.status.textContent));
+  assert.ok(/Converting MP3 to WAV/.test(mp3Wait.loaderStep.textContent), 'MP3 must show converting while the file is being prepared');
+  assert.ok(/take a minute/i.test(mp3Wait.loaderMeta.textContent + ' ' + mp3Wait.status.textContent));
+  assert.strictEqual(mp3Wait.loader.hidden, false, 'convert bar stays visible');
+  assert.ok(!/Uploading audio/.test(mp3Wait.loaderStep.textContent), 'do not call the convert wait "Uploading audio"');
   audioHold();
   await flush();
+
+  let convertRelease;
+  const convertHold = new Promise(function (resolve) { convertRelease = resolve; });
+  let audioAfterConvert;
+  const holdAudioAfterConvert = new Promise(function (resolve) { audioAfterConvert = resolve; });
+  const mp3Phases = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    convertHold: convertHold,
+    holdFirst: holdAudioAfterConvert,
+    holdWhen: '/audio',
+  }));
+  mp3Phases.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(/Converting MP3 to WAV/.test(mp3Phases.loaderStep.textContent));
+  assert.ok(/take a minute/i.test(mp3Phases.loaderMeta.textContent + ' ' + mp3Phases.status.textContent));
+  assert.ok(!/Uploading audio/.test(mp3Phases.loaderStep.textContent), 'converting must run before the store POST');
+  convertRelease();
+  await flush();
+  assert.ok(/Uploading audio/.test(mp3Phases.loaderStep.textContent + ' ' + mp3Phases.status.textContent), 'after convert, move to uploading');
+  assert.ok(!/Converting/.test(mp3Phases.loaderStep.textContent), 'do not keep converting copy after convert finishes');
+  audioAfterConvert();
+  await flush();
+
+  let wavHold;
+  const holdWav = new Promise(function (resolve) { wavHold = resolve; });
+  const wavWait = load(filledUpload({
+    file: { name: 'night-drive.wav', type: 'audio/wav', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdWav,
+    holdWhen: '/audio',
+  }));
+  wavWait.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(/Uploading audio/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent));
+  assert.ok(!/Converting/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent + ' ' + wavWait.loaderMeta.textContent), 'WAV must not say converting');
+  wavHold();
+  await flush();
+
+  function clickStepper(page, step) {
+    const ev = {
+      target: step,
+      prevented: false,
+      stopped: false,
+      preventDefault() { this.prevented = true; },
+      stopPropagation() { this.stopped = true; },
+    };
+    page.stepper.listeners.click(ev);
+    return ev;
+  }
+
+  let attestStartHold;
+  const holdAttestStart = new Promise(function (resolve) { attestStartHold = resolve; });
+  const attestStarts = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdAttestStart,
+    holdWhen: '/audio',
+  }));
+  const attestStartClick = clickStepper(attestStarts, attestStarts.attestStep);
+  assert.strictEqual(attestStartClick.prevented, true, 'Attest must not leave Upload before convert/upload finishes');
+  await flush();
+  assert.ok(attestStarts.calls.some(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }), 'Attest / Next starts convert+store work if it has not started');
+  assert.ok(/Converting MP3 to WAV/.test(attestStarts.loaderStep.textContent), 'late Attest click still shows converting');
+  assert.strictEqual(attestStarts.loader.hidden, false);
+  assert.ok(String(attestStarts.location.href).indexOf('attest.html') === -1);
+  assert.ok(String(attestStarts.location.href).indexOf('review.html') === -1);
+  attestStartHold();
+  await flush();
+
+  let attestHold;
+  const holdAttestAudio = new Promise(function (resolve) { attestHold = resolve; });
+  const attestInFlight = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdAttestAudio,
+    holdWhen: '/audio',
+  }));
+  attestInFlight.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const artistsBefore = attestInFlight.calls.filter(function (call) {
+    return call.url === '/api/tonegrid/artists';
+  }).length;
+  const audioBefore = attestInFlight.calls.filter(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }).length;
+  const stayed = clickStepper(attestInFlight, attestInFlight.attestStep);
+  assert.strictEqual(stayed.prevented, true);
+  await flush();
+  assert.ok(String(attestInFlight.location.href).indexOf('attest.html') === -1, 'in-flight Attest must stay on Upload');
+  assert.ok(/Converting MP3 to WAV/.test(attestInFlight.loaderStep.textContent));
+  assert.strictEqual(attestInFlight.loader.hidden, false, 'keep the converting bar on the Attest click');
+  assert.strictEqual(attestInFlight.calls.filter(function (call) {
+    return call.url === '/api/tonegrid/artists';
+  }).length, artistsBefore, 'do not drop and restart the in-flight upload');
+  assert.strictEqual(attestInFlight.calls.filter(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }).length, audioBefore);
+  const reviewClick = clickStepper(attestInFlight, attestInFlight.reviewStep);
+  assert.strictEqual(reviewClick.prevented, true);
+  assert.ok(String(attestInFlight.location.href).indexOf('review.html') === -1, 'do not skip to Review while convert is running');
+  attestHold();
+  await flush();
+  assert.strictEqual(draftOf(attestInFlight.localStorage).audio_attached, true);
+  assert.ok(draftOf(attestInFlight.localStorage).audio_name);
 
   const phoneMp3 = load(filledUpload({
     file: { name: 'voice-memo.mp3', type: 'audio/x-mpeg', size: 2048 },
@@ -2191,10 +2331,57 @@ async function run() {
   await proAlbumCountUnlimited();
   await basicAlbumStaysLocked();
 
+  const catalog55 = [];
+  for (let i = 0; i < 55; i += 1) catalog55.push('store-' + i);
+  const submittedAll = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(),
+      dsps_all: true,
+      dsps_total: 55,
+    },
+  });
+  assert.strictEqual(submittedAll.submitStores.textContent, 'All 55 stores');
+  assert.ok(submittedAll.submitStores.textContent.indexOf('164 of 163') === -1);
+
+  const submittedSome = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(0, 40),
+      dsps_all: false,
+      dsps_total: 55,
+    },
+  });
+  assert.strictEqual(submittedSome.submitStores.textContent, '40 of 55 stores');
+
+  const submittedLiveCatalog = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(),
+      dsps_all: true,
+    },
+    catalogStores: catalog55.map(function (slug) { return { slug: slug, name: slug }; }),
+  });
+  await flush();
+  assert.strictEqual(submittedLiveCatalog.submitStores.textContent, 'All 55 stores');
+  assert.strictEqual(draftOf(submittedLiveCatalog.localStorage).dsps_total, 55);
+
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
+  assert.ok(source.includes("return 'Converting to WAV'") || source.includes('Converting to WAV'));
+  assert.ok(source.includes('This can take a minute.'));
   assert.ok(source.includes('Uploading audio'));
+  assert.ok(source.includes('bindLeaveUploadGuard'));
+  assert.ok(source.includes('guardLeaveUpload'));
+  assert.ok(source.includes('keepUploadBarVisible'));
+  assert.ok(fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8').includes("return 'Converting to WAV';"));
   assert.ok(source.includes('Uploading artwork'));
   assert.ok(source.includes('Opening SignWell'));
   assert.ok(source.includes('Audio must be WAV, FLAC, or MP3.'));
@@ -2218,6 +2405,10 @@ async function run() {
   assert.ok(source.includes('resolveLiveRelease'));
   assert.ok(source.includes('clearDeadReleaseIds'));
   assert.ok(source.includes('ensureCatalogArtist'));
+  assert.ok(source.includes('dsps_total'));
+  assert.ok(source.includes('formatSubmitted'));
+  assert.ok(source.includes('storePickSnapshot'));
+  assert.ok(!source.includes('164 of 163'));
   assert.ok(source.includes('createFreshFailed'));
   assert.ok(source.includes('freshReleaseKey'));
   assert.ok(source.includes('isReleaseMissing'));

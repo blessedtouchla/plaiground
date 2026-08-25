@@ -27,6 +27,7 @@ const APP_PAGES = [
   'publishing-register.html',
   'faq.html',
   'plai.html',
+  'admin.html',
 ];
 
 function run() {
@@ -118,6 +119,8 @@ function run() {
     assert.ok(html.includes('href="login.html">Log in</a>'), file + ' keeps Log in');
     assert.ok(html.includes('Release Now'), file + ' keeps Release Now');
     assert.ok(!/href="boost.html">Boost<\/a>/.test(html), file + ' must not put Boost on the public menu');
+    assert.ok(!/>Admin</.test(html), file + ' must not put Admin on the public menu');
+    assert.ok(!/href="admin(?:\.html|\/signups)?"/.test(html), file + ' must not link the owner admin page');
     const nav = html.match(/<nav class="nav-links"[^>]*>[\s\S]*?<\/nav>/);
     assert.ok(nav, file + ' must keep the public nav');
     assert.ok(nav[0].includes('href="royalties.html"'), file + ' must list How you get paid as its own top-level public menu item');
@@ -377,13 +380,17 @@ function run() {
     assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must list FAQ in the signed-in menu');
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
-    assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put FAQ last, after Settings');
+    assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
+    assert.ok(/Overview<\/a>\s*<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>/.test(sideNav[0]), file + ' must put New release after Overview, before Releases');
+    assert.ok(!/href="song\.html"[^>]*>New release<\/a>/.test(sideNav[0]), file + ' New release must not go to song.html');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
     assert.ok(/href="splits.html">Splits<\/a>\s*<a(?: class="on")? href="publishing-register.html" data-publishing-register>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>/.test(sideNav[0]), file + ' must list Publishing after Splits');
     assert.ok(sideNav[0].includes('data-publishing-register>Publishing</a>'), file + ' Publishing uses the paid-access register gate');
     assert.ok(!/\bhidden\b[^>]*>Publishing<\/a>/.test(sideNav[0]), file + ' must not hide Publishing');
     assert.ok(!/data-for-plans=/.test(sideNav[0]), file + ' must not plan-hide Publishing on Pro/Creator');
+    assert.ok(!/>Admin</.test(sideNav[0]), file + ' must not put Admin on the artist menu');
+    assert.ok(!/href="admin(?:\.html|\/signups)?"/.test(sideNav[0]), file + ' must not link the owner admin page');
   });
   assert.ok(/href="faq.html">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
   assert.ok(/class="on" href="faq.html">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');

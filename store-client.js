@@ -1621,7 +1621,7 @@
     return /\.(mp3|mpeg|mpga)$/.test(name) || /audio\/(x-)?(mpeg|mp3|mpeg3|mpg)/.test(type);
   }
 
-  function showUploadLoader(step, percent) {
+  function showUploadLoader(step, percent, hint) {
     var loader = document.querySelector('[data-upload-loader]');
     var stepEl = document.querySelector('[data-upload-loader-step]');
     var fill = document.querySelector('[data-upload-loader-fill]');
@@ -1638,7 +1638,10 @@
       else if (hasPercent && loader.classList.remove) loader.classList.remove('is-wait');
     }
     if (fill && fill.style) fill.style.width = hasPercent ? Math.max(0, Math.min(100, percent)) + '%' : '32%';
-    if (meta) meta.textContent = hasPercent ? Math.round(percent) + '%' : '';
+    if (meta) {
+      if (hint) meta.textContent = hint;
+      else meta.textContent = hasPercent ? Math.round(percent) + '%' : '';
+    }
   }
 
   function hideUploadLoader() {
@@ -1774,17 +1777,85 @@
     });
   }
 
+  var CONVERT_HINT = 'This can take a minute.';
+
+  function convertProgressCopy(file, kind) {
+    var helper = audioAccept();
+    if (helper && typeof helper.convertProgressCopy === 'function') {
+      return helper.convertProgressCopy(file, kind);
+    }
+    var name = String((file && file.name) || '');
+    if (/\.wav$/i.test(name) || /\.flac$/i.test(name)) return '';
+    if (kind === 'wav' || kind === 'flac') return '';
+    if (kind === 'mp3' || isMp3File(file)) return 'Converting MP3 to WAV';
+    if (kind) return 'Converting to WAV';
+    return '';
+  }
+
+  function resolveConvertCopy(file) {
+    var sync = convertProgressCopy(file);
+    if (sync) return Promise.resolve(sync);
+    var helper = audioAccept();
+    if (helper && (helper.fileLooksLikeWav && helper.fileLooksLikeWav(file)
+      || helper.fileLooksLikeFlac && helper.fileLooksLikeFlac(file))) {
+      return Promise.resolve('');
+    }
+    if (helper && typeof helper.sniffKind === 'function') {
+      return helper.sniffKind(file).then(function (kind) {
+        return convertProgressCopy(file, kind);
+      });
+    }
+    return Promise.resolve('');
+  }
+
+  function showConvertLoader(copy) {
+    showUploadLoader(copy, null, CONVERT_HINT);
+    setStatus('tg-status', copy + '. ' + CONVERT_HINT);
+  }
+
+  function convertHook() {
+    try {
+      if (typeof PlaigroundConvertUploadAudio === 'function') return PlaigroundConvertUploadAudio;
+    } catch (err) {}
+    if (typeof window !== 'undefined' && window && typeof window.PlaigroundConvertUploadAudio === 'function') {
+      return window.PlaigroundConvertUploadAudio;
+    }
+    return null;
+  }
+
+  function runConvertStep(file) {
+    return resolveConvertCopy(file).then(function (copy) {
+      if (!copy) return { file: file, didConvert: false, copy: '' };
+      showConvertLoader(copy);
+      var hook = convertHook();
+      if (!hook) return { file: file, didConvert: false, copy: copy };
+      return Promise.resolve(hook(file)).then(function (next) {
+        return { file: next || file, didConvert: true, copy: copy };
+      }).catch(function () {
+        return { file: file, didConvert: false, copy: copy };
+      });
+    });
+  }
+
   function uploadTrackAudio(trackId, file, label) {
     if (!trackId || !file) return Promise.resolve({ skipped: true });
-    if (isMp3File(file)) {
-      showUploadLoader('Converting MP3 to WAV');
-      setStatus('tg-status', 'Converting MP3 to WAV…');
-    } else {
-      showUploadLoader(label || 'Uploading audio');
-      setStatus('tg-status', (label || 'Uploading audio') + '…');
-    }
-    return uploadAudio(trackId, file, function (percent) {
-      showUploadLoader(label || 'Uploading audio', percent);
+    var sendLabel = label || 'Uploading audio';
+    return runConvertStep(file).then(function (ready) {
+      var convertLabel = ready.copy;
+      var keepConvert = Boolean(convertLabel && !ready.didConvert);
+      if (keepConvert) {
+        showConvertLoader(convertLabel);
+      } else {
+        showUploadLoader(sendLabel);
+        setStatus('tg-status', sendLabel + '…');
+      }
+      return uploadAudio(trackId, ready.file, function (percent) {
+        if (keepConvert) {
+          showConvertLoader(convertLabel);
+          return;
+        }
+        showUploadLoader(sendLabel, percent);
+      });
     });
   }
 
@@ -2162,8 +2233,27 @@
     return Array.isArray(draft.dsps) ? draft.dsps.slice() : [];
   }
 
-  function persistStorePick(slugs, allOn) {
-    writeDraft({ dsps: slugs || [], dsps_all: allOn !== false });
+  function persistStorePick(slugs, allOn, total) {
+    var patch = { dsps: slugs || [], dsps_all: allOn !== false };
+    var n = Number(total);
+    if (n > 0) patch.dsps_total = n;
+    writeDraft(patch);
+  }
+
+  function storePickSnapshot() {
+    var root = storePickRoot();
+    var draft = readDraft();
+    var slugs = selectedUploadStores();
+    var allBox = root && root.querySelector ? root.querySelector('[data-store-all]') : null;
+    var list = root && root.querySelector
+      ? (root.querySelector('[data-store-list]') || root.querySelector('[data-edit-stores]'))
+      : null;
+    var boxes = list && list.querySelectorAll ? list.querySelectorAll('input[type="checkbox"]') : [];
+    var listTotal = boxes && boxes.length ? boxes.length : 0;
+    var total = listTotal || Number(draft.dsps_total) || 0;
+    var allOn = allBox ? Boolean(allBox.checked) : draft.dsps_all !== false;
+    if (total > 0 && slugs.length >= total) allOn = true;
+    return { slugs: slugs, allOn: allOn, total: total };
   }
 
   function bindStorePick(root, selected) {
@@ -2171,15 +2261,19 @@
     var draft = readDraft();
     var picked = Array.isArray(selected) ? selected : (Array.isArray(draft.dsps) ? draft.dsps : null);
     function apply(stores) {
+      var catalog = Array.isArray(stores) ? stores : [];
       PlaigroundStorePick.bind(root, {
-        stores: stores,
+        stores: catalog,
         selected: picked && picked.length ? picked : null,
-        onChange: persistStorePick,
+        onChange: function (slugs, allOn, total) {
+          persistStorePick(slugs, allOn, total || catalog.length);
+        },
       });
     }
     var fallback = PlaigroundStorePick.DEFAULT_STORES || [];
     getJson('/api/tonegrid/stores').then(function (result) {
-      apply((result.ok && result.data && result.data.stores) || fallback);
+      var live = result.ok && result.data && result.data.stores;
+      apply(live && live.length ? live : fallback);
     }).catch(function () {
       apply(fallback);
     });
@@ -3106,6 +3200,66 @@
       if (wrap) wrap.hidden = true;
     }
 
+    function fireContinue() {
+      var ev = { preventDefault: function () {} };
+      if (trigger.listeners && typeof trigger.listeners.click === 'function') {
+        trigger.listeners.click(ev);
+        return;
+      }
+      if (typeof trigger.click === 'function') trigger.click();
+    }
+
+    function keepUploadBarVisible() {
+      var loader = document.querySelector('[data-upload-loader]');
+      if (!loader) return;
+      loader.hidden = false;
+      if (loader.classList && loader.classList.remove) loader.classList.remove('is-hidden');
+    }
+
+    function stepHrefOf(step) {
+      if (!step || !step.getAttribute) return '';
+      return step.getAttribute('href') || step.getAttribute('data-flow-step') || '';
+    }
+
+    function isLeavingUpload(href) {
+      var next = String(href || '').toLowerCase();
+      if (!next || next.indexOf('upload.html') !== -1) return false;
+      return /attest\.html|split-sheet\.html|review\.html/.test(next);
+    }
+
+    function stepFromEvent(event) {
+      var target = event && event.target;
+      if (!target) return null;
+      if (target.closest) {
+        return target.closest('.st') || target.closest('[data-flow-step]') || target.closest('a[href]');
+      }
+      return target;
+    }
+
+    function guardLeaveUpload(event) {
+      var step = stepFromEvent(event);
+      if (!step || !isLeavingUpload(stepHrefOf(step))) return;
+      if (event && event.preventDefault) event.preventDefault();
+      if (event && event.stopPropagation) event.stopPropagation();
+      var file = selectedAudio();
+      if (file) rememberAudioFile(file);
+      if (uploadRunning || trigger.getAttribute('aria-busy') === 'true' || trigger.getAttribute('aria-disabled') === 'true') {
+        keepUploadBarVisible();
+        return;
+      }
+      fireContinue();
+    }
+
+    function bindLeaveUploadGuard() {
+      var stepper = document.querySelector('.stepper');
+      if (!stepper || typeof stepper.addEventListener !== 'function') return;
+      stepper.addEventListener('click', guardLeaveUpload, true);
+      stepper.addEventListener('keydown', function (event) {
+        if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+        guardLeaveUpload(event);
+      }, true);
+    }
+
     function afterCatalogReady(draft, nextHref) {
       showUploadLoader('Creating track');
       setStatus('tg-status', 'Creating track…');
@@ -3379,6 +3533,7 @@
       }
       startUpload();
     });
+    bindLeaveUploadGuard();
   }
 
   function refreshSignWellDraft(draft) {
@@ -3479,7 +3634,10 @@
           markIncomplete(trigger, true);
           return;
         }
-        draft = writeDraft({ release_date: releaseDate, dsps: selectedUploadStores() });
+        var pick = storePickSnapshot();
+        var submitPatch = { release_date: releaseDate, dsps: pick.slugs, dsps_all: pick.allOn };
+        if (pick.total > 0) submitPatch.dsps_total = pick.total;
+        draft = writeDraft(submitPatch);
 
         if (!isSoloOwned(draft) && !documentIdOf(draft)) {
           setStatus('tg-status', 'Create the split sheet before submitting.');
@@ -3636,6 +3794,27 @@
     setHiddenEl(lyricsBox, !lyricsCopy);
   }
 
+  function submittedStoreCopy(draft) {
+    var slugs = draft && Array.isArray(draft.dsps) ? draft.dsps : [];
+    var total = Number(draft && draft.dsps_total) || 0;
+    var allOn = !draft || draft.dsps_all !== false;
+    if (typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.formatSubmitted) {
+      return PlaigroundStorePick.formatSubmitted(slugs.length, total, allOn);
+    }
+    if (allOn || (total > 0 && slugs.length >= total)) {
+      return (total || slugs.length) ? 'All ' + (total || slugs.length) + ' stores' : '';
+    }
+    if (total > 0) return slugs.length + ' of ' + total + ' stores';
+    return slugs.length ? slugs.length + ' stores' : '';
+  }
+
+  function paintSubmittedStores(draft) {
+    var el = document.querySelector('[data-submit-stores]');
+    if (!el) return;
+    var copy = submittedStoreCopy(draft);
+    if (copy) el.textContent = copy;
+  }
+
   function fillSubmitted() {
     var titleEl = document.querySelector('[data-submit-title]');
     if (!titleEl) return;
@@ -3644,6 +3823,14 @@
     if (draft.tonegrid_status) setStatus('tg-status', 'Store status: ' + draft.tonegrid_status);
     var view = document.querySelector('a[href="song.html"]');
     if (view && draft.release_id) view.setAttribute('href', 'song.html?id=' + encodeURIComponent(draft.release_id));
+    paintSubmittedStores(draft);
+    if (document.querySelector('[data-submit-stores]') && !Number(draft.dsps_total)) {
+      getJson('/api/tonegrid/stores').then(function (result) {
+        var stores = (result.ok && result.data && result.data.stores) || [];
+        if (!stores.length) return;
+        paintSubmittedStores(writeDraft({ dsps_total: stores.length }));
+      }).catch(function () {});
+    }
   }
 
   function bindSubmitted() {
