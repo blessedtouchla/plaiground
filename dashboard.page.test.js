@@ -357,7 +357,7 @@ function run() {
   assert.ok(settings.includes('data-account-avatar>PG'), 'settings unsigned initials stay PG');
   assert.ok(settings.includes('placeholder="Artist name"'), 'settings artist field stays an artist-name placeholder');
   assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
-  ['earnings.html', 'payouts.html', 'splits.html', 'splits-empty.html', 'releases.html', 'how.html', 'upload.html'].forEach(function (file) {
+  ['earnings.html', 'payouts.html', 'splits.html', 'splits-empty.html', 'releases.html', 'how.html', 'upload.html', 'contact.html', 'faq.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(!html.includes('Hi John'), file + ' must not hardcode Hi John');
     assert.ok(!html.includes('John ham'), file + ' must not hardcode John ham');

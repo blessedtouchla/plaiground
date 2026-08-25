@@ -26,6 +26,7 @@ const APP_PAGES = [
   'boosts.html',
   'publishing-register.html',
   'faq.html',
+  'contact.html',
   'plai.html',
   'admin.html',
 ];
@@ -395,6 +396,9 @@ function run() {
   assert.ok(/href="faq.html">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
   assert.ok(/class="on" href="faq.html">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');
   assert.ok(read('site.js').includes('setupSignedInPublicAppChrome'), 'signed-in visits to public+app FAQ swap to the app sidebar');
+  assert.ok(read('contact.html').includes('data-account-who>Hi there'), 'Contact keeps the signed-in Hi there header');
+  assert.ok(read('contact.html').includes('src="membership.js"') && read('contact.html').includes('src="account.js"'), 'Contact reads the live session for signed-in chrome');
+  assert.ok(!/data-require-membership|data-require-paid/i.test(read('contact.html')), 'Contact must not dump signed-in users to login');
 
   const pubRegNav = read('publishing-register.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
   assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register>Publishing<\/a>/.test(pubRegNav[0]), 'Publishing is current on the register page');
@@ -442,6 +446,17 @@ function run() {
   assert.ok(!appNav.tools, 'signed-in app chrome does not gain the public Login cluster');
   assert.ok(!appNav.login, 'signed-in Hi there / PG pages do not get a header Login');
   assert.ok(!appNav.toggle || !appNav.toggle.classList.contains('public-menu-toggle'), 'app Menu is not the public header cluster');
+
+  const contactSignedIn = runPublicAppChromeSwap({ signedIn: true });
+  assert.strictEqual(contactSignedIn.header.hidden, true, 'signed-in Contact hides the public Login header');
+  assert.strictEqual(contactSignedIn.side.hidden, false, 'signed-in Contact shows the app sidebar');
+  assert.strictEqual(contactSignedIn.topbar.hidden, false, 'signed-in Contact shows the Hi there topbar');
+  assert.ok(contactSignedIn.body.classList.contains('app'), 'signed-in Contact uses app chrome');
+  assert.strictEqual(contactSignedIn.who.textContent, 'Hi there', 'signed-in Contact greeting stays Hi there');
+  const contactSignedOut = runPublicAppChromeSwap({ signedIn: false });
+  assert.strictEqual(contactSignedOut.header.hidden, false, 'logged-out Contact keeps the public header');
+  assert.strictEqual(contactSignedOut.side.hidden, true, 'logged-out Contact hides the app sidebar');
+  assert.ok(!contactSignedOut.body.classList.contains('app'), 'logged-out Contact is not app chrome');
 
   function runPublishingOn(pathname) {
     const pub = el('a', { href: 'publishing-register.html' });
@@ -594,6 +609,57 @@ function qsa(root, selector) {
   });
   current.forEach = Array.prototype.forEach;
   return current;
+}
+
+function runPublicAppChromeSwap(options) {
+  const vm = require('vm');
+  const login = el('a', { class: 'login', href: 'login.html' });
+  login.textContent = 'Log in';
+  const header = el('header', { class: 'nav' }, [
+    el('div', { class: 'nav-inner wrap' }, [
+      el('nav', { class: 'nav-links' }),
+      el('div', { class: 'nav-actions' }, [login]),
+    ]),
+  ]);
+  const who = el('a', { class: 'who', href: 'settings.html' });
+  who.textContent = 'Hi there';
+  const topbar = el('div', { class: 'topbar' }, [who]);
+  const side = el('aside', { class: 'side' }, [el('a', { href: 'dashboard.html' })]);
+  const footer = el('footer', {});
+  const body = el('body', {}, [
+    header,
+    side,
+    el('div', { class: 'app-main' }, [topbar, el('main', {})]),
+    footer,
+  ]);
+  const document = {
+    body: body,
+    querySelector: function (sel) { return body.querySelector(sel); },
+    querySelectorAll: function (sel) { return body.querySelectorAll(sel); },
+    createElement: function (tag) { return el(tag); },
+    addEventListener: function () {},
+  };
+  const context = {
+    document: document,
+    window: {
+      PlaigroundMembership: {
+        isSignedIn: function () { return !!options.signedIn; },
+        whenReady: function (cb) { if (typeof cb === 'function') cb(); },
+      },
+    },
+    NodeList: Array,
+  };
+  context.window.document = document;
+  vm.runInNewContext(read('site.js'), context);
+  return {
+    body: body,
+    header: header,
+    side: side,
+    topbar: topbar,
+    who: who,
+    login: login,
+    footer: footer,
+  };
 }
 
 function runPublicNav(options) {

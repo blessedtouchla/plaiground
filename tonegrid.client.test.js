@@ -436,6 +436,7 @@ function load(options) {
     attestStep,
     reviewStep,
     submitStores,
+    artist,
     artistMode,
     artistSelect,
     artistNew,
@@ -2587,6 +2588,8 @@ async function run() {
       },
     }));
     await flush();
+    const storeSrc = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
+    assert.ok(storeSrc.indexOf('catalog.bindTypeahead(sel, artists') === -1, 'Creator artist roster must stay a native select');
     const names = page.artistSelect.options.map(function (opt) { return opt.textContent; });
     assert.ok(names.indexOf('Fuvtu') !== -1, 'roster must list a real profile');
     assert.ok(names.indexOf('Night Drive') !== -1);
@@ -2595,6 +2598,57 @@ async function run() {
     page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === 'art-1'; });
     if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
     assert.strictEqual(page.artistNameCheck.hidden, true, 'existing pick must not run a new-name check');
+    assert.strictEqual(page.artist.value, 'Fuvtu', 'Creator artist pick must write the profile name');
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(8);
+    assert.ok(page.status.textContent.indexOf('Choose an artist profile') === -1, 'Creator Continue must accept the stuck artist pick');
+  }
+
+  async function creatorArtistUuidPickSticks() {
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      account: {
+        plan: 'creator',
+        artist: 'Mamamastermind',
+        profile: {
+          artists: [
+            { uuid: 'uuid-fuvtu', name: 'Fuvtu', source: 'created' },
+            { tonegrid_artist_id: 'tg-night', name: 'Night Drive', source: 'created' },
+          ],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    await flush();
+    const values = page.artistSelect.options.map(function (opt) { return opt.value; });
+    assert.ok(values.indexOf('uuid-fuvtu') !== -1, 'Creator roster must use uuid when id is missing');
+    assert.ok(values.indexOf('tg-night') !== -1, 'Creator roster must use partner artist id when id is missing');
+    page.artistSelect.value = 'tg-night';
+    page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === 'tg-night'; });
+    if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
+    assert.strictEqual(page.artist.value, 'Night Drive', 'Creator uuid/partner-id pick must stick as the profile name');
+  }
+
+  async function basicArtistProfileAutoSelects() {
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      account: {
+        plan: 'basic',
+        artist: 'mexeu mexeu',
+        profile: { artists: [{ id: 'art-basic', name: 'mexeu mexeu', source: 'created' }] },
+        upload: { allowed: true, album_allowed: false, plan: 'basic' },
+      },
+    }));
+    await flush();
+    const names = page.artistSelect.options.map(function (opt) { return opt.textContent; });
+    assert.ok(names.indexOf('mexeu mexeu') !== -1, 'Basic roster still lists the one profile');
+    assert.strictEqual(page.artistSelect.value, 'art-basic', 'Basic single profile must auto-select');
+    assert.strictEqual(page.artist.value, 'mexeu mexeu', 'Basic auto-select must write the profile name');
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(8);
+    assert.ok(page.status.textContent.indexOf('Choose an artist profile') === -1, 'Basic Continue must accept the auto-selected profile');
   }
 
   async function basicGenreLanguagePickSticks() {
@@ -2640,6 +2694,8 @@ async function run() {
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();
   await rosterPickerListsRealArtists();
+  await creatorArtistUuidPickSticks();
+  await basicArtistProfileAutoSelects();
   await basicGenreLanguagePickSticks();
 
   console.log('tonegrid.client.test.js ok');

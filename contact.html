@@ -29,8 +29,34 @@
       </div>
     </div>
   </header>
-
-  <main>
+  <aside class="side">
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+    <p class="side-label">Menu</p>
+    <nav class="side-nav">
+      <a href="dashboard.html">Overview</a>
+      <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
+      <a href="releases.html">Releases</a>
+      <a href="splits.html">Splits</a>
+      <a href="publishing-register.html" data-publishing-register>Publishing</a>
+      <a href="earnings.html">Earnings</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="boosts.html">Boosts</a>
+      <a href="payouts.html">Payouts</a>
+      <a href="artists.html">Artist Profiles</a>
+      <a href="settings.html">Settings</a>
+      <a href="how.html">How it works</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+    <div class="pro-card">
+      <h4 data-account-plan-title>Your plan</h4>
+      <p>Upload a finished track, attest rights, sign the split sheet, then review and deliver.</p>
+    </div>
+  </aside>
+  <div class="app-main">
+    <div class="topbar">
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
+    </div>
+    <main>
     <section class="page-hero left">
       <div class="wrap">
         <p class="eyebrow magenta">Contact</p>
@@ -79,7 +105,8 @@
         </div>
       </div>
     </section>
-  </main>
+    </main>
+  </div>
 
   <footer>
     <div class="wrap">
@@ -123,6 +150,8 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
