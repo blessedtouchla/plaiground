@@ -160,7 +160,7 @@
     var draft = readDraft();
     var current = String(draft.release_id || '').toLowerCase();
     var want = String(releaseId || '').toLowerCase();
-    if (current && want && current !== want) return draft;
+    if (current && want && current !== want) draft = { release_id: releaseId };
     Object.keys(patch || {}).forEach(function (key) {
       if (patch[key] !== undefined) draft[key] = patch[key];
     });
@@ -437,9 +437,30 @@
     }
     if (requested) {
       if (ids.length && !idAllowed(ids, requested)) return null;
-      return find(requested) || (idAllowed(ids, requested) ? { uuid: requested, title: '', type: 'single', status: 'pending' } : null);
+      return overlayPendingEdit(find(requested) || (idAllowed(ids, requested) ? { uuid: requested, title: '', type: 'single', status: 'pending' } : null), draft);
     }
     return null;
+  }
+
+  function isLiveConfirmed(release, draft) {
+    return statusStep(release, draft) === 'live';
+  }
+
+  function overlayPendingEdit(release, draft) {
+    if (!release) return release;
+    if (isLiveConfirmed(release, draft)) return release;
+    if (!draft) return release;
+    var want = String(draft.release_id || '').toLowerCase();
+    var have = String(release.uuid || release.id || '').toLowerCase();
+    if (want && have && want !== have) return release;
+    var next = Object.assign({}, release);
+    if (String(draft.title || '').trim()) next.title = String(draft.title).trim();
+    if (String(draft.genre || '').trim()) next.genre = String(draft.genre).trim();
+    if (String(draft.language || '').trim()) next.language = String(draft.language).trim();
+    if (String(draft.release_date || '').trim()) next.release_date = String(draft.release_date).trim();
+    var art = String((draft.artwork_url || draft.cover_art_url || draft.cover_url) || '').trim();
+    if (art) next.artwork_url = art;
+    return next;
   }
 
   function markLife(step) {
@@ -596,6 +617,7 @@
     setHidden('[data-song-status]', !opts.error);
     if (opts.error) setText('[data-song-status]', opts.error);
 
+    release = overlayPendingEdit(release, draft);
     var step = statusStep(release, draft);
     markLife(step);
     setText('[data-song-title]', release.title || 'Untitled');
@@ -669,7 +691,14 @@
       global.PlaigroundMembership.applyPlanCopy();
     }
     fillCatalogSelects();
-    lastEdit = { me: me, draft: draft, release: release, analytics: analytics };
+    var panel = $('[data-release-edit]');
+    var editing = Boolean(panel && !panel.hidden && !editClosed && lastEdit.release);
+    if (editing && isLiveConfirmed(lastEdit.release, lastEdit.draft) && !isLiveConfirmed(release, draft)) {
+      lastEdit.me = me;
+      lastEdit.analytics = analytics;
+    } else {
+      lastEdit = { me: me, draft: draft, release: release, analytics: analytics };
+    }
     var playerRelease = Object.assign({}, release, { status: step });
     mountLivePlayer(playerRelease);
     mountSongLinks(playerRelease);
@@ -729,7 +758,7 @@
           showSongRetry(retryable);
           render({
             me: me,
-            draft: draft,
+            draft: readDraft(),
             release: nextRelease,
             analytics: analytics.ok ? analytics.data : {},
             error: nextError,
@@ -1286,6 +1315,93 @@
     return load();
   }
 
+  function pendingCoverUrl(art) {
+    if (coverPreview && typeof coverPreview.currentUrl === 'function') {
+      var have = String(coverPreview.currentUrl() || '').trim();
+      if (have) return have;
+    }
+    if (art && global.URL && typeof global.URL.createObjectURL === 'function') {
+      try { return global.URL.createObjectURL(art); } catch (err) {}
+    }
+    return '';
+  }
+
+  function persistPlaigroundRelease(draft, release) {
+    var id = String((draft && draft.release_id) || (release && (release.uuid || release.id)) || '').trim();
+    var title = String((draft && draft.title) || (release && release.title) || '').trim();
+    if (!id && !title) return;
+    var body = {
+      action: 'record_release',
+      release: {
+        title: title,
+        plaiground_artist_id: String((draft && draft.plaiground_artist_id) || '').trim(),
+        tonegrid_status: String((release && (release.status || release.tonegrid_status)) || (draft && draft.tonegrid_status) || 'pending').toLowerCase(),
+        tonegrid_release_id: id,
+        id: id,
+        artwork_url: String((draft && draft.artwork_url) || (release && release.artwork_url) || '').trim(),
+      },
+    };
+    try {
+      fetch('/api/me/artists', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).catch(function () {});
+    } catch (err) {}
+  }
+
+  function applyImmediateEdit(id, fields) {
+    var cover = pendingCoverUrl(fields.art);
+    var draft = writeDraftFor(id, {
+      title: fields.title,
+      genre: fields.genre,
+      language: fields.language,
+      release_date: fields.release_date,
+      artwork_url: cover || undefined,
+    });
+    if (fields.title) draft.title = fields.title;
+    if (fields.genre) draft.genre = fields.genre;
+    if (fields.language) draft.language = fields.language;
+    if (fields.release_date) draft.release_date = fields.release_date;
+    if (cover) draft.artwork_url = cover;
+    var release = Object.assign({}, lastEdit.release || {}, {
+      uuid: id,
+      title: fields.title || draft.title || (lastEdit.release && lastEdit.release.title) || '',
+      genre: fields.genre || draft.genre || (lastEdit.release && lastEdit.release.genre) || '',
+      language: fields.language || draft.language || (lastEdit.release && lastEdit.release.language) || '',
+      release_date: fields.release_date || draft.release_date || (lastEdit.release && lastEdit.release.release_date) || '',
+      status: (lastEdit.release && lastEdit.release.status) || (draft && draft.tonegrid_status) || 'pending',
+    });
+    release = overlayPendingEdit(release, draft);
+    if (fields.title) release.title = fields.title;
+    if (fields.genre) release.genre = fields.genre;
+    if (fields.language) release.language = fields.language;
+    if (fields.release_date) release.release_date = fields.release_date;
+    if (cover) release.artwork_url = cover;
+    lastEdit.draft = draft;
+    lastEdit.release = release;
+    persistPlaigroundRelease(draft, release);
+    var saveBtn = $('[data-edit-save]');
+    if (saveBtn) saveBtn.removeAttribute('aria-busy');
+    showEditRetry(false);
+    setEditError('');
+    closeEdit();
+    render({
+      me: lastEdit.me,
+      draft: draft,
+      release: release,
+      analytics: lastEdit.analytics || {},
+    });
+    return Promise.resolve({
+      ok: true,
+      created: false,
+      applied: true,
+      releaseId: id,
+      hops: [],
+    });
+  }
+
   function submitEdit() {
     var panel = $('[data-release-edit]');
     var id = (panel && panel.getAttribute('data-release-id')) || (lastEdit.release && lastEdit.release.uuid) || queryId();
@@ -1296,7 +1412,9 @@
     var saveBtn = $('[data-edit-save]');
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
     showEditRetry(false);
-    setEditError('Submitting edit to the store…');
+    var liveEdit = isLiveConfirmed(lastEdit.release, lastEdit.draft);
+    if (liveEdit) setEditError('Submitting edit to the store…');
+    else setEditError('');
     var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
     var originalGenre = String((lastEdit.release && lastEdit.release.genre) || (lastEdit.draft && lastEdit.draft.genre) || '').trim();
     var genre = pickedGenre(originalGenre);
@@ -1344,6 +1462,16 @@
       artist_id: artistId || draft.artist_id || '',
       track_id: trackId || draft.track_id || '',
     });
+
+    if (!liveEdit) {
+      return applyImmediateEdit(id, {
+        title: title,
+        genre: genre,
+        language: language,
+        release_date: date,
+        art: art,
+      });
+    }
 
     var errors = [];
     var hops = [];
@@ -1668,6 +1796,8 @@
     submitEdit: submitEdit,
     removeRelease: removeRelease,
     isCreateReleaseUrl: isCreateReleaseUrl,
+    isLiveConfirmed: isLiveConfirmed,
+    overlayPendingEdit: overlayPendingEdit,
     currentEditState: currentEditState,
     downloadReleaseStatement: downloadReleaseStatement,
     releaseStatementPdf: releaseStatementPdf,

@@ -65,6 +65,11 @@ function loadScript(file, nodes) {
     fetch() {
       return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
     },
+    localStorage: {
+      data: {},
+      getItem(key) { return this.data[key] || null; },
+      setItem(key, value) { this.data[key] = String(value); },
+    },
     window: {},
   };
   context.window = context;
@@ -300,6 +305,18 @@ function run() {
   assert.strictEqual(extra.length, 1);
   assert.strictEqual(extra[0].uuid, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
   assert.strictEqual(extra[0].status, 'pending');
+
+  catalog.localStorage.data['plaiground.store.draft'] = JSON.stringify({
+    release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    title: 'mexeu',
+    genre: 'Electronic',
+  });
+  const overlaid = catalog.PlaigroundCatalog.overlayPendingCatalog([
+    { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Old Title', status: 'pending' },
+    { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Live One', status: 'live' },
+  ], { profile: { releases: [] } });
+  assert.strictEqual(overlaid[0].title, 'mexeu', 'pending catalog title follows the Plaiground edit');
+  assert.strictEqual(overlaid[1].title, 'Live One', 'live catalog title is not overwritten by a draft');
 
   const filtered = catalog.PlaigroundCatalog.applyFilter([
     { uuid: '1', status: 'live' },
