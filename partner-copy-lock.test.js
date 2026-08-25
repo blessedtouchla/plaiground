@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 const USER_FILES = [
+  'admin.html',
+  'admin.js',
   'analytics.html',
   'analytics.js',
   'artists.html',

@@ -24,6 +24,7 @@ const LOGGED_IN_PAGES = [
   'attest.html',
   'review.html',
   'split-sheet.html',
+  'admin.html',
 ];
 
 function read(file) {

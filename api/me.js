@@ -8,16 +8,19 @@
  * POST /api/me/catalog  session required; save ToneGrid uuids
  * POST /api/me/profile  session required; save public artist profile on this user
  * POST /api/me/artists  session required; create / link / update Artist Profiles
+ * GET  /api/admin/signups  owner session only; list real users + Stripe GET
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
+const { listSignupRows } = require('../lib/admin-signups');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const profile = require('../lib/profile');
 const {
   attachSession,
   bodyHasPassword,
+  hasStaffProOverride,
   isConfigured,
   normalizePaidPlan,
   notConfigured,
@@ -46,6 +49,51 @@ function isArtists(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/artists') return true;
   return queryValue(req, 'action') === 'artists';
+}
+
+function isAdminSignups(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/signups' || path === '/api/me/admin/signups') return true;
+  return queryValue(req, 'action') === 'admin-signups';
+}
+
+async function adminSignups(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (rejectUnconfirmed(res, row)) return;
+    if (!hasStaffProOverride(row.email)) {
+      sendJson(res, 403, { error: 'Not allowed.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    const signups = await listSignupRows();
+    sendJson(res, 200, { signups });
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
 }
 
 async function loadUser(req, res) {
@@ -464,6 +512,10 @@ async function saveArtists(req, res) {
 }
 
 module.exports = async function handler(req, res) {
+  if (isAdminSignups(req)) {
+    await adminSignups(req, res);
+    return;
+  }
   if (isCatalog(req)) {
     await catalog(req, res);
     return;
