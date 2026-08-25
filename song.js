@@ -63,18 +63,25 @@
 
   function withCatalogTimeout(work) {
     var ms = catalogTimeoutMs();
-    if (typeof setTimeout !== 'function') return Promise.resolve().then(function () { return work; });
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var signal = controller && controller.signal;
+    if (typeof setTimeout !== 'function') {
+      return Promise.resolve().then(function () {
+        return typeof work === 'function' ? work(signal) : work;
+      });
+    }
     var settled = false;
     return new Promise(function (resolve, reject) {
       var timer = setTimeout(function () {
         if (settled) return;
         settled = true;
+        try { if (controller) controller.abort(); } catch (err) {}
         var err = new Error(catalogTimeoutMessage());
         err.timedOut = true;
         reject(err);
       }, ms);
       Promise.resolve()
-        .then(function () { return work; })
+        .then(function () { return typeof work === 'function' ? work(signal) : work; })
         .then(function (value) {
           if (settled) return;
           settled = true;
@@ -738,12 +745,22 @@
   }
 
   function sendJson(url, method, body) {
-    return withCatalogTimeout(fetch(url, {
-      method: method,
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: body == null ? undefined : JSON.stringify(body),
-    }).then(parseSave));
+    return withCatalogTimeout(function (signal) {
+      var opts = {
+        method: method,
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: body == null ? undefined : JSON.stringify(body),
+      };
+      if (signal) opts.signal = signal;
+      return fetch(url, opts).then(parseSave);
+    });
+  }
+
+  function editAlreadyQueued(release, draft) {
+    var status = String((release && release.status) || (draft && (draft.tonegrid_status || draft.status)) || '').toLowerCase();
+    if (draft && (draft.submitted === true || draft.submitted === 'true')) return true;
+    return status === 'pending' || status === 'processing' || status === 'approved' || status === 'live' || status === 'delivered';
   }
 
   function isNonBlockingEditSubmit(result) {
@@ -1327,12 +1344,16 @@
       if (!art) return { ok: true, skipped: true };
       var form = new FormData();
       form.append('artwork', art, art.name || 'artwork.jpg');
-      return runHop('artwork', withCatalogTimeout(fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-        body: form,
-      }).then(parseSave)));
+      return runHop('artwork', withCatalogTimeout(function (signal) {
+        var opts = {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body: form,
+        };
+        if (signal) opts.signal = signal;
+        return fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', opts).then(parseSave);
+      }));
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
       if (!audio || !trackId) {
@@ -1347,15 +1368,23 @@
         }
         var audioForm = new FormData();
         audioForm.append('audio', audio, audio.name || 'audio.wav');
-        return runHop('audio', withCatalogTimeout(fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-          body: audioForm,
-        }).then(parseSave)));
+        return runHop('audio', withCatalogTimeout(function (signal) {
+          var opts = {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            body: audioForm,
+          };
+          if (signal) opts.signal = signal;
+          return fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', opts).then(parseSave);
+        }));
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));
+      if (errors.length) return { ok: false, skipped: true, blocked: true };
+      if (editAlreadyQueued(release, draft)) {
+        return { ok: true, skipped: true, queued: true, data: { status: release.status || 'pending' } };
+      }
       var submitBody = {
         release_date: date || release.release_date || draft.release_date || '',
         made_how: selectedMadeHow() || draft.made_how || '',
