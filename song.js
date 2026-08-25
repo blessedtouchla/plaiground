@@ -1331,8 +1331,8 @@
 
   function confirmRemove(release) {
     var step = statusStep(release, lastEdit.draft);
-    var sent = step === 'live' || step === 'processing' || step === 'pending';
-    var message = sent
+    var live = step === 'live';
+    var message = live
       ? 'Ask stores to take this release down? It stays listed until the store confirms. This cannot be undone.'
       : 'Remove this release from PLAIGROUND? This cannot be undone.';
     if (typeof global.confirm !== 'function') return false;

@@ -11,8 +11,8 @@
  * POST /api/tonegrid/releases
  * GET  /api/tonegrid/releases/:id          -> plus ddex/deliveries when live (dsp_release_id only)
  * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
- * DELETE /api/tonegrid/releases/:id        -> draft/rejected: ToneGrid DELETE;
- *                                         pending/processing: POST /takedown, else /ddex/purge;
+ * DELETE /api/tonegrid/releases/:id        -> not live (draft/pending/processing/rejected):
+ *                                         best-effort store DELETE, then drop locally;
  *                                         live: POST /ddex/purge (takedown only, never drop)
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
@@ -26,10 +26,9 @@
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
  * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
- * release. Pending / processing already went to stores — POST
- * /releases/:uuid/takedown (cancel) then POST /releases/:uuid/ddex/purge
- * (PurgeReleaseMessage). Live stays purge-only. Never drop a sent release
- * locally when the store refuses.
+ * release. Pending / processing are not live in stores — drop them from
+ * PLAIGROUND after confirm even when the store refuses DELETE. Live stays
+ * purge-only. Never drop a live store release locally when the store refuses.
  * POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
  * Each ToneGrid write uses a hop-scoped Idempotency-Key (patch-date,
@@ -84,15 +83,8 @@ const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
 const STORE_FACING = new Set([
-  'pending',
-  'pending_review',
-  'qc_inspection',
-  'approved',
-  'processing',
-  'delivering',
   'delivered',
   'live',
-  'takedown_submitted',
 ]);
 const CANCEL_FIRST = new Set(['pending', 'pending_review', 'qc_inspection', 'approved', 'processing', 'delivering']);
 
@@ -2006,12 +1998,12 @@ async function deleteRelease(req, res, releaseId) {
   const missing = Boolean(loaded.result && !loaded.result.ok && loaded.result.status === 404);
   const status = loaded.row ? normalizeReleaseStatus(loaded.row.status) : '';
 
-  if (status === 'taken_down') {
+  if (status === 'taken_down' || status === 'takedown_submitted') {
     sendJson(res, 409, {
       error: 'This release was taken down from stores. It still counts as your lifetime upload.',
       removed: false,
       takedown: false,
-      status: 'taken_down',
+      status: status || 'taken_down',
     });
     return;
   }
@@ -2039,18 +2031,10 @@ async function deleteRelease(req, res, releaseId) {
   }
 
   if (!missing) {
-    const deleted = await tonegridFetch('/releases/' + releaseId, {
+    await tonegridFetch('/releases/' + releaseId, {
       method: 'DELETE',
       idempotencyKey: hopIdempotencyKey('delete-release', 'DELETE', '/releases/' + releaseId, releaseId),
     });
-    if (!deleted.ok && deleted.status !== 404) {
-      sendJson(res, deleted.status, {
-        error: tonegridErrorOf(deleted, 'The store could not delete this release.'),
-        removed: false,
-        takedown: false,
-      });
-      return;
-    }
   }
 
   const next = await dropLocalRelease(scope.row, releaseId);

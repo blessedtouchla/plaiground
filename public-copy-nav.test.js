@@ -85,6 +85,9 @@ function run() {
   assert.ok(/How do I get into my Pro or Creator account\?/i.test(faq), 'FAQ answers signed-in access');
   assert.ok(/The left menu is the product/i.test(faq), 'signed-in access names the left menu');
   assert.ok(/Take a song down from the release page with Remove/i.test(faq), 'takedown is Remove on the release page');
+  assert.ok(/Draft, pending, and processing releases are removed from PLAIGROUND/i.test(faq), 'not-live Remove deletes locally');
+  assert.ok(!/If the release is pending or processing, we ask stores/i.test(faq), 'not-live Remove must not ask stores');
+  assert.ok(!/request from the stores/i.test(faq), 'not-live copy must not say request from the stores');
   assert.ok(!/take a song down from Settings/i.test(faq), 'takedown must not say Settings');
   assert.ok(/pronounced[\s\S]*PLAY/i.test(faq), 'FAQ says PLAI is pronounced PLAY');
   assert.ok(/she\/her/i.test(faq), 'FAQ says PLAI uses she/her');
