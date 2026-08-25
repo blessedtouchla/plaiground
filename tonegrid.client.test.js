@@ -1748,6 +1748,32 @@ async function run() {
     assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
+  async function trackReleaseNotFoundIsNotRewritten() {
+    const page = load(filledUpload({
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(14);
+    assert.ok(!/Could not create the release/.test(page.status.textContent));
+    assert.ok(/release not found/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|Tonegrid/i.test(page.status.textContent));
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+  }
+
   async function createPostShowsRealSanitizedError() {
     const page = load(filledUpload({
       draft: {
@@ -1999,6 +2025,7 @@ async function run() {
   await newTitleDoesNotReuseOtherSongRelease();
   await staleIdSecond404RecreatesAgain();
   await recreateBudgetShowsNamelessRetry();
+  await trackReleaseNotFoundIsNotRewritten();
   await createPostShowsRealSanitizedError();
   await continuedDeadIdRetriesWithNewKey();
   await reviewSubmitEnsuresCatalogArtist();
@@ -2032,6 +2059,7 @@ async function run() {
   assert.ok(source.includes('resolveLiveRelease'));
   assert.ok(source.includes('clearDeadReleaseIds'));
   assert.ok(source.includes('ensureCatalogArtist'));
+  assert.ok(source.includes('createFreshFailed'));
   assert.ok(source.includes('freshReleaseKey'));
   assert.ok(source.includes('isReleaseMissing'));
   assert.ok(source.includes('Could not create the release. Retry.'));
