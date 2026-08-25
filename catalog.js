@@ -556,6 +556,7 @@
         catalog.syncTypeahead(language);
       }
     }
+    if (editCover) editCover.setStored(release.artwork_url || '');
     setEditError('');
   }
 
@@ -642,6 +643,25 @@
     });
   }
 
+  var editCover = null;
+
+  function bindCoverPreview() {
+    var api = global.PlaigroundCoverPreview;
+    if (!api || typeof api.bind !== 'function') return;
+    if (editCover) return;
+    var input = $('#edit-art');
+    var tile = $('[data-edit-art-box]') || $('[data-art-box]');
+    if (!input && !tile) return;
+    editCover = api.bind({
+      input: input,
+      tile: tile,
+      clearButton: $('[data-art-clear]'),
+      storedUrl: '',
+      window: global,
+      URL: global.URL,
+    });
+  }
+
   function bindEdit() {
     var host = $('[data-release-rows]');
     if (host && host.addEventListener) {
@@ -691,9 +711,12 @@
     accountFallback: accountFallback,
     applyFilter: applyFilter,
     setFilter: function (next) { currentFilter = String(next || 'all'); },
+    fillEdit: fillEdit,
+    coverPreview: function () { return editCover; },
   };
   bindFilters();
   currentFilter = filterFromSearch();
   bindEdit();
+  bindCoverPreview();
   load();
 })(window);

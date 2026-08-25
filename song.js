@@ -373,7 +373,14 @@
     });
   }
 
+  var coverPreview = null;
+
   function setCover(url) {
+    if (coverPreview) {
+      coverPreview.setStored(url);
+      setText('[data-song-cover-note]', coverPreview.currentUrl() ? 'Cover art' : 'No cover uploaded');
+      return;
+    }
     var el = $('[data-song-cover]');
     if (!el) return;
     var art = String(url || '').trim();
@@ -382,6 +389,24 @@
     }
     if (el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
     setText('[data-song-cover-note]', art ? 'Cover art' : 'No cover uploaded');
+  }
+
+  function bindCoverPreview() {
+    var api = global.PlaigroundCoverPreview;
+    if (!api || typeof api.bind !== 'function') return;
+    if (coverPreview) return;
+    var input = $('#edit-art');
+    var tile = $('[data-song-cover]');
+    if (!input && !tile) return;
+    coverPreview = api.bind({
+      input: input,
+      tile: tile,
+      note: $('[data-song-cover-note]'),
+      clearButton: $('[data-art-clear]'),
+      storedUrl: '',
+      window: global,
+      URL: global.URL,
+    });
   }
 
   function splitWriters(release, draft, me) {
@@ -1108,6 +1133,7 @@
 
   function closeEdit() {
     editClosed = true;
+    if (coverPreview) coverPreview.clear();
     var panel = $('[data-release-edit]');
     if (!panel) return;
     panel.hidden = true;
@@ -1479,6 +1505,7 @@
       el.addEventListener('click', function () { setMadeHow(el.getAttribute('data-edit-made-how')); });
     });
     bindSchedule();
+    bindCoverPreview();
   }
 
   global.PlaigroundSong = {

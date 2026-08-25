@@ -91,7 +91,12 @@
             <select id="edit-language" class="details-select"><option value="">Select language</option></select>
           </div>
           <div class="field"><label for="edit-track-title">Track title</label><input id="edit-track-title" type="text" /></div>
-          <div class="field"><label for="edit-art">Cover art</label><input id="edit-art" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" /></div>
+          <div class="field">
+            <label for="edit-art">Cover art</label>
+            <div class="art is-edit" role="img" aria-label="Cover art placeholder" data-edit-art-box></div>
+            <input id="edit-art" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" />
+            <p style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-art-clear hidden>Clear</button></p>
+          </div>
         </div>
         <div class="field" data-store-pick>
           <label>Stores</label>
@@ -127,6 +132,7 @@
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/store-pick.js"></script>
+  <script src="lib/cover-preview.js"></script>
   <script src="catalog.js" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>

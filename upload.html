@@ -107,7 +107,10 @@
       <div class="art-row">
         <div>
           <div class="art" role="img" aria-label="Cover art placeholder" data-art-box data-art-pick></div>
-          <p style="margin-top:10px"><button class="btn btn-ghost btn-sm" type="button" data-art-pick>Add artwork</button></p>
+          <p style="margin-top:10px">
+            <button class="btn btn-ghost btn-sm" type="button" data-art-pick>Add artwork</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-art-clear hidden>Clear</button>
+          </p>
           <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
           <p class="hint" data-art-meta>3000 × 3000 px · JPG or PNG</p>
         </div>
@@ -256,6 +259,7 @@
   <script src="lib/artist-check.js"></script>
   <script src="lib/audio-accept.js"></script>
   <script src="lib/store-pick.js"></script>
+  <script src="lib/cover-preview.js"></script>
   <script src="store-client.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -379,37 +383,72 @@
       var artInput = document.querySelector('[data-art-input]');
       var artBox = document.querySelector('[data-art-box]');
       var artMeta = document.querySelector('[data-art-meta]');
-      var artUrl = '';
+      var artClear = document.querySelector('[data-art-clear]');
+      var DEFAULT_ART_META = '3000 × 3000 px · JPG or PNG';
+      var artPreview = null;
+
+      function rememberArtwork(file) {
+        try {
+          var current = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
+          if (file) {
+            current.artwork_name = file.name;
+            current.artwork_type = file.type || '';
+          } else {
+            delete current.artwork_name;
+            delete current.artwork_type;
+          }
+          var text = JSON.stringify(current);
+          try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
+          try { sessionStorage.setItem('plaiground.store.draft', text); } catch (err) {}
+        } catch (err) {}
+      }
 
       function showArt(file) {
         if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
           if (!window.PlaigroundMembership.requireMembership()) return;
         }
-        if (!file || !artInput) return;
-        var name = String(file.name || '').toLowerCase();
-        var type = String(file.type || '').toLowerCase();
-        if (!(/\.(jpe?g|png)$/.test(name) || /image\/(jpeg|jpg|png)/.test(type))) return;
-        try {
-          var dt = new DataTransfer();
-          dt.items.add(file);
-          artInput.files = dt.files;
-        } catch (err) {
-          artInput._plaigroundFile = file;
+        if (!artInput) return;
+        if (file) {
+          var name = String(file.name || '').toLowerCase();
+          var type = String(file.type || '').toLowerCase();
+          if (!(/\.(jpe?g|png)$/.test(name) || /image\/(jpeg|jpg|png)/.test(type))) return;
+          try {
+            var dt = new DataTransfer();
+            dt.items.add(file);
+            artInput.files = dt.files;
+          } catch (err) {
+            artInput._plaigroundFile = file;
+          }
         }
-        if (artMeta) artMeta.textContent = file.name;
-        if (artBox && window.URL && URL.createObjectURL) {
-          if (artUrl) try { URL.revokeObjectURL(artUrl); } catch (err) {}
-          artUrl = URL.createObjectURL(file);
-          artBox.style.backgroundImage = 'url("' + artUrl + '")';
-        }
+        if (artPreview) artPreview.showFile(file || null);
+      }
+
+      if (artInput && window.PlaigroundCoverPreview && typeof window.PlaigroundCoverPreview.bind === 'function') {
+        var storedArt = '';
         try {
-          var current = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
-          current.artwork_name = file.name;
-          current.artwork_type = file.type || '';
-          var text = JSON.stringify(current);
-          try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
-          try { sessionStorage.setItem('plaiground.store.draft', text); } catch (err) {}
+          var draft = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
+          storedArt = String(draft.artwork_url || '').trim();
         } catch (err) {}
+        artPreview = window.PlaigroundCoverPreview.bind({
+          input: artInput,
+          tile: artBox,
+          clearButton: artClear,
+          storedUrl: storedArt,
+          emptyNote: DEFAULT_ART_META,
+          hasNote: DEFAULT_ART_META,
+          window: window,
+          accept: function () {
+            if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
+              return window.PlaigroundMembership.requireMembership();
+            }
+            return true;
+          },
+          onChange: function (file) {
+            if (artMeta) artMeta.textContent = file && file.name ? file.name : DEFAULT_ART_META;
+            rememberArtwork(file);
+          },
+        });
+        window.PlaigroundUploadCover = artPreview;
       }
 
       if (artInput) {
@@ -419,9 +458,11 @@
             if (typeof artInput.click === 'function') artInput.click();
           });
         });
-        artInput.addEventListener('change', function () {
-          showArt(artInput.files && artInput.files[0]);
-        });
+        if (!artPreview) {
+          artInput.addEventListener('change', function () {
+            showArt(artInput.files && artInput.files[0]);
+          });
+        }
       }
 
       var explicitToggle = document.querySelector('[data-explicit-toggle]');
