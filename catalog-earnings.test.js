@@ -174,6 +174,14 @@ function run() {
   assert.ok(zeroPdf.indexOf('$0.00') !== -1);
   assert.ok(!/No statement yet/.test(zeroPdf));
   assert.ok(!/7,412,908|Neon Sermon|Victoria Reyes/.test(zeroPdf));
+  const unnamed = earn.PlaigroundEarnings.statementPdf({
+    balance: { available_usd: 0, pending_usd: 0 },
+    statements: [],
+    breakdown: [],
+  }, null);
+  assert.ok(unnamed.indexOf('$0.00') !== -1);
+  assert.ok(unnamed.indexOf('Account: ?') === -1);
+  assert.ok(unnamed.indexOf('Account:') === -1, 'omit account when there is no real name');
   assert.strictEqual(earn.PlaigroundStatementPdf.lastDownload().filename, 'plaiground-statement.pdf');
   assert.ok(read('earnings.html').indexOf('lib/statement-pdf.js') !== -1);
   assert.ok(read('earnings.js').indexOf('statementCsv') === -1, 'earnings download is PDF, not CSV');

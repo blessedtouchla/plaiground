@@ -1258,17 +1258,16 @@
     var rows = ((analytics.dsps) || []).map(function (row) {
       return [row.dsp || row.name || 'Store', formatCount(row.streams), row.revenue_usd == null ? formatMoney(0) : formatMoney(row.revenue_usd)];
     });
+    var fields = [{ label: 'Title', value: release.title || 'Untitled' }];
+    if (artist) fields.push({ label: 'Artist', value: artist });
+    fields.push({ label: 'Status', value: statusLabel(step) });
+    fields.push({ label: 'Streams', value: formatCount(stats.streams) });
+    fields.push({ label: 'Earnings', value: formatMoney(stats.earnings) });
     return {
       title: 'PLAIGROUND',
       subtitle: 'Release statement',
       generated: generatedOn(),
-      fields: [
-        { label: 'Title', value: release.title || 'Untitled' },
-        { label: 'Artist', value: artist || '—' },
-        { label: 'Status', value: statusLabel(step) },
-        { label: 'Streams', value: formatCount(stats.streams) },
-        { label: 'Earnings', value: formatMoney(stats.earnings) },
-      ],
+      fields: fields,
       tableTitle: rows.length ? 'By platform' : '',
       columns: rows.length ? ['Platform', 'Streams', 'Earnings'] : [],
       rows: rows,

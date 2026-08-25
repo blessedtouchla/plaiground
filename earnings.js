@@ -176,7 +176,9 @@
     var balance = payload.balance || {};
     var statement = latestStatement(payload);
     var period = statement && statement.period ? String(statement.period) : '';
-    var fields = [{ label: 'Account', value: accountLabel(account) || '—' }];
+    var fields = [];
+    var name = accountLabel(account);
+    if (name) fields.push({ label: 'Account', value: name });
     if (period) fields.push({ label: 'Period', value: period });
     fields.push({ label: 'Available', value: formatMoney(balance.available_usd) });
     fields.push({ label: 'Pending', value: formatMoney(balance.pending_usd) });
