@@ -58,18 +58,13 @@
             <input id="password" type="password" autocomplete="current-password" />
           </div>
           <div class="row-between">
-            <label class="checkline" style="margin:0"><input type="checkbox" checked /> Keep me signed in</label>
+            <label class="checkline" style="margin:0"><input id="keep-signed-in" name="remember" type="checkbox" /> Keep me signed in</label>
             <a href="forgot.html">Forgot password?</a>
           </div>
           <p class="hint" id="auth-status" hidden></p>
           <p class="hint is-hidden" id="pending-resend" hidden><button type="button" class="btn btn-ghost btn-md" id="resend-confirm">Resend confirmation email</button></p>
           <button class="btn btn-purple btn-lg" type="submit">Log in</button>
         </form>
-        <div class="or">OR</div>
-        <div class="social-row">
-          <a class="btn btn-ghost btn-md" href="dashboard.html">Google</a>
-          <a class="btn btn-ghost btn-md" href="dashboard.html">Apple</a>
-        </div>
         <p class="switch">New here? <a href="signup.html">Create an account</a></p>
       </div>
     </section>
@@ -157,6 +152,8 @@
         var passwordEl = document.getElementById('password');
         var email = emailEl ? String(emailEl.value || '').trim() : '';
         var password = passwordEl ? String(passwordEl.value || '') : '';
+        var rememberEl = document.getElementById('keep-signed-in');
+        var remember = Boolean(rememberEl && rememberEl.checked);
         if (button) {
           button.disabled = true;
           button.setAttribute('aria-busy', 'true');
@@ -166,7 +163,7 @@
           method: 'POST',
           credentials: 'same-origin',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, password: password }),
+          body: JSON.stringify({ email: email, password: password, remember: remember }),
         }).then(function (response) {
           return response.json().then(function (data) {
             return { ok: response.ok, status: response.status, data: data || {} };

@@ -2721,6 +2721,10 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .know p { color: var(--muted); font-size: 13px; line-height: 1.5; }
 .gold-link { color: var(--gold); font-weight: 700; }
 .sec-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.security-form,
+.delete-confirm { margin-top: 16px; max-width: 420px; }
+.security-form[hidden],
+.delete-confirm[hidden] { display: none; }
 .sign-out { color: #FF6B9A !important; border-color: rgba(255,107,154,0.55) !important; }
 .field input.accent { border-color: var(--purple); }
 .date-picker-field {

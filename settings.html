@@ -119,14 +119,36 @@
       <div class="panel">
         <h3>Security</h3>
         <div class="sec-btns">
-          <button class="btn btn-ghost btn-sm" type="button">Change password</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-change-password-toggle aria-expanded="false">Change password</button>
           <button class="btn btn-ghost btn-sm" type="button">Two-factor authentication</button>
           <a class="btn btn-ghost btn-sm sign-out" href="index.html">Sign out</a>
         </div>
+        <form class="security-form" id="change-password-form" data-change-password hidden>
+          <div class="field">
+            <label for="current-password">Current password</label>
+            <input id="current-password" name="current-password" type="password" autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <label for="new-password">New password</label>
+            <input id="new-password" name="new-password" type="password" autocomplete="new-password" minlength="8" />
+          </div>
+          <p class="hint" data-change-password-status hidden></p>
+          <button class="btn btn-purple btn-sm" type="submit">Update password</button>
+        </form>
       </div>
       <div class="confirm-actions">
         <button class="btn btn-purple btn-md" type="button">Save changes</button>
-        <button class="ghost-link" type="button" style="background:none;border:none">Delete account</button>
+        <button class="ghost-link" type="button" style="background:none;border:none" data-delete-account-toggle aria-expanded="false">Delete account</button>
+      </div>
+      <div class="panel delete-confirm" data-delete-account hidden>
+        <h3>Delete account</h3>
+        <p>This permanently removes your account. Type DELETE to confirm.</p>
+        <div class="field">
+          <label for="delete-confirm">Type DELETE</label>
+          <input id="delete-confirm" name="delete-confirm" type="text" autocomplete="off" />
+        </div>
+        <p class="hint" data-delete-account-status hidden></p>
+        <button class="btn btn-ghost btn-sm" type="button" data-delete-account-submit>Delete my account</button>
       </div>
     </div>
   </div>

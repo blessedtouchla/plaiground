@@ -385,6 +385,133 @@
     return { title: title, status: status, href: href, editHref: editHref };
   }
 
+  function setHint(el, text) {
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+  }
+
+  function bindChangePassword() {
+    var toggle = document.querySelector('[data-change-password-toggle]');
+    var form = document.querySelector('[data-change-password]');
+    if (!toggle || !form) return;
+    if (toggle.getAttribute('data-bound') === 'true') return;
+    toggle.setAttribute('data-bound', 'true');
+    var status = document.querySelector('[data-change-password-status]');
+    var currentEl = document.getElementById('current-password');
+    var nextEl = document.getElementById('new-password');
+    var submit = form.querySelector('button[type="submit"]');
+
+    toggle.addEventListener('click', function () {
+      var open = form.hidden;
+      form.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open && currentEl && typeof currentEl.focus === 'function') currentEl.focus();
+    });
+
+    form.addEventListener('submit', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      var current = currentEl ? String(currentEl.value || '') : '';
+      var password = nextEl ? String(nextEl.value || '') : '';
+      if (password.length < 8) {
+        setHint(status, 'Password must be at least 8 characters.');
+        return;
+      }
+      if (submit) {
+        submit.disabled = true;
+        submit.setAttribute('aria-busy', 'true');
+      }
+      setHint(status, '');
+      fetch('/api/auth/password', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: current, password: password }),
+      }).then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data || {} };
+        }).catch(function () {
+          return { ok: false, data: {} };
+        });
+      }).then(function (result) {
+        if (submit) {
+          submit.disabled = false;
+          submit.removeAttribute('aria-busy');
+        }
+        if (!result.ok) {
+          setHint(status, result.data.error || 'Current password is wrong.');
+          return;
+        }
+        if (currentEl) currentEl.value = '';
+        if (nextEl) nextEl.value = '';
+        setHint(status, 'Password updated.');
+      }).catch(function () {
+        if (submit) {
+          submit.disabled = false;
+          submit.removeAttribute('aria-busy');
+        }
+        setHint(status, 'Could not update the password.');
+      });
+    });
+  }
+
+  function bindDeleteAccount() {
+    var toggle = document.querySelector('[data-delete-account-toggle]');
+    var panel = document.querySelector('[data-delete-account]');
+    var submit = document.querySelector('[data-delete-account-submit]');
+    if (!toggle || !panel || !submit) return;
+    if (toggle.getAttribute('data-bound') === 'true') return;
+    toggle.setAttribute('data-bound', 'true');
+    var status = document.querySelector('[data-delete-account-status]');
+    var confirmEl = document.getElementById('delete-confirm');
+
+    toggle.addEventListener('click', function () {
+      var open = panel.hidden;
+      panel.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open && confirmEl && typeof confirmEl.focus === 'function') confirmEl.focus();
+    });
+
+    submit.addEventListener('click', function () {
+      var confirm = confirmEl ? String(confirmEl.value || '').trim() : '';
+      if (confirm.toUpperCase() !== 'DELETE') {
+        setHint(status, 'Type DELETE to confirm.');
+        return;
+      }
+      if (submit.getAttribute('aria-busy') === 'true') return;
+      submit.setAttribute('aria-busy', 'true');
+      submit.disabled = true;
+      setHint(status, '');
+      fetch('/api/auth/delete', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE' }),
+      }).then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data || {} };
+        }).catch(function () {
+          return { ok: false, data: {} };
+        });
+      }).then(function (result) {
+        submit.removeAttribute('aria-busy');
+        submit.disabled = false;
+        if (!result.ok) {
+          setHint(status, result.data.error || 'Could not delete the account.');
+          return;
+        }
+        if (global.PlaigroundMembership && typeof global.PlaigroundMembership.clearSignedIn === 'function') {
+          global.PlaigroundMembership.clearSignedIn();
+        }
+        global.location.href = 'index.html';
+      }).catch(function () {
+        submit.removeAttribute('aria-busy');
+        submit.disabled = false;
+        setHint(status, 'Could not delete the account.');
+      });
+    });
+  }
+
   function bindSignOut() {
     var link = document.querySelector('.sign-out');
     if (!link) return;
@@ -691,8 +818,12 @@
   bindSignOut();
   whenDomReady(bindManagePlan);
   whenDomReady(bindManageBilling);
+  whenDomReady(bindChangePassword);
+  whenDomReady(bindDeleteAccount);
   bindManagePlan();
   bindManageBilling();
+  bindChangePassword();
+  bindDeleteAccount();
   bindPlanConfirm();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);

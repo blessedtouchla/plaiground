@@ -46,6 +46,9 @@ function run() {
   assert.ok(settings.includes('btn btn-purple btn-md btn-block'), 'Manage plan monthly CTAs match Plans / Boosts');
   assert.ok(settings.includes('id="manage-billing"'), 'Settings exposes Manage billing');
   assert.ok(settings.includes('data-manage-billing'), 'Manage billing has an Update card control');
+  assert.ok(settings.includes('data-change-password'), 'Settings Change password opens a signed-in form');
+  assert.ok(settings.includes('data-delete-account'), 'Settings Delete account requires a confirm panel');
+  assert.ok(settings.includes('Type DELETE to confirm.'), 'Delete account is not a one-click accident');
   assert.ok(settings.includes('Card numbers stay on Stripe'), 'Manage billing does not collect card numbers on this site');
   assert.ok(settings.includes('href="#manage-billing"'), 'failed-pay copy points at Manage billing');
   assert.ok(!/same as Pro|same product as Pro|same-as-Pro/i.test(settings), 'Creator copy must not say same-as-Pro');

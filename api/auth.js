@@ -3,8 +3,10 @@
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
  * POST /api/auth/signup    pending user only; no session; tries confirm mail
- * POST /api/auth/login     confirmed users only
+ * POST /api/auth/login     confirmed users only; remember=true → 30-day cookie
  * POST /api/auth/logout
+ * POST /api/auth/password  signed-in current + new password; no email token
+ * POST /api/auth/delete    signed-in; body.confirm must be DELETE
  * POST /api/auth/confirm   { token } → mark confirmed + attach session
  * GET  /api/auth/mail      → { configured } (does not send)
  * GET  /api/auth/mail?token= → { ok, email } when HMAC verifies
@@ -14,7 +16,7 @@
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { confirmEmail, createUser, findByEmail, findById, ensureReady, setPassword } = require('../lib/accounts');
+const { confirmEmail, createUser, deleteUser, findByEmail, findById, ensureReady, setPassword } = require('../lib/accounts');
 const {
   attachSession,
   authPayload,
@@ -47,6 +49,17 @@ function authAction(req) {
   const match = path.match(/^\/api\/auth\/([^/]+)$/);
   if (match) return match[1];
   return queryValue(req, 'action');
+}
+
+function wantsRemember(body) {
+  if (!body || typeof body !== 'object') return false;
+  const value = body.remember;
+  return value === true || value === 1 || value === '1' || value === 'true' || value === 'on';
+}
+
+function deleteConfirmed(body) {
+  const value = String((body && (body.confirm || body.confirmation)) || '').trim();
+  return value.toUpperCase() === 'DELETE';
 }
 
 async function bootstrap(req, res) {
@@ -190,7 +203,7 @@ async function login(req, res) {
       sendJson(res, 403, pendingPayload(row));
       return;
     }
-    attachSession(req, res, row.id);
+    attachSession(req, res, row.id, { remember: wantsRemember(body) });
     sendJson(res, 200, authPayload(row));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
@@ -220,6 +233,118 @@ async function loginWithToken(req, res, token) {
     attachSession(req, res, row.id);
     sendJson(res, 200, authPayload(row));
   } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function changePassword(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const current = String((body && (body.current_password || body.currentPassword || body.current)) || '');
+  const password = String((body && (body.password || body.new_password || body.newPassword)) || '');
+  if (password.length < 8) {
+    sendJson(res, 400, { error: 'Password must be at least 8 characters.' });
+    return;
+  }
+
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (!verifyPassword(current, row.password_hash)) {
+      sendJson(res, 401, { error: 'Current password is wrong.' });
+      return;
+    }
+    const next = await setPassword(row.id, password);
+    attachSession(req, res, row.id);
+    sendJson(res, 200, authPayload(next || row));
+  } catch (err) {
+    if (err && err.code === 'VALIDATION') {
+      sendJson(res, 400, { error: err.message });
+      return;
+    }
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function deleteAccount(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  if (!deleteConfirmed(body)) {
+    sendJson(res, 400, { error: 'Type DELETE to confirm.' });
+    return;
+  }
+
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    await deleteUser(row.id);
+    clearSession(req, res);
+    sendJson(res, 200, { ok: true });
+  } catch (err) {
+    if (err && err.code === 'PROTECTED') {
+      sendJson(res, 403, { error: err.message });
+      return;
+    }
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       notConfigured(res);
       return;
@@ -462,6 +587,14 @@ module.exports = async function handler(req, res) {
   }
   if (action === 'logout') {
     await logout(req, res);
+    return;
+  }
+  if (action === 'password') {
+    await changePassword(req, res);
+    return;
+  }
+  if (action === 'delete') {
+    await deleteAccount(req, res);
     return;
   }
   if (action === 'mail') {
