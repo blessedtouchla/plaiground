@@ -392,27 +392,11 @@ async function saveArtists(req, res) {
       sendJson(res, 404, { error: 'Artist profile not found.' });
       return;
     }
-    const accepted = profile.isAccepted(current);
-    if (action === 'update' && accepted) {
-      sendJson(res, 409, {
-        error: 'Accepted artist changes must be submitted for edit.',
-        code: 'ARTIST_SUBMIT_EDIT',
-      });
-      return;
-    }
     const locked = current.locked === true;
     const nextName = body.name !== undefined ? String(body.name || '').trim() : current.name;
     const nextSpotify = body.spotify_id !== undefined ? String(body.spotify_id || '').trim() : current.spotify_id;
     const nextApple = body.apple_id !== undefined ? String(body.apple_id || '').trim() : current.apple_id;
     const nextUrl = body.store_url !== undefined ? String(body.store_url || '').trim() : current.store_url;
-    const nameLockedChange = locked && (nextName !== current.name || nextSpotify !== current.spotify_id || nextApple !== current.apple_id || nextUrl !== current.store_url);
-    if (action === 'update' && nameLockedChange) {
-      sendJson(res, 409, {
-        error: 'Name and platform IDs are locked after the first successful release. Submit a change request.',
-        code: 'ARTIST_LOCKED',
-      });
-      return;
-    }
     let nameCheck = current.name_check;
     const applyName = !locked;
     if (applyName && nextName !== current.name && current.source !== 'linked') {
@@ -428,6 +412,13 @@ async function saveArtists(req, res) {
       nameCheck = check.level;
     }
     const photo = body.photo !== undefined ? body.photo : current.photo;
+    if (body.photo !== undefined) {
+      const photoCheck = profile.sanitizePhoto(photo);
+      if (photoCheck && photoCheck.error) {
+        sendJson(res, 400, { error: photoCheck.error });
+        return;
+      }
+    }
     const genres = body.genres !== undefined ? body.genres : current.genres;
     if (body.ai_involvement_percent !== undefined && body.ai_involvement_percent !== null && body.ai_involvement_percent !== '') {
       const pct = Number(body.ai_involvement_percent);
@@ -440,21 +431,6 @@ async function saveArtists(req, res) {
       sendJson(res, 400, { error: 'AI process detail must be 500 characters or fewer.' });
       return;
     }
-    const pendingEdit = accepted ? {
-      name: applyName ? nextName : current.name,
-      photo: photo,
-      bio: body.bio !== undefined ? body.bio : current.bio,
-      genres: genres,
-      spotify_id: applyName ? nextSpotify : current.spotify_id,
-      apple_id: applyName ? nextApple : current.apple_id,
-      store_url: applyName ? nextUrl : current.store_url,
-      human_contributions: body.human_contributions !== undefined ? body.human_contributions : current.human_contributions,
-      ai_contributions: body.ai_contributions !== undefined ? body.ai_contributions : current.ai_contributions,
-      ai_process_detail: body.ai_process_detail !== undefined ? body.ai_process_detail : current.ai_process_detail,
-      ai_involvement_percent: body.ai_involvement_percent !== undefined ? body.ai_involvement_percent : current.ai_involvement_percent,
-      change_request: body.change_request !== undefined ? body.change_request : current.change_request,
-      submitted_at: new Date().toISOString(),
-    } : current.pending_edit;
     const artist = profile.normalizeArtist(Object.assign({}, current, {
       name: applyName ? nextName : current.name,
       photo: photo,
@@ -470,8 +446,8 @@ async function saveArtists(req, res) {
       change_request: body.change_request !== undefined ? body.change_request : current.change_request,
       name_check: nameCheck,
       impersonation_confirmed: body.confirm_different === true || current.impersonation_confirmed,
-      edit_status: accepted ? 'pending' : current.edit_status,
-      pending_edit: pendingEdit,
+      edit_status: '',
+      pending_edit: null,
     }));
     if (artist.photo === '' && photo && String(photo).indexOf('data:image') === 0) {
       sendJson(res, 400, { error: 'Photo must be a JPG or PNG.' });
@@ -481,7 +457,7 @@ async function saveArtists(req, res) {
     const next = await persistRoster(row, nextProfile);
     sendJson(res, 200, Object.assign(publicUser(next || row), {
       updated: artist,
-      submitted_edit: accepted,
+      submitted_edit: false,
     }));
     return;
   }

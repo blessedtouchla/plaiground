@@ -136,6 +136,10 @@
   }
 
   var current = { artists: [], selected: null, photo: '', me: null, catalog: [] };
+  var painting = false;
+  var saveTimer = null;
+  var saveInFlight = false;
+  var saveAgain = false;
 
   function isAccepted(artist) {
     if (!artist || !artist.name) return false;
@@ -182,12 +186,14 @@
   }
 
   function selectArtist(artist) {
+    painting = true;
     current.selected = artist || null;
     current.photo = artist && artist.photo ? artist.photo : '';
     renderList();
     setHidden('[data-artist-edit]', !artist);
     if (!artist) {
       renderSongs(null);
+      painting = false;
       return;
     }
     setText('[data-artist-edit-title]', artist.name);
@@ -227,7 +233,8 @@
     var field = $('[data-artist-name-field]');
     if (field && field.classList) field.classList.toggle('is-locked', artist.locked === true);
     var saveBtn = $('[data-artist-save]');
-    if (saveBtn) saveBtn.textContent = isAccepted(artist) ? 'Submit for edit' : 'Save artist';
+    if (saveBtn) saveBtn.textContent = 'Save artist';
+    painting = false;
   }
 
   function setChecks(sel, values) {
@@ -545,16 +552,67 @@
     });
   }
 
-  function saveArtist() {
+  function shrinkImage(dataUrl) {
+    return new Promise(function (resolve) {
+      if (typeof Image !== 'function' || typeof document === 'undefined' || !document.createElement) {
+        resolve(dataUrl);
+        return;
+      }
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var max = 800;
+          var w = img.width || max;
+          var h = img.height || max;
+          if (w > max || h > max) {
+            var scale = Math.min(max / w, max / h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext && canvas.getContext('2d');
+          if (!ctx || typeof canvas.toDataURL !== 'function') {
+            resolve(dataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (err) {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = function () { resolve(dataUrl); };
+      img.src = dataUrl;
+    });
+  }
+
+  function scheduleSave() {
+    if (painting || !current.selected) return;
+    if (saveTimer) {
+      try { clearTimeout(saveTimer); } catch (err) {}
+    }
+    saveTimer = setTimeout(function () {
+      saveArtist({ quiet: true });
+    }, 350);
+  }
+
+  function saveArtist(opts) {
+    var quiet = Boolean(opts && opts.quiet);
     if (!current.selected) {
-      showError('Select an artist first.');
+      if (!quiet) showError('Select an artist first.');
+      return Promise.resolve(null);
+    }
+    if (saveInFlight) {
+      saveAgain = true;
       return Promise.resolve(null);
     }
     showError('');
-    var accepted = isAccepted(current.selected);
+    saveInFlight = true;
     var nameEl = $('#artist-name');
     return post('/api/me/artists', {
-      action: accepted ? 'submit_edit' : 'update',
+      action: 'update',
       id: current.selected.id,
       artist_id: current.selected.artist_id || current.selected.id,
       name: nameEl ? nameEl.value : current.selected.name,
@@ -571,16 +629,23 @@
       change_request: $('#artist-change') ? $('#artist-change').value : '',
       confirm_different: true,
     }).then(function (result) {
+      saveInFlight = false;
+      if (saveAgain) {
+        saveAgain = false;
+        return saveArtist({ quiet: true });
+      }
       if (!result.ok || !result.data || !result.data.updated) {
-        showError((result.data && result.data.error) || (accepted ? 'Could not submit this edit.' : 'Could not save artist.'));
+        showError((result.data && result.data.error) || 'Could not save artist.');
         return null;
       }
       applyMe(result.data);
       selectArtist(result.data.updated);
-      showStatus(accepted
-        ? 'Edit submitted. Waiting on the store / the distributor.'
-        : 'Artist profile saved.');
+      if (!quiet) showStatus('Artist profile saved.');
       return result.data;
+    }).catch(function () {
+      saveInFlight = false;
+      showError('Could not save artist.');
+      return null;
     });
   }
 
@@ -659,6 +724,7 @@
         if (values.indexOf(pick) === -1 && values.length < MAX_GENRES) values.push(pick);
         renderGenrePicks(values);
         genreSel.value = '';
+        scheduleSave();
       });
     }
     var picks = $('[data-artist-genre-picks]');
@@ -668,6 +734,7 @@
         if (!pill) return;
         var next = selectedGenres().filter(function (name) { return name !== pill.getAttribute('data-genre'); });
         renderGenrePicks(next);
+        scheduleSave();
       });
     }
     var photoPick = $('[data-artist-photo-pick]');
@@ -682,8 +749,16 @@
             showError('Photo must be a JPG or PNG.');
             return;
           }
-          current.photo = data;
-          setPhoto('[data-artist-photo-edit]', data);
+          return shrinkImage(data).then(function (ready) {
+            if (!PHOTO_RE.test(ready)) {
+              showError('Photo must be a JPG or PNG.');
+              return;
+            }
+            current.photo = ready;
+            setPhoto('[data-artist-photo-edit]', ready);
+            showError('');
+            saveArtist({ quiet: true });
+          });
         });
       });
     }
@@ -755,10 +830,26 @@
       });
     }
     document.querySelectorAll('[data-human-contribution], [data-ai-contribution]').forEach(function (box) {
-      box.addEventListener('change', paintAiMeter);
+      box.addEventListener('change', function () {
+        paintAiMeter();
+        scheduleSave();
+      });
     });
     var detail = $('#artist-ai-detail');
-    if (detail) detail.addEventListener('input', paintAiMeter);
+    if (detail) {
+      detail.addEventListener('input', function () {
+        paintAiMeter();
+        scheduleSave();
+      });
+    }
+    ['#artist-bio', '#artist-spotify', '#artist-apple', '#artist-store', '#artist-change', '#artist-name'].forEach(function (sel) {
+      var field = $(sel);
+      if (!field || !field.addEventListener) return;
+      field.addEventListener('change', scheduleSave);
+      field.addEventListener('blur', scheduleSave);
+    });
+    if (range) range.addEventListener('change', scheduleSave);
+    if (num) num.addEventListener('change', scheduleSave);
 
     Promise.all([
       loadMe(),

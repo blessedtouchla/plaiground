@@ -183,14 +183,19 @@
 
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
 
-  function isSizeCapError(text, status) {
+  function isPlatformPayloadError(text, status) {
     if (status === 413) return true;
     return /request entry too large|request entity too large|payload too large|function_payload_too_large|content too large/i.test(String(text || ''));
   }
 
+  function isSizeCapError(text) {
+    return /audio must be 200\s*mb or smaller/i.test(String(text || ''));
+  }
+
   function sanitizePartnerCopy(text, status) {
     var next = humanErrorText(text, '');
-    if (isSizeCapError(next, status)) return AUDIO_SIZE_COPY;
+    if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();
+    if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -226,13 +231,15 @@
   function parseJson(response) {
     return response.json().then(function (data) {
       var next = data || {};
-      if (isSizeCapError(next.error || next.message, response.status)) {
+      if (isPlatformPayloadError(next.error || next.message, response.status)) {
+        next.error = catalogTimeoutMessage();
+      } else if (isSizeCapError(next.error || next.message)) {
         next.error = AUDIO_SIZE_COPY;
       }
       return { ok: response.ok, status: response.status, data: next };
     }).catch(function () {
       var fallback = {};
-      if (isSizeCapError('', response.status)) fallback.error = AUDIO_SIZE_COPY;
+      if (isPlatformPayloadError('', response.status)) fallback.error = catalogTimeoutMessage();
       return { ok: false, status: response.status, data: fallback };
     });
   }
@@ -269,6 +276,30 @@
 
   function catalogTimeoutMessage() {
     return 'We could not reach the store. Try again.';
+  }
+
+  function rememberPickedAudio(file) {
+    if (!file) return;
+    var convertedWav = alreadyConverted(readDraft()) && looksLikeWav(file);
+    if (!convertedWav) {
+      writeDraft({
+        audio_picked_size: Number(file.size) || 0,
+        audio_picked_name: file.name || '',
+      });
+    }
+    rememberAudioFile(file);
+  }
+
+  function measuredAudioBytes(file) {
+    var draft = readDraft() || {};
+    var picked = Number(draft.audio_picked_size) || 0;
+    if (alreadyConverted(draft) && looksLikeWav(file)) return picked;
+    if (file && file.size != null && isFinite(Number(file.size))) return Number(file.size);
+    return picked;
+  }
+
+  function audioOverRealCap(file) {
+    return Boolean(file) && measuredAudioBytes(file) > MAX_AUDIO_BYTES;
   }
 
   function isHangStatus(status) {
@@ -1623,7 +1654,7 @@
     }
     var shown = sanitizePartnerCopy(raw, status);
     if (shown) return shown;
-    if (isSizeCapError(fallback, status)) return AUDIO_SIZE_COPY;
+    if (isSizeCapError(fallback)) return AUDIO_SIZE_COPY;
     return sanitizePartnerCopy(fallback || '', status);
   }
 
@@ -1653,7 +1684,7 @@
       if (!picked || isMp3File(picked) || picked === heldAudioFile) return heldAudioFile;
     }
     if (picked) {
-      rememberAudioFile(picked);
+      rememberPickedAudio(picked);
       return picked;
     }
     return heldAudioFile || null;
@@ -1915,9 +1946,9 @@
   function sanitizeResultError(result) {
     if (result && result.data && result.data.error) {
       result.data.error = sanitizePartnerCopy(result.data.error, result.status);
-    } else if (result && isSizeCapError('', result.status)) {
+    } else if (result && isPlatformPayloadError('', result.status)) {
       result.data = result.data || {};
-      result.data.error = AUDIO_SIZE_COPY;
+      result.data.error = catalogTimeoutMessage();
     }
     return result;
   }
@@ -1960,7 +1991,9 @@
           clearTimeout(timer);
           var data = {};
           try { data = JSON.parse(xhr.responseText || '{}') || {}; } catch (err) { data = {}; }
-          if (isSizeCapError((data && (data.error || data.message)) || xhr.responseText, xhr.status)) {
+          if (isPlatformPayloadError((data && (data.error || data.message)) || xhr.responseText, xhr.status)) {
+            data.error = catalogTimeoutMessage();
+          } else if (isSizeCapError((data && (data.error || data.message)) || xhr.responseText)) {
             data.error = AUDIO_SIZE_COPY;
           }
           done({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: data });
@@ -1984,8 +2017,8 @@
 
   function uploadAudio(trackId, file, onProgress) {
     if (!trackId || !file) return Promise.resolve({ skipped: true });
-    if (file.size > MAX_AUDIO_BYTES) {
-      return Promise.resolve({ failed: true, result: { data: { error: 'Audio must be 200 MB or smaller.' } } });
+    if (audioOverRealCap(file)) {
+      return Promise.resolve({ failed: true, result: { data: { error: AUDIO_SIZE_COPY } } });
     }
     return fileLooksAllowed(file).then(function (ok) {
       if (!ok) {
@@ -2028,6 +2061,71 @@
     });
   }
 
+  function artworkUrlFromResult(result) {
+    var data = result && result.data;
+    if (!data) return '';
+    try {
+      if (typeof PlaigroundCoverUrl !== 'undefined' && PlaigroundCoverUrl) {
+        return String(PlaigroundCoverUrl.stored(data) || PlaigroundCoverUrl.from(data) || '').trim();
+      }
+    } catch (err) {}
+    return String(data.artwork_url || data.cover_art_url || data.cover_url || '').trim();
+  }
+
+  function fileToCoverDataUrl(file) {
+    if (!file || typeof FileReader !== 'function') return Promise.resolve('');
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var data = String(reader.result || '');
+        resolve(/^data:image\//i.test(data) ? data : '');
+      };
+      reader.onerror = function () { resolve(''); };
+      try { reader.readAsDataURL(file); } catch (err) { resolve(''); }
+    });
+  }
+
+  function persistLocalReleaseCover(releaseId, url) {
+    var keep = String(url || '').trim();
+    if (!releaseId || !keep) return Promise.resolve();
+    if (!/^https?:\/\//i.test(keep) && !/^data:image\//i.test(keep)) return Promise.resolve();
+    var draft = readDraft();
+    writeDraft({ artwork_url: keep });
+    try {
+      return fetch('/api/me/artists', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'record_release',
+          release: {
+            title: String((draft && draft.title) || '').trim() || 'Untitled',
+            plaiground_artist_id: String((draft && draft.plaiground_artist_id) || '').trim(),
+            tonegrid_status: String((draft && draft.tonegrid_status) || 'pending').toLowerCase(),
+            tonegrid_release_id: releaseId,
+            id: releaseId,
+            artwork_url: keep,
+            genre: String((draft && draft.genre) || '').trim(),
+            language: String((draft && draft.language) || '').trim(),
+          },
+        }),
+      }).then(function () {}, function () {});
+    } catch (err) {
+      return Promise.resolve();
+    }
+  }
+
+  function rememberArtworkUrl(releaseId, result, file) {
+    var url = artworkUrlFromResult(result);
+    if (url && (/^https?:\/\//i.test(url) || /^data:image\//i.test(url))) {
+      return persistLocalReleaseCover(releaseId, url).then(function () { return url; });
+    }
+    return fileToCoverDataUrl(file).then(function (data) {
+      if (!data) return '';
+      return persistLocalReleaseCover(releaseId, data).then(function () { return data; });
+    });
+  }
+
   function uploadArtwork(releaseId, file, onProgress) {
     if (!releaseId || !file) return Promise.resolve({ skipped: true });
     if (file.size > MAX_ARTWORK_BYTES) {
@@ -2041,7 +2139,9 @@
     return postForm(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', body, onProgress).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result };
       if (!result.ok) return { failed: true, result: result };
-      return { uploaded: true, result: result };
+      return rememberArtworkUrl(releaseId, result, file).then(function () {
+        return { uploaded: true, result: result };
+      });
     });
   }
 
@@ -3346,7 +3446,7 @@
       } catch (err) {}
       input._plaigroundFile = file;
     }
-    rememberAudioFile(file);
+    rememberPickedAudio(file);
     if (nameEl) nameEl.textContent = file.name || 'Audio file';
     if (metaEl) metaEl.textContent = file.type || 'Audio file';
     if (preview) preview.hidden = false;
@@ -3555,8 +3655,15 @@
       audioInput.addEventListener('change', function () {
         var picked = audioFileOf(audioInput);
         if (picked && picked.name) {
-          rememberAudioFile(picked);
-          writeDraft({ audio_name: picked.name, audio_uploaded: false, audio_attached: true, audio_converted: false });
+          rememberPickedAudio(picked);
+          writeDraft({
+            audio_name: picked.name,
+            audio_uploaded: false,
+            audio_attached: true,
+            audio_converted: false,
+            audio_picked_size: Number(picked.size) || 0,
+            audio_picked_name: picked.name || '',
+          });
         }
         refreshUploadGate();
       });
@@ -3766,7 +3873,7 @@
       var releaseType = fields.type === 'album' ? 'album' : 'single';
       var albumTracks = fields.tracks || [];
       var file = fields.audio;
-      if (file) rememberAudioFile(file);
+      if (file) rememberPickedAudio(file);
       var art = fields.artwork;
       var nextHref = trigger.getAttribute('href') || 'attest.html';
       var pageError = uploadPageError(fields);
@@ -3776,13 +3883,13 @@
       }
       if (releaseType === 'album') {
         for (var t = 0; t < albumTracks.length; t += 1) {
-          if (albumTracks[t].audio && albumTracks[t].audio.size > MAX_AUDIO_BYTES) {
+          if (albumTracks[t].audio && audioOverRealCap(albumTracks[t].audio)) {
             fieldError('Track ' + (t + 1) + ' must be 200 MB or smaller.');
             return;
           }
         }
-      } else if (file && file.size > MAX_AUDIO_BYTES) {
-        fieldError('Audio must be 200 MB or smaller.');
+      } else if (file && audioOverRealCap(file)) {
+        fieldError(AUDIO_SIZE_COPY);
         return;
       }
       if (art && art.size > MAX_ARTWORK_BYTES) {
@@ -3817,6 +3924,12 @@
         artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
         artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
         audio_name: file && file.name ? file.name : (readDraft().audio_name || ''),
+        audio_picked_size: (file && !looksLikeWav(file)) || !alreadyConverted(readDraft())
+          ? (Number(file && file.size) || Number(readDraft().audio_picked_size) || 0)
+          : (Number(readDraft().audio_picked_size) || Number(file && file.size) || 0),
+        audio_picked_name: file && !looksLikeWav(file)
+          ? (file.name || '')
+          : (readDraft().audio_picked_name || (file && file.name) || ''),
         audio_attached: Boolean((file && file.name) || readDraft().audio_attached || readDraft().audio_name),
         title_check: titleCheck,
         tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,

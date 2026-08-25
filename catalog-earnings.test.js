@@ -282,6 +282,7 @@ function run() {
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('releases.html')), 'sidebar Releases must not point at a leftover song');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('dashboard.html')), 'Creator menu Releases must not point at a leftover song');
   assert.ok(read('catalog.js').includes("editPanel.hidden = true"), 'Releases must not auto-open Edit release');
+  assert.ok(read('catalog.js').includes('function pickedCatalogValue'), 'catalog edit must read typeahead genre/language');
   assert.ok(read('song.js').includes("location.href = 'releases.html'"), 'song.html without an id returns to the list');
   assert.ok(read('song.js').includes("return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html'"), 'bare Edit href goes to the list, not latest');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 1, 'one release still shows the list row');

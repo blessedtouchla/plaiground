@@ -161,7 +161,8 @@ function run() {
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(!html.includes('data-require-paid'));
   assert.ok(html.includes('skips the name warning'));
-  assert.ok(html.includes('Submit for edit'));
+  assert.ok(html.includes('Save artist'));
+  assert.ok(!html.includes('Submit for edit'));
   assert.ok(html.includes('data-artist-delete'));
   assert.ok(html.includes('Pending edit'));
   assert.ok(html.includes('Edit submitted. Waiting on the store / the distributor.'));
@@ -196,7 +197,8 @@ function run() {
   assert.ok(js.includes("openArtistForm('add')"));
   assert.ok(js.includes("openArtistForm('import')"));
   assert.ok(js.includes("Held for review. This name was not sent to the store."));
-  assert.ok(js.includes("submit_edit"));
+  assert.ok(js.includes("action: 'update'"));
+  assert.ok(!js.includes('submit_edit'));
   assert.ok(js.includes("action: 'delete'"));
   assert.ok(js.includes('The store / the distributor cannot delete this artist.'));
   assert.ok(js.indexOf('/api/tonegrid/artists') === -1, 'do not fake a store artist delete');
