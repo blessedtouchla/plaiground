@@ -127,6 +127,8 @@ function loadSong(opts) {
     '[data-song-cover]': makeEl({}),
     '[data-song-cover-note]': makeEl({}),
     '[data-song-player]': makeEl({}),
+    '[data-song-links]': makeEl({ hidden: true }),
+    '[data-song-link-list]': makeEl({}),
     '[data-song-streams]': makeEl({ textContent: '0' }),
     '[data-song-earnings]': makeEl({ textContent: '$0.00' }),
     '[data-song-breakdown]': makeEl({ hidden: true }),
@@ -283,6 +285,10 @@ function run() {
   assert.ok(!html.includes('class="seg"'));
   assert.ok(html.includes('data-song-title'));
   assert.ok(html.includes('data-song-player'));
+  assert.ok(html.includes('data-song-links'));
+  assert.ok(html.includes('data-song-link-list'));
+  assert.ok(html.includes('<h3>Links</h3>'));
+  assert.ok(css.includes('.song-store-links'));
   assert.ok(html.includes('lib/live-player.js'));
   assert.ok(html.includes('data-song-streams'));
   assert.ok(html.includes('song.js'));
@@ -337,6 +343,8 @@ function run() {
   assert.ok(page.nodes['[data-song-player]'].children.some(function (child) {
     return child && child.textContent === 'Available when live.';
   }), 'pending player stays disabled until live');
+  assert.strictEqual(page.nodes['[data-song-links]'].hidden, true, 'pending song hides Links');
+  assert.strictEqual(page.nodes['[data-song-link-list]'].children.length, 0);
   assert.strictEqual(page.nodes['[data-song-breakdown]'].hidden, true, 'Basic locks platform breakdown');
   assert.strictEqual(page.nodes['[data-song-publishing]'].hidden, true, 'Basic hides publishing');
   assert.strictEqual(page.nodes['[data-song-boosts]'].hidden, false, 'Basic can still see locked Boost history');
@@ -370,6 +378,8 @@ function run() {
   assert.ok(live.nodes['[data-song-player]'].children.some(function (child) {
     return child && String(child.textContent || '').indexOf('Stream links appear') !== -1;
   }), 'live without a store ID still does not invent audio');
+  assert.strictEqual(live.nodes['[data-song-links]'].hidden, true, 'live without store IDs keeps Links hidden');
+  assert.strictEqual(live.nodes['[data-song-link-list]'].children.length, 0);
 
   const streamed = loadSong({ plan: 'basic', me: basicMe });
   streamed.api.render({
@@ -390,6 +400,57 @@ function run() {
     return child && child.type === 'audio';
   }), 'live Play does not host a local audio file');
   assert.strictEqual(streamed.nodes['[data-song-streams]'].textContent, '0');
+  assert.strictEqual(streamed.nodes['[data-song-links]'].hidden, false, 'live song shows Links when the store sent IDs');
+  assert.ok(streamed.nodes['[data-song-link-list]'].children.some(function (child) {
+    return child && child.children && child.children[0] && child.children[0].href === 'https://open.spotify.com/album/7v0Ytestalbumid00001'
+      && child.children[0].target === '_blank'
+      && child.children[0].textContent === 'Spotify';
+  }), 'Links lists the official Spotify URL');
+
+  const pendingWithIds = loadSong({ plan: 'basic', me: basicMe });
+  pendingWithIds.api.render({
+    me: basicMe,
+    release: {
+      uuid: basicMe.tonegrid_release_ids[0],
+      title: 'Fuvtu',
+      status: 'pending',
+      type: 'single',
+      deliveries: [{ dsp: 'spotify', status: 'live', dsp_release_id: 'spotify:album:7v0Ytestalbumid00001' }],
+    },
+    analytics: {},
+  });
+  assert.strictEqual(pendingWithIds.nodes['[data-song-links]'].hidden, true, 'pending never shows Links even if a delivery payload is present');
+  assert.strictEqual(pendingWithIds.nodes['[data-song-link-list]'].children.length, 0);
+
+  const liveStores = loadSong({ plan: 'basic', me: basicMe });
+  liveStores.api.render({
+    me: basicMe,
+    release: {
+      uuid: basicMe.tonegrid_release_ids[0],
+      title: 'Fuvtu',
+      status: 'delivered',
+      type: 'single',
+      deliveries: [
+        { dsp: 'spotify', status: 'live', dsp_release_id: 'spotify:album:7v0Ytestalbumid00001' },
+        { dsp: 'apple-music', status: 'live', dsp_release_id: '1543210987' },
+        { dsp: 'youtube-music', store_url: 'https://music.youtube.com/playlist?list=OLAK5uy_testlist' },
+        { dsp: 'tidal', store_url: 'https://listen.tidal.com/album/123456789' },
+      ],
+    },
+    analytics: {},
+  });
+  assert.strictEqual(liveStores.nodes['[data-song-links]'].hidden, false);
+  const hrefs = liveStores.nodes['[data-song-link-list]'].children.map(function (row) {
+    return row && row.children && row.children[0] ? row.children[0].href : '';
+  });
+  const names = liveStores.nodes['[data-song-link-list]'].children.map(function (row) {
+    return row && row.children && row.children[0] ? row.children[0].textContent : '';
+  });
+  assert.ok(hrefs.indexOf('https://open.spotify.com/album/7v0Ytestalbumid00001') !== -1);
+  assert.ok(hrefs.indexOf('https://music.apple.com/album/1543210987') !== -1);
+  assert.ok(hrefs.some(function (href) { return href.indexOf('OLAK5uy_testlist') !== -1; }));
+  assert.ok(hrefs.indexOf('https://listen.tidal.com/album/123456789') !== -1);
+  assert.deepStrictEqual(names.slice().sort(), ['Apple Music', 'Spotify', 'Tidal', 'YouTube Music']);
 
   const picker = loadSong({ plan: 'basic', me: basicMe, search: '' });
   const picked = picker.api.pickRelease(
