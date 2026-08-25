@@ -348,7 +348,17 @@ function run() {
     assert.ok(html.includes('href="artists.html">Artist Profiles</a>'), file + ' must list Artist Profiles in the signed-in menu');
     assert.ok(html.includes('href="settings.html">Settings</a>'), file + ' must keep Settings separate from Artist Profiles');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
+    const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
+    assert.ok(sideNav, file + ' must keep the signed-in side nav');
+    assert.ok(/href="splits.html">Splits<\/a>\s*<a(?: class="on")? href="publishing-register.html" data-publishing-register>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>/.test(sideNav[0]), file + ' must list Publishing after Splits');
+    assert.ok(sideNav[0].includes('data-publishing-register>Publishing</a>'), file + ' Publishing uses the paid-access register gate');
+    assert.ok(!/\bhidden\b[^>]*>Publishing<\/a>/.test(sideNav[0]), file + ' must not hide Publishing');
+    assert.ok(!/data-for-plans=/.test(sideNav[0]), file + ' must not plan-hide Publishing on Pro/Creator');
   });
+
+  const pubRegNav = read('publishing-register.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
+  assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register>Publishing<\/a>/.test(pubRegNav[0]), 'Publishing is current on the register page');
+  assert.ok(js.includes('publishing-register.html') && js.includes('publishing.html') && js.includes('data-publishing-register'), 'shared app menu marks Publishing current on register/explainer');
 
   const dash = read('dashboard.html');
   const howApp = read('how.html');
@@ -391,6 +401,38 @@ function run() {
   assert.ok(!appNav.tools, 'signed-in app chrome does not gain the public Login cluster');
   assert.ok(!appNav.login, 'signed-in Hi there / PG pages do not get a header Login');
   assert.ok(!appNav.toggle || !appNav.toggle.classList.contains('public-menu-toggle'), 'app Menu is not the public header cluster');
+
+  function runPublishingOn(pathname) {
+    const pub = el('a', { href: 'publishing-register.html' });
+    pub.setAttribute('data-publishing-register', '');
+    pub.textContent = 'Publishing';
+    const side = el('aside', { class: 'side' }, [pub]);
+    const topbar = el('div', { class: 'topbar' }, [el('a', { class: 'who', href: 'settings.html' })]);
+    const document = {
+      body: el('body', { class: 'app' }, [side, el('div', { class: 'app-main' }, [topbar])]),
+      querySelector: function (sel) { return document.body.querySelector(sel); },
+      querySelectorAll: function (sel) { return document.body.querySelectorAll(sel); },
+      createElement: function (tag) { return el(tag); },
+      addEventListener: function () {},
+    };
+    const context = {
+      document: document,
+      window: {
+        location: { pathname: pathname },
+        PlaigroundMembership: {
+          isSignedIn: function () { return true; },
+          whenReady: function (cb) { if (typeof cb === 'function') cb(); },
+        },
+      },
+      NodeList: Array,
+    };
+    context.window.document = document;
+    require('vm').runInNewContext(read('site.js'), context);
+    return pub;
+  }
+  assert.ok(runPublishingOn('/publishing-register.html').classList.contains('on'), 'register page marks Publishing current');
+  assert.ok(runPublishingOn('/publishing.html').classList.contains('on'), 'explainer marks Publishing current');
+  assert.ok(!runPublishingOn('/dashboard.html').classList.contains('on'), 'other app pages do not mark Publishing current');
 
   console.log('public-copy-nav.test.js ok');
 }
