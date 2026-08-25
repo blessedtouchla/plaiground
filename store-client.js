@@ -96,29 +96,17 @@
     clearHeldAudio();
   }
 
-  function uploadCancelHasStarted() {
-    if (fieldValue('tg-title')) return true;
-    var input = document.querySelector('[data-audio-input]');
-    if (input && input.files && input.files[0]) return true;
-    if (input && input._plaigroundFile) return true;
-    var draft = readDraft();
-    if (!draft) return false;
-    if (String(draft.title || '').trim()) return true;
-    if (draft.audio_name || draft.audio_attached || draft.audio_uploaded || draft.audio_converted) return true;
-    return false;
-  }
-
   function cancelInProgressUpload(event) {
     if (event && event.preventDefault) event.preventDefault();
-    if (uploadCancelHasStarted()) {
-      var ok = true;
-      try {
-        if (typeof window.confirm === 'function') ok = window.confirm('Cancel this upload?');
-      } catch (err) {
-        ok = true;
+    var ok = true;
+    try {
+      if (typeof window.confirm === 'function') {
+        ok = window.confirm('Cancel this upload? This loses the in-progress info.');
       }
-      if (!ok) return false;
+    } catch (err) {
+      ok = true;
     }
+    if (!ok) return false;
     clearNewReleaseDraft();
     try {
       if (typeof location !== 'undefined') location.href = 'upload.html?new=1';

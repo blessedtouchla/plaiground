@@ -595,7 +595,7 @@ function run() {
   assert.ok(tonegridSrc.indexOf('function clearNewReleaseDraft') !== -1, 'New release must wipe leftover draft');
   assert.ok(tonegridSrc.indexOf('isNewReleaseStart') !== -1);
   assert.ok(tonegridSrc.indexOf('function cancelInProgressUpload') !== -1, 'mid-upload Cancel must wipe the leftover draft');
-  assert.ok(tonegridSrc.indexOf('Cancel this upload?') !== -1);
+  assert.ok(tonegridSrc.indexOf('Cancel this upload? This loses the in-progress info.') !== -1);
   assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(upload), 'Cancel is a real secondary button');
   assert.ok(upload.indexOf('Save and exit') === -1, 'upload Cancel must not say Save and exit');
   assert.ok(!/if \(typeaheadApplying\) return/.test(catalogSrc), 'fillUploadSelects must not skip bind while a pick is applying');

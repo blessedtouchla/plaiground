@@ -2811,8 +2811,8 @@ async function run() {
   assert.ok(source.includes('bindLeaveUploadGuard'));
   assert.ok(source.includes('guardLeaveUpload'));
   assert.ok(source.includes('function cancelInProgressUpload'));
-  assert.ok(source.includes('function uploadCancelHasStarted'));
-  assert.ok(source.includes('Cancel this upload?'));
+  assert.ok(source.includes('Cancel this upload? This loses the in-progress info.'));
+  assert.ok(!source.includes('function uploadCancelHasStarted'));
   assert.ok(source.includes("location.href = 'upload.html?new=1'"));
   assert.ok(/data-upload-cancel/.test(uploadHtml));
   assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(uploadHtml), 'Cancel is a real secondary button');
@@ -3084,7 +3084,7 @@ async function run() {
     assert.strictEqual(mid.title.value, 'Mexeu', 'mid-upload leftover draft still preloads until Cancel');
     assert.strictEqual(draftOf(mid.localStorage).title, 'Mexeu');
     mid.cancelBtn.listeners.click({ preventDefault() {} });
-    assert.strictEqual(mid.confirms[0], 'Cancel this upload?');
+    assert.strictEqual(mid.confirms[0], 'Cancel this upload? This loses the in-progress info.');
     assert.strictEqual(mid.localStorage.getItem('plaiground.store.draft'), null, 'Cancel clears the leftover draft');
     assert.strictEqual(mid.sessionStorage.getItem('plaiground.store.draft'), null, 'Cancel clears the session draft');
     assert.ok(String(mid.location.href).indexOf('upload.html?new=1') !== -1, 'Cancel reopens a blank New release');
@@ -3124,12 +3124,14 @@ async function run() {
       confirm: false,
     });
     keep.cancelBtn.listeners.click({ preventDefault() {} });
-    assert.strictEqual(draftOf(keep.localStorage).title, 'Mexeu', 'declining Cancel this upload? keeps the draft');
+    assert.strictEqual(keep.confirms[0], 'Cancel this upload? This loses the in-progress info.');
+    assert.strictEqual(draftOf(keep.localStorage).title, 'Mexeu', 'dismissing Cancel keeps the in-progress form');
     assert.ok(String(keep.location.href).indexOf('upload.html?new=1') === -1);
 
     const empty = load({ title: '', file: null });
     empty.cancelBtn.listeners.click({ preventDefault() {} });
-    assert.strictEqual(empty.confirms.length, 0, 'empty form Cancel does not confirm');
+    assert.strictEqual(empty.confirms.length, 1, 'first Cancel tap always confirms before drop');
+    assert.strictEqual(empty.confirms[0], 'Cancel this upload? This loses the in-progress info.');
     assert.strictEqual(empty.localStorage.getItem('plaiground.store.draft'), null);
     assert.ok(String(empty.location.href).indexOf('upload.html?new=1') !== -1);
   }
