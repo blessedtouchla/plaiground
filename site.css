@@ -784,6 +784,13 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   margin-bottom: 8px;
 }
 .draft-banner p { color: #E8D48A; font-size: 14px; margin-bottom: 0; max-width: none; }
+.draft-banner a {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.draft-banner a:hover { color: var(--yellow); }
 .legal-toc {
   background: var(--card);
   border: 1px solid var(--line);
@@ -948,10 +955,30 @@ body.app > .plai-bubble {
 .page-head h1 { font-size: clamp(2rem, 3vw, 2.6rem); font-weight: 800; letter-spacing: -0.04em; }
 .page-head p { color: var(--muted); margin-top: 8px; max-width: 560px; }
 .head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.plan-switch { display: grid; gap: 10px; margin-top: 16px; max-width: 420px; }
+.plan-switch { display: grid; gap: 16px; margin-top: 16px; max-width: none; }
 .plan-switch[hidden],
 [data-manage-plan][hidden] { display: none !important; }
-.plan-switch .btn { justify-content: flex-start; }
+.plan-switch-copy { color: var(--muted); font-size: 14px; max-width: 640px; line-height: 1.55; }
+.plan-picker { grid-template-columns: repeat(2, 1fr); }
+.plan-picker .offer { min-height: 100%; }
+.plan-picker .offer .price { font-size: 1.45rem; }
+.plan-picker .offer > p { flex: 1; }
+.plan-picker .current-badge {
+  display: none;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.plan-picker .offer:has([data-plan-option].is-current) {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(245, 197, 66, 0.28);
+}
+.plan-picker .offer:has([data-plan-option].is-current) .current-badge { display: inline-block; }
+.plan-switch .btn { justify-content: center; }
 .plan-switch .btn.is-current {
   border-color: var(--gold);
   color: var(--gold);
@@ -2831,7 +2858,7 @@ button.dashbox span {
   body.public-nav-open { overflow: hidden; }
   .pub-call { flex-direction: column; align-items: flex-start; }
   .pub-call-actions { text-align: left; }
-  .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head, .auth, .two-col, .review-grid, .form-grid, .art-row, .opt-grid, .workflow, .metric-row, .after, .pub-band, .writer-grid, .hero-split, .process-row, .exclude-grid, .how-cols, .boost-grid, .size-grid, .tease-grid, .pro-adds .row, .dash-preview, .about-grid, .contact-grid, .dash-top, .form-grid.three, .form-grid.four, .catalog-stats, .song-hero, .fees-grid, .entry-grid, .prefill, .carry, .pub-bar, .offer-grid, .confirm-bar, .next-4, .know, .signed-grid {
+  .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head, .auth, .two-col, .review-grid, .form-grid, .art-row, .opt-grid, .workflow, .metric-row, .after, .pub-band, .writer-grid, .hero-split, .process-row, .exclude-grid, .how-cols, .boost-grid, .size-grid, .tease-grid, .pro-adds .row, .dash-preview, .about-grid, .contact-grid, .dash-top, .form-grid.three, .form-grid.four, .catalog-stats, .song-hero, .fees-grid, .entry-grid, .prefill, .carry, .pub-bar, .offer-grid, .plan-picker, .confirm-bar, .next-4, .know, .signed-grid {
     grid-template-columns: 1fr;
   }
   body.auth-full .auth {

@@ -2,7 +2,7 @@
 
 Static site. Split-sheet signing uses SignWell via `api/signwell.js`.
 The PLAI voice bubble mints an xAI ephemeral token via `api/plai-session.js`.
-Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js` (`mode=subscription`, monthly or yearly). Settings → Manage plan redirects to `plan-confirm.html`. Submit there updates the subscription (`action=switch`). Preview (`action=preview`) does not charge. The signed Stripe webhook lives in that same file at `/api/stripe/webhook` (Hobby rewrite — not a seventh function).
+Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js` (`mode=subscription`, monthly or yearly). Settings → Manage plan redirects to `plan-confirm.html`. Submit there updates the subscription (`action=switch`). Preview (`action=preview`) does not charge. Settings → Manage billing opens the Stripe Customer Billing Portal (`action=portal`) to update the card. No Stripe customer means no card on file — the site does not invent a portal. The signed Stripe webhook lives in that same file at `/api/stripe/webhook` (Hobby rewrite — not a seventh function).
 Artist and release calls go to ToneGrid via the server-only handler in `api/tonegrid.js`.
 
 Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
@@ -10,7 +10,7 @@ Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
 - `auth.js` — signup, login, logout, schema bootstrap, confirm mail
 - `me.js` — session user + catalog ids
 - `tonegrid.js` — health, stores, artists, releases, submit, dsps, artwork, tracks, audio, analytics, royalties
-- `create-checkout-session.js` — Checkout, Manage-plan switch, `/api/stripe/webhook`
+- `create-checkout-session.js` — Checkout, Manage-plan switch, Manage-billing portal, `/api/stripe/webhook`
 - `plai-session.js`
 - `signwell.js`
 
@@ -87,6 +87,7 @@ Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 - `POST /api/create-checkout-session` `{ action: "switch", plan, interval }` (signed-in; upgrades `proration_behavior=always_invoice`, downgrades `none`; looks up the sub by `stripe_customer_id`, not email)
 - `POST /api/create-checkout-session` `{ action: "preview", plan, interval }` (confirm page only; does not charge)
 - `POST /api/create-checkout-session` `{ action: "billing" }` (current price for that customer)
+- `POST /api/create-checkout-session` `{ action: "portal" }` (Stripe Customer Billing Portal, card update only; `{ no_card: true }` when there is no Stripe customer)
 - `POST /api/stripe/webhook` (Stripe-Signature; Hobby rewrite onto `create-checkout-session.js`)
 - `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
 

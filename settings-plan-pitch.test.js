@@ -42,8 +42,22 @@ function run() {
   assert.ok(settings.includes('new price next period'), 'Settings says the new price is next period');
   assert.ok(settings.includes('no refund'), 'Settings keeps downgrade no-refund copy');
   assert.ok(settings.includes('does not start a second plan'), 'Settings says the switch updates one subscription');
+  assert.ok(settings.includes('offer-grid plan-picker'), 'Manage plan uses offer cards, not a raw stack of ghost links');
+  assert.ok(settings.includes('btn btn-purple btn-md btn-block'), 'Manage plan monthly CTAs match Plans / Boosts');
+  assert.ok(settings.includes('id="manage-billing"'), 'Settings exposes Manage billing');
+  assert.ok(settings.includes('data-manage-billing'), 'Manage billing has an Update card control');
+  assert.ok(settings.includes('Card numbers stay on Stripe'), 'Manage billing does not collect card numbers on this site');
+  assert.ok(settings.includes('href="#manage-billing"'), 'failed-pay copy points at Manage billing');
+  assert.ok(!/same as Pro|same product as Pro|same-as-Pro/i.test(settings), 'Creator copy must not say same-as-Pro');
+  assert.ok(settings.includes('Same as Creator, unlimited'), 'Pro may say same as Creator, unlimited');
+  assert.ok(read('dashboard.html').includes('settings.html#manage-billing'), 'dashboard failed-pay banner points at Manage billing');
 
   const account = read('account.js');
+  assert.ok(account.includes("action: 'portal'") || account.includes('action: "portal"'), 'Update card asks the existing checkout function for a portal');
+  assert.ok(account.includes('There is no card on file.'), 'no Stripe customer shows a real no-card message');
+  assert.ok(account.includes('billing.stripe.com'), 'portal redirect stays on Stripe Billing Portal');
+  assert.ok(account.includes('dashboard.stripe.com'), 'portal redirect refuses the Stripe Dashboard');
+  assert.ok(!/location\.(href|replace).*dashboard\.stripe\.com/.test(account), 'Update card must not open the Stripe Dashboard');
   assert.ok(account.includes('You pay the difference now'), 'confirm copy names the difference');
   assert.ok(account.includes('Next period you pay') || account.includes('new price next period'), 'confirm copy names the next-period price');
   assert.ok(account.includes('Due now:'), 'confirm title can show the Stripe due-now amount');
@@ -97,6 +111,7 @@ function run() {
         if (sel === '[data-manage-plan-toggle]') return toggle;
         if (sel === '[data-manage-plan]') return panel;
         if (sel === '[data-plan-confirm]') return null;
+        if (sel === '[data-manage-billing]') return null;
         if (sel === '.sign-out') return null;
         return null;
       },
@@ -118,6 +133,63 @@ function run() {
   assert.strictEqual(firstOption.focused, true, 'Manage plan focuses a plan option');
   assert.ok(settings.includes('href="plan-confirm.html?plan=pro&amp;interval=month"'), 'plan options still go to plan-confirm');
 
+  const billingButton = {
+    attrs: {},
+    textContent: 'Update card',
+    disabled: false,
+    listeners: {},
+    getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    addEventListener(type, fn) { this.listeners[type] = fn; },
+  };
+  const billingStatus = { textContent: '', hidden: true };
+  const billingFetches = [];
+  const billingContext = {
+    document: {
+      readyState: 'complete',
+      getElementById() { return null; },
+      querySelector(sel) {
+        if (sel === '[data-manage-billing]') return billingButton;
+        if (sel === '[data-manage-plan-toggle]') return null;
+        if (sel === '[data-manage-plan]') return null;
+        if (sel === '[data-plan-confirm]') return null;
+        if (sel === '.sign-out') return null;
+        return null;
+      },
+      querySelectorAll(sel) {
+        if (sel === '[data-manage-billing-status]') return [billingStatus];
+        return [];
+      },
+      addEventListener() {},
+    },
+    location: { href: 'settings.html#manage-billing', pathname: '/settings.html', search: '', hash: '#manage-billing' },
+    fetch(url, opts) {
+      billingFetches.push({ url: String(url), opts: opts || {} });
+      const body = JSON.parse((opts && opts.body) || '{}');
+      if (body.action === 'billing') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json() { return Promise.resolve({ plan: 'pro', interval: '', no_card: true, has_card: false }); },
+        });
+      }
+      if (body.action === 'portal') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json() { return Promise.resolve({ no_card: true, error: 'There is no card on file.' }); },
+        });
+      }
+      return Promise.reject(new Error('unexpected ' + body.action));
+    },
+    window: {},
+  };
+  billingContext.window = billingContext;
+  vm.runInNewContext(read('account.js'), billingContext);
+  assert.ok(typeof billingButton.listeners.click === 'function', 'Update card must bind a click handler');
+  billingButton.listeners.click({ preventDefault() {} });
+
   const index = read('index.html');
   assert.ok(index.includes('or $149/year'), 'public Creator yearly stays $149');
   assert.ok(index.includes('or $199/year'), 'public Pro yearly displays $199');
@@ -125,7 +197,29 @@ function run() {
   assert.ok(index.includes('$19.99'), 'public Pro monthly price stays');
   assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly checkout is live at $199');
 
-  console.log('settings-plan-pitch.test.js ok');
+  return new Promise(function (resolve, reject) {
+    setTimeout(function () {
+      try {
+        assert.ok(billingFetches.some(function (item) {
+          return /create-checkout-session/.test(item.url) && JSON.parse(item.opts.body || '{}').action === 'portal';
+        }), 'Update card asks action=portal');
+        assert.ok(!billingFetches.some(function (item) {
+          const body = JSON.parse(item.opts.body || '{}');
+          return body.action === 'switch' || body.plan;
+        }), 'Update card must not start Checkout or switch the plan');
+        assert.strictEqual(billingStatus.textContent, 'There is no card on file.');
+        assert.strictEqual(billingStatus.hidden, false);
+        assert.ok(String(billingContext.location.href).indexOf('billing.stripe.com') === -1, 'no-card must not open a portal');
+        console.log('settings-plan-pitch.test.js ok');
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    }, 0);
+  });
 }
 
-run();
+Promise.resolve(run()).catch(function (err) {
+  console.error(err);
+  process.exit(1);
+});

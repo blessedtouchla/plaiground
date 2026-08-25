@@ -116,6 +116,37 @@
     });
   }
 
+  function setBillingStatus(text) {
+    $all('[data-manage-billing-status]').forEach(function (el) {
+      setText(el, text || '');
+      el.hidden = !text;
+    });
+  }
+
+  function applyBillingState(data) {
+    if (!data) return;
+    if (data.plan || data.interval) markPlanOption(data.plan, data.interval);
+    if (data.no_card || data.has_card === false) {
+      setBillingStatus('There is no card on file.');
+    }
+  }
+
+  function isPortalUrl(url) {
+    try {
+      var parsed = new URL(url, 'https://www.wannaplai.com');
+      var host = String(parsed.hostname || '').toLowerCase();
+      if (parsed.protocol !== 'https:') return false;
+      if (host === 'dashboard.stripe.com' || host.indexOf('dashboard.stripe.') === 0) return false;
+      return host === 'billing.stripe.com' || host.slice(-19) === '.billing.stripe.com';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function hashName() {
+    return String((global.location && global.location.hash) || '').replace(/^#/, '');
+  }
+
   function setText(el, text) {
     if (el) el.textContent = text;
   }
@@ -510,6 +541,51 @@
       .catch(function () {});
   }
 
+  function fetchBillingState() {
+    if (typeof global.fetch !== 'function') return Promise.resolve(null);
+    if (!document.querySelector('[data-manage-plan], [data-manage-billing]')) return Promise.resolve(null);
+    return global.fetch('/api/create-checkout-session', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ action: 'billing' }),
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data || {} };
+        }).catch(function () {
+          return { ok: false, data: {} };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok) return null;
+        applyBillingState(result.data);
+        $all('[data-account-plan-pitch]').forEach(function (el) {
+          setText(el, planPitch(result.data.plan, result.data.interval));
+        });
+        return result.data;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  function openManagePlan() {
+    var toggle = document.querySelector('[data-manage-plan-toggle]');
+    var panel = document.querySelector('[data-manage-plan]');
+    if (!toggle || !panel) return;
+    panel.hidden = false;
+    panel.removeAttribute('hidden');
+    toggle.setAttribute('aria-expanded', 'true');
+    if (typeof panel.scrollIntoView === 'function') {
+      panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    var current = panel.querySelector('[data-plan-option][aria-current="true"], [data-plan-option].is-current');
+    var first = current || panel.querySelector('[data-plan-option]');
+    if (first && typeof first.focus === 'function') first.focus();
+    fetchBillingState();
+  }
+
   function bindManagePlan() {
     var toggle = document.querySelector('[data-manage-plan-toggle]');
     var panel = document.querySelector('[data-manage-plan]');
@@ -518,37 +594,87 @@
     toggle.setAttribute('data-manage-bound', 'true');
     toggle.addEventListener('click', function (event) {
       if (event && event.preventDefault) event.preventDefault();
-      panel.hidden = false;
-      panel.removeAttribute('hidden');
-      toggle.setAttribute('aria-expanded', 'true');
-      if (typeof panel.scrollIntoView === 'function') {
+      openManagePlan();
+    });
+    if (hashName() === 'manage-plan') openManagePlan();
+  }
+
+  function bindManageBilling() {
+    var button = document.querySelector('[data-manage-billing]');
+    if (!button) return;
+    if (button.getAttribute('data-billing-bound') === 'true') return;
+    button.setAttribute('data-billing-bound', 'true');
+    if (hashName() === 'manage-billing') {
+      var panel = document.getElementById('manage-billing');
+      if (panel && typeof panel.scrollIntoView === 'function') {
         panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
-      var current = panel.querySelector('[data-plan-option][aria-current="true"], [data-plan-option].is-current');
-      var first = current || panel.querySelector('[data-plan-option]');
-      if (first && typeof first.focus === 'function') first.focus();
-      if (typeof global.fetch !== 'function') return;
+    }
+    fetchBillingState();
+    button.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      if (button.getAttribute('aria-busy') === 'true') return;
+      var original = button.getAttribute('data-billing-label') || button.textContent;
+      button.setAttribute('data-billing-label', original);
+      button.setAttribute('aria-busy', 'true');
+      button.disabled = true;
+      button.textContent = 'Opening…';
+      setBillingStatus('');
+      if (typeof global.fetch !== 'function') {
+        button.removeAttribute('aria-busy');
+        button.disabled = false;
+        button.textContent = original;
+        setBillingStatus('There is no card on file.');
+        return;
+      }
       global.fetch('/api/create-checkout-session', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ action: 'billing' }),
+        body: JSON.stringify({
+          action: 'portal',
+          returnUrl: 'https://www.wannaplai.com/settings.html#manage-billing',
+        }),
       })
         .then(function (response) {
           return response.json().then(function (data) {
-            return { ok: response.ok, data: data || {} };
+            return { ok: response.ok, status: response.status, data: data || {} };
           }).catch(function () {
-            return { ok: false, data: {} };
+            return { ok: false, status: response.status, data: {} };
           });
         })
         .then(function (result) {
-          if (!result.ok) return;
-          markPlanOption(result.data.plan, result.data.interval);
-          $all('[data-account-plan-pitch]').forEach(function (el) {
-            setText(el, planPitch(result.data.plan, result.data.interval));
-          });
+          var data = result.data || {};
+          if (data.no_card || data.has_card === false) {
+            button.removeAttribute('aria-busy');
+            button.disabled = false;
+            button.textContent = original;
+            setBillingStatus('There is no card on file.');
+            return;
+          }
+          if (data.url && isPortalUrl(data.url)) {
+            global.location.href = data.url;
+            return;
+          }
+          button.removeAttribute('aria-busy');
+          button.disabled = false;
+          button.textContent = original;
+          if (result.status === 401) {
+            setBillingStatus('Still signed in. Try again.');
+            return;
+          }
+          if (result.status === 503 || data.configured === false) {
+            setBillingStatus('Billing is not available yet.');
+            return;
+          }
+          setBillingStatus(data.error || 'There is no card on file.');
         })
-        .catch(function () {});
+        .catch(function () {
+          button.removeAttribute('aria-busy');
+          button.disabled = false;
+          button.textContent = original;
+          setBillingStatus('Could not open billing.');
+        });
     });
   }
 
@@ -564,7 +690,9 @@
 
   bindSignOut();
   whenDomReady(bindManagePlan);
+  whenDomReady(bindManageBilling);
   bindManagePlan();
+  bindManageBilling();
   bindPlanConfirm();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
