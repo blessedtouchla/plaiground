@@ -438,7 +438,7 @@
     }
     if (requested) {
       if (ids.length && !idAllowed(ids, requested)) return null;
-      return overlayPendingEdit(find(requested) || (idAllowed(ids, requested) ? { uuid: requested, title: '', type: 'single', status: 'pending' } : null), draft);
+      return overlayPendingEdit(find(requested) || (idAllowed(ids, requested) ? { uuid: requested, title: '', type: 'single', status: 'pending' } : null), draft, me);
     }
     return null;
   }
@@ -447,21 +447,64 @@
     return statusStep(release, draft) === 'live';
   }
 
-  function overlayPendingEdit(release, draft) {
-    if (!release) return release;
-    if (isLiveConfirmed(release, draft)) return release;
-    if (!draft) return release;
+  function truthyApplied(value) {
+    return value === true || value === 'true' || value === 1 || value === '1';
+  }
+
+  function firstText() {
+    var i;
+    for (i = 0; i < arguments.length; i += 1) {
+      var text = String(arguments[i] == null ? '' : arguments[i]).trim();
+      if (text) return text;
+    }
+    return '';
+  }
+
+  function matchingEditSource(release, draft) {
+    if (!release || !draft) return false;
     var want = String(draft.release_id || '').toLowerCase();
     var have = String(release.uuid || release.id || '').toLowerCase();
-    if (want && have && want !== have) return release;
-    var next = Object.assign({}, release);
-    if (String(draft.title || '').trim()) next.title = String(draft.title).trim();
-    if (String(draft.genre || '').trim()) next.genre = String(draft.genre).trim();
-    if (String(draft.language || '').trim()) next.language = String(draft.language).trim();
-    if (String(draft.release_date || '').trim()) next.release_date = String(draft.release_date).trim();
-    var art = String((draft.artwork_url || draft.cover_art_url || draft.cover_url) || '').trim();
+    if (!want || !have) return false;
+    return want === have;
+  }
+
+  function applySavedEditFields(next, src) {
+    if (!next || !src) return next;
+    var title = firstText(src.title);
+    if (title) next.title = title;
+    var artist = firstText(src.artist, src.name);
+    if (artist) next.artist = artist;
+    var genre = firstText(src.genre);
+    if (genre) next.genre = genre;
+    var language = firstText(src.language);
+    if (language) next.language = language;
+    else if (src.language !== undefined && src.instrumental) next.language = '';
+    var date = firstText(src.release_date);
+    if (date) next.release_date = date;
+    var art = firstText(src.artwork_url, src.cover_art_url, src.cover_url);
     if (art) next.artwork_url = art;
+    if (src.lyrics !== undefined) next.lyrics = String(src.lyrics == null ? '' : src.lyrics);
+    if (Array.isArray(src.dsps) && src.dsps.length) next.dsps = src.dsps.slice();
+    var featured = firstText(src.featured);
+    if (featured) next.featured = featured;
+    var price = firstText(src.price);
+    if (price) next.price = price;
+    if (src.select_preorder !== undefined) next.select_preorder = src.select_preorder;
+    if (src.preorder_date !== undefined) next.preorder_date = src.preorder_date;
+    if (src.define_time !== undefined) next.define_time = src.define_time;
+    if (src.release_time !== undefined) next.release_time = src.release_time;
+    if (src.release_timezone !== undefined) next.release_timezone = src.release_timezone;
     return next;
+  }
+
+  function overlayPendingEdit(release, draft, me) {
+    if (!release) return release;
+    var next = Object.assign({}, release);
+    applySavedEditFields(next, storedRelease(me, release));
+    if (!matchingEditSource(release, draft)) return next;
+    var live = isLiveConfirmed(release, draft);
+    if (live && !truthyApplied(draft && draft.edit_applied)) return next;
+    return applySavedEditFields(next, draft);
   }
 
   function markLife(step) {
@@ -618,7 +661,7 @@
     setHidden('[data-song-status]', !opts.error);
     if (opts.error) setText('[data-song-status]', opts.error);
 
-    release = overlayPendingEdit(release, draft);
+    release = overlayPendingEdit(release, draft, me);
     var step = statusStep(release, draft);
     markLife(step);
     setText('[data-song-title]', release.title || 'Untitled');
@@ -703,7 +746,8 @@
     var playerRelease = Object.assign({}, release, { status: step });
     mountLivePlayer(playerRelease);
     mountSongLinks(playerRelease);
-    if (queryEdit() && !editClosed) openEdit({ me: me, draft: draft, release: release });
+    var panelOpen = Boolean(panel && !panel.hidden && !editClosed);
+    if (queryEdit() && !editClosed && !panelOpen) openEdit({ me: me, draft: draft, release: release });
   }
 
   function mountLivePlayer(release) {
@@ -755,11 +799,20 @@
           retryable = list.status >= 500;
         }
         var release = pickRelease((list.ok && list.data.releases) || [], me, draft);
+        function mergeStoreRow(current, one) {
+          if (!one || !one.ok || !one.data) return current;
+          if (one.data.uuid || one.data.title || one.data.artwork_url) {
+            return Object.assign({}, current || {}, one.data);
+          }
+          return current;
+        }
         function finish(nextRelease, nextError) {
+          var currentDraft = readDraft();
+          nextRelease = overlayPendingEdit(nextRelease, currentDraft, me);
           showSongRetry(retryable);
           render({
             me: me,
-            draft: readDraft(),
+            draft: currentDraft,
             release: nextRelease,
             analytics: analytics.ok ? analytics.data : {},
             error: nextError,
@@ -768,23 +821,20 @@
         }
         if (release && queryId() && String(release.uuid).toLowerCase() === queryId().toLowerCase() && release.artwork_url == null) {
           return getJson(RELEASES_URL + '/' + encodeURIComponent(release.uuid)).then(function (one) {
-            if (one.ok && one.data && one.data.uuid) release = one.data;
-            else if (isHangLoad(one) && !error) {
+            if (isHangLoad(one) && !error) {
               error = catalogTimeoutMessage();
               retryable = true;
             }
-            return finish(release, error);
+            return finish(mergeStoreRow(release, one), error);
           });
         }
         if (release && !release.artwork_url && release.uuid) {
           return getJson(RELEASES_URL + '/' + encodeURIComponent(release.uuid)).then(function (one) {
-            if (one.ok && one.data && (one.data.artwork_url || one.data.title)) {
-              release = Object.assign({}, release, one.data);
-            } else if (isHangLoad(one) && !error) {
+            if (isHangLoad(one) && !error) {
               error = catalogTimeoutMessage();
               retryable = true;
             }
-            return finish(release, error);
+            return finish(mergeStoreRow(release, one), error);
           });
         }
         return finish(release, error || (release ? '' : 'No release on this account yet.'));
@@ -1106,13 +1156,18 @@
 
   function pickedGenre(fallback) {
     var select = $('#edit-genre');
-    var raw = select ? String(select.value || '').trim() : '';
-    if (!raw) raw = typeaheadTypedValue(select, 'edit-genre-type');
+    var typed = typeaheadTypedValue(select, 'edit-genre-type');
+    var selected = select ? String(select.value || '').trim() : '';
+    var raw = typed || selected;
     var catalog = global.PlaigroundUploadCatalog;
     if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
       var canon = catalog.canonicalCatalogValue(select, raw);
       if (canon === '') return '';
       if (canon) return canon;
+      if (typed && selected && typed !== selected) {
+        canon = catalog.canonicalCatalogValue(select, selected);
+        if (canon) return canon;
+      }
       var keep = String(fallback || '').trim();
       if (keep && raw && keep.toLowerCase() === raw.toLowerCase()) return keep;
       return null;
@@ -1123,12 +1178,18 @@
   function pickedLanguage(instrumental) {
     if (instrumental) return '';
     var select = $('#edit-language');
-    var raw = select ? String(select.value || '').trim() : '';
-    if (!raw) raw = typeaheadTypedValue(select, 'edit-language-type');
+    var typed = typeaheadTypedValue(select, 'edit-language-type');
+    var selected = select ? String(select.value || '').trim() : '';
+    var raw = typed || selected;
     var catalog = global.PlaigroundUploadCatalog;
     if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
       var canon = catalog.canonicalCatalogValue(select, raw);
-      return canon ? String(canon).toLowerCase() : '';
+      if (canon) return String(canon).toLowerCase();
+      if (typed && selected && typed !== selected) {
+        canon = catalog.canonicalCatalogValue(select, selected);
+        if (canon) return String(canon).toLowerCase();
+      }
+      return '';
     }
     if (catalog && catalog.LANGUAGES && catalog.LANGUAGES.length) {
       var low = raw.toLowerCase();
@@ -1196,8 +1257,14 @@
     var track = (release.tracks && release.tracks[0]) || {};
     if (title) title.value = release.title || draft.title || '';
     if (artist) {
-      artist.value = String(release.artist || draft.name || (me && me.artist) || '').trim();
-      artist.disabled = true;
+      artist.value = String(release.artist || draft.artist || draft.name || (me && me.artist) || '').trim();
+      artist.disabled = false;
+      if (artist.removeAttribute) {
+        artist.removeAttribute('disabled');
+        artist.removeAttribute('aria-disabled');
+      }
+      var artistField = artist.closest ? artist.closest('.field') : null;
+      if (artistField && artistField.classList) artistField.classList.remove('is-locked');
     }
     if (featured) featured.value = String(draft.featured || '').trim();
     if (genre) {
@@ -1223,7 +1290,7 @@
     syncCatalogValues();
     if (price) price.value = draft.price || '';
     if (inst) inst.checked = Boolean(draft.instrumental);
-    if (lyrics) lyrics.value = String(draft.lyrics || (track && track.lyrics) || '');
+    if (lyrics) lyrics.value = String(draft.lyrics != null ? draft.lyrics : (release.lyrics || (track && track.lyrics) || ''));
     syncLanguageField(inst && inst.checked);
     syncLyricsField(inst && inst.checked);
     var existingDate = toIsoDate(release.release_date || draft.release_date);
@@ -1382,6 +1449,7 @@
       action: 'record_release',
       release: {
         title: title,
+        artist: String((draft && (draft.artist || draft.name)) || (release && release.artist) || '').trim(),
         plaiground_artist_id: String((draft && draft.plaiground_artist_id) || '').trim(),
         tonegrid_status: String((release && (release.status || release.tonegrid_status)) || (draft && draft.tonegrid_status) || 'pending').toLowerCase(),
         tonegrid_release_id: id,
@@ -1389,6 +1457,16 @@
         artwork_url: String((draft && draft.artwork_url) || (release && release.artwork_url) || '').trim(),
         genre: String((draft && draft.genre) || (release && release.genre) || '').trim(),
         language: String((draft && draft.language) || (release && release.language) || '').trim(),
+        lyrics: draft && draft.lyrics !== undefined ? String(draft.lyrics || '') : String((release && release.lyrics) || ''),
+        release_date: String((draft && draft.release_date) || (release && release.release_date) || '').trim(),
+        dsps: Array.isArray(draft && draft.dsps) ? draft.dsps : (Array.isArray(release && release.dsps) ? release.dsps : []),
+        featured: String((draft && draft.featured) || (release && release.featured) || '').trim(),
+        price: String((draft && draft.price) || (release && release.price) || '').trim(),
+        select_preorder: Boolean(draft && draft.select_preorder),
+        preorder_date: String((draft && draft.preorder_date) || '').trim(),
+        define_time: Boolean(draft && draft.define_time),
+        release_time: String((draft && draft.release_time) || '').trim(),
+        release_timezone: String((draft && draft.release_timezone) || '').trim(),
       },
     };
     try {
@@ -1407,29 +1485,45 @@
       var keep = persistableCoverUrl(cover);
       var draft = writeDraftFor(id, {
         title: fields.title,
+        artist: fields.artist,
+        featured: fields.featured,
         genre: fields.genre,
         language: fields.language,
+        lyrics: fields.lyrics,
+        price: fields.price,
         release_date: fields.release_date,
+        dsps: fields.dsps,
         artwork_url: keep || undefined,
+        edit_applied: true,
       });
       if (fields.title) draft.title = fields.title;
+      if (fields.artist) draft.artist = fields.artist;
       if (fields.genre) draft.genre = fields.genre;
       if (fields.language) draft.language = fields.language;
+      if (fields.lyrics !== undefined) draft.lyrics = fields.lyrics;
       if (fields.release_date) draft.release_date = fields.release_date;
+      if (Array.isArray(fields.dsps)) draft.dsps = fields.dsps;
       if (keep) draft.artwork_url = keep;
+      draft.edit_applied = true;
       var release = Object.assign({}, lastEdit.release || {}, {
         uuid: id,
         title: fields.title || draft.title || (lastEdit.release && lastEdit.release.title) || '',
+        artist: fields.artist || draft.artist || (lastEdit.release && lastEdit.release.artist) || '',
         genre: fields.genre || draft.genre || (lastEdit.release && lastEdit.release.genre) || '',
         language: fields.language || draft.language || (lastEdit.release && lastEdit.release.language) || '',
+        lyrics: fields.lyrics !== undefined ? fields.lyrics : (draft.lyrics || (lastEdit.release && lastEdit.release.lyrics) || ''),
         release_date: fields.release_date || draft.release_date || (lastEdit.release && lastEdit.release.release_date) || '',
+        dsps: Array.isArray(fields.dsps) && fields.dsps.length ? fields.dsps : (draft.dsps || (lastEdit.release && lastEdit.release.dsps) || []),
         status: (lastEdit.release && lastEdit.release.status) || (draft && draft.tonegrid_status) || 'pending',
       });
-      release = overlayPendingEdit(release, draft);
+      release = overlayPendingEdit(release, draft, lastEdit.me);
       if (fields.title) release.title = fields.title;
+      if (fields.artist) release.artist = fields.artist;
       if (fields.genre) release.genre = fields.genre;
       if (fields.language) release.language = fields.language;
+      if (fields.lyrics !== undefined) release.lyrics = fields.lyrics;
       if (fields.release_date) release.release_date = fields.release_date;
+      if (Array.isArray(fields.dsps) && fields.dsps.length) release.dsps = fields.dsps;
       if (keep) release.artwork_url = keep;
       else if (cover) release.artwork_url = cover;
       lastEdit.draft = draft;
@@ -1470,6 +1564,7 @@
     if (liveEdit) setEditError('Submitting edit to the store…');
     else setEditError('');
     var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
+    var artistName = $('#edit-artist') ? String($('#edit-artist').value || '').trim() : '';
     var originalGenre = String((lastEdit.release && lastEdit.release.genre) || (lastEdit.draft && lastEdit.draft.genre) || '').trim();
     var genre = pickedGenre(originalGenre);
     if (genre === null) {
@@ -1487,6 +1582,7 @@
     var art = selectedEditFile('edit-art');
     var audio = selectedEditFile('edit-audio');
     var trackId = $('#edit-audio') ? $('#edit-audio').getAttribute('data-track-id') : '';
+    var dsps = selectedStores();
     if (!instrumental && !language) {
       setEditError('Language is required.');
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
@@ -1498,6 +1594,8 @@
     var artistId = String((me && me.tonegrid_artist_id) || draft.artist_id || '').trim();
     writeDraftFor(id, {
       title: title,
+      artist: artistName,
+      name: artistName || draft.name || '',
       genre: genre,
       language: language,
       price: price,
@@ -1512,17 +1610,24 @@
       define_time: schedule.define_time,
       release_time: schedule.release_time,
       release_timezone: schedule.release_timezone,
+      dsps: dsps,
       release_id: id,
       artist_id: artistId || draft.artist_id || '',
       track_id: trackId || draft.track_id || '',
+      edit_applied: true,
     });
 
     if (!liveEdit) {
       return applyImmediateEdit(id, {
         title: title,
+        artist: artistName,
+        featured: featured,
         genre: genre,
         language: language,
+        lyrics: lyrics,
+        price: price,
         release_date: date,
+        dsps: dsps,
         art: art,
       });
     }
@@ -1613,7 +1718,38 @@
         return { ok: false, created: false, hops: hops, errors: errors, releaseId: id };
       }
       var nextStatus = (result && result.data && result.data.status) || release.status || 'pending';
-      return goEditSubmitted(id, hops, nextStatus);
+      return fileToCoverDataUrl(art).then(function (storedCover) {
+        var keep = persistableCoverUrl(storedCover);
+        var saved = writeDraftFor(id, {
+          title: title,
+          artist: artistName,
+          featured: featured,
+          genre: genre,
+          language: language,
+          lyrics: lyrics,
+          price: price,
+          release_date: date,
+          dsps: dsps,
+          artwork_url: keep || undefined,
+          edit_applied: true,
+        });
+        var local = Object.assign({}, release, {
+          uuid: id,
+          title: title || release.title || '',
+          artist: artistName || release.artist || '',
+          genre: genre || release.genre || '',
+          language: language || release.language || '',
+          lyrics: lyrics,
+          release_date: date || release.release_date || '',
+          dsps: dsps.length ? dsps : (release.dsps || []),
+          status: nextStatus,
+        });
+        if (keep) local.artwork_url = keep;
+        persistPlaigroundRelease(saved, local);
+        lastEdit.draft = saved;
+        lastEdit.release = local;
+        return goEditSubmitted(id, hops, nextStatus);
+      });
     }).catch(function (err) {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       setEditError(catalogTimeoutMessage());

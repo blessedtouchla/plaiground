@@ -100,7 +100,9 @@ function loadSong(opts) {
   const calls = opts.calls || [];
   const ids = {
     'edit-title': makeEl({ id: 'edit-title', value: '' }),
-    'edit-artist': makeEl({ id: 'edit-artist', value: '', disabled: true }),
+    'edit-artist': makeEl({ id: 'edit-artist', value: '' }),
+    'edit-genre-type': makeEl({ id: 'edit-genre-type', className: 'typeahead-input', value: '' }),
+    'edit-language-type': makeEl({ id: 'edit-language-type', className: 'typeahead-input', value: '' }),
     'edit-featured': makeEl({ id: 'edit-featured', value: '' }),
     'edit-genre': makeEl({ id: 'edit-genre', value: '', options: [{}] }),
     'edit-language': makeEl({ id: 'edit-language', value: '', options: [{}] }),
@@ -257,6 +259,37 @@ function loadSong(opts) {
         return result;
       },
       account() { return opts.me || null; },
+    },
+    PlaigroundUploadCatalog: {
+      GENRES: ['Electronic', 'Pop', 'Hip-Hop', 'Afrobeats'],
+      LANGUAGES: [
+        { code: 'en', name: 'English' },
+        { code: 'es', name: 'Spanish' },
+        { code: 'fr', name: 'French' },
+      ],
+      canonicalCatalogValue(_select, raw) {
+        const v = String(raw || '').trim();
+        if (!v) return '';
+        const genres = ['Electronic', 'Pop', 'Hip-Hop', 'Afrobeats'];
+        for (let i = 0; i < genres.length; i += 1) {
+          if (genres[i].toLowerCase() === v.toLowerCase()) return genres[i];
+        }
+        const langs = [
+          { code: 'en', name: 'English' },
+          { code: 'es', name: 'Spanish' },
+          { code: 'fr', name: 'French' },
+        ];
+        for (let i = 0; i < langs.length; i += 1) {
+          if (langs[i].code === v.toLowerCase() || langs[i].name.toLowerCase() === v.toLowerCase()) return langs[i].code;
+        }
+        return null;
+      },
+      setTypeaheadValue(select, value) {
+        if (select) select.value = value || '';
+        return select ? select.value : '';
+      },
+      syncTypeahead() {},
+      fillUploadSelects() {},
     },
   };
   context.window = context;
@@ -1068,7 +1101,8 @@ function run() {
   assert.ok(html.includes('id="edit-lyrics"'));
   assert.ok(html.includes('<label for="edit-lyrics">Lyrics</label>'));
   assert.ok(html.includes('data-edit-lyrics-field'));
-  assert.ok(html.includes('The store locks the catalog artist'));
+  assert.ok(html.includes('The store keeps the same artist ID'));
+  assert.ok(!html.includes('The store locks the catalog artist'));
   assert.ok(!html.includes('tonegrid.js'));
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(html.includes('upload-catalog.js'));
@@ -1204,7 +1238,7 @@ function run() {
   assert.strictEqual(page.nodes['[data-release-edit]'].hidden, false);
   assert.strictEqual(page.ids['edit-title'].value, 'Fuvtu');
   assert.strictEqual(page.ids['edit-artist'].value, 'Fuvtu');
-  assert.strictEqual(page.ids['edit-artist'].disabled, true, 'catalog artist stays locked');
+  assert.strictEqual(page.ids['edit-artist'].disabled, false, 'primary artist stays editable');
   assert.strictEqual(page.ids['edit-genre'].disabled, false, 'genre stays editable');
   assert.strictEqual(page.ids['edit-language'].disabled, false, 'language stays editable');
   assert.strictEqual(page.ids['edit-genre'].value, 'Electronic');
@@ -1360,9 +1394,15 @@ function run() {
     },
   });
   editor.ids['edit-title'].value = 'Fuvtu Edit';
-  editor.ids['edit-genre'].value = 'Pop';
-  editor.ids['edit-language'].value = 'es';
+  editor.ids['edit-artist'].value = 'Ada Night';
+  editor.ids['edit-genre'].value = 'Electronic';
+  editor.ids['edit-genre-type'].value = 'Pop';
+  editor.ids['edit-language'].value = 'en';
+  editor.ids['edit-language-type'].value = 'Spanish';
   editor.ids['edit-lyrics'].value = 'City lights, I stay';
+  editor.ids['edit-featured'].value = 'Guest';
+  editor.ids['edit-price'].value = '$0.69';
+  editor.ids['edit-release-date'].value = '2026-09-12';
   return editor.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'Basic pending edit must apply immediately');
     assert.strictEqual(result.created, false);
@@ -1379,13 +1419,18 @@ function run() {
     assert.ok(!mutating.some((row) => editor.api.isCreateReleaseUrl(row.url, row.method)), 'edit must not POST a new release or artist');
     const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.store.draft'));
     assert.strictEqual(savedDraft.title, 'Fuvtu Edit');
+    assert.strictEqual(savedDraft.artist, 'Ada Night');
     assert.strictEqual(savedDraft.genre, 'Pop');
     assert.strictEqual(savedDraft.language, 'es');
+    assert.strictEqual(savedDraft.edit_applied, true);
     const recorded = mutating.find((row) => row.method === 'POST' && /\/api\/me\/artists$/.test(row.url));
     let recordedBody = {};
     try { recordedBody = JSON.parse(recorded && recorded.body); } catch (err) { recordedBody = {}; }
     assert.strictEqual(recordedBody.release && recordedBody.release.genre, 'Pop', 'pending edit persists the changed genre');
     assert.strictEqual(recordedBody.release && recordedBody.release.language, 'es', 'pending edit persists the changed language');
+    assert.strictEqual(recordedBody.release && recordedBody.release.artist, 'Ada Night', 'pending edit persists the changed artist');
+    assert.strictEqual(recordedBody.release && recordedBody.release.lyrics, 'City lights, I stay', 'pending edit persists lyrics on the Plaiground record');
+    assert.strictEqual(recordedBody.release && recordedBody.release.release_date, '2026-09-12', 'pending edit persists the changed date');
     assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
     mutating.filter((row) => typeof row.body === 'string').forEach((row) => {
       let body = {};
@@ -1393,6 +1438,20 @@ function run() {
       assert.strictEqual(body.lyrics, undefined, 'edit must not invent a ToneGrid lyrics field');
       assert.strictEqual(body.lyric_text, undefined);
     });
+    return editor.api.load().then(function (reloaded) {
+      assert.ok(reloaded, 'pending edit reload must keep the same release');
+      assert.strictEqual(editor.nodes['[data-song-title]'].textContent, 'Fuvtu Edit', 'reload must keep the edited title');
+      assert.ok(/Pop/.test(editor.nodes['[data-song-meta]'].textContent), 'reload must keep the edited genre');
+      assert.ok(/Ada Night/.test(editor.nodes['[data-song-meta]'].textContent), 'reload must keep the edited artist');
+      editor.api.openEdit(editor.api.currentEditState());
+      assert.strictEqual(editor.ids['edit-title'].value, 'Fuvtu Edit');
+      assert.strictEqual(editor.ids['edit-artist'].value, 'Ada Night');
+      assert.strictEqual(editor.ids['edit-genre'].value, 'Pop');
+      assert.strictEqual(editor.ids['edit-language'].value, 'es');
+      assert.strictEqual(editor.ids['edit-lyrics'].value, 'City lights, I stay');
+      assert.strictEqual(editor.ids['edit-release-date'].value, '2026-09-12');
+      assert.strictEqual(editor.ids['edit-featured'].value, 'Guest');
+      assert.strictEqual(editor.ids['edit-price'].value, '$0.69');
     assert.ok(!mutating.some((row) => row.method === 'POST' && /PLAN_LIMIT/.test(String(row.body || ''))));
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));
@@ -1460,8 +1519,24 @@ function run() {
       try { releaseBody = JSON.parse(releasePut.body); } catch (err) { releaseBody = {}; }
       assert.strictEqual(releaseBody.genre, 'Pop', 'live edit must send the changed genre');
       assert.strictEqual(releaseBody.language, 'es', 'live edit must send the changed language');
+      assert.ok(releaseBody.title === 'Fuvtu Live Edit', 'live edit must send the changed title');
       assert.ok(liveCalls.some((row) => row.method === 'PUT' && /\/dsps$/.test(row.url)));
       assert.ok(/edit-submitted\.html/.test(String(liveEditor.context.location.href)));
+      const liveRecord = liveCalls.find((row) => row.method === 'POST' && /\/api\/me\/artists$/.test(row.url));
+      let liveRecorded = {};
+      try { liveRecorded = JSON.parse(liveRecord && liveRecord.body); } catch (err) { liveRecorded = {}; }
+      assert.strictEqual(liveRecorded.release && liveRecorded.release.title, 'Fuvtu Live Edit', 'live edit must update the local record');
+      assert.strictEqual(liveRecorded.release && liveRecorded.release.genre, 'Pop');
+      const liveDraft = JSON.parse(liveEditor.context.localStorage.getItem('plaiground.store.draft'));
+      assert.strictEqual(liveDraft.edit_applied, true);
+      const overlaidLive = liveEditor.api.overlayPendingEdit({
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        status: 'live',
+        genre: 'Electronic',
+        language: 'en',
+      }, liveDraft, basicMe);
+      assert.strictEqual(overlaidLive.title, 'Fuvtu Live Edit', 'live overlay must keep the submitted edit');
 
       const creatorMe = Object.assign({}, basicMe, { plan: 'creator' });
       const creatorPendingCalls = [];
@@ -1809,6 +1884,7 @@ function run() {
     });
   });
   });
+    });
     });
     });
     });

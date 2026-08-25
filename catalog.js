@@ -364,19 +364,26 @@
     return (releases || []).map(function (row) {
       if (!row) return row;
       var id = String(row.uuid || row.id || '').toLowerCase();
+      if (!id) return row;
       var live = statusApi() ? statusApi().isLive(row.status) : (String(row.status || '') === 'live' || String(row.status || '') === 'delivered');
-      if (live || !id) return row;
       var next = Object.assign({}, row);
       stored.forEach(function (item) {
         if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() !== id) return;
         if (item && item.title) next.title = item.title;
+        if (item && item.genre) next.genre = item.genre;
+        if (item && item.language) next.language = item.language;
+        if (item && item.release_date) next.release_date = item.release_date;
+        if (item && item.artist) next.artist = item.artist;
         var art = coverOf(item);
         if (art) next.artwork_url = art;
       });
-      if (draft && String(draft.release_id || '').toLowerCase() === id) {
+      var applied = draft && (draft.edit_applied === true || draft.edit_applied === 'true');
+      if (draft && String(draft.release_id || '').toLowerCase() === id && (!live || applied)) {
         if (String(draft.title || '').trim()) next.title = String(draft.title).trim();
         if (String(draft.genre || '').trim()) next.genre = String(draft.genre).trim();
+        if (String(draft.language || '').trim()) next.language = String(draft.language).trim();
         if (String(draft.release_date || '').trim()) next.release_date = String(draft.release_date).trim();
+        if (String(draft.artist || draft.name || '').trim()) next.artist = String(draft.artist || draft.name).trim();
         var draftArt = coverOf(draft);
         if (draftArt) next.artwork_url = draftArt;
       }
