@@ -92,6 +92,8 @@ function run() {
   assert.ok(dash.includes('Submit your first song'), 'first-song CTA is missing');
   assert.ok(dash.includes('data-first-song'), 'first-song empty state hook is missing');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hook is missing');
+  assert.ok(dash.includes('data-latest-edit'), 'latest-release card must have Edit release');
+  assert.ok(dash.includes('Edit release'), 'latest-release card must label Edit release');
   assert.ok(dash.includes('Pending'), 'submitted Pending copy is missing');
   assert.ok(dash.includes('data-account-who'), 'dashboard greeting name slot is missing');
   assert.ok(dash.includes('class="topbar"'), 'dashboard menu/topbar is missing');
@@ -145,6 +147,7 @@ function run() {
       '[data-latest-title]': makeNode({}),
       '[data-latest-status]': makeNode({}),
       '[data-latest-link]': makeNode({ href: 'releases.html' }),
+      '[data-latest-edit]': makeNode({ href: 'song.html' }),
       '[data-account-releases]': makeNode({ textContent: '0' }),
       '[data-account-who]': makeNode({ textContent: 'Hi there' }),
       '[data-account-avatar]': makeNode({ textContent: 'PG' }),
@@ -192,6 +195,8 @@ function run() {
   assert.strictEqual(nodes['[data-first-upload]'].hidden, true);
   assert.strictEqual(nodes['[data-latest-status]'].textContent, 'Pending');
   assert.ok(String(nodes['[data-latest-link]'].href).indexOf('song.html?id=') !== -1);
+  assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('song.html?id=') !== -1);
+  assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('edit=1') !== -1);
   assert.strictEqual(nodes['[data-account-who]'].textContent, 'Hi Fuvtu!');
   assert.strictEqual(nodes['[data-account-avatar]'].textContent, 'FU');
   assert.strictEqual(nodes['[data-pub-badge]'].textContent, 'INCLUDED ON CREATOR AND PRO');

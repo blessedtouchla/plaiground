@@ -69,6 +69,26 @@
     }
   }
 
+  function releaseId(release) {
+    return String((release && (release.uuid || release.release_uuid || release.id)) || queryId() || '').trim();
+  }
+
+  function editHref(id) {
+    var next = String(id || '').trim();
+    return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'song.html';
+  }
+
+  function showSongError(text) {
+    setText('[data-song-status]', text || '');
+    setHidden('[data-song-status]', !text);
+  }
+
+  function markEditHref(id) {
+    var el = $('[data-song-edit]');
+    if (!el || !el.setAttribute) return;
+    el.setAttribute('href', editHref(id));
+  }
+
   function readDraft() {
     try {
       return JSON.parse(global.localStorage.getItem(DRAFT_KEY) || '{}') || {};
@@ -309,6 +329,11 @@
   function pickRelease(list, me, draft) {
     var ids = accountIds(me);
     var rows = Array.isArray(list) ? list.slice() : [];
+    rows = rows.map(function (row) {
+      if (!row || row.uuid) return row;
+      var fallback = String(row.release_uuid || row.id || '').trim();
+      return fallback ? Object.assign({}, row, { uuid: fallback }) : row;
+    });
     if (ids.length) {
       rows = rows.filter(function (row) { return idAllowed(ids, row.uuid); });
     }
@@ -458,6 +483,7 @@
       setHidden('[data-song-boosts]', true);
       setHidden('[data-song-boost]', true);
       setHidden('[data-song-edit]', true);
+      markEditHref('');
       setHidden('[data-song-remove]', true);
       setHidden('[data-song-split-empty]', false);
       setHidden('[data-song-rejection]', true);
@@ -520,8 +546,11 @@
     setHidden('[data-song-publishing]', !paid);
     setHidden('[data-song-boosts]', false);
     setHidden('[data-song-boost]', false);
+    var id = releaseId(release);
+    if (id && !release.uuid) release.uuid = id;
+    markEditHref(id);
     setHidden('[data-song-edit]', false);
-    setHidden('[data-song-remove]', !me || !release || !release.uuid || step === 'taken_down');
+    setHidden('[data-song-remove]', !me || !id || step === 'taken_down');
     var boostCta = $('[data-song-boost]');
     if (boostCta) {
       boostCta.classList.toggle('is-off', !paid);
@@ -896,12 +925,22 @@
     var release = opts.release || lastEdit.release;
     var draft = opts.draft || lastEdit.draft || {};
     var me = opts.me || lastEdit.me;
-    if (!panel || !release || !release.uuid) return false;
+    var id = releaseId(release);
+    if (release && id && !release.uuid) release.uuid = id;
+    if (!panel) {
+      showSongError('Could not open the editor on this page.');
+      return false;
+    }
+    if (!id) {
+      showSongError('This release has no store ID yet, so it cannot be edited.');
+      return false;
+    }
     lastEdit = { me: me, draft: draft, release: release, analytics: opts.analytics || lastEdit.analytics || {} };
     editClosed = false;
     panel.hidden = false;
     if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', false);
-    panel.setAttribute('data-release-id', release.uuid);
+    panel.setAttribute('data-release-id', id);
+    markEditHref(id);
     setText('[data-edit-status]', statusLabel(statusStep(release, draft)));
     fillCatalogSelects();
     var title = $('#edit-title');
@@ -979,7 +1018,36 @@
     ['title', 'genre', 'language', 'release_date', 'stores', 'artwork'].forEach(function (name) {
       setFieldWhy(name, '');
     });
+    try {
+      if (global.history && global.history.replaceState) {
+        global.history.replaceState({}, '', editHref(id));
+      }
+    } catch (err) {}
+    if (typeof panel.scrollIntoView === 'function') {
+      try { panel.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (err) {
+        try { panel.scrollIntoView(true); } catch (inner) {}
+      }
+    }
     return true;
+  }
+
+  function beginEdit(event) {
+    var release = lastEdit.release;
+    var id = releaseId(release);
+    if (!id) {
+      if (event && event.preventDefault) event.preventDefault();
+      showSongError('This release has no store ID yet, so it cannot be edited.');
+      return false;
+    }
+    if (!release) {
+      release = { uuid: id, title: '', type: 'single', status: 'pending' };
+      lastEdit.release = release;
+    } else if (!release.uuid) {
+      release.uuid = id;
+    }
+    var opened = openEdit(lastEdit);
+    if (opened && event && event.preventDefault) event.preventDefault();
+    return opened;
   }
 
   function closeEdit() {
@@ -1325,8 +1393,8 @@
   function bindEdit() {
     var openBtn = $('[data-song-edit]');
     if (openBtn && openBtn.addEventListener) {
-      openBtn.addEventListener('click', function () {
-        openEdit(lastEdit);
+      openBtn.addEventListener('click', function (event) {
+        beginEdit(event);
       });
     }
     var saveBtn = $('[data-edit-save]');
@@ -1369,6 +1437,8 @@
     splitWriters: splitWriters,
     load: load,
     openEdit: openEdit,
+    beginEdit: beginEdit,
+    editHref: editHref,
     closeEdit: closeEdit,
     submitEdit: submitEdit,
     removeRelease: removeRelease,
