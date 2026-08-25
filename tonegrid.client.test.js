@@ -149,6 +149,7 @@ function load(options) {
   const limit = makeEl({ id: 'tg-limit' });
   const retryWrap = makeEl({ id: 'tg-retry-wrap', attrs: { 'data-upload-retry-wrap': '' } });
   const retryBtn = makeEl({ attrs: { 'data-upload-retry': '' } });
+  retryBtn.textContent = 'Retry';
   const continueBtn = makeEl({
     attrs: { href: 'attest.html', 'data-store-continue': '' },
   });
@@ -397,9 +398,12 @@ function load(options) {
       },
     };
   }
-  if (opts.convertHold) {
-    context.PlaigroundConvertUploadAudio = function () {
-      return Promise.resolve(opts.convertHold);
+  let convertCalls = 0;
+  if (opts.convertHold || opts.countConvert) {
+    context.PlaigroundConvertUploadAudio = function (file) {
+      convertCalls += 1;
+      if (opts.convertHold) return Promise.resolve(opts.convertHold);
+      return Promise.resolve(file);
     };
   }
   vm.runInNewContext(requiredCode, context);
@@ -445,6 +449,7 @@ function load(options) {
     artistRed,
     genre,
     language,
+    get convertCalls() { return convertCalls; },
   };
 }
 
@@ -2233,6 +2238,134 @@ async function run() {
     assert.ok(!/Could not create the release/.test(page.status.textContent));
   }
 
+  async function reviewSubmitDoesNotReconvertHeldMp3() {
+    const mp3 = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 };
+    const first = load(filledUpload({
+      file: mp3,
+      countConvert: true,
+      responses: uploadResponses.slice(),
+    }));
+    first.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.ok(first.convertCalls >= 1, 'Basic MP3 upload converts on Continue');
+    assert.ok(first.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'first convert/upload POSTs audio');
+    assert.strictEqual(draftOf(first.localStorage).audio_uploaded, true);
+
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: mp3,
+      countConvert: true,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.mp3',
+        audio_uploaded: true,
+        audio_attached: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(16);
+    assert.strictEqual(page.convertCalls, 0, 'Review Submit must not convert again');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'Submit reuses the already-uploaded track');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    }));
+    assert.ok(!/audio file is required/i.test(page.status.textContent));
+    assert.ok(!/Converting MP3 to WAV/.test(page.loaderStep.textContent));
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
+  async function reviewSubmitIgnoresAudioRequiredWhenHeld() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 400, data: { error: 'audio file is required.' } },
+      ],
+    });
+    await flush(16);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    }), 'held/converted audio must still submit');
+    assert.ok(!/audio file is required/i.test(page.status.textContent));
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
+  async function reviewSubmitHangShowsNamelessRetry() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      catalogTimeoutMs: 40,
+      hangWhen: '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit',
+      hangCount: 4,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+      ],
+    });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 120); });
+    await flush();
+    assert.ok(/could not reach/i.test(page.status.textContent), 'Working must time out');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.retryWrap.hidden, false, 'timeout must show nameless Retry');
+    assert.strictEqual(page.retryBtn.textContent || 'Retry', 'Retry');
+    assert.ok(String(page.location.href).indexOf('submitted.html') === -1);
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 120); });
+    await flush();
+    const submits = page.calls.filter(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    });
+    assert.ok(submits.length >= 2, 'Retry must POST submit again');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.loader.hidden, true, 'timeout must hide the Working bar');
+  }
+
   async function genuineMissingTitleArtistStillErrors() {
     const noTitle = load(filledUpload({ title: '' }));
     noTitle.continueBtn.listeners.click({ preventDefault() {} });
@@ -2382,6 +2515,9 @@ async function run() {
   await reviewHeldFileUploadsAfterDeadRelease();
   await reviewReattachOnlyWhenNeverHadAudio();
   await reviewSubmitEnsuresCatalogArtist();
+  await reviewSubmitDoesNotReconvertHeldMp3();
+  await reviewSubmitIgnoresAudioRequiredWhenHeld();
+  await reviewSubmitHangShowsNamelessRetry();
   await genuineMissingTitleArtistStillErrors();
   await hungCreateTrackTrack2HidesLoader();
   await rejectedAfterReleaseHidesLoader();
@@ -2432,6 +2568,24 @@ async function run() {
   assert.strictEqual(submittedLiveCatalog.submitStores.textContent, 'All 55 stores');
   assert.strictEqual(draftOf(submittedLiveCatalog.localStorage).dsps_total, 55);
 
+  const catalog41 = [];
+  for (let i = 0; i < 41; i += 1) catalog41.push('dsp-' + i);
+  const submittedLiveOverStale = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(),
+      dsps_all: true,
+      dsps_total: 55,
+    },
+    catalogStores: catalog41.map(function (slug) { return { slug: slug, name: slug }; }),
+  });
+  await flush();
+  assert.strictEqual(submittedLiveOverStale.submitStores.textContent, 'All 41 stores');
+  assert.ok(submittedLiveOverStale.submitStores.textContent.indexOf('55') === -1);
+  assert.strictEqual(draftOf(submittedLiveOverStale.localStorage).dsps_total, 41);
+
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
@@ -2461,6 +2615,15 @@ async function run() {
   assert.ok(source.includes('rememberAudioFile'));
   assert.ok(source.includes('heldAudioFile'));
   assert.ok(source.includes('plaiground-held-audio'));
+  assert.ok(source.includes('alreadyHasAudio'));
+  assert.ok(source.includes('needsAudioUpload'));
+  assert.ok(source.includes('failSubmit'));
+  assert.ok(source.includes('audio_converted'));
+  assert.ok(source.includes('isAudioRequiredError'));
+  const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.ok(reviewHtml.includes('data-upload-retry'));
+  assert.ok(reviewHtml.includes('Retry'));
+  assert.ok(!/ToneGrid/.test(reviewHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
   assert.ok(!source.includes('XAI_API_KEY'));
   assert.ok(source.includes('resolveLiveRelease'));
   assert.ok(source.includes('clearDeadReleaseIds'));
