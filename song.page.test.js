@@ -140,6 +140,7 @@ function loadSong(opts) {
     '[data-song-boost]': makeEl({ hidden: true }),
     '[data-song-edit]': makeEl({ hidden: true }),
     '[data-song-remove]': makeEl({ hidden: true }),
+    '[data-song-download]': makeEl({}),
     '[data-song-rejection]': makeEl({ hidden: true }),
     '[data-song-rejection-reason]': makeEl({}),
     '[data-release-edit]': panel,
@@ -215,6 +216,7 @@ function loadSong(opts) {
       getElementById(id) { return ids[id] || null; },
       createElement() { return makeEl({}); },
       createTextNode(text) { return makeEl({ textContent: text }); },
+      body: makeEl({}),
     },
     fetch(url, options) {
       const method = (options && options.method) || 'GET';
@@ -249,6 +251,7 @@ function loadSong(opts) {
   vm.runInNewContext(read('lib/live-player.js'), context);
   vm.runInNewContext(read('lib/audio-accept.js'), context);
   vm.runInNewContext(read('lib/store-pick.js'), context);
+  vm.runInNewContext(read('lib/statement-pdf.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
 }
@@ -420,6 +423,9 @@ function run() {
   assert.ok(html.includes('Submit for editing'));
   assert.ok(html.includes('data-song-edit'));
   assert.ok(html.includes('data-song-remove'));
+  assert.ok(html.includes('data-song-download'));
+  assert.ok(html.includes('lib/statement-pdf.js'));
+  assert.ok(/data-song-download>Download<\/button>/.test(html));
   assert.ok(html.includes('data-life="taken_down"'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('id="edit-release-date"'));
@@ -656,6 +662,22 @@ function run() {
     assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
     assert.strictEqual(page.nodes['[data-song-remove]'].hidden, false, 'owner sees Remove on their release');
+
+    assert.ok(page.api.downloadReleaseStatement(), 'release statement downloads at $0');
+    const releasePdf = page.api.releaseStatementPdf();
+    assert.ok(releasePdf.indexOf('%PDF') === 0);
+    assert.ok(releasePdf.indexOf('Fuvtu') !== -1);
+    assert.ok(releasePdf.indexOf('Pending') !== -1);
+    assert.ok(releasePdf.indexOf('$0.00') !== -1);
+    assert.ok(releasePdf.indexOf('Streams') !== -1);
+    assert.ok(!/7,412,908|Neon Sermon|Victoria Reyes/.test(releasePdf));
+    assert.strictEqual(page.context.PlaigroundStatementPdf.lastDownload().filename, 'plaiground-release-statement.pdf');
+
+    const missingId = loadSong({ me: null, search: '' });
+    missingId.api.render({ error: 'No release on this account yet.' });
+    assert.strictEqual(missingId.api.downloadReleaseStatement(), false, 'no release id is a real error');
+    assert.ok(/Open a release before downloading a statement/.test(missingId.nodes['[data-song-status]'].textContent));
+    assert.strictEqual(missingId.nodes['[data-song-status]'].hidden, false);
 
     const unsigned = loadSong({ me: null });
     unsigned.api.render({ error: 'Sign in to see this release.' });

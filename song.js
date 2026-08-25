@@ -443,6 +443,7 @@
     var paid = isPaid(plan);
 
     if (!release) {
+      lastEdit = { me: me, draft: draft, release: null, analytics: analytics };
       setText('[data-song-status]', opts.error || 'No release on this account yet.');
       setHidden('[data-song-status]', false);
       setText('[data-song-title]', 'Untitled');
@@ -530,7 +531,7 @@
     if (global.PlaigroundMembership && typeof global.PlaigroundMembership.applyPlanCopy === 'function') {
       global.PlaigroundMembership.applyPlanCopy();
     }
-    lastEdit = { me: me, draft: draft, release: release };
+    lastEdit = { me: me, draft: draft, release: release, analytics: analytics };
     mountLivePlayer(Object.assign({}, release, { status: step }));
     if (queryEdit() && !editClosed) openEdit({ me: me, draft: draft, release: release });
   }
@@ -886,7 +887,7 @@
     return lastEdit || {};
   }
 
-  var lastEdit = { me: null, draft: {}, release: null };
+  var lastEdit = { me: null, draft: {}, release: null, analytics: {} };
   var editClosed = false;
 
   function openEdit(opts) {
@@ -896,7 +897,7 @@
     var draft = opts.draft || lastEdit.draft || {};
     var me = opts.me || lastEdit.me;
     if (!panel || !release || !release.uuid) return false;
-    lastEdit = { me: me, draft: draft, release: release };
+    lastEdit = { me: me, draft: draft, release: release, analytics: opts.analytics || lastEdit.analytics || {} };
     editClosed = false;
     panel.hidden = false;
     if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', false);
@@ -1224,6 +1225,100 @@
     });
   }
 
+  function generatedOn() {
+    try { return new Date().toISOString().slice(0, 10); } catch (err) { return ''; }
+  }
+
+  function releaseIdOf(release) {
+    return String((release && (release.uuid || release.id)) || queryId() || '').trim();
+  }
+
+  function releaseStats(release, draft, analytics) {
+    var step = statusStep(release, draft);
+    var summary = (analytics && analytics.summary) || {};
+    var scoped = (((analytics && analytics.releases) || []).filter(function (row) {
+      return String(row.release_uuid || row.uuid || '').toLowerCase() === String((release && release.uuid) || '').toLowerCase();
+    })[0]) || {};
+    var showStats = step === 'live';
+    return {
+      streams: showStats && scoped.streams != null ? scoped.streams : (showStats ? summary.total_streams : 0),
+      earnings: showStats && scoped.revenue_usd != null ? scoped.revenue_usd : (showStats ? summary.total_revenue_usd : 0),
+    };
+  }
+
+  function releaseStatementDoc(opts) {
+    opts = opts || {};
+    var release = opts.release || lastEdit.release || {};
+    var draft = opts.draft || lastEdit.draft || {};
+    var me = opts.me || lastEdit.me;
+    var analytics = opts.analytics || lastEdit.analytics || {};
+    var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
+    var step = statusStep(release, draft);
+    var stats = releaseStats(release, draft, analytics);
+    var rows = ((analytics.dsps) || []).map(function (row) {
+      return [row.dsp || row.name || 'Store', formatCount(row.streams), row.revenue_usd == null ? formatMoney(0) : formatMoney(row.revenue_usd)];
+    });
+    return {
+      title: 'PLAIGROUND',
+      subtitle: 'Release statement',
+      generated: generatedOn(),
+      fields: [
+        { label: 'Title', value: release.title || 'Untitled' },
+        { label: 'Artist', value: artist || '—' },
+        { label: 'Status', value: statusLabel(step) },
+        { label: 'Streams', value: formatCount(stats.streams) },
+        { label: 'Earnings', value: formatMoney(stats.earnings) },
+      ],
+      tableTitle: rows.length ? 'By platform' : '',
+      columns: rows.length ? ['Platform', 'Streams', 'Earnings'] : [],
+      rows: rows,
+    };
+  }
+
+  function releaseStatementPdf(opts) {
+    var pdf = global.PlaigroundStatementPdf;
+    if (!pdf || typeof pdf.build !== 'function') return '';
+    return pdf.build(releaseStatementDoc(opts));
+  }
+
+  function missingReleaseIdMessage() {
+    return 'Open a release before downloading a statement.';
+  }
+
+  function downloadReleaseStatement(opts) {
+    opts = opts || {};
+    var release = opts.release || lastEdit.release;
+    var id = releaseIdOf(release);
+    if (!id) {
+      setText('[data-song-status]', missingReleaseIdMessage());
+      setHidden('[data-song-status]', false);
+      return false;
+    }
+    var bytes = releaseStatementPdf({
+      release: release || { uuid: id },
+      draft: opts.draft || lastEdit.draft,
+      me: opts.me || lastEdit.me,
+      analytics: opts.analytics || lastEdit.analytics,
+    });
+    var pdf = global.PlaigroundStatementPdf;
+    if (!bytes || !pdf || typeof pdf.download !== 'function') {
+      setText('[data-song-status]', 'Could not build a statement PDF.');
+      setHidden('[data-song-status]', false);
+      return false;
+    }
+    pdf.download('plaiground-release-statement.pdf', bytes);
+    return true;
+  }
+
+  function bindDownload() {
+    var btn = $('[data-song-download]');
+    if (!btn || !btn.addEventListener) return;
+    btn.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      downloadReleaseStatement();
+    });
+  }
+
   function bindEdit() {
     var openBtn = $('[data-song-edit]');
     if (openBtn && openBtn.addEventListener) {
@@ -1276,7 +1371,11 @@
     removeRelease: removeRelease,
     isCreateReleaseUrl: isCreateReleaseUrl,
     currentEditState: currentEditState,
+    downloadReleaseStatement: downloadReleaseStatement,
+    releaseStatementPdf: releaseStatementPdf,
+    releaseStatementDoc: releaseStatementDoc,
   };
   bindEdit();
+  bindDownload();
   load();
 })(window);

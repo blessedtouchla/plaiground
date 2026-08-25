@@ -142,67 +142,76 @@
     return list.length ? list[0] : null;
   }
 
-  function csvEscape(value) {
-    var text = String(value == null ? '' : value);
-    if (/[",\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
-    return text;
-  }
-
-  function statementCsv(data) {
-    var statement = latestStatement(data);
-    var rows = [['Period', 'Source', 'Streams', 'Earnings']];
-    var period = statement && statement.period ? statement.period : '';
-    var breakdown = (data && data.breakdown) || [];
-    if (!breakdown.length) {
-      rows.push([period || '', 'No statement yet', '0', formatMoney(0)]);
-    } else {
-      breakdown.forEach(function (row) {
-        rows.push([
-          period,
-          row.dsp || 'Other',
-          formatCount(row.streams),
-          formatMoney(row.revenue_usd),
-        ]);
+  function accountLabel(me) {
+    var names = [];
+    if (me && me.artist) names.push(me.artist);
+    var roster = me && me.profile && me.profile.artists;
+    if (Array.isArray(roster)) {
+      roster.forEach(function (row) {
+        if (row && row.name) names.push(row.name);
       });
     }
-    return rows.map(function (line) {
-      return line.map(csvEscape).join(',');
-    }).join('\n');
-  }
-
-  function downloadBlob(filename, text) {
-    var blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
-    var url = (global.URL && URL.createObjectURL) ? URL.createObjectURL(blob) : '';
-    var link = document.createElement('a');
-    link.href = url || ('data:text/csv;charset=utf-8,' + encodeURIComponent(text));
-    link.download = filename;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    if (link.parentNode) link.parentNode.removeChild(link);
-    if (url && global.URL && URL.revokeObjectURL) {
-      try { URL.revokeObjectURL(url); } catch (err) {}
+    var i;
+    for (i = 0; i < names.length; i += 1) {
+      var name = String(names[i] || '').trim();
+      if (name) return name;
     }
+    return String((me && me.email) || '').trim();
   }
 
-  function noStatementMessage() {
-    return 'No statement yet';
+  function currentAccount() {
+    if (lastAccount) return lastAccount;
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.account === 'function') {
+      return global.PlaigroundMembership.account();
+    }
+    return null;
   }
 
-  function downloadStatement(data) {
+  function generatedOn() {
+    try { return new Date().toISOString().slice(0, 10); } catch (err) { return ''; }
+  }
+
+  function statementDoc(data, account) {
     var payload = data || emptyPayload();
-    if (isEmpty(payload) || !latestStatement(payload)) {
-      setStatus(noStatementMessage());
-      setHidden('[data-earn-empty]', false);
-      setText('[data-earn-empty]', noStatementMessage() + '. $0.00 available.');
-      renderMetrics(emptyPayload());
-      return false;
-    }
-    downloadBlob('plaiground-statement.csv', statementCsv(payload));
+    var balance = payload.balance || {};
+    var statement = latestStatement(payload);
+    var period = statement && statement.period ? String(statement.period) : '';
+    var fields = [{ label: 'Account', value: accountLabel(account) || '—' }];
+    if (period) fields.push({ label: 'Period', value: period });
+    fields.push({ label: 'Available', value: formatMoney(balance.available_usd) });
+    fields.push({ label: 'Pending', value: formatMoney(balance.pending_usd) });
+    var rows = ((payload && payload.breakdown) || []).map(function (row) {
+      return [row.dsp || 'Other', formatCount(row.streams), formatMoney(row.revenue_usd)];
+    });
+    return {
+      title: 'PLAIGROUND',
+      subtitle: 'Earnings statement',
+      generated: generatedOn(),
+      fields: fields,
+      tableTitle: rows.length ? 'By source' : '',
+      columns: rows.length ? ['Source', 'Streams', 'Earnings'] : [],
+      rows: rows,
+    };
+  }
+
+  function statementPdf(data, account) {
+    var pdf = global.PlaigroundStatementPdf;
+    if (!pdf || typeof pdf.build !== 'function') return '';
+    return pdf.build(statementDoc(data, account));
+  }
+
+  function downloadStatement(data, account) {
+    var payload = data || lastPayload || emptyPayload();
+    var who = account || currentAccount();
+    var bytes = statementPdf(payload, who);
+    var pdf = global.PlaigroundStatementPdf;
+    if (!bytes || !pdf || typeof pdf.download !== 'function') return false;
+    pdf.download('plaiground-statement.pdf', bytes);
     return true;
   }
 
   var lastPayload = emptyPayload();
+  var lastAccount = null;
 
   function render(data) {
     var payload = data || {};
@@ -246,6 +255,7 @@
       })
       .then(function (result) {
         return loadAccount().then(function (me) {
+          lastAccount = me || lastAccount;
           return { result: result, me: me };
         });
       })
@@ -299,7 +309,8 @@
     render: render,
     isEmpty: isEmpty,
     downloadStatement: downloadStatement,
-    statementCsv: statementCsv,
+    statementPdf: statementPdf,
+    statementDoc: statementDoc,
   };
   bindDownload();
   load();

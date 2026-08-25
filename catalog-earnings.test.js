@@ -33,6 +33,7 @@ function loadScript(file, nodes) {
       createElement() {
         return makeEl({});
       },
+      body: makeEl({}),
     },
     fetch() {
       return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
@@ -40,6 +41,9 @@ function loadScript(file, nodes) {
     window: {},
   };
   context.window = context;
+  if (file === 'earnings.js') {
+    vm.runInNewContext(read('lib/statement-pdf.js'), context);
+  }
   vm.runInNewContext(read(file), context);
   return context;
 }
@@ -156,10 +160,24 @@ function run() {
     balance: { available_usd: 0, pending_usd: 0 },
     statements: [],
     breakdown: [],
-  }), false);
-  assert.strictEqual(earnNodes['[data-earn-status]'].textContent, 'No statement yet');
-  assert.ok(/No statement yet/.test(earnNodes['[data-earn-empty]'].textContent));
-  assert.strictEqual(earnNodes['[data-earn="available"]'].textContent, '$0.00');
+  }, { artist: 'Fuvtu' }), true, 'zero totals are still a real PDF statement');
+  const zeroPdf = earn.PlaigroundEarnings.statementPdf({
+    balance: { available_usd: 0, pending_usd: 0 },
+    statements: [],
+    breakdown: [],
+  }, { artist: 'Fuvtu' });
+  assert.ok(zeroPdf.indexOf('%PDF') === 0);
+  assert.ok(zeroPdf.indexOf('plaiground-statement') === -1);
+  assert.ok(zeroPdf.indexOf('Fuvtu') !== -1);
+  assert.ok(zeroPdf.indexOf('Available') !== -1);
+  assert.ok(zeroPdf.indexOf('Pending') !== -1);
+  assert.ok(zeroPdf.indexOf('$0.00') !== -1);
+  assert.ok(!/No statement yet/.test(zeroPdf));
+  assert.ok(!/7,412,908|Neon Sermon|Victoria Reyes/.test(zeroPdf));
+  assert.strictEqual(earn.PlaigroundStatementPdf.lastDownload().filename, 'plaiground-statement.pdf');
+  assert.ok(read('earnings.html').indexOf('lib/statement-pdf.js') !== -1);
+  assert.ok(read('earnings.js').indexOf('statementCsv') === -1, 'earnings download is PDF, not CSV');
+  assert.strictEqual(earnNodes['[data-earn="available"]'].textContent, '$1.50');
 
   const catalogNodes = {
     '[data-stat="total"]': makeEl({ textContent: '0' }),

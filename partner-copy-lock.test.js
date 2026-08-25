@@ -20,6 +20,7 @@ const USER_FILES = [
   'review.html',
   'song.html',
   'song.js',
+  'lib/statement-pdf.js',
   'store-client.js',
   'upload.html',
   'lib/upload-required.js',
