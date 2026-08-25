@@ -442,6 +442,8 @@ function load(options) {
     artistNameCheck,
     artistYellow,
     artistRed,
+    genre,
+    language,
   };
 }
 
@@ -2595,10 +2597,50 @@ async function run() {
     assert.strictEqual(page.artistNameCheck.hidden, true, 'existing pick must not run a new-name check');
   }
 
+  async function basicGenreLanguagePickSticks() {
+    const page = load(filledUpload({
+      genre: '',
+      language: '',
+      account: {
+        plan: 'basic',
+        artist: 'mexeu mexeu',
+        profile: { artists: [{ id: 'art-1', name: 'mexeu mexeu', source: 'created' }] },
+        upload: { allowed: true, album_allowed: false, plan: 'basic' },
+      },
+    }));
+    await flush();
+    const genreInput = makeEl({ className: 'typeahead-input', value: 'Afrobeats' });
+    const languageInput = makeEl({ className: 'typeahead-input', value: 'English' });
+    const genreField = makeEl({});
+    const languageField = makeEl({});
+    genreField.querySelector = function (sel) {
+      return sel === '.typeahead-input' ? genreInput : null;
+    };
+    languageField.querySelector = function (sel) {
+      return sel === '.typeahead-input' ? languageInput : null;
+    };
+    page.genre.parentNode = genreField;
+    page.language.parentNode = languageField;
+    page.genre.value = '';
+    page.language.value = '';
+    page.genre.setAttribute('data-typeahead', 'on');
+    page.language.setAttribute('data-typeahead', 'on');
+    if (page.genre.listeners.change) page.genre.listeners.change();
+    if (page.language.listeners.change) page.language.listeners.change();
+    const draft = draftOf(page.localStorage);
+    assert.strictEqual(draft.genre, 'Afrobeats', 'Basic genre pick from typeahead must stick');
+    assert.strictEqual(draft.language, 'en', 'Basic language pick from typeahead must stick as the catalog code');
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(8);
+    assert.ok(page.status.textContent.indexOf('Genre is required') === -1, 'Basic Continue must accept the stuck genre pick');
+    assert.ok(page.status.textContent.indexOf('Language is required') === -1, 'Basic Continue must accept the stuck language pick');
+  }
+
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();
   await rosterPickerListsRealArtists();
+  await basicGenreLanguagePickSticks();
 
   console.log('tonegrid.client.test.js ok');
 }

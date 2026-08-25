@@ -1785,12 +1785,17 @@ function fillOneSelect(select, items, getValue, getLabel) {
   } catch (err) {}
 }
 
+function ensureTypeahead(select, items, getValue, getLabel) {
+  if (isTypeaheadBound(select)) return select;
+  bindTypeahead(select, items, getValue, getLabel);
+  return select;
+}
+
 function fillUploadSelects(doc) {
   var root = doc || document;
   if (!root || typeof root.getElementById !== 'function') return { genre: null, language: null };
   var genre = root.getElementById('tg-genre') || root.getElementById('edit-genre');
   var language = root.getElementById('tg-language') || root.getElementById('edit-language');
-  if (typeaheadApplying) return { genre: genre, language: language };
   fillOneSelect(root.getElementById('tg-genre'), GENRES, identity, identity);
   fillOneSelect(root.getElementById('edit-genre'), GENRES, identity, identity);
   fillOneSelect(root.getElementById('tg-language'), LANGUAGES, languageValue, languageLabel);
@@ -1806,6 +1811,8 @@ const catalogApi = {
   TYPEAHEAD_LIST_CAP: TYPEAHEAD_LIST_CAP,
   fillUploadSelects: fillUploadSelects,
   bindTypeahead: bindTypeahead,
+  ensureTypeahead: ensureTypeahead,
+  isTypeaheadBound: isTypeaheadBound,
   syncTypeahead: syncTypeahead,
   setTypeaheadValue: setTypeaheadValue,
   canonicalCatalogValue: canonicalCatalogValue,

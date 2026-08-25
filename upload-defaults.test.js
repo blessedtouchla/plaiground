@@ -397,6 +397,17 @@ function run() {
   assert.ok(tonegridSrc.indexOf('function bindUploadCatalog') !== -1, 'upload must bind typeahead itself, not only wait for DOMContentLoaded');
   assert.ok(tonegridSrc.indexOf('fillUploadSelects') !== -1);
   assert.ok(tonegridSrc.indexOf('bindTypeahead') !== -1);
+  assert.ok(tonegridSrc.indexOf('function catalogFieldValue') !== -1, 'upload must read the typeahead pick, not only select.value');
+  assert.ok(tonegridSrc.indexOf('function ensureUploadTypeahead') !== -1, 'Basic account ready must re-ensure genre/language typeahead');
+  assert.ok(tonegridSrc.indexOf('ensureUploadTypeahead()') !== -1);
+  assert.ok(!/if \(typeaheadApplying\) return/.test(catalogSrc), 'fillUploadSelects must not skip bind while a pick is applying');
+  const bindFn = tonegridSrc.slice(tonegridSrc.indexOf('function bindUploadCatalog'), tonegridSrc.indexOf('function restoreUploadDraft'));
+  assert.ok(bindFn.indexOf('plan') === -1, 'genre/language bind is not plan-gated');
+  const songSrc = fs.readFileSync(path.join(__dirname, 'song.js'), 'utf8');
+  const fillFn = songSrc.slice(songSrc.indexOf('function fillCatalogSelects'), songSrc.indexOf('function syncCatalogValues'));
+  assert.ok(fillFn.indexOf('plan') === -1 && fillFn.indexOf('paid') === -1, 'edit genre/language bind is not plan-gated');
+  assert.ok(!/data-for-plans/.test(upload.slice(Math.max(0, upload.indexOf('id="tg-genre"') - 280), upload.indexOf('id="tg-genre"') + 180)), 'genre is not plan-gated');
+  assert.ok(!/data-for-plans/.test(upload.slice(Math.max(0, upload.indexOf('id="tg-language"') - 280), upload.indexOf('id="tg-language"') + 180)), 'language is not plan-gated');
   assert.ok(tonegridSrc.indexOf('ignoreEmpty') !== -1, 'calendar input must not wipe a just-picked date');
   const css = fs.readFileSync(path.join(__dirname, 'site.css'), 'utf8');
   assert.ok(/\.typeahead-list\s*\{[\s\S]*?overflow-y:\s*auto/.test(css));

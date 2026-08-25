@@ -21,6 +21,33 @@
     return el ? String(el.value || '').trim() : '';
   }
 
+  function typeaheadTypedValue(select) {
+    if (!select) return '';
+    var field = select.parentNode;
+    var input = field && field.querySelector ? field.querySelector('.typeahead-input') : null;
+    if (!input && typeof document !== 'undefined' && document.getElementById && select.id) {
+      input = document.getElementById(select.id + '-type');
+    }
+    return input ? String(input.value || '').trim() : '';
+  }
+
+  function catalogFieldValue(id) {
+    var el = $(id);
+    var raw = el ? String(el.value || '').trim() : '';
+    if (!raw) raw = typeaheadTypedValue(el);
+    var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
+    if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
+      var canon = catalog.canonicalCatalogValue(el, raw);
+      if (canon) return String(canon);
+    }
+    return raw;
+  }
+
+  function catalogLanguageValue() {
+    var raw = catalogFieldValue('tg-language').toLowerCase();
+    return /^[a-z]{2}$/.test(raw) ? raw : '';
+  }
+
   function rules() {
     return (typeof PlaigroundUploadRequired !== 'undefined' && PlaigroundUploadRequired) || null;
   }
@@ -2220,8 +2247,7 @@
 
   function collectUploadFields() {
     var instrumental = selectedInstrumental();
-    var language = fieldValue('tg-language').toLowerCase();
-    if (!/^[a-z]{2}$/.test(language)) language = '';
+    var language = catalogLanguageValue();
     if (instrumental) language = '';
     var type = selectedReleaseType();
     var draft = readDraft();
@@ -2236,7 +2262,7 @@
       title: fieldValue('tg-title') || draft.title || '',
       name: syncArtistHidden() || fieldValue('tg-artist') || draft.name || '',
       featured: fieldValue('tg-featured') || draft.featured || '',
-      genre: fieldValue('tg-genre') || draft.genre || '',
+      genre: catalogFieldValue('tg-genre') || draft.genre || '',
       language: language || draft.language || '',
       price: fieldValue('tg-price') || draft.price || '',
       explicit: selectedExplicit(),
@@ -3068,11 +3094,11 @@
     row.removeAttribute('data-audio-uploaded');
   }
 
-  function bindUploadCatalog() {
+  function ensureUploadTypeahead() {
     var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
     var genre = $('tg-genre');
     var language = $('tg-language');
-    if (!genre && !language) return;
+    if (!genre && !language) return catalog;
     if (catalog && typeof catalog.fillUploadSelects === 'function') {
       try { catalog.fillUploadSelects(document); } catch (err) {}
     }
@@ -3092,12 +3118,22 @@
         language.appendChild(opt);
       });
     }
-    if (catalog && typeof catalog.bindTypeahead === 'function') {
-      if (genre && catalog.GENRES) catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-      if (language && catalog.LANGUAGES) {
-        catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-      }
+    if (catalog && (typeof catalog.ensureTypeahead === 'function' || typeof catalog.bindTypeahead === 'function')) {
+      var bind = catalog.ensureTypeahead || catalog.bindTypeahead;
+      try {
+        if (genre && catalog.GENRES) bind.call(catalog, genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+        if (language && catalog.LANGUAGES) {
+          bind.call(catalog, language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+        }
+      } catch (err) {}
     }
+    return catalog;
+  }
+
+  function bindUploadCatalog() {
+    var catalog = ensureUploadTypeahead();
+    var genre = $('tg-genre');
+    var language = $('tg-language');
     if (catalog && typeof catalog.setTypeaheadValue === 'function') {
       var draft = readDraft();
       if (genre && draft.genre) catalog.setTypeaheadValue(genre, draft.genre);
@@ -3215,6 +3251,14 @@
     function refreshUploadGate() {
       syncLanguageField(selectedInstrumental());
       syncLyricsField(selectedInstrumental());
+      var genre = catalogFieldValue('tg-genre');
+      var language = selectedInstrumental() ? '' : catalogLanguageValue();
+      if (genre || language || selectedInstrumental()) {
+        writeDraft({
+          genre: genre || readDraft().genre || '',
+          language: language,
+        });
+      }
       markIncomplete(trigger, Boolean(uploadPageError(collectUploadFields())));
     }
     ['tg-title', 'tg-artist', 'tg-artist-new', 'tg-artist-select', 'tg-artist-mode', 'tg-artist-link', 'tg-artist-link-name', 'tg-featured', 'tg-genre', 'tg-language', 'tg-price', 'tg-instrumental', 'tg-lyrics'].forEach(function (id) {
@@ -3259,6 +3303,7 @@
     showUpgrade(false);
     showLimitPanel(false);
     whenAccountReady().then(function (result) {
+      ensureUploadTypeahead();
       var me = (result && result.data) || accountRecord();
       var catalog = catalogFromAccount(me);
       var draft = readDraft();
