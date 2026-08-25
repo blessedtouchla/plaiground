@@ -638,6 +638,30 @@
     setEditError('');
   }
 
+  function typeaheadTypedValue(select, fallbackId) {
+    if (!select) return '';
+    var input = select.parentNode && select.parentNode.querySelector
+      ? select.parentNode.querySelector('.typeahead-input')
+      : null;
+    if (!input && typeof document !== 'undefined' && document.getElementById) {
+      input = document.getElementById(fallbackId || (select.id ? select.id + '-type' : ''));
+    }
+    return input ? String(input.value || '').trim() : '';
+  }
+
+  function pickedCatalogValue(select, fallbackId) {
+    var raw = select ? String(select.value || '').trim() : '';
+    if (!raw) raw = typeaheadTypedValue(select, fallbackId);
+    var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
+      var canon = catalog.canonicalCatalogValue(select, raw);
+      if (canon === '') return '';
+      if (canon) return canon;
+      return raw ? null : '';
+    }
+    return raw;
+  }
+
   function saveEdit() {
     var panel = $('[data-release-edit]');
     var id = panel && panel.getAttribute('data-release-id');
@@ -647,18 +671,14 @@
     setEditError('Saving…');
     var title = $('#edit-title') ? $('#edit-title').value.trim() : '';
     var date = $('#edit-date') ? $('#edit-date').value.trim() : '';
-    var genre = $('#edit-genre') ? $('#edit-genre').value.trim() : '';
     var catalog = global.PlaigroundUploadCatalog;
-    if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
-      var canon = catalog.canonicalCatalogValue($('#edit-genre'), genre);
-      if (genre && canon == null) {
-        if (saveBtn) saveBtn.removeAttribute('aria-busy');
-        setEditError('Pick a genre from the list.');
-        return;
-      }
-      if (canon) genre = canon;
+    var genre = pickedCatalogValue($('#edit-genre'), 'edit-genre-type');
+    if (genre === null) {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      setEditError('Pick a genre from the list.');
+      return;
     }
-    var language = $('#edit-language') ? $('#edit-language').value.trim() : '';
+    var language = pickedCatalogValue($('#edit-language'), 'edit-language-type') || '';
     var trackTitle = $('#edit-track-title') ? $('#edit-track-title').value.trim() : '';
     var trackId = $('#edit-track-title') ? $('#edit-track-title').getAttribute('data-track-id') : '';
     var artInput = $('#edit-art');
