@@ -1316,9 +1316,38 @@
     return load();
   }
 
+  function selectedEditFile(id) {
+    var input = $(id.indexOf('#') === 0 ? id : '#' + id);
+    if (!input) return null;
+    if (input._plaigroundFile) return input._plaigroundFile;
+    if (input.files && input.files[0]) return input.files[0];
+    return null;
+  }
+
+  function persistableCoverUrl(url) {
+    var next = String(url || '').trim();
+    if (/^https?:\/\//i.test(next) || /^data:image\//i.test(next)) return next;
+    return '';
+  }
+
+  function fileToCoverDataUrl(file) {
+    if (!file || typeof FileReader !== 'function') return Promise.resolve('');
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var data = String(reader.result || '');
+        resolve(/^data:image\//i.test(data) ? data : '');
+      };
+      reader.onerror = function () { resolve(''); };
+      try { reader.readAsDataURL(file); } catch (err) { resolve(''); }
+    });
+  }
+
   function pendingCoverUrl(art) {
     if (coverPreview && typeof coverPreview.currentUrl === 'function') {
-      var have = String(coverPreview.currentUrl() || '').trim();
+      var have = persistableCoverUrl(coverPreview.currentUrl());
+      if (have) return have;
+      have = String(coverPreview.currentUrl() || '').trim();
       if (have) return have;
     }
     if (art && global.URL && typeof global.URL.createObjectURL === 'function') {
@@ -1340,6 +1369,8 @@
         tonegrid_release_id: id,
         id: id,
         artwork_url: String((draft && draft.artwork_url) || (release && release.artwork_url) || '').trim(),
+        genre: String((draft && draft.genre) || (release && release.genre) || '').trim(),
+        language: String((draft && draft.language) || (release && release.language) || '').trim(),
       },
     };
     try {
@@ -1353,53 +1384,57 @@
   }
 
   function applyImmediateEdit(id, fields) {
-    var cover = pendingCoverUrl(fields.art);
-    var draft = writeDraftFor(id, {
-      title: fields.title,
-      genre: fields.genre,
-      language: fields.language,
-      release_date: fields.release_date,
-      artwork_url: cover || undefined,
-    });
-    if (fields.title) draft.title = fields.title;
-    if (fields.genre) draft.genre = fields.genre;
-    if (fields.language) draft.language = fields.language;
-    if (fields.release_date) draft.release_date = fields.release_date;
-    if (cover) draft.artwork_url = cover;
-    var release = Object.assign({}, lastEdit.release || {}, {
-      uuid: id,
-      title: fields.title || draft.title || (lastEdit.release && lastEdit.release.title) || '',
-      genre: fields.genre || draft.genre || (lastEdit.release && lastEdit.release.genre) || '',
-      language: fields.language || draft.language || (lastEdit.release && lastEdit.release.language) || '',
-      release_date: fields.release_date || draft.release_date || (lastEdit.release && lastEdit.release.release_date) || '',
-      status: (lastEdit.release && lastEdit.release.status) || (draft && draft.tonegrid_status) || 'pending',
-    });
-    release = overlayPendingEdit(release, draft);
-    if (fields.title) release.title = fields.title;
-    if (fields.genre) release.genre = fields.genre;
-    if (fields.language) release.language = fields.language;
-    if (fields.release_date) release.release_date = fields.release_date;
-    if (cover) release.artwork_url = cover;
-    lastEdit.draft = draft;
-    lastEdit.release = release;
-    persistPlaigroundRelease(draft, release);
-    var saveBtn = $('[data-edit-save]');
-    if (saveBtn) saveBtn.removeAttribute('aria-busy');
-    showEditRetry(false);
-    setEditError('');
-    closeEdit();
-    render({
-      me: lastEdit.me,
-      draft: draft,
-      release: release,
-      analytics: lastEdit.analytics || {},
-    });
-    return Promise.resolve({
-      ok: true,
-      created: false,
-      applied: true,
-      releaseId: id,
-      hops: [],
+    return fileToCoverDataUrl(fields.art).then(function (storedCover) {
+      var cover = persistableCoverUrl(storedCover) || pendingCoverUrl(fields.art);
+      var keep = persistableCoverUrl(cover);
+      var draft = writeDraftFor(id, {
+        title: fields.title,
+        genre: fields.genre,
+        language: fields.language,
+        release_date: fields.release_date,
+        artwork_url: keep || undefined,
+      });
+      if (fields.title) draft.title = fields.title;
+      if (fields.genre) draft.genre = fields.genre;
+      if (fields.language) draft.language = fields.language;
+      if (fields.release_date) draft.release_date = fields.release_date;
+      if (keep) draft.artwork_url = keep;
+      var release = Object.assign({}, lastEdit.release || {}, {
+        uuid: id,
+        title: fields.title || draft.title || (lastEdit.release && lastEdit.release.title) || '',
+        genre: fields.genre || draft.genre || (lastEdit.release && lastEdit.release.genre) || '',
+        language: fields.language || draft.language || (lastEdit.release && lastEdit.release.language) || '',
+        release_date: fields.release_date || draft.release_date || (lastEdit.release && lastEdit.release.release_date) || '',
+        status: (lastEdit.release && lastEdit.release.status) || (draft && draft.tonegrid_status) || 'pending',
+      });
+      release = overlayPendingEdit(release, draft);
+      if (fields.title) release.title = fields.title;
+      if (fields.genre) release.genre = fields.genre;
+      if (fields.language) release.language = fields.language;
+      if (fields.release_date) release.release_date = fields.release_date;
+      if (keep) release.artwork_url = keep;
+      else if (cover) release.artwork_url = cover;
+      lastEdit.draft = draft;
+      lastEdit.release = release;
+      persistPlaigroundRelease(draft, release);
+      var saveBtn = $('[data-edit-save]');
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      showEditRetry(false);
+      setEditError('');
+      closeEdit();
+      render({
+        me: lastEdit.me,
+        draft: draft,
+        release: release,
+        analytics: lastEdit.analytics || {},
+      });
+      return {
+        ok: true,
+        created: false,
+        applied: true,
+        releaseId: id,
+        hops: [],
+      };
     });
   }
 
@@ -1431,8 +1466,8 @@
     var featured = $('#edit-featured') ? String($('#edit-featured').value || '').trim() : '';
     var schedule = collectSchedule();
     var date = schedule.release_date;
-    var art = $('#edit-art') && $('#edit-art').files && $('#edit-art').files[0];
-    var audio = $('#edit-audio') && $('#edit-audio').files && $('#edit-audio').files[0];
+    var art = selectedEditFile('edit-art');
+    var audio = selectedEditFile('edit-audio');
     var trackId = $('#edit-audio') ? $('#edit-audio').getAttribute('data-track-id') : '';
     if (!instrumental && !language) {
       setEditError('Language is required.');

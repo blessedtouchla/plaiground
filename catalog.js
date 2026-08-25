@@ -643,7 +643,8 @@
     var language = $('#edit-language') ? $('#edit-language').value.trim() : '';
     var trackTitle = $('#edit-track-title') ? $('#edit-track-title').value.trim() : '';
     var trackId = $('#edit-track-title') ? $('#edit-track-title').getAttribute('data-track-id') : '';
-    var art = $('#edit-art') && $('#edit-art').files && $('#edit-art').files[0];
+    var artInput = $('#edit-art');
+    var art = (artInput && artInput._plaigroundFile) || (artInput && artInput.files && artInput.files[0]) || null;
     var body = { title: title };
     if (date) body.release_date = date;
     if (genre) body.genre = genre;

@@ -2061,6 +2061,71 @@
     });
   }
 
+  function artworkUrlFromResult(result) {
+    var data = result && result.data;
+    if (!data) return '';
+    try {
+      if (typeof PlaigroundCoverUrl !== 'undefined' && PlaigroundCoverUrl) {
+        return String(PlaigroundCoverUrl.stored(data) || PlaigroundCoverUrl.from(data) || '').trim();
+      }
+    } catch (err) {}
+    return String(data.artwork_url || data.cover_art_url || data.cover_url || '').trim();
+  }
+
+  function fileToCoverDataUrl(file) {
+    if (!file || typeof FileReader !== 'function') return Promise.resolve('');
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var data = String(reader.result || '');
+        resolve(/^data:image\//i.test(data) ? data : '');
+      };
+      reader.onerror = function () { resolve(''); };
+      try { reader.readAsDataURL(file); } catch (err) { resolve(''); }
+    });
+  }
+
+  function persistLocalReleaseCover(releaseId, url) {
+    var keep = String(url || '').trim();
+    if (!releaseId || !keep) return Promise.resolve();
+    if (!/^https?:\/\//i.test(keep) && !/^data:image\//i.test(keep)) return Promise.resolve();
+    var draft = readDraft();
+    writeDraft({ artwork_url: keep });
+    try {
+      return fetch('/api/me/artists', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'record_release',
+          release: {
+            title: String((draft && draft.title) || '').trim() || 'Untitled',
+            plaiground_artist_id: String((draft && draft.plaiground_artist_id) || '').trim(),
+            tonegrid_status: String((draft && draft.tonegrid_status) || 'pending').toLowerCase(),
+            tonegrid_release_id: releaseId,
+            id: releaseId,
+            artwork_url: keep,
+            genre: String((draft && draft.genre) || '').trim(),
+            language: String((draft && draft.language) || '').trim(),
+          },
+        }),
+      }).then(function () {}, function () {});
+    } catch (err) {
+      return Promise.resolve();
+    }
+  }
+
+  function rememberArtworkUrl(releaseId, result, file) {
+    var url = artworkUrlFromResult(result);
+    if (url && (/^https?:\/\//i.test(url) || /^data:image\//i.test(url))) {
+      return persistLocalReleaseCover(releaseId, url).then(function () { return url; });
+    }
+    return fileToCoverDataUrl(file).then(function (data) {
+      if (!data) return '';
+      return persistLocalReleaseCover(releaseId, data).then(function () { return data; });
+    });
+  }
+
   function uploadArtwork(releaseId, file, onProgress) {
     if (!releaseId || !file) return Promise.resolve({ skipped: true });
     if (file.size > MAX_ARTWORK_BYTES) {
@@ -2074,7 +2139,9 @@
     return postForm(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', body, onProgress).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result };
       if (!result.ok) return { failed: true, result: result };
-      return { uploaded: true, result: result };
+      return rememberArtworkUrl(releaseId, result, file).then(function () {
+        return { uploaded: true, result: result };
+      });
     });
   }
 
