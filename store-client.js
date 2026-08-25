@@ -677,12 +677,8 @@
 
   function alreadyHasAudio(draft) {
     if (!draft) return false;
-    if (flagOn(draft.audio_uploaded) || flagOn(draft.audio_converted)) return true;
-    var rows = albumRowsForSubmit(draft);
-    for (var i = 0; i < rows.length; i += 1) {
-      if (rows[i] && (flagOn(rows[i].audio_uploaded) || flagOn(rows[i].audio_converted))) return true;
-    }
-    return false;
+    if (String(draft.type || '') === 'album') return false;
+    return flagOn(draft.audio_uploaded) || flagOn(draft.audio_converted);
   }
 
   function needsAudioUpload(draft, file) {
@@ -1172,7 +1168,7 @@
     var liveFile = Boolean(selectedAudio()) || albumRowsForSubmit(next).some(function (track) {
       return track && (track.audio || track.file);
     });
-    if (alreadyHasAudio(next)) {
+    if (alreadyHasAudio(next) && !force) {
       if (knownTracks.length) {
         return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
       }
