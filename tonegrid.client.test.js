@@ -1748,6 +1748,116 @@ async function run() {
     assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
+  async function createPostShowsRealSanitizedError() {
+    const page = load(filledUpload({
+      draft: {
+        title: 'Night Drive',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: false, status: 400, data: { error: 'artist_id is required.' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.strictEqual(page.status.textContent, 'artist_id is required.');
+    assert.ok(!/Could not create the release/.test(page.status.textContent));
+    assert.ok(!/ToneGrid|Tonegrid/i.test(page.status.textContent));
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+  }
+
+  async function continuedDeadIdRetriesWithNewKey() {
+    const dead = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const page = load(filledUpload({
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: dead,
+        release_idempotency_key: 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: [dead],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: true, status: 200, data: { uuid: dead, continued: true } },
+        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.ok(createCalls.length >= 2, 'reattached dead id must POST again with a new key');
+    assert.notStrictEqual(
+      createCalls[0].init.headers['Idempotency-Key'],
+      createCalls[1].init.headers['Idempotency-Key']
+    );
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).replace_release_id, dead);
+    assert.strictEqual(JSON.parse(createCalls[1].init.body).replace_release_id, dead);
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitEnsuresCatalogArtist() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        title: 'Night Drive',
+        name: 'Ada Night',
+        genre: 'Pop',
+        language: 'en',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(draftOf(page.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1, 'review submit must mint a release after restoring artist_id');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).title, 'Night Drive');
+    assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit';
+    }));
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.ok(!/Could not create the release/.test(page.status.textContent));
+  }
+
   async function genuineMissingTitleArtistStillErrors() {
     const noTitle = load(filledUpload({ title: '' }));
     noTitle.continueBtn.listeners.click({ preventDefault() {} });
@@ -1889,6 +1999,9 @@ async function run() {
   await newTitleDoesNotReuseOtherSongRelease();
   await staleIdSecond404RecreatesAgain();
   await recreateBudgetShowsNamelessRetry();
+  await createPostShowsRealSanitizedError();
+  await continuedDeadIdRetriesWithNewKey();
+  await reviewSubmitEnsuresCatalogArtist();
   await genuineMissingTitleArtistStillErrors();
   await hungCreateTrackTrack2HidesLoader();
   await rejectedAfterReleaseHidesLoader();
@@ -1918,6 +2031,7 @@ async function run() {
   assert.ok(source.includes('The audio file is no longer on this page.'));
   assert.ok(source.includes('resolveLiveRelease'));
   assert.ok(source.includes('clearDeadReleaseIds'));
+  assert.ok(source.includes('ensureCatalogArtist'));
   assert.ok(source.includes('freshReleaseKey'));
   assert.ok(source.includes('isReleaseMissing'));
   assert.ok(source.includes('Could not create the release. Retry.'));

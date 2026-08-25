@@ -663,6 +663,7 @@
       return next;
     }) : current.tracks;
     return writeDraft({
+      artist_id: current.artist_id || '',
       release_id: '',
       track_id: '',
       release_idempotency_key: '',
@@ -674,8 +675,10 @@
     });
   }
 
+  var releaseKeyNonce = 0;
   function freshReleaseKey(draft) {
-    return ('plaiground-release-' + String((draft && draft.artist_id) || '') + ':' + String((draft && draft.title) || '') + ':' + String(Date.now())).slice(0, 255);
+    releaseKeyNonce += 1;
+    return ('plaiground-release-' + String((draft && draft.artist_id) || '') + ':' + String((draft && draft.title) || '') + ':' + String(Date.now()) + ':' + String(releaseKeyNonce)).slice(0, 255);
   }
 
   function clearDeadReleaseIds(draft) {
@@ -688,10 +691,15 @@
       next.audio_uploaded = false;
       return next;
     }) : current.tracks;
+    var artistId = String(current.artist_id || '').trim();
+    if (!isUuidValue(artistId)) {
+      artistId = catalogFromAccount(accountRecord()).artist_id || '';
+    }
     var next = writeDraft({
+      artist_id: artistId,
       release_id: '',
       track_id: '',
-      release_idempotency_key: freshReleaseKey(current),
+      release_idempotency_key: freshReleaseKey(Object.assign({}, current, { artist_id: artistId })),
       track_idempotency_key: '',
       audio_uploaded: false,
       audio_attached: Boolean(current.audio_attached || hadAudioEvidence(current)),
@@ -724,23 +732,67 @@
     };
   }
 
-  function createFreshRelease(draft) {
+  function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
-    if (!current.artist_id || !current.title) {
+    var artistId = String(current.artist_id || '').trim();
+    if (isUuidValue(artistId)) return Promise.resolve({ ok: true, draft: current });
+    var catalog = catalogFromAccount(accountRecord());
+    if (isUuidValue(catalog.artist_id)) {
+      return Promise.resolve({ ok: true, draft: writeDraft({ artist_id: catalog.artist_id }) });
+    }
+    var name = String(current.name || '').trim();
+    if (!name) {
       return Promise.resolve({
         failed: true,
         missing: true,
         draft: current,
-        result: {
-          data: {
-            error: !current.title
-              ? 'Song title is required.'
-              : 'Save the upload details first so a catalog artist exists.',
-          },
-        },
+        result: { data: { error: 'Artist name is required.' } },
       });
     }
-    return createRelease(current, current.release_date || '').then(asResolvedRelease);
+    return post(ARTISTS_URL, {
+      name: name,
+      plaiground_artist_id: current.plaiground_artist_id || '',
+    }).then(function (result) {
+      if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
+      if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
+      if (!result.ok) return { failed: true, result: result, draft: current };
+      var id = pickUuid(result.data);
+      if (!id) {
+        return {
+          failed: true,
+          result: { data: { error: createErrorMessage(result, 'Could not save artist.') } },
+          draft: current,
+        };
+      }
+      var next = writeDraft({ artist_id: id });
+      saveCatalog({ artist_id: id });
+      return { ok: true, draft: next, created: true };
+    });
+  }
+
+  function createFreshRelease(draft) {
+    var current = draft || readDraft();
+    if (!current.title) {
+      return Promise.resolve({
+        failed: true,
+        missing: true,
+        draft: current,
+        result: { data: { error: 'Song title is required.' } },
+      });
+    }
+    return ensureCatalogArtist(current).then(function (ready) {
+      if (ready.unavailable || ready.limited || ready.failed || ready.missing) return ready;
+      current = ready.draft || current;
+      if (!current.artist_id) {
+        return {
+          failed: true,
+          missing: true,
+          draft: current,
+          result: { data: { error: 'Save the upload details first so a catalog artist exists.' } },
+        };
+      }
+      return createRelease(current, current.release_date || '').then(asResolvedRelease);
+    });
   }
 
   function resolveLiveRelease(draft) {
@@ -775,6 +827,8 @@
       }
       releaseRecreateCount += 1;
       return createFreshRelease(clearDeadReleaseIds(current)).then(function (created) {
+        if (created && created.missing) return created;
+        if (created && created.failed && !isReleaseMissing(created.result)) return created;
         if (created && (created.failed || created.missing) && isReleaseMissing(created.result)) {
           return deadReleaseResult(created.result, created.draft || readDraft());
         }
@@ -1311,9 +1365,7 @@
           if (resolved.limited || resolved.failed || resolved.missing) {
             return {
               failed: true,
-              result: isReleaseMissing(resolved.result || result)
-                ? { data: { error: DEAD_RELEASE_COPY } }
-                : (resolved.result || result),
+              result: resolved.result || result,
               draft: resolved.draft || draft,
             };
           }
@@ -1327,7 +1379,7 @@
       if (!result.ok) {
         return {
           failed: true,
-          result: isReleaseMissing(result) ? { data: { error: DEAD_RELEASE_COPY } } : result,
+          result: result,
           draft: draft,
         };
       }
@@ -1667,7 +1719,7 @@
     return ('plaiground-release-' + String(draft.artist_id || '') + ':' + String(draft.title || '')).slice(0, 255);
   }
 
-  function createRelease(draft, releaseDate) {
+  function createRelease(draft, releaseDate, opts) {
     if (draft.release_id) {
       rememberSessionRelease(draft.release_id);
       return Promise.resolve({ skipped: true, draft: draft });
@@ -1688,6 +1740,20 @@
         return { failed: true, result: result, draft: draft };
       }
       var releaseId = pickUuid(result.data);
+      if (releaseId && draft.replaced_release_id && sameUuid(releaseId, draft.replaced_release_id)) {
+        if (opts && opts.retriedDead) {
+          return {
+            failed: true,
+            result: { data: { error: DEAD_RELEASE_COPY } },
+            draft: draft,
+          };
+        }
+        var retryDraft = writeDraft({
+          release_id: '',
+          release_idempotency_key: freshReleaseKey(draft),
+        });
+        return createRelease(retryDraft, releaseDate, { retriedDead: true });
+      }
       var next = draft;
       if (releaseId) {
         next = writeDraft({
@@ -2725,7 +2791,7 @@
     function failUpload(message, upgrade) {
       setUploadBusy(false);
       markIncomplete(trigger, false);
-      var shownError = /release not found/i.test(String(message || '')) ? DEAD_RELEASE_COPY : message;
+      var shownError = message;
       setStatus('tg-status', shownError || '');
       markStatusError(Boolean(shownError));
       showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
@@ -3182,10 +3248,6 @@
         }
         draft = writeDraft({ release_date: releaseDate, dsps: selectedUploadStores() });
 
-        if (!draft.artist_id) {
-          setStatus('tg-status', 'Save the upload details first so a catalog artist exists.');
-          return;
-        }
         if (!isSoloOwned(draft) && !documentIdOf(draft)) {
           setStatus('tg-status', 'Create the split sheet before submitting.');
           return;
@@ -3196,18 +3258,35 @@
         }
 
         trigger.setAttribute('aria-busy', 'true');
-        if (draft.release_id) {
-          finishSubmit(draft, releaseDate, trigger, nextHref).catch(function () {
+        releaseRecreateCount = 0;
+        ensureCatalogArtist(draft).then(function (ready) {
+          if (ready.unavailable) {
             trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', 'Could not reach catalog.');
-          });
-          return;
-        }
+            continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
+            return;
+          }
+          if (ready.limited) {
+            trigger.removeAttribute('aria-busy');
+            setStatus('tg-status', createErrorMessage(ready.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+            showUpgrade(true);
+            return;
+          }
+          if (ready.failed || ready.missing) {
+            trigger.removeAttribute('aria-busy');
+            setStatus('tg-status', createErrorMessage(ready.result, 'Save the upload details first so a catalog artist exists.'));
+            return;
+          }
+          var nextDraft = ready.draft || draft;
+          if (nextDraft.release_id) {
+            return finishSubmit(nextDraft, releaseDate, trigger, nextHref).catch(function () {
+              trigger.removeAttribute('aria-busy');
+              setStatus('tg-status', 'Could not reach catalog.');
+            });
+          }
 
-        setStatus('tg-status', 'Creating release…');
-        showUploadLoader('Creating release');
-        createRelease(draft, releaseDate)
-          .then(function (created) {
+          setStatus('tg-status', 'Creating release…');
+          showUploadLoader('Creating release');
+          return resolveLiveRelease(nextDraft).then(function (created) {
             if (created.unavailable) {
               hideUploadLoader();
               trigger.removeAttribute('aria-busy');
@@ -3221,34 +3300,37 @@
               showUpgrade(true);
               return;
             }
-            if (created.failed) {
+            if (created.failed || created.missing) {
               hideUploadLoader();
               trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', created.result.data.error || 'Could not create release.');
+              setStatus('tg-status', createErrorMessage(created.result, 'Could not create release.'));
               showUpgrade(false);
               return;
             }
             showUploadLoader('Creating track');
-            return afterRelease(created.draft || draft).then(function (next) {
+            return afterRelease(created.draft || nextDraft).then(function (next) {
               if (next && next.failed) {
                 hideUploadLoader();
                 trigger.removeAttribute('aria-busy');
-                setStatus('tg-status', (next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
+                setStatus('tg-status', createErrorMessage(next.result, 'Could not create the track.'));
                 return;
               }
               hideUploadLoader();
-              return finishSubmit(next && next.draft ? next.draft : (created.draft || draft), releaseDate, trigger, nextHref);
+              return finishSubmit(next && next.draft ? next.draft : (created.draft || nextDraft), releaseDate, trigger, nextHref);
             }).catch(function (err) {
               hideUploadLoader();
               trigger.removeAttribute('aria-busy');
               setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
             });
-          })
-          .catch(function (err) {
+          }).catch(function (err) {
             hideUploadLoader();
             trigger.removeAttribute('aria-busy');
             setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
           });
+        }).catch(function (err) {
+          trigger.removeAttribute('aria-busy');
+          setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
+        });
       });
     }
 
