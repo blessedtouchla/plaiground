@@ -1621,7 +1621,7 @@
     return /\.(mp3|mpeg|mpga)$/.test(name) || /audio\/(x-)?(mpeg|mp3|mpeg3|mpg)/.test(type);
   }
 
-  function showUploadLoader(step, percent) {
+  function showUploadLoader(step, percent, hint) {
     var loader = document.querySelector('[data-upload-loader]');
     var stepEl = document.querySelector('[data-upload-loader-step]');
     var fill = document.querySelector('[data-upload-loader-fill]');
@@ -1638,7 +1638,10 @@
       else if (hasPercent && loader.classList.remove) loader.classList.remove('is-wait');
     }
     if (fill && fill.style) fill.style.width = hasPercent ? Math.max(0, Math.min(100, percent)) + '%' : '32%';
-    if (meta) meta.textContent = hasPercent ? Math.round(percent) + '%' : '';
+    if (meta) {
+      if (hint) meta.textContent = hint;
+      else meta.textContent = hasPercent ? Math.round(percent) + '%' : '';
+    }
   }
 
   function hideUploadLoader() {
@@ -1774,17 +1777,85 @@
     });
   }
 
+  var CONVERT_HINT = 'This can take a minute.';
+
+  function convertProgressCopy(file, kind) {
+    var helper = audioAccept();
+    if (helper && typeof helper.convertProgressCopy === 'function') {
+      return helper.convertProgressCopy(file, kind);
+    }
+    var name = String((file && file.name) || '');
+    if (/\.wav$/i.test(name) || /\.flac$/i.test(name)) return '';
+    if (kind === 'wav' || kind === 'flac') return '';
+    if (kind === 'mp3' || isMp3File(file)) return 'Converting MP3 to WAV';
+    if (kind) return 'Converting to WAV';
+    return '';
+  }
+
+  function resolveConvertCopy(file) {
+    var sync = convertProgressCopy(file);
+    if (sync) return Promise.resolve(sync);
+    var helper = audioAccept();
+    if (helper && (helper.fileLooksLikeWav && helper.fileLooksLikeWav(file)
+      || helper.fileLooksLikeFlac && helper.fileLooksLikeFlac(file))) {
+      return Promise.resolve('');
+    }
+    if (helper && typeof helper.sniffKind === 'function') {
+      return helper.sniffKind(file).then(function (kind) {
+        return convertProgressCopy(file, kind);
+      });
+    }
+    return Promise.resolve('');
+  }
+
+  function showConvertLoader(copy) {
+    showUploadLoader(copy, null, CONVERT_HINT);
+    setStatus('tg-status', copy + '. ' + CONVERT_HINT);
+  }
+
+  function convertHook() {
+    try {
+      if (typeof PlaigroundConvertUploadAudio === 'function') return PlaigroundConvertUploadAudio;
+    } catch (err) {}
+    if (typeof window !== 'undefined' && window && typeof window.PlaigroundConvertUploadAudio === 'function') {
+      return window.PlaigroundConvertUploadAudio;
+    }
+    return null;
+  }
+
+  function runConvertStep(file) {
+    return resolveConvertCopy(file).then(function (copy) {
+      if (!copy) return { file: file, didConvert: false, copy: '' };
+      showConvertLoader(copy);
+      var hook = convertHook();
+      if (!hook) return { file: file, didConvert: false, copy: copy };
+      return Promise.resolve(hook(file)).then(function (next) {
+        return { file: next || file, didConvert: true, copy: copy };
+      }).catch(function () {
+        return { file: file, didConvert: false, copy: copy };
+      });
+    });
+  }
+
   function uploadTrackAudio(trackId, file, label) {
     if (!trackId || !file) return Promise.resolve({ skipped: true });
-    if (isMp3File(file)) {
-      showUploadLoader('Converting MP3 to WAV');
-      setStatus('tg-status', 'Converting MP3 to WAV…');
-    } else {
-      showUploadLoader(label || 'Uploading audio');
-      setStatus('tg-status', (label || 'Uploading audio') + '…');
-    }
-    return uploadAudio(trackId, file, function (percent) {
-      showUploadLoader(label || 'Uploading audio', percent);
+    var sendLabel = label || 'Uploading audio';
+    return runConvertStep(file).then(function (ready) {
+      var convertLabel = ready.copy;
+      var keepConvert = Boolean(convertLabel && !ready.didConvert);
+      if (keepConvert) {
+        showConvertLoader(convertLabel);
+      } else {
+        showUploadLoader(sendLabel);
+        setStatus('tg-status', sendLabel + '…');
+      }
+      return uploadAudio(trackId, ready.file, function (percent) {
+        if (keepConvert) {
+          showConvertLoader(convertLabel);
+          return;
+        }
+        showUploadLoader(sendLabel, percent);
+      });
     });
   }
 

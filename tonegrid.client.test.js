@@ -326,6 +326,11 @@ function load(options) {
       },
     };
   }
+  if (opts.convertHold) {
+    context.PlaigroundConvertUploadAudio = function () {
+      return Promise.resolve(opts.convertHold);
+    };
+  }
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
   return {
@@ -344,6 +349,7 @@ function load(options) {
     languageField,
     loader,
     loaderStep,
+    loaderMeta,
     date,
     albumCount,
     albumCountInput,
@@ -953,8 +959,49 @@ async function run() {
   }));
   mp3Wait.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Converting MP3 to WAV|Uploading audio/i.test(mp3Wait.loaderStep.textContent + ' ' + mp3Wait.status.textContent));
+  assert.ok(/Converting MP3 to WAV/.test(mp3Wait.loaderStep.textContent), 'MP3 must show converting while the file is being prepared');
+  assert.ok(/take a minute/i.test(mp3Wait.loaderMeta.textContent + ' ' + mp3Wait.status.textContent));
+  assert.strictEqual(mp3Wait.loader.hidden, false, 'convert bar stays visible');
+  assert.ok(!/Uploading audio/.test(mp3Wait.loaderStep.textContent), 'do not call the convert wait "Uploading audio"');
   audioHold();
+  await flush();
+
+  let convertRelease;
+  const convertHold = new Promise(function (resolve) { convertRelease = resolve; });
+  let audioAfterConvert;
+  const holdAudioAfterConvert = new Promise(function (resolve) { audioAfterConvert = resolve; });
+  const mp3Phases = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    convertHold: convertHold,
+    holdFirst: holdAudioAfterConvert,
+    holdWhen: '/audio',
+  }));
+  mp3Phases.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(/Converting MP3 to WAV/.test(mp3Phases.loaderStep.textContent));
+  assert.ok(/take a minute/i.test(mp3Phases.loaderMeta.textContent + ' ' + mp3Phases.status.textContent));
+  assert.ok(!/Uploading audio/.test(mp3Phases.loaderStep.textContent), 'converting must run before the store POST');
+  convertRelease();
+  await flush();
+  assert.ok(/Uploading audio/.test(mp3Phases.loaderStep.textContent + ' ' + mp3Phases.status.textContent), 'after convert, move to uploading');
+  assert.ok(!/Converting/.test(mp3Phases.loaderStep.textContent), 'do not keep converting copy after convert finishes');
+  audioAfterConvert();
+  await flush();
+
+  let wavHold;
+  const holdWav = new Promise(function (resolve) { wavHold = resolve; });
+  const wavWait = load(filledUpload({
+    file: { name: 'night-drive.wav', type: 'audio/wav', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdWav,
+    holdWhen: '/audio',
+  }));
+  wavWait.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.ok(/Uploading audio/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent));
+  assert.ok(!/Converting/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent + ' ' + wavWait.loaderMeta.textContent), 'WAV must not say converting');
+  wavHold();
   await flush();
 
   const phoneMp3 = load(filledUpload({
@@ -2194,7 +2241,10 @@ async function run() {
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
+  assert.ok(source.includes("return 'Converting to WAV'") || source.includes('Converting to WAV'));
+  assert.ok(source.includes('This can take a minute.'));
   assert.ok(source.includes('Uploading audio'));
+  assert.ok(fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8').includes("return 'Converting to WAV';"));
   assert.ok(source.includes('Uploading artwork'));
   assert.ok(source.includes('Opening SignWell'));
   assert.ok(source.includes('Audio must be WAV, FLAC, or MP3.'));
