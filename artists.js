@@ -445,6 +445,11 @@
       msg.textContent = check.level === 'green' && name
         ? 'No close match. This artist page can be created instantly.'
         : (check.copy || '');
+      if (msg.classList && msg.classList.toggle) {
+        msg.classList.toggle('is-green', Boolean(name) && check.level === 'green');
+        msg.classList.toggle('is-yellow', check.level === 'yellow');
+        msg.classList.toggle('is-red', check.level === 'red');
+      }
     }
     if (yellow) yellow.hidden = check.level !== 'yellow';
     if (red) red.hidden = check.level !== 'red';

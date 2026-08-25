@@ -51,6 +51,12 @@ function loadArtists() {
   const importBtn = makeEl({});
   const nameInput = makeEl({ value: '' });
   const urlInput = makeEl({ value: '' });
+  const checkMsg = makeEl({ hidden: true });
+  const yellow = makeEl({ hidden: true });
+  const red = makeEl({ hidden: true });
+  const confirmWrap = makeEl({ hidden: true });
+  const confirmBox = makeEl({ value: '' });
+  confirmBox.checked = false;
   const nodes = {
     '#artist-create-panel': createPanel,
     '[data-artist-create-panel]': createPanel,
@@ -58,6 +64,11 @@ function loadArtists() {
     '[data-artist-link-panel]': linkPanel,
     '#artist-create-name': nameInput,
     '#artist-link-url': urlInput,
+    '#artist-create-check': checkMsg,
+    '#artist-create-yellow': yellow,
+    '#artist-create-red': red,
+    '#artist-create-confirm-wrap': confirmWrap,
+    '#artist-create-confirm': confirmBox,
     '[data-artist-add]': addBtn,
     '[data-artist-import]': importBtn,
     '[data-artists-status]': makeEl({ hidden: true }),
@@ -80,11 +91,27 @@ function loadArtists() {
     location: { hash: '', pathname: '/artists.html' },
     fetch() { return Promise.resolve({ ok: true, status: 200, json: async () => ({}) }); },
     setTimeout(fn) { fn(); },
+    URL,
     PlaigroundMembership: { whenReady() { return Promise.resolve({ ok: true, data: { profile: { artists: [] } } }); } },
   };
   context.window = context;
+  context.globalThis = context;
+  vm.runInNewContext(read('lib/artist-check.js'), context);
   vm.runInNewContext(read('artists.js'), context);
-  return { api: context.PlaigroundArtists, nodes, addBtn, importBtn, createPanel, linkPanel, nameInput, urlInput };
+  return {
+    api: context.PlaigroundArtists,
+    checkApi: context.PlaigroundArtistCheck,
+    nodes,
+    addBtn,
+    importBtn,
+    createPanel,
+    linkPanel,
+    nameInput,
+    urlInput,
+    checkMsg,
+    yellow,
+    red,
+  };
 }
 
 function run() {
@@ -145,6 +172,9 @@ function run() {
   assert.ok(js.includes("openArtistForm('add')"));
   assert.ok(js.includes("openArtistForm('import')"));
   assert.ok(js.includes("Held for review. This name was not sent to the store."));
+  assert.ok(js.includes("classList.toggle('is-green'"));
+  assert.ok(js.includes("classList.toggle('is-yellow'"));
+  assert.ok(js.includes("classList.toggle('is-red'"));
 
   const upload = read('upload.html');
   assert.ok(upload.includes('Create new artist profile'));
@@ -175,6 +205,13 @@ function run() {
   ]);
 
   const page = loadArtists();
+  assert.ok(page.checkApi, 'name checks must load');
+  assert.strictEqual(page.checkApi.checkArtistName('Fuvtu').level, 'green');
+  assert.strictEqual(page.checkApi.checkArtistName('Sia').level, 'yellow');
+  assert.strictEqual(page.checkApi.checkArtistName('Drake').level, 'red');
+  assert.strictEqual(page.checkApi.checkArtistName('Drake', {
+    storeLink: 'https://open.spotify.com/artist/3TVXtAsR1Inumwj472S9r4',
+  }).level, 'green');
   assert.strictEqual(page.createPanel.hidden, true, 'Add artist form stays closed until chosen');
   assert.strictEqual(page.linkPanel.hidden, true, 'Import form stays closed until chosen');
   assert.strictEqual(page.api.openArtistForm('add'), 'add');
@@ -189,6 +226,24 @@ function run() {
   assert.ok(page.importBtn.classList.contains('is-on'));
   assert.ok(!page.addBtn.classList.contains('is-on'));
   assert.strictEqual(page.urlInput.focused, true);
+
+  page.api.openArtistForm('add');
+  page.nameInput.value = 'Fuvtu';
+  assert.strictEqual(page.api.paintCreateCheck().level, 'green');
+  assert.strictEqual(page.checkMsg.hidden, false);
+  assert.ok(page.checkMsg.classList.contains('is-green'));
+  assert.strictEqual(page.yellow.hidden, true);
+  assert.strictEqual(page.red.hidden, true);
+  page.nameInput.value = 'Sia';
+  assert.strictEqual(page.api.paintCreateCheck().level, 'yellow');
+  assert.ok(page.checkMsg.classList.contains('is-yellow'));
+  assert.strictEqual(page.yellow.hidden, false);
+  assert.strictEqual(page.red.hidden, true);
+  page.nameInput.value = 'Drake';
+  assert.strictEqual(page.api.paintCreateCheck().level, 'red');
+  assert.ok(page.checkMsg.classList.contains('is-red'));
+  assert.strictEqual(page.yellow.hidden, true);
+  assert.strictEqual(page.red.hidden, false);
 
   console.log('artists.page.test.js ok');
 }
