@@ -650,7 +650,9 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .release-edit .form-grid,
 .panel.release-edit { overflow: visible; }
 .field select.is-typeahead-source,
-.field select.details-select.is-typeahead-source {
+.field select.details-select.is-typeahead-source,
+.release-edit select.is-typeahead-source,
+.release-edit select.details-select.is-typeahead-source {
   position: absolute;
   left: 0;
   top: 0;
@@ -694,6 +696,11 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  pointer-events: auto;
+}
+.typeahead-list:not(.is-hidden) {
+  display: block;
+  visibility: visible;
 }
 .typeahead-list.is-above {
   top: auto;
@@ -1169,16 +1176,38 @@ table.data tbody tr.is-pick { cursor: pointer; }
   margin-top: 4px;
 }
 .store-pick-bar .toggle-line { margin: 0; }
+.field .store-pick,
+.release-edit .store-pick,
+.store-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+.field .store-pick label,
 .release-edit .store-pick label,
-.store-pick label {
+.store-pick label,
+.store-pick-item {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  margin: 0;
+  white-space: nowrap;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--muted-2);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  cursor: pointer;
 }
 .edit-actions {
   display: flex;
@@ -2242,12 +2271,55 @@ body:not(.app) > .app-main > .topbar { display: none; }
 }
 .fees-grid small { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .store-pick { display: flex; flex-wrap: wrap; gap: 10px; }
-.store-pick span {
+.store-pick > span:not(.store-pick-name) {
   border: 1px solid var(--yellow);
   color: var(--yellow);
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 13px;
+}
+.field .store-pick label input,
+.field .store-pick label input[type="checkbox"],
+.release-edit .store-pick input,
+.release-edit .store-pick input[type="checkbox"],
+.store-pick label input,
+.store-pick label input[type="checkbox"],
+.store-pick input.store-pick-box {
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 16px;
+  min-width: 16px;
+  max-width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  opacity: 1;
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  background: none;
+  background-image: none;
+  border: 0;
+  border-radius: 0;
+  flex: 0 0 auto;
+  z-index: auto;
+  pointer-events: auto;
+  cursor: pointer;
+  accent-color: var(--purple);
+}
+.store-pick-name {
+  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  white-space: nowrap;
 }
 .toggle-line {
   display: flex;

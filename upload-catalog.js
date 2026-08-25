@@ -1664,11 +1664,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (event && event.stopPropagation) event.stopPropagation();
   }, { passive: true });
 
-  input.addEventListener('input', function () {
-    typedMatch(input.value);
-    showMatches(input.value);
-  });
-  input.addEventListener('focus', function () {
+  function openList() {
     showMatches(input.value);
     keepInputVisible();
     if (win && win.setTimeout) {
@@ -1678,7 +1674,15 @@ function bindTypeahead(select, items, getValue, getLabel) {
         placeList();
       }, 280);
     }
+  }
+
+  input.addEventListener('input', function () {
+    typedMatch(input.value);
+    showMatches(input.value);
   });
+  input.addEventListener('focus', openList);
+  input.addEventListener('click', openList);
+  input.addEventListener('pointerup', openList);
   input.addEventListener('keydown', function (event) {
     var key = event && event.key;
     if (key !== 'Enter' && key !== 'ArrowDown') return;
@@ -1717,7 +1721,17 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
     if (win.addEventListener) win.addEventListener('resize', onViewport);
   }
-  if (select.addEventListener) select.addEventListener('change', syncFromSelect);
+  if (select.addEventListener) {
+    select.addEventListener('change', syncFromSelect);
+    select.addEventListener('focus', function () {
+      if (input && input.focus) input.focus();
+    });
+    select.addEventListener('mousedown', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      if (input && input.focus) input.focus();
+      openList();
+    });
+  }
   select._plaigroundSyncTypeahead = syncFromSelect;
   syncFromSelect();
 }

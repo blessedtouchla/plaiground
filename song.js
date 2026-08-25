@@ -733,13 +733,17 @@
       var slug = typeof row === 'string' ? row : row.slug;
       if (!slug) return;
       var label = document.createElement('label');
+      label.className = 'store-pick-item';
       var box = document.createElement('input');
       box.type = 'checkbox';
+      box.className = 'store-pick-box';
       box.value = slug;
       box.checked = allOn || Boolean(picked[slug.toLowerCase()]);
+      var name = document.createElement('span');
+      name.className = 'store-pick-name';
+      name.textContent = row.name || slug;
       label.appendChild(box);
-      if (document.createTextNode) label.appendChild(document.createTextNode(' ' + (row.name || slug)));
-      else label.textContent = (label.textContent || '') + ' ' + (row.name || slug);
+      label.appendChild(name);
       host.appendChild(label);
     });
   }
@@ -904,11 +908,24 @@
     return select ? select.value : '';
   }
 
+  function typeaheadTypedValue(select, fallbackId) {
+    if (!select) return '';
+    var input = select.parentNode && select.parentNode.querySelector
+      ? select.parentNode.querySelector('.typeahead-input')
+      : null;
+    if (!input && typeof document !== 'undefined' && document.getElementById) {
+      input = document.getElementById(fallbackId || (select.id ? select.id + '-type' : ''));
+    }
+    return input ? String(input.value || '').trim() : '';
+  }
+
   function pickedGenre(fallback) {
-    var raw = $('#edit-genre') ? String($('#edit-genre').value || '').trim() : '';
+    var select = $('#edit-genre');
+    var raw = select ? String(select.value || '').trim() : '';
+    if (!raw) raw = typeaheadTypedValue(select, 'edit-genre-type');
     var catalog = global.PlaigroundUploadCatalog;
     if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
-      var canon = catalog.canonicalCatalogValue($('#edit-genre'), raw);
+      var canon = catalog.canonicalCatalogValue(select, raw);
       if (canon === '') return '';
       if (canon) return canon;
       var keep = String(fallback || '').trim();
@@ -916,6 +933,30 @@
       return null;
     }
     return raw;
+  }
+
+  function pickedLanguage(instrumental) {
+    if (instrumental) return '';
+    var select = $('#edit-language');
+    var raw = select ? String(select.value || '').trim() : '';
+    if (!raw) raw = typeaheadTypedValue(select, 'edit-language-type');
+    var catalog = global.PlaigroundUploadCatalog;
+    if (catalog && typeof catalog.canonicalCatalogValue === 'function') {
+      var canon = catalog.canonicalCatalogValue(select, raw);
+      return canon ? String(canon).toLowerCase() : '';
+    }
+    if (catalog && catalog.LANGUAGES && catalog.LANGUAGES.length) {
+      var low = raw.toLowerCase();
+      var i;
+      for (i = 0; i < catalog.LANGUAGES.length; i += 1) {
+        var row = catalog.LANGUAGES[i];
+        if (row && (row.code === low || String(row.name || '').toLowerCase() === low)) {
+          return String(row.code || '').toLowerCase();
+        }
+      }
+      return '';
+    }
+    return raw.toLowerCase();
   }
 
   function audioAllowed(file) {
@@ -1108,8 +1149,7 @@
       return Promise.resolve({ ok: false, created: false, releaseId: id });
     }
     var instrumental = Boolean($('#edit-instrumental') && $('#edit-instrumental').checked);
-    var language = $('#edit-language') ? String($('#edit-language').value || '').trim().toLowerCase() : '';
-    if (instrumental) language = '';
+    var language = pickedLanguage(instrumental);
     var lyrics = selectedEditLyrics(instrumental);
     var price = $('#edit-price') ? String($('#edit-price').value || '').trim() : '';
     var featured = $('#edit-featured') ? String($('#edit-featured').value || '').trim() : '';
@@ -1118,14 +1158,10 @@
     var art = $('#edit-art') && $('#edit-art').files && $('#edit-art').files[0];
     var audio = $('#edit-audio') && $('#edit-audio').files && $('#edit-audio').files[0];
     var trackId = $('#edit-audio') ? $('#edit-audio').getAttribute('data-track-id') : '';
-    if (!instrumental) {
-      var langs = (global.PlaigroundUploadCatalog && global.PlaigroundUploadCatalog.LANGUAGES) || [];
-      var languageOk = !langs.length || langs.some(function (row) { return row.code === language; });
-      if (!language || !languageOk) {
-        setEditError('Language is required.');
-        if (saveBtn) saveBtn.removeAttribute('aria-busy');
-        return Promise.resolve({ ok: false, created: false });
-      }
+    if (!instrumental && !language) {
+      setEditError('Language is required.');
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      return Promise.resolve({ ok: false, created: false });
     }
     var draft = lastEdit.draft || readDraft();
     var me = lastEdit.me;

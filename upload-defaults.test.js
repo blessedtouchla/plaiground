@@ -507,7 +507,9 @@ function run() {
     const langList = langCreated.find(function (node) { return String(node.className).indexOf('typeahead-list') !== -1; });
     assert.ok(langInput);
     assert.ok(langList);
-    langInput.listeners.focus();
+    assert.ok(typeof langInput.listeners.click === 'function', 'language typeahead must open from a tap');
+    assert.ok(typeof langInput.listeners.pointerup === 'function', 'language typeahead must open from pointerup on phone');
+    langInput.listeners.click();
     assert.ok(listButtons(langList).length <= catalog.TYPEAHEAD_LIST_CAP, 'language empty list must stay under the cap');
     assert.ok(listButtons(langList).length < catalog.LANGUAGES.length, 'language empty list must not dump every ISO row');
     langInput.value = 'En';
@@ -574,7 +576,11 @@ function run() {
   assert.ok(review.indexOf('All 156 other stores') === -1);
 
   const song = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
+  assert.ok(/\.store-pick label input[\s\S]*position:\s*static/.test(css), 'store chips must reset toggle-input overlay');
+  assert.ok(css.includes('store-pick-box'));
+  assert.ok(css.includes('white-space: nowrap'));
   assert.ok(song.indexOf('id="edit-language"') !== -1);
+  assert.ok(song.indexOf('name="release-language"') !== -1);
   assert.ok(song.indexOf('<select id="edit-genre"') !== -1);
   assert.ok(song.indexOf('<input id="edit-genre"') === -1);
   assert.ok(song.indexOf('id="edit-subgenre"') === -1);

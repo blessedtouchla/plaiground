@@ -296,6 +296,13 @@ function run() {
   assert.ok(html.includes('lib/store-pick.js'));
   assert.ok(html.includes('Pre-select all stores'));
   assert.ok(html.includes('data-store-customize'));
+  assert.ok(html.includes('name="release-language"'));
+  assert.ok(css.includes('flex-wrap: wrap'));
+  assert.ok(css.includes('.store-pick-box'));
+  assert.ok(css.includes('white-space: nowrap'));
+  assert.ok(/\.store-pick label input[\s\S]*position:\s*static/.test(css), 'store chips must not use toggle-input absolute overlay');
+  assert.ok(read('lib/store-pick.js').includes("box.className = 'store-pick-box'"));
+  assert.ok(!/fillList[\s\S]*box\.className = 'toggle-input'/.test(read('lib/store-pick.js')));
   assert.ok(html.includes('accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga'));
   assert.ok(!html.includes('indexedDB'));
   assert.ok(!read('song.js').includes('indexedDB'));
@@ -511,6 +518,8 @@ function run() {
   assert.ok(!html.includes('name="release-subgenre"'));
   assert.ok(read('song.js').includes('setTypeaheadValue'));
   assert.ok(read('song.js').includes('canonicalCatalogValue'));
+  assert.ok(read('song.js').includes('function pickedLanguage'));
+  assert.ok(read('song.js').includes('typeaheadTypedValue'));
   assert.ok(read('song.js').includes('persistEditReleaseDate'));
   assert.ok(read('song.js').includes('ignoreEmpty'));
   assert.ok(css.includes('::-webkit-datetime-edit'));
