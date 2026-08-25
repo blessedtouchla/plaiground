@@ -577,6 +577,24 @@
     getJson('/api/tonegrid/stores').then(function (result) {
       fillStores((result.ok && result.data.stores) || [], release.dsps || []);
     });
+    if (genre) {
+      genre.disabled = false;
+      if (genre.removeAttribute) {
+        genre.removeAttribute('disabled');
+        genre.removeAttribute('aria-disabled');
+      }
+      var genreField = genre.closest ? genre.closest('.field') : null;
+      if (genreField && genreField.classList) genreField.classList.remove('is-locked');
+    }
+    if (language) {
+      language.disabled = false;
+      if (language.removeAttribute) {
+        language.removeAttribute('disabled');
+        language.removeAttribute('aria-disabled');
+      }
+      var languageField = language.closest ? language.closest('.field') : null;
+      if (languageField && languageField.classList) languageField.classList.remove('is-locked');
+    }
     if (catalog && typeof catalog.fillUploadSelects === 'function') {
       try { catalog.fillUploadSelects(document); } catch (err) {}
     }

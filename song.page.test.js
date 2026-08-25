@@ -1082,6 +1082,8 @@ function run() {
   assert.ok(read('song.js').includes('function pickedLanguage'));
   assert.ok(read('song.js').includes('typeaheadTypedValue'));
   assert.ok(read('song.js').includes('fillCatalogSelects();'));
+  assert.ok(read('upload-catalog.js').includes("id === 'edit-genre' || id === 'edit-language'"));
+  assert.ok(read('upload-catalog.js').includes('isEditCatalogSelect'));
   assert.ok(!/if \(paid\) \{\s*fillCatalogSelects/.test(read('song.js')), 'Basic edit must bind genre/language typeahead');
   const songHtml = html;
   assert.ok(!/data-for-plans/.test(songHtml.slice(Math.max(0, songHtml.indexOf('id="edit-genre"') - 280), songHtml.indexOf('id="edit-genre"') + 180)));
@@ -1379,6 +1381,11 @@ function run() {
     assert.strictEqual(savedDraft.title, 'Fuvtu Edit');
     assert.strictEqual(savedDraft.genre, 'Pop');
     assert.strictEqual(savedDraft.language, 'es');
+    const recorded = mutating.find((row) => row.method === 'POST' && /\/api\/me\/artists$/.test(row.url));
+    let recordedBody = {};
+    try { recordedBody = JSON.parse(recorded && recorded.body); } catch (err) { recordedBody = {}; }
+    assert.strictEqual(recordedBody.release && recordedBody.release.genre, 'Pop', 'pending edit persists the changed genre');
+    assert.strictEqual(recordedBody.release && recordedBody.release.language, 'es', 'pending edit persists the changed language');
     assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
     mutating.filter((row) => typeof row.body === 'string').forEach((row) => {
       let body = {};
@@ -1440,12 +1447,19 @@ function run() {
       },
     });
     liveEditor.ids['edit-title'].value = 'Fuvtu Live Edit';
-    liveEditor.ids['edit-genre'].value = 'Electronic';
-    liveEditor.ids['edit-language'].value = 'en';
+    liveEditor.ids['edit-genre'].value = 'Pop';
+    liveEditor.ids['edit-language'].value = 'es';
+    assert.strictEqual(liveEditor.ids['edit-genre'].disabled, false, 'live genre stays editable');
+    assert.strictEqual(liveEditor.ids['edit-language'].disabled, false, 'live language stays editable');
     return liveEditor.api.submitEdit().then(function (liveResult) {
       assert.ok(liveResult.ok, 'live edit still goes to the store');
       assert.ok(!liveResult.applied);
-      assert.ok(liveCalls.some((row) => row.method === 'PUT' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
+      const releasePut = liveCalls.find((row) => row.method === 'PUT' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url));
+      assert.ok(releasePut, 'live edit PUTs the release');
+      let releaseBody = {};
+      try { releaseBody = JSON.parse(releasePut.body); } catch (err) { releaseBody = {}; }
+      assert.strictEqual(releaseBody.genre, 'Pop', 'live edit must send the changed genre');
+      assert.strictEqual(releaseBody.language, 'es', 'live edit must send the changed language');
       assert.ok(liveCalls.some((row) => row.method === 'PUT' && /\/dsps$/.test(row.url)));
       assert.ok(/edit-submitted\.html/.test(String(liveEditor.context.location.href)));
 
@@ -1535,11 +1549,18 @@ function run() {
           },
         });
         creatorLive.ids['edit-title'].value = 'Creator Live';
-        creatorLive.ids['edit-genre'].value = 'Electronic';
-        creatorLive.ids['edit-language'].value = 'en';
+        creatorLive.ids['edit-genre'].value = 'Hip-Hop';
+        creatorLive.ids['edit-language'].value = 'fr';
+        assert.strictEqual(creatorLive.ids['edit-genre'].disabled, false);
+        assert.strictEqual(creatorLive.ids['edit-language'].disabled, false);
         return creatorLive.api.submitEdit().then(function (creatorLiveResult) {
           assert.ok(creatorLiveResult.ok, 'Creator live edit still goes to the store');
           assert.ok(!creatorLiveResult.applied);
+          const creatorPut = creatorLiveCalls.find((row) => row.method === 'PUT' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url));
+          let creatorBody = {};
+          try { creatorBody = JSON.parse(creatorPut && creatorPut.body); } catch (err) { creatorBody = {}; }
+          assert.strictEqual(creatorBody.genre, 'Hip-Hop', 'Creator live edit must send the changed genre');
+          assert.strictEqual(creatorBody.language, 'fr', 'Creator live edit must send the changed language');
           assert.ok(creatorLiveCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)));
           assert.ok(/edit-submitted\.html/.test(String(creatorLive.context.location.href)));
           assert.strictEqual(page.nodes['[data-song-remove]'].hidden, false, 'owner sees Remove on their release');
