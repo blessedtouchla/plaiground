@@ -1537,6 +1537,121 @@ async function run() {
     assert.ok(!/release not found/i.test(page.status.textContent));
   }
 
+  async function newTitleDoesNotReuseOtherSongRelease() {
+    const mexeu = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const page = load(filledUpload({
+      title: 'Night Drive',
+      artist: 'Ada Night',
+      draft: {
+        title: 'mexeu',
+        name: 'Ada Night',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: mexeu,
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        release_idempotency_key: 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:mexeu',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: [mexeu],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(14);
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases/' + mexeu;
+    }), 'new title must not open another song release');
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1, 'new title must mint a release for this song');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).title, 'Night Drive');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).replace_release_id, undefined);
+    assert.strictEqual(JSON.parse(page.calls.find(function (call) {
+      return call.url === '/api/tonegrid/tracks';
+    }).init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+  }
+
+  async function staleIdSecond404RecreatesAgain() {
+    const page = load(filledUpload({
+      draft: {
+        title: 'Night Drive',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: true, status: 201, data: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } },
+        { ok: true, status: 201, data: { track: { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.ok(createCalls.length >= 2, 'second 404 must create again instead of locking');
+    assert.strictEqual(JSON.parse(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks';
+    }).pop().init.body).release_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+  }
+
+  async function recreateBudgetShowsNamelessRetry() {
+    const page = load(filledUpload({
+      draft: {
+        title: 'Night Drive',
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.strictEqual(page.status.textContent, 'Could not create the release. Retry.');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|Tonegrid/i.test(page.status.textContent));
+    assert.strictEqual(page.retryWrap.hidden, false);
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+  }
+
   async function genuineMissingTitleArtistStillErrors() {
     const noTitle = load(filledUpload({ title: '' }));
     noTitle.continueBtn.listeners.click({ preventDefault() {} });
@@ -1672,6 +1787,9 @@ async function run() {
   await staleReleaseIdRecreatesWithLiveFile();
   await liveReleaseIdIsReused();
   await staleAlbumReleaseRecreatesOnce();
+  await newTitleDoesNotReuseOtherSongRelease();
+  await staleIdSecond404RecreatesAgain();
+  await recreateBudgetShowsNamelessRetry();
   await genuineMissingTitleArtistStillErrors();
   await hungCreateTrackTrack2HidesLoader();
   await rejectedAfterReleaseHidesLoader();
@@ -1699,6 +1817,10 @@ async function run() {
   assert.ok(source.includes('clearDeadReleaseIds'));
   assert.ok(source.includes('freshReleaseKey'));
   assert.ok(source.includes('isReleaseMissing'));
+  assert.ok(source.includes('Could not create the release. Retry.'));
+  assert.ok(source.includes('detachForeignRelease'));
+  assert.ok(!source.includes('releaseRecreatedThisSession'));
+  assert.ok(!source.includes("error: 'Release not found.'"));
   assert.ok(source.includes('DEFAULT_CATALOG_TIMEOUT_MS'));
   assert.ok(source.includes('.catch(function (err)'));
   assert.ok(!source.includes("length < 2) addTrackRow()"));

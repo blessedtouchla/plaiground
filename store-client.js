@@ -581,7 +581,9 @@
 
   var sessionReleaseId = '';
   var sessionReleaseChecked = '';
-  var releaseRecreatedThisSession = false;
+  var releaseRecreateCount = 0;
+  var MAX_RELEASE_RECREATES = 2;
+  var DEAD_RELEASE_COPY = 'Could not create the release. Retry.';
 
   function rememberSessionRelease(id) {
     var next = String(id || '').trim();
@@ -595,6 +597,53 @@
     if (result.status === 404) return true;
     var msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
     return /release not found/.test(msg);
+  }
+
+  function deadReleaseResult(result, draft) {
+    return {
+      failed: true,
+      result: { data: { error: DEAD_RELEASE_COPY } },
+      draft: draft || (result && result.draft) || readDraft(),
+    };
+  }
+
+  function sameSongText(a, b) {
+    return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  }
+
+  function releaseBelongsToThisSong(draft, fields) {
+    if (!draft || !String(draft.release_id || '').trim()) return false;
+    var prevTitle = String(draft.title || '').trim();
+    var nextTitle = String((fields && fields.title) || '').trim();
+    if (prevTitle && nextTitle && !sameSongText(prevTitle, nextTitle)) return false;
+    var prevArtist = String(draft.name || '').trim();
+    var nextArtist = String((fields && fields.name) || '').trim();
+    if (prevArtist && nextArtist && !sameSongText(prevArtist, nextArtist)) return false;
+    return true;
+  }
+
+  function detachForeignRelease(draft) {
+    var current = draft || readDraft();
+    if (!String(current.release_id || '').trim()) return current;
+    sessionReleaseId = '';
+    sessionReleaseChecked = '';
+    var stored = Array.isArray(current.tracks) ? current.tracks.map(function (track) {
+      var next = {};
+      Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
+      next.track_id = '';
+      next.audio_uploaded = false;
+      return next;
+    }) : current.tracks;
+    return writeDraft({
+      release_id: '',
+      track_id: '',
+      release_idempotency_key: '',
+      track_idempotency_key: '',
+      audio_uploaded: false,
+      submitted: false,
+      replaced_release_id: '',
+      tracks: stored,
+    });
   }
 
   function freshReleaseKey(draft) {
@@ -692,15 +741,16 @@
       if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status && loaded.result.status !== 404) {
         return { failed: true, result: loaded.result || { data: { error: 'Could not load release.' } }, draft: current };
       }
-      if (releaseRecreatedThisSession) {
-        return {
-          failed: true,
-          result: loaded.result || { data: { error: 'Release not found.' } },
-          draft: current,
-        };
+      if (releaseRecreateCount >= MAX_RELEASE_RECREATES) {
+        return deadReleaseResult(loaded.result, clearDeadReleaseIds(current));
       }
-      releaseRecreatedThisSession = true;
-      return createFreshRelease(clearDeadReleaseIds(current));
+      releaseRecreateCount += 1;
+      return createFreshRelease(clearDeadReleaseIds(current)).then(function (created) {
+        if (created && (created.failed || created.missing) && isReleaseMissing(created.result)) {
+          return deadReleaseResult(created.result, created.draft || readDraft());
+        }
+        return created;
+      });
     });
   }
 
@@ -1227,7 +1277,13 @@
         return resolveLiveRelease(clearDeadReleaseIds(draft)).then(function (resolved) {
           if (resolved.unavailable) return resolved;
           if (resolved.limited || resolved.failed || resolved.missing) {
-            return { failed: true, result: resolved.result || result, draft: resolved.draft || draft };
+            return {
+              failed: true,
+              result: isReleaseMissing(resolved.result || result)
+                ? { data: { error: DEAD_RELEASE_COPY } }
+                : (resolved.result || result),
+              draft: resolved.draft || draft,
+            };
           }
           return createTrack(resolved.draft || readDraft(), Object.assign({}, info, {
             retriedRelease: true,
@@ -1237,7 +1293,11 @@
         });
       }
       if (!result.ok) {
-        return { failed: true, result: result, draft: draft };
+        return {
+          failed: true,
+          result: isReleaseMissing(result) ? { data: { error: DEAD_RELEASE_COPY } } : result,
+          draft: draft,
+        };
       }
       var trackId = pickUuid(result.data);
       var next = draft;
@@ -1883,20 +1943,21 @@
       if (!artistId && catalog.artist_id) return writeDraft({ artist_id: catalog.artist_id });
       return draft;
     }
+    var titled = Boolean(String(draft.title || '').trim());
     if (releaseId) {
       if (!artistId && catalog.artist_id) patch.artist_id = catalog.artist_id;
       if (!trackId && onlyTrack) patch.track_id = onlyTrack;
       return Object.keys(patch).length ? writeDraft(patch) : draft;
     }
-    if (artistId && onlyRelease && (!catalog.artist_id || sameUuid(artistId, catalog.artist_id))) {
+    if (artistId && onlyRelease && !titled && (!catalog.artist_id || sameUuid(artistId, catalog.artist_id))) {
       patch.release_id = onlyRelease;
       if (!trackId && onlyTrack) patch.track_id = onlyTrack;
       return writeDraft(patch);
     }
     if (!artistId && !releaseId && (catalog.artist_id || onlyRelease)) {
       if (catalog.artist_id) patch.artist_id = catalog.artist_id;
-      if (onlyRelease) patch.release_id = onlyRelease;
-      if (onlyTrack) patch.track_id = onlyTrack;
+      if (onlyRelease && !titled) patch.release_id = onlyRelease;
+      if (onlyTrack && !titled) patch.track_id = onlyTrack;
       return Object.keys(patch).length ? writeDraft(patch) : draft;
     }
     return draft;
@@ -2632,11 +2693,12 @@
     function failUpload(message, upgrade) {
       setUploadBusy(false);
       markIncomplete(trigger, false);
-      setStatus('tg-status', message || '');
-      markStatusError(Boolean(message));
+      var shownError = /release not found/i.test(String(message || '')) ? DEAD_RELEASE_COPY : message;
+      setStatus('tg-status', shownError || '');
+      markStatusError(Boolean(shownError));
       showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
       showUpgrade(upgrade === true);
-      var shown = sanitizePartnerCopy(message || '');
+      var shown = sanitizePartnerCopy(shownError || '');
       var retryable = !upgrade && Boolean(shown) && !/is required|must be|Upgrade to|Albums are on|Pick how many/i.test(shown);
       showUploadRetry(retryable);
     }
@@ -2779,7 +2841,7 @@
           return;
         }
         if (created.failed || created.missing) {
-          failUpload((created.result && created.result.data && created.result.data.error) || 'Could not create release.', false);
+          failUpload((created.result && created.result.data && created.result.data.error) || DEAD_RELEASE_COPY, false);
           return;
         }
         return afterCatalogReady(created.draft || draft, nextHref).then(function (ok) {
@@ -2840,6 +2902,11 @@
       var titleCheck = artistCheckApi() ? artistCheckApi().checkTitle(title, { artistName: name }) : { flagged: false, flags: [], block: false };
       var dsps = fields.dsps || selectedUploadStores();
       function startUpload() {
+      releaseRecreateCount = 0;
+      var previous = readDraft();
+      if (previous.release_id && !releaseBelongsToThisSong(previous, fields)) {
+        detachForeignRelease(previous);
+      }
       writeDraft({
         name: name,
         title: title,
