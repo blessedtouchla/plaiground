@@ -252,6 +252,7 @@ function load(options) {
   stepper.className = 'stepper';
   stepper.contains = function () { return true; };
 
+  const heldStore = { master: opts.heldFile || null };
   const context = {
     URLSearchParams,
     Promise,
@@ -259,6 +260,42 @@ function load(options) {
     clearTimeout,
     localStorage,
     sessionStorage,
+    indexedDB: {
+      open: function () {
+        const req = {
+          result: {
+            objectStoreNames: { contains: function () { return true; } },
+            createObjectStore: function () {},
+            transaction: function () {
+              const tx = {
+                objectStore: function () {
+                  return {
+                    put: function (file, key) { heldStore[key] = file; },
+                    get: function (key) {
+                      const get = { result: heldStore[key] || null };
+                      setImmediate(function () {
+                        if (typeof get.onsuccess === 'function') get.onsuccess();
+                      });
+                      return get;
+                    },
+                  };
+                },
+              };
+              setImmediate(function () {
+                if (typeof tx.oncomplete === 'function') tx.oncomplete();
+              });
+              return tx;
+            },
+          },
+        };
+        setImmediate(function () {
+          if (typeof req.onupgradeneeded === 'function') req.onupgradeneeded();
+          if (typeof req.onsuccess === 'function') req.onsuccess();
+        });
+        return req;
+      },
+      deleteDatabase: function () { heldStore.master = null; },
+    },
     document: {
       getElementById(id) {
         return elements[id] || null;
@@ -1683,7 +1720,7 @@ async function run() {
     await flush(12);
     assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'must try to recreate the store track');
     assert.ok(!/no longer on this page|re-attach/i.test(page.status.textContent), 'audio_name means this draft already had audio');
-    assert.ok(/please add at least one track/i.test(page.status.textContent));
+    assert.ok(!/please add at least one track/i.test(page.status.textContent), 'draft audio_name must never show a false no-track line');
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
@@ -2341,6 +2378,129 @@ async function run() {
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
+  async function reviewSubmitSendsHeldWavWhenStoreTracksEmpty() {
+    const heldWav = { name: 'night-drive.wav', type: 'audio/wav', size: 4096 };
+    const leftoverMp3 = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 };
+    function runPlan(plan) {
+      return load({
+        bind: 'review',
+        releaseDate: '2026-09-12',
+        countConvert: true,
+        convertHold: heldWav,
+        file: leftoverMp3,
+        heldFile: heldWav,
+        draft: Object.assign(attestDraft(), {
+          artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          title: 'Night Drive',
+          release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          audio_name: 'night-drive.wav',
+          audio_uploaded: false,
+          audio_attached: true,
+          audio_converted: true,
+          audio_picked_size: leftoverMp3.size,
+          audio_picked_name: leftoverMp3.name,
+          solo_owned_100: true,
+          release_date: '2026-09-12',
+        }),
+        account: {
+          plan: plan,
+          tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+          tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+          upload: { allowed: plan !== 'basic', used: plan === 'basic' ? 1 : 0, limit: plan === 'basic' ? 1 : 8, plan: plan },
+        },
+        responses: [
+          { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+          { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+          { ok: true, status: 200, data: { audio_status: 'processing' } },
+          { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+        ],
+      });
+    }
+    const basic = runPlan('basic');
+    const creator = runPlan('creator');
+    await flush(20);
+    function assertPlan(page, label) {
+      assert.strictEqual(page.convertCalls, 0, label + ' must not convert again');
+      const audio = page.calls.find(function (call) {
+        return String(call.url).indexOf('/audio') !== -1;
+      });
+      assert.ok(audio, label + ' Submit must POST the already-converted WAV when store tracks are empty');
+      const part = audio.init && audio.init.body && audio.init.body.parts && audio.init.body.parts[0];
+      assert.ok(part && part.value === heldWav, label + ' must send the held WAV, not the leftover MP3');
+      assert.strictEqual(part.filename, 'night-drive.wav');
+      assert.ok(page.calls.some(function (call) {
+        return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+      }), label + ' must still submit');
+      assert.ok(!/please add at least one track/i.test(page.status.textContent), label + ' must not show a false no-track line');
+      assert.ok(!/ToneGrid/i.test(page.status.textContent));
+      assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    }
+    assertPlan(basic, 'Basic');
+    assertPlan(creator, 'Creator');
+  }
+
+  async function reviewRetryAfterNoTrackResendsSameWav() {
+    const heldWav = { name: 'night-drive.wav', type: 'audio/wav', size: 4096 };
+    const leftoverMp3 = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      countConvert: true,
+      convertHold: heldWav,
+      file: leftoverMp3,
+      heldFile: heldWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: false, status: 400, data: { error: 'Please add at least one track before submitting' } },
+        { ok: true, status: 201, data: { track: { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(20);
+    assert.ok(!/please add at least one track/i.test(page.status.textContent), 'store no-track must not surface when the WAV is on the draft');
+    if (page.retryWrap.hidden === false) {
+      page.retryBtn.listeners.click({ preventDefault() {} });
+      await flush(16);
+    }
+    const audio = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(audio.length >= 1, 'must POST the held WAV');
+    audio.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === heldWav, 'Retry must resend the same converted WAV');
+      assert.strictEqual(part.filename, 'night-drive.wav');
+    });
+    assert.strictEqual(page.convertCalls, 0, 'Retry must not reconvert');
+    assert.ok(!/please add at least one track/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+  }
+
   async function reviewSubmitReusesConvertedWavWithoutSecondPost() {
     const page = load({
       bind: 'review',
@@ -2893,6 +3053,8 @@ async function run() {
   await reviewSubmitEnsuresCatalogArtist();
   await reviewSubmitDoesNotReconvertHeldMp3();
   await reviewSubmitIgnoresAudioRequiredWhenHeld();
+  await reviewSubmitSendsHeldWavWhenStoreTracksEmpty();
+  await reviewRetryAfterNoTrackResendsSameWav();
   await reviewSubmitReusesConvertedWavWithoutSecondPost();
   await reviewSubmitMapsSizeCapToHumanLimit();
   await convertedWavOverCapStillPostsWhenOriginalWasNormal();
@@ -3010,6 +3172,8 @@ async function run() {
   assert.ok(source.includes('needsAudioUpload'));
   assert.ok(source.includes('failSubmit'));
   assert.ok(source.includes('audio_converted'));
+  assert.ok(source.includes('draftHasTrackFile'));
+  assert.ok(source.includes('persistHeldAudio'));
   assert.ok(source.includes('isAudioRequiredError'));
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(reviewHtml.includes('data-upload-retry'));
