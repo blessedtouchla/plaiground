@@ -7,6 +7,7 @@
  * POST { action: "preview" }         → confirm-page copy only (does not charge)
  * Existing Creator/Pro members never get a second Checkout Session.
  * POST { action: "billing" }         → current paid price for that customer (no email lookup)
+ * POST { action: "portal" }          → Stripe Customer Billing Portal (card update only)
  * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
  * Hobby-safe: webhook is the same Serverless Function via vercel.json rewrite.
@@ -44,6 +45,7 @@ const STRIPE_SESSIONS_URL = STRIPE_API_BASE + 'checkout/sessions';
 const STRIPE_API_VERSION = '2026-07-29.dahlia';
 const SUCCESS_URL = 'https://www.wannaplai.com/confirm.html?session_id={CHECKOUT_SESSION_ID}';
 const DEFAULT_CANCEL_URL = 'https://www.wannaplai.com/';
+const DEFAULT_PORTAL_RETURN_URL = 'https://www.wannaplai.com/settings.html#manage-billing';
 const LIVE_SUB_STATUSES = {
   active: true,
   past_due: true,
@@ -199,6 +201,11 @@ function wantsBilling(body) {
   return actionOf(body) === 'billing';
 }
 
+function wantsPortal(body) {
+  if (!body || typeof body !== 'object') return false;
+  return actionOf(body) === 'portal';
+}
+
 function wantsPreview(body) {
   if (!body || typeof body !== 'object') return false;
   return actionOf(body) === 'preview';
@@ -319,6 +326,118 @@ async function subscriptionForCustomer(customerId) {
   return { sub };
 }
 
+function isBillingPortalUrl(url) {
+  try {
+    const parsed = new URL(String(url || ''));
+    const host = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== 'https:') return false;
+    if (host === 'dashboard.stripe.com' || host.indexOf('dashboard.stripe.') === 0) return false;
+    return host === 'billing.stripe.com' || host.endsWith('.billing.stripe.com');
+  } catch {
+    return false;
+  }
+}
+
+function safePortalReturnUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return DEFAULT_PORTAL_RETURN_URL;
+
+  if (raw.startsWith('/') && !raw.startsWith('//')) {
+    return 'https://www.wannaplai.com' + raw;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+    if (parsed.protocol === 'https:' && (host === 'wannaplai.com' || host === 'www.wannaplai.com')) {
+      return parsed.toString();
+    }
+  } catch {
+    // fall through
+  }
+
+  return DEFAULT_PORTAL_RETURN_URL;
+}
+
+async function createPortalConfiguration() {
+  const params = new URLSearchParams();
+  params.append('features[payment_method_update][enabled]', 'true');
+  params.append('features[invoice_history][enabled]', 'false');
+  params.append('features[customer_update][enabled]', 'false');
+  params.append('features[subscription_cancel][enabled]', 'false');
+  params.append('features[subscription_update][enabled]', 'false');
+  return stripeRequest('POST', 'billing_portal/configurations', params);
+}
+
+async function createPortalSession(req, res, body) {
+  if (!isConfigured()) {
+    sendJson(res, 503, { configured: false, error: 'Billing is not available yet.' });
+    return;
+  }
+
+  const user = await loadSignedInUser(req, res);
+  if (!user) return;
+
+  const customerId = String(user.stripe_customer_id || '').trim();
+  if (!customerId || customerId.indexOf('cus_') !== 0) {
+    sendJson(res, 200, {
+      configured: true,
+      no_card: true,
+      has_card: false,
+      error: 'There is no card on file.',
+    });
+    return;
+  }
+
+  const returnUrl = safePortalReturnUrl(body && (body.returnUrl || body.return_url));
+  const params = new URLSearchParams();
+  params.append('customer', customerId);
+  params.append('return_url', returnUrl);
+  params.append('flow_data[type]', 'payment_method_update');
+
+  let created;
+  try {
+    created = await stripeRequest('POST', 'billing_portal/sessions', params);
+  } catch {
+    sendJson(res, 502, { configured: true, error: 'Could not reach Stripe.' });
+    return;
+  }
+
+  if (!created.ok) {
+    let config;
+    try {
+      config = await createPortalConfiguration();
+    } catch {
+      config = null;
+    }
+    if (config && config.ok && config.data && config.data.id) {
+      params.append('configuration', config.data.id);
+      try {
+        created = await stripeRequest('POST', 'billing_portal/sessions', params);
+      } catch {
+        sendJson(res, 502, { configured: true, error: 'Could not reach Stripe.' });
+        return;
+      }
+    }
+  }
+
+  if (!created.ok) {
+    sendJson(res, created.status >= 400 && created.status < 600 ? created.status : 502, {
+      configured: true,
+      error: stripeErrorMessage(created.data),
+    });
+    return;
+  }
+
+  const url = created.data && typeof created.data.url === 'string' ? created.data.url : '';
+  if (!isBillingPortalUrl(url)) {
+    sendJson(res, 502, { configured: true, error: 'Stripe did not return a billing portal.' });
+    return;
+  }
+
+  sendJson(res, 200, { url, portal: true });
+}
+
 function safeCancelUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return DEFAULT_CANCEL_URL;
@@ -379,6 +498,8 @@ async function showBilling(req, res) {
       plan: user.plan || 'basic',
       interval: '',
       priceId: '',
+      has_card: false,
+      no_card: true,
     });
     return;
   }
@@ -402,6 +523,8 @@ async function showBilling(req, res) {
     plan: meta.plan || user.plan || 'basic',
     interval: meta.interval || '',
     priceId: priceId || '',
+    has_card: true,
+    no_card: false,
   });
 }
 
@@ -858,6 +981,10 @@ async function handler(req, res) {
   }
   if (wantsBilling(body)) {
     await showBilling(req, res);
+    return;
+  }
+  if (wantsPortal(body)) {
+    await createPortalSession(req, res, body);
     return;
   }
   if (wantsPreview(body)) {

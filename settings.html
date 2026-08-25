@@ -58,11 +58,11 @@
       </div>
       <div class="draft-banner" data-billing-warning hidden>
         <strong>Payment warning</strong>
-        <p>We could not charge your card. You stay on Creator/Pro until the renewal date. Payouts are paused until you update the card. Paid features stay on.</p>
+        <p>We could not charge your card. You stay on Creator/Pro until the renewal date. Payouts are paused until you <a href="#manage-billing">update the card</a>. Paid features stay on.</p>
       </div>
       <div class="draft-banner" data-billing-hold hidden>
         <strong>Account on hold</strong>
-        <p>The renewal payment did not go through. Paid features are locked. A later successful payment restores the plan.</p>
+        <p>The renewal payment did not go through. Paid features are locked. A later successful payment restores the plan. <a href="#manage-billing">Update the card</a>.</p>
       </div>
       <div class="panel">
         <h3>Plan</h3>
@@ -74,12 +74,45 @@
           <button class="btn btn-ghost btn-sm" type="button" data-manage-plan-toggle aria-expanded="false">Manage plan</button>
         </div>
         <div class="plan-switch" data-manage-plan hidden>
-          <p style="color:var(--muted);font-size:14px;max-width:560px;margin-bottom:12px">Switch Creator or Pro, monthly or yearly. Each option opens a confirmation page. Upgrades pay the difference now, then the new price next period, on the same billing date. Downgrades take effect now with no refund. Submit updates your existing subscription — it does not start a second plan. Basic is not a paid switch — cancel still drops you there.</p>
-          <a class="btn btn-ghost" href="plan-confirm.html?plan=creator&amp;interval=month" data-plan-option="creator:month">Creator · $14.99/month</a>
-          <a class="btn btn-ghost" href="plan-confirm.html?plan=creator&amp;interval=year" data-plan-option="creator:year">Creator · $12.42/month billed yearly</a>
-          <a class="btn btn-ghost" href="plan-confirm.html?plan=pro&amp;interval=month" data-plan-option="pro:month">Pro · $19.99/month</a>
-          <a class="btn btn-ghost" href="plan-confirm.html?plan=pro&amp;interval=year" data-plan-option="pro:year">Pro · $16.58/month billed yearly</a>
+          <p class="plan-switch-copy">Switch Creator or Pro, monthly or yearly. Each option opens a confirmation page. Upgrades pay the difference now, then the new price next period, on the same billing date. Downgrades take effect now with no refund. Submit updates your existing subscription — it does not start a second plan. Basic is not a paid switch — cancel still drops you there.</p>
+          <div class="offer-grid plan-picker">
+            <article class="offer">
+              <h3>Creator <span class="current-badge">Current</span></h3>
+              <div class="price">$14.99/month</div>
+              <p>Creator is Basic with the paid features unlocked. Then a monthly cap.</p>
+              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=creator&amp;interval=month" data-plan-option="creator:month">Creator · $14.99/month</a>
+            </article>
+            <article class="offer">
+              <h3>Creator <span class="current-badge">Current</span></h3>
+              <div class="price">$12.42/month</div>
+              <p>Billed yearly ($149). Same Creator features. Then a monthly cap.</p>
+              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=creator&amp;interval=year" data-plan-option="creator:year">Creator · $12.42/month billed yearly</a>
+            </article>
+            <article class="offer magenta">
+              <h3>Pro <span class="current-badge">Current</span></h3>
+              <div class="price">$19.99/month</div>
+              <p>Same as Creator, unlimited, plus catalog migration.</p>
+              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=pro&amp;interval=month" data-plan-option="pro:month">Pro · $19.99/month</a>
+            </article>
+            <article class="offer magenta">
+              <h3>Pro <span class="current-badge">Current</span></h3>
+              <div class="price">$16.58/month</div>
+              <p>Billed yearly ($199). Same as Creator, unlimited.</p>
+              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=pro&amp;interval=year" data-plan-option="pro:year">Pro · $16.58/month billed yearly</a>
+            </article>
+          </div>
         </div>
+      </div>
+      <div class="panel" id="manage-billing">
+        <h3>Manage billing</h3>
+        <div class="head-row">
+          <div>
+            <p style="font-weight:800;font-size:1.15rem;margin:4px 0 8px">Payment method</p>
+            <p style="color:var(--muted);font-size:14px;max-width:560px">Update the card on file. Card numbers stay on Stripe — not here.</p>
+          </div>
+          <button class="btn btn-purple btn-sm" type="button" data-manage-billing>Update card</button>
+        </div>
+        <p class="learn" data-manage-billing-status hidden></p>
       </div>
       <div class="panel">
         <h3>Security</h3>
