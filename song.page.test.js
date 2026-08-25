@@ -121,6 +121,8 @@ function loadSong(opts) {
   const panel = makeEl({ hidden: true, attrs: { 'data-release-id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } });
   const nodes = {
     '[data-song-status]': makeEl({ hidden: true }),
+    '[data-song-retry-wrap]': makeEl({ hidden: true }),
+    '[data-song-retry]': makeEl({ hidden: true, textContent: 'Retry' }),
     '[data-song-title]': makeEl({}),
     '[data-song-pill]': makeEl({ className: 'pill' }),
     '[data-song-meta]': makeEl({}),
@@ -508,6 +510,44 @@ function testEditSubmitLeftovers() {
   });
 }
 
+function testSongLoadHangRetry() {
+  const basicMe = {
+    artist: 'Fuvtu',
+    plan: 'basic',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const hung = loadSong({
+    plan: 'basic',
+    me: basicMe,
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    catalogTimeoutMs: 40,
+    hangWhen: '/api/tonegrid/releases',
+    hangCount: 1,
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Mexeu',
+      submitted: true,
+    },
+  });
+  return new Promise(function (resolve) { setTimeout(resolve, 80); }).then(function () {
+    assert.match(hung.nodes['[data-song-status]'].textContent, /could not reach the store/i);
+    assert.ok(!/ToneGrid/i.test(hung.nodes['[data-song-status]'].textContent));
+    assert.strictEqual(hung.nodes['[data-song-retry-wrap]'].hidden, false);
+    assert.strictEqual(hung.nodes['[data-song-retry]'].textContent, 'Retry');
+    assert.strictEqual(hung.nodes['[data-song-title]'].textContent, 'Mexeu');
+    const before = hung.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases';
+    }).length;
+    hung.nodes['[data-song-retry]'].listeners.click({ preventDefault() {} });
+    return new Promise(function (resolve) { setTimeout(resolve, 20); }).then(function () {
+      const after = hung.calls.filter(function (call) {
+        return call.url === '/api/tonegrid/releases';
+      }).length;
+      assert.ok(after > before, 'Retry must GET the catalog again');
+    });
+  });
+}
+
 function run() {
   const html = read('song.html');
   const css = read('site.css');
@@ -535,6 +575,8 @@ function run() {
   assert.ok(!html.includes('class="seg"'));
   assert.ok(html.includes('data-song-title'));
   assert.ok(html.includes('data-song-player'));
+  assert.ok(html.includes('data-song-retry'));
+  assert.ok(html.includes('Retry'));
   assert.ok(html.includes('data-song-links'));
   assert.ok(html.includes('data-song-link-list'));
   assert.ok(html.includes('<h3>Links</h3>'));
@@ -1401,7 +1443,7 @@ function run() {
               assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
               assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
               assert.notStrictEqual(leftover.context.location.href, 'releases.html');
-              return testEditSubmitLeftovers().then(function () {
+              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(function () {
                 console.log('song.page.test.js ok');
               });
             });

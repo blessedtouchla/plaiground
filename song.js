@@ -331,13 +331,36 @@
   }
 
   function getJson(url) {
-    return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (response) {
-      return response.json().then(function (body) {
-        return { ok: response.ok, status: response.status, data: body || {} };
-      }).catch(function () {
-        return { ok: false, status: response.status, data: {} };
+    return withCatalogTimeout(function (signal) {
+      var opts = { credentials: 'same-origin', headers: { Accept: 'application/json' } };
+      if (signal) opts.signal = signal;
+      return fetch(url, opts).then(function (response) {
+        return response.json().then(function (body) {
+          return { ok: response.ok, status: response.status, data: body || {} };
+        }).catch(function () {
+          return { ok: false, status: response.status, data: {} };
+        });
       });
+    }).catch(function (err) {
+      var timedOut = Boolean(err && err.timedOut);
+      return {
+        ok: false,
+        status: 0,
+        timedOut: timedOut,
+        data: { error: catalogTimeoutMessage() },
+      };
     });
+  }
+
+  function showSongRetry(show) {
+    var wrap = $('[data-song-retry-wrap]');
+    if (wrap) wrap.hidden = !show;
+  }
+
+  function isHangLoad(result) {
+    if (!result) return true;
+    if (result.timedOut === true) return true;
+    return result.status === 0 || result.status === 502 || result.status === 504 || result.status === 524;
   }
 
   function loadMe() {
@@ -680,6 +703,7 @@
     }
     setText('[data-song-status]', 'Loading release…');
     setHidden('[data-song-status]', false);
+    showSongRetry(false);
     var draft = readDraft();
     return loadMe().then(function (me) {
       return Promise.all([
@@ -689,49 +713,55 @@
         var list = results[0];
         var analytics = results[1];
         var error = '';
+        var retryable = false;
         if (list.status === 401) error = 'Sign in to see this release.';
         else if (list.status === 503 || (list.data && list.data.configured === false)) error = 'Catalog sync is not configured yet.';
-        else if (!list.ok && list.status) error = list.data.error || 'Could not load this release.';
+        else if (isHangLoad(list)) {
+          error = catalogTimeoutMessage();
+          retryable = true;
+        }
+        else if (!list.ok && list.status) {
+          error = sanitizePartnerCopy(list.data.error || 'Could not load this release.');
+          retryable = list.status >= 500;
+        }
         var release = pickRelease((list.ok && list.data.releases) || [], me, draft);
+        function finish(nextRelease, nextError) {
+          showSongRetry(retryable);
+          render({
+            me: me,
+            draft: draft,
+            release: nextRelease,
+            analytics: analytics.ok ? analytics.data : {},
+            error: nextError,
+          });
+          return nextRelease;
+        }
         if (release && queryId() && String(release.uuid).toLowerCase() === queryId().toLowerCase() && release.artwork_url == null) {
           return getJson(RELEASES_URL + '/' + encodeURIComponent(release.uuid)).then(function (one) {
             if (one.ok && one.data && one.data.uuid) release = one.data;
-            render({
-              me: me,
-              draft: draft,
-              release: release,
-              analytics: analytics.ok ? analytics.data : {},
-              error: error,
-            });
-            return release;
+            else if (isHangLoad(one) && !error) {
+              error = catalogTimeoutMessage();
+              retryable = true;
+            }
+            return finish(release, error);
           });
         }
         if (release && !release.artwork_url && release.uuid) {
           return getJson(RELEASES_URL + '/' + encodeURIComponent(release.uuid)).then(function (one) {
             if (one.ok && one.data && (one.data.artwork_url || one.data.title)) {
               release = Object.assign({}, release, one.data);
+            } else if (isHangLoad(one) && !error) {
+              error = catalogTimeoutMessage();
+              retryable = true;
             }
-            render({
-              me: me,
-              draft: draft,
-              release: release,
-              analytics: analytics.ok ? analytics.data : {},
-              error: error,
-            });
-            return release;
+            return finish(release, error);
           });
         }
-        render({
-          me: me,
-          draft: draft,
-          release: release,
-          analytics: analytics.ok ? analytics.data : {},
-          error: error || (release ? '' : 'No release on this account yet.'),
-        });
-        return release;
+        return finish(release, error || (release ? '' : 'No release on this account yet.'));
       });
     }).catch(function () {
-      render({ draft: draft, error: 'Could not reach catalog.' });
+      showSongRetry(true);
+      render({ draft: draft, error: catalogTimeoutMessage() });
       return null;
     });
   }
@@ -1570,6 +1600,16 @@
     });
   }
 
+  function bindSongRetry() {
+    var btn = $('[data-song-retry]');
+    if (!btn || !btn.addEventListener) return;
+    btn.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      showSongRetry(false);
+      load();
+    });
+  }
+
   function bindEdit() {
     var openBtn = $('[data-song-edit]');
     if (openBtn && openBtn.addEventListener) {
@@ -1635,6 +1675,7 @@
   };
   fillCatalogSelects();
   bindEdit();
+  bindSongRetry();
   bindDownload();
   load();
 })(window);

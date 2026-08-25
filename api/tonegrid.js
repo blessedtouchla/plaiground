@@ -55,6 +55,7 @@ const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
   DOCUMENTED_DSPS,
+  LIST_HOP_TIMEOUT_MS,
   RELEASE_TYPES,
   SUBMITTABLE,
   YOUTUBE_MUSIC_SLUG,
@@ -558,9 +559,15 @@ async function listReleases(req, res) {
     const key = String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase();
     if (key) storedById[key] = item;
   });
-  for (let i = 0; i < scope.releaseIds.length; i += 1) {
-    const id = scope.releaseIds[i];
-    const result = await tonegridFetch('/releases/' + id, { method: 'GET' });
+  const fetched = await Promise.all(scope.releaseIds.map((id) => {
+    return tonegridFetch('/releases/' + id, {
+      method: 'GET',
+      timeoutMs: LIST_HOP_TIMEOUT_MS,
+    }).then((result) => ({ id, result }));
+  }));
+  for (let i = 0; i < fetched.length; i += 1) {
+    const id = fetched[i].id;
+    const result = fetched[i].result;
     let row = result.ok ? pickRelease(unwrapRelease(result.data)) : null;
     const local = storedById[String(id).toLowerCase()];
     if (!row && local) {
