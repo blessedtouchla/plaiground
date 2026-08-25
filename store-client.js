@@ -96,6 +96,24 @@
     clearHeldAudio();
   }
 
+  function cancelInProgressUpload(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    var ok = true;
+    try {
+      if (typeof window.confirm === 'function') {
+        ok = window.confirm('Cancel this upload? This loses the in-progress info.');
+      }
+    } catch (err) {
+      ok = true;
+    }
+    if (!ok) return false;
+    clearNewReleaseDraft();
+    try {
+      if (typeof location !== 'undefined') location.href = 'upload.html?new=1';
+    } catch (err) {}
+    return true;
+  }
+
   function stripNewReleaseFlag() {
     try {
       if (!isNewReleaseStart() || !window.history || !window.history.replaceState) return;
@@ -3437,6 +3455,10 @@
     if (isNewReleaseStart()) {
       clearNewReleaseDraft();
       stripNewReleaseFlag();
+    }
+    var cancelBtn = document.querySelector('[data-upload-cancel]');
+    if (cancelBtn && cancelBtn.addEventListener) {
+      cancelBtn.addEventListener('click', cancelInProgressUpload);
     }
     bindUploadCatalog();
     bindArtistSection();

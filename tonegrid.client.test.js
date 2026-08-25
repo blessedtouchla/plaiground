@@ -153,15 +153,23 @@ function load(options) {
   const continueBtn = makeEl({
     attrs: { href: 'attest.html', 'data-store-continue': '' },
   });
+  const cancelBtn = makeEl({
+    attrs: { 'data-upload-cancel': '' },
+  });
+  cancelBtn.textContent = 'Cancel';
   const payBtn = makeEl({
     attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
   const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
   const calls = [];
+  const confirms = [];
   const localStorage = makeStorage();
   const sessionStorage = makeStorage();
   if (opts.draft) {
     localStorage.setItem('plaiground.store.draft', JSON.stringify(opts.draft));
+  }
+  if (opts.sessionDraft) {
+    sessionStorage.setItem('plaiground.store.draft', JSON.stringify(opts.sessionDraft));
   }
 
   const elements = {
@@ -312,6 +320,7 @@ function load(options) {
         if (sel === '[data-instrumental]') return instrumental;
         if (sel === '[data-upload-retry]') return retryBtn;
         if (sel === '[data-upload-retry-wrap]') return retryWrap;
+        if (sel === '[data-upload-cancel]') return cancelBtn;
         if (sel === '.stepper') return stepper;
         return null;
       },
@@ -370,9 +379,13 @@ function load(options) {
     },
     location: {
       href: opts.page || 'upload.html',
-      search: opts.type === 'album' ? '?type=album' : '',
+      search: opts.search != null ? opts.search : (opts.type === 'album' ? '?type=album' : ''),
     },
     window: {},
+    confirm: function (message) {
+      confirms.push(String(message || ''));
+      return opts.confirm !== false;
+    },
     URL: {
       createObjectURL: function () { return 'blob:local-preview'; },
       revokeObjectURL: function () {},
@@ -415,7 +428,11 @@ function load(options) {
     limit,
     upgrade: elements['tg-upgrade'],
     calls,
+    confirms,
+    cancelBtn,
     localStorage,
+    sessionStorage,
+    title,
     location: context.location,
     instrumental,
     lyrics,
@@ -2793,6 +2810,13 @@ async function run() {
   assert.ok(source.includes('Uploading audio'));
   assert.ok(source.includes('bindLeaveUploadGuard'));
   assert.ok(source.includes('guardLeaveUpload'));
+  assert.ok(source.includes('function cancelInProgressUpload'));
+  assert.ok(source.includes('Cancel this upload? This loses the in-progress info.'));
+  assert.ok(!source.includes('function uploadCancelHasStarted'));
+  assert.ok(source.includes("location.href = 'upload.html?new=1'"));
+  assert.ok(/data-upload-cancel/.test(uploadHtml));
+  assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(uploadHtml), 'Cancel is a real secondary button');
+  assert.ok(uploadHtml.indexOf('Save and exit') === -1, 'upload must not say Save and exit');
   assert.ok(source.includes('keepUploadBarVisible'));
   assert.ok(fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8').includes("return 'Converting to WAV';"));
   assert.ok(source.includes('Uploading artwork'));
@@ -3017,6 +3041,101 @@ async function run() {
     assert.ok(page.status.textContent.indexOf('Choose an artist profile') === -1, 'Basic Continue must accept the auto-selected profile');
   }
 
+  function cancelDoesNotDeleteCatalog(page) {
+    return !page.calls.some(function (call) {
+      const method = String((call.init && call.init.method) || 'GET').toUpperCase();
+      return method === 'DELETE' || /\/releases\/.+\/(cancel|takedown)/i.test(String(call.url || ''));
+    });
+  }
+
+  async function cancelClearsDraftAndNextNewReleaseIsBlank() {
+    const catalogId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const mid = load({
+      title: '',
+      artist: '',
+      genre: '',
+      language: '',
+      file: AUDIO,
+      sessionDraft: {
+        title: 'Mexeu',
+        name: 'Ada Night',
+        audio_name: 'mexeu.wav',
+        audio_attached: true,
+        lyrics: 'leftover verse',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        dsps: ['spotify'],
+      },
+      draft: {
+        title: 'Mexeu',
+        name: 'Ada Night',
+        audio_name: 'mexeu.wav',
+        audio_attached: true,
+        lyrics: 'leftover verse',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        dsps: ['spotify'],
+      },
+      account: {
+        plan: 'basic',
+        artist: 'Ada Night',
+        tonegrid_release_ids: [catalogId],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+    });
+    assert.strictEqual(mid.title.value, 'Mexeu', 'mid-upload leftover draft still preloads until Cancel');
+    assert.strictEqual(draftOf(mid.localStorage).title, 'Mexeu');
+    mid.cancelBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(mid.confirms[0], 'Cancel this upload? This loses the in-progress info.');
+    assert.strictEqual(mid.localStorage.getItem('plaiground.store.draft'), null, 'Cancel clears the leftover draft');
+    assert.strictEqual(mid.sessionStorage.getItem('plaiground.store.draft'), null, 'Cancel clears the session draft');
+    assert.ok(String(mid.location.href).indexOf('upload.html?new=1') !== -1, 'Cancel reopens a blank New release');
+    assert.ok(cancelDoesNotDeleteCatalog(mid), 'Cancel must not delete existing catalog releases');
+    assert.deepStrictEqual(mid.calls.filter(function (call) {
+      return String((call.init && call.init.method) || '').toUpperCase() === 'DELETE';
+    }), []);
+
+    const next = load({
+      search: '?new=1',
+      title: '',
+      artist: '',
+      genre: '',
+      language: '',
+      draft: {
+        title: 'Mexeu',
+        audio_name: 'mexeu.wav',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      account: {
+        plan: 'basic',
+        artist: 'Ada Night',
+        tonegrid_release_ids: [catalogId],
+        upload: { allowed: true, used: 1, limit: 1, plan: 'basic' },
+      },
+    });
+    const nextDraft = draftOf(next.localStorage);
+    assert.ok(!nextDraft.title && !nextDraft.audio_name && !nextDraft.release_id && !nextDraft.lyrics, 'next New release must not keep the last song');
+    assert.strictEqual(next.title.value, '', 'next New release opens blank');
+    assert.strictEqual(next.genre.value, '');
+    assert.strictEqual(next.language.value, '');
+    assert.ok(cancelDoesNotDeleteCatalog(next), 'blank New release must not delete catalog songs');
+
+    const keep = load({
+      title: 'Mexeu',
+      draft: { title: 'Mexeu', release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
+      confirm: false,
+    });
+    keep.cancelBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(keep.confirms[0], 'Cancel this upload? This loses the in-progress info.');
+    assert.strictEqual(draftOf(keep.localStorage).title, 'Mexeu', 'dismissing Cancel keeps the in-progress form');
+    assert.ok(String(keep.location.href).indexOf('upload.html?new=1') === -1);
+
+    const empty = load({ title: '', file: null });
+    empty.cancelBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(empty.confirms.length, 1, 'first Cancel tap always confirms before drop');
+    assert.strictEqual(empty.confirms[0], 'Cancel this upload? This loses the in-progress info.');
+    assert.strictEqual(empty.localStorage.getItem('plaiground.store.draft'), null);
+    assert.ok(String(empty.location.href).indexOf('upload.html?new=1') !== -1);
+  }
+
   async function basicGenreLanguagePickSticks() {
     const page = load(filledUpload({
       genre: '',
@@ -3063,6 +3182,7 @@ async function run() {
   await creatorArtistUuidPickSticks();
   await basicArtistProfileAutoSelects();
   await basicGenreLanguagePickSticks();
+  await cancelClearsDraftAndNextNewReleaseIsBlank();
 
   console.log('tonegrid.client.test.js ok');
 }
