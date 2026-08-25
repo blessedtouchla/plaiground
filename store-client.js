@@ -610,9 +610,165 @@
   var sessionReleaseId = '';
   var sessionReleaseChecked = '';
   var sessionReleaseVerified = '';
+  var deadReleaseIds = [];
+  var heldAudioFile = null;
+  var AUDIO_HOLD_DB = 'plaiground-held-audio';
+  var AUDIO_HOLD_STORE = 'files';
+  var AUDIO_HOLD_KEY = 'master';
   var releaseRecreateCount = 0;
   var MAX_RELEASE_RECREATES = 2;
   var DEAD_RELEASE_COPY = 'Could not create the release. Retry.';
+
+  function markDeadRelease(id) {
+    var next = String(id || '').trim();
+    if (!next) return;
+    var i;
+    for (i = 0; i < deadReleaseIds.length; i += 1) {
+      if (sameUuid(deadReleaseIds[i], next)) return;
+    }
+    deadReleaseIds.push(next);
+  }
+
+  function isKnownDeadRelease(id) {
+    var i;
+    for (i = 0; i < deadReleaseIds.length; i += 1) {
+      if (sameUuid(deadReleaseIds[i], id)) return true;
+    }
+    return false;
+  }
+
+  function rememberAudioFile(file) {
+    if (!file) return;
+    heldAudioFile = file;
+    try {
+      if (typeof indexedDB === 'undefined' || !indexedDB.open) return;
+      var req = indexedDB.open(AUDIO_HOLD_DB, 1);
+      req.onupgradeneeded = function () {
+        if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
+          req.result.createObjectStore(AUDIO_HOLD_STORE);
+        }
+      };
+      req.onsuccess = function () {
+        try {
+          var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readwrite');
+          tx.objectStore(AUDIO_HOLD_STORE).put(file, AUDIO_HOLD_KEY);
+        } catch (err) {}
+      };
+    } catch (err) {}
+  }
+
+  function restoreHeldAudio() {
+    if (heldAudioFile) return Promise.resolve(heldAudioFile);
+    return new Promise(function (resolve) {
+      try {
+        if (typeof indexedDB === 'undefined' || !indexedDB.open) {
+          resolve(null);
+          return;
+        }
+        var req = indexedDB.open(AUDIO_HOLD_DB, 1);
+        req.onerror = function () { resolve(null); };
+        req.onupgradeneeded = function () {
+          if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
+            req.result.createObjectStore(AUDIO_HOLD_STORE);
+          }
+        };
+        req.onsuccess = function () {
+          try {
+            var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readonly');
+            var get = tx.objectStore(AUDIO_HOLD_STORE).get(AUDIO_HOLD_KEY);
+            get.onerror = function () { resolve(null); };
+            get.onsuccess = function () {
+              if (get.result) heldAudioFile = get.result;
+              resolve(heldAudioFile || null);
+            };
+          } catch (err) {
+            resolve(null);
+          }
+        };
+      } catch (err) {
+        resolve(null);
+      }
+    });
+  }
+
+  function releaseTitleOf(data) {
+    if (!data || typeof data !== 'object') return '';
+    if (data.title) return String(data.title || '').trim();
+    if (data.release && data.release.title) return String(data.release.title || '').trim();
+    if (data.data && data.data.title) return String(data.data.title || '').trim();
+    return '';
+  }
+
+  function catalogReleaseIds() {
+    var catalog = catalogFromAccount(accountRecord());
+    var ids = (catalog.release_ids || []).slice();
+    var me = accountRecord() || {};
+    var rows = (me.profile && Array.isArray(me.profile.releases)) ? me.profile.releases : [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+      var id = String((rows[i] && (rows[i].tonegrid_release_id || rows[i].id || rows[i].uuid)) || '').trim();
+      if (!isUuidValue(id)) continue;
+      if (!ids.some(function (have) { return sameUuid(have, id); })) ids.push(id);
+    }
+    return ids.filter(isUuidValue);
+  }
+
+  function adoptLivingRelease(draft, living) {
+    if (!living || !living.id) return draft;
+    rememberSessionRelease(living.id, true);
+    var trackId = '';
+    if (living.tracks && living.tracks.length) trackId = trackIdOf(living.tracks[0]);
+    var next = writeDraft({
+      release_id: living.id,
+      track_id: trackId || draft.track_id || '',
+      audio_uploaded: Boolean((living.tracks && living.tracks.length) || draft.audio_uploaded || trackId),
+      audio_attached: Boolean(draft.audio_attached || draft.audio_name || (living.tracks && living.tracks.length)),
+      replaced_release_id: '',
+    });
+    if (living.tracks && living.tracks.length) next = persistFoundTracks(next, living.tracks);
+    return next;
+  }
+
+  function findLivingSongRelease(draft, skipId) {
+    var current = draft || readDraft();
+    var ids = catalogReleaseIds().filter(function (id) {
+      return !sameUuid(id, skipId) && !isKnownDeadRelease(id);
+    });
+    if (!ids.length) return Promise.resolve(null);
+    var matches = [];
+    var chain = Promise.resolve();
+    ids.forEach(function (id) {
+      chain = chain.then(function () {
+        return fetchReleaseTracks(id).then(function (loaded) {
+          if (!loaded.ok) {
+            if (isReleaseMissing(loaded.result)) markDeadRelease(id);
+            return;
+          }
+          var title = releaseTitleOf(loaded.data || (loaded.result && loaded.result.data));
+          var want = String((current && current.title) || '').trim();
+          if (want && title && !sameSongText(title, want)) return;
+          if (want && !title && !(loaded.tracks && loaded.tracks.length)) return;
+          matches.push({
+            id: id,
+            tracks: loaded.tracks || [],
+            result: loaded.result,
+            data: loaded.data,
+          });
+        });
+      });
+    });
+    return chain.then(function () {
+      var withTracks = matches.filter(function (row) { return row.tracks && row.tracks.length; });
+      return withTracks[0] || matches[0] || null;
+    });
+  }
+
+  function shouldReattach(draft, hasFile, storeTracks) {
+    if (hasFile) return false;
+    if (storeTracks && storeTracks.length) return false;
+    if (hadAudioEvidence(draft)) return false;
+    return pickedAudioEvidence(draft) || Boolean(draft && String(draft.title || '').trim());
+  }
 
   function rememberSessionRelease(id, verified) {
     var next = String(id || '').trim();
@@ -694,6 +850,7 @@
       next.audio_uploaded = false;
       return next;
     }) : current.tracks;
+    if (deadId) markDeadRelease(deadId);
     var artistId = String(current.artist_id || '').trim();
     if (!isUuidValue(artistId)) {
       artistId = catalogFromAccount(accountRecord()).artist_id || '';
@@ -803,16 +960,54 @@
     });
   }
 
+  function mintOrReuseAfterDead(current, skipId, loaded) {
+    markDeadRelease(skipId);
+    return findLivingSongRelease(current, skipId).then(function (living) {
+      if (living && living.id) {
+        var adopted = adoptLivingRelease(current, living);
+        return { ok: true, draft: adopted, found: true, tracks: living.tracks || [], result: living.result };
+      }
+      if (releaseRecreateCount >= MAX_RELEASE_RECREATES) {
+        return deadReleaseResult(loaded && loaded.result, clearDeadReleaseIds(current));
+      }
+      releaseRecreateCount += 1;
+      return createFreshRelease(clearDeadReleaseIds(current)).then(function (created) {
+        if (created && created.missing) return created;
+        if (created && created.failed && !isReleaseMissing(created.result)) return created;
+        if (created && (created.failed || created.missing) && isReleaseMissing(created.result)) {
+          return deadReleaseResult(created.result, created.draft || readDraft());
+        }
+        return created;
+      });
+    });
+  }
+
   function resolveLiveRelease(draft) {
     var current = draft || readDraft();
     var id = String(current.release_id || '').trim();
+    if (id && isKnownDeadRelease(id)) {
+      return findLivingSongRelease(current, id).then(function (living) {
+        if (living && living.id) {
+          return { ok: true, draft: adoptLivingRelease(current, living), found: true, tracks: living.tracks || [], result: living.result };
+        }
+        return createFreshRelease(String(current.release_id || '').trim() ? clearDeadReleaseIds(current) : current);
+      });
+    }
     if (id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
       return Promise.resolve({ ok: true, draft: current, reused: true, justCreated: true });
     }
     if (id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
       return Promise.resolve({ ok: true, draft: current, reused: true });
     }
-    if (!id) return createFreshRelease(current);
+    if (!id) {
+      if (selectedAudio()) return createFreshRelease(current);
+      return findLivingSongRelease(current, '').then(function (living) {
+        if (living && living.id) {
+          return { ok: true, draft: adoptLivingRelease(current, living), found: true, tracks: living.tracks || [], result: living.result };
+        }
+        return createFreshRelease(current);
+      });
+    }
     return fetchReleaseTracks(id).then(function (loaded) {
       if (loaded.ok) {
         rememberSessionRelease(id, true);
@@ -830,24 +1025,20 @@
       if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status && loaded.result.status !== 404) {
         return { failed: true, result: loaded.result || { data: { error: 'Could not load release.' } }, draft: current };
       }
-      if (releaseRecreateCount >= MAX_RELEASE_RECREATES) {
-        return deadReleaseResult(loaded.result, clearDeadReleaseIds(current));
-      }
-      releaseRecreateCount += 1;
-      return createFreshRelease(clearDeadReleaseIds(current)).then(function (created) {
-        if (created && created.missing) return created;
-        if (created && created.failed && !isReleaseMissing(created.result)) return created;
-        if (created && (created.failed || created.missing) && isReleaseMissing(created.result)) {
-          return deadReleaseResult(created.result, created.draft || readDraft());
-        }
-        return created;
-      });
+      return mintOrReuseAfterDead(current, id, loaded);
     });
   }
 
   function createMissingTracks(draft, opts) {
     var force = Boolean(opts && opts.force);
     var next = draft;
+    var knownTracks = (opts && opts.tracks) || [];
+    var liveFile = Boolean(selectedAudio()) || albumRowsForSubmit(next).some(function (track) {
+      return track && (track.audio || track.file);
+    });
+    if (!liveFile && knownTracks.length) {
+      return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
+    }
     if ((draft && draft.type) === 'album') {
       var rows = albumRowsForSubmit(draft);
       if (!rows.length && draft.title) {
@@ -957,15 +1148,19 @@
         };
       }
       var hasId = draftHasTrackId(next);
-      if (resolved.found && resolved.tracks && resolved.tracks.length) {
-        return { ok: true, draft: persistFoundTracks(next, resolved.tracks) };
+      var storeTracks = (resolved.tracks && resolved.tracks.length) ? resolved.tracks : [];
+      if ((resolved.found || storeTracks.length) && storeTracks.length) {
+        return { ok: true, draft: persistFoundTracks(next, storeTracks) };
       }
       if (hasId || hasFile || uploaded || picked || titled || String(next.title || '').trim()) {
-        return createMissingTracks(next, { force: Boolean(resolved.found || resolved.created) }).then(function (created) {
+        return createMissingTracks(next, {
+          force: Boolean(resolved.found || resolved.created),
+          tracks: storeTracks,
+        }).then(function (created) {
           if (created.ok) return created;
           if (created.unavailable) return created;
           if (hasId) return { ok: true, draft: created.draft || next };
-          if ((picked || titled) && !hasFile) return reattachResult(created.draft || next);
+          if (shouldReattach(created.draft || next, hasFile, storeTracks)) return reattachResult(created.draft || next);
           return {
             failed: true,
             result: created.result || { data: { error: genuineEmptyMessage() } },
@@ -973,7 +1168,7 @@
           };
         });
       }
-      if ((picked || titled) && !hasFile && !hasId) return reattachResult(next);
+      if (shouldReattach(next, hasFile, storeTracks) && !hasId) return reattachResult(next);
       return { failed: true, result: { data: { error: genuineEmptyMessage() } }, draft: next };
     });
   }
@@ -1055,7 +1250,7 @@
           return createMissingTracks(next, { force: true }).then(function (created) {
             if (created.recover) return { recover: true, result: created.result, draft: created.draft || next };
             if (created.failed) {
-              if (!liveFile && pickedAudioEvidence(created.draft || next)) return reattachResult(created.draft || next);
+              if (shouldReattach(created.draft || next, liveFile, [])) return reattachResult(created.draft || next);
               return { failed: true, result: created.result, draft: created.draft || next };
             }
             if (created.unavailable) return created;
@@ -1063,14 +1258,14 @@
             if (createdIds.length) submitBody.track_id = createdIds[0];
             if (createdIds.length > 1) submitBody.track_ids = createdIds;
             return postSubmitRelease(created.draft || next, submitBody, date, documentId, solo).then(function (retried) {
-              if (retried.failed && isMissingTrackError(retried.result) && !liveFile && pickedAudioEvidence(created.draft || next)) {
+              if (retried.failed && isMissingTrackError(retried.result) && shouldReattach(created.draft || next, liveFile, [])) {
                 return reattachResult(created.draft || next);
               }
               return retried;
             });
           });
         }
-        if (sent.failed && isMissingTrackError(sent.result) && !liveFile && pickedAudioEvidence(next)) {
+        if (sent.failed && isMissingTrackError(sent.result) && shouldReattach(next, liveFile, [])) {
           return reattachResult(next);
         }
         return sent;
@@ -1192,9 +1387,15 @@
 
   function selectedAudio() {
     var input = document.querySelector('[data-audio-input]');
-    if (input && input.files && input.files[0]) return input.files[0];
-    if (input && input._plaigroundFile) return input._plaigroundFile;
-    return null;
+    if (input && input.files && input.files[0]) {
+      rememberAudioFile(input.files[0]);
+      return input.files[0];
+    }
+    if (input && input._plaigroundFile) {
+      rememberAudioFile(input._plaigroundFile);
+      return input._plaigroundFile;
+    }
+    return heldAudioFile || null;
   }
 
   function selectedArtwork() {
@@ -2554,6 +2755,7 @@
     row.className = 'track-row';
     row.setAttribute('data-track-row', '');
     if (track && track.track_id) row.setAttribute('data-track-id', track.track_id);
+    if (track && (track.audio || track.file)) rememberAudioFile(track.audio || track.file);
     if (track && track.audio_uploaded) row.setAttribute('data-audio-uploaded', 'true');
     row.innerHTML = ''
       + '<div class="track-row-head">'
@@ -2673,6 +2875,7 @@
         input._plaigroundFile = file;
       }
     }
+    rememberAudioFile(file);
     if (nameEl) nameEl.textContent = file.name;
     if (metaEl) metaEl.textContent = file.type || 'Audio file';
     if (preview) preview.hidden = false;
@@ -2842,7 +3045,10 @@
     if (audioInput && audioInput.addEventListener) {
       audioInput.addEventListener('change', function () {
         var picked = audioFileOf(audioInput);
-        if (picked && picked.name) writeDraft({ audio_name: picked.name, audio_uploaded: false, audio_attached: true });
+        if (picked && picked.name) {
+          rememberAudioFile(picked);
+          writeDraft({ audio_name: picked.name, audio_uploaded: false, audio_attached: true });
+        }
         refreshUploadGate();
       });
     }
@@ -2851,6 +3057,7 @@
       artInput.addEventListener('change', refreshUploadGate);
     }
     var savedDraft = readDraft();
+    restoreHeldAudio();
     restoreUploadDraft(savedDraft);
     var instEl = $('tg-instrumental');
     if (instEl && savedDraft.instrumental === true) instEl.checked = true;
@@ -2989,6 +3196,7 @@
       var releaseType = fields.type === 'album' ? 'album' : 'single';
       var albumTracks = fields.tracks || [];
       var file = fields.audio;
+      if (file) rememberAudioFile(file);
       var art = fields.artwork;
       var nextHref = trigger.getAttribute('href') || 'attest.html';
       var pageError = uploadPageError(fields);
@@ -3188,6 +3396,12 @@
   }
 
   function finishSubmit(draft, releaseDate, trigger, nextHref) {
+    return restoreHeldAudio().then(function () {
+      return finishSubmitReady(draft, releaseDate, trigger, nextHref);
+    });
+  }
+
+  function finishSubmitReady(draft, releaseDate, trigger, nextHref) {
     if (draft && (draft.pending_review || draft.artist_check === 'red')) {
       writeDraft({ tonegrid_status: 'pending_review', submitted: true });
       return recordLocalRelease(readDraft(), {
