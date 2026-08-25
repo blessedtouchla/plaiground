@@ -514,6 +514,24 @@ function run() {
     'song.html without an id must not auto-open a leftover or latest release'
   );
   assert.strictEqual(listFirst.context.location.href, 'releases.html', 'bare song.html goes to the Releases list');
+  assert.strictEqual(listFirst.api.editHref(''), 'releases.html', 'Edit without a picked id goes to the list');
+  assert.strictEqual(
+    listFirst.api.editHref('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+    'song.html?id=cccccccc-cccc-4ccc-8ccc-cccccccccccc&edit=1',
+    'Edit after a picked row targets only that id'
+  );
+  assert.strictEqual(
+    listFirst.api.pickRelease(
+      [
+        { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'arrays bday', status: 'draft' },
+        { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'other draft', status: 'draft' },
+      ],
+      { artist: 'Mamamastermind', plan: 'creator', tonegrid_release_ids: ['dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'] },
+      { release_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'arrays bday', submitted: false }
+    ),
+    null,
+    'song.html without an id must not auto-open the first draft'
+  );
 
   const picker = loadSong({
     plan: 'basic',
@@ -553,6 +571,7 @@ function run() {
   assert.ok(html.includes('Submit for editing'));
   assert.ok(html.includes('data-song-edit'));
   assert.ok(/<a[^>]*data-song-edit[^>]*>Edit release<\/a>/.test(html), 'Edit release must be a real link, not a dead button');
+  assert.ok(/<a[^>]*href="releases.html"[^>]*data-song-edit/.test(html) || /<a[^>]*data-song-edit[^>]*href="releases.html"/.test(html), 'song.html Edit without a picked id stays on the list');
   assert.ok(css.includes('.btn[hidden]'), 'hidden Edit/Remove/Boost buttons must stay hidden');
   assert.ok(html.includes('data-song-remove'));
   assert.ok(html.includes('data-song-download'));
@@ -601,6 +620,42 @@ function run() {
   assert.ok(editPrevented, 'successful in-place edit must consume the click');
   assert.strictEqual(page.nodes['[data-release-edit]'].hidden, false, 'Edit click must open the same-release editor');
   assert.strictEqual(page.nodes['[data-release-edit]'].getAttribute('data-release-id'), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+
+  const pickedThenEdit = loadSong({
+    plan: 'creator',
+    me: {
+      artist: 'Mamamastermind',
+      plan: 'creator',
+      tonegrid_release_ids: [
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      ],
+    },
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
+  pickedThenEdit.api.render({
+    me: {
+      artist: 'Mamamastermind',
+      plan: 'creator',
+      tonegrid_release_ids: [
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      ],
+    },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'picked row',
+      status: 'draft',
+      type: 'single',
+    },
+    analytics: {},
+  });
+  assert.strictEqual(
+    pickedThenEdit.nodes['[data-song-edit]'].getAttribute('href'),
+    'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&edit=1',
+    'Edit after opening a picked row edits that id only'
+  );
+  assert.ok(String(pickedThenEdit.nodes['[data-song-edit]'].getAttribute('href')).indexOf('dddddddd-dddd-4ddd-8ddd-dddddddddddd') === -1);
 
   const noId = loadSong({ plan: 'pro', me: { artist: 'Fuvtu', plan: 'pro' } });
   noId.api.render({

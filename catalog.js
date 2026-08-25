@@ -168,7 +168,7 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'song.html';
+      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html';
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       applyCover(art, card.artwork_url);
@@ -202,7 +202,7 @@
       applyCover(thumb, coverOf(row));
       var copy = document.createElement('div');
       var title = document.createElement('a');
-      title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'song.html';
+      title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html';
       title.textContent = row.title || 'Untitled';
       title.style.color = 'inherit';
       title.style.textDecoration = 'none';

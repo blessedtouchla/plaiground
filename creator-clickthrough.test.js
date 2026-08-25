@@ -238,7 +238,13 @@ function run() {
   ['dashboard.html', 'earnings.html', 'settings.html', 'releases.html', 'boosts.html'].forEach(function (file) {
     assert.ok(read(file).includes('href="boosts.html">Boosts</a>'), file + ' sidebar Boosts stays on signed-in boosts.html');
     assert.ok(read(file).indexOf('href="boost.html">Boosts</a>') === -1, file + ' sidebar must not land on the public tease');
+    assert.ok(read(file).includes('href="releases.html">Releases</a>'), file + ' Creator menu Releases opens the catalog list');
+    assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read(file)), file + ' menu Releases must not deep-link a song');
   });
+
+  assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(read('dashboard.html')), 'Creator Overview Edit release shows the list first');
+  assert.ok(read('account.js').includes("var editHref = 'releases.html'"), 'Creator Edit release ignores last-release id');
+  assert.ok(read('song.js').includes("if (!queryId())"), 'song.html with no id does not auto-open latest/draft');
 
   console.log('creator-clickthrough.test.js ok');
 }
