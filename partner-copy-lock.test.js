@@ -94,6 +94,7 @@ function run() {
     'lib/store-pick.js',
     'store-client.js',
     'plai-bubble.js',
+    'plai-coach.js',
   ];
   uploadShipped.forEach(function (rel) {
     const raw = fs.readFileSync(path.join(root, rel), 'utf8');

@@ -9,6 +9,46 @@
  */
 
 const CLIENT_SECRETS_URL = 'https://api.x.ai/v1/realtime/client_secrets';
+const REALTIME_BASE = 'wss://api.x.ai/v1/realtime';
+const COACH_AGENT_ID = 'agent_9BWdEFlNcpLwxoQR';
+
+function readBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return Promise.resolve(req.body);
+  }
+  if (typeof req.body === 'string') {
+    try {
+      return Promise.resolve(JSON.parse(req.body || '{}'));
+    } catch {
+      return Promise.resolve({});
+    }
+  }
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8').trim();
+      if (!raw) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(raw));
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
+function wantsCoach(body) {
+  return Boolean(body && (body.agent === 'coach' || body.role === 'coach'));
+}
+
+function coachRealtimeUrl() {
+  return REALTIME_BASE + '?agent_id=' + encodeURIComponent(COACH_AGENT_ID);
+}
 
 function isConfigured() {
   return Boolean(String(process.env.XAI_API_KEY || '').trim());
@@ -57,7 +97,7 @@ function sanitizeMintPayload(data) {
   return out;
 }
 
-async function mintToken(res) {
+async function mintToken(res, coach) {
   if (!isConfigured()) {
     sendJson(res, 503, { configured: false });
     return;
@@ -95,7 +135,9 @@ async function mintToken(res) {
     return;
   }
 
-  sendJson(res, 200, sanitizeMintPayload(data));
+  const payload = sanitizeMintPayload(data);
+  if (coach) payload.realtime_url = coachRealtimeUrl();
+  sendJson(res, 200, payload);
 }
 
 module.exports = async function handler(req, res) {
@@ -108,5 +150,11 @@ module.exports = async function handler(req, res) {
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }
-  await mintToken(res);
+  let body = {};
+  try {
+    body = await readBody(req);
+  } catch {
+    body = {};
+  }
+  await mintToken(res, wantsCoach(body));
 };

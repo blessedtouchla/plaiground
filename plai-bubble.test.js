@@ -340,6 +340,7 @@ function runStatic() {
     'index.html',
     'faq.html',
     'plai.html',
+    'plai-coach.js',
     'site.js',
     'checkout.js',
   ];

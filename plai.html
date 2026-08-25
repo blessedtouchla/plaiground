@@ -69,12 +69,14 @@
             <p class="sub">Your Release Coach</p>
           </aside>
           <section class="card plai-coach-chat" aria-label="Chat with PLAI">
+            <p class="plai-coach-status" data-plai-coach-status>Type or talk. PLAI is pronounced PLAY.</p>
             <div class="plai-coach-log" role="log" aria-live="polite" aria-relevant="additions"></div>
             <form class="plai-coach-composer" data-plai-coach-form action="plai.html" method="get">
               <div class="field">
                 <label class="plai-coach-sr" for="plai-coach-input">Message PLAI</label>
                 <input id="plai-coach-input" name="q" type="text" maxlength="400" autocomplete="off" enterkeyhint="send" placeholder="Type to PLAI…" />
               </div>
+              <button class="btn btn-ghost btn-sm" type="button" data-plai-coach-talk>Talk</button>
               <button class="btn btn-purple btn-sm" type="submit">Send</button>
             </form>
           </section>
@@ -134,14 +136,6 @@
   <script src="account.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
-  <script>
-    (function () {
-      var form = document.querySelector("[data-plai-coach-form]");
-      if (!form) return;
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-      });
-    })();
-  </script>
+  <script src="plai-coach.js" defer></script>
 </body>
 </html>
