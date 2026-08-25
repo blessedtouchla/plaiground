@@ -205,23 +205,27 @@ function run() {
     window: {},
   };
   earnCtx.window = earnCtx;
+  vm.runInNewContext(read('lib/statement-pdf.js'), earnCtx);
   vm.runInNewContext(read('earnings.js'), earnCtx);
   const emptyClick = earnCtx.PlaigroundEarnings.downloadStatement({
     balance: { available_usd: 0, pending_usd: 0 },
     statements: [],
     breakdown: [],
-  });
-  assert.strictEqual(emptyClick, false, 'empty earnings must not invent a CSV');
-  assert.strictEqual(earnNodes['[data-earn-status]'].textContent, 'No statement yet');
-  assert.strictEqual(earnNodes['[data-earn-empty]'].hidden, false);
-  assert.ok(/No statement yet/.test(earnNodes['[data-earn-empty]'].textContent));
+  }, { artist: 'Fuvtu' });
+  assert.strictEqual(emptyClick, true, 'empty earnings still downloads a $0 PDF');
+  assert.strictEqual(earnCtx.PlaigroundStatementPdf.lastDownload().filename, 'plaiground-statement.pdf');
+  assert.ok(earnCtx.PlaigroundStatementPdf.lastDownload().bytes.indexOf('$0.00') !== -1);
   assert.strictEqual(earnNodes['[data-earn="available"]'].textContent, '$0.00');
-  const csv = earnCtx.PlaigroundEarnings.statementCsv({
+  const pdf = earnCtx.PlaigroundEarnings.statementPdf({
     statements: [{ id: 'stmt_real', period: '2026-03', total_usd: 1.5 }],
     breakdown: [{ dsp: 'Spotify', streams: 12, revenue_usd: 1.5 }],
-  });
-  assert.ok(csv.indexOf('Spotify') !== -1);
-  assert.ok(!/Patrick|John ham|John Doe/i.test(csv), 'statement CSV must not invent mock names');
+    balance: { available_usd: 1.5, pending_usd: 0 },
+  }, { artist: 'Fuvtu' });
+  assert.ok(pdf.indexOf('Spotify') !== -1);
+  assert.ok(pdf.indexOf('2026-03') !== -1);
+  assert.ok(pdf.indexOf('$1.50') !== -1);
+  assert.ok(!/Patrick|John ham|John Doe/i.test(pdf), 'statement PDF must not invent mock names');
+  assert.ok(earningsHtml.includes('lib/statement-pdf.js'));
 
   const boostHtml = read('boost.html');
   assert.ok(boostHtml.includes('membership.js'), 'boost.html can see a signed-in session');
