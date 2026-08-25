@@ -1567,6 +1567,15 @@ async function updateRelease(req, res, releaseId) {
     body: parsed.payload,
     idempotencyKey: hopIdempotencyKey('patch-release', 'PATCH', '/releases/' + releaseId, JSON.stringify(parsed.payload)),
   });
+  if (result.ok) {
+    const stored = rosterOf(scope.row);
+    await accounts.updateProfile(scope.row.id, {
+      profile: profileLib.upsertRelease(stored, Object.assign({
+        id: releaseId,
+        tonegrid_release_id: releaseId,
+      }, parsed.payload)),
+    });
+  }
   sendJson(res, result.status, result.data);
 }
 
