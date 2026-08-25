@@ -60,6 +60,16 @@
 
     if (!side.id) side.id = "app-menu";
 
+    var page = "";
+    try {
+      page = String((window.location && window.location.pathname) || "").split("/").pop();
+    } catch (err) {}
+    if (page === "publishing-register.html" || page === "publishing.html") {
+      side.querySelectorAll("[data-publishing-register]").forEach(function (el) {
+        el.classList.add("on");
+      });
+    }
+
     var toggle = topbar.querySelector(".menu-toggle");
     if (!toggle) {
       toggle = makeToggle();
