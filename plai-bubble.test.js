@@ -339,6 +339,7 @@ function runStatic() {
     'plai-bubble.css',
     'index.html',
     'faq.html',
+    'plai.html',
     'site.js',
     'checkout.js',
   ];

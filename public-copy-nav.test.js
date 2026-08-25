@@ -26,6 +26,7 @@ const APP_PAGES = [
   'boosts.html',
   'publishing-register.html',
   'faq.html',
+  'plai.html',
 ];
 
 function run() {
@@ -104,6 +105,7 @@ function run() {
     'login.html',
     'signup.html',
     'royalties.html',
+    'plai.html',
   ];
   PUBLIC_PAGES.forEach(function (file) {
     const html = read(file);
@@ -377,7 +379,6 @@ function run() {
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put FAQ last, after Settings');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
-    const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
     assert.ok(/href="splits.html">Splits<\/a>\s*<a(?: class="on")? href="publishing-register.html" data-publishing-register>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>/.test(sideNav[0]), file + ' must list Publishing after Splits');
     assert.ok(sideNav[0].includes('data-publishing-register>Publishing</a>'), file + ' Publishing uses the paid-access register gate');

@@ -3115,3 +3115,189 @@ body:not(.app) > .app-main > .topbar { display: none; }
     max-width: 200px;
   }
 }
+
+/* —— PLAI Coach page + homepage float (structure only) —— */
+.plai-coach {
+  --plai-magenta: #d03083;
+  --plai-purple: #782fb1;
+  --plai-gold: #f3cb47;
+}
+.plai-coach-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+.plai-coach-identity {
+  text-align: center;
+}
+.plai-coach-identity h1 {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 16px 0 6px;
+}
+.plai-coach-role {
+  color: var(--plai-gold);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.plai-coach-hint {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 0;
+}
+.plai-coach-avatar {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  border: 3px solid transparent;
+  background-image:
+    linear-gradient(var(--card), var(--card)),
+    linear-gradient(135deg, #f3cb47, #d03083, #782fb1);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+.plai-coach-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.plai-coach-avatar img[hidden] { display: none; }
+.plai-coach-initials {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f3cb47;
+}
+.plai-coach-avatar.is-float {
+  width: 56px;
+  height: 56px;
+}
+.plai-coach-avatar.is-float .plai-coach-initials {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.plai-coach-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+}
+.plai-coach-log {
+  flex: 1;
+  min-height: 220px;
+  overflow-y: auto;
+}
+.plai-coach-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.plai-coach-composer input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: #0C0C12;
+  color: #fff;
+  font-size: 14px;
+  padding: 0 14px;
+}
+.plai-coach-composer input:focus {
+  outline: none;
+  border-color: #782fb1;
+}
+.plai-coach-composer input::placeholder { color: var(--muted); }
+.plai-coach-plan {
+  min-height: 140px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.plai-coach-plan h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #f3cb47;
+  margin: 0;
+}
+.plai-coach-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.plai-coach-float {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  z-index: 3500;
+}
+.plai-coach-float details {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 10px;
+}
+.plai-coach-float-hit {
+  list-style: none;
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
+}
+.plai-coach-float-hit::-webkit-details-marker { display: none; }
+.plai-coach-float-hit:focus-visible {
+  outline: 2px solid #f3cb47;
+  outline-offset: 3px;
+}
+.plai-coach-float-pop {
+  width: min(260px, calc(100vw - 48px));
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  padding: 14px 16px;
+}
+.plai-coach-float-pop p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@media (max-width: 800px) {
+  .plai-coach-grid {
+    grid-template-columns: 1fr;
+  }
+  .plai-coach-identity { text-align: left; }
+  .plai-coach-avatar { margin: 0; }
+}
+@media (max-width: 640px) {
+  .plai-coach-float {
+    right: 12px;
+    bottom: 80px;
+  }
+}
