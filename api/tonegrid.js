@@ -11,8 +11,8 @@
  * POST /api/tonegrid/releases
  * GET  /api/tonegrid/releases/:id          -> plus ddex/deliveries when live (dsp_release_id only)
  * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
- * DELETE /api/tonegrid/releases/:id        -> draft/rejected: ToneGrid DELETE;
- *                                         pending/processing: POST /takedown, else /ddex/purge;
+ * DELETE /api/tonegrid/releases/:id        -> not live (draft/pending/processing/rejected):
+ *                                         best-effort store DELETE, then drop locally;
  *                                         live: POST /ddex/purge (takedown only, never drop)
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
@@ -26,10 +26,9 @@
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
  * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
- * release. Pending / processing already went to stores — POST
- * /releases/:uuid/takedown (cancel) then POST /releases/:uuid/ddex/purge
- * (PurgeReleaseMessage). Live stays purge-only. Never drop a sent release
- * locally when the store refuses.
+ * release. Pending / processing are not live in stores — drop them from
+ * PLAIGROUND after confirm even when the store refuses DELETE. Live stays
+ * purge-only. Never drop a live store release locally when the store refuses.
  * POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
  * Each ToneGrid write uses a hop-scoped Idempotency-Key (patch-date,
@@ -45,6 +44,7 @@ const crypto = require('crypto');
 const accounts = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const plans = require('../lib/plans');
+const coverUrl = require('../lib/cover-url');
 const profileLib = require('../lib/profile');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
@@ -83,15 +83,8 @@ const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
 const STORE_FACING = new Set([
-  'pending',
-  'pending_review',
-  'qc_inspection',
-  'approved',
-  'processing',
-  'delivering',
   'delivered',
   'live',
-  'takedown_submitted',
 ]);
 const CANCEL_FIRST = new Set(['pending', 'pending_review', 'qc_inspection', 'approved', 'processing', 'delivering']);
 
@@ -329,10 +322,20 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
   });
 }
 
-async function persistReleaseMeta(row, releaseId, status, reason) {
+async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
-  const next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
+  let next = stored;
+  if (status || reason !== undefined) {
+    next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
+  }
+  if (artworkUrl) {
+    next = profileLib.upsertRelease(next, {
+      id: releaseId,
+      tonegrid_release_id: releaseId,
+      artwork_url: artworkUrl,
+    });
+  }
   await accounts.updateProfile(row.id, { profile: next });
 }
 
@@ -484,7 +487,7 @@ function pickRelease(row) {
     status: String(row.status || '').trim().toLowerCase(),
     genre: String(row.genre || '').trim(),
     language: String(row.language || '').trim().toLowerCase(),
-    artwork_url: String(row.artwork_url || row.cover_art_url || '').trim(),
+    artwork_url: coverUrl.from(row),
     release_date: normalizeReleaseDate(row.release_date || row.releaseDate) || '',
     created_at: typeof row.created_at === 'string' ? row.created_at : '',
     artist: artistNameOf(row),
@@ -568,7 +571,7 @@ async function listReleases(req, res) {
         status: local.tonegrid_status || 'pending',
         genre: '',
         language: '',
-        artwork_url: '',
+        artwork_url: coverUrl.from(local),
         release_date: '',
         created_at: '',
         artist: '',
@@ -585,7 +588,7 @@ async function listReleases(req, res) {
         status: 'pending',
         genre: '',
         language: '',
-        artwork_url: '',
+        artwork_url: coverUrl.from(local),
         release_date: '',
         created_at: '',
         artist: '',
@@ -596,6 +599,9 @@ async function listReleases(req, res) {
     }
     if (local && local.rejection_reason && !row.rejection_reason) {
       row.rejection_reason = local.rejection_reason;
+    }
+    if (row && !row.artwork_url && local) {
+      row.artwork_url = coverUrl.from(local);
     }
     await attachDeliveries(row, id);
     if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
@@ -610,6 +616,7 @@ async function listReleases(req, res) {
       tonegrid_release_id: row.uuid,
       tonegrid_status: row.status,
       rejection_reason: row.rejection_reason,
+      artwork_url: row.artwork_url,
     });
   });
   if (collected.length) {
@@ -1422,7 +1429,7 @@ async function getOneRelease(req, res, releaseId) {
     return;
   }
   if (loaded.row) {
-    await persistReleaseMeta(scope.row, releaseId, loaded.row.status, loaded.row.rejection_reason);
+    await persistReleaseMeta(scope.row, releaseId, loaded.row.status, loaded.row.rejection_reason, loaded.row.artwork_url);
   }
   sendJson(res, 200, Object.assign({ configured: true, sandbox: healthPayload().sandbox }, loaded.row));
 }
@@ -1830,6 +1837,10 @@ async function releaseArtwork(req, res, releaseId) {
     contentType,
     idempotencyKey: hopIdempotencyKey('artwork', 'POST', '/releases/' + releaseId + '/artwork', bodyFingerprint(raw)),
   });
+  const uploaded = coverUrl.from(result && result.data) || coverUrl.from(unwrapRelease(result && result.data));
+  if (result.ok && uploaded) {
+    await persistReleaseMeta(scope.row, releaseId, null, undefined, uploaded);
+  }
   sendJson(res, result.status, result.data);
 }
 
@@ -1987,12 +1998,12 @@ async function deleteRelease(req, res, releaseId) {
   const missing = Boolean(loaded.result && !loaded.result.ok && loaded.result.status === 404);
   const status = loaded.row ? normalizeReleaseStatus(loaded.row.status) : '';
 
-  if (status === 'taken_down') {
+  if (status === 'taken_down' || status === 'takedown_submitted') {
     sendJson(res, 409, {
       error: 'This release was taken down from stores. It still counts as your lifetime upload.',
       removed: false,
       takedown: false,
-      status: 'taken_down',
+      status: status || 'taken_down',
     });
     return;
   }
@@ -2020,18 +2031,10 @@ async function deleteRelease(req, res, releaseId) {
   }
 
   if (!missing) {
-    const deleted = await tonegridFetch('/releases/' + releaseId, {
+    await tonegridFetch('/releases/' + releaseId, {
       method: 'DELETE',
       idempotencyKey: hopIdempotencyKey('delete-release', 'DELETE', '/releases/' + releaseId, releaseId),
     });
-    if (!deleted.ok && deleted.status !== 404) {
-      sendJson(res, deleted.status, {
-        error: tonegridErrorOf(deleted, 'The store could not delete this release.'),
-        removed: false,
-        takedown: false,
-      });
-      return;
-    }
   }
 
   const next = await dropLocalRelease(scope.row, releaseId);

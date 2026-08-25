@@ -644,6 +644,9 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .typeahead-field { position: relative; z-index: 1; overflow: visible; }
 .typeahead-field:focus-within,
 .typeahead-field.is-typeahead-open { z-index: 4100; }
+html.is-typeahead-open .typeahead-field:not(.is-typeahead-open) {
+  pointer-events: none;
+}
 .form-grid .field,
 .flow-card,
 .release-edit,
@@ -705,6 +708,10 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .typeahead-list.is-above {
   top: auto;
   bottom: calc(100% + 4px);
+}
+.typeahead-list.is-fixed {
+  position: fixed;
+  right: auto;
 }
 .typeahead-list button {
   display: block;
@@ -1234,8 +1241,17 @@ table.data tbody tr.is-pick { cursor: pointer; }
   border-radius: 8px;
   background: linear-gradient(135deg, #8B3FE8, #FF3D8B);
   flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  position: relative;
 }
 .thumb.grey { background: #2A2A32; }
+.thumb.has-art {
+  background-color: #111;
+  background-size: cover;
+  background-position: center;
+}
 .rel b { display: block; }
 .rel small { color: var(--muted); font-size: 12px; }
 .live { color: var(--green); font-weight: 600; }
@@ -1417,7 +1433,14 @@ button.dashbox span {
   background-size: cover;
   background-position: center;
 }
-.art.has-art { background-color: #111; }
+.art.has-art {
+  background-color: #111;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+}
 .art.is-edit {
   width: 96px;
   height: 96px;
@@ -2095,10 +2118,26 @@ body:not(.app) > .app-main > .topbar { display: none; }
   box-shadow: inset 0 0 0 10px rgba(0, 0, 0, 0.12);
 }
 .release-tile-art.has-art {
+  background-color: #111;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 .release-tile-art.has-art::after { display: none; }
+.art img[data-cover-photo],
+.thumb img[data-cover-photo],
+.release-tile-art img[data-cover-photo],
+.cover-lg img[data-cover-photo] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.release-tile-art img[data-cover-photo] {
+  position: absolute;
+  inset: 0;
+}
 .release-tile strong {
   display: block;
   font-size: 14px;
@@ -2235,10 +2274,14 @@ body:not(.app) > .app-main > .topbar { display: none; }
   border-radius: 16px;
   background: #16161C;
   border: 1px solid var(--line);
+  overflow: hidden;
+  position: relative;
 }
 .cover-lg.has-art {
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
+  background-color: #111;
   border-color: transparent;
 }
 .owner-player {

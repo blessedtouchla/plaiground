@@ -10,9 +10,8 @@ function read(file) {
 }
 
 function makeEl(attrs) {
-  return {
+  const node = {
     hidden: Boolean(attrs && attrs.hidden),
-    textContent: (attrs && attrs.textContent) || '',
     className: '',
     style: {},
     href: '',
@@ -20,6 +19,7 @@ function makeEl(attrs) {
     attrs: {},
     children: [],
     colSpan: 0,
+    _text: (attrs && attrs.textContent) || '',
     setAttribute(name, value) { this.attrs[name] = String(value); },
     getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
     appendChild(child) {
@@ -27,6 +27,15 @@ function makeEl(attrs) {
       return child;
     },
   };
+  Object.defineProperty(node, 'textContent', {
+    get() { return this._text; },
+    set(value) {
+      this._text = String(value == null ? '' : value);
+      if (this._text === '') this.children = [];
+    },
+    configurable: true,
+  });
+  return node;
 }
 
 function findByText(node, text) {
@@ -102,8 +111,11 @@ function run() {
   assert.ok(read('earnings.html').indexOf('data-earn-download') !== -1, 'Download statement must have a handler');
   assert.ok(read('releases.html').indexOf('Nothing here yet') !== -1);
   assert.ok(read('releases.html').indexOf('lib/cover-preview.js') !== -1);
+  assert.ok(read('releases.html').indexOf('lib/cover-url.js') !== -1);
   assert.ok(read('releases.html').indexOf('data-edit-art-box') !== -1);
   assert.ok(read('upload.html').indexOf('lib/cover-preview.js') !== -1);
+  assert.ok(read('upload.html').indexOf('lib/cover-url.js') !== -1);
+  assert.ok(read('dashboard.html').indexOf('lib/cover-url.js') !== -1);
   assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
@@ -227,13 +239,14 @@ function run() {
     '[data-release-table]': makeEl({ hidden: true }),
     '[data-release-count]': makeEl({}),
     '[data-release-status]': makeEl({ hidden: true }),
+    '[data-release-tiles]': makeEl({}),
   };
   const catalog = loadScript('catalog.js', catalogNodes);
   catalog.PlaigroundCatalog.render({ releases: [], total: 0, analytics: {} });
   assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '0');
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, false);
   catalog.PlaigroundCatalog.render({
-    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'draft' }],
+    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'draft', artwork_url: 'https://cdn.example/night.jpg' }],
     total: 1,
     analytics: { releases: [{ release_uuid: '11111111-1111-4111-8111-111111111111', streams: 12 }] },
   });
@@ -243,6 +256,13 @@ function run() {
   assert.strictEqual(catalogNodes['[data-release-table]'].hidden, false);
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[3].textContent, '0');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[4].textContent, '$0.00');
+  assert.ok(catalogNodes['[data-release-tiles]'].children[0].children[0].style.backgroundImage.indexOf('night.jpg') !== -1, 'Releases tiles paint catalog cover art');
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'draft' }],
+    total: 1,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'Releases tiles keep the empty placeholder when there is no cover');
   const catalogEdit = findByText(catalogNodes['[data-release-rows]'], 'Edit release');
   assert.ok(catalogEdit, 'catalog cards must include Edit release');
   assert.strictEqual(catalogEdit.tagName, 'A');

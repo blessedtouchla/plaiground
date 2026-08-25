@@ -302,6 +302,7 @@ function run() {
   assert.ok(html.includes('lib/audio-accept.js'));
   assert.ok(html.includes('lib/store-pick.js'));
   assert.ok(html.includes('lib/cover-preview.js'));
+  assert.ok(html.includes('lib/cover-url.js'));
   assert.ok(html.includes('data-art-clear'));
   assert.ok(html.includes('Pre-select all stores'));
   assert.ok(html.includes('data-store-customize'));
@@ -980,8 +981,8 @@ function run() {
               if (method === 'DELETE') {
                 return Promise.resolve({
                   ok: true,
-                  status: 202,
-                  json: async () => ({ ok: true, takedown: true, removed: false, status: 'takedown_submitted' }),
+                  status: 200,
+                  json: async () => ({ ok: true, removed: true, takedown: false, redirect: '/releases.html' }),
                 });
               }
               return Promise.resolve({
@@ -1000,15 +1001,49 @@ function run() {
           });
           return pendingOk.api.removeRelease().then(function (pendingRemoved) {
             assert.ok(pendingRemoved.ok);
-            assert.strictEqual(pendingRemoved.takedown, true);
-            assert.ok(pendingCalls.some((row) => String(row.confirm || '').indexOf('Ask stores') !== -1));
-            assert.ok(pendingCalls.some((row) => String(row.confirm || '').indexOf('stays listed until the store confirms') !== -1));
-            assert.strictEqual(
-              pendingOk.nodes['[data-song-status]'].textContent,
-              'Takedown submitted to stores. This release stays listed until the store confirms.'
-            );
-            assert.notStrictEqual(pendingOk.context.location.href, 'releases.html');
-            assert.strictEqual(pendingOk.nodes['[data-song-remove]'].hidden, true);
+            assert.strictEqual(pendingRemoved.removed, true);
+            assert.strictEqual(pendingRemoved.redirect, 'releases.html');
+            assert.ok(pendingCalls.some((row) => String(row.confirm || '').indexOf('Remove this release from PLAIGROUND') !== -1));
+            assert.ok(!pendingCalls.some((row) => /Ask stores|request from the stores|stays listed until the store confirms/i.test(String(row.confirm || ''))));
+            assert.strictEqual(pendingOk.context.location.href, 'releases.html');
+
+            const processingCalls = [];
+            const processingOk = loadSong({
+              plan: 'creator',
+              me: Object.assign({}, basicMe, { plan: 'creator' }),
+              confirm: true,
+              calls: processingCalls,
+              href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+              search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+              fetch(url, options) {
+                const method = (options && options.method) || 'GET';
+                if (method === 'DELETE') {
+                  return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ok: true, removed: true, takedown: false, redirect: '/releases.html' }),
+                  });
+                }
+                return Promise.resolve({
+                  ok: true,
+                  status: 200,
+                  json: async () => ({
+                    releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'processing' }],
+                  }),
+                });
+              },
+            });
+            processingOk.api.render({
+              me: Object.assign({}, basicMe, { plan: 'creator' }),
+              release: { uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'processing', type: 'single' },
+              analytics: {},
+            });
+            return processingOk.api.removeRelease().then(function (processingRemoved) {
+              assert.ok(processingRemoved.ok);
+              assert.strictEqual(processingRemoved.removed, true);
+              assert.ok(processingCalls.some((row) => String(row.confirm || '').indexOf('Remove this release from PLAIGROUND') !== -1));
+              assert.ok(!processingCalls.some((row) => /Ask stores|request from the stores/i.test(String(row.confirm || ''))));
+              assert.strictEqual(processingOk.context.location.href, 'releases.html');
 
             const leftoverCalls = [];
             const leftover = loadSong({
@@ -1038,7 +1073,7 @@ function run() {
             });
             leftover.api.render({
               me: Object.assign({}, basicMe, { plan: 'creator' }),
-              release: { uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending', type: 'single' },
+              release: { uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'live', type: 'single' },
               analytics: {},
             });
             return leftover.api.removeRelease().then(function (leftoverFail) {
@@ -1052,6 +1087,7 @@ function run() {
         });
       });
     });
+  });
   });
 }
 
