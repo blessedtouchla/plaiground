@@ -100,6 +100,7 @@ function run() {
   assert.ok(dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'publishing CTA must unlock MSP');
   assert.ok(dash.includes('Publishing unlocks MSP (societies, not stores)'), 'MSP unlock copy is missing');
   assert.ok(dash.includes('data-msp-section'), 'MSP section is missing');
+  assert.ok(read('site.css').includes('.pub-call[hidden]'), 'publishing CTA must stay hidden when empty');
   assert.ok(dash.includes('Pending'), 'submitted Pending copy is missing');
   assert.ok(dash.includes('data-account-who'), 'dashboard greeting name slot is missing');
   assert.ok(dash.includes('class="topbar"'), 'dashboard menu/topbar is missing');
