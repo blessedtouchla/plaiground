@@ -94,8 +94,14 @@ function run() {
   assert.ok(dash.includes('Submit your first song'), 'first-song CTA is missing');
   assert.ok(dash.includes('data-first-song'), 'first-song empty state hook is missing');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hook is missing');
+  assert.ok(dash.includes('data-new-release'), 'has-release hero must start a new upload');
+  assert.ok(/data-new-release[^>]*>New release</.test(dash), 'purple button must say New release');
+  assert.ok(dash.includes('href="upload.html" data-new-release'), 'purple button must go to upload.html');
+  assert.ok(!dash.includes('View release'), 'Overview purple button must not say View release');
+  assert.ok(!dash.includes('data-latest-link'), 'Overview purple button must not open the latest song');
   assert.ok(dash.includes('data-latest-edit'), 'latest-release card must have Edit release');
   assert.ok(dash.includes('Edit release'), 'latest-release card must label Edit release');
+  assert.ok(dash.includes('>All releases</a>'), 'latest-release card must keep All releases');
   assert.ok(dash.includes('data-release-tiles'), 'release cover tiles are missing');
   assert.ok(dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'publishing CTA must unlock MSP');
   assert.ok(dash.includes('Publishing unlocks MSP (societies, not stores)'), 'MSP unlock copy is missing');
@@ -176,7 +182,7 @@ function run() {
       '[data-first-upload]': makeNode({ hidden: false }),
       '[data-latest-title]': makeNode({}),
       '[data-latest-status]': makeNode({}),
-      '[data-latest-link]': makeNode({ href: 'releases.html' }),
+      '[data-new-release]': makeNode({ href: 'upload.html' }),
       '[data-latest-edit]': makeNode({ href: 'song.html' }),
       '[data-account-releases]': makeNode({ textContent: '0' }),
       '[data-account-who]': makeNode({ textContent: 'Hi there' }),
@@ -230,7 +236,8 @@ function run() {
   assert.strictEqual(nodes['[data-has-release]'].hidden, false);
   assert.strictEqual(nodes['[data-first-upload]'].hidden, true);
   assert.strictEqual(nodes['[data-latest-status]'].textContent, 'Pending');
-  assert.ok(String(nodes['[data-latest-link]'].href).indexOf('song.html?id=') !== -1);
+  assert.strictEqual(nodes['[data-new-release]'].href, 'upload.html');
+  assert.ok(String(nodes['[data-new-release]'].href).indexOf('song.html') === -1);
   assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('song.html?id=') !== -1);
   assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('edit=1') !== -1);
   assert.strictEqual(nodes['[data-account-who]'].textContent, 'Hi Fuvtu!');
