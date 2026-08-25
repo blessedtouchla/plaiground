@@ -33,12 +33,67 @@
     return '$' + toNumber(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
+  var DEFAULT_CATALOG_TIMEOUT_MS = 30000;
+
   function sanitizePartnerCopy(text) {
     var next = String(text == null ? '' : text);
+    if (/request entry too large|request entity too large|payload too large|function_payload_too_large|content too large/i.test(next)) {
+      return AUDIO_SIZE_COPY;
+    }
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
     return next;
+  }
+
+  function catalogTimeoutMs() {
+    try {
+      if (global.PlaigroundCatalogTimeoutMs != null) {
+        var n = Number(global.PlaigroundCatalogTimeoutMs);
+        if (n > 0 && isFinite(n)) return n;
+      }
+    } catch (err) {}
+    return DEFAULT_CATALOG_TIMEOUT_MS;
+  }
+
+  function catalogTimeoutMessage() {
+    return 'We could not reach the store. Try again.';
+  }
+
+  function withCatalogTimeout(work) {
+    var ms = catalogTimeoutMs();
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var signal = controller && controller.signal;
+    if (typeof setTimeout !== 'function') {
+      return Promise.resolve().then(function () {
+        return typeof work === 'function' ? work(signal) : work;
+      });
+    }
+    var settled = false;
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        try { if (controller) controller.abort(); } catch (err) {}
+        var err = new Error(catalogTimeoutMessage());
+        err.timedOut = true;
+        reject(err);
+      }, ms);
+      Promise.resolve()
+        .then(function () { return typeof work === 'function' ? work(signal) : work; })
+        .then(function (value) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }, function (err) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
   }
 
   function setText(sel, text) {
@@ -690,12 +745,45 @@
   }
 
   function sendJson(url, method, body) {
-    return fetch(url, {
-      method: method,
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: body == null ? undefined : JSON.stringify(body),
-    }).then(parseSave);
+    return withCatalogTimeout(function (signal) {
+      var opts = {
+        method: method,
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: body == null ? undefined : JSON.stringify(body),
+      };
+      if (signal) opts.signal = signal;
+      return fetch(url, opts).then(parseSave);
+    });
+  }
+
+  function editAlreadyQueued(release, draft) {
+    var status = String((release && release.status) || (draft && (draft.tonegrid_status || draft.status)) || '').toLowerCase();
+    if (draft && (draft.submitted === true || draft.submitted === 'true')) return true;
+    if (status === 'pending' || status === 'processing' || status === 'approved' || status === 'live' || status === 'delivered') return true;
+    return status === 'signatures' || status === 'awaiting_signature' || status === 'awaiting signatures';
+  }
+
+  function isNonBlockingEditSubmit(result) {
+    var data = (result && result.data) || {};
+    var code = String(data.code || '');
+    var err = String(data.error || data.message || '');
+    if (code === 'SIGNWELL_REQUIRED' || code === 'SIGNWELL_UNSIGNED' || code === 'SIGNWELL_TRIAL') return true;
+    return /create the split sheet|split sheet|unsigned|awaiting sign|already submitted|already pending/i.test(err);
+  }
+
+  function showEditRetry(show) {
+    var retry = $('[data-edit-retry]');
+    if (!retry) return;
+    retry.hidden = !show;
+  }
+
+  function goEditSubmitted(id, hops, nextStatus) {
+    setEditError('');
+    showEditRetry(false);
+    var href = 'edit-submitted.html' + (id ? ('?id=' + encodeURIComponent(id)) : '');
+    try { global.location.href = href; } catch (err) {}
+    return { ok: true, created: false, hops: hops, releaseId: id, status: nextStatus, redirect: href };
   }
 
   function isCreateReleaseUrl(url, method) {
@@ -1177,6 +1265,7 @@
     }
     var saveBtn = $('[data-edit-save]');
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
+    showEditRetry(false);
     setEditError('Submitting edit to the store…');
     var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
     var originalGenre = String((lastEdit.release && lastEdit.release.genre) || (lastEdit.draft && lastEdit.draft.genre) || '').trim();
@@ -1256,12 +1345,16 @@
       if (!art) return { ok: true, skipped: true };
       var form = new FormData();
       form.append('artwork', art, art.name || 'artwork.jpg');
-      return runHop('artwork', fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-        body: form,
-      }).then(parseSave));
+      return runHop('artwork', withCatalogTimeout(function (signal) {
+        var opts = {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body: form,
+        };
+        if (signal) opts.signal = signal;
+        return fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', opts).then(parseSave);
+      }));
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
       if (!audio || !trackId) {
@@ -1276,46 +1369,44 @@
         }
         var audioForm = new FormData();
         audioForm.append('audio', audio, audio.name || 'audio.wav');
-        return runHop('audio', fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-          body: audioForm,
-        }).then(parseSave));
+        return runHop('audio', withCatalogTimeout(function (signal) {
+          var opts = {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            body: audioForm,
+          };
+          if (signal) opts.signal = signal;
+          return fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', opts).then(parseSave);
+        }));
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));
-      var submitBody = {
-        release_date: date || release.release_date || draft.release_date || '',
-        made_how: selectedMadeHow() || draft.made_how || '',
-        human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
-        human_contribution: draft.human_contribution || '',
-        rights_confirmed: draft.rights_confirmed === true,
-        solo_owned_100: draft.solo_owned_100 === true || draft.solo_owned_100 === 'true',
-        featured: featured,
-        title: title,
-        songTitle: title,
+      if (errors.length) return { ok: false, skipped: true, blocked: true };
+      return {
+        ok: true,
+        skipped: true,
+        queued: true,
+        skippedSplit: !editAlreadyQueued(release, draft),
+        data: { status: release.status || (draft && draft.tonegrid_status) || 'pending' },
       };
-      if (draft.signwell_document_id) submitBody.document_id = draft.signwell_document_id;
-      if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
-      return runHop('submit', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/submit', 'POST', submitBody));
     }).then(function (result) {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
-      if (result && !result.ok) errors.push(applyToneGridError(result, 'release_date', $('#edit-release-date')));
+      if (result && !result.ok && !isNonBlockingEditSubmit(result)) {
+        errors.push(applyToneGridError(result, 'release_date', $('#edit-release-date')));
+      }
       if (errors.length) {
+        showEditRetry(false);
         setEditError(errors.join(' '));
         return { ok: false, created: false, hops: hops, errors: errors, releaseId: id };
       }
       var nextStatus = (result && result.data && result.data.status) || release.status || 'pending';
-      setEditError('');
-      closeEdit();
-      return stayOnRelease(id).then(function (next) {
-        return { ok: true, created: false, hops: hops, releaseId: id, status: nextStatus, release: next };
-      });
-    }).catch(function () {
+      return goEditSubmitted(id, hops, nextStatus);
+    }).catch(function (err) {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
-      setEditError('We could not reach the store.');
-      return { ok: false, created: false, hops: hops, releaseId: id };
+      setEditError(catalogTimeoutMessage());
+      showEditRetry(true);
+      return { ok: false, created: false, hops: hops, releaseId: id, timedOut: Boolean(err && err.timedOut) };
     });
 
     return chain;
@@ -1489,6 +1580,10 @@
     var saveBtn = $('[data-edit-save]');
     if (saveBtn && saveBtn.addEventListener) {
       saveBtn.addEventListener('click', function () { submitEdit(); });
+    }
+    var retryBtn = $('[data-edit-retry]');
+    if (retryBtn && retryBtn.addEventListener) {
+      retryBtn.addEventListener('click', function () { submitEdit(); });
     }
     var cancelBtn = $('[data-edit-cancel]');
     if (cancelBtn && cancelBtn.addEventListener) {

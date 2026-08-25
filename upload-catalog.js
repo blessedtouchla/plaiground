@@ -1401,6 +1401,16 @@ function typeaheadRoot() {
   return doc && doc.documentElement ? doc.documentElement : null;
 }
 
+function isCoarsePointer() {
+  var win = typeof window !== 'undefined' ? window : null;
+  if (!win || typeof win.matchMedia !== 'function') return false;
+  try {
+    return !!(win.matchMedia('(pointer: coarse)').matches);
+  } catch (err) {
+    return false;
+  }
+}
+
 function typeaheadBusy(api) {
   return !!(api && typeof api.busy === 'function' && api.busy());
 }
@@ -1605,8 +1615,13 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }
     }
     if (list.classList.toggle) list.classList.toggle('is-above', above);
-    if (list.classList.add) list.classList.add('is-fixed');
-    if (rect && typeof rect.left === 'number') {
+    // Desktop: pin the list so it sits above the next field. iPhone Safari
+    // hit-tests a position:fixed list against the language input, so keep
+    // the list in-flow there and commit from the option rect instead.
+    var pinFixed = !isCoarsePointer();
+    if (pinFixed && list.classList.add) list.classList.add('is-fixed');
+    else if (list.classList.remove) list.classList.remove('is-fixed');
+    if (pinFixed && rect && typeof rect.left === 'number') {
       var viewH = (win && win.innerHeight) || (box.top + box.height) || 0;
       list.style.position = 'fixed';
       list.style.left = Math.round(rect.left) + 'px';
@@ -1620,6 +1635,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
         list.style.bottom = 'auto';
       }
     } else {
+      list.style.position = '';
+      list.style.left = '';
+      list.style.right = '';
+      list.style.width = '';
       list.style.top = above ? 'auto' : 'calc(100% + 4px)';
       list.style.bottom = above ? 'calc(100% + 4px)' : 'auto';
     }
@@ -1776,17 +1795,32 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (!list.classList || list.classList.contains('is-hidden')) return;
     var point = rememberPoint(event);
     if (point) touchStartPoint = point;
-    if (point && pickFromClientPoint(point.x, point.y)) holdBlur = true;
+    if (point && pickFromClientPoint(point.x, point.y)) {
+      holdBlur = true;
+      if (isCoarsePointer() && event) {
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      }
+    }
   }
 
   function onDocCommit(event) {
-    if (!list.classList || list.classList.contains('is-hidden')) return;
+    if (!list.classList || list.classList.contains('is-hidden')) {
+      holdBlur = false;
+      return;
+    }
     rememberPoint(event);
     if (touchMoved(event)) {
       holdBlur = false;
       return;
     }
-    if (commitListEvent(event) && event && event.stopPropagation) event.stopPropagation();
+    var picked = commitListEvent(event);
+    holdBlur = false;
+    if (picked && event) {
+      if (event.stopPropagation) event.stopPropagation();
+      if (isCoarsePointer() && event.preventDefault) event.preventDefault();
+    }
   }
 
   function showMatches(query) {
@@ -1854,10 +1888,11 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }, { passive: true });
   list.addEventListener('touchstart', holdTouchPick, { passive: true });
   if (doc && doc.addEventListener) {
-    doc.addEventListener('pointerdown', onDocHold, true);
-    doc.addEventListener('touchstart', onDocHold, true);
-    doc.addEventListener('pointerup', onDocCommit, true);
-    doc.addEventListener('touchend', onDocCommit, true);
+    var tapListen = { capture: true, passive: false };
+    doc.addEventListener('pointerdown', onDocHold, tapListen);
+    doc.addEventListener('touchstart', onDocHold, tapListen);
+    doc.addEventListener('pointerup', onDocCommit, tapListen);
+    doc.addEventListener('touchend', onDocCommit, tapListen);
   }
 
   function openList() {

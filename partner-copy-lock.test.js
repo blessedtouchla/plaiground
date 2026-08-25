@@ -23,6 +23,7 @@ const USER_FILES = [
   'submitted.html',
   'song.html',
   'song.js',
+  'edit-submitted.html',
   'lib/statement-pdf.js',
   'store-client.js',
   'upload.html',

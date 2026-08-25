@@ -407,6 +407,25 @@ function run() {
   assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register>Publishing<\/a>/.test(pubRegNav[0]), 'Publishing is current on the register page');
   assert.ok(js.includes('publishing-register.html') && js.includes('publishing.html') && js.includes('data-publishing-register'), 'shared app menu marks Publishing current on register/explainer');
 
+  const releases = read('releases.html');
+  const siteCss = read('site.css');
+  assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
+  assert.ok(/class="btn btn-purple btn-md"[^>]*data-new-release/.test(releases), 'New release is the primary action');
+  assert.ok(/class="btn btn-ghost btn-sm"[^>]*data-album-upload/.test(releases), 'Upload album stays a smaller secondary action');
+  assert.ok(!/data-new-release[^>]*btn-sm|btn-sm[^>]*data-new-release/.test(releases), 'New release is not a tiny pill');
+  assert.ok(siteCss.includes('.releases-head-actions [data-new-release]'));
+  assert.ok(siteCss.includes('.releases-head-actions [data-album-upload]'));
+  assert.ok(/\.releases-head-actions \{\s*display:\s*flex;\s*flex-direction:\s*column/.test(siteCss), 'New release stacks above Upload album');
+  assert.ok(siteCss.includes('.releases-head-actions [data-new-release]') && siteCss.includes('order: 1'));
+  assert.ok(siteCss.includes('.releases-head-actions [data-album-upload]') && siteCss.includes('order: 2'));
+  assert.ok(/class="catalog-stats releases-stats"/.test(releases), 'Releases stats card is marked for phone centering');
+  assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
+  assert.ok(siteCss.includes('.app .page .releases-stats'), 'phone Releases stats card uses the centered page rule');
+  assert.ok(/\.releases-stats \{\s*[\s\S]*?grid-template-columns:\s*repeat\(4/.test(siteCss), 'phone stats stay one centered four-number card');
+  assert.ok(/\.topbar \.logo img,\s*\n\s*\.topbar \.mobile-only-logo img/.test(siteCss), 'phone header gives the full PLAIGROUND logo room');
+  assert.ok(siteCss.includes('.topbar .menu-toggle-text { display: none; }'), 'Menu label yields room for the full wordmark');
+  assert.ok(!/max-width:\s*min\(220px,\s*52vw\)/.test(siteCss), 'logo must not clip the D with a 52vw cap');
+
   const dash = read('dashboard.html');
   const howApp = read('how.html');
   assert.ok(!dash.includes('class="workflow"'), 'Overview must not keep the 4-step block in the page body');

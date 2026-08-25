@@ -163,8 +163,16 @@
     return fallback || 'Something went wrong. Retry.';
   }
 
-  function sanitizePartnerCopy(text) {
+  var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
+
+  function isSizeCapError(text, status) {
+    if (status === 413) return true;
+    return /request entry too large|request entity too large|payload too large|function_payload_too_large|content too large/i.test(String(text || ''));
+  }
+
+  function sanitizePartnerCopy(text, status) {
     var next = humanErrorText(text, '');
+    if (isSizeCapError(next, status)) return AUDIO_SIZE_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -199,9 +207,15 @@
 
   function parseJson(response) {
     return response.json().then(function (data) {
-      return { ok: response.ok, status: response.status, data: data || {} };
+      var next = data || {};
+      if (isSizeCapError(next.error || next.message, response.status)) {
+        next.error = AUDIO_SIZE_COPY;
+      }
+      return { ok: response.ok, status: response.status, data: next };
     }).catch(function () {
-      return { ok: false, status: response.status, data: {} };
+      var fallback = {};
+      if (isSizeCapError('', response.status)) fallback.error = AUDIO_SIZE_COPY;
+      return { ok: false, status: response.status, data: fallback };
     });
   }
 
@@ -657,14 +671,14 @@
     return 'Please add at least one track.';
   }
 
+  function flagOn(value) {
+    return value === true || value === 'true';
+  }
+
   function alreadyHasAudio(draft) {
     if (!draft) return false;
-    if (draft.audio_uploaded === true) return true;
-    var rows = albumRowsForSubmit(draft);
-    for (var i = 0; i < rows.length; i += 1) {
-      if (rows[i] && rows[i].audio_uploaded) return true;
-    }
-    return false;
+    if (String(draft.type || '') === 'album') return false;
+    return flagOn(draft.audio_uploaded) || flagOn(draft.audio_converted);
   }
 
   function needsAudioUpload(draft, file) {
@@ -944,6 +958,7 @@
       release_idempotency_key: '',
       track_idempotency_key: '',
       audio_uploaded: false,
+      audio_converted: false,
       submitted: false,
       replaced_release_id: '',
       tracks: stored,
@@ -978,6 +993,7 @@
       release_idempotency_key: freshReleaseKey(Object.assign({}, current, { artist_id: artistId })),
       track_idempotency_key: '',
       audio_uploaded: false,
+      audio_converted: false,
       audio_attached: Boolean(current.audio_attached || hadAudioEvidence(current)),
       replaced_release_id: deadId || current.replaced_release_id || '',
       tracks: stored,
@@ -1152,6 +1168,14 @@
     var liveFile = Boolean(selectedAudio()) || albumRowsForSubmit(next).some(function (track) {
       return track && (track.audio || track.file);
     });
+    if (alreadyHasAudio(next) && !force) {
+      if (knownTracks.length) {
+        return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
+      }
+      if (draftHasTrackId(next)) {
+        return Promise.resolve({ ok: true, draft: next, reused: true });
+      }
+    }
     if (!liveFile && knownTracks.length) {
       return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
     }
@@ -1197,7 +1221,7 @@
             });
             next = persistAlbumTracks(stored);
             var file = track.audio || track.file;
-            if (file && trackId && !track.audio_uploaded) {
+            if (file && trackId && !track.audio_uploaded && needsAudioUpload(next, file)) {
               return uploadTrackAudio(trackId, file).then(function (audio) {
                 if (audio.failed || audio.unavailable) return audio;
                 stored[index] = Object.assign({}, stored[index], { audio_uploaded: true, audio_name: file.name || '' });
@@ -1224,7 +1248,7 @@
       next = created.draft || next;
       if (!next.track_id) next = writeDraft({ track_id: trackId });
       var file = selectedAudio();
-      if (file && trackId && (force || !next.audio_uploaded)) {
+      if (file && trackId && needsAudioUpload(next, file)) {
         return uploadTrackAudio(trackId, file).then(function (audio) {
           if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next)) {
             return { ok: true, draft: next, created: true };
@@ -1485,9 +1509,11 @@
 
   function createErrorMessage(result, fallback) {
     var raw = result && result.data ? result.data.error : '';
-    var shown = sanitizePartnerCopy(raw);
+    var status = result && result.status;
+    var shown = sanitizePartnerCopy(raw, status);
     if (shown) return shown;
-    return sanitizePartnerCopy(fallback || '');
+    if (isSizeCapError(fallback, status)) return AUDIO_SIZE_COPY;
+    return sanitizePartnerCopy(fallback || '', status);
   }
 
   function releasePayload(draft, releaseDate) {
@@ -1774,7 +1800,10 @@
 
   function sanitizeResultError(result) {
     if (result && result.data && result.data.error) {
-      result.data.error = sanitizePartnerCopy(result.data.error);
+      result.data.error = sanitizePartnerCopy(result.data.error, result.status);
+    } else if (result && isSizeCapError('', result.status)) {
+      result.data = result.data || {};
+      result.data.error = AUDIO_SIZE_COPY;
     }
     return result;
   }
@@ -1816,6 +1845,9 @@
           clearTimeout(timer);
           var data = {};
           try { data = JSON.parse(xhr.responseText || '{}') || {}; } catch (err) { data = {}; }
+          if (isSizeCapError((data && (data.error || data.message)) || xhr.responseText, xhr.status)) {
+            data.error = AUDIO_SIZE_COPY;
+          }
           done({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: data });
         };
         xhr.send(body);
@@ -1945,6 +1977,9 @@
   }
 
   function runConvertStep(file) {
+    if (alreadyHasAudio(readDraft())) {
+      return Promise.resolve({ file: file, didConvert: false, copy: '', skipped: true });
+    }
     return resolveConvertCopy(file).then(function (copy) {
       if (!copy) return { file: file, didConvert: false, copy: '' };
       showConvertLoader(copy);
@@ -1972,6 +2007,7 @@
 
   function uploadTrackAudio(trackId, file, label) {
     if (!trackId || !file) return Promise.resolve({ skipped: true });
+    if (alreadyHasAudio(readDraft())) return Promise.resolve({ skipped: true, reused: true });
     var sendLabel = label || 'Uploading audio';
     return runConvertStep(file).then(function (ready) {
       if (ready && ready.failed) return ready;
