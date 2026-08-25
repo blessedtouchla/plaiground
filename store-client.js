@@ -96,6 +96,36 @@
     clearHeldAudio();
   }
 
+  function uploadCancelHasStarted() {
+    if (fieldValue('tg-title')) return true;
+    var input = document.querySelector('[data-audio-input]');
+    if (input && input.files && input.files[0]) return true;
+    if (input && input._plaigroundFile) return true;
+    var draft = readDraft();
+    if (!draft) return false;
+    if (String(draft.title || '').trim()) return true;
+    if (draft.audio_name || draft.audio_attached || draft.audio_uploaded || draft.audio_converted) return true;
+    return false;
+  }
+
+  function cancelInProgressUpload(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (uploadCancelHasStarted()) {
+      var ok = true;
+      try {
+        if (typeof window.confirm === 'function') ok = window.confirm('Cancel this upload?');
+      } catch (err) {
+        ok = true;
+      }
+      if (!ok) return false;
+    }
+    clearNewReleaseDraft();
+    try {
+      if (typeof location !== 'undefined') location.href = 'upload.html?new=1';
+    } catch (err) {}
+    return true;
+  }
+
   function stripNewReleaseFlag() {
     try {
       if (!isNewReleaseStart() || !window.history || !window.history.replaceState) return;
@@ -3437,6 +3467,10 @@
     if (isNewReleaseStart()) {
       clearNewReleaseDraft();
       stripNewReleaseFlag();
+    }
+    var cancelBtn = document.querySelector('[data-upload-cancel]');
+    if (cancelBtn && cancelBtn.addEventListener) {
+      cancelBtn.addEventListener('click', cancelInProgressUpload);
     }
     bindUploadCatalog();
     bindArtistSection();
