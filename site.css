@@ -1235,6 +1235,16 @@ table.data tbody tr.is-pick { cursor: pointer; }
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 18px;
+  align-items: center;
+}
+.edit-actions [data-edit-save],
+.edit-actions [data-edit-retry] {
+  min-height: 48px;
+  padding: 13px 26px;
+  font-size: 15px;
+}
+.edit-actions [data-edit-cancel] {
+  min-height: 44px;
 }
 .rel { display: flex; align-items: center; gap: 12px; }
 .thumb {
@@ -3081,15 +3091,90 @@ body:not(.app) > .app-main > .topbar { display: none; }
   }
   .app.nav-open .app-nav-backdrop { display: block; }
   .app.nav-open { overflow: hidden; }
-  .topbar { gap: 12px; }
+  .topbar {
+    gap: 12px;
+    overflow: visible;
+    padding: 12px 16px;
+    min-height: 64px;
+    align-items: center;
+  }
   .topbar .menu-toggle { display: inline-flex; }
+  .topbar .logo {
+    overflow: visible;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    display: inline-flex;
+    align-items: center;
+    padding-right: 8px;
+  }
+  .topbar .logo img,
+  .topbar .mobile-only-logo img {
+    height: 48px;
+    width: auto;
+    max-width: min(220px, 52vw);
+    max-height: 48px;
+    object-fit: contain;
+    object-position: left center;
+    display: block;
+  }
   .topbar .mobile-only-logo {
     display: inline-flex;
     align-items: center;
+    overflow: visible;
+    flex: 0 0 auto;
   }
-  .topbar .mobile-only-logo img {
-    height: 40px;
+  .page-head.head-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .releases-head-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+  .releases-head-actions [data-new-release] {
+    width: 100%;
+    justify-content: center;
+    padding: 15px 28px;
+    font-size: 16px;
+  }
+  .releases-head-actions [data-album-upload] {
     width: auto;
+    align-self: center;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .catalog-stats {
+    text-align: center;
+    justify-items: center;
+  }
+  .catalog-stats div {
+    text-align: center;
+    border-left: none;
+    width: 100%;
+  }
+  .catalog-stats div + div {
+    border-top: 1px solid var(--line);
+  }
+  .edit-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .edit-actions [data-edit-save],
+  .edit-actions [data-edit-retry] {
+    width: 100%;
+    min-height: 52px;
+    padding: 15px 28px;
+    font-size: 16px;
+  }
+  .edit-actions [data-edit-cancel] {
+    width: 100%;
+    order: 2;
   }
   .step + .step { border-left: none; border-top: 1px solid var(--line); padding-top: 28px; margin-top: 20px; }
   .step { padding: 8px 0; }

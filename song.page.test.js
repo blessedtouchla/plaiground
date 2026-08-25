@@ -159,6 +159,7 @@ function loadSong(opts) {
     '[data-edit-splits-copy]': makeEl({}),
     '[data-edit-save]': makeEl({}),
     '[data-edit-cancel]': makeEl({}),
+    '[data-edit-retry]': makeEl({ hidden: true, textContent: 'Retry' }),
     '[data-language-field]': makeEl({}),
     '[data-edit-lyrics-field]': makeEl({}),
     '#edit-lyrics': ids['edit-lyrics'],
@@ -198,6 +199,10 @@ function loadSong(opts) {
     rejected: makeEl({ life: 'rejected' }),
   };
   const context = {
+    Promise,
+    setTimeout,
+    clearTimeout,
+    PlaigroundCatalogTimeoutMs: opts.catalogTimeoutMs || undefined,
     localStorage: {
       data: opts.draft ? { 'plaiground.store.draft': JSON.stringify(opts.draft) } : {},
       getItem(key) { return this.data[key] || null; },
@@ -224,6 +229,12 @@ function loadSong(opts) {
     fetch(url, options) {
       const method = (options && options.method) || 'GET';
       calls.push({ url: String(url), method: method, body: options && options.body });
+      if (opts.hangWhen && String(url) === opts.hangWhen) {
+        opts._hangHits = (opts._hangHits || 0) + 1;
+        if (opts._hangHits <= (opts.hangCount || 1)) {
+          return new Promise(function () {});
+        }
+      }
       if (opts.fetch) return opts.fetch(url, options, calls);
       return Promise.resolve({ ok: true, status: 200, json: async () => ({ releases: [], stores: [] }) });
     },
@@ -263,6 +274,109 @@ function loadSong(opts) {
   vm.runInNewContext(read('lib/statement-pdf.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
+}
+
+function openFilledEdit(page, extraDraft) {
+  page.ids['edit-title'].value = 'Fuvtu Edit';
+  page.ids['edit-genre'].value = 'Electronic';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-lyrics'].value = 'City lights, I stay';
+  page.api.openEdit({
+    me: {
+      artist: 'Fuvtu',
+      plan: 'basic',
+      tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    },
+    draft: Object.assign({
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      made_how: 'no_ai',
+      rights_confirmed: true,
+      submitted: true,
+      track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    }, extraDraft || {}),
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      status: 'pending',
+      genre: 'Electronic',
+      language: 'en',
+      release_date: '2026-08-24',
+      artist: 'Fuvtu',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+      dsps: ['spotify'],
+    },
+  });
+}
+
+function testEditSubmitLeftovers() {
+  const multiCalls = [];
+  const multi = loadSong({
+    plan: 'basic',
+    me: {
+      artist: 'Fuvtu',
+      plan: 'basic',
+      tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    },
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    calls: multiCalls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/submit$/.test(String(url))) {
+        return Promise.resolve({
+          ok: false,
+          status: 400,
+          json: async () => ({ error: 'Create the split sheet before submitting.', code: 'SIGNWELL_REQUIRED' }),
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, status: 'pending' }) });
+    },
+  });
+  openFilledEdit(multi, {
+    solo_owned_100: false,
+    writers: [{ name: 'Fuvtu', share: 50 }, { name: 'Ada', share: 50 }],
+  });
+  return multi.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'multi-writer can still edit while a split is awaiting');
+    assert.ok(multiCalls.some((row) => row.method === 'PUT' && /\/releases\//.test(row.url)));
+    assert.ok(/edit-submitted\.html/.test(String(multi.context.location.href)));
+    assert.ok(!/Create the split sheet/.test(multi.nodes['[data-edit-error]'].textContent));
+    assert.ok(!/ToneGrid/i.test(multi.nodes['[data-edit-error]'].textContent));
+
+    const timedCalls = [];
+    const timed = loadSong({
+      plan: 'basic',
+      me: {
+        artist: 'Fuvtu',
+        plan: 'basic',
+        tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+      },
+      search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      catalogTimeoutMs: 40,
+      hangWhen: '/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      hangCount: 1,
+      calls: timedCalls,
+      fetch(url, options) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, status: 'pending' }) });
+      },
+    });
+    openFilledEdit(timed, { solo_owned_100: true });
+    return timed.api.submitEdit().then(function (first) {
+      assert.strictEqual(first.ok, false);
+      assert.ok(first.timedOut, 'edit submit times out when the store does not answer');
+      assert.match(timed.nodes['[data-edit-error]'].textContent, /could not reach the store/i);
+      assert.ok(!/ToneGrid/i.test(timed.nodes['[data-edit-error]'].textContent));
+      assert.strictEqual(timed.nodes['[data-edit-retry]'].hidden, false);
+      assert.strictEqual(timed.nodes['[data-edit-retry]'].textContent, 'Retry');
+      assert.ok(!/edit-submitted\.html/.test(String(timed.context.location.href)));
+      return timed.api.submitEdit().then(function (retry) {
+        assert.ok(retry.ok, 'Retry after timeout must succeed');
+        assert.ok(/edit-submitted\.html/.test(String(timed.context.location.href)));
+        assert.strictEqual(timed.nodes['[data-edit-retry]'].hidden, true);
+      });
+    });
+  });
 }
 
 function run() {
@@ -579,6 +693,16 @@ function run() {
   assert.ok(/data-song-download>Download<\/button>/.test(html));
   assert.ok(html.includes('data-life="taken_down"'));
   assert.ok(html.includes('data-edit-save'));
+  assert.ok(html.includes('data-edit-retry'));
+  assert.ok(/class="btn btn-purple btn-md" data-edit-save/.test(html), 'Submit for editing is a primary button');
+  assert.ok(/class="btn btn-ghost" data-edit-cancel/.test(html), 'Cancel stays secondary');
+  assert.ok(css.includes('.edit-actions [data-edit-save]'));
+  const confirmHtml = read('edit-submitted.html');
+  assert.ok(confirmHtml.includes('href="dashboard.html">Back to Overview</a>'));
+  assert.ok(confirmHtml.includes('href="releases.html">View Releases</a>'));
+  assert.ok(!/ToneGrid|Tonegrid/i.test(confirmHtml));
+  assert.ok(!/Submitting edit to the store/.test(confirmHtml));
+  assert.ok(!/M\. Hale|I\. Novak/.test(confirmHtml));
   assert.ok(html.includes('id="edit-release-date"'));
   assert.ok(html.includes('id="edit-release-date-hint"'));
   assert.ok(html.includes('id="edit-preorder-on"'));
@@ -885,6 +1009,8 @@ function run() {
     assert.ok(mutating.some((row) => row.method === 'PUT' && /\/dsps$/.test(row.url)));
     assert.ok(mutating.some((row) => row.method === 'PUT' && /\/tracks\//.test(row.url)));
     assert.ok(mutating.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
+    assert.ok(/edit-submitted\.html/.test(String(editor.context.location.href)), 'successful edit opens a confirmation page');
+    assert.ok(!/Submitting edit to the store/.test(editor.nodes['[data-edit-error]'].textContent));
     assert.ok(!mutating.some((row) => editor.api.isCreateReleaseUrl(row.url, row.method)), 'edit must not POST a new release or artist');
     const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.store.draft'));
     assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
@@ -1136,7 +1262,9 @@ function run() {
               assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
               assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
               assert.notStrictEqual(leftover.context.location.href, 'releases.html');
-              console.log('song.page.test.js ok');
+              return testEditSubmitLeftovers().then(function () {
+                console.log('song.page.test.js ok');
+              });
             });
           });
         });

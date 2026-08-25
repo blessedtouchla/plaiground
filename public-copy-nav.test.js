@@ -407,6 +407,17 @@ function run() {
   assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register>Publishing<\/a>/.test(pubRegNav[0]), 'Publishing is current on the register page');
   assert.ok(js.includes('publishing-register.html') && js.includes('publishing.html') && js.includes('data-publishing-register'), 'shared app menu marks Publishing current on register/explainer');
 
+  const releases = read('releases.html');
+  const siteCss = read('site.css');
+  assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
+  assert.ok(/class="btn btn-purple btn-md"[^>]*data-new-release/.test(releases), 'New release is the primary action');
+  assert.ok(/class="btn btn-ghost btn-sm"[^>]*data-album-upload/.test(releases), 'Upload album stays a smaller secondary action');
+  assert.ok(!/data-new-release[^>]*btn-sm|btn-sm[^>]*data-new-release/.test(releases), 'New release is not a tiny pill');
+  assert.ok(siteCss.includes('.releases-head-actions [data-new-release]'));
+  assert.ok(siteCss.includes('.releases-head-actions [data-album-upload]'));
+  assert.ok(siteCss.includes('.catalog-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
+  assert.ok(/\.topbar \.logo img,\s*\n\s*\.topbar \.mobile-only-logo img/.test(siteCss), 'phone header gives the full PLAIGROUND logo room');
+
   const dash = read('dashboard.html');
   const howApp = read('how.html');
   assert.ok(!dash.includes('class="workflow"'), 'Overview must not keep the 4-step block in the page body');
