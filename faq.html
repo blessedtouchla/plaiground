@@ -85,7 +85,10 @@
           </div>
           <div class="faq-item">
             <button class="q" type="button">Where do you deliver?</button>
-            <p class="a">We deliver to 150 platforms, including Spotify, Apple Music, and Amazon Music.</p>
+            <div class="a" data-faq-stores>
+              <p data-faq-store-count>We deliver to the live store catalog.</p>
+              <ul data-faq-store-list></ul>
+            </div>
           </div>
           <div class="faq-item">
             <button class="q" type="button">Do you assign an ISRC?</button>
@@ -141,7 +144,7 @@
           </div>
           <div class="faq-item">
             <button class="q" type="button">What is the difference between Basic, Creator, and Pro?</button>
-            <p class="a">Three plans. Basic is $0 forever: one song for life, distribution to 150 platforms, split sheets, and no publishing, Boost, or withdraw. Creator is Basic with the paid features unlocked: publishing, Marketing Boost, album, advanced analytics, and retrieve / get paid. Then the cap: 8 distribution uploads a month and 8 publishing registrations a month, counted separately. Creator is $14.99 a month. Yearly is $149. Pro unlocks unlimited: $19.99 a month or $199 a year. Pro includes catalog migration. Creator does not. Marketing Boost packages are not for sale yet.</p>
+            <p class="a">Three plans. Basic is $0 forever: one song for life, distribution to the live store catalog, split sheets, and no publishing, Boost, or withdraw. Creator is Basic with the paid features unlocked: publishing, Marketing Boost, album, advanced analytics, and retrieve / get paid. Then the cap: 8 distribution uploads a month and 8 publishing registrations a month, counted separately. Creator is $14.99 a month. Yearly is $149. Pro unlocks unlimited: $19.99 a month or $199 a year. Pro includes catalog migration. Creator does not. Marketing Boost packages are not for sale yet.</p>
           </div>
           <div class="faq-item">
             <button class="q" type="button">What are Boosts?</button>
@@ -230,6 +233,25 @@
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="site.js"></script>
+  <script src="lib/store-pick.js"></script>
+  <script>
+    (function () {
+      var root = document.querySelector('[data-faq-stores]');
+      if (!root || typeof PlaigroundStorePick === 'undefined') return;
+      function paint(stores) {
+        PlaigroundStorePick.paintFaqStores(root, stores);
+      }
+      paint(PlaigroundStorePick.DEFAULT_STORES);
+      if (typeof fetch !== 'function') return;
+      fetch('/api/tonegrid/stores', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (response) { return response.json().then(function (data) { return { ok: response.ok, data: data || {} }; }); })
+        .then(function (result) {
+          var live = result.ok && result.data && result.data.stores;
+          if (live && live.length) paint(live);
+        })
+        .catch(function () {});
+    })();
+  </script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

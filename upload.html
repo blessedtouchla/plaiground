@@ -327,9 +327,8 @@
           var dt = new DataTransfer();
           dt.items.add(file);
           input.files = dt.files;
-        } catch (err) {
-          input._plaigroundFile = file;
-        }
+        } catch (err) {}
+        input._plaigroundFile = file;
         if (nameEl) nameEl.textContent = file.name;
         if (metaEl) metaEl.textContent = file.type || 'Audio file';
         if (preview) preview.hidden = false;

@@ -564,6 +564,11 @@ function run() {
   assert.ok(read('song.js').includes('canonicalCatalogValue'));
   assert.ok(read('song.js').includes('function pickedLanguage'));
   assert.ok(read('song.js').includes('typeaheadTypedValue'));
+  assert.ok(read('song.js').includes('fillCatalogSelects();'));
+  assert.ok(!/if \(paid\) \{\s*fillCatalogSelects/.test(read('song.js')), 'Basic edit must bind genre/language typeahead');
+  const songHtml = html;
+  assert.ok(!/data-for-plans/.test(songHtml.slice(Math.max(0, songHtml.indexOf('id="edit-genre"') - 280), songHtml.indexOf('id="edit-genre"') + 180)));
+  assert.ok(!/data-for-plans/.test(songHtml.slice(Math.max(0, songHtml.indexOf('id="edit-language"') - 280), songHtml.indexOf('id="edit-language"') + 180)));
   assert.ok(read('song.js').includes('persistEditReleaseDate'));
   assert.ok(read('song.js').includes('ignoreEmpty'));
   assert.ok(css.includes('::-webkit-datetime-edit'));

@@ -231,7 +231,9 @@
     $all('[data-first-song]').forEach(function (el) { el.hidden = hasRelease; });
     $all('[data-has-release]').forEach(function (el) { el.hidden = !hasRelease; });
     $all('[data-first-upload]').forEach(function (el) { el.hidden = hasRelease; });
-    $all('[data-latest-title]').forEach(function (el) { setText(el, latest.title); });
+    if (!(global.document && global.document.querySelector && global.document.querySelector('[data-publishing-pick]'))) {
+      $all('[data-latest-title]').forEach(function (el) { setText(el, latest.title); });
+    }
     $all('[data-latest-status]').forEach(function (el) { setText(el, latest.status); });
     $all('[data-latest-link]').forEach(function (el) {
       if (latest.href) el.setAttribute('href', latest.href);

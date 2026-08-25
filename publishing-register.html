@@ -46,23 +46,36 @@
         <div>
           <p class="kicker">Publishing</p>
           <h1 data-publishing-title>Register publishing</h1>
-          <p>Everything you already gave us is carried over. Only the fields BMI needs on top of that are yours to fill in.</p>
+          <p>Pick the release first. We fill the work from that catalog entry and any signed split. Only the fields BMI still needs are yours to type.</p>
         </div>
         <a class="learn" href="dashboard.html">Save and exit</a>
       </div>
 
-      <section class="flow-card">
+      <section class="flow-card" data-publishing-pick>
+        <h3>Which release?</h3>
+        <p class="hint">Choose a release you already have in your catalog. Dummy titles are not used.</p>
+        <div class="field">
+          <label for="pub-release">Release</label>
+          <select id="pub-release" class="details-select" data-publishing-release>
+            <option value="">Select a release</option>
+          </select>
+        </div>
+        <p class="hint" data-publishing-empty hidden>No releases in your catalog yet. Upload a song first.</p>
+        <p class="hint" data-publishing-cap hidden>Creator includes 8 publishing registrations this month, counted separately from uploads.</p>
+      </section>
+
+      <section class="flow-card" data-publishing-carry hidden>
         <div class="head-row">
           <h3>Carried over from your submission</h3>
           <span class="live">Nothing to re-enter</span>
         </div>
         <div class="carry">
-          <div><small>Work title</small><span data-latest-title>Your release</span></div>
-          <div><small>Performing artist</small><span data-account-artist>Artist name</span></div>
-          <div><small>Release date</small>—</div>
-          <div><small>AI disclosure</small>From your attestation</div>
+          <div><small>Work title</small><span data-work-title></span></div>
+          <div><small>Performing artist</small><span data-work-artist></span></div>
+          <div><small>Release date</small><span data-work-date></span></div>
+          <div><small>AI disclosure</small><span data-work-ai></span></div>
         </div>
-        <p class="hint">Writers and shares come from the signed split sheet for this work.</p>
+        <p class="hint" data-work-writers>Writers and shares come from the signed split sheet for this work.</p>
       </section>
 
       <section class="flow-card">
@@ -115,7 +128,65 @@
   </script>
   <script src="membership.js" data-require-publishing="true"></script>
   <script src="account.js"></script>
+  <script src="lib/release-status.js"></script>
+  <script src="upload-catalog.js"></script>
+  <script src="publishing-register.js"></script>
   <script src="site.js"></script>
+  <script>
+    (function () {
+      if (typeof PlaigroundPublishingRegister === 'undefined') return;
+      function draftOf() {
+        try {
+          return JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
+        } catch (err) {
+          return {};
+        }
+      }
+      function loadRelease(id) {
+        if (!id || typeof fetch !== 'function') return Promise.resolve(null);
+        return fetch('/api/tonegrid/releases/' + encodeURIComponent(id), {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        }).then(function (response) {
+          return response.json().then(function (data) {
+            return response.ok ? (data.release || data) : null;
+          });
+        }).catch(function () { return null; });
+      }
+      function start(me, liveRows) {
+        PlaigroundPublishingRegister.bind(document, {
+          me: me,
+          roster: me && me.profile && me.profile.artists,
+          liveRows: liveRows,
+          draft: draftOf(),
+          plan: me && me.plan,
+          loadRelease: loadRelease,
+        });
+      }
+      function withMe(cb) {
+        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
+          window.PlaigroundMembership.whenReady().then(function (result) {
+            cb((result && result.data) || (window.PlaigroundMembership.account && window.PlaigroundMembership.account()) || null);
+          });
+          return;
+        }
+        cb(null);
+      }
+      withMe(function (me) {
+        if (typeof fetch !== 'function') {
+          start(me, []);
+          return;
+        }
+        fetch('/api/tonegrid/releases', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              start(me, (response.ok && data && data.releases) || []);
+            });
+          })
+          .catch(function () { start(me, []); });
+      });
+    })();
+  </script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

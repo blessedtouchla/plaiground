@@ -586,6 +586,7 @@
     if (global.PlaigroundMembership && typeof global.PlaigroundMembership.applyPlanCopy === 'function') {
       global.PlaigroundMembership.applyPlanCopy();
     }
+    fillCatalogSelects();
     lastEdit = { me: me, draft: draft, release: release, analytics: analytics };
     var playerRelease = Object.assign({}, release, { status: step });
     mountLivePlayer(playerRelease);
@@ -909,11 +910,14 @@
         language.appendChild(opt);
       });
     }
-    if (catalog && typeof catalog.bindTypeahead === 'function') {
-      if (genre && catalog.GENRES) catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-      if (language && catalog.LANGUAGES) {
-        catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-      }
+    if (catalog && (typeof catalog.ensureTypeahead === 'function' || typeof catalog.bindTypeahead === 'function')) {
+      var bind = catalog.ensureTypeahead || catalog.bindTypeahead;
+      try {
+        if (genre && catalog.GENRES) bind.call(catalog, genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+        if (language && catalog.LANGUAGES) {
+          bind.call(catalog, language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+        }
+      } catch (err) {}
     }
   }
 
