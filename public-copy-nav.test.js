@@ -420,6 +420,7 @@ function run() {
   assert.ok(siteCss.includes('.releases-head-actions [data-album-upload]') && siteCss.includes('order: 2'));
   assert.ok(/class="catalog-stats releases-stats"/.test(releases), 'Releases stats card is marked for phone centering');
   assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
+  assert.ok(siteCss.includes('.app .page .releases-stats'), 'phone Releases stats card uses the centered page rule');
   assert.ok(/\.releases-stats \{\s*[\s\S]*?grid-template-columns:\s*repeat\(4/.test(siteCss), 'phone stats stay one centered four-number card');
   assert.ok(/\.topbar \.logo img,\s*\n\s*\.topbar \.mobile-only-logo img/.test(siteCss), 'phone header gives the full PLAIGROUND logo room');
   assert.ok(siteCss.includes('.topbar .menu-toggle-text { display: none; }'), 'Menu label yields room for the full wordmark');
