@@ -644,6 +644,9 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .typeahead-field { position: relative; z-index: 1; overflow: visible; }
 .typeahead-field:focus-within,
 .typeahead-field.is-typeahead-open { z-index: 4100; }
+html.is-typeahead-open .typeahead-field:not(.is-typeahead-open) {
+  pointer-events: none;
+}
 .form-grid .field,
 .flow-card,
 .release-edit,
@@ -705,6 +708,10 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .typeahead-list.is-above {
   top: auto;
   bottom: calc(100% + 4px);
+}
+.typeahead-list.is-fixed {
+  position: fixed;
+  right: auto;
 }
 .typeahead-list button {
   display: block;

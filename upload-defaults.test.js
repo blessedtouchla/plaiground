@@ -392,6 +392,144 @@ function testIosSafariLanguageTapSticks(catalog) {
   }
 }
 
+function mockField() {
+  return {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; }, contains(name) { return Boolean(this.tokens[name]); } },
+    querySelector(sel) {
+      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
+      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
+      return { setAttribute() {} };
+    },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+}
+
+function mockSelect(id, placeholder) {
+  const field = mockField();
+  const select = {
+    parentNode: field,
+    id: id,
+    options: [{ value: '', textContent: placeholder }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  return select;
+}
+
+function testBasicMobileGenreSticksWithLanguageBound(catalog) {
+  const genreSelect = mockSelect('tg-genre', 'Select genre');
+  const langSelect = mockSelect('tg-language', 'Select language');
+  const timers = [];
+  const docListeners = {};
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  const rootClass = { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; }, contains(name) { return Boolean(this.tokens[name]); } };
+  global.window = {
+    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
+    clearTimeout() {},
+    addEventListener() {},
+    visualViewport: { offsetTop: 0, offsetLeft: 0, width: 390, height: 520, addEventListener() {} },
+    innerWidth: 390,
+    innerHeight: 520,
+  };
+  global.document = {
+    documentElement: { classList: rootClass },
+    listeners: docListeners,
+    addEventListener(type, fn) {
+      this.listenerList = this.listenerList || {};
+      this.listenerList[type] = this.listenerList[type] || [];
+      this.listenerList[type].push(fn);
+      const list = this.listenerList;
+      this.listeners[type] = function (ev) {
+        list[type].slice().forEach(function (handler) { handler(ev); });
+      };
+    },
+    createElement(tag) {
+      const node = mockTypeaheadEl(tag);
+      node.getBoundingClientRect = function () {
+        return this._rect || { top: 120, bottom: 164, left: 16, right: 300, width: 284, height: 44 };
+      };
+      return node;
+    },
+    elementFromPoint() { return this._fromPoint || null; },
+  };
+  try {
+    catalog.bindTypeahead(genreSelect, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    catalog.bindTypeahead(langSelect, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+    const genreInput = genreSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const genreList = genreSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    const langInput = langSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const langList = langSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    assert.ok(genreInput && genreList && langInput && langList, 'Basic upload binds both genre and language typeaheads');
+
+    genreInput.listeners.focus();
+    assert.ok(listButtons(genreList).length >= 1, 'genre empty open still shows a short list');
+    assert.ok(listButtons(genreList).length <= catalog.TYPEAHEAD_LIST_CAP, 'genre empty list stays capped');
+    assert.ok(genreList.classList.contains('is-fixed') || genreList.style.position === 'fixed', 'genre list leaves the form-grid stacking context');
+    assert.ok(rootClass.contains('is-typeahead-open'), 'open genre locks sibling typeahead hit targets');
+
+    genreInput.value = 'pop';
+    genreInput.listeners.input();
+    assert.strictEqual(genreInput.value, 'pop', 'typing a genre label must not rewrite the visible field mid-keystroke');
+    assert.ok(listButtons(genreList).some(function (btn) { return btn.textContent === 'Pop'; }), 'genre search must find Pop in the same catalog as Creator');
+
+    genreInput.value = 'Hip';
+    genreInput.listeners.input();
+    const hip = listButtons(genreList).find(function (btn) { return btn.textContent === 'Hip-Hop'; });
+    assert.ok(hip, 'Basic mobile genre search must find Hip-Hop');
+    hip._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
+
+    // iPhone Safari: the genre list sits over language. The tap hits the
+    // language input; both document listeners fire. Genre must still stick.
+    const missed = mockTypeaheadEl('input');
+    missed.id = 'tg-language-type';
+    missed.className = 'typeahead-input';
+    global.document._fromPoint = missed;
+    if (docListeners.touchstart) docListeners.touchstart(iosTapEvent(missed, 48, 240));
+    genreList.listeners.touchstart(iosTapEvent(hip, 48, 240));
+    genreInput.listeners.blur();
+    if (langInput.listeners.focus) langInput.listeners.focus();
+    if (docListeners.touchend) docListeners.touchend(iosTapEvent(missed, 50, 242));
+    timers.forEach(function (row) { row.fn(); });
+    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'iOS genre tap that lands on language still writes the catalog genre');
+    assert.strictEqual(genreInput.value, 'Hip-Hop', 'visible Basic genre text stays after the overlay tap');
+    assert.strictEqual(langSelect.value, '', 'language must not steal the genre pick');
+    assert.notStrictEqual(langInput.value, 'Hip-Hop', 'language visible field must not take the genre label');
+
+    langSelect.value = '';
+    langInput.value = '';
+    if (langSelect.options[0]) langSelect.selectedIndex = 0;
+    langInput.listeners.focus();
+    langInput.value = 'En';
+    langInput.listeners.input();
+    const english = listButtons(langList).find(function (btn) { return btn.textContent === 'English'; });
+    assert.ok(english, 'language search must still work after a genre pick');
+    english._rect = { top: 300, bottom: 344, left: 16, right: 300, width: 284, height: 44 };
+    langList.listeners.touchstart(iosTapEvent(english, 40, 320));
+    langInput.listeners.blur();
+    langList.listeners.touchend(iosTapEvent(english, 41, 322));
+    timers.forEach(function (row) { row.fn(); });
+    assert.strictEqual(langSelect.value, 'en', 'Basic language pick still sticks after genre');
+    assert.strictEqual(langInput.value, 'English', 'Basic language visible name still sticks after genre');
+    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'genre stays after a later language pick');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function testTypeaheadRebindsIfInputMissing(catalog) {
   const field = {
     children: [],
@@ -635,6 +773,11 @@ function run() {
   assert.ok(catalogSrc.indexOf('holdBlur') !== -1, 'iOS tap must hold blur until touchend');
   assert.ok(catalogSrc.indexOf('commitTouchEnd') !== -1, 'iOS must commit on touchend, not only click');
   assert.ok(catalogSrc.indexOf('pickFromClientPoint') !== -1, 'iOS tap that misses the option node must still use the tap point');
+  assert.ok(catalogSrc.indexOf('claimTypeahead') !== -1, 'only one Basic typeahead list may own the tap');
+  assert.ok(catalogSrc.indexOf('is-fixed') !== -1, 'genre list must escape the form-grid overlay');
+  assert.ok(catalogSrc.indexOf('Do not rewrite the visible field while') !== -1, 'genre labels must not autofill mid-type');
+  assert.ok(/html\.is-typeahead-open[\s\S]*?pointer-events:\s*none/.test(css), 'open genre must disable the language field under the list');
+  assert.ok(/\.typeahead-list\.is-fixed[\s\S]*?position:\s*fixed/.test(css), 'fixed typeahead list sits above the next field');
   assert.ok(catalogSrc.indexOf("new Event('pointerdown'") === -1, 'document pick must not re-dispatch pointerdown');
 
   const aGenres = catalog.GENRES.filter(function (name) { return /^a/i.test(name); });
@@ -942,6 +1085,7 @@ function run() {
     testTypeaheadRebindsIfInputMissing(catalog);
     testIosSafariTapSticksWithoutClick(catalog);
     testIosSafariLanguageTapSticks(catalog);
+    testBasicMobileGenreSticksWithLanguageBound(catalog);
   } finally {
     if (prevDoc2 === undefined) delete global.document;
     else global.document = prevDoc2;

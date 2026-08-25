@@ -1394,6 +1394,34 @@ function fillSelect(select, items, getValue, getLabel) {
 
 var TYPEAHEAD_LIST_CAP = 24;
 var typeaheadApplying = false;
+var activeTypeahead = null;
+
+function typeaheadRoot() {
+  var doc = typeof document !== 'undefined' ? document : null;
+  return doc && doc.documentElement ? doc.documentElement : null;
+}
+
+function typeaheadBusy(api) {
+  return !!(api && typeof api.busy === 'function' && api.busy());
+}
+
+function claimTypeahead(api) {
+  if (activeTypeahead && activeTypeahead !== api) {
+    if (typeaheadBusy(activeTypeahead)) return false;
+    if (typeof activeTypeahead.release === 'function') activeTypeahead.release();
+  }
+  activeTypeahead = api;
+  var root = typeaheadRoot();
+  if (root && root.classList && root.classList.add) root.classList.add('is-typeahead-open');
+  return true;
+}
+
+function unclaimTypeahead(api) {
+  if (activeTypeahead !== api) return;
+  activeTypeahead = null;
+  var root = typeaheadRoot();
+  if (root && root.classList && root.classList.remove) root.classList.remove('is-typeahead-open');
+}
 
 function isTypeaheadBound(select) {
   return !!(select && select.getAttribute && select.getAttribute('data-typeahead') === 'on' && typeaheadInput(select));
@@ -1465,6 +1493,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
   var placeTimer = 0;
   var win = typeof window !== 'undefined' ? window : null;
   var doc = typeof document !== 'undefined' ? document : null;
+  var selfApi = {
+    busy: function () { return holdBlur; },
+    release: function () {},
+  };
 
   function exact(query) {
     return findPick(items, getValue, getLabel, query);
@@ -1480,7 +1512,9 @@ function bindTypeahead(select, items, getValue, getLabel) {
     var pick = currentPick();
     var active = typeof document !== 'undefined' && document.activeElement === input;
     if (pick) input.value = pick.label;
-    else if (!active) input.value = '';
+    else if (typeaheadApplying) {
+      return;
+    } else if (!active) input.value = '';
   }
 
   function applyPick(pick) {
@@ -1508,15 +1542,20 @@ function bindTypeahead(select, items, getValue, getLabel) {
   function typedMatch(query) {
     var pick = exact(query);
     if (!pick) {
-      applyPick(null);
+      select.value = '';
+      if (select.options[0]) select.selectedIndex = 0;
       return null;
     }
     var typed = String(query || '').trim().toLowerCase();
     var labelLow = String(pick.label || '').toLowerCase();
-    // Autofill the visible field only on a real label. ISO codes like "en"
-    // must not jump the input to "English" while the user is still typing.
-    if (typed && typed === labelLow) applyPick(pick);
-    else {
+    // Write the hidden select only. Do not rewrite the visible field while
+    // typing — genre labels are the values, so "pop" would jump to "Pop"
+    // and iOS Safari fights the keyboard. ISO codes like "en" must not jump the input
+    // to "English" while the user is still typing.
+    if (typed && typed === labelLow) {
+      ensureOption(select, pick.value, pick.label);
+      select.value = pick.value;
+    } else {
       select.value = '';
       if (select.options[0]) select.selectedIndex = 0;
     }
@@ -1554,9 +1593,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (!list.classList || list.classList.contains('is-hidden')) return;
     var maxH = 240;
     var above = false;
+    var rect = null;
+    var box = viewportBox();
     if (input.getBoundingClientRect) {
-      var rect = input.getBoundingClientRect();
-      var box = viewportBox();
+      rect = input.getBoundingClientRect();
       if (rect && typeof rect.bottom === 'number' && box.height) {
         var spaceBelow = box.top + box.height - rect.bottom - 8;
         var spaceAbove = rect.top - box.top - 8;
@@ -1565,8 +1605,24 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }
     }
     if (list.classList.toggle) list.classList.toggle('is-above', above);
-    list.style.top = above ? 'auto' : 'calc(100% + 4px)';
-    list.style.bottom = above ? 'calc(100% + 4px)' : 'auto';
+    if (list.classList.add) list.classList.add('is-fixed');
+    if (rect && typeof rect.left === 'number') {
+      var viewH = (win && win.innerHeight) || (box.top + box.height) || 0;
+      list.style.position = 'fixed';
+      list.style.left = Math.round(rect.left) + 'px';
+      list.style.right = 'auto';
+      list.style.width = Math.round(rect.width || (rect.right - rect.left) || 0) + 'px';
+      if (above) {
+        list.style.top = 'auto';
+        list.style.bottom = Math.max(0, Math.round(viewH - rect.top + 4)) + 'px';
+      } else {
+        list.style.top = Math.round(rect.bottom + 4) + 'px';
+        list.style.bottom = 'auto';
+      }
+    } else {
+      list.style.top = above ? 'auto' : 'calc(100% + 4px)';
+      list.style.bottom = above ? 'calc(100% + 4px)' : 'auto';
+    }
     list.style.maxHeight = maxH + 'px';
     list.style.overflowY = 'auto';
     list.style.overflowX = 'hidden';
@@ -1574,12 +1630,20 @@ function bindTypeahead(select, items, getValue, getLabel) {
 
   function hideList() {
     list.classList.add('is-hidden');
-    if (list.classList.remove) list.classList.remove('is-above');
+    if (list.classList.remove) {
+      list.classList.remove('is-above');
+      list.classList.remove('is-fixed');
+    }
     list.innerHTML = '';
+    list.style.position = '';
     list.style.top = '';
     list.style.bottom = '';
+    list.style.left = '';
+    list.style.right = '';
+    list.style.width = '';
     if (field.classList && field.classList.remove) field.classList.remove('is-typeahead-open');
     input.setAttribute('aria-expanded', 'false');
+    unclaimTypeahead(selfApi);
   }
 
   function pickFromNode(node) {
@@ -1722,7 +1786,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
       holdBlur = false;
       return;
     }
-    commitListEvent(event);
+    if (commitListEvent(event) && event && event.stopPropagation) event.stopPropagation();
   }
 
   function showMatches(query) {
@@ -1765,6 +1829,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
       btn.setAttribute('tabindex', '-1');
       list.appendChild(btn);
     });
+    if (!claimTypeahead(selfApi)) {
+      hideList();
+      return;
+    }
     list.classList.remove('is-hidden');
     if (field.classList && field.classList.add) field.classList.add('is-typeahead-open');
     input.setAttribute('aria-expanded', 'true');
@@ -1793,6 +1861,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }
 
   function openList() {
+    if (activeTypeahead && activeTypeahead !== selfApi && typeaheadBusy(activeTypeahead)) return;
     showMatches(input.value);
     keepInputVisible();
     if (win && win.setTimeout) {
@@ -1869,6 +1938,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     });
   }
   select._plaigroundSyncTypeahead = syncFromSelect;
+  selfApi.release = hideList;
   syncFromSelect();
 }
 
