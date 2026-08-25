@@ -418,7 +418,9 @@ function run() {
   assert.ok(/\.releases-head-actions \{\s*display:\s*flex;\s*flex-direction:\s*column/.test(siteCss), 'New release stacks above Upload album');
   assert.ok(siteCss.includes('.releases-head-actions [data-new-release]') && siteCss.includes('order: 1'));
   assert.ok(siteCss.includes('.releases-head-actions [data-album-upload]') && siteCss.includes('order: 2'));
-  assert.ok(siteCss.includes('.catalog-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
+  assert.ok(/class="catalog-stats releases-stats"/.test(releases), 'Releases stats card is marked for phone centering');
+  assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
+  assert.ok(/\.releases-stats \{\s*[\s\S]*?grid-template-columns:\s*repeat\(4/.test(siteCss), 'phone stats stay one centered four-number card');
   assert.ok(/\.topbar \.logo img,\s*\n\s*\.topbar \.mobile-only-logo img/.test(siteCss), 'phone header gives the full PLAIGROUND logo room');
   assert.ok(siteCss.includes('.topbar .menu-toggle-text { display: none; }'), 'Menu label yields room for the full wordmark');
   assert.ok(!/max-width:\s*min\(220px,\s*52vw\)/.test(siteCss), 'logo must not clip the D with a 52vw cap');

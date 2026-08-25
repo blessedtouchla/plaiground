@@ -3163,18 +3163,34 @@ body:not(.app) > .app-main > .topbar { display: none; }
     font-weight: 600;
     box-shadow: none;
   }
-  .catalog-stats {
+  .catalog-stats,
+  .releases-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     text-align: center;
     justify-items: center;
-  }
-  .catalog-stats div {
-    text-align: center;
-    border-left: none;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
     width: 100%;
   }
-  .catalog-stats div + div {
-    border-top: 1px solid var(--line);
+  .catalog-stats div,
+  .releases-stats div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    padding: 14px 6px;
+    border-left: 1px solid var(--line);
+    border-top: none;
   }
+  .catalog-stats div:first-child,
+  .releases-stats div:first-child { border-left: none; }
+  .catalog-stats strong,
+  .releases-stats strong { font-size: 1.35rem; }
+  .catalog-stats span,
+  .releases-stats span { text-align: center; }
   .edit-actions {
     flex-direction: column;
     align-items: stretch;
@@ -3351,6 +3367,17 @@ body:not(.app) > .app-main > .topbar { display: none; }
     max-height: 38px;
     max-width: 100%;
     object-fit: contain;
+  }
+  .app .page .releases-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    justify-items: center;
   }
 }
 
