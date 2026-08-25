@@ -275,6 +275,33 @@
     setHidden('[data-artists-status]', !text);
   }
 
+  function markChoice(kind) {
+    var addOn = kind === 'add';
+    var importOn = kind === 'import';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-add]'), function (btn) {
+      if (btn.classList) btn.classList.toggle('is-on', addOn);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-import]'), function (btn) {
+      if (btn.classList) btn.classList.toggle('is-on', importOn);
+    });
+  }
+
+  function openArtistForm(kind) {
+    var add = kind !== 'import';
+    setHidden('#artist-create-panel', !add);
+    setHidden('[data-artist-create-panel]', !add);
+    setHidden('#artist-link-panel', add);
+    setHidden('[data-artist-link-panel]', add);
+    markChoice(add ? 'add' : 'import');
+    var panel = add ? $('#artist-create-panel') : $('#artist-link-panel');
+    var input = add ? $('#artist-create-name') : $('#artist-link-url');
+    if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (input && typeof input.focus === 'function') {
+      setTimeout(function () { input.focus(); }, 50);
+    }
+    return add ? 'add' : 'import';
+  }
+
   function showError(text) {
     setText('[data-artist-error]', text || '');
     setHidden('[data-artist-error]', !text);
@@ -596,12 +623,27 @@
         if (wrap) wrap.hidden = false;
       });
     }
-    document.querySelectorAll('[data-artist-goto-link]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var panel = $('#artist-link-panel');
-        if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('[data-artist-add]').forEach(function (btn) {
+      btn.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        openArtistForm('add');
       });
     });
+    document.querySelectorAll('[data-artist-import]').forEach(function (btn) {
+      btn.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        openArtistForm('import');
+      });
+    });
+    document.querySelectorAll('[data-artist-goto-link]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openArtistForm('import');
+      });
+    });
+    var startHash = '';
+    try { startHash = String((global.location && global.location.hash) || '').toLowerCase(); } catch (err) { startHash = ''; }
+    if (startHash === '#artist-link-panel' || startHash === '#import') openArtistForm('import');
+    else if (startHash === '#artist-create-panel' || startHash === '#add') openArtistForm('add');
     var linkBtn = $('[data-artist-link]');
     if (linkBtn) linkBtn.addEventListener('click', function () { linkArtist(); });
     var saveBtn = $('[data-artist-save]');
@@ -651,5 +693,6 @@
     paintCreateCheck: paintCreateCheck,
     paintAiFields: paintAiFields,
     involvementValue: involvementValue,
+    openArtistForm: openArtistForm,
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -946,6 +946,18 @@ body.app > .plai-bubble {
 .page-head .kicker { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--magenta); font-weight: 700; margin-bottom: 8px; }
 .page-head h1 { font-size: clamp(2rem, 3vw, 2.6rem); font-weight: 800; letter-spacing: -0.04em; }
 .page-head p { color: var(--muted); margin-top: 8px; max-width: 560px; }
+.page-head-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.page-head-actions .btn.is-on {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 1px #8b5cf6;
+}
+[data-artist-create-panel][hidden],
+[data-artist-link-panel][hidden] { display: none !important; }
 .head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .plan-switch { display: grid; gap: 10px; margin-top: 16px; max-width: 420px; }
 .plan-switch[hidden],
