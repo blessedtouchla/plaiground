@@ -3115,3 +3115,135 @@ body:not(.app) > .app-main > .topbar { display: none; }
     max-width: 200px;
   }
 }
+
+/* PLAI Coach: layout + avatar slot only. Use existing site tokens. */
+.plai-coach-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+.plai-coach-identity { text-align: left; }
+.plai-coach-identity .sub { margin-top: 0; }
+.plai-coach-avatar {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  overflow: hidden;
+}
+.plai-coach-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+.plai-coach-avatar img[hidden] { display: none; }
+.plai-coach-avatar.is-float {
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  font-size: 11px;
+}
+.plai-coach-chat {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+.plai-coach-status {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.plai-coach-log {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.plai-coach-msg {
+  max-width: 92%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+.plai-coach-msg.is-user {
+  align-self: flex-end;
+  background: var(--purple);
+  color: #fff;
+}
+.plai-coach-msg.is-plai {
+  align-self: flex-start;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+}
+.plai-coach-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.plai-coach-composer .field {
+  flex: 1;
+  margin: 0;
+}
+.plai-coach-plan { min-height: 120px; }
+.plai-coach-plan h2 {
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.plai-coach-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.plai-coach-float {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  z-index: 3500;
+}
+.plai-coach-float details {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 10px;
+}
+.plai-coach-float-hit {
+  list-style: none;
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
+}
+.plai-coach-float-hit::-webkit-details-marker { display: none; }
+.plai-coach-float-pop {
+  width: min(260px, calc(100vw - 48px));
+  padding: 18px 18px 20px;
+}
+.plai-coach-float-pop p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+@media (max-width: 800px) {
+  .plai-coach-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .plai-coach-float {
+    right: 12px;
+    bottom: 80px;
+  }
+}
