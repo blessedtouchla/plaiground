@@ -3092,13 +3092,16 @@ body:not(.app) > .app-main > .topbar { display: none; }
   .app.nav-open .app-nav-backdrop { display: block; }
   .app.nav-open { overflow: hidden; }
   .topbar {
-    gap: 12px;
+    gap: 10px;
     overflow: visible;
-    padding: 12px 16px;
-    min-height: 64px;
+    padding: 18px 14px;
+    min-height: 88px;
     align-items: center;
   }
   .topbar .menu-toggle { display: inline-flex; }
+  .topbar .menu-toggle-text { display: none; }
+  .topbar .who { flex-shrink: 0; margin-left: 8px; }
+  .topbar .who [data-account-who] { display: none; }
   .topbar .logo {
     overflow: visible;
     flex: 1 1 auto;
@@ -3106,14 +3109,15 @@ body:not(.app) > .app-main > .topbar { display: none; }
     max-width: none;
     display: inline-flex;
     align-items: center;
-    padding-right: 8px;
+    justify-content: flex-start;
+    padding: 8px 16px 8px 8px;
   }
   .topbar .logo img,
   .topbar .mobile-only-logo img {
-    height: 48px;
+    height: auto;
     width: auto;
-    max-width: min(220px, 52vw);
-    max-height: 48px;
+    max-width: 100%;
+    max-height: 40px;
     object-fit: contain;
     object-position: left center;
     display: block;
@@ -3122,31 +3126,42 @@ body:not(.app) > .app-main > .topbar { display: none; }
     display: inline-flex;
     align-items: center;
     overflow: visible;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .page-head.head-row {
     flex-direction: column;
     align-items: stretch;
+    gap: 16px;
   }
   .releases-head-actions {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    gap: 22px;
     width: 100%;
+    position: static;
   }
   .releases-head-actions [data-new-release] {
+    position: static;
+    order: 1;
     width: 100%;
     justify-content: center;
     padding: 15px 28px;
     font-size: 16px;
+    box-shadow: 0 4px 12px rgba(125, 60, 255, 0.28);
   }
   .releases-head-actions [data-album-upload] {
+    position: static;
+    order: 2;
     width: auto;
+    max-width: 100%;
     align-self: center;
-    padding: 8px 16px;
-    font-size: 13px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 12px;
     font-weight: 600;
+    box-shadow: none;
   }
   .catalog-stats {
     text-align: center;
@@ -3324,6 +3339,18 @@ body:not(.app) > .app-main > .topbar { display: none; }
     white-space: nowrap;
     width: 100%;
     justify-content: center;
+  }
+  .app .topbar {
+    overflow: visible;
+    min-height: 88px;
+    padding: 20px 12px;
+  }
+  .app .topbar .logo img,
+  .app .topbar .mobile-only-logo img {
+    height: auto;
+    max-height: 38px;
+    max-width: 100%;
+    object-fit: contain;
   }
 }
 
