@@ -126,6 +126,7 @@ function load(options) {
   const payBtn = makeEl({
     attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
+  const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
   const calls = [];
   const localStorage = makeStorage();
   const sessionStorage = makeStorage();
@@ -221,6 +222,9 @@ function load(options) {
         if (sel === '[data-review-title]' || sel === '[data-review-meta]' || sel === '[data-submit-title]') {
           return opts.bind === 'submitted' ? makeEl({}) : null;
         }
+        if (sel === '[data-submit-stores]') {
+          return opts.bind === 'submitted' ? submitStores : null;
+        }
         if (sel === '[data-audio-input]') {
           return opts.file ? { files: [opts.file], _plaigroundFile: opts.file } : null;
         }
@@ -284,7 +288,7 @@ function load(options) {
         return Promise.resolve({
           ok: true,
           status: 200,
-          json: async () => ({ stores: [] }),
+          json: async () => ({ stores: opts.catalogStores || [] }),
         });
       }
       if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
@@ -380,6 +384,7 @@ function load(options) {
     stepper,
     attestStep,
     reviewStep,
+    submitStores,
   };
 }
 
@@ -2326,6 +2331,47 @@ async function run() {
   await proAlbumCountUnlimited();
   await basicAlbumStaysLocked();
 
+  const catalog55 = [];
+  for (let i = 0; i < 55; i += 1) catalog55.push('store-' + i);
+  const submittedAll = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(),
+      dsps_all: true,
+      dsps_total: 55,
+    },
+  });
+  assert.strictEqual(submittedAll.submitStores.textContent, 'All 55 stores');
+  assert.ok(submittedAll.submitStores.textContent.indexOf('164 of 163') === -1);
+
+  const submittedSome = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(0, 40),
+      dsps_all: false,
+      dsps_total: 55,
+    },
+  });
+  assert.strictEqual(submittedSome.submitStores.textContent, '40 of 55 stores');
+
+  const submittedLiveCatalog = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      dsps: catalog55.slice(),
+      dsps_all: true,
+    },
+    catalogStores: catalog55.map(function (slug) { return { slug: slug, name: slug }; }),
+  });
+  await flush();
+  assert.strictEqual(submittedLiveCatalog.submitStores.textContent, 'All 55 stores');
+  assert.strictEqual(draftOf(submittedLiveCatalog.localStorage).dsps_total, 55);
+
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
@@ -2359,6 +2405,10 @@ async function run() {
   assert.ok(source.includes('resolveLiveRelease'));
   assert.ok(source.includes('clearDeadReleaseIds'));
   assert.ok(source.includes('ensureCatalogArtist'));
+  assert.ok(source.includes('dsps_total'));
+  assert.ok(source.includes('formatSubmitted'));
+  assert.ok(source.includes('storePickSnapshot'));
+  assert.ok(!source.includes('164 of 163'));
   assert.ok(source.includes('createFreshFailed'));
   assert.ok(source.includes('freshReleaseKey'));
   assert.ok(source.includes('isReleaseMissing'));
