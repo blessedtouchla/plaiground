@@ -121,6 +121,8 @@ function run() {
   assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-latest-edit') !== -1);
   assert.ok(read('dashboard.html').indexOf('Edit release') !== -1);
+  assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(read('dashboard.html')), 'Creator Edit release entry is the catalog list');
+  assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(read('library.html')), 'Library Edit release entry is the catalog list');
   assert.ok(read('dashboard.html').indexOf('data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.') !== -1);
   assert.ok(read('dashboard.html').indexOf('PRO •') === -1, 'publishing badge must not say Pro-only');
   assert.ok(read('dashboard.html').indexOf('INCLUDED IN YOUR PLAN') !== -1);
@@ -270,8 +272,12 @@ function run() {
   assert.ok(String(catalogEdit.href).indexOf('edit=1') !== -1);
   assert.ok(read('releases.html').includes('href="releases.html">Releases</a>'), 'sidebar Releases stays on the catalog list');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('releases.html')), 'sidebar Releases must not point at a leftover song');
+  assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('dashboard.html')), 'Creator menu Releases must not point at a leftover song');
   assert.ok(read('catalog.js').includes("editPanel.hidden = true"), 'Releases must not auto-open Edit release');
   assert.ok(read('song.js').includes("location.href = 'releases.html'"), 'song.html without an id returns to the list');
+  assert.ok(read('song.js').includes("return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html'"), 'bare Edit href goes to the list, not latest');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 1, 'one release still shows the list row');
+  assert.ok(catalogNodes['[data-release-table]'].hidden === false, 'one release must not skip the catalog list');
 
   catalog.PlaigroundCatalog.render({
     releases: [{ title: 'No store id yet', type: 'single', status: 'draft' }],

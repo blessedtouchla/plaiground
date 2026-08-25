@@ -240,7 +240,7 @@
       if (latest.href) el.setAttribute('href', latest.href);
     });
     $all('[data-latest-edit]').forEach(function (el) {
-      if (latest.editHref) el.setAttribute('href', latest.editHref);
+      el.setAttribute('href', 'releases.html');
     });
     $all('.side-nav a').forEach(function (el) {
       var href = el && el.getAttribute ? String(el.getAttribute('href') || '') : '';
@@ -357,7 +357,7 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'song.html';
+      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html';
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       art.setAttribute('aria-hidden', 'true');
@@ -424,7 +424,7 @@
     }
     var title = fromCard || String((draft && draft.title) || '').trim() || 'Your release';
     var href = latestId ? ('song.html?id=' + encodeURIComponent(latestId)) : 'releases.html';
-    var editHref = latestId ? ('song.html?id=' + encodeURIComponent(latestId) + '&edit=1') : 'song.html';
+    var editHref = 'releases.html';
     var stored = '';
     if (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus && latestId) {
       stored = PlaigroundReleaseStatus.storedStatus(me, latestId);

@@ -75,7 +75,7 @@
 
   function editHref(id) {
     var next = String(id || '').trim();
-    return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'song.html';
+    return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html';
   }
 
   function showSongError(text) {

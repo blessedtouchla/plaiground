@@ -100,7 +100,10 @@ function run() {
   assert.ok(dash.includes('All releases'), 'latest-release card must keep All releases');
   assert.ok(!dash.includes('View release'), 'Overview purple button must not stay View release');
   assert.ok(/class="btn btn-purple btn-md" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>/.test(dash), 'Overview purple button is New release to upload.html');
-  assert.ok(read('account.js').includes("el.setAttribute('href', 'releases.html')"), 'sidebar Releases stays on the catalog list');
+  assert.ok(read('account.js').includes("el.setAttribute('href', 'releases.html')"), 'sidebar Releases and Overview Edit stay on the catalog list');
+  assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(dash), 'Creator Overview Edit release must open the catalog list');
+  assert.ok(!/data-latest-edit href="song\.html/.test(dash), 'Creator Overview Edit release must not deep-link a song');
+  assert.ok(read('account.js').includes("var editHref = 'releases.html'"), 'last-release id must not rewrite Edit release');
   assert.ok(!/data-latest-link/.test(dash), 'Overview New release must not be rewritten to the latest song');
   assert.ok(dash.includes('data-release-tiles'), 'release cover tiles are missing');
   assert.ok(dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'publishing CTA must unlock MSP');
@@ -183,7 +186,7 @@ function run() {
       '[data-latest-title]': makeNode({}),
       '[data-latest-status]': makeNode({}),
       '[data-latest-link]': makeNode({ href: 'releases.html' }),
-      '[data-latest-edit]': makeNode({ href: 'song.html' }),
+      '[data-latest-edit]': makeNode({ href: 'releases.html' }),
       '[data-account-releases]': makeNode({ textContent: '0' }),
       '[data-account-who]': makeNode({ textContent: 'Hi there' }),
       '[data-account-avatar]': makeNode({ textContent: 'PG' }),
@@ -238,8 +241,9 @@ function run() {
   assert.strictEqual(nodes['[data-first-upload]'].hidden, true);
   assert.strictEqual(nodes['[data-latest-status]'].textContent, 'Pending');
   assert.ok(String(nodes['[data-latest-link]'].href).indexOf('song.html?id=') !== -1);
-  assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('song.html?id=') !== -1);
-  assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('edit=1') !== -1);
+  assert.strictEqual(nodes['[data-latest-edit]'].href, 'releases.html', 'one leftover still shows the list, not that song');
+  assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('song.html') === -1);
+  assert.ok(String(nodes['[data-latest-edit]'].href).indexOf('edit=1') === -1);
   assert.strictEqual(nodes['[data-account-who]'].textContent, 'Hi Fuvtu!');
   assert.strictEqual(nodes['[data-account-avatar]'].textContent, 'FU');
   assert.strictEqual(nodes['[data-pub-badge]'].textContent, 'INCLUDED ON CREATOR AND PRO');
@@ -265,6 +269,19 @@ function run() {
   assert.strictEqual(creator['[data-account-who]'].textContent, 'Hi Fuvtu!');
   assert.strictEqual(creator['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
   assert.ok(creator['[data-pub-badge]'].textContent.indexOf('PRO') === -1, 'Creator publishing badge must not say Pro-only');
+
+  const creatorCatalog = fillAccount({
+    artist: 'Mamamastermind',
+    plan: 'creator',
+    email: 'victoriaimtanes@gmail.com',
+    tonegrid_release_ids: [
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    ],
+  });
+  assert.strictEqual(creatorCatalog['[data-latest-edit]'].href, 'releases.html', 'Creator Edit release shows the list even with more than one release');
+  assert.strictEqual(creatorCatalog['[data-release-tiles]'].children.length, 2, 'Overview tiles stay a list');
+  assert.ok(String(creatorCatalog['[data-latest-edit]'].href).indexOf('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb') === -1, 'must not auto-open the latest id');
 
   const pro = fillAccount({ artist: 'Fuvtu', plan: 'pro' });
   assert.strictEqual(pro['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
