@@ -15,13 +15,29 @@ function makeEl(attrs) {
     textContent: (attrs && attrs.textContent) || '',
     className: '',
     style: {},
+    href: '',
+    type: '',
+    attrs: {},
     children: [],
     colSpan: 0,
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
     appendChild(child) {
       this.children.push(child);
       return child;
     },
   };
+}
+
+function findByText(node, text) {
+  if (!node) return null;
+  if (node.textContent === text) return node;
+  const kids = node.children || [];
+  for (let i = 0; i < kids.length; i += 1) {
+    const found = findByText(kids[i], text);
+    if (found) return found;
+  }
+  return null;
 }
 
 function loadScript(file, nodes) {
@@ -30,8 +46,10 @@ function loadScript(file, nodes) {
       querySelector(sel) {
         return nodes[sel] || null;
       },
-      createElement() {
-        return makeEl({});
+      createElement(tag) {
+        const el = makeEl({});
+        el.tagName = String(tag || 'DIV').toUpperCase();
+        return el;
       },
       body: makeEl({}),
     },
@@ -86,6 +104,8 @@ function run() {
   assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
+  assert.ok(read('dashboard.html').indexOf('data-latest-edit') !== -1);
+  assert.ok(read('dashboard.html').indexOf('Edit release') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.') !== -1);
   assert.ok(read('dashboard.html').indexOf('PRO •') === -1, 'publishing badge must not say Pro-only');
   assert.ok(read('dashboard.html').indexOf('INCLUDED IN YOUR PLAN') !== -1);
@@ -218,6 +238,23 @@ function run() {
   assert.strictEqual(catalogNodes['[data-release-table]'].hidden, false);
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[3].textContent, '0');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[4].textContent, '$0.00');
+  const catalogEdit = findByText(catalogNodes['[data-release-rows]'], 'Edit release');
+  assert.ok(catalogEdit, 'catalog cards must include Edit release');
+  assert.strictEqual(catalogEdit.tagName, 'A');
+  assert.ok(String(catalogEdit.href).indexOf('song.html?id=11111111-1111-4111-8111-111111111111') !== -1);
+  assert.ok(String(catalogEdit.href).indexOf('edit=1') !== -1);
+
+  catalog.PlaigroundCatalog.render({
+    releases: [{ title: 'No store id yet', type: 'single', status: 'draft' }],
+    total: 1,
+    analytics: {},
+  });
+  const catalogRows = catalogNodes['[data-release-rows]'].children;
+  const lastRow = catalogRows[catalogRows.length - 1];
+  const missingEdit = findByText(lastRow, 'Edit release');
+  assert.ok(missingEdit, 'catalog still shows Edit when the store id is missing');
+  assert.strictEqual(missingEdit.tagName, 'BUTTON');
+  assert.strictEqual(missingEdit.getAttribute('data-edit-missing'), '');
 
   const extra = catalog.PlaigroundCatalog.accountFallback({
     tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],

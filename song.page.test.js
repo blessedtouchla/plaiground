@@ -138,7 +138,7 @@ function loadSong(opts) {
     '[data-song-publishing]': makeEl({ hidden: true }),
     '[data-song-boosts]': makeEl({ hidden: true }),
     '[data-song-boost]': makeEl({ hidden: true }),
-    '[data-song-edit]': makeEl({ hidden: true }),
+    '[data-song-edit]': makeEl({ hidden: true, tagName: 'A', attrs: { href: 'song.html' } }),
     '[data-song-remove]': makeEl({ hidden: true }),
     '[data-song-download]': makeEl({}),
     '[data-song-rejection]': makeEl({ hidden: true }),
@@ -418,10 +418,14 @@ function run() {
   assert.ok(catalog.includes('song.html?id='));
   assert.ok(catalog.includes('edit=1'));
   assert.ok(catalog.includes('Edit release'));
+  assert.ok(catalog.includes('data-edit-missing'));
+  assert.ok(catalog.includes('no store ID yet'));
 
   assert.ok(html.includes('Edit release'));
   assert.ok(html.includes('Submit for editing'));
   assert.ok(html.includes('data-song-edit'));
+  assert.ok(/<a[^>]*data-song-edit[^>]*>Edit release<\/a>/.test(html), 'Edit release must be a real link, not a dead button');
+  assert.ok(css.includes('.btn[hidden]'), 'hidden Edit/Remove/Boost buttons must stay hidden');
   assert.ok(html.includes('data-song-remove'));
   assert.ok(html.includes('data-song-download'));
   assert.ok(html.includes('lib/statement-pdf.js'));
@@ -451,6 +455,50 @@ function run() {
   assert.ok(css.includes('::-webkit-datetime-edit'));
 
   assert.strictEqual(page.nodes['[data-song-edit]'].hidden, false, 'Edit release is on the real song');
+  assert.strictEqual(
+    page.nodes['[data-song-edit]'].getAttribute('href'),
+    'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&edit=1',
+    'Edit release href must target the same store release'
+  );
+  var editPrevented = false;
+  assert.strictEqual(page.api.beginEdit({ preventDefault: function () { editPrevented = true; } }), true);
+  assert.ok(editPrevented, 'successful in-place edit must consume the click');
+  assert.strictEqual(page.nodes['[data-release-edit]'].hidden, false, 'Edit click must open the same-release editor');
+  assert.strictEqual(page.nodes['[data-release-edit]'].getAttribute('data-release-id'), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+
+  const noId = loadSong({ plan: 'pro', me: { artist: 'Fuvtu', plan: 'pro' } });
+  noId.api.render({
+    me: { artist: 'Fuvtu', plan: 'pro' },
+    release: { title: 'Draft only', status: 'draft', type: 'single' },
+    analytics: {},
+  });
+  assert.strictEqual(noId.nodes['[data-song-edit]'].hidden, false, 'Edit stays visible so a missing id is not a silent dead control');
+  var missingPrevented = false;
+  assert.strictEqual(noId.api.beginEdit({ preventDefault: function () { missingPrevented = true; } }), false);
+  assert.ok(missingPrevented);
+  assert.ok(noId.nodes['[data-song-status]'].textContent.indexOf('no store ID') !== -1, 'missing release id must show a real error');
+  assert.strictEqual(noId.nodes['[data-release-edit]'].hidden, true, 'editor must not open without a store id');
+
+  const proClick = loadSong({
+    plan: 'pro',
+    me: { artist: 'Fuvtu', plan: 'pro', tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'] },
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
+  proClick.api.render({
+    me: { artist: 'Fuvtu', plan: 'pro', tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'] },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      status: 'pending',
+      type: 'single',
+    },
+    analytics: {},
+  });
+  assert.strictEqual(proClick.nodes['[data-song-edit]'].hidden, false);
+  assert.ok(String(proClick.nodes['[data-song-edit]'].getAttribute('href')).indexOf('edit=1') !== -1);
+  proClick.nodes['[data-song-edit]'].listeners.click({ preventDefault: function () {} });
+  assert.strictEqual(proClick.nodes['[data-release-edit]'].hidden, false, 'Pro Edit release click opens the editor');
+  assert.strictEqual(proClick.ids['edit-title'].value, 'Fuvtu');
   page.api.openEdit({
     me: basicMe,
     draft: {

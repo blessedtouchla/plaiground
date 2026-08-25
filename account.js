@@ -203,6 +203,9 @@
     $all('[data-latest-link]').forEach(function (el) {
       if (latest.href) el.setAttribute('href', latest.href);
     });
+    $all('[data-latest-edit]').forEach(function (el) {
+      if (latest.editHref) el.setAttribute('href', latest.editHref);
+    });
     var upload = me.upload || {};
     var atLimit = upload.allowed === false;
     $all('[data-new-release]').forEach(function (el) {
@@ -227,6 +230,7 @@
     var draft = readDraft();
     var title = String((draft && draft.title) || '').trim() || 'Your release';
     var href = latestId ? ('song.html?id=' + encodeURIComponent(latestId)) : 'releases.html';
+    var editHref = latestId ? ('song.html?id=' + encodeURIComponent(latestId) + '&edit=1') : 'song.html';
     var stored = '';
     if (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus && latestId) {
       stored = PlaigroundReleaseStatus.storedStatus(me, latestId);
@@ -243,7 +247,7 @@
     var status = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
       ? PlaigroundReleaseStatus.label(stored)
       : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'Needs fix' : 'Pending');
-    return { title: title, status: status, href: href };
+    return { title: title, status: status, href: href, editHref: editHref };
   }
 
   function bindSignOut() {

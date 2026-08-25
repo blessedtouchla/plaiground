@@ -132,15 +132,18 @@
       meta.textContent = typeLabel(row.type) + (when ? ' · ' + when : '');
       copy.appendChild(title);
       copy.appendChild(meta);
+      var edit = document.createElement(row.uuid ? 'a' : 'button');
+      edit.textContent = 'Edit release';
+      edit.className = 'btn btn-ghost btn-sm';
+      edit.style.display = 'inline-flex';
+      edit.style.marginTop = '8px';
       if (row.uuid) {
-        var edit = document.createElement('a');
         edit.href = 'song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1';
-        edit.textContent = 'Edit release';
-        edit.className = 'learn';
-        edit.style.display = 'inline-block';
-        edit.style.marginTop = '4px';
-        copy.appendChild(edit);
+      } else {
+        edit.type = 'button';
+        edit.setAttribute('data-edit-missing', '');
       }
+      copy.appendChild(edit);
       wrap.appendChild(thumb);
       wrap.appendChild(copy);
       titleCell.appendChild(wrap);
@@ -581,11 +584,21 @@
     var host = $('[data-release-rows]');
     if (host && host.addEventListener) {
       host.addEventListener('click', function (event) {
+        var missing = event.target && event.target.closest ? event.target.closest('[data-edit-missing]') : null;
+        if (missing) {
+          if (event.preventDefault) event.preventDefault();
+          if (event.stopPropagation) event.stopPropagation();
+          setStatus('This release has no store ID yet, so it cannot be edited.');
+          return;
+        }
         var tr = event.target && event.target.closest ? event.target.closest('tr[data-release-id]') : null;
         if (!tr) return;
         if (event.target && event.target.closest && event.target.closest('a')) return;
         var id = tr.getAttribute('data-release-id');
-        if (!id) return;
+        if (!id) {
+          setStatus('This release has no store ID yet, so it cannot be edited.');
+          return;
+        }
         global.location.href = 'song.html?id=' + encodeURIComponent(id);
       });
     }

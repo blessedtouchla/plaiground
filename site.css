@@ -98,6 +98,7 @@ button { cursor: pointer; }
 .btn-md { padding: 13px 26px; font-size: 15px; }
 .btn-lg { padding: 15px 28px; font-size: 16px; width: 100%; }
 .btn-block { width: 100%; }
+.btn[hidden] { display: none !important; }
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -2011,6 +2012,12 @@ button.dashbox span {
 }
 .seg a.on { background: #2A2A32; color: #fff; }
 .song-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.song-top .hero-ctas {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+.song-top .hero-ctas .btn { position: relative; z-index: 2; pointer-events: auto; }
 .song-hero {
   display: grid;
   grid-template-columns: 220px 1fr;
