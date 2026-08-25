@@ -89,11 +89,18 @@ function loadDashboardScripts(signedIn) {
 function run() {
   const dash = read('dashboard.html');
   assert.ok(dash.includes('Start your first song submission'), 'dashboard greeting is missing');
+  assert.ok(dash.includes('<h1>Your releases</h1>'), 'dashboard heading must be Your releases');
+  assert.ok(!/<h1[^>]*>Your release<\/h1>/.test(dash), 'dashboard heading must not stay singular');
   assert.ok(dash.includes('Submit your first song'), 'first-song CTA is missing');
   assert.ok(dash.includes('data-first-song'), 'first-song empty state hook is missing');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hook is missing');
   assert.ok(dash.includes('data-latest-edit'), 'latest-release card must have Edit release');
   assert.ok(dash.includes('Edit release'), 'latest-release card must label Edit release');
+  assert.ok(dash.includes('data-release-tiles'), 'release cover tiles are missing');
+  assert.ok(dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'publishing CTA must unlock MSP');
+  assert.ok(dash.includes('Publishing unlocks MSP (societies, not stores)'), 'MSP unlock copy is missing');
+  assert.ok(dash.includes('data-msp-section'), 'MSP section is missing');
+  assert.ok(read('site.css').includes('.pub-call[hidden]'), 'publishing CTA must stay hidden when empty');
   assert.ok(dash.includes('Pending'), 'submitted Pending copy is missing');
   assert.ok(dash.includes('data-account-who'), 'dashboard greeting name slot is missing');
   assert.ok(dash.includes('class="topbar"'), 'dashboard menu/topbar is missing');
@@ -135,8 +142,31 @@ function run() {
       href: (attrs && attrs.href) || '',
       tagName: (attrs && attrs.tagName) || 'DIV',
       value: (attrs && attrs.value) || '',
+      className: '',
+      style: {},
+      children: [],
+      classList: {
+        toggle() {},
+      },
       setAttribute(name, value) { this[name] = value; },
+      appendChild(child) {
+        this.children.push(child);
+        return child;
+      },
     };
+  }
+
+  function makeHost() {
+    const host = makeNode({ hidden: true });
+    Object.defineProperty(host, 'textContent', {
+      get() { return this._text || ''; },
+      set(value) {
+        this._text = String(value);
+        if (value === '') this.children = [];
+      },
+      configurable: true,
+    });
+    return host;
   }
 
   function fillNodes() {
@@ -157,6 +187,11 @@ function run() {
       '[data-account-plan-title]': makeNode({ textContent: 'Your plan' }),
       '[data-account-plan-price]': makeNode({ textContent: 'Your plan' }),
       '[data-account-plan-year]': makeNode({ hidden: true }),
+      '[data-release-tiles]': makeHost(),
+      '[data-msp-section]': makeNode({ hidden: true }),
+      '[data-msp-lock]': makeNode({ hidden: true }),
+      '[data-msp-open]': makeNode({ hidden: true }),
+      '[data-msp-songs]': makeHost(),
     };
   }
 
@@ -164,8 +199,9 @@ function run() {
     const nodes = fillNodes();
     const fillDoc = {
       currentScript: { getAttribute() { return null; } },
-      querySelector() { return null; },
+      querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) { return nodes[sel] ? [nodes[sel]] : []; },
+      createElement() { return makeNode({}); },
       addEventListener() {},
     };
     const fillCtx = {
@@ -200,6 +236,14 @@ function run() {
   assert.strictEqual(nodes['[data-account-who]'].textContent, 'Hi Fuvtu!');
   assert.strictEqual(nodes['[data-account-avatar]'].textContent, 'FU');
   assert.strictEqual(nodes['[data-pub-badge]'].textContent, 'INCLUDED ON CREATOR AND PRO');
+  assert.strictEqual(nodes['[data-pub-call]'].hidden, false, 'publishing CTA shows after a real release exists');
+  assert.strictEqual(nodes['[data-release-tiles]'].hidden, false);
+  assert.strictEqual(nodes['[data-release-tiles]'].children.length, 1);
+  assert.strictEqual(nodes['[data-release-tiles]'].children[0].href, 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.strictEqual(nodes['[data-msp-section]'].hidden, false);
+  assert.strictEqual(nodes['[data-msp-lock]'].hidden, false, 'pending releases keep MSP locked');
+  assert.strictEqual(nodes['[data-msp-open]'].hidden, true);
+  assert.strictEqual(nodes['[data-msp-songs]'].children.length, 0);
 
   const named = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
   assert.strictEqual(named['[data-account-who]'].textContent, 'Hi Victoria!');
@@ -259,6 +303,25 @@ function run() {
   });
   assert.strictEqual(leftoverLive['[data-pub-call]'].hidden, true, 'empty catalog must not claim a live release');
   assert.strictEqual(leftoverLive['[data-account-releases]'].textContent, '0');
+  assert.strictEqual(leftoverLive['[data-msp-section]'].hidden, true, 'empty catalog must not open MSP');
+  assert.strictEqual(leftoverLive['[data-release-tiles]'].children.length, 0);
+
+  const liveRelease = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'live' }] },
+  });
+  assert.strictEqual(liveRelease['[data-msp-lock]'].hidden, true);
+  assert.strictEqual(liveRelease['[data-msp-open]'].hidden, false, 'live releases open MSP');
+  assert.strictEqual(liveRelease['[data-msp-songs]'].children.length, 1);
+  assert.strictEqual(liveRelease['[data-msp-songs]'].children[0].children[0].textContent, 'Night Drive');
+  assert.ok(liveRelease['[data-msp-songs]'].children[0].children.some(function (child) {
+    return (child.children || []).some(function (inner) { return inner.textContent === '$0.00'; });
+  }), 'MSP stays at $0 until real society data exists');
+  assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[1].textContent, 'Night Drive');
+  assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(liveRelease['[data-account-releases]'].textContent, '1');
 
   const namedField = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator' });
   assert.strictEqual(namedField['[data-account-artist]'].value, 'Victoria Imtanes', 'a real stored name stays');

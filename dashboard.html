@@ -50,24 +50,28 @@
         <p>The renewal payment did not go through. Upload beyond Basic, publishing, Boost, and advanced analytics are locked. A later successful payment restores the plan.</p>
       </div>
       <div class="dash-top">
-        <div class="page-head" style="margin:0" data-first-song>
-          <h1>Start your first song submission</h1>
-          <p>Upload a finished track, confirm the rights, sign the split sheet. We register the publishing and deliver it everywhere.</p>
-          <p style="margin-top:18px">
-            <a class="btn btn-purple btn-md" href="upload.html" data-first-upload data-signed-in-upload>Submit your first song</a>
-            <a class="btn btn-ghost btn-md" href="upload.html?type=album" data-album-upload data-signed-in-upload>Upload an album</a>
-            <span style="color:var(--muted);font-size:13px;margin-left:12px">About 10 minutes, start to finish</span>
-          </p>
-        </div>
-        <div class="page-head" style="margin:0" data-has-release hidden>
-          <h1 data-latest-title>Your release</h1>
-          <p data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.</p>
-          <p data-for-plans="creator pro" hidden>Your song is in the catalog.</p>
-          <p style="margin-top:18px">
-            <a class="btn btn-purple btn-md" data-latest-link href="releases.html">View release</a>
-            <a class="btn btn-ghost btn-md" data-latest-edit href="song.html">Edit release</a>
-            <span style="color:var(--gold);font-size:13px;margin-left:12px" data-latest-status>Pending</span>
-          </p>
+        <div class="page-head" style="margin:0">
+          <p class="kicker">Overview</p>
+          <h1>Your releases</h1>
+          <div data-first-song>
+            <p>Start your first song submission. Upload a finished track, confirm the rights, sign the split sheet. We register the publishing and deliver it everywhere.</p>
+            <p style="margin-top:18px">
+              <a class="btn btn-purple btn-md" href="upload.html" data-first-upload data-signed-in-upload>Submit your first song</a>
+              <a class="btn btn-ghost btn-md" href="upload.html?type=album" data-album-upload data-signed-in-upload>Upload an album</a>
+              <span style="color:var(--muted);font-size:13px;margin-left:12px">About 10 minutes, start to finish</span>
+            </p>
+          </div>
+          <div data-has-release hidden>
+            <p data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.</p>
+            <p data-for-plans="creator pro" hidden>Your song is in the catalog.</p>
+            <p style="margin-top:18px">
+              <a class="btn btn-purple btn-md" data-latest-link href="releases.html">View release</a>
+              <a class="btn btn-ghost btn-md" data-latest-edit href="song.html">Edit release</a>
+              <a class="btn btn-ghost btn-md" href="releases.html">All releases</a>
+              <span style="color:var(--gold);font-size:13px;margin-left:12px" data-latest-status>Pending</span>
+            </p>
+            <span class="is-hidden" hidden data-latest-title>Your release</span>
+          </div>
         </div>
         <div class="account-card">
           <div class="head-row" style="margin-bottom:8px">
@@ -82,40 +86,53 @@
         </div>
       </div>
 
+      <div class="release-board">
+        <div class="head-row" style="margin-bottom:14px">
+          <h3>Cover and status</h3>
+          <span style="color:var(--muted)" data-first-song>Nothing here yet</span>
+          <span style="color:var(--muted)" data-has-release hidden data-latest-status>Pending</span>
+        </div>
+        <div class="release-tiles" data-release-tiles hidden></div>
+        <div class="empty" data-first-song>
+          <h3>Your first release goes here.</h3>
+          <p>Once you submit, you’ll track content, plans, signatures and delivery from this panel.</p>
+          <p style="margin-top:16px">
+            <a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload data-signed-in-upload>Create now</a>
+            <a class="btn btn-ghost btn-sm" href="upload.html?type=album" data-album-upload data-signed-in-upload>Upload an album</a>
+          </p>
+        </div>
+        <div class="dash-note" data-has-release hidden>
+          <p data-for-plans="basic">Submitted and in the queue. Open it anytime — a second first upload is not included on Basic.</p>
+          <p data-for-plans="creator pro" hidden>Submitted and in the queue. Open it anytime.</p>
+        </div>
+      </div>
+
       <div class="pub-call" data-pub-call hidden>
         <div>
           <p class="ok" data-pub-badge>INCLUDED IN YOUR PLAN</p>
-          <h3 style="font-size:1.4rem;margin:8px 0">Register your publishing</h3>
-          <p style="color:var(--muted);max-width:520px">Publishing royalties are collected by societies, not stores. Register after your first release is live.</p>
+          <h3 style="font-size:1.4rem;margin:8px 0">Unlock MSP — Multiple Streams of Revenue</h3>
+          <p style="color:var(--muted);max-width:520px">Publishing unlocks MSP (societies, not stores). Creator and Pro already include publishing. Basic stays locked.</p>
         </div>
-        <div style="text-align:right">
+        <div class="pub-call-actions">
           <a class="btn btn-purple btn-md" href="publishing-register.html" data-publishing-register>Register for Publishing</a>
           <p style="color:var(--muted);font-size:13px;margin-top:8px">Your release is in the catalog</p>
         </div>
       </div>
 
-      <div class="head-row" style="margin-bottom:12px">
-        <h3>Your latest releases</h3>
-        <span style="color:var(--muted)" data-first-song>Nothing here yet</span>
-        <span style="color:var(--muted)" data-has-release hidden data-latest-status>Pending</span>
-      </div>
-      <div class="empty" data-first-song>
-        <h3>Your first release goes here.</h3>
-        <p>Once you submit, you’ll track content, plans, signatures and delivery from this panel.</p>
-        <p style="margin-top:16px">
-          <a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload data-signed-in-upload>Create now</a>
-          <a class="btn btn-ghost btn-sm" href="upload.html?type=album" data-album-upload data-signed-in-upload>Upload an album</a>
-        </p>
-      </div>
-      <div class="empty" data-has-release hidden>
-        <h3 data-latest-title>Your release</h3>
-        <p data-for-plans="basic">Submitted and in the queue. Open it anytime — a second first upload is not included on Basic.</p>
-        <p data-for-plans="creator pro" hidden>Submitted and in the queue. Open it anytime.</p>
-        <p style="margin-top:16px">
-          <a class="btn btn-ghost btn-sm" data-latest-link href="releases.html">Open release</a>
-          <a class="btn btn-ghost btn-sm" data-latest-edit href="song.html">Edit release</a>
-        </p>
-      </div>
+      <section class="msp-board" data-msp-section hidden>
+        <div class="head-row" style="margin-bottom:14px">
+          <h3>MSP</h3>
+          <span style="color:var(--muted)">Multiple Streams of Revenue</span>
+        </div>
+        <div class="panel lock msp-lock" data-msp-lock hidden>
+          <h3 class="y">MSP is locked until a song is live</h3>
+          <p class="y">Pending, draft, and not-live releases stay closed here. No revenue is shown until a release is live.</p>
+        </div>
+        <div class="msp-open" data-msp-open hidden>
+          <p class="hint">Open for live releases only. Amounts stay $0 until societies report.</p>
+          <div class="msp-songs" data-msp-songs></div>
+        </div>
+      </section>
       <p class="how-link" style="margin-top:36px">
         <a class="learn" href="how.html" style="text-align:left">How a submission works</a>
       </p>
@@ -124,6 +141,7 @@
   <script src="lib/release-status.js"></script>
   <script src="membership.js"></script>
   <script src="account.js"></script>
+  <script src="catalog.js" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

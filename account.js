@@ -180,16 +180,18 @@
       }
     });
     var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
-    var hasRelease = ids.length > 0;
-    var latestId = hasRelease ? String(ids[ids.length - 1]) : '';
-    var latest = latestReleaseCard(me, latestId);
+    var cards = releaseCards(me);
+    var hasRelease = cards.length > 0 || ids.length > 0;
+    var latestId = hasRelease ? String((cards[cards.length - 1] && cards[cards.length - 1].id) || ids[ids.length - 1] || '') : '';
+    var latest = latestReleaseCard(me, latestId, cards);
     var liveN = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
       ? PlaigroundReleaseStatus.liveCount(me)
-      : 0;
+      : cards.filter(function (card) { return card && card.live; }).length;
     $all('[data-account-releases]').forEach(function (el) { setText(el, String(liveN)); });
     $all('[data-pub-call]').forEach(function (el) {
-      el.hidden = liveN === 0;
+      el.hidden = !hasRelease;
     });
+    renderOverview(cards);
     var plan = String(me.plan || '').toLowerCase();
     var paid = plan === 'creator' || plan === 'pro';
     $all('[data-pub-badge]').forEach(function (el) {
@@ -226,9 +228,111 @@
     }
   }
 
-  function latestReleaseCard(me, latestId) {
+  function statusApi() {
+    return (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus) || null;
+  }
+
+  function releaseCards(me) {
+    var api = statusApi();
+    if (api && typeof api.ownedReleases === 'function') return api.ownedReleases(me);
+    var ids = Array.isArray(me && me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
+    return ids.map(function (id) {
+      return { id: String(id), title: '', status: 'pending', label: 'Pending', group: 'pending', live: false, artwork_url: '' };
+    });
+  }
+
+  function applyCover(el, url) {
+    var art = String(url || '').trim();
+    if (el && el.style) el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+    if (el && el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
+  }
+
+  function renderOverview(cards) {
+    var list = Array.isArray(cards) ? cards : [];
+    var hasRelease = list.length > 0;
+    var liveN = list.filter(function (card) { return card && card.live; }).length;
+    renderReleaseTiles(list);
+    renderMsp(list, hasRelease, liveN);
+  }
+
+  function renderReleaseTiles(cards) {
+    var host = $('[data-release-tiles]');
+    if (!host) return;
+    host.textContent = '';
+    if (!cards || !cards.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    cards.forEach(function (card) {
+      var link = document.createElement('a');
+      link.className = 'release-tile';
+      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'song.html';
+      var art = document.createElement('span');
+      art.className = 'release-tile-art';
+      art.setAttribute('aria-hidden', 'true');
+      applyCover(art, card.artwork_url);
+      var title = document.createElement('strong');
+      title.textContent = card.title || 'Untitled';
+      var status = document.createElement('span');
+      var api = statusApi();
+      var mapped = api ? api.info(card.status) : { label: card.label || 'Pending', dot: card.live ? 'green' : 'yellow' };
+      status.className = 'release-tile-status is-' + (mapped.dot || 'gray');
+      status.textContent = mapped.label || card.label || 'Pending';
+      link.appendChild(art);
+      link.appendChild(title);
+      link.appendChild(status);
+      host.appendChild(link);
+    });
+  }
+
+  function mspRow(label, amount) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    var name = document.createElement('span');
+    name.textContent = label;
+    var value = document.createElement('b');
+    value.textContent = amount;
+    row.appendChild(name);
+    row.appendChild(value);
+    return row;
+  }
+
+  function renderMsp(cards, hasRelease, liveN) {
+    var live = (cards || []).filter(function (card) { return card && card.live; });
+    $all('[data-msp-section]').forEach(function (el) { el.hidden = !hasRelease; });
+    $all('[data-msp-lock]').forEach(function (el) { el.hidden = !hasRelease || liveN > 0; });
+    $all('[data-msp-open]').forEach(function (el) { el.hidden = liveN === 0; });
+    var host = $('[data-msp-songs]');
+    if (!host) return;
+    host.textContent = '';
+    live.forEach(function (card) {
+      var box = document.createElement('article');
+      box.className = 'msp-song';
+      var heading = document.createElement('h4');
+      heading.textContent = card.title || 'Untitled';
+      var status = document.createElement('p');
+      status.className = 'hint';
+      status.textContent = card.label || 'Live';
+      box.appendChild(heading);
+      box.appendChild(status);
+      box.appendChild(mspRow('Performance', '$0.00'));
+      box.appendChild(mspRow('Mechanical', '$0.00'));
+      host.appendChild(box);
+    });
+  }
+
+  function latestReleaseCard(me, latestId, cards) {
     var draft = readDraft();
-    var title = String((draft && draft.title) || '').trim() || 'Your release';
+    var fromCard = '';
+    if (Array.isArray(cards)) {
+      cards.forEach(function (card) {
+        if (card && card.id && String(card.id).toLowerCase() === String(latestId || '').toLowerCase()) {
+          fromCard = String(card.title || '').trim();
+        }
+      });
+    }
+    var title = fromCard || String((draft && draft.title) || '').trim() || 'Your release';
     var href = latestId ? ('song.html?id=' + encodeURIComponent(latestId)) : 'releases.html';
     var editHref = latestId ? ('song.html?id=' + encodeURIComponent(latestId) + '&edit=1') : 'song.html';
     var stored = '';
@@ -466,5 +570,9 @@
     if (me) fillAccount(me);
   });
 
-  global.PlaigroundAccount = { fill: fillAccount, markPlanOption: markPlanOption };
+  global.PlaigroundAccount = {
+    fill: fillAccount,
+    markPlanOption: markPlanOption,
+    renderOverview: renderOverview,
+  };
 })(window);

@@ -105,6 +105,67 @@
     setText('[data-stat="draft"]', formatCount(stats.draft));
   }
 
+  function applyCover(el, url) {
+    var art = String(url || '').trim();
+    if (el && el.style) el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+    if (el && el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
+  }
+
+  function overviewCards(releases) {
+    return (releases || []).map(function (row) {
+      var mapped = statusApi() ? statusApi().info(row && row.status) : {
+        label: statusLabel(row && row.status),
+        live: String((row && row.status) || '') === 'live' || String((row && row.status) || '') === 'delivered',
+        dot: 'gray',
+      };
+      return {
+        id: String((row && (row.uuid || row.id)) || ''),
+        title: String((row && row.title) || '').trim(),
+        status: String((row && row.status) || ''),
+        label: mapped.label,
+        live: mapped.live,
+        artwork_url: String((row && row.artwork_url) || ''),
+      };
+    }).filter(function (card) {
+      var api = statusApi();
+      return !(api && typeof api.isPlaceholderRelease === 'function' && api.isPlaceholderRelease(card));
+    });
+  }
+
+  function renderOverviewTiles(releases) {
+    var cards = overviewCards(releases);
+    if (!cards.length) return;
+    if (global.PlaigroundAccount && typeof global.PlaigroundAccount.renderOverview === 'function') {
+      global.PlaigroundAccount.renderOverview(cards);
+      return;
+    }
+    var host = $('[data-release-tiles]');
+    if (!host) return;
+    host.textContent = '';
+    if (!cards.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    cards.forEach(function (card) {
+      var link = document.createElement('a');
+      link.className = 'release-tile';
+      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'song.html';
+      var art = document.createElement('span');
+      art.className = 'release-tile-art';
+      applyCover(art, card.artwork_url);
+      var title = document.createElement('strong');
+      title.textContent = card.title || 'Untitled';
+      var status = document.createElement('span');
+      status.className = 'release-tile-status is-' + ((statusApi() && statusApi().dot(card.status)) || 'gray');
+      status.textContent = card.label || 'Pending';
+      link.appendChild(art);
+      link.appendChild(title);
+      link.appendChild(status);
+      host.appendChild(link);
+    });
+  }
+
   function renderRows(releases, analytics) {
     var host = $('[data-release-rows]');
     if (!host) return;
@@ -242,6 +303,7 @@
     var shown = applyFilter(lastReleases, currentFilter);
     renderStats(lastReleases);
     renderRows(shown, lastAnalytics);
+    renderOverviewTiles(lastReleases);
     var empty = !shown.length;
     setHidden('[data-release-empty]', !empty);
     setHidden('[data-release-table]', empty);
