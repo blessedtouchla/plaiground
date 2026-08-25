@@ -36,11 +36,12 @@
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
   var DEFAULT_CATALOG_TIMEOUT_MS = 30000;
 
-  function sanitizePartnerCopy(text) {
+  function sanitizePartnerCopy(text, status) {
     var next = String(text == null ? '' : text);
-    if (/request entry too large|request entity too large|payload too large|function_payload_too_large|content too large/i.test(next)) {
-      return AUDIO_SIZE_COPY;
+    if (status === 413 || /request entry too large|request entity too large|payload too large|function_payload_too_large|content too large/i.test(next)) {
+      return catalogTimeoutMessage();
     }
+    if (/audio must be 200\s*mb or smaller/i.test(next)) return AUDIO_SIZE_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -874,7 +875,7 @@
   }
 
   function applyToneGridError(result, whyName, el) {
-    var message = sanitizePartnerCopy((result && result.data && result.data.error) || 'The store rejected the edit.');
+    var message = sanitizePartnerCopy((result && result.data && result.data.error) || 'The store rejected the edit.', result && result.status);
     if (el || whyName) lockControl(el, whyName, message);
     return message;
   }

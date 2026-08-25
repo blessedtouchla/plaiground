@@ -2402,9 +2402,173 @@ async function run() {
       ],
     });
     await flush(16);
-    assert.match(String(page.status.textContent || ''), /200\s*MB/i);
+    assert.match(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /200\s*MB/i, '413 payload errors are not a 200 MB cap');
     assert.doesNotMatch(String(page.status.textContent || ''), /request entry too large/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid/i);
+    assert.strictEqual(page.retryWrap.hidden, false);
+  }
+
+  async function convertedWavOverCapStillPostsWhenOriginalWasNormal() {
+    const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 5 * 1024 * 1024 };
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 250 * 1024 * 1024 };
+    const basic = load(filledUpload({
+      file: original,
+      countConvert: true,
+      convertHold: fatWav,
+      draft: {
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+      },
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
+      },
+      responses: uploadResponses.slice(),
+    }));
+    basic.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.ok(basic.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'Basic must POST the converted WAV when the picked file was a normal song');
+    assert.doesNotMatch(String(basic.status.textContent || ''), /200\s*MB/i, 'converted WAV over 200 MB is not a real cap if the original was normal');
+
+    const creator = load(filledUpload({
+      file: original,
+      countConvert: true,
+      convertHold: fatWav,
+      draft: {
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+      },
+      account: {
+        plan: 'creator',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 8, plan: 'creator', album_allowed: true },
+      },
+      responses: uploadResponses.slice(),
+    }));
+    creator.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.ok(creator.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'Creator must accept the same converted WAV');
+    assert.doesNotMatch(String(creator.status.textContent || ''), /200\s*MB/i);
+  }
+
+  async function realPickedCapIsSameOnBasicAndCreator() {
+    const huge = { name: 'too-big.mp3', type: 'audio/mpeg', size: 201 * 1024 * 1024 };
+    function tryPlan(plan) {
+      const page = load(filledUpload({
+        file: huge,
+        account: {
+          plan: plan,
+          tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          upload: { allowed: true, used: 0, limit: plan === 'basic' ? 1 : 8, plan: plan },
+        },
+        responses: uploadResponses.slice(),
+      }));
+      page.continueBtn.listeners.click({ preventDefault() {} });
+      return page;
+    }
+    const basic = tryPlan('basic');
+    const creator = tryPlan('creator');
+    await flush(4);
+    assert.match(String(basic.status.textContent || ''), /200\s*MB/i);
+    assert.match(String(creator.status.textContent || ''), /200\s*MB/i);
+    assert.ok(!basic.calls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
+    assert.ok(!creator.calls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
+  }
+
+  async function reviewSubmitDoesNotFalseCapHeldWav() {
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 250 * 1024 * 1024 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      countConvert: true,
+      convertHold: fatWav,
+      file: fatWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        audio_picked_size: 5 * 1024 * 1024,
+        audio_picked_name: 'night-drive.mp3',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(16);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'Basic Submit still POSTs the held WAV when it was never uploaded');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    }), 'Basic Submit must still go through');
+    assert.doesNotMatch(String(page.status.textContent || ''), /200\s*MB/i);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
+  async function leftoverConvertedWavWithoutPickedSizeStillPosts() {
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 250 * 1024 * 1024 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      countConvert: true,
+      convertHold: fatWav,
+      file: fatWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(16);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'leftover converted WAV without a stored original size must still POST');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    }), 'Basic Submit must still go through when original size was never stored');
+    assert.doesNotMatch(String(page.status.textContent || ''), /200\s*MB/i);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
   async function reviewRetryResendsHeldWavWithoutReconvert() {
@@ -2731,6 +2895,10 @@ async function run() {
   await reviewSubmitIgnoresAudioRequiredWhenHeld();
   await reviewSubmitReusesConvertedWavWithoutSecondPost();
   await reviewSubmitMapsSizeCapToHumanLimit();
+  await convertedWavOverCapStillPostsWhenOriginalWasNormal();
+  await realPickedCapIsSameOnBasicAndCreator();
+  await reviewSubmitDoesNotFalseCapHeldWav();
+  await leftoverConvertedWavWithoutPickedSizeStillPosts();
   await reviewSubmitHangShowsNamelessRetry();
   await reviewSubmitGetHangShowsNamelessRetry();
   await reviewRetryResendsHeldWavWithoutReconvert();

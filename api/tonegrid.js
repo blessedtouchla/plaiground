@@ -81,6 +81,7 @@ const {
 } = require('../lib/tonegrid');
 
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+const MAX_AUDIO_TRANSIT_BYTES = 512 * 1024 * 1024;
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
 const STORE_FACING = new Set([
@@ -923,17 +924,17 @@ async function trackAudio(req, res, trackId) {
   }
 
   const declared = Number(headerValue(req, 'content-length') || 0);
-  if (declared > MAX_AUDIO_BYTES) {
-    sendJson(res, 413, { error: 'Audio must be 200 MB or smaller.' });
+  if (declared > MAX_AUDIO_TRANSIT_BYTES) {
+    sendJson(res, 413, { error: 'We could not reach the store. Try again.' });
     return;
   }
 
   let raw;
   try {
-    raw = await readRawBody(req, MAX_AUDIO_BYTES);
+    raw = await readRawBody(req, MAX_AUDIO_TRANSIT_BYTES);
   } catch (err) {
     if (err && err.code === 'TOO_LARGE') {
-      sendJson(res, 413, { error: 'Audio must be 200 MB or smaller.' });
+      sendJson(res, 413, { error: 'We could not reach the store. Try again.' });
       return;
     }
     sendJson(res, 400, { error: 'Could not read the audio upload.' });
