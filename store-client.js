@@ -609,15 +609,17 @@
 
   var sessionReleaseId = '';
   var sessionReleaseChecked = '';
+  var sessionReleaseVerified = '';
   var releaseRecreateCount = 0;
   var MAX_RELEASE_RECREATES = 2;
   var DEAD_RELEASE_COPY = 'Could not create the release. Retry.';
 
-  function rememberSessionRelease(id) {
+  function rememberSessionRelease(id, verified) {
     var next = String(id || '').trim();
     if (!next) return;
     sessionReleaseId = next;
     sessionReleaseChecked = next;
+    if (verified) sessionReleaseVerified = next;
   }
 
   function isReleaseMissing(result) {
@@ -655,6 +657,7 @@
     if (!String(current.release_id || '').trim()) return current;
     sessionReleaseId = '';
     sessionReleaseChecked = '';
+    sessionReleaseVerified = '';
     var stored = Array.isArray(current.tracks) ? current.tracks.map(function (track) {
       var next = {};
       Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
@@ -708,6 +711,7 @@
     });
     sessionReleaseId = '';
     sessionReleaseChecked = '';
+    sessionReleaseVerified = '';
     var rows = qsAll('[data-track-row]');
     var i;
     for (i = 0; i < rows.length; i += 1) {
@@ -791,7 +795,11 @@
           result: { data: { error: 'Save the upload details first so a catalog artist exists.' } },
         };
       }
-      return createRelease(current, current.release_date || '').then(asResolvedRelease);
+      return createRelease(current, current.release_date || '').then(function (created) {
+        var resolved = asResolvedRelease(created);
+        if (resolved && (resolved.failed || resolved.missing)) resolved.createFreshFailed = true;
+        return resolved;
+      });
     });
   }
 
@@ -807,7 +815,7 @@
     if (!id) return createFreshRelease(current);
     return fetchReleaseTracks(id).then(function (loaded) {
       if (loaded.ok) {
-        rememberSessionRelease(id);
+        rememberSessionRelease(id, true);
         return { ok: true, draft: current, found: true, tracks: loaded.tracks, result: loaded.result };
       }
       if (isUnavailable(loaded.result)) {
@@ -1359,7 +1367,12 @@
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
       }
-      if (!result.ok && isReleaseMissing(result) && info.retriedRelease !== true) {
+      if (
+        !result.ok
+        && isReleaseMissing(result)
+        && info.retriedRelease !== true
+        && !(draft.release_id && sessionReleaseVerified && sameUuid(draft.release_id, sessionReleaseVerified))
+      ) {
         return resolveLiveRelease(clearDeadReleaseIds(draft)).then(function (resolved) {
           if (resolved.unavailable) return resolved;
           if (resolved.limited || resolved.failed || resolved.missing) {
@@ -2788,10 +2801,12 @@
       if (wrap) wrap.hidden = !on;
     }
 
-    function failUpload(message, upgrade) {
+    function failUpload(message, upgrade, opts) {
       setUploadBusy(false);
       markIncomplete(trigger, false);
-      var shownError = message;
+      var shownError = (opts && opts.createFreshFailed && /release not found/i.test(String(message || '')))
+        ? DEAD_RELEASE_COPY
+        : message;
       setStatus('tg-status', shownError || '');
       markStatusError(Boolean(shownError));
       showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
@@ -2939,7 +2954,11 @@
           return;
         }
         if (created.failed || created.missing) {
-          failUpload((created.result && created.result.data && created.result.data.error) || DEAD_RELEASE_COPY, false);
+          failUpload(
+            (created.result && created.result.data && created.result.data.error) || DEAD_RELEASE_COPY,
+            false,
+            { createFreshFailed: created.createFreshFailed === true }
+          );
           return;
         }
         return afterCatalogReady(created.draft || draft, nextHref).then(function (ok) {

@@ -649,16 +649,29 @@ async function createRelease(req, res) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
-  // Client already decided this id is dead. Never 200-continue it, even if the store still has a row.
-  let deadReplaceId = isUuid(replaceId) ? replaceId : '';
+  let deadReplaceId = '';
+  // replace_release_id / only-catalog continue only for THIS song's living owned id.
+  // GET /releases/:id 404 can be requireOwnedRelease (id not in this allow-list) while
+  // the partner still has the row. Do not treat that as partner-gone and 200-continue
+  // the same unowned id. Leftover sandbox/prod ids 404 on the configured store.
+  if (isUuid(replaceId) && existingIds.some((id) => sameCatalogId(id, replaceId))) {
+    const loaded = await fetchReleaseRow(replaceId);
+    if (loaded.result && loaded.result.ok && releaseBelongsToCreateBody(loaded.row, body)) {
+      sendJson(res, 200, { uuid: replaceId, continued: true });
+      return;
+    }
+    if (isReleaseGoneResult(loaded.result)) {
+      deadReplaceId = replaceId;
+    }
+  }
   const explicitId = (decision.continuing && isUuid(continueId)) ? continueId : '';
   if (explicitId && !sameCatalogId(explicitId, deadReplaceId)) {
-    const live = await fetchReleaseRow(explicitId);
-    if (live.result && live.result.ok) {
+    const loaded = await fetchReleaseRow(explicitId);
+    if (loaded.result && loaded.result.ok) {
       sendJson(res, 200, { uuid: explicitId, continued: true });
       return;
     }
-    if (isReleaseGoneResult(live.result)) {
+    if (isReleaseGoneResult(loaded.result)) {
       deadReplaceId = explicitId;
     }
   } else if (
@@ -670,12 +683,12 @@ async function createRelease(req, res) {
     && artistId.toLowerCase() === scope.artistId.toLowerCase()
   ) {
     const leftoverId = existingIds[0];
-    const live = await fetchReleaseRow(leftoverId);
-    if (live.result && live.result.ok && releaseBelongsToCreateBody(live.row, body)) {
+    const loaded = await fetchReleaseRow(leftoverId);
+    if (loaded.result && loaded.result.ok && releaseBelongsToCreateBody(loaded.row, body)) {
       sendJson(res, 200, { uuid: leftoverId, continued: true });
       return;
     }
-    if (isReleaseGoneResult(live.result)) {
+    if (isReleaseGoneResult(loaded.result)) {
       deadReplaceId = leftoverId;
     }
   }
@@ -1358,8 +1371,7 @@ async function tonegridReleaseExists(releaseId) {
   if (!isUuid(releaseId)) return false;
   const loaded = await fetchReleaseRow(releaseId);
   if (loaded.result && loaded.result.ok) return true;
-  if (isReleaseGoneResult(loaded.result)) return false;
-  return true;
+  return false;
 }
 
 async function requireOwnedRelease(req, res, releaseId) {
