@@ -760,7 +760,8 @@
   function editAlreadyQueued(release, draft) {
     var status = String((release && release.status) || (draft && (draft.tonegrid_status || draft.status)) || '').toLowerCase();
     if (draft && (draft.submitted === true || draft.submitted === 'true')) return true;
-    return status === 'pending' || status === 'processing' || status === 'approved' || status === 'live' || status === 'delivered';
+    if (status === 'pending' || status === 'processing' || status === 'approved' || status === 'live' || status === 'delivered') return true;
+    return status === 'signatures' || status === 'awaiting_signature' || status === 'awaiting signatures';
   }
 
   function isNonBlockingEditSubmit(result) {
@@ -1382,28 +1383,13 @@
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));
       if (errors.length) return { ok: false, skipped: true, blocked: true };
-      if (editAlreadyQueued(release, draft)) {
-        return { ok: true, skipped: true, queued: true, data: { status: release.status || 'pending' } };
-      }
-      var submitBody = {
-        release_date: date || release.release_date || draft.release_date || '',
-        made_how: selectedMadeHow() || draft.made_how || '',
-        human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
-        human_contribution: draft.human_contribution || '',
-        rights_confirmed: draft.rights_confirmed === true,
-        solo_owned_100: draft.solo_owned_100 === true || draft.solo_owned_100 === 'true',
-        featured: featured,
-        title: title,
-        songTitle: title,
+      return {
+        ok: true,
+        skipped: true,
+        queued: true,
+        skippedSplit: !editAlreadyQueued(release, draft),
+        data: { status: release.status || (draft && draft.tonegrid_status) || 'pending' },
       };
-      if (draft.signwell_document_id) submitBody.document_id = draft.signwell_document_id;
-      if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
-      return runHop('submit', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/submit', 'POST', submitBody)).then(function (submitted) {
-        if (submitted && !submitted.ok && isNonBlockingEditSubmit(submitted)) {
-          return { ok: true, skippedSplit: true, status: submitted.status, data: submitted.data || {} };
-        }
-        return submitted;
-      });
     }).then(function (result) {
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       if (result && !result.ok && !isNonBlockingEditSubmit(result)) {

@@ -346,6 +346,67 @@ function testEditSubmitLeftovers() {
     assert.ok(!/ToneGrid/i.test(multi.nodes['[data-edit-error]'].textContent));
     assert.ok(!/Submitting edit to the store/.test(multi.nodes['[data-edit-error]'].textContent));
 
+    const awaitingCalls = [];
+    const awaiting = loadSong({
+      plan: 'basic',
+      me: {
+        artist: 'Fuvtu',
+        plan: 'basic',
+        tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+      },
+      search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      calls: awaitingCalls,
+      fetch(url, options) {
+        const method = (options && options.method) || 'GET';
+        if (method === 'POST' && /\/submit$/.test(String(url))) {
+          return Promise.resolve({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'Create the split sheet before submitting.', code: 'SIGNWELL_REQUIRED' }),
+          });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, status: 'signatures' }) });
+      },
+    });
+    awaiting.ids['edit-title'].value = 'Fuvtu Edit';
+    awaiting.ids['edit-genre'].value = 'Electronic';
+    awaiting.ids['edit-language'].value = 'en';
+    awaiting.ids['edit-release-date'].value = '2026-09-12';
+    awaiting.api.openEdit({
+      me: {
+        artist: 'Fuvtu',
+        plan: 'basic',
+        tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+      },
+      draft: {
+        release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        made_how: 'no_ai',
+        rights_confirmed: true,
+        solo_owned_100: false,
+        submitted: false,
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        writers: [{ name: 'Fuvtu', share: 50 }, { name: 'Ada', share: 50 }],
+      },
+      release: {
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        status: 'signatures',
+        genre: 'Electronic',
+        language: 'en',
+        release_date: '2026-08-24',
+        artist: 'Fuvtu',
+        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        dsps: ['spotify'],
+      },
+    });
+    return awaiting.api.submitEdit().then(function (awaitingResult) {
+      assert.ok(awaitingResult.ok, 'awaiting-split edit must save without a new split');
+      assert.ok(!awaitingCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
+      assert.ok(/edit-submitted\.html/.test(String(awaiting.context.location.href)));
+      assert.ok(!/Create the split sheet/.test(awaiting.nodes['[data-edit-error]'].textContent));
+    }).then(function () {
+
     const timedCalls = [];
     const timed = loadSong({
       plan: 'basic',
@@ -443,6 +504,7 @@ function testEditSubmitLeftovers() {
         });
       });
     });
+  });
   });
 }
 
