@@ -716,6 +716,9 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   padding: 12px 14px;
   min-height: 44px;
   font-size: 16px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
   touch-action: manipulation;
 }
 .typeahead-list button:hover,

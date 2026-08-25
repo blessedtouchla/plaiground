@@ -3267,6 +3267,15 @@
       el.addEventListener('input', refreshUploadGate);
       el.addEventListener('change', refreshUploadGate);
     });
+    ['tg-genre', 'tg-language'].forEach(function (id) {
+      var select = $(id);
+      var field = select && select.parentNode;
+      var typed = field && field.querySelector ? field.querySelector('.typeahead-input') : null;
+      if (!typed && select && select.id && document.getElementById) {
+        typed = document.getElementById(select.id + '-type');
+      }
+      if (typed && typed.addEventListener) typed.addEventListener('change', refreshUploadGate);
+    });
     var audioInput = document.querySelector('[data-audio-input]');
     if (audioInput && audioInput.addEventListener) {
       audioInput.addEventListener('change', function () {
