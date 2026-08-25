@@ -488,6 +488,7 @@
       setHidden('[data-song-split-empty]', false);
       setHidden('[data-song-rejection]', true);
       mountLivePlayer(null);
+      mountSongLinks(null);
       return;
     }
 
@@ -561,7 +562,9 @@
       global.PlaigroundMembership.applyPlanCopy();
     }
     lastEdit = { me: me, draft: draft, release: release, analytics: analytics };
-    mountLivePlayer(Object.assign({}, release, { status: step }));
+    var playerRelease = Object.assign({}, release, { status: step });
+    mountLivePlayer(playerRelease);
+    mountSongLinks(playerRelease);
     if (queryEdit() && !editClosed) openEdit({ me: me, draft: draft, release: release });
   }
 
@@ -570,6 +573,18 @@
     var api = global.PlaigroundLivePlayer;
     if (!host || !api) return;
     api.mount(host, release);
+  }
+
+  function mountSongLinks(release) {
+    var panel = $('[data-song-links]');
+    var list = $('[data-song-link-list]');
+    var api = global.PlaigroundLivePlayer;
+    if (!panel) return;
+    var info = api && typeof api.mountLinks === 'function'
+      ? api.mountLinks(list, release)
+      : { live: false, links: [] };
+    var show = Boolean(info && info.live && info.links && info.links.length);
+    setHidden('[data-song-links]', !show);
   }
 
   function load() {

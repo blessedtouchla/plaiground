@@ -2179,6 +2179,14 @@ body:not(.app) > .app-main > .topbar { display: none; }
   opacity: 0.45;
   cursor: not-allowed;
 }
+.song-store-links a {
+  color: var(--muted-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.song-store-links a:hover {
+  color: #fff;
+}
 .owner-embed {
   width: 100%;
   min-height: 152px;
