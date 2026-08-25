@@ -57,28 +57,29 @@
       <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <main>
-    <section class="page-hero left plai-coach">
+    <section class="page-hero left">
       <div class="wrap">
         <div class="plai-coach-grid">
           <aside class="plai-coach-identity">
-            <div class="plai-coach-avatar" role="img" aria-label="PLAI">
+            <div class="avatar plai-coach-avatar" role="img" aria-label="PLAI">
               <img src="assets/plai-avatar.png" alt="" onerror="this.hidden=true" />
-              <span class="plai-coach-initials" aria-hidden="true">PLAI</span>
+              <span aria-hidden="true">PLAI</span>
             </div>
             <h1>PLAI</h1>
-            <p class="plai-coach-role">Your Release Coach</p>
-            <p class="plai-coach-hint">she/her · sounds like PLAY</p>
+            <p class="sub">Your Release Coach</p>
           </aside>
-          <section class="plai-coach-chat" aria-label="Chat with PLAI">
+          <section class="card plai-coach-chat" aria-label="Chat with PLAI">
             <div class="plai-coach-log" role="log" aria-live="polite" aria-relevant="additions"></div>
             <form class="plai-coach-composer" data-plai-coach-form action="plai.html" method="get">
-              <label class="plai-coach-sr" for="plai-coach-input">Message PLAI</label>
-              <input id="plai-coach-input" name="q" type="text" maxlength="400" autocomplete="off" enterkeyhint="send" placeholder="Type to PLAI…" />
+              <div class="field">
+                <label class="plai-coach-sr" for="plai-coach-input">Message PLAI</label>
+                <input id="plai-coach-input" name="q" type="text" maxlength="400" autocomplete="off" enterkeyhint="send" placeholder="Type to PLAI…" />
+              </div>
               <button class="btn btn-purple btn-sm" type="submit">Send</button>
             </form>
           </section>
         </div>
-        <section class="plai-coach-plan" aria-labelledby="plai-action-plan-title">
+        <section class="card plai-coach-plan" aria-labelledby="plai-action-plan-title">
           <h2 id="plai-action-plan-title">Action Plan</h2>
         </section>
       </div>
