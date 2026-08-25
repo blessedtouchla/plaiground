@@ -318,7 +318,7 @@
       status: draft.submitted ? 'pending' : 'draft',
       genre: String(draft.genre || '').trim(),
       language: String(draft.language || '').trim(),
-      artwork_url: String(draft.artwork_url || '').trim(),
+      artwork_url: String((draft && (draft.artwork_url || draft.cover_art_url || draft.cover_url)) || '').trim(),
       release_date: String(draft.release_date || '').trim(),
       artist: String(draft.name || (me && me.artist) || '').trim(),
       dsps: Array.isArray(draft.dsps) ? draft.dsps.slice() : [],
@@ -540,7 +540,13 @@
     var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
     var meta = [artist, typeLabel(release.type), yearOf(release.release_date), release.genre].filter(Boolean);
     setText('[data-song-meta]', meta.join(' · '));
-    setCover(release.artwork_url);
+    var cover = '';
+    if (global.PlaigroundCoverUrl && typeof global.PlaigroundCoverUrl.from === 'function') {
+      cover = global.PlaigroundCoverUrl.from(release);
+    } else {
+      cover = String((release && (release.artwork_url || release.cover_art_url || release.cover_url)) || '').trim();
+    }
+    setCover(cover);
 
     var summary = analytics.summary || {};
     var scoped = ((analytics.releases || []).filter(function (row) {

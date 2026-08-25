@@ -45,6 +45,7 @@ const crypto = require('crypto');
 const accounts = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const plans = require('../lib/plans');
+const coverUrl = require('../lib/cover-url');
 const profileLib = require('../lib/profile');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
@@ -329,10 +330,20 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
   });
 }
 
-async function persistReleaseMeta(row, releaseId, status, reason) {
+async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
-  const next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
+  let next = stored;
+  if (status || reason !== undefined) {
+    next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
+  }
+  if (artworkUrl) {
+    next = profileLib.upsertRelease(next, {
+      id: releaseId,
+      tonegrid_release_id: releaseId,
+      artwork_url: artworkUrl,
+    });
+  }
   await accounts.updateProfile(row.id, { profile: next });
 }
 
@@ -484,7 +495,7 @@ function pickRelease(row) {
     status: String(row.status || '').trim().toLowerCase(),
     genre: String(row.genre || '').trim(),
     language: String(row.language || '').trim().toLowerCase(),
-    artwork_url: String(row.artwork_url || row.cover_art_url || '').trim(),
+    artwork_url: coverUrl.from(row),
     release_date: normalizeReleaseDate(row.release_date || row.releaseDate) || '',
     created_at: typeof row.created_at === 'string' ? row.created_at : '',
     artist: artistNameOf(row),
@@ -568,7 +579,7 @@ async function listReleases(req, res) {
         status: local.tonegrid_status || 'pending',
         genre: '',
         language: '',
-        artwork_url: '',
+        artwork_url: coverUrl.from(local),
         release_date: '',
         created_at: '',
         artist: '',
@@ -585,7 +596,7 @@ async function listReleases(req, res) {
         status: 'pending',
         genre: '',
         language: '',
-        artwork_url: '',
+        artwork_url: coverUrl.from(local),
         release_date: '',
         created_at: '',
         artist: '',
@@ -596,6 +607,9 @@ async function listReleases(req, res) {
     }
     if (local && local.rejection_reason && !row.rejection_reason) {
       row.rejection_reason = local.rejection_reason;
+    }
+    if (row && !row.artwork_url && local) {
+      row.artwork_url = coverUrl.from(local);
     }
     await attachDeliveries(row, id);
     if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
@@ -610,6 +624,7 @@ async function listReleases(req, res) {
       tonegrid_release_id: row.uuid,
       tonegrid_status: row.status,
       rejection_reason: row.rejection_reason,
+      artwork_url: row.artwork_url,
     });
   });
   if (collected.length) {
@@ -1422,7 +1437,7 @@ async function getOneRelease(req, res, releaseId) {
     return;
   }
   if (loaded.row) {
-    await persistReleaseMeta(scope.row, releaseId, loaded.row.status, loaded.row.rejection_reason);
+    await persistReleaseMeta(scope.row, releaseId, loaded.row.status, loaded.row.rejection_reason, loaded.row.artwork_url);
   }
   sendJson(res, 200, Object.assign({ configured: true, sandbox: healthPayload().sandbox }, loaded.row));
 }
@@ -1830,6 +1845,10 @@ async function releaseArtwork(req, res, releaseId) {
     contentType,
     idempotencyKey: hopIdempotencyKey('artwork', 'POST', '/releases/' + releaseId + '/artwork', bodyFingerprint(raw)),
   });
+  const uploaded = coverUrl.from(result && result.data) || coverUrl.from(unwrapRelease(result && result.data));
+  if (result.ok && uploaded) {
+    await persistReleaseMeta(scope.row, releaseId, null, undefined, uploaded);
+  }
   sendJson(res, result.status, result.data);
 }
 

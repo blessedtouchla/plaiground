@@ -223,6 +223,7 @@
       el.hidden = !hasRelease;
     });
     renderOverview(cards);
+    hydrateOverviewCovers(cards);
     var plan = String(me.plan || '').toLowerCase();
     var paid = plan === 'creator' || plan === 'pro';
     $all('[data-pub-badge]').forEach(function (el) {
@@ -280,10 +281,60 @@
     });
   }
 
+  function coverOf(row) {
+    var api = statusApi();
+    if (api && typeof api.coverUrl === 'function') return api.coverUrl(row);
+    if (global.PlaigroundCoverUrl && typeof global.PlaigroundCoverUrl.from === 'function') {
+      return global.PlaigroundCoverUrl.from(row);
+    }
+    return String((row && (row.artwork_url || row.cover_art_url || row.cover_url)) || '').trim();
+  }
+
   function applyCover(el, url) {
+    if (global.PlaigroundCoverPreview && typeof global.PlaigroundCoverPreview.paintTile === 'function') {
+      global.PlaigroundCoverPreview.paintTile(el, url);
+      return;
+    }
     var art = String(url || '').trim();
-    if (el && el.style) el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+    if (el && el.style) {
+      el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+      el.style.backgroundSize = art ? 'cover' : '';
+      el.style.backgroundPosition = art ? 'center' : '';
+      el.style.backgroundColor = art ? '#111' : '';
+    }
     if (el && el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
+  }
+
+  function hydrateOverviewCovers(cards) {
+    if (!cards || !cards.length) return;
+    if (!$('[data-release-tiles]')) return;
+    if ($('[data-release-rows]')) return;
+    if (typeof fetch !== 'function') return;
+    fetch('/api/tonegrid/releases', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (response) {
+        return response.json().then(function (body) {
+          return { ok: response.ok, data: body || {} };
+        }).catch(function () {
+          return { ok: false, data: {} };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.data || !Array.isArray(result.data.releases)) return;
+        var byId = {};
+        result.data.releases.forEach(function (row) {
+          var id = String((row && (row.uuid || row.id)) || '').toLowerCase();
+          var url = coverOf(row);
+          if (id && url) byId[id] = url;
+        });
+        var next = cards.map(function (card) {
+          var url = byId[String((card && card.id) || '').toLowerCase()];
+          if (!url || (card && card.artwork_url)) return card;
+          return Object.assign({}, card, { artwork_url: url });
+        });
+        var changed = next.some(function (card, i) { return card !== cards[i]; });
+        if (changed) renderReleaseTiles(next);
+      })
+      .catch(function () {});
   }
 
   function renderOverview(cards) {
@@ -310,7 +361,7 @@
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       art.setAttribute('aria-hidden', 'true');
-      applyCover(art, card.artwork_url);
+      applyCover(art, coverOf(card));
       var title = document.createElement('strong');
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');

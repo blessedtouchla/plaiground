@@ -220,6 +220,7 @@ function run() {
     };
     fillCtx.window = fillCtx;
     fillCtx.globalThis = fillCtx;
+    vm.runInNewContext(read('lib/cover-url.js'), fillCtx);
     vm.runInNewContext(read('lib/release-status.js'), fillCtx);
     vm.runInNewContext(read('account.js'), fillCtx);
     fillCtx.PlaigroundAccount.fill(me);
@@ -328,6 +329,21 @@ function run() {
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[1].textContent, 'Night Drive');
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
   assert.strictEqual(liveRelease['[data-account-releases]'].textContent, '1');
+
+  const liveCover = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'live', artwork_url: 'https://cdn.example/night.jpg' }] },
+  });
+  assert.ok(liveCover['[data-release-tiles]'].children[0].children[0].style.backgroundImage.indexOf('night.jpg') !== -1, 'Overview tiles paint stored cover art');
+  const emptyCover = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'pending' }] },
+  });
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'empty placeholder stays when there is no cover');
 
   const namedField = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator' });
   assert.strictEqual(namedField['[data-account-artist]'].value, 'Victoria Imtanes', 'a real stored name stays');

@@ -28,6 +28,7 @@ const USER_FILES = [
   'upload.html',
   'lib/upload-required.js',
   'lib/cover-preview.js',
+  'lib/cover-url.js',
   'publishing-register.html',
   'publishing-register.js',
 ];

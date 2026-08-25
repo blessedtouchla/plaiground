@@ -302,6 +302,7 @@ function run() {
   assert.ok(html.includes('lib/audio-accept.js'));
   assert.ok(html.includes('lib/store-pick.js'));
   assert.ok(html.includes('lib/cover-preview.js'));
+  assert.ok(html.includes('lib/cover-url.js'));
   assert.ok(html.includes('data-art-clear'));
   assert.ok(html.includes('Pre-select all stores'));
   assert.ok(html.includes('data-store-customize'));

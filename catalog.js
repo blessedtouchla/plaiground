@@ -105,9 +105,27 @@
     setText('[data-stat="draft"]', formatCount(stats.draft));
   }
 
+  function coverOf(row) {
+    var api = statusApi();
+    if (api && typeof api.coverUrl === 'function') return api.coverUrl(row);
+    if (global.PlaigroundCoverUrl && typeof global.PlaigroundCoverUrl.from === 'function') {
+      return global.PlaigroundCoverUrl.from(row);
+    }
+    return String((row && (row.artwork_url || row.cover_art_url || row.cover_url)) || '').trim();
+  }
+
   function applyCover(el, url) {
+    if (global.PlaigroundCoverPreview && typeof global.PlaigroundCoverPreview.paintTile === 'function') {
+      global.PlaigroundCoverPreview.paintTile(el, url);
+      return;
+    }
     var art = String(url || '').trim();
-    if (el && el.style) el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+    if (el && el.style) {
+      el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+      el.style.backgroundSize = art ? 'cover' : '';
+      el.style.backgroundPosition = art ? 'center' : '';
+      el.style.backgroundColor = art ? '#111' : '';
+    }
     if (el && el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
   }
 
@@ -124,7 +142,7 @@
         status: String((row && row.status) || ''),
         label: mapped.label,
         live: mapped.live,
-        artwork_url: String((row && row.artwork_url) || ''),
+        artwork_url: coverOf(row),
       };
     }).filter(function (card) {
       var api = statusApi();
@@ -181,6 +199,7 @@
       var thumb = document.createElement('span');
       var live = statusApi() ? statusApi().isLive(row.status) : row.status === 'live';
       thumb.className = live ? 'thumb' : 'thumb grey';
+      applyCover(thumb, coverOf(row));
       var copy = document.createElement('div');
       var title = document.createElement('a');
       title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'song.html';
@@ -370,6 +389,16 @@
         rejection_reason: '',
         genre: matchesDraft ? String(draft.genre || '').trim() : '',
         release_date: matchesDraft ? String(draft.release_date || '').trim() : '',
+        artwork_url: (function () {
+          var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+          var found = '';
+          stored.forEach(function (item) {
+            if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() === key) {
+              found = coverOf(item);
+            }
+          });
+          return found || (matchesDraft ? coverOf(draft) : '');
+        })(),
       });
     });
     return extra;
@@ -561,7 +590,7 @@
         catalog.syncTypeahead(language);
       }
     }
-    if (editCover) editCover.setStored(release.artwork_url || '');
+    if (editCover) editCover.setStored(coverOf(release));
     setEditError('');
   }
 
