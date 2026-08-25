@@ -100,6 +100,7 @@ function run() {
   assert.ok(dash.includes('All releases'), 'latest-release card must keep All releases');
   assert.ok(!dash.includes('View release'), 'Overview purple button must not stay View release');
   assert.ok(/class="btn btn-purple btn-md" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>/.test(dash), 'Overview purple button is New release to upload.html');
+  assert.ok(read('account.js').includes("el.setAttribute('href', 'releases.html')"), 'sidebar Releases stays on the catalog list');
   assert.ok(!/data-latest-link/.test(dash), 'Overview New release must not be rewritten to the latest song');
   assert.ok(dash.includes('data-release-tiles'), 'release cover tiles are missing');
   assert.ok(dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'publishing CTA must unlock MSP');

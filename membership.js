@@ -349,6 +349,28 @@
     return LOGIN;
   }
 
+  function withNewReleaseFlag(href) {
+    var next = String(href || 'upload.html');
+    if (/[?&]new=1(?:&|$|#)/.test(next)) return next;
+    var hash = '';
+    var hashAt = next.indexOf('#');
+    if (hashAt !== -1) {
+      hash = next.slice(hashAt);
+      next = next.slice(0, hashAt);
+    }
+    return (next.indexOf('?') === -1 ? (next + '?new=1') : (next + '&new=1')) + hash;
+  }
+
+  function clearNewReleaseState() {
+    try { if (global.localStorage) global.localStorage.removeItem('plaiground.store.draft'); } catch (err) {}
+    try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.store.draft'); } catch (err) {}
+    try {
+      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
+        indexedDB.deleteDatabase('plaiground-held-audio');
+      }
+    } catch (err) {}
+  }
+
   function bindAccountClicks() {
     if (!global.document || !global.document.addEventListener) return;
     global.document.addEventListener('click', function (event) {
@@ -356,9 +378,15 @@
       if (!target || !target.closest) return;
       var publishing = target.closest('[data-publishing-register]');
       var upload = target.closest('[data-signed-in-upload]');
-      if (!publishing && !upload) return;
-      event.preventDefault();
-      var href = (publishing || upload).getAttribute('href') || (publishing ? PUBLISHING : 'upload.html');
+      var fresh = target.closest('[data-new-release]');
+      if (!publishing && !upload && !fresh) return;
+      if (publishing || upload) event.preventDefault();
+      else if (fresh) event.preventDefault();
+      var href = (publishing || upload || fresh).getAttribute('href') || (publishing ? PUBLISHING : 'upload.html');
+      if (fresh) {
+        clearNewReleaseState();
+        href = withNewReleaseFlag(href);
+      }
       accountReady.then(function () {
         global.location.href = publishing
           ? destinationForPublishing()
@@ -547,6 +575,8 @@
     publishingHref: publishingHref,
     destinationForPublishing: destinationForPublishing,
     destinationForSignedInUpload: destinationForSignedInUpload,
+    withNewReleaseFlag: withNewReleaseFlag,
+    clearNewReleaseState: clearNewReleaseState,
     hasLiveSession: hasLiveSession,
     isConfirmedLoggedOut: isConfirmedLoggedOut,
     currentPlan: currentPlan,

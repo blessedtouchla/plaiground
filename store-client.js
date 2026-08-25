@@ -73,6 +73,44 @@
     try { sessionStorage.setItem(key, value); } catch (err) {}
   }
 
+  function isNewReleaseStart() {
+    try {
+      return new URLSearchParams((typeof location !== 'undefined' && location.search) || '').get('new') === '1';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function clearHeldAudio() {
+    heldAudioFile = null;
+    try {
+      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
+        indexedDB.deleteDatabase(AUDIO_HOLD_DB);
+      }
+    } catch (err) {}
+  }
+
+  function clearNewReleaseDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    clearHeldAudio();
+  }
+
+  function stripNewReleaseFlag() {
+    try {
+      if (!isNewReleaseStart() || !window.history || !window.history.replaceState) return;
+      var url = 'upload.html';
+      try {
+        var params = new URLSearchParams(location.search || '');
+        params.delete('new');
+        var keep = params.toString();
+        var path = String((location.pathname || 'upload.html').split('/').pop() || 'upload.html');
+        url = keep ? (path + '?' + keep) : path;
+      } catch (err) {}
+      window.history.replaceState({}, '', url);
+    } catch (err) {}
+  }
+
   function readDraft() {
     var draft;
     try {
@@ -3186,6 +3224,10 @@
   function bindUpload() {
     var trigger = document.querySelector('[data-store-continue]');
     if (!trigger) return;
+    if (isNewReleaseStart()) {
+      clearNewReleaseDraft();
+      stripNewReleaseFlag();
+    }
     bindUploadCatalog();
     bindArtistSection();
     bindStorePick(storePickRoot());

@@ -606,6 +606,8 @@ function run() {
   assert.ok(tonegridSrc.indexOf('function catalogFieldValue') !== -1, 'upload must read the typeahead pick, not only select.value');
   assert.ok(tonegridSrc.indexOf('function ensureUploadTypeahead') !== -1, 'Basic account ready must re-ensure genre/language typeahead');
   assert.ok(tonegridSrc.indexOf('ensureUploadTypeahead()') !== -1);
+  assert.ok(tonegridSrc.indexOf('function clearNewReleaseDraft') !== -1, 'New release must wipe leftover draft');
+  assert.ok(tonegridSrc.indexOf('isNewReleaseStart') !== -1);
   assert.ok(!/if \(typeaheadApplying\) return/.test(catalogSrc), 'fillUploadSelects must not skip bind while a pick is applying');
   const bindFn = tonegridSrc.slice(tonegridSrc.indexOf('function bindUploadCatalog'), tonegridSrc.indexOf('function restoreUploadDraft'));
   assert.ok(bindFn.indexOf('plan') === -1, 'genre/language bind is not plan-gated');
