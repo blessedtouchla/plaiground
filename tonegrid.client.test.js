@@ -69,7 +69,10 @@ function makeEl(attrs) {
     querySelectorAll() {
       return [];
     },
-    closest() {
+    closest(sel) {
+      if (sel === '.st' && (this.className === 'st' || this.getAttribute('class') === 'st')) return this;
+      if (sel === '[data-flow-step]' && this.getAttribute('data-flow-step')) return this;
+      if (sel === 'a[href]' && this.getAttribute('href')) return this;
       return null;
     },
     hasAttribute(name) {
@@ -180,6 +183,18 @@ function load(options) {
     return [];
   };
   const addTrackBtn = makeEl({ attrs: { 'data-add-track': '' } });
+  const uploadStep = makeEl({ href: 'upload.html', attrs: { href: 'upload.html', class: 'st' } });
+  uploadStep.tagName = 'A';
+  uploadStep.className = 'st';
+  const attestStep = makeEl({ href: 'attest.html', attrs: { href: 'attest.html', class: 'st' } });
+  attestStep.tagName = 'A';
+  attestStep.className = 'st';
+  const reviewStep = makeEl({ href: 'review.html', attrs: { href: 'review.html', class: 'st' } });
+  reviewStep.tagName = 'A';
+  reviewStep.className = 'st';
+  const stepper = makeEl({ attrs: { class: 'stepper' } });
+  stepper.className = 'stepper';
+  stepper.contains = function () { return true; };
 
   const context = {
     URLSearchParams,
@@ -246,6 +261,7 @@ function load(options) {
         if (sel === '[data-instrumental]') return instrumental;
         if (sel === '[data-upload-retry]') return retryBtn;
         if (sel === '[data-upload-retry-wrap]') return retryWrap;
+        if (sel === '.stepper') return stepper;
         return null;
       },
     },
@@ -361,6 +377,9 @@ function load(options) {
     liveRows,
     retryBtn,
     retryWrap,
+    stepper,
+    attestStep,
+    reviewStep,
   };
 }
 
@@ -1003,6 +1022,75 @@ async function run() {
   assert.ok(!/Converting/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent + ' ' + wavWait.loaderMeta.textContent), 'WAV must not say converting');
   wavHold();
   await flush();
+
+  function clickStepper(page, step) {
+    const ev = {
+      target: step,
+      prevented: false,
+      stopped: false,
+      preventDefault() { this.prevented = true; },
+      stopPropagation() { this.stopped = true; },
+    };
+    page.stepper.listeners.click(ev);
+    return ev;
+  }
+
+  let attestStartHold;
+  const holdAttestStart = new Promise(function (resolve) { attestStartHold = resolve; });
+  const attestStarts = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdAttestStart,
+    holdWhen: '/audio',
+  }));
+  const attestStartClick = clickStepper(attestStarts, attestStarts.attestStep);
+  assert.strictEqual(attestStartClick.prevented, true, 'Attest must not leave Upload before convert/upload finishes');
+  await flush();
+  assert.ok(attestStarts.calls.some(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }), 'Attest / Next starts convert+store work if it has not started');
+  assert.ok(/Converting MP3 to WAV/.test(attestStarts.loaderStep.textContent), 'late Attest click still shows converting');
+  assert.strictEqual(attestStarts.loader.hidden, false);
+  assert.ok(String(attestStarts.location.href).indexOf('attest.html') === -1);
+  assert.ok(String(attestStarts.location.href).indexOf('review.html') === -1);
+  attestStartHold();
+  await flush();
+
+  let attestHold;
+  const holdAttestAudio = new Promise(function (resolve) { attestHold = resolve; });
+  const attestInFlight = load(filledUpload({
+    file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
+    responses: uploadResponses.slice(),
+    holdFirst: holdAttestAudio,
+    holdWhen: '/audio',
+  }));
+  attestInFlight.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const artistsBefore = attestInFlight.calls.filter(function (call) {
+    return call.url === '/api/tonegrid/artists';
+  }).length;
+  const audioBefore = attestInFlight.calls.filter(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }).length;
+  const stayed = clickStepper(attestInFlight, attestInFlight.attestStep);
+  assert.strictEqual(stayed.prevented, true);
+  await flush();
+  assert.ok(String(attestInFlight.location.href).indexOf('attest.html') === -1, 'in-flight Attest must stay on Upload');
+  assert.ok(/Converting MP3 to WAV/.test(attestInFlight.loaderStep.textContent));
+  assert.strictEqual(attestInFlight.loader.hidden, false, 'keep the converting bar on the Attest click');
+  assert.strictEqual(attestInFlight.calls.filter(function (call) {
+    return call.url === '/api/tonegrid/artists';
+  }).length, artistsBefore, 'do not drop and restart the in-flight upload');
+  assert.strictEqual(attestInFlight.calls.filter(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }).length, audioBefore);
+  const reviewClick = clickStepper(attestInFlight, attestInFlight.reviewStep);
+  assert.strictEqual(reviewClick.prevented, true);
+  assert.ok(String(attestInFlight.location.href).indexOf('review.html') === -1, 'do not skip to Review while convert is running');
+  attestHold();
+  await flush();
+  assert.strictEqual(draftOf(attestInFlight.localStorage).audio_attached, true);
+  assert.ok(draftOf(attestInFlight.localStorage).audio_name);
 
   const phoneMp3 = load(filledUpload({
     file: { name: 'voice-memo.mp3', type: 'audio/x-mpeg', size: 2048 },
@@ -2244,6 +2332,9 @@ async function run() {
   assert.ok(source.includes("return 'Converting to WAV'") || source.includes('Converting to WAV'));
   assert.ok(source.includes('This can take a minute.'));
   assert.ok(source.includes('Uploading audio'));
+  assert.ok(source.includes('bindLeaveUploadGuard'));
+  assert.ok(source.includes('guardLeaveUpload'));
+  assert.ok(source.includes('keepUploadBarVisible'));
   assert.ok(fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8').includes("return 'Converting to WAV';"));
   assert.ok(source.includes('Uploading artwork'));
   assert.ok(source.includes('Opening SignWell'));

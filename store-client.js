@@ -3177,6 +3177,66 @@
       if (wrap) wrap.hidden = true;
     }
 
+    function fireContinue() {
+      var ev = { preventDefault: function () {} };
+      if (trigger.listeners && typeof trigger.listeners.click === 'function') {
+        trigger.listeners.click(ev);
+        return;
+      }
+      if (typeof trigger.click === 'function') trigger.click();
+    }
+
+    function keepUploadBarVisible() {
+      var loader = document.querySelector('[data-upload-loader]');
+      if (!loader) return;
+      loader.hidden = false;
+      if (loader.classList && loader.classList.remove) loader.classList.remove('is-hidden');
+    }
+
+    function stepHrefOf(step) {
+      if (!step || !step.getAttribute) return '';
+      return step.getAttribute('href') || step.getAttribute('data-flow-step') || '';
+    }
+
+    function isLeavingUpload(href) {
+      var next = String(href || '').toLowerCase();
+      if (!next || next.indexOf('upload.html') !== -1) return false;
+      return /attest\.html|split-sheet\.html|review\.html/.test(next);
+    }
+
+    function stepFromEvent(event) {
+      var target = event && event.target;
+      if (!target) return null;
+      if (target.closest) {
+        return target.closest('.st') || target.closest('[data-flow-step]') || target.closest('a[href]');
+      }
+      return target;
+    }
+
+    function guardLeaveUpload(event) {
+      var step = stepFromEvent(event);
+      if (!step || !isLeavingUpload(stepHrefOf(step))) return;
+      if (event && event.preventDefault) event.preventDefault();
+      if (event && event.stopPropagation) event.stopPropagation();
+      var file = selectedAudio();
+      if (file) rememberAudioFile(file);
+      if (uploadRunning || trigger.getAttribute('aria-busy') === 'true' || trigger.getAttribute('aria-disabled') === 'true') {
+        keepUploadBarVisible();
+        return;
+      }
+      fireContinue();
+    }
+
+    function bindLeaveUploadGuard() {
+      var stepper = document.querySelector('.stepper');
+      if (!stepper || typeof stepper.addEventListener !== 'function') return;
+      stepper.addEventListener('click', guardLeaveUpload, true);
+      stepper.addEventListener('keydown', function (event) {
+        if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+        guardLeaveUpload(event);
+      }, true);
+    }
+
     function afterCatalogReady(draft, nextHref) {
       showUploadLoader('Creating track');
       setStatus('tg-status', 'Creating track…');
@@ -3450,6 +3510,7 @@
       }
       startUpload();
     });
+    bindLeaveUploadGuard();
   }
 
   function refreshSignWellDraft(draft) {
