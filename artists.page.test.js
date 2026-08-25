@@ -40,7 +40,19 @@ function makeEl(attrs) {
     focus() { el.focused = true; },
     scrollIntoView() { el.scrollCalls += 1; },
     addEventListener() {},
+    appendChild(child) {
+      el.children.push(child);
+      return child;
+    },
   };
+  Object.defineProperty(el, 'textContent', {
+    get() { return el._text || ''; },
+    set(value) {
+      el._text = value == null ? '' : String(value);
+      if (el._text === '') el.children = [];
+    },
+  });
+  el._text = (attrs && attrs.textContent) || '';
   return el;
 }
 
@@ -85,6 +97,11 @@ function loadArtists() {
         if (sel === '[data-artist-add]') return [addBtn];
         if (sel === '[data-artist-import]') return [importBtn];
         return [];
+      },
+      createElement(tag) {
+        const el = makeEl({});
+        el.tagName = String(tag || 'div').toUpperCase();
+        return el;
       },
       addEventListener() {},
     },
