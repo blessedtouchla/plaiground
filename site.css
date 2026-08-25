@@ -1477,13 +1477,19 @@ button.dashbox span {
   max-width: 640px;
   margin-bottom: 12px;
 }
+.faq-lead a { color: var(--magenta); font-weight: 600; }
 .faq-lead strong { color: #fff; font-weight: 700; }
-.faq-rest {
-  font-size: clamp(1.8rem, 3.4vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  margin: 8px 0 12px;
+.faq-plai {
+  max-width: 640px;
+  margin: 36px 0 0;
+  color: var(--muted-2);
+  font-size: 0.98rem;
+  line-height: 1.5;
 }
+.faq-plai strong { color: #fff; font-weight: 700; }
+body.app .page-hero { padding-top: 36px; }
+body:not(.app) > .side,
+body:not(.app) > .app-main > .topbar { display: none; }
 .landing-tease {
   padding: 8px 0 72px;
 }

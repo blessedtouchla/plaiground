@@ -437,6 +437,8 @@
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     // Audio + VAD + official TTS replace. Never set instructions (keeps Voice Agent Builder persona).
     // replace: spoken audio says PLAY; transcript the user sees stays PLAI.
+    // Matching is case-insensitive. We still list PLAI / Plai / plai plus common misspellings.
+    // Do not put the FAQ intro or a long voice-agent hello in this session.
     // https://docs.x.ai/developers/model-capabilities/audio/voice-agent#pronunciation-replacements
     ws.send(JSON.stringify({
       type: 'session.update',
@@ -447,7 +449,18 @@
           output: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
         },
         resumption: { enabled: true },
-        replace: { PLAI: 'PLAY' },
+        replace: {
+          PLAI: 'PLAY',
+          Plai: 'PLAY',
+          plai: 'PLAY',
+          "I'm PLAI": "I'm PLAY",
+          'I am PLAI': 'I am PLAY',
+          'P.L.A.I.': 'PLAY',
+          PLAIE: 'PLAY',
+          Plei: 'PLAY',
+          Plae: 'PLAY',
+          Plie: 'PLAY',
+        },
       },
     }));
   }
