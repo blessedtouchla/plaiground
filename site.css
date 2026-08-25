@@ -1943,6 +1943,10 @@ button.dashbox span {
     radial-gradient(circle at 100% 0%, rgba(125, 60, 255, 0.22), transparent 42%),
     #111;
 }
+.pub-call[hidden],
+.msp-board[hidden],
+.msp-open[hidden],
+.msp-lock[hidden] { display: none !important; }
 .pub-call .ok { color: var(--green); font-size: 11px; letter-spacing: 0.14em; font-weight: 800; }
 .pub-call-actions { text-align: right; flex-shrink: 0; }
 .release-board {
