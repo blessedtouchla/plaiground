@@ -188,132 +188,91 @@ function testTypeaheadDelayedBlurKeepsListPick(catalog, created) {
   }
 }
 
-function iosTapEvent(target, x, y, extra) {
-  const ev = {
-    target: target,
-    clientX: x,
-    clientY: y,
-    changedTouches: [{ clientX: x, clientY: y }],
-    touches: [{ clientX: x, clientY: y }],
-    preventDefault: function () {},
-    stopPropagation: function () {},
-  };
-  if (extra) Object.assign(ev, extra);
-  return ev;
-}
-
-function testIosSafariTapSticksWithoutClick(catalog) {
-  const field = {
-    children: [],
-    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
-    querySelector(sel) {
-      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
-      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
-      return { setAttribute() {} };
-    },
-    insertBefore(node) { this.children.push(node); return node; },
-    appendChild(node) { this.children.push(node); return node; },
-  };
+function fillableCatalogSelect(id, placeholder) {
+  const optionsArr = [{ value: '', textContent: placeholder }];
+  const field = mockField();
   const select = {
     parentNode: field,
-    id: 'tg-genre',
-    options: [{ value: '', textContent: 'Select genre' }],
+    id: id,
+    options: optionsArr,
     selectedIndex: 0,
-    value: '',
+    _value: '',
     tabIndex: 0,
-    classList: { add() {} },
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
     attrs: {},
-    getAttribute(name) { return this.attrs[name] || null; },
+    get value() { return this._value; },
+    set value(next) {
+      const found = this.options.find(function (opt) { return String(opt.value) === String(next); });
+      if (found) {
+        this._value = String(next);
+        this.selectedIndex = this.options.indexOf(found);
+      } else if (!next) {
+        this._value = '';
+        this.selectedIndex = 0;
+      }
+    },
+    getAttribute(name) { return this.attrs[name] == null ? null : this.attrs[name]; },
     setAttribute(name, value) { this.attrs[name] = String(value); },
     removeAttribute(name) { delete this.attrs[name]; },
     dispatchEvent() {},
     addEventListener() {},
+    querySelectorAll(sel) { return sel === 'option' ? this.options : []; },
+    appendChild(child) {
+      child.parentNode = this;
+      this.options.push(child);
+      return child;
+    },
   };
-  const timers = [];
-  const created = [];
+  optionsArr[0].parentNode = select;
+  return select;
+}
+
+function typeaheadNodes(select) {
+  const kids = (select.parentNode && select.parentNode.children) || [];
+  return {
+    input: kids.find(function (node) { return node.className === 'typeahead-input'; }) || null,
+    list: kids.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null,
+  };
+}
+
+function withPointerEnv(opts, fn) {
   const prevWindow = global.window;
   const prevDocument = global.document;
-  const docListeners = {};
+  const created = [];
+  const coarse = !!opts.coarse;
+  const phoneWidth = !!opts.phoneWidth;
   global.window = {
-    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
-    clearTimeout() {},
+    matchMedia(query) {
+      const q = String(query || '');
+      return {
+        matches: (coarse && q.indexOf('pointer: coarse') !== -1) || (phoneWidth && q.indexOf('max-width') !== -1),
+        media: query,
+        addListener() {},
+        removeListener() {},
+      };
+    },
+    innerWidth: opts.innerWidth != null ? opts.innerWidth : (phoneWidth ? 390 : 1280),
+    innerHeight: opts.innerHeight != null ? opts.innerHeight : 800,
+    navigator: {
+      userAgent: opts.userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0.0.0',
+      platform: opts.platform || 'MacIntel',
+      maxTouchPoints: opts.maxTouchPoints || 0,
+    },
     addEventListener() {},
-    visualViewport: { offsetTop: 0, offsetLeft: 0, width: 390, height: 520, addEventListener() {} },
-    innerWidth: 390,
-    innerHeight: 520,
+    setTimeout(fn, ms) { if (typeof fn === 'function') fn(); return 1; },
+    clearTimeout() {},
   };
   global.document = {
-    listeners: docListeners,
-    addEventListener(type, fn) { this.listeners[type] = fn; },
     createElement(tag) {
       const node = mockTypeaheadEl(tag);
-      node.getBoundingClientRect = function () {
-        return this._rect || { top: 120, bottom: 164, left: 16, right: 300, width: 284, height: 44 };
-      };
       created.push(node);
       return node;
     },
-    elementFromPoint() { return this._fromPoint || null; },
+    addEventListener() {},
+    getElementById() { return null; },
   };
   try {
-    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-    const input = field.children.find(function (node) { return node.className === 'typeahead-input'; });
-    const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
-    assert.ok(input);
-    assert.ok(list);
-    assert.ok(typeof list.listeners.touchstart === 'function', 'iOS must hold the option on touchstart');
-    assert.ok(typeof list.listeners.touchend === 'function', 'iOS must commit the option on touchend');
-    assert.ok(typeof docListeners.touchend === 'function', 'open list must catch a document touchend when the option is not the event target');
-    assert.ok(typeof docListeners.pointerdown === 'function', 'document pointerdown may hold a tap, but must not re-dispatch');
-
-    input.listeners.focus();
-    const afro = listButtons(list).find(function (btn) { return btn.textContent === 'Afrobeats'; });
-    assert.ok(afro, 'empty open list must include Afrobeats');
-    afro._rect = { top: 168, bottom: 212, left: 16, right: 300, width: 284, height: 44 };
-
-    // iPhone Safari: option tap blurs the input and often never fires click/pointerdown.
-    list.listeners.touchstart(iosTapEvent(afro, 40, 180));
-    input.listeners.blur();
-    assert.strictEqual(select.value, '', 'touchstart alone must not apply yet');
-    const blurTimer = timers.find(function (row) { return row.ms >= 400; });
-    assert.ok(blurTimer, 'blur still waits so the iOS tap can win');
-    list.listeners.touchend(iosTapEvent(afro, 42, 182));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(select.value, 'Afrobeats', 'iOS touchend without click must write the canonical genre');
-    assert.strictEqual(input.value, 'Afrobeats', 'iOS touchend without click must keep the visible genre');
-
-    select.value = '';
-    input.value = '';
-    if (select.options[0]) select.selectedIndex = 0;
-    input.listeners.focus();
-    input.value = 'Hip';
-    input.listeners.input();
-    const hip = listButtons(list).find(function (btn) { return btn.textContent === 'Hip-Hop'; });
-    assert.ok(hip, 'Hip-Hop must stay in the same list as Creator');
-    hip._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
-    const missed = mockTypeaheadEl('div');
-    missed.id = 'tg-language';
-    list.listeners.touchstart(iosTapEvent(hip, 48, 240));
-    input.listeners.blur();
-    // Tap lands on the next field; commit from the option's layout rect.
-    docListeners.touchend(iosTapEvent(missed, 50, 242));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(select.value, 'Hip-Hop', 'iOS tap that misses the option node still sticks from the tap point');
-    assert.strictEqual(input.value, 'Hip-Hop', 'visible typeahead text stays after a missed-target iOS tap');
-
-    select.value = '';
-    input.value = '';
-    if (select.options[0]) select.selectedIndex = 0;
-    input.listeners.focus();
-    const afroAgain = listButtons(list).find(function (btn) { return btn.textContent === 'Afrobeats'; });
-    assert.ok(afroAgain, 'scroll test uses a visible empty-list option');
-    afroAgain._rect = { top: 168, bottom: 212, left: 16, right: 300, width: 284, height: 44 };
-    list.listeners.touchstart(iosTapEvent(afroAgain, 40, 180));
-    input.listeners.blur();
-    list.listeners.touchend(iosTapEvent(afroAgain, 40, 210));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(select.value, '', 'a vertical finger move is a scroll, not a pick');
-    assert.strictEqual(input.value, '', 'scroll-clear still leaves an empty Basic field empty');
+    fn(created);
   } finally {
     if (prevWindow === undefined) delete global.window;
     else global.window = prevWindow;
@@ -322,74 +281,87 @@ function testIosSafariTapSticksWithoutClick(catalog) {
   }
 }
 
-function testIosSafariLanguageTapSticks(catalog) {
-  const field = {
-    children: [],
-    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
-    querySelector(sel) {
-      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
-      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
-      return { setAttribute() {} };
+function assertNativeBasicCatalog(catalog, created, label) {
+  const genre = fillableCatalogSelect('tg-genre', 'Select genre');
+  const language = fillableCatalogSelect('tg-language', 'Select language');
+  catalog.fillUploadSelects({
+    getElementById(id) {
+      if (id === 'tg-genre') return genre;
+      if (id === 'tg-language') return language;
+      return null;
     },
-    insertBefore(node) { this.children.push(node); return node; },
-    appendChild(node) { this.children.push(node); return node; },
-  };
-  const select = {
-    parentNode: field,
-    id: 'tg-language',
-    options: [{ value: '', textContent: 'Select language' }],
-    selectedIndex: 0,
-    value: '',
-    tabIndex: 0,
-    classList: { add() {} },
-    attrs: {},
-    getAttribute(name) { return this.attrs[name] || null; },
-    setAttribute(name, value) { this.attrs[name] = String(value); },
-    removeAttribute(name) { delete this.attrs[name]; },
-    dispatchEvent() {},
-    addEventListener() {},
-  };
-  const timers = [];
-  const prevWindow = global.window;
-  const prevDocument = global.document;
-  global.window = {
-    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
-    clearTimeout() {},
-    addEventListener() {},
-  };
-  global.document = {
-    listeners: {},
-    addEventListener(type, fn) { this.listeners[type] = fn; },
-    createElement(tag) {
-      const node = mockTypeaheadEl(tag);
-      node.getBoundingClientRect = function () {
-        return this._rect || { top: 80, bottom: 124, left: 16, right: 300, width: 284, height: 44 };
-      };
-      return node;
-    },
-  };
-  try {
-    catalog.bindTypeahead(select, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-    const input = field.children.find(function (node) { return node.className === 'typeahead-input'; });
-    const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
-    input.listeners.focus();
-    input.value = 'En';
-    input.listeners.input();
-    const english = listButtons(list).find(function (btn) { return btn.textContent === 'English'; });
-    assert.ok(english, 'language search must still find English');
-    english._rect = { top: 128, bottom: 172, left: 16, right: 300, width: 284, height: 44 };
-    list.listeners.touchstart(iosTapEvent(english, 36, 148));
-    input.listeners.blur();
-    list.listeners.touchend(iosTapEvent(english, 37, 150));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(select.value, 'en', 'iOS language tap must write the catalog code');
-    assert.strictEqual(input.value, 'English', 'iOS language tap must keep the visible name');
-  } finally {
-    if (prevWindow === undefined) delete global.window;
-    else global.window = prevWindow;
-    if (prevDocument === undefined) delete global.document;
-    else global.document = prevDocument;
-  }
+  });
+  catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+  catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  assert.strictEqual(catalog.isTypeaheadBound(genre), false, label + ' genre must stay a native select');
+  assert.strictEqual(catalog.isTypeaheadBound(language), false, label + ' language must stay a native select');
+  assert.ok(!typeaheadNodes(genre).input && !typeaheadNodes(genre).list, label + ' genre must not build a typeahead overlay');
+  assert.ok(!typeaheadNodes(language).input && !typeaheadNodes(language).list, label + ' language must not build a typeahead overlay');
+  assert.ok(!created.some(function (node) { return node.className === 'typeahead-input'; }), label + ' must not create typeahead inputs');
+  assert.ok(genre.options.length >= 180, label + ' genre must keep the full Creator list');
+  assert.ok(language.options.length >= 180, label + ' language must keep the full Creator list');
+  assert.ok(genre.options.some(function (opt) { return opt.value === 'Hip-Hop'; }), label + ' genre list includes Hip-Hop');
+  assert.ok(genre.options.some(function (opt) { return opt.value === 'Afrobeats'; }), label + ' genre list includes Afrobeats');
+  assert.ok(language.options.some(function (opt) { return opt.value === 'en' && opt.textContent === 'English'; }), label + ' language list includes English');
+  genre.value = 'Hip-Hop';
+  assert.strictEqual(genre.value, 'Hip-Hop', label + ' genre pick must stick');
+  language.value = 'en';
+  assert.strictEqual(language.value, 'en', label + ' language pick must stick as the catalog code');
+  assert.ok(!genre.classList.tokens['is-typeahead-source'], label + ' genre select stays visible');
+  assert.ok(!language.classList.tokens['is-typeahead-source'], label + ' language select stays visible');
+}
+
+function testBasicPhoneUsesNativeCatalogSelect(catalog) {
+  withPointerEnv({ coarse: true, phoneWidth: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', platform: 'iPhone', maxTouchPoints: 5 }, function (created) {
+    assertNativeBasicCatalog(catalog, created, 'coarse iOS');
+  });
+  withPointerEnv({ coarse: false, phoneWidth: false, innerWidth: 1280, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15', platform: 'iPhone' }, function (created) {
+    assertNativeBasicCatalog(catalog, created, 'iOS user-agent');
+  });
+  withPointerEnv({ coarse: false, phoneWidth: true, userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120.0.0.0 Mobile' }, function (created) {
+    assertNativeBasicCatalog(catalog, created, 'max-width phone');
+  });
+}
+
+function testDesktopTypeaheadStillBindsOnFinePointer(catalog) {
+  withPointerEnv({ coarse: false, phoneWidth: false, innerWidth: 1440, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, function (created) {
+    const genre = fillableCatalogSelect('tg-genre', 'Select genre');
+    const language = fillableCatalogSelect('tg-language', 'Select language');
+    catalog.fillUploadSelects({
+      getElementById(id) {
+        if (id === 'tg-genre') return genre;
+        if (id === 'tg-language') return language;
+        return null;
+      },
+    });
+    const genreUi = typeaheadNodes(genre);
+    const langUi = typeaheadNodes(language);
+    assert.ok(genreUi.input && genreUi.list, 'desktop Basic genre still binds typeahead');
+    assert.ok(langUi.input && langUi.list, 'desktop Basic language still binds typeahead');
+    assert.ok(catalog.isTypeaheadBound(genre), 'desktop genre reports typeahead bound');
+    assert.ok(catalog.isTypeaheadBound(language), 'desktop language reports typeahead bound');
+    genreUi.input.listeners.focus();
+    assert.ok(listButtons(genreUi.list).length >= 1, 'desktop genre typeahead still opens');
+    genreUi.input.value = 'Hip';
+    genreUi.input.listeners.input();
+    pickFromList(genreUi.list, 'Hip-Hop');
+    assert.strictEqual(genre.value, 'Hip-Hop', 'desktop genre typeahead pick still sticks');
+    langUi.input.listeners.focus();
+    langUi.input.value = 'English';
+    langUi.input.listeners.input();
+    pickFromList(langUi.list, 'English');
+    assert.strictEqual(language.value, 'en', 'desktop language typeahead pick still sticks');
+    assert.ok(created.some(function (node) { return node.className === 'typeahead-input'; }), 'desktop still creates typeahead inputs');
+  });
+}
+
+function testCreatorEditKeepsTypeaheadOnIos(catalog) {
+  withPointerEnv({ coarse: true, phoneWidth: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15', platform: 'iPhone', maxTouchPoints: 5 }, function () {
+    const edit = fillableCatalogSelect('edit-genre', 'Select genre');
+    catalog.bindTypeahead(edit, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const ui = typeaheadNodes(edit);
+    assert.ok(ui.input && ui.list, 'Creator edit genre must keep typeahead on iPhone');
+  });
 }
 
 function mockField() {
@@ -404,263 +376,6 @@ function mockField() {
     insertBefore(node) { this.children.push(node); return node; },
     appendChild(node) { this.children.push(node); return node; },
   };
-}
-
-function mockSelect(id, placeholder) {
-  const field = mockField();
-  const select = {
-    parentNode: field,
-    id: id,
-    options: [{ value: '', textContent: placeholder }],
-    selectedIndex: 0,
-    value: '',
-    tabIndex: 0,
-    classList: { add() {} },
-    attrs: {},
-    getAttribute(name) { return this.attrs[name] || null; },
-    setAttribute(name, value) { this.attrs[name] = String(value); },
-    removeAttribute(name) { delete this.attrs[name]; },
-    dispatchEvent() {},
-    addEventListener() {},
-  };
-  return select;
-}
-
-function testBasicMobileGenreSticksWithLanguageBound(catalog) {
-  const genreSelect = mockSelect('tg-genre', 'Select genre');
-  const langSelect = mockSelect('tg-language', 'Select language');
-  const timers = [];
-  const docListeners = {};
-  const prevWindow = global.window;
-  const prevDocument = global.document;
-  const rootClass = { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; }, contains(name) { return Boolean(this.tokens[name]); } };
-  global.window = {
-    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
-    clearTimeout() {},
-    addEventListener() {},
-    visualViewport: { offsetTop: 0, offsetLeft: 0, width: 390, height: 520, addEventListener() {} },
-    innerWidth: 390,
-    innerHeight: 520,
-  };
-  global.document = {
-    documentElement: { classList: rootClass },
-    listeners: docListeners,
-    addEventListener(type, fn) {
-      this.listenerList = this.listenerList || {};
-      this.listenerList[type] = this.listenerList[type] || [];
-      this.listenerList[type].push(fn);
-      const list = this.listenerList;
-      this.listeners[type] = function (ev) {
-        list[type].slice().forEach(function (handler) { handler(ev); });
-      };
-    },
-    createElement(tag) {
-      const node = mockTypeaheadEl(tag);
-      node.getBoundingClientRect = function () {
-        return this._rect || { top: 120, bottom: 164, left: 16, right: 300, width: 284, height: 44 };
-      };
-      return node;
-    },
-    elementFromPoint() { return this._fromPoint || null; },
-  };
-  try {
-    catalog.bindTypeahead(genreSelect, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-    catalog.bindTypeahead(langSelect, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-    const genreInput = genreSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
-    const genreList = genreSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
-    const langInput = langSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
-    const langList = langSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
-    assert.ok(genreInput && genreList && langInput && langList, 'Basic upload binds both genre and language typeaheads');
-
-    genreInput.listeners.focus();
-    assert.ok(listButtons(genreList).length >= 1, 'genre empty open still shows a short list');
-    assert.ok(listButtons(genreList).length <= catalog.TYPEAHEAD_LIST_CAP, 'genre empty list stays capped');
-    assert.ok(genreList.classList.contains('is-fixed') || genreList.style.position === 'fixed', 'genre list leaves the form-grid stacking context');
-    assert.ok(rootClass.contains('is-typeahead-open'), 'open genre locks sibling typeahead hit targets');
-
-    genreInput.value = 'pop';
-    genreInput.listeners.input();
-    assert.strictEqual(genreInput.value, 'pop', 'typing a genre label must not rewrite the visible field mid-keystroke');
-    assert.ok(listButtons(genreList).some(function (btn) { return btn.textContent === 'Pop'; }), 'genre search must find Pop in the same catalog as Creator');
-
-    genreInput.value = 'Hip';
-    genreInput.listeners.input();
-    const hip = listButtons(genreList).find(function (btn) { return btn.textContent === 'Hip-Hop'; });
-    assert.ok(hip, 'Basic mobile genre search must find Hip-Hop');
-    hip._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
-
-    // iPhone Safari: the genre list sits over language. The tap hits the
-    // language input; both document listeners fire. Genre must still stick.
-    const missed = mockTypeaheadEl('input');
-    missed.id = 'tg-language-type';
-    missed.className = 'typeahead-input';
-    global.document._fromPoint = missed;
-    if (docListeners.touchstart) docListeners.touchstart(iosTapEvent(missed, 48, 240));
-    genreList.listeners.touchstart(iosTapEvent(hip, 48, 240));
-    genreInput.listeners.blur();
-    if (langInput.listeners.focus) langInput.listeners.focus();
-    if (docListeners.touchend) docListeners.touchend(iosTapEvent(missed, 50, 242));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'iOS genre tap that lands on language still writes the catalog genre');
-    assert.strictEqual(genreInput.value, 'Hip-Hop', 'visible Basic genre text stays after the overlay tap');
-    assert.strictEqual(langSelect.value, '', 'language must not steal the genre pick');
-    assert.notStrictEqual(langInput.value, 'Hip-Hop', 'language visible field must not take the genre label');
-
-    langSelect.value = '';
-    langInput.value = '';
-    if (langSelect.options[0]) langSelect.selectedIndex = 0;
-    langInput.listeners.focus();
-    langInput.value = 'En';
-    langInput.listeners.input();
-    const english = listButtons(langList).find(function (btn) { return btn.textContent === 'English'; });
-    assert.ok(english, 'language search must still work after a genre pick');
-    english._rect = { top: 300, bottom: 344, left: 16, right: 300, width: 284, height: 44 };
-    langList.listeners.touchstart(iosTapEvent(english, 40, 320));
-    langInput.listeners.blur();
-    langList.listeners.touchend(iosTapEvent(english, 41, 322));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(langSelect.value, 'en', 'Basic language pick still sticks after genre');
-    assert.strictEqual(langInput.value, 'English', 'Basic language visible name still sticks after genre');
-    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'genre stays after a later language pick');
-  } finally {
-    if (prevWindow === undefined) delete global.window;
-    else global.window = prevWindow;
-    if (prevDocument === undefined) delete global.document;
-    else global.document = prevDocument;
-  }
-}
-
-function coarseMatchMedia(query) {
-  return { matches: String(query || '').indexOf('pointer: coarse') !== -1, media: query, addListener() {}, removeListener() {} };
-}
-
-function testIphoneBasicGenreAndLanguageBothStick(catalog) {
-  const genreSelect = mockSelect('tg-genre', 'Select genre');
-  const langSelect = mockSelect('tg-language', 'Select language');
-  const timers = [];
-  const docListeners = {};
-  const prevWindow = global.window;
-  const prevDocument = global.document;
-  const rootClass = { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; }, contains(name) { return Boolean(this.tokens[name]); } };
-  global.window = {
-    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
-    clearTimeout() {},
-    addEventListener() {},
-    matchMedia: coarseMatchMedia,
-    visualViewport: { offsetTop: 0, offsetLeft: 0, width: 390, height: 520, addEventListener() {} },
-    innerWidth: 390,
-    innerHeight: 520,
-  };
-  global.document = {
-    documentElement: { classList: rootClass },
-    listeners: docListeners,
-    addEventListener(type, fn) {
-      this.listenerList = this.listenerList || {};
-      this.listenerList[type] = this.listenerList[type] || [];
-      this.listenerList[type].push(fn);
-      const list = this.listenerList;
-      this.listeners[type] = function (ev) {
-        list[type].slice().forEach(function (handler) { handler(ev); });
-      };
-    },
-    createElement(tag) {
-      const node = mockTypeaheadEl(tag);
-      node.getBoundingClientRect = function () {
-        return this._rect || { top: 120, bottom: 164, left: 16, right: 300, width: 284, height: 44 };
-      };
-      return node;
-    },
-    elementFromPoint() { return this._fromPoint || null; },
-  };
-  try {
-    catalog.bindTypeahead(genreSelect, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-    catalog.bindTypeahead(langSelect, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-    const genreInput = genreSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
-    const genreList = genreSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
-    const langInput = langSelect.parentNode.children.find(function (node) { return node.className === 'typeahead-input'; });
-    const langList = langSelect.parentNode.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
-    assert.ok(genreInput && genreList && langInput && langList, 'Basic upload binds both genre and language typeaheads');
-
-    genreInput.listeners.focus();
-    assert.ok(listButtons(genreList).length >= 1, 'iPhone genre field still opens');
-    assert.notStrictEqual(genreList.style.position, 'fixed', 'iPhone genre list stays attached to the field');
-    assert.ok(!genreList.classList.contains('is-fixed'), 'iPhone must not pin a fixed overlay over language');
-
-    genreInput.value = 'Hip';
-    genreInput.listeners.input();
-    const hip = listButtons(genreList).find(function (btn) { return btn.textContent === 'Hip-Hop'; });
-    assert.ok(hip, 'Basic iPhone genre search must find Hip-Hop');
-    hip._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
-
-    const missed = mockTypeaheadEl('input');
-    missed.id = 'tg-language-type';
-    missed.className = 'typeahead-input';
-    global.document._fromPoint = missed;
-    let blocked = 0;
-    const overlayStart = iosTapEvent(missed, 48, 240, {
-      preventDefault() { blocked += 1; },
-      stopImmediatePropagation() { blocked += 1; },
-    });
-    if (docListeners.touchstart) docListeners.touchstart(overlayStart);
-    genreList.listeners.touchstart(iosTapEvent(hip, 48, 240));
-    genreInput.listeners.blur();
-    if (langInput.listeners.focus) langInput.listeners.focus();
-    assert.ok(blocked >= 1, 'iPhone overlay tap must keep language from taking the genre pick');
-    assert.ok(listButtons(langList).length === 0 || langList.classList.contains('is-hidden'), 'language must not open over the genre tap');
-    if (docListeners.touchend) docListeners.touchend(iosTapEvent(missed, 50, 242));
-    timers.forEach(function (row) { row.fn(); });
-    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'iPhone genre tap that lands on language still writes the catalog genre');
-    assert.strictEqual(genreInput.value, 'Hip-Hop', 'visible Basic genre text stays after the overlay tap');
-    assert.strictEqual(langSelect.value, '', 'language must not steal the genre pick');
-    assert.notStrictEqual(langInput.value, 'Hip-Hop', 'language visible field must not take the genre label');
-
-    langSelect.value = '';
-    langInput.value = '';
-    if (langSelect.options[0]) langSelect.selectedIndex = 0;
-    langInput.listeners.focus();
-    assert.ok(listButtons(langList).length >= 1, 'iPhone language field still opens after a genre pick');
-    langInput.value = 'En';
-    langInput.listeners.input();
-    const english = listButtons(langList).find(function (btn) { return btn.textContent === 'English'; });
-    assert.ok(english, 'iPhone language search must find English');
-    english._rect = { top: 300, bottom: 344, left: 16, right: 300, width: 284, height: 44 };
-    let langBlocked = 0;
-    const langMiss = mockTypeaheadEl('input');
-    langMiss.id = 'tg-price';
-    langMiss.className = 'details-select';
-    global.document._fromPoint = langMiss;
-    if (docListeners.touchstart) {
-      docListeners.touchstart(iosTapEvent(langMiss, 40, 320, {
-        preventDefault() { langBlocked += 1; },
-      }));
-    }
-    langList.listeners.touchstart(iosTapEvent(english, 40, 320));
-    langInput.listeners.blur();
-    if (docListeners.touchend) docListeners.touchend(iosTapEvent(langMiss, 41, 322));
-    timers.forEach(function (row) { row.fn(); });
-    assert.ok(langBlocked >= 1, 'iPhone language overlay tap must still commit');
-    assert.strictEqual(langSelect.value, 'en', 'iPhone language tap that lands on the next field still sticks English');
-    assert.strictEqual(langInput.value, 'English', 'visible Basic language name still sticks on iPhone');
-    assert.strictEqual(genreSelect.value, 'Hip-Hop', 'genre stays after a later language pick');
-
-    genreSelect.value = '';
-    genreInput.value = '';
-    if (genreSelect.options[0]) genreSelect.selectedIndex = 0;
-    genreInput.listeners.focus();
-    const afro = listButtons(genreList).find(function (btn) { return btn.textContent === 'Afrobeats'; }) || listButtons(genreList)[0];
-    assert.ok(afro, 'empty iPhone genre list still shows a real option');
-    afro._rect = { top: 220, bottom: 264, left: 16, right: 300, width: 284, height: 44 };
-    if (docListeners.touchstart) docListeners.touchstart(iosTapEvent(afro, 48, 240));
-    if (docListeners.touchend) docListeners.touchend(iosTapEvent(afro, 48, 320));
-    langInput.listeners.focus();
-    assert.ok(listButtons(langList).length >= 1, 'a missed genre tap must not freeze language');
-    assert.strictEqual(genreSelect.value, '', 'a vertical finger move is a scroll, not a freeze');
-  } finally {
-    if (prevWindow === undefined) delete global.window;
-    else global.window = prevWindow;
-    if (prevDocument === undefined) delete global.document;
-    else global.document = prevDocument;
-  }
 }
 
 function testTypeaheadRebindsIfInputMissing(catalog) {
@@ -908,6 +623,10 @@ function run() {
   assert.ok(catalogSrc.indexOf('pickFromClientPoint') !== -1, 'iOS tap that misses the option node must still use the tap point');
   assert.ok(catalogSrc.indexOf('claimTypeahead') !== -1, 'only one Basic typeahead list may own the tap');
   assert.ok(catalogSrc.indexOf('is-fixed') !== -1, 'genre list must escape the form-grid overlay');
+  assert.ok(catalogSrc.indexOf('preferNativeCatalogSelect') !== -1, 'Basic iPhone genre/language must use the native picker');
+  assert.ok(/iPad\|iPhone\|iPod/.test(catalogSrc), 'native picker must detect iOS Safari');
+  assert.ok(catalogSrc.indexOf('max-width: 720px') !== -1, 'native picker must detect a phone-width viewport');
+  assert.ok(catalogSrc.indexOf('isBasicUploadCatalogSelect') !== -1, 'native picker is scoped to Basic upload genre/language');
   assert.ok(catalogSrc.indexOf('isCoarsePointer') !== -1 && catalogSrc.indexOf('pointer: coarse') !== -1, 'iPhone must not use the desktop fixed overlay');
   assert.ok(catalogSrc.indexOf('Do not rewrite the visible field while') !== -1, 'genre labels must not autofill mid-type');
   assert.ok(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{[\s\S]*?html\.is-typeahead-open[\s\S]*?pointer-events:\s*none/.test(css), 'desktop open genre still disables the language field under the list');
@@ -1218,10 +937,9 @@ function run() {
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Pop'), 'Pop');
     testTypeaheadDelayedBlurKeepsListPick(catalog, createdEdit);
     testTypeaheadRebindsIfInputMissing(catalog);
-    testIosSafariTapSticksWithoutClick(catalog);
-    testIosSafariLanguageTapSticks(catalog);
-    testBasicMobileGenreSticksWithLanguageBound(catalog);
-    testIphoneBasicGenreAndLanguageBothStick(catalog);
+    testBasicPhoneUsesNativeCatalogSelect(catalog);
+    testDesktopTypeaheadStillBindsOnFinePointer(catalog);
+    testCreatorEditKeepsTypeaheadOnIos(catalog);
   } finally {
     if (prevDoc2 === undefined) delete global.document;
     else global.document = prevDoc2;

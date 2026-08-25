@@ -1411,6 +1411,46 @@ function isCoarsePointer() {
   }
 }
 
+function iosFromNav(nav) {
+  if (!nav) return false;
+  var ua = String(nav.userAgent || nav.vendor || '');
+  var platform = String(nav.platform || '');
+  if (/iPad|iPhone|iPod/i.test(ua) || /iPad|iPhone|iPod/i.test(platform)) return true;
+  return /Macintosh/i.test(ua) && Number(nav.maxTouchPoints || 0) > 1;
+}
+
+function isIosUserAgent() {
+  if (typeof navigator !== 'undefined' && iosFromNav(navigator)) return true;
+  var win = typeof window !== 'undefined' ? window : null;
+  return !!(win && iosFromNav(win.navigator));
+}
+
+function isPhoneMaxWidth() {
+  var win = typeof window !== 'undefined' ? window : null;
+  if (!win) return false;
+  if (typeof win.matchMedia === 'function') {
+    try {
+      if (win.matchMedia('(max-width: 720px)').matches) return true;
+    } catch (err) {}
+  }
+  return typeof win.innerWidth === 'number' && win.innerWidth > 0 && win.innerWidth <= 720;
+}
+
+function isBasicUploadCatalogSelect(select) {
+  var id = select && select.id;
+  if (!id && select && select.getAttribute) id = select.getAttribute('id');
+  return id === 'tg-genre' || id === 'tg-language';
+}
+
+// iPhone Safari never reliably taps the custom typeahead list on Basic
+// upload. #128 kept an in-flow list on coarse pointer and committed from
+// the option rect; the language/price field still ate the tap. Use the
+// native picker there. Desktop typeahead and Creator edit stay as-is.
+function preferNativeCatalogSelect(select) {
+  if (!isBasicUploadCatalogSelect(select)) return false;
+  return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
+}
+
 function typeaheadBusy(api) {
   return !!(api && typeof api.busy === 'function' && api.busy());
 }
@@ -1439,6 +1479,7 @@ function isTypeaheadBound(select) {
 
 function bindTypeahead(select, items, getValue, getLabel) {
   if (!select || !items || !items.length) return;
+  if (preferNativeCatalogSelect(select)) return;
   var field = select.parentNode;
   if (!field) return;
   var existingInput = typeaheadInput(select);
@@ -2021,12 +2062,14 @@ function fillOneSelect(select, items, getValue, getLabel) {
   if (!select) return;
   if (isTypeaheadBound(select)) return;
   fillSelect(select, items, getValue, getLabel);
+  if (preferNativeCatalogSelect(select)) return;
   try {
     bindTypeahead(select, items, getValue, getLabel);
   } catch (err) {}
 }
 
 function ensureTypeahead(select, items, getValue, getLabel) {
+  if (preferNativeCatalogSelect(select)) return select;
   if (isTypeaheadBound(select)) return select;
   bindTypeahead(select, items, getValue, getLabel);
   return select;
