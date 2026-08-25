@@ -1200,6 +1200,24 @@
       artist.disabled = true;
     }
     if (featured) featured.value = String(draft.featured || '').trim();
+    if (genre) {
+      genre.disabled = false;
+      if (genre.removeAttribute) {
+        genre.removeAttribute('disabled');
+        genre.removeAttribute('aria-disabled');
+      }
+      var genreField = genre.closest ? genre.closest('.field') : null;
+      if (genreField && genreField.classList) genreField.classList.remove('is-locked');
+    }
+    if (language) {
+      language.disabled = false;
+      if (language.removeAttribute) {
+        language.removeAttribute('disabled');
+        language.removeAttribute('aria-disabled');
+      }
+      var languageField = language.closest ? language.closest('.field') : null;
+      if (languageField && languageField.classList) languageField.classList.remove('is-locked');
+    }
     setCatalogValue(genre, release.genre || draft.genre || '');
     setCatalogValue(language, release.language || track.language || draft.language || '');
     syncCatalogValues();
@@ -1535,7 +1553,7 @@
       trackBody.explicit = selectedExplicit();
       return runHop('track', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId), 'PUT', trackBody));
     }).then(function (result) {
-      if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'language', $('#edit-language')));
+      if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'language', null));
       if (!art) return { ok: true, skipped: true };
       var form = new FormData();
       form.append('artwork', art, art.name || 'artwork.jpg');

@@ -355,12 +355,26 @@ function testDesktopTypeaheadStillBindsOnFinePointer(catalog) {
   });
 }
 
-function testCreatorEditKeepsTypeaheadOnIos(catalog) {
-  withPointerEnv({ coarse: true, phoneWidth: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15', platform: 'iPhone', maxTouchPoints: 5 }, function () {
-    const edit = fillableCatalogSelect('edit-genre', 'Select genre');
-    catalog.bindTypeahead(edit, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-    const ui = typeaheadNodes(edit);
-    assert.ok(ui.input && ui.list, 'Creator edit genre must keep typeahead on iPhone');
+function testEditUsesNativeCatalogSelectOnIos(catalog) {
+  withPointerEnv({ coarse: true, phoneWidth: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15', platform: 'iPhone', maxTouchPoints: 5 }, function (created) {
+    const genre = fillableCatalogSelect('edit-genre', 'Select genre');
+    const language = fillableCatalogSelect('edit-language', 'Select language');
+    catalog.fillUploadSelects({
+      getElementById(id) {
+        if (id === 'edit-genre') return genre;
+        if (id === 'edit-language') return language;
+        return null;
+      },
+    });
+    assert.ok(!created.some(function (node) { return node.className === 'typeahead-input'; }), 'Edit genre/language use the native picker on iPhone');
+    assert.ok(genre.options.length >= 180, 'Edit genre keeps the catalog list');
+    assert.ok(language.options.length >= 180, 'Edit language keeps the catalog list');
+    genre.value = 'Pop';
+    language.value = 'en';
+    assert.strictEqual(genre.value, 'Pop');
+    assert.strictEqual(language.value, 'en');
+    assert.ok(!genre.classList.tokens['is-typeahead-source']);
+    assert.ok(!language.classList.tokens['is-typeahead-source']);
   });
 }
 
@@ -943,7 +957,7 @@ function run() {
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesNativeCatalogSelect(catalog);
     testDesktopTypeaheadStillBindsOnFinePointer(catalog);
-    testCreatorEditKeepsTypeaheadOnIos(catalog);
+    testEditUsesNativeCatalogSelectOnIos(catalog);
   } finally {
     if (prevDoc2 === undefined) delete global.document;
     else global.document = prevDoc2;

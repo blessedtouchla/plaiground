@@ -1203,6 +1203,8 @@ function run() {
   assert.strictEqual(page.ids['edit-title'].value, 'Fuvtu');
   assert.strictEqual(page.ids['edit-artist'].value, 'Fuvtu');
   assert.strictEqual(page.ids['edit-artist'].disabled, true, 'catalog artist stays locked');
+  assert.strictEqual(page.ids['edit-genre'].disabled, false, 'genre stays editable');
+  assert.strictEqual(page.ids['edit-language'].disabled, false, 'language stays editable');
   assert.strictEqual(page.ids['edit-genre'].value, 'Electronic');
   assert.ok(page.nodes['[data-edit-attest]'].hidden === false, 'AI attest stays visible when already collected');
   page.ids['edit-lyrics'].value = '';
@@ -1356,6 +1358,8 @@ function run() {
     },
   });
   editor.ids['edit-title'].value = 'Fuvtu Edit';
+  editor.ids['edit-genre'].value = 'Pop';
+  editor.ids['edit-language'].value = 'es';
   editor.ids['edit-lyrics'].value = 'City lights, I stay';
   return editor.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'Basic pending edit must apply immediately');
@@ -1368,13 +1372,13 @@ function run() {
     assert.ok(!mutating.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)), 'pending edit must not wait on a second store submit');
     assert.ok(!/edit-submitted\.html/.test(String(editor.context.location.href)), 'pending edit does not go to the store confirm page');
     assert.strictEqual(editor.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
-    assert.ok(/Electronic/.test(editor.nodes['[data-song-meta]'].textContent));
+    assert.ok(/Pop/.test(editor.nodes['[data-song-meta]'].textContent), 'edited genre must show');
     assert.ok(!/Submitting edit to the store/.test(editor.nodes['[data-edit-error]'].textContent));
     assert.ok(!mutating.some((row) => editor.api.isCreateReleaseUrl(row.url, row.method)), 'edit must not POST a new release or artist');
     const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.store.draft'));
     assert.strictEqual(savedDraft.title, 'Fuvtu Edit');
-    assert.strictEqual(savedDraft.genre, 'Electronic');
-    assert.strictEqual(savedDraft.language, 'en');
+    assert.strictEqual(savedDraft.genre, 'Pop');
+    assert.strictEqual(savedDraft.language, 'es');
     assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
     mutating.filter((row) => typeof row.body === 'string').forEach((row) => {
       let body = {};

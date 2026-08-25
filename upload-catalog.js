@@ -1442,12 +1442,17 @@ function isBasicUploadCatalogSelect(select) {
   return id === 'tg-genre' || id === 'tg-language';
 }
 
-// iPhone Safari never reliably taps the custom typeahead list on Basic
-// upload. #128 kept an in-flow list on coarse pointer and committed from
-// the option rect; the language/price field still ate the tap. Use the
-// native picker there. Desktop typeahead and Creator edit stay as-is.
+function isEditCatalogSelect(select) {
+  var id = select && select.id;
+  if (!id && select && select.getAttribute) id = select.getAttribute('id');
+  return id === 'edit-genre' || id === 'edit-language';
+}
+
+// iPhone Safari never reliably taps the custom typeahead list. Use the
+// native picker on Basic upload and on Edit genre/language. Desktop and
+// Creator/fine-pointer keep typeahead.
 function preferNativeCatalogSelect(select) {
-  if (!isBasicUploadCatalogSelect(select)) return false;
+  if (!isBasicUploadCatalogSelect(select) && !isEditCatalogSelect(select)) return false;
   return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
 }
 
