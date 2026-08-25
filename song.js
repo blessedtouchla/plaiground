@@ -1173,8 +1173,8 @@
 
   function confirmRemove(release) {
     var step = statusStep(release, lastEdit.draft);
-    var live = step === 'live' || step === 'processing';
-    var message = live
+    var sent = step === 'live' || step === 'processing' || step === 'pending';
+    var message = sent
       ? 'Ask stores to take this release down? It stays listed until the store confirms. This cannot be undone.'
       : 'Remove this release from PLAIGROUND? This cannot be undone.';
     if (typeof global.confirm !== 'function') return false;
@@ -1199,7 +1199,11 @@
     return sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'DELETE', {}).then(function (result) {
       if (btn) btn.removeAttribute('aria-busy');
       if (!result.ok) {
-        setText('[data-song-status]', (result.data && result.data.error) || 'The store could not remove this release.');
+        var err = (result.data && result.data.error) || 'The store could not remove this release.';
+        if (/only draft or rejected releases can be deleted/i.test(err)) {
+          err = 'The store could not take this release down.';
+        }
+        setText('[data-song-status]', err);
         setHidden('[data-song-status]', false);
         return { ok: false, result: result };
       }

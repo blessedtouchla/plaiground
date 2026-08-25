@@ -11,7 +11,9 @@
  * POST /api/tonegrid/releases
  * GET  /api/tonegrid/releases/:id          -> plus ddex/deliveries when live (dsp_release_id only)
  * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
- * DELETE /api/tonegrid/releases/:id        -> draft: ToneGrid DELETE; live: POST /ddex/purge
+ * DELETE /api/tonegrid/releases/:id        -> draft/rejected: ToneGrid DELETE;
+ *                                         pending/processing: POST /takedown, else /ddex/purge;
+ *                                         live: POST /ddex/purge (takedown only, never drop)
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
@@ -23,8 +25,11 @@
  * GET  /api/tonegrid/royalties
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
- * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft.
- * POST /releases/:uuid/ddex/purge is the real store takedown (PurgeReleaseMessage).
+ * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
+ * release. Pending / processing already went to stores — POST
+ * /releases/:uuid/takedown (cancel) then POST /releases/:uuid/ddex/purge
+ * (PurgeReleaseMessage). Live stays purge-only. Never drop a sent release
+ * locally when the store refuses.
  * POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
  * Each ToneGrid write uses a hop-scoped Idempotency-Key (patch-date,
@@ -77,7 +82,18 @@ const {
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
-const STORE_FACING = new Set(['live', 'approved', 'processing', 'delivering', 'delivered', 'takedown_submitted']);
+const STORE_FACING = new Set([
+  'pending',
+  'pending_review',
+  'qc_inspection',
+  'approved',
+  'processing',
+  'delivering',
+  'delivered',
+  'live',
+  'takedown_submitted',
+]);
+const CANCEL_FIRST = new Set(['pending', 'pending_review', 'qc_inspection', 'approved', 'processing', 'delivering']);
 
 function decodePart(value) {
   try {
@@ -1865,14 +1881,59 @@ async function updateTrack(req, res, trackId) {
   sendJson(res, result.status, result.data);
 }
 
+function normalizeReleaseStatus(status) {
+  return String(status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
 function storeFacingStatus(status) {
-  const raw = String(status || '').trim().toLowerCase();
-  if (STORE_FACING.has(raw)) return true;
-  return raw === 'live' || raw === 'approved' || raw === 'processing' || raw === 'delivering' || raw === 'delivered';
+  return STORE_FACING.has(normalizeReleaseStatus(status));
+}
+
+function cancelFirstStatus(status) {
+  return CANCEL_FIRST.has(normalizeReleaseStatus(status));
+}
+
+function leftoverDeleteCopy(error) {
+  return /only draft or rejected releases can be deleted/i.test(String(error || ''));
+}
+
+function isMissingStoreEndpoint(result) {
+  if (!result || result.ok) return false;
+  if (result.status === 404 || result.status === 405) return true;
+  const msg = String((result.data && result.data.error) || '').toLowerCase();
+  return /endpoint not found|not (registered|supported|available)|method not allowed/.test(msg);
 }
 
 function tonegridErrorOf(result, fallback) {
-  return String((result && result.data && result.data.error) || fallback || 'The store rejected the request.');
+  const raw = String((result && result.data && result.data.error) || fallback || 'The store rejected the request.');
+  if (leftoverDeleteCopy(raw)) return 'The store could not take this release down.';
+  return raw;
+}
+
+function storeTakedownError(result) {
+  if (isMissingStoreEndpoint(result)) return 'The store could not take this release down.';
+  return tonegridErrorOf(result, 'The store could not take this release down.');
+}
+
+async function requestStoreCancelOrTakedown(releaseId, status) {
+  let last = null;
+  if (cancelFirstStatus(status)) {
+    last = await tonegridFetch('/releases/' + releaseId + '/takedown', {
+      method: 'POST',
+      body: { reason: 'Artist request.' },
+      idempotencyKey: hopIdempotencyKey('takedown', 'POST', '/releases/' + releaseId + '/takedown', releaseId),
+    });
+    if (last.ok) return last;
+  }
+
+  const purged = await tonegridFetch('/releases/' + releaseId + '/ddex/purge', {
+    method: 'POST',
+    body: {},
+    idempotencyKey: hopIdempotencyKey('purge', 'POST', '/releases/' + releaseId + '/ddex/purge', releaseId),
+  });
+  if (purged.ok) return purged;
+  if (last && !isMissingStoreEndpoint(last) && isMissingStoreEndpoint(purged)) return last;
+  return purged.ok === false ? purged : last;
 }
 
 async function dropLocalRelease(row, releaseId) {
@@ -1898,7 +1959,7 @@ async function deleteRelease(req, res, releaseId) {
     return;
   }
   const missing = Boolean(loaded.result && !loaded.result.ok && loaded.result.status === 404);
-  const status = loaded.row ? String(loaded.row.status || '').trim().toLowerCase() : '';
+  const status = loaded.row ? normalizeReleaseStatus(loaded.row.status) : '';
 
   if (status === 'taken_down') {
     sendJson(res, 409, {
@@ -1911,14 +1972,10 @@ async function deleteRelease(req, res, releaseId) {
   }
 
   if (storeFacingStatus(status)) {
-    const purged = await tonegridFetch('/releases/' + releaseId + '/ddex/purge', {
-      method: 'POST',
-      body: {},
-      idempotencyKey: hopIdempotencyKey('purge', 'POST', '/releases/' + releaseId + '/ddex/purge', releaseId),
-    });
-    if (!purged.ok) {
-      sendJson(res, purged.status, {
-        error: tonegridErrorOf(purged, 'Stores could not take this release down.'),
+    const cancelled = await requestStoreCancelOrTakedown(releaseId, status);
+    if (!cancelled || !cancelled.ok) {
+      sendJson(res, (cancelled && cancelled.status) || 502, {
+        error: storeTakedownError(cancelled),
         takedown: false,
         removed: false,
       });
