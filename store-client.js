@@ -2233,8 +2233,27 @@
     return Array.isArray(draft.dsps) ? draft.dsps.slice() : [];
   }
 
-  function persistStorePick(slugs, allOn) {
-    writeDraft({ dsps: slugs || [], dsps_all: allOn !== false });
+  function persistStorePick(slugs, allOn, total) {
+    var patch = { dsps: slugs || [], dsps_all: allOn !== false };
+    var n = Number(total);
+    if (n > 0) patch.dsps_total = n;
+    writeDraft(patch);
+  }
+
+  function storePickSnapshot() {
+    var root = storePickRoot();
+    var draft = readDraft();
+    var slugs = selectedUploadStores();
+    var allBox = root && root.querySelector ? root.querySelector('[data-store-all]') : null;
+    var list = root && root.querySelector
+      ? (root.querySelector('[data-store-list]') || root.querySelector('[data-edit-stores]'))
+      : null;
+    var boxes = list && list.querySelectorAll ? list.querySelectorAll('input[type="checkbox"]') : [];
+    var listTotal = boxes && boxes.length ? boxes.length : 0;
+    var total = listTotal || Number(draft.dsps_total) || 0;
+    var allOn = allBox ? Boolean(allBox.checked) : draft.dsps_all !== false;
+    if (total > 0 && slugs.length >= total) allOn = true;
+    return { slugs: slugs, allOn: allOn, total: total };
   }
 
   function bindStorePick(root, selected) {
@@ -2242,15 +2261,19 @@
     var draft = readDraft();
     var picked = Array.isArray(selected) ? selected : (Array.isArray(draft.dsps) ? draft.dsps : null);
     function apply(stores) {
+      var catalog = Array.isArray(stores) ? stores : [];
       PlaigroundStorePick.bind(root, {
-        stores: stores,
+        stores: catalog,
         selected: picked && picked.length ? picked : null,
-        onChange: persistStorePick,
+        onChange: function (slugs, allOn, total) {
+          persistStorePick(slugs, allOn, total || catalog.length);
+        },
       });
     }
     var fallback = PlaigroundStorePick.DEFAULT_STORES || [];
     getJson('/api/tonegrid/stores').then(function (result) {
-      apply((result.ok && result.data && result.data.stores) || fallback);
+      var live = result.ok && result.data && result.data.stores;
+      apply(live && live.length ? live : fallback);
     }).catch(function () {
       apply(fallback);
     });
@@ -3611,7 +3634,10 @@
           markIncomplete(trigger, true);
           return;
         }
-        draft = writeDraft({ release_date: releaseDate, dsps: selectedUploadStores() });
+        var pick = storePickSnapshot();
+        var submitPatch = { release_date: releaseDate, dsps: pick.slugs, dsps_all: pick.allOn };
+        if (pick.total > 0) submitPatch.dsps_total = pick.total;
+        draft = writeDraft(submitPatch);
 
         if (!isSoloOwned(draft) && !documentIdOf(draft)) {
           setStatus('tg-status', 'Create the split sheet before submitting.');
@@ -3768,6 +3794,27 @@
     setHiddenEl(lyricsBox, !lyricsCopy);
   }
 
+  function submittedStoreCopy(draft) {
+    var slugs = draft && Array.isArray(draft.dsps) ? draft.dsps : [];
+    var total = Number(draft && draft.dsps_total) || 0;
+    var allOn = !draft || draft.dsps_all !== false;
+    if (typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.formatSubmitted) {
+      return PlaigroundStorePick.formatSubmitted(slugs.length, total, allOn);
+    }
+    if (allOn || (total > 0 && slugs.length >= total)) {
+      return (total || slugs.length) ? 'All ' + (total || slugs.length) + ' stores' : '';
+    }
+    if (total > 0) return slugs.length + ' of ' + total + ' stores';
+    return slugs.length ? slugs.length + ' stores' : '';
+  }
+
+  function paintSubmittedStores(draft) {
+    var el = document.querySelector('[data-submit-stores]');
+    if (!el) return;
+    var copy = submittedStoreCopy(draft);
+    if (copy) el.textContent = copy;
+  }
+
   function fillSubmitted() {
     var titleEl = document.querySelector('[data-submit-title]');
     if (!titleEl) return;
@@ -3776,6 +3823,14 @@
     if (draft.tonegrid_status) setStatus('tg-status', 'Store status: ' + draft.tonegrid_status);
     var view = document.querySelector('a[href="song.html"]');
     if (view && draft.release_id) view.setAttribute('href', 'song.html?id=' + encodeURIComponent(draft.release_id));
+    paintSubmittedStores(draft);
+    if (document.querySelector('[data-submit-stores]') && !Number(draft.dsps_total)) {
+      getJson('/api/tonegrid/stores').then(function (result) {
+        var stores = (result.ok && result.data && result.data.stores) || [];
+        if (!stores.length) return;
+        paintSubmittedStores(writeDraft({ dsps_total: stores.length }));
+      }).catch(function () {});
+    }
   }
 
   function bindSubmitted() {

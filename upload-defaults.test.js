@@ -584,6 +584,17 @@ function run() {
   assert.ok(review.indexOf('data-store-customize') !== -1);
   assert.ok(review.indexOf('164 of 165 stores') === -1);
   assert.ok(review.indexOf('All 156 other stores') === -1);
+  assert.ok(review.indexOf('164 of 163 stores') === -1);
+
+  const submitted = fs.readFileSync(path.join(__dirname, 'submitted.html'), 'utf8');
+  assert.ok(submitted.indexOf('data-submit-stores') !== -1);
+  assert.ok(submitted.indexOf('lib/store-pick.js') !== -1);
+  assert.ok(submitted.indexOf('164 of 163 stores') === -1);
+  assert.ok(submitted.indexOf('164 of 164 stores') === -1);
+  assert.ok(submitted.indexOf('164 of 165 stores') === -1);
+  assert.ok(!/\b55 stores\b/.test(submitted));
+  assert.ok(!/\b163 stores\b/.test(submitted));
+  assert.ok(!/\b164 of \d+/.test(submitted));
 
   const song = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
   assert.ok(/\.store-pick label input[\s\S]*position:\s*static/.test(css), 'store chips must reset toggle-input overlay');

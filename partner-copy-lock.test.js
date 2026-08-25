@@ -18,6 +18,7 @@ const USER_FILES = [
   'how-it-works.html',
   'releases.html',
   'review.html',
+  'submitted.html',
   'song.html',
   'song.js',
   'lib/statement-pdf.js',
