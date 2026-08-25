@@ -25,6 +25,7 @@ const APP_PAGES = [
   'library.html',
   'boosts.html',
   'publishing-register.html',
+  'faq.html',
 ];
 
 function run() {
@@ -60,11 +61,35 @@ function run() {
   const faq = read('faq.html');
   assert.ok(!/PLAIGROUND is built for AI-assisted artists/i.test(faq), 'FAQ must not use AI-only slogan language');
   assert.ok(/You declare what is human and what is AI-assisted on upload/i.test(faq), 'FAQ keeps the upload attest');
-  assert.ok(faq.indexOf('What is PLAI?') < faq.indexOf('Frequently asked questions'), 'FAQ opens with what PLAI is');
+  assert.ok(!/Meet PLAI/i.test(faq), 'FAQ must not lead with Meet PLAI');
+  assert.ok(!/<h1>What is PLAI\?<\/h1>/.test(faq), 'FAQ must not title What is PLAI');
+  assert.ok(faq.indexOf('<h1>Frequently asked questions</h1>') !== -1, 'FAQ title is Frequently asked questions');
+  assert.ok(faq.indexOf('Frequently asked questions') < faq.indexOf('Talk to PLAI'), 'FAQ PLAI pointer stays after the questions');
+  assert.ok(/buy a car at the click of a button/i.test(faq), 'FAQ lead starts with the car-click line');
+  assert.ok(/distribution, publishing, and marketing as easy as a click of a button/i.test(faq), 'FAQ lead states the click-of-a-button goal');
+  assert.ok(/We are new/i.test(faq), 'FAQ lead says we are new');
+  assert.ok(/Please send any and all feedback/i.test(faq), 'FAQ lead asks for feedback');
+  assert.ok(faq.includes('mailto:emailplaiground@gmail.com'), 'FAQ lead keeps the public feedback mailto');
+  assert.ok(/What do I get on Pro\?/i.test(faq), 'FAQ answers What do I get on Pro');
+  assert.ok(/same as Creator, with no monthly cap/i.test(faq), 'Pro FAQ answer may say same as Creator with no cap');
+  assert.ok(/What is publishing\?/i.test(faq), 'FAQ answers What is publishing');
+  assert.ok(/collected by societies, not stores/i.test(faq), 'publishing answer says societies collect');
+  assert.ok(/What are Boosts\?/i.test(faq), 'FAQ answers What are Boosts');
+  assert.ok(/not a membership plan/i.test(faq), 'Boosts are marketing, not a plan');
+  assert.ok(/Chart Push/i.test(faq) && /Streaming Push/i.test(faq), 'Boosts name Chart Push and Streaming Push');
+  assert.ok(/What is MSP\?/i.test(faq), 'FAQ answers What is MSP');
+  assert.ok(/Multiple Streams of Revenue/i.test(faq), 'MSP is Multiple Streams of Revenue');
+  assert.ok(/How do I get into my Pro or Creator account\?/i.test(faq), 'FAQ answers signed-in access');
+  assert.ok(/The left menu is the product/i.test(faq), 'signed-in access names the left menu');
+  assert.ok(/Take a song down from the release page with Remove/i.test(faq), 'takedown is Remove on the release page');
+  assert.ok(!/take a song down from Settings/i.test(faq), 'takedown must not say Settings');
   assert.ok(/pronounced[\s\S]*PLAY/i.test(faq), 'FAQ says PLAI is pronounced PLAY');
   assert.ok(/she\/her/i.test(faq), 'FAQ says PLAI uses she/her');
   assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ points to Talk and Text PLAI');
-  assert.ok(/does not turn on your microphone/i.test(faq), 'FAQ says Text PLAI does not use the mic');
+  assert.ok(/type only, no mic/i.test(faq), 'FAQ says Text PLAI is type only');
+  const plaiPointer = faq.indexOf('class="faq-plai"');
+  const stuckAt = faq.indexOf('Still stuck on something?');
+  assert.ok(plaiPointer !== -1 && stuckAt !== -1 && plaiPointer < stuckAt, 'short PLAI pointer sits near Still stuck, not the lead');
 
   const PUBLIC_PAGES = [
     'index.html',
@@ -347,6 +372,10 @@ function run() {
     assert.ok(html.includes('href="splits.html">Splits</a>'), file + ' menu item must be Splits');
     assert.ok(html.includes('href="artists.html">Artist Profiles</a>'), file + ' must list Artist Profiles in the signed-in menu');
     assert.ok(html.includes('href="settings.html">Settings</a>'), file + ' must keep Settings separate from Artist Profiles');
+    assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must list FAQ in the signed-in menu');
+    const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
+    assert.ok(sideNav, file + ' must keep a side-nav');
+    assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put FAQ last, after Settings');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
@@ -355,6 +384,9 @@ function run() {
     assert.ok(!/\bhidden\b[^>]*>Publishing<\/a>/.test(sideNav[0]), file + ' must not hide Publishing');
     assert.ok(!/data-for-plans=/.test(sideNav[0]), file + ' must not plan-hide Publishing on Pro/Creator');
   });
+  assert.ok(/href="faq.html">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
+  assert.ok(/class="on" href="faq.html">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');
+  assert.ok(read('site.js').includes('setupSignedInPublicAppChrome'), 'signed-in visits to public+app FAQ swap to the app sidebar');
 
   const pubRegNav = read('publishing-register.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
   assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register>Publishing<\/a>/.test(pubRegNav[0]), 'Publishing is current on the register page');

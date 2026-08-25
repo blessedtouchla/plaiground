@@ -326,6 +326,30 @@
     });
   }
 
+  function setupSignedInPublicAppChrome() {
+    var header = document.querySelector("header.nav");
+    var side = document.querySelector(".side");
+    var topbar = document.querySelector(".topbar");
+    if (!header || !side || !topbar) return;
+
+    function apply(signedIn) {
+      document.body.classList.toggle("app", signedIn);
+      side.hidden = !signedIn;
+      topbar.hidden = !signedIn;
+      header.hidden = !!signedIn;
+      var footer = document.querySelector("footer");
+      if (footer) footer.hidden = !!signedIn;
+      if (signedIn) setupAppMenu();
+    }
+
+    apply(isSignedInPublic());
+    var api = window.PlaigroundMembership;
+    if (api && typeof api.whenReady === "function") {
+      api.whenReady(function () { apply(isSignedInPublic()); });
+    }
+  }
+
+  setupSignedInPublicAppChrome();
   setupAppMenu();
   setupPublicMenu();
   setupPublicSocials();

@@ -300,7 +300,13 @@ function runStatic() {
 
   assert.ok(js.includes("AGENT_ID = 'agent_BDVzp3Ar3ABtyov5'"), 'keeps the Voice Agent Builder agent');
   assert.ok(js.includes('/api/plai-session'), 'reuses the existing session route');
-  assert.ok(js.includes("replace: { PLAI: 'PLAY' }"), 'spoken PLAI is PLAY');
+  assert.ok(/PLAI:\s*'PLAY'/.test(js) && /Plai:\s*'PLAY'/.test(js) && /plai:\s*'PLAY'/.test(js), 'spoken PLAI / Plai / plai is PLAY');
+  assert.ok(/"I'm PLAI":\s*"I'm PLAY"/.test(js), 'spoken I\'m PLAI is I\'m PLAY');
+  assert.ok(!/session\.instructions|instructions:/.test(js), 'frontend must not set Voice Agent instructions');
+  const sessionUpdate = sliceBetween(js, 'function configureSession', 'function seedHistory');
+  assert.ok(!/buy a car at the click of a button/i.test(sessionUpdate), 'voice session must not dump the FAQ intro');
+  assert.ok(!/Meet PLAI/i.test(sessionUpdate), 'voice session must not dump the Meet PLAI FAQ lead');
+  assert.ok(!/session\.instructions|instructions:/.test(sessionUpdate), 'configureSession must not set Voice Agent instructions');
   assert.ok(js.includes('sounds like PLAY'), 'visible name stays PLAI with PLAY hint');
   assert.ok(!js.includes('XAI_API_KEY'), 'frontend must not contain XAI_API_KEY');
   assert.ok(!js.includes('ELEVEN') && !/elevenlabs/i.test(js), 'no ElevenLabs');
@@ -323,8 +329,10 @@ function runStatic() {
   assert.strictEqual(apiFiles.filter((name) => name.endsWith('.js')).length, 6, 'no new api/*.js files');
 
   assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ still names both buttons');
-  assert.ok(/does not turn on your microphone/i.test(faq), 'FAQ Text PLAI copy stays');
+  assert.ok(/type only, no mic/i.test(faq), 'FAQ Text PLAI copy stays');
   assert.ok(/pronounced[\s\S]*PLAY/i.test(faq) && /she\/her/i.test(faq), 'FAQ PLAY / she-her copy stays');
+  assert.ok(faq.indexOf('Frequently asked questions') < faq.indexOf('Talk to PLAI'), 'FAQ PLAI pointer is not the page lead');
+  assert.ok(!/Meet PLAI/i.test(faq) && !/<h1>What is PLAI\?<\/h1>/.test(faq), 'FAQ no longer opens as the voice-agent intro');
 
   const frontend = [
     'plai-bubble.js',
