@@ -248,6 +248,10 @@ function run() {
   assert.strictEqual(catalogEdit.tagName, 'A');
   assert.ok(String(catalogEdit.href).indexOf('song.html?id=11111111-1111-4111-8111-111111111111') !== -1);
   assert.ok(String(catalogEdit.href).indexOf('edit=1') !== -1);
+  assert.ok(read('releases.html').includes('href="releases.html">Releases</a>'), 'sidebar Releases stays on the catalog list');
+  assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('releases.html')), 'sidebar Releases must not point at a leftover song');
+  assert.ok(read('catalog.js').includes("editPanel.hidden = true"), 'Releases must not auto-open Edit release');
+  assert.ok(read('song.js').includes("location.href = 'releases.html'"), 'song.html without an id returns to the list');
 
   catalog.PlaigroundCatalog.render({
     releases: [{ title: 'No store id yet', type: 'single', status: 'draft' }],

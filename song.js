@@ -361,9 +361,7 @@
       if (ids.length && !idAllowed(ids, requested)) return null;
       return find(requested) || (idAllowed(ids, requested) ? { uuid: requested, title: '', type: 'single', status: 'pending' } : null);
     }
-    if (draftRow && idAllowed(ids, draftRow.uuid)) return find(draftRow.uuid) || draftRow;
-    if (ids.length) return find(ids[ids.length - 1]) || find(ids[0]);
-    return rows[0] || null;
+    return null;
   }
 
   function markLife(step) {
@@ -615,6 +613,10 @@
 
   function load() {
     if (!$('[data-song-title]')) return Promise.resolve(null);
+    if (!queryId()) {
+      try { global.location.href = 'releases.html'; } catch (err) {}
+      return Promise.resolve({ redirect: 'releases.html' });
+    }
     setText('[data-song-status]', 'Loading release…');
     setHidden('[data-song-status]', false);
     var draft = readDraft();

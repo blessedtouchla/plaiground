@@ -1459,8 +1459,12 @@ function bindTypeahead(select, items, getValue, getLabel) {
   field.appendChild(list);
 
   var picking = false;
+  var holdBlur = false;
+  var lastPoint = null;
+  var touchStartPoint = null;
   var placeTimer = 0;
   var win = typeof window !== 'undefined' ? window : null;
+  var doc = typeof document !== 'undefined' ? document : null;
 
   function exact(query) {
     return findPick(items, getValue, getLabel, query);
@@ -1492,6 +1496,9 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }
       if (typeof select.dispatchEvent === 'function') {
         try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
+      }
+      if (input && typeof input.dispatchEvent === 'function') {
+        try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
       }
     } finally {
       typeaheadApplying = false;
@@ -1587,11 +1594,72 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (event && event.stopPropagation) event.stopPropagation();
     if (picking) return;
     picking = true;
+    holdBlur = false;
     applyPick(pick);
     hideList();
     if (input.blur) input.blur();
     if (win && win.setTimeout) win.setTimeout(function () { picking = false; }, 450);
     else picking = false;
+  }
+
+  function eventPoint(event) {
+    var touch = event && event.changedTouches && event.changedTouches[0];
+    if (!touch && event && event.touches && event.touches[0]) touch = event.touches[0];
+    if (touch && typeof touch.clientX === 'number') return { x: touch.clientX, y: touch.clientY };
+    if (event && typeof event.clientX === 'number') return { x: event.clientX, y: event.clientY };
+    return null;
+  }
+
+  function rememberPoint(event) {
+    var point = eventPoint(event);
+    if (point) lastPoint = point;
+    return point;
+  }
+
+  function listOptionNodes() {
+    if (list.querySelectorAll) return Array.prototype.slice.call(list.querySelectorAll('[data-value],button'));
+    var found = [];
+    var i;
+    if (list.children) {
+      for (i = 0; i < list.children.length; i += 1) {
+        if (pickFromNode(list.children[i])) found.push(list.children[i]);
+      }
+    }
+    return found;
+  }
+
+  function pickFromClientPoint(x, y) {
+    if (typeof x !== 'number' || typeof y !== 'number') return null;
+    var nodes = listOptionNodes();
+    var i;
+    for (i = 0; i < nodes.length; i += 1) {
+      var node = nodes[i];
+      if (!node || typeof node.getBoundingClientRect !== 'function') continue;
+      var rect = node.getBoundingClientRect();
+      if (!rect || typeof rect.top !== 'number') continue;
+      var right = rect.right != null ? rect.right : rect.left + (rect.width || 0);
+      var bottom = rect.bottom != null ? rect.bottom : rect.top + (rect.height || 0);
+      if (x >= rect.left && x <= right && y >= rect.top && y <= bottom) {
+        var pick = pickFromNode(node);
+        if (pick) return pick;
+      }
+    }
+    return null;
+  }
+
+  function pickFromPoint(event, allowLast) {
+    var point = eventPoint(event) || (allowLast ? lastPoint : null);
+    if (!point) return null;
+    var fromRect = pickFromClientPoint(point.x, point.y);
+    if (fromRect) return fromRect;
+    if (!doc || typeof doc.elementFromPoint !== 'function') return null;
+    var node = doc.elementFromPoint(point.x, point.y);
+    while (node && node !== list) {
+      var pick = pickFromNode(node);
+      if (pick) return pick;
+      node = node.parentNode;
+    }
+    return null;
   }
 
   function commitListEvent(event) {
@@ -1604,7 +1672,57 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }
       node = node.parentNode;
     }
+    var fromPoint = pickFromPoint(event, false);
+    if (fromPoint) {
+      pickOption(fromPoint, event);
+      return true;
+    }
     return false;
+  }
+
+  function touchMoved(event) {
+    var point = eventPoint(event);
+    if (!point || !touchStartPoint) return false;
+    var dx = point.x - touchStartPoint.x;
+    var dy = point.y - touchStartPoint.y;
+    return (dx * dx + dy * dy) > 144;
+  }
+
+  function holdTouchPick(event) {
+    var point = rememberPoint(event);
+    if (point) touchStartPoint = point;
+    var node = event && event.target;
+    while (node && node !== list) {
+      if (pickFromNode(node)) {
+        holdBlur = true;
+        break;
+      }
+      node = node.parentNode;
+    }
+    if (event && event.stopPropagation) event.stopPropagation();
+  }
+
+  function commitTouchEnd(event) {
+    rememberPoint(event);
+    if (!touchMoved(event)) commitListEvent(event);
+    holdBlur = false;
+  }
+
+  function onDocHold(event) {
+    if (!list.classList || list.classList.contains('is-hidden')) return;
+    var point = rememberPoint(event);
+    if (point) touchStartPoint = point;
+    if (point && pickFromClientPoint(point.x, point.y)) holdBlur = true;
+  }
+
+  function onDocCommit(event) {
+    if (!list.classList || list.classList.contains('is-hidden')) return;
+    rememberPoint(event);
+    if (touchMoved(event)) {
+      holdBlur = false;
+      return;
+    }
+    commitListEvent(event);
   }
 
   function showMatches(query) {
@@ -1654,15 +1772,25 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }
 
   if (list.addEventListener) {
-    list.addEventListener('pointerdown', commitListEvent, true);
     list.addEventListener('click', commitListEvent);
+    list.addEventListener('pointerup', commitListEvent);
+    list.addEventListener('touchend', commitTouchEnd, { passive: false });
+    list.addEventListener('mousedown', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      commitListEvent(event);
+    });
+    list.addEventListener('pointerdown', commitListEvent, true);
   }
   list.addEventListener('wheel', function (event) {
     if (list.scrollHeight > list.clientHeight) event.stopPropagation();
   }, { passive: true });
-  list.addEventListener('touchstart', function (event) {
-    if (event && event.stopPropagation) event.stopPropagation();
-  }, { passive: true });
+  list.addEventListener('touchstart', holdTouchPick, { passive: true });
+  if (doc && doc.addEventListener) {
+    doc.addEventListener('pointerdown', onDocHold, true);
+    doc.addEventListener('touchstart', onDocHold, true);
+    doc.addEventListener('pointerup', onDocCommit, true);
+    doc.addEventListener('touchend', onDocCommit, true);
+  }
 
   function openList() {
     showMatches(input.value);
@@ -1697,7 +1825,15 @@ function bindTypeahead(select, items, getValue, getLabel) {
   });
   input.addEventListener('blur', function () {
     function finishBlur() {
-      if (picking) return;
+      if (picking || holdBlur) return;
+      var lastEvent = lastPoint ? { clientX: lastPoint.x, clientY: lastPoint.y } : null;
+      if (!touchMoved(lastEvent)) {
+        var fromPoint = pickFromPoint(null, true);
+        if (fromPoint) {
+          pickOption(fromPoint);
+          return;
+        }
+      }
       hideList();
       var pick = exact(input.value);
       if (pick) applyPick(pick);

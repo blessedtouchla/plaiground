@@ -241,6 +241,12 @@
     $all('[data-latest-edit]').forEach(function (el) {
       if (latest.editHref) el.setAttribute('href', latest.editHref);
     });
+    $all('.side-nav a').forEach(function (el) {
+      var href = el && el.getAttribute ? String(el.getAttribute('href') || '') : '';
+      if (/^releases\.html(\?|$|#)/.test(href) || href === 'releases.html') {
+        el.setAttribute('href', 'releases.html');
+      }
+    });
     var upload = me.upload || {};
     var atLimit = upload.allowed === false;
     $all('[data-new-release]').forEach(function (el) {

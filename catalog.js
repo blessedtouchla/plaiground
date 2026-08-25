@@ -312,6 +312,8 @@
     setText('[data-release-empty-body]', copy.body);
     highlightFilters(currentFilter);
     setText('[data-release-count]', empty ? '' : ('Showing ' + shown.length + ' of ' + lastTotal + ' releases'));
+    var editPanel = $('[data-release-edit]');
+    if (editPanel) editPanel.hidden = true;
   }
 
   function setStatus(text) {

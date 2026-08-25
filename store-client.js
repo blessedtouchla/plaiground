@@ -73,6 +73,44 @@
     try { sessionStorage.setItem(key, value); } catch (err) {}
   }
 
+  function isNewReleaseStart() {
+    try {
+      return new URLSearchParams((typeof location !== 'undefined' && location.search) || '').get('new') === '1';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function clearHeldAudio() {
+    heldAudioFile = null;
+    try {
+      if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
+        indexedDB.deleteDatabase(AUDIO_HOLD_DB);
+      }
+    } catch (err) {}
+  }
+
+  function clearNewReleaseDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    clearHeldAudio();
+  }
+
+  function stripNewReleaseFlag() {
+    try {
+      if (!isNewReleaseStart() || !window.history || !window.history.replaceState) return;
+      var url = 'upload.html';
+      try {
+        var params = new URLSearchParams(location.search || '');
+        params.delete('new');
+        var keep = params.toString();
+        var path = String((location.pathname || 'upload.html').split('/').pop() || 'upload.html');
+        url = keep ? (path + '?' + keep) : path;
+      } catch (err) {}
+      window.history.replaceState({}, '', url);
+    } catch (err) {}
+  }
+
   function readDraft() {
     var draft;
     try {
@@ -2203,7 +2241,7 @@
     artists = artists.filter(function (artist) {
       return artist && artist.name && !isLeftoverArtistName(artist.name);
     }).map(function (artist) {
-      var id = String((artist && (artist.id || artist.artist_id)) || '').trim();
+      var id = String((artist && (artist.id || artist.artist_id || artist.uuid || artist.tonegrid_artist_id)) || '').trim();
       return Object.assign({}, artist, { id: id || artist.name });
     });
     if (!artists.length && row.artist && !isLeftoverArtistName(row.artist)) {
@@ -2225,8 +2263,22 @@
     var opt = null;
     if (sel.options && sel.selectedIndex >= 0) opt = sel.options[sel.selectedIndex];
     var id = String((opt && opt.value) || sel.value || '').trim();
+    var name = String((opt && ((opt.getAttribute && opt.getAttribute('data-name')) || opt.textContent)) || '').trim();
+    if (!id || !name) {
+      var typed = typeaheadTypedValue(sel);
+      if (typed) {
+        var roster = rosterFromMe();
+        var i;
+        for (i = 0; i < roster.length; i += 1) {
+          if (String(roster[i].name || '').toLowerCase() === typed.toLowerCase() || String(roster[i].id || '') === typed) {
+            id = id || String(roster[i].id || '');
+            name = name || String(roster[i].name || '');
+            break;
+          }
+        }
+      }
+    }
     if (!id) return null;
-    var name = String((opt && (opt.getAttribute && opt.getAttribute('data-name') || opt.textContent)) || '').trim();
     return { id: id, name: name };
   }
 
@@ -2473,7 +2525,20 @@
     }
 
     function artistPickValue(artist) {
-      return String((artist && (artist.id || artist.artist_id || artist.name)) || '').trim();
+      return String((artist && (artist.id || artist.artist_id || artist.uuid || artist.tonegrid_artist_id || artist.name)) || '').trim();
+    }
+
+    function setSelectValue(sel, value) {
+      sel.value = value;
+      if (!sel.options) return;
+      var i;
+      for (i = 0; i < sel.options.length; i += 1) {
+        if (String(sel.options[i].value || '') === String(value || '')) {
+          sel.selectedIndex = i;
+          return;
+        }
+      }
+      sel.selectedIndex = value ? sel.selectedIndex : 0;
     }
 
     function fillSelect(artists) {
@@ -2492,16 +2557,14 @@
         opt.textContent = artist.name;
         sel.appendChild(opt);
       });
-      if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) sel.value = current;
-      else if (artists.length === 1) sel.value = artistPickValue(artists[0]);
-      else sel.value = '';
-      syncArtistHidden();
-      var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
-      if (catalog && typeof catalog.bindTypeahead === 'function' && artists.length) {
-        if (sel.removeAttribute) sel.removeAttribute('data-typeahead');
-        catalog.bindTypeahead(sel, artists, artistPickValue, function (artist) { return artist.name; });
-        if (catalog.setTypeaheadValue && sel.value) catalog.setTypeaheadValue(sel, sel.value);
+      if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) {
+        setSelectValue(sel, current);
+      } else if (artists.length === 1) {
+        setSelectValue(sel, artistPickValue(artists[0]));
+      } else {
+        setSelectValue(sel, '');
       }
+      syncArtistHidden();
     }
 
     function liveNameCheck() {
@@ -2629,7 +2692,14 @@
       }
       var existing = null;
       artists.forEach(function (row) {
-        if (row.id === picked.id || row.artist_id === picked.id || row.name === picked.name || row.name === picked.id) {
+        if (
+          row.id === picked.id
+          || row.artist_id === picked.id
+          || row.uuid === picked.id
+          || row.tonegrid_artist_id === picked.id
+          || row.name === picked.name
+          || row.name === picked.id
+        ) {
           existing = row;
         }
       });
@@ -3186,6 +3256,10 @@
   function bindUpload() {
     var trigger = document.querySelector('[data-store-continue]');
     if (!trigger) return;
+    if (isNewReleaseStart()) {
+      clearNewReleaseDraft();
+      stripNewReleaseFlag();
+    }
     bindUploadCatalog();
     bindArtistSection();
     bindStorePick(storePickRoot());
@@ -3266,6 +3340,15 @@
       if (!el || !el.addEventListener) return;
       el.addEventListener('input', refreshUploadGate);
       el.addEventListener('change', refreshUploadGate);
+    });
+    ['tg-genre', 'tg-language'].forEach(function (id) {
+      var select = $(id);
+      var field = select && select.parentNode;
+      var typed = field && field.querySelector ? field.querySelector('.typeahead-input') : null;
+      if (!typed && select && select.id && document.getElementById) {
+        typed = document.getElementById(select.id + '-type');
+      }
+      if (typed && typed.addEventListener) typed.addEventListener('change', refreshUploadGate);
     });
     var audioInput = document.querySelector('[data-audio-input]');
     if (audioInput && audioInput.addEventListener) {

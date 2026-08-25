@@ -389,6 +389,31 @@ function run() {
   assert.ok(uploadHtml.indexOf('hasMembership()') === -1, 'upload.html must not use the stricter hasMembership file gate');
   const dash = fs.readFileSync(path.join(__dirname, 'dashboard.html'), 'utf8');
   assert.ok(/data-signed-in-upload/.test(dash) && /type=album/.test(dash), 'dashboard album CTA waits for the session');
+  assert.ok(/data-new-release data-signed-in-upload>New release/.test(dash), 'Overview New release is a fresh upload');
+  const leftover = load({
+    seedLocal: { 'plaiground.store.draft': JSON.stringify({ title: 'Mexeu', release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }) },
+    seedSession: { 'plaiground.store.draft': JSON.stringify({ title: 'Mexeu' }) },
+    account: { email: 'ada@example.com', artist: 'Ada', plan: 'basic', status: 'active' },
+  });
+  leftover.api.clearNewReleaseState();
+  assert.strictEqual(leftover.localStorage.getItem('plaiground.store.draft'), null, 'New release wipes the leftover draft');
+  assert.strictEqual(leftover.sessionStorage.getItem('plaiground.store.draft'), null, 'New release wipes the session draft');
+  assert.ok(String(leftover.api.withNewReleaseFlag('upload.html')).indexOf('new=1') !== -1);
+  const newReleaseEvent = {
+    preventDefault() { this.prevented = true; },
+    target: {
+      closest(name) {
+        if (name === '[data-new-release]' || name === '[data-signed-in-upload]') {
+          return { getAttribute() { return 'upload.html'; }, hasAttribute() { return true; } };
+        }
+        return null;
+      },
+    },
+  };
+  leftover.localStorage.setItem('plaiground.store.draft', JSON.stringify({ title: 'Mexeu' }));
+  fireClicks(leftover, newReleaseEvent);
+  assert.ok(newReleaseEvent.prevented);
+  assert.strictEqual(leftover.localStorage.getItem('plaiground.store.draft'), null, 'New release click clears leftover catalog ids');
 
   const fresh = load();
   assert.strictEqual(fresh.api.hasMembership(), false);

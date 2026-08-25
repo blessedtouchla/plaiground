@@ -100,6 +100,7 @@ function run() {
   assert.ok(dash.includes('All releases'), 'latest-release card must keep All releases');
   assert.ok(!dash.includes('View release'), 'Overview purple button must not stay View release');
   assert.ok(/class="btn btn-purple btn-md" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>/.test(dash), 'Overview purple button is New release to upload.html');
+  assert.ok(read('account.js').includes("el.setAttribute('href', 'releases.html')"), 'sidebar Releases stays on the catalog list');
   assert.ok(!/data-latest-link/.test(dash), 'Overview New release must not be rewritten to the latest song');
   assert.ok(dash.includes('data-release-tiles'), 'release cover tiles are missing');
   assert.ok(dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'publishing CTA must unlock MSP');
@@ -356,7 +357,7 @@ function run() {
   assert.ok(settings.includes('data-account-avatar>PG'), 'settings unsigned initials stay PG');
   assert.ok(settings.includes('placeholder="Artist name"'), 'settings artist field stays an artist-name placeholder');
   assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
-  ['earnings.html', 'payouts.html', 'splits.html', 'splits-empty.html', 'releases.html', 'how.html', 'upload.html'].forEach(function (file) {
+  ['earnings.html', 'payouts.html', 'splits.html', 'splits-empty.html', 'releases.html', 'how.html', 'upload.html', 'contact.html', 'faq.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(!html.includes('Hi John'), file + ' must not hardcode Hi John');
     assert.ok(!html.includes('John ham'), file + ' must not hardcode John ham');

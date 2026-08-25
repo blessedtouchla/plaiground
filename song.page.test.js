@@ -502,7 +502,23 @@ function run() {
   assert.ok(hrefs.indexOf('https://listen.tidal.com/album/123456789') !== -1);
   assert.deepStrictEqual(names.slice().sort(), ['Apple Music', 'Spotify', 'Tidal', 'YouTube Music']);
 
-  const picker = loadSong({ plan: 'basic', me: basicMe, search: '' });
+  const listFirst = loadSong({ plan: 'basic', me: basicMe, search: '' });
+  assert.strictEqual(
+    listFirst.api.pickRelease(
+      [{ uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Helgas revenge phonic' }],
+      basicMe,
+      { release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Mexeu', submitted: true }
+    ),
+    null,
+    'song.html without an id must not auto-open a leftover or latest release'
+  );
+  assert.strictEqual(listFirst.context.location.href, 'releases.html', 'bare song.html goes to the Releases list');
+
+  const picker = loadSong({
+    plan: 'basic',
+    me: basicMe,
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
   const picked = picker.api.pickRelease(
     [{ uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Other' }],
     basicMe,
@@ -921,6 +937,7 @@ function run() {
           confirm: true,
           calls: liveCalls,
           href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           fetch(url, options) {
             const method = (options && options.method) || 'GET';
             if (method === 'DELETE') {
@@ -957,6 +974,7 @@ function run() {
             confirm: true,
             calls: pendingCalls,
             href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
             fetch(url, options) {
               const method = (options && options.method) || 'GET';
               if (method === 'DELETE') {
@@ -999,6 +1017,7 @@ function run() {
               confirm: true,
               calls: leftoverCalls,
               href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+              search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
               fetch(url, options) {
                 const method = (options && options.method) || 'GET';
                 if (method === 'DELETE') {
