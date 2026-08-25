@@ -2441,6 +2441,36 @@ async function run() {
     assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'Retry must not mint a second release');
   }
 
+  async function reviewSubmitGetHangShowsNamelessRetry() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      catalogTimeoutMs: 40,
+      hangWhen: '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      hangCount: 4,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+    });
+    await flush();
+    await new Promise(function (resolve) { setTimeout(resolve, 120); });
+    await flush();
+    assert.ok(/could not reach the store/i.test(page.status.textContent), 'hung GET must use the timeout copy');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.retryWrap.hidden, false);
+    assert.strictEqual(page.loader.hidden, true);
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'timeout GET must not mint a second release');
+  }
+
   async function reviewSubmitHangShowsNamelessRetry() {
     const page = load({
       bind: 'review',
@@ -2685,6 +2715,7 @@ async function run() {
   await reviewSubmitReusesConvertedWavWithoutSecondPost();
   await reviewSubmitMapsSizeCapToHumanLimit();
   await reviewSubmitHangShowsNamelessRetry();
+  await reviewSubmitGetHangShowsNamelessRetry();
   await reviewRetryResendsHeldWavWithoutReconvert();
   await genuineMissingTitleArtistStillErrors();
   await hungCreateTrackTrack2HidesLoader();
@@ -2808,6 +2839,10 @@ async function run() {
   assert.ok(!source.includes('releaseRecreatedThisSession'));
   assert.ok(!source.includes("error: 'Release not found.'"));
   assert.ok(source.includes('DEFAULT_CATALOG_TIMEOUT_MS'));
+  assert.ok(source.includes('AUDIO_POST_TIMEOUT_MS = 90000'));
+  assert.ok(source.includes('waitMsForUrl'));
+  assert.ok(source.includes('function getJson(url)'));
+  assert.ok(/withCatalogTimeout\(function \(\) \{\s*return fetch\(url/.test(source.replace(/\n/g, ' ')) || source.includes('withCatalogTimeout(function ()'));
   assert.ok(source.includes('.catch(function (err)'));
   assert.ok(!source.includes("length < 2) addTrackRow()"));
   assert.ok(uploadHtml.includes('id="tg-lyrics"'));

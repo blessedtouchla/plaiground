@@ -220,6 +220,7 @@
   }
 
   var DEFAULT_CATALOG_TIMEOUT_MS = 30000;
+  var AUDIO_POST_TIMEOUT_MS = 90000;
 
   function catalogTimeoutMs() {
     try {
@@ -229,6 +230,23 @@
       }
     } catch (err) {}
     return DEFAULT_CATALOG_TIMEOUT_MS;
+  }
+
+  function audioPostTimeoutMs() {
+    try {
+      if (typeof window !== 'undefined' && window.PlaigroundAudioTimeoutMs != null) {
+        var n = Number(window.PlaigroundAudioTimeoutMs);
+        if (n > 0 && isFinite(n)) return n;
+      }
+      if (typeof window !== 'undefined' && window.PlaigroundCatalogTimeoutMs != null) {
+        return catalogTimeoutMs();
+      }
+    } catch (err) {}
+    return AUDIO_POST_TIMEOUT_MS;
+  }
+
+  function waitMsForUrl(url) {
+    return /\/audio(?:\?|$)/i.test(String(url || '')) ? audioPostTimeoutMs() : catalogTimeoutMs();
   }
 
   function catalogTimeoutMessage() {
@@ -249,8 +267,9 @@
     return false;
   }
 
-  function withCatalogTimeout(work) {
-    var ms = catalogTimeoutMs();
+  function withCatalogTimeout(work, timeoutMs) {
+    var ms = Number(timeoutMs);
+    if (!(ms > 0 && isFinite(ms))) ms = catalogTimeoutMs();
     var settled = false;
     return new Promise(function (resolve, reject) {
       var timer = setTimeout(function () {
@@ -290,10 +309,15 @@
   }
 
   function getJson(url) {
-    return fetch(url, {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    }).then(parseJson);
+    return withCatalogTimeout(function () {
+      return fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      }).then(parseJson);
+    }).catch(function (err) {
+      if (isNoStoreResponse(null, err)) return storeUnreachableResult();
+      return { ok: false, status: 0, data: { error: catalogTimeoutMessage() } };
+    });
   }
 
   function pad2(n) {
@@ -1184,6 +1208,9 @@
       if (isPlanLimit(loaded.result)) {
         return { limited: true, result: loaded.result, draft: current };
       }
+      if (isNoStoreResponse(loaded.result)) {
+        return { failed: true, timedOut: true, result: storeUnreachableResult(), draft: current };
+      }
       if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status >= 500) {
         return { failed: true, result: loaded.result, draft: current };
       }
@@ -1889,7 +1916,8 @@
         var xhr = new XMLHttpRequest();
         xhr.open('POST', url);
         xhr.withCredentials = true;
-        xhr.timeout = catalogTimeoutMs();
+        var waitMs = waitMsForUrl(url);
+        xhr.timeout = waitMs;
         xhr.setRequestHeader('Accept', 'application/json');
         if (xhr.upload && typeof onProgress === 'function') {
           xhr.upload.onprogress = function (event) {
@@ -1901,7 +1929,7 @@
         var timer = setTimeout(function () {
           try { xhr.abort(); } catch (err) {}
           done({ ok: false, status: 0, timedOut: true, data: { error: catalogTimeoutMessage() } });
-        }, catalogTimeoutMs() + 250);
+        }, waitMs + 250);
         xhr.onerror = function () {
           clearTimeout(timer);
           done({ ok: false, status: 0, data: { error: catalogTimeoutMessage() } });
@@ -1929,7 +1957,7 @@
         headers: { Accept: 'application/json' },
         body: body,
       }).then(parseJson);
-    }).then(sanitizeResultError);
+    }, waitMsForUrl(url)).then(sanitizeResultError);
   }
 
   function storeUnreachableResult() {
