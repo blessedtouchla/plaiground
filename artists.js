@@ -335,7 +335,8 @@
   }
 
   function applyMe(me) {
-    current.me = me || null;
+    if (!me || !me.profile) return;
+    current.me = me;
     current.artists = rosterFromMe(me);
     renderList();
     if (current.selected) {
@@ -570,12 +571,12 @@
       change_request: $('#artist-change') ? $('#artist-change').value : '',
       confirm_different: true,
     }).then(function (result) {
-      if (!result.ok) {
+      if (!result.ok || !result.data || !result.data.updated) {
         showError((result.data && result.data.error) || (accepted ? 'Could not submit this edit.' : 'Could not save artist.'));
         return null;
       }
       applyMe(result.data);
-      if (result.data && result.data.updated) selectArtist(result.data.updated);
+      selectArtist(result.data.updated);
       showStatus(accepted
         ? 'Edit submitted. Waiting on the store / the distributor.'
         : 'Artist profile saved.');
@@ -605,7 +606,7 @@
       id: found.id,
       artist_id: found.artist_id || found.id,
     }).then(function (result) {
-      if (!result.ok) {
+      if (!result.ok || !result.data || !result.data.deleted) {
         var err = (result.data && result.data.error) || 'The store / the distributor cannot delete this artist.';
         showError(err);
         showStatus(err);

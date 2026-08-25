@@ -259,6 +259,10 @@ function run() {
   assert.strictEqual(page.api.isAccepted({ name: 'Ada', source: 'created', review_status: '' }), true);
   assert.strictEqual(page.api.isAccepted({ name: 'Ada', source: 'linked' }), true);
   assert.strictEqual(page.api.isAccepted({ name: 'Drake', source: 'created', name_check: 'red', review_status: 'pending' }), false);
+  page.api.applyMe({
+    profile: { artists: [{ id: 'keep', name: 'Keep Me', source: 'created', badge: 'PLAIGROUND' }] },
+  });
+  assert.strictEqual(page.api.applyMe({ ok: true }), undefined, 'a 200 without a roster must not wipe Your artists');
 
   console.log('artists.page.test.js ok');
 }
