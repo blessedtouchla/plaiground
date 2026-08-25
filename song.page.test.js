@@ -760,7 +760,87 @@ function run() {
           assert.ok(liveCalls.some((row) => String(row.confirm || '').indexOf('Ask stores') !== -1));
           assert.strictEqual(liveFail.nodes['[data-song-status]'].textContent, 'DSP rejected takedown');
           assert.notStrictEqual(liveFail.context.location.href, 'releases.html');
-          console.log('song.page.test.js ok');
+
+          const pendingCalls = [];
+          const pendingOk = loadSong({
+            plan: 'creator',
+            me: Object.assign({}, basicMe, { plan: 'creator' }),
+            confirm: true,
+            calls: pendingCalls,
+            href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            fetch(url, options) {
+              const method = (options && options.method) || 'GET';
+              if (method === 'DELETE') {
+                return Promise.resolve({
+                  ok: true,
+                  status: 202,
+                  json: async () => ({ ok: true, takedown: true, removed: false, status: 'takedown_submitted' }),
+                });
+              }
+              return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                  releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending' }],
+                }),
+              });
+            },
+          });
+          pendingOk.api.render({
+            me: Object.assign({}, basicMe, { plan: 'creator' }),
+            release: { uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending', type: 'single' },
+            analytics: {},
+          });
+          return pendingOk.api.removeRelease().then(function (pendingRemoved) {
+            assert.ok(pendingRemoved.ok);
+            assert.strictEqual(pendingRemoved.takedown, true);
+            assert.ok(pendingCalls.some((row) => String(row.confirm || '').indexOf('Ask stores') !== -1));
+            assert.ok(pendingCalls.some((row) => String(row.confirm || '').indexOf('stays listed until the store confirms') !== -1));
+            assert.strictEqual(
+              pendingOk.nodes['[data-song-status]'].textContent,
+              'Takedown submitted to stores. This release stays listed until the store confirms.'
+            );
+            assert.notStrictEqual(pendingOk.context.location.href, 'releases.html');
+            assert.strictEqual(pendingOk.nodes['[data-song-remove]'].hidden, true);
+
+            const leftoverCalls = [];
+            const leftover = loadSong({
+              plan: 'creator',
+              me: Object.assign({}, basicMe, { plan: 'creator' }),
+              confirm: true,
+              calls: leftoverCalls,
+              href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+              fetch(url, options) {
+                const method = (options && options.method) || 'GET';
+                if (method === 'DELETE') {
+                  return Promise.resolve({
+                    ok: false,
+                    status: 409,
+                    json: async () => ({ error: 'Only draft or rejected releases can be deleted.', removed: false }),
+                  });
+                }
+                return Promise.resolve({
+                  ok: true,
+                  status: 200,
+                  json: async () => ({
+                    releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending' }],
+                  }),
+                });
+              },
+            });
+            leftover.api.render({
+              me: Object.assign({}, basicMe, { plan: 'creator' }),
+              release: { uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending', type: 'single' },
+              analytics: {},
+            });
+            return leftover.api.removeRelease().then(function (leftoverFail) {
+              assert.strictEqual(leftoverFail.ok, false);
+              assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
+              assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
+              assert.notStrictEqual(leftover.context.location.href, 'releases.html');
+              console.log('song.page.test.js ok');
+            });
+          });
         });
       });
     });
