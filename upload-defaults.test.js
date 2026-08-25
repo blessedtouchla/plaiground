@@ -314,6 +314,9 @@ function run() {
   assert.ok(upload.indexOf('accept=".jpg,.jpeg,.png,image/jpeg,image/png"') !== -1);
   assert.ok(upload.indexOf('data-art-pick') !== -1);
   assert.ok(upload.indexOf('data-art-input') !== -1);
+  assert.ok(upload.indexOf('lib/cover-preview.js') !== -1);
+  assert.ok(upload.indexOf('data-art-clear') !== -1);
+  assert.ok(upload.indexOf('data-art-box') !== -1);
   assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') !== -1);
   assert.ok(upload.indexOf('data-audio-preview') !== -1);
   assert.ok(upload.indexOf('data-audio-player') !== -1);

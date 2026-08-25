@@ -3049,6 +3049,9 @@
       var artMeta = document.querySelector('[data-art-meta]');
       if (artMeta) artMeta.textContent = draft.artwork_name;
     }
+    if (window.PlaigroundUploadCover && typeof window.PlaigroundUploadCover.setStored === 'function' && draft.artwork_url) {
+      window.PlaigroundUploadCover.setStored(draft.artwork_url);
+    }
     if (draft.type !== 'album' && (draft.track_id || draft.audio_uploaded) && !selectedAudio()) {
       var nameEl = document.querySelector('[data-audio-name]');
       var preview = document.querySelector('[data-audio-preview]');

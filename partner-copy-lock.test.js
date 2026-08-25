@@ -27,6 +27,7 @@ const USER_FILES = [
   'store-client.js',
   'upload.html',
   'lib/upload-required.js',
+  'lib/cover-preview.js',
 ];
 
 function stringLiterals(src) {

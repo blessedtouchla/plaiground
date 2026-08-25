@@ -126,6 +126,7 @@ function loadSong(opts) {
     '[data-song-meta]': makeEl({}),
     '[data-song-cover]': makeEl({}),
     '[data-song-cover-note]': makeEl({}),
+    '[data-art-clear]': makeEl({ hidden: true }),
     '[data-song-player]': makeEl({}),
     '[data-song-links]': makeEl({ hidden: true }),
     '[data-song-link-list]': makeEl({}),
@@ -249,10 +250,16 @@ function loadSong(opts) {
   context.globalThis = context;
   context.document.createElement = function () { return makeEl({}); };
   context.document.createTextNode = function (text) { return makeEl({ textContent: text }); };
+  context.URL = {
+    createObjectURL(file) { return 'blob:cover-' + (file && file.name ? file.name : 'file'); },
+    revokeObjectURL() {},
+  };
+  context.addEventListener = function () {};
   vm.runInNewContext(read('lib/release-status.js'), context);
   vm.runInNewContext(read('lib/live-player.js'), context);
   vm.runInNewContext(read('lib/audio-accept.js'), context);
   vm.runInNewContext(read('lib/store-pick.js'), context);
+  vm.runInNewContext(read('lib/cover-preview.js'), context);
   vm.runInNewContext(read('lib/statement-pdf.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
@@ -294,6 +301,8 @@ function run() {
   assert.ok(html.includes('song.js'));
   assert.ok(html.includes('lib/audio-accept.js'));
   assert.ok(html.includes('lib/store-pick.js'));
+  assert.ok(html.includes('lib/cover-preview.js'));
+  assert.ok(html.includes('data-art-clear'));
   assert.ok(html.includes('Pre-select all stores'));
   assert.ok(html.includes('data-store-customize'));
   assert.ok(html.includes('name="release-language"'));
@@ -309,6 +318,7 @@ function run() {
   assert.ok(html.includes('0'));
   assert.ok(html.includes('$0.00'));
   assert.ok(css.includes('.cover-lg.has-art'));
+  assert.ok(css.includes('.art.has-art'));
 
   const basicMe = {
     artist: 'Fuvtu',
@@ -358,6 +368,39 @@ function run() {
   assert.strictEqual(page.nodes['[data-song-boost]'].hidden, false, 'Basic can still see a locked Boost CTA');
   assert.ok(page.nodes['[data-song-boost]'].classList.contains('is-off'), 'Basic Boost CTA stays locked');
   assert.strictEqual(page.nodes['[data-song-boost]'].getAttribute('aria-disabled'), 'true');
+  assert.strictEqual(page.nodes['[data-song-cover]'].style.backgroundImage, '');
+  page.ids['edit-art'].files = [{ name: 'new.jpg', type: 'image/jpeg' }];
+  page.ids['edit-art'].listeners.change();
+  assert.ok(page.nodes['[data-song-cover]'].style.backgroundImage.indexOf('blob:cover-new.jpg') !== -1, 'local pick paints the cover tile');
+  assert.ok(page.nodes['[data-song-cover]'].classList.contains('has-art'));
+  page.ids['edit-art'].files = [{ name: 'swap.png', type: 'image/png' }];
+  page.ids['edit-art'].listeners.change();
+  assert.ok(page.nodes['[data-song-cover]'].style.backgroundImage.indexOf('blob:cover-swap.png') !== -1, 'replace updates the cover tile');
+  page.ids['edit-art'].files = [];
+  page.ids['edit-art'].listeners.change();
+  assert.strictEqual(page.nodes['[data-song-cover]'].style.backgroundImage, '', 'clear restores the empty cover');
+
+  const coverPage = loadSong({ plan: 'basic', me: basicMe, search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+  coverPage.api.render({
+    me: basicMe,
+    draft: { release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Fuvtu' },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      type: 'single',
+      status: 'pending',
+      artwork_url: 'https://cdn.example/old.jpg',
+      artist: 'Fuvtu',
+    },
+    analytics: { summary: { total_streams: 0, total_revenue_usd: 0 }, releases: [], dsps: [] },
+  });
+  assert.ok(coverPage.nodes['[data-song-cover]'].style.backgroundImage.indexOf('old.jpg') !== -1);
+  coverPage.ids['edit-art'].files = [{ name: 'local.jpg', type: 'image/jpeg' }];
+  coverPage.ids['edit-art'].listeners.change();
+  assert.ok(coverPage.nodes['[data-song-cover]'].style.backgroundImage.indexOf('blob:cover-local.jpg') !== -1, 'local pick wins over stored cover');
+  coverPage.ids['edit-art'].files = [];
+  coverPage.ids['edit-art'].listeners.change();
+  assert.ok(coverPage.nodes['[data-song-cover]'].style.backgroundImage.indexOf('old.jpg') !== -1, 'clear restores the stored cover');
   assert.strictEqual(page.nodes['[data-song-writers]'].children.length, 1);
   assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Fuvtu') !== -1);
   assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Hale') === -1);

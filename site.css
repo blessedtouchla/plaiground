@@ -1414,6 +1414,13 @@ button.dashbox span {
   background-size: cover;
   background-position: center;
 }
+.art.has-art { background-color: #111; }
+.art.is-edit {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 10px;
+  cursor: default;
+}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .choice {
   border: 1px solid var(--line);

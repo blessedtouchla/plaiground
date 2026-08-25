@@ -101,6 +101,9 @@ function run() {
   assert.ok(read('earnings.html').indexOf('No royalties yet.') !== -1);
   assert.ok(read('earnings.html').indexOf('data-earn-download') !== -1, 'Download statement must have a handler');
   assert.ok(read('releases.html').indexOf('Nothing here yet') !== -1);
+  assert.ok(read('releases.html').indexOf('lib/cover-preview.js') !== -1);
+  assert.ok(read('releases.html').indexOf('data-edit-art-box') !== -1);
+  assert.ok(read('upload.html').indexOf('lib/cover-preview.js') !== -1);
   assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
