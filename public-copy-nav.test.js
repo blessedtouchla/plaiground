@@ -378,7 +378,8 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/Overview<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>/.test(sideNav[0]), file + ' must keep product items after Overview, not How it works');
+    assert.ok(/Overview<\/a>\s*<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>/.test(sideNav[0]), file + ' must put New release after Overview, before Releases');
+    assert.ok(!/href="song\.html"[^>]*>New release<\/a>/.test(sideNav[0]), file + ' New release must not go to song.html');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
     assert.ok(/href="splits.html">Splits<\/a>\s*<a(?: class="on")? href="publishing-register.html" data-publishing-register>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>/.test(sideNav[0]), file + ' must list Publishing after Splits');

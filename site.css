@@ -899,6 +899,12 @@ body.app > .plai-bubble {
 }
 .side-nav a:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
 .side-nav a.on { background: var(--purple); color: #fff; }
+.side-nav a.side-action {
+  background: rgba(125, 60, 255, 0.22);
+  color: #fff;
+  font-weight: 700;
+}
+.side-nav a.side-action:hover { background: var(--purple); color: #fff; }
 .side-nav svg { width: 16px; height: 16px; flex-shrink: 0; }
 .pro-card {
   margin-top: auto;
