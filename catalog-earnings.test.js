@@ -105,6 +105,11 @@ function run() {
   assert.ok(payouts.indexOf('data-payout-withdraw data-for-plans="creator pro"') !== -1);
   assert.ok(payouts.indexOf('data-for-plans="basic creator"') === -1, 'Creator is not locked out of payouts');
   assert.ok(!/data-for-plans="basic"[^>]*>[^<]*publishing/i.test(payouts), 'Basic payouts copy must not mention publishing');
+  assert.ok(/Royalties are collected quarterly and paid automatically once your balance clears \$10/.test(payouts), 'Creator/Pro payouts intro is quarterly');
+  assert.ok(/Payouts run quarterly once your balance clears \$10/.test(payouts), 'payouts math has a quarterly disclaimer');
+  assert.ok(payouts.indexOf('PLAIGROUND takes no commission on your royalties. Submission fees are charged once, at the point of release, and never withheld from a payout.') !== -1);
+  assert.ok(payouts.indexOf('data-require-membership="true"') !== -1, 'payouts keeps the login gate');
+  assert.ok(!/collected monthly/i.test(payouts) && !/paid monthly/i.test(payouts), 'payouts must not say monthly collection or pay');
   assert.ok(read('earnings.html').indexOf('$19.99') === -1);
   assert.ok(read('dashboard.html').indexOf('data-account-plan-title') !== -1);
   assert.ok(read('dashboard.html').indexOf('>On Pro<') === -1, 'Overview must not default to leftover On Pro');
