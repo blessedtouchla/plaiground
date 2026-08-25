@@ -954,6 +954,18 @@ body.app > .plai-bubble {
 .page-head .kicker { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--magenta); font-weight: 700; margin-bottom: 8px; }
 .page-head h1 { font-size: clamp(2rem, 3vw, 2.6rem); font-weight: 800; letter-spacing: -0.04em; }
 .page-head p { color: var(--muted); margin-top: 8px; max-width: 560px; }
+.page-head-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.page-head-actions .btn.is-on {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 1px #8b5cf6;
+}
+[data-artist-create-panel][hidden],
+[data-artist-link-panel][hidden] { display: none !important; }
 .head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .plan-switch { display: grid; gap: 16px; margin-top: 16px; max-width: none; }
 .plan-switch[hidden],
@@ -1053,7 +1065,18 @@ table.data tbody tr.is-pick { cursor: pointer; }
 .profile-block { margin-top: 18px; }
 .profile-block h3 { margin-bottom: 8px; }
 .profile-public h2 { font-size: 2rem; letter-spacing: -0.04em; margin: 0 0 6px; }
+.plan-badge.is-yellow {
+  border-color: #d4a017;
+  color: #d4a017;
+}
 .artist-list { display: grid; gap: 10px; margin-top: 14px; }
+.artist-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.artist-row-wrap .artist-row { flex: 1; }
+.artist-row-wrap .plan-badge { margin-bottom: 0; }
 .artist-row {
   display: flex;
   align-items: center;

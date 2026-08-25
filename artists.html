@@ -40,25 +40,87 @@
       <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
-      <div class="page-head">
-        <p class="kicker">Release names</p>
-        <h1>Artist Profiles</h1>
+      <div class="head-row page-head">
+        <div>
+          <p class="kicker">Release names</p>
+          <h1>Artist Profiles</h1>
+        </div>
+        <span class="page-head-actions">
+          <button class="btn btn-purple btn-sm" type="button" data-artist-add>Add artist</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import</button>
+        </span>
       </div>
       <p class="hint">Manage the names music is released under. Each profile can have a photo, bio, genres, and platform pages. Settings stays account, login, and billing.</p>
       <p class="hint" data-artists-status hidden></p>
+
+      <section class="panel" id="artist-create-panel" data-artist-create-panel hidden>
+        <h3>Add artist</h3>
+        <p class="hint">Name only. The artist page is created instantly when the name is clear.</p>
+        <div class="field">
+          <label for="artist-create-name">Artist name</label>
+          <input id="artist-create-name" type="text" placeholder="Artist name" autocomplete="off" />
+          <p class="hint" id="artist-create-check" hidden></p>
+        </div>
+        <div id="artist-create-yellow" class="artist-check-box is-yellow" hidden>
+          <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Import</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-create-continue">Continue as a different artist</button>
+          </p>
+          <label class="checkline" id="artist-create-confirm-wrap" hidden style="margin-top:12px;display:flex;gap:10px;align-items:flex-start">
+            <input id="artist-create-confirm" type="checkbox" />
+            <span>I confirm this is not impersonation and I understand this release may be reviewed.</span>
+          </label>
+        </div>
+        <div id="artist-create-red" class="artist-check-box is-red" hidden>
+          <p>This name is too close to an existing artist and can’t be released automatically.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Import</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-create-review">Submit for review</button>
+          </p>
+        </div>
+        <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-create>Create artist</button></p>
+      </section>
+
+      <section class="panel" id="artist-link-panel" data-artist-link-panel hidden>
+        <h3>Import</h3>
+        <p class="hint">Paste a Spotify, Apple Music, or store artist link. Creates a Linked profile so you do not open a duplicate store page. A valid store link skips the name warning.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="artist-link-url">Store artist link</label>
+            <input id="artist-link-url" type="url" placeholder="https://open.spotify.com/artist/…" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="artist-link-name">Display name</label>
+            <input id="artist-link-name" type="text" placeholder="Name as it should appear" autocomplete="off" />
+          </div>
+        </div>
+        <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-link>Link artist</button></p>
+      </section>
 
       <section class="panel">
         <h3>Your artists</h3>
         <p class="hint">Select a profile to edit extras. New names on upload only need a name — extras live here.</p>
         <div class="artist-list" data-artist-list></div>
-        <p class="hint" data-artist-empty>No artist profiles yet. Create one or link an existing store page.</p>
+        <div data-artist-empty>
+          <p class="hint">No artist profiles yet. Add a new name or import an existing store page.</p>
+          <p class="page-head-actions" style="margin-top:12px">
+            <button class="btn btn-purple btn-sm" type="button" data-artist-add>Add artist</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import</button>
+          </p>
+        </div>
       </section>
 
       <section class="panel" data-artist-edit hidden>
         <div class="head-row">
           <h3 data-artist-edit-title>Edit artist</h3>
-          <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
+          <span class="page-head-actions">
+            <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
+            <span class="plan-badge is-yellow" data-artist-edit-pending hidden>Pending edit</span>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-delete>Delete</button>
+          </span>
         </div>
+        <p class="hint" data-artist-pending-note hidden>Edit submitted. Waiting on the store / the distributor.</p>
         <div class="rel" style="margin-bottom:20px">
           <div class="profile-photo is-sm" data-artist-photo-edit role="img" aria-label="Artist photo preview"></div>
           <div>
@@ -72,7 +134,7 @@
             <label for="artist-name">Artist name</label>
             <input id="artist-name" type="text" placeholder="Artist name" autocomplete="off" />
             <p class="hint" id="artist-name-check" hidden></p>
-            <p class="field-why" data-artist-locked-note hidden>Name and platform IDs lock after the first successful release. Submit a change request below.</p>
+            <p class="field-why" data-artist-locked-note hidden>Name and platform IDs lock after the first successful release. Submit for edit to request a change. The store artist name is not patched after that first save.</p>
           </div>
           <div class="field">
             <label for="artist-genre">Genres</label>
@@ -144,7 +206,7 @@
           <label for="artist-change">Change request</label>
           <textarea id="artist-change" rows="3" placeholder="What should change, and why"></textarea>
         </div>
-        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-artist-save>Save artist</button></p>
+        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-artist-save>Submit for edit</button></p>
         <p class="hint" data-artist-error hidden></p>
       </section>
 
@@ -155,50 +217,6 @@
         <p class="hint" data-artist-songs-empty hidden>No songs on this profile yet.</p>
       </section>
 
-      <section class="panel">
-        <h3>Create new artist</h3>
-        <p class="hint">Name only. The artist page is created instantly when the name is clear.</p>
-        <div class="field">
-          <label for="artist-create-name">Artist name</label>
-          <input id="artist-create-name" type="text" placeholder="Artist name" autocomplete="off" />
-          <p class="hint" id="artist-create-check" hidden></p>
-        </div>
-        <div id="artist-create-yellow" class="artist-check-box is-yellow" hidden>
-          <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
-          <p class="hero-ctas" style="margin:12px 0 0">
-            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Link existing artist</button>
-            <button class="btn btn-purple btn-sm" type="button" id="artist-create-continue">Continue as a different artist</button>
-          </p>
-          <label class="checkline" id="artist-create-confirm-wrap" hidden style="margin-top:12px;display:flex;gap:10px;align-items:flex-start">
-            <input id="artist-create-confirm" type="checkbox" />
-            <span>I confirm this is not impersonation and I understand this release may be reviewed.</span>
-          </label>
-        </div>
-        <div id="artist-create-red" class="artist-check-box is-red" hidden>
-          <p>This name is too close to an existing artist and can’t be released automatically.</p>
-          <p class="hero-ctas" style="margin:12px 0 0">
-            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Link existing artist</button>
-            <button class="btn btn-purple btn-sm" type="button" id="artist-create-review">Submit for review</button>
-          </p>
-        </div>
-        <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-create>Create artist</button></p>
-      </section>
-
-      <section class="panel" id="artist-link-panel">
-        <h3>Link existing artist</h3>
-        <p class="hint">Paste a Spotify, Apple Music, or store artist link. Creates a Linked profile so you do not open a duplicate store page.</p>
-        <div class="form-grid">
-          <div class="field">
-            <label for="artist-link-url">Store artist link</label>
-            <input id="artist-link-url" type="url" placeholder="https://open.spotify.com/artist/…" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="artist-link-name">Display name</label>
-            <input id="artist-link-name" type="text" placeholder="Name as it should appear" autocomplete="off" />
-          </div>
-        </div>
-        <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-link>Link artist</button></p>
-      </section>
     </div>
   </div>
   <script src="membership.js"></script>
