@@ -65,6 +65,11 @@ function loadScript(file, nodes) {
     fetch() {
       return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
     },
+    localStorage: {
+      data: {},
+      getItem(key) { return this.data[key] || null; },
+      setItem(key, value) { this.data[key] = String(value); },
+    },
     window: {},
   };
   context.window = context;
@@ -164,6 +169,9 @@ function run() {
   assert.ok(read('publishing-register.html').indexOf('class="side"') !== -1, 'publishing register stays a signed-in page');
   assert.ok(read('publishing-register.html').indexOf('data-publishing-release') !== -1);
   assert.ok(!/>Your release</.test(read('publishing-register.html')), 'publishing register must not hardcode Your release');
+  assert.ok(read('publishing-confirm.html').indexOf('data-require-publishing="true"') !== -1, 'publishing confirm stays Creator/Pro');
+  assert.ok(read('publishing-confirm.html').indexOf('data-require-paid') === -1, 'publishing confirm must not use the public paid dump');
+  assert.ok(!/Neon Sermon/.test(read('publishing-confirm.html')), 'publishing confirm must not hardcode Neon Sermon');
   assert.ok(read('how.html').indexOf('data-signed-in-upload') !== -1);
   assert.ok(read('earnings.html').indexOf('Upgrade to Pro only') === -1);
   assert.ok(read('payouts.html').indexOf('Upgrade to Pro only') === -1);
@@ -297,6 +305,18 @@ function run() {
   assert.strictEqual(extra.length, 1);
   assert.strictEqual(extra[0].uuid, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
   assert.strictEqual(extra[0].status, 'pending');
+
+  catalog.localStorage.data['plaiground.store.draft'] = JSON.stringify({
+    release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    title: 'mexeu',
+    genre: 'Electronic',
+  });
+  const overlaid = catalog.PlaigroundCatalog.overlayPendingCatalog([
+    { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Old Title', status: 'pending' },
+    { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Live One', status: 'live' },
+  ], { profile: { releases: [] } });
+  assert.strictEqual(overlaid[0].title, 'mexeu', 'pending catalog title follows the Plaiground edit');
+  assert.strictEqual(overlaid[1].title, 'Live One', 'live catalog title is not overwritten by a draft');
 
   const filtered = catalog.PlaigroundCatalog.applyFilter([
     { uuid: '1', status: 'live' },

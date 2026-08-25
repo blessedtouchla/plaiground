@@ -18,7 +18,19 @@ function run() {
   assert.ok(html.includes('data-work-writers'));
   assert.ok(html.includes('data-require-publishing="true"'), 'Basic still cannot open publishing');
   assert.ok(html.includes('8 publishing registrations this month'));
+  assert.ok(html.includes('data-publishing-submit'), 'submit carries the picked release');
   assert.ok(!/ToneGrid|Tonegrid/.test(html.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
+
+  const confirmHtml = fs.readFileSync(path.join(__dirname, 'publishing-confirm.html'), 'utf8');
+  assert.ok(!/Neon Sermon/.test(confirmHtml), 'confirm must not hardcode Neon Sermon');
+  assert.ok(confirmHtml.includes('data-confirm-headline'));
+  assert.ok(confirmHtml.includes('data-confirm-artist'));
+  assert.ok(confirmHtml.includes('data-confirm-status'));
+  assert.ok(confirmHtml.includes('data-confirm-filed'));
+  assert.ok(confirmHtml.includes('data-confirm-paid'));
+  assert.ok(confirmHtml.includes('data-confirm-song'));
+  assert.ok(confirmHtml.includes('data-require-publishing="true"'), 'Basic still cannot open publishing confirm');
+  assert.ok(!/ToneGrid|Tonegrid/.test(confirmHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
 
   assert.ok(publishing.isDummyTitle('Your release'));
   assert.ok(!publishing.isDummyTitle('mexeu mexeu'));
@@ -154,6 +166,127 @@ function run() {
   assert.ok(/AI-assisted/.test(nodes['[data-work-ai]'].textContent));
   assert.ok(/Ada Night/.test(nodes['[data-work-writers]'].textContent));
   assert.strictEqual(nodes['[data-publishing-carry]'].hidden, false);
+
+  const mexeuId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const mexeuMe = {
+    plan: 'creator',
+    profile: {
+      artists: [{ id: 'art-1', name: 'mexeu mexeu', source: 'created' }],
+      releases: [{
+        id: mexeuId,
+        tonegrid_release_id: mexeuId,
+        title: 'mexeu',
+        plaiground_artist_id: 'art-1',
+      }],
+    },
+  };
+  const mexeuLive = [{ uuid: mexeuId, title: 'mexeu', artist: 'mexeu mexeu', release_date: '2026-08-20' }];
+  const filedView = publishing.confirmView({
+    search: '?release=' + mexeuId,
+    me: mexeuMe,
+    liveRows: mexeuLive,
+    submit: {
+      id: mexeuId,
+      title: 'mexeu',
+      artist: 'mexeu mexeu',
+      filed: '2026-08-25',
+      status: 'Pending at BMI',
+      paid: '$0.00 · included in membership',
+    },
+  });
+  assert.strictEqual(filedView.title, 'mexeu');
+  assert.strictEqual(filedView.artist, 'mexeu mexeu');
+  assert.strictEqual(filedView.filed, '25 Aug 2026');
+  assert.strictEqual(filedView.status, 'Pending at BMI');
+  assert.strictEqual(filedView.paid, '$0.00 · included in membership');
+  assert.strictEqual(filedView.headline, 'mexeu is filed for publishing.');
+  assert.strictEqual(filedView.songHref, 'song.html?id=' + mexeuId);
+  assert.ok(!/Neon Sermon/.test(filedView.headline));
+
+  const fromQueryOnly = publishing.confirmView({
+    search: '?release=' + mexeuId,
+    me: mexeuMe,
+    liveRows: mexeuLive,
+  });
+  assert.strictEqual(fromQueryOnly.title, 'mexeu');
+  assert.strictEqual(fromQueryOnly.artist, 'mexeu mexeu');
+  assert.ok(!/Neon Sermon/.test(fromQueryOnly.headline + fromQueryOnly.title));
+
+  const dummyView = publishing.confirmView({
+    submit: {
+      title: 'Neon Sermon',
+      artist: 'Victoria Reyes',
+      filed: '2026-08-14',
+      status: 'Pending at BMI',
+      paid: '$0.00 · included in membership',
+    },
+  });
+  assert.strictEqual(dummyView.title, '');
+  assert.ok(!/Neon Sermon/.test(dummyView.headline));
+  assert.strictEqual(dummyView.headline, 'This work is filed for publishing.');
+
+  const confirmNodes = {
+    '[data-confirm-headline]': textNode('Neon Sermon is filed for publishing.'),
+    '[data-confirm-artist]': textNode(''),
+    '[data-confirm-status]': textNode(''),
+    '[data-confirm-filed]': textNode('14 Aug 2026'),
+    '[data-confirm-paid]': textNode(''),
+    '[data-confirm-song]': { textContent: 'Back to the song', href: 'song.html', setAttribute: function (name, value) { this[name] = value; } },
+  };
+  const painted = publishing.bindConfirm({
+    querySelector: function (selName) { return confirmNodes[selName] || null; },
+  }, {
+    search: '?release=' + mexeuId,
+    me: mexeuMe,
+    liveRows: mexeuLive,
+    submit: {
+      id: mexeuId,
+      title: 'mexeu',
+      artist: 'mexeu mexeu',
+      filed: '2026-08-25',
+      status: 'Pending at BMI',
+      paid: '$0.00 · included in membership',
+    },
+  });
+  assert.ok(painted);
+  assert.strictEqual(confirmNodes['[data-confirm-headline]'].textContent, 'mexeu is filed for publishing.');
+  assert.strictEqual(confirmNodes['[data-confirm-artist]'].textContent, 'mexeu mexeu');
+  assert.strictEqual(confirmNodes['[data-confirm-status]'].textContent, 'Pending at BMI');
+  assert.strictEqual(confirmNodes['[data-confirm-filed]'].textContent, '25 Aug 2026');
+  assert.strictEqual(confirmNodes['[data-confirm-paid]'].textContent, '$0.00 · included in membership');
+  assert.strictEqual(confirmNodes['[data-confirm-song]'].href, 'song.html?id=' + mexeuId);
+
+  const submitBtn = {
+    href: 'publishing-confirm.html',
+    classList: { contains: function () { return false; } },
+    attrs: { 'aria-disabled': 'false' },
+    setAttribute: function (name, value) { this.attrs[name] = value; this[name] = value; },
+    getAttribute: function (name) { return this.attrs[name]; },
+    addEventListener: function () {},
+  };
+  nodes['[data-publishing-submit]'] = submitBtn;
+  const stored = {};
+  const boundSubmit = publishing.bind(doc, {
+    me: me,
+    roster: me.profile.artists,
+    liveRows: live,
+    plan: 'creator',
+    storage: {
+      getItem: function (key) { return stored[key] || null; },
+      setItem: function (key, value) { stored[key] = value; },
+    },
+    now: '2026-08-25',
+  });
+  sel.value = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  boundSubmit.applyPick();
+  assert.ok(String(submitBtn.href).indexOf('release=cccccccc-cccc-4ccc-8ccc-cccccccccccc') !== -1);
+  boundSubmit.persistSubmit();
+  const saved = JSON.parse(stored['plaiground.publishing.submit']);
+  assert.strictEqual(saved.title, 'Night Drive');
+  assert.ok(saved.title !== 'Neon Sermon');
+  assert.strictEqual(saved.filed, '2026-08-25');
+  assert.strictEqual(saved.status, 'Pending at BMI');
+  assert.strictEqual(saved.paid, '$0.00 · included in membership');
 
   console.log('publishing-register.page.test.js ok');
 }

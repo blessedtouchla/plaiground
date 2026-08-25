@@ -220,6 +220,7 @@
   }
 
   var DEFAULT_CATALOG_TIMEOUT_MS = 30000;
+  var AUDIO_POST_TIMEOUT_MS = 90000;
 
   function catalogTimeoutMs() {
     try {
@@ -231,8 +232,29 @@
     return DEFAULT_CATALOG_TIMEOUT_MS;
   }
 
+  function audioPostTimeoutMs() {
+    try {
+      if (typeof window !== 'undefined' && window.PlaigroundAudioTimeoutMs != null) {
+        var n = Number(window.PlaigroundAudioTimeoutMs);
+        if (n > 0 && isFinite(n)) return n;
+      }
+      if (typeof window !== 'undefined' && window.PlaigroundCatalogTimeoutMs != null) {
+        return catalogTimeoutMs();
+      }
+    } catch (err) {}
+    return AUDIO_POST_TIMEOUT_MS;
+  }
+
+  function waitMsForUrl(url) {
+    return /\/audio(?:\?|$)/i.test(String(url || '')) ? audioPostTimeoutMs() : catalogTimeoutMs();
+  }
+
   function catalogTimeoutMessage() {
     return 'We could not reach the store. Try again.';
+  }
+
+  function isHangStatus(status) {
+    return status === 0 || status === 502 || status === 504 || status === 524;
   }
 
   function isNoStoreResponse(result, err) {
@@ -241,12 +263,13 @@
     }
     if (!result) return Boolean(err);
     if (result.timedOut === true) return true;
-    if (result.status === 0) return true;
+    if (isHangStatus(result.status)) return true;
     return false;
   }
 
-  function withCatalogTimeout(work) {
-    var ms = catalogTimeoutMs();
+  function withCatalogTimeout(work, timeoutMs) {
+    var ms = Number(timeoutMs);
+    if (!(ms > 0 && isFinite(ms))) ms = catalogTimeoutMs();
     var settled = false;
     return new Promise(function (resolve, reject) {
       var timer = setTimeout(function () {
@@ -286,10 +309,15 @@
   }
 
   function getJson(url) {
-    return fetch(url, {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    }).then(parseJson);
+    return withCatalogTimeout(function () {
+      return fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      }).then(parseJson);
+    }).catch(function (err) {
+      if (isNoStoreResponse(null, err)) return storeUnreachableResult();
+      return { ok: false, status: 0, data: { error: catalogTimeoutMessage() } };
+    });
   }
 
   function pad2(n) {
@@ -675,15 +703,44 @@
     return value === true || value === 'true';
   }
 
-  function alreadyHasAudio(draft) {
+  function alreadyUploaded(draft) {
     if (!draft) return false;
     if (String(draft.type || '') === 'album') return false;
-    return flagOn(draft.audio_uploaded) || flagOn(draft.audio_converted);
+    return flagOn(draft.audio_uploaded);
+  }
+
+  function alreadyConverted(draft) {
+    if (!draft) return false;
+    return flagOn(draft.audio_converted) || alreadyUploaded(draft);
+  }
+
+  function alreadyHasAudio(draft) {
+    return alreadyUploaded(draft);
+  }
+
+  function looksLikeWav(file) {
+    if (!file) return false;
+    var name = String(file.name || '').toLowerCase();
+    var type = String(file.type || '').toLowerCase();
+    return /\.wav$/i.test(name) || /audio\/(x-)?wav|audio\/wave/.test(type);
+  }
+
+  function fileForStoreUpload(file) {
+    var draft = readDraft();
+    if (alreadyUploaded(draft)) return null;
+    if (looksLikeWav(heldAudioFile) && (alreadyConverted(draft) || !file || isMp3File(file))) {
+      return heldAudioFile;
+    }
+    if (!file) return heldAudioFile || null;
+    if (alreadyConverted(draft) && isMp3File(file) && !looksLikeWav(file)) {
+      return looksLikeWav(heldAudioFile) ? heldAudioFile : null;
+    }
+    return file;
   }
 
   function needsAudioUpload(draft, file) {
-    if (!file) return false;
-    return !alreadyHasAudio(draft);
+    if (alreadyUploaded(draft)) return false;
+    return Boolean(fileForStoreUpload(file));
   }
 
   function isAudioRequiredError(value) {
@@ -707,7 +764,7 @@
     if (!ids.length) return draft;
     var patch = {};
     if (!draft.track_id) patch.track_id = ids[0];
-    if (draft.type !== 'album' && (ids[0] || draft.track_id)) patch.audio_uploaded = true;
+    if (draft.type !== 'album' && flagOn(draft.audio_uploaded)) patch.audio_uploaded = true;
     if (draft.type === 'album') {
       var stored = Array.isArray(draft.tracks) ? draft.tracks.slice() : [];
       if (!stored.length) {
@@ -1151,6 +1208,9 @@
       if (isPlanLimit(loaded.result)) {
         return { limited: true, result: loaded.result, draft: current };
       }
+      if (isNoStoreResponse(loaded.result)) {
+        return { failed: true, timedOut: true, result: storeUnreachableResult(), draft: current };
+      }
       if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status >= 500) {
         return { failed: true, result: loaded.result, draft: current };
       }
@@ -1168,13 +1228,26 @@
     var liveFile = Boolean(selectedAudio()) || albumRowsForSubmit(next).some(function (track) {
       return track && (track.audio || track.file);
     });
-    if (alreadyHasAudio(next) && !force) {
-      if (knownTracks.length) {
-        return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
+    if ((alreadyUploaded(next) || alreadyConverted(next)) && !force) {
+      if (knownTracks.length) next = persistFoundTracks(next, knownTracks);
+      var reuseId = next.track_id || (knownTracks[0] && trackIdOf(knownTracks[0]));
+      var send = fileForStoreUpload(selectedAudio());
+      if (send && reuseId && !alreadyUploaded(next)) {
+        return uploadTrackAudio(reuseId, send).then(function (audio) {
+          if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next)) {
+            return { ok: true, draft: next, reused: true };
+          }
+          if (audio.failed || audio.unavailable) return audio;
+          next = writeDraft({
+            audio_uploaded: true,
+            audio_attached: true,
+            audio_converted: true,
+            audio_name: send.name || next.audio_name || '',
+          });
+          return { ok: true, draft: next, reused: true };
+        });
       }
-      if (draftHasTrackId(next)) {
-        return Promise.resolve({ ok: true, draft: next, reused: true });
-      }
+      return Promise.resolve({ ok: true, draft: next, reused: true });
     }
     if (!liveFile && knownTracks.length) {
       return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
@@ -1293,11 +1366,28 @@
       var hasId = draftHasTrackId(next);
       var storeTracks = (resolved.tracks && resolved.tracks.length) ? resolved.tracks : [];
       if ((resolved.found || storeTracks.length) && storeTracks.length) {
-        return { ok: true, draft: persistFoundTracks(next, storeTracks) };
+        next = persistFoundTracks(next, storeTracks);
+        var existingSend = fileForStoreUpload(selectedAudio());
+        if (existingSend && next.track_id && !alreadyUploaded(next)) {
+          return uploadTrackAudio(next.track_id, existingSend).then(function (audio) {
+            if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next)) {
+              return { ok: true, draft: next };
+            }
+            if (audio.failed || audio.unavailable) return audio;
+            next = writeDraft({
+              audio_uploaded: true,
+              audio_attached: true,
+              audio_converted: true,
+              audio_name: existingSend.name || next.audio_name || '',
+            });
+            return { ok: true, draft: next };
+          });
+        }
+        return { ok: true, draft: next };
       }
       if (hasId || hasFile || uploaded || picked || titled || String(next.title || '').trim()) {
         return createMissingTracks(next, {
-          force: Boolean(resolved.found || resolved.created) && !alreadyHasAudio(next),
+          force: Boolean(resolved.found || resolved.created) && !alreadyUploaded(next) && !alreadyConverted(next),
           tracks: storeTracks,
         }).then(function (created) {
           if (created.ok) return created;
@@ -1510,6 +1600,9 @@
   function createErrorMessage(result, fallback) {
     var raw = result && result.data ? result.data.error : '';
     var status = result && result.status;
+    if (isNoStoreResponse(result) && !/sandbox[- ]only|not enabled for (distribution|delivery)|production (key|account|environment) required/i.test(String(raw || ''))) {
+      return catalogTimeoutMessage();
+    }
     var shown = sanitizePartnerCopy(raw, status);
     if (shown) return shown;
     if (isSizeCapError(fallback, status)) return AUDIO_SIZE_COPY;
@@ -1533,14 +1626,17 @@
   }
 
   function selectedAudio() {
+    var draft = readDraft();
     var input = document.querySelector('[data-audio-input]');
-    if (input && input.files && input.files[0]) {
-      rememberAudioFile(input.files[0]);
-      return input.files[0];
+    var picked = (input && input.files && input.files[0])
+      || (input && input._plaigroundFile)
+      || null;
+    if (alreadyConverted(draft) && looksLikeWav(heldAudioFile)) {
+      if (!picked || isMp3File(picked) || picked === heldAudioFile) return heldAudioFile;
     }
-    if (input && input._plaigroundFile) {
-      rememberAudioFile(input._plaigroundFile);
-      return input._plaigroundFile;
+    if (picked) {
+      rememberAudioFile(picked);
+      return picked;
     }
     return heldAudioFile || null;
   }
@@ -1820,7 +1916,8 @@
         var xhr = new XMLHttpRequest();
         xhr.open('POST', url);
         xhr.withCredentials = true;
-        xhr.timeout = catalogTimeoutMs();
+        var waitMs = waitMsForUrl(url);
+        xhr.timeout = waitMs;
         xhr.setRequestHeader('Accept', 'application/json');
         if (xhr.upload && typeof onProgress === 'function') {
           xhr.upload.onprogress = function (event) {
@@ -1832,7 +1929,7 @@
         var timer = setTimeout(function () {
           try { xhr.abort(); } catch (err) {}
           done({ ok: false, status: 0, timedOut: true, data: { error: catalogTimeoutMessage() } });
-        }, catalogTimeoutMs() + 250);
+        }, waitMs + 250);
         xhr.onerror = function () {
           clearTimeout(timer);
           done({ ok: false, status: 0, data: { error: catalogTimeoutMessage() } });
@@ -1860,7 +1957,7 @@
         headers: { Accept: 'application/json' },
         body: body,
       }).then(parseJson);
-    }).then(sanitizeResultError);
+    }, waitMsForUrl(url)).then(sanitizeResultError);
   }
 
   function storeUnreachableResult() {
@@ -1977,7 +2074,7 @@
   }
 
   function runConvertStep(file) {
-    if (alreadyHasAudio(readDraft())) {
+    if (alreadyConverted(readDraft()) || looksLikeWav(file)) {
       return Promise.resolve({ file: file, didConvert: false, copy: '', skipped: true });
     }
     return resolveConvertCopy(file).then(function (copy) {
@@ -2006,10 +2103,12 @@
   }
 
   function uploadTrackAudio(trackId, file, label) {
-    if (!trackId || !file) return Promise.resolve({ skipped: true });
-    if (alreadyHasAudio(readDraft())) return Promise.resolve({ skipped: true, reused: true });
+    var send = fileForStoreUpload(file);
+    if (!trackId) return Promise.resolve({ skipped: true });
+    if (alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
+    if (!send) return Promise.resolve({ skipped: true, reused: Boolean(alreadyConverted(readDraft())) });
     var sendLabel = label || 'Uploading audio';
-    return runConvertStep(file).then(function (ready) {
+    return runConvertStep(send).then(function (ready) {
       if (ready && ready.failed) return ready;
       var convertLabel = ready.copy;
       var keepConvert = Boolean(convertLabel && !ready.didConvert);

@@ -33,13 +33,13 @@
   <main class="center-page wide">
     <div class="wrap">
       <p class="status-ok"><i>✓</i> Registration submitted</p>
-      <h1>Neon Sermon is filed for publishing.</h1>
+      <h1 data-confirm-headline>This work is filed for publishing.</h1>
       <p class="center-lead">Publishing registration is included in membership. We sent the work to BMI. You will get a work code once it is accepted, usually within ten business days.</p>
       <div class="confirm-bar">
-        <div><small>Status</small><b class="stat-y">Pending at BMI</b></div>
-        <div><small>Filed</small><b>14 Aug 2026</b></div>
-        <div><small>Work code</small><b>Assigned on acceptance</b></div>
-        <div><small>Paid</small><b class="stat-g">$0.00 · included in membership</b></div>
+        <div><small>Artist</small><b data-confirm-artist></b></div>
+        <div><small>Status</small><b class="stat-y" data-confirm-status>Pending at BMI</b></div>
+        <div><small>Filed</small><b data-confirm-filed></b></div>
+        <div><small>Paid</small><b class="stat-g" data-confirm-paid>$0.00 · included in membership</b></div>
       </div>
       <p class="section-lbl">What happens next</p>
       <div class="next-4 purple">
@@ -65,7 +65,7 @@
         </article>
       </div>
       <div class="confirm-actions">
-        <a class="btn btn-purple btn-md" href="song.html">Back to the song</a>
+        <a class="btn btn-purple btn-md" data-confirm-song href="song.html">Back to the song</a>
         <a class="ghost-link" href="publishing.html">Register another song</a>
       </div>
     </div>
@@ -113,7 +113,43 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js" data-require-publishing="true"></script>
+  <script src="lib/release-status.js"></script>
+  <script src="publishing-register.js"></script>
   <script src="site.js"></script>
+  <script>
+    (function () {
+      if (typeof PlaigroundPublishingRegister === 'undefined') return;
+      function start(me, liveRows) {
+        PlaigroundPublishingRegister.bindConfirm(document, {
+          me: me,
+          liveRows: liveRows,
+          search: window.location.search,
+        });
+      }
+      function withMe(cb) {
+        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
+          window.PlaigroundMembership.whenReady().then(function (result) {
+            cb((result && result.data) || (window.PlaigroundMembership.account && window.PlaigroundMembership.account()) || null);
+          });
+          return;
+        }
+        cb(null);
+      }
+      start(null, []);
+      withMe(function (me) {
+        start(me, []);
+        if (typeof fetch !== 'function') return;
+        fetch('/api/tonegrid/releases', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              start(me, (response.ok && data && data.releases) || []);
+            });
+          })
+          .catch(function () {});
+      });
+    })();
+  </script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

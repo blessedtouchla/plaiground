@@ -121,6 +121,8 @@ function loadSong(opts) {
   const panel = makeEl({ hidden: true, attrs: { 'data-release-id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } });
   const nodes = {
     '[data-song-status]': makeEl({ hidden: true }),
+    '[data-song-retry-wrap]': makeEl({ hidden: true }),
+    '[data-song-retry]': makeEl({ hidden: true, textContent: 'Retry' }),
     '[data-song-title]': makeEl({}),
     '[data-song-pill]': makeEl({ className: 'pill' }),
     '[data-song-meta]': makeEl({}),
@@ -308,6 +310,11 @@ function openFilledEdit(page, extraDraft) {
       dsps: ['spotify'],
     },
   });
+  page.ids['edit-title'].value = 'Fuvtu Edit';
+  page.ids['edit-genre'].value = 'Electronic';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-lyrics'].value = 'City lights, I stay';
 }
 
 function testEditSubmitLeftovers() {
@@ -339,9 +346,11 @@ function testEditSubmitLeftovers() {
   });
   return multi.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'multi-writer can still edit while a split is awaiting');
-    assert.ok(multiCalls.some((row) => row.method === 'PUT' && /\/releases\//.test(row.url)));
+    assert.strictEqual(result.applied, true);
+    assert.ok(!multiCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)), 'pending edit must not wait on the store');
     assert.ok(!multiCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)), 'edit must not block on a split sheet submit');
-    assert.ok(/edit-submitted\.html/.test(String(multi.context.location.href)));
+    assert.ok(!/edit-submitted\.html/.test(String(multi.context.location.href)), 'pending edit stays on the song');
+    assert.strictEqual(multi.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
     assert.ok(!/Create the split sheet/.test(multi.nodes['[data-edit-error]'].textContent));
     assert.ok(!/ToneGrid/i.test(multi.nodes['[data-edit-error]'].textContent));
     assert.ok(!/Submitting edit to the store/.test(multi.nodes['[data-edit-error]'].textContent));
@@ -400,10 +409,17 @@ function testEditSubmitLeftovers() {
         dsps: ['spotify'],
       },
     });
+    awaiting.ids['edit-title'].value = 'Fuvtu Edit';
+    awaiting.ids['edit-genre'].value = 'Electronic';
+    awaiting.ids['edit-language'].value = 'en';
+    awaiting.ids['edit-release-date'].value = '2026-09-12';
     return awaiting.api.submitEdit().then(function (awaitingResult) {
       assert.ok(awaitingResult.ok, 'awaiting-split edit must save without a new split');
+      assert.strictEqual(awaitingResult.applied, true);
       assert.ok(!awaitingCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
-      assert.ok(/edit-submitted\.html/.test(String(awaiting.context.location.href)));
+      assert.ok(!awaitingCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)));
+      assert.ok(!/edit-submitted\.html/.test(String(awaiting.context.location.href)));
+      assert.strictEqual(awaiting.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
       assert.ok(!/Create the split sheet/.test(awaiting.nodes['[data-edit-error]'].textContent));
     }).then(function () {
 
@@ -421,13 +437,54 @@ function testEditSubmitLeftovers() {
       hangCount: 1,
       calls: timedCalls,
       fetch(url, options) {
-        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, status: 'pending' }) });
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ok: true,
+            status: 'live',
+            uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            title: 'Fuvtu',
+            releases: [{ uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Fuvtu', status: 'live' }],
+          }),
+        });
       },
     });
     openFilledEdit(timed, { solo_owned_100: true });
+    timed.api.openEdit({
+      me: {
+        artist: 'Fuvtu',
+        plan: 'basic',
+        tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+      },
+      draft: {
+        release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        made_how: 'no_ai',
+        rights_confirmed: true,
+        solo_owned_100: true,
+        submitted: true,
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      release: {
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        status: 'live',
+        genre: 'Electronic',
+        language: 'en',
+        release_date: '2026-08-24',
+        artist: 'Fuvtu',
+        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        dsps: ['spotify'],
+      },
+    });
+    timed.ids['edit-title'].value = 'Fuvtu Edit';
+    timed.ids['edit-genre'].value = 'Electronic';
+    timed.ids['edit-language'].value = 'en';
+    timed.ids['edit-release-date'].value = '2026-09-12';
     return timed.api.submitEdit().then(function (first) {
       assert.strictEqual(first.ok, false);
-      assert.ok(first.timedOut, 'edit submit times out when the store does not answer');
+      assert.ok(first.timedOut, 'live edit times out when the store does not answer');
       assert.match(timed.nodes['[data-edit-error]'].textContent, /could not reach the store/i);
       assert.ok(!/ToneGrid/i.test(timed.nodes['[data-edit-error]'].textContent));
       assert.strictEqual(timed.nodes['[data-edit-retry]'].hidden, false);
@@ -465,10 +522,12 @@ function testEditSubmitLeftovers() {
     openFilledEdit(cover, { solo_owned_100: true, submitted: true });
     cover.ids['edit-art'].files = [{ name: 'new-cover.jpg', type: 'image/jpeg' }];
     return cover.api.submitEdit().then(function (result) {
-      assert.ok(result.ok, 'cover change must confirm without hanging on submit');
-      assert.ok(coverCalls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)));
+      assert.ok(result.ok, 'pending cover change applies without waiting on the store');
+      assert.strictEqual(result.applied, true);
+      assert.ok(!coverCalls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)));
       assert.ok(!coverCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
-      assert.ok(/edit-submitted\.html/.test(String(cover.context.location.href)));
+      assert.ok(!/edit-submitted\.html/.test(String(cover.context.location.href)));
+      assert.strictEqual(cover.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
       assert.ok(!/Submitting edit to the store/.test(cover.nodes['[data-edit-error]'].textContent));
       assert.ok(!/ToneGrid/i.test(cover.nodes['[data-edit-error]'].textContent));
 
@@ -486,11 +545,54 @@ function testEditSubmitLeftovers() {
         hangCount: 1,
         calls: hangCoverCalls,
         fetch(url, options) {
-          return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, status: 'pending' }) });
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              ok: true,
+              status: 'live',
+              uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+              title: 'Fuvtu',
+              releases: [{ uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Fuvtu', status: 'live' }],
+            }),
+          });
         },
       });
-      openFilledEdit(hangCover, { solo_owned_100: true, submitted: true });
+      hangCover.ids['edit-title'].value = 'Fuvtu Edit';
+      hangCover.ids['edit-genre'].value = 'Electronic';
+      hangCover.ids['edit-language'].value = 'en';
+      hangCover.ids['edit-release-date'].value = '2026-09-12';
+      hangCover.api.openEdit({
+        me: {
+          artist: 'Fuvtu',
+          plan: 'basic',
+          tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+        },
+        draft: {
+          release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          title: 'Fuvtu',
+          made_how: 'no_ai',
+          rights_confirmed: true,
+          solo_owned_100: true,
+          submitted: true,
+          track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        },
+        release: {
+          uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          title: 'Fuvtu',
+          status: 'live',
+          genre: 'Electronic',
+          language: 'en',
+          release_date: '2026-08-24',
+          artist: 'Fuvtu',
+          tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+          dsps: ['spotify'],
+        },
+      });
       hangCover.ids['edit-art'].files = [{ name: 'new-cover.jpg', type: 'image/jpeg' }];
+      hangCover.ids['edit-title'].value = 'Fuvtu Edit';
+      hangCover.ids['edit-genre'].value = 'Electronic';
+      hangCover.ids['edit-language'].value = 'en';
       return hangCover.api.submitEdit().then(function (first) {
         assert.strictEqual(first.ok, false);
         assert.ok(first.timedOut);
@@ -499,12 +601,126 @@ function testEditSubmitLeftovers() {
         assert.strictEqual(hangCover.nodes['[data-edit-retry]'].hidden, false);
         assert.ok(!/edit-submitted\.html/.test(String(hangCover.context.location.href)));
         return hangCover.api.submitEdit().then(function (again) {
-          assert.ok(again.ok, 'Retry after a hung cover upload must confirm');
+          assert.ok(again.ok, 'Retry after a hung live cover upload must confirm');
           assert.ok(/edit-submitted\.html/.test(String(hangCover.context.location.href)));
+          return testAllPlanEditRule();
         });
       });
     });
   });
+  });
+}
+
+function testAllPlanEditRule() {
+  assert.ok(read('song.js').includes('var liveEdit = isLiveConfirmed'));
+  assert.ok(!/liveEdit = .*\.plan/.test(read('song.js')), 'pending vs live is not a plan gate');
+  function one(plan, status, title) {
+    const me = {
+      artist: 'Fuvtu',
+      plan: plan,
+      tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    };
+    const calls = [];
+    const page = loadSong({
+      plan: plan,
+      me: me,
+      search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      calls: calls,
+      fetch() {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ok: true,
+            status: status,
+            uuid: me.tonegrid_release_ids[0],
+            title: 'Fuvtu',
+            releases: [{ uuid: me.tonegrid_release_ids[0], title: 'Fuvtu', status: status }],
+          }),
+        });
+      },
+    });
+    page.ids['edit-title'].value = title;
+    page.ids['edit-genre'].value = 'Electronic';
+    page.ids['edit-language'].value = 'en';
+    page.ids['edit-release-date'].value = '2026-09-12';
+    page.api.openEdit({
+      me: me,
+      draft: {
+        release_id: me.tonegrid_release_ids[0],
+        title: 'Fuvtu',
+        made_how: 'no_ai',
+        submitted: true,
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      release: {
+        uuid: me.tonegrid_release_ids[0],
+        title: 'Fuvtu',
+        status: status,
+        genre: 'Electronic',
+        language: 'en',
+        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        dsps: ['spotify'],
+      },
+    });
+    page.ids['edit-title'].value = title;
+    page.ids['edit-genre'].value = 'Electronic';
+    page.ids['edit-language'].value = 'en';
+    return page.api.submitEdit().then(function (result) {
+      if (status === 'live') {
+        assert.ok(result.ok, plan + ' live edit still goes to the store');
+        assert.ok(!result.applied);
+        assert.ok(calls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)));
+        assert.ok(/edit-submitted\.html/.test(String(page.context.location.href)));
+        return;
+      }
+      assert.ok(result.applied, plan + ' pending applies immediately');
+      assert.ok(!calls.some((row) => row.method && row.method !== 'GET' && /\/api\/tonegrid\//.test(row.url)));
+      assert.strictEqual(page.nodes['[data-song-title]'].textContent, title);
+    });
+  }
+  return one('basic', 'pending', 'Basic Pending')
+    .then(function () { return one('creator', 'pending', 'Creator Pending'); })
+    .then(function () { return one('pro', 'pending', 'Pro Pending'); })
+    .then(function () { return one('creator', 'live', 'Creator Live'); })
+    .then(function () { return one('pro', 'live', 'Pro Live'); });
+}
+
+function testSongLoadHangRetry() {
+  const basicMe = {
+    artist: 'Fuvtu',
+    plan: 'basic',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const hung = loadSong({
+    plan: 'basic',
+    me: basicMe,
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    catalogTimeoutMs: 40,
+    hangWhen: '/api/tonegrid/releases',
+    hangCount: 1,
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Mexeu',
+      submitted: true,
+    },
+  });
+  return new Promise(function (resolve) { setTimeout(resolve, 80); }).then(function () {
+    assert.match(hung.nodes['[data-song-status]'].textContent, /could not reach the store/i);
+    assert.ok(!/ToneGrid/i.test(hung.nodes['[data-song-status]'].textContent));
+    assert.strictEqual(hung.nodes['[data-song-retry-wrap]'].hidden, false);
+    assert.strictEqual(hung.nodes['[data-song-retry]'].textContent, 'Retry');
+    assert.strictEqual(hung.nodes['[data-song-title]'].textContent, 'Mexeu');
+    const before = hung.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases';
+    }).length;
+    hung.nodes['[data-song-retry]'].listeners.click({ preventDefault() {} });
+    return new Promise(function (resolve) { setTimeout(resolve, 20); }).then(function () {
+      const after = hung.calls.filter(function (call) {
+        return call.url === '/api/tonegrid/releases';
+      }).length;
+      assert.ok(after > before, 'Retry must GET the catalog again');
+    });
   });
 }
 
@@ -535,6 +751,8 @@ function run() {
   assert.ok(!html.includes('class="seg"'));
   assert.ok(html.includes('data-song-title'));
   assert.ok(html.includes('data-song-player'));
+  assert.ok(html.includes('data-song-retry'));
+  assert.ok(html.includes('Retry'));
   assert.ok(html.includes('data-song-links'));
   assert.ok(html.includes('data-song-link-list'));
   assert.ok(html.includes('<h3>Links</h3>'));
@@ -1140,18 +1358,23 @@ function run() {
   editor.ids['edit-title'].value = 'Fuvtu Edit';
   editor.ids['edit-lyrics'].value = 'City lights, I stay';
   return editor.api.submitEdit().then(function (result) {
-    assert.ok(result.ok, 'Basic edit submit must succeed');
+    assert.ok(result.ok, 'Basic pending edit must apply immediately');
     assert.strictEqual(result.created, false);
+    assert.strictEqual(result.applied, true);
     assert.strictEqual(result.releaseId, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     const mutating = editCalls.filter((row) => row.method && row.method !== 'GET');
-    assert.ok(mutating.some((row) => row.method === 'PUT' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
-    assert.ok(mutating.some((row) => row.method === 'PUT' && /\/dsps$/.test(row.url)));
-    assert.ok(mutating.some((row) => row.method === 'PUT' && /\/tracks\//.test(row.url)));
+    assert.ok(!mutating.some((row) => /\/api\/tonegrid\//.test(row.url)), 'pending edit must not wait on the store');
+    assert.ok(mutating.some((row) => row.method === 'POST' && /\/api\/me\/artists$/.test(row.url)), 'pending edit records the Plaiground release');
     assert.ok(!mutating.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)), 'pending edit must not wait on a second store submit');
-    assert.ok(/edit-submitted\.html/.test(String(editor.context.location.href)), 'successful edit opens a confirmation page');
+    assert.ok(!/edit-submitted\.html/.test(String(editor.context.location.href)), 'pending edit does not go to the store confirm page');
+    assert.strictEqual(editor.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
+    assert.ok(/Electronic/.test(editor.nodes['[data-song-meta]'].textContent));
     assert.ok(!/Submitting edit to the store/.test(editor.nodes['[data-edit-error]'].textContent));
     assert.ok(!mutating.some((row) => editor.api.isCreateReleaseUrl(row.url, row.method)), 'edit must not POST a new release or artist');
     const savedDraft = JSON.parse(editor.context.localStorage.getItem('plaiground.store.draft'));
+    assert.strictEqual(savedDraft.title, 'Fuvtu Edit');
+    assert.strictEqual(savedDraft.genre, 'Electronic');
+    assert.strictEqual(savedDraft.language, 'en');
     assert.strictEqual(savedDraft.lyrics, 'City lights, I stay', 'edit lyrics must save in place on the Plaiground draft');
     mutating.filter((row) => typeof row.body === 'string').forEach((row) => {
       let body = {};
@@ -1165,7 +1388,157 @@ function run() {
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
     assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
-    assert.strictEqual(page.nodes['[data-song-remove]'].hidden, false, 'owner sees Remove on their release');
+    assert.ok(editor.api.isLiveConfirmed({ status: 'live' }, {}) === true);
+    assert.ok(editor.api.isLiveConfirmed({ status: 'pending' }, {}) === false);
+    assert.ok(editor.api.isLiveConfirmed({ status: 'processing' }, {}) === false);
+
+    const liveCalls = [];
+    const liveEditor = loadSong({
+      plan: 'basic',
+      me: basicMe,
+      search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      calls: liveCalls,
+      fetch(url, options) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ok: true,
+            status: 'live',
+            uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            title: 'Fuvtu',
+            releases: [{ uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Fuvtu', status: 'live' }],
+          }),
+        });
+      },
+    });
+    liveEditor.ids['edit-title'].value = 'Fuvtu Live Edit';
+    liveEditor.ids['edit-genre'].value = 'Electronic';
+    liveEditor.ids['edit-language'].value = 'en';
+    liveEditor.ids['edit-release-date'].value = '2026-09-12';
+    liveEditor.api.openEdit({
+      me: basicMe,
+      draft: {
+        release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        made_how: 'no_ai',
+        submitted: true,
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+      release: {
+        uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Fuvtu',
+        status: 'live',
+        genre: 'Electronic',
+        language: 'en',
+        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        dsps: ['spotify'],
+      },
+    });
+    liveEditor.ids['edit-title'].value = 'Fuvtu Live Edit';
+    liveEditor.ids['edit-genre'].value = 'Electronic';
+    liveEditor.ids['edit-language'].value = 'en';
+    return liveEditor.api.submitEdit().then(function (liveResult) {
+      assert.ok(liveResult.ok, 'live edit still goes to the store');
+      assert.ok(!liveResult.applied);
+      assert.ok(liveCalls.some((row) => row.method === 'PUT' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
+      assert.ok(liveCalls.some((row) => row.method === 'PUT' && /\/dsps$/.test(row.url)));
+      assert.ok(/edit-submitted\.html/.test(String(liveEditor.context.location.href)));
+
+      const creatorMe = Object.assign({}, basicMe, { plan: 'creator' });
+      const creatorPendingCalls = [];
+      const creatorPending = loadSong({
+        plan: 'creator',
+        me: creatorMe,
+        search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        calls: creatorPendingCalls,
+        fetch(url, options) {
+          return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, status: 'pending' }) });
+        },
+      });
+      creatorPending.ids['edit-title'].value = 'Creator Pending';
+      creatorPending.ids['edit-genre'].value = 'Electronic';
+      creatorPending.ids['edit-language'].value = 'en';
+      creatorPending.ids['edit-release-date'].value = '2026-09-12';
+      creatorPending.api.openEdit({
+        me: creatorMe,
+        draft: {
+          release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          title: 'Fuvtu',
+          made_how: 'no_ai',
+          submitted: true,
+          track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        },
+        release: {
+          uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          title: 'Fuvtu',
+          status: 'pending',
+          genre: 'Electronic',
+          language: 'en',
+          tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+          dsps: ['spotify'],
+        },
+      });
+      creatorPending.ids['edit-title'].value = 'Creator Pending';
+      creatorPending.ids['edit-genre'].value = 'Electronic';
+      creatorPending.ids['edit-language'].value = 'en';
+      return creatorPending.api.submitEdit().then(function (creatorResult) {
+        assert.ok(creatorResult.applied, 'Creator pending also applies immediately');
+        assert.ok(!creatorPendingCalls.some((row) => row.method && row.method !== 'GET' && /\/api\/tonegrid\//.test(row.url)));
+        assert.strictEqual(creatorPending.nodes['[data-song-title]'].textContent, 'Creator Pending');
+
+        const creatorLiveCalls = [];
+        const creatorLive = loadSong({
+          plan: 'creator',
+          me: creatorMe,
+          search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          calls: creatorLiveCalls,
+          fetch(url, options) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => ({
+                ok: true,
+                status: 'live',
+                uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                title: 'Fuvtu',
+                releases: [{ uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Fuvtu', status: 'live' }],
+              }),
+            });
+          },
+        });
+        creatorLive.ids['edit-title'].value = 'Creator Live';
+        creatorLive.ids['edit-genre'].value = 'Electronic';
+        creatorLive.ids['edit-language'].value = 'en';
+        creatorLive.ids['edit-release-date'].value = '2026-09-12';
+        creatorLive.api.openEdit({
+          me: creatorMe,
+          draft: {
+            release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            title: 'Fuvtu',
+            made_how: 'no_ai',
+            submitted: true,
+            track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          },
+          release: {
+            uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            title: 'Fuvtu',
+            status: 'live',
+            genre: 'Electronic',
+            language: 'en',
+            tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+            dsps: ['spotify'],
+          },
+        });
+        creatorLive.ids['edit-title'].value = 'Creator Live';
+        creatorLive.ids['edit-genre'].value = 'Electronic';
+        creatorLive.ids['edit-language'].value = 'en';
+        return creatorLive.api.submitEdit().then(function (creatorLiveResult) {
+          assert.ok(creatorLiveResult.ok, 'Creator live edit still goes to the store');
+          assert.ok(!creatorLiveResult.applied);
+          assert.ok(creatorLiveCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)));
+          assert.ok(/edit-submitted\.html/.test(String(creatorLive.context.location.href)));
+          assert.strictEqual(page.nodes['[data-song-remove]'].hidden, false, 'owner sees Remove on their release');
 
     assert.ok(page.api.downloadReleaseStatement(), 'release statement downloads at $0');
     const releasePdf = page.api.releaseStatementPdf();
@@ -1401,7 +1774,7 @@ function run() {
               assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
               assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
               assert.notStrictEqual(leftover.context.location.href, 'releases.html');
-              return testEditSubmitLeftovers().then(function () {
+              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(function () {
                 console.log('song.page.test.js ok');
               });
             });
@@ -1411,6 +1784,9 @@ function run() {
     });
   });
   });
+    });
+    });
+    });
 }
 
 Promise.resolve(run()).catch((err) => {

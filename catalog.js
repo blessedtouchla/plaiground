@@ -358,6 +358,32 @@
     }
   }
 
+  function overlayPendingCatalog(releases, me) {
+    var draft = readDraft();
+    var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+    return (releases || []).map(function (row) {
+      if (!row) return row;
+      var id = String(row.uuid || row.id || '').toLowerCase();
+      var live = statusApi() ? statusApi().isLive(row.status) : (String(row.status || '') === 'live' || String(row.status || '') === 'delivered');
+      if (live || !id) return row;
+      var next = Object.assign({}, row);
+      stored.forEach(function (item) {
+        if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() !== id) return;
+        if (item && item.title) next.title = item.title;
+        var art = coverOf(item);
+        if (art) next.artwork_url = art;
+      });
+      if (draft && String(draft.release_id || '').toLowerCase() === id) {
+        if (String(draft.title || '').trim()) next.title = String(draft.title).trim();
+        if (String(draft.genre || '').trim()) next.genre = String(draft.genre).trim();
+        if (String(draft.release_date || '').trim()) next.release_date = String(draft.release_date).trim();
+        var draftArt = coverOf(draft);
+        if (draftArt) next.artwork_url = draftArt;
+      }
+      return next;
+    });
+  }
+
   function accountFallback(me, existing) {
     var have = {};
     (existing || []).forEach(function (row) {
@@ -447,7 +473,7 @@
           if (sessionLooksSignedIn(me)) {
             var signedInOwned = accountFallback(me, []);
             setStatus('');
-            render({ releases: signedInOwned, total: signedInOwned.length, analytics: {} });
+            render({ releases: overlayPendingCatalog(signedInOwned, me), total: signedInOwned.length, analytics: {} });
             return;
           }
           setStatus('');
@@ -459,17 +485,17 @@
           setStatus(list.data && list.data.error === 'Accounts are not configured.'
             ? 'Accounts are not configured.'
             : (owned.length ? '' : 'Catalog sync is not configured yet.'));
-          render({ releases: owned, total: owned.length, analytics: {} });
+          render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {} });
           return;
         }
         if (!list.ok) {
           setStatus(owned.length ? '' : (list.data.error || 'Could not load releases.'));
-          render({ releases: owned, total: owned.length, analytics: {} });
+          render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {} });
           return;
         }
         var releases = list.data.releases || [];
         var extra = accountFallback(me, releases);
-        releases = releases.concat(extra);
+        releases = overlayPendingCatalog(releases.concat(extra), me);
         render({
           releases: releases,
           total: list.data.total || releases.length,
@@ -743,6 +769,7 @@
   global.PlaigroundCatalog = {
     render: render,
     accountFallback: accountFallback,
+    overlayPendingCatalog: overlayPendingCatalog,
     applyFilter: applyFilter,
     setFilter: function (next) { currentFilter = String(next || 'all'); },
     fillEdit: fillEdit,
