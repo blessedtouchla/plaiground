@@ -657,6 +657,33 @@
     return 'Please add at least one track.';
   }
 
+  function alreadyHasAudio(draft) {
+    if (!draft) return false;
+    if (draft.audio_uploaded === true) return true;
+    var rows = albumRowsForSubmit(draft);
+    for (var i = 0; i < rows.length; i += 1) {
+      if (rows[i] && rows[i].audio_uploaded) return true;
+    }
+    return false;
+  }
+
+  function needsAudioUpload(draft, file) {
+    if (!file) return false;
+    return !alreadyHasAudio(draft);
+  }
+
+  function isAudioRequiredError(value) {
+    return /audio file is required/i.test(String(value || ''));
+  }
+
+  function audioRequiredResult(source) {
+    var msg = '';
+    if (source && source.result && source.result.data) msg = source.result.data.error;
+    else if (source && source.data) msg = source.data.error;
+    else if (source && source.message) msg = source.message;
+    return isAudioRequiredError(msg);
+  }
+
   function persistFoundTracks(draft, tracks) {
     var ids = [];
     (tracks || []).forEach(function (row) {
@@ -666,6 +693,7 @@
     if (!ids.length) return draft;
     var patch = {};
     if (!draft.track_id) patch.track_id = ids[0];
+    if (draft.type !== 'album' && (ids[0] || draft.track_id)) patch.audio_uploaded = true;
     if (draft.type === 'album') {
       var stored = Array.isArray(draft.tracks) ? draft.tracks.slice() : [];
       if (!stored.length) {
@@ -1196,10 +1224,13 @@
       next = created.draft || next;
       if (!next.track_id) next = writeDraft({ track_id: trackId });
       var file = selectedAudio();
-      if (file && trackId) {
+      if (file && trackId && (force || !next.audio_uploaded)) {
         return uploadTrackAudio(trackId, file).then(function (audio) {
+          if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next)) {
+            return { ok: true, draft: next, created: true };
+          }
           if (audio.failed || audio.unavailable) return audio;
-          next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_name: file.name || next.audio_name || '' });
+          next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
           return { ok: true, draft: next, created: true };
         });
       }
@@ -1242,7 +1273,7 @@
       }
       if (hasId || hasFile || uploaded || picked || titled || String(next.title || '').trim()) {
         return createMissingTracks(next, {
-          force: Boolean(resolved.found || resolved.created),
+          force: Boolean(resolved.found || resolved.created) && !alreadyHasAudio(next),
           tracks: storeTracks,
         }).then(function (created) {
           if (created.ok) return created;
@@ -1919,14 +1950,21 @@
       showConvertLoader(copy);
       var hook = convertHook();
       if (!hook) return { file: file, didConvert: false, copy: copy };
-      return Promise.resolve(hook(file)).then(function (next) {
+      return withCatalogTimeout(function () {
+        return Promise.resolve(hook(file));
+      }).then(function (next) {
         var ready = next;
         if (ready && typeof ready === 'object' && ready.file) ready = ready.file;
         if (ready && typeof ready.name === 'string' && (ready.size != null || typeof ready.slice === 'function')) {
+          rememberAudioFile(ready);
+          writeDraft({ audio_converted: true, audio_name: ready.name || (file && file.name) || '' });
           return { file: ready, didConvert: true, copy: copy };
         }
         return { file: file, didConvert: true, copy: copy };
-      }).catch(function () {
+      }).catch(function (err) {
+        if (err && err.timedOut) {
+          return { file: file, didConvert: false, copy: copy, failed: true, timedOut: true, result: storeUnreachableResult() };
+        }
         return { file: file, didConvert: false, copy: copy };
       });
     });
@@ -1936,6 +1974,7 @@
     if (!trackId || !file) return Promise.resolve({ skipped: true });
     var sendLabel = label || 'Uploading audio';
     return runConvertStep(file).then(function (ready) {
+      if (ready && ready.failed) return ready;
       var convertLabel = ready.copy;
       var keepConvert = Boolean(convertLabel && !ready.didConvert);
       if (keepConvert) {
@@ -2070,10 +2109,13 @@
         next = writeDraft({ audio_uploaded: Boolean(next.audio_uploaded || next.track_id) });
       }
       var chain = Promise.resolve({ ok: true, draft: next, track: track });
-      if (file && next.track_id) {
+      if (file && next.track_id && needsAudioUpload(next, file)) {
         chain = uploadTrackAudio(next.track_id, file).then(function (audio) {
+          if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next)) {
+            return { ok: true, draft: next, track: track, audio: audio };
+          }
           if (!audio.failed && !audio.unavailable) {
-            next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_name: file.name || next.audio_name || '' });
+            next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
           }
           return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
         });
@@ -2374,6 +2416,7 @@
     if (!root || typeof PlaigroundStorePick === 'undefined') return;
     var draft = readDraft();
     var picked = Array.isArray(selected) ? selected : (Array.isArray(draft.dsps) ? draft.dsps : null);
+    if (draft.dsps_all !== false) picked = null;
     function apply(stores) {
       var catalog = Array.isArray(stores) ? stores : [];
       PlaigroundStorePick.bind(root, {
@@ -3356,7 +3399,7 @@
         var picked = audioFileOf(audioInput);
         if (picked && picked.name) {
           rememberAudioFile(picked);
-          writeDraft({ audio_name: picked.name, audio_uploaded: false, audio_attached: true });
+          writeDraft({ audio_name: picked.name, audio_uploaded: false, audio_attached: true, audio_converted: false });
         }
         refreshUploadGate();
       });
@@ -3766,9 +3809,26 @@
     });
   }
 
+  function showSubmitRetry(on) {
+    var wrap = document.querySelector('[data-upload-retry-wrap]') || $('tg-retry-wrap');
+    if (wrap) wrap.hidden = !on;
+  }
+
+  function failSubmit(message, trigger) {
+    hideUploadLoader();
+    if (trigger) trigger.removeAttribute('aria-busy');
+    var shown = sanitizePartnerCopy(message || '');
+    if (isAudioRequiredError(shown) && alreadyHasAudio(readDraft())) {
+      shown = '';
+    }
+    setStatus('tg-status', shown);
+    markStatusError(Boolean(shown));
+    showSubmitRetry(Boolean(shown) || Boolean(message));
+  }
+
   function finishSubmit(draft, releaseDate, trigger, nextHref) {
     return restoreHeldAudio().then(function () {
-      return finishSubmitReady(draft, releaseDate, trigger, nextHref);
+      return finishSubmitReady(readDraft(), releaseDate, trigger, nextHref);
     });
   }
 
@@ -3790,27 +3850,43 @@
     return ready.then(function (next) {
       setStatus('tg-status', 'Submitting to the store…');
       return submitRelease(next || draft, releaseDate).then(function (sent) {
-        if (trigger) trigger.removeAttribute('aria-busy');
         if (sent.unavailable) {
+          hideUploadLoader();
+          if (trigger) trigger.removeAttribute('aria-busy');
           continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
           return;
         }
         if (sent.recover) {
-          setStatus('tg-status', createErrorMessage(sent.result, recoverUploadMessage()));
+          failSubmit(createErrorMessage(sent.result, recoverUploadMessage()), trigger);
           var back = document.querySelector('.flow-actions a[href="split-sheet.html"], .flow-actions a[href="attest.html"], .flow-actions a.btn-ghost');
           if (back && back.setAttribute) back.setAttribute('href', 'upload.html');
           return;
         }
         if (sent.unsigned || sent.trial || sent.failed) {
-          setStatus('tg-status', createErrorMessage(sent.result, 'Could not submit the release.'));
+          var submitErr = createErrorMessage(sent.result, 'Could not submit the release.');
+          if (isAudioRequiredError(submitErr) && alreadyHasAudio(next || draft)) {
+            hideUploadLoader();
+            if (trigger) trigger.removeAttribute('aria-busy');
+            writeDraft({ submitted: true, tonegrid_status: 'pending' });
+            setStatus('tg-status', 'Store status: pending');
+            showSubmitRetry(false);
+            if (nextHref) go(nextHref);
+            return;
+          }
+          failSubmit(submitErr, trigger);
           return;
         }
+        hideUploadLoader();
+        if (trigger) trigger.removeAttribute('aria-busy');
         var toneStatus = (sent.result && sent.result.data && sent.result.data.status) || 'pending';
         var sheetStatus = (sent.result && sent.result.data && sent.result.data.signwell_status) || '';
         setStatus('tg-status', sheetStatus && sheetStatus !== 'solo' && sheetStatus !== 'Completed'
           ? 'Store status: ' + toneStatus + ' · awaiting signature'
           : 'Store status: ' + toneStatus);
+        showSubmitRetry(false);
         if (nextHref) go(nextHref);
+      }).catch(function (err) {
+        failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
       });
     });
   }
@@ -3865,29 +3941,28 @@
         }
 
         trigger.setAttribute('aria-busy', 'true');
+        showSubmitRetry(false);
         releaseRecreateCount = 0;
         ensureCatalogArtist(draft).then(function (ready) {
           if (ready.unavailable) {
+            hideUploadLoader();
             trigger.removeAttribute('aria-busy');
             continueAfterCatalog(nextHref, 'Catalog sync is not configured yet.');
             return;
           }
           if (ready.limited) {
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', createErrorMessage(ready.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+            failSubmit(createErrorMessage(ready.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), trigger);
             showUpgrade(true);
             return;
           }
           if (ready.failed || ready.missing) {
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', createErrorMessage(ready.result, 'Save the upload details first so a catalog artist exists.'));
+            failSubmit(createErrorMessage(ready.result, 'Save the upload details first so a catalog artist exists.'), trigger);
             return;
           }
           var nextDraft = ready.draft || draft;
           if (nextDraft.release_id) {
             return finishSubmit(nextDraft, releaseDate, trigger, nextHref).catch(function () {
-              trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', 'Could not reach catalog.');
+              failSubmit('Could not reach catalog.', trigger);
             });
           }
 
@@ -3901,42 +3976,31 @@
               return;
             }
             if (created.limited) {
-              hideUploadLoader();
-              trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+              failSubmit(createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), trigger);
               showUpgrade(true);
               return;
             }
             if (created.failed || created.missing) {
-              hideUploadLoader();
-              trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', createErrorMessage(created.result, 'Could not create release.'));
+              failSubmit(createErrorMessage(created.result, 'Could not create release.'), trigger);
               showUpgrade(false);
               return;
             }
             showUploadLoader('Creating track');
             return afterRelease(created.draft || nextDraft).then(function (next) {
               if (next && next.failed) {
-                hideUploadLoader();
-                trigger.removeAttribute('aria-busy');
-                setStatus('tg-status', createErrorMessage(next.result, 'Could not create the track.'));
+                failSubmit(createErrorMessage(next.result, 'Could not create the track.'), trigger);
                 return;
               }
               hideUploadLoader();
               return finishSubmit(next && next.draft ? next.draft : (created.draft || nextDraft), releaseDate, trigger, nextHref);
             }).catch(function (err) {
-              hideUploadLoader();
-              trigger.removeAttribute('aria-busy');
-              setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
+              failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
             });
           }).catch(function (err) {
-            hideUploadLoader();
-            trigger.removeAttribute('aria-busy');
-            setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
+            failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
           });
         }).catch(function (err) {
-          trigger.removeAttribute('aria-busy');
-          setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
+          failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
         });
       });
     }
@@ -3958,6 +4022,19 @@
         });
       }
     }
+    var retryBtn = document.querySelector('[data-upload-retry]');
+    if (retryBtn && retryBtn.addEventListener && trigger) {
+      retryBtn.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        if (trigger.getAttribute('aria-busy') === 'true') return;
+        showSubmitRetry(false);
+        if (trigger.listeners && typeof trigger.listeners.click === 'function') {
+          trigger.listeners.click({ preventDefault: function () {} });
+          return;
+        }
+        if (typeof trigger.click === 'function') trigger.click();
+      });
+    }
     if (trigger) {
       markIncomplete(trigger, !String(readyDate || '').trim());
       if (dateEl && dateEl.addEventListener) {
@@ -3976,7 +4053,7 @@
       finishSubmit(draft, readyDate, trigger, null).then(function () {
         /* stay on review after auto-submit so the exact store status is visible */
       }).catch(function () {
-        setStatus('tg-status', 'Could not reach catalog.');
+        failSubmit('Could not reach catalog.', trigger);
       });
     }
   }
@@ -4040,7 +4117,7 @@
     var view = document.querySelector('a[href="song.html"]');
     if (view && draft.release_id) view.setAttribute('href', 'song.html?id=' + encodeURIComponent(draft.release_id));
     paintSubmittedStores(draft);
-    if (document.querySelector('[data-submit-stores]') && !Number(draft.dsps_total)) {
+    if (document.querySelector('[data-submit-stores]')) {
       getJson('/api/tonegrid/stores').then(function (result) {
         var stores = (result.ok && result.data && result.data.stores) || [];
         if (!stores.length) return;
