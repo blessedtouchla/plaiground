@@ -37,9 +37,29 @@ function makeEl(attrs) {
     setAttribute(name, value) {
       this.attrs[name] = String(value);
     },
+    querySelectorAll(sel) {
+      if (sel === '[data-genre]') {
+        return el.children.filter(function (child) {
+          return child && child.getAttribute && child.getAttribute('data-genre');
+        });
+      }
+      return [];
+    },
+    querySelector(sel) {
+      return (el.querySelectorAll(sel) || [])[0] || null;
+    },
     focus() { el.focused = true; },
     scrollIntoView() { el.scrollCalls += 1; },
-    addEventListener() {},
+    listeners: {},
+    addEventListener(type, fn) {
+      const key = String(type || '');
+      if (!el.listeners[key]) el.listeners[key] = [];
+      el.listeners[key].push(fn);
+    },
+    dispatchEvent(type) {
+      const list = el.listeners[String(type || '')] || [];
+      list.forEach(function (fn) { fn({ type: type, target: el }); });
+    },
     appendChild(child) {
       el.children.push(child);
       return child;
@@ -69,6 +89,26 @@ function loadArtists() {
   const confirmWrap = makeEl({ hidden: true });
   const confirmBox = makeEl({ value: '' });
   confirmBox.checked = false;
+  const bioInput = makeEl({ value: '' });
+  const artistName = makeEl({ value: '' });
+  const saveBtn = makeEl({ textContent: 'Save artist' });
+  saveBtn.attrs = { 'data-artist-save': '' };
+  const deleteBtn = makeEl({ textContent: 'Delete' });
+  deleteBtn.attrs = { 'data-artist-delete': '' };
+  const photoEdit = makeEl({});
+  const genrePicks = makeEl({});
+  const stored = {
+    id: 'artist-1',
+    name: 'Fuvtu',
+    source: 'created',
+    badge: 'PLAIGROUND',
+    bio: '',
+    photo: '',
+    genres: [],
+    spotify_id: '',
+    apple_id: '',
+    store_url: '',
+  };
   const nodes = {
     '#artist-create-panel': createPanel,
     '[data-artist-create-panel]': createPanel,
@@ -81,21 +121,55 @@ function loadArtists() {
     '#artist-create-red': red,
     '#artist-create-confirm-wrap': confirmWrap,
     '#artist-create-confirm': confirmBox,
+    '#artist-name': artistName,
+    '#artist-bio': bioInput,
+    '#artist-spotify': makeEl({ value: '' }),
+    '#artist-apple': makeEl({ value: '' }),
+    '#artist-store': makeEl({ value: '' }),
+    '#artist-change': makeEl({ value: '' }),
+    '#artist-ai-detail': makeEl({ value: '' }),
+    '#artist-ai-percent': makeEl({ value: '' }),
+    '#artist-ai-range': makeEl({ value: '0' }),
     '[data-artist-add]': addBtn,
     '[data-artist-import]': importBtn,
+    '[data-artist-save]': saveBtn,
+    '[data-artist-delete]': deleteBtn,
+    '[data-artist-edit-title]': makeEl({}),
+    '[data-artist-badge]': makeEl({}),
+    '[data-artist-photo-edit]': photoEdit,
+    '[data-artist-genre-picks]': genrePicks,
+    '[data-artist-error]': makeEl({ hidden: true }),
     '[data-artists-status]': makeEl({ hidden: true }),
     '[data-artist-empty]': makeEl({}),
     '[data-artist-list]': makeEl({}),
     '[data-artist-edit]': makeEl({ hidden: true }),
+    '[data-artist-locked-note]': makeEl({ hidden: true }),
+    '[data-artist-change-wrap]': makeEl({ hidden: true }),
+    '[data-artist-edit-pending]': makeEl({ hidden: true }),
+    '[data-artist-pending-note]': makeEl({ hidden: true }),
+    '[data-artist-name-field]': makeEl({}),
+    '[data-artist-songs]': makeEl({ hidden: true }),
+    '[data-artist-song-list]': makeEl({}),
+    '[data-artist-songs-empty]': makeEl({ hidden: true }),
+    '[data-artist-ai-meter]': makeEl({}),
+    '[data-artist-ai-summary]': makeEl({ hidden: true }),
+    '[data-artist-ai-empty]': makeEl({}),
   };
+  const posts = [];
   const context = {
     document: {
-      readyState: 'loading',
+      readyState: 'complete',
+      hidden: false,
       getElementById(id) { return nodes['#' + id] || null; },
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
         if (sel === '[data-artist-add]') return [addBtn];
         if (sel === '[data-artist-import]') return [importBtn];
+        if (sel === '[data-artist-delete]') return [deleteBtn];
+        if (sel === '[data-human-contribution]') return [];
+        if (sel === '[data-ai-contribution]') return [];
+        if (sel === '[data-human-contribution], [data-ai-contribution]') return [];
+        if (sel === '[data-genre]') return [];
         return [];
       },
       createElement(tag) {
@@ -106,11 +180,32 @@ function loadArtists() {
       addEventListener() {},
     },
     location: { hash: '', pathname: '/artists.html' },
-    fetch() { return Promise.resolve({ ok: true, status: 200, json: async () => ({}) }); },
-    setTimeout(fn) { fn(); },
+    fetch(url, opts) {
+      const body = opts && opts.body ? JSON.parse(opts.body) : {};
+      posts.push({ url: url, body: body, keepalive: Boolean(opts && opts.keepalive) });
+      const updated = Object.assign({}, stored, {
+        name: body.name || stored.name,
+        bio: body.bio != null ? body.bio : stored.bio,
+        photo: body.photo != null ? body.photo : stored.photo,
+        genres: Array.isArray(body.genres) ? body.genres : stored.genres,
+      });
+      if (body.action === 'update') Object.assign(stored, updated);
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          profile: { artists: [Object.assign({}, stored)] },
+          updated: body.action === 'update' ? Object.assign({}, stored) : undefined,
+          created: body.action === 'create' ? Object.assign({}, stored) : undefined,
+        }),
+      });
+    },
+    setTimeout(fn) { fn(); return 1; },
+    clearTimeout() {},
+    addEventListener() {},
     URL,
     confirm() { context.confirmCalls += 1; return context.confirmResult !== false; },
-    PlaigroundMembership: { whenReady() { return Promise.resolve({ ok: true, data: { profile: { artists: [] } } }); } },
+    PlaigroundMembership: { whenReady() { return Promise.resolve({ ok: true, data: { profile: { artists: [Object.assign({}, stored)] } } }); } },
   };
   context.confirmCalls = 0;
   context.confirmResult = true;
@@ -131,10 +226,26 @@ function loadArtists() {
     checkMsg,
     yellow,
     red,
+    bioInput,
+    artistName,
+    saveBtn,
+    posts,
+    stored,
+    nodes,
+    context,
   };
 }
 
 function run() {
+  const siteCss = read('site.css');
+  assert.ok(siteCss.includes('.artist-edit-actions'));
+  assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]'));
+  assert.ok(siteCss.includes('.artist-edit-actions [data-artist-delete]'));
+  assert.ok(/\.artist-edit-actions \{\s*display:\s*flex;\s*flex-wrap:\s*nowrap/.test(siteCss), 'desktop Delete/Save stay on one clean row');
+  assert.ok(siteCss.includes('[data-artist-edit] .artist-edit-head') && siteCss.includes('flex-direction: column'), 'phone title/badge stack instead of overlapping');
+  assert.ok(/\.artist-edit-actions \{\s*flex-direction:\s*column/.test(siteCss), 'phone Delete/Save stack full width');
+  assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]') && siteCss.includes('width: 100%'), 'phone Save is a full-width tappable control');
+
   const html = read('artists.html');
   ['Neon Sermon', 'Victoria Reyes', 'John Doe', 'Hi John', 'Neon Shadows'].forEach(function (needle) {
     assert.strictEqual(html.indexOf(needle), -1, 'artists.html still has ' + needle);
@@ -164,6 +275,10 @@ function run() {
   assert.ok(html.includes('Save artist'));
   assert.ok(!html.includes('Submit for edit'));
   assert.ok(html.includes('data-artist-delete'));
+  assert.ok(html.includes('class="artist-edit-actions"'));
+  assert.ok(html.includes('Edits save as you type'));
+  assert.ok(/class="artist-edit-actions"[\s\S]*data-artist-save[\s\S]*data-artist-delete/.test(html), 'Delete and Save artist share one chrome row');
+  assert.ok(!/<div class="head-row">[\s\S]*data-artist-delete/.test(html), 'Delete must not sit in the title/badge row');
   assert.ok(html.includes('Pending edit'));
   assert.ok(html.includes('Edit submitted. Waiting on the store / the distributor.'));
   assert.ok(!/ToneGrid|Tonegrid/.test(html.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
@@ -200,6 +315,13 @@ function run() {
   assert.ok(js.includes("action: 'update'"));
   assert.ok(!js.includes('submit_edit'));
   assert.ok(js.includes("action: 'delete'"));
+  assert.ok(js.includes('scheduleSave'));
+  assert.ok(js.includes('flushSave'));
+  assert.ok(js.includes("addEventListener('input', scheduleSave)"));
+  assert.ok(js.includes("addEventListener('pagehide', flushSave)"));
+  assert.ok(js.includes('keepQuietSave'));
+  assert.ok(!js.includes('object-hop'));
+  assert.ok(!js.includes('store-client'));
   assert.ok(js.includes('The store / the distributor cannot delete this artist.'));
   assert.ok(js.indexOf('/api/tonegrid/artists') === -1, 'do not fake a store artist delete');
   assert.ok(js.includes("classList.toggle('is-green'"));
@@ -283,7 +405,79 @@ function run() {
   });
   assert.strictEqual(page.api.applyMe({ ok: true }), undefined, 'a 200 without a roster must not wipe Your artists');
 
+  return persistAndImmediateSave();
+}
+
+async function persistAndImmediateSave() {
+  const page = loadArtists();
+  page.api.applyMe({
+    profile: {
+      artists: [{
+        id: 'artist-1',
+        name: 'Fuvtu',
+        source: 'created',
+        badge: 'PLAIGROUND',
+        bio: '',
+        photo: '',
+        genres: [],
+      }],
+    },
+  });
+  page.bioInput.value = 'saved from the phone';
+  page.posts.length = 0;
+  page.api.scheduleSave();
+  const update = page.posts.find(function (row) {
+    return row.body && row.body.action === 'update';
+  });
+  assert.ok(update, 'scheduleSave must POST /api/me/artists without tapping Save artist');
+  assert.strictEqual(update.body.bio, 'saved from the phone');
+  assert.strictEqual(update.url, '/api/me/artists');
+  assert.ok(!update.body.submit_edit);
+
+  await page.api.saveArtist({ quiet: true });
+
+  const afterReload = loadArtists();
+  afterReload.stored.bio = 'saved from the phone';
+  afterReload.stored.photo = 'data:image/jpeg;base64,abc';
+  afterReload.api.applyMe({
+    profile: { artists: [Object.assign({}, afterReload.stored)] },
+  });
+  assert.strictEqual(afterReload.bioInput.value, 'saved from the phone', 'bio must persist after reload');
+  assert.strictEqual(afterReload.artistName.value, 'Fuvtu');
+  assert.ok(String(afterReload.nodes['[data-artist-photo-edit]'].style.backgroundImage || '').indexOf('data:image/jpeg') !== -1, 'photo must persist after reload');
+
+  afterReload.bioInput.value = 'typed without submit';
+  afterReload.posts.length = 0;
+  afterReload.bioInput.dispatchEvent('input');
+  assert.ok(afterReload.posts.some(function (row) {
+    return row.body && row.body.action === 'update' && row.body.bio === 'typed without submit';
+  }), 'input event must save without Submit');
+
+  const leave = loadArtists();
+  leave.api.applyMe({
+    profile: { artists: [Object.assign({}, leave.stored, { bio: 'stay on reload' })] },
+  });
+  leave.bioInput.value = 'stay on reload';
+  await Promise.resolve();
+  await Promise.resolve();
+  leave.posts.length = 0;
+  await leave.api.flushSave();
+  assert.ok(leave.posts.some(function (row) {
+    return row.body && row.body.action === 'update' && row.body.bio === 'stay on reload' && row.keepalive === true;
+  }), 'leaving the page flushes the pending artist save');
+
+  afterReload.api.applyMe({
+    profile: { artists: [{ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND' }] },
+  });
+  afterReload.context.confirmResult = false;
+  const cancelled = await afterReload.api.deleteArtist('artist-1');
+  assert.ok(cancelled && cancelled.cancelled === true, 'Delete still confirms first');
+  assert.ok(afterReload.context.confirmCalls >= 1, 'Delete still confirms first');
+
   console.log('artists.page.test.js ok');
 }
 
-run();
+run().catch(function (err) {
+  console.error(err);
+  process.exit(1);
+});

@@ -113,12 +113,11 @@
       </section>
 
       <section class="panel" data-artist-edit hidden>
-        <div class="head-row">
+        <div class="head-row artist-edit-head">
           <h3 data-artist-edit-title>Edit artist</h3>
-          <span class="page-head-actions">
+          <span class="artist-edit-meta">
             <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
             <span class="plan-badge is-yellow" data-artist-edit-pending hidden>Pending edit</span>
-            <button class="btn btn-ghost btn-sm" type="button" data-artist-delete>Delete</button>
           </span>
         </div>
         <p class="hint" data-artist-pending-note hidden>Edit submitted. Waiting on the store / the distributor.</p>
@@ -207,7 +206,11 @@
           <label for="artist-change">Change request</label>
           <textarea id="artist-change" rows="3" placeholder="What should change, and why"></textarea>
         </div>
-        <p style="margin-top:22px"><button class="btn btn-purple" type="button" data-artist-save>Save artist</button></p>
+        <div class="artist-edit-actions">
+          <button class="btn btn-purple" type="button" data-artist-save>Save artist</button>
+          <button class="btn btn-ghost" type="button" data-artist-delete>Delete</button>
+        </div>
+        <p class="hint">Edits save as you type. Save artist is optional.</p>
         <p class="hint" data-artist-error hidden></p>
       </section>
 
