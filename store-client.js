@@ -4445,14 +4445,21 @@
   }
 
   function bindReviewCatalog() {
-    var catalog = ensureUploadTypeahead();
-    var draft = readDraft();
     var genre = $('tg-genre');
     var language = $('tg-language');
-    if (catalog && typeof catalog.setTypeaheadValue === 'function') {
-      if (genre && draft.genre) catalog.setTypeaheadValue(genre, draft.genre);
-      if (language && draft.language) catalog.setTypeaheadValue(language, draft.language);
-    } else {
+    if (!genre && !language) return;
+    var catalog = null;
+    try { catalog = ensureUploadTypeahead(); } catch (err) {}
+    var draft = readDraft();
+    try {
+      if (catalog && typeof catalog.setTypeaheadValue === 'function') {
+        if (genre && draft.genre) catalog.setTypeaheadValue(genre, draft.genre);
+        if (language && draft.language) catalog.setTypeaheadValue(language, draft.language);
+      } else {
+        if (genre && draft.genre) genre.value = draft.genre;
+        if (language && draft.language) language.value = draft.language;
+      }
+    } catch (err) {
       if (genre && draft.genre) genre.value = draft.genre;
       if (language && draft.language) language.value = draft.language;
     }
