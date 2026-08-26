@@ -2970,6 +2970,201 @@ async function run() {
     assert.ok(page.heldMaster === fatWav, 'Retry path must keep the converted WAV');
   }
 
+  function slicedFile(name, type, size) {
+    return {
+      name: name,
+      type: type,
+      size: size,
+      slice: function (start, end, typeHint) {
+        var from = Math.max(0, start || 0);
+        var to = end == null ? this.size : Math.min(this.size, end);
+        return {
+          name: this.name,
+          type: typeHint || this.type,
+          size: Math.max(0, to - from),
+        };
+      },
+    };
+  }
+
+  function audioChunkHeaders(call) {
+    return (call && call.init && call.init.headers) || {};
+  }
+
+  async function continueChunksOriginalOverHopCap() {
+    const original = slicedFile('night-drive.mp3', 'audio/mpeg', 6 * 1024 * 1024);
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 18 * 1024 * 1024 };
+    const page = load(filledUpload({
+      file: original,
+      heldPicked: original,
+      countConvert: true,
+      convertHold: fatWav,
+      draft: {
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+      },
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    const audio = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(audio.length >= 2, 'normal song over the hop cap must POST more than one audio chunk');
+    const ids = audio.map(function (call) { return audioChunkHeaders(call)['x-plaiground-upload-id']; });
+    assert.ok(ids[0], 'chunked send must stamp an upload id');
+    assert.strictEqual(ids[0], ids[1], 'chunks share one upload id');
+    assert.strictEqual(audioChunkHeaders(audio[0])['x-plaiground-chunk-count'], '2');
+    assert.strictEqual(audioChunkHeaders(audio[0])['x-plaiground-chunk-index'], '0');
+    assert.strictEqual(audioChunkHeaders(audio[1])['x-plaiground-chunk-index'], '1');
+    audio.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.filename === 'night-drive.mp3', 'chunks must send the original file, not the fat WAV');
+      assert.ok(part.value && part.value !== fatWav, 'converted WAV must not be the transit body');
+    });
+    assert.ok(page.heldMaster === fatWav, 'converted WAV stays held');
+    assert.strictEqual(page.convertCalls, 1, 'convert-once still runs once on Continue');
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|Idempotency-Key/i);
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'Continue must finish after the chunks land');
+  }
+
+  async function reviewChunksPickedWavOverHopCap() {
+    const wav = slicedFile('night-drive.wav', 'audio/wav', 6 * 1024 * 1024);
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: wav,
+      heldFile: wav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        audio_picked_size: wav.size,
+        audio_picked_name: wav.name,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(24);
+    const audio = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(audio.length >= 2, 'picked WAV over the hop cap must chunk');
+    assert.strictEqual(audioChunkHeaders(audio[0])['x-plaiground-chunk-count'], '2');
+    assert.ok(page.heldMaster === wav, 'picked WAV stays held');
+    const fail = page.lastStoreFailure;
+    assert.ok(!fail || fail.class !== 'platform_payload', 'chunked send must not die as a 413');
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+  }
+
+  async function reviewRetryResendsSameChunkedFile() {
+    const original = slicedFile('night-drive.mp3', 'audio/mpeg', 6 * 1024 * 1024);
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 18 * 1024 * 1024 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: original,
+      heldFile: fatWav,
+      heldPicked: original,
+      countConvert: true,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
+        { ok: false, status: 413, data: { error: 'FUNCTION_PAYLOAD_TOO_LARGE' } },
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(24);
+    assert.match(String(page.status.textContent || ''), /could not send the audio/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|Idempotency-Key|request body/i);
+    assert.strictEqual(page.retryWrap.hidden, false, 'failed chunk must show Retry');
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+    assert.strictEqual(page.convertCalls, 0, 'Retry path must not reconvert');
+    const before = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(before.length >= 2, 'first Submit must start the chunked send');
+    const firstId = audioChunkHeaders(before[0])['x-plaiground-upload-id'];
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    const after = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(after.length > before.length, 'Retry must resend the same file as chunks');
+    const retryChunks = after.slice(before.length);
+    assert.ok(retryChunks.length >= 2, 'Retry must POST the file again in chunks');
+    assert.notStrictEqual(audioChunkHeaders(retryChunks[0])['x-plaiground-upload-id'], firstId, 'Retry starts a new upload id');
+    retryChunks.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.filename === 'night-drive.mp3', 'Retry must resend the same original file');
+    });
+    assert.ok(page.heldMaster === fatWav, 'converted WAV stays held across Retry');
+    assert.strictEqual(page.convertCalls, 0);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang after Retry');
+  }
+
   async function originalOverCapShowsSizeLineOnly() {
     const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 210 * 1024 * 1024 };
     const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 4096 };
@@ -3452,6 +3647,9 @@ async function run() {
   await convertedWavOverCapStillPostsWhenOriginalWasNormal();
   await basicDesktopSubmitPostsOriginalWhenWavExceedsPlatform();
   await platform413OnFatWavFallsBackToOriginal();
+  await continueChunksOriginalOverHopCap();
+  await reviewChunksPickedWavOverHopCap();
+  await reviewRetryResendsSameChunkedFile();
   await originalOverCapShowsSizeLineOnly();
   await realPickedCapIsSameOnBasicAndCreator();
   await reviewSubmitDoesNotFalseCapHeldWav();
@@ -3656,6 +3854,9 @@ async function run() {
   assert.ok(source.includes("We could not send the audio. Retry."));
   assert.ok(source.includes('function fileForTransitUpload'));
   assert.ok(source.includes('PLATFORM_AUDIO_BYTES'));
+  assert.ok(source.includes('AUDIO_CHUNK_BYTES'));
+  assert.ok(source.includes('function postChunkedAudio'));
+  assert.ok(source.includes('x-plaiground-upload-id'));
   assert.ok(source.includes('function platformPayloadCopy'));
   assert.ok(!source.includes('if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();'));
   assert.ok(!source.includes('ToneGrid did not respond'));

@@ -35,6 +35,9 @@
 
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
   var DEFAULT_CATALOG_TIMEOUT_MS = 30000;
+  var AUDIO_POST_TIMEOUT_MS = 90000;
+  var PLATFORM_AUDIO_BYTES = Math.floor(4.2 * 1024 * 1024);
+  var AUDIO_CHUNK_BYTES = 3 * 1024 * 1024;
 
   function sanitizePartnerCopy(text, status) {
     var next = String(text == null ? '' : text);
@@ -62,8 +65,19 @@
     return 'We could not reach the store. Try again.';
   }
 
-  function withCatalogTimeout(work) {
-    var ms = catalogTimeoutMs();
+  function audioPostTimeoutMs() {
+    try {
+      if (global.PlaigroundAudioTimeoutMs != null) {
+        var n = Number(global.PlaigroundAudioTimeoutMs);
+        if (n > 0 && isFinite(n)) return n;
+      }
+    } catch (err) {}
+    return AUDIO_POST_TIMEOUT_MS;
+  }
+
+  function withCatalogTimeout(work, timeoutMs) {
+    var ms = Number(timeoutMs);
+    if (!(ms > 0 && isFinite(ms))) ms = catalogTimeoutMs();
     var controller = typeof AbortController === 'function' ? new AbortController() : null;
     var signal = controller && controller.signal;
     if (typeof setTimeout !== 'function') {
@@ -1214,6 +1228,73 @@
     return Promise.resolve(/\.(wav|flac|mp3|mpeg|mpga)$/.test(name) || /audio\/(wav|x-wav|wave|flac|x-flac|mpeg|mp3|x-mpeg|x-mp3|mpeg3|mpg)/.test(type));
   }
 
+  function audioNeedsChunks(file) {
+    return Boolean(file && Number(file.size) > PLATFORM_AUDIO_BYTES && typeof file.slice === 'function');
+  }
+
+  function newAudioUploadId() {
+    try {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch (err) {}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (ch) {
+      var r = Math.random() * 16 | 0;
+      var v = ch === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  function postTrackAudio(trackId, audio) {
+    var url = '/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio';
+    function sendOnce(body, headers) {
+      return withCatalogTimeout(function (signal) {
+        var opts = {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers,
+          body: body,
+        };
+        if (signal) opts.signal = signal;
+        return fetch(url, opts).then(parseSave);
+      }, audioPostTimeoutMs());
+    }
+    if (!audioNeedsChunks(audio)) {
+      var audioForm = new FormData();
+      audioForm.append('audio', audio, audio.name || 'audio.wav');
+      return sendOnce(audioForm, { Accept: 'application/json' });
+    }
+    var size = Number(audio.size) || 0;
+    var count = Math.max(2, Math.ceil(size / AUDIO_CHUNK_BYTES));
+    var uploadId = newAudioUploadId();
+    var index = 0;
+    function next() {
+      if (index >= count) return Promise.resolve({ ok: true, status: 200, data: {} });
+      var start = index * AUDIO_CHUNK_BYTES;
+      var end = Math.min(size, start + AUDIO_CHUNK_BYTES);
+      var part = audio.slice(start, end, audio.type || 'application/octet-stream');
+      var body = new FormData();
+      body.append('audio', part, audio.name || 'audio.wav');
+      var headers = {
+        Accept: 'application/json',
+        'x-plaiground-upload-id': uploadId,
+        'x-plaiground-chunk-index': String(index),
+        'x-plaiground-chunk-count': String(count),
+        'x-plaiground-filename': audio.name || 'audio.wav',
+        'x-plaiground-total-bytes': String(size),
+      };
+      if (audio.type) headers['x-plaiground-mime'] = audio.type;
+      var thisIndex = index;
+      index += 1;
+      return sendOnce(body, headers).then(function (result) {
+        if (!result || !result.ok) return result;
+        if (thisIndex >= count - 1) return result;
+        return next();
+      });
+    }
+    return next();
+  }
+
   function currentEditState() {
     return lastEdit || {};
   }
@@ -1684,18 +1765,7 @@
           errors.push(message);
           return { ok: false, skipped: false, data: { error: message } };
         }
-        var audioForm = new FormData();
-        audioForm.append('audio', audio, audio.name || 'audio.wav');
-        return runHop('audio', withCatalogTimeout(function (signal) {
-          var opts = {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-            body: audioForm,
-          };
-          if (signal) opts.signal = signal;
-          return fetch('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', opts).then(parseSave);
-        }));
+        return runHop('audio', postTrackAudio(trackId, audio));
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));

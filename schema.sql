@@ -35,6 +35,19 @@ CREATE TABLE IF NOT EXISTS schema_meta (
   applied_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS audio_upload_chunks (
+  upload_id text NOT NULL,
+  user_id text NOT NULL,
+  track_id text NOT NULL,
+  chunk_index integer NOT NULL,
+  chunk_count integer NOT NULL,
+  filename text NOT NULL DEFAULT '',
+  mime text NOT NULL DEFAULT '',
+  payload text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (upload_id, chunk_index)
+);
+
 WITH flag AS (
   INSERT INTO schema_meta (key) VALUES ('users_email_confirmed_backfill')
   ON CONFLICT (key) DO NOTHING
