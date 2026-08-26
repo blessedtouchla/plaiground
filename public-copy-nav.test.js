@@ -114,6 +114,7 @@ function run() {
   ];
   PUBLIC_PAGES.forEach(function (file) {
     const html = read(file);
+    assert.ok(/<a class="logo"[^>]*href="(?:index\.html|\/)"/.test(html), file + ' top-left wordmark must be a real public homepage link');
     assert.ok(html.includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' must rename Pricing to Plans and Pricing');
     assert.ok(html.includes('href="basic.html">Learn more: Basic</a>'), file + ' must list Learn more: Basic');
     assert.ok(html.includes('href="creator.html">Learn more: Creator</a>'), file + ' must list Learn more: Creator');
@@ -318,6 +319,8 @@ function run() {
 
   const js = read('site.js');
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
+  assert.ok(js.includes('setupBrandLogos') && js.includes('goBrandHome'), 'site.js wires the top-left PLAIGROUND wordmark as a real home link');
+  assert.ok(js.includes('brandHomeHref') && js.includes('dashboard.html') && js.includes('index.html'), 'wordmark goes to Overview when signed in and the public homepage when logged out');
   assert.ok(js.includes('setupPublicHeaderLogin') && js.includes('public-header-tools'), 'shared public nav pins Login above Menu');
   assert.ok(js.includes('public-header-login'), 'shared public nav reuses one header Login');
   assert.ok(js.includes('href = "login.html"') || js.includes('href="login.html"'), 'pinned Login reuses the existing sign-in page');
@@ -375,6 +378,7 @@ function run() {
 
   APP_PAGES.forEach(function (file) {
     const html = read(file);
+    assert.ok(/<a class="logo"[^>]*href="dashboard\.html"/.test(html), file + ' signed-in wordmark must be a real Overview link');
     assert.ok(html.includes('class="side"') || html.includes("class='side'"), file + ' is missing the app menu');
     assert.ok(html.includes('src="site.js"'), file + ' must load the hamburger script');
     assert.ok(html.includes('href="how.html">How it works</a>'), file + ' must list How it works in the signed-in menu');
@@ -427,6 +431,7 @@ function run() {
   assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
   assert.ok(siteCss.includes('.app .page .releases-stats'), 'phone Releases stats card uses the centered page rule');
   assert.ok(/\.releases-stats \{\s*[\s\S]*?grid-template-columns:\s*repeat\(4/.test(siteCss), 'phone stats stay one centered four-number card');
+  assert.ok(/\.nav \.logo \{\s*position:\s*relative;\s*z-index:\s*2;/.test(siteCss), 'public wordmark sits above the centered nav so the click lands on the <a>');
   assert.ok(/\.topbar \.logo img,\s*\n\s*\.topbar \.mobile-only-logo img/.test(siteCss), 'phone header gives the full PLAIGROUND logo room');
   assert.ok(siteCss.includes('.topbar .menu-toggle-text { display: none; }'), 'Menu label yields room for the full wordmark');
   assert.ok(!/max-width:\s*min\(220px,\s*52vw\)/.test(siteCss), 'logo must not clip the D with a 52vw cap');
@@ -464,15 +469,30 @@ function run() {
   assert.strictEqual(publicNav.tools.children[1], publicNav.toggle, 'Menu sits under / after Login');
   assert.strictEqual(publicNav.header.querySelectorAll('a.login').length, 1, 'only one header Login');
   assert.ok(publicNav.heroJoin, 'Join for free stays in the hero');
+  assert.ok(isPublicHomeHref(publicNav.logo && publicNav.logo.getAttribute('href')), 'logged-out wordmark href is the public homepage');
+  assert.strictEqual(publicNav.logo.tagName, 'A', 'logged-out wordmark is a real <a>');
+  fireClick(publicNav.logo);
+  assert.ok(isPublicHomeHref(publicNav.location.href), 'logged-out wordmark click goes to the public homepage');
+  assert.notStrictEqual(publicNav.location.href, 'how-it-works.html', 'logged-out wordmark must not refresh the current marketing page');
+  assert.ok(isPublicHomeHref(publicNav.footerLogo.getAttribute('href')), 'footer wordmark stays a homepage link');
 
   const signedInPublic = runPublicNav({ signedIn: true, app: false });
   assert.strictEqual(signedInPublic.login.hidden, true, 'signed-in visitors do not get the public header Login');
   assert.ok(signedInPublic.toggle, 'signed-in public pages still keep Menu');
+  assert.strictEqual(signedInPublic.logo.getAttribute('href'), 'dashboard.html', 'signed-in public wordmark href is Overview');
+  fireClick(signedInPublic.logo);
+  assert.strictEqual(signedInPublic.location.href, 'dashboard.html', 'signed-in wordmark click goes to Overview, not a homepage refresh');
+  assert.ok(isPublicHomeHref(signedInPublic.footerLogo.getAttribute('href')), 'footer wordmark is not rewritten when signed in');
 
   const appNav = runPublicNav({ signedIn: true, app: true });
   assert.ok(!appNav.tools, 'signed-in app chrome does not gain the public Login cluster');
   assert.ok(!appNav.login, 'signed-in Hi there / PG pages do not get a header Login');
   assert.ok(!appNav.toggle || !appNav.toggle.classList.contains('public-menu-toggle'), 'app Menu is not the public header cluster');
+  assert.ok(appNav.logo, 'signed-in phone header keeps a PLAIGROUND wordmark');
+  assert.strictEqual(appNav.logo.getAttribute('href'), 'dashboard.html', 'signed-in phone wordmark href is Overview');
+  fireClick(appNav.logo);
+  assert.strictEqual(appNav.location.href, 'dashboard.html', 'signed-in phone wordmark click goes to Overview');
+  assert.notStrictEqual(appNav.location.href, 'settings.html', 'signed-in wordmark must not refresh the current app page');
 
   const contactSignedIn = runPublicAppChromeSwap({ signedIn: true });
   assert.strictEqual(contactSignedIn.header.hidden, true, 'signed-in Contact hides the public Login header');
@@ -518,6 +538,19 @@ function run() {
   assert.ok(!runPublishingOn('/dashboard.html').classList.contains('on'), 'other app pages do not mark Publishing current');
 
   console.log('public-copy-nav.test.js ok');
+}
+
+function isPublicHomeHref(href) {
+  const path = String(href || '').split('?')[0].split('#')[0];
+  const file = path.split('/').pop();
+  return file === 'index.html' || file === '' || path === '/';
+}
+
+function fireClick(node) {
+  assert.ok(node, 'wordmark must exist before click');
+  (node.listeners.click || []).forEach(function (fn) {
+    fn({ preventDefault: function () {}, target: node });
+  });
 }
 
 function el(tag, attrs, kids) {
@@ -583,7 +616,11 @@ function el(tag, attrs, kids) {
       child.parentNode = null;
       return child;
     },
-    addEventListener: function () {},
+    listeners: Object.create(null),
+    addEventListener: function (type, fn) {
+      if (!node.listeners[type]) node.listeners[type] = [];
+      node.listeners[type].push(fn);
+    },
     contains: function (other) {
       if (other === node) return true;
       return node.children.some(function (child) { return child.contains(other); });
@@ -714,7 +751,9 @@ function runPublicNav(options) {
     const who = el('a', { class: 'who', href: 'settings.html' });
     who.textContent = 'Hi there';
     const topbar = el('div', { class: 'topbar' }, [who]);
-    const side = el('aside', { class: 'side' }, [el('a', { href: 'dashboard.html' })]);
+    const side = el('aside', { class: 'side' }, [el('a', { class: 'logo', href: 'dashboard.html' })]);
+    const location = { href: 'settings.html', pathname: '/settings.html' };
+    context.window.location = location;
     document.body = el('body', { class: 'app' }, [side, el('div', { class: 'app-main' }, [topbar])]);
     vm.runInNewContext(read('site.js'), context);
     return {
@@ -723,6 +762,9 @@ function runPublicNav(options) {
       login: document.body.querySelector('a.login'),
       toggle: document.body.querySelector('.public-menu-toggle'),
       heroJoin: null,
+      logo: topbar.querySelector('.logo') || side.querySelector('.logo'),
+      location: location,
+      footerLogo: null,
     };
   }
 
@@ -741,8 +783,10 @@ function runPublicNav(options) {
     el('a', { href: 'royalties.html' }),
     el('a', { href: 'faq.html' }),
   ]);
+  const logo = el('a', { class: 'logo', href: 'index.html' });
+  const footerLogo = el('a', { class: 'logo', href: 'index.html' });
   const inner = el('div', { class: 'nav-inner wrap' }, [
-    el('a', { class: 'logo', href: 'index.html' }),
+    logo,
     links,
     actions,
   ]);
@@ -750,9 +794,12 @@ function runPublicNav(options) {
   const heroJoin = el('a', { class: 'btn btn-purple btn-md', href: 'signup.html?plan=basic' });
   heroJoin.setAttribute('data-plan', 'basic');
   heroJoin.textContent = 'Join for free';
+  const location = { href: 'how-it-works.html', pathname: '/how-it-works.html' };
+  context.window.location = location;
   document.body = el('body', {}, [
     header,
     el('main', {}, [el('div', { class: 'hero-ctas' }, [heroJoin])]),
+    el('footer', {}, [el('div', { class: 'footer-brand' }, [footerLogo])]),
   ]);
   vm.runInNewContext(read('site.js'), context);
   return {
@@ -761,6 +808,9 @@ function runPublicNav(options) {
     login: header.querySelector('a.login'),
     toggle: inner.querySelector('.menu-toggle'),
     heroJoin: heroJoin,
+    logo: logo,
+    location: location,
+    footerLogo: footerLogo,
   };
 }
 

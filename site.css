@@ -124,6 +124,10 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: space-between;
 }
+.nav .logo {
+  position: relative;
+  z-index: 2;
+}
 .logo img { height: 72px; width: auto; display: block; }
 .nav-links {
   position: absolute;
