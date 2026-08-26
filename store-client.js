@@ -2840,13 +2840,14 @@
           track_idempotency_body: '',
           audio_uploaded: false,
         });
+        return createTrackOnRelease(ready, { force: true });
       }
       return createTrackOnRelease(ready);
     });
   }
 
-  function createTrackOnRelease(draft) {
-    return createTrack(draft).then(function (track) {
+  function createTrackOnRelease(draft, opts) {
+    return createTrack(draft, { force: Boolean(opts && opts.force), title: draft && draft.title }).then(function (track) {
       var next = track.draft || draft;
       if (track.unavailable || track.failed) return track;
       if (!track.track_id && !next.track_id) {

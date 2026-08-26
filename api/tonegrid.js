@@ -832,15 +832,6 @@ async function createTrack(req, res) {
     sendJson(res, 200, { uuid: continueTrackId, continued: true });
     return;
   }
-  if (
-    position === 1
-    && scope.trackIds.length === 1
-    && scope.releaseIds.length === 1
-    && sameCatalogId(scope.releaseIds[0], releaseId)
-  ) {
-    sendJson(res, 200, { uuid: scope.trackIds[0], continued: true });
-    return;
-  }
   if (fields.error) {
     sendJson(res, 400, { error: fields.error });
     return;

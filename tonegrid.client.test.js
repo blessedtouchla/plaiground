@@ -2185,6 +2185,75 @@ async function run() {
     assert.ok(!/Idempotency-Key|request body|ToneGrid/i.test(page.status.textContent));
   }
 
+  async function basicLeftoverCatalogTrackMintsLikeCreator() {
+    const file = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 3 * 1024 * 1024 };
+    function runPlan(plan) {
+      const leftoverTrack = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+      const catalogTracks = plan === 'basic'
+        ? [leftoverTrack]
+        : [leftoverTrack, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'];
+      return load(filledUpload({
+        file: file,
+        draft: {
+          artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        },
+        account: {
+          plan: plan,
+          artist: 'Ada Night',
+          tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+          tonegrid_track_ids: catalogTracks,
+          upload: {
+            allowed: plan !== 'basic',
+            used: plan === 'basic' ? 1 : 1,
+            limit: plan === 'basic' ? 1 : 8,
+            plan: plan,
+            album_allowed: plan !== 'basic',
+          },
+        },
+        responses: [
+          { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+          { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+          { ok: true, status: 200, data: { audio_status: 'processing' } },
+          { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        ],
+      }));
+    }
+    const basic = runPlan('basic');
+    const creator = runPlan('creator');
+    basic.continueBtn.listeners.click({ preventDefault() {} });
+    creator.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    function assertSameSend(page, label) {
+      const minted = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+      assert.ok(minted.length, label + ' must mint a store track when catalog leftover is not on the store');
+      assert.ok(!JSON.parse(minted[0].init.body).track_id, label + ' must not send the leftover catalog track_id');
+      const audio = page.calls.filter(function (call) {
+        return String(call.url).indexOf('/audio') !== -1;
+      });
+      assert.ok(audio.length, label + ' must POST the same file after minting');
+      audio.forEach(function (call) {
+        assert.strictEqual(
+          String(call.url),
+          '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio',
+          label + ' must attach to the new store track, not the leftover catalog id'
+        );
+        const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+        assert.ok(part && part.value === file, label + ' must send the same original file Creator already sends');
+      });
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
+      }), label + ' must not POST audio to the leftover catalog track');
+      assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
+      assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+      assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|InterSpace/i);
+      assert.ok(String(page.location.href).indexOf('attest.html') !== -1, label + ' Continue must finish');
+    }
+    assertSameSend(basic, 'Basic');
+    assertSameSend(creator, 'Creator');
+  }
+
   async function leftoverIdempotencyErrorIsNamelessAndRetryRotates() {
     const leftover = 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1';
     const reused = 'Idempotency-Key reused with a different request body. Either send the exact same body, or rotate the key.';
@@ -3631,6 +3700,7 @@ async function run() {
   await createPostShowsRealSanitizedError();
   await continuedDeadIdRetriesWithNewKey();
   await leftoverMintOnContinueRotatesTrackKey();
+  await basicLeftoverCatalogTrackMintsLikeCreator();
   await leftoverIdempotencyErrorIsNamelessAndRetryRotates();
   await reviewKeepsLivingReleaseForThisTitle();
   await reviewSubmitUsesStoreTracksWithoutFile();
@@ -3857,6 +3927,7 @@ async function run() {
   assert.ok(source.includes('AUDIO_CHUNK_BYTES'));
   assert.ok(source.includes('function postChunkedAudio'));
   assert.ok(source.includes('x-plaiground-upload-id'));
+  assert.ok(source.includes('createTrackOnRelease(ready, { force: true })'));
   assert.ok(source.includes('function platformPayloadCopy'));
   assert.ok(!source.includes('if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();'));
   assert.ok(!source.includes('ToneGrid did not respond'));
