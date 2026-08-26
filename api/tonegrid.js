@@ -31,9 +31,10 @@
  * purge-only. Never drop a live store release locally when the store refuses.
  * POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
- * Each ToneGrid write uses a hop-scoped Idempotency-Key (patch-date,
- * dsps-post, dsps-put, submit) plus method, path, and body fingerprint.
- * Never forward the browser plaiground-submit-<id> key to every hop.
+ * Each ToneGrid write uses a hop-scoped Idempotency-Key (release, track,
+ * patch-date, dsps-post, dsps-put, submit) plus method, path, body
+ * fingerprint, and a rotated browser key when present. Never forward the
+ * browser plaiground-submit-<id> key to every hop.
  * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
  * Solo 100% submit skips SignWell. Multi-writer submit creates or reuses a
  * SignWell document and emails other writers, then submits to ToneGrid without
@@ -745,13 +746,15 @@ async function createRelease(req, res) {
   if (releaseDate) payload.release_date = releaseDate;
 
   const browserKey = headerValue(req, 'idempotency-key');
-  const classicKey = ('plaiground-release-' + artistId + ':' + fields.title).slice(0, 255);
-  const hopParts = ['release', artistId, fields.title, type, releaseDate || ''];
-  if (browserKey && browserKey !== classicKey) hopParts.push(browserKey);
   const result = await tonegridFetch('/releases', {
     method: 'POST',
     body: payload,
-    idempotencyKey: idempotencyKey(req, hopParts.join(':')),
+    idempotencyKey: hopIdempotencyKey(
+      'release',
+      'POST',
+      '/releases',
+      [JSON.stringify(payload), browserKey || ''].join('\n')
+    ),
   });
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
@@ -846,10 +849,16 @@ async function createTrack(req, res) {
   const trackPayload = { title: fields.title, position, explicit };
   if (fields.language) trackPayload.language = fields.language;
 
+  const browserKey = headerValue(req, 'idempotency-key');
   const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',
     body: trackPayload,
-    idempotencyKey: idempotencyKey(req, ['track', releaseId, fields.title, String(position)].join(':')),
+    idempotencyKey: hopIdempotencyKey(
+      'track',
+      'POST',
+      '/releases/' + releaseId + '/tracks',
+      [JSON.stringify(trackPayload), browserKey || ''].join('\n')
+    ),
   });
   if (result.ok) {
     const trackId = createdTrackId(result.data);
@@ -1930,7 +1939,12 @@ async function updateTrack(req, res, trackId) {
   const result = await tonegridFetch('/tracks/' + id, {
     method: 'PATCH',
     body: payload,
-    idempotencyKey: idempotencyKey(req, ['track-patch', id, JSON.stringify(payload)].join(':')),
+    idempotencyKey: hopIdempotencyKey(
+      'track-patch',
+      'PATCH',
+      '/tracks/' + id,
+      [JSON.stringify(payload), headerValue(req, 'idempotency-key') || ''].join('\n')
+    ),
   });
   sendJson(res, result.status, result.data);
 }
