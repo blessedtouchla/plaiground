@@ -642,7 +642,6 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #999 50%), linear-gradient(135deg, #999 50%, transparent 50%); background-position: calc(100% - 18px) 18px, calc(100% - 12px) 18px; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; }
 .field { overflow: visible; }
 .typeahead-field { position: relative; z-index: 1; overflow: visible; }
-.typeahead-field.is-typeahead-filter .typeahead-input { margin-bottom: 8px; }
 .typeahead-field:focus-within,
 .typeahead-field.is-typeahead-open { z-index: 4100; }
 @media (hover: hover) and (pointer: fine) {

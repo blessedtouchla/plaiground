@@ -198,7 +198,12 @@ function fillableCatalogSelect(id, placeholder) {
     selectedIndex: 0,
     _value: '',
     tabIndex: 0,
-    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
+    classList: {
+      tokens: Object.create(null),
+      add(name) { this.tokens[name] = true; },
+      remove(name) { delete this.tokens[name]; },
+      contains(name) { return Boolean(this.tokens[name]); },
+    },
     attrs: {},
     get value() { return this._value; },
     set value(next) {
@@ -239,6 +244,30 @@ function typeaheadNodes(select) {
     input: kids.find(function (node) { return node.className === 'typeahead-input'; }) || null,
     list: kids.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null,
   };
+}
+
+function countHtmlId(html, id) {
+  const re = new RegExp('id="' + id + '"', 'g');
+  return (html.match(re) || []).length;
+}
+
+function countHtmlSelectId(html, id) {
+  const re = new RegExp('<select[^>]*id="' + id + '"', 'g');
+  return (html.match(re) || []).length;
+}
+
+function assertSingleCatalogTypeahead(select, label) {
+  const field = select.parentNode;
+  const kids = (field && field.children) || [];
+  const inputs = kids.filter(function (node) { return node.className === 'typeahead-input'; });
+  const lists = kids.filter(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+  const ui = typeaheadNodes(select);
+  assert.strictEqual(inputs.length, 1, label + ' must render exactly one typeahead input');
+  assert.strictEqual(lists.length, 1, label + ' must render exactly one typeahead list');
+  assert.ok(ui.input && ui.list, label + ' must offer type-to-filter');
+  assert.strictEqual(select.getAttribute('data-typeahead'), 'on', label + ' must use the overlay typeahead, not native+filter');
+  assert.ok(select.classList.tokens['is-typeahead-source'], label + ' must hide the native select');
+  assert.ok(!field.classList.tokens['is-typeahead-filter'], label + ' must not stack a native select under the typeahead');
 }
 
 function withPointerEnv(opts, fn) {
@@ -317,6 +346,8 @@ function assertBasicTypeaheadCatalog(catalog, created, label) {
   assert.ok(catalog.isTypeaheadBound(language), label + ' language must bind typeahead');
   const genreUi = typeaheadNodes(genre);
   const langUi = typeaheadNodes(language);
+  assertSingleCatalogTypeahead(genre, label + ' genre');
+  assertSingleCatalogTypeahead(language, label + ' language');
   assert.ok(genreUi.input && genreUi.list, label + ' genre must offer type-to-filter');
   assert.ok(langUi.input && langUi.list, label + ' language must offer type-to-filter');
   assert.ok(created.some(function (node) { return node.className === 'typeahead-input'; }), label + ' must create typeahead inputs');
@@ -371,6 +402,8 @@ function testBasicTypeaheadFiltersAndEnglishFirst(catalog) {
     assert.ok(catalog.isTypeaheadBound(language), 'Basic language typeahead binds');
     const genreUi = typeaheadNodes(genre);
     const langUi = typeaheadNodes(language);
+    assertSingleCatalogTypeahead(genre, 'Basic genre');
+    assertSingleCatalogTypeahead(language, 'Basic language');
     assert.ok(genreUi.input && genreUi.list, 'Basic genre offers typeahead');
     assert.ok(langUi.input && langUi.list, 'Basic language offers typeahead');
     genreUi.input.listeners.focus();
@@ -401,6 +434,8 @@ function testDesktopTypeaheadStillBindsOnFinePointer(catalog) {
     });
     const genreUi = typeaheadNodes(genre);
     const langUi = typeaheadNodes(language);
+    assertSingleCatalogTypeahead(genre, 'desktop Basic genre');
+    assertSingleCatalogTypeahead(language, 'desktop Basic language');
     assert.ok(genreUi.input && genreUi.list, 'desktop Basic genre still binds typeahead');
     assert.ok(langUi.input && langUi.list, 'desktop Basic language still binds typeahead');
     assert.ok(catalog.isTypeaheadBound(genre), 'desktop genre reports typeahead bound');
@@ -429,6 +464,7 @@ function assertTypeToFilterFindsHipHop(catalog, created, id, items, getValue, ge
     catalog.bindTypeahead(select, items, getValue, getLabel);
   }
   const ui = typeaheadNodes(select);
+  assertSingleCatalogTypeahead(select, message);
   assert.ok(ui.input, message + ' must offer type-to-filter');
   ui.input.value = id.indexOf('language') !== -1 ? 'spa' : 'hip';
   if (ui.input.listeners.input) ui.input.listeners.input();
@@ -497,6 +533,8 @@ function testEditDesktopTypeaheadFiltersHip(catalog) {
     });
     const genreUi = typeaheadNodes(genre);
     const langUi = typeaheadNodes(language);
+    assertSingleCatalogTypeahead(genre, 'desktop Edit genre');
+    assertSingleCatalogTypeahead(language, 'desktop Edit language');
     assert.ok(genreUi.input && genreUi.list, 'desktop Edit genre uses the typeahead overlay');
     assert.ok(langUi.input && langUi.list, 'desktop Edit language uses the typeahead overlay');
     genreUi.input.listeners.focus();
@@ -782,13 +820,28 @@ function run() {
   assert.ok(catalogSrc.indexOf('claimTypeahead') !== -1, 'only one Basic typeahead list may own the tap');
   assert.ok(catalogSrc.indexOf('is-fixed') !== -1, 'genre list must escape the form-grid overlay');
   assert.ok(catalogSrc.indexOf('preferNativeCatalogSelect') === -1, 'Basic upload must not keep the #129 native-only picker');
-  assert.ok(/iPad\|iPhone\|iPod/.test(catalogSrc), 'phone type-to-filter still detects iOS Safari');
-  assert.ok(catalogSrc.indexOf('max-width: 720px') !== -1, 'phone type-to-filter still detects a phone-width viewport');
-  assert.ok(catalogSrc.indexOf('isBasicUploadCatalogSelect') !== -1, 'type-to-filter includes Basic upload genre/language');
-  assert.ok(catalogSrc.indexOf('preferTypeToFilterNative') !== -1, 'Basic, Edit, and Submit review get type-to-filter on phone');
+  assert.ok(catalogSrc.indexOf('preferTypeToFilterNative') === -1, 'must not dual-bind native + typeahead on phone');
+  assert.ok(catalogSrc.indexOf('bindTypeToFilterNative') === -1, 'must not keep the #145 stacked filter+native leftover');
+  assert.ok(catalogSrc.indexOf('is-typeahead-filter') === -1, 'must not mark a stacked native select under the typeahead');
+  assert.ok(css.indexOf('is-typeahead-filter') === -1, 'CSS must not space a second Genre/Language box');
+  assert.ok(catalogSrc.indexOf('isBasicUploadCatalogSelect') === -1, 'phone and desktop share one catalog bind');
+  assert.ok(catalogSrc.indexOf('isEditCatalogSelect') === -1, 'Edit uses the same overlay typeahead as Upload');
   assert.ok(catalogSrc.indexOf('isSubmitReviewPage') === -1, 'Submit review no longer special-cases away from Basic typeahead');
-  assert.ok(catalogSrc.indexOf('bindTypeToFilterNative') !== -1, 'phone fallback still finds Hip-Hop by typing');
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.strictEqual(countHtmlSelectId(upload, 'tg-genre'), 1, 'Upload has exactly one Genre select');
+  assert.strictEqual(countHtmlSelectId(upload, 'tg-language'), 1, 'Upload has exactly one Language select');
+  assert.strictEqual(countHtmlId(upload, 'tg-genre'), 1, 'Upload must not duplicate tg-genre');
+  assert.strictEqual(countHtmlId(upload, 'tg-language'), 1, 'Upload must not duplicate tg-language');
+  assert.strictEqual(countHtmlSelectId(reviewHtml, 'tg-genre'), 1, 'Review has exactly one Genre select');
+  assert.strictEqual(countHtmlSelectId(reviewHtml, 'tg-language'), 1, 'Review has exactly one Language select');
+  assert.strictEqual(countHtmlId(reviewHtml, 'tg-genre'), 1, 'Review must not duplicate tg-genre');
+  assert.strictEqual(countHtmlId(reviewHtml, 'tg-language'), 1, 'Review must not duplicate tg-language');
+  const songHtml = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
+  assert.strictEqual(countHtmlSelectId(songHtml, 'edit-genre'), 1, 'Edit has exactly one Genre select');
+  assert.strictEqual(countHtmlSelectId(songHtml, 'edit-language'), 1, 'Edit has exactly one Language select');
+  const releasesHtml = fs.readFileSync(path.join(__dirname, 'releases.html'), 'utf8');
+  assert.strictEqual(countHtmlSelectId(releasesHtml, 'edit-genre'), 1, 'Releases edit has exactly one Genre select');
+  assert.strictEqual(countHtmlSelectId(releasesHtml, 'edit-language'), 1, 'Releases edit has exactly one Language select');
   assert.ok(/id="tg-genre"/.test(reviewHtml), 'Submit review has the same genre field as Creator');
   assert.ok(/id="tg-language"/.test(reviewHtml), 'Submit review has the same language field as Creator');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
@@ -1026,7 +1079,11 @@ function run() {
   function realisticSelect(id) {
     const field = {
       children: [],
-      classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; } },
+      classList: {
+        tokens: Object.create(null),
+        add(name) { this.tokens[name] = true; },
+        remove(name) { delete this.tokens[name]; },
+      },
       querySelector(sel) {
         if (sel && sel.indexOf('label') === 0) return { setAttribute() {} };
         if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;

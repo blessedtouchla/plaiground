@@ -1181,7 +1181,9 @@ function run() {
   assert.ok(read('song.js').includes('typeaheadTypedValue'));
   assert.ok(read('song.js').includes('fillCatalogSelects();'));
   assert.ok(read('upload-catalog.js').includes("id === 'edit-genre' || id === 'edit-language'"));
-  assert.ok(read('upload-catalog.js').includes('isEditCatalogSelect'));
+  assert.ok(!read('upload-catalog.js').includes('isEditCatalogSelect'));
+  assert.ok(!read('upload-catalog.js').includes('preferTypeToFilterNative'));
+  assert.ok(!read('upload-catalog.js').includes('bindTypeToFilterNative'));
   assert.ok(!/if \(paid\) \{\s*fillCatalogSelects/.test(read('song.js')), 'Basic edit must bind genre/language typeahead');
   const songHtml = html;
   assert.ok(!/data-for-plans/.test(songHtml.slice(Math.max(0, songHtml.indexOf('id="edit-genre"') - 280), songHtml.indexOf('id="edit-genre"') + 180)));
