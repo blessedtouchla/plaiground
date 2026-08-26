@@ -513,6 +513,7 @@ function load(options) {
   context.globalThis = context;
   context.window.location = context.location;
   if (opts.catalogTimeoutMs) context.PlaigroundCatalogTimeoutMs = opts.catalogTimeoutMs;
+  if (opts.audioTimeoutMs) context.PlaigroundAudioTimeoutMs = opts.audioTimeoutMs;
   vm.runInNewContext(audioAcceptCode, context);
   vm.runInNewContext(storePickCode, context);
   vm.runInNewContext(objectHopCode, context);
@@ -3948,6 +3949,7 @@ async function run() {
   assert.ok(source.includes('function hopFile'));
   assert.ok(source.includes("object_key"));
   assert.ok(source.includes("{ object_key: next.object_key }"));
+  assert.ok(source.includes('waitMsForUrl(url)'));
   assert.ok(!/function postFile\(send\) \{[\s\S]*?body\.append\('audio'/.test(source), 'Continue/Submit postFile must hop, not append a fat audio body');
   assert.ok(!source.includes("body.append('artwork'"));
   assert.ok(source.includes('PLATFORM_AUDIO_BYTES'));
@@ -4286,6 +4288,38 @@ async function run() {
     assert.ok(page.status.textContent.indexOf('Language is required') === -1, 'Basic Continue must accept the stuck language pick');
   }
 
+  async function basicHopAudioPostWaitsForStoreHop() {
+    const hold = new Promise(function (resolve) { setTimeout(resolve, 80); });
+    const page = load(filledUpload({
+      account: {
+        plan: 'basic',
+        artist: 'Ada Night',
+        upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
+      },
+      catalogTimeoutMs: 40,
+      audioTimeoutMs: 300,
+      holdWhen: '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio',
+      holdFirst: hold,
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    await new Promise(function (resolve) { setTimeout(resolve, 160); });
+    await flush(16);
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'Basic Continue must POST the hopped object key');
+    audio.forEach(function (call) { assertAudioKey(call, 'Basic hop'); });
+    assert.strictEqual(audio.length, 1, 'a store hop slower than catalog timeout must not abort and retry as unreachable');
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'slow store hop must still finish Continue');
+  }
+
   async function fatSongNeverHitsVercelAudioBody() {
     const fat = { name: 'fat-master.wav', type: 'audio/wav', size: 7 * 1024 * 1024 };
     const page = load(filledUpload({ file: fat, responses: uploadResponses.slice() }));
@@ -4304,6 +4338,7 @@ async function run() {
     assert.ok(draftOf(page.localStorage).artwork_object_key.indexOf('covers/') === 0, 'covers persist via object key');
   }
 
+  await basicHopAudioPostWaitsForStoreHop();
   await fatSongNeverHitsVercelAudioBody();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
