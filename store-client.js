@@ -5,6 +5,7 @@
   var DRAFT_KEY = 'plaiground.store.draft';
   var MAX_AUDIO_BYTES = 200 * 1024 * 1024;
   var PLATFORM_AUDIO_BYTES = Math.floor(4.2 * 1024 * 1024);
+  var AUDIO_CHUNK_BYTES = 3 * 1024 * 1024;
   var MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 
   function $(id) {
@@ -2330,7 +2331,18 @@
     return result;
   }
 
-  function postForm(url, body, onProgress) {
+  function applyFormHeaders(target, extraHeaders) {
+    var headers = extraHeaders || {};
+    var keys = Object.keys(headers);
+    var i;
+    for (i = 0; i < keys.length; i += 1) {
+      if (headers[keys[i]] == null || headers[keys[i]] === '') continue;
+      target[keys[i]] = String(headers[keys[i]]);
+    }
+    return target;
+  }
+
+  function postForm(url, body, onProgress, extraHeaders) {
     if (typeof XMLHttpRequest === 'function') {
       return new Promise(function (resolve) {
         var settled = false;
@@ -2345,6 +2357,12 @@
         var waitMs = waitMsForUrl(url);
         xhr.timeout = waitMs;
         xhr.setRequestHeader('Accept', 'application/json');
+        var headerKeys = Object.keys(extraHeaders || {});
+        var hi;
+        for (hi = 0; hi < headerKeys.length; hi += 1) {
+          if (extraHeaders[headerKeys[hi]] == null || extraHeaders[headerKeys[hi]] === '') continue;
+          xhr.setRequestHeader(headerKeys[hi], String(extraHeaders[headerKeys[hi]]));
+        }
         if (xhr.upload && typeof onProgress === 'function') {
           xhr.upload.onprogress = function (event) {
             if (event && event.lengthComputable && event.total) {
@@ -2384,10 +2402,68 @@
       return fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
+        headers: applyFormHeaders({ Accept: 'application/json' }, extraHeaders),
         body: body,
       }).then(parseJson);
     }, waitMsForUrl(url)).then(sanitizeResultError);
+  }
+
+  function audioNeedsChunks(file) {
+    return Boolean(file && Number(file.size) > PLATFORM_AUDIO_BYTES && typeof file.slice === 'function');
+  }
+
+  function newAudioUploadId() {
+    try {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch (err) {}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (ch) {
+      var r = Math.random() * 16 | 0;
+      var v = ch === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  function chunkHeaders(send, uploadId, index, count) {
+    var headers = {
+      'x-plaiground-upload-id': uploadId,
+      'x-plaiground-chunk-index': String(index),
+      'x-plaiground-chunk-count': String(count),
+      'x-plaiground-filename': send.name || 'audio.wav',
+      'x-plaiground-total-bytes': String(Number(send.size) || 0),
+    };
+    if (send.type) headers['x-plaiground-mime'] = send.type;
+    return headers;
+  }
+
+  function postChunkedAudio(trackId, send, onProgress) {
+    var size = Number(send.size) || 0;
+    var count = Math.max(2, Math.ceil(size / AUDIO_CHUNK_BYTES));
+    var uploadId = newAudioUploadId();
+    var url = TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio';
+    var index = 0;
+    function next() {
+      if (index >= count) return Promise.resolve({ ok: true, status: 200, data: {} });
+      var start = index * AUDIO_CHUNK_BYTES;
+      var end = Math.min(size, start + AUDIO_CHUNK_BYTES);
+      var part = send.slice(start, end, send.type || 'application/octet-stream');
+      var body = new FormData();
+      body.append('audio', part, send.name || 'audio.wav');
+      var thisIndex = index;
+      index += 1;
+      return postForm(url, body, function (percent) {
+        if (typeof onProgress !== 'function') return;
+        var base = (thisIndex / count) * 100;
+        var span = 100 / count;
+        onProgress(Math.round(base + (Number(percent) || 0) * span / 100));
+      }, chunkHeaders(send, uploadId, thisIndex, count)).then(function (result) {
+        if (!result || !result.ok) return result;
+        if (thisIndex >= count - 1) return result;
+        return next();
+      });
+    }
+    return next();
   }
 
   function storeUnreachableResult() {
@@ -2409,6 +2485,7 @@
         return { failed: true, result: { data: { error: AUDIO_ERROR } } };
       }
       function postFile(send) {
+        if (audioNeedsChunks(send)) return postChunkedAudio(trackId, send, onProgress);
         var body = new FormData();
         body.append('audio', send, send.name || 'audio.wav');
         return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress);

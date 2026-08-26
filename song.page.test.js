@@ -848,6 +848,9 @@ function run() {
   assert.ok(read('lib/store-pick.js').includes("box.className = 'store-pick-box'"));
   assert.ok(!/fillList[\s\S]*box\.className = 'toggle-input'/.test(read('lib/store-pick.js')));
   assert.ok(html.includes('accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga'));
+  assert.ok(read('song.js').includes('function postTrackAudio'));
+  assert.ok(read('song.js').includes('x-plaiground-upload-id'));
+  assert.ok(read('song.js').includes('AUDIO_CHUNK_BYTES'));
   assert.ok(!html.includes('indexedDB'));
   assert.ok(!read('song.js').includes('indexedDB'));
   assert.ok(html.includes('0'));

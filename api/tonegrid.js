@@ -21,6 +21,9 @@
  * POST /api/tonegrid/tracks
  * PUT  /api/tonegrid/tracks/:id            -> ToneGrid PATCH /tracks/:uuid
  * POST /api/tonegrid/tracks/:id/audio
+ *   Single multipart when the body is under the platform hop cap.
+ *   Over that cap the browser sends x-plaiground-chunk-* parts; this
+ *   function assembles, converts MP3 → WAV, then hops once.
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
  *
@@ -51,6 +54,7 @@ const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const uploadRequired = require('../lib/upload-required');
 const audioConvert = require('../lib/audio-convert');
+const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
@@ -85,6 +89,8 @@ const {
 
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_AUDIO_TRANSIT_BYTES = 512 * 1024 * 1024;
+const AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
+const AUDIO_SEND_COPY = 'We could not send the audio. Retry.';
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
 const STORE_FACING = new Set([
@@ -936,7 +942,13 @@ async function trackAudio(req, res, trackId) {
 
   const declared = Number(headerValue(req, 'content-length') || 0);
   if (declared > MAX_AUDIO_TRANSIT_BYTES) {
-    sendJson(res, 413, { error: 'We could not send the audio. Retry.' });
+    sendJson(res, 413, { error: AUDIO_SEND_COPY });
+    return;
+  }
+
+  const chunkMeta = audioChunks.parseChunkMeta(headerValue, req);
+  if (chunkMeta && chunkMeta.totalBytes > MAX_AUDIO_BYTES) {
+    sendJson(res, 413, { error: AUDIO_SIZE_COPY });
     return;
   }
 
@@ -945,7 +957,7 @@ async function trackAudio(req, res, trackId) {
     raw = await readRawBody(req, MAX_AUDIO_TRANSIT_BYTES);
   } catch (err) {
     if (err && err.code === 'TOO_LARGE') {
-      sendJson(res, 413, { error: 'We could not send the audio. Retry.' });
+      sendJson(res, 413, { error: AUDIO_SEND_COPY });
       return;
     }
     sendJson(res, 400, { error: 'Could not read the audio upload.' });
@@ -956,6 +968,91 @@ async function trackAudio(req, res, trackId) {
     sendJson(res, 400, { error: 'audio file is required.' });
     return;
   }
+
+  if (chunkMeta) {
+    const part = audioConvert.parseMultipartAudio(raw);
+    const piece = part && part.data && part.data.length ? part.data : raw;
+    if (!piece || !piece.length) {
+      sendJson(res, 400, { error: 'audio file is required.' });
+      return;
+    }
+    try {
+      await audioChunks.saveChunk({
+        userId: scope.userId,
+        trackId: id,
+        meta: Object.assign({}, chunkMeta, {
+          filename: chunkMeta.filename || (part && part.filename) || '',
+          mime: chunkMeta.mime || (part && part.mime) || '',
+        }),
+        data: piece,
+      });
+    } catch (err) {
+      if (err && err.code === 'CHUNK_MISMATCH') {
+        sendJson(res, 409, { error: AUDIO_SEND_COPY });
+        return;
+      }
+      sendJson(res, 400, { error: AUDIO_SEND_COPY });
+      return;
+    }
+    if (chunkMeta.index < chunkMeta.count - 1) {
+      sendJson(res, 200, { received: true, index: chunkMeta.index, count: chunkMeta.count });
+      return;
+    }
+    const assembled = await audioChunks.assemble({
+      userId: scope.userId,
+      trackId: id,
+      uploadId: chunkMeta.uploadId,
+    });
+    if (!assembled || !assembled.data || !assembled.data.length) {
+      sendJson(res, 409, { error: AUDIO_SEND_COPY });
+      return;
+    }
+    if (assembled.data.length > MAX_AUDIO_BYTES) {
+      await audioChunks.drop(chunkMeta.uploadId);
+      sendJson(res, 413, { error: AUDIO_SIZE_COPY });
+      return;
+    }
+    const wrapped = audioConvert.buildAudioMultipart(
+      assembled.filename || 'audio.bin',
+      assembled.mime || 'application/octet-stream',
+      assembled.data
+    );
+    if (!looksLikeAudioPart(wrapped.rawBody)) {
+      await audioChunks.drop(chunkMeta.uploadId);
+      sendJson(res, 400, { error: 'Audio must be WAV, FLAC, or MP3.' });
+      return;
+    }
+    const preparedChunk = await audioConvert.prepareFromBytes(
+      assembled.data,
+      assembled.filename,
+      assembled.mime
+    );
+    if (preparedChunk.error) {
+      await audioChunks.drop(chunkMeta.uploadId);
+      sendJson(res, 400, { error: preparedChunk.error });
+      return;
+    }
+    if (preparedChunk.converted && !audioConvert.toneGridBodyIsWav(preparedChunk.rawBody)) {
+      await audioChunks.drop(chunkMeta.uploadId);
+      sendJson(res, 400, { error: 'MP3 must be converted to WAV before it goes to the store.' });
+      return;
+    }
+    const chunkHop = await tonegridFetch('/tracks/' + id + '/audio', {
+      method: 'POST',
+      rawBody: preparedChunk.rawBody,
+      contentType: preparedChunk.contentType || contentType,
+      idempotencyKey: hopIdempotencyKey(
+        'audio',
+        'POST',
+        '/tracks/' + id + '/audio',
+        bodyFingerprint(preparedChunk.rawBody || assembled.data)
+      ),
+    });
+    await audioChunks.drop(chunkMeta.uploadId);
+    sendJson(res, chunkHop.status, chunkHop.data);
+    return;
+  }
+
   if (!looksLikeAudioPart(raw)) {
     sendJson(res, 400, { error: 'Audio must be WAV, FLAC, or MP3.' });
     return;
@@ -2208,6 +2305,7 @@ async function handler(req, res) {
 
 handler.config = {
   api: { bodyParser: false },
+  maxDuration: 60,
 };
 
 module.exports = handler;
