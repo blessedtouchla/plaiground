@@ -768,6 +768,11 @@
     return 'Could not attach the audio. Retry.';
   }
 
+  function keepHeldWavForRetry() {
+    if (!looksLikeWav(heldAudioFile)) return;
+    writeDraft({ audio_uploaded: false });
+  }
+
   function hideMissingTrackFailure(sent, draft, liveFile) {
     if (liveFile || draftHasTrackFile(draft) || alreadyConverted(draft)) {
       return {
@@ -896,6 +901,7 @@
   var sessionReleaseId = '';
   var sessionReleaseChecked = '';
   var sessionReleaseVerified = '';
+  var sessionReleaseTracks = [];
   var deadReleaseIds = [];
   var heldAudioFile = null;
   var AUDIO_HOLD_DB = 'plaiground-held-audio';
@@ -1024,7 +1030,7 @@
 
   function adoptLivingRelease(draft, living) {
     if (!living || !living.id) return draft;
-    rememberSessionRelease(living.id, true);
+    rememberSessionRelease(living.id, true, living.tracks || []);
     var trackId = '';
     if (living.tracks && living.tracks.length) trackId = trackIdOf(living.tracks[0]);
     var next = writeDraft({
@@ -1079,12 +1085,18 @@
     return pickedAudioEvidence(draft) || Boolean(draft && String(draft.title || '').trim());
   }
 
-  function rememberSessionRelease(id, verified) {
+  function rememberSessionRelease(id, verified, tracks) {
     var next = String(id || '').trim();
     if (!next) return;
+    var same = sameUuid(sessionReleaseId, next) || sameUuid(sessionReleaseChecked, next);
     sessionReleaseId = next;
     sessionReleaseChecked = next;
     if (verified) sessionReleaseVerified = next;
+    if (arguments.length >= 3) {
+      sessionReleaseTracks = tracks || [];
+    } else if (!same) {
+      sessionReleaseTracks = [];
+    }
   }
 
   function isReleaseMissing(result) {
@@ -1123,6 +1135,7 @@
     sessionReleaseId = '';
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
+    sessionReleaseTracks = [];
     var stored = Array.isArray(current.tracks) ? current.tracks.map(function (track) {
       var next = {};
       Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
@@ -1180,6 +1193,7 @@
     sessionReleaseId = '';
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
+    sessionReleaseTracks = [];
     var rows = qsAll('[data-track-row]');
     var i;
     for (i = 0; i < rows.length; i += 1) {
@@ -1304,11 +1318,31 @@
         return createFreshRelease(String(current.release_id || '').trim() ? clearDeadReleaseIds(current) : current);
       });
     }
+    if (id && sessionReleaseVerified && sameUuid(id, sessionReleaseVerified)) {
+      return Promise.resolve({
+        ok: true,
+        draft: current,
+        reused: true,
+        found: true,
+        tracks: sessionReleaseTracks,
+      });
+    }
     if (id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
-      return Promise.resolve({ ok: true, draft: current, reused: true, justCreated: true });
+      return Promise.resolve({
+        ok: true,
+        draft: current,
+        reused: true,
+        justCreated: true,
+        tracks: sessionReleaseTracks,
+      });
     }
     if (id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
-      return Promise.resolve({ ok: true, draft: current, reused: true });
+      return Promise.resolve({
+        ok: true,
+        draft: current,
+        reused: true,
+        tracks: sessionReleaseTracks,
+      });
     }
     if (!id) {
       if (selectedAudio()) return createFreshRelease(current);
@@ -1321,7 +1355,7 @@
     }
     return fetchReleaseTracks(id).then(function (loaded) {
       if (loaded.ok) {
-        rememberSessionRelease(id, true);
+        rememberSessionRelease(id, true, loaded.tracks);
         return { ok: true, draft: current, found: true, tracks: loaded.tracks, result: loaded.result };
       }
       if (isUnavailable(loaded.result)) {
@@ -1637,7 +1671,8 @@
           return track && (track.audio || track.file);
         });
         if (sent.failed && isMissingTrackError(sent.result) && (liveFile || draftHasTrackFile(next) || alreadyConverted(next))) {
-          return createMissingTracks(next, { force: true, tracks: [] }).then(function (created) {
+          keepHeldWavForRetry();
+          return createMissingTracks(readDraft(), { force: true, tracks: [] }).then(function (created) {
             if (created.recover) return { recover: true, result: created.result, draft: created.draft || next };
             if (created.failed) {
               if (shouldReattach(created.draft || next, liveFile, [])) return reattachResult(created.draft || next);
@@ -4199,6 +4234,7 @@
   function failSubmit(message, trigger) {
     hideUploadLoader();
     if (trigger) trigger.removeAttribute('aria-busy');
+    keepHeldWavForRetry();
     var shown = sanitizePartnerCopy(message || '');
     var draft = readDraft();
     if (isAudioRequiredError(shown) && alreadyHasAudio(draft)) {
