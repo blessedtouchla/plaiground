@@ -79,7 +79,6 @@
 
     if (!topbar.querySelector(".logo")) {
       var brand = document.createElement("a");
-      var sideLogo = side.querySelector(".logo");
       brand.className = "logo mobile-only-logo";
       brand.href = brandHomeHref(isSignedInPublic());
       brand.setAttribute("aria-label", "PLAIGROUND");
