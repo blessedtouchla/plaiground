@@ -474,7 +474,7 @@
         headers: headers,
         body: JSON.stringify(body),
       }).then(parseJson);
-    });
+    }, waitMsForUrl(url));
   }
 
   function getJson(url) {

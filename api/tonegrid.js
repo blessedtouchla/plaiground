@@ -1054,6 +1054,7 @@ async function trackAudio(req, res, trackId) {
   const contentType = headerValue(req, 'content-type');
   let raw = null;
   let hopKey = '';
+  let hopType = contentType;
   let chunkMeta = null;
   if (/application\/json/i.test(contentType)) {
     let body;
@@ -1077,6 +1078,7 @@ async function trackAudio(req, res, trackId) {
     }
     const wrapped = objectStore.asMultipart('audio', hopped.filename, hopped.contentType || 'audio/wav', hopped.body);
     raw = wrapped.rawBody;
+    hopType = wrapped.contentType;
   } else if (/multipart\/form-data/i.test(contentType)) {
     const declared = Number(headerValue(req, 'content-length') || 0);
     if (declared > MAX_AUDIO_TRANSIT_BYTES) {
@@ -1212,7 +1214,7 @@ async function trackAudio(req, res, trackId) {
   const result = await tonegridFetch('/tracks/' + id + '/audio', {
     method: 'POST',
     rawBody: prepared.rawBody,
-    contentType: prepared.contentType || contentType,
+    contentType: prepared.contentType || hopType || contentType,
     idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(prepared.rawBody || raw)),
   });
   const payload = result.data && typeof result.data === 'object' ? Object.assign({}, result.data) : result.data;
