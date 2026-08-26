@@ -74,6 +74,8 @@ const {
   normalizeReleaseDate,
   normalizeReleaseType,
   notConfigured,
+  parseStoreListMeta,
+  parseStoreRows,
   parseStoreSlugs,
   readBody,
   sendJson,
@@ -1343,6 +1345,17 @@ async function royalties(req, res) {
   await loadRoyalties(req, res);
 }
 
+function mergeStoreRows(into, rows) {
+  const seen = Object.create(null);
+  into.forEach((row) => { if (row && row.slug) seen[row.slug] = true; });
+  (rows || []).forEach((row) => {
+    if (!row || !row.slug || seen[row.slug]) return;
+    seen[row.slug] = true;
+    into.push(row);
+  });
+  return into;
+}
+
 async function loadOfficialStores() {
   if (!isConfigured()) {
     return {
@@ -1352,13 +1365,49 @@ async function loadOfficialStores() {
       youtube_music: YOUTUBE_MUSIC_SLUG,
     };
   }
-  const result = await tonegridFetch('/supply-chain/dsps', { method: 'GET' });
-  const slugs = result.ok ? parseStoreSlugs(result.data) : [];
-  const stores = (slugs.length ? slugs : documentedStores()).map((slug) => ({ slug, name: slug }));
+  const stores = [];
+  let page = 1;
+  let cursor = '';
+  let live = false;
+  for (let hop = 0; hop < 20; hop += 1) {
+    const query = { per_page: 100, page: page };
+    if (cursor) query.cursor = cursor;
+    const result = await tonegridFetch('/supply-chain/dsps', {
+      method: 'GET',
+      query: query,
+      timeoutMs: LIST_HOP_TIMEOUT_MS,
+    });
+    if (!result.ok) break;
+    const rows = parseStoreRows(result.data);
+    if (!rows.length && !stores.length) break;
+    mergeStoreRows(stores, rows);
+    live = stores.length > 0;
+    const meta = parseStoreListMeta(result.data);
+    if (meta.nextCursor && (meta.hasMore || hop === 0)) {
+      cursor = meta.nextCursor;
+      continue;
+    }
+    if (meta.lastPage && page < meta.lastPage) {
+      page += 1;
+      cursor = '';
+      continue;
+    }
+    if (meta.total && stores.length < meta.total && rows.length) {
+      page += 1;
+      cursor = '';
+      continue;
+    }
+    if (!meta.lastPage && !meta.nextCursor && rows.length >= 100) {
+      page += 1;
+      continue;
+    }
+    break;
+  }
+  const fallback = documentedStores().map((slug) => ({ slug, name: slug }));
   return {
     configured: true,
-    source: slugs.length ? 'tonegrid' : 'tonegrid-docs',
-    stores,
+    source: live ? 'tonegrid' : 'tonegrid-docs',
+    stores: stores.length ? stores : fallback,
     youtube_music: YOUTUBE_MUSIC_SLUG,
   };
 }

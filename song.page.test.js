@@ -757,6 +757,46 @@ function testSongLoadHangRetry() {
   });
 }
 
+function testEditLiveStoreCount() {
+  const catalog87 = [];
+  for (let i = 0; i < 87; i += 1) catalog87.push({ slug: 'live-' + i, name: 'Live ' + i });
+  const page = loadSong({
+    fetch(url) {
+      if (String(url).indexOf('/api/tonegrid/stores') !== -1) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ stores: catalog87 }),
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ releases: [] }) });
+    },
+  });
+  page.api.openEdit({
+    me: { artist: 'Fuvtu', plan: 'basic', tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'] },
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      made_how: 'no_ai',
+      dsps_all: true,
+    },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fuvtu',
+      status: 'pending',
+      dsps: [],
+    },
+  });
+  return new Promise(function (resolve) { setImmediate(resolve); }).then(function () {
+    return new Promise(function (resolve) { setImmediate(resolve); });
+  }).then(function () {
+    const summary = page.nodes['[data-store-summary]'].textContent;
+    assert.strictEqual(summary, 'All 87 stores will receive this release.');
+    assert.ok(summary.indexOf('55') === -1);
+    assert.ok(summary.indexOf('150') === -1);
+  });
+}
+
 function run() {
   const html = read('song.html');
   const css = read('site.css');
@@ -1874,7 +1914,7 @@ function run() {
               assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
               assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
               assert.notStrictEqual(leftover.context.location.href, 'releases.html');
-              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(function () {
+              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(function () {
                 console.log('song.page.test.js ok');
               });
             });

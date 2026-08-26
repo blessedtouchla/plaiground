@@ -923,9 +923,17 @@ function run() {
   const review = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(review.indexOf('Pre-select all stores') !== -1);
   assert.ok(review.indexOf('data-store-customize') !== -1);
+  assert.ok(review.indexOf('All stores will receive this release.') !== -1);
+  assert.ok(!/\b55 stores\b/.test(review));
+  assert.ok(!/\b150 stores\b/.test(review));
   assert.ok(review.indexOf('164 of 165 stores') === -1);
   assert.ok(review.indexOf('All 156 other stores') === -1);
   assert.ok(review.indexOf('164 of 163 stores') === -1);
+
+  const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
+  assert.ok(uploadHtml.indexOf('All stores will receive this release.') !== -1);
+  assert.ok(!/\b55 stores\b/.test(uploadHtml));
+  assert.ok(!/\b150 stores\b/.test(uploadHtml));
 
   const submitted = fs.readFileSync(path.join(__dirname, 'submitted.html'), 'utf8');
   assert.ok(submitted.indexOf('data-submit-stores') !== -1);

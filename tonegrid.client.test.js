@@ -161,6 +161,29 @@ function load(options) {
     attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
   const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
+  const storeAll = makeEl({
+    id: 'tg-store-all',
+    type: 'checkbox',
+    checked: true,
+    attrs: { 'data-store-all': '' },
+  });
+  const storeCustomize = makeEl({ attrs: { 'data-store-customize': '' } });
+  storeCustomize.textContent = 'Customize';
+  const storeSummary = makeEl({ attrs: { 'data-store-summary': '' } });
+  storeSummary.textContent = 'All stores will receive this release.';
+  const storeList = makeEl({ attrs: { 'data-store-list': '' } });
+  const storePick = makeEl({ attrs: { 'data-store-pick': '' } });
+  storePick.appendChild(storeAll);
+  storePick.appendChild(storeCustomize);
+  storePick.appendChild(storeSummary);
+  storePick.appendChild(storeList);
+  storePick.querySelector = function (sel) {
+    if (sel === '[data-store-all]') return storeAll;
+    if (sel === '[data-store-customize]') return storeCustomize;
+    if (sel === '[data-store-summary]') return storeSummary;
+    if (sel === '[data-store-list]' || sel === '[data-edit-stores]') return storeList;
+    return null;
+  };
   const calls = [];
   const confirms = [];
   const localStorage = makeStorage();
@@ -316,6 +339,13 @@ function load(options) {
         }
         if (sel === '[data-submit-stores]') {
           return opts.bind === 'submitted' ? submitStores : null;
+        }
+        if (opts.storePick) {
+          if (sel === '[data-store-pick]') return storePick;
+          if (sel === '[data-store-all]') return storeAll;
+          if (sel === '[data-store-customize]') return storeCustomize;
+          if (sel === '[data-store-summary]') return storeSummary;
+          if (sel === '[data-store-list]' || sel === '[data-edit-stores]') return storeList;
         }
         if (sel === '[data-audio-input]') {
           return opts.file ? { files: [opts.file], _plaigroundFile: opts.file } : null;
@@ -494,6 +524,8 @@ function load(options) {
     attestStep,
     reviewStep,
     submitStores,
+    storeSummary,
+    storePick,
     artist,
     artistMode,
     artistSelect,
@@ -3494,6 +3526,40 @@ async function run() {
   assert.strictEqual(submittedLiveOverStale.submitStores.textContent, 'All 41 stores');
   assert.ok(submittedLiveOverStale.submitStores.textContent.indexOf('55') === -1);
   assert.strictEqual(draftOf(submittedLiveOverStale.localStorage).dsps_total, 41);
+
+  const catalog87 = [];
+  for (let i = 0; i < 87; i += 1) catalog87.push({ slug: 'live-' + i, name: 'Live ' + i });
+  const uploadLiveCatalog = load({
+    storePick: true,
+    catalogStores: catalog87,
+  });
+  await flush();
+  assert.strictEqual(uploadLiveCatalog.storeSummary.textContent, 'All 87 stores will receive this release.');
+  assert.ok(uploadLiveCatalog.storeSummary.textContent.indexOf('55') === -1);
+  assert.ok(uploadLiveCatalog.storeSummary.textContent.indexOf('150') === -1);
+  assert.strictEqual(draftOf(uploadLiveCatalog.localStorage).dsps_total, 87);
+
+  const reviewLiveCatalog = load({
+    bind: 'review',
+    page: 'review.html',
+    storePick: true,
+    catalogStores: catalog87,
+    draft: { title: 'Night Drive', dsps_all: true },
+  });
+  await flush();
+  assert.strictEqual(reviewLiveCatalog.storeSummary.textContent, 'All 87 stores will receive this release.');
+  assert.ok(reviewLiveCatalog.storeSummary.textContent.indexOf('55') === -1);
+  assert.strictEqual(draftOf(reviewLiveCatalog.localStorage).dsps_total, 87);
+
+  const submittedLive87 = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: { title: 'Night Drive', dsps_all: true },
+    catalogStores: catalog87,
+  });
+  await flush();
+  assert.strictEqual(submittedLive87.submitStores.textContent, 'All 87 stores');
+  assert.ok(submittedLive87.submitStores.textContent.indexOf('55') === -1);
 
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
