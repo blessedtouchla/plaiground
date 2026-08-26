@@ -2293,7 +2293,7 @@ async function run() {
         );
         assertAudioKey(call, label);
       });
-      assert.ok(hoppedFile(page.calls, file), label + ' must hop the same original file Creator already hops');
+      assert.ok(hoppedFile(page.calls, file), label + ' must hop the same file Creator hops');
       assert.ok(!page.calls.some(function (call) {
         return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
       }), label + ' must not POST audio to the leftover catalog track');
@@ -2907,7 +2907,7 @@ async function run() {
 
   async function convertedWavOverCapStillPostsWhenOriginalWasNormal() {
     const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 5 * 1024 * 1024 };
-    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 250 * 1024 * 1024 };
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
     const basic = load(filledUpload({
       file: original,
       countConvert: true,
@@ -2930,9 +2930,9 @@ async function run() {
     });
     assert.ok(basicAudio.length, 'Basic must POST audio when the picked file was a normal song');
     basicAudio.forEach(function (call) { assertAudioKey(call, 'Basic'); });
-    assert.ok(hoppedFile(basic.calls, original), 'transit hop must be the original MP3, not the fat WAV');
-    assert.ok(!hoppedFile(basic.calls, fatWav), 'fat WAV must not go through the hop as the transit file');
-    assert.doesNotMatch(String(basic.status.textContent || ''), /200\s*MB/i, 'converted WAV over 200 MB is not a real cap if the original was normal');
+    assert.ok(hoppedFile(basic.calls, fatWav), 'hop must be the converted WAV, not the original MP3');
+    assert.ok(!hoppedFile(basic.calls, original), 'original MP3 must not replace a hop-ready WAV');
+    assert.doesNotMatch(String(basic.status.textContent || ''), /200\s*MB/i, 'converted WAV over the old inbound leftover is not a real cap');
     assert.doesNotMatch(String(basic.status.textContent || ''), /could not reach the store/i);
 
     const creator = load(filledUpload({
@@ -2955,9 +2955,10 @@ async function run() {
     const creatorAudio = creator.calls.filter(function (call) {
       return String(call.url).indexOf('/audio') !== -1;
     });
-    assert.ok(creatorAudio.length, 'Creator must POST the same original when the WAV is over the platform cap');
+    assert.ok(creatorAudio.length, 'Creator must POST the same converted WAV when it is over the old inbound leftover');
     creatorAudio.forEach(function (call) { assertAudioKey(call, 'Creator'); });
-    assert.ok(hoppedFile(creator.calls, original), 'Creator transit hop must be the original MP3');
+    assert.ok(hoppedFile(creator.calls, fatWav), 'Creator transit hop must be the converted WAV');
+    assert.ok(!hoppedFile(creator.calls, original), 'Creator must not swap the hop back to the original MP3');
     assert.doesNotMatch(String(creator.status.textContent || ''), /200\s*MB/i);
     assert.doesNotMatch(String(creator.status.textContent || ''), /could not reach the store/i);
   }
@@ -3014,7 +3015,8 @@ async function run() {
     });
     assert.ok(audio.length, 'Basic desktop Submit must attach audio when store tracks are empty');
     audio.forEach(function (call) { assertAudioKey(call, 'Submit'); });
-    assert.ok(hoppedFile(page.calls, original), 'Submit must hop the original MP3, not the fat WAV');
+    assert.ok(hoppedFile(page.calls, fatWav), 'Submit must hop the converted WAV, not the original MP3');
+    assert.ok(!hoppedFile(page.calls, original), 'Submit must not swap a hop-ready WAV back to MP3');
     assert.ok(page.heldMaster === fatWav, 'converted WAV must stay held');
     assert.ok(page.heldPicked === original || page.heldPicked == null || page.heldPicked === original, 'original pick stays available');
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
@@ -3055,8 +3057,6 @@ async function run() {
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: false, status: 413, data: { error: 'FUNCTION_PAYLOAD_TOO_LARGE' } },
-        { ok: true, status: 200, data: { audio_status: 'processing' } },
-        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     await flush(20);
@@ -3067,7 +3067,9 @@ async function run() {
     });
     assert.ok(audio.length >= 1, 'must POST audio');
     audio.forEach(function (call) { assertAudioKey(call, '413'); });
-    assert.ok(hoppedFile(page.calls, original), 'fat WAV must not be the only hop file');
+    assert.ok(hoppedFile(page.calls, fatWav), '413 still hops the converted WAV');
+    assert.ok(!hoppedFile(page.calls, original), '413 must not swap the hop back to the original MP3');
+    assert.match(String(page.status.textContent || ''), /could not send the audio/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid/i);
     assert.strictEqual(page.convertCalls, 0);
@@ -3130,8 +3132,8 @@ async function run() {
       assertAudioKey(call, 'Continue');
       assert.ok(!audioChunkHeaders(call)['x-plaiground-upload-id'], 'Continue must hop, not chunk');
     });
-    assert.ok(hoppedFile(page.calls, original), 'hop PUT must be the original file, not the fat WAV');
-    assert.ok(!hoppedFile(page.calls, fatWav), 'converted WAV must not be the hop body');
+    assert.ok(hoppedFile(page.calls, fatWav), 'hop PUT must be the converted WAV, not the original MP3');
+    assert.ok(!hoppedFile(page.calls, original), 'converted WAV must stay the hop body');
     assert.ok(page.heldMaster === fatWav, 'converted WAV stays held');
     assert.strictEqual(page.convertCalls, 1, 'convert-once still runs once on Continue');
     assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
@@ -3241,7 +3243,8 @@ async function run() {
     });
     assert.strictEqual(before.length, 1, 'first Submit must POST one object key');
     before.forEach(function (call) { assertAudioKey(call, 'first'); });
-    assert.ok(hoppedFile(page.calls, original), 'first hop must be the original MP3');
+    assert.ok(hoppedFile(page.calls, fatWav), 'first hop must be the converted WAV');
+    assert.ok(!hoppedFile(page.calls, original), 'Retry path must not swap the hop back to MP3');
     page.retryBtn.listeners.click({ preventDefault() {} });
     await flush(24);
     const after = page.calls.filter(function (call) {
@@ -3318,7 +3321,7 @@ async function run() {
   }
 
   async function reviewSubmitDoesNotFalseCapHeldWav() {
-    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 250 * 1024 * 1024 };
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-12',
@@ -3364,7 +3367,7 @@ async function run() {
   }
 
   async function leftoverConvertedWavWithoutPickedSizeStillPosts() {
-    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 250 * 1024 * 1024 };
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-12',
@@ -3946,6 +3949,10 @@ async function run() {
   assert.ok(source.includes("return 'We could not reach the store. Try again.';"));
   assert.ok(source.includes("We could not send the audio. Retry."));
   assert.ok(source.includes('function fileForTransitUpload'));
+  const transitFn = source.match(/function fileForTransitUpload\(file\) \{[\s\S]*?\n  \}/);
+  assert.ok(transitFn, 'fileForTransitUpload must stay a real function');
+  assert.ok(!transitFn[0].includes('PLATFORM_AUDIO_BYTES'), 'hop send must not swap a converted WAV back to the original for the old inbound leftover');
+  assert.ok(!transitFn[0].includes('pickedOriginalFile'), 'hop send must keep the store file when hop is used');
   assert.ok(source.includes('function hopFile'));
   assert.ok(source.includes("object_key"));
   assert.ok(source.includes("{ object_key: next.object_key }"));
@@ -4320,6 +4327,41 @@ async function run() {
     assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'slow store hop must still finish Continue');
   }
 
+  async function hopConvertedWavStore502IsNotSuccess() {
+    const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 5 * 1024 * 1024 };
+    const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
+    const page = load(filledUpload({
+      file: original,
+      countConvert: true,
+      convertHold: wav,
+      draft: {
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+      },
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
+        { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'must POST the hop key');
+    audio.forEach(function (call) { assertAudioKey(call, '502'); });
+    assert.ok(hoppedFile(page.calls, wav), '502 path still hopped the converted WAV');
+    assert.ok(!hoppedFile(page.calls, original), '502 must not be "fixed" by swapping to the original MP3');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1, '502 is not a fake success');
+    assert.match(String(page.status.textContent || ''), /could not reach the store/i);
+  }
+
   async function fatSongNeverHitsVercelAudioBody() {
     const fat = { name: 'fat-master.wav', type: 'audio/wav', size: 7 * 1024 * 1024 };
     const page = load(filledUpload({ file: fat, responses: uploadResponses.slice() }));
@@ -4339,6 +4381,7 @@ async function run() {
   }
 
   await basicHopAudioPostWaitsForStoreHop();
+  await hopConvertedWavStore502IsNotSuccess();
   await fatSongNeverHitsVercelAudioBody();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();

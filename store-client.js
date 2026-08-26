@@ -970,14 +970,7 @@
   }
 
   function fileForTransitUpload(file) {
-    var send = fileForStoreUpload(file) || file || heldAudioFile;
-    var picked = pickedOriginalFile(file);
-    var sendSize = send && send.size != null ? Number(send.size) : 0;
-    var pickedSize = picked && picked.size != null ? Number(picked.size) : 0;
-    if (send && sendSize > PLATFORM_AUDIO_BYTES && picked && pickedSize > 0 && pickedSize <= MAX_AUDIO_BYTES) {
-      return picked;
-    }
-    return send;
+    return fileForStoreUpload(file) || file || heldAudioFile;
   }
 
   function needsAudioUpload(draft, file) {
@@ -2545,24 +2538,6 @@
         noteStoreFailure(result, err);
         return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: AUDIO_SEND_COPY } }) };
       }
-      function maybeFallback(result) {
-        var picked = pickedOriginalFile(file);
-        if (
-          result
-          && !result.ok
-          && isPlatformPayloadError((result.data && result.data.error) || '', result.status)
-          && transit
-          && looksLikeWav(transit)
-          && picked
-          && picked !== transit
-          && !audioOverRealCap(picked)
-        ) {
-          return postFile(picked).then(interpret).catch(function (retryErr) {
-            return interpret(null, retryErr);
-          });
-        }
-        return interpret(result);
-      }
       return postFile(transit).then(function (result) {
         if (result && result.ok) return { uploaded: true, result: result };
         if (isUnavailable(result)) return { unavailable: true, result: result };
@@ -2573,7 +2548,7 @@
             return interpret(null, retryErr);
           });
         }
-        return maybeFallback(result);
+        return interpret(result);
       }).catch(function (err) {
         if (isNoStoreResponse(null, err)) {
           return postFile(transit).then(function (retry) {
