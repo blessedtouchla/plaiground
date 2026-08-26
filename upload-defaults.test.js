@@ -215,11 +215,17 @@ function fillableCatalogSelect(id, placeholder) {
     setAttribute(name, value) { this.attrs[name] = String(value); },
     removeAttribute(name) { delete this.attrs[name]; },
     dispatchEvent() {},
-    addEventListener() {},
+    listeners: {},
+    addEventListener(type, fn) { this.listeners[type] = fn; },
     querySelectorAll(sel) { return sel === 'option' ? this.options : []; },
     appendChild(child) {
       child.parentNode = this;
       this.options.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const i = this.options.indexOf(child);
+      if (i !== -1) this.options.splice(i, 1);
       return child;
     },
   };
@@ -270,6 +276,12 @@ function withPointerEnv(opts, fn) {
     },
     addEventListener() {},
     getElementById() { return null; },
+    querySelector(sel) {
+      if (opts.reviewPage && (sel === '[data-store-submit]' || sel === '[data-review-title]')) {
+        return { id: 'review-marker' };
+      }
+      return null;
+    },
   };
   try {
     fn(created);
@@ -355,8 +367,72 @@ function testDesktopTypeaheadStillBindsOnFinePointer(catalog) {
   });
 }
 
-function testEditUsesNativeCatalogSelectOnIos(catalog) {
+function assertTypeToFilterFindsHipHop(catalog, created, id, items, getValue, getLabel, pickValue, pickLabel, message) {
+  const select = fillableCatalogSelect(id, id.indexOf('language') !== -1 ? 'Select language' : 'Select genre');
+  catalog.fillUploadSelects({
+    getElementById(found) { return found === id ? select : null; },
+  });
+  if (!catalog.isTypeaheadBound(select)) {
+    catalog.bindTypeahead(select, items, getValue, getLabel);
+  }
+  const ui = typeaheadNodes(select);
+  assert.ok(ui.input, message + ' must offer type-to-filter');
+  ui.input.value = id.indexOf('language') !== -1 ? 'spa' : 'hip';
+  if (ui.input.listeners.input) ui.input.listeners.input();
+  const hip = select.options.some(function (opt) {
+    return opt.value === pickValue || opt.textContent === pickLabel;
+  });
+  const listed = ui.list && listButtons(ui.list).some(function (btn) { return btn.textContent === pickLabel; });
+  assert.ok(hip || listed, message + ' typing must find ' + pickLabel);
+  if (listed) pickFromList(ui.list, pickLabel);
+  else {
+    select.value = pickValue;
+    if (select.listeners.change) select.listeners.change();
+  }
+  assert.strictEqual(select.value, pickValue, message + ' pick must stick');
+  return { select: select, ui: ui };
+}
+
+function testEditTypeToFilterOnIos(catalog) {
   withPointerEnv({ coarse: true, phoneWidth: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15', platform: 'iPhone', maxTouchPoints: 5 }, function (created) {
+    assertTypeToFilterFindsHipHop(
+      catalog, created, 'edit-genre', catalog.GENRES,
+      function (name) { return name; }, function (name) { return name; },
+      'Hip-Hop', 'Hip-Hop', 'Edit iPhone genre'
+    );
+    assertTypeToFilterFindsHipHop(
+      catalog, created, 'edit-language', catalog.LANGUAGES,
+      function (row) { return row.code; }, function (row) { return row.name; },
+      'es', 'Spanish', 'Edit iPhone language'
+    );
+    assert.ok(created.some(function (node) { return node.className === 'typeahead-input'; }), 'Edit mobile uses type-to-filter, not a bare native picker');
+  });
+}
+
+function testReviewTypeToFilterOnIos(catalog) {
+  withPointerEnv({
+    coarse: true,
+    phoneWidth: true,
+    reviewPage: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15',
+    platform: 'iPhone',
+    maxTouchPoints: 5,
+  }, function (created) {
+    assertTypeToFilterFindsHipHop(
+      catalog, created, 'tg-genre', catalog.GENRES,
+      function (name) { return name; }, function (name) { return name; },
+      'Hip-Hop', 'Hip-Hop', 'Submit review iPhone genre'
+    );
+    assertTypeToFilterFindsHipHop(
+      catalog, created, 'tg-language', catalog.LANGUAGES,
+      function (row) { return row.code; }, function (row) { return row.name; },
+      'es', 'Spanish', 'Submit review iPhone language'
+    );
+  });
+}
+
+function testEditDesktopTypeaheadFiltersHip(catalog) {
+  withPointerEnv({ coarse: false, phoneWidth: false, innerWidth: 1440, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' }, function (created) {
     const genre = fillableCatalogSelect('edit-genre', 'Select genre');
     const language = fillableCatalogSelect('edit-language', 'Select language');
     catalog.fillUploadSelects({
@@ -366,15 +442,22 @@ function testEditUsesNativeCatalogSelectOnIos(catalog) {
         return null;
       },
     });
-    assert.ok(!created.some(function (node) { return node.className === 'typeahead-input'; }), 'Edit genre/language use the native picker on iPhone');
-    assert.ok(genre.options.length >= 180, 'Edit genre keeps the catalog list');
-    assert.ok(language.options.length >= 180, 'Edit language keeps the catalog list');
-    genre.value = 'Pop';
-    language.value = 'en';
-    assert.strictEqual(genre.value, 'Pop');
-    assert.strictEqual(language.value, 'en');
-    assert.ok(!genre.classList.tokens['is-typeahead-source']);
-    assert.ok(!language.classList.tokens['is-typeahead-source']);
+    const genreUi = typeaheadNodes(genre);
+    const langUi = typeaheadNodes(language);
+    assert.ok(genreUi.input && genreUi.list, 'desktop Edit genre uses the typeahead overlay');
+    assert.ok(langUi.input && langUi.list, 'desktop Edit language uses the typeahead overlay');
+    genreUi.input.listeners.focus();
+    genreUi.input.value = 'hip';
+    genreUi.input.listeners.input();
+    assert.ok(listButtons(genreUi.list).some(function (btn) { return /hip/i.test(btn.textContent); }), 'desktop Edit typing hip filters genres');
+    pickFromList(genreUi.list, 'Hip-Hop');
+    assert.strictEqual(genre.value, 'Hip-Hop', 'desktop Edit genre pick sticks');
+    langUi.input.listeners.focus();
+    langUi.input.value = 'spa';
+    langUi.input.listeners.input();
+    assert.ok(listButtons(langUi.list).some(function (btn) { return btn.textContent === 'Spanish'; }), 'desktop Edit typing spa filters languages');
+    pickFromList(langUi.list, 'Spanish');
+    assert.strictEqual(language.value, 'es', 'desktop Edit language pick sticks');
   });
 }
 
@@ -645,6 +728,15 @@ function run() {
   assert.ok(/iPad\|iPhone\|iPod/.test(catalogSrc), 'native picker must detect iOS Safari');
   assert.ok(catalogSrc.indexOf('max-width: 720px') !== -1, 'native picker must detect a phone-width viewport');
   assert.ok(catalogSrc.indexOf('isBasicUploadCatalogSelect') !== -1, 'native picker is scoped to Basic upload genre/language');
+  assert.ok(catalogSrc.indexOf('preferTypeToFilterNative') !== -1, 'Edit and Submit review get type-to-filter on phone');
+  assert.ok(catalogSrc.indexOf('isSubmitReviewPage') !== -1, 'Submit review must not use the Basic upload native picker');
+  assert.ok(catalogSrc.indexOf('bindTypeToFilterNative') !== -1, 'Edit/Submit phone fallback still finds Hip-Hop by typing');
+  const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.ok(/id="tg-genre"/.test(reviewHtml), 'Submit review has the same genre field as Creator');
+  assert.ok(/id="tg-language"/.test(reviewHtml), 'Submit review has the same language field as Creator');
+  assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
+  assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review Cancel must not say Save and exit');
+  assert.ok(reviewHtml.indexOf('upload-catalog.js') !== -1, 'Submit review loads the Creator catalog lists');
   assert.ok(catalogSrc.indexOf('isCoarsePointer') !== -1 && catalogSrc.indexOf('pointer: coarse') !== -1, 'iPhone must not use the desktop fixed overlay');
   assert.ok(catalogSrc.indexOf('Do not rewrite the visible field while') !== -1, 'genre labels must not autofill mid-type');
   assert.ok(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{[\s\S]*?html\.is-typeahead-open[\s\S]*?pointer-events:\s*none/.test(css), 'desktop open genre still disables the language field under the list');
@@ -957,7 +1049,9 @@ function run() {
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesNativeCatalogSelect(catalog);
     testDesktopTypeaheadStillBindsOnFinePointer(catalog);
-    testEditUsesNativeCatalogSelectOnIos(catalog);
+    testEditTypeToFilterOnIos(catalog);
+    testReviewTypeToFilterOnIos(catalog);
+    testEditDesktopTypeaheadFiltersHip(catalog);
   } finally {
     if (prevDoc2 === undefined) delete global.document;
     else global.document = prevDoc2;

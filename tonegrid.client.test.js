@@ -3329,7 +3329,9 @@ async function run() {
   assert.ok(source.includes('function cancelInProgressUpload'));
   assert.ok(source.includes('Cancel this upload? This loses the in-progress info.'));
   assert.ok(!source.includes('function uploadCancelHasStarted'));
-  assert.ok(source.includes("location.href = 'upload.html?new=1'"));
+  assert.ok(source.includes("leaveAfterCancel('upload.html?new=1')") || source.includes("location.href = 'upload.html?new=1'"));
+  assert.ok(source.includes("leaveAfterCancel('dashboard.html')") || source.includes("location.href = 'dashboard.html'"), 'Submit Cancel lands on the dashboard');
+  assert.ok(source.includes('function cancelInProgressSubmit'));
   assert.ok(/data-upload-cancel/.test(uploadHtml));
   assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(uploadHtml), 'Cancel is a real secondary button');
   assert.ok(uploadHtml.indexOf('Save and exit') === -1, 'upload must not say Save and exit');
@@ -3362,6 +3364,10 @@ async function run() {
   assert.ok(source.includes('persistHeldAudio'));
   assert.ok(source.includes('isAudioRequiredError'));
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
+  assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review must not say Save and exit');
+  assert.ok(reviewHtml.indexOf('id="tg-genre"') !== -1, 'Submit review can change genre');
+  assert.ok(reviewHtml.indexOf('id="tg-language"') !== -1, 'Submit review can change language');
   assert.ok(reviewHtml.includes('data-upload-retry'));
   assert.ok(reviewHtml.includes('Retry'));
   assert.ok(!/ToneGrid/.test(reviewHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
@@ -3658,6 +3664,42 @@ async function run() {
     assert.ok(String(empty.location.href).indexOf('upload.html?new=1') !== -1);
   }
 
+  async function cancelOnSubmitReviewLandsOnDashboard() {
+    const review = load({
+      bind: 'review',
+      page: 'review.html',
+      title: 'Mexeu',
+      draft: {
+        title: 'Mexeu',
+        name: 'Ada Night',
+        genre: 'Afrobeats',
+        language: 'en',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        lyrics: 'leftover verse',
+      },
+    });
+    assert.strictEqual(draftOf(review.localStorage).title, 'Mexeu');
+    review.cancelBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(review.confirms[0], 'Cancel this upload? This loses the in-progress info.');
+    assert.strictEqual(review.localStorage.getItem('plaiground.store.draft'), null, 'Submit Cancel clears the leftover draft');
+    assert.strictEqual(review.sessionStorage.getItem('plaiground.store.draft'), null, 'Submit Cancel clears the session draft');
+    assert.ok(String(review.location.href).indexOf('dashboard.html') !== -1, 'Submit Cancel lands on the signed-in dashboard');
+    assert.ok(String(review.location.href).indexOf('upload.html?new=1') === -1, 'Submit Cancel is not New release Cancel');
+    assert.ok(cancelDoesNotDeleteCatalog(review), 'Submit Cancel must not delete existing catalog releases');
+
+    const keep = load({
+      bind: 'review',
+      page: 'review.html',
+      title: 'Mexeu',
+      draft: { title: 'Mexeu', release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
+      confirm: false,
+    });
+    keep.cancelBtn.listeners.click({ preventDefault() {} });
+    assert.strictEqual(keep.confirms[0], 'Cancel this upload? This loses the in-progress info.');
+    assert.strictEqual(draftOf(keep.localStorage).title, 'Mexeu', 'dismissing Submit Cancel keeps the in-progress form');
+    assert.ok(String(keep.location.href).indexOf('dashboard.html') === -1);
+  }
+
   async function basicGenreLanguagePickSticks() {
     const page = load(filledUpload({
       genre: '',
@@ -3705,6 +3747,7 @@ async function run() {
   await basicArtistProfileAutoSelects();
   await basicGenreLanguagePickSticks();
   await cancelClearsDraftAndNextNewReleaseIsBlank();
+  await cancelOnSubmitReviewLandsOnDashboard();
 
   console.log('tonegrid.client.test.js ok');
 }

@@ -22,7 +22,7 @@
         <p class="kicker">Submit a song</p>
         <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Review and pay</h1>
       </div>
-      <a class="learn" href="dashboard.html">Save and exit</a>
+      <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
     </div>
     <div class="stepper">
       <a class="st" href="upload.html"><b>01 Upload Audio</b><span class="done">Complete</span></a>
@@ -40,6 +40,20 @@
               <b data-review-title>SONG TITLE</b>
               <div style="color:var(--muted);font-size:13px" data-review-meta>Artist name · Single · Electronic</div>
               <div style="color:var(--muted);font-size:13px">Release date set at submit · Duration after upload · ISRC auto-assigned</div>
+            </div>
+          </div>
+          <div class="form-grid" style="margin-top:16px">
+            <div class="field">
+              <label for="tg-genre">Genre</label>
+              <select id="tg-genre" name="release-genre" class="details-select" autocomplete="off">
+                <option value="">Select genre</option>
+              </select>
+            </div>
+            <div class="field" data-language-field>
+              <label for="tg-language">Language</label>
+              <select id="tg-language" name="release-language" class="details-select" autocomplete="off">
+                <option value="">Select language</option>
+              </select>
             </div>
           </div>
         </section>
@@ -164,6 +178,7 @@
   </div>
   <script src="lib/upload-required.js"></script>
   <script src="lib/store-pick.js"></script>
+  <script src="upload-catalog.js"></script>
   <script src="store-client.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
