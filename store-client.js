@@ -192,10 +192,20 @@
     return /audio must be 200\s*mb or smaller/i.test(String(text || ''));
   }
 
+  var STEP_FAIL_COPY = 'We could not finish this step.';
+
+  function isIdempotencyReuseError(text) {
+    var raw = String(text || '');
+    return /idempotency[- ]key/i.test(raw)
+      || /reused with a different request body/i.test(raw)
+      || (/rotate the key/i.test(raw) && /request body/i.test(raw));
+  }
+
   function sanitizePartnerCopy(text, status) {
     var next = humanErrorText(text, '');
     if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
+    if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -235,6 +245,8 @@
         next.error = catalogTimeoutMessage();
       } else if (isSizeCapError(next.error || next.message)) {
         next.error = AUDIO_SIZE_COPY;
+      } else if (isIdempotencyReuseError(next.error || next.message)) {
+        next.error = STEP_FAIL_COPY;
       }
       return { ok: response.ok, status: response.status, data: next };
     }).catch(function () {
@@ -902,6 +914,7 @@
   var sessionReleaseChecked = '';
   var sessionReleaseVerified = '';
   var sessionReleaseTracks = [];
+  var sessionReleaseTracksListed = false;
   var deadReleaseIds = [];
   var heldAudioFile = null;
   var AUDIO_HOLD_DB = 'plaiground-held-audio';
@@ -1085,7 +1098,7 @@
     return pickedAudioEvidence(draft) || Boolean(draft && String(draft.title || '').trim());
   }
 
-  function rememberSessionRelease(id, verified, tracks) {
+  function rememberSessionRelease(id, verified, tracks, listed) {
     var next = String(id || '').trim();
     if (!next) return;
     var same = sameUuid(sessionReleaseId, next) || sameUuid(sessionReleaseChecked, next);
@@ -1094,8 +1107,10 @@
     if (verified) sessionReleaseVerified = next;
     if (arguments.length >= 3) {
       sessionReleaseTracks = tracks || [];
+      sessionReleaseTracksListed = listed === true;
     } else if (!same) {
       sessionReleaseTracks = [];
+      sessionReleaseTracksListed = false;
     }
   }
 
@@ -1136,6 +1151,7 @@
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
     sessionReleaseTracks = [];
+    sessionReleaseTracksListed = false;
     var stored = Array.isArray(current.tracks) ? current.tracks.map(function (track) {
       var next = {};
       Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
@@ -1148,7 +1164,9 @@
       release_id: '',
       track_id: '',
       release_idempotency_key: '',
+      release_idempotency_body: '',
       track_idempotency_key: '',
+      track_idempotency_body: '',
       audio_uploaded: false,
       audio_converted: false,
       submitted: false,
@@ -1161,6 +1179,55 @@
   function freshReleaseKey(draft) {
     releaseKeyNonce += 1;
     return ('plaiground-release-' + String((draft && draft.artist_id) || '') + ':' + String((draft && draft.title) || '') + ':' + String(Date.now()) + ':' + String(releaseKeyNonce)).slice(0, 255);
+  }
+
+  var trackKeyNonce = 0;
+  function freshTrackKey(draft, position) {
+    trackKeyNonce += 1;
+    return ('plaiground-track-' + String((draft && draft.release_id) || '') + ':' + String(position || 1) + ':' + String(Date.now()) + ':' + String(trackKeyNonce)).slice(0, 255);
+  }
+
+  var rotateIdempotencyOnce = false;
+
+  function stableIdempotencyBody(body) {
+    try {
+      return JSON.stringify(body || {});
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function rotateIdempotencyKeys() {
+    rotateIdempotencyOnce = true;
+    writeDraft({
+      release_idempotency_key: '',
+      track_idempotency_key: '',
+      release_idempotency_body: '',
+      track_idempotency_body: '',
+    });
+  }
+
+  function takeIdempotencyKey(kind, draft, body, forceRotate) {
+    var serialized = stableIdempotencyBody(body);
+    var keyField = kind === 'release' ? 'release_idempotency_key' : 'track_idempotency_key';
+    var bodyField = kind === 'release' ? 'release_idempotency_body' : 'track_idempotency_body';
+    var leftover = String((draft && draft[keyField]) || '');
+    var lastBody = String((draft && draft[bodyField]) || '');
+    var rotate = forceRotate === true
+      || rotateIdempotencyOnce
+      || !leftover
+      || !lastBody
+      || lastBody !== serialized;
+    var key = leftover;
+    if (rotate) {
+      key = kind === 'release' ? freshReleaseKey(draft) : freshTrackKey(draft, body && body.position);
+    }
+    rotateIdempotencyOnce = false;
+    var patch = {};
+    patch[keyField] = key;
+    patch[bodyField] = serialized;
+    writeDraft(patch);
+    return key;
   }
 
   function clearDeadReleaseIds(draft) {
@@ -1183,7 +1250,9 @@
       release_id: '',
       track_id: '',
       release_idempotency_key: freshReleaseKey(Object.assign({}, current, { artist_id: artistId })),
+      release_idempotency_body: '',
       track_idempotency_key: '',
+      track_idempotency_body: '',
       audio_uploaded: false,
       audio_converted: false,
       audio_attached: Boolean(current.audio_attached || hadAudioEvidence(current)),
@@ -1194,6 +1263,7 @@
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
     sessionReleaseTracks = [];
+    sessionReleaseTracksListed = false;
     var rows = qsAll('[data-track-row]');
     var i;
     for (i = 0; i < rows.length; i += 1) {
@@ -1325,6 +1395,7 @@
         reused: true,
         found: true,
         tracks: sessionReleaseTracks,
+        tracksListed: sessionReleaseTracksListed,
       });
     }
     if (id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
@@ -1334,6 +1405,7 @@
         reused: true,
         justCreated: true,
         tracks: sessionReleaseTracks,
+        tracksListed: sessionReleaseTracksListed,
       });
     }
     if (id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
@@ -1342,6 +1414,7 @@
         draft: current,
         reused: true,
         tracks: sessionReleaseTracks,
+        tracksListed: sessionReleaseTracksListed,
       });
     }
     if (!id) {
@@ -1355,8 +1428,13 @@
     }
     return fetchReleaseTracks(id).then(function (loaded) {
       if (loaded.ok) {
-        rememberSessionRelease(id, true, loaded.tracks);
-        return { ok: true, draft: current, found: true, tracks: loaded.tracks, result: loaded.result };
+        var listed = Boolean(
+          loaded.result
+          && loaded.result.data
+          && Object.prototype.hasOwnProperty.call(loaded.result.data, 'tracks')
+        );
+        rememberSessionRelease(id, true, loaded.tracks, listed);
+        return { ok: true, draft: current, found: true, tracks: loaded.tracks, tracksListed: listed, result: loaded.result };
       }
       if (isUnavailable(loaded.result)) {
         return { unavailable: true, result: loaded.result, draft: current };
@@ -1488,6 +1566,7 @@
       next = writeDraft({
         track_id: '',
         track_idempotency_key: '',
+        track_idempotency_body: '',
         audio_uploaded: false,
       });
     } else if (send && alreadyUploaded(next) && mustMint) {
@@ -1992,8 +2071,6 @@
         result: { data: { error: 'Could not create the track. Missing release or title.' } },
       });
     }
-    var key = trackKey(draft, position);
-    if (position === 1 && !draft.track_idempotency_key) writeDraft({ track_idempotency_key: key });
     var trackBody = {
       release_id: draft.release_id,
       title: title,
@@ -2003,6 +2080,7 @@
     };
     if (existingId) trackBody.track_id = existingId;
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
+    var key = takeIdempotencyKey('track', draft, trackBody, force);
     return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
@@ -2142,6 +2220,8 @@
             data.error = catalogTimeoutMessage();
           } else if (isSizeCapError((data && (data.error || data.message)) || xhr.responseText)) {
             data.error = AUDIO_SIZE_COPY;
+          } else if (isIdempotencyReuseError((data && (data.error || data.message)) || xhr.responseText)) {
+            data.error = STEP_FAIL_COPY;
           }
           done({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: data });
         };
@@ -2488,6 +2568,24 @@
       if (resolved.unavailable || resolved.limited || resolved.failed || resolved.missing) return resolved;
       var ready = resolved.draft || draft;
       if (ready.type === 'album') return afterAlbumRelease(ready);
+      var storeTracks = (resolved.tracks && resolved.tracks.length) ? resolved.tracks : [];
+      var listed = resolved.tracksListed === true || Boolean(
+        resolved.result
+        && resolved.result.data
+        && Object.prototype.hasOwnProperty.call(resolved.result.data, 'tracks')
+      );
+      if (storeTracks.length) {
+        ready = persistFoundTracks(ready, storeTracks);
+        return createTrackOnRelease(ready);
+      }
+      if (listed && (ready.track_id || ready.track_idempotency_key)) {
+        ready = writeDraft({
+          track_id: '',
+          track_idempotency_key: '',
+          track_idempotency_body: '',
+          audio_uploaded: false,
+        });
+      }
       return createTrackOnRelease(ready);
     });
   }
@@ -2547,9 +2645,9 @@
     if (!draft.artist_id || !draft.title) {
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
     }
-    var key = releaseKey(draft);
-    if (!draft.release_idempotency_key) writeDraft({ release_idempotency_key: key });
-    return post(RELEASES_URL, releasePayload(draft, releaseDate), key).then(function (result) {
+    var body = releasePayload(draft, releaseDate);
+    var key = takeIdempotencyKey('release', draft, body, Boolean(opts && opts.rotateKey));
+    return post(RELEASES_URL, body, key).then(function (result) {
       if (isUnavailable(result)) {
         return { unavailable: true, result: result, draft: draft };
       }
@@ -2571,8 +2669,9 @@
         var retryDraft = writeDraft({
           release_id: '',
           release_idempotency_key: freshReleaseKey(draft),
+          release_idempotency_body: '',
         });
-        return createRelease(retryDraft, releaseDate, { retriedDead: true });
+        return createRelease(retryDraft, releaseDate, { retriedDead: true, rotateKey: true });
       }
       var next = draft;
       if (releaseId) {
@@ -3337,7 +3436,9 @@
           tracks: [],
           album_count: '',
           release_idempotency_key: '',
+          release_idempotency_body: '',
           track_idempotency_key: '',
+          track_idempotency_body: '',
         });
       } else if (next === 'single' && draft.type === 'album') {
         writeDraft({
@@ -3347,7 +3448,9 @@
           tracks: [],
           album_count: '',
           release_idempotency_key: '',
+          release_idempotency_body: '',
           track_idempotency_key: '',
+          track_idempotency_body: '',
         });
       } else {
         writeDraft({ type: next });
@@ -3715,6 +3818,7 @@
       retryBtn.addEventListener('click', function (event) {
         event.preventDefault();
         if (uploadRunning) return;
+        rotateIdempotencyKeys();
         var ev = { preventDefault: function () {} };
         if (trigger && trigger.listeners && typeof trigger.listeners.click === 'function') {
           trigger.listeners.click(ev);
@@ -3803,6 +3907,7 @@
         var picked = audioFileOf(audioInput);
         if (picked && picked.name) {
           rememberPickedAudio(picked);
+          rotateIdempotencyKeys();
           writeDraft({
             audio_name: picked.name,
             audio_uploaded: false,
@@ -4449,6 +4554,7 @@
       retryBtn.addEventListener('click', function (event) {
         if (event && event.preventDefault) event.preventDefault();
         if (trigger.getAttribute('aria-busy') === 'true') return;
+        rotateIdempotencyKeys();
         showSubmitRetry(false);
         if (trigger.listeners && typeof trigger.listeners.click === 'function') {
           trigger.listeners.click({ preventDefault: function () {} });

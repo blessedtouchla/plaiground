@@ -2107,6 +2107,97 @@ async function run() {
     assert.ok(!/release not found/i.test(page.status.textContent));
   }
 
+  async function leftoverMintOnContinueRotatesTrackKey() {
+    const leftover = 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1';
+    const page = load(filledUpload({
+      genre: 'African Dancehall',
+      language: 'am',
+      price: '$0.69',
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        release_idempotency_key: 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive',
+        track_idempotency_key: leftover,
+      },
+      account: {
+        plan: 'basic',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const tracks = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    assert.ok(tracks.length, 'empty store tracks after leftover mint must POST a new track');
+    assert.notStrictEqual(tracks[0].init.headers['Idempotency-Key'], leftover);
+    assert.strictEqual(JSON.parse(tracks[0].init.body).language, 'am');
+    assert.strictEqual(JSON.parse(tracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    }), 'living leftover release must not mint a second release');
+    assert.strictEqual(draftOf(page.localStorage).track_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.ok(!/Idempotency-Key|request body|ToneGrid/i.test(page.status.textContent));
+  }
+
+  async function leftoverIdempotencyErrorIsNamelessAndRetryRotates() {
+    const leftover = 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1';
+    const reused = 'Idempotency-Key reused with a different request body. Either send the exact same body, or rotate the key.';
+    const page = load(filledUpload({
+      genre: 'African Dancehall',
+      language: 'am',
+      price: '$0.69',
+      draft: {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_idempotency_key: leftover,
+      },
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [] } },
+        { ok: false, status: 422, data: { error: reused } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(page.status.textContent, 'We could not finish this step.');
+    assert.ok(!/Idempotency-Key|request body|rotate the key|ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.retryWrap.hidden, false, 'leftover key reuse must show Retry');
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+    const first = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    assert.strictEqual(first.length, 1);
+    assert.notStrictEqual(first[0].init.headers['Idempotency-Key'], leftover);
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const after = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+    assert.ok(after.length > first.length, 'Retry must resend the track create');
+    assert.notStrictEqual(after[1].init.headers['Idempotency-Key'], first[0].init.headers['Idempotency-Key']);
+    assert.notStrictEqual(after[1].init.headers['Idempotency-Key'], leftover);
+    assert.strictEqual(JSON.parse(after[1].init.body).language, 'am');
+    assert.ok(!/Idempotency-Key|request body|rotate the key|ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.location.href, 'attest.html');
+  }
+
   async function reviewKeepsLivingReleaseForThisTitle() {
     const leftover = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     const living = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
@@ -3138,6 +3229,8 @@ async function run() {
   await trackReleaseNotFoundIsNotRewritten();
   await createPostShowsRealSanitizedError();
   await continuedDeadIdRetriesWithNewKey();
+  await leftoverMintOnContinueRotatesTrackKey();
+  await leftoverIdempotencyErrorIsNamelessAndRetryRotates();
   await reviewKeepsLivingReleaseForThisTitle();
   await reviewSubmitUsesStoreTracksWithoutFile();
   await reviewHeldFileUploadsAfterDeadRelease();
@@ -3282,6 +3375,10 @@ async function run() {
   assert.ok(!source.includes('164 of 163'));
   assert.ok(source.includes('createFreshFailed'));
   assert.ok(source.includes('freshReleaseKey'));
+  assert.ok(source.includes('freshTrackKey'));
+  assert.ok(source.includes('takeIdempotencyKey'));
+  assert.ok(source.includes('rotateIdempotencyKeys'));
+  assert.ok(source.includes("return 'We could not finish this step.';") || source.includes("'We could not finish this step.'"));
   assert.ok(source.includes('isReleaseMissing'));
   assert.ok(source.includes('Could not create the release. Retry.'));
   assert.ok(source.includes('detachForeignRelease'));
