@@ -79,9 +79,8 @@
 
     if (!topbar.querySelector(".logo")) {
       var brand = document.createElement("a");
-      var sideLogo = side.querySelector(".logo");
       brand.className = "logo mobile-only-logo";
-      brand.href = sideLogo ? (sideLogo.getAttribute("href") || "dashboard.html") : "dashboard.html";
+      brand.href = brandHomeHref(isSignedInPublic());
       brand.setAttribute("aria-label", "PLAIGROUND");
       brand.innerHTML = '<img src="assets/plaiground-logo.png" alt="PLAIGROUND" />';
       topbar.insertBefore(brand, toggle.nextSibling);
@@ -171,6 +170,49 @@
   function isSignedInPublic() {
     var api = window.PlaigroundMembership;
     return !!(api && typeof api.isSignedIn === "function" && api.isSignedIn());
+  }
+
+  function brandHomeHref(signedIn) {
+    return signedIn ? "dashboard.html" : "index.html";
+  }
+
+  function eachHeaderBrandLogo(fn) {
+    var header = document.querySelector("header.nav");
+    var side = document.querySelector(".side");
+    var topbar = document.querySelector(".topbar");
+    [header, side, topbar].forEach(function (root) {
+      if (!root) return;
+      root.querySelectorAll(".logo").forEach(fn);
+    });
+  }
+
+  function goBrandHome(event) {
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    var href = brandHomeHref(isSignedInPublic());
+    try {
+      window.location.href = href;
+    } catch (err) {}
+  }
+
+  function wireBrandLogo(logo) {
+    if (!logo || logo.tagName !== "A" || logo.getAttribute("data-brand-home") === "1") return;
+    logo.setAttribute("data-brand-home", "1");
+    if (!logo.getAttribute("aria-label")) logo.setAttribute("aria-label", "PLAIGROUND");
+    logo.addEventListener("click", goBrandHome);
+  }
+
+  function setupBrandLogos() {
+    function sync() {
+      var href = brandHomeHref(isSignedInPublic());
+      eachHeaderBrandLogo(function (logo) {
+        wireBrandLogo(logo);
+        logo.setAttribute("href", href);
+        logo.href = href;
+      });
+    }
+    sync();
+    var api = window.PlaigroundMembership;
+    if (api && typeof api.whenReady === "function") api.whenReady(sync);
   }
 
   function existingPublicLogin(header) {
@@ -353,4 +395,5 @@
   setupAppMenu();
   setupPublicMenu();
   setupPublicSocials();
+  setupBrandLogos();
 })();
