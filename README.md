@@ -34,9 +34,14 @@ RESEND_API_KEY=
 CONFIRM_SECRET=
 SIGNUP_CONFIRM_SECRET=
 CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_ENDPOINT=
 ```
 
-`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, and `SIGNUP_CONFIRM_SECRET` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
+`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, `SIGNUP_CONFIRM_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_ENDPOINT` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. No `NEXT_PUBLIC_R2_*`. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
 After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for a mapped live price arrives. New Checkout Sessions use Creator month/year and Pro month/year. Old yearly ids stay webhook-only. Checkout uses `mode=subscription`. Do not send `subscription_data[collection_method]` — Checkout Sessions reject it.
 
@@ -98,7 +103,9 @@ ToneGrid routes (no browser key):
 - `POST /api/tonegrid/artists`
 - `POST /api/tonegrid/releases`
 - `POST /api/tonegrid/tracks` (create track on a release; `explicit` defaults to false)
-- `POST /api/tonegrid/tracks/:id/audio` (multipart field `audio`; WAV/FLAC; max 200MB; stored by ToneGrid, not a PLAIGROUND bucket)
+- `POST /api/tonegrid/uploads` (session; mints a short-lived PUT for `audio/…` or `covers/…`)
+- `GET /api/tonegrid/uploads?key=` (session; owner-only signed GET helper — not a public streamer)
+- `POST /api/tonegrid/tracks/:id/audio` (JSON `{ object_key }`; server pulls the private object and forwards WAV/FLAC; max 200MB)
 - `GET /api/tonegrid/analytics` (session; filtered to that user’s ToneGrid ids)
 - `GET /api/tonegrid/releases` (session; filtered)
 - `GET /api/tonegrid/releases/:id` and `PUT /api/tonegrid/releases/:id` (session; title/date/genre/language)
@@ -112,7 +119,7 @@ ToneGrid routes (no browser key):
 - `GET /api/signwell?id=` (document status; `signed` only when SignWell says Completed)
 - `POST /api/signwell` (create the Writer Split Sheet; real embed, no fake pad)
 
-Song audio is uploaded to ToneGrid with the existing `TONEGRID_API_KEY`. Do not add a second object store or new cloud-storage keys.
+Browser audio and covers PUT to a private object hop first. The `/audio` and `/artwork` POSTs send only the object key. The server then pulls those bytes for the store hop. Set the five `R2_*` values on the host. Missing any of them returns a nameless error. The bucket stays private. There is no public play page.
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
 

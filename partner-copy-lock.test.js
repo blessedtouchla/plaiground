@@ -30,6 +30,7 @@ const USER_FILES = [
   'lib/upload-required.js',
   'lib/cover-preview.js',
   'lib/cover-url.js',
+  'lib/object-hop.js',
   'publishing-register.html',
   'publishing-register.js',
 ];
@@ -45,6 +46,7 @@ function stringLiterals(src) {
 }
 
 function isAllowedUserString(value) {
+  if (/Cloudflare|InterSpace|\bR2\b/.test(value)) return false;
   if (!/ToneGrid|Tonegrid/.test(value)) return true;
   if (/\/api\/tonegrid\//.test(value)) return true;
   return false;
@@ -101,6 +103,7 @@ function run() {
     'lib/artist-check.js',
     'lib/audio-accept.js',
     'lib/store-pick.js',
+    'lib/object-hop.js',
     'store-client.js',
     'plai-bubble.js',
     'plai-coach.js',
