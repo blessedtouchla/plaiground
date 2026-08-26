@@ -4,6 +4,7 @@
   var TRACKS_URL = '/api/tonegrid/tracks';
   var DRAFT_KEY = 'plaiground.store.draft';
   var MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+  var PLATFORM_AUDIO_BYTES = Math.floor(4.2 * 1024 * 1024);
   var MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 
   function $(id) {
@@ -83,6 +84,7 @@
 
   function clearHeldAudio() {
     heldAudioFile = null;
+    heldPickedFile = null;
     try {
       if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
         indexedDB.deleteDatabase(AUDIO_HOLD_DB);
@@ -196,6 +198,7 @@
   }
 
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
+  var AUDIO_SEND_COPY = 'We could not send the audio. Retry.';
 
   function isPlatformPayloadError(text, status) {
     if (status === 413) return true;
@@ -215,9 +218,48 @@
       || (/rotate the key/i.test(raw) && /request body/i.test(raw));
   }
 
+  function originalOverRealCap() {
+    var draft = readDraft() || {};
+    var picked = Number(draft.audio_picked_size) || 0;
+    if (picked > MAX_AUDIO_BYTES) return true;
+    if (heldPickedFile && Number(heldPickedFile.size) > MAX_AUDIO_BYTES) return true;
+    return false;
+  }
+
+  function platformPayloadCopy() {
+    return originalOverRealCap() ? AUDIO_SIZE_COPY : AUDIO_SEND_COPY;
+  }
+
+  function classifyStoreFailure(result, err) {
+    var status = result && result.status;
+    var text = '';
+    if (result && result.data) text = result.data.error || result.data.message || '';
+    if (!text && err) text = err.message || '';
+    if ((err && err.timedOut) || (result && result.timedOut) || isHangStatus(status)) return 'timeout';
+    if (isSizeCapError(text) || (status === 413 && originalOverRealCap())) return 'size_cap';
+    if (status === 413 || isPlatformPayloadError(text, status)) return 'platform_payload';
+    if (isIdempotencyReuseError(text)) return 'idempotency';
+    if (result && isMissingTrackError(result)) return 'leftover_id';
+    if (status >= 500) return 'sandbox_5xx';
+    if (!result || status === 0) return 'hop';
+    return 'other';
+  }
+
+  function noteStoreFailure(result, err) {
+    var row = {
+      status: result && result.status != null ? Number(result.status) : 0,
+      class: classifyStoreFailure(result, err),
+      timedOut: Boolean((result && result.timedOut) || (err && err.timedOut)),
+    };
+    try {
+      if (typeof window !== 'undefined') window.PlaigroundLastStoreFailure = row;
+    } catch (ignore) {}
+    return row;
+  }
+
   function sanitizePartnerCopy(text, status) {
     var next = humanErrorText(text, '');
-    if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();
+    if (isPlatformPayloadError(next, status)) return platformPayloadCopy();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
@@ -256,7 +298,7 @@
     return response.json().then(function (data) {
       var next = data || {};
       if (isPlatformPayloadError(next.error || next.message, response.status)) {
-        next.error = catalogTimeoutMessage();
+        next.error = platformPayloadCopy();
       } else if (isSizeCapError(next.error || next.message)) {
         next.error = AUDIO_SIZE_COPY;
       } else if (isIdempotencyReuseError(next.error || next.message)) {
@@ -265,7 +307,7 @@
       return { ok: response.ok, status: response.status, data: next };
     }).catch(function () {
       var fallback = {};
-      if (isPlatformPayloadError('', response.status)) fallback.error = catalogTimeoutMessage();
+      if (isPlatformPayloadError('', response.status)) fallback.error = platformPayloadCopy();
       return { ok: false, status: response.status, data: fallback };
     });
   }
@@ -304,6 +346,16 @@
     return 'We could not reach the store. Try again.';
   }
 
+  function rememberPickedOriginal(file) {
+    if (!file || looksLikeWav(file)) return;
+    heldPickedFile = file;
+    writeDraft({
+      audio_picked_size: Number(file.size) || Number((readDraft() || {}).audio_picked_size) || 0,
+      audio_picked_name: file.name || (readDraft() || {}).audio_picked_name || '',
+    });
+    persistPickedAudio(file);
+  }
+
   function rememberPickedAudio(file) {
     if (!file) return;
     var draft = readDraft();
@@ -313,8 +365,10 @@
         audio_picked_size: Number(file.size) || 0,
         audio_picked_name: file.name || '',
       });
+      if (!looksLikeWav(file)) rememberPickedOriginal(file);
     }
     if (alreadyConverted(draft) && looksLikeWav(heldAudioFile) && !looksLikeWav(file)) {
+      rememberPickedOriginal(file);
       return;
     }
     rememberAudioFile(file);
@@ -797,6 +851,8 @@
   function keepHeldWavForRetry() {
     if (!looksLikeWav(heldAudioFile)) return;
     writeDraft({ audio_uploaded: false });
+    if (heldPickedFile) persistPickedAudio(heldPickedFile);
+    persistHeldAudio(heldAudioFile);
   }
 
   function hideMissingTrackFailure(sent, draft, liveFile) {
@@ -868,6 +924,26 @@
     return file;
   }
 
+  function pickedOriginalFile(file) {
+    if (heldPickedFile && !looksLikeWav(heldPickedFile)) return heldPickedFile;
+    if (file && !looksLikeWav(file)) return file;
+    var input = document.querySelector('[data-audio-input]');
+    var live = (input && input.files && input.files[0]) || (input && input._plaigroundFile) || null;
+    if (live && !looksLikeWav(live)) return live;
+    return null;
+  }
+
+  function fileForTransitUpload(file) {
+    var send = fileForStoreUpload(file) || file || heldAudioFile;
+    var picked = pickedOriginalFile(file);
+    var sendSize = send && send.size != null ? Number(send.size) : 0;
+    var pickedSize = picked && picked.size != null ? Number(picked.size) : 0;
+    if (send && sendSize > PLATFORM_AUDIO_BYTES && picked && pickedSize > 0 && pickedSize <= MAX_AUDIO_BYTES) {
+      return picked;
+    }
+    return send;
+  }
+
   function needsAudioUpload(draft, file) {
     if (alreadyUploaded(draft)) return false;
     return Boolean(fileForStoreUpload(file));
@@ -931,9 +1007,11 @@
   var sessionReleaseTracksListed = false;
   var deadReleaseIds = [];
   var heldAudioFile = null;
+  var heldPickedFile = null;
   var AUDIO_HOLD_DB = 'plaiground-held-audio';
   var AUDIO_HOLD_STORE = 'files';
   var AUDIO_HOLD_KEY = 'master';
+  var AUDIO_PICKED_KEY = 'picked';
   var releaseRecreateCount = 0;
   var MAX_RELEASE_RECREATES = 2;
   var DEAD_RELEASE_COPY = 'Could not create the release. Retry.';
@@ -962,9 +1040,9 @@
     return persistHeldAudio(file);
   }
 
-  function persistHeldAudio(file) {
-    var ready = file || heldAudioFile;
-    if (ready) heldAudioFile = ready;
+  function persistHeldSlot(file, key, assign) {
+    var ready = file;
+    if (ready && typeof assign === 'function') assign(ready);
     return new Promise(function (resolve) {
       if (!ready) {
         resolve(null);
@@ -988,7 +1066,7 @@
             tx.oncomplete = function () { resolve(ready); };
             tx.onerror = function () { resolve(ready); };
             tx.onabort = function () { resolve(ready); };
-            tx.objectStore(AUDIO_HOLD_STORE).put(ready, AUDIO_HOLD_KEY);
+            tx.objectStore(AUDIO_HOLD_STORE).put(ready, key);
           } catch (err) {
             resolve(ready);
           }
@@ -999,16 +1077,39 @@
     });
   }
 
+  function persistHeldAudio(file) {
+    var ready = file || heldAudioFile;
+    if (ready) heldAudioFile = ready;
+    return persistHeldSlot(ready, AUDIO_HOLD_KEY, function (next) { heldAudioFile = next; });
+  }
+
+  function persistPickedAudio(file) {
+    var ready = file || heldPickedFile;
+    if (ready) heldPickedFile = ready;
+    return persistHeldSlot(ready, AUDIO_PICKED_KEY, function (next) { heldPickedFile = next; });
+  }
+
   function restoreHeldAudio() {
-    if (heldAudioFile) return Promise.resolve(heldAudioFile);
     return new Promise(function (resolve) {
+      function done() {
+        if (!heldPickedFile) {
+          var input = document.querySelector('[data-audio-input]');
+          var live = (input && input.files && input.files[0]) || (input && input._plaigroundFile) || null;
+          if (live && !looksLikeWav(live)) rememberPickedOriginal(live);
+        }
+        resolve(heldAudioFile || null);
+      }
+      if (heldAudioFile && heldPickedFile) {
+        resolve(heldAudioFile);
+        return;
+      }
       try {
         if (typeof indexedDB === 'undefined' || !indexedDB.open) {
-          resolve(null);
+          done();
           return;
         }
         var req = indexedDB.open(AUDIO_HOLD_DB, 1);
-        req.onerror = function () { resolve(null); };
+        req.onerror = function () { done(); };
         req.onupgradeneeded = function () {
           if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
             req.result.createObjectStore(AUDIO_HOLD_STORE);
@@ -1017,18 +1118,30 @@
         req.onsuccess = function () {
           try {
             var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readonly');
-            var get = tx.objectStore(AUDIO_HOLD_STORE).get(AUDIO_HOLD_KEY);
-            get.onerror = function () { resolve(null); };
-            get.onsuccess = function () {
-              if (get.result) heldAudioFile = get.result;
-              resolve(heldAudioFile || null);
+            var store = tx.objectStore(AUDIO_HOLD_STORE);
+            var getMaster = store.get(AUDIO_HOLD_KEY);
+            var getPicked = store.get(AUDIO_PICKED_KEY);
+            var pending = 2;
+            function one() {
+              pending -= 1;
+              if (pending <= 0) done();
+            }
+            getMaster.onerror = one;
+            getPicked.onerror = one;
+            getMaster.onsuccess = function () {
+              if (getMaster.result && !heldAudioFile) heldAudioFile = getMaster.result;
+              one();
+            };
+            getPicked.onsuccess = function () {
+              if (getPicked.result && !heldPickedFile) heldPickedFile = getPicked.result;
+              one();
             };
           } catch (err) {
-            resolve(null);
+            done();
           }
         };
       } catch (err) {
-        resolve(null);
+        done();
       }
     });
   }
@@ -1211,20 +1324,36 @@
     }
   }
 
+  var submitKeyNonce = 0;
+  function freshSubmitKey(draft) {
+    submitKeyNonce += 1;
+    return ('plaiground-submit-' + String((draft && draft.release_id) || '') + ':' + String(Date.now()) + ':' + String(submitKeyNonce)).slice(0, 255);
+  }
+
   function rotateIdempotencyKeys() {
     rotateIdempotencyOnce = true;
     writeDraft({
       release_idempotency_key: '',
       track_idempotency_key: '',
+      submit_idempotency_key: '',
       release_idempotency_body: '',
       track_idempotency_body: '',
+      submit_idempotency_body: '',
     });
   }
 
   function takeIdempotencyKey(kind, draft, body, forceRotate) {
     var serialized = stableIdempotencyBody(body);
-    var keyField = kind === 'release' ? 'release_idempotency_key' : 'track_idempotency_key';
-    var bodyField = kind === 'release' ? 'release_idempotency_body' : 'track_idempotency_body';
+    var keyField = kind === 'release'
+      ? 'release_idempotency_key'
+      : kind === 'submit'
+        ? 'submit_idempotency_key'
+        : 'track_idempotency_key';
+    var bodyField = kind === 'release'
+      ? 'release_idempotency_body'
+      : kind === 'submit'
+        ? 'submit_idempotency_body'
+        : 'track_idempotency_body';
     var leftover = String((draft && draft[keyField]) || '');
     var lastBody = String((draft && draft[bodyField]) || '');
     var rotate = forceRotate === true
@@ -1234,7 +1363,11 @@
       || lastBody !== serialized;
     var key = leftover;
     if (rotate) {
-      key = kind === 'release' ? freshReleaseKey(draft) : freshTrackKey(draft, body && body.position);
+      key = kind === 'release'
+        ? freshReleaseKey(draft)
+        : kind === 'submit'
+          ? freshSubmitKey(draft)
+          : freshTrackKey(draft, body && body.position);
     }
     rotateIdempotencyOnce = false;
     var patch = {};
@@ -1707,10 +1840,11 @@
   }
 
   function postSubmitRelease(draft, submitBody, date, documentId, solo) {
+    var key = takeIdempotencyKey('submit', draft, submitBody);
     return post(
       '/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit',
       submitBody,
-      'plaiground-submit-' + draft.release_id
+      key
     ).then(function (result) {
       return applySubmitResult(draft, date, documentId, solo, result);
     });
@@ -1889,6 +2023,7 @@
   function createErrorMessage(result, fallback) {
     var raw = result && result.data ? result.data.error : '';
     var status = result && result.status;
+    noteStoreFailure(result);
     if (isNoStoreResponse(result) && !/sandbox[- ]only|not enabled for (distribution|delivery)|production (key|account|environment) required/i.test(String(raw || ''))) {
       return catalogTimeoutMessage();
     }
@@ -2183,11 +2318,14 @@
   }
 
   function sanitizeResultError(result) {
+    if (result && (result.ok === false || (result.status && result.status >= 400))) {
+      noteStoreFailure(result);
+    }
     if (result && result.data && result.data.error) {
       result.data.error = sanitizePartnerCopy(result.data.error, result.status);
     } else if (result && isPlatformPayloadError('', result.status)) {
       result.data = result.data || {};
-      result.data.error = catalogTimeoutMessage();
+      result.data.error = platformPayloadCopy();
     }
     return result;
   }
@@ -2231,7 +2369,7 @@
           var data = {};
           try { data = JSON.parse(xhr.responseText || '{}') || {}; } catch (err) { data = {}; }
           if (isPlatformPayloadError((data && (data.error || data.message)) || xhr.responseText, xhr.status)) {
-            data.error = catalogTimeoutMessage();
+            data.error = platformPayloadCopy();
           } else if (isSizeCapError((data && (data.error || data.message)) || xhr.responseText)) {
             data.error = AUDIO_SIZE_COPY;
           } else if (isIdempotencyReuseError((data && (data.error || data.message)) || xhr.responseText)) {
@@ -2258,40 +2396,65 @@
 
   function uploadAudio(trackId, file, onProgress) {
     if (!trackId || !file) return Promise.resolve({ skipped: true });
-    if (audioOverRealCap(file)) {
+    var transit = fileForTransitUpload(file);
+    if (!transit) return Promise.resolve({ skipped: true });
+    if (audioOverRealCap(transit) && audioOverRealCap(file)) {
       return Promise.resolve({ failed: true, result: { data: { error: AUDIO_SIZE_COPY } } });
     }
-    return fileLooksAllowed(file).then(function (ok) {
+    if (originalOverRealCap()) {
+      return Promise.resolve({ failed: true, result: { data: { error: AUDIO_SIZE_COPY } } });
+    }
+    return fileLooksAllowed(transit).then(function (ok) {
       if (!ok) {
         return { failed: true, result: { data: { error: AUDIO_ERROR } } };
       }
-      function postOnce() {
+      function postFile(send) {
         var body = new FormData();
-        body.append('audio', file, file.name || 'audio.wav');
+        body.append('audio', send, send.name || 'audio.wav');
         return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress);
       }
       function interpret(result, err) {
         if (result && result.ok) return { uploaded: true, result: result };
         if (isUnavailable(result)) return { unavailable: true, result: result };
         if (isNoStoreResponse(result, err)) {
+          noteStoreFailure(result || storeUnreachableResult(), err);
           return { failed: true, timedOut: true, result: storeUnreachableResult() };
         }
-        return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: catalogTimeoutMessage() } }) };
+        noteStoreFailure(result, err);
+        return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: AUDIO_SEND_COPY } }) };
       }
-      return postOnce().then(function (result) {
+      function maybeFallback(result) {
+        var picked = pickedOriginalFile(file);
+        if (
+          result
+          && !result.ok
+          && isPlatformPayloadError((result.data && result.data.error) || '', result.status)
+          && transit
+          && looksLikeWav(transit)
+          && picked
+          && picked !== transit
+          && !audioOverRealCap(picked)
+        ) {
+          return postFile(picked).then(interpret).catch(function (retryErr) {
+            return interpret(null, retryErr);
+          });
+        }
+        return interpret(result);
+      }
+      return postFile(transit).then(function (result) {
         if (result && result.ok) return { uploaded: true, result: result };
         if (isUnavailable(result)) return { unavailable: true, result: result };
         if (isNoStoreResponse(result)) {
-          return postOnce().then(function (retry) {
+          return postFile(transit).then(function (retry) {
             return interpret(retry);
           }).catch(function (retryErr) {
             return interpret(null, retryErr);
           });
         }
-        return interpret(result);
+        return maybeFallback(result);
       }).catch(function (err) {
         if (isNoStoreResponse(null, err)) {
-          return postOnce().then(function (retry) {
+          return postFile(transit).then(function (retry) {
             return interpret(retry);
           }).catch(function (retryErr) {
             return interpret(null, retryErr);
@@ -2433,6 +2596,7 @@
   }
 
   function runConvertStep(file) {
+    if (file && !looksLikeWav(file)) rememberPickedOriginal(file);
     if (alreadyConverted(readDraft()) || looksLikeWav(file)) {
       return Promise.resolve({ file: file, didConvert: false, copy: '', skipped: true });
     }
@@ -3878,6 +4042,8 @@
       showUploadLoader('Opening SignWell');
       setStatus('tg-status', message || 'Opening SignWell…');
       return persistHeldAudio(heldAudioFile || selectedAudio()).then(function () {
+        return persistPickedAudio(heldPickedFile);
+      }).then(function () {
         continueAfterCatalog(nextHref, message);
       });
     }
