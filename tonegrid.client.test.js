@@ -4327,6 +4327,34 @@ async function run() {
     assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'slow store hop must still finish Continue');
   }
 
+  async function creatorHopWavForwardsAndStore502IsNotSuccess() {
+    const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
+    const page = load(filledUpload({
+      file: wav,
+      account: {
+        plan: 'creator',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 8, plan: 'creator', album_allowed: true },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
+        { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
+      ],
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'Creator Continue must POST the hop key');
+    audio.forEach(function (call) { assertAudioKey(call, 'Creator 502'); });
+    assert.ok(hoppedFile(page.calls, wav), 'Creator Continue hops the WAV the store should receive');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'Creator store 502 is not a fake success');
+    assert.match(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.ok(!/ToneGrid|retry the hop|try a smaller file/i.test(String(page.status.textContent || '')));
+  }
+
   async function hopConvertedWavStore502IsNotSuccess() {
     const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 5 * 1024 * 1024 };
     const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
@@ -4381,6 +4409,7 @@ async function run() {
   }
 
   await basicHopAudioPostWaitsForStoreHop();
+  await creatorHopWavForwardsAndStore502IsNotSuccess();
   await hopConvertedWavStore502IsNotSuccess();
   await fatSongNeverHitsVercelAudioBody();
   await albumPickedFileSticksWithEmptyMime();

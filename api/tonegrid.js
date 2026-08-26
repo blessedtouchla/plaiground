@@ -21,9 +21,12 @@
  * POST /api/tonegrid/tracks
  * PUT  /api/tonegrid/tracks/:id            -> ToneGrid PATCH /tracks/:uuid
  * POST /api/tonegrid/tracks/:id/audio  -> JSON { object_key } (preferred) or leftover multipart
- *   Leftover multipart under the platform hop cap goes through as one body.
- *   Over that cap leftover clients may send x-plaiground-chunk-* parts; this
- *   function assembles, converts MP3 → WAV, then hops once.
+ *   Hop-to-store: pull the private object, wrap WAV/FLAC as multipart field
+ *   `audio` with a real audio MIME, and POST that body to the store inside
+ *   the Hobby 60s budget. Leftover multipart under the platform hop cap
+ *   goes through as one body. Over that cap leftover clients may send
+ *   x-plaiground-chunk-* parts; this function assembles, converts MP3 → WAV,
+ *   then hops once.
  * POST /api/tonegrid/uploads           -> mint a short-lived PUT for audio/ or covers/
  * GET  /api/tonegrid/uploads?key=      -> owner-only signed GET helper
  * GET  /api/tonegrid/analytics
@@ -64,6 +67,7 @@ const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
   DOCUMENTED_DSPS,
   LIST_HOP_TIMEOUT_MS,
+  STORE_FORWARD_TIMEOUT_MS,
   RELEASE_TYPES,
   SUBMITTABLE,
   YOUTUBE_MUSIC_SLUG,
@@ -1070,15 +1074,40 @@ async function trackAudio(req, res, trackId) {
       return;
     }
     let hopped;
+    const hopStarted = Date.now();
     try {
       hopped = await loadHoppedObject(scope, hopKey, 'audio');
     } catch (err) {
       sendJson(res, (err && err.status) || 400, { error: (err && err.message) || objectStore.AUDIO_SEND_COPY });
       return;
     }
-    const wrapped = objectStore.asMultipart('audio', hopped.filename, hopped.contentType || 'audio/wav', hopped.body);
-    raw = wrapped.rawBody;
-    hopType = wrapped.contentType;
+    const preparedHop = await audioConvert.prepareFromBytes(
+      hopped.body,
+      hopped.filename,
+      hopped.contentType
+    );
+    if (preparedHop.error) {
+      sendJson(res, 400, { error: preparedHop.error });
+      return;
+    }
+    if (preparedHop.converted && !audioConvert.toneGridBodyIsWav(preparedHop.rawBody)) {
+      sendJson(res, 400, { error: 'MP3 must be converted to WAV before it goes to the store.' });
+      return;
+    }
+    const remain = Math.max(8000, STORE_FORWARD_TIMEOUT_MS - (Date.now() - hopStarted));
+    const hopResult = await tonegridFetch('/tracks/' + id + '/audio', {
+      method: 'POST',
+      rawBody: preparedHop.rawBody,
+      contentType: preparedHop.contentType,
+      timeoutMs: remain,
+      idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(preparedHop.rawBody)),
+    });
+    const hopPayload = hopResult.data && typeof hopResult.data === 'object'
+      ? Object.assign({}, hopResult.data)
+      : hopResult.data;
+    if (hopResult.ok && hopKey && hopPayload && typeof hopPayload === 'object') hopPayload.audio_object_key = hopKey;
+    sendJson(res, hopResult.status, hopPayload);
+    return;
   } else if (/multipart\/form-data/i.test(contentType)) {
     const declared = Number(headerValue(req, 'content-length') || 0);
     if (declared > MAX_AUDIO_TRANSIT_BYTES) {
