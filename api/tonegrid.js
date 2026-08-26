@@ -934,7 +934,7 @@ async function trackAudio(req, res, trackId) {
 
   const declared = Number(headerValue(req, 'content-length') || 0);
   if (declared > MAX_AUDIO_TRANSIT_BYTES) {
-    sendJson(res, 413, { error: 'We could not reach the store. Try again.' });
+    sendJson(res, 413, { error: 'We could not send the audio. Retry.' });
     return;
   }
 
@@ -943,7 +943,7 @@ async function trackAudio(req, res, trackId) {
     raw = await readRawBody(req, MAX_AUDIO_TRANSIT_BYTES);
   } catch (err) {
     if (err && err.code === 'TOO_LARGE') {
-      sendJson(res, 413, { error: 'We could not reach the store. Try again.' });
+      sendJson(res, 413, { error: 'We could not send the audio. Retry.' });
       return;
     }
     sendJson(res, 400, { error: 'Could not read the audio upload.' });

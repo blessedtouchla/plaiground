@@ -252,7 +252,7 @@ function load(options) {
   stepper.className = 'stepper';
   stepper.contains = function () { return true; };
 
-  const heldStore = { master: opts.heldFile || null };
+  const heldStore = { master: opts.heldFile || null, picked: opts.heldPicked || null };
   const context = {
     URLSearchParams,
     Promise,
@@ -294,7 +294,7 @@ function load(options) {
         });
         return req;
       },
-      deleteDatabase: function () { heldStore.master = null; },
+      deleteDatabase: function () { heldStore.master = null; heldStore.picked = null; },
     },
     document: {
       getElementById(id) {
@@ -504,6 +504,9 @@ function load(options) {
     genre,
     language,
     get convertCalls() { return convertCalls; },
+    get lastStoreFailure() { return context.PlaigroundLastStoreFailure || null; },
+    get heldPicked() { return heldStore.picked || null; },
+    get heldMaster() { return heldStore.master || null; },
   };
 }
 
@@ -2745,10 +2748,16 @@ async function run() {
       ],
     });
     await flush(16);
-    assert.match(String(page.status.textContent || ''), /could not reach the store/i);
+    const fail = page.lastStoreFailure || {};
+    console.log('store-failure-class', fail.class, 'status', fail.status);
+    assert.strictEqual(fail.class, 'platform_payload', '413 must log platform_payload, not timeout');
+    assert.strictEqual(fail.status, 413);
+    assert.match(String(page.status.textContent || ''), /could not send the audio/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i, '413 must not reuse the reach-the-store line');
     assert.doesNotMatch(String(page.status.textContent || ''), /200\s*MB/i, '413 payload errors are not a 200 MB cap');
     assert.doesNotMatch(String(page.status.textContent || ''), /request entry too large/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /Idempotency-Key/i);
     assert.strictEqual(page.retryWrap.hidden, false);
   }
 
@@ -2772,10 +2781,16 @@ async function run() {
     }));
     basic.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    assert.ok(basic.calls.some(function (call) {
+    const basicAudio = basic.calls.filter(function (call) {
       return String(call.url).indexOf('/audio') !== -1;
-    }), 'Basic must POST the converted WAV when the picked file was a normal song');
+    });
+    assert.ok(basicAudio.length, 'Basic must POST audio when the picked file was a normal song');
+    basicAudio.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === original, 'transit body must be the original MP3, not the fat WAV');
+    });
     assert.doesNotMatch(String(basic.status.textContent || ''), /200\s*MB/i, 'converted WAV over 200 MB is not a real cap if the original was normal');
+    assert.doesNotMatch(String(basic.status.textContent || ''), /could not reach the store/i);
 
     const creator = load(filledUpload({
       file: original,
@@ -2794,10 +2809,169 @@ async function run() {
     }));
     creator.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    assert.ok(creator.calls.some(function (call) {
+    const creatorAudio = creator.calls.filter(function (call) {
       return String(call.url).indexOf('/audio') !== -1;
-    }), 'Creator must accept the same converted WAV');
+    });
+    assert.ok(creatorAudio.length, 'Creator must POST the same original when the WAV is over the platform cap');
+    creatorAudio.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === original, 'Creator transit body must be the original MP3');
+    });
     assert.doesNotMatch(String(creator.status.textContent || ''), /200\s*MB/i);
+    assert.doesNotMatch(String(creator.status.textContent || ''), /could not reach the store/i);
+  }
+
+  async function basicDesktopSubmitPostsOriginalWhenWavExceedsPlatform() {
+    const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2 * 1024 * 1024 };
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 8 * 1024 * 1024 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      countConvert: true,
+      convertHold: fatWav,
+      file: original,
+      heldFile: fatWav,
+      heldPicked: original,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(20);
+    const fail = page.lastStoreFailure;
+    if (fail) console.log('store-failure-class', fail.class, 'status', fail.status);
+    assert.ok(!fail || fail.class !== 'timeout', 'normal song must not die as a hang');
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /Idempotency-Key/i);
+    assert.strictEqual(page.convertCalls, 0, 'Submit after convert must not reconvert');
+    const audio = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(audio.length, 'Basic desktop Submit must attach audio when store tracks are empty');
+    audio.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === original, 'Submit must POST the original MP3 the proxy can take, not the fat WAV');
+      assert.strictEqual(part.filename, 'night-drive.mp3');
+    });
+    assert.ok(page.heldMaster === fatWav, 'converted WAV must stay held');
+    assert.ok(page.heldPicked === original || page.heldPicked == null || page.heldPicked === original, 'original pick stays available');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+  }
+
+  async function platform413OnFatWavFallsBackToOriginal() {
+    const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 1024 * 1024 };
+    const fatWav = { name: 'night-drive.wav', type: 'audio/wav', size: 8 * 1024 * 1024 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: original,
+      heldFile: fatWav,
+      heldPicked: original,
+      countConvert: true,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 413, data: { error: 'FUNCTION_PAYLOAD_TOO_LARGE' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(20);
+    const fail = page.lastStoreFailure;
+    if (fail) console.log('store-failure-class', fail.class, 'status', fail.status);
+    const audio = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(audio.length >= 1, 'must POST audio');
+    audio.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === original, 'fat WAV must not be the transit body');
+    });
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid/i);
+    assert.strictEqual(page.convertCalls, 0);
+    assert.ok(page.heldMaster === fatWav, 'Retry path must keep the converted WAV');
+  }
+
+  async function originalOverCapShowsSizeLineOnly() {
+    const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 210 * 1024 * 1024 };
+    const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 4096 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: original,
+      heldFile: wav,
+      heldPicked: original,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_converted: true,
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+      ],
+    });
+    await flush(16);
+    const fail = page.lastStoreFailure;
+    if (fail) console.log('store-failure-class', fail.class, 'status', fail.status);
+    assert.match(String(page.status.textContent || ''), /200\s*MB/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    }), 'original over the real cap must not POST');
   }
 
   async function realPickedCapIsSameOnBasicAndCreator() {
@@ -3244,6 +3418,9 @@ async function run() {
   await reviewSubmitReusesConvertedWavWithoutSecondPost();
   await reviewSubmitMapsSizeCapToHumanLimit();
   await convertedWavOverCapStillPostsWhenOriginalWasNormal();
+  await basicDesktopSubmitPostsOriginalWhenWavExceedsPlatform();
+  await platform413OnFatWavFallsBackToOriginal();
+  await originalOverCapShowsSizeLineOnly();
   await realPickedCapIsSameOnBasicAndCreator();
   await reviewSubmitDoesNotFalseCapHeldWav();
   await leftoverConvertedWavWithoutPickedSizeStillPosts();
@@ -3410,6 +3587,11 @@ async function run() {
   assert.ok(!uploadHtml.includes('data-checkout-plan="pro"'), 'album upgrade must not open a second Checkout');
   assert.ok(!/catalog-migrate|catalogMigrate/.test(source + uploadHtml));
   assert.ok(source.includes("return 'We could not reach the store. Try again.';"));
+  assert.ok(source.includes("We could not send the audio. Retry."));
+  assert.ok(source.includes('function fileForTransitUpload'));
+  assert.ok(source.includes('PLATFORM_AUDIO_BYTES'));
+  assert.ok(source.includes('function platformPayloadCopy'));
+  assert.ok(!source.includes('if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();'));
   assert.ok(!source.includes('ToneGrid did not respond'));
   assert.ok(source.includes('result.ok'));
   assert.ok(source.includes('xhr.status >= 200 && xhr.status < 300'));
