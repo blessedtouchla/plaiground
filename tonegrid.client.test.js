@@ -1715,12 +1715,17 @@ async function run() {
         { ok: true, status: 200, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', tracks: [] } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: false, status: 400, data: { error: 'Please add at least one track before submitting' } },
+        { ok: true, status: 201, data: { track: { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff' } } },
+        { ok: false, status: 400, data: { error: 'Please add at least one track before submitting' } },
       ],
     });
     await flush(12);
     assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'must try to recreate the store track');
     assert.ok(!/no longer on this page|re-attach/i.test(page.status.textContent), 'audio_name means this draft already had audio');
     assert.ok(!/please add at least one track/i.test(page.status.textContent), 'draft audio_name must never show a false no-track line');
+    assert.ok(!/could not submit the release/i.test(page.status.textContent), 'missing-track must not become a generic submit fail');
+    assert.ok(/could not attach the audio/i.test(page.status.textContent), 'held audio evidence stays a nameless attach error');
+    assert.strictEqual(page.retryWrap.hidden, false);
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
@@ -2423,10 +2428,21 @@ async function run() {
     await flush(20);
     function assertPlan(page, label) {
       assert.strictEqual(page.convertCalls, 0, label + ' must not convert again');
+      const minted = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
+      assert.ok(minted.length, label + ' must create a store track when tracks[] is empty');
+      assert.strictEqual(JSON.parse(minted[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
       const audio = page.calls.find(function (call) {
         return String(call.url).indexOf('/audio') !== -1;
       });
       assert.ok(audio, label + ' Submit must POST the already-converted WAV when store tracks are empty');
+      assert.strictEqual(
+        String(audio.url),
+        '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio',
+        label + ' must attach the WAV to the new track, not the leftover track_id'
+      );
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
+      }), label + ' must not POST audio to a leftover track_id');
       const part = audio.init && audio.init.body && audio.init.body.parts && audio.init.body.parts[0];
       assert.ok(part && part.value === heldWav, label + ' must send the held WAV, not the leftover MP3');
       assert.strictEqual(part.filename, 'night-drive.wav');
@@ -2434,8 +2450,10 @@ async function run() {
         return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
       }), label + ' must still submit');
       assert.ok(!/please add at least one track/i.test(page.status.textContent), label + ' must not show a false no-track line');
+      assert.ok(!/could not submit the release/i.test(page.status.textContent), label + ' must not mask a miss as a generic submit fail');
       assert.ok(!/ToneGrid/i.test(page.status.textContent));
       assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+      assert.strictEqual(draftOf(page.localStorage).track_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
     }
     assertPlan(basic, 'Basic');
     assertPlan(creator, 'Creator');
@@ -2482,7 +2500,9 @@ async function run() {
     });
     await flush(20);
     assert.ok(!/please add at least one track/i.test(page.status.textContent), 'store no-track must not surface when the WAV is on the draft');
+    assert.ok(!/could not submit the release/i.test(page.status.textContent), 'missing-track after attach must not become a generic submit fail');
     if (page.retryWrap.hidden === false) {
+      assert.ok(/could not attach the audio/i.test(page.status.textContent), 'leftover no-track after a held WAV must stay nameless');
       page.retryBtn.listeners.click({ preventDefault() {} });
       await flush(16);
     }
@@ -2497,8 +2517,80 @@ async function run() {
     });
     assert.strictEqual(page.convertCalls, 0, 'Retry must not reconvert');
     assert.ok(!/please add at least one track/i.test(page.status.textContent));
+    assert.ok(!/could not submit the release/i.test(page.status.textContent));
     assert.ok(!/ToneGrid/i.test(page.status.textContent));
     assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+  }
+
+  async function reviewStore4xxKeepsHeldWavRetry() {
+    const heldWav = { name: 'night-drive.wav', type: 'audio/wav', size: 4096 };
+    const leftoverMp3 = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      countConvert: true,
+      convertHold: heldWav,
+      file: leftoverMp3,
+      heldFile: heldWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        tonegrid_track_ids: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: false, status: 500, data: { error: 'Internal server error' } },
+        { ok: true, status: 201, data: { track: { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(20);
+    assert.ok(/internal server error/i.test(page.status.textContent), 'real store 5xx must show the nameless store error');
+    assert.ok(!/please add at least one track/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.retryWrap.hidden, false, 'real store 5xx must show Retry');
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
+    assert.strictEqual(page.convertCalls, 0, '5xx must not reconvert');
+    const before = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(before.length >= 1, 'first Submit must POST the held WAV');
+    before.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === heldWav, 'first POST must be the held WAV');
+    });
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const after = page.calls.filter(function (call) {
+      return String(call.url).indexOf('/audio') !== -1;
+    });
+    assert.ok(after.length > before.length, 'Retry must resend the same converted WAV');
+    after.forEach(function (call) {
+      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
+      assert.ok(part && part.value === heldWav, 'Retry must resend the same converted WAV');
+      assert.strictEqual(part.filename, 'night-drive.wav');
+    });
+    assert.strictEqual(page.convertCalls, 0, 'Retry must not convert again');
+    assert.ok(!/ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(page.loader.hidden, true, 'Working must not hang after Retry');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
   async function reviewSubmitReusesConvertedWavWithoutSecondPost() {
@@ -3055,6 +3147,7 @@ async function run() {
   await reviewSubmitIgnoresAudioRequiredWhenHeld();
   await reviewSubmitSendsHeldWavWhenStoreTracksEmpty();
   await reviewRetryAfterNoTrackResendsSameWav();
+  await reviewStore4xxKeepsHeldWavRetry();
   await reviewSubmitReusesConvertedWavWithoutSecondPost();
   await reviewSubmitMapsSizeCapToHumanLimit();
   await convertedWavOverCapStillPostsWhenOriginalWasNormal();

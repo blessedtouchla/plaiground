@@ -764,15 +764,38 @@
     return 'Please add at least one track.';
   }
 
+  function attachFailedMessage() {
+    return 'Could not attach the audio. Retry.';
+  }
+
   function hideMissingTrackFailure(sent, draft, liveFile) {
     if (liveFile || draftHasTrackFile(draft) || alreadyConverted(draft)) {
       return {
         failed: true,
-        result: { data: { error: 'Could not submit the release.' } },
+        result: { data: { error: attachFailedMessage() } },
         draft: draft,
       };
     }
     return sent;
+  }
+
+  function firstStoreTrackId(tracks) {
+    var i;
+    for (i = 0; i < (tracks || []).length; i += 1) {
+      var id = trackIdOf(tracks[i]);
+      if (id) return id;
+    }
+    return '';
+  }
+
+  function trackIdOnStore(id, tracks) {
+    var want = String(id || '').trim();
+    if (!want) return '';
+    var i;
+    for (i = 0; i < (tracks || []).length; i += 1) {
+      if (sameUuid(trackIdOf(tracks[i]), want)) return want;
+    }
+    return '';
   }
 
   function flagOn(value) {
@@ -1349,7 +1372,7 @@
       return Promise.resolve({ ok: true, draft: next, reused: true });
     }
     if (send && !force && !alreadyUploaded(next)) {
-      var attachId = next.track_id || (knownTracks[0] && trackIdOf(knownTracks[0]));
+      var attachId = trackIdOnStore(next.track_id, knownTracks) || firstStoreTrackId(knownTracks);
       if (attachId) {
         return uploadTrackAudio(attachId, send).then(function (audio) {
           if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next)) {
@@ -1426,7 +1449,17 @@
       });
       return chain;
     }
-    return createTrack(next, { force: force, title: next && next.title }).then(function (created) {
+    var mustMint = force || Boolean(send && !knownTracks.length);
+    if (mustMint && send && !knownTracks.length) {
+      next = writeDraft({
+        track_id: '',
+        track_idempotency_key: '',
+        audio_uploaded: false,
+      });
+    } else if (send && alreadyUploaded(next) && mustMint) {
+      next = writeDraft({ audio_uploaded: false });
+    }
+    return createTrack(next, { force: mustMint, title: next && next.title }).then(function (created) {
       if (created.unavailable) return created;
       var trackId = created.track_id || (created.draft && created.draft.track_id);
       if (created.failed || created.missing || !trackId) {
@@ -1437,15 +1470,16 @@
         };
       }
       next = created.draft || next;
-      if (!next.track_id) next = writeDraft({ track_id: trackId });
-      var file = selectedAudio();
-      if (file && trackId && needsAudioUpload(next, file)) {
+      if (!next.track_id || (created.created && send)) next = writeDraft({ track_id: trackId });
+      var file = send || fileForStoreUpload(selectedAudio()) || selectedAudio();
+      if (file && trackId && (needsAudioUpload(next, file) || Boolean(send && created.created))) {
+        if (alreadyUploaded(next) && send) next = writeDraft({ audio_uploaded: false });
         return uploadTrackAudio(trackId, file).then(function (audio) {
           if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next)) {
             return { ok: true, draft: next, created: true };
           }
           if (audio.failed || audio.unavailable) return audio;
-          next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
+          next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: send && send.name ? send.name : (file.name || next.audio_name || '') });
           return { ok: true, draft: next, created: true };
         });
       }
@@ -1505,7 +1539,8 @@
       }
       if (hasId || hasFile || uploaded || picked || titled || existingSend || draftHasTrackFile(next) || String(next.title || '').trim()) {
         return createMissingTracks(next, {
-          force: Boolean(resolved.found || resolved.created) && !alreadyUploaded(next) && !alreadyConverted(next),
+          force: (Boolean(resolved.found || resolved.created) && !alreadyUploaded(next) && !alreadyConverted(next))
+            || Boolean(existingSend && !storeTracks.length),
           tracks: storeTracks,
         }).then(function (created) {
           if (created.ok) return created;
@@ -4170,7 +4205,7 @@
       shown = '';
     }
     if (isMissingTrackError({ data: { error: shown } }) && draftHasTrackFile(draft)) {
-      shown = 'Could not submit the release.';
+      shown = attachFailedMessage();
     }
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
