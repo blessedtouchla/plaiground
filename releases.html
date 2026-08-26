@@ -65,12 +65,14 @@
         <a href="releases.html?status=pending" data-release-filter="review">Pending</a>
         <a href="releases.html?status=draft" data-release-filter="draft">Drafts</a>
       </div>
-      <table class="data" data-release-table hidden>
-        <thead>
-          <tr><th>Release</th><th>Status</th><th>Splits</th><th>Streams</th><th>Earnings</th></tr>
-        </thead>
-        <tbody data-release-rows></tbody>
-      </table>
+      <div class="release-table-wrap" data-release-table hidden>
+        <table class="data">
+          <thead>
+            <tr><th>Release</th><th class="release-edit-col">Edit</th><th>Status</th><th>Splits</th><th>Streams</th><th>Earnings</th></tr>
+          </thead>
+          <tbody data-release-rows></tbody>
+        </table>
+      </div>
       <section class="flow-card release-edit" data-release-edit hidden>
         <div class="head-row">
           <h3>Edit release</h3>
