@@ -1448,12 +1448,243 @@ function isEditCatalogSelect(select) {
   return id === 'edit-genre' || id === 'edit-language';
 }
 
-// iPhone Safari never reliably taps the custom typeahead list. Use the
-// native picker on Basic upload and on Edit genre/language. Desktop and
-// Creator/fine-pointer keep typeahead.
+function isSubmitReviewPage() {
+  var doc = typeof document !== 'undefined' ? document : null;
+  if (doc && typeof doc.querySelector === 'function') {
+    try {
+      if (doc.querySelector('[data-store-submit]') || doc.querySelector('[data-review-title]')) return true;
+    } catch (err) {}
+  }
+  var loc = (typeof window !== 'undefined' && window.location)
+    || (typeof location !== 'undefined' ? location : null);
+  if (loc) {
+    var href = String(loc.pathname || loc.href || '');
+    if (/review\.html/i.test(href)) return true;
+  }
+  return false;
+}
+
+function isSubmitReviewCatalogSelect(select) {
+  return isBasicUploadCatalogSelect(select) && isSubmitReviewPage();
+}
+
+// #129: iPhone Safari never reliably taps the custom typeahead list on
+// Basic upload.html. Keep that native picker only there. Edit release and
+// Submit/review use Creator-style type-to-filter instead.
 function preferNativeCatalogSelect(select) {
-  if (!isBasicUploadCatalogSelect(select) && !isEditCatalogSelect(select)) return false;
+  if (!isBasicUploadCatalogSelect(select)) return false;
+  if (isSubmitReviewPage()) return false;
   return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
+}
+
+function preferTypeToFilterNative(select) {
+  if (!isEditCatalogSelect(select) && !isSubmitReviewCatalogSelect(select)) return false;
+  return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
+}
+
+function matchingCatalogItems(items, getValue, getLabel, query) {
+  var q = String(query || '').trim().toLowerCase();
+  var starts = [];
+  var contains = [];
+  var i;
+  for (i = 0; i < items.length; i += 1) {
+    var value = String(getValue(items[i]) == null ? '' : getValue(items[i]));
+    var label = String(getLabel(items[i]) == null ? '' : getLabel(items[i]));
+    if (!q || label.toLowerCase().indexOf(q) !== -1 || value.toLowerCase().indexOf(q) !== -1) {
+      if (q && (label.toLowerCase().indexOf(q) === 0 || value.toLowerCase().indexOf(q) === 0)) starts.push(items[i]);
+      else contains.push(items[i]);
+    }
+  }
+  return starts.concat(contains);
+}
+
+function bindTypeToFilterNative(select, items, getValue, getLabel) {
+  if (!select || !items || !items.length) return;
+  var field = select.parentNode;
+  if (!field) return;
+  var existingInput = typeaheadInput(select);
+  if (select.getAttribute('data-typeahead') === 'filter' && existingInput) return;
+  if (existingInput && existingInput.parentNode && existingInput.parentNode.removeChild) {
+    existingInput.parentNode.removeChild(existingInput);
+  }
+  var existingList = field.querySelector && field.querySelector('.typeahead-list');
+  if (existingList && String(existingList.className || '').indexOf('typeahead-list') === -1) existingList = null;
+  if (!existingList && field.children) {
+    var i;
+    for (i = 0; i < field.children.length; i += 1) {
+      if (field.children[i] && String(field.children[i].className || '').indexOf('typeahead-list') !== -1) {
+        existingList = field.children[i];
+        break;
+      }
+    }
+  }
+  if (existingList && existingList.parentNode && existingList.parentNode.removeChild) {
+    existingList.parentNode.removeChild(existingList);
+  }
+  if (select.removeAttribute) select.removeAttribute('data-typeahead');
+  select.setAttribute('data-typeahead', 'filter');
+  field.classList.add('typeahead-field');
+  field.classList.add('is-typeahead-filter');
+  if (select.classList && select.classList.remove) select.classList.remove('is-typeahead-source');
+  if (select.removeAttribute) select.removeAttribute('aria-hidden');
+  select.tabIndex = 0;
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'typeahead-input';
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('autocorrect', 'off');
+  input.setAttribute('autocapitalize', 'none');
+  input.setAttribute('spellcheck', 'false');
+  input.setAttribute('inputmode', 'search');
+  input.setAttribute('enterkeyhint', 'done');
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-expanded', 'false');
+  input.id = select.id ? select.id + '-type' : '';
+  input.setAttribute('placeholder', select.options[0] && !select.options[0].value ? select.options[0].textContent : 'Type to filter');
+
+  var list = document.createElement('div');
+  list.className = 'typeahead-list is-hidden';
+  list.id = input.id ? input.id + '-list' : '';
+  list.setAttribute('role', 'listbox');
+  if (list.id) input.setAttribute('aria-controls', list.id);
+
+  if (select.id) {
+    var label = field.querySelector && field.querySelector('label[for="' + select.id + '"]');
+    if (label && input.id) label.setAttribute('for', input.id);
+  }
+  if (field.insertBefore) field.insertBefore(input, select);
+  else if (field.appendChild) field.appendChild(input);
+  if (field.appendChild) field.appendChild(list);
+
+  function applyFilterPick(pick) {
+    if (!pick || !pick.value) return;
+    ensureOption(select, pick.value, pick.label);
+    select.value = pick.value;
+    input.value = pick.label;
+    fillSelect(select, matchingCatalogItems(items, getValue, getLabel, ''), getValue, getLabel);
+    if (select.value !== pick.value) {
+      ensureOption(select, pick.value, pick.label);
+      select.value = pick.value;
+    }
+    hideFilterList();
+    if (typeof select.dispatchEvent === 'function') {
+      try { select.dispatchEvent(new Event('change', { bubbles: true })); } catch (err) {}
+    }
+  }
+
+  function hideFilterList() {
+    if (list.classList && list.classList.add) list.classList.add('is-hidden');
+    list.innerHTML = '';
+    input.setAttribute('aria-expanded', 'false');
+  }
+
+  function showFilterMatches(query) {
+    var rows = matchingCatalogItems(items, getValue, getLabel, query);
+    fillSelect(select, rows, getValue, getLabel);
+    var q = String(query || '').trim();
+    list.innerHTML = '';
+    if (!rows.length) {
+      hideFilterList();
+      return;
+    }
+    var shown = rows;
+    if (shown.length > TYPEAHEAD_LIST_CAP) shown = shown.slice(0, TYPEAHEAD_LIST_CAP);
+    if (!q) {
+      var hint = document.createElement('div');
+      hint.className = 'typeahead-hint';
+      hint.setAttribute('role', 'note');
+      hint.textContent = 'Type to search';
+      list.appendChild(hint);
+    }
+    shown.forEach(function (item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = getLabel(item);
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('data-value', getValue(item));
+      btn.setAttribute('tabindex', '-1');
+      list.appendChild(btn);
+    });
+    if (list.classList && list.classList.remove) list.classList.remove('is-hidden');
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  function pickFromFilterNode(node) {
+    if (!node || !node.getAttribute) return null;
+    var value = node.getAttribute('data-value');
+    if (value == null || value === '') return null;
+    return { value: value, label: node.textContent || value };
+  }
+
+  function commitFilterList(event) {
+    var node = event && event.target;
+    while (node && node !== list) {
+      var pick = pickFromFilterNode(node);
+      if (pick) {
+        if (event && event.preventDefault) event.preventDefault();
+        applyFilterPick(pick);
+        return;
+      }
+      node = node.parentNode;
+    }
+  }
+
+  function commitTyped() {
+    var typed = String(input.value || '').trim();
+    if (!typed) {
+      select.value = '';
+      if (select.options && select.options[0]) select.selectedIndex = 0;
+      fillSelect(select, items, getValue, getLabel);
+      hideFilterList();
+      return;
+    }
+    var pick = findPick(items, getValue, getLabel, typed);
+    if (!pick) {
+      var rows = matchingCatalogItems(items, getValue, getLabel, typed);
+      if (rows[0]) pick = { value: getValue(rows[0]), label: getLabel(rows[0]) };
+    }
+    if (pick) applyFilterPick(pick);
+  }
+
+  function syncFromSelect() {
+    var pick = findPick(items, getValue, getLabel, select.value);
+    if (pick) input.value = pick.label;
+    else if (!select.value) input.value = '';
+  }
+
+  if (input.addEventListener) {
+    input.addEventListener('input', function () {
+      showFilterMatches(input.value);
+    });
+    input.addEventListener('focus', function () {
+      showFilterMatches(input.value);
+    });
+    input.addEventListener('change', commitTyped);
+    input.addEventListener('blur', function () {
+      var win = typeof window !== 'undefined' ? window : null;
+      if (win && win.setTimeout) win.setTimeout(commitTyped, 400);
+      else commitTyped();
+    });
+  }
+  if (list.addEventListener) {
+    list.addEventListener('mousedown', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      commitFilterList(event);
+    });
+    list.addEventListener('pointerdown', commitFilterList, true);
+    list.addEventListener('click', commitFilterList);
+  }
+  if (select.addEventListener) {
+    select.addEventListener('change', function () {
+      var pick = findPick(items, getValue, getLabel, select.value);
+      if (pick) applyFilterPick(pick);
+      else syncFromSelect();
+    });
+  }
+  select._plaigroundSyncTypeahead = syncFromSelect;
+  syncFromSelect();
 }
 
 function typeaheadBusy(api) {
@@ -1479,12 +1710,18 @@ function unclaimTypeahead(api) {
 }
 
 function isTypeaheadBound(select) {
-  return !!(select && select.getAttribute && select.getAttribute('data-typeahead') === 'on' && typeaheadInput(select));
+  if (!select || !select.getAttribute) return false;
+  var mode = select.getAttribute('data-typeahead');
+  return (mode === 'on' || mode === 'filter') && !!typeaheadInput(select);
 }
 
 function bindTypeahead(select, items, getValue, getLabel) {
   if (!select || !items || !items.length) return;
   if (preferNativeCatalogSelect(select)) return;
+  if (preferTypeToFilterNative(select)) {
+    bindTypeToFilterNative(select, items, getValue, getLabel);
+    return;
+  }
   var field = select.parentNode;
   if (!field) return;
   var existingInput = typeaheadInput(select);

@@ -96,8 +96,7 @@
     clearHeldAudio();
   }
 
-  function cancelInProgressUpload(event) {
-    if (event && event.preventDefault) event.preventDefault();
+  function confirmCancelInProgress() {
     var ok = true;
     try {
       if (typeof window.confirm === 'function') {
@@ -106,12 +105,27 @@
     } catch (err) {
       ok = true;
     }
-    if (!ok) return false;
+    return ok;
+  }
+
+  function leaveAfterCancel(href) {
     clearNewReleaseDraft();
     try {
-      if (typeof location !== 'undefined') location.href = 'upload.html?new=1';
+      if (typeof location !== 'undefined') location.href = href;
     } catch (err) {}
     return true;
+  }
+
+  function cancelInProgressUpload(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (!confirmCancelInProgress()) return false;
+    return leaveAfterCancel('upload.html?new=1');
+  }
+
+  function cancelInProgressSubmit(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    if (!confirmCancelInProgress()) return false;
+    return leaveAfterCancel('dashboard.html');
   }
 
   function stripNewReleaseFlag() {
@@ -4418,10 +4432,48 @@
     });
   }
 
+  function reviewInstrumental() {
+    return selectedInstrumental() || Boolean(readDraft().instrumental);
+  }
+
+  function persistReviewCatalog() {
+    var current = readDraft();
+    var genre = catalogFieldValue('tg-genre') || current.genre || '';
+    var language = reviewInstrumental() ? '' : (catalogLanguageValue() || current.language || '');
+    writeDraft({ genre: genre, language: language });
+    fillReviewSummary();
+  }
+
+  function bindReviewCatalog() {
+    var catalog = ensureUploadTypeahead();
+    var draft = readDraft();
+    var genre = $('tg-genre');
+    var language = $('tg-language');
+    if (catalog && typeof catalog.setTypeaheadValue === 'function') {
+      if (genre && draft.genre) catalog.setTypeaheadValue(genre, draft.genre);
+      if (language && draft.language) catalog.setTypeaheadValue(language, draft.language);
+    } else {
+      if (genre && draft.genre) genre.value = draft.genre;
+      if (language && draft.language) language.value = draft.language;
+    }
+    syncLanguageField(reviewInstrumental());
+    persistReviewCatalog();
+    ['tg-genre', 'tg-language'].forEach(function (id) {
+      var el = $(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('change', persistReviewCatalog);
+    });
+  }
+
   function bindReview() {
     var trigger = document.querySelector('[data-store-submit]');
     var onReview = Boolean(trigger || document.querySelector('[data-review-title]'));
     if (!onReview) return;
+    var cancelBtn = document.querySelector('[data-upload-cancel]');
+    if (cancelBtn && cancelBtn.addEventListener) {
+      cancelBtn.addEventListener('click', cancelInProgressSubmit);
+    }
+    bindReviewCatalog();
     bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {
@@ -4455,6 +4507,11 @@
         }
         var pick = storePickSnapshot();
         var submitPatch = { release_date: releaseDate, dsps: pick.slugs, dsps_all: pick.allOn };
+        var reviewGenre = catalogFieldValue('tg-genre');
+        var reviewLanguage = reviewInstrumental() ? '' : catalogLanguageValue();
+        if (reviewGenre) submitPatch.genre = reviewGenre;
+        if (!reviewInstrumental()) submitPatch.language = reviewLanguage || draft.language || '';
+        else submitPatch.language = '';
         if (pick.total > 0) submitPatch.dsps_total = pick.total;
         draft = writeDraft(submitPatch);
 
