@@ -418,6 +418,11 @@ function run() {
   assert.ok(/\.releases-head-actions \{\s*display:\s*flex;\s*flex-direction:\s*column/.test(siteCss), 'New release stacks above Upload album');
   assert.ok(siteCss.includes('.releases-head-actions [data-new-release]') && siteCss.includes('order: 1'));
   assert.ok(siteCss.includes('.releases-head-actions [data-album-upload]') && siteCss.includes('order: 2'));
+  assert.ok(/<th>Release<\/th>\s*<th class="release-edit-col">Edit<\/th>\s*<th>Status<\/th>/.test(releases), 'Edit is its own aligned column after Release');
+  assert.ok(/class="release-table-wrap"/.test(releases) && /data-release-table/.test(releases), 'Releases table wrap keeps the list scrollable');
+  assert.ok(siteCss.includes('table.data th.release-edit-col') && siteCss.includes('white-space: nowrap'), 'Edit column stays aligned down the table');
+  assert.ok(siteCss.includes('table.data td.release-edit-col .btn') && siteCss.includes('min-height: 44px'), 'phone Edit column stays tappable');
+  assert.ok(siteCss.includes('.release-table-wrap') && siteCss.includes('overflow-x: auto'), 'phone table can scroll without covering New release');
   assert.ok(/class="catalog-stats releases-stats"/.test(releases), 'Releases stats card is marked for phone centering');
   assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
   assert.ok(siteCss.includes('.app .page .releases-stats'), 'phone Releases stats card uses the centered page rule');

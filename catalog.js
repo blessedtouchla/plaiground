@@ -212,21 +212,22 @@
       meta.textContent = typeLabel(row.type) + (when ? ' · ' + when : '');
       copy.appendChild(title);
       copy.appendChild(meta);
+      wrap.appendChild(thumb);
+      wrap.appendChild(copy);
+      titleCell.appendChild(wrap);
+
+      var editCell = document.createElement('td');
+      editCell.className = 'release-edit-col';
       var edit = document.createElement(row.uuid ? 'a' : 'button');
       edit.textContent = 'Edit release';
       edit.className = 'btn btn-ghost btn-sm';
-      edit.style.display = 'inline-flex';
-      edit.style.marginTop = '8px';
       if (row.uuid) {
         edit.href = 'song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1';
       } else {
         edit.type = 'button';
         edit.setAttribute('data-edit-missing', '');
       }
-      copy.appendChild(edit);
-      wrap.appendChild(thumb);
-      wrap.appendChild(copy);
-      titleCell.appendChild(wrap);
+      editCell.appendChild(edit);
 
       var statusCell = document.createElement('td');
       var mapped = statusApi() ? statusApi().info(row.status) : { label: statusLabel(row.status), dot: live ? 'green' : 'yellow', live: live };
@@ -248,6 +249,7 @@
       earnCell.textContent = '$0.00';
 
       tr.appendChild(titleCell);
+      tr.appendChild(editCell);
       tr.appendChild(statusCell);
       tr.appendChild(splits);
       tr.appendChild(streamCell);

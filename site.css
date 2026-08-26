@@ -1070,6 +1070,27 @@ table.data th {
 }
 table.data td { padding: 16px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 table.data tbody tr.is-pick { cursor: pointer; }
+.release-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.release-table-wrap[hidden] { display: none; }
+table.data th.release-edit-col,
+table.data td.release-edit-col {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: left;
+}
+table.data td.release-edit-col .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  white-space: nowrap;
+}
 .release-edit { margin-top: 24px; }
 .profile-hero {
   display: flex;
@@ -3195,6 +3216,16 @@ body:not(.app) > .app-main > .topbar { display: none; }
   .releases-stats strong { font-size: 1.35rem; }
   .catalog-stats span,
   .releases-stats span { text-align: center; }
+  .release-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.data td.release-edit-col .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+    position: static;
+  }
   .edit-actions {
     flex-direction: column;
     align-items: stretch;

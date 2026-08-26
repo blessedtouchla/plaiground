@@ -264,8 +264,11 @@ function run() {
   assert.strictEqual(catalogNodes['[data-stat="draft"]'].textContent, '1');
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, true);
   assert.strictEqual(catalogNodes['[data-release-table]'].hidden, false);
-  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[3].textContent, '0');
-  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[4].textContent, '$0.00');
+  const firstRow = catalogNodes['[data-release-rows]'].children[0];
+  assert.strictEqual(firstRow.children.length, 6, 'Release, Edit, Status, Splits, Streams, Earnings');
+  assert.strictEqual(firstRow.children[1].className, 'release-edit-col', 'Edit release sits in its own aligned column');
+  assert.strictEqual(firstRow.children[4].textContent, '0');
+  assert.strictEqual(firstRow.children[5].textContent, '$0.00');
   assert.ok(catalogNodes['[data-release-tiles]'].children[0].children[0].style.backgroundImage.indexOf('night.jpg') !== -1, 'Releases tiles paint catalog cover art');
   catalog.PlaigroundCatalog.render({
     releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'draft' }],
@@ -273,15 +276,18 @@ function run() {
     analytics: {},
   });
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'Releases tiles keep the empty placeholder when there is no cover');
-  const catalogEdit = findByText(catalogNodes['[data-release-rows]'], 'Edit release');
+  const catalogEdit = findByText(catalogNodes['[data-release-rows]'].children[0].children[1], 'Edit release');
   assert.ok(catalogEdit, 'catalog cards must include Edit release');
   assert.strictEqual(catalogEdit.tagName, 'A');
   assert.ok(String(catalogEdit.href).indexOf('song.html?id=11111111-1111-4111-8111-111111111111') !== -1);
   assert.ok(String(catalogEdit.href).indexOf('edit=1') !== -1);
+  assert.ok(!findByText(catalogNodes['[data-release-rows]'].children[0].children[0], 'Edit release'), 'Edit release is not jammed after the title');
   assert.ok(read('releases.html').includes('href="releases.html">Releases</a>'), 'sidebar Releases stays on the catalog list');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('releases.html')), 'sidebar Releases must not point at a leftover song');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('dashboard.html')), 'Creator menu Releases must not point at a leftover song');
   assert.ok(read('catalog.js').includes("editPanel.hidden = true"), 'Releases must not auto-open Edit release');
+  assert.ok(read('catalog.js').includes("editCell.className = 'release-edit-col'"), 'Edit release is built as its own table column');
+  assert.ok(!read('catalog.js').includes('copy.appendChild(edit)'), 'Edit release is not jammed after the title');
   assert.ok(read('catalog.js').includes('function pickedCatalogValue'), 'catalog edit must read typeahead genre/language');
   assert.ok(read('song.js').includes("location.href = 'releases.html'"), 'song.html without an id returns to the list');
   assert.ok(read('song.js').includes("return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html'"), 'bare Edit href goes to the list, not latest');
@@ -295,7 +301,8 @@ function run() {
   });
   const catalogRows = catalogNodes['[data-release-rows]'].children;
   const lastRow = catalogRows[catalogRows.length - 1];
-  const missingEdit = findByText(lastRow, 'Edit release');
+  assert.strictEqual(lastRow.children[1].className, 'release-edit-col');
+  const missingEdit = findByText(lastRow.children[1], 'Edit release');
   assert.ok(missingEdit, 'catalog still shows Edit when the store id is missing');
   assert.strictEqual(missingEdit.tagName, 'BUTTON');
   assert.strictEqual(missingEdit.getAttribute('data-edit-missing'), '');
