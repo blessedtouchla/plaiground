@@ -64,14 +64,16 @@
             </p>
           </div>
           <div data-has-release hidden>
-            <p data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.</p>
-            <p data-for-plans="creator pro" hidden>Your song is in the catalog.</p>
-            <p style="margin-top:18px">
+            <div class="release-lede">
+              <p data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.</p>
+              <p data-for-plans="creator pro" hidden>Your song is in the catalog.</p>
+              <span class="release-status" data-latest-status>Pending</span>
+            </div>
+            <div class="release-pills">
               <a class="btn btn-purple btn-md" href="upload.html" data-new-release data-signed-in-upload>New release</a>
               <a class="btn btn-ghost btn-md" data-latest-edit href="releases.html">Edit release</a>
-              <a class="btn btn-ghost btn-md" href="releases.html">All releases</a>
-              <span style="color:var(--gold);font-size:13px;margin-left:12px" data-latest-status>Pending</span>
-            </p>
+              <a class="btn btn-ghost btn-md" href="releases.html" data-all-releases>All releases</a>
+            </div>
             <span class="is-hidden" hidden data-latest-title>Your release</span>
           </div>
         </div>
