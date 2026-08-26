@@ -233,6 +233,26 @@ function loadSong(opts) {
     fetch(url, options) {
       const method = (options && options.method) || 'GET';
       calls.push({ url: String(url), method: method, body: options && options.body });
+      if (String(url) === '/api/tonegrid/uploads') {
+        const minted = JSON.parse((options && options.body) || '{}');
+        const prefix = String(minted.kind || '') === 'cover' ? 'covers' : 'audio';
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            object_key: prefix + '/11111111-1111-4111-8111-111111111111/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-' + (minted.filename || 'file'),
+            upload_url: 'https://hop.test/put',
+            headers: { 'Content-Type': minted.content_type || 'application/octet-stream' },
+          }),
+        });
+      }
+      if (String(url).indexOf('/api/tonegrid/uploads?key=') === 0 || String(url).indexOf('https://hop.test/') === 0) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ url: 'https://hop.test/get?sig=1' }),
+        });
+      }
       if (opts.hangWhen && String(url) === opts.hangWhen) {
         opts._hangHits = (opts._hangHits || 0) + 1;
         if (opts._hangHits <= (opts.hangCount || 1)) {
@@ -306,6 +326,7 @@ function loadSong(opts) {
   vm.runInNewContext(read('lib/audio-accept.js'), context);
   vm.runInNewContext(read('lib/store-pick.js'), context);
   vm.runInNewContext(read('lib/cover-preview.js'), context);
+  vm.runInNewContext(read('lib/object-hop.js'), context);
   vm.runInNewContext(read('lib/statement-pdf.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };

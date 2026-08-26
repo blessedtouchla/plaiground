@@ -265,6 +265,9 @@
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\bCloudflare\b/gi, 'the store');
+    next = next.replace(/\bInterSpace\b/gi, 'the store');
+    next = next.replace(/\bR2\b/g, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
     return next;
   }
@@ -341,6 +344,38 @@
 
   function waitMsForUrl(url) {
     return /\/audio(?:\?|$)/i.test(String(url || '')) ? audioPostTimeoutMs() : catalogTimeoutMs();
+  }
+
+  function hopApi() {
+    try {
+      if (typeof PlaigroundObjectHop !== 'undefined' && PlaigroundObjectHop) return PlaigroundObjectHop;
+    } catch (err) {}
+    if (typeof window !== 'undefined' && window && window.PlaigroundObjectHop) return window.PlaigroundObjectHop;
+    return null;
+  }
+
+  function hopFile(kind, file, onProgress) {
+    var api = hopApi();
+    if (!api || typeof api.put !== 'function' || !file) {
+      return Promise.resolve({ failed: true, result: { data: { error: kind === 'audio' ? AUDIO_SEND_COPY : STEP_FAIL_COPY } } });
+    }
+    return api.put(kind, file, { onProgress: onProgress }).then(function (key) {
+      if (!key) return { failed: true, result: { data: { error: kind === 'audio' ? AUDIO_SEND_COPY : STEP_FAIL_COPY } } };
+      return { object_key: key };
+    }).catch(function (err) {
+      return { failed: true, result: (err && err.result) || { data: { error: kind === 'audio' ? AUDIO_SEND_COPY : STEP_FAIL_COPY } } };
+    });
+  }
+
+  function reuseHopKey(kind, file, draft) {
+    if (!file || !draft) return '';
+    if (kind === 'audio' && draft.audio_object_key && draft.audio_name === file.name && Number(draft.audio_hop_size) === Number(file.size)) {
+      return String(draft.audio_object_key);
+    }
+    if (kind === 'cover' && draft.artwork_object_key && draft.artwork_name === file.name && Number(draft.artwork_size) === Number(file.size)) {
+      return String(draft.artwork_object_key);
+    }
+    return '';
   }
 
   function catalogTimeoutMessage() {
@@ -2485,10 +2520,20 @@
         return { failed: true, result: { data: { error: AUDIO_ERROR } } };
       }
       function postFile(send) {
-        if (audioNeedsChunks(send)) return postChunkedAudio(trackId, send, onProgress);
-        var body = new FormData();
-        body.append('audio', send, send.name || 'audio.wav');
-        return postForm(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', body, onProgress);
+        var reused = reuseHopKey('audio', send, readDraft());
+        var hopped = reused
+          ? Promise.resolve({ object_key: reused })
+          : hopFile('audio', send, onProgress);
+        return hopped.then(function (next) {
+          if (next && next.failed) return next.result || { ok: false, data: { error: AUDIO_SEND_COPY } };
+          if (!next || !next.object_key) return { ok: false, data: { error: AUDIO_SEND_COPY } };
+          writeDraft({
+            audio_object_key: next.object_key,
+            audio_name: send.name || readDraft().audio_name || '',
+            audio_hop_size: Number(send.size) || 0,
+          });
+          return post(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', { object_key: next.object_key });
+        });
       }
       function interpret(result, err) {
         if (result && result.ok) return { uploaded: true, result: result };
@@ -2586,6 +2631,7 @@
             tonegrid_release_id: releaseId,
             id: releaseId,
             artwork_url: keep,
+            artwork_object_key: String((draft && draft.artwork_object_key) || '').trim(),
             genre: String((draft && draft.genre) || '').trim(),
             language: String((draft && draft.language) || '').trim(),
           },
@@ -2608,20 +2654,45 @@
   }
 
   function uploadArtwork(releaseId, file, onProgress) {
-    if (!releaseId || !file) return Promise.resolve({ skipped: true });
+    var draft = readDraft();
+    if (!releaseId) return Promise.resolve({ skipped: true });
+    if (!file && draft.artwork_object_key) {
+      return post(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', {
+        object_key: draft.artwork_object_key,
+      }).then(function (result) {
+        if (isUnavailable(result)) return { unavailable: true, result: result };
+        if (!result.ok) return { failed: true, result: result };
+        return rememberArtworkUrl(releaseId, result, null).then(function () {
+          return { uploaded: true, result: result, object_key: draft.artwork_object_key };
+        });
+      });
+    }
+    if (!file) return Promise.resolve({ skipped: true });
     if (file.size > MAX_ARTWORK_BYTES) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Artwork must be 15 MB or smaller.' } } });
     }
     if (!isArtFile(file)) {
       return Promise.resolve({ failed: true, result: { data: { error: 'Artwork must be JPG or PNG.' } } });
     }
-    var body = new FormData();
-    body.append('artwork', file, file.name || 'artwork.jpg');
-    return postForm(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', body, onProgress).then(function (result) {
-      if (isUnavailable(result)) return { unavailable: true, result: result };
-      if (!result.ok) return { failed: true, result: result };
-      return rememberArtworkUrl(releaseId, result, file).then(function () {
-        return { uploaded: true, result: result };
+    var reused = reuseHopKey('cover', file, readDraft());
+    var hopped = reused
+      ? Promise.resolve({ object_key: reused })
+      : hopFile('cover', file, onProgress);
+    return hopped.then(function (next) {
+      if (next && next.failed) return next;
+      if (!next || !next.object_key) return { failed: true, result: { data: { error: STEP_FAIL_COPY } } };
+      writeDraft({
+        artwork_object_key: next.object_key,
+        artwork_name: file.name || readDraft().artwork_name || '',
+        artwork_type: file.type || readDraft().artwork_type || '',
+        artwork_size: Number(file.size) || 0,
+      });
+      return post(RELEASES_URL + '/' + encodeURIComponent(releaseId) + '/artwork', { object_key: next.object_key }).then(function (result) {
+        if (isUnavailable(result)) return { unavailable: true, result: result };
+        if (!result.ok) return { failed: true, result: result };
+        return rememberArtworkUrl(releaseId, result, file).then(function () {
+          return { uploaded: true, result: result, object_key: next.object_key };
+        });
       });
     });
   }
@@ -3106,6 +3177,7 @@
       audio: audio,
       artwork: art,
       artwork_name: (art && art.name) || draft.artwork_name || '',
+      artwork_object_key: draft.artwork_object_key || '',
       title: fieldValue('tg-title') || draft.title || '',
       name: syncArtistHidden() || fieldValue('tg-artist') || draft.name || '',
       featured: fieldValue('tg-featured') || draft.featured || '',
@@ -3196,7 +3268,7 @@
       return checked && checked.error ? checked.error : '';
     }
     if (!fields.audio && !fields.track_id && !fields.audio_uploaded) return 'Audio is required.';
-    if (!fields.artwork && !fields.artwork_name) return 'Artwork is required.';
+    if (!fields.artwork && !fields.artwork_name && !fields.artwork_object_key) return 'Artwork is required.';
     if (!fields.name) return 'Primary artist is required.';
     if (!fields.title) return 'Song title is required.';
     if (!fields.genre) return 'Genre is required.';
@@ -4043,6 +4115,13 @@
     if (window.PlaigroundUploadCover && typeof window.PlaigroundUploadCover.setStored === 'function' && draft.artwork_url) {
       window.PlaigroundUploadCover.setStored(draft.artwork_url);
     }
+    if (draft.artwork_object_key && hopApi() && typeof hopApi().previewUrl === 'function') {
+      hopApi().previewUrl(draft.artwork_object_key).then(function (url) {
+        if (url && window.PlaigroundUploadCover && typeof window.PlaigroundUploadCover.setStored === 'function') {
+          window.PlaigroundUploadCover.setStored(url);
+        }
+      });
+    }
     if (draft.type !== 'album' && (draft.track_id || draft.audio_uploaded) && !selectedAudio()) {
       var nameEl = document.querySelector('[data-audio-name]');
       var preview = document.querySelector('[data-audio-preview]');
@@ -4433,6 +4512,7 @@
         dsps: dsps,
         artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
         artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
+        artwork_object_key: readDraft().artwork_object_key || '',
         audio_name: file && file.name ? file.name : (readDraft().audio_name || ''),
         audio_picked_size: (file && !looksLikeWav(file)) || !alreadyConverted(readDraft())
           ? (Number(file && file.size) || Number(readDraft().audio_picked_size) || 0)
@@ -4468,6 +4548,7 @@
             dsps: dsps,
             artwork_name: art && art.name ? art.name : (readDraft().artwork_name || ''),
             artwork_type: art && art.type ? art.type : (readDraft().artwork_type || ''),
+            artwork_object_key: readDraft().artwork_object_key || '',
             audio_name: file && file.name ? file.name : (readDraft().audio_name || ''),
             audio_attached: Boolean((file && file.name) || readDraft().audio_attached || readDraft().audio_name),
             title_check: titleCheck,

@@ -261,6 +261,7 @@
   <script src="lib/store-pick.js"></script>
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
+  <script src="lib/object-hop.js"></script>
   <script src="store-client.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -393,9 +394,12 @@
           if (file) {
             current.artwork_name = file.name;
             current.artwork_type = file.type || '';
+            current.artwork_size = Number(file.size) || 0;
           } else {
             delete current.artwork_name;
             delete current.artwork_type;
+            delete current.artwork_size;
+            delete current.artwork_object_key;
           }
           var text = JSON.stringify(current);
           try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
@@ -428,6 +432,11 @@
         try {
           var draft = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
           storedArt = String(draft.artwork_url || '').trim();
+          if (!storedArt && draft.artwork_object_key && window.PlaigroundObjectHop && typeof window.PlaigroundObjectHop.previewUrl === 'function') {
+            window.PlaigroundObjectHop.previewUrl(draft.artwork_object_key).then(function (url) {
+              if (url && artPreview && typeof artPreview.setStored === 'function') artPreview.setStored(url);
+            });
+          }
         } catch (err) {}
         artPreview = window.PlaigroundCoverPreview.bind({
           input: artInput,
@@ -446,6 +455,19 @@
           onChange: function (file) {
             if (artMeta) artMeta.textContent = file && file.name ? file.name : DEFAULT_ART_META;
             rememberArtwork(file);
+            if (file && window.PlaigroundObjectHop && typeof window.PlaigroundObjectHop.put === 'function') {
+              window.PlaigroundObjectHop.put('cover', file).then(function (key) {
+                try {
+                  var current = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
+                  current.artwork_object_key = key;
+                  current.artwork_name = file.name || current.artwork_name || '';
+                  current.artwork_size = Number(file.size) || 0;
+                  var text = JSON.stringify(current);
+                  try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
+                  try { sessionStorage.setItem('plaiground.store.draft', text); } catch (err) {}
+                } catch (err) {}
+              }).catch(function () {});
+            }
           },
         });
         window.PlaigroundUploadCover = artPreview;

@@ -47,6 +47,9 @@
     if (/audio must be 200\s*mb or smaller/i.test(next)) return AUDIO_SIZE_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
+    next = next.replace(/\bCloudflare\b/gi, 'the store');
+    next = next.replace(/\bInterSpace\b/gi, 'the store');
+    next = next.replace(/\bR2\b/g, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
     return next;
   }
@@ -705,6 +708,14 @@
       cover = String((release && (release.artwork_url || release.cover_art_url || release.cover_url)) || '').trim();
     }
     setCover(cover);
+    var coverKey = (global.PlaigroundCoverUrl && typeof global.PlaigroundCoverUrl.objectKey === 'function')
+      ? global.PlaigroundCoverUrl.objectKey(release) || global.PlaigroundCoverUrl.objectKey(draft)
+      : String((release && release.artwork_object_key) || (draft && draft.artwork_object_key) || '').trim();
+    if (!cover && coverKey && hopApi() && typeof hopApi().previewUrl === 'function') {
+      hopApi().previewUrl(coverKey).then(function (url) {
+        if (url) setCover(url);
+      });
+    }
 
     var summary = analytics.summary || {};
     var scoped = ((analytics.releases || []).filter(function (row) {
@@ -879,6 +890,21 @@
       if (signal) opts.signal = signal;
       return fetch(url, opts).then(parseSave);
     });
+  }
+
+  function hopApi() {
+    try {
+      if (typeof PlaigroundObjectHop !== 'undefined' && PlaigroundObjectHop) return PlaigroundObjectHop;
+    } catch (err) {}
+    return global.PlaigroundObjectHop || null;
+  }
+
+  function hopPut(kind, file) {
+    var api = hopApi();
+    if (!api || typeof api.put !== 'function' || !file) {
+      return Promise.reject(new Error(kind === 'audio' ? 'We could not send the audio. Retry.' : 'We could not finish this step.'));
+    }
+    return api.put(kind, file);
   }
 
   function editAlreadyQueued(release, draft) {
@@ -1536,6 +1562,7 @@
         tonegrid_release_id: id,
         id: id,
         artwork_url: String((draft && draft.artwork_url) || (release && release.artwork_url) || '').trim(),
+        artwork_object_key: String((draft && draft.artwork_object_key) || (release && release.artwork_object_key) || '').trim(),
         genre: String((draft && draft.genre) || (release && release.genre) || '').trim(),
         language: String((draft && draft.language) || (release && release.language) || '').trim(),
         lyrics: draft && draft.lyrics !== undefined ? String(draft.lyrics || '') : String((release && release.lyrics) || ''),
@@ -1561,8 +1588,13 @@
   }
 
   function applyImmediateEdit(id, fields) {
-    return fileToCoverDataUrl(fields.art).then(function (storedCover) {
-      var cover = persistableCoverUrl(storedCover) || pendingCoverUrl(fields.art);
+    var hopCover = fields.art ? hopPut('cover', fields.art).catch(function () { return ''; }) : Promise.resolve('');
+    return hopCover.then(function (coverKey) {
+      return fileToCoverDataUrl(coverKey ? null : fields.art).then(function (storedCover) {
+        return { coverKey: coverKey, storedCover: storedCover };
+      });
+    }).then(function (hopped) {
+      var cover = persistableCoverUrl(hopped.storedCover) || pendingCoverUrl(fields.art);
       var keep = persistableCoverUrl(cover);
       var draft = writeDraftFor(id, {
         title: fields.title,
@@ -1575,6 +1607,7 @@
         release_date: fields.release_date,
         dsps: fields.dsps,
         artwork_url: keep || undefined,
+        artwork_object_key: hopped.coverKey || undefined,
         edit_applied: true,
       });
       if (fields.title) draft.title = fields.title;
@@ -1585,6 +1618,7 @@
       if (fields.release_date) draft.release_date = fields.release_date;
       if (Array.isArray(fields.dsps)) draft.dsps = fields.dsps;
       if (keep) draft.artwork_url = keep;
+      if (hopped.coverKey) draft.artwork_object_key = hopped.coverKey;
       draft.edit_applied = true;
       var release = Object.assign({}, lastEdit.release || {}, {
         uuid: id,
@@ -1741,18 +1775,13 @@
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'language', null));
       if (!art) return { ok: true, skipped: true };
-      var form = new FormData();
-      form.append('artwork', art, art.name || 'artwork.jpg');
-      return runHop('artwork', withCatalogTimeout(function (signal) {
-        var opts = {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-          body: form,
-        };
-        if (signal) opts.signal = signal;
-        return fetch('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', opts).then(parseSave);
-      }));
+      return hopPut('cover', art).then(function (key) {
+        writeDraftFor(id, { artwork_object_key: key, artwork_name: art.name || '' });
+        return runHop('artwork', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', 'POST', { object_key: key }));
+      }).catch(function (err) {
+        if (err && err.timedOut) throw err;
+        return { ok: false, data: { error: (err && err.message) || 'We could not finish this step.' } };
+      });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
       if (!audio || !trackId) {
@@ -1765,7 +1794,13 @@
           errors.push(message);
           return { ok: false, skipped: false, data: { error: message } };
         }
-        return runHop('audio', postTrackAudio(trackId, audio));
+        return hopPut('audio', audio).then(function (key) {
+          writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
+          return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key }));
+        }).catch(function (err) {
+          if (err && err.timedOut) throw err;
+          return { ok: false, data: { error: (err && err.message) || 'We could not send the audio. Retry.' } };
+        });
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));

@@ -12,6 +12,7 @@
     { "source": "/api/tonegrid/releases/:id/dsps", "destination": "/api/tonegrid?resource=dsps&id=:id" },
     { "source": "/api/tonegrid/releases/:id/artwork", "destination": "/api/tonegrid?resource=artwork&id=:id" },
     { "source": "/api/tonegrid/releases/:id", "destination": "/api/tonegrid?resource=release&id=:id" },
+    { "source": "/api/tonegrid/uploads", "destination": "/api/tonegrid?resource=uploads" },
     { "source": "/api/tonegrid/tracks/:id/audio", "destination": "/api/tonegrid?resource=audio&id=:id" },
     { "source": "/api/tonegrid/tracks/:id", "destination": "/api/tonegrid?resource=track&id=:id" },
     { "source": "/api/tonegrid/:resource", "destination": "/api/tonegrid?resource=:resource" },

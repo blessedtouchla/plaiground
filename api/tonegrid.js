@@ -20,10 +20,12 @@
  * POST /api/tonegrid/releases/:id/artwork  -> ToneGrid POST /releases/:uuid/artwork
  * POST /api/tonegrid/tracks
  * PUT  /api/tonegrid/tracks/:id            -> ToneGrid PATCH /tracks/:uuid
- * POST /api/tonegrid/tracks/:id/audio
- *   Single multipart when the body is under the platform hop cap.
- *   Over that cap the browser sends x-plaiground-chunk-* parts; this
+ * POST /api/tonegrid/tracks/:id/audio  -> JSON { object_key } (preferred) or leftover multipart
+ *   Leftover multipart under the platform hop cap goes through as one body.
+ *   Over that cap leftover clients may send x-plaiground-chunk-* parts; this
  *   function assembles, converts MP3 → WAV, then hops once.
+ * POST /api/tonegrid/uploads           -> mint a short-lived PUT for audio/ or covers/
+ * GET  /api/tonegrid/uploads?key=      -> owner-only signed GET helper
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
  *
@@ -56,6 +58,7 @@ const uploadRequired = require('../lib/upload-required');
 const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
+const objectStore = require('../lib/object-store');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
@@ -333,18 +336,19 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
   });
 }
 
-async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl) {
+async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
   let next = stored;
   if (status || reason !== undefined) {
     next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
   }
-  if (artworkUrl) {
+  if (artworkUrl || artworkObjectKey) {
     next = profileLib.upsertRelease(next, {
       id: releaseId,
       tonegrid_release_id: releaseId,
       artwork_url: artworkUrl,
+      artwork_object_key: artworkObjectKey,
     });
   }
   await accounts.updateProfile(row.id, { profile: next });
@@ -872,6 +876,128 @@ function looksLikeAudioPart(buf) {
   return audioConvert.incomingAudioAllowed(buf);
 }
 
+function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return Promise.resolve(req.body);
+  }
+  if (Buffer.isBuffer(req.body)) {
+    const raw = req.body.toString('utf8').trim();
+    if (!raw) return Promise.resolve({});
+    return Promise.resolve(JSON.parse(raw));
+  }
+  if (typeof req.body === 'string') {
+    const raw = req.body.trim();
+    if (!raw) return Promise.resolve({});
+    return Promise.resolve(JSON.parse(raw));
+  }
+  return readBody(req);
+}
+
+function objectKeyFromBody(body) {
+  if (!body || typeof body !== 'object') return '';
+  return String(body.object_key || body.objectKey || body.key || '').trim();
+}
+
+function namelessStoreError(kind) {
+  return objectStore.sendCopy(kind);
+}
+
+async function loadHoppedObject(scope, key, kind) {
+  if (!objectStore.isConfigured()) {
+    const err = new Error(objectStore.missingCopy());
+    err.status = 503;
+    err.nameless = true;
+    throw err;
+  }
+  const owned = objectStore.ownedKey(key, scope.userId, kind);
+  if (!owned) {
+    const err = new Error(objectStore.STEP_FAIL_COPY);
+    err.status = 400;
+    err.nameless = true;
+    throw err;
+  }
+  const got = await objectStore.getObject(key);
+  if (!got || !got.body || !got.body.length) {
+    const err = new Error(namelessStoreError(kind));
+    err.status = 400;
+    err.nameless = true;
+    throw err;
+  }
+  const max = kind === 'audio' ? MAX_AUDIO_BYTES : MAX_ARTWORK_BYTES;
+  if (got.body.length > max) {
+    const err = new Error(kind === 'audio' ? 'Audio must be 200 MB or smaller.' : 'Artwork must be 15 MB or smaller.');
+    err.status = 413;
+    throw err;
+  }
+  return {
+    body: got.body,
+    contentType: got.contentType,
+    filename: objectStore.filenameOf(key, owned.filename),
+    parsed: owned,
+  };
+}
+
+async function uploads(req, res) {
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+  if (!objectStore.isConfigured()) {
+    sendJson(res, 503, { error: objectStore.missingCopy() });
+    return;
+  }
+  if (req.method === 'GET') {
+    const key = String(queryValue(req, 'key') || '').trim();
+    const owned = objectStore.ownedKey(key, scope.userId);
+    if (!owned) {
+      sendJson(res, 404, { error: objectStore.STEP_FAIL_COPY });
+      return;
+    }
+    const signed = objectStore.presignGet(key);
+    sendJson(res, 200, {
+      object_key: key,
+      url: signed.url,
+      expires_in: signed.expires_in,
+    });
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch {
+    sendJson(res, 400, { error: objectStore.STEP_FAIL_COPY });
+    return;
+  }
+  const kind = objectStore.parseKind(body && (body.kind || body.type));
+  const check = objectStore.validateMint(
+    kind,
+    body && (body.filename || body.name),
+    body && (body.content_type || body.contentType || body.type),
+    body && (body.size || body.bytes)
+  );
+  if (check.error) {
+    sendJson(res, 400, { error: check.error });
+    return;
+  }
+  const key = objectStore.objectKey(check.kind, scope.userId, check.filename);
+  if (!key) {
+    sendJson(res, 400, { error: objectStore.STEP_FAIL_COPY });
+    return;
+  }
+  const contentType = String((body && (body.content_type || body.contentType)) || '').trim()
+    || (check.kind === 'cover' ? 'image/jpeg' : 'application/octet-stream');
+  const signed = objectStore.presignPut(key, contentType);
+  sendJson(res, 200, {
+    object_key: key,
+    upload_url: signed.url,
+    headers: signed.headers,
+    expires_in: signed.expires_in,
+  });
+}
+
 function readRawBody(req, maxBytes) {
   if (Buffer.isBuffer(req.body)) {
     if (req.body.length > maxBytes) {
@@ -926,32 +1052,56 @@ async function trackAudio(req, res, trackId) {
   if (!scope) return;
 
   const contentType = headerValue(req, 'content-type');
-  if (!/multipart\/form-data/i.test(contentType)) {
-    sendJson(res, 400, { error: 'audio must be multipart/form-data.' });
-    return;
-  }
-
-  const declared = Number(headerValue(req, 'content-length') || 0);
-  if (declared > MAX_AUDIO_TRANSIT_BYTES) {
-    sendJson(res, 413, { error: AUDIO_SEND_COPY });
-    return;
-  }
-
-  const chunkMeta = audioChunks.parseChunkMeta(headerValue, req);
-  if (chunkMeta && chunkMeta.totalBytes > MAX_AUDIO_BYTES) {
-    sendJson(res, 413, { error: AUDIO_SIZE_COPY });
-    return;
-  }
-
-  let raw;
-  try {
-    raw = await readRawBody(req, MAX_AUDIO_TRANSIT_BYTES);
-  } catch (err) {
-    if (err && err.code === 'TOO_LARGE') {
+  let raw = null;
+  let hopKey = '';
+  let chunkMeta = null;
+  if (/application\/json/i.test(contentType)) {
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendJson(res, 400, { error: 'audio file is required.' });
+      return;
+    }
+    hopKey = objectKeyFromBody(body);
+    if (!hopKey) {
+      sendJson(res, 400, { error: 'audio file is required.' });
+      return;
+    }
+    let hopped;
+    try {
+      hopped = await loadHoppedObject(scope, hopKey, 'audio');
+    } catch (err) {
+      sendJson(res, (err && err.status) || 400, { error: (err && err.message) || objectStore.AUDIO_SEND_COPY });
+      return;
+    }
+    const wrapped = objectStore.asMultipart('audio', hopped.filename, hopped.contentType || 'audio/wav', hopped.body);
+    raw = wrapped.rawBody;
+  } else if (/multipart\/form-data/i.test(contentType)) {
+    const declared = Number(headerValue(req, 'content-length') || 0);
+    if (declared > MAX_AUDIO_TRANSIT_BYTES) {
       sendJson(res, 413, { error: AUDIO_SEND_COPY });
       return;
     }
-    sendJson(res, 400, { error: 'Could not read the audio upload.' });
+
+    chunkMeta = audioChunks.parseChunkMeta(headerValue, req);
+    if (chunkMeta && chunkMeta.totalBytes > MAX_AUDIO_BYTES) {
+      sendJson(res, 413, { error: AUDIO_SIZE_COPY });
+      return;
+    }
+
+    try {
+      raw = await readRawBody(req, MAX_AUDIO_TRANSIT_BYTES);
+    } catch (err) {
+      if (err && err.code === 'TOO_LARGE') {
+        sendJson(res, 413, { error: AUDIO_SEND_COPY });
+        return;
+      }
+      sendJson(res, 400, { error: 'Could not read the audio upload.' });
+      return;
+    }
+  } else {
+    sendJson(res, 400, { error: 'audio file is required.' });
     return;
   }
 
@@ -1065,7 +1215,9 @@ async function trackAudio(req, res, trackId) {
     contentType: prepared.contentType || contentType,
     idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(prepared.rawBody || raw)),
   });
-  sendJson(res, result.status, result.data);
+  const payload = result.data && typeof result.data === 'object' ? Object.assign({}, result.data) : result.data;
+  if (result.ok && hopKey && payload && typeof payload === 'object') payload.audio_object_key = hopKey;
+  sendJson(res, result.status, payload);
 }
 
 function pickSummary(payload) {
@@ -1966,24 +2118,50 @@ async function releaseArtwork(req, res, releaseId) {
   if (!scope) return;
 
   const contentType = headerValue(req, 'content-type');
-  if (!/multipart\/form-data/i.test(contentType)) {
-    sendJson(res, 400, { error: 'artwork must be multipart/form-data.' });
-    return;
-  }
-  const declared = Number(headerValue(req, 'content-length') || 0);
-  if (declared > MAX_ARTWORK_BYTES) {
-    sendJson(res, 413, { error: 'Artwork must be 15 MB or smaller.' });
-    return;
-  }
-  let raw;
-  try {
-    raw = await readRawBody(req, MAX_ARTWORK_BYTES);
-  } catch (err) {
-    if (err && err.code === 'TOO_LARGE') {
+  let raw = null;
+  let hopKey = '';
+  let hopType = contentType;
+  if (/application\/json/i.test(contentType)) {
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendJson(res, 400, { error: 'artwork file is required.' });
+      return;
+    }
+    hopKey = objectKeyFromBody(body);
+    if (!hopKey) {
+      sendJson(res, 400, { error: 'artwork file is required.' });
+      return;
+    }
+    let hopped;
+    try {
+      hopped = await loadHoppedObject(scope, hopKey, 'cover');
+    } catch (err) {
+      sendJson(res, (err && err.status) || 400, { error: (err && err.message) || objectStore.STEP_FAIL_COPY });
+      return;
+    }
+    const wrapped = objectStore.asMultipart('artwork', hopped.filename, hopped.contentType || 'image/jpeg', hopped.body);
+    raw = wrapped.rawBody;
+    hopType = wrapped.contentType;
+  } else if (/multipart\/form-data/i.test(contentType)) {
+    const declared = Number(headerValue(req, 'content-length') || 0);
+    if (declared > MAX_ARTWORK_BYTES) {
       sendJson(res, 413, { error: 'Artwork must be 15 MB or smaller.' });
       return;
     }
-    sendJson(res, 400, { error: 'Could not read the artwork upload.' });
+    try {
+      raw = await readRawBody(req, MAX_ARTWORK_BYTES);
+    } catch (err) {
+      if (err && err.code === 'TOO_LARGE') {
+        sendJson(res, 413, { error: 'Artwork must be 15 MB or smaller.' });
+        return;
+      }
+      sendJson(res, 400, { error: 'Could not read the artwork upload.' });
+      return;
+    }
+  } else {
+    sendJson(res, 400, { error: 'artwork file is required.' });
     return;
   }
   if (!raw || !raw.length) {
@@ -1997,14 +2175,16 @@ async function releaseArtwork(req, res, releaseId) {
   const result = await tonegridFetch('/releases/' + releaseId + '/artwork', {
     method: 'POST',
     rawBody: raw,
-    contentType,
+    contentType: hopType || contentType,
     idempotencyKey: hopIdempotencyKey('artwork', 'POST', '/releases/' + releaseId + '/artwork', bodyFingerprint(raw)),
   });
   const uploaded = coverUrl.from(result && result.data) || coverUrl.from(unwrapRelease(result && result.data));
-  if (result.ok && uploaded) {
-    await persistReleaseMeta(scope.row, releaseId, null, undefined, uploaded);
+  if (result.ok && (uploaded || hopKey)) {
+    await persistReleaseMeta(scope.row, releaseId, null, undefined, uploaded, hopKey);
   }
-  sendJson(res, result.status, result.data);
+  const payload = result.data && typeof result.data === 'object' ? Object.assign({}, result.data) : result.data;
+  if (result.ok && hopKey && payload && typeof payload === 'object') payload.artwork_object_key = hopKey;
+  sendJson(res, result.status, payload);
 }
 
 async function trackOwned(scope, trackId) {
@@ -2269,6 +2449,10 @@ async function handler(req, res) {
   }
   if (route.resource === 'artwork') {
     await releaseArtwork(req, res, route.id);
+    return;
+  }
+  if (route.resource === 'uploads') {
+    await uploads(req, res);
     return;
   }
   if (route.resource === 'tracks') {
