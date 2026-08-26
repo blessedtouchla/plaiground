@@ -526,6 +526,10 @@ const GENRES = [
 
 const LANGUAGES = [
   {
+    "code": "en",
+    "name": "English"
+  },
+  {
     "code": "ab",
     "name": "Abkhazian"
   },
@@ -684,10 +688,6 @@ const LANGUAGES = [
   {
     "code": "dz",
     "name": "Dzongkha"
-  },
-  {
-    "code": "en",
-    "name": "English"
   },
   {
     "code": "eo",
@@ -1448,37 +1448,12 @@ function isEditCatalogSelect(select) {
   return id === 'edit-genre' || id === 'edit-language';
 }
 
-function isSubmitReviewPage() {
-  var doc = typeof document !== 'undefined' ? document : null;
-  if (doc && typeof doc.querySelector === 'function') {
-    try {
-      if (doc.querySelector('[data-store-submit]') || doc.querySelector('[data-review-title]')) return true;
-    } catch (err) {}
-  }
-  var loc = (typeof window !== 'undefined' && window.location)
-    || (typeof location !== 'undefined' ? location : null);
-  if (loc) {
-    var href = String(loc.pathname || loc.href || '');
-    if (/review\.html/i.test(href)) return true;
-  }
-  return false;
-}
-
-function isSubmitReviewCatalogSelect(select) {
-  return isBasicUploadCatalogSelect(select) && isSubmitReviewPage();
-}
-
-// #129: iPhone Safari never reliably taps the custom typeahead list on
-// Basic upload.html. Keep that native picker only there. Edit release and
-// Submit/review use Creator-style type-to-filter instead.
-function preferNativeCatalogSelect(select) {
-  if (!isBasicUploadCatalogSelect(select)) return false;
-  if (isSubmitReviewPage()) return false;
-  return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
-}
-
+// #129 left Basic upload.html as a native-only picker on phone / iOS /
+// coarse pointer. Creator Edit and #137 Review kept type-to-filter.
+// Restore that same type-to-autofill on Basic genre and language so
+// typing "hip" finds Hip-Hop on Upload, Review, and Submit.
 function preferTypeToFilterNative(select) {
-  if (!isEditCatalogSelect(select) && !isSubmitReviewCatalogSelect(select)) return false;
+  if (!isBasicUploadCatalogSelect(select) && !isEditCatalogSelect(select)) return false;
   return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
 }
 
@@ -1717,7 +1692,6 @@ function isTypeaheadBound(select) {
 
 function bindTypeahead(select, items, getValue, getLabel) {
   if (!select || !items || !items.length) return;
-  if (preferNativeCatalogSelect(select)) return;
   if (preferTypeToFilterNative(select)) {
     bindTypeToFilterNative(select, items, getValue, getLabel);
     return;
@@ -2304,14 +2278,12 @@ function fillOneSelect(select, items, getValue, getLabel) {
   if (!select) return;
   if (isTypeaheadBound(select)) return;
   fillSelect(select, items, getValue, getLabel);
-  if (preferNativeCatalogSelect(select)) return;
   try {
     bindTypeahead(select, items, getValue, getLabel);
   } catch (err) {}
 }
 
 function ensureTypeahead(select, items, getValue, getLabel) {
-  if (preferNativeCatalogSelect(select)) return select;
   if (isTypeaheadBound(select)) return select;
   bindTypeahead(select, items, getValue, getLabel);
   return select;

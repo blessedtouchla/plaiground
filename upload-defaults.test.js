@@ -293,7 +293,11 @@ function withPointerEnv(opts, fn) {
   }
 }
 
-function assertNativeBasicCatalog(catalog, created, label) {
+function firstValuedOption(select) {
+  return (select.options || []).find(function (opt) { return opt && opt.value; }) || null;
+}
+
+function assertBasicTypeaheadCatalog(catalog, created, label) {
   const genre = fillableCatalogSelect('tg-genre', 'Select genre');
   const language = fillableCatalogSelect('tg-language', 'Select language');
   catalog.fillUploadSelects({
@@ -303,35 +307,84 @@ function assertNativeBasicCatalog(catalog, created, label) {
       return null;
     },
   });
-  catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
-  catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
-  assert.strictEqual(catalog.isTypeaheadBound(genre), false, label + ' genre must stay a native select');
-  assert.strictEqual(catalog.isTypeaheadBound(language), false, label + ' language must stay a native select');
-  assert.ok(!typeaheadNodes(genre).input && !typeaheadNodes(genre).list, label + ' genre must not build a typeahead overlay');
-  assert.ok(!typeaheadNodes(language).input && !typeaheadNodes(language).list, label + ' language must not build a typeahead overlay');
-  assert.ok(!created.some(function (node) { return node.className === 'typeahead-input'; }), label + ' must not create typeahead inputs');
-  assert.ok(genre.options.length >= 180, label + ' genre must keep the full Creator list');
-  assert.ok(language.options.length >= 180, label + ' language must keep the full Creator list');
-  assert.ok(genre.options.some(function (opt) { return opt.value === 'Hip-Hop'; }), label + ' genre list includes Hip-Hop');
-  assert.ok(genre.options.some(function (opt) { return opt.value === 'Afrobeats'; }), label + ' genre list includes Afrobeats');
-  assert.ok(language.options.some(function (opt) { return opt.value === 'en' && opt.textContent === 'English'; }), label + ' language list includes English');
-  genre.value = 'Hip-Hop';
+  if (!catalog.isTypeaheadBound(genre)) {
+    catalog.bindTypeahead(genre, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+  }
+  if (!catalog.isTypeaheadBound(language)) {
+    catalog.bindTypeahead(language, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+  }
+  assert.ok(catalog.isTypeaheadBound(genre), label + ' genre must bind typeahead');
+  assert.ok(catalog.isTypeaheadBound(language), label + ' language must bind typeahead');
+  const genreUi = typeaheadNodes(genre);
+  const langUi = typeaheadNodes(language);
+  assert.ok(genreUi.input && genreUi.list, label + ' genre must offer type-to-filter');
+  assert.ok(langUi.input && langUi.list, label + ' language must offer type-to-filter');
+  assert.ok(created.some(function (node) { return node.className === 'typeahead-input'; }), label + ' must create typeahead inputs');
+  genreUi.input.value = 'hip';
+  if (genreUi.input.listeners.input) genreUi.input.listeners.input();
+  const listed = genreUi.list && listButtons(genreUi.list).some(function (btn) { return btn.textContent === 'Hip-Hop'; });
+  const inSelect = genre.options.some(function (opt) { return opt.value === 'Hip-Hop'; });
+  assert.ok(listed || inSelect, label + ' typing hip must find Hip-Hop');
+  if (listed) pickFromList(genreUi.list, 'Hip-Hop');
+  else {
+    genre.value = 'Hip-Hop';
+    if (genre.listeners.change) genre.listeners.change();
+  }
   assert.strictEqual(genre.value, 'Hip-Hop', label + ' genre pick must stick');
-  language.value = 'en';
-  assert.strictEqual(language.value, 'en', label + ' language pick must stick as the catalog code');
-  assert.ok(!genre.classList.tokens['is-typeahead-source'], label + ' genre select stays visible');
-  assert.ok(!language.classList.tokens['is-typeahead-source'], label + ' language select stays visible');
+  const firstLang = firstValuedOption(language);
+  assert.ok(firstLang && firstLang.value === 'en' && firstLang.textContent === 'English', label + ' language list has English first');
+  langUi.input.value = '';
+  if (langUi.input.listeners.focus) langUi.input.listeners.focus();
+  else if (langUi.input.listeners.input) langUi.input.listeners.input();
+  const langButtons = langUi.list ? listButtons(langUi.list) : [];
+  if (langButtons.length) {
+    assert.strictEqual(langButtons[0].textContent, 'English', label + ' language typeahead shows English first');
+  }
 }
 
-function testBasicPhoneUsesNativeCatalogSelect(catalog) {
+function testBasicPhoneUsesTypeahead(catalog) {
   withPointerEnv({ coarse: true, phoneWidth: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', platform: 'iPhone', maxTouchPoints: 5 }, function (created) {
-    assertNativeBasicCatalog(catalog, created, 'coarse iOS');
+    assertBasicTypeaheadCatalog(catalog, created, 'coarse iOS');
   });
   withPointerEnv({ coarse: false, phoneWidth: false, innerWidth: 1280, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15', platform: 'iPhone' }, function (created) {
-    assertNativeBasicCatalog(catalog, created, 'iOS user-agent');
+    assertBasicTypeaheadCatalog(catalog, created, 'iOS user-agent');
   });
   withPointerEnv({ coarse: false, phoneWidth: true, userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120.0.0.0 Mobile' }, function (created) {
-    assertNativeBasicCatalog(catalog, created, 'max-width phone');
+    assertBasicTypeaheadCatalog(catalog, created, 'max-width phone');
+  });
+}
+
+function testBasicTypeaheadFiltersAndEnglishFirst(catalog) {
+  withPointerEnv({ coarse: false, phoneWidth: false, innerWidth: 1440, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, function (created) {
+    assert.strictEqual(catalog.LANGUAGES[0].code, 'en', 'catalog language list pins English first');
+    assert.strictEqual(catalog.LANGUAGES[0].name, 'English', 'catalog language list pins English first');
+    const genre = fillableCatalogSelect('tg-genre', 'Select genre');
+    const language = fillableCatalogSelect('tg-language', 'Select language');
+    catalog.fillUploadSelects({
+      getElementById(id) {
+        if (id === 'tg-genre') return genre;
+        if (id === 'tg-language') return language;
+        return null;
+      },
+    });
+    assert.ok(catalog.isTypeaheadBound(genre), 'Basic genre typeahead binds');
+    assert.ok(catalog.isTypeaheadBound(language), 'Basic language typeahead binds');
+    const genreUi = typeaheadNodes(genre);
+    const langUi = typeaheadNodes(language);
+    assert.ok(genreUi.input && genreUi.list, 'Basic genre offers typeahead');
+    assert.ok(langUi.input && langUi.list, 'Basic language offers typeahead');
+    genreUi.input.listeners.focus();
+    genreUi.input.value = 'hip';
+    genreUi.input.listeners.input();
+    assert.ok(listButtons(genreUi.list).some(function (btn) { return btn.textContent === 'Hip-Hop'; }), 'Basic typing hip filters to Hip-Hop');
+    pickFromList(genreUi.list, 'Hip-Hop');
+    assert.strictEqual(genre.value, 'Hip-Hop', 'Basic Hip-Hop pick sticks');
+    const firstLang = firstValuedOption(language);
+    assert.ok(firstLang && firstLang.value === 'en' && firstLang.textContent === 'English', 'Basic filled language list has English first');
+    langUi.input.listeners.focus();
+    const langButtons = listButtons(langUi.list);
+    assert.ok(langButtons.length >= 1, 'Basic language typeahead opens');
+    assert.strictEqual(langButtons[0].textContent, 'English', 'Basic language typeahead shows English first');
   });
 }
 
@@ -643,6 +696,8 @@ function run() {
   assert.ok(catalog.GENRES.length >= 180);
   assert.ok(catalog.LANGUAGES.length >= 180);
   assert.ok(catalog.LANGUAGES.every(function (row) { return /^[a-z]{2}$/.test(row.code); }));
+  assert.strictEqual(catalog.LANGUAGES[0].code, 'en');
+  assert.strictEqual(catalog.LANGUAGES[0].name, 'English');
   assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'en' && row.name === 'English'; }));
   assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'es'; }));
   assert.ok(!catalog.LANGUAGES.some(function (row) { return row.code === 'English'; }));
@@ -726,13 +781,13 @@ function run() {
   assert.ok(catalogSrc.indexOf('pickFromClientPoint') !== -1, 'iOS tap that misses the option node must still use the tap point');
   assert.ok(catalogSrc.indexOf('claimTypeahead') !== -1, 'only one Basic typeahead list may own the tap');
   assert.ok(catalogSrc.indexOf('is-fixed') !== -1, 'genre list must escape the form-grid overlay');
-  assert.ok(catalogSrc.indexOf('preferNativeCatalogSelect') !== -1, 'Basic iPhone genre/language must use the native picker');
-  assert.ok(/iPad\|iPhone\|iPod/.test(catalogSrc), 'native picker must detect iOS Safari');
-  assert.ok(catalogSrc.indexOf('max-width: 720px') !== -1, 'native picker must detect a phone-width viewport');
-  assert.ok(catalogSrc.indexOf('isBasicUploadCatalogSelect') !== -1, 'native picker is scoped to Basic upload genre/language');
-  assert.ok(catalogSrc.indexOf('preferTypeToFilterNative') !== -1, 'Edit and Submit review get type-to-filter on phone');
-  assert.ok(catalogSrc.indexOf('isSubmitReviewPage') !== -1, 'Submit review must not use the Basic upload native picker');
-  assert.ok(catalogSrc.indexOf('bindTypeToFilterNative') !== -1, 'Edit/Submit phone fallback still finds Hip-Hop by typing');
+  assert.ok(catalogSrc.indexOf('preferNativeCatalogSelect') === -1, 'Basic upload must not keep the #129 native-only picker');
+  assert.ok(/iPad\|iPhone\|iPod/.test(catalogSrc), 'phone type-to-filter still detects iOS Safari');
+  assert.ok(catalogSrc.indexOf('max-width: 720px') !== -1, 'phone type-to-filter still detects a phone-width viewport');
+  assert.ok(catalogSrc.indexOf('isBasicUploadCatalogSelect') !== -1, 'type-to-filter includes Basic upload genre/language');
+  assert.ok(catalogSrc.indexOf('preferTypeToFilterNative') !== -1, 'Basic, Edit, and Submit review get type-to-filter on phone');
+  assert.ok(catalogSrc.indexOf('isSubmitReviewPage') === -1, 'Submit review no longer special-cases away from Basic typeahead');
+  assert.ok(catalogSrc.indexOf('bindTypeToFilterNative') !== -1, 'phone fallback still finds Hip-Hop by typing');
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(/id="tg-genre"/.test(reviewHtml), 'Submit review has the same genre field as Creator');
   assert.ok(/id="tg-language"/.test(reviewHtml), 'Submit review has the same language field as Creator');
@@ -1057,7 +1112,8 @@ function run() {
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Pop'), 'Pop');
     testTypeaheadDelayedBlurKeepsListPick(catalog, createdEdit);
     testTypeaheadRebindsIfInputMissing(catalog);
-    testBasicPhoneUsesNativeCatalogSelect(catalog);
+    testBasicPhoneUsesTypeahead(catalog);
+    testBasicTypeaheadFiltersAndEnglishFirst(catalog);
     testDesktopTypeaheadStillBindsOnFinePointer(catalog);
     testEditTypeToFilterOnIos(catalog);
     testReviewTypeToFilterOnIos(catalog);
