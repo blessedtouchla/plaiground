@@ -2283,16 +2283,16 @@ async function run() {
       const audio = page.calls.filter(function (call) {
         return String(call.url).indexOf('/audio') !== -1;
       });
-      assert.ok(audio.length, label + ' must POST the same file after minting');
+      assert.ok(audio.length, label + ' must POST after minting');
       audio.forEach(function (call) {
         assert.strictEqual(
           String(call.url),
           '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio',
           label + ' must attach to the new store track, not the leftover catalog id'
         );
-        const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
-        assert.ok(part && part.value === file, label + ' must send the same original file Creator already sends');
+        assertAudioKey(call, label);
       });
+      assert.ok(hoppedFile(page.calls, file), label + ' must hop the same original file Creator already hops');
       assert.ok(!page.calls.some(function (call) {
         return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
       }), label + ' must not POST audio to the leftover catalog track');
@@ -3115,7 +3115,6 @@ async function run() {
         { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
         { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
         { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
-        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
       ],
@@ -3123,26 +3122,21 @@ async function run() {
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(24);
     const audio = page.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
+      return isAudioAttach(call.url);
     });
-    assert.ok(audio.length >= 2, 'normal song over the hop cap must POST more than one audio chunk');
-    const ids = audio.map(function (call) { return audioChunkHeaders(call)['x-plaiground-upload-id']; });
-    assert.ok(ids[0], 'chunked send must stamp an upload id');
-    assert.strictEqual(ids[0], ids[1], 'chunks share one upload id');
-    assert.strictEqual(audioChunkHeaders(audio[0])['x-plaiground-chunk-count'], '2');
-    assert.strictEqual(audioChunkHeaders(audio[0])['x-plaiground-chunk-index'], '0');
-    assert.strictEqual(audioChunkHeaders(audio[1])['x-plaiground-chunk-index'], '1');
+    assert.strictEqual(audio.length, 1, 'normal song over the inbound cap must POST one object key');
     audio.forEach(function (call) {
-      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
-      assert.ok(part && part.filename === 'night-drive.mp3', 'chunks must send the original file, not the fat WAV');
-      assert.ok(part.value && part.value !== fatWav, 'converted WAV must not be the transit body');
+      assertAudioKey(call, 'Continue');
+      assert.ok(!audioChunkHeaders(call)['x-plaiground-upload-id'], 'Continue must hop, not chunk');
     });
+    assert.ok(hoppedFile(page.calls, original), 'hop PUT must be the original file, not the fat WAV');
+    assert.ok(!hoppedFile(page.calls, fatWav), 'converted WAV must not be the hop body');
     assert.ok(page.heldMaster === fatWav, 'converted WAV stays held');
     assert.strictEqual(page.convertCalls, 1, 'convert-once still runs once on Continue');
     assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|Idempotency-Key/i);
-    assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'Continue must finish after the chunks land');
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'Continue must finish after the hop lands');
   }
 
   async function reviewChunksPickedWavOverHopCap() {
@@ -3175,20 +3169,20 @@ async function run() {
       },
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
-        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     await flush(24);
     const audio = page.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
+      return isAudioAttach(call.url);
     });
-    assert.ok(audio.length >= 2, 'picked WAV over the hop cap must chunk');
-    assert.strictEqual(audioChunkHeaders(audio[0])['x-plaiground-chunk-count'], '2');
+    assert.strictEqual(audio.length, 1, 'picked WAV over the inbound cap must POST one object key');
+    audio.forEach(function (call) { assertAudioKey(call, 'Submit'); });
+    assert.ok(hoppedFile(page.calls, wav), 'Submit must hop the picked WAV');
     assert.ok(page.heldMaster === wav, 'picked WAV stays held');
     const fail = page.lastStoreFailure;
-    assert.ok(!fail || fail.class !== 'platform_payload', 'chunked send must not die as a 413');
+    assert.ok(!fail || fail.class !== 'platform_payload', 'hop send must not die as a 413');
     assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
@@ -3228,10 +3222,8 @@ async function run() {
       },
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
-        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
         { ok: false, status: 413, data: { error: 'FUNCTION_PAYLOAD_TOO_LARGE' } },
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
-        { ok: true, status: 200, data: { received: true, index: 0, count: 2 } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
@@ -3240,27 +3232,23 @@ async function run() {
     assert.match(String(page.status.textContent || ''), /could not send the audio/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
     assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|Idempotency-Key|request body/i);
-    assert.strictEqual(page.retryWrap.hidden, false, 'failed chunk must show Retry');
+    assert.strictEqual(page.retryWrap.hidden, false, 'failed hop attach must show Retry');
     assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
     assert.strictEqual(page.convertCalls, 0, 'Retry path must not reconvert');
     const before = page.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
+      return isAudioAttach(call.url);
     });
-    assert.ok(before.length >= 2, 'first Submit must start the chunked send');
-    const firstId = audioChunkHeaders(before[0])['x-plaiground-upload-id'];
+    assert.strictEqual(before.length, 1, 'first Submit must POST one object key');
+    before.forEach(function (call) { assertAudioKey(call, 'first'); });
+    assert.ok(hoppedFile(page.calls, original), 'first hop must be the original MP3');
     page.retryBtn.listeners.click({ preventDefault() {} });
     await flush(24);
     const after = page.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
+      return isAudioAttach(call.url);
     });
-    assert.ok(after.length > before.length, 'Retry must resend the same file as chunks');
-    const retryChunks = after.slice(before.length);
-    assert.ok(retryChunks.length >= 2, 'Retry must POST the file again in chunks');
-    assert.notStrictEqual(audioChunkHeaders(retryChunks[0])['x-plaiground-upload-id'], firstId, 'Retry starts a new upload id');
-    retryChunks.forEach(function (call) {
-      const part = call.init && call.init.body && call.init.body.parts && call.init.body.parts[0];
-      assert.ok(part && part.filename === 'night-drive.mp3', 'Retry must resend the same original file');
-    });
+    assert.ok(after.length > before.length, 'Retry must POST the object key again');
+    const retryAudio = after.slice(before.length);
+    retryAudio.forEach(function (call) { assertAudioKey(call, 'retry'); });
     assert.ok(page.heldMaster === fatWav, 'converted WAV stays held across Retry');
     assert.strictEqual(page.convertCalls, 0);
     assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
@@ -3959,7 +3947,8 @@ async function run() {
   assert.ok(source.includes('function fileForTransitUpload'));
   assert.ok(source.includes('function hopFile'));
   assert.ok(source.includes("object_key"));
-  assert.ok(!source.includes("body.append('audio'"));
+  assert.ok(source.includes("{ object_key: next.object_key }"));
+  assert.ok(!/function postFile\(send\) \{[\s\S]*?body\.append\('audio'/.test(source), 'Continue/Submit postFile must hop, not append a fat audio body');
   assert.ok(!source.includes("body.append('artwork'"));
   assert.ok(source.includes('PLATFORM_AUDIO_BYTES'));
   assert.ok(source.includes('AUDIO_CHUNK_BYTES'));
