@@ -1453,8 +1453,7 @@ function isEditCatalogSelect(select) {
 // Restore that same type-to-autofill on Basic genre and language so
 // typing "hip" finds Hip-Hop on Upload, Review, and Submit.
 function preferTypeToFilterNative(select) {
-  if (!isBasicUploadCatalogSelect(select) && !isEditCatalogSelect(select)) return false;
-  return isCoarsePointer() || isIosUserAgent() || isPhoneMaxWidth();
+  return false;
 }
 
 function matchingCatalogItems(items, getValue, getLabel, query) {
