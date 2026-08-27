@@ -9,14 +9,27 @@ function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
 }
 
+function attrMatch(el, sel) {
+  const m = String(sel || '').match(/^\[([^\]]+)\]$/);
+  if (!m) return false;
+  return el && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, m[1]);
+}
+
+function walk(el, out) {
+  out.push(el);
+  (el.children || []).forEach(function (child) { walk(child, out); });
+  return out;
+}
+
 function makeEl(attrs) {
   const el = {
     hidden: Boolean(attrs && attrs.hidden),
-    textContent: (attrs && attrs.textContent) || '',
     value: attrs && attrs.value != null ? attrs.value : '',
+    disabled: Boolean(attrs && attrs.disabled),
     className: (attrs && attrs.className) || '',
     style: {},
     children: [],
+    parentNode: null,
     focused: false,
     scrollCalls: 0,
     attrs: Object.assign({}, (attrs && attrs.attrs) || {}),
@@ -32,8 +45,13 @@ function makeEl(attrs) {
       contains(name) { return Boolean(this.tokens[name]); },
     },
     closest(sel) {
-      if (sel === '[data-artist-add]' && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, 'data-artist-add')) return el;
-      if (sel === '[data-artist-import]' && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, 'data-artist-import')) return el;
+      var node = el;
+      while (node) {
+        if (attrMatch(node, sel)) return node;
+        if (sel === '[data-artist-add]' && node.attrs && Object.prototype.hasOwnProperty.call(node.attrs, 'data-artist-add')) return node;
+        if (sel === '[data-artist-import]' && node.attrs && Object.prototype.hasOwnProperty.call(node.attrs, 'data-artist-import')) return node;
+        node = node.parentNode;
+      }
       return null;
     },
     getAttribute(name) {
@@ -43,12 +61,11 @@ function makeEl(attrs) {
       this.attrs[name] = String(value);
     },
     querySelectorAll(sel) {
-      if (sel === '[data-genre]') {
-        return el.children.filter(function (child) {
-          return child && child.getAttribute && child.getAttribute('data-genre');
-        });
-      }
-      return [];
+      return walk(el, []).filter(function (node) {
+        if (node === el) return false;
+        if (sel === '[data-genre]') return node.getAttribute && node.getAttribute('data-genre');
+        return attrMatch(node, sel);
+      });
     },
     querySelector(sel) {
       return (el.querySelectorAll(sel) || [])[0] || null;
@@ -66,7 +83,13 @@ function makeEl(attrs) {
       list.forEach(function (fn) { fn({ type: type, target: el }); });
     },
     appendChild(child) {
+      child.parentNode = el;
       el.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      el.children = el.children.filter(function (item) { return item !== child; });
+      if (child) child.parentNode = null;
       return child;
     },
   };
@@ -74,7 +97,10 @@ function makeEl(attrs) {
     get() { return el._text || ''; },
     set(value) {
       el._text = value == null ? '' : String(value);
-      if (el._text === '') el.children = [];
+      if (el._text === '') {
+        el.children.forEach(function (child) { child.parentNode = null; });
+        el.children = [];
+      }
     },
   });
   el._text = (attrs && attrs.textContent) || '';
@@ -102,6 +128,9 @@ function loadArtists() {
   deleteBtn.attrs = { 'data-artist-delete': '' };
   const photoEdit = makeEl({});
   const genrePicks = makeEl({});
+  const platformsHost = makeEl({});
+  const addPlatformBtn = makeEl({ attrs: { 'data-artist-platform-add': '' } });
+  const platformError = makeEl({ hidden: true });
   const stored = {
     id: 'artist-1',
     name: 'Fuvtu',
@@ -113,6 +142,7 @@ function loadArtists() {
     spotify_id: '',
     apple_id: '',
     store_url: '',
+    platform_links: [],
   };
   const nodes = {
     '#artist-create-panel': createPanel,
@@ -128,10 +158,10 @@ function loadArtists() {
     '#artist-create-confirm': confirmBox,
     '#artist-name': artistName,
     '#artist-bio': bioInput,
-    '#artist-spotify': makeEl({ value: '' }),
-    '#artist-apple': makeEl({ value: '' }),
-    '#artist-store': makeEl({ value: '' }),
     '#artist-change': makeEl({ value: '' }),
+    '[data-artist-platforms]': platformsHost,
+    '[data-artist-platform-add]': addPlatformBtn,
+    '[data-artist-platform-error]': platformError,
     '#artist-ai-detail': makeEl({ value: '' }),
     '#artist-ai-percent': makeEl({ value: '' }),
     '#artist-ai-range': makeEl({ value: '0' }),
@@ -172,6 +202,8 @@ function loadArtists() {
         if (sel === '[data-artist-add]') return [addBtn];
         if (sel === '[data-artist-import]') return [importBtn];
         if (sel === '[data-artist-delete]') return [deleteBtn];
+        if (sel === '[data-artist-platform-add]') return [addPlatformBtn];
+        if (sel === '[data-artist-platform-row]') return platformsHost.querySelectorAll('[data-artist-platform-row]');
         if (sel === '[data-human-contribution]') return [];
         if (sel === '[data-ai-contribution]') return [];
         if (sel === '[data-human-contribution], [data-ai-contribution]') return [];
@@ -202,6 +234,10 @@ function loadArtists() {
         bio: body.bio != null ? body.bio : stored.bio,
         photo: body.photo != null ? body.photo : stored.photo,
         genres: Array.isArray(body.genres) ? body.genres : stored.genres,
+        platform_links: Array.isArray(body.platform_links) ? body.platform_links : stored.platform_links,
+        spotify_id: body.spotify_id != null ? body.spotify_id : stored.spotify_id,
+        apple_id: body.apple_id != null ? body.apple_id : stored.apple_id,
+        store_url: body.store_url != null ? body.store_url : stored.store_url,
       });
       if (body.action === 'update') Object.assign(stored, updated);
       return Promise.resolve({
@@ -226,6 +262,7 @@ function loadArtists() {
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(read('lib/artist-check.js'), context);
+  vm.runInNewContext(read('lib/platform-links.js'), context);
   vm.runInNewContext(read('artists.js'), context);
   return {
     api: context.PlaigroundArtists,
@@ -243,6 +280,9 @@ function loadArtists() {
     bioInput,
     artistName,
     saveBtn,
+    addPlatformBtn,
+    platformsHost,
+    platformError,
     posts,
     stored,
     nodes,
@@ -252,6 +292,7 @@ function loadArtists() {
 
 function run() {
   const siteCss = read('site.css');
+  assert.ok(siteCss.includes('.artist-platform-row'));
   assert.ok(siteCss.includes('.artist-edit-actions'));
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]'));
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-delete]'));
@@ -291,6 +332,16 @@ function run() {
   assert.ok(html.includes('data-artist-delete'));
   assert.ok(html.includes('class="artist-edit-actions"'));
   assert.ok(html.includes('Edits save as you type'));
+  assert.ok(html.includes('Add new platform'));
+  assert.ok(html.includes('data-artist-platform-add'));
+  assert.ok(html.includes('data-artist-platforms'));
+  assert.ok(html.includes('lib/platform-links.js'));
+  assert.ok(!html.includes('id="artist-spotify"'), 'must not render a Spotify ID wall field');
+  assert.ok(!html.includes('id="artist-apple"'), 'must not render an Apple ID wall field');
+  assert.ok(!html.includes('id="artist-store"'), 'must not render a leftover store_url field');
+  assert.ok(!html.includes('Spotify ID'), 'must not label a dummy Spotify row');
+  assert.ok(!html.includes('Apple Music ID'), 'must not label a dummy Apple row');
+  assert.ok(!/input type="checkbox"[^>]*spotify/i.test(html), 'must not render a store checkbox grid');
   assert.ok(/class="artist-edit-actions"[\s\S]*data-artist-save[\s\S]*data-artist-delete/.test(html), 'Delete and Save artist share one chrome row');
   assert.ok(!/<div class="head-row">[\s\S]*data-artist-delete/.test(html), 'Delete must not sit in the title/badge row');
   assert.ok(html.includes('Pending edit'));
@@ -349,16 +400,23 @@ function run() {
   assert.ok(!upload.includes('How this artist usually creates'));
   assert.ok(!upload.includes('Estimated AI involvement'));
   assert.ok(!upload.includes('data-human-contribution'));
+  assert.ok(!upload.includes('Add new platform'), 'upload create-new stays name-only');
+  assert.ok(!upload.includes('data-artist-platform-add'));
+
+  const settings = read('settings.html');
+  assert.ok(!settings.includes('Add new platform'), 'platform picker stays off Settings');
 
   assert.ok(js.includes('ai_involvement_percent'));
   assert.ok(js.includes('human_contributions'));
   assert.ok(js.includes('/api/me/artists'));
+  assert.ok(js.includes('platform_links'));
+  assert.ok(js.includes('Add new platform') || html.includes('Add new platform'));
+  assert.ok(js.includes('addPlatformRow'));
 
   const profile = read('profile.html');
   assert.ok(profile.includes('artists.html'));
   assert.ok(profile.includes('Artist Profiles'));
 
-  const settings = read('settings.html');
   assert.ok(settings.includes('href="artists.html">Artist Profiles</a>'));
   assert.ok(settings.includes('href="settings.html">Settings</a>'));
 
@@ -518,6 +576,112 @@ async function persistAndImmediateSave() {
   assert.ok(accountPage.posts.some(function (row) {
     return row.body && row.body.artist_action === 'create' && row.body.name === 'Second Act';
   }), 'create artist must POST when the page only has the seeded account id');
+
+  function filledPicker(secondPlatform, secondValue) {
+    const page = loadArtists();
+    page.api.applyMe({
+      profile: { artists: [{ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND' }] },
+    });
+    page.api.addPlatformRow(null, false);
+    page.api.addPlatformRow(null, false);
+    const rows = page.platformsHost.querySelectorAll('[data-artist-platform-row]');
+    const firstSel = rows[0].querySelector('[data-artist-platform-slug]');
+    const firstUrl = rows[0].querySelector('[data-artist-platform-url]');
+    const secondSel = rows[1].querySelector('[data-artist-platform-slug]');
+    const secondUrl = rows[1].querySelector('[data-artist-platform-url]');
+    firstSel.value = 'spotify';
+    firstUrl.value = 'https://open.spotify.com/artist/0TnOYISbd1XYRBk9myaseg';
+    page.api.refreshPlatformSelects();
+    secondSel.value = secondPlatform;
+    secondUrl.value = secondValue;
+    return { page, firstSel, firstUrl, secondSel, secondUrl, rows };
+  }
+
+  const emptyPicker = loadArtists();
+  emptyPicker.api.applyMe({
+    profile: { artists: [{ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND' }] },
+  });
+  assert.strictEqual(emptyPicker.platformsHost.querySelectorAll('[data-artist-platform-row]').length, 0, 'picker starts empty');
+  assert.strictEqual(emptyPicker.addPlatformBtn.hidden, false, 'Add new platform is available on an empty profile');
+
+  const two = filledPicker('apple', 'https://music.apple.com/us/artist/demo/123456789');
+  const secondOptions = (two.secondSel.children || []).map(function (opt) { return opt.value; });
+  assert.ok(secondOptions.indexOf('spotify') === -1, 'a platform already on the list drops out of the next dropdown');
+  assert.ok(secondOptions.indexOf('apple') !== -1);
+  two.page.posts.length = 0;
+  await two.page.api.saveArtist({ quiet: true });
+  const twoSaved = two.page.posts.find(function (row) {
+    return row.body && row.body.action === 'update' && Array.isArray(row.body.platform_links);
+  });
+  assert.ok(twoSaved, 'add two platforms must POST /api/me/artists');
+  assert.strictEqual(twoSaved.body.platform_links.length, 2);
+  assert.strictEqual(twoSaved.body.platform_links[0].platform, 'spotify');
+  assert.strictEqual(twoSaved.body.platform_links[1].platform, 'apple');
+  assert.strictEqual(twoSaved.body.spotify_id, '0TnOYISbd1XYRBk9myaseg');
+  assert.strictEqual(twoSaved.body.apple_id, '123456789');
+
+  const dup = filledPicker('spotify', '4dpARuHxo51G3z768sgnrY');
+  const blockedDup = dup.page.api.collectPlatformLinks({ strict: true });
+  assert.strictEqual(blockedDup.error, 'That platform is already on the list.');
+  dup.page.posts.length = 0;
+  await dup.page.api.saveArtist();
+  assert.ok(!dup.page.posts.some(function (row) {
+    return row.body && row.body.action === 'update';
+  }), 'duplicate platform must not save');
+
+  const mismatchPage = filledPicker('apple', 'https://open.spotify.com/artist/0TnOYISbd1XYRBk9myaseg');
+  const mismatch = mismatchPage.page.api.collectPlatformLinks({ strict: true });
+  assert.ok(mismatch.error);
+  assert.match(mismatch.error, /does not match Apple Music/);
+  mismatchPage.page.posts.length = 0;
+  await mismatchPage.page.api.saveArtist();
+  assert.ok(!mismatchPage.page.posts.some(function (row) {
+    return row.body && row.body.action === 'update';
+  }), 'URL / store mismatch must not save');
+
+  const lockedPage = loadArtists();
+  lockedPage.api.applyMe({
+    profile: {
+      artists: [{
+        id: 'artist-1',
+        name: 'Fuvtu',
+        source: 'created',
+        badge: 'PLAIGROUND',
+        locked: true,
+        spotify_id: '0TnOYISbd1XYRBk9myaseg',
+        apple_id: '123456789',
+      }],
+    },
+  });
+  const lockedRows = lockedPage.platformsHost.querySelectorAll('[data-artist-platform-row]');
+  assert.strictEqual(lockedRows.length, 2, 'locked artist still shows existing platform rows');
+  assert.strictEqual(lockedPage.addPlatformBtn.hidden, true, 'locked artist cannot add platforms');
+  assert.strictEqual(lockedRows[0].querySelector('[data-artist-platform-url]').value, '0TnOYISbd1XYRBk9myaseg');
+  assert.strictEqual(lockedRows[0].querySelector('[data-artist-platform-url]').disabled, true);
+  assert.strictEqual(lockedRows[0].querySelector('[data-artist-platform-slug]').disabled, true);
+  assert.strictEqual(lockedRows[0].querySelector('[data-artist-platform-remove]').hidden, true);
+  lockedPage.api.addPlatformRow(null, false);
+  assert.strictEqual(lockedPage.platformsHost.querySelectorAll('[data-artist-platform-row]').length, 2, 'Add new platform is ignored while locked');
+
+  const legacyPage = loadArtists();
+  legacyPage.api.applyMe({
+    profile: {
+      artists: [{
+        id: 'artist-1',
+        name: 'Fuvtu',
+        source: 'created',
+        badge: 'PLAIGROUND',
+        spotify_id: '0TnOYISbd1XYRBk9myaseg',
+        apple_id: '123456789',
+      }],
+    },
+  });
+  const legacyRows = legacyPage.platformsHost.querySelectorAll('[data-artist-platform-row]');
+  assert.strictEqual(legacyRows.length, 2, 'old spotify_id / apple_id still display');
+  assert.strictEqual(legacyRows[0].querySelector('[data-artist-platform-slug]').value, 'spotify');
+  assert.strictEqual(legacyRows[0].querySelector('[data-artist-platform-url]').value, '0TnOYISbd1XYRBk9myaseg');
+  assert.strictEqual(legacyRows[1].querySelector('[data-artist-platform-slug]').value, 'apple');
+  assert.strictEqual(legacyRows[1].querySelector('[data-artist-platform-url]').value, '123456789');
 
   console.log('artists.page.test.js ok');
 }

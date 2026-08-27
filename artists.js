@@ -65,6 +65,10 @@
     return global.PlaigroundArtistCheck || null;
   }
 
+  function platformApi() {
+    return global.PlaigroundPlatformLinks || null;
+  }
+
   function canonicalGenre(value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
@@ -230,9 +234,6 @@
     setText('[data-artist-edit-title]', artist.name);
     setText('[data-artist-badge]', artist.badge || (artist.source === 'linked' ? 'Linked' : 'PLAIGROUND'));
     var nameEl = $('#artist-name');
-    var spotify = $('#artist-spotify');
-    var apple = $('#artist-apple');
-    var store = $('#artist-store');
     var bio = $('#artist-bio');
     var change = $('#artist-change');
     renderSongs(artist);
@@ -240,18 +241,7 @@
       nameEl.value = artist.name || '';
       nameEl.disabled = artist.locked === true;
     }
-    if (spotify) {
-      spotify.value = artist.spotify_id || '';
-      spotify.disabled = artist.locked === true || artist.source === 'linked';
-    }
-    if (apple) {
-      apple.value = artist.apple_id || '';
-      apple.disabled = artist.locked === true || artist.source === 'linked';
-    }
-    if (store) {
-      store.value = artist.store_url || '';
-      store.disabled = artist.locked === true || artist.source === 'linked';
-    }
+    renderPlatforms(artist);
     if (bio) bio.value = artist.bio || '';
     if (change) change.value = artist.change_request || '';
     setPhoto('[data-artist-photo-edit]', current.photo);
@@ -333,6 +323,212 @@
       if (name && out.indexOf(name) === -1) out.push(name);
     });
     return out;
+  }
+
+  function platformRows() {
+    var host = $('[data-artist-platforms]');
+    if (!host || !host.querySelectorAll) return [];
+    return Array.prototype.slice.call(host.querySelectorAll('[data-artist-platform-row]'));
+  }
+
+  function usedPlatformSlugs(exceptRow) {
+    var used = [];
+    platformRows().forEach(function (row) {
+      if (exceptRow && row === exceptRow) return;
+      var sel = row.querySelector ? row.querySelector('[data-artist-platform-slug]') : null;
+      var slug = sel ? String(sel.value || '').trim() : '';
+      if (slug) used.push(slug);
+    });
+    return used;
+  }
+
+  function fillPlatformSelect(select, currentSlug, row) {
+    var api = platformApi();
+    if (!select) return;
+    var used = usedPlatformSlugs(row || null);
+    var options = api && api.availablePlatforms
+      ? api.availablePlatforms(used, currentSlug)
+      : [];
+    var keep = String(currentSlug || select.value || '');
+    select.textContent = '';
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Pick a platform';
+    select.appendChild(blank);
+    options.forEach(function (row) {
+      var opt = document.createElement('option');
+      opt.value = row.slug;
+      opt.textContent = row.name;
+      select.appendChild(opt);
+    });
+    if (keep && api && api.findPlatform && api.findPlatform(keep)) {
+      var still = false;
+      options.forEach(function (row) { if (row.slug === keep) still = true; });
+      if (!still) {
+        var extra = document.createElement('option');
+        extra.value = keep;
+        extra.textContent = (api.findPlatform(keep) && api.findPlatform(keep).name) || keep;
+        select.appendChild(extra);
+      }
+      select.value = keep;
+    } else {
+      select.value = '';
+    }
+  }
+
+  function refreshPlatformSelects() {
+    platformRows().forEach(function (row) {
+      var sel = row.querySelector ? row.querySelector('[data-artist-platform-slug]') : null;
+      if (sel) fillPlatformSelect(sel, sel.value, row);
+    });
+    var add = $('[data-artist-platform-add]');
+    var api = platformApi();
+    var locked = current.selected && current.selected.locked === true;
+    if (add) {
+      var remaining = api && api.availablePlatforms ? api.availablePlatforms(usedPlatformSlugs()) : [];
+      add.hidden = locked || remaining.length === 0;
+    }
+  }
+
+  function setPlatformRowError(row, text) {
+    var msg = row && row.querySelector ? row.querySelector('[data-artist-platform-row-error]') : null;
+    if (!msg) return;
+    msg.textContent = text || '';
+    msg.hidden = !text;
+  }
+
+  function showPlatformError(text) {
+    setText('[data-artist-platform-error]', text || '');
+    setHidden('[data-artist-platform-error]', !text);
+  }
+
+  function collectPlatformLinks(opts) {
+    var api = platformApi();
+    var rows = platformRows();
+    var values = [];
+    var i;
+    var strict = Boolean(opts && opts.strict);
+    showPlatformError('');
+    for (i = 0; i < rows.length; i += 1) {
+      var row = rows[i];
+      var sel = row.querySelector ? row.querySelector('[data-artist-platform-slug]') : null;
+      var input = row.querySelector ? row.querySelector('[data-artist-platform-url]') : null;
+      var platform = sel ? String(sel.value || '').trim() : '';
+      var value = input ? String(input.value || '').trim() : '';
+      setPlatformRowError(row, '');
+      if (!platform && !value) continue;
+      if (!platform || !value) {
+        if (!strict) continue;
+        var incomplete = !platform ? 'Pick a platform.' : 'Paste the artist URL or ID.';
+        setPlatformRowError(row, incomplete);
+        showPlatformError(incomplete);
+        return { error: incomplete };
+      }
+      if (!api || typeof api.matchPlatformValue !== 'function') {
+        values.push({ platform: platform, url: value, value: value });
+        continue;
+      }
+      var matched = api.matchPlatformValue(platform, value);
+      if (!matched.ok) {
+        setPlatformRowError(row, matched.error);
+        showPlatformError(matched.error);
+        return { error: matched.error };
+      }
+      values.push({
+        platform: matched.platform,
+        id: matched.id || '',
+        url: matched.url || value,
+        value: value,
+      });
+    }
+    if (api && typeof api.validateList === 'function') {
+      var checked = api.validateList(values);
+      if (checked.error) {
+        showPlatformError(checked.error);
+        return { error: checked.error };
+      }
+      return { ok: true, links: checked.links };
+    }
+    return { ok: true, links: values };
+  }
+
+  function linksForArtist(artist) {
+    var api = platformApi();
+    if (!artist) return [];
+    if (artist.platform_links && artist.platform_links.length) return artist.platform_links.slice();
+    if (api && typeof api.deriveFromLegacy === 'function') return api.deriveFromLegacy(artist);
+    return [];
+  }
+
+  function addPlatformRow(link, locked) {
+    var host = $('[data-artist-platforms]');
+    var api = platformApi();
+    if (!host) return null;
+    if (!link && current.selected && current.selected.locked === true) return null;
+    var row = document.createElement('div');
+    row.className = 'artist-platform-row';
+    row.setAttribute('data-artist-platform-row', '');
+    var fields = document.createElement('div');
+    fields.className = 'artist-platform-row-fields';
+    var sel = document.createElement('select');
+    sel.setAttribute('data-artist-platform-slug', '');
+    sel.setAttribute('aria-label', 'Platform');
+    sel.disabled = locked === true;
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('data-artist-platform-url', '');
+    input.setAttribute('aria-label', 'Artist URL or ID');
+    input.placeholder = 'Artist URL or ID';
+    input.autocomplete = 'off';
+    input.value = api && api.displayValue ? api.displayValue(link) : ((link && (link.value || link.url || link.id)) || '');
+    input.disabled = locked === true;
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn btn-ghost btn-sm';
+    remove.setAttribute('data-artist-platform-remove', '');
+    remove.setAttribute('aria-label', 'Remove platform');
+    remove.textContent = 'X';
+    remove.hidden = locked === true;
+    fields.appendChild(sel);
+    fields.appendChild(input);
+    fields.appendChild(remove);
+    var err = document.createElement('p');
+    err.className = 'hint is-red';
+    err.setAttribute('data-artist-platform-row-error', '');
+    err.hidden = true;
+    row.appendChild(fields);
+    row.appendChild(err);
+    host.appendChild(row);
+    fillPlatformSelect(sel, link && link.platform, row);
+    if (!locked) {
+      sel.addEventListener('change', function () {
+        refreshPlatformSelects();
+        scheduleSave();
+      });
+      input.addEventListener('input', scheduleSave);
+      input.addEventListener('change', scheduleSave);
+      input.addEventListener('blur', scheduleSave);
+      remove.addEventListener('click', function () {
+        if (row.parentNode) row.parentNode.removeChild(row);
+        refreshPlatformSelects();
+        scheduleSave();
+      });
+    }
+    refreshPlatformSelects();
+    return row;
+  }
+
+  function renderPlatforms(artist) {
+    var host = $('[data-artist-platforms]');
+    if (!host) return;
+    host.textContent = '';
+    showPlatformError('');
+    var locked = Boolean(artist && artist.locked === true);
+    var links = linksForArtist(artist);
+    links.forEach(function (link) { addPlatformRow(link, locked); });
+    var add = $('[data-artist-platform-add]');
+    if (add) add.hidden = locked;
+    refreshPlatformSelects();
   }
 
   function showStatus(text) {
@@ -667,10 +863,23 @@
       return Promise.resolve(null);
     }
     showError('');
+    var platforms = collectPlatformLinks({ strict: !quiet });
+    if (platforms.error) {
+      if (!quiet) showError(platforms.error);
+      return Promise.resolve(null);
+    }
     saveInFlight = true;
     var nameEl = $('#artist-name');
     var nextPhoto = current.photo || '';
     var storedPhoto = current.selected.photo || '';
+    var spotify = '';
+    var apple = '';
+    var store = '';
+    (platforms.links || []).forEach(function (row) {
+      if (!store && row && (row.url || row.value)) store = row.url || row.value;
+      if (row && row.platform === 'spotify') spotify = row.id || row.value || '';
+      if (row && row.platform === 'apple') apple = row.id || row.value || '';
+    });
     var body = {
       action: 'update',
       artist_action: 'update',
@@ -679,9 +888,10 @@
       name: nameEl ? nameEl.value : current.selected.name,
       bio: $('#artist-bio') ? $('#artist-bio').value : '',
       genres: selectedGenres(),
-      spotify_id: $('#artist-spotify') ? $('#artist-spotify').value : '',
-      apple_id: $('#artist-apple') ? $('#artist-apple').value : '',
-      store_url: $('#artist-store') ? $('#artist-store').value : '',
+      platform_links: platforms.links || [],
+      spotify_id: spotify,
+      apple_id: apple,
+      store_url: store,
       human_contributions: readChecks('data-human-contribution'),
       ai_contributions: readChecks('data-ai-contribution'),
       ai_process_detail: $('#artist-ai-detail') ? $('#artist-ai-detail').value : '',
@@ -911,7 +1121,14 @@
         scheduleSave();
       });
     }
-    ['#artist-bio', '#artist-spotify', '#artist-apple', '#artist-store', '#artist-change', '#artist-name'].forEach(function (sel) {
+    var addPlatform = $('[data-artist-platform-add]');
+    if (addPlatform) {
+      addPlatform.addEventListener('click', function () {
+        if (current.selected && current.selected.locked === true) return;
+        addPlatformRow(null, false);
+      });
+    }
+    ['#artist-bio', '#artist-change', '#artist-name'].forEach(function (sel) {
       var field = $(sel);
       if (!field || !field.addEventListener) return;
       field.addEventListener('input', scheduleSave);
@@ -971,5 +1188,10 @@
     paintAiFields: paintAiFields,
     involvementValue: involvementValue,
     openArtistForm: openArtistForm,
+    addPlatformRow: addPlatformRow,
+    renderPlatforms: renderPlatforms,
+    refreshPlatformSelects: refreshPlatformSelects,
+    collectPlatformLinks: collectPlatformLinks,
+    linksForArtist: linksForArtist,
   };
 })(typeof window !== 'undefined' ? window : this);
