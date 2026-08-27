@@ -49,7 +49,9 @@
         <h3>Account</h3>
         <div class="rel" style="margin-bottom:20px">
           <span class="avatar" style="width:56px;height:56px;font-size:16px" data-account-avatar>PG</span>
-          <button class="btn btn-ghost btn-sm" type="button">Change photo</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-account-photo-pick>Change photo</button>
+          <input id="account-photo" data-account-photo type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden />
+          <p class="hint" data-account-photo-status hidden></p>
         </div>
         <div class="form-grid four">
           <div class="field"><label>Artist name</label><input data-account-artist placeholder="Artist name" /></div>

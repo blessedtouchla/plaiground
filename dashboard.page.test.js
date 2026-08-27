@@ -272,6 +272,20 @@ function run() {
   const named = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
   assert.strictEqual(named['[data-account-who]'].textContent, 'Hi Victoria!');
   assert.strictEqual(named['[data-account-avatar]'].textContent, 'VI');
+  assert.strictEqual(named['[data-account-avatar]'].style.backgroundImage || '', '', 'header stays initials when no account photo');
+
+  const namedPhoto = fillAccount({
+    artist: 'mexeu mexeu',
+    plan: 'basic',
+    email: 'victoriaimtanes@gmail.com',
+    profile: { photo: 'data:image/jpeg;base64,abc' },
+  });
+  assert.ok(String(namedPhoto['[data-account-avatar]'].style.backgroundImage || '').indexOf('data:image/jpeg') !== -1, 'header uses the saved account photo');
+  assert.strictEqual(namedPhoto['[data-account-avatar]'].textContent, '', 'account photo replaces leftover MM initials');
+
+  const namedNoPhoto = fillAccount({ artist: 'mexeu mexeu', plan: 'basic', email: 'victoriaimtanes@gmail.com' });
+  assert.strictEqual(namedNoPhoto['[data-account-avatar]'].textContent, 'MM', 'header uses initials when no account photo');
+  assert.strictEqual(namedNoPhoto['[data-account-avatar]'].style.backgroundImage || '', '');
   assert.strictEqual(named['[data-pub-badge]'].textContent, 'INCLUDED IN YOUR PLAN');
   assert.strictEqual(named['[data-account-plan-title]'].textContent, 'On Creator');
   assert.strictEqual(named['[data-account-plan-price]'].textContent, 'Creator · $14.99/month');

@@ -979,6 +979,13 @@ body.app > .plai-bubble {
   font-size: 11px;
   font-weight: 800;
 }
+.avatar.has-art {
+  background-color: #111;
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+  overflow: hidden;
+}
 .page { padding: 32px 36px 56px; }
 .page-head { margin-bottom: 28px; }
 .page-head .kicker { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--magenta); font-weight: 700; margin-bottom: 8px; }
