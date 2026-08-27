@@ -211,6 +211,15 @@
   }
 
   var STEP_FAIL_COPY = 'We could not finish this step.';
+  var ARTIST_GONE_COPY = 'We could not create that artist. Try the name again.';
+
+  function isArtistGoneError(text) {
+    var raw = String(text || '').toLowerCase();
+    return /not found in this tenant/.test(raw)
+      || /artist not found/.test(raw)
+      || /could not create that artist/.test(raw)
+      || (/\btenant\b/.test(raw) && /artist/.test(raw));
+  }
 
   function isIdempotencyReuseError(text) {
     var raw = String(text || '');
@@ -263,6 +272,7 @@
     if (isPlatformPayloadError(next, status)) return platformPayloadCopy();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
+    if (isArtistGoneError(next) || /\btenant\b/i.test(next)) return ARTIST_GONE_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\bCloudflare\b/gi, 'the store');
@@ -1468,10 +1478,6 @@
     var current = draft || readDraft();
     var artistId = String(current.artist_id || '').trim();
     if (isUuidValue(artistId)) return Promise.resolve({ ok: true, draft: current });
-    var catalog = catalogFromAccount(accountRecord());
-    if (isUuidValue(catalog.artist_id)) {
-      return Promise.resolve({ ok: true, draft: writeDraft({ artist_id: catalog.artist_id }) });
-    }
     var name = String(current.name || '').trim();
     if (!name) {
       return Promise.resolve({
@@ -2957,6 +2963,14 @@
         return { limited: true, result: result, draft: draft };
       }
       if (!result.ok) {
+        if (isArtistGoneError(result.data && result.data.error)) {
+          var cleared = writeDraft({ artist_id: '' });
+          return {
+            failed: true,
+            result: { data: { error: ARTIST_GONE_COPY } },
+            draft: cleared,
+          };
+        }
         return { failed: true, result: result, draft: draft };
       }
       var releaseId = pickUuid(result.data);
@@ -3076,6 +3090,25 @@
     return first === 'john' || first === 'patrick';
   }
 
+  var rememberedArtists = [];
+  var refreshArtistSelect = function () {};
+
+  function rememberRosterArtist(artist) {
+    if (!artist || !artist.name || isLeftoverArtistName(artist.name)) return;
+    var id = String(artist.id || artist.artist_id || '').trim();
+    rememberedArtists = rememberedArtists.filter(function (row) {
+      return row && String(row.id || '') !== id && String(row.name || '') !== String(artist.name || '');
+    });
+    rememberedArtists.push({
+      id: id || artist.name,
+      name: artist.name,
+      source: artist.source || 'created',
+      badge: artist.badge || 'PLAIGROUND',
+      tonegrid_artist_id: artist.tonegrid_artist_id || '',
+    });
+    refreshArtistSelect();
+  }
+
   function rosterFromMe(me) {
     var row = me || accountRecord() || {};
     var artists = row.profile && Array.isArray(row.profile.artists) ? row.profile.artists.slice() : [];
@@ -3084,6 +3117,11 @@
     }).map(function (artist) {
       var id = String((artist && (artist.id || artist.artist_id || artist.uuid || artist.tonegrid_artist_id)) || '').trim();
       return Object.assign({}, artist, { id: id || artist.name });
+    });
+    rememberedArtists.forEach(function (extra) {
+      if (!extra || !extra.name) return;
+      if (artists.some(function (row) { return row && (row.id === extra.id || row.name === extra.name); })) return;
+      artists.push(extra);
     });
     if (!artists.length && row.artist && !isLeftoverArtistName(row.artist)) {
       artists.push({
@@ -3503,6 +3541,10 @@
         setStatus('tg-status', 'This name will be held for review and will not go to the store automatically.');
       });
     }
+
+    refreshArtistSelect = function () {
+      fillSelect(rosterFromMe(accountRecord()));
+    };
 
     whenAccountReady().then(function (result) {
       fillSelect(rosterFromMe((result && result.data) || accountRecord()));
@@ -4161,11 +4203,11 @@
       var shownError = (opts && opts.createFreshFailed && /release not found/i.test(String(message || '')))
         ? DEAD_RELEASE_COPY
         : message;
-      setStatus('tg-status', shownError || '');
-      markStatusError(Boolean(shownError));
+      var shown = sanitizePartnerCopy(shownError || '');
+      setStatus('tg-status', shown || '');
+      markStatusError(Boolean(shown));
       showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
       showUpgrade(upgrade === true);
-      var shown = sanitizePartnerCopy(shownError || '');
       var retryable = !upgrade && Boolean(shown) && !/is required|must be|Upgrade to|Albums are on|Pick how many/i.test(shown);
       showUploadRetry(retryable);
     }
@@ -4551,18 +4593,31 @@
               artist_linked: Boolean(artist && artist.linked),
               confirm_different: Boolean(artist && artist.confirmDifferent),
             });
+            if (artist && artist.name) {
+              rememberRosterArtist({
+                id: artist.id,
+                name: artist.name,
+                source: artist.linked ? 'linked' : 'created',
+              });
+            }
             if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {
               writeDraft({ pending_review: true, tonegrid_status: 'pending_review', artist_check: 'red' });
               return recordLocalRelease(readDraft(), artist).then(function () {
                 finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
               });
             }
-            var reusing = Boolean(nextDraft.artist_id || nextDraft.release_id || (artist && artist.tonegridId));
-            if (artist && artist.tonegridId && !nextDraft.artist_id) {
-              nextDraft = writeDraft({ artist_id: artist.tonegridId });
-            }
-            if (reusing) {
-              return afterArtistReady(nextDraft, nextHref);
+            var artistMode = fieldValue('tg-artist-mode') || '';
+            var creatingNew = artistMode === 'create';
+            var choosingExisting = artistMode === 'choose';
+            if (creatingNew) nextDraft = writeDraft({ artist_id: '' });
+            if (!creatingNew && !choosingExisting) {
+              var reusing = Boolean(nextDraft.artist_id || nextDraft.release_id || (artist && artist.tonegridId));
+              if (artist && artist.tonegridId && !nextDraft.artist_id) {
+                nextDraft = writeDraft({ artist_id: artist.tonegridId });
+              }
+              if (reusing) return afterArtistReady(nextDraft, nextHref);
+            } else {
+              nextDraft = writeDraft({ artist_id: '' });
             }
             if (catalog.allowed === false) {
               failUpload(planLimitMessage(catalog.plan), true);
@@ -4591,6 +4646,11 @@
                 return;
               }
               if (!artistResult.ok) {
+                if (isArtistGoneError(artistResult.data && artistResult.data.error)) {
+                  writeDraft({ artist_id: '' });
+                  failUpload(ARTIST_GONE_COPY, false);
+                  return;
+                }
                 failUpload(artistResult.data.error || 'Could not save artist.', false);
                 return;
               }
@@ -4600,8 +4660,15 @@
               if (artist && artist.id && artistId) {
                 post('/api/me/artists', { action: 'attach_tonegrid', id: artist.id, tonegrid_artist_id: artistId });
               }
+              rememberRosterArtist({
+                id: (artist && artist.id) || artistId,
+                name: (artist && artist.name) || name,
+                source: 'created',
+                tonegrid_artist_id: artistId,
+              });
               if (!artistId) {
-                finishToAttest(nextHref, 'Artist saved. Release will retry on the next step.');
+                writeDraft({ artist_id: '' });
+                failUpload(ARTIST_GONE_COPY, false);
                 return;
               }
               return afterArtistReady(next, nextHref);

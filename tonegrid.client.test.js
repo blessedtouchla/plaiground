@@ -10,6 +10,7 @@ const requiredCode = fs.readFileSync(path.join(__dirname, 'lib', 'upload-require
 const audioAcceptCode = fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8');
 const storePickCode = fs.readFileSync(path.join(__dirname, 'lib', 'store-pick.js'), 'utf8');
 const objectHopCode = fs.readFileSync(path.join(__dirname, 'lib', 'object-hop.js'), 'utf8');
+const artistCheckCode = fs.readFileSync(path.join(__dirname, 'lib', 'artist-check.js'), 'utf8');
 const AUDIO = { name: 'night-drive.wav', type: 'audio/wav', size: 2048 };
 const ART = { name: 'cover.jpg', type: 'image/jpeg', size: 1024 };
 const HOP_PUT = 'https://hop.test/put';
@@ -72,7 +73,15 @@ function makeEl(attrs) {
       delete this.attrs[name];
     },
     addEventListener(type, fn) {
-      this.listeners[type] = fn;
+      if (!this._listeners) this._listeners = Object.create(null);
+      if (!this._listeners[type]) this._listeners[type] = [];
+      this._listeners[type].push(fn);
+      const el = this;
+      this.listeners[type] = function (event) {
+        const list = el._listeners[type] || [];
+        let i;
+        for (i = 0; i < list.length; i += 1) list[i](event);
+      };
     },
     setCustomValidity(msg) {
       this.customValidity = String(msg || '');
@@ -252,6 +261,10 @@ function load(options) {
     elements['artist-choose-wrap'] = makeEl({ id: 'artist-choose-wrap' });
     elements['artist-create-wrap'] = makeEl({ id: 'artist-create-wrap' });
     elements['artist-link-wrap'] = makeEl({ id: 'artist-link-wrap' });
+    elements['artist-confirm-different'] = makeEl({ id: 'artist-confirm-different', checked: false });
+    elements['artist-impersonation-wrap'] = makeEl({ id: 'artist-impersonation-wrap' });
+    elements['artist-continue-different'] = makeEl({ id: 'artist-continue-different' });
+    elements['artist-submit-review'] = makeEl({ id: 'artist-submit-review' });
   }
 
   const liveRows = (opts.trackRows || []).slice();
@@ -431,6 +444,27 @@ function load(options) {
           json: async () => ({ ok: true }),
         });
       }
+      if (String(url).indexOf('/api/me/artists') !== -1) {
+        const body = jsonBodyOf({ init: init || {} });
+        const created = {
+          id: body.id || 'pg-created-1',
+          name: body.name || 'Created',
+          source: body.action === 'link' ? 'linked' : 'created',
+          tonegrid_artist_id: body.tonegrid_artist_id || '',
+        };
+        if (body.action === 'attach_tonegrid') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, created: created }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ created: created, check: { level: 'green' } }),
+        });
+      }
       if (String(url).indexOf('/api/tonegrid/stores') !== -1) {
         return Promise.resolve({
           ok: true,
@@ -537,6 +571,10 @@ function load(options) {
       return Promise.resolve(file);
     };
   }
+  vm.runInNewContext(artistCheckCode, context);
+  if (!context.PlaigroundArtistCheck) {
+    context.PlaigroundArtistCheck = require('./lib/artist-check');
+  }
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
   return {
@@ -584,6 +622,7 @@ function load(options) {
     artistNameCheck,
     artistYellow,
     artistRed,
+    artistConfirm: elements['artist-confirm-different'],
     genre,
     language,
     get convertCalls() { return convertCalls; },
@@ -2504,6 +2543,9 @@ async function run() {
   }
 
   async function reviewSubmitEnsuresCatalogArtist() {
+    const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const liveId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-12',
@@ -2518,29 +2560,36 @@ async function run() {
       account: {
         plan: 'creator',
         artist: 'Ada Night',
-        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_artist_id: leftover,
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.strictEqual(draftOf(page.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
+    assert.ok(artistCall, 'review submit without a draft artist id must POST a live artist');
+    assert.strictEqual(JSON.parse(artistCall.init.body).name, 'Ada Night');
+    assert.ok(!JSON.parse(artistCall.init.body).artist_id);
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.notStrictEqual(draftOf(page.localStorage).artist_id, leftover);
     const createCalls = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
     });
-    assert.strictEqual(createCalls.length, 1, 'review submit must mint a release after restoring artist_id');
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    assert.strictEqual(createCalls.length, 1, 'review submit must mint a release after creating a live artist');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, liveId);
+    assert.notStrictEqual(JSON.parse(createCalls[0].init.body).artist_id, leftover);
     assert.strictEqual(JSON.parse(createCalls[0].init.body).title, 'Night Drive');
     assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
     assert.ok(page.calls.some(function (call) {
-      return String(call.url) === '/api/tonegrid/releases/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit';
+      return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
     }));
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(draftOf(page.localStorage).release_id, releaseId);
     assert.ok(!/Could not create the release/.test(page.status.textContent));
   }
 
@@ -4104,6 +4153,167 @@ async function run() {
     assert.strictEqual(page.artist.value, 'Night Drive', 'Creator uuid/partner-id pick must stick as the profile name');
   }
 
+  async function createNewArtistPostsLiveNameOnlyAndStaysOnUpload() {
+    const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const liveId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      draft: { artist_id: leftover },
+      account: {
+        plan: 'creator',
+        artist: 'Leftover Act',
+        tonegrid_artist_id: leftover,
+        profile: {
+          artists: [{
+            id: 'pg-leftover',
+            name: 'Leftover Act',
+            source: 'created',
+            tonegrid_artist_id: leftover,
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
+        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+      ],
+    }));
+    await flush();
+    page.artistMode.value = 'create';
+    if (page.artistMode.listeners.change) page.artistMode.listeners.change();
+    page.artistNew.value = 'Neon Nova';
+    if (page.artistNew.listeners.input) page.artistNew.listeners.input();
+    assert.ok(
+      page.artistNameCheck.classList.contains('is-green')
+        || /created instantly/i.test(page.artistNameCheck.textContent),
+      'green name check must run on create-new'
+    );
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
+    assert.ok(artistCall, 'Create new must POST a live store artist');
+    const artistBody = JSON.parse(artistCall.init.body);
+    assert.strictEqual(artistBody.name, 'Neon Nova');
+    assert.ok(!artistBody.artist_id);
+    assert.ok(!artistBody.uuid);
+    assert.ok(!artistBody.tonegrid_artist_id);
+    const releaseCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+    assert.ok(releaseCall, 'release must use the newly created artist id');
+    assert.strictEqual(JSON.parse(releaseCall.init.body).artist_id, liveId);
+    assert.notStrictEqual(JSON.parse(releaseCall.init.body).artist_id, leftover);
+    assert.ok(String(page.location.href).indexOf('artists.html') === -1, 'must not bounce to Artist Profiles');
+    assert.strictEqual(page.location.href, 'attest.html');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    page.artistMode.value = 'choose';
+    if (page.artistMode.listeners.change) page.artistMode.listeners.change();
+    const names = page.artistSelect.options.map(function (opt) { return opt.textContent; });
+    assert.ok(names.indexOf('Neon Nova') !== -1, 'created artist must appear in Choose artist');
+  }
+
+  async function createNewArtistNameCheckGreenYellowRed() {
+    const page = load(filledUpload({ artistPicker: true, artist: '' }));
+    await flush();
+    page.artistMode.value = 'create';
+    if (page.artistMode.listeners.change) page.artistMode.listeners.change();
+    page.artistNew.value = 'Fuvtu';
+    if (page.artistNew.listeners.input) page.artistNew.listeners.input();
+    assert.ok(page.artistNameCheck.classList.contains('is-green'));
+    assert.strictEqual(page.artistYellow.hidden, true);
+    assert.strictEqual(page.artistRed.hidden, true);
+
+    page.artistNew.value = 'Sia';
+    if (page.artistNew.listeners.input) page.artistNew.listeners.input();
+    assert.ok(page.artistNameCheck.classList.contains('is-yellow'));
+    assert.strictEqual(page.artistYellow.hidden, false);
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(8);
+    assert.ok(/already exists|different artist/i.test(page.status.textContent));
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/artists'; }), 'yellow without confirm must not POST');
+
+    page.artistNew.value = 'Drake';
+    if (page.artistNew.listeners.input) page.artistNew.listeners.input();
+    assert.ok(page.artistNameCheck.classList.contains('is-red'));
+    assert.strictEqual(page.artistRed.hidden, false);
+  }
+
+  async function leftoverArtistTenantErrorIsNamelessAndDropsDeadId() {
+    const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      draft: { artist_id: leftover },
+      account: {
+        plan: 'creator',
+        tonegrid_artist_id: leftover,
+        upload: { allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'artist not found in this tenant' } },
+      ],
+    }));
+    await flush();
+    page.artistMode.value = 'create';
+    if (page.artistMode.listeners.change) page.artistMode.listeners.change();
+    page.artistNew.value = 'Neon Nova';
+    if (page.artistNew.listeners.input) page.artistNew.listeners.input();
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.strictEqual(page.status.textContent, 'We could not create that artist. Try the name again.');
+    assert.ok(page.status.textContent.toLowerCase().indexOf('tenant') === -1);
+    assert.ok(page.status.textContent.toLowerCase().indexOf('tonegrid') === -1);
+    assert.ok(!draftOf(page.localStorage).artist_id, 'dead leftover id must not stay on the draft');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+  }
+
+  async function chooseLeftoverArtistIsGoneNotRecovered() {
+    const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      account: {
+        plan: 'creator',
+        artist: 'Leftover Act',
+        tonegrid_artist_id: leftover,
+        profile: {
+          artists: [{
+            id: 'pg-leftover',
+            name: 'Leftover Act',
+            source: 'created',
+            tonegrid_artist_id: leftover,
+          }],
+        },
+        upload: { allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'artist not found in this tenant' } },
+      ],
+    }));
+    await flush();
+    page.artistSelect.value = 'pg-leftover';
+    page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === 'pg-leftover'; });
+    if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
+    if (artistCall) {
+      const artistBody = JSON.parse(artistCall.init.body);
+      assert.notStrictEqual(artistBody.artist_id, leftover, 'must not send the leftover store id');
+      assert.ok(!artistBody.uuid);
+      assert.ok(!artistBody.tonegrid_artist_id);
+    }
+    const releaseCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+    assert.ok(!releaseCall, 'leftover sandbox artist must not be recovered onto a live release');
+    assert.strictEqual(page.status.textContent, 'We could not create that artist. Try the name again.');
+    assert.ok(page.status.textContent.toLowerCase().indexOf('tenant') === -1);
+    assert.ok(page.status.textContent.toLowerCase().indexOf('tonegrid') === -1);
+    assert.ok(!draftOf(page.localStorage).artist_id, 'dead leftover id must not stay on the draft');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+  }
+
   async function basicArtistProfileAutoSelects() {
     const page = load(filledUpload({
       artistPicker: true,
@@ -4418,6 +4628,10 @@ async function run() {
   await rosterPickerListsRealArtists();
   await creatorArtistUuidPickSticks();
   await basicArtistProfileAutoSelects();
+  await createNewArtistPostsLiveNameOnlyAndStaysOnUpload();
+  await createNewArtistNameCheckGreenYellowRed();
+  await leftoverArtistTenantErrorIsNamelessAndDropsDeadId();
+  await chooseLeftoverArtistIsGoneNotRecovered();
   await basicGenreLanguagePickSticks();
   await cancelClearsDraftAndNextNewReleaseIsBlank();
   await cancelOnSubmitReviewLandsOnDashboard();
