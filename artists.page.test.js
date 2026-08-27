@@ -31,6 +31,11 @@ function makeEl(attrs) {
       add(name) { this.tokens[name] = true; },
       contains(name) { return Boolean(this.tokens[name]); },
     },
+    closest(sel) {
+      if (sel === '[data-artist-add]' && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, 'data-artist-add')) return el;
+      if (sel === '[data-artist-import]' && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, 'data-artist-import')) return el;
+      return null;
+    },
     getAttribute(name) {
       return this.attrs[name] == null ? null : this.attrs[name];
     },
@@ -79,8 +84,8 @@ function makeEl(attrs) {
 function loadArtists() {
   const createPanel = makeEl({ hidden: true });
   const linkPanel = makeEl({ hidden: true });
-  const addBtn = makeEl({});
-  const importBtn = makeEl({});
+  const addBtn = makeEl({ attrs: { 'data-artist-add': '' } });
+  const importBtn = makeEl({ attrs: { 'data-artist-import': '' } });
   const nameInput = makeEl({ value: '' });
   const urlInput = makeEl({ value: '' });
   const checkMsg = makeEl({ hidden: true });
@@ -160,6 +165,7 @@ function loadArtists() {
     document: {
       readyState: 'complete',
       hidden: false,
+      listeners: {},
       getElementById(id) { return nodes['#' + id] || null; },
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
@@ -177,7 +183,15 @@ function loadArtists() {
         el.tagName = String(tag || 'div').toUpperCase();
         return el;
       },
-      addEventListener() {},
+      addEventListener(type, fn) {
+        const key = String(type || '');
+        if (!this.listeners[key]) this.listeners[key] = [];
+        this.listeners[key].push(fn);
+      },
+      dispatchClick(target) {
+        const event = { type: 'click', target: target, preventDefault() {}, stopPropagation() {} };
+        (this.listeners.click || []).forEach(function (fn) { fn(event); });
+      },
     },
     location: { hash: '', pathname: '/artists.html' },
     fetch(url, opts) {
@@ -371,6 +385,11 @@ function run() {
   assert.strictEqual(page.api.openArtistForm('add'), 'add');
   assert.strictEqual(page.createPanel.hidden, false, 'Add artist opens the name-only form');
   assert.strictEqual(page.linkPanel.hidden, true, 'Import stays closed while adding');
+  page.api.openArtistForm('import');
+  assert.strictEqual(page.createPanel.hidden, true);
+  page.context.document.dispatchClick(page.addBtn);
+  assert.strictEqual(page.createPanel.hidden, false, 'Add artist click must open the form immediately');
+  assert.strictEqual(page.linkPanel.hidden, true);
   assert.ok(page.addBtn.classList.contains('is-on'));
   assert.ok(!page.importBtn.classList.contains('is-on'));
   assert.strictEqual(page.nameInput.focused, true);
@@ -476,6 +495,29 @@ async function persistAndImmediateSave() {
   const cancelled = await afterReload.api.deleteArtist('artist-1');
   assert.ok(cancelled && cancelled.cancelled === true, 'Delete still confirms first');
   assert.ok(afterReload.context.confirmCalls >= 1, 'Delete still confirms first');
+
+  const emptyPage = loadArtists();
+  emptyPage.api.applyMe({ profile: { artists: [] } });
+  emptyPage.context.document.dispatchClick(emptyPage.addBtn);
+  assert.strictEqual(emptyPage.createPanel.hidden, false, 'Add artist click works when the roster is empty');
+  emptyPage.nameInput.value = 'Fresh Act';
+  emptyPage.posts.length = 0;
+  await emptyPage.api.createArtist(false);
+  assert.ok(emptyPage.posts.some(function (row) {
+    return row.url === '/api/me/artists' && row.body && row.body.artist_action === 'create' && row.body.name === 'Fresh Act';
+  }), 'create artist must POST when the page shows empty');
+
+  const accountPage = loadArtists();
+  accountPage.api.applyMe({
+    artist: 'Seeded Act',
+    profile: { artists: [{ id: 'account', name: 'Seeded Act', source: 'created', badge: 'PLAIGROUND' }] },
+  });
+  accountPage.nameInput.value = 'Second Act';
+  accountPage.posts.length = 0;
+  await accountPage.api.createArtist(false);
+  assert.ok(accountPage.posts.some(function (row) {
+    return row.body && row.body.artist_action === 'create' && row.body.name === 'Second Act';
+  }), 'create artist must POST when the page only has the seeded account id');
 
   console.log('artists.page.test.js ok');
 }

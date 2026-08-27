@@ -277,11 +277,17 @@ async function saveProfile(req, res) {
 }
 
 function seedRoster(row) {
-  return profile.seedFromAccount(
+  return profile.recoverRoster(
     profile.readStored(row),
     row.artist_name,
     row.tonegrid_artist_id
   );
+}
+
+function shouldPersistRecoveredRoster(row, stored) {
+  const have = profile.readStored(row).artists || [];
+  const next = stored && Array.isArray(stored.artists) ? stored.artists : [];
+  return have.length === 0 && next.length > 0;
 }
 
 function sameName(a, b) {
@@ -307,7 +313,7 @@ async function saveArtists(req, res) {
 
   let stored = seedRoster(row);
   if (req.method === 'GET') {
-    if (!(row.profile && row.profile.artists && row.profile.artists.length) && stored.artists.length) {
+    if (shouldPersistRecoveredRoster(row, stored)) {
       const next = await persistRoster(row, stored);
       sendJson(res, 200, publicUser(next || row));
       return;
@@ -545,6 +551,10 @@ module.exports = async function handler(req, res) {
     let next = row;
     if (!normalizePaidPlan(row.plan, row.email)) {
       next = await recoverPaidPlan(row);
+    }
+    const stored = seedRoster(next || row);
+    if (shouldPersistRecoveredRoster(next || row, stored)) {
+      next = await persistRoster(next || row, stored);
     }
     sendJson(res, 200, publicUser(next || row));
   } catch (err) {
