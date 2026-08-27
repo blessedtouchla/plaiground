@@ -129,6 +129,30 @@
     if (el && el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
   }
 
+  function hopApi() {
+    try {
+      if (typeof PlaigroundObjectHop !== 'undefined' && PlaigroundObjectHop) return PlaigroundObjectHop;
+    } catch (err) {}
+    return global.PlaigroundObjectHop || null;
+  }
+
+  function coverObjectKeyOf(row) {
+    if (global.PlaigroundCoverUrl && typeof global.PlaigroundCoverUrl.objectKey === 'function') {
+      return global.PlaigroundCoverUrl.objectKey(row);
+    }
+    return String((row && row.artwork_object_key) || '').trim();
+  }
+
+  function resolveCoverFallback(el, row, currentUrl) {
+    if (currentUrl) return;
+    var key = coverObjectKeyOf(row);
+    var api = hopApi();
+    if (!key || !api || typeof api.previewUrl !== 'function') return;
+    api.previewUrl(key).then(function (url) {
+      if (url && el && el.isConnected) applyCover(el, url);
+    });
+  }
+
   function overviewCards(releases) {
     return (releases || []).map(function (row) {
       var mapped = statusApi() ? statusApi().info(row && row.status) : {
@@ -143,6 +167,7 @@
         label: mapped.label,
         live: mapped.live,
         artwork_url: coverOf(row),
+        artwork_object_key: coverObjectKeyOf(row),
       };
     }).filter(function (card) {
       var api = statusApi();
@@ -172,6 +197,7 @@
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       applyCover(art, card.artwork_url);
+      resolveCoverFallback(art, card, card.artwork_url);
       var title = document.createElement('strong');
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
@@ -199,7 +225,9 @@
       var thumb = document.createElement('span');
       var live = statusApi() ? statusApi().isLive(row.status) : row.status === 'live';
       thumb.className = live ? 'thumb' : 'thumb grey';
-      applyCover(thumb, coverOf(row));
+      var thumbCover = coverOf(row);
+      applyCover(thumb, thumbCover);
+      resolveCoverFallback(thumb, row, thumbCover);
       var copy = document.createElement('div');
       var title = document.createElement('a');
       title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html';
