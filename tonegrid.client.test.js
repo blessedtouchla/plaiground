@@ -2543,6 +2543,9 @@ async function run() {
   }
 
   async function reviewSubmitEnsuresCatalogArtist() {
+    const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const liveId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-12',
@@ -2557,29 +2560,36 @@ async function run() {
       account: {
         plan: 'creator',
         artist: 'Ada Night',
-        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_artist_id: leftover,
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.strictEqual(draftOf(page.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
+    assert.ok(artistCall, 'review submit without a draft artist id must POST a live artist');
+    assert.strictEqual(JSON.parse(artistCall.init.body).name, 'Ada Night');
+    assert.ok(!JSON.parse(artistCall.init.body).artist_id);
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.notStrictEqual(draftOf(page.localStorage).artist_id, leftover);
     const createCalls = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
     });
-    assert.strictEqual(createCalls.length, 1, 'review submit must mint a release after restoring artist_id');
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    assert.strictEqual(createCalls.length, 1, 'review submit must mint a release after creating a live artist');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, liveId);
+    assert.notStrictEqual(JSON.parse(createCalls[0].init.body).artist_id, leftover);
     assert.strictEqual(JSON.parse(createCalls[0].init.body).title, 'Night Drive');
     assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
     assert.ok(page.calls.some(function (call) {
-      return String(call.url) === '/api/tonegrid/releases/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit';
+      return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
     }));
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(draftOf(page.localStorage).release_id, releaseId);
     assert.ok(!/Could not create the release/.test(page.status.textContent));
   }
 

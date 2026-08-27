@@ -350,63 +350,6 @@ function isArtistGoneResult(result) {
   return false;
 }
 
-async function replaceRosterTonegridId(row, deadId, liveId) {
-  if (!row || !deadId || !liveId) return;
-  const stored = rosterOf(row);
-  const list = stored.artists || [];
-  let next = stored;
-  let changed = false;
-  list.forEach((artist) => {
-    if (!sameCatalogId(artist.tonegrid_artist_id, deadId)) return;
-    next = profileLib.upsertArtist(next, Object.assign({}, artist, { tonegrid_artist_id: liveId }));
-    changed = true;
-  });
-  if (changed) await accounts.updateProfile(row.id, { profile: next });
-}
-
-async function mintLiveStoreArtist(scope, name, opts) {
-  const artistGate = uploadRequired.validateArtist({ name: name });
-  if (artistGate.error) return { error: artistGate.error };
-  const slug = deriveSlug((opts && opts.slug) || artistGate.name);
-  if (!slug) return { error: 'Artist name needs at least one letter or number for a slug.' };
-  const payload = { name: artistGate.name, slug };
-  const result = await tonegridFetch('/artists', {
-    method: 'POST',
-    body: payload,
-    idempotencyKey: idempotencyKey({ headers: {} }, 'artist-live:' + slug + ':' + String((opts && opts.deadId) || '')),
-  });
-  if (!result.ok) {
-    return { error: (result.data && result.data.error) || ARTIST_GONE_COPY, result: result };
-  }
-  const artistId = createdArtistId(result.data);
-  if (!artistId) return { error: ARTIST_GONE_COPY, result: result };
-  await accounts.updateCatalog(scope.userId, { artistId: artistId, replaceArtistId: true });
-  const latest = await accounts.findById(scope.userId);
-  if (latest) {
-    await attachTonegridArtist(latest, opts && opts.plaigroundId, artistId);
-    if (opts && opts.deadId) await replaceRosterTonegridId(latest, opts.deadId, artistId);
-  }
-  return { id: artistId, result: result };
-}
-
-function artistNameForMint(scope, body, artistId) {
-  const named = String((body && body.name) || '').trim();
-  if (named) return named;
-  const stored = rosterOf(scope.row);
-  const list = stored.artists || [];
-  let i;
-  for (i = 0; i < list.length; i += 1) {
-    if (
-      sameCatalogId(list[i].tonegrid_artist_id, artistId)
-      || sameCatalogId(list[i].id, artistId)
-      || sameCatalogId(list[i].artist_id, artistId)
-    ) {
-      return String(list[i].name || '').trim();
-    }
-  }
-  return String((scope.row && (scope.row.artist_name || scope.row.artist)) || '').trim();
-}
-
 async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
