@@ -1639,8 +1639,12 @@
       if (fields.lyrics !== undefined) release.lyrics = fields.lyrics;
       if (fields.release_date) release.release_date = fields.release_date;
       if (Array.isArray(fields.dsps) && fields.dsps.length) release.dsps = fields.dsps;
+      // Never paint a blob: preview URL here: closeEdit() revokes it via
+      // coverPreview.clear() right before render() would draw it, guaranteeing
+      // a broken image. Leave artwork_url untouched (falls back to whatever
+      // the release already had) so render()'s own previewUrl(coverKey)
+      // fallback resolves the real, freshly-uploaded cover instead.
       if (keep) release.artwork_url = keep;
-      else if (cover) release.artwork_url = cover;
       lastEdit.draft = draft;
       lastEdit.release = release;
       persistPlaigroundRelease(draft, release);
