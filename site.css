@@ -1143,6 +1143,29 @@ table.data td.release-edit-col .btn {
   cursor: pointer;
 }
 .artist-row.is-on { border-color: #8b5cf6; }
+.artist-edit-head { align-items: center; }
+.artist-edit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.artist-edit-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.artist-edit-actions [data-artist-save],
+.artist-edit-actions [data-artist-delete] {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 10px 20px;
+}
 .artist-check-box {
   margin-top: 14px;
   padding: 14px 16px;
@@ -1198,6 +1221,29 @@ table.data td.release-edit-col .btn {
 .pill.is-red::before { background: #d14b4b; }
 @media (max-width: 720px) {
   .artist-ai-cols { grid-template-columns: 1fr; }
+  [data-artist-edit] .artist-edit-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .artist-edit-actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+  .artist-edit-actions [data-artist-save],
+  .artist-edit-actions [data-artist-delete] {
+    width: 100%;
+    justify-content: center;
+    flex: none;
+    white-space: nowrap;
+  }
+  .artist-row-wrap [data-artist-delete] {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
 }
 .release-edit .field-why,
 .field-why {
@@ -3185,6 +3231,25 @@ body:not(.app) > .app-main > .topbar { display: none; }
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
+  }
+  [data-artist-edit] .artist-edit-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .artist-edit-actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+  .artist-edit-actions [data-artist-save],
+  .artist-edit-actions [data-artist-delete] {
+    width: 100%;
+    justify-content: center;
+    flex: none;
+    white-space: nowrap;
   }
   .releases-head-actions {
     display: flex;

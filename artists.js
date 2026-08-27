@@ -88,12 +88,15 @@
     if (el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
   }
 
-  function post(url, body) {
+  function post(url, body, opts) {
+    var payload = JSON.stringify(body || {});
+    var keepalive = Boolean(opts && opts.keepalive) && payload.length < 60000;
     return fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body || {}),
+      body: payload,
+      keepalive: keepalive,
     }).then(function (response) {
       return response.json().then(function (data) {
         return { ok: response.ok, status: response.status, data: data || {} };
@@ -140,6 +143,7 @@
   var saveTimer = null;
   var saveInFlight = false;
   var saveAgain = false;
+  var saveAgainKeepalive = false;
 
   function isAccepted(artist) {
     if (!artist || !artist.name) return false;
@@ -594,29 +598,55 @@
       try { clearTimeout(saveTimer); } catch (err) {}
     }
     saveTimer = setTimeout(function () {
+      saveTimer = null;
       saveArtist({ quiet: true });
     }, 350);
   }
 
+  function flushSave() {
+    if (painting || !current.selected) return Promise.resolve(null);
+    if (saveTimer) {
+      try { clearTimeout(saveTimer); } catch (err) {}
+      saveTimer = null;
+    }
+    return saveArtist({ quiet: true, keepalive: true });
+  }
+
+  function keepQuietSave(data) {
+    if (!data) return;
+    if (data.profile) {
+      current.me = data;
+      current.artists = rosterFromMe(data);
+    }
+    if (data.updated) {
+      current.selected = data.updated;
+      if (data.updated.photo) current.photo = data.updated.photo;
+    }
+    renderList();
+  }
+
   function saveArtist(opts) {
     var quiet = Boolean(opts && opts.quiet);
+    var keepalive = Boolean(opts && opts.keepalive);
     if (!current.selected) {
       if (!quiet) showError('Select an artist first.');
       return Promise.resolve(null);
     }
     if (saveInFlight) {
       saveAgain = true;
+      if (keepalive) saveAgainKeepalive = true;
       return Promise.resolve(null);
     }
     showError('');
     saveInFlight = true;
     var nameEl = $('#artist-name');
-    return post('/api/me/artists', {
+    var nextPhoto = current.photo || '';
+    var storedPhoto = current.selected.photo || '';
+    var body = {
       action: 'update',
       id: current.selected.id,
       artist_id: current.selected.artist_id || current.selected.id,
       name: nameEl ? nameEl.value : current.selected.name,
-      photo: current.photo || '',
       bio: $('#artist-bio') ? $('#artist-bio').value : '',
       genres: selectedGenres(),
       spotify_id: $('#artist-spotify') ? $('#artist-spotify').value : '',
@@ -628,19 +658,26 @@
       ai_involvement_percent: involvementValue(),
       change_request: $('#artist-change') ? $('#artist-change').value : '',
       confirm_different: true,
-    }).then(function (result) {
+    };
+    if (nextPhoto !== storedPhoto) body.photo = nextPhoto;
+    return post('/api/me/artists', body, { keepalive: keepalive }).then(function (result) {
       saveInFlight = false;
       if (saveAgain) {
         saveAgain = false;
-        return saveArtist({ quiet: true });
+        var againKeep = saveAgainKeepalive;
+        saveAgainKeepalive = false;
+        return saveArtist({ quiet: true, keepalive: againKeep });
       }
       if (!result.ok || !result.data || !result.data.updated) {
         showError((result.data && result.data.error) || 'Could not save artist.');
         return null;
       }
-      applyMe(result.data);
-      selectArtist(result.data.updated);
-      if (!quiet) showStatus('Artist profile saved.');
+      if (quiet) keepQuietSave(result.data);
+      else {
+        applyMe(result.data);
+        selectArtist(result.data.updated);
+        showStatus('Artist profile saved.');
+      }
       return result.data;
     }).catch(function () {
       saveInFlight = false;
@@ -845,11 +882,26 @@
     ['#artist-bio', '#artist-spotify', '#artist-apple', '#artist-store', '#artist-change', '#artist-name'].forEach(function (sel) {
       var field = $(sel);
       if (!field || !field.addEventListener) return;
+      field.addEventListener('input', scheduleSave);
       field.addEventListener('change', scheduleSave);
       field.addEventListener('blur', scheduleSave);
     });
-    if (range) range.addEventListener('change', scheduleSave);
-    if (num) num.addEventListener('change', scheduleSave);
+    if (range) {
+      range.addEventListener('input', scheduleSave);
+      range.addEventListener('change', scheduleSave);
+    }
+    if (num) {
+      num.addEventListener('input', scheduleSave);
+      num.addEventListener('change', scheduleSave);
+    }
+    if (global.document && global.document.addEventListener) {
+      global.document.addEventListener('visibilitychange', function () {
+        if (global.document.hidden) flushSave();
+      });
+    }
+    if (typeof global.addEventListener === 'function') {
+      global.addEventListener('pagehide', flushSave);
+    }
 
     Promise.all([
       loadMe(),
@@ -875,6 +927,8 @@
     createArtist: createArtist,
     linkArtist: linkArtist,
     saveArtist: saveArtist,
+    scheduleSave: scheduleSave,
+    flushSave: flushSave,
     deleteArtist: deleteArtist,
     isAccepted: isAccepted,
     paintCreateCheck: paintCreateCheck,
