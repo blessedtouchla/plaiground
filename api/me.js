@@ -7,7 +7,9 @@
  *                       Client-sent plan is ignored. Webhook is the other writer.
  * POST /api/me/catalog  session required; save ToneGrid uuids
  * POST /api/me/profile  session required; save public artist profile on this user
- * POST /api/me/artists  session required; create / link / update Artist Profiles
+ * POST /api/me/artists  session required; create / link / update Artist Profiles.
+ *                       Rewrite query uses resource=artists so it cannot clobber
+ *                       the JSON verb (update / delete / create).
  * GET  /api/admin/signups  owner session only; list real users + Stripe GET
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
@@ -48,7 +50,30 @@ function isProfile(req) {
 function isArtists(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/artists') return true;
-  return queryValue(req, 'action') === 'artists';
+  return queryValue(req, 'action') === 'artists' || queryValue(req, 'resource') === 'artists';
+}
+
+const ROUTE_ACTIONS = { artists: true, catalog: true, profile: true, 'admin-signups': true };
+
+function artistVerb(body) {
+  const explicit = String((body && body.artist_action) || '').trim().toLowerCase();
+  if (explicit && !ROUTE_ACTIONS[explicit]) return explicit;
+  const raw = String((body && body.action) || '').trim().toLowerCase();
+  if (raw && !ROUTE_ACTIONS[raw]) return raw;
+  if (body && body.release) return 'record_release';
+  if (
+    body
+    && String((body.tonegrid_artist_id || '')).trim()
+    && (body.id || body.plaiground_artist_id)
+    && body.bio === undefined
+    && body.name === undefined
+    && body.photo === undefined
+  ) {
+    return 'attach_tonegrid';
+  }
+  if (body && (body.url || body.link) && !(body.id || body.artist_id)) return 'link';
+  if (body && (body.id || body.artist_id)) return 'update';
+  return 'create';
 }
 
 function isAdminSignups(req) {
@@ -303,7 +328,7 @@ async function saveArtists(req, res) {
     return;
   }
 
-  const action = String((body && body.action) || 'create').trim().toLowerCase();
+  const action = artistVerb(body);
 
   if (action === 'create') {
     const name = String((body && body.name) || '').trim();
@@ -365,7 +390,7 @@ async function saveArtists(req, res) {
 
   if (action === 'delete') {
     const id = String((body && (body.id || body.artist_id)) || '').trim();
-    const current = profile.findArtist(stored, id);
+    const current = profile.resolveArtist(stored, id, body && body.name);
     if (!current) {
       sendJson(res, 404, { error: 'Artist profile not found.' });
       return;
@@ -387,7 +412,7 @@ async function saveArtists(req, res) {
 
   if (action === 'update' || action === 'submit_edit') {
     const id = String((body && (body.id || body.artist_id)) || '').trim();
-    const current = profile.findArtist(stored, id);
+    const current = profile.resolveArtist(stored, id, body && body.name);
     if (!current) {
       sendJson(res, 404, { error: 'Artist profile not found.' });
       return;
@@ -471,7 +496,7 @@ async function saveArtists(req, res) {
 
   if (action === 'attach_tonegrid') {
     const id = String((body && (body.id || body.plaiground_artist_id)) || '').trim();
-    const current = profile.findArtist(stored, id);
+    const current = profile.resolveArtist(stored, id, body && body.name);
     if (!current) {
       sendJson(res, 404, { error: 'Artist profile not found.' });
       return;
