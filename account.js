@@ -1,5 +1,12 @@
 (function (global) {
+  var PHOTO_RE = /^data:image\/(jpeg|jpg|png);base64,/i;
+  var lastMe = null;
+
   function $(sel) {
+    if (sel && sel.charAt(0) === '#' && document.getElementById) {
+      var byId = document.getElementById(sel.slice(1));
+      if (byId) return byId;
+    }
     return document.querySelector(sel);
   }
 
@@ -151,14 +158,39 @@
     if (el) el.textContent = text;
   }
 
+  function accountPhoto(me) {
+    var raw = me && me.profile && typeof me.profile === 'object' ? me.profile.photo : '';
+    var photo = String(raw || '').trim();
+    return PHOTO_RE.test(photo) ? photo : '';
+  }
+
+  function paintAvatar(el, photo, letters) {
+    if (!el) return;
+    var art = String(photo || '').trim();
+    if (el.style) {
+      el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+      el.style.backgroundSize = art ? 'cover' : '';
+      el.style.backgroundPosition = art ? 'center' : '';
+    }
+    if (el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
+    setText(el, art ? '' : letters);
+  }
+
+  function paintAvatars(photo, letters) {
+    $all('[data-account-avatar]').forEach(function (el) {
+      paintAvatar(el, photo, letters);
+    });
+  }
+
   function fillAccount(me) {
     if (!me) return;
+    lastMe = me;
     var artist = accountArtistField(me);
     var display = accountDisplayName(me);
     var first = firstName(display);
     var who = first ? 'Hi ' + first + '!' : 'Hi there';
     $all('[data-account-who]').forEach(function (el) { setText(el, who); });
-    $all('[data-account-avatar]').forEach(function (el) { setText(el, initials(display)); });
+    paintAvatars(accountPhoto(me), initials(display));
     $all('[data-account-email]').forEach(function (el) {
       if (el.tagName === 'INPUT') el.value = me.email || '';
       else setText(el, me.email || '');
@@ -448,6 +480,128 @@
     if (!el) return;
     el.textContent = text || '';
     el.hidden = !text;
+  }
+
+  function currentMe() {
+    if (lastMe) return lastMe;
+    if (global.PlaigroundMembership && typeof global.PlaigroundMembership.account === 'function') {
+      return global.PlaigroundMembership.account();
+    }
+    return null;
+  }
+
+  function readPhotoFile(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) {
+        resolve('');
+        return;
+      }
+      if (typeof FileReader !== 'function') {
+        reject(new Error('Could not read that photo.'));
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Could not read that photo.')); };
+      reader.onload = function () {
+        var src = String(reader.result || '');
+        if (!PHOTO_RE.test(src) && !/^data:image\//i.test(src)) {
+          reject(new Error('Photo must be a JPG or PNG.'));
+          return;
+        }
+        if (typeof Image !== 'function' || !document.createElement) {
+          if (!PHOTO_RE.test(src)) {
+            reject(new Error('Photo must be a JPG or PNG.'));
+            return;
+          }
+          resolve(src);
+          return;
+        }
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.createElement('canvas');
+          var size = 512;
+          var scale = Math.min(size / Math.max(img.width, 1), size / Math.max(img.height, 1), 1);
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          var ctx = canvas.getContext && canvas.getContext('2d');
+          if (!ctx || typeof canvas.toDataURL !== 'function') {
+            if (!PHOTO_RE.test(src)) {
+              reject(new Error('Photo must be a JPG or PNG.'));
+              return;
+            }
+            resolve(src);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var out = canvas.toDataURL('image/jpeg', 0.8);
+          if (out.length > 180000) out = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(out);
+        };
+        img.onerror = function () { reject(new Error('Photo must be a JPG or PNG.')); };
+        img.src = src;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function photoPayload(photo) {
+    var me = currentMe() || {};
+    var raw = me.profile && typeof me.profile === 'object' ? me.profile : {};
+    return {
+      artist: accountArtistField(me) || String(me.artist || '').trim(),
+      profile: {
+        photo: photo || '',
+        genres: Array.isArray(raw.genres) ? raw.genres : [],
+        specialties: Array.isArray(raw.specialties) ? raw.specialties : [],
+      },
+    };
+  }
+
+  function saveAccountPhoto(photo) {
+    return fetch('/api/me/profile', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(photoPayload(photo)),
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        return { ok: response.ok, status: response.status, data: data || {} };
+      }).catch(function () {
+        return { ok: false, status: response.status, data: {} };
+      });
+    }).then(function (result) {
+      if (result.ok && result.data) fillAccount(result.data);
+      return result;
+    });
+  }
+
+  function bindChangePhoto() {
+    var pick = document.querySelector('[data-account-photo-pick]');
+    var input = $('#account-photo') || document.querySelector('[data-account-photo]');
+    if (!pick || !input) return;
+    if (pick.getAttribute('data-bound') === 'true') return;
+    pick.setAttribute('data-bound', 'true');
+    var status = document.querySelector('[data-account-photo-status]');
+    pick.addEventListener('click', function () {
+      if (typeof input.click === 'function') input.click();
+    });
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      setHint(status, '');
+      readPhotoFile(file).then(function (photo) {
+        var me = currentMe() || {};
+        paintAvatars(photo, initials(accountDisplayName(me)));
+        return saveAccountPhoto(photo);
+      }).then(function (result) {
+        if (!result) return;
+        if (!result.ok) {
+          setHint(status, (result.data && result.data.error) || 'Could not save that photo.');
+        }
+      }).catch(function (err) {
+        setHint(status, (err && err.message) || 'Photo must be a JPG or PNG.');
+      });
+    });
   }
 
   function bindChangePassword() {
@@ -879,10 +1033,12 @@
   whenDomReady(bindManageBilling);
   whenDomReady(bindChangePassword);
   whenDomReady(bindDeleteAccount);
+  whenDomReady(bindChangePhoto);
   bindManagePlan();
   bindManageBilling();
   bindChangePassword();
   bindDeleteAccount();
+  bindChangePhoto();
   bindPlanConfirm();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
@@ -892,5 +1048,8 @@
     fill: fillAccount,
     markPlanOption: markPlanOption,
     renderOverview: renderOverview,
+    accountPhoto: accountPhoto,
+    readPhotoFile: readPhotoFile,
+    saveAccountPhoto: saveAccountPhoto,
   };
 })(window);
