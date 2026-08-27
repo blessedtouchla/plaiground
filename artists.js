@@ -27,7 +27,34 @@
     var el = $(sel);
     if (!el) return;
     el.hidden = Boolean(hidden);
-    if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', Boolean(hidden));
+    if (el.classList && el.classList.toggle) {
+      el.classList.toggle('is-hidden', Boolean(hidden));
+      if (!hidden && el.classList.remove) el.classList.remove('hidden');
+    }
+  }
+
+  function closestArtistChoice(target, sel) {
+    var node = target;
+    while (node && node !== document) {
+      if (node.getAttribute && node.getAttribute(sel.replace(/[\[\]]/g, '')) != null) return node;
+      if (node.closest) {
+        var found = node.closest(sel);
+        if (found) return found;
+      }
+      node = node.parentNode || node.parentElement;
+    }
+    return null;
+  }
+
+  function onArtistChoiceClick(event) {
+    var target = event && event.target;
+    if (!target) return;
+    var add = closestArtistChoice(target, '[data-artist-add]');
+    var imp = closestArtistChoice(target, '[data-artist-import]');
+    if (!add && !imp) return;
+    if (event.preventDefault) event.preventDefault();
+    if (event.stopPropagation) event.stopPropagation();
+    openArtistForm(add ? 'add' : 'import');
   }
 
   function catalog() {
@@ -744,6 +771,7 @@
   }
 
   function bind() {
+    try {
     fillGenreSelect();
     var list = $('[data-artist-list]');
     if (list) {
@@ -819,19 +847,19 @@
         if (wrap) wrap.hidden = false;
       });
     }
-    document.querySelectorAll('[data-artist-add]').forEach(function (btn) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-add]'), function (btn) {
       btn.addEventListener('click', function (event) {
         if (event && event.preventDefault) event.preventDefault();
         openArtistForm('add');
       });
     });
-    document.querySelectorAll('[data-artist-import]').forEach(function (btn) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-import]'), function (btn) {
       btn.addEventListener('click', function (event) {
         if (event && event.preventDefault) event.preventDefault();
         openArtistForm('import');
       });
     });
-    document.querySelectorAll('[data-artist-goto-link]').forEach(function (btn) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-goto-link]'), function (btn) {
       btn.addEventListener('click', function () {
         openArtistForm('import');
       });
@@ -844,7 +872,7 @@
     if (linkBtn) linkBtn.addEventListener('click', function () { linkArtist(); });
     var saveBtn = $('[data-artist-save]');
     if (saveBtn) saveBtn.addEventListener('click', function () { saveArtist(); });
-    document.querySelectorAll('[data-artist-delete]').forEach(function (btn) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-delete]'), function (btn) {
       btn.addEventListener('click', function () {
         deleteArtist(btn.getAttribute('data-artist-delete') || '');
       });
@@ -870,7 +898,7 @@
         paintAiMeter();
       });
     }
-    document.querySelectorAll('[data-human-contribution], [data-ai-contribution]').forEach(function (box) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-human-contribution], [data-ai-contribution]'), function (box) {
       box.addEventListener('change', function () {
         paintAiMeter();
         scheduleSave();
@@ -906,6 +934,7 @@
     if (typeof global.addEventListener === 'function') {
       global.addEventListener('pagehide', flushSave);
     }
+    } catch (err) { /* Add artist stays bound at document level; still load the roster. */ }
 
     Promise.all([
       loadMe(),
@@ -919,6 +948,9 @@
     });
   }
 
+  if (document.addEventListener) {
+    document.addEventListener('click', onArtistChoiceClick);
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
   else bind();
 

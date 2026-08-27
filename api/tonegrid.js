@@ -307,7 +307,7 @@ async function listArtists(req, res) {
 }
 
 function rosterOf(row) {
-  return profileLib.seedFromAccount(profileLib.readStored(row), row && row.artist_name, row && row.tonegrid_artist_id);
+  return profileLib.recoverRoster(profileLib.readStored(row), row && row.artist_name, row && row.tonegrid_artist_id);
 }
 
 function matchingTonegridArtist(row, body) {
@@ -635,17 +635,25 @@ async function listReleases(req, res) {
   }
   if (collected.length) {
     const latestRow = await accounts.findById(scope.userId);
-    let nextProfile = rosterOf(latestRow || scope.row);
+    const previous = rosterOf(latestRow || scope.row);
+    let nextProfile = previous;
     collected.forEach((row) => {
       nextProfile = profileLib.upsertRelease(nextProfile, {
         id: row.uuid,
         title: row.title,
+        artist: row.artist,
         tonegrid_release_id: row.uuid,
         tonegrid_status: row.status,
         rejection_reason: row.rejection_reason,
         artwork_url: row.artwork_url,
       });
     });
+    nextProfile = profileLib.recoverRoster(
+      nextProfile,
+      (latestRow || scope.row).artist_name,
+      (latestRow || scope.row).tonegrid_artist_id
+    );
+    nextProfile = profileLib.keepArtistsIfDropped(nextProfile, previous);
     await accounts.updateProfile(scope.userId, { profile: nextProfile });
   }
 
