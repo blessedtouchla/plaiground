@@ -11,6 +11,7 @@ const USER_FILES = [
   'analytics.js',
   'artists.html',
   'artists.js',
+  'lib/platform-links.js',
   'catalog.js',
   'dashboard.html',
   'earnings.html',

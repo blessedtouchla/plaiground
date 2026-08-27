@@ -147,19 +147,14 @@
           <label for="artist-bio">Bio</label>
           <textarea id="artist-bio" rows="4" placeholder="Optional bio"></textarea>
         </div>
-        <div class="form-grid" style="margin-top:18px">
-          <div class="field">
-            <label for="artist-spotify">Spotify ID</label>
-            <input id="artist-spotify" type="text" placeholder="If known" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="artist-apple">Apple Music ID</label>
-            <input id="artist-apple" type="text" placeholder="If known" autocomplete="off" />
-          </div>
-        </div>
-        <div class="field" style="margin-top:18px">
-          <label for="artist-store">Platform page</label>
-          <input id="artist-store" type="url" placeholder="Spotify, Apple Music, or store artist URL" autocomplete="off" />
+        <div class="field artist-platforms-field" style="margin-top:18px" data-artist-platforms-field>
+          <label>Platform pages</label>
+          <p class="hint">Add the artist pages you already have. Pick a platform, then paste its artist URL.</p>
+          <div class="artist-platforms" data-artist-platforms></div>
+          <p class="hint is-red" data-artist-platform-error hidden></p>
+          <p class="artist-platforms-add">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-platform-add>Add new platform</button>
+          </p>
         </div>
         <div class="artist-create-block" data-artist-ai>
           <h3>How this artist usually creates</h3>
@@ -227,6 +222,7 @@
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/artist-check.js"></script>
+  <script src="lib/platform-links.js"></script>
   <script src="lib/release-status.js"></script>
   <script src="lib/live-player.js"></script>
   <script src="artists.js" defer></script>

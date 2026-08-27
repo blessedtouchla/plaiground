@@ -18,6 +18,7 @@
 const { listSignupRows } = require('../lib/admin-signups');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
+const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
 const {
   attachSession,
@@ -385,6 +386,12 @@ async function saveArtists(req, res) {
       store_url: parsed.url,
       spotify_id: parsed.platform === 'spotify' ? parsed.id : '',
       apple_id: parsed.platform === 'apple' ? parsed.id : '',
+      platform_links: [{
+        platform: parsed.platform,
+        id: parsed.id,
+        url: parsed.url,
+        value: parsed.url,
+      }],
       name_check: 'green',
       locked: false,
     });
@@ -428,6 +435,15 @@ async function saveArtists(req, res) {
     const nextSpotify = body.spotify_id !== undefined ? String(body.spotify_id || '').trim() : current.spotify_id;
     const nextApple = body.apple_id !== undefined ? String(body.apple_id || '').trim() : current.apple_id;
     const nextUrl = body.store_url !== undefined ? String(body.store_url || '').trim() : current.store_url;
+    let nextLinks = current.platform_links;
+    if (!locked && body.platform_links !== undefined) {
+      const checked = platformLinks.validateList(body.platform_links);
+      if (checked.error) {
+        sendJson(res, 400, { error: checked.error });
+        return;
+      }
+      nextLinks = checked.links;
+    }
     let nameCheck = current.name_check;
     const applyName = !locked;
     if (applyName && nextName !== current.name && current.source !== 'linked') {
@@ -470,6 +486,13 @@ async function saveArtists(req, res) {
       spotify_id: applyName ? nextSpotify : current.spotify_id,
       apple_id: applyName ? nextApple : current.apple_id,
       store_url: applyName ? nextUrl : current.store_url,
+      platform_links: applyName
+        ? (body.platform_links !== undefined
+          ? nextLinks
+          : ((body.spotify_id !== undefined || body.apple_id !== undefined || body.store_url !== undefined)
+            ? undefined
+            : current.platform_links))
+        : current.platform_links,
       human_contributions: body.human_contributions !== undefined ? body.human_contributions : current.human_contributions,
       ai_contributions: body.ai_contributions !== undefined ? body.ai_contributions : current.ai_contributions,
       ai_process_detail: body.ai_process_detail !== undefined ? body.ai_process_detail : current.ai_process_detail,
