@@ -633,18 +633,19 @@ async function listReleases(req, res) {
     if (query.type && row.type !== normalizeReleaseType(query.type)) continue;
     collected.push(row);
   }
-  let nextProfile = stored;
-  collected.forEach((row) => {
-    nextProfile = profileLib.upsertRelease(nextProfile, {
-      id: row.uuid,
-      title: row.title,
-      tonegrid_release_id: row.uuid,
-      tonegrid_status: row.status,
-      rejection_reason: row.rejection_reason,
-      artwork_url: row.artwork_url,
-    });
-  });
   if (collected.length) {
+    const latestRow = await accounts.findById(scope.userId);
+    let nextProfile = rosterOf(latestRow || scope.row);
+    collected.forEach((row) => {
+      nextProfile = profileLib.upsertRelease(nextProfile, {
+        id: row.uuid,
+        title: row.title,
+        tonegrid_release_id: row.uuid,
+        tonegrid_status: row.status,
+        rejection_reason: row.rejection_reason,
+        artwork_url: row.artwork_url,
+      });
+    });
     await accounts.updateProfile(scope.userId, { profile: nextProfile });
   }
 

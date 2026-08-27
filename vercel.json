@@ -3,7 +3,7 @@
     { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },
     { "source": "/api/me/catalog", "destination": "/api/me?action=catalog" },
     { "source": "/api/me/profile", "destination": "/api/me?action=profile" },
-    { "source": "/api/me/artists", "destination": "/api/me?action=artists" },
+    { "source": "/api/me/artists", "destination": "/api/me?resource=artists" },
     { "source": "/api/admin/signups", "destination": "/api/me?action=admin-signups" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/signups", "destination": "/admin.html" },

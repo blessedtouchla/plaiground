@@ -517,6 +517,7 @@
     }
     return post('/api/me/artists', {
       action: 'create',
+      artist_action: 'create',
       name: name,
       confirm_different: confirmDifferent || Boolean(forceReview),
     }).then(function (result) {
@@ -540,6 +541,7 @@
     var nameEl = $('#artist-link-name');
     return post('/api/me/artists', {
       action: 'link',
+      artist_action: 'link',
       url: urlEl ? urlEl.value : '',
       name: nameEl ? nameEl.value : '',
     }).then(function (result) {
@@ -644,6 +646,7 @@
     var storedPhoto = current.selected.photo || '';
     var body = {
       action: 'update',
+      artist_action: 'update',
       id: current.selected.id,
       artist_id: current.selected.artist_id || current.selected.id,
       name: nameEl ? nameEl.value : current.selected.name,
@@ -705,6 +708,7 @@
     showError('');
     return post('/api/me/artists', {
       action: 'delete',
+      artist_action: 'delete',
       id: found.id,
       artist_id: found.artist_id || found.id,
     }).then(function (result) {

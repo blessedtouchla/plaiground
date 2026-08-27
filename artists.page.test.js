@@ -313,8 +313,10 @@ function run() {
   assert.ok(js.includes("openArtistForm('import')"));
   assert.ok(js.includes("Held for review. This name was not sent to the store."));
   assert.ok(js.includes("action: 'update'"));
+  assert.ok(js.includes("artist_action: 'update'"));
   assert.ok(!js.includes('submit_edit'));
   assert.ok(js.includes("action: 'delete'"));
+  assert.ok(js.includes("artist_action: 'delete'"));
   assert.ok(js.includes('scheduleSave'));
   assert.ok(js.includes('flushSave'));
   assert.ok(js.includes("addEventListener('input', scheduleSave)"));
@@ -432,6 +434,7 @@ async function persistAndImmediateSave() {
   assert.ok(update, 'scheduleSave must POST /api/me/artists without tapping Save artist');
   assert.strictEqual(update.body.bio, 'saved from the phone');
   assert.strictEqual(update.url, '/api/me/artists');
+  assert.strictEqual(update.body.artist_action, 'update');
   assert.ok(!update.body.submit_edit);
 
   await page.api.saveArtist({ quiet: true });
