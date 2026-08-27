@@ -77,6 +77,8 @@ const {
   deriveSlug,
   hopIdempotencyKey,
   idempotencyKey,
+  ARTIST_GONE_COPY,
+  isArtistGoneError,
   isConfigured,
   isUuid,
   minSubmitDate,
@@ -340,6 +342,71 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
   });
 }
 
+function isArtistGoneResult(result) {
+  if (!result || result.ok) return false;
+  if (typeof isMissingEndpoint === 'function' && isMissingEndpoint(result)) return false;
+  const msg = String((result.data && (result.data.error || result.data.message)) || '');
+  if (isArtistGoneError(msg)) return true;
+  return false;
+}
+
+async function replaceRosterTonegridId(row, deadId, liveId) {
+  if (!row || !deadId || !liveId) return;
+  const stored = rosterOf(row);
+  const list = stored.artists || [];
+  let next = stored;
+  let changed = false;
+  list.forEach((artist) => {
+    if (!sameCatalogId(artist.tonegrid_artist_id, deadId)) return;
+    next = profileLib.upsertArtist(next, Object.assign({}, artist, { tonegrid_artist_id: liveId }));
+    changed = true;
+  });
+  if (changed) await accounts.updateProfile(row.id, { profile: next });
+}
+
+async function mintLiveStoreArtist(scope, name, opts) {
+  const artistGate = uploadRequired.validateArtist({ name: name });
+  if (artistGate.error) return { error: artistGate.error };
+  const slug = deriveSlug((opts && opts.slug) || artistGate.name);
+  if (!slug) return { error: 'Artist name needs at least one letter or number for a slug.' };
+  const payload = { name: artistGate.name, slug };
+  const result = await tonegridFetch('/artists', {
+    method: 'POST',
+    body: payload,
+    idempotencyKey: idempotencyKey({ headers: {} }, 'artist-live:' + slug + ':' + String((opts && opts.deadId) || '')),
+  });
+  if (!result.ok) {
+    return { error: (result.data && result.data.error) || ARTIST_GONE_COPY, result: result };
+  }
+  const artistId = createdArtistId(result.data);
+  if (!artistId) return { error: ARTIST_GONE_COPY, result: result };
+  await accounts.updateCatalog(scope.userId, { artistId: artistId, replaceArtistId: true });
+  const latest = await accounts.findById(scope.userId);
+  if (latest) {
+    await attachTonegridArtist(latest, opts && opts.plaigroundId, artistId);
+    if (opts && opts.deadId) await replaceRosterTonegridId(latest, opts.deadId, artistId);
+  }
+  return { id: artistId, result: result };
+}
+
+function artistNameForMint(scope, body, artistId) {
+  const named = String((body && body.name) || '').trim();
+  if (named) return named;
+  const stored = rosterOf(scope.row);
+  const list = stored.artists || [];
+  let i;
+  for (i = 0; i < list.length; i += 1) {
+    if (
+      sameCatalogId(list[i].tonegrid_artist_id, artistId)
+      || sameCatalogId(list[i].id, artistId)
+      || sameCatalogId(list[i].artist_id, artistId)
+    ) {
+      return String(list[i].name || '').trim();
+    }
+  }
+  return String((scope.row && (scope.row.artist_name || scope.row.artist)) || '').trim();
+}
+
 async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
@@ -370,14 +437,18 @@ async function createArtist(req, res) {
     return;
   }
 
-  const reuseId = matchingTonegridArtist(scope.row, body);
-  if (reuseId) {
-    sendJson(res, 200, { uuid: reuseId, continued: true });
-    return;
-  }
-  if (scope.artistId && !String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim()) {
-    sendJson(res, 200, { uuid: scope.artistId, continued: true });
-    return;
+  const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
+  const matchedId = matchingTonegridArtist(scope.row, body);
+  const leftoverId = matchedId || (!pgId ? scope.artistId : '');
+  let deadReplaceId = '';
+  if (leftoverId) {
+    const loaded = await tonegridFetch('/artists/' + leftoverId, { method: 'GET' });
+    if (loaded.ok) {
+      sendJson(res, 200, { uuid: leftoverId, continued: true });
+      return;
+    }
+    // Leftover sandbox / other-tenant ids must not be sent to the live store.
+    deadReplaceId = leftoverId;
   }
 
   const artistGate = uploadRequired.validateArtist(body);
@@ -410,7 +481,7 @@ async function createArtist(req, res) {
   }
 
   const decision = plans.evaluate(scope.row);
-  if (!decision.allowed) {
+  if (!decision.allowed && !deadReplaceId) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
@@ -439,10 +510,10 @@ async function createArtist(req, res) {
   if (result.ok) {
     const artistId = createdArtistId(result.data);
     if (artistId) {
-      if (!scope.artistId) {
-        await accounts.updateCatalog(scope.userId, { artistId });
-      }
-      await attachTonegridArtist(scope.row, String((body && body.plaiground_artist_id) || '').trim(), artistId);
+      await accounts.updateCatalog(scope.userId, { artistId: artistId, replaceArtistId: true });
+      const latest = await accounts.findById(scope.userId);
+      await attachTonegridArtist(latest || scope.row, pgId, artistId);
+      if (deadReplaceId) await replaceRosterTonegridId(latest || scope.row, deadReplaceId, artistId);
     }
   }
   sendJson(res, result.status, result.data);
@@ -761,7 +832,7 @@ async function createRelease(req, res) {
     return;
   }
 
-  const payload = {
+  let payload = {
     artist_id: artistId,
     title: fields.title,
     type,
@@ -771,23 +842,53 @@ async function createRelease(req, res) {
   if (releaseDate) payload.release_date = releaseDate;
 
   const browserKey = headerValue(req, 'idempotency-key');
-  const result = await tonegridFetch('/releases', {
-    method: 'POST',
-    body: payload,
-    idempotencyKey: hopIdempotencyKey(
-      'release',
-      'POST',
-      '/releases',
-      [JSON.stringify(payload), browserKey || ''].join('\n')
-    ),
-  });
+  async function postRelease(nextPayload) {
+    return tonegridFetch('/releases', {
+      method: 'POST',
+      body: nextPayload,
+      idempotencyKey: hopIdempotencyKey(
+        'release',
+        'POST',
+        '/releases',
+        [JSON.stringify(nextPayload), browserKey || ''].join('\n')
+      ),
+    });
+  }
+
+  let liveArtistId = artistId;
+  let result = await postRelease(payload);
+  if (!result.ok && isArtistGoneResult(result)) {
+    const mintName = artistNameForMint(scope, body, artistId);
+    const minted = mintName
+      ? await mintLiveStoreArtist(scope, mintName, {
+        deadId: artistId,
+        plaigroundId: String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim(),
+      })
+      : { error: ARTIST_GONE_COPY };
+    if (minted.id) {
+      liveArtistId = minted.id;
+      payload = Object.assign({}, payload, { artist_id: minted.id });
+      result = await postRelease(payload);
+    } else {
+      sendJson(res, result.status || 404, { error: ARTIST_GONE_COPY });
+      return;
+    }
+  }
+  if (!result.ok && isArtistGoneResult(result)) {
+    sendJson(res, result.status, { error: ARTIST_GONE_COPY });
+    return;
+  }
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
     if (releaseId) {
       if (deadReplaceId) {
         await accounts.removeRelease(scope.userId, deadReplaceId);
       }
-      await accounts.updateCatalog(scope.userId, { artistId, releaseId });
+      await accounts.updateCatalog(scope.userId, {
+        artistId: liveArtistId,
+        releaseId: releaseId,
+        replaceArtistId: liveArtistId !== artistId,
+      });
     }
   }
   sendJson(res, result.status, result.data);
