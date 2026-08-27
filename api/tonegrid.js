@@ -32,6 +32,8 @@
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
  * POST /api/tonegrid/webhook         -> HMAC if TONEGRID_WEBHOOK_SECRET is set
+ * Health on the live store host POSTs /webhooks for the production URL
+ * if GET /webhooks does not already list it. Never echo the signing secret.
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
  * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
@@ -76,6 +78,7 @@ const {
   RELEASE_TYPES,
   SUBMITTABLE,
   YOUTUBE_MUSIC_SLUG,
+  baseUrl,
   documentedStores,
   headerValue,
   healthPayload,
@@ -231,6 +234,13 @@ async function health(req, res) {
       error: 'Catalog sync is not configured yet.',
     });
     return;
+  }
+
+  if (storeWebhook.isLiveStoreHost(baseUrl())) {
+    await storeWebhook.ensureSubscription({
+      fetch: tonegridFetch,
+      idempotencyKey: hopIdempotencyKey('webhook', 'POST', '/webhooks', storeWebhook.PUBLIC_URL),
+    }).catch(() => {});
   }
 
   sendJson(res, 200, payload);
@@ -1317,7 +1327,7 @@ function pickSeries(payload) {
   for (let i = 0; i < candidates.length; i += 1) {
     if (!Array.isArray(candidates[i]) || !candidates[i].length) continue;
     const series = candidates[i].map((row) => ({
-      label: String((row && (row.label || row.month || row.period || row.from)) || '').trim(),
+      label: storeAnalytics.formatPeriod(String((row && (row.label || row.month || row.period || row.from)) || '').trim()),
       streams: toNumber(row && (row.streams != null ? row.streams : row.value)),
       revenue_usd: row && row.revenue_usd != null ? toNumber(row.revenue_usd) : null,
     })).filter((row) => row.label);

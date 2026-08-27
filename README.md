@@ -121,7 +121,7 @@ ToneGrid routes (no browser key):
 - `GET /api/signwell?id=` (document status; `signed` only when SignWell says Completed)
 - `POST /api/signwell` (create the Writer Split Sheet; real embed, no fake pad)
 
-Store dashboard (you add this; the repo does not create the subscription): add `https://wannaplai.com/api/tonegrid/webhook` for release and ingestion events, including rejected / failed / live. If the store shows a signing secret, set `TONEGRID_WEBHOOK_SECRET` on the host. Do not put the value in the repo.
+Store inbound URL: `https://wannaplai.com/api/tonegrid/webhook`. On the live store host, `GET /api/tonegrid/health` lists `GET /webhooks` and `POST /webhooks` if that URL is missing (release + ingestion events, including rejected / failed / live). Set `TONEGRID_WEBHOOK_SECRET` on the host to the signing secret the store shows once. Do not put the value in the repo.
 
 Browser audio and covers PUT to a private object hop first. The `/audio` and `/artwork` POSTs send only the object key. The server then pulls those bytes for the store hop. Set the five `R2_*` values on the host. Missing any of them returns a nameless error. The bucket stays private. There is no public play page.
 
