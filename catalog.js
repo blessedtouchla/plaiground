@@ -498,6 +498,14 @@
     });
   }
 
+  function watchStatuses(releases) {
+    if (!global.PlaigroundStoreStatusRefresh || typeof global.PlaigroundStoreStatusRefresh.watch !== 'function') return;
+    global.PlaigroundStoreStatusRefresh.watch({
+      statuses: (releases || []).map(function (row) { return row && row.status; }),
+      refresh: load,
+    });
+  }
+
   function load() {
     if (!$('[data-release-rows]') && !$('[data-release-empty]')) return;
     setStatus('Loading catalog…');
@@ -511,6 +519,7 @@
             var signedInOwned = accountFallback(me, []);
             setStatus('');
             render({ releases: overlayPendingCatalog(signedInOwned, me), total: signedInOwned.length, analytics: {} });
+            watchStatuses(signedInOwned);
             return;
           }
           setStatus('');
@@ -523,11 +532,13 @@
             ? 'Accounts are not configured.'
             : (owned.length ? '' : 'Catalog sync is not configured yet.'));
           render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {} });
+          watchStatuses(owned);
           return;
         }
         if (!list.ok) {
           setStatus(owned.length ? '' : (list.data.error || 'Could not load releases.'));
           render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {} });
+          watchStatuses(owned);
           return;
         }
         var releases = list.data.releases || [];
@@ -539,6 +550,7 @@
           analytics: analytics.ok ? analytics.data : {},
         });
         setStatus('');
+        watchStatuses(releases);
       })
       .catch(function () {
         setStatus('Could not reach catalog.');

@@ -300,6 +300,13 @@
         } else {
           setStatus('');
         }
+        if (global.PlaigroundStoreStatusRefresh && typeof global.PlaigroundStoreStatusRefresh.watch === 'function') {
+          var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+          global.PlaigroundStoreStatusRefresh.watch({
+            statuses: stored.map(function (row) { return row && (row.tonegrid_status || row.status); }),
+            refresh: load,
+          });
+        }
       })
       .catch(function () {
         setStatus('Could not reach catalog.');
