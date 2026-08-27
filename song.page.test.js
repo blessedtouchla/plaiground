@@ -818,6 +818,57 @@ function testEditLiveStoreCount() {
   });
 }
 
+function testDraftArtworkNeverBlob() {
+  const page = loadSong({
+    plan: 'basic',
+    me: {
+      artist: 'Fuvtu',
+      plan: 'basic',
+      tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    },
+    search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
+  page.api.openEdit({
+    me: {
+      artist: 'Fuvtu',
+      plan: 'basic',
+      tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    },
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Chk g',
+      made_how: 'no_ai',
+      rights_confirmed: true,
+      solo_owned_100: true,
+      writers: [{ name: 'Fuvtu', share: 100 }],
+    },
+    release: {
+      uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Chk g',
+      status: 'draft',
+      genre: 'Electronic',
+      language: 'en',
+      release_date: '2026-08-24',
+      artist: 'Fuvtu',
+      dsps: ['spotify'],
+    },
+  });
+  page.ids['edit-title'].value = 'Chk g';
+  page.ids['edit-genre'].value = 'Electronic';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-art'].files = [{ name: 'cover.jpg', type: 'image/jpeg' }];
+  page.ids['edit-art'].listeners.change();
+  assert.ok(page.nodes['[data-song-cover]'].style.backgroundImage.indexOf('blob:cover-cover.jpg') !== -1, 'the picked file previews locally while the panel is still open');
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'a draft release must save a newly added cover');
+    assert.strictEqual(result.applied, true, 'draft status saves through the immediate-edit path, not the store submit path');
+    const release = page.api.currentEditState().release;
+    assert.ok(!release.artwork_url || !/^blob:/i.test(release.artwork_url), 'release.artwork_url must never be a revoked blob: URL once closeEdit() has run');
+    assert.ok(!/blob:/i.test(page.nodes['[data-song-cover]'].style.backgroundImage || ''), 'the painted cover tile must not reference a revoked blob: URL');
+  });
+}
+
 function run() {
   const html = read('song.html');
   const css = read('site.css');
@@ -1938,7 +1989,7 @@ function run() {
               assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
               assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
               assert.notStrictEqual(leftover.context.location.href, 'releases.html');
-              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(function () {
+              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(function () {
                 console.log('song.page.test.js ok');
               });
             });
