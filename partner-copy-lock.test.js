@@ -9,6 +9,8 @@ const USER_FILES = [
   'admin.js',
   'analytics.html',
   'analytics.js',
+  'lib/store-status-refresh.js',
+  'lib/store-analytics.js',
   'artists.html',
   'artists.js',
   'catalog.js',

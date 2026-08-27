@@ -842,6 +842,12 @@
             analytics: analytics.ok ? analytics.data : {},
             error: nextError,
           });
+          if (global.PlaigroundStoreStatusRefresh && typeof global.PlaigroundStoreStatusRefresh.watch === 'function') {
+            global.PlaigroundStoreStatusRefresh.watch({
+              statuses: [nextRelease && (nextRelease.status || nextRelease.tonegrid_status)],
+              refresh: load,
+            });
+          }
           return nextRelease;
         }
         if (release && queryId() && String(release.uuid).toLowerCase() === queryId().toLowerCase() && release.artwork_url == null) {

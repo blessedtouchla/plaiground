@@ -355,16 +355,46 @@
         var byId = {};
         result.data.releases.forEach(function (row) {
           var id = String((row && (row.uuid || row.id)) || '').toLowerCase();
-          var url = coverOf(row);
-          if (id && url) byId[id] = url;
+          if (!id) return;
+          var api = statusApi();
+          var mapped = api ? api.info(row && row.status) : {
+            status: String((row && row.status) || ''),
+            label: String((row && row.status) || '') === 'live' ? 'Live' : 'Pending',
+            live: String((row && row.status) || '') === 'live' || String((row && row.status) || '') === 'delivered',
+          };
+          byId[id] = {
+            artwork_url: coverOf(row),
+            status: mapped.status || String((row && row.status) || ''),
+            label: mapped.label || 'Pending',
+            live: Boolean(mapped.live),
+            title: String((row && row.title) || '').trim(),
+          };
         });
         var next = cards.map(function (card) {
-          var url = byId[String((card && card.id) || '').toLowerCase()];
-          if (!url || (card && card.artwork_url)) return card;
-          return Object.assign({}, card, { artwork_url: url });
+          var found = byId[String((card && card.id) || '').toLowerCase()];
+          if (!found) return card;
+          return Object.assign({}, card, {
+            artwork_url: card.artwork_url || found.artwork_url,
+            status: found.status || card.status,
+            label: found.label || card.label,
+            live: found.live,
+            title: found.title || card.title,
+          });
         });
-        var changed = next.some(function (card, i) { return card !== cards[i]; });
-        if (changed) renderReleaseTiles(next);
+        renderOverview(next);
+        var latest = next.length ? next[next.length - 1] : null;
+        if (latest) {
+          $all('[data-latest-status]').forEach(function (el) { setText(el, latest.label || 'Pending'); });
+          $all('[data-account-releases]').forEach(function (el) {
+            setText(el, String(next.filter(function (card) { return card && card.live; }).length));
+          });
+        }
+        if (global.PlaigroundStoreStatusRefresh && typeof global.PlaigroundStoreStatusRefresh.watch === 'function') {
+          global.PlaigroundStoreStatusRefresh.watch({
+            statuses: next.map(function (card) { return card && card.status; }),
+            refresh: function () { hydrateOverviewCovers(next); },
+          });
+        }
       })
       .catch(function () {});
   }

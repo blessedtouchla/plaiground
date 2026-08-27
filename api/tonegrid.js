@@ -31,6 +31,7 @@
  * GET  /api/tonegrid/uploads?key=      -> owner-only signed GET helper
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
+ * POST /api/tonegrid/webhook         -> HMAC if TONEGRID_WEBHOOK_SECRET is set
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
  * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
@@ -62,6 +63,9 @@ const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
 const objectStore = require('../lib/object-store');
+const releaseStatus = require('../lib/release-status');
+const storeAnalytics = require('../lib/store-analytics');
+const storeWebhook = require('../lib/store-webhook');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
 const {
@@ -90,6 +94,7 @@ const {
   parseStoreSlugs,
   readBody,
   sendJson,
+  tonegridErrorMessage,
   tonegridFetch,
   withYouTubeMusic,
 } = require('../lib/tonegrid');
@@ -1417,20 +1422,54 @@ async function loadAnalytics(req, res) {
   }
 
   const releaseFilter = rawRelease || '';
+  const candidateIds = releaseFilter ? [releaseFilter] : scope.releaseIds;
+  const states = await Promise.all(candidateIds.map((id) => {
+    return tonegridFetch('/releases/' + id, {
+      method: 'GET',
+      timeoutMs: LIST_HOP_TIMEOUT_MS,
+    }).then((result) => {
+      const row = result.ok ? pickRelease(unwrapRelease(result.data)) : null;
+      return { id, result, row };
+    });
+  }));
+  const liveIds = [];
+  const liveAllow = new Set();
+  const liveTitles = new Set();
+  for (let i = 0; i < states.length; i += 1) {
+    const item = states[i];
+    if (item.row && item.row.status) {
+      await persistReleaseMeta(scope.row, item.id, item.row.status, item.row.rejection_reason, item.row.artwork_url);
+    }
+    if (item.row && releaseStatus.isLive(item.row.status)) {
+      liveIds.push(item.id);
+      liveAllow.add(String(item.id).toLowerCase());
+      const title = String(item.row.title || '').trim().toLowerCase();
+      if (title) liveTitles.add(title);
+    }
+  }
+
+  const healthInfo = healthPayload();
+  if (!liveIds.length) {
+    sendJson(res, 200, Object.assign(storeAnalytics.emptyPayload(query), {
+      configured: true,
+      sandbox: healthInfo.sandbox,
+    }));
+    return;
+  }
+
   const releasesRes = await tonegridFetch('/analytics/releases', { method: 'GET', query });
   const errors = {};
   if (!releasesRes.ok) errors.releases = sectionError(releasesRes);
 
   const releaseRows = (releasesRes.ok ? pickReleases(releasesRes.data) : []).filter((row) => {
-    if (releaseFilter) return String(row.release_uuid).toLowerCase() === releaseFilter.toLowerCase();
-    return idAllowed(scope.allow, row.release_uuid);
+    const id = String(row.release_uuid || '').toLowerCase();
+    return liveAllow.has(id);
   });
 
-  const ids = releaseFilter ? [releaseFilter] : scope.releaseIds;
   const territoryLists = [];
   const dspLists = [];
-  for (let i = 0; i < ids.length; i += 1) {
-    const id = ids[i];
+  for (let i = 0; i < liveIds.length; i += 1) {
+    const id = liveIds[i];
     const scopedQuery = Object.assign({}, query, { release_uuid: id });
     const [territoriesRes, dspsRes] = await Promise.all([
       tonegridFetch('/analytics/territories', { method: 'GET', query: scopedQuery }),
@@ -1452,18 +1491,39 @@ async function loadAnalytics(req, res) {
   if (dsps[0]) summary.top_dsp = dsps[0].dsp;
   if (territories[0]) summary.top_territory = territories[0].territory || territories[0].country_name || '';
 
-  const healthInfo = healthPayload();
+  const statementsRes = await tonegridFetch('/royalties/statements', { method: 'GET' });
+  if (!statementsRes.ok) errors.statements = sectionError(statementsRes);
+  const listed = statementsRes.ok
+    ? asStatements(statementsRes.data).map(pickStatement).filter(Boolean)
+    : [];
+  const ownedStatements = [];
+  for (let i = 0; i < listed.length; i += 1) {
+    const item = listed[i];
+    if (!item.id || !isStatementId(item.id)) continue;
+    const detail = await tonegridFetch('/royalties/statements/' + item.id, { method: 'GET' });
+    if (!detail.ok) {
+      errors.statement = sectionError(detail);
+      continue;
+    }
+    const lines = pickBreakdown(detail.data).filter((row) => lineMatches(row, liveAllow, liveTitles));
+    if (!lines.length) continue;
+    const total = lines.reduce((sum, row) => sum + toNumber(row.revenue_usd), 0);
+    ownedStatements.push(Object.assign({}, item, { total_usd: total }));
+  }
+  summary.total_revenue_usd = storeAnalytics.royaltiesPaid(ownedStatements);
+  const series = storeAnalytics.seriesFromStatements(ownedStatements);
+
   const body = {
     configured: true,
     sandbox: healthInfo.sandbox,
-    empty: releaseRows.length === 0 && userStreams === 0,
+    empty: releaseRows.length === 0 && userStreams === 0 && summary.total_revenue_usd === 0,
     from: summary.from || query.from || '',
     to: summary.to || query.to || '',
     summary,
     releases: releaseRows,
     territories,
     dsps,
-    series: [],
+    series,
   };
   if (Object.keys(errors).length) body.errors = errors;
   sendJson(res, 200, body);
@@ -1791,57 +1851,57 @@ async function webhook(req, res) {
     return;
   }
 
-  const secret = webhookSecret();
-  if (secret) {
-    const got = headerValue(req, 'x-tonegrid-signature')
-      || headerValue(req, 'x-webhook-secret')
-      || headerValue(req, 'authorization').replace(/^Bearer\s+/i, '');
-    if (got !== secret) {
-      sendJson(res, 401, { error: 'Invalid webhook signature.' });
-      return;
-    }
-  }
-
-  let body;
+  let raw;
   try {
-    body = await readBody(req);
+    raw = await storeWebhook.readRawBody(req);
   } catch {
     sendJson(res, 400, { error: 'Invalid JSON.' });
     return;
   }
 
-  const data = body && typeof body === 'object' ? body : {};
-  const nested = data.data && typeof data.data === 'object' ? data.data : {};
-  const release = nested.release && typeof nested.release === 'object' ? nested.release : (data.release || {});
-  const releaseId = String(
-    data.release_id
-    || data.releaseId
-    || release.uuid
-    || release.id
-    || nested.release_id
-    || ''
-  ).trim();
-  const status = String(data.status || data.tonegrid_status || release.status || nested.status || '').trim().toLowerCase();
-  const reason = String(
-    data.rejection_reason
-    || data.reason
-    || data.message
-    || release.rejection_reason
-    || release.reason
-    || ''
-  ).trim();
-  if (!isUuid(releaseId)) {
-    sendJson(res, 400, { error: 'release_id must be a uuid.' });
+  const secret = webhookSecret();
+  const verified = storeWebhook.verify(raw, req.headers || {}, secret);
+  if (secret && !verified.ok) {
+    sendJson(res, 401, { error: 'Invalid webhook signature.' });
     return;
   }
 
-  const row = await accounts.findByReleaseId(releaseId);
+  let data = {};
+  try {
+    const text = raw && raw.length ? raw.toString('utf8').trim() : '';
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+
+  const event = storeWebhook.eventName(req.headers || {}, data);
+  const parsed = storeWebhook.parseEvent(event, data);
+  if (!parsed.releaseId) {
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  const row = await accounts.findByReleaseId(parsed.releaseId);
   if (!row) {
     sendJson(res, 404, { error: 'Release not found.' });
     return;
   }
-  await persistReleaseMeta(row, releaseId, status, reason);
-  sendJson(res, 200, { ok: true, release_id: releaseId, status: status || undefined });
+
+  let status = parsed.status;
+  let reason = parsed.reason;
+  if (isConfigured()) {
+    const loaded = await fetchReleaseRow(parsed.releaseId);
+    if (loaded.row) {
+      if (loaded.row.status) status = loaded.row.status;
+      if (loaded.row.rejection_reason) reason = loaded.row.rejection_reason;
+    }
+  }
+  status = storeWebhook.persistStatus(status, parsed);
+  if (parsed.forceNeedsFix && releaseStatus.isLive(status)) status = 'needs-fix';
+  if (reason) reason = tonegridErrorMessage({ message: reason });
+  await persistReleaseMeta(row, parsed.releaseId, status, reason);
+  sendJson(res, 200, { ok: true, release_id: parsed.releaseId, status: status || undefined });
 }
 
 function releaseUpdatePayload(body) {
