@@ -17,12 +17,15 @@
     <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
   </div>
   <main class="page wrap-wide">
-    <div class="head-row">
+    <div class="head-row upload-head">
       <div>
         <p class="kicker" data-upload-kicker>Submit a song</p>
         <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800" data-upload-heading>Upload</h1>
       </div>
-      <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
+      <div class="upload-leave-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-upload-start-over>Start over</button>
+      </div>
     </div>
     <div class="stepper">
       <a class="st on" href="upload.html"><b>Upload Audio</b><span>Audio and details</span></a>
@@ -262,6 +265,7 @@
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
+  <script src="lib/upload-leave.js"></script>
   <script src="store-client.js" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>

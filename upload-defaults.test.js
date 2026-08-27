@@ -751,6 +751,9 @@ function run() {
   assert.ok(tonegridSrc.indexOf('function cancelInProgressUpload') !== -1, 'mid-upload Cancel must wipe the leftover draft');
   assert.ok(tonegridSrc.indexOf('Cancel this upload? This loses the in-progress info.') !== -1);
   assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(upload), 'Cancel is a real secondary button');
+  assert.ok(/class="btn btn-ghost btn-sm" data-upload-start-over>Start over</.test(upload), 'Start over is a real secondary button next to Cancel');
+  assert.ok(upload.indexOf('lib/upload-leave.js') !== -1, 'New release loads Cancel / Start over without store-client');
+  assert.ok(upload.indexOf('upload-leave-actions') !== -1, 'Cancel and Start over share a wrap-safe action row');
   assert.ok(upload.indexOf('Save and exit') === -1, 'upload Cancel must not say Save and exit');
   assert.ok(!/if \(typeaheadApplying\) return/.test(catalogSrc), 'fillUploadSelects must not skip bind while a pick is applying');
   const bindFn = tonegridSrc.slice(tonegridSrc.indexOf('function bindUploadCatalog'), tonegridSrc.indexOf('function restoreUploadDraft'));

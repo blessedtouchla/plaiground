@@ -997,6 +997,19 @@ body.app > .plai-bubble {
 [data-artist-create-panel][hidden],
 [data-artist-link-panel][hidden] { display: none !important; }
 .head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.upload-head { flex-wrap: wrap; gap: 12px 20px; }
+.upload-leave-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+.upload-leave-actions .btn {
+  flex: 0 1 auto;
+  white-space: nowrap;
+}
 .plan-switch { display: grid; gap: 16px; margin-top: 16px; max-width: none; }
 .plan-switch[hidden],
 [data-manage-plan][hidden] { display: none !important; }
@@ -1220,6 +1233,15 @@ table.data td.release-edit-col .btn {
 .status-cell.is-red .status-dot,
 .pill.is-red::before { background: #d14b4b; }
 @media (max-width: 720px) {
+  .upload-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .upload-leave-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
   .artist-ai-cols { grid-template-columns: 1fr; }
   [data-artist-edit] .artist-edit-head {
     flex-direction: column;
