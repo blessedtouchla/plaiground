@@ -2047,6 +2047,10 @@ function bindTypeahead(select, items, getValue, getLabel) {
     holdBlur = false;
   }
 
+  function cancelHoldTouch() {
+    holdBlur = false;
+  }
+
   function onDocHold(event) {
     if (!list.classList || list.classList.contains('is-hidden')) return;
     var point = rememberPoint(event);
@@ -2133,6 +2137,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     list.addEventListener('click', commitListEvent);
     list.addEventListener('pointerup', commitListEvent);
     list.addEventListener('touchend', commitTouchEnd, { passive: false });
+    list.addEventListener('touchcancel', cancelHoldTouch, { passive: true });
     list.addEventListener('mousedown', function (event) {
       if (event && event.preventDefault) event.preventDefault();
       commitListEvent(event);
@@ -2149,6 +2154,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     doc.addEventListener('touchstart', onDocHold, tapListen);
     doc.addEventListener('pointerup', onDocCommit, tapListen);
     doc.addEventListener('touchend', onDocCommit, tapListen);
+    doc.addEventListener('touchcancel', cancelHoldTouch, tapListen);
   }
 
   function openList() {
