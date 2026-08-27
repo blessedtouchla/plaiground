@@ -877,6 +877,10 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 
 /* —— App shell —— */
 .app { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
+.app.is-logged-out { grid-template-columns: 1fr; }
+.app.is-logged-out .side,
+.app.is-logged-out .who,
+.app.is-logged-out .pro-card { display: none; }
 body.app > .plai-bubble {
   position: fixed;
   right: 24px;

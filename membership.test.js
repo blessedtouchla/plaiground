@@ -264,15 +264,17 @@ function runLoginWall() {
                     href: page.href,
                     search: page.search || '',
                     cookie: 'plaiground_signed=1',
+                    seedLocal: { plaigroundSignedIn: '1', plaigroundMembership: 'pro' },
                     accountResponses: [
                       { ok: false, status: 401, data: { error: 'Sign in required.' } },
                       { ok: false, status: 401, data: { error: 'Sign in required.' } },
                     ],
                   });
                   return cookieOnly.api.whenReady().then(function () {
-                    assert.strictEqual(cookieOnly.api.requireMembership(), true);
-                    assert.strictEqual(cookieOnly.location.href, page.href, 'readable session hint keeps ' + page.href);
-                    assert.ok(cookieOnly.location.href.indexOf('login.html') === -1);
+                    assert.strictEqual(cookieOnly.api.isConfirmedLoggedOut(), true, page.href + ' leftover hint is still a 401 logout');
+                    assert.strictEqual(cookieOnly.localStorage.getItem('plaigroundMembership'), null, page.href + ' stale Pro plan is cleared');
+                    assert.strictEqual(cookieOnly.localStorage.getItem('plaigroundSignedIn'), null, page.href + ' stale signed-in flag is cleared');
+                    assert.ok(cookieOnly.location.href.indexOf('login.html') !== -1, page.href + ' confirmed 401 still goes to login');
                   });
                 });
               }
@@ -474,7 +476,34 @@ function run() {
     assert.ok(loggedOut.location.href.indexOf('login.html') !== -1, 'confirmed 401 still goes to login');
     assert.strictEqual(loggedOut.api.isConfirmedLoggedOut(), true);
 
-    const ambiguous503 = load({
+    const staleDash = load({
+      pathname: '/dashboard.html',
+      href: 'dashboard.html',
+      seedLocal: {
+        plaigroundSignedIn: '1',
+        plaigroundSignedInAt: String(Date.now()),
+        plaigroundMembership: 'pro',
+        plaigroundMembershipPending: 'pro',
+        plaigroundStripeSession: 'cs_stale',
+      },
+      accountResponses: [
+        { ok: false, status: 401, data: { error: 'Sign in required.' } },
+        { ok: false, status: 401, data: { error: 'Sign in required.' } },
+      ],
+    });
+    return staleDash.api.whenReady().then(function () {
+      assert.strictEqual(staleDash.location.href, 'dashboard.html', 'dashboard itself does not bounce a 401 to login');
+      assert.ok(staleDash.location.href.indexOf('login.html') === -1);
+      assert.strictEqual(staleDash.api.isConfirmedLoggedOut(), true);
+      assert.strictEqual(staleDash.api.isSignedIn(), false, 'dead /api/me is not a live session');
+      assert.strictEqual(staleDash.api.currentPlan(), '', 'stale Pro must not survive a 401');
+      assert.strictEqual(staleDash.localStorage.getItem('plaigroundMembership'), null);
+      assert.strictEqual(staleDash.localStorage.getItem('plaigroundSignedIn'), null);
+      assert.strictEqual(staleDash.localStorage.getItem('plaigroundStripeSession'), null);
+      assert.strictEqual(staleDash.api.requireMembership(), false, 'requireMembership still navigates to login on confirmed 401');
+      assert.ok(staleDash.location.href.indexOf('login.html') !== -1, 'calling requireMembership after a 401 still goes to login');
+
+      const ambiguous503 = load({
       require: true,
       pathname: '/upload.html',
       href: 'upload.html',
@@ -501,6 +530,7 @@ function run() {
 
         return continueMembershipSyncTests();
       });
+    });
     });
   });
 }

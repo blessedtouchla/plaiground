@@ -449,8 +449,9 @@
   }
 
   function sessionLooksSignedIn(me) {
-    if (me && (me.email || me.plan || me.pending === false)) return true;
     var api = global.PlaigroundMembership;
+    if (api && typeof api.isConfirmedLoggedOut === 'function' && api.isConfirmedLoggedOut()) return false;
+    if (me && (me.email || me.plan || me.pending === false)) return true;
     if (api && typeof api.isConfirmedLoggedOut === 'function' && !api.isConfirmedLoggedOut()) return true;
     if (api && typeof api.hasLiveSession === 'function' && api.hasLiveSession()) return true;
     if (api && typeof api.isSignedIn === 'function' && api.isSignedIn()) return true;
