@@ -125,7 +125,7 @@ Store dashboard (you add this; the repo does not create the subscription): add `
 
 Browser audio and covers PUT to a private object hop first. The `/audio` and `/artwork` POSTs send only the object key. The server then pulls those bytes for the store hop. Set the five `R2_*` values on the host. Missing any of them returns a nameless error. The bucket stays private. There is no public play page.
 
-Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
+Set `TONEGRID_BASE_URL` on Vercel Production to the live store host (`https://api.tonegrid.pro`, with `/api` only if that host already uses it). Do not point Production at the sandbox host.
 
 Signup confirmation mail (same `api/auth.js` function; no `api/signup-confirm.js`):
 

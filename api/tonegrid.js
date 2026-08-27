@@ -44,7 +44,8 @@
  * patch-date, dsps-post, dsps-put, submit) plus method, path, body
  * fingerprint, and a rotated browser key when present. Never forward the
  * browser plaiground-submit-<id> key to every hop.
- * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL (never echo these).
+ * Server-only env: TONEGRID_API_KEY, TONEGRID_BASE_URL, TONEGRID_WEBHOOK_SECRET
+ * (never echo these). Production base is the live store host, not sandbox.
  * Solo 100% submit skips SignWell. Multi-writer submit creates or reuses a
  * SignWell document and emails other writers, then submits to ToneGrid without
  * waiting for every signature. Never call /distribute or /approve.
@@ -1491,6 +1492,22 @@ async function loadAnalytics(req, res) {
   if (dsps[0]) summary.top_dsp = dsps[0].dsp;
   if (territories[0]) summary.top_territory = territories[0].territory || territories[0].country_name || '';
 
+  const summaryRes = await tonegridFetch('/analytics/summary', { method: 'GET', query });
+  let series = [];
+  if (!summaryRes.ok) errors.summary = sectionError(summaryRes);
+  else {
+    const storeSummary = pickSummary(summaryRes.data);
+    const topId = storeSummary.top_release && String(storeSummary.top_release.uuid || '').toLowerCase();
+    const summaryOwned = Boolean(topId && liveAllow.has(topId));
+    const streamsMatch = Math.abs(toNumber(storeSummary.total_streams) - userStreams) <= 1;
+    if (summaryOwned && streamsMatch) {
+      if (storeSummary.total_revenue_usd != null) summary.total_revenue_usd = storeSummary.total_revenue_usd;
+      if (storeSummary.top_dsp) summary.top_dsp = storeSummary.top_dsp;
+      if (storeSummary.top_territory) summary.top_territory = storeSummary.top_territory;
+      series = pickSeries(summaryRes.data);
+    }
+  }
+
   const statementsRes = await tonegridFetch('/royalties/statements', { method: 'GET' });
   if (!statementsRes.ok) errors.statements = sectionError(statementsRes);
   const listed = statementsRes.ok
@@ -1510,8 +1527,9 @@ async function loadAnalytics(req, res) {
     const total = lines.reduce((sum, row) => sum + toNumber(row.revenue_usd), 0);
     ownedStatements.push(Object.assign({}, item, { total_usd: total }));
   }
-  summary.total_revenue_usd = storeAnalytics.royaltiesPaid(ownedStatements);
-  const series = storeAnalytics.seriesFromStatements(ownedStatements);
+  const statementPaid = storeAnalytics.royaltiesPaid(ownedStatements);
+  if (!summary.total_revenue_usd) summary.total_revenue_usd = statementPaid;
+  if (!series.length) series = storeAnalytics.seriesFromStatements(ownedStatements);
 
   const body = {
     configured: true,
