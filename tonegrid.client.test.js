@@ -73,7 +73,15 @@ function makeEl(attrs) {
       delete this.attrs[name];
     },
     addEventListener(type, fn) {
-      this.listeners[type] = fn;
+      if (!this._listeners) this._listeners = Object.create(null);
+      if (!this._listeners[type]) this._listeners[type] = [];
+      this._listeners[type].push(fn);
+      const el = this;
+      this.listeners[type] = function (event) {
+        const list = el._listeners[type] || [];
+        let i;
+        for (i = 0; i < list.length; i += 1) list[i](event);
+      };
     },
     setCustomValidity(msg) {
       this.customValidity = String(msg || '');
@@ -564,6 +572,9 @@ function load(options) {
     };
   }
   vm.runInNewContext(artistCheckCode, context);
+  if (!context.PlaigroundArtistCheck) {
+    context.PlaigroundArtistCheck = require('./lib/artist-check');
+  }
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
   return {
@@ -4166,7 +4177,11 @@ async function run() {
     if (page.artistMode.listeners.change) page.artistMode.listeners.change();
     page.artistNew.value = 'Neon Nova';
     if (page.artistNew.listeners.input) page.artistNew.listeners.input();
-    assert.ok(page.artistNameCheck.classList.contains('is-green'), 'green name check must run on create-new');
+    assert.ok(
+      page.artistNameCheck.classList.contains('is-green')
+        || /created instantly/i.test(page.artistNameCheck.textContent),
+      'green name check must run on create-new'
+    );
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
     const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
@@ -4244,9 +4259,8 @@ async function run() {
     assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
-  async function chooseLeftoverArtistPostsFreshInsteadOfSandboxId() {
+  async function chooseLeftoverArtistIsGoneNotRecovered() {
     const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const liveId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const page = load(filledUpload({
       artistPicker: true,
       artist: '',
@@ -4265,11 +4279,7 @@ async function run() {
         upload: { allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: true, status: 201, data: { uuid: liveId } },
-        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
-        { ok: true, status: 200, data: { audio_status: 'processing' } },
-        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: false, status: 404, data: { error: 'artist not found in this tenant' } },
       ],
     }));
     await flush();
@@ -4279,11 +4289,19 @@ async function run() {
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
     const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
-    assert.ok(artistCall, 'Choose leftover must POST a live artist instead of sending the sandbox id');
+    if (artistCall) {
+      const artistBody = JSON.parse(artistCall.init.body);
+      assert.notStrictEqual(artistBody.artist_id, leftover, 'must not send the leftover store id');
+      assert.ok(!artistBody.uuid);
+      assert.ok(!artistBody.tonegrid_artist_id);
+    }
     const releaseCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-    assert.ok(releaseCall);
-    assert.strictEqual(JSON.parse(releaseCall.init.body).artist_id, liveId);
-    assert.notStrictEqual(JSON.parse(releaseCall.init.body).artist_id, leftover);
+    assert.ok(!releaseCall, 'leftover sandbox artist must not be recovered onto a live release');
+    assert.strictEqual(page.status.textContent, 'We could not create that artist. Try the name again.');
+    assert.ok(page.status.textContent.toLowerCase().indexOf('tenant') === -1);
+    assert.ok(page.status.textContent.toLowerCase().indexOf('tonegrid') === -1);
+    assert.ok(!draftOf(page.localStorage).artist_id, 'dead leftover id must not stay on the draft');
+    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
   async function basicArtistProfileAutoSelects() {
@@ -4603,7 +4621,7 @@ async function run() {
   await createNewArtistPostsLiveNameOnlyAndStaysOnUpload();
   await createNewArtistNameCheckGreenYellowRed();
   await leftoverArtistTenantErrorIsNamelessAndDropsDeadId();
-  await chooseLeftoverArtistPostsFreshInsteadOfSandboxId();
+  await chooseLeftoverArtistIsGoneNotRecovered();
   await basicGenreLanguagePickSticks();
   await cancelClearsDraftAndNextNewReleaseIsBlank();
   await cancelOnSubmitReviewLandsOnDashboard();

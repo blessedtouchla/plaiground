@@ -4203,11 +4203,11 @@
       var shownError = (opts && opts.createFreshFailed && /release not found/i.test(String(message || '')))
         ? DEAD_RELEASE_COPY
         : message;
-      setStatus('tg-status', shownError || '');
-      markStatusError(Boolean(shownError));
+      var shown = sanitizePartnerCopy(shownError || '');
+      setStatus('tg-status', shown || '');
+      markStatusError(Boolean(shown));
       showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
       showUpgrade(upgrade === true);
-      var shown = sanitizePartnerCopy(shownError || '');
       var retryable = !upgrade && Boolean(shown) && !/is required|must be|Upgrade to|Albums are on|Pick how many/i.test(shown);
       showUploadRetry(retryable);
     }
@@ -4606,13 +4606,17 @@
                 finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
               });
             }
-            var creatingNew = fieldValue('tg-artist-mode') === 'create';
+            var artistMode = fieldValue('tg-artist-mode') || '';
+            var creatingNew = artistMode === 'create';
+            var choosingExisting = artistMode === 'choose';
             if (creatingNew) nextDraft = writeDraft({ artist_id: '' });
-            var continuingSameRelease = Boolean(nextDraft.release_id) && !creatingNew;
-            if (continuingSameRelease) {
-              return afterArtistReady(nextDraft, nextHref);
-            }
-            if (nextDraft.artist_id || (artist && artist.tonegridId)) {
+            if (!creatingNew && !choosingExisting) {
+              var reusing = Boolean(nextDraft.artist_id || nextDraft.release_id || (artist && artist.tonegridId));
+              if (artist && artist.tonegridId && !nextDraft.artist_id) {
+                nextDraft = writeDraft({ artist_id: artist.tonegridId });
+              }
+              if (reusing) return afterArtistReady(nextDraft, nextHref);
+            } else {
               nextDraft = writeDraft({ artist_id: '' });
             }
             if (catalog.allowed === false) {

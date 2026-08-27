@@ -438,17 +438,16 @@ async function createArtist(req, res) {
   }
 
   const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
-  const matchedId = matchingTonegridArtist(scope.row, body);
-  const leftoverId = matchedId || (!pgId ? scope.artistId : '');
-  let deadReplaceId = '';
-  if (leftoverId) {
-    const loaded = await tonegridFetch('/artists/' + leftoverId, { method: 'GET' });
+  const continueId = matchingTonegridArtist(scope.row, body);
+  // Name-only create must POST. Never fall back to a leftover catalog UUID.
+  if (continueId) {
+    const loaded = await tonegridFetch('/artists/' + continueId, { method: 'GET' });
     if (loaded.ok) {
-      sendJson(res, 200, { uuid: leftoverId, continued: true });
+      sendJson(res, 200, { uuid: continueId, continued: true });
       return;
     }
-    // Leftover sandbox / other-tenant ids must not be sent to the live store.
-    deadReplaceId = leftoverId;
+    sendJson(res, loaded.status || 404, { error: ARTIST_GONE_COPY });
+    return;
   }
 
   const artistGate = uploadRequired.validateArtist(body);
@@ -481,7 +480,7 @@ async function createArtist(req, res) {
   }
 
   const decision = plans.evaluate(scope.row);
-  if (!decision.allowed && !deadReplaceId) {
+  if (!decision.allowed) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
@@ -513,7 +512,6 @@ async function createArtist(req, res) {
       await accounts.updateCatalog(scope.userId, { artistId: artistId, replaceArtistId: true });
       const latest = await accounts.findById(scope.userId);
       await attachTonegridArtist(latest || scope.row, pgId, artistId);
-      if (deadReplaceId) await replaceRosterTonegridId(latest || scope.row, deadReplaceId, artistId);
     }
   }
   sendJson(res, result.status, result.data);
@@ -855,25 +853,7 @@ async function createRelease(req, res) {
     });
   }
 
-  let liveArtistId = artistId;
-  let result = await postRelease(payload);
-  if (!result.ok && isArtistGoneResult(result)) {
-    const mintName = artistNameForMint(scope, body, artistId);
-    const minted = mintName
-      ? await mintLiveStoreArtist(scope, mintName, {
-        deadId: artistId,
-        plaigroundId: String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim(),
-      })
-      : { error: ARTIST_GONE_COPY };
-    if (minted.id) {
-      liveArtistId = minted.id;
-      payload = Object.assign({}, payload, { artist_id: minted.id });
-      result = await postRelease(payload);
-    } else {
-      sendJson(res, result.status || 404, { error: ARTIST_GONE_COPY });
-      return;
-    }
-  }
+  const result = await postRelease(payload);
   if (!result.ok && isArtistGoneResult(result)) {
     sendJson(res, result.status, { error: ARTIST_GONE_COPY });
     return;
@@ -885,9 +865,8 @@ async function createRelease(req, res) {
         await accounts.removeRelease(scope.userId, deadReplaceId);
       }
       await accounts.updateCatalog(scope.userId, {
-        artistId: liveArtistId,
+        artistId: artistId,
         releaseId: releaseId,
-        replaceArtistId: liveArtistId !== artistId,
       });
     }
   }
