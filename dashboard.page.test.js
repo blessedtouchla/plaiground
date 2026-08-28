@@ -416,6 +416,34 @@ function run() {
   assert.strictEqual(mixedTiles['[data-account-pending]'].textContent, '2');
   assert.strictEqual(mixedTiles['[data-next-up-title]'].textContent, 'Fix this release');
   assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.');
+
+  const songwriterFix = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Songwriter name cannot be a stage or rapper name.',
+    }] },
+  });
+  assert.strictEqual(songwriterFix['[data-next-up-title]'].textContent, 'Fix this release');
+  assert.strictEqual(songwriterFix['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.');
+
+  const creditFix = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Missing performer credit and producer credit.',
+    }] },
+  });
+  assert.strictEqual(creditFix['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
+  assert.notStrictEqual(emptyCover['[data-next-up-title]'].textContent, 'Fix this release', 'pending without a real problem must not invent a credit error');
   assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('cccccccc-cccc-4ccc-8ccc-cccccccccccc') !== -1);
 
   const unknownTiles = fillAccount({

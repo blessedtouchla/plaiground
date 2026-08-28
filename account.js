@@ -502,9 +502,27 @@
       var card = cards[i];
       if (!card || card.live) continue;
       var alertText = String((card.alert || (api && typeof api.problemAlert === 'function' ? api.problemAlert(card) : '')) || '').trim();
-      if (alertText) return { card: card, alert: alertText };
+      if (alertText) return { card: card, alert: readableFixCopy(alertText) };
     }
     return null;
+  }
+
+  function readableFixCopy(text) {
+    var raw = String(text || '').trim();
+    if (!raw) return '';
+    var lower = raw.toLowerCase();
+    var songwriter = /songwriter|composer|writer name|legal name/.test(lower);
+    var stage = /stage|rapper|band name|artist name/.test(lower);
+    var performer = /performer/.test(lower);
+    var producer = /producer/.test(lower);
+    var credit = /credit|missing|required|need/.test(lower);
+    if (songwriter && (stage || credit)) {
+      return 'Stores need real songwriter names, not a stage, rapper, or band name.';
+    }
+    if (performer && producer && credit) {
+      return 'This release needs a performer credit and a producer credit.';
+    }
+    return raw;
   }
 
   function renderNextUp(me, cards) {
