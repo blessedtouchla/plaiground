@@ -54,7 +54,7 @@ function run() {
   assert.ok(/For artists who’d rather be making the next one/i.test(how), 'how-it-works sub stays all-music');
   const whoIdx = how.indexOf('class="how-who"');
   const stepsIdx = how.indexOf('class="wrap how-cols"');
-  assert.ok(whoIdx !== -1 && stepsIdx !== -1 && whoIdx < stepsIdx, 'who-this-is-for sits above the three steps');
+  assert.ok(whoIdx !== -1 && stepsIdx !== -1 && whoIdx < stepsIdx, 'who-this-is-for sits above the numbered steps');
   assert.ok(how.includes('Who this is for'), 'how-it-works names who this is for');
   assert.ok(/Independent artists/i.test(how) && /human, AI-assisted, or full AI/i.test(how), 'how-it-works is for human, AI-assisted, or full AI artists');
   assert.ok(/one membership that gets the song into stores/i.test(how), 'how-it-works states the membership need');
@@ -65,13 +65,15 @@ function run() {
   assert.ok(!/\d+\s*%\s*(of (streams|revenue)|DSP|Spotify|Apple)/i.test(how), 'do not invent DSP percentages on how-it-works');
   assert.ok(!/ToneGrid (takes|take|fee|commission|cut)/i.test(how), 'do not invent a ToneGrid take on how-it-works');
   assert.ok(!/migrate/i.test(how), 'how-it-works must not add catalog migrate UI');
-  assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'three steps stay Upload / Release / Get paid');
-  assert.ok(how.includes('First make the artist profile. Later songs pick that artist and prefill, then you submit.'), 'how-it-works adds artist profile first, then submit');
+  assert.ok(how.includes('<h3>Artist profile</h3>') && how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'numbered steps start with artist profile, then Upload / Release / Get paid');
+  assert.ok(how.includes('Four steps from<br />artist to paid.'), 'how-it-works is artist-first, not three steps from upload');
+  assert.ok(!how.includes('Three steps from'), 'do not keep the old three-step headline');
+  assert.ok(!/class="hint"[^>]*>First make the artist profile/.test(how), 'artist-first is a numbered step, not a hint');
   assert.ok(!/distrokid/i.test(how), 'how-it-works does not name a distributor');
   assert.ok(how.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), 'Upload step copy stays');
   assert.ok(how.includes('We generate the split sheet, everyone signs, and we deliver to 150 platforms on the date you choose.'), 'Release step copy stays');
   assert.ok(how.includes('Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked.'), 'Get paid step copy stays');
-  assert.ok(!read('how.html').includes('class="how-who"') && !read('how.html').includes('Who this is for'), 'signed-in how.html is a different 4-step page and stays unsynced');
+  assert.ok(!read('how.html').includes('class="how-who"') && !read('how.html').includes('Who this is for'), 'signed-in how.html is a different numbered-step page and stays unsynced');
 
   const faq = read('faq.html');
   assert.ok(!/PLAIGROUND is built for AI-assisted artists/i.test(faq), 'FAQ must not use AI-only slogan language');
@@ -456,8 +458,10 @@ function run() {
   assert.ok(dash.indexOf('data-next-up') < dash.indexOf('How a submission works'), 'next-up sits above How it works');
   assert.ok(dash.indexOf('Talk to PLAI') < dash.indexOf('How a submission works'), 'Talk to PLAI sits above How it works');
   assert.ok(!dash.includes('data-msp-section'), 'Overview must not keep an MSP earnings board');
-  assert.ok(howApp.includes('01 Upload') && howApp.includes('02 Attest rights') && howApp.includes('03 Split sheet') && howApp.includes('04 Review'), 'signed-in How it works page keeps the 4-step flow');
-  assert.ok(howApp.includes('Make the artist profile first. Later songs pick that artist and prefill, then you submit.'), 'signed-in How it works adds artist profile first');
+  assert.ok(howApp.includes('01 Artist profile') && howApp.includes('02 Upload') && howApp.includes('03 Attest rights') && howApp.includes('04 Split sheet') && howApp.includes('05 Review'), 'signed-in How it works numbers artist profile first');
+  assert.ok(howApp.includes('Five steps from a finished track to stores.'), 'signed-in How it works counts the artist-first step');
+  assert.ok(!howApp.includes('Four steps from a finished track'), 'do not keep Four steps plus a hint');
+  assert.ok(!howApp.includes('Make the artist profile first. Later songs pick that artist and prefill, then you submit.'), 'artist-first is a numbered step, not a hint');
   assert.ok(!/data-require-membership|data-require-paid/i.test(howApp), 'How it works must not dump signed-in users to login');
 
   const terms = read('terms.html');

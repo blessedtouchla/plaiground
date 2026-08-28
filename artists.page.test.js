@@ -163,6 +163,8 @@ function loadArtists() {
     '#artist-link-panel': linkPanel,
     '[data-artist-link-panel]': linkPanel,
     '#artist-create-name': nameInput,
+    '#artist-create-legal-first': makeEl({ value: '' }),
+    '#artist-create-legal-last': makeEl({ value: '' }),
     '#artist-link-url': urlInput,
     '#artist-link-name': makeEl({ value: '' }),
     '#artist-create-check': checkMsg,
@@ -367,6 +369,8 @@ function run() {
   assert.ok(html.includes('data-artist-mapping-plai'));
   assert.ok(!/We deliver to 55|150 platforms|every store we deliver to:/.test(html), 'do not write a store-catalog essay on Artist mapping');
   assert.ok(!html.includes('Manage the names music is released under'));
+  assert.ok(html.includes('Required. Private. Not the artist name people see. Asked once, then saved on this artist.'));
+  assert.ok(html.includes('id="artist-create-legal-first"') && html.includes('id="artist-create-legal-last"'));
   assert.ok(html.includes('Create the artist once. Later songs pick that profile — no retype every submit.'));
   assert.ok(html.includes('After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.'));
   assert.ok(html.includes('Import or merge here, not on submit.'));
@@ -669,10 +673,16 @@ async function persistAndImmediateSave() {
   emptyPage.context.document.dispatchClick(emptyPage.addBtn);
   assert.strictEqual(emptyPage.createPanel.hidden, false, 'Add artist click works when the roster is empty');
   emptyPage.nameInput.value = 'Fresh Act';
+  emptyPage.nodes['#artist-create-legal-first'].value = '';
+  emptyPage.nodes['#artist-create-legal-last'].value = '';
   emptyPage.posts.length = 0;
   await emptyPage.api.createArtist(false);
+  assert.strictEqual(emptyPage.posts.length, 0, 'Create artist with empty legal names must not save');
+  emptyPage.nodes['#artist-create-legal-first'].value = 'Ada';
+  emptyPage.nodes['#artist-create-legal-last'].value = 'Night';
+  await emptyPage.api.createArtist(false);
   assert.ok(emptyPage.posts.some(function (row) {
-    return row.url === '/api/me/artists' && row.body && row.body.artist_action === 'create' && row.body.name === 'Fresh Act';
+    return row.url === '/api/me/artists' && row.body && row.body.artist_action === 'create' && row.body.name === 'Fresh Act' && row.body.legal_first === 'Ada' && row.body.legal_last === 'Night';
   }), 'create artist must POST when the page shows empty');
 
   const accountPage = loadArtists();
@@ -681,6 +691,8 @@ async function persistAndImmediateSave() {
     profile: { artists: [{ id: 'account', name: 'Seeded Act', source: 'created', badge: 'PLAIGROUND' }] },
   });
   accountPage.nameInput.value = 'Second Act';
+  accountPage.nodes['#artist-create-legal-first'].value = 'Ada';
+  accountPage.nodes['#artist-create-legal-last'].value = 'Night';
   accountPage.posts.length = 0;
   await accountPage.api.createArtist(false);
   assert.ok(accountPage.posts.some(function (row) {
