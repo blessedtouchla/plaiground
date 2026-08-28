@@ -69,7 +69,8 @@ function run() {
 
   assert.ok(/A broad curator and playlist campaign built to drive chart-eligible activity\./.test(cards[0]));
   assert.ok(/Playlist pitching on Spotify, with outreach to the audiences most likely to keep it\./.test(cards[1]));
-  assert.ok(/Real people sharing your song across Instagram and short-form video\.\s*Coming soon\./.test(cards[2]));
+  assert.ok(/Real people sharing your song across Instagram and short-form video\./.test(cards[2]));
+  assert.ok(!/Coming soon/i.test(cards[2]), 'Social Push hub card must not say Coming soon');
   assert.ok(/Get paid when someone uses your song in a video\.\s*YouTube, Instagram, Facebook, TikTok\.\s*We take 0%\.\s*You get 100% of the payout\./.test(stripTags(cards[3])));
 
   cards.forEach(function (card, i) {
