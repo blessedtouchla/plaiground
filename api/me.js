@@ -11,12 +11,12 @@
  *                       Rewrite query uses resource=artists so it cannot clobber
  *                       the JSON verb (update / delete / create).
  * POST /api/me/problem  session required; emails emailplaiground via Resend.
- * GET  /api/admin/signups  owner session only; list real users + Stripe GET
+ * GET  /api/admin/signups  owner session only; signups, paid rows, store rows
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { listSignupRows } = require('../lib/admin-signups');
+const { listAdminOverview } = require('../lib/admin-overview');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
@@ -120,8 +120,8 @@ async function adminSignups(req, res) {
       return;
     }
     attachSession(req, res, row.id);
-    const signups = await listSignupRows();
-    sendJson(res, 200, { signups });
+    const overview = await listAdminOverview();
+    sendJson(res, 200, overview);
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       notConfigured(res);

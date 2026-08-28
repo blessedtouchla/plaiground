@@ -2726,6 +2726,25 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .song-store-links a:hover {
   color: #fff;
 }
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-alert { color: #ff8a8a; }
+.song-store-status {
+  display: grid;
+  gap: 10px;
+}
+.song-store-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+.song-store-status-row span:first-child { color: #fff; }
+.song-store-status-row .wait { color: #ff8a8a; }
+[data-song-codes] { white-space: pre-line; }
 .owner-embed {
   width: 100%;
   min-height: 152px;

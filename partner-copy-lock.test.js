@@ -7,6 +7,8 @@ const path = require('path');
 const USER_FILES = [
   'admin.html',
   'admin.js',
+  'lib/admin-overview.js',
+  'lib/live-player.js',
   'analytics.html',
   'analytics.js',
   'artists.html',
