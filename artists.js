@@ -237,6 +237,32 @@
     }
   }
 
+  function queryArtistId() {
+    try {
+      return String(new URLSearchParams(global.location.search).get('id') || '').trim();
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function troubleshootHref(opts) {
+    if (global.PlaigroundProblem && typeof global.PlaigroundProblem.problemHref === 'function') {
+      return global.PlaigroundProblem.problemHref(opts);
+    }
+    opts = opts || {};
+    var params = [];
+    if (opts.import) params.push('import=1');
+    if (opts.artist) params.push('artist=' + encodeURIComponent(String(opts.artist || '').trim()));
+    return params.length ? ('problem.html?' + params.join('&')) : 'problem.html';
+  }
+
+  function syncArtistTroubleshoot(artist) {
+    var el = $('[data-artist-troubleshoot]');
+    if (!el || !el.setAttribute) return;
+    var id = artist && (artist.id || artist.artist_id) || '';
+    el.setAttribute('href', troubleshootHref({ artist: id }));
+  }
+
   function selectArtist(artist, mode) {
     painting = true;
     current.selected = artist || null;
@@ -258,6 +284,7 @@
       return;
     }
     paintEdit(artist);
+    syncArtistTroubleshoot(artist);
     painting = false;
   }
 
@@ -320,6 +347,7 @@
     if (previewDel) previewDel.setAttribute('data-artist-delete', artist.id);
     var previewEdit = $('[data-artist-preview] [data-artist-edit-open]');
     if (previewEdit) previewEdit.setAttribute('data-artist-edit-open', artist.id);
+    syncArtistTroubleshoot(artist);
   }
 
   function paintEdit(artist) {
@@ -711,6 +739,21 @@
     current.me = me;
     current.artists = rosterFromMe(me);
     renderList();
+    if (!current.selected) {
+      var want = queryArtistId();
+      var startHash = '';
+      try { startHash = String((global.location && global.location.hash) || '').toLowerCase(); } catch (err) { startHash = ''; }
+      if (want && startHash !== '#artist-link-panel' && startHash !== '#import') {
+        var fromQuery = null;
+        current.artists.forEach(function (row) {
+          if (row.id === want || row.artist_id === want) fromQuery = row;
+        });
+        if (fromQuery) {
+          selectArtist(fromQuery, 'preview');
+          return;
+        }
+      }
+    }
     if (current.selected) {
       var keep = null;
       current.artists.forEach(function (row) {
@@ -1393,5 +1436,8 @@
     linksForArtist: linksForArtist,
     applyStoreCatalog: applyStoreCatalog,
     openMappingPlai: openMappingPlai,
+    queryArtistId: queryArtistId,
+    troubleshootHref: troubleshootHref,
+    syncArtistTroubleshoot: syncArtistTroubleshoot,
   };
 })(typeof window !== 'undefined' ? window : this);

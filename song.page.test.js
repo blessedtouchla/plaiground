@@ -164,6 +164,7 @@ function loadSong(opts) {
     '[data-edit-save]': makeEl({}),
     '[data-edit-cancel]': makeEl({}),
     '[data-edit-retry]': makeEl({ hidden: true, textContent: 'Retry' }),
+    '[data-edit-troubleshoot]': makeEl({ tagName: 'A', attrs: { href: 'problem.html' } }),
     '[data-language-field]': makeEl({}),
     '[data-edit-lyrics-field]': makeEl({}),
     '#edit-lyrics': ids['edit-lyrics'],
@@ -1199,6 +1200,12 @@ function run() {
   assert.strictEqual((html.match(/class="btn btn-gold/g) || []).length, 1, 'Edit page has one gold button');
   assert.ok(read('releases.html').includes('class="btn btn-purple btn-sm" data-edit-save'), 'list Save to the store stays purple');
   assert.ok(html.includes('data-edit-actions'));
+  assert.ok(/data-edit-troubleshoot[^>]*>Troubleshoot</.test(html), 'Edit release has bottom Troubleshoot');
+  assert.ok(/class="btn btn-ghost btn-sm" data-edit-troubleshoot/.test(html), 'Edit Troubleshoot stays secondary');
+  assert.ok(/href="problem.html"/.test(html.match(/data-edit-troubleshoot[\s\S]*?<\/a>/)[0]), 'Edit Troubleshoot opens Have a problem?');
+  assert.ok(html.indexOf('data-edit-actions') < html.indexOf('data-edit-troubleshoot'), 'Troubleshoot sits under the edit actions');
+  assert.ok(!/data-plai-text/.test(html), 'Edit Troubleshoot is not Text PLAI');
+  assert.ok(!/<select[^>]*data-problem/.test(html), 'Edit release does not add a type picker');
   const splitsField = html.match(/<div class="field" data-edit-splits>[\s\S]*?<\/div>/);
   assert.ok(splitsField, 'Splits field exists');
   assert.ok(!/class="learn"/.test(splitsField[0]), 'Splits is not an inline-text row for Submit/Cancel');
@@ -1364,6 +1371,10 @@ function run() {
   assert.strictEqual(page.ids['edit-language'].disabled, false, 'language stays editable');
   assert.strictEqual(page.ids['edit-genre'].value, 'Electronic');
   assert.ok(page.nodes['[data-edit-attest]'].hidden === false, 'AI attest stays visible when already collected');
+  assert.ok(
+    String(page.nodes['[data-edit-troubleshoot]'].getAttribute('href') || '').indexOf('problem.html?release=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') === 0,
+    'Edit Troubleshoot carries the release id into Have a problem?'
+  );
   page.ids['edit-lyrics'].value = '';
   page.api.openEdit({
     me: basicMe,

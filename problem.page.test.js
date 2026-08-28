@@ -169,6 +169,7 @@ function loadProblem(options) {
   const signedIn = !!(options && options.signedIn);
   const email = (options && options.email) || 'ada@example.com';
   const fetchImpl = options && options.fetch;
+  const search = (options && options.search) || '';
   const sideNav = makeNode({ className: 'side-nav' });
   const flowTop = makeNode({ className: 'flow-top' });
   const who = makeNode({ className: 'who', tagName: 'A' });
@@ -196,6 +197,7 @@ function loadProblem(options) {
       if (sel === '.side-nav') return sideNav;
       if (sel === '.flow-top') return flowTop;
       if (sel === '[data-problem-form]') return form;
+      if (sel === '[data-problem-text]') return field;
       if (sel === '[data-problem-error]') return error;
       if (sel === '[data-problem-thanks]') return thanks;
       if (sel === '[data-problem-thanks-copy]') return thanksCopy;
@@ -213,6 +215,8 @@ function loadProblem(options) {
   const calls = [];
   const context = {
     window: null,
+    location: { search: search },
+    URLSearchParams: URLSearchParams,
     document: document,
     fetch: fetchImpl || function (url, init) {
       calls.push({ url: String(url), init: init || {} });
@@ -229,6 +233,7 @@ function loadProblem(options) {
     },
   };
   context.window = context;
+  context.location = { search: search };
   vm.runInNewContext(read('problem.js'), context);
   return {
     api: context.PlaigroundProblem,
@@ -258,6 +263,10 @@ async function run() {
   assert.ok(page.includes('data-require-membership="true"'), 'problem.html dumps logged-out visitors to login');
   assert.ok(page.includes('data-problem-form'), 'problem.html has the form');
   assert.ok(page.includes('data-problem-text'), 'problem.html collects the problem text');
+  assert.ok(!/<select\b/i.test(page), 'Have a problem? has no type picker');
+  assert.ok(!/data-problem-type|problem-type|type-breakdown/i.test(page + js), 'Have a problem? has no type-breakdown leftover');
+  assert.strictEqual((page.match(/data-problem-text/g) || []).length, 1, 'Have a problem? stays one typed field');
+  assert.ok(js.includes("IMPORT_PREFILL = 'Import / artist mapping issue.'"), 'import Troubleshoot prefills mapping copy');
   assert.ok(page.includes(THANKS), 'thank-you copy is exact');
   assert.ok(page.includes('href="dashboard.html"') && page.includes('data-problem-overview'), 'thank-you CTA goes to Overview');
   assert.ok(/data-problem-overview[^>]*>Back to Overview</.test(page), 'Overview CTA is a real button');
@@ -313,6 +322,32 @@ async function run() {
   const payload = JSON.parse(signedIn.calls[0].init.body);
   assert.strictEqual(payload.problem, 'Cover art will not save.');
   assert.strictEqual(payload.email, 'ada@example.com');
+  assert.strictEqual(payload.release, undefined, 'plain ticket does not invent a release link');
+  assert.strictEqual(payload.artist, undefined, 'plain ticket does not invent an artist link');
+
+  const imported = loadProblem({ signedIn: true, email: 'ada@example.com', search: '?import=1' });
+  assert.strictEqual(imported.field.value, 'Import / artist mapping issue.', 'import Troubleshoot prefills Have a problem?');
+  imported.submitForm();
+  await new Promise(function (resolve) { setImmediate(resolve); });
+  await new Promise(function (resolve) { setImmediate(resolve); });
+  const importPayload = JSON.parse(imported.calls[0].init.body);
+  assert.strictEqual(importPayload.problem, 'Import / artist mapping issue.');
+  assert.strictEqual(importPayload.release, undefined, 'import ticket does not require a release link');
+  assert.strictEqual(importPayload.artist, undefined, 'import ticket does not require an artist link');
+
+  const fromEdit = loadProblem({
+    signedIn: true,
+    email: 'ada@example.com',
+    search: '?release=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&artist=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  });
+  fromEdit.field.value = 'This song is on the wrong artist page.';
+  fromEdit.submitForm();
+  await new Promise(function (resolve) { setImmediate(resolve); });
+  await new Promise(function (resolve) { setImmediate(resolve); });
+  const editPayload = JSON.parse(fromEdit.calls[0].init.body);
+  assert.strictEqual(editPayload.release, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.strictEqual(editPayload.artist, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.ok(!('type' in editPayload), 'edit Troubleshoot does not send a problem type');
   assert.strictEqual(signedIn.thanks.hidden, false, 'success shows the thank-you screen');
   assert.strictEqual(signedIn.form.hidden, true, 'success hides the form');
 
@@ -443,6 +478,25 @@ async function run() {
       assert.deepStrictEqual(body.to, ['emailplaiground@gmail.com']);
       assert.ok(body.text.indexOf('Earnings stay at $0.') !== -1);
       assert.ok(body.text.indexOf('ada@example.com') !== -1);
+      assert.ok(body.text.indexOf('song.html?id=') === -1, 'plain ticket mail has no release link');
+
+      sent.length = 0;
+      const withLinks = mockRes();
+      await meApi({
+        method: 'POST',
+        url: '/api/me/problem',
+        headers: { cookie: cookie },
+        body: {
+          problem: 'Wrong artist page.',
+          release: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          artist: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        },
+      }, withLinks);
+      assert.strictEqual(withLinks.statusCode, 200);
+      const linked = JSON.parse(sent[0].init.body);
+      assert.ok(linked.text.indexOf('https://www.wannaplai.com/song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') !== -1, 'edit-release mail includes the release link');
+      assert.ok(linked.text.indexOf('https://www.wannaplai.com/artists.html?id=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb') !== -1, 'edit-release mail includes the artist profile link');
+      assert.ok(!/ToneGrid|DistroKid|InterSpace|Flossy/i.test(linked.text), 'problem mail must not name a vendor');
       assert.ok(!body.text.includes('ignore-this@example.com'), 'session email wins over a spoofed body email');
       assert.ok(!JSON.stringify(body).includes('victoriaimtanes@'));
       assert.ok(!JSON.stringify(body).includes('realhealthiswealth@'));

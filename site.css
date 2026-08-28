@@ -1491,6 +1491,13 @@ body.artist-editing { overflow: hidden; }
   min-height: 44px;
   padding: 10px 20px;
 }
+.edit-troubleshoot,
+.artist-edit-troubleshoot,
+.artist-import-troubleshoot {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
 .rel { display: flex; align-items: center; gap: 12px; }
 .thumb {
   width: 40px;
@@ -1864,6 +1871,20 @@ button.dashbox span {
 }
 .faq-lead a { color: var(--magenta); font-weight: 600; }
 .faq-lead strong { color: #fff; font-weight: 700; }
+.faq-troubleshoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  margin: 0 0 28px;
+}
+.faq-troubleshoot p {
+  color: var(--muted-2);
+  margin: 0;
+  max-width: 420px;
+  font-size: 0.95rem;
+}
+.faq-troubleshoot strong { color: #fff; font-weight: 700; }
 .faq-plai {
   max-width: 640px;
   margin: 36px 0 0;

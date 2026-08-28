@@ -215,6 +215,7 @@ function loadArtists() {
     '[data-artist-locked-note]': makeEl({ hidden: true }),
     '[data-artist-change-wrap]': makeEl({ hidden: true }),
     '[data-artist-edit-pending]': makeEl({ hidden: true }),
+    '[data-artist-troubleshoot]': makeEl({ tagName: 'A', attrs: { href: 'problem.html' } }),
     '[data-artist-pending-note]': makeEl({ hidden: true }),
     '[data-artist-name-field]': makeEl({}),
     '[data-artist-songs]': makeEl({ hidden: true }),
@@ -391,6 +392,11 @@ function run() {
   assert.ok(html.includes('id="artist-link-panel"'));
   assert.ok(html.includes('data-artist-create-panel hidden'));
   assert.ok(html.includes('data-artist-link-panel hidden'));
+  assert.ok(/href="problem.html\?import=1"[^>]*>Troubleshoot</.test(html) || /href="problem.html\?import=1">Troubleshoot</.test(html), 'Import Troubleshoot opens Have a problem? prefilled');
+  assert.ok(/data-artist-troubleshoot[^>]*>Troubleshoot</.test(html), 'Edit artist has bottom Troubleshoot');
+  assert.ok(html.indexOf('data-artist-save') < html.indexOf('data-artist-troubleshoot'), 'artist Troubleshoot sits under Save artist');
+  assert.ok(!/data-plai-text/.test(html), 'artist Troubleshoot is not Text PLAI');
+  assert.ok(!/<select[^>]*data-problem/.test(html), 'Artist Profiles does not add a type picker');
   assert.ok(html.includes('How this artist usually creates'));
   assert.ok(html.includes('AI musician type'));
   assert.ok(html.includes('Estimated AI involvement'));
@@ -556,6 +562,11 @@ function run() {
   assert.strictEqual(page.nodes['[data-artist-edit]'].hidden, false, 'Edit opens the full-screen form');
   assert.strictEqual(page.previewPanel.hidden, true, 'full-screen Edit hides Preview');
   assert.ok(page.context.document.body.classList.contains('artist-editing'));
+  assert.strictEqual(
+    page.nodes['[data-artist-troubleshoot]'].getAttribute('href'),
+    'problem.html?artist=preview-1',
+    'Edit artist Troubleshoot carries the artist id into Have a problem?'
+  );
 
   page.api.openArtistForm('add');
   page.nameInput.value = 'Fuvtu';
