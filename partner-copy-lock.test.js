@@ -31,6 +31,7 @@ const USER_FILES = [
   'lib/upload-required.js',
   'lib/release-credits.js',
   'lib/upload-credits.js',
+  'lib/upload-draft-files.js',
   'attest.js',
   'lib/cover-preview.js',
   'lib/cover-url.js',

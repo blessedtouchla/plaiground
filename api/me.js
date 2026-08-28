@@ -21,6 +21,7 @@ const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
+const releaseCredits = require('../lib/release-credits');
 const {
   attachSession,
   bodyHasPassword,
@@ -349,6 +350,11 @@ async function saveArtists(req, res) {
     const name = String((body && body.name) || '').trim();
     if (!name) {
       sendJson(res, 400, { error: 'Artist name is required.' });
+      return;
+    }
+    const legal = releaseCredits.validateLegalName(body && body.legal_first, body && body.legal_last);
+    if (legal.error) {
+      sendJson(res, 400, { error: legal.error });
       return;
     }
     const check = artistCheck.checkArtistName(name, { accountArtists: stored.artists });

@@ -912,6 +912,12 @@
       showStatus('Artist name is required.');
       return Promise.resolve(null);
     }
+    var legalFirst = $('#artist-create-legal-first') ? String($('#artist-create-legal-first').value || '').trim() : '';
+    var legalLast = $('#artist-create-legal-last') ? String($('#artist-create-legal-last').value || '').trim() : '';
+    if (!legalFirst || !legalLast) {
+      showStatus('Legal first and last name are both required. Not a stage name, rapper name, or band name.');
+      return Promise.resolve(null);
+    }
     var check = paintCreateCheck();
     var confirmEl = $('#artist-create-confirm');
     var confirmDifferent = Boolean(confirmEl && confirmEl.checked);
@@ -923,8 +929,8 @@
       action: 'create',
       artist_action: 'create',
       name: name,
-      legal_first: $('#artist-create-legal-first') ? $('#artist-create-legal-first').value : '',
-      legal_last: $('#artist-create-legal-last') ? $('#artist-create-legal-last').value : '',
+      legal_first: legalFirst,
+      legal_last: legalLast,
       confirm_different: confirmDifferent || Boolean(forceReview),
     }).then(function (result) {
       if (!result.ok) {
