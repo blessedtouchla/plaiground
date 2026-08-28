@@ -17,6 +17,7 @@
  */
 
 const { confirmEmail, createUser, deleteUser, findByEmail, findById, ensureReady, setPassword } = require('../lib/accounts');
+const profile = require('../lib/profile');
 const {
   attachSession,
   authPayload,
@@ -104,6 +105,7 @@ async function signup(req, res) {
   const email = normalizeEmail(body && body.email);
   const password = body && body.password != null ? String(body.password) : '';
   const artist = String((body && (body.artist || body.artist_name)) || '').trim();
+  const username = String((body && body.username) || '').trim();
   const plan = body && body.plan;
 
   if (!isEmail(email)) {
@@ -114,13 +116,9 @@ async function signup(req, res) {
     sendJson(res, 400, { error: 'Password must be at least 8 characters.' });
     return;
   }
-  if (!artist) {
-    sendJson(res, 400, { error: 'Artist name is required.' });
-    return;
-  }
 
   try {
-    const row = await createUser({ email, password, artist, plan });
+    const row = await createUser({ email, password, artist, plan, username });
     let mail;
     try {
       mail = await sendConfirmEmail({ email: row.email, artist: row.artist_name });
@@ -133,6 +131,7 @@ async function signup(req, res) {
       confirmed: false,
       email: row.email,
       artist: row.artist_name,
+      username: profile.readStored(row).username || '',
       plan: row.plan || null,
       mail_sent: Boolean(mail && mail.mail_sent),
     };
@@ -147,6 +146,10 @@ async function signup(req, res) {
         code: 'EMAIL_EXISTS',
         login: '/login.html',
       });
+      return;
+    }
+    if (err && err.code === 'USERNAME_TAKEN') {
+      sendJson(res, 409, { error: err.message, code: 'USERNAME_TAKEN' });
       return;
     }
     if (err && err.code === 'VALIDATION') {
@@ -184,6 +187,7 @@ async function login(req, res) {
   const email = normalizeEmail(body && body.email);
   const password = body && body.password != null ? String(body.password) : '';
   const token = String((body && body.token) || '').trim();
+  // Username is a community handle. Sign-in stays email.
   if (token) {
     await loginWithToken(req, res, token);
     return;

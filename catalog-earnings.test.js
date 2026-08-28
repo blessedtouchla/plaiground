@@ -182,7 +182,8 @@ function run() {
   assert.ok(read('settings.html').indexOf('Hi John') === -1);
   assert.ok(read('settings.html').indexOf('John ham') === -1);
   assert.ok(read('settings.html').indexOf('>VV<') === -1);
-  assert.ok(read('settings.html').indexOf('data-account-artist') !== -1);
+  assert.ok(read('settings.html').indexOf('data-account-username') !== -1);
+  assert.ok(read('settings.html').indexOf('data-account-artist') === -1);
 
   const earnNodes = {
     '[data-earn-metrics]': makeEl({}),

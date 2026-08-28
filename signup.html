@@ -50,8 +50,9 @@
         <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
         <form id="signup-form">
           <div class="field">
-            <label for="artist">Artist name</label>
-            <input id="artist" name="artist" type="text" placeholder="Artist name" />
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" placeholder="Optional community handle" autocomplete="nickname" />
+            <p class="hint">Optional. Unique if you set one. Sign-in stays email.</p>
           </div>
           <div class="field">
             <label for="email">Email</label>
@@ -159,20 +160,20 @@
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var emailEl = document.getElementById('email');
-        var artistEl = document.getElementById('artist');
+        var usernameEl = document.getElementById('username');
         var passwordEl = document.getElementById('password');
         var email = emailEl ? String(emailEl.value || '').trim() : '';
-        var artist = artistEl ? String(artistEl.value || '').trim() : '';
+        var username = usernameEl ? String(usernameEl.value || '').trim() : '';
         var password = passwordEl ? String(passwordEl.value || '') : '';
         var plan = chosenPlan();
         try {
           if (email) sessionStorage.setItem('plaigroundSignupEmail', email);
           else sessionStorage.removeItem('plaigroundSignupEmail');
-          if (artist) sessionStorage.setItem('plaigroundSignupArtist', artist);
-          else sessionStorage.removeItem('plaigroundSignupArtist');
+          sessionStorage.removeItem('plaigroundSignupArtist');
         } catch (err) {}
 
-        var body = { email: email, password: password, artist: artist };
+        var body = { email: email, password: password };
+        if (username) body.username = username;
         if (plan) body.plan = plan;
         if (password.length < 8) {
           setStatus('Password must be at least 8 characters.');
@@ -205,9 +206,8 @@
             return;
           }
           var existingError = result.data && result.data.error ? String(result.data.error) : '';
-          var alreadyHasAccount = result.status === 409
-            || (result.data && result.data.code === 'EMAIL_EXISTS')
-            || /already exists/i.test(existingError)
+          var alreadyHasAccount = (result.data && result.data.code === 'EMAIL_EXISTS')
+            || (/already exists/i.test(existingError) && result.data && result.data.code !== 'USERNAME_TAKEN')
             || /already have an account/i.test(existingError);
           if (alreadyHasAccount) {
             var copy = existingError || 'An account with that email already exists. Log in.';

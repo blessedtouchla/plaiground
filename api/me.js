@@ -279,11 +279,23 @@ async function saveProfile(req, res) {
     sendJson(res, 400, { error: parsed.error });
     return;
   }
-  const next = await updateProfile(row.id, {
-    artist: parsed.artist,
-    profile: parsed.profile,
-  });
-  sendJson(res, 200, publicUser(next || row));
+  try {
+    const next = await updateProfile(row.id, {
+      artist: parsed.artist,
+      profile: parsed.profile,
+    });
+    sendJson(res, 200, publicUser(next || row));
+  } catch (err) {
+    if (err && err.code === 'USERNAME_TAKEN') {
+      sendJson(res, 409, { error: err.message, code: 'USERNAME_TAKEN' });
+      return;
+    }
+    if (err && err.code === 'VALIDATION') {
+      sendJson(res, 400, { error: err.message });
+      return;
+    }
+    throw err;
+  }
 }
 
 function seedRoster(row) {

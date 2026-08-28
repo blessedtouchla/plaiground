@@ -60,6 +60,8 @@
         if (row && row.name) names.push(row.name);
       });
     }
+    if (me && me.username) names.push(me.username);
+    if (me && me.profile && me.profile.username) names.push(me.profile.username);
     for (var i = 0; i < names.length; i += 1) {
       var name = String(names[i] || '').trim();
       if (name && !isPlaceholderName(name)) return name;
@@ -254,6 +256,11 @@
     $all('[data-account-artist]').forEach(function (el) {
       if (el.tagName === 'INPUT') el.value = artist;
       else setText(el, artist);
+    });
+    var username = String((me.username || (me.profile && me.profile.username) || '')).trim();
+    $all('[data-account-username]').forEach(function (el) {
+      if (el.tagName === 'INPUT') el.value = username;
+      else setText(el, username);
     });
     var legal = String((me.profile && me.profile.legal_name) || '').trim();
     $all('[data-account-legal]').forEach(function (el) {
@@ -793,15 +800,22 @@
     var country = countryInput ? String(countryInput.value || '').trim() : String(raw.country || '');
     if (overrides.legal_name != null) legal = String(overrides.legal_name || '').trim();
     if (overrides.country != null) country = String(overrides.country || '').trim();
+    var usernameInput = document.querySelector('[data-account-username]');
+    var username = usernameInput && usernameInput.tagName === 'INPUT'
+      ? String(usernameInput.value || '').trim()
+      : String((me.username || raw.username || '')).trim();
+    if (overrides.username != null) username = String(overrides.username || '').trim();
+    var nextProfile = {
+      photo: photo || '',
+      genres: Array.isArray(raw.genres) ? raw.genres : [],
+      specialties: Array.isArray(raw.specialties) ? raw.specialties : [],
+      legal_name: legal,
+      country: country,
+    };
+    if (usernameInput || overrides.username != null) nextProfile.username = username;
     return {
       artist: artist,
-      profile: {
-        photo: photo || '',
-        genres: Array.isArray(raw.genres) ? raw.genres : [],
-        specialties: Array.isArray(raw.specialties) ? raw.specialties : [],
-        legal_name: legal,
-        country: country,
-      },
+      profile: nextProfile,
     };
   }
 

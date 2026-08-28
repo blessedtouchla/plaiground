@@ -644,8 +644,9 @@ function run() {
   assert.ok(!/>VV</.test(settings), 'settings.html must not hardcode leftover VV initials');
   assert.ok(settings.includes('data-account-who>Hi there'), 'settings unsigned greeting stays Hi there');
   assert.ok(settings.includes('data-account-avatar>PG'), 'settings unsigned initials stay PG');
-  assert.ok(settings.includes('placeholder="Artist name"'), 'settings artist field stays an artist-name placeholder');
-  assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
+  assert.ok(settings.includes('placeholder="Username"'), 'settings username field is the community handle');
+  assert.ok(!settings.includes('placeholder="Artist name"'), 'settings must not collect artist name');
+  assert.ok(!/data-account-username[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
   ['earnings.html', 'payouts.html', 'splits.html', 'splits-empty.html', 'releases.html', 'how.html', 'upload.html', 'contact.html', 'faq.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(!html.includes('Hi John'), file + ' must not hardcode Hi John');

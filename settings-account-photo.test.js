@@ -63,13 +63,14 @@ function makeEl(attrs) {
 function loadSettings(opts) {
   opts = opts || {};
   const calls = opts.calls || [];
-  const store = opts.store || { photo: '', genres: ['Electronic'], specialties: ['Original lyrics'], artist: '', legal_name: '', country: '' };
+  const store = opts.store || { photo: '', genres: ['Electronic'], specialties: ['Original lyrics'], artist: '', legal_name: '', country: '', username: '' };
   const header = makeEl({ textContent: 'PG', className: 'avatar' });
   const settings = makeEl({ textContent: 'PG', className: 'avatar' });
   const pick = makeEl({ tagName: 'BUTTON', textContent: 'Change photo', attrs: {} });
   const input = makeEl({ tagName: 'INPUT', attrs: { type: 'file', hidden: '' } });
   const status = makeEl({ hidden: true });
   const artist = makeEl({ tagName: 'INPUT', value: '' });
+  const username = makeEl({ tagName: 'INPUT', value: '' });
   const legal = makeEl({ tagName: 'INPUT', value: '' });
   const country = makeEl({ tagName: 'INPUT', value: '' });
   const email = makeEl({ tagName: 'INPUT', value: '' });
@@ -79,6 +80,7 @@ function loadSettings(opts) {
     '[data-account-avatar]': [header, settings],
     '[data-account-who]': [makeEl({ textContent: 'Hi there' })],
     '[data-account-artist]': [artist],
+    '[data-account-username]': [username],
     '[data-account-legal]': [legal],
     '[data-account-country]': [country],
     '[data-account-email]': [email],
@@ -130,7 +132,9 @@ function loadSettings(opts) {
         if (body.profile && body.profile.specialties) store.specialties = body.profile.specialties;
         if (body.profile && body.profile.legal_name != null) store.legal_name = body.profile.legal_name;
         if (body.profile && body.profile.country != null) store.country = body.profile.country;
+        if (body.profile && body.profile.username != null) store.username = body.profile.username;
         me.artist = store.artist || me.artist;
+        me.username = store.username || me.username;
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -144,7 +148,9 @@ function loadSettings(opts) {
               specialties: store.specialties,
               legal_name: store.legal_name || '',
               country: store.country || '',
+              username: store.username || '',
             },
+            username: store.username || '',
           }),
         });
       }
@@ -156,12 +162,14 @@ function loadSettings(opts) {
             artist: store.artist || me.artist,
             email: me.email,
             plan: me.plan,
+            username: store.username || me.username || '',
             profile: {
               photo: store.photo,
               genres: store.genres,
               specialties: store.specialties,
               legal_name: store.legal_name || '',
               country: store.country || '',
+              username: store.username || '',
             },
           }),
         });
@@ -184,8 +192,10 @@ function loadSettings(opts) {
                 specialties: store.specialties,
                 legal_name: store.legal_name || '',
                 country: store.country || '',
+                username: store.username || '',
               };
             },
+            username: store.username || me.username || '',
           },
         });
       },
@@ -194,12 +204,14 @@ function loadSettings(opts) {
           artist: me.artist,
           email: me.email,
           plan: me.plan,
+          username: store.username || me.username || '',
           profile: {
             photo: store.photo,
             genres: store.genres,
             specialties: store.specialties,
             legal_name: store.legal_name || '',
             country: store.country || '',
+            username: store.username || '',
           },
         };
       },
@@ -221,6 +233,7 @@ function loadSettings(opts) {
     input,
     status,
     artist,
+    username,
     legal,
     country,
     email,
@@ -242,7 +255,12 @@ async function run() {
   assert.ok(html.includes('id="account-photo"'), 'Settings must expose a real file input');
   assert.ok(html.includes('type="file"'), 'Change photo must open an image picker');
   assert.ok(html.includes('accept="image/jpeg,image/png,.jpg,.jpeg,.png"'), 'picker accepts the same image types as other account photos');
-  assert.ok(html.includes('<label>Artist name</label>'), 'Artist name label stays');
+  assert.ok(!html.includes('<label>Artist name</label>'), 'Artist name left Settings');
+  assert.ok(!html.includes('data-account-artist'), 'Settings no longer edits artist name');
+  assert.ok(html.includes('<label>Username</label>'), 'Username is the community handle field');
+  assert.ok(html.includes('data-account-username'), 'Username is a real Settings field');
+  assert.ok(html.includes('Account, login, and billing. Artist names live on Artist Profiles.'), 'Settings copy is account, not the artist');
+  assert.ok(html.includes('Sign-in stays email.'), 'username is not a login');
   assert.ok(html.includes('<label>Legal name</label>'), 'Legal name label stays');
   assert.ok(html.includes('data-account-legal'), 'Legal name is a real Settings field');
   assert.ok(html.includes('data-account-country'), 'Country is a real Settings field');
@@ -356,6 +374,7 @@ async function run() {
       artist: 'mexeu mexeu',
       legal_name: '',
       country: '',
+      username: '',
     };
     const editor = loadSettings({ calls: writes, store: memory, plan: plan });
     await Promise.resolve();
@@ -365,15 +384,17 @@ async function run() {
       artist: 'mexeu mexeu',
       email: 'victoriaimtanes@gmail.com',
       plan: plan,
+      username: '',
       profile: {
         photo: PHOTO,
         genres: memory.genres,
         specialties: memory.specialties,
         legal_name: '',
         country: '',
+        username: '',
       },
     });
-    editor.artist.value = 'Victoria Remix';
+    editor.username.value = 'victoria_remix';
     editor.legal.value = 'Victoria Imtanes';
     editor.country.value = 'Brazil';
     assert.strictEqual(editor.save.disabled, false, plan + ' Save changes must be tappable');
@@ -384,13 +405,15 @@ async function run() {
     });
     assert.ok(posted, plan + ' Save changes must POST /api/me/profile');
     const sent = JSON.parse(posted.body);
-    assert.strictEqual(sent.artist, 'Victoria Remix', plan + ' Save must write the artist name');
+    assert.strictEqual(sent.artist, 'mexeu mexeu', plan + ' Save must keep the existing artist name, not edit it');
+    assert.strictEqual(sent.profile.username, 'victoria_remix', plan + ' Save must write the username');
     assert.strictEqual(sent.profile.legal_name, 'Victoria Imtanes', plan + ' Save must write legal name');
     assert.strictEqual(sent.profile.country, 'Brazil', plan + ' Save must write country');
     assert.ok(String(sent.profile.photo || '').indexOf('data:image/jpeg') === 0, plan + ' Save must keep the photo');
     assert.strictEqual(editor.saveStatus.textContent, 'Saved on this account.');
     assert.strictEqual(editor.save.disabled, false, plan + ' Save must enable again after the write');
-    assert.strictEqual(memory.artist, 'Victoria Remix');
+    assert.strictEqual(memory.artist, 'mexeu mexeu');
+    assert.strictEqual(memory.username, 'victoria_remix');
     assert.strictEqual(memory.legal_name, 'Victoria Imtanes');
     assert.strictEqual(memory.country, 'Brazil');
 
@@ -402,6 +425,7 @@ async function run() {
         artist: memory.artist,
         legal_name: memory.legal_name,
         country: memory.country,
+        username: memory.username,
       },
       plan: plan,
     });
@@ -412,15 +436,17 @@ async function run() {
       artist: memory.artist,
       email: 'victoriaimtanes@gmail.com',
       plan: plan,
+      username: memory.username,
       profile: {
         photo: memory.photo,
         genres: memory.genres,
         specialties: memory.specialties,
         legal_name: memory.legal_name,
         country: memory.country,
+        username: memory.username,
       },
     });
-    assert.strictEqual(after.artist.value, 'Victoria Remix', plan + ' artist name must still be there after reload');
+    assert.strictEqual(after.username.value, 'victoria_remix', plan + ' username must still be there after reload');
     assert.strictEqual(after.legal.value, 'Victoria Imtanes', plan + ' legal name must still be there after reload');
     assert.strictEqual(after.country.value, 'Brazil', plan + ' country must still be there after reload');
     assert.ok(hasPhoto(after.settings), plan + ' photo must still be there after reload');
@@ -439,10 +465,11 @@ async function run() {
     artist: 'Ada',
     legal_name: '',
     country: '',
+    username: '',
   };
   const tap = loadSettings({ calls: tapWrites, store: tapStore, plan: 'basic' });
   await Promise.resolve();
-  tap.artist.value = 'Tap Remix';
+  tap.username.value = 'tap_remix';
   tap.legal.value = 'Ada Lovelace';
   tap.country.value = 'Canada';
   tapWrites.length = 0;
@@ -453,13 +480,14 @@ async function run() {
     return row.method === 'POST' && String(row.url).indexOf('/api/me/profile') !== -1;
   });
   assert.ok(tapPost, 'tapping Save changes must POST /api/me/profile');
-  assert.strictEqual(JSON.parse(tapPost.body).artist, 'Tap Remix');
-  assert.strictEqual(tapStore.artist, 'Tap Remix', 'tap must persist, not only look tappable');
+  assert.strictEqual(JSON.parse(tapPost.body).profile.username, 'tap_remix');
+  assert.strictEqual(JSON.parse(tapPost.body).artist, 'Ada', 'Save tap must not move artist names off Artist Profiles');
+  assert.strictEqual(tapStore.username, 'tap_remix', 'tap must persist, not only look tappable');
 
   const failedWrites = [];
   const failed = loadSettings({
     calls: failedWrites,
-    store: { photo: '', genres: [], specialties: [], artist: 'Ada', legal_name: '', country: '' },
+    store: { photo: '', genres: [], specialties: [], artist: 'Ada', legal_name: '', country: '', username: '' },
     plan: 'basic',
     fetch: function (url) {
       failedWrites.push({ url: String(url), method: 'POST' });
@@ -471,7 +499,7 @@ async function run() {
     },
   });
   await Promise.resolve();
-  failed.artist.value = 'Ada Remix';
+  failed.username.value = 'ada_remix';
   await failed.api.saveAccountChanges();
   assert.strictEqual(failed.saveStatus.textContent, 'Could not save changes.', 'failed write must not show a fake saved toast');
   assert.ok(failed.saveStatus.textContent !== 'Saved on this account.');
