@@ -25,6 +25,10 @@ const APP_PAGES = [
   'settings.html',
   'artists.html',
   'boosts.html',
+  'chart-push.html',
+  'streaming-push.html',
+  'social-push.html',
+  'video-collect.html',
   'publishing-register.html',
   'problem.html',
 ];

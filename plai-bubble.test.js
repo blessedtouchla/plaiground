@@ -353,7 +353,7 @@ function runStatic() {
   assert.ok(sitePhone && /top:\s*92px/.test(sitePhone[0]) && /bottom:\s*auto/.test(sitePhone[0]), 'signed-in phone bubble stays top-right');
   assert.ok(!read('upload.html').includes('data-plai-coach-float'), 'signed-in submit must not get the landing girl');
   assert.ok(!read('upload.html').includes('plai-avatar.png'), 'signed-in submit must not load the girl PNG');
-  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html'].forEach(function (file) {
+  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
   });
