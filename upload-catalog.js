@@ -1936,9 +1936,24 @@ function bindTypeahead(select, items, getValue, getLabel) {
     holdBlur = false;
     applyPick(pick);
     hideList();
-    if (input.blur) input.blur();
+    // iOS Safari does not fully relinquish focus when blur() runs synchronously
+    // inside a preventDefault()-ed touch handler, which leaves the field unable
+    // to refire focus/click on the next tap. Defer the blur out of this handler.
+    if (input.blur) {
+      if (win && win.setTimeout) win.setTimeout(function () { input.blur(); }, 0);
+      else input.blur();
+    }
+    // The settle window normally ends on the next real pointerdown on the input
+    // (see the input pointerdown handler) so a re-tap reopens instantly. The
+    // timer is only a fallback for flows that never get that pointerdown, e.g. a
+    // desktop blur-commit or a programmatic value change.
     if (win && win.setTimeout) win.setTimeout(function () { picking = false; }, 450);
     else picking = false;
+  }
+
+  function clearPickLatch() {
+    picking = false;
+    holdBlur = false;
   }
 
   function eventPoint(event) {
@@ -2138,6 +2153,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     list.addEventListener('pointerup', commitListEvent);
     list.addEventListener('touchend', commitTouchEnd, { passive: false });
     list.addEventListener('touchcancel', cancelHoldTouch, { passive: true });
+    list.addEventListener('pointercancel', cancelHoldTouch, { passive: true });
     list.addEventListener('mousedown', function (event) {
       if (event && event.preventDefault) event.preventDefault();
       commitListEvent(event);
@@ -2155,9 +2171,18 @@ function bindTypeahead(select, items, getValue, getLabel) {
     doc.addEventListener('pointerup', onDocCommit, tapListen);
     doc.addEventListener('touchend', onDocCommit, tapListen);
     doc.addEventListener('touchcancel', cancelHoldTouch, tapListen);
+    // iOS Safari often fires pointercancel instead of pointerup, which would
+    // otherwise leave holdBlur stuck true and gate openList() on every field.
+    doc.addEventListener('pointercancel', cancelHoldTouch, tapListen);
   }
 
   function openList() {
+    // A tap that lands here with the list closed and nothing else claiming the
+    // typeahead is a genuine new gesture — drop any latch left by a prior pick
+    // so a filled field can reopen on iOS Safari.
+    if ((!list.classList || list.classList.contains('is-hidden')) && !activeTypeahead) {
+      clearPickLatch();
+    }
     if (activeTypeahead && activeTypeahead !== selfApi && typeaheadBusy(activeTypeahead)) return;
     showMatches(input.value);
     keepInputVisible();
@@ -2174,6 +2199,12 @@ function bindTypeahead(select, items, getValue, getLabel) {
     typedMatch(input.value);
     showMatches(input.value);
   });
+  input.addEventListener('pointerdown', function () {
+    // The next real press on the field ends the post-pick settle window.
+    clearPickLatch();
+    openList();
+  });
+  input.addEventListener('touchend', openList);
   input.addEventListener('focus', openList);
   input.addEventListener('click', openList);
   input.addEventListener('pointerup', openList);

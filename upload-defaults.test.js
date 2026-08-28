@@ -188,6 +188,112 @@ function testTypeaheadDelayedBlurKeepsListPick(catalog, created) {
   }
 }
 
+function testTypeaheadFilledFieldReopensOnRetap(catalog) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
+    querySelector(sel) {
+      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
+      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
+      return { setAttribute() {} };
+    },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre-retap',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const timers = [];
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  const created = [];
+  global.window = {
+    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
+    clearTimeout() {},
+    addEventListener() {},
+  };
+  global.document = {
+    addEventListener(type, fn) {
+      this.listeners = this.listeners || {};
+      this.listeners[type] = fn;
+    },
+    createElement(tag) {
+      const node = mockTypeaheadEl(tag);
+      created.push(node);
+      return node;
+    },
+    activeElement: null,
+  };
+  // Only run the immediate (0ms) work like the deferred blur. Leave longer
+  // timers (the 450ms picking fallback) pending so the re-tap has to clear the
+  // latch itself — that is the fast "no wait, wrong one" re-tap iOS Safari hit.
+  function flushImmediate() {
+    for (let i = timers.length - 1; i >= 0; i -= 1) {
+      if (timers[i].ms === 0) {
+        const row = timers.splice(i, 1)[0];
+        if (typeof row.fn === 'function') row.fn();
+      }
+    }
+  }
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = field.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    assert.ok(input, 're-tap test needs a typeahead input');
+    assert.ok(list, 're-tap test needs a typeahead list');
+    assert.ok(typeof input.listeners.pointerdown === 'function', 'typeahead input must open from a bare pointerdown');
+    assert.ok(typeof input.listeners.touchend === 'function', 'typeahead input must open from touchend too');
+
+    // Open the empty field and pick a value the normal way.
+    input.listeners.focus();
+    input.value = 'Pop';
+    input.listeners.input();
+    pickFromList(list, 'Pop');
+    assert.strictEqual(select.value, 'Pop', 'first pick commits');
+    assert.strictEqual(input.value, 'Pop', 'first pick shows the label');
+    assert.ok(list.classList.contains('is-hidden'), 'pick closes the list');
+    // Deferred blur (setTimeout 0) and any settle timers now run — as on device.
+    flushImmediate();
+
+    // Re-tap the field WITHOUT clearing input.value — this is the path that was
+    // dead on iOS Safari: the picked label is still shown, pickOption just ran.
+    input.listeners.pointerdown();
+    assert.ok(!list.classList.contains('is-hidden'), 're-tap on a filled field must reopen the list');
+    const reopened = listButtons(list);
+    assert.ok(reopened.length >= 1, 're-tap must repopulate the option list');
+    assert.ok(reopened.some(function (btn) { return btn.textContent === 'Pop'; }), 're-tap keeps the current value in the list');
+
+    // A second value can now be picked to replace the first.
+    input.value = 'Rock';
+    input.listeners.input();
+    pickFromList(list, 'Rock');
+    assert.strictEqual(select.value, 'Rock', 're-tap lets the user change the value');
+    assert.strictEqual(input.value, 'Rock', 're-tap change updates the visible field');
+    flushImmediate();
+
+    // And once more via focus alone (no pointerdown), covering the openList latch reset.
+    input.listeners.focus();
+    assert.ok(!list.classList.contains('is-hidden'), 'focus after a pick must also reopen a filled field');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function fillableCatalogSelect(id, placeholder) {
   const optionsArr = [{ value: '', textContent: placeholder }];
   const field = mockField();
@@ -1114,6 +1220,7 @@ function run() {
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Made Up Genre'), null);
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Pop'), 'Pop');
     testTypeaheadDelayedBlurKeepsListPick(catalog, createdEdit);
+    testTypeaheadFilledFieldReopensOnRetap(catalog);
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesTypeahead(catalog);
     testBasicTypeaheadFiltersAndEnglishFirst(catalog);
