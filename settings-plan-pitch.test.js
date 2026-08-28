@@ -12,8 +12,12 @@ function read(file) {
 function run() {
   const settings = read('settings.html');
   assert.ok(settings.includes('data-account-plan-pitch'), 'Settings PLAN card is filled from the signed-in plan');
+  assert.ok(/data-plan-renews hidden/.test(settings), 'Settings keeps a hidden Stripe renewal line on the current plan');
+  assert.ok(!/data-plan-renews[^>]*>[^<]+</.test(settings), 'Settings must not hardcode a renewal date');
   assert.ok(settings.includes('data-manage-plan-toggle'), 'Settings must expose Manage plan');
   assert.ok(read('site.css').includes('.plan-switch[hidden]'), 'Manage plan panel stays hidden until the button opens it');
+  assert.ok(read('site.css').includes('.plan-renews'), 'Settings renewal line uses the existing gold chrome');
+  assert.ok(read('site.css').includes('[data-plan-renews][hidden]'), 'empty renewal line stays fully hidden');
   assert.ok(read('account.js').includes('scrollIntoView'), 'Manage plan scrolls to the plan options');
   assert.ok(read('account.js').includes('data-plan-option'), 'Manage plan focuses a plan option');
   assert.ok(!/location\.(href|replace).*create-checkout-session/.test(read('account.js')), 'Manage plan click must not open Checkout');
@@ -54,8 +58,15 @@ function run() {
   assert.ok(!/same as Pro|same product as Pro|same-as-Pro/i.test(settings), 'Creator copy must not say same-as-Pro');
   assert.ok(settings.includes('Same as Creator, unlimited'), 'Pro may say same as Creator, unlimited');
   assert.ok(read('dashboard.html').includes('settings.html#manage-billing'), 'dashboard failed-pay banner points at Manage billing');
+  assert.ok(!read('dashboard.html').includes('data-plan-renews'), 'Overview must not show a plan renewal line');
+  assert.ok(!read('dashboard.html').includes('Plan renews'), 'Overview must not keep a Plan renews row');
+  assert.ok(!read('dashboard.html').includes('Split sheets signed'), 'Overview must not show Split sheets signed');
 
   const account = read('account.js');
+  assert.ok(account.includes('stripOverviewLeftoverRows'), 'Overview leftover Split sheets signed / Plan renews rows are stripped');
+  assert.ok(account.includes('current_period_end'), 'Settings paints renewal from the live Stripe current_period_end');
+  assert.ok(account.includes('data-plan-renews'), 'Settings paints the renewal line in place');
+  assert.ok(!/anniversary|created_at|signup_date/.test(account), 'Settings must not invent a billing anniversary');
   assert.ok(account.includes("action: 'portal'") || account.includes('action: "portal"'), 'Update card asks the existing checkout function for a portal');
   assert.ok(account.includes('There is no card on file.'), 'no Stripe customer shows a real no-card message');
   assert.ok(account.includes('billing.stripe.com'), 'portal redirect stays on Stripe Billing Portal');
@@ -213,8 +224,96 @@ function run() {
         assert.strictEqual(billingStatus.textContent, 'There is no card on file.');
         assert.strictEqual(billingStatus.hidden, false);
         assert.ok(String(billingContext.location.href).indexOf('billing.stripe.com') === -1, 'no-card must not open a portal');
-        console.log('settings-plan-pitch.test.js ok');
-        resolve();
+
+        const renews = {
+          textContent: '',
+          hidden: true,
+          attrs: { hidden: '' },
+          getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+          setAttribute(name, value) { this.attrs[name] = String(value); },
+          removeAttribute(name) { delete this.attrs[name]; },
+        };
+        const missingRenews = {
+          textContent: 'leftover',
+          hidden: false,
+          attrs: {},
+          getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+          setAttribute(name, value) { this.attrs[name] = String(value); },
+          removeAttribute(name) { delete this.attrs[name]; },
+        };
+        const basicRenews = {
+          textContent: 'leftover',
+          hidden: false,
+          attrs: {},
+          getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+          setAttribute(name, value) { this.attrs[name] = String(value); },
+          removeAttribute(name) { delete this.attrs[name]; },
+        };
+        function paintContext(node, billing) {
+          const billingGate = {
+            attrs: {},
+            getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null; },
+            setAttribute(name, value) { this.attrs[name] = String(value); },
+            addEventListener() {},
+          };
+          const context = {
+            document: {
+              readyState: 'complete',
+              getElementById() { return null; },
+              querySelector(sel) {
+                if (sel === '[data-manage-plan], [data-manage-billing]') return billingGate;
+                if (sel === '[data-manage-billing]') return billingGate;
+                if (sel === '[data-manage-plan-toggle]') return null;
+                if (sel === '[data-manage-plan]') return null;
+                if (sel === '[data-plan-confirm]') return null;
+                if (sel === '.sign-out') return null;
+                return null;
+              },
+              querySelectorAll(sel) {
+                if (sel === '[data-plan-renews]') return [node];
+                if (sel === '[data-manage-billing-status]') return [];
+                if (sel === '[data-account-plan-pitch]') return [];
+                if (sel === '[data-plan-option]') return [];
+                return [];
+              },
+              addEventListener() {},
+            },
+            location: { href: 'settings.html', pathname: '/settings.html', search: '', hash: '' },
+            fetch() {
+              return Promise.resolve({
+                ok: true,
+                status: 200,
+                json() { return Promise.resolve(billing); },
+              });
+            },
+            window: {},
+          };
+          context.window = context;
+          vm.runInNewContext(read('account.js'), context);
+          return context;
+        }
+        paintContext(renews, { plan: 'creator', interval: 'month', current_period_end: 1789257600, has_card: true });
+        paintContext(missingRenews, { plan: 'pro', interval: 'year', has_card: true });
+        paintContext(basicRenews, { plan: 'basic', no_card: true, has_card: false });
+
+        setTimeout(function () {
+          try {
+            assert.strictEqual(renews.hidden, false, 'paid Settings shows the Stripe renewal date');
+            assert.ok(!Object.prototype.hasOwnProperty.call(renews.attrs, 'hidden'), 'paid renewal clears hidden');
+            assert.ok(/^Renews /.test(renews.textContent), 'paid renewal names the date');
+            assert.ok(renews.textContent.indexOf('2026') !== -1, 'paid renewal uses the Stripe unix year');
+            assert.strictEqual(missingRenews.hidden, true, 'missing current_period_end omits the line');
+            assert.strictEqual(missingRenews.textContent, '', 'missing current_period_end does not guess a date');
+            assert.strictEqual(basicRenews.hidden, true, 'Basic Settings hides the renewal line');
+            assert.strictEqual(basicRenews.textContent, '', 'Basic Settings does not show a renewal date');
+            assert.ok(!read('split-sheet.html').includes('data-plan-renews'), 'SignWell page stays off this Settings line');
+            assert.ok(read('split-sheet.html').includes("showStatus('ok', 'Split sheet signed.')"), 'SignWell multi-writer signed status stays');
+            console.log('settings-plan-pitch.test.js ok');
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        }, 0);
       } catch (err) {
         reject(err);
       }
