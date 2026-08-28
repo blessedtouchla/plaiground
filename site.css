@@ -2606,6 +2606,23 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .toggle-input:focus-visible + .toggle {
   box-shadow: 0 0 0 3px rgba(125, 60, 255, 0.22);
 }
+.toggle-line.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.toggle-input:disabled {
+  cursor: not-allowed;
+}
+.video-collect-control {
+  max-width: 640px;
+  margin-top: 18px;
+}
+.video-collect-control [data-video-collect-error] {
+  color: var(--gold);
+  font-size: 13px;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
 .release-extra { margin: 0 0 8px; }
 .release-time-row {
   display: grid;

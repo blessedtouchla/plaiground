@@ -24,9 +24,9 @@ const APP_PAGES = [
   'profile.html',
   'library.html',
   'boosts.html',
-  'chart-push.html',
-  'streaming-push.html',
-  'social-push.html',
+  'playlists.html',
+  'charts.html',
+  'social-ads.html',
   'video-collect.html',
   'publishing-register.html',
   'faq.html',
@@ -89,7 +89,7 @@ function run() {
   assert.ok(/collected by societies, not stores/i.test(faq), 'publishing answer says societies collect');
   assert.ok(/What are Boosts\?/i.test(faq), 'FAQ answers What are Boosts');
   assert.ok(/not a membership plan/i.test(faq), 'Boosts are marketing, not a plan');
-  assert.ok(/Chart Push/i.test(faq) && /Streaming Push/i.test(faq), 'Boosts name Chart Push and Streaming Push');
+  assert.ok(/Playlists/i.test(faq) && /Charts/i.test(faq) && /Social Ads/i.test(faq) && /Video Collect/i.test(faq), 'Boosts name the four hub categories');
   assert.ok(/What is MSP\?/i.test(faq), 'FAQ answers What is MSP');
   assert.ok(/Multiple Streams of Revenue/i.test(faq), 'MSP is Multiple Streams of Revenue');
   assert.ok(/How do I get into my Pro or Creator account\?/i.test(faq), 'FAQ answers signed-in access');
@@ -305,11 +305,11 @@ function run() {
 
   const boosts = read('boosts.html');
   assert.ok(!/Go Pro to unlock/i.test(boosts), 'boosts.html must not pitch Go Pro');
-  assert.ok(/Marketing Boosts/i.test(boosts), 'boosts.html stays a marketing dashboard');
+  assert.ok(/Grow Your Music/i.test(boosts), 'boosts.html stays a marketing dashboard');
   assert.ok(!/data-require-paid/i.test(boosts), 'boosts.html must not dump Basic to Pick a plan');
   assert.ok(/data-require-membership="true"/i.test(boosts), 'boosts.html stays a signed-in page');
   assert.ok(boosts.includes('data-boost-hub'), 'boosts.html is the four-card Boost hub');
-  assert.ok(/Chart Push/.test(boosts) && /Streaming Push/.test(boosts) && /Social Push/.test(boosts) && /Video Collect/.test(boosts), 'hub lists the four live package titles');
+  assert.ok(/Playlists/.test(boosts) && /Charts/.test(boosts) && /Social Ads/.test(boosts) && /Video Collect/.test(boosts), 'hub lists the four category titles');
   assert.ok(/Boosts are locked on Basic/i.test(boosts), 'Basic sees a Boost lock, not a plan pitch');
   assert.ok(/Creator and Pro can add a Boost/i.test(boosts), 'Boost lock is Creator + Pro');
 

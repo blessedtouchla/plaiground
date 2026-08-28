@@ -51,18 +51,26 @@
       </div>
       <div class="draft-banner" data-for-plans="basic">
         <strong>Boosts are locked on Basic</strong>
-        <p>Creator and Pro can add a Boost to a release. Basic can see the options.</p>
+        <p>Creator and Pro can add a Boost to a release. Basic can see the explainer. The Video Collect toggle stays locked.</p>
       </div>
       <article class="boost-explainer" data-video-collect>
         <h3>Video Collect</h3>
         <p>Get paid when someone uses your song in a video. YouTube, Instagram, Facebook, TikTok. We take 0%. You get 100% of the payout.</p>
-        <span class="not-sale">Not for sale</span>
         <p class="boost-hub-lock">Creator and Pro only.</p>
       </article>
+      <div class="video-collect-control" data-video-collect-control>
+        <label class="toggle-line is-locked" data-video-collect-label>
+          <input id="video-collect-toggle" class="toggle-input" type="checkbox" role="switch" disabled aria-disabled="true" aria-checked="false" data-video-collect-toggle />
+          <span class="toggle" aria-hidden="true"></span>
+          Video Collect
+        </label>
+        <p data-video-collect-error>Video Collect could not be turned on. The payout connection is not available.</p>
+      </div>
     </div>
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
+  <script src="video-collect.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

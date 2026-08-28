@@ -103,7 +103,7 @@ function run() {
     '3,462,104',
   ];
 
-  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html', 'settings.html', 'splits.html', 'splits-empty.html', 'publishing-register.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html', 'how.html', 'upload.html'].forEach(function (file) {
+  ['earnings.html', 'releases.html', 'analytics.html', 'dashboard.html', 'song.html', 'payouts.html', 'profile.html', 'artists.html', 'settings.html', 'splits.html', 'splits-empty.html', 'publishing-register.html', 'boosts.html', 'playlists.html', 'charts.html', 'social-ads.html', 'video-collect.html', 'how.html', 'upload.html'].forEach(function (file) {
     const html = read(file);
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);

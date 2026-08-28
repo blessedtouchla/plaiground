@@ -319,7 +319,7 @@ function runStatic() {
   const siteCss = read('site.css');
   assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome keeps Talk/Text PLAI on screen');
   assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text PLAI');
-  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
+  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'playlists.html', 'charts.html', 'social-ads.html', 'video-collect.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
   });
