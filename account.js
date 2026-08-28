@@ -255,6 +255,16 @@
       if (el.tagName === 'INPUT') el.value = artist;
       else setText(el, artist);
     });
+    var legal = String((me.profile && me.profile.legal_name) || '').trim();
+    $all('[data-account-legal]').forEach(function (el) {
+      if (el.tagName === 'INPUT') el.value = legal;
+      else setText(el, legal);
+    });
+    var country = String((me.profile && me.profile.country) || '').trim();
+    $all('[data-account-country]').forEach(function (el) {
+      if (el.tagName === 'INPUT') el.value = country;
+      else setText(el, country);
+    });
     $all('[data-account-plan]').forEach(function (el) { setText(el, planLabel(me.plan)); });
     var interval = String(me.billing_interval || me.interval || '').toLowerCase();
     $all('[data-account-plan-pitch]').forEach(function (el) { setText(el, planPitch(me.plan, interval)); });
@@ -629,25 +639,42 @@
     });
   }
 
-  function photoPayload(photo) {
+  function accountPayload(overrides) {
+    overrides = overrides || {};
     var me = currentMe() || {};
     var raw = me.profile && typeof me.profile === 'object' ? me.profile : {};
+    var artistInput = document.querySelector('[data-account-artist]');
+    var artist = artistInput && artistInput.tagName === 'INPUT'
+      ? String(artistInput.value || '').trim()
+      : (accountArtistField(me) || String(me.artist || '').trim());
+    if (overrides.artist != null) artist = String(overrides.artist || '').trim();
+    var legalInput = document.querySelector('[data-account-legal]');
+    var countryInput = document.querySelector('[data-account-country]');
+    var photo = Object.prototype.hasOwnProperty.call(overrides, 'photo')
+      ? overrides.photo
+      : accountPhoto(me);
+    var legal = legalInput ? String(legalInput.value || '').trim() : String(raw.legal_name || '');
+    var country = countryInput ? String(countryInput.value || '').trim() : String(raw.country || '');
+    if (overrides.legal_name != null) legal = String(overrides.legal_name || '').trim();
+    if (overrides.country != null) country = String(overrides.country || '').trim();
     return {
-      artist: accountArtistField(me) || String(me.artist || '').trim(),
+      artist: artist,
       profile: {
         photo: photo || '',
         genres: Array.isArray(raw.genres) ? raw.genres : [],
         specialties: Array.isArray(raw.specialties) ? raw.specialties : [],
+        legal_name: legal,
+        country: country,
       },
     };
   }
 
-  function saveAccountPhoto(photo) {
+  function postAccountProfile(payload) {
     return fetch('/api/me/profile', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(photoPayload(photo)),
+      body: JSON.stringify(payload),
     }).then(function (response) {
       return response.json().then(function (data) {
         return { ok: response.ok, status: response.status, data: data || {} };
@@ -657,6 +684,58 @@
     }).then(function (result) {
       if (result.ok && result.data) fillAccount(result.data);
       return result;
+    });
+  }
+
+  function saveAccountPhoto(photo) {
+    return postAccountProfile(accountPayload({ photo: photo }));
+  }
+
+  function saveAccountChanges() {
+    var btn = document.querySelector('[data-account-save]');
+    var status = document.querySelector('[data-account-save-status]');
+    if (btn) {
+      if (btn.setAttribute) btn.setAttribute('aria-busy', 'true');
+      btn.disabled = true;
+    }
+    setHint(status, 'Saving…');
+    return postAccountProfile(accountPayload()).then(function (result) {
+      if (btn) {
+        if (btn.removeAttribute) btn.removeAttribute('aria-busy');
+        btn.disabled = false;
+      }
+      if (!result) {
+        setHint(status, 'Could not save changes.');
+        return result;
+      }
+      if (result.status === 401) {
+        setHint(status, 'Sign in to save these changes.');
+        return result;
+      }
+      if (!result.ok) {
+        setHint(status, (result.data && result.data.error) || 'Could not save changes.');
+        return result;
+      }
+      setHint(status, 'Saved on this account.');
+      return result;
+    }).catch(function () {
+      if (btn) {
+        if (btn.removeAttribute) btn.removeAttribute('aria-busy');
+        btn.disabled = false;
+      }
+      setHint(status, 'Could not save changes.');
+      return { ok: false };
+    });
+  }
+
+  function bindSaveChanges() {
+    var btn = document.querySelector('[data-account-save]');
+    if (!btn) return;
+    if (btn.getAttribute('data-bound') === 'true') return;
+    btn.setAttribute('data-bound', 'true');
+    btn.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      saveAccountChanges();
     });
   }
 
@@ -1121,11 +1200,13 @@
   whenDomReady(bindChangePassword);
   whenDomReady(bindDeleteAccount);
   whenDomReady(bindChangePhoto);
+  whenDomReady(bindSaveChanges);
   bindManagePlan();
   bindManageBilling();
   bindChangePassword();
   bindDeleteAccount();
   bindChangePhoto();
+  bindSaveChanges();
   bindPlanConfirm();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
@@ -1169,5 +1250,6 @@
     accountPhoto: accountPhoto,
     readPhotoFile: readPhotoFile,
     saveAccountPhoto: saveAccountPhoto,
+    saveAccountChanges: saveAccountChanges,
   };
 })(window);

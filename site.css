@@ -1225,6 +1225,9 @@ table.data td.release-edit-col .btn {
   margin-top: 22px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
+  position: relative;
+  z-index: 4100;
+  pointer-events: auto;
 }
 .artist-edit-actions [data-artist-save],
 .artist-edit-actions [data-artist-delete] {
@@ -3104,6 +3107,19 @@ body:not(.app) > .app-main > .topbar { display: none; }
   align-items: center;
   flex-wrap: wrap;
   margin-top: 28px;
+  position: relative;
+  z-index: 4100;
+  pointer-events: auto;
+}
+.confirm-actions .btn,
+.artist-edit-actions [data-artist-save] {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+body.app.settings-page .page,
+body.app.artists-page .page {
+  padding-bottom: 112px;
 }
 .signed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .signed-card {
@@ -3704,6 +3720,10 @@ body:not(.app) > .app-main > .topbar { display: none; }
   .hero-ctas { flex-direction: column; align-items: center; }
   .hero-ctas .btn { width: 100%; max-width: 280px; }
   .page { padding: 22px 16px 40px; }
+  body.app.settings-page .page,
+  body.app.artists-page .page {
+    padding-bottom: 72px;
+  }
 }
 
 /* Phone header: logo + Login above the Menu pill. Release Now stays in the drawer. */
