@@ -431,7 +431,7 @@ function run() {
   const pubRegNav = read('publishing-register.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
   assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register/.test(pubRegNav[0]), 'Publishing is current on the register page');
   assert.ok(js.includes('publishing-register.html') && js.includes('publishing.html') && js.includes('data-publishing-register'), 'shared app menu marks Publishing current on register/explainer');
-  assert.ok(js.includes('setupOverviewSubmenu') && js.includes('isPhoneAppMenu') && js.includes('max-width: 980px'), 'phone tap Overview expands the submenu without closing the drawer');
+  assert.ok(js.includes('setupOverviewSubmenu') && js.includes('isPhoneAppMenu') && js.includes('max-width: 980px') && js.includes('isOverviewHomeLink'), 'phone tap Overview expands the submenu without closing the drawer');
 
   const releases = read('releases.html');
   const siteCss = read('site.css');
