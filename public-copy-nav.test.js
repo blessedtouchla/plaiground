@@ -69,6 +69,12 @@ function run() {
     assert.ok(!html.includes('Four steps from') && !html.includes('Five steps from'), file + ' must not keep four or five steps');
     assert.ok(html.includes('<h3>Upload</h3>') && html.includes('<h3>Release</h3>') && html.includes('<h3>Get paid</h3>'), file + ' steps stay Upload / Release / Get paid');
     assert.ok(!html.includes('<h3>Artist profile</h3>') && !/01\s*Artist profile/.test(html), file + ' must not number Artist profile as a How it works step');
+    const note = 'And a cherry on top: make your Artist profile once so stores know who you are.';
+    const noteIdx = html.indexOf(note);
+    assert.ok(noteIdx !== -1, file + ' mentions Artist profile as a cherry-on-top above the steps');
+    assert.ok(html.includes('class="how-who-note"') && html.indexOf('class="how-who-note"') < stepsIdx, file + ' keeps the Artist profile note in who-this-is-for, not the numbered list');
+    assert.ok(noteIdx < stepsIdx, file + ' puts the Artist profile mention above the three steps');
+    assert.strictEqual((html.match(/<div class="n [pmg]">0[1-9]<\/div>/g) || []).length, 3, file + ' still has exactly three numbered step badges');
     assert.ok(html.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), file + ' Upload step copy stays');
     assert.ok(html.includes('We generate the split sheet, everyone signs, and we deliver on the date you choose.'), file + ' Release step omits a store count');
     assert.ok(html.includes('Distribution to the stores we send to'), file + ' Release bullet names the stores we send to');
