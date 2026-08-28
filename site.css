@@ -2112,10 +2112,16 @@ body:not(.app) > .app-main > .topbar { display: none; }
 }
 .how-cols {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+}
+.app .how-who {
+  padding: 4px 0 28px;
+}
+.app .how-cols {
+  margin: 0 0 28px;
 }
 .how-col { padding: 36px 32px; }
 .how-col + .how-col { border-left: 1px solid var(--line); }
