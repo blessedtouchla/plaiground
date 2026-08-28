@@ -12,10 +12,15 @@
  * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
  * Hobby-safe: webhook is the same Serverless Function via vercel.json rewrite.
+ * Accept Stripe on BOTH hosts. Stripe does not follow redirects, so POST
+ * /api/stripe/webhook on wannaplai.com must not 308 to www.
+ *   https://wannaplai.com/api/stripe/webhook
+ *   https://www.wannaplai.com/api/stripe/webhook
  *
  * Stripe Dashboard (add after deploy; do not invent a secret here):
  *   1. Developers → Webhooks → Add endpoint
- *   2. Endpoint URL: https://wannaplai.com/api/stripe/webhook
+ *   2. Endpoint URL: https://www.wannaplai.com/api/stripe/webhook
+ *      (apex https://wannaplai.com/api/stripe/webhook must also accept POST)
  *   3. Events: checkout.session.completed, invoice.paid, invoice.upcoming,
  *      invoice.payment_failed, payment_intent.payment_failed,
  *      customer.subscription.updated, customer.subscription.deleted
@@ -116,20 +121,33 @@ function readBody(req) {
   });
 }
 
+function hasReadableStream(req) {
+  if (!req || typeof req.on !== 'function') return false;
+  return req.readable === true || typeof req.read === 'function' || !!req.socket;
+}
+
 function readRawBody(req) {
   if (Buffer.isBuffer(req.rawBody)) return Promise.resolve(req.rawBody);
   if (typeof req.rawBody === 'string') return Promise.resolve(Buffer.from(req.rawBody, 'utf8'));
+  if (req && typeof req.text === 'function' && !hasReadableStream(req)) {
+    return Promise.resolve(req.text()).then((text) => Buffer.from(String(text || ''), 'utf8'));
+  }
+  // Vercel Node helpers expose req.body as a getter that parses JSON and
+  // consumes the stream. Never read req.body when the raw stream is still there.
+  if (hasReadableStream(req)) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
+    });
+  }
   if (Buffer.isBuffer(req.body)) return Promise.resolve(req.body);
   if (typeof req.body === 'string') return Promise.resolve(Buffer.from(req.body, 'utf8'));
   if (req.body && typeof req.body === 'object') {
     return Promise.reject(new Error('raw body required'));
   }
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on('data', (chunk) => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
+  return Promise.resolve(Buffer.alloc(0));
 }
 
 function scrub(text) {
@@ -1012,3 +1030,4 @@ handler.config = {
 };
 
 module.exports = handler;
+module.exports.config = handler.config;

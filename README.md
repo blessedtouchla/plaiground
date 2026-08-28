@@ -2,7 +2,7 @@
 
 Static site. Split-sheet signing uses SignWell via `api/signwell.js`.
 The PLAI voice bubble mints an xAI ephemeral token via `api/plai-session.js`.
-Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js` (`mode=subscription`, monthly or yearly). Settings → Manage plan redirects to `plan-confirm.html`. Submit there updates the subscription (`action=switch`). Preview (`action=preview`) does not charge. Settings → Manage billing opens the Stripe Customer Billing Portal (`action=portal`) to update the card. No Stripe customer means no card on file — the site does not invent a portal. The signed Stripe webhook lives in that same file at `/api/stripe/webhook` (Hobby rewrite — not a seventh function).
+Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js` (`mode=subscription`, monthly or yearly). Settings → Manage plan redirects to `plan-confirm.html`. Submit there updates the subscription (`action=switch`). Preview (`action=preview`) does not charge. Settings → Manage billing opens the Stripe Customer Billing Portal (`action=portal`) to update the card. No Stripe customer means no card on file — the site does not invent a portal. The signed Stripe webhook lives in that same file at `/api/stripe/webhook` (Hobby rewrite — not a seventh function). Stripe does not follow redirects, so POST is accepted on both `https://wannaplai.com/api/stripe/webhook` and `https://www.wannaplai.com/api/stripe/webhook`. Other apex pages may still 308 to www.
 Artist and release calls go to ToneGrid via the server-only handler in `api/tonegrid.js`.
 
 Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
@@ -65,7 +65,7 @@ Failed-pay statuses (plan stays Creator/Pro until cancel/delete):
 Stripe Dashboard (you add this; the repo has no webhook secret):
 
 1. Developers → Webhooks → Add endpoint
-2. URL: `https://wannaplai.com/api/stripe/webhook`
+2. URL: `https://www.wannaplai.com/api/stripe/webhook` (apex `https://wannaplai.com/api/stripe/webhook` must also accept POST; do not 308)
 3. Events: `checkout.session.completed`, `invoice.paid`, `invoice.upcoming`, `invoice.payment_failed`, `payment_intent.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
 4. Put the signing secret in Vercel as `STRIPE_WEBHOOK_SECRET`
 
@@ -93,7 +93,7 @@ Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 - `POST /api/create-checkout-session` `{ action: "preview", plan, interval }` (confirm page only; does not charge)
 - `POST /api/create-checkout-session` `{ action: "billing" }` (current price for that customer)
 - `POST /api/create-checkout-session` `{ action: "portal" }` (Stripe Customer Billing Portal, card update only; `{ no_card: true }` when there is no Stripe customer)
-- `POST /api/stripe/webhook` (Stripe-Signature; Hobby rewrite onto `create-checkout-session.js`)
+- `POST /api/stripe/webhook` (Stripe-Signature; Hobby rewrite onto `create-checkout-session.js`; apex and www, no 308)
 - `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
 - `POST /api/me/problem` (signed-in; `{ problem }` plus the session email; Resend to `emailplaiground@gmail.com`. Missing mail or a send failure returns `mail_sent: false` — the page does not fake success.)
 

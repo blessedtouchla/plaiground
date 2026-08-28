@@ -1,4 +1,18 @@
 {
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/",
+      "permanent": true
+    },
+    {
+      "source": "/((?!api/stripe/webhook/?$).*)",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },
     { "source": "/api/me/catalog", "destination": "/api/me?action=catalog" },
