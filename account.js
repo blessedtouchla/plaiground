@@ -130,9 +130,46 @@
     });
   }
 
+  function isPaidPlan(plan) {
+    var next = String(plan || '').trim().toLowerCase();
+    return next === 'creator' || next === 'pro';
+  }
+
+  function unixSeconds(value) {
+    if (value == null || value === '') return null;
+    var n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+  }
+
+  function formatRenewalDate(unix) {
+    var n = unixSeconds(unix);
+    if (n == null) return '';
+    var date = new Date(n * 1000);
+    if (Number.isNaN(date.getTime())) return '';
+    try {
+      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function paintPlanRenews(data) {
+    var plan = data && data.plan;
+    var label = isPaidPlan(plan) ? formatRenewalDate(data && data.current_period_end) : '';
+    var text = label ? 'Renews ' + label : '';
+    $all('[data-plan-renews]').forEach(function (el) {
+      setText(el, text);
+      el.hidden = !text;
+      if (!text) el.setAttribute('hidden', '');
+      else if (el.removeAttribute) el.removeAttribute('hidden');
+    });
+  }
+
   function applyBillingState(data) {
     if (!data) return;
     if (data.plan || data.interval) markPlanOption(data.plan, data.interval);
+    paintPlanRenews(data);
     if (data.no_card || data.has_card === false) {
       setBillingStatus('There is no card on file.');
     }
@@ -212,6 +249,7 @@
       setText(el, PLAN_DETAIL[String(me.plan || '').toLowerCase()] || PLAN_DETAIL.basic);
     });
     markPlanOption(me.plan, interval);
+    if (!isPaidPlan(me.plan)) paintPlanRenews({ plan: me.plan });
     $all('[data-account-plan-title]').forEach(function (el) {
       var status = String(me.status || '').toLowerCase();
       if (status === 'hold') {

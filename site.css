@@ -1056,6 +1056,14 @@ body.app > .plai-bubble {
   flex: 0 1 auto;
   white-space: nowrap;
 }
+.plan-renews {
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  max-width: 560px;
+}
+[data-plan-renews][hidden] { display: none !important; }
 .plan-switch { display: grid; gap: 16px; margin-top: 16px; max-width: none; }
 .plan-switch[hidden],
 [data-manage-plan][hidden] { display: none !important; }

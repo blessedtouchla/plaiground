@@ -6,7 +6,8 @@
  * POST { action: "switch" }          → update the signed-in customer's ONE subscription
  * POST { action: "preview" }         → confirm-page copy only (does not charge)
  * Existing Creator/Pro members never get a second Checkout Session.
- * POST { action: "billing" }         → current paid price for that customer (no email lookup)
+ * POST { action: "billing" }         → current paid price + live Stripe current_period_end
+ *                                        (omit the date when Stripe does not send one)
  * POST { action: "portal" }          → Stripe Customer Billing Portal (card update only)
  * POST /api/stripe/webhook           → verify Stripe-Signature, set Creator/Pro/Basic
  *
@@ -37,7 +38,7 @@ const {
   planMetaForPrice,
   prorationBehaviorForChange,
 } = require('../lib/stripe-plans');
-const { applyStripeEvent, verifyStripeSignature, webhookSecret } = require('../lib/stripe-webhook');
+const { applyStripeEvent, periodEndUnix, verifyStripeSignature, webhookSecret } = require('../lib/stripe-webhook');
 const { headerValue } = require('../lib/tonegrid');
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1/';
@@ -519,13 +520,19 @@ async function showBilling(req, res) {
   }
   const priceId = found && found.sub ? priceIdOfSubscription(found.sub) : '';
   const meta = planMetaForPrice(priceId);
-  sendJson(res, 200, {
-    plan: meta.plan || user.plan || 'basic',
+  const plan = meta.plan || user.plan || 'basic';
+  const payload = {
+    plan: plan,
     interval: meta.interval || '',
     priceId: priceId || '',
     has_card: true,
     no_card: false,
-  });
+  };
+  const periodEnd = found && found.sub ? periodEndUnix(found.sub) : null;
+  if ((plan === 'creator' || plan === 'pro') && periodEnd != null) {
+    payload.current_period_end = periodEnd;
+  }
+  sendJson(res, 200, payload);
 }
 
 function centsDue(invoice) {

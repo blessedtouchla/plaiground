@@ -411,6 +411,9 @@ function run() {
   assert.ok(!dash.includes('Upgrade to Pro only'), 'dashboard must not say Upgrade to Pro only');
   assert.ok(!dash.includes('Hi John!'), 'dashboard must not greet John');
   assert.ok(!/>On Pro</.test(dash), 'dashboard sidebar must not default to On Pro');
+  assert.ok(!dash.includes('Split sheets signed'), 'Overview must not show Split sheets signed');
+  assert.ok(!dash.includes('Plan renews'), 'Overview must not show a Plan renews line');
+  assert.ok(!dash.includes('data-plan-renews'), 'Overview must not paint a Stripe renewal date');
 
   const settings = read('settings.html');
   assert.ok(!settings.includes('Hi John'), 'settings.html must not hardcode Hi John');
