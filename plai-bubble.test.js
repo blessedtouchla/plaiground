@@ -150,7 +150,21 @@ function loadWidget(options) {
     getElementById: function (id) {
       return queryOne(body, '#' + id);
     },
-    addEventListener: function () {},
+    querySelector: function (sel) {
+      return queryOne(body, sel);
+    },
+    querySelectorAll: function (sel) {
+      const out = [];
+      walk(body, function (n) {
+        if (matches(n, sel)) out.push(n);
+      });
+      return out;
+    },
+    listeners: Object.create(null),
+    addEventListener: function (type, fn) {
+      if (!this.listeners[type]) this.listeners[type] = [];
+      this.listeners[type].push(fn);
+    },
   };
   const store = Object.create(null);
   const storage = {
@@ -357,6 +371,10 @@ function runStatic() {
     const html = read(file);
     assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
   });
+  assert.ok(read('dashboard.html').includes('data-plai-talk'), 'Overview has a Talk to PLAI CTA');
+  assert.ok(/data-plai-talk[^>]*>Talk to PLAI</.test(read('dashboard.html')), 'Overview Talk CTA is written PLAI');
+  assert.ok(read('plai-bubble.js').includes('data-plai-talk'), 'Talk CTA opens the existing voice agent');
+  assert.ok(!read('dashboard.html').includes('XAI_API_KEY'), 'Overview must not leak XAI_API_KEY');
 
   assert.ok(session.includes('process.env.XAI_API_KEY'), 'session route keeps the server key');
   assert.ok(session.includes("method === 'GET'"), 'GET still reports configured without minting');
@@ -469,9 +487,25 @@ function runPhoneChrome() {
   });
 }
 
+function runPageTalk() {
+  const ui = loadWidget();
+  return wait(20).then(function () {
+    const cta = makeNode('button');
+    cta.setAttribute('data-plai-talk', '');
+    cta.textContent = 'Talk to PLAI';
+    ui.document.body.appendChild(cta);
+    const ev = { type: 'click', target: cta, currentTarget: cta, preventDefault: function () {} };
+    (ui.document.listeners.click || []).forEach(function (fn) { fn(ev); });
+    return wait(40).then(function () {
+      assert.ok(ui.getUserMediaCalls.length >= 1, 'Overview Talk to PLAI CTA activates the mic');
+      assert.ok(!/Mic is off/.test(ui.statusText()), 'Overview Talk CTA is not Text PLAI');
+    });
+  });
+}
+
 function run() {
   runStatic();
-  return runClicks().then(runPhoneChrome).then(function () {
+  return runClicks().then(runPhoneChrome).then(runPageTalk).then(function () {
     console.log('plai-bubble.test.js ok');
   });
 }

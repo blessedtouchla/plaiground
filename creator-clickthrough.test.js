@@ -241,7 +241,8 @@ function run() {
     assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read(file)), file + ' menu Releases must not deep-link a song');
   });
 
-  assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(read('dashboard.html')), 'Creator Overview Edit release shows the list first');
+  assert.ok(/href="releases.html"[^>]*data-all-releases|data-all-releases[^>]*href="releases.html"/.test(read('dashboard.html')), 'Creator Overview All releases opens the catalog list');
+  assert.ok(!read('dashboard.html').includes('Edit release'), 'Overview must not clone the Releases edit action');
   assert.ok(read('account.js').includes("var editHref = 'releases.html'"), 'Creator Edit release ignores last-release id');
   assert.ok(read('song.js').includes("if (!queryId())"), 'song.html with no id does not auto-open latest/draft');
 
