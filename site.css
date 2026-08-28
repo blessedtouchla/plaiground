@@ -2820,8 +2820,88 @@ body:not(.app) > .app-main > .topbar { display: none; }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+.admin-signup-email {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.admin-signup-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.admin-signup-when { white-space: nowrap; }
 .admin-alert { color: #ff8a8a; }
 .admin-section { scroll-margin-top: 24px; }
+@media (max-width: 1180px) {
+  [data-owner-desk] .admin-table-wrap {
+    overflow-x: hidden;
+  }
+  [data-owner-desk] .admin-table-wrap table.data {
+    width: 100%;
+  }
+  [data-owner-desk] .admin-table-wrap table.data thead {
+    display: none;
+  }
+  [data-owner-desk] .admin-table-wrap table.data,
+  [data-owner-desk] .admin-table-wrap table.data tbody {
+    display: block;
+    width: 100%;
+  }
+  [data-owner-desk] .admin-table-wrap table.data tr {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin: 0 0 12px;
+    background: #16161C;
+  }
+  [data-owner-desk] .admin-table-wrap table.data tr:last-child {
+    margin-bottom: 0;
+  }
+  [data-owner-desk] .admin-table-wrap table.data td {
+    display: grid;
+    grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 0;
+    border-bottom: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  [data-owner-desk] .admin-table-wrap table.data td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+  [data-owner-desk] .admin-table-wrap table.data td.admin-lead {
+    display: block;
+    font-weight: 700;
+    padding: 0 0 10px;
+  }
+  [data-owner-desk] .admin-table-wrap table.data td.admin-lead::before {
+    display: none;
+  }
+  [data-owner-desk] .admin-table-wrap table.data td.admin-signup-dup {
+    display: none;
+  }
+  [data-owner-desk] .admin-signup-meta {
+    display: grid;
+    gap: 4px;
+    font-weight: 500;
+  }
+  [data-owner-desk] .admin-signup-when {
+    white-space: normal;
+  }
+}
 [data-owner-desk] .pro-card { display: none; }
 .song-store-status {
   display: grid;

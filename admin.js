@@ -52,6 +52,31 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function formatSignedUpAt(value) {
+    if (!value) return '—';
+    var d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).formatToParts(d);
+    var map = {};
+    parts.forEach(function (part) {
+      map[part.type] = part.value;
+    });
+    return map.month + ' ' + map.day + ', ' + map.year + ' ' + map.hour + ':' + map.minute + ' ' + map.dayPeriod + ' PT';
+  }
+
+  function cell(label, html, extraClass) {
+    var cls = extraClass ? ' class="' + extraClass + '"' : '';
+    return '<td' + cls + ' data-label="' + escapeHtml(label) + '">' + html + '</td>';
+  }
+
   function formatMoney(cents, currency) {
     if (cents == null || cents === '') return '—';
     var n = Number(cents);
@@ -114,12 +139,21 @@
 
   function renderSignups(signups) {
     fillTable('[data-signups-table]', '[data-signups-empty]', '[data-signups-body]', signups, function (row) {
+      var name = dash(row && row.name);
+      var when = formatSignedUpAt(row && row.signed_up_at);
       return '<tr>'
-        + '<td>' + escapeHtml(row.email) + '</td>'
-        + '<td>' + escapeHtml(planLabel(row.plan)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
-        + '<td>' + escapeHtml(formatDate(row.signed_up_at)) + '</td>'
-        + '<td>' + escapeHtml(stripeLabel(row.stripe)) + '</td>'
+        + cell('Email',
+          '<div class="admin-signup-email">' + escapeHtml(dash(row.email)) + '</div>'
+          + '<div class="admin-signup-meta">'
+          + '<span class="admin-signup-name">' + escapeHtml(name) + '</span>'
+          + '<span class="admin-signup-when">' + escapeHtml(when) + '</span>'
+          + '</div>',
+          'admin-lead')
+        + cell('Name', escapeHtml(name), 'admin-signup-dup')
+        + cell('Plan', escapeHtml(planLabel(row.plan)))
+        + cell('Status', escapeHtml(dash(row.status)))
+        + cell('Signed up', escapeHtml(when), 'admin-signup-dup')
+        + cell('Stripe', escapeHtml(stripeLabel(row.stripe)))
         + '</tr>';
     });
   }
@@ -127,11 +161,11 @@
   function renderCheckouts(checkouts) {
     fillTable('[data-checkouts-table]', '[data-checkouts-empty]', '[data-checkouts-body]', checkouts, function (row) {
       return '<tr>'
-        + '<td>' + escapeHtml(dash(row.email)) + '</td>'
-        + '<td>' + escapeHtml(planLabel(row.plan)) + '</td>'
-        + '<td>' + escapeHtml(formatMoney(row.amount_cents, row.currency)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
-        + '<td>' + escapeHtml(formatDate(row.paid_at)) + '</td>'
+        + cell('Email', escapeHtml(dash(row.email)), 'admin-lead')
+        + cell('Plan', escapeHtml(planLabel(row.plan)))
+        + cell('Amount', escapeHtml(formatMoney(row.amount_cents, row.currency)))
+        + cell('Status', escapeHtml(dash(row.status)))
+        + cell('Paid', escapeHtml(formatDate(row.paid_at)))
         + '</tr>';
     });
   }
@@ -139,10 +173,10 @@
   function renderSubs(subscriptions) {
     fillTable('[data-subs-table]', '[data-subs-empty]', '[data-subs-body]', subscriptions, function (row) {
       return '<tr>'
-        + '<td>' + escapeHtml(dash(row.email)) + '</td>'
-        + '<td>' + escapeHtml(planLabel(row.plan)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
-        + '<td>' + escapeHtml(formatDate(row.started_at)) + '</td>'
+        + cell('Email', escapeHtml(dash(row.email)), 'admin-lead')
+        + cell('Plan', escapeHtml(planLabel(row.plan)))
+        + cell('Status', escapeHtml(dash(row.status)))
+        + cell('Started', escapeHtml(formatDate(row.started_at)))
         + '</tr>';
     });
   }
@@ -155,11 +189,11 @@
         .concat((money && money.payouts) || []);
     fillTable('[data-money-table]', '[data-money-empty]', '[data-money-body]', rows, function (row) {
       return '<tr>'
-        + '<td>' + escapeHtml(kindLabel(row.kind)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.email)) + '</td>'
-        + '<td>' + escapeHtml(formatMoney(row.amount_cents, row.currency)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
-        + '<td>' + escapeHtml(formatDate(row.created_at)) + '</td>'
+        + cell('Kind', escapeHtml(kindLabel(row.kind)), 'admin-lead')
+        + cell('Email', escapeHtml(dash(row.email)))
+        + cell('Amount', escapeHtml(formatMoney(row.amount_cents, row.currency)))
+        + cell('Status', escapeHtml(dash(row.status)))
+        + cell('Date', escapeHtml(formatDate(row.created_at)))
         + '</tr>';
     });
   }
@@ -168,16 +202,16 @@
     fillTable('[data-submissions-table]', '[data-submissions-empty]', '[data-submissions-body]', submissions, function (row) {
       var alert = String(row.alert || '').trim();
       return '<tr>'
-        + '<td>' + escapeHtml(dash(row.title)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.artist)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.email)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.street_date)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.live_date)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.upc)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.isrc)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.takedown)) + '</td>'
-        + '<td class="admin-alert">' + escapeHtml(alert) + '</td>'
+        + cell('Title', escapeHtml(dash(row.title)), 'admin-lead')
+        + cell('Artist', escapeHtml(dash(row.artist)))
+        + cell('Email', escapeHtml(dash(row.email)))
+        + cell('Status', escapeHtml(dash(row.status)))
+        + cell('Street date', escapeHtml(dash(row.street_date)))
+        + cell('Live date', escapeHtml(dash(row.live_date)))
+        + cell('UPC', escapeHtml(dash(row.upc)))
+        + cell('ISRC', escapeHtml(dash(row.isrc)))
+        + cell('Takedown', escapeHtml(dash(row.takedown)))
+        + cell('Alert', escapeHtml(alert), 'admin-alert')
         + '</tr>';
     });
   }
@@ -200,9 +234,9 @@
   function renderDestinations(submissions) {
     fillTable('[data-destinations-table]', '[data-destinations-empty]', '[data-destinations-body]', flattenDeliveries(submissions), function (row) {
       return '<tr>'
-        + '<td>' + escapeHtml(dash(row.title)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.destination)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
+        + cell('Title', escapeHtml(dash(row.title)), 'admin-lead')
+        + cell('Store', escapeHtml(dash(row.destination)))
+        + cell('Status', escapeHtml(dash(row.status)))
         + '</tr>';
     });
   }
@@ -211,12 +245,12 @@
     fillTable('[data-royalties-table]', '[data-royalties-empty]', '[data-royalties-body]', rows, function (row) {
       var streams = row.streams == null || row.streams === '' ? '—' : String(row.streams);
       return '<tr>'
-        + '<td>' + escapeHtml(dash(row.period)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.destination)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.title)) + '</td>'
-        + '<td>' + escapeHtml(streams) + '</td>'
-        + '<td>' + escapeHtml(formatUsd(row.amount_usd)) + '</td>'
-        + '<td>' + escapeHtml(dash(row.status)) + '</td>'
+        + cell('Period', escapeHtml(dash(row.period)), 'admin-lead')
+        + cell('Store', escapeHtml(dash(row.destination)))
+        + cell('Title', escapeHtml(dash(row.title)))
+        + cell('Streams', escapeHtml(streams))
+        + cell('Amount', escapeHtml(formatUsd(row.amount_usd)))
+        + cell('Status', escapeHtml(dash(row.status)))
         + '</tr>';
     });
   }
