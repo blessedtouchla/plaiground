@@ -92,9 +92,7 @@ function makeNode(tag) {
     },
   });
   function syncClass() {
-    const fromName = String(node.className || '').split(/\s+/).filter(Boolean);
-    fromName.forEach(function (name) { classSet.add(name); });
-    node.className = Array.from(classSet).join(' ');
+    node._className = Array.from(classSet).join(' ');
   }
   Object.defineProperty(node, 'className', {
     get: function () { return this._className || ''; },
@@ -203,6 +201,16 @@ function loadWidget(options) {
         };
       },
       addEventListener: function () {},
+      matchMedia: function (query) {
+        return {
+          matches: Boolean(options.phone) && /max-width:\s*720px/.test(String(query)),
+          media: String(query),
+          addEventListener: function () {},
+          removeEventListener: function () {},
+          addListener: function () {},
+          removeListener: function () {},
+        };
+      },
     },
     sessionStorage: storage,
     WebSocket: FakeWebSocket,
@@ -248,6 +256,7 @@ function loadWidget(options) {
     getUserMediaCalls: getUserMediaCalls,
     sockets: sockets,
     root: function () { return document.getElementById('plai-bubble'); },
+    chip: function () { return queryOne(body, '.plai-bubble-chip'); },
     pill: function (mode) { return queryOne(body, '[data-mode="' + mode + '"]'); },
     statusText: function () {
       const status = queryOne(body, '.plai-bubble-status');
@@ -316,9 +325,34 @@ function runStatic() {
 
   assert.ok(css.includes('.plai-bubble-pill.is-text'), 'Text PLAI has its own chrome');
   assert.ok(css.includes('.plai-bubble-hint'), 'PLAY pronunciation hint is styled');
+  assert.ok(css.includes('.plai-bubble-chip'), 'phone collapse uses a PLAI chip');
+  assert.ok(js.includes("text: 'PLAI'") && js.includes('plai-bubble-chip'), 'chip label stays PLAI');
+  assert.ok(!/plai-bubble-chip[\s\S]{0,400}PLAY/.test(js), 'do not rename the chip PLAY');
+  assert.ok(!/plai-avatar\.png/.test(js) && !/plai-avatar\.png/.test(css), 'do not put the girl PNG on the signed-in bubble');
+  assert.ok(js.includes("PHONE_MQ = '(max-width: 720px)'"), 'phone collapse matches the 720px breakpoint');
+
+  const phoneCss = css.match(/@media\s*\(max-width:\s*720px\)\s*\{[\s\S]*$/);
+  assert.ok(phoneCss, 'phone chrome lives in a 720px query');
+  assert.ok(/\.plai-bubble\s*\{[\s\S]*?top:\s*92px/.test(phoneCss[0]), 'phone bubble sits top-right');
+  assert.ok(/\.plai-bubble\s*\{[\s\S]*?bottom:\s*auto/.test(phoneCss[0]), 'phone bubble is not pinned to the bottom');
+  assert.ok(/\.plai-bubble-chip\s*\{[\s\S]*?display:\s*inline-flex/.test(phoneCss[0]), 'phone shows the PLAI chip');
+  assert.ok(/\.plai-bubble-row\s*\{[\s\S]*?display:\s*none/.test(phoneCss[0]), 'phone hides the Talk/Text pair until the chip opens');
+  assert.ok(/\.plai-bubble\.is-menu-open \.plai-bubble-row/.test(phoneCss[0]), 'open chip reveals Talk/Text as a menu');
+  assert.ok(!/bottom:\s*1?2px/.test(phoneCss[0]), 'phone Talk/Text must not sit on Submit');
+
+  const desktopBubble = css.match(/\.plai-bubble\s*\{[\s\S]*?\}/);
+  assert.ok(desktopBubble && /bottom:\s*24px/.test(desktopBubble[0]) && /right:\s*24px/.test(desktopBubble[0]), 'desktop keeps Talk/Text bottom-right');
+  const desktopChip = css.match(/\.plai-bubble-chip\s*\{[\s\S]*?\}/);
+  assert.ok(desktopChip && /display:\s*none/.test(desktopChip[0]), 'desktop does not show the PLAI chip');
+
   const siteCss = read('site.css');
   assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome keeps Talk/Text PLAI on screen');
   assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text PLAI');
+  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{[^}]*bottom:\s*12px/.test(siteCss), 'signed-in phone chrome must not pin Talk/Text over bottom CTAs');
+  const sitePhone = siteCss.match(/@media\s*\(max-width:\s*720px\)\s*\{[\s\S]*?body\.app\s*>\s*\.plai-bubble[\s\S]*?\}/);
+  assert.ok(sitePhone && /top:\s*92px/.test(sitePhone[0]) && /bottom:\s*auto/.test(sitePhone[0]), 'signed-in phone bubble stays top-right');
+  assert.ok(!read('upload.html').includes('data-plai-coach-float'), 'signed-in submit must not get the landing girl');
+  assert.ok(!read('upload.html').includes('plai-avatar.png'), 'signed-in submit must not load the girl PNG');
   ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
@@ -389,9 +423,55 @@ function runClicks() {
   });
 }
 
+function runPhoneChrome() {
+  const desktop = loadWidget();
+  return wait(20).then(function () {
+    const root = desktop.root();
+    const chip = desktop.chip();
+    assert.ok(root && chip, 'desktop still mounts the bubble and chip node');
+    assert.ok(!root.classList.contains('is-phone'), 'desktop does not collapse to the phone chip');
+    assert.ok(!root.classList.contains('is-menu-open'), 'desktop does not open a phone menu');
+    assert.strictEqual(chip.querySelector('.plai-bubble-label').textContent, 'PLAI');
+    assert.ok(desktop.pill('talk') && desktop.pill('text'), 'desktop keeps the Talk + Text pair');
+    assert.strictEqual(desktop.pill('talk').querySelector('.plai-bubble-label').textContent, 'Talk to PLAI');
+    assert.strictEqual(desktop.pill('text').querySelector('.plai-bubble-label').textContent, 'Text PLAI');
+
+    const phone = loadWidget({ phone: true });
+    return wait(20).then(function () {
+      const phoneRoot = phone.root();
+      const phoneChip = phone.chip();
+      assert.ok(phoneRoot.classList.contains('is-phone'), 'phone marks the collapsed chrome');
+      assert.ok(!phoneRoot.classList.contains('is-menu-open'), 'phone chip starts closed');
+      assert.strictEqual(phoneChip.querySelector('.plai-bubble-label').textContent, 'PLAI');
+      assert.notStrictEqual(phoneChip.querySelector('.plai-bubble-label').textContent, 'PLAY');
+      assert.ok(phone.pill('talk') && phone.pill('text'), 'Talk and Text still exist on phone');
+      phoneChip.click();
+      assert.ok(phoneRoot.classList.contains('is-menu-open'), 'tapping the chip opens Talk / Text');
+      assert.strictEqual(phoneChip.getAttribute('aria-expanded'), 'true');
+      phone.pill('text').click();
+      return wait(40).then(function () {
+        assert.strictEqual(phone.getUserMediaCalls.length, 0, 'phone Text PLAI still does not use the mic');
+        assert.ok(/Text PLAI/.test(phone.statusText()), 'phone Text PLAI still opens type-only');
+        phoneChip.click();
+        assert.ok(!phoneRoot.classList.contains('is-menu-open'), 'tapping the chip again closes the menu');
+
+        const voice = loadWidget({ phone: true });
+        return wait(20).then(function () {
+          voice.chip().click();
+          voice.pill('talk').click();
+          return wait(40).then(function () {
+            assert.ok(voice.getUserMediaCalls.length >= 1, 'phone Talk to PLAI still activates the mic');
+            assert.ok(!/Mic is off/.test(voice.statusText()), 'phone Talk does not open as Text PLAI');
+          });
+        });
+      });
+    });
+  });
+}
+
 function run() {
   runStatic();
-  return runClicks().then(function () {
+  return runClicks().then(runPhoneChrome).then(function () {
     console.log('plai-bubble.test.js ok');
   });
 }
