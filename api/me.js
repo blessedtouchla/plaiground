@@ -612,6 +612,8 @@ async function reportProblem(req, res) {
     mail = await sendProblemReport({
       email: row.email,
       problem,
+      release: body && (body.release || body.release_id),
+      artist: body && (body.artist || body.artist_id),
     });
   } catch {
     mail = { mail_sent: false, error: 'Could not send the problem report.' };

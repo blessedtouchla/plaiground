@@ -3,6 +3,45 @@
   var THANKS = 'Thank you. We will look at this within 24 hours.';
   var OVERVIEW = 'dashboard.html';
   var ENDPOINT = '/api/me/problem';
+  var IMPORT_PREFILL = 'Import / artist mapping issue.';
+
+  function queryParam(name) {
+    try {
+      return String(new URLSearchParams((global.location && global.location.search) || '').get(name) || '').trim();
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function clipPageId(value) {
+    return String(value || '').trim().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80);
+  }
+
+  function problemContext() {
+    var importFlag = queryParam('import');
+    return {
+      import: Boolean(importFlag && importFlag !== '0' && importFlag !== 'false'),
+      release: clipPageId(queryParam('release')),
+      artist: clipPageId(queryParam('artist')),
+    };
+  }
+
+  function applyPrefill() {
+    var field = document.querySelector && document.querySelector('[data-problem-text]');
+    if (!field) return;
+    if (String(field.value || '').trim()) return;
+    var ctx = problemContext();
+    if (ctx.import) field.value = IMPORT_PREFILL;
+  }
+
+  function problemHref(opts) {
+    opts = opts || {};
+    var params = [];
+    if (opts.import) params.push('import=1');
+    if (opts.release) params.push('release=' + encodeURIComponent(clipPageId(opts.release)));
+    if (opts.artist) params.push('artist=' + encodeURIComponent(clipPageId(opts.artist)));
+    return params.length ? ('problem.html?' + params.join('&')) : 'problem.html';
+  }
 
   function isSignedIn() {
     var api = global.PlaigroundMembership;
@@ -115,6 +154,9 @@
       var payload = { problem: text };
       var email = sessionEmail();
       if (email) payload.email = email;
+      var ctx = problemContext();
+      if (ctx.release) payload.release = ctx.release;
+      if (ctx.artist) payload.artist = ctx.artist;
       fetch(ENDPOINT, {
         method: 'POST',
         credentials: 'same-origin',
@@ -159,6 +201,7 @@
 
   function start() {
     mount();
+    applyPrefill();
     bindForm();
     var api = global.PlaigroundMembership;
     if (api && typeof api.whenReady === 'function') {
@@ -179,6 +222,11 @@
     THANKS: THANKS,
     OVERVIEW: OVERVIEW,
     ENDPOINT: ENDPOINT,
+    IMPORT_PREFILL: IMPORT_PREFILL,
+    clipPageId: clipPageId,
+    problemContext: problemContext,
+    problemHref: problemHref,
+    applyPrefill: applyPrefill,
     mount: mount,
     bindForm: bindForm,
   };

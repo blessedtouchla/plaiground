@@ -151,6 +151,47 @@
     return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html';
   }
 
+  function artistProfileId(me, draft, release) {
+    var fromDraft = String((draft && draft.plaiground_artist_id) || '').trim();
+    if (fromDraft) return fromDraft;
+    var rid = releaseId(release).toLowerCase();
+    var releases = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+    var i;
+    for (i = 0; i < releases.length; i++) {
+      var row = releases[i];
+      var id = String((row && (row.tonegrid_release_id || row.id)) || '').toLowerCase();
+      if (rid && id === rid && row.plaiground_artist_id) return String(row.plaiground_artist_id);
+    }
+    var artists = me && me.profile && Array.isArray(me.profile.artists) ? me.profile.artists : [];
+    var name = String((release && release.artist) || (draft && (draft.artist || draft.name)) || '').trim().toLowerCase();
+    if (name) {
+      for (i = 0; i < artists.length; i++) {
+        if (String(artists[i].name || '').trim().toLowerCase() === name) {
+          return String(artists[i].id || artists[i].artist_id || '');
+        }
+      }
+    }
+    return '';
+  }
+
+  function troubleshootHref(release, artist) {
+    if (global.PlaigroundProblem && typeof global.PlaigroundProblem.problemHref === 'function') {
+      return global.PlaigroundProblem.problemHref({ release: release, artist: artist });
+    }
+    var params = [];
+    if (release) params.push('release=' + encodeURIComponent(release));
+    if (artist) params.push('artist=' + encodeURIComponent(artist));
+    return params.length ? ('problem.html?' + params.join('&')) : 'problem.html';
+  }
+
+  function syncEditTroubleshoot() {
+    var el = $('[data-edit-troubleshoot]');
+    if (!el || !el.setAttribute) return;
+    var release = releaseId(lastEdit.release);
+    var artist = artistProfileId(lastEdit.me, lastEdit.draft, lastEdit.release);
+    el.setAttribute('href', troubleshootHref(release, artist));
+  }
+
   function showSongError(text) {
     setText('[data-song-status]', text || '');
     setHidden('[data-song-status]', !text);
@@ -1346,6 +1387,7 @@
     }
     lastEdit = { me: me, draft: draft, release: release, analytics: opts.analytics || lastEdit.analytics || {} };
     editClosed = false;
+    syncEditTroubleshoot();
     panel.hidden = false;
     if (panel.classList && panel.classList.toggle) panel.classList.toggle('is-hidden', false);
     panel.setAttribute('data-release-id', id);
@@ -2098,6 +2140,9 @@
     isLiveConfirmed: isLiveConfirmed,
     overlayPendingEdit: overlayPendingEdit,
     currentEditState: currentEditState,
+    artistProfileId: artistProfileId,
+    troubleshootHref: troubleshootHref,
+    syncEditTroubleshoot: syncEditTroubleshoot,
     downloadReleaseStatement: downloadReleaseStatement,
     releaseStatementPdf: releaseStatementPdf,
     releaseStatementDoc: releaseStatementDoc,

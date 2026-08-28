@@ -1491,6 +1491,13 @@ body.artist-editing { overflow: hidden; }
   min-height: 44px;
   padding: 10px 20px;
 }
+.edit-troubleshoot,
+.artist-edit-troubleshoot,
+.artist-import-troubleshoot {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
 .rel { display: flex; align-items: center; gap: 12px; }
 .thumb {
   width: 40px;
