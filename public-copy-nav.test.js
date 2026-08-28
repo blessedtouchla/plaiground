@@ -72,8 +72,8 @@ function run() {
     assert.ok(html.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), file + ' Upload step copy stays');
     assert.ok(html.includes('We generate the split sheet, everyone signs, and we deliver on the date you choose.'), file + ' Release step omits a store count');
     assert.ok(html.includes('Distribution to the stores we send to'), file + ' Release bullet names the stores we send to');
-    assert.ok(!/deliver to 150 platforms/.test(html) && !/Distribution to 150 platforms/.test(cols.join('')), file + ' steps must not say 150');
-    assert.ok(!/\b220\b/.test(cols.join('')), file + ' steps must not say 220');
+    assert.ok(!/\b150\b/.test(html) && !/\b220\b/.test(html) && !/\b200\b/.test(html), file + ' must not invent a 150 / 220 / 200 store count');
+    assert.ok(html.includes('Distribution to the stores we send to') || html.includes('Upload + distribution to the stores we send to'), file + ' names stores we send to without a count');
     assert.ok(html.includes('Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked.'), file + ' keeps the later Creator/Pro lock');
     assert.ok(/Pro unlocks unlimited/i.test(html), file + ' Get paid then says Pro unlimited');
     assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(html), file + ' must not name a store partner');
