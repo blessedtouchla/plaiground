@@ -391,9 +391,38 @@
     }
   }
 
+  function loadProblemChrome() {
+    var doc = document;
+    if (!doc) return;
+    if (doc.body && doc.body.classList && doc.body.classList.contains("app") === false) {
+      if (!doc.querySelector || !doc.querySelector(".side-nav, .flow-top, [data-problem-form]")) return;
+    }
+    function start() {
+      if (window.PlaigroundProblem && typeof window.PlaigroundProblem.mount === "function") {
+        window.PlaigroundProblem.mount();
+      }
+    }
+    if (window.PlaigroundProblem) {
+      start();
+      return;
+    }
+    var existing = doc.querySelector && doc.querySelector('script[src="problem.js"]');
+    if (existing) {
+      if (existing.addEventListener) existing.addEventListener("load", start);
+      return;
+    }
+    if (!doc.createElement) return;
+    var script = doc.createElement("script");
+    script.src = "problem.js";
+    script.onload = start;
+    var parent = doc.body || doc.documentElement;
+    if (parent && parent.appendChild) parent.appendChild(script);
+  }
+
   setupSignedInPublicAppChrome();
   setupAppMenu();
   setupPublicMenu();
   setupPublicSocials();
   setupBrandLogos();
+  loadProblemChrome();
 })();

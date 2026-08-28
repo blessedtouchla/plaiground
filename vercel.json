@@ -4,6 +4,7 @@
     { "source": "/api/me/catalog", "destination": "/api/me?action=catalog" },
     { "source": "/api/me/profile", "destination": "/api/me?action=profile" },
     { "source": "/api/me/artists", "destination": "/api/me?resource=artists" },
+    { "source": "/api/me/problem", "destination": "/api/me?action=problem" },
     { "source": "/api/admin/signups", "destination": "/api/me?action=admin-signups" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/signups", "destination": "/admin.html" },
