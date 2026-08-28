@@ -7,9 +7,9 @@
       "permanent": true
     },
     {
-      "source": "/((?!api/stripe/webhook/?$).*)",
+      "source": "/:path((?!api/stripe/webhook$).*)",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
-      "destination": "https://www.wannaplai.com/$1",
+      "destination": "https://www.wannaplai.com/:path",
       "permanent": true
     }
   ],
