@@ -1396,6 +1396,52 @@ var TYPEAHEAD_LIST_CAP = 24;
 var typeaheadApplying = false;
 var activeTypeahead = null;
 
+// ---------------------------------------------------------------------------
+// TEMP DEBUG — Genre/Language re-tap investigation. Remove once resolved.
+// Enable with ?debug=1 in the URL, or localStorage['plai-ta-debug'] = '1'.
+// Renders a fixed overlay at the top of the page and logs the last 15 events.
+// ---------------------------------------------------------------------------
+var TA_DEBUG = (function () {
+  try {
+    if (typeof window === 'undefined' || !window.location) return false;
+    var q = String(window.location.search || '') + '&' + String(window.location.hash || '');
+    if (/[?&#]debug=1(&|$|#)/.test(q) || /[?&#]tadebug=1(&|$|#)/.test(q)) return true;
+    if (window.localStorage && window.localStorage.getItem('plai-ta-debug') === '1') return true;
+  } catch (err) {}
+  return false;
+})();
+var taDebugBox = null;
+var taDebugLines = [];
+function taDebugBoxEl() {
+  if (!TA_DEBUG || typeof document === 'undefined' || !document.createElement) return null;
+  if (taDebugBox && taDebugBox.parentNode) return taDebugBox;
+  taDebugBox = document.createElement('div');
+  taDebugBox.id = 'ta-debug-overlay';
+  taDebugBox.setAttribute('style', [
+    'position:fixed', 'left:0', 'right:0', 'top:0', 'z-index:2147483647',
+    'max-height:46vh', 'overflow:hidden', 'background:rgba(0,0,0,0.86)',
+    'color:#25ff7a', 'font:11px/1.35 ui-monospace,Menlo,Consolas,monospace',
+    'padding:6px 8px', 'white-space:pre-wrap', 'pointer-events:none',
+    'border-bottom:1px solid #25ff7a', 'letter-spacing:0',
+  ].join(';'));
+  var host = document.body || document.documentElement;
+  if (host && host.appendChild) host.appendChild(taDebugBox);
+  return taDebugBox;
+}
+function taDebug(msg) {
+  if (!TA_DEBUG) return;
+  var t = 0;
+  try {
+    t = Math.round((typeof performance !== 'undefined' && performance && performance.now)
+      ? performance.now() : Date.now());
+  } catch (err) {}
+  taDebugLines.push('+' + t + 'ms  ' + msg);
+  if (taDebugLines.length > 15) taDebugLines = taDebugLines.slice(-15);
+  var box = taDebugBoxEl();
+  if (box) box.textContent = taDebugLines.join('\n');
+  try { if (typeof console !== 'undefined' && console.log) console.log('[TA]', msg); } catch (err) {}
+}
+
 function typeaheadRoot() {
   var doc = typeof document !== 'undefined' ? document : null;
   return doc && doc.documentElement ? doc.documentElement : null;
@@ -1764,6 +1810,24 @@ function bindTypeahead(select, items, getValue, getLabel) {
     release: function () {},
   };
 
+  // TEMP DEBUG helpers — see TA_DEBUG block above. Remove with the rest.
+  var taTag = String((select && select.id) || 'ta').replace(/-type$/, '');
+  function taSnap() {
+    var self = activeTypeahead === selfApi ? 'self' : (activeTypeahead ? 'OTHER' : 'null');
+    var hidden = !list || !list.classList || list.classList.contains('is-hidden');
+    var ae = 'n/a';
+    try {
+      if (typeof document !== 'undefined' && document.activeElement) {
+        ae = document.activeElement === input ? 'input'
+          : (document.activeElement.tagName || '?') + (document.activeElement.id ? '#' + document.activeElement.id : '');
+      }
+    } catch (err) {}
+    return 'picking=' + (picking ? 1 : 0)
+      + ' holdBlur=' + (holdBlur ? 1 : 0)
+      + ' active=' + self
+      + ' listHidden=' + (hidden ? 1 : 0)
+      + ' activeEl=' + ae;
+  }
   function exact(query) {
     return findPick(items, getValue, getLabel, query);
   }
@@ -1932,6 +1996,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (event && event.preventDefault) event.preventDefault();
     if (event && event.stopPropagation) event.stopPropagation();
     if (picking) return;
+    taDebug(taTag + ' pickOption "' + (pick && pick.label) + '"  ' + taSnap());
     picking = true;
     holdBlur = false;
     applyPick(pick);
@@ -1940,7 +2005,11 @@ function bindTypeahead(select, items, getValue, getLabel) {
     // inside a preventDefault()-ed touch handler, which leaves the field unable
     // to refire focus/click on the next tap. Defer the blur out of this handler.
     if (input.blur) {
-      if (win && win.setTimeout) win.setTimeout(function () { input.blur(); }, 0);
+      if (win && win.setTimeout) win.setTimeout(function () {
+        taDebug(taTag + ' deferred input.blur() firing  ' + taSnap());
+        input.blur();
+        taDebug(taTag + ' deferred input.blur() done  ' + taSnap());
+      }, 0);
       else input.blur();
     }
     // The settle window normally ends on the next real pointerdown on the input
@@ -2072,6 +2141,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (point) touchStartPoint = point;
     if (point && pickFromClientPoint(point.x, point.y)) {
       holdBlur = true;
+      taDebug(taTag + ' onDocHold ' + (event && event.type) + ' over-option, holdBlur=1' + (isCoarsePointer() ? ' +preventDefault' : ''));
       if (isCoarsePointer() && event) {
         if (event.preventDefault) event.preventDefault();
         if (event.stopPropagation) event.stopPropagation();
@@ -2092,6 +2162,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
     var picked = commitListEvent(event);
     holdBlur = false;
+    taDebug(taTag + ' onDocCommit ' + (event && event.type) + ' picked=' + (picked ? 1 : 0));
     if (picked && event) {
       if (event.stopPropagation) event.stopPropagation();
       if (isCoarsePointer() && event.preventDefault) event.preventDefault();
@@ -2178,20 +2249,32 @@ function bindTypeahead(select, items, getValue, getLabel) {
 
   function openList(opts) {
     var quiet = opts === true || (opts && opts.quiet);
+    var via = (opts && opts.via) || (opts === true ? 'quiet' : 'evt');
     // A tap that lands here with the list closed and nothing else claiming the
     // typeahead is a genuine new gesture — drop any latch left by a prior pick
     // so a filled field can reopen on iOS Safari.
     if ((!list.classList || list.classList.contains('is-hidden')) && !activeTypeahead) {
       clearPickLatch();
     }
-    if (activeTypeahead && activeTypeahead !== selfApi && typeaheadBusy(activeTypeahead)) return;
+    if (activeTypeahead && activeTypeahead !== selfApi && typeaheadBusy(activeTypeahead)) {
+      taDebug(taTag + ' openList(' + via + ') EARLY: other typeahead busy  ' + taSnap());
+      return;
+    }
     showMatches(input.value);
+    var opened = list && list.classList && !list.classList.contains('is-hidden');
+    if (!opened) {
+      taDebug(taTag + ' openList(' + via + ') showMatches did NOT open (picking=' + (picking ? 1 : 0) + ')  ' + taSnap());
+    }
     // quiet = called from pointerdown, mid-gesture: show the list but schedule
     // no scroll. window.scrollBy() at any point during the tap (even deferred a
     // tick) makes iOS Safari treat the tap as a pan and never raise the
     // keyboard. The trailing touchend/focus/click fire openList() again without
     // quiet, once the gesture is over, and that pass does the scroll.
-    if (quiet) return;
+    if (quiet) {
+      if (opened) taDebug(taTag + ' openList(' + via + ') quiet DONE, list open  ' + taSnap());
+      return;
+    }
+    if (opened) taDebug(taTag + ' openList(' + via + ') full DONE, list open  ' + taSnap());
     if (win && win.setTimeout) {
       if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
       win.setTimeout(function () {
@@ -2212,6 +2295,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     showMatches(input.value);
   });
   input.addEventListener('pointerdown', function () {
+    taDebug(taTag + ' EVENT pointerdown  ' + taSnap());
     // pointerdown is the only tap event guaranteed to fire regardless of the
     // input's focus state. After a pick the input is left half-focused on iOS
     // (a long-press then shows Copy/Select-All), so focus/click/pointerup do
@@ -2219,12 +2303,14 @@ function bindTypeahead(select, items, getValue, getLabel) {
     // filled field. Open it "quiet" (no scroll) so the tap still raises the
     // keyboard; the trailing touchend/focus does the scroll afterwards.
     clearPickLatch();
-    openList({ quiet: true });
+    openList({ quiet: true, via: 'pointerdown' });
   });
-  input.addEventListener('touchend', openList);
-  input.addEventListener('focus', openList);
-  input.addEventListener('click', openList);
-  input.addEventListener('pointerup', openList);
+  ['touchend', 'focus', 'click', 'pointerup'].forEach(function (name) {
+    input.addEventListener(name, function () {
+      taDebug(taTag + ' EVENT ' + name + '  ' + taSnap());
+      openList({ via: name });
+    });
+  });
   input.addEventListener('keydown', function (event) {
     var key = event && event.key;
     if (key !== 'Enter' && key !== 'ArrowDown') return;
@@ -2238,7 +2324,9 @@ function bindTypeahead(select, items, getValue, getLabel) {
     pickOption({ value: first.getAttribute('data-value') || first.textContent, label: first.textContent }, event);
   });
   input.addEventListener('blur', function () {
+    taDebug(taTag + ' EVENT blur  ' + taSnap());
     function finishBlur() {
+      taDebug(taTag + ' finishBlur run  ' + taSnap());
       if (picking || holdBlur) return;
       var lastEvent = lastPoint ? { clientX: lastPoint.x, clientY: lastPoint.y } : null;
       if (!touchMoved(lastEvent)) {
