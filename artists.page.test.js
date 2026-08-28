@@ -358,10 +358,12 @@ function run() {
   assert.ok(siteCss.includes('body.app.artists-page .page'), 'Artist Profiles page clears the bottom for Save artist');
   assert.ok(siteCss.includes('.artist-row-actions'), 'list row groups Edit and Delete');
   assert.ok(siteCss.includes('.artist-row-name'), 'list name has its own readable type');
-  assert.ok(/\.artist-row-name \{[\s\S]*?font-size:\s*15px/.test(siteCss), 'list name stays readable');
+  const nameTypeAt = siteCss.indexOf('.artist-row-name {');
+  const nameType = siteCss.slice(nameTypeAt, siteCss.indexOf('}', nameTypeAt));
+  assert.ok(nameType.includes('font-size: 15px'), 'list name stays readable');
+  assert.ok(!/font-size:\s*(9|10|11)px/.test(nameType), 'do not shrink list names into unreadability');
   assert.ok(/\.artist-row-wrap \{[\s\S]*?flex-wrap:\s*wrap/.test(siteCss), 'phone stacks name then Edit/Delete');
   assert.ok(/\.artist-row-actions \{[\s\S]*?flex-wrap:\s*nowrap/.test(siteCss), 'Edit stays left of Delete on one actions row');
-  assert.ok(!/\.artist-row-name \{[\s\S]*?font-size:\s*(9|10|11)px/.test(siteCss), 'do not shrink list names into unreadability');
 
   const html = read('artists.html');
   ['Neon Sermon', 'Victoria Reyes', 'John Doe', 'Hi John', 'Neon Shadows'].forEach(function (needle) {
