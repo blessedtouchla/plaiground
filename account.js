@@ -507,19 +507,27 @@
     return null;
   }
 
+  function hideStoreNames(text) {
+    var next = String(text == null ? '' : text);
+    next = next.replace(/\bthe\s+(?:ToneGrid|InterSpace|Flossy(?:TheBoss)?)\b/gi, 'the store');
+    next = next.replace(/ToneGrid|Tonegrid|InterSpace|Flossy(?:TheBoss)?/gi, 'the store');
+    return next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
+  }
+
   function readableFixCopy(text) {
-    var raw = String(text || '').trim();
+    var raw = hideStoreNames(text);
     if (!raw) return '';
     var lower = raw.toLowerCase();
     var songwriter = /songwriter|composer|writer names?/.test(lower);
-    var stage = /stage|rapper|band name/.test(lower);
+    var stage = /stage|rapper|\bband\b/.test(lower);
+    var firstLast = /first(?:\s+and\s+|\s+)last/.test(lower);
     var performer = /performer/.test(lower);
     var producer = /producer/.test(lower);
     var credit = /credit|missing|required/.test(lower);
-    if (songwriter && (stage || credit)) {
+    if (songwriter && (stage || credit || firstLast)) {
       return 'Stores need real songwriter names, not a stage, rapper, or band name.';
     }
-    if (performer && producer && credit) {
+    if ((performer || producer) && credit) {
       return 'This release needs a performer credit and a producer credit.';
     }
     return raw;

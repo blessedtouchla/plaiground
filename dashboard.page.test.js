@@ -448,6 +448,58 @@ function run() {
   assert.notStrictEqual(emptyCover['[data-next-up-title]'].textContent, 'Fix this release', 'pending without a real problem must not invent a credit error');
   assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.', 'cover QC must not be rewritten as a songwriter leftover');
 
+  const missingWriterNames = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Missing songwriter names.',
+    }] },
+  });
+  assert.strictEqual(missingWriterNames['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.');
+
+  const firstLastWriter = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Each songwriter must have a first and last name.',
+    }] },
+  });
+  assert.strictEqual(firstLastWriter['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.');
+
+  const performerOnly = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Performer credit is required.',
+    }] },
+  });
+  assert.strictEqual(performerOnly['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
+
+  const producerOnly = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Producer credit is missing.',
+    }] },
+  });
+  assert.strictEqual(producerOnly['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
+
   const legalOnly = fillAccount({
     artist: 'Fuvtu',
     plan: 'creator',
@@ -460,6 +512,21 @@ function run() {
     }] },
   });
   assert.strictEqual(legalOnly['[data-next-up-body]'].textContent, 'Legal name is required.', 'legal-name QC must not invent the songwriter leftover');
+
+  const firstLastOnly = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'First and last name required.',
+    }] },
+  });
+  assert.strictEqual(firstLastOnly['[data-next-up-body]'].textContent, 'First and last name required.', 'first-last without songwriter must not invent that leftover');
+  assert.ok(!/ToneGrid|InterSpace|Flossy/i.test(songwriterFix['[data-next-up-body]'].textContent));
+  assert.ok(!/ToneGrid|InterSpace|Flossy/i.test(creditFix['[data-next-up-body]'].textContent));
   assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('cccccccc-cccc-4ccc-8ccc-cccccccccccc') !== -1);
 
   const unknownTiles = fillAccount({
