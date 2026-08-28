@@ -21,7 +21,7 @@ function lastLine(html) {
 function hubCards(hub) {
   const grid = hub.match(/<div class="boost-hub-grid"[^>]*>([\s\S]*?)<\/div>/);
   assert.ok(grid, 'boosts.html is missing the four-card hub grid');
-  const cards = grid[1].match(/<a class="boost-hub-card"[\s\S]*?<\/a>/g) || [];
+  const cards = grid[1].match(/<a class="boost-hub-card[^"]*"[\s\S]*?<\/a>/g) || [];
   return cards;
 }
 
@@ -66,6 +66,10 @@ function run() {
   assert.ok(cards[1].includes('href="streaming-push.html"'));
   assert.ok(cards[2].includes('href="social-push.html"'));
   assert.ok(cards[3].includes('href="video-collect.html"'));
+  assert.ok(cards[0].includes('is-gold'), 'Chart Push is gold');
+  assert.ok(cards[1].includes('is-purple'), 'Streaming Push is purple');
+  assert.ok(cards[2].includes('is-magenta'), 'Social Push is magenta');
+  assert.ok(cards[3].includes('is-collect'), 'Video Collect uses gold title + magenta accent');
 
   assert.ok(/A broad curator and playlist campaign built to drive chart-eligible activity\./.test(cards[0]));
   assert.ok(/Playlist pitching on Spotify, with outreach to the audiences most likely to keep it\./.test(cards[1]));
@@ -76,7 +80,18 @@ function run() {
   cards.forEach(function (card, i) {
     assert.strictEqual(lastLine(card), 'Creator and Pro only.', 'hub card ' + (i + 1) + ' last line must be exactly Creator and Pro only.');
     assert.ok(/Not for sale/.test(card), 'hub card ' + titles[i] + ' keeps Not for sale');
+    assert.ok(/Learn more/.test(card), 'hub card ' + titles[i] + ' shows a Learn more CTA');
+    assert.ok(/boost-hub-chevron/.test(card), 'hub card ' + titles[i] + ' shows a chevron');
+    assert.ok(!/<button/.test(card), 'hub card ' + titles[i] + ' stays one whole-card hit target');
   });
+
+  const hubCss = read('site.css').match(/\.boost-hub-grid \{[\s\S]*?\.tease-grid h3 a \{/);
+  assert.ok(hubCss, 'site.css keeps a Boost hub card chrome block');
+  assert.ok(/--hub-gold:\s*#f3cb47/.test(hubCss[0]));
+  assert.ok(/--hub-purple:\s*#782fb1/.test(hubCss[0]));
+  assert.ok(/--hub-magenta:\s*#d03083/.test(hubCss[0]));
+  assert.ok(/\.boost-hub-card\.is-collect/.test(hubCss[0]), 'Video Collect keeps a dual gold + magenta coat');
+  assert.ok(!/#7[Dd]3[Cc][Ff][Ff]|#8[Aa]4[Dd][Ff][Ff]|#FF3C8E|#F5C542|#F0C84A|#3FE07A/.test(hubCss[0]), 'hub chrome stays on the brand board only');
 
   assert.ok(!BUY.test(hub), 'hub must not be a live buy');
   assert.ok(!/\$203|\$227/.test(hub), 'old package prices must not sit on the hub as checkout');

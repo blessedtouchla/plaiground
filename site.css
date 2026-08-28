@@ -2811,24 +2811,55 @@ body:not(.app) > .app-main > .topbar { display: none; }
 }
 .offer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .boost-hub-grid {
+  --hub-gold: #f3cb47;
+  --hub-purple: #782fb1;
+  --hub-magenta: #d03083;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
 }
 .boost-hub-card {
-  background: var(--card);
-  border: 1px solid var(--line);
+  --hub-accent: var(--hub-gold);
+  --hub-title: var(--hub-accent);
+  --hub-ink: #000000;
+  --hub-glow: rgba(243, 203, 71, 0.28);
+  background: #111111;
+  border: 1px solid var(--hub-accent);
+  border-left-width: 6px;
   border-radius: 18px;
-  padding: 22px 20px;
+  padding: 22px 20px 20px;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 100%;
   color: inherit;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.boost-hub-card.is-gold {
+  --hub-accent: var(--hub-gold);
+  --hub-ink: #000000;
+  --hub-glow: rgba(243, 203, 71, 0.28);
+}
+.boost-hub-card.is-purple {
+  --hub-accent: var(--hub-purple);
+  --hub-ink: #ffffff;
+  --hub-glow: rgba(120, 47, 177, 0.36);
+}
+.boost-hub-card.is-magenta {
+  --hub-accent: var(--hub-magenta);
+  --hub-ink: #ffffff;
+  --hub-glow: rgba(208, 48, 131, 0.32);
+}
+.boost-hub-card.is-collect {
+  --hub-accent: var(--hub-magenta);
+  --hub-title: var(--hub-gold);
+  --hub-ink: #ffffff;
+  --hub-glow: rgba(208, 48, 131, 0.32);
 }
 .boost-hub-card h3 {
-  color: var(--gold);
+  color: var(--hub-title);
   font-size: 1.15rem;
   letter-spacing: -0.02em;
   margin-bottom: 10px;
@@ -2839,17 +2870,59 @@ body:not(.app) > .app-main > .topbar { display: none; }
   overflow-wrap: anywhere;
 }
 .boost-hub-card .not-sale {
-  margin-top: 16px;
-}
-.boost-hub-card .boost-hub-lock {
   margin-top: auto;
   padding-top: 16px;
-  color: var(--gold);
+  color: var(--hub-gold);
+}
+.boost-hub-card .boost-hub-lock {
+  margin-top: 8px;
+  padding-top: 0;
+  color: var(--hub-gold);
   font-weight: 700;
   font-size: 13px;
 }
-.boost-hub-card:hover {
-  border-color: rgba(245, 197, 66, 0.45);
+.boost-hub-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--hub-accent);
+  color: var(--hub-ink);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.boost-hub-chevron {
+  display: inline-block;
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: rotate(45deg);
+  translate: 0 1px;
+}
+.boost-hub-card:focus-visible {
+  outline: 2px solid var(--hub-accent);
+  outline-offset: 3px;
+}
+.boost-hub-card:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .boost-hub-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px var(--hub-glow);
+  }
+  .boost-hub-card:hover .boost-hub-chevron {
+    translate: 3px 1px;
+  }
 }
 .tease-grid h3 a { color: inherit; }
 .tease-grid h3 a:hover { color: var(--gold); }
