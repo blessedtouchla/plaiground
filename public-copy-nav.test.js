@@ -399,7 +399,7 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/Overview<\/a>\s*<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>/.test(sideNav[0]), file + ' must put New release after Overview, before Releases');
+    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="dashboard.html">Overview<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>/.test(sideNav[0]), file + ' must put gold New release first, then Overview, then Artist Profiles');
     assert.ok(!/href="song\.html"[^>]*>New release<\/a>/.test(sideNav[0]), file + ' New release must not go to song.html');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
@@ -424,6 +424,9 @@ function run() {
 
   const releases = read('releases.html');
   const siteCss = read('site.css');
+  assert.ok(/\.side-nav a\.side-action(?:,[\s\S]*?\.side-nav a\.side-action\.on)? \{[\s\S]*?background:\s*#f3cb47/.test(siteCss), 'signed-in New release CTA uses the same gold #f3cb47 as Edit Submit');
+  assert.ok(!/\.side-nav a\.side-action \{\s*background:\s*rgba\(125,\s*60,\s*255/.test(siteCss), 'New release is not another purple menu row');
+  assert.ok(/\.side-nav a \{[\s\S]*?color:\s*var\(--muted-2\)/.test(siteCss), 'other signed-in menu items stay the default row, not gold');
   assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
   assert.ok(/class="btn btn-purple btn-md"[^>]*data-new-release/.test(releases), 'New release is the primary action');
   assert.ok(/class="btn btn-ghost btn-sm"[^>]*data-album-upload/.test(releases), 'Upload album stays a smaller secondary action');

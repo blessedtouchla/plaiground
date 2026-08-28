@@ -941,12 +941,17 @@ body.app > .plai-bubble {
 }
 .side-nav a:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
 .side-nav a.on { background: var(--purple); color: #fff; }
-.side-nav a.side-action {
-  background: rgba(125, 60, 255, 0.22);
-  color: #fff;
+.side-nav a.side-action,
+.side-nav a.side-action.on {
+  background: #f3cb47;
+  color: #111;
   font-weight: 700;
 }
-.side-nav a.side-action:hover { background: var(--purple); color: #fff; }
+.side-nav a.side-action:hover,
+.side-nav a.side-action.on:hover {
+  background: #f6d45c;
+  color: #111;
+}
 .side-nav a.side-problem {
   margin-top: 4px;
   border: 1px solid rgba(245, 197, 66, 0.45);
