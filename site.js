@@ -90,7 +90,8 @@
 
     if (overview) {
       overview.addEventListener("click", function (event) {
-        if (!isPhoneAppMenu()) return;
+        var drawerOpen = !!(document.body && document.body.classList && document.body.classList.contains("nav-open"));
+        if (!drawerOpen && !isPhoneAppMenu()) return;
         event.preventDefault();
         event.stopPropagation();
         setSubmenuOpen(!item.classList.contains("open"));
@@ -172,7 +173,7 @@
     backdrop.addEventListener("click", function () { setOpen(false); });
     side.querySelectorAll("a").forEach(function (link) {
       link.addEventListener("click", function () {
-        if (isPhoneAppMenu() && isOverviewHomeLink(link)) return;
+        if (isOverviewHomeLink(link) && (isOpen() || isPhoneAppMenu())) return;
         setOpen(false);
       });
     });
