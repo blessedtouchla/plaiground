@@ -259,6 +259,8 @@ function run() {
   assert.ok(siteCss.includes('[data-artist-edit] .artist-edit-head') && siteCss.includes('flex-direction: column'), 'phone title/badge stack instead of overlapping');
   assert.ok(/\.artist-edit-actions \{\s*flex-direction:\s*column/.test(siteCss), 'phone Delete/Save stack full width');
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]') && siteCss.includes('width: 100%'), 'phone Save is a full-width tappable control');
+  assert.ok(/\.artist-edit-actions \{\s*[\s\S]*?z-index:\s*4100/.test(siteCss), 'Save artist sits above Talk/Text PLAI');
+  assert.ok(siteCss.includes('body.app.artists-page .page'), 'Artist Profiles page clears the bottom for Save artist');
 
   const html = read('artists.html');
   ['Neon Sermon', 'Victoria Reyes', 'John Doe', 'Hi John', 'Neon Shadows'].forEach(function (needle) {
@@ -281,6 +283,7 @@ function run() {
   assert.ok(html.includes('data-human-contribution="lyrics"'));
   assert.ok(html.includes('data-ai-contribution="full_track_support"'));
   assert.ok(html.includes('I write all lyrics and sing. AI builds the beat and helps with arrangement.'));
+  assert.ok(html.includes('class="app artists-page"'), 'Artist Profiles page can lift Save artist above Talk/Text');
   assert.ok(html.includes('href="artists.html">Artist Profiles</a>'));
   assert.ok(html.includes('href="settings.html">Settings</a>'));
   assert.ok(!html.includes('data-require-membership'));

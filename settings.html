@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="site.css" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
-<body class="app">
+<body class="app settings-page">
   <aside class="side">
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <p class="side-label">Menu</p>
@@ -55,10 +55,10 @@
           <p class="hint" data-account-photo-status hidden></p>
         </div>
         <div class="form-grid four">
-          <div class="field"><label>Artist name</label><input data-account-artist placeholder="Artist name" /></div>
-          <div class="field"><label>Legal name</label><input placeholder="Legal name" /></div>
-          <div class="field"><label>Email</label><input data-account-email type="email" placeholder="you@label.com" /></div>
-          <div class="field"><label>Country</label><input value="United States" /></div>
+          <div class="field"><label>Artist name</label><input data-account-artist placeholder="Artist name" autocomplete="nickname" /></div>
+          <div class="field"><label>Legal name</label><input data-account-legal placeholder="Legal name" autocomplete="name" /></div>
+          <div class="field"><label>Email</label><input data-account-email type="email" placeholder="you@label.com" autocomplete="email" /></div>
+          <div class="field"><label>Country</label><input data-account-country placeholder="Country" autocomplete="country-name" /></div>
         </div>
       </div>
       <div class="draft-banner" data-billing-warning hidden>
@@ -141,9 +141,10 @@
         </form>
       </div>
       <div class="confirm-actions">
-        <button class="btn btn-purple btn-md" type="button">Save changes</button>
+        <button class="btn btn-purple btn-md" type="button" data-account-save>Save changes</button>
         <button class="ghost-link" type="button" style="background:none;border:none" data-delete-account-toggle aria-expanded="false">Delete account</button>
       </div>
+      <p class="hint" data-account-save-status hidden></p>
       <div class="panel delete-confirm" data-delete-account hidden>
         <h3>Delete account</h3>
         <p>This permanently removes your account. Type DELETE to confirm.</p>
