@@ -356,6 +356,12 @@ function run() {
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]') && siteCss.includes('width: 100%'), 'phone Save is a full-width tappable control');
   assert.ok(/\.artist-edit-actions \{\s*[\s\S]*?z-index:\s*4100/.test(siteCss), 'Save artist sits above Talk/Text PLAI');
   assert.ok(siteCss.includes('body.app.artists-page .page'), 'Artist Profiles page clears the bottom for Save artist');
+  assert.ok(siteCss.includes('.artist-row-actions'), 'list row groups Edit and Delete');
+  assert.ok(siteCss.includes('.artist-row-name'), 'list name has its own readable type');
+  assert.ok(/\.artist-row-name \{[\s\S]*?font-size:\s*15px/.test(siteCss), 'list name stays readable');
+  assert.ok(/\.artist-row-wrap \{[\s\S]*?flex-wrap:\s*wrap/.test(siteCss), 'phone stacks name then Edit/Delete');
+  assert.ok(/\.artist-row-actions \{[\s\S]*?flex-wrap:\s*nowrap/.test(siteCss), 'Edit stays left of Delete on one actions row');
+  assert.ok(!/\.artist-row-name \{[\s\S]*?font-size:\s*(9|10|11)px/.test(siteCss), 'do not shrink list names into unreadability');
 
   const html = read('artists.html');
   ['Neon Sermon', 'Victoria Reyes', 'John Doe', 'Hi John', 'Neon Shadows'].forEach(function (needle) {
@@ -363,6 +369,7 @@ function run() {
   });
   assert.ok(html.includes('Artist Profiles'));
   assert.ok(html.includes('Your artists'));
+  assert.ok(html.includes('Edit is left of Delete'));
   assert.ok(html.includes('>Add artist<'));
   assert.ok(html.includes('>Import Artist<'));
   assert.ok(html.includes('>Artist mapping<'));
@@ -446,6 +453,13 @@ function run() {
   assert.ok(screenAt !== -1 && screenAt > rosterAt, 'full-screen Edit sits off the list');
 
   const js = read('artists.js');
+  const listFn = js.slice(js.indexOf('function renderList()'), js.indexOf('function setEditingScreen'));
+  assert.ok(listFn.includes('artist-row-actions'), 'list row keeps Edit and Delete in one actions group');
+  assert.ok(listFn.includes('artist-row-name'), 'list row names stay readable');
+  assert.ok(!listFn.includes('PLAIGROUND'), 'list row must not render the leftover site chip');
+  assert.ok(!/badge\.textContent = artist\.badge/.test(listFn), 'list row must not render a source chip');
+  assert.ok(listFn.indexOf("textContent = 'Edit'") < listFn.indexOf("textContent = 'Delete'"), 'Edit stays left of Delete');
+  assert.ok(listFn.indexOf('actions.appendChild(edit)') < listFn.indexOf('actions.appendChild(del)'), 'Edit stays left of Delete in the actions row');
   assert.ok(html.includes('artists.js'));
   assert.ok(html.includes('This artist\'s songs'));
   assert.ok(html.includes('data-artist-song-list'));
@@ -674,6 +688,15 @@ async function persistAndImmediateSave() {
   afterReload.api.applyMe({
     profile: { artists: [{ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND' }] },
   });
+  const rosterNodes = walk(afterReload.nodes['[data-artist-list]'], []);
+  assert.strictEqual(rosterNodes.filter(function (node) {
+    return String(node.className || '') === 'plan-badge' && String(node.textContent || '') === 'PLAIGROUND';
+  }).length, 0, 'Your artists list must not show the leftover chip');
+  assert.deepStrictEqual(rosterNodes.filter(function (node) {
+    return node.textContent === 'Edit' || node.textContent === 'Delete';
+  }).map(function (node) { return node.textContent; }), ['Edit', 'Delete'], 'list Edit stays left of Delete');
+  const rosterName = rosterNodes.filter(function (node) { return node.className === 'artist-row-name'; })[0];
+  assert.ok(rosterName && rosterName.textContent === 'Fuvtu', 'list keeps the artist name readable');
   afterReload.context.confirmResult = false;
   const cancelled = await afterReload.api.deleteArtist('artist-1');
   assert.ok(cancelled && cancelled.cancelled === true, 'Delete still confirms first');
