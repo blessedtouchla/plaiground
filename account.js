@@ -588,7 +588,11 @@
 
   function renderOverview(cards) {
     var list = Array.isArray(cards) ? cards : [];
-    renderReleaseTiles(recentStrip(list));
+    list = recentStrip(list);
+    if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
+      list = global.PlaigroundReleaseCredits.withSavedDraft(list, readDraft());
+    }
+    renderReleaseTiles(list);
   }
 
   function renderReleaseTiles(cards) {
@@ -603,7 +607,9 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html';
+      link.href = (card.local_draft || card.id === 'local-draft')
+        ? 'upload.html'
+        : (card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html');
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       art.setAttribute('aria-hidden', 'true');

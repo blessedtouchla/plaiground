@@ -242,7 +242,7 @@
       resolveCoverFallback(thumb, row, thumbCover);
       var copy = document.createElement('div');
       var title = document.createElement('a');
-      title.href = row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html';
+      title.href = row.local_draft ? 'upload.html' : (row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html');
       title.textContent = row.title || 'Untitled';
       title.style.color = 'inherit';
       title.style.textDecoration = 'none';
@@ -374,6 +374,13 @@
 
   function render(data) {
     lastReleases = (data && data.releases) || [];
+    if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
+      var localDraft = {};
+      try {
+        localDraft = JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.store.draft')) || '{}') || {};
+      } catch (err) {}
+      lastReleases = global.PlaigroundReleaseCredits.withSavedDraft(lastReleases, localDraft);
+    }
     lastAnalytics = (data && data.analytics) || {};
     lastTotal = (data && data.total) || lastReleases.length;
     if (!currentFilter) currentFilter = filterFromSearch();

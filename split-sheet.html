@@ -93,6 +93,7 @@
   </main>
 
   <script src="lib/upload-required.js"></script>
+  <script src="lib/release-credits.js"></script>
   <script src="https://static.signwell.com/assets/embedded.js"></script>
   <script>
     (function () {
@@ -158,7 +159,13 @@
       function readRow(index) {
         var row = writersEl.querySelector('[data-writer="' + index + '"]');
         if (!row) return;
-        writers[index].name = row.querySelector('[data-field="name"]').value;
+        var firstEl = row.querySelector('[data-field="first"]');
+        var lastEl = row.querySelector('[data-field="last"]');
+        writers[index].first_name = firstEl ? firstEl.value : '';
+        writers[index].last_name = lastEl ? lastEl.value : '';
+        writers[index].name = [writers[index].first_name, writers[index].last_name].filter(function (part) {
+          return String(part || '').trim();
+        }).join(' ').trim();
         writers[index].email = row.querySelector('[data-field="email"]').value;
         writers[index].share = row.querySelector('[data-field="share"]').value;
         writers[index].pro = row.querySelector('[data-field="pro"]').value;
@@ -183,7 +190,8 @@
             '<div class="writer-row" data-writer="' + index + '">' +
               '<div class="writer-head"><b>Writer ' + (index + 1) + you + '</b>' + remove + '</div>' +
               '<div class="writer-grid">' +
-                '<div class="field"><label>Name</label><input data-field="name" type="text" value="' + escapeHtml(writer.name) + '" placeholder="FIRST NAME LAST NAME" autocomplete="off" /></div>' +
+                '<div class="field"><label>Legal first name</label><input data-field="first" type="text" value="' + escapeHtml(writer.first_name || '') + '" placeholder="First name" autocomplete="off" /></div>' +
+                '<div class="field"><label>Legal last name</label><input data-field="last" type="text" value="' + escapeHtml(writer.last_name || '') + '" placeholder="Last name" autocomplete="off" /></div>' +
                 '<div class="field"><label>Email</label><input data-field="email" type="email" value="' + escapeHtml(writer.email) + '" placeholder="needed to send the sheet" autocomplete="email" /></div>' +
                 '<div class="field"><label>Share %</label><input data-field="share" type="number" min="0" max="100" step="0.01" value="' + escapeHtml(writer.share) + '" /></div>' +
                 '<div class="field"><label>PRO</label><select data-field="pro">' + options + '</select></div>' +
@@ -210,8 +218,12 @@
         return {
           songTitle: titleInput.value.trim(),
           writers: writers.map(function (writer) {
+            var first = String(writer.first_name || '').trim();
+            var last = String(writer.last_name || '').trim();
             return {
-              name: String(writer.name || '').trim(),
+              first_name: first,
+              last_name: last,
+              name: String(writer.name || [first, last].filter(Boolean).join(' ')).trim(),
               email: String(writer.email || '').trim(),
               share: Number(writer.share),
               pro: String(writer.pro || '').trim()
@@ -450,7 +462,7 @@
       addBtn.addEventListener('click', function () {
         if (writers.length >= MAX_WRITERS) return;
         readAll();
-        writers.push({ name: '', email: '', share: 0, pro: '' });
+        writers.push({ first_name: '', last_name: '', name: '', email: '', share: 0, pro: '' });
         render();
       });
 
@@ -497,10 +509,25 @@
 
       var draft = readDraft();
       applyDraftTitle();
-      if (!writers[0].name && draft.name && !isDemoCopy(draft.name)) {
-        writers[0].name = draft.name;
+      if (window.PlaigroundReleaseCredits && PlaigroundReleaseCredits.seedWriters) {
+        writers = PlaigroundReleaseCredits.seedWriters({
+          legal_first: draft.legal_first,
+          legal_last: draft.legal_last,
+          other_writers: draft.other_writers === true || draft.other_writers === 'true' || !draft.solo_owned_100,
+          other_writer_count: draft.other_writer_count,
+          featured: draft.featured,
+          writers: Array.isArray(draft.writers) ? draft.writers : writers,
+        });
+      } else {
+        if (!writers[0].first_name && draft.legal_first) writers[0].first_name = draft.legal_first;
+        if (!writers[0].last_name && draft.legal_last) writers[0].last_name = draft.legal_last;
+        if (!writers[0].name) writers[0].name = [writers[0].first_name, writers[0].last_name].filter(Boolean).join(' ');
       }
-      if (isDemoCopy(writers[0].name)) writers[0].name = '';
+      if (isDemoCopy(writers[0].name)) {
+        writers[0].name = '';
+        writers[0].first_name = '';
+        writers[0].last_name = '';
+      }
 
       fetch('/api/signwell')
         .then(function (response) { return response.json(); })

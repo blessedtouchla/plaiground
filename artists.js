@@ -65,6 +65,14 @@
     return global.PlaigroundArtistCheck || null;
   }
 
+  function platformApi() {
+    return global.PlaigroundPlatformLinks || null;
+  }
+
+  function storePickApi() {
+    return global.PlaigroundStorePick || null;
+  }
+
   function canonicalGenre(value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
@@ -165,7 +173,7 @@
     });
   }
 
-  var current = { artists: [], selected: null, photo: '', me: null, catalog: [] };
+  var current = { artists: [], selected: null, photo: '', me: null, catalog: [], mode: '' };
   var painting = false;
   var saveTimer = null;
   var saveInFlight = false;
@@ -209,51 +217,128 @@
       del.className = 'btn btn-ghost btn-sm';
       del.setAttribute('data-artist-delete', artist.id);
       del.textContent = 'Delete';
+      var edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'btn btn-ghost btn-sm';
+      edit.setAttribute('data-artist-edit-open', artist.id);
+      edit.textContent = 'Edit';
       wrap.appendChild(btn);
+      wrap.appendChild(edit);
       wrap.appendChild(del);
       host.appendChild(wrap);
     });
     setHidden('[data-artist-empty]', current.artists.length > 0);
   }
 
-  function selectArtist(artist) {
+  function setEditingScreen(on) {
+    var body = document.body;
+    if (body && body.classList && body.classList.toggle) {
+      body.classList.toggle('artist-editing', Boolean(on));
+    }
+  }
+
+  function selectArtist(artist, mode) {
     painting = true;
     current.selected = artist || null;
     current.photo = artist && artist.photo ? artist.photo : '';
+    current.mode = artist ? (mode === 'edit' ? 'edit' : 'preview') : '';
     renderList();
-    setHidden('[data-artist-edit]', !artist);
+    setHidden('[data-artist-preview]', !artist || current.mode !== 'preview');
+    setHidden('[data-artist-edit]', !artist || current.mode !== 'edit');
+    setEditingScreen(current.mode === 'edit');
     if (!artist) {
       renderSongs(null);
       painting = false;
       return;
     }
+    renderSongs(artist);
+    if (current.mode === 'preview') {
+      renderPreview(artist);
+      painting = false;
+      return;
+    }
+    paintEdit(artist);
+    painting = false;
+  }
+
+  function previewArtist(artist) {
+    return selectArtist(artist, 'preview');
+  }
+
+  function editArtist(artist) {
+    return selectArtist(artist, 'edit');
+  }
+
+  function renderPreview(artist) {
+    if (!artist) return;
+    setText('[data-artist-preview-name]', artist.name || '');
+    setText('[data-artist-preview-badge]', artist.badge || (artist.source === 'linked' ? 'Linked' : 'PLAIGROUND'));
+    var bio = String(artist.bio || '').trim();
+    setText('[data-artist-preview-bio]', bio || 'No bio yet.');
+    setPhoto('[data-artist-preview-photo]', artist.photo || '');
+    setHidden('[data-artist-preview-pending]', artist.edit_status !== 'pending');
+    var genresHost = $('[data-artist-preview-genres]');
+    if (genresHost) {
+      genresHost.textContent = '';
+      (artist.genres || []).forEach(function (name) {
+        var pill = document.createElement('span');
+        pill.className = 'tag on';
+        pill.textContent = name;
+        genresHost.appendChild(pill);
+      });
+    }
+    setHidden('[data-artist-preview-genres-empty]', (artist.genres || []).length > 0);
+    var links = linksForArtist(artist);
+    var platformsHost = $('[data-artist-preview-platforms]');
+    if (platformsHost) {
+      platformsHost.textContent = '';
+      links.forEach(function (link) {
+        var row = document.createElement('p');
+        row.className = 'hint';
+        var label = document.createElement('strong');
+        var api = platformApi();
+        label.textContent = (api && api.platformName ? api.platformName(link.platform) : link.platform) + ': ';
+        row.appendChild(label);
+        var href = link.url || link.value || '';
+        if (href && /^https?:\/\//i.test(href)) {
+          var a = document.createElement('a');
+          a.href = href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = href;
+          row.appendChild(a);
+        } else {
+          var span = document.createElement('span');
+          span.textContent = href || (link.id || '');
+          row.appendChild(span);
+        }
+        platformsHost.appendChild(row);
+      });
+    }
+    setHidden('[data-artist-preview-platforms-empty]', links.length > 0);
+    var previewDel = $('[data-artist-preview] [data-artist-delete]');
+    if (previewDel) previewDel.setAttribute('data-artist-delete', artist.id);
+    var previewEdit = $('[data-artist-preview] [data-artist-edit-open]');
+    if (previewEdit) previewEdit.setAttribute('data-artist-edit-open', artist.id);
+  }
+
+  function paintEdit(artist) {
     setText('[data-artist-edit-title]', artist.name);
     setText('[data-artist-badge]', artist.badge || (artist.source === 'linked' ? 'Linked' : 'PLAIGROUND'));
     var nameEl = $('#artist-name');
-    var spotify = $('#artist-spotify');
-    var apple = $('#artist-apple');
-    var store = $('#artist-store');
     var bio = $('#artist-bio');
     var change = $('#artist-change');
-    renderSongs(artist);
     if (nameEl) {
       nameEl.value = artist.name || '';
       nameEl.disabled = artist.locked === true;
     }
-    if (spotify) {
-      spotify.value = artist.spotify_id || '';
-      spotify.disabled = artist.locked === true || artist.source === 'linked';
-    }
-    if (apple) {
-      apple.value = artist.apple_id || '';
-      apple.disabled = artist.locked === true || artist.source === 'linked';
-    }
-    if (store) {
-      store.value = artist.store_url || '';
-      store.disabled = artist.locked === true || artist.source === 'linked';
-    }
+    renderPlatforms(artist);
     if (bio) bio.value = artist.bio || '';
     if (change) change.value = artist.change_request || '';
+    var legalFirst = $('#artist-legal-first');
+    var legalLast = $('#artist-legal-last');
+    if (legalFirst) legalFirst.value = artist.legal_first || '';
+    if (legalLast) legalLast.value = artist.legal_last || '';
     setPhoto('[data-artist-photo-edit]', current.photo);
     renderGenrePicks(artist.genres || []);
     paintAiFields(artist);
@@ -265,7 +350,6 @@
     if (field && field.classList) field.classList.toggle('is-locked', artist.locked === true);
     var saveBtn = $('[data-artist-save]');
     if (saveBtn) saveBtn.textContent = 'Save artist';
-    painting = false;
   }
 
   function setChecks(sel, values) {
@@ -335,6 +419,226 @@
     return out;
   }
 
+  function catalogPlatforms() {
+    var api = platformApi();
+    if (api && api.platformList) return api.platformList();
+    var pick = storePickApi();
+    if (pick && pick.normalizeStores) return pick.normalizeStores(pick.DEFAULT_STORES || []);
+    return [];
+  }
+
+  function fillCatalogSelect(select, currentSlug) {
+    if (!select) return;
+    var keep = String(currentSlug || select.value || '');
+    select.textContent = '';
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Pick a platform';
+    select.appendChild(blank);
+    catalogPlatforms().forEach(function (row) {
+      var opt = document.createElement('option');
+      opt.value = row.slug;
+      opt.textContent = row.name;
+      select.appendChild(opt);
+    });
+    if (keep) select.value = keep;
+  }
+
+  function platformRows(hostSel) {
+    var host = $(hostSel);
+    if (!host || !host.querySelectorAll) return [];
+    return Array.prototype.slice.call(host.querySelectorAll('[data-artist-platform-row]'));
+  }
+
+  function setRowError(row, text) {
+    var msg = row && row.querySelector ? row.querySelector('[data-artist-platform-row-error]') : null;
+    if (!msg) return;
+    msg.textContent = text || '';
+    msg.hidden = !text;
+  }
+
+  function collectRowLinks(hostSel, opts) {
+    var api = platformApi();
+    var rows = platformRows(hostSel);
+    var values = [];
+    var i;
+    var strict = Boolean(opts && opts.strict);
+    for (i = 0; i < rows.length; i += 1) {
+      var row = rows[i];
+      var sel = row.querySelector ? row.querySelector('[data-artist-platform-slug]') : null;
+      var input = row.querySelector ? row.querySelector('[data-artist-platform-url]') : null;
+      var platform = sel ? String(sel.value || '').trim() : '';
+      var value = input ? String(input.value || '').trim() : '';
+      setRowError(row, '');
+      if (!platform && !value) continue;
+      if (!platform || !value) {
+        if (!strict) continue;
+        var incomplete = !platform ? 'Pick a platform.' : 'Paste the artist URL.';
+        setRowError(row, incomplete);
+        return { error: incomplete };
+      }
+      if (!api || typeof api.matchPlatformValue !== 'function') {
+        values.push({ platform: platform, url: value, value: value });
+        continue;
+      }
+      var matched = api.matchPlatformValue(platform, value);
+      if (!matched.ok) {
+        setRowError(row, matched.error);
+        return { error: matched.error };
+      }
+      values.push({
+        platform: matched.platform,
+        id: matched.id || '',
+        url: matched.url || value,
+        value: value,
+      });
+    }
+    if (api && typeof api.validateList === 'function') {
+      var checked = api.validateList(values);
+      if (checked.error) return { error: checked.error };
+      return { ok: true, links: checked.links };
+    }
+    return { ok: true, links: values };
+  }
+
+  function linksForArtist(artist) {
+    var api = platformApi();
+    if (!artist) return [];
+    if (artist.platform_links && artist.platform_links.length) return artist.platform_links.slice();
+    if (api && typeof api.deriveFromLegacy === 'function') return api.deriveFromLegacy(artist);
+    return [];
+  }
+
+  function addPlatformRowTo(hostSel, link, locked, onChange) {
+    var host = $(hostSel);
+    var api = platformApi();
+    if (!host) return null;
+    var row = document.createElement('div');
+    row.className = 'artist-platform-row';
+    row.setAttribute('data-artist-platform-row', '');
+    var fields = document.createElement('div');
+    fields.className = 'artist-platform-row-fields';
+    var sel = document.createElement('select');
+    sel.setAttribute('data-artist-platform-slug', '');
+    sel.setAttribute('aria-label', 'Platform');
+    sel.disabled = locked === true;
+    var input = document.createElement('input');
+    input.type = 'url';
+    input.setAttribute('data-artist-platform-url', '');
+    input.setAttribute('aria-label', 'Artist URL');
+    input.placeholder = 'Artist URL';
+    input.autocomplete = 'off';
+    input.value = api && api.displayValue ? api.displayValue(link) : ((link && (link.value || link.url || link.id)) || '');
+    input.disabled = locked === true;
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn btn-ghost btn-sm';
+    remove.setAttribute('data-artist-platform-remove', '');
+    remove.setAttribute('aria-label', 'Remove platform');
+    remove.textContent = 'X';
+    remove.hidden = locked === true;
+    fields.appendChild(sel);
+    fields.appendChild(input);
+    fields.appendChild(remove);
+    var err = document.createElement('p');
+    err.className = 'hint is-red';
+    err.setAttribute('data-artist-platform-row-error', '');
+    err.hidden = true;
+    row.appendChild(fields);
+    row.appendChild(err);
+    host.appendChild(row);
+    fillCatalogSelect(sel, link && link.platform);
+    if (!locked) {
+      if (sel.addEventListener) sel.addEventListener('change', onChange || function () {});
+      if (input.addEventListener) {
+        input.addEventListener('input', onChange || function () {});
+        input.addEventListener('change', onChange || function () {});
+      }
+      if (remove.addEventListener) {
+        remove.addEventListener('click', function () {
+          if (row.parentNode) row.parentNode.removeChild(row);
+          if (typeof onChange === 'function') onChange();
+        });
+      }
+    }
+    return row;
+  }
+
+  function addPlatformRow(link, locked) {
+    if (!link && current.selected && current.selected.locked === true) return null;
+    return addPlatformRowTo('[data-artist-platforms]', link, locked, scheduleSave);
+  }
+
+  function renderPlatforms(artist) {
+    var host = $('[data-artist-platforms]');
+    if (!host) return;
+    host.textContent = '';
+    setText('[data-artist-platform-error]', '');
+    setHidden('[data-artist-platform-error]', true);
+    var locked = Boolean(artist && artist.locked === true);
+    linksForArtist(artist).forEach(function (link) { addPlatformRow(link, locked); });
+    var add = $('[data-artist-platform-add]');
+    if (add) add.hidden = locked;
+  }
+
+  function collectPlatformLinks(opts) {
+    setText('[data-artist-platform-error]', '');
+    setHidden('[data-artist-platform-error]', true);
+    var collected = collectRowLinks('[data-artist-platforms]', opts);
+    if (collected.error) {
+      setText('[data-artist-platform-error]', collected.error);
+      setHidden('[data-artist-platform-error]', false);
+    }
+    return collected;
+  }
+
+  function addImportRow(link) {
+    return addPlatformRowTo('[data-artist-import-rows]', link, false, syncImportUrl);
+  }
+
+  function seedImportRows() {
+    var host = $('[data-artist-import-rows]');
+    if (!host) return;
+    if (!host.querySelectorAll || !host.querySelectorAll('[data-artist-platform-row]').length) {
+      addImportRow(null);
+    }
+    syncImportUrl();
+  }
+
+  function syncImportUrl() {
+    var collected = collectRowLinks('[data-artist-import-rows]', { strict: false });
+    var first = collected.links && collected.links[0];
+    var hidden = $('#artist-link-url');
+    if (hidden) hidden.value = first ? (first.url || first.value || '') : '';
+    var firstInput = $('[data-artist-import-rows] [data-artist-platform-url]');
+    if (firstInput && !firstInput.id) firstInput.id = 'artist-link-url-row';
+  }
+
+  function collectImportLinks(opts) {
+    setText('[data-artist-import-error]', '');
+    setHidden('[data-artist-import-error]', true);
+    var collected = collectRowLinks('[data-artist-import-rows]', opts);
+    if (collected.error) {
+      setText('[data-artist-import-error]', collected.error);
+      setHidden('[data-artist-import-error]', false);
+    }
+    syncImportUrl();
+    return collected;
+  }
+
+  function applyStoreCatalog(stores) {
+    var api = platformApi();
+    if (api && api.setCatalog && stores && stores.length) api.setCatalog(stores);
+    platformRows('[data-artist-import-rows]').forEach(function (row) {
+      var sel = row.querySelector ? row.querySelector('[data-artist-platform-slug]') : null;
+      if (sel) fillCatalogSelect(sel, sel.value);
+    });
+    platformRows('[data-artist-platforms]').forEach(function (row) {
+      var sel = row.querySelector ? row.querySelector('[data-artist-platform-slug]') : null;
+      if (sel) fillCatalogSelect(sel, sel.value);
+    });
+  }
+
   function showStatus(text) {
     setText('[data-artists-status]', text || '');
     setHidden('[data-artists-status]', !text);
@@ -353,13 +657,16 @@
 
   function openArtistForm(kind) {
     var add = kind !== 'import';
+    if (current.mode === 'edit') selectArtist(current.selected, 'preview');
     setHidden('#artist-create-panel', !add);
     setHidden('[data-artist-create-panel]', !add);
     setHidden('#artist-link-panel', add);
     setHidden('[data-artist-link-panel]', add);
     markChoice(add ? 'add' : 'import');
+    if (!add) seedImportRows();
     var panel = add ? $('#artist-create-panel') : $('#artist-link-panel');
-    var input = add ? $('#artist-create-name') : $('#artist-link-url');
+    var input = add ? $('#artist-create-name') : $('[data-artist-import-rows] [data-artist-platform-url]');
+    if (!input && !add) input = $('#artist-link-url');
     if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (input && typeof input.focus === 'function') {
       setTimeout(function () { input.focus(); }, 50);
@@ -382,9 +689,9 @@
       current.artists.forEach(function (row) {
         if (row.id === current.selected.id) keep = row;
       });
-      selectArtist(keep || current.artists[0] || null);
-    } else if (current.artists[0]) {
-      selectArtist(current.artists[0]);
+      selectArtist(keep || current.artists[0] || null, current.mode || 'preview');
+    } else if (current.artists[0] && current.mode) {
+      selectArtist(current.artists[0], current.mode);
     } else {
       renderSongs(null);
     }
@@ -546,6 +853,8 @@
       action: 'create',
       artist_action: 'create',
       name: name,
+      legal_first: $('#artist-create-legal-first') ? $('#artist-create-legal-first').value : '',
+      legal_last: $('#artist-create-legal-last') ? $('#artist-create-legal-last').value : '',
       confirm_different: confirmDifferent || Boolean(forceReview),
     }).then(function (result) {
       if (!result.ok) {
@@ -553,8 +862,10 @@
         return null;
       }
       applyMe(result.data);
-      if (result.data && result.data.created) selectArtist(result.data.created);
+      if (result.data && result.data.created) selectArtist(result.data.created, 'preview');
       if (nameEl) nameEl.value = '';
+      if ($('#artist-create-legal-first')) $('#artist-create-legal-first').value = '';
+      if ($('#artist-create-legal-last')) $('#artist-create-legal-last').value = '';
       paintCreateCheck();
       showStatus(check.level === 'red' || forceReview
         ? 'Held for review. This name was not sent to the store.'
@@ -564,22 +875,38 @@
   }
 
   function linkArtist() {
+    var collected = collectImportLinks({ strict: true });
+    if (collected.error) {
+      showStatus(collected.error);
+      return Promise.resolve(null);
+    }
+    var first = collected.links && collected.links[0];
+    if (!first) {
+      showStatus('Pick a platform and paste the artist URL.');
+      return Promise.resolve(null);
+    }
     var urlEl = $('#artist-link-url');
     var nameEl = $('#artist-link-name');
+    if (urlEl) urlEl.value = first.url || first.value || '';
     return post('/api/me/artists', {
       action: 'link',
       artist_action: 'link',
-      url: urlEl ? urlEl.value : '',
+      url: first.url || first.value || (urlEl ? urlEl.value : ''),
+      platform: first.platform || '',
       name: nameEl ? nameEl.value : '',
+      platform_links: collected.links || [],
     }).then(function (result) {
       if (!result.ok) {
         showStatus((result.data && result.data.error) || 'Could not link artist.');
         return null;
       }
       applyMe(result.data);
-      if (result.data && result.data.created) selectArtist(result.data.created);
+      if (result.data && result.data.created) selectArtist(result.data.created, 'preview');
       if (urlEl) urlEl.value = '';
       if (nameEl) nameEl.value = '';
+      var host = $('[data-artist-import-rows]');
+      if (host) host.textContent = '';
+      seedImportRows();
       showStatus('Linked artist profile created.');
       return result.data;
     });
@@ -667,10 +994,21 @@
       return Promise.resolve(null);
     }
     showError('');
+    var platforms = collectPlatformLinks({ strict: !quiet });
+    if (platforms.error) {
+      if (!quiet) showError(platforms.error);
+      return Promise.resolve(null);
+    }
     saveInFlight = true;
     var nameEl = $('#artist-name');
     var nextPhoto = current.photo || '';
     var storedPhoto = current.selected.photo || '';
+    var legacy = { spotify_id: '', apple_id: '', store_url: '' };
+    (platforms.links || []).forEach(function (row) {
+      if (!legacy.store_url && row && (row.url || row.value)) legacy.store_url = row.url || row.value;
+      if (row && row.platform === 'spotify') legacy.spotify_id = row.id || row.value || '';
+      if (row && (row.platform === 'apple' || row.platform === 'apple-music')) legacy.apple_id = row.id || row.value || '';
+    });
     var body = {
       action: 'update',
       artist_action: 'update',
@@ -679,14 +1017,17 @@
       name: nameEl ? nameEl.value : current.selected.name,
       bio: $('#artist-bio') ? $('#artist-bio').value : '',
       genres: selectedGenres(),
-      spotify_id: $('#artist-spotify') ? $('#artist-spotify').value : '',
-      apple_id: $('#artist-apple') ? $('#artist-apple').value : '',
-      store_url: $('#artist-store') ? $('#artist-store').value : '',
+      platform_links: platforms.links || [],
+      spotify_id: legacy.spotify_id,
+      apple_id: legacy.apple_id,
+      store_url: legacy.store_url,
       human_contributions: readChecks('data-human-contribution'),
       ai_contributions: readChecks('data-ai-contribution'),
       ai_process_detail: $('#artist-ai-detail') ? $('#artist-ai-detail').value : '',
       ai_involvement_percent: involvementValue(),
       change_request: $('#artist-change') ? $('#artist-change').value : '',
+      legal_first: $('#artist-legal-first') ? $('#artist-legal-first').value : '',
+      legal_last: $('#artist-legal-last') ? $('#artist-legal-last').value : '',
       confirm_different: true,
     };
     if (nextPhoto !== storedPhoto) body.photo = nextPhoto;
@@ -705,7 +1046,7 @@
       if (quiet) keepQuietSave(result.data);
       else {
         applyMe(result.data);
-        selectArtist(result.data.updated);
+        selectArtist(result.data.updated, 'edit');
         showStatus('Artist profile saved.');
       }
       return result.data;
@@ -755,6 +1096,7 @@
       } else if (!current.artists.length) {
         selectArtist(null);
         setHidden('[data-artist-edit]', true);
+        setHidden('[data-artist-preview]', true);
       }
       showStatus('Artist profile deleted.');
       return result.data;
@@ -781,7 +1123,7 @@
         var id = btn.getAttribute('data-artist-id');
         var found = null;
         current.artists.forEach(function (row) { if (row.id === id) found = row; });
-        selectArtist(found);
+        selectArtist(found, 'preview');
       });
     }
     var genreSel = $('#artist-genre');
@@ -911,7 +1253,38 @@
         scheduleSave();
       });
     }
-    ['#artist-bio', '#artist-spotify', '#artist-apple', '#artist-store', '#artist-change', '#artist-name'].forEach(function (sel) {
+    var addImport = $('[data-artist-import-add]');
+    if (addImport) {
+      addImport.addEventListener('click', function () {
+        addImportRow(null);
+      });
+    }
+    var addPlatform = $('[data-artist-platform-add]');
+    if (addPlatform) {
+      addPlatform.addEventListener('click', function () {
+        if (current.selected && current.selected.locked === true) return;
+        addPlatformRow(null, false);
+      });
+    }
+    var doneEdit = $('[data-artist-edit-done]');
+    if (doneEdit) {
+      doneEdit.addEventListener('click', function () {
+        if (current.selected) selectArtist(current.selected, 'preview');
+      });
+    }
+    if (document.addEventListener) {
+      document.addEventListener('click', function (event) {
+        var target = event && event.target;
+        var editBtn = target && target.closest ? target.closest('[data-artist-edit-open]') : null;
+        if (!editBtn) return;
+        if (event.preventDefault) event.preventDefault();
+        var id = editBtn.getAttribute('data-artist-edit-open') || (current.selected && current.selected.id) || '';
+        var found = null;
+        current.artists.forEach(function (row) { if (row.id === id || row.artist_id === id) found = row; });
+        if (found) selectArtist(found, 'edit');
+      });
+    }
+    ['#artist-bio', '#artist-change', '#artist-name', '#artist-legal-first', '#artist-legal-last'].forEach(function (sel) {
       var field = $(sel);
       if (!field || !field.addEventListener) return;
       field.addEventListener('input', scheduleSave);
@@ -936,14 +1309,20 @@
     }
     } catch (err) { /* Add artist stays bound at document level; still load the roster. */ }
 
+    seedImportRows();
     Promise.all([
       loadMe(),
       fetch('/api/tonegrid/releases', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
         .then(function (response) { return response.json(); })
         .then(function (data) { return (data && data.releases) || []; })
         .catch(function () { return []; }),
+      fetch('/api/tonegrid/stores', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (response) { return response.json(); })
+        .then(function (data) { return (data && data.stores) || []; })
+        .catch(function () { return []; }),
     ]).then(function (results) {
       current.catalog = results[1] || [];
+      applyStoreCatalog(results[2] || []);
       applyMe(results[0]);
     });
   }
@@ -971,5 +1350,14 @@
     paintAiFields: paintAiFields,
     involvementValue: involvementValue,
     openArtistForm: openArtistForm,
+    previewArtist: previewArtist,
+    editArtist: editArtist,
+    addImportRow: addImportRow,
+    addPlatformRow: addPlatformRow,
+    renderPlatforms: renderPlatforms,
+    collectPlatformLinks: collectPlatformLinks,
+    collectImportLinks: collectImportLinks,
+    linksForArtist: linksForArtist,
+    applyStoreCatalog: applyStoreCatalog,
   };
 })(typeof window !== 'undefined' ? window : this);

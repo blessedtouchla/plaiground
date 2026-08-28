@@ -46,27 +46,40 @@
         <div>
           <p class="kicker">Release names</p>
           <h1>Artist Profiles</h1>
+          <p class="hint">Create the artist once. Later songs pick that profile — no retype every submit.</p>
+          <p class="hint">After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.</p>
+          <p class="hint">Import or merge here, not on submit.</p>
         </div>
         <span class="page-head-actions">
           <button class="btn btn-purple btn-sm" type="button" data-artist-add>Add artist</button>
-          <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import Artist</button>
         </span>
       </div>
-      <p class="hint">Manage the names music is released under. Each profile can have a photo, bio, genres, and platform pages. Settings stays account, login, and billing.</p>
       <p class="hint" data-artists-status hidden></p>
 
       <section class="panel" id="artist-create-panel" data-artist-create-panel hidden>
         <h3>Add artist</h3>
-        <p class="hint">Name only. The artist page is created instantly when the name is clear.</p>
+        <p class="hint">Create the profile here. Later songs pick it. The artist page is created instantly when the name is clear.</p>
         <div class="field">
           <label for="artist-create-name">Artist name</label>
           <input id="artist-create-name" type="text" placeholder="Artist name" autocomplete="off" />
           <p class="hint" id="artist-create-check" hidden></p>
         </div>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="field">
+            <label for="artist-create-legal-first">Legal first name</label>
+            <input id="artist-create-legal-first" type="text" placeholder="First name" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="artist-create-legal-last">Legal last name</label>
+            <input id="artist-create-legal-last" type="text" placeholder="Last name" autocomplete="off" />
+          </div>
+        </div>
+        <p class="hint">Private. Not the artist name people see.</p>
         <div id="artist-create-yellow" class="artist-check-box is-yellow" hidden>
           <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
           <p class="hero-ctas" style="margin:12px 0 0">
-            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Import</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Import Artist</button>
             <button class="btn btn-purple btn-sm" type="button" id="artist-create-continue">Continue as a different artist</button>
           </p>
           <label class="checkline" id="artist-create-confirm-wrap" hidden style="margin-top:12px;display:flex;gap:10px;align-items:flex-start">
@@ -77,7 +90,7 @@
         <div id="artist-create-red" class="artist-check-box is-red" hidden>
           <p>This name is too close to an existing artist and can’t be released automatically.</p>
           <p class="hero-ctas" style="margin:12px 0 0">
-            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Import</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-goto-link>Import Artist</button>
             <button class="btn btn-purple btn-sm" type="button" id="artist-create-review">Submit for review</button>
           </p>
         </div>
@@ -85,42 +98,84 @@
       </section>
 
       <section class="panel" id="artist-link-panel" data-artist-link-panel hidden>
-        <h3>Import</h3>
-        <p class="hint">Paste a Spotify, Apple Music, or store artist link. Creates a Linked profile so you do not open a duplicate store page. A valid store link skips the name warning.</p>
-        <div class="form-grid">
-          <div class="field">
-            <label for="artist-link-url">Store artist link</label>
-            <input id="artist-link-url" type="url" placeholder="https://open.spotify.com/artist/…" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="artist-link-name">Display name</label>
-            <input id="artist-link-name" type="text" placeholder="Name as it should appear" autocomplete="off" />
-          </div>
+        <h3>Import Artist</h3>
+        <p class="hint">Pick a platform we deliver to and paste that artist page. Plus adds another row. Link artist saves.</p>
+        <div class="field">
+          <label for="artist-link-name">Display name</label>
+          <input id="artist-link-name" type="text" placeholder="Name as it should appear" autocomplete="off" />
         </div>
+        <div class="field artist-platforms-field" style="margin-top:18px">
+          <label>Store pages</label>
+          <div class="artist-platforms" data-artist-import-rows></div>
+          <p class="hint is-red" data-artist-import-error hidden></p>
+          <p class="artist-platforms-add">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-import-add aria-label="Add another platform">+</button>
+          </p>
+        </div>
+        <input id="artist-link-url" type="hidden" value="" autocomplete="off" />
         <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-link>Link artist</button></p>
       </section>
 
       <section class="panel">
         <h3>Your artists</h3>
-        <p class="hint">Select a profile to edit extras. New names on upload only need a name — extras live here.</p>
+        <p class="hint">Click a profile to preview it. Edit is left of Delete.</p>
         <div class="artist-list" data-artist-list></div>
         <div data-artist-empty>
-          <p class="hint">No artist profiles yet. Add a new name or import an existing store page.</p>
+          <p class="hint">No artist profiles yet. Create one or import an existing store page.</p>
           <p class="page-head-actions" style="margin-top:12px">
             <button class="btn btn-purple btn-sm" type="button" data-artist-add>Add artist</button>
-            <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import Artist</button>
           </p>
         </div>
       </section>
 
-      <section class="panel" data-artist-edit hidden>
+      <section class="panel" data-artist-preview hidden>
         <div class="head-row artist-edit-head">
-          <h3 data-artist-edit-title>Edit artist</h3>
+          <h3>Preview</h3>
           <span class="artist-edit-meta">
-            <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
-            <span class="plan-badge is-yellow" data-artist-edit-pending hidden>Pending edit</span>
+            <span class="plan-badge" data-artist-preview-badge>PLAIGROUND</span>
+            <span class="plan-badge is-yellow" data-artist-preview-pending hidden>Pending edit</span>
           </span>
         </div>
+        <p class="hint">How this artist appears.</p>
+        <div class="rel artist-preview-hero" style="margin-bottom:20px">
+          <div class="profile-photo is-sm" data-artist-preview-photo role="img" aria-label="Artist photo"></div>
+          <div>
+            <h2 class="artist-preview-name" data-artist-preview-name></h2>
+            <p class="hint" data-artist-preview-bio></p>
+          </div>
+        </div>
+        <div class="tags" data-artist-preview-genres></div>
+        <p class="hint" data-artist-preview-genres-empty hidden>No genres yet.</p>
+        <div class="artist-preview-platforms" data-artist-preview-platforms></div>
+        <p class="hint" data-artist-preview-platforms-empty hidden>No linked store pages yet.</p>
+        <div class="artist-preview-actions">
+          <button class="btn btn-purple btn-sm" type="button" data-artist-edit-open>Edit</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-artist-delete>Delete</button>
+        </div>
+      </section>
+
+      <section class="panel" data-artist-songs hidden>
+        <h3>This artist's songs</h3>
+        <p class="hint">Owner playback only. Preview waits until the store says live, then Play opens the store stream.</p>
+        <div data-artist-song-list></div>
+        <p class="hint" data-artist-songs-empty hidden>No songs on this profile yet.</p>
+      </section>
+
+    </div>
+  </div>
+  <div class="artist-edit-screen" data-artist-edit hidden>
+    <div class="artist-edit-screen-inner">
+      <div class="head-row artist-edit-head artist-edit-screen-bar">
+        <div>
+          <button class="btn btn-ghost btn-sm" type="button" data-artist-edit-done>Done</button>
+          <h3 data-artist-edit-title>Edit artist</h3>
+        </div>
+        <span class="artist-edit-meta">
+          <span class="plan-badge" data-artist-badge>PLAIGROUND</span>
+          <span class="plan-badge is-yellow" data-artist-edit-pending hidden>Pending edit</span>
+        </span>
+      </div>
         <p class="hint" data-artist-pending-note hidden>Edit submitted. Waiting on the store / the distributor.</p>
         <div class="rel" style="margin-bottom:20px">
           <div class="profile-photo is-sm" data-artist-photo-edit role="img" aria-label="Artist photo preview"></div>
@@ -135,7 +190,18 @@
             <label for="artist-name">Artist name</label>
             <input id="artist-name" type="text" placeholder="Artist name" autocomplete="off" />
             <p class="hint" id="artist-name-check" hidden></p>
-            <p class="field-why" data-artist-locked-note hidden>Name and platform IDs lock after the first successful release. Photo, bio, and other fields save immediately. The store artist name is not patched after that first save.</p>
+            <p class="field-why" data-artist-locked-note hidden>Store IDs lock after first live. Photo, bio, and genres stay editable.</p>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-top:18px">
+          <div class="field">
+            <label for="artist-legal-first">Legal first name</label>
+            <input id="artist-legal-first" type="text" placeholder="First name" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="artist-legal-last">Legal last name</label>
+            <input id="artist-legal-last" type="text" placeholder="Last name" autocomplete="off" />
+            <p class="hint">Private. Prefills songwriter lines on later songs. Not the public artist name.</p>
           </div>
           <div class="field">
             <label for="artist-genre">Genres</label>
@@ -148,19 +214,14 @@
           <label for="artist-bio">Bio</label>
           <textarea id="artist-bio" rows="4" placeholder="Optional bio"></textarea>
         </div>
-        <div class="form-grid" style="margin-top:18px">
-          <div class="field">
-            <label for="artist-spotify">Spotify ID</label>
-            <input id="artist-spotify" type="text" placeholder="If known" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="artist-apple">Apple Music ID</label>
-            <input id="artist-apple" type="text" placeholder="If known" autocomplete="off" />
-          </div>
-        </div>
-        <div class="field" style="margin-top:18px">
-          <label for="artist-store">Platform page</label>
-          <input id="artist-store" type="url" placeholder="Spotify, Apple Music, or store artist URL" autocomplete="off" />
+        <div class="field artist-platforms-field" style="margin-top:18px" data-artist-platforms-field>
+          <label>Linked store pages</label>
+          <p class="hint">Pick a platform we deliver to. Plus adds another row. Store IDs lock after first live.</p>
+          <div class="artist-platforms" data-artist-platforms></div>
+          <p class="hint is-red" data-artist-platform-error hidden></p>
+          <p class="artist-platforms-add">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-platform-add aria-label="Add another platform">+</button>
+          </p>
         </div>
         <div class="artist-create-block" data-artist-ai>
           <h3>How this artist usually creates</h3>
@@ -213,21 +274,14 @@
         </div>
         <p class="hint">Edits save as you type. Save artist is optional.</p>
         <p class="hint" data-artist-error hidden></p>
-      </section>
-
-      <section class="panel" data-artist-songs hidden>
-        <h3>This artist's songs</h3>
-        <p class="hint">Owner playback only. Preview waits until the store says live, then Play opens the store stream.</p>
-        <div data-artist-song-list></div>
-        <p class="hint" data-artist-songs-empty hidden>No songs on this profile yet.</p>
-      </section>
-
     </div>
   </div>
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/artist-check.js"></script>
+  <script src="lib/store-pick.js"></script>
+  <script src="lib/platform-links.js"></script>
   <script src="lib/release-status.js"></script>
   <script src="lib/live-player.js"></script>
   <script src="artists.js" defer></script>
