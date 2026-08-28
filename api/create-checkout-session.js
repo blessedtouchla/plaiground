@@ -971,13 +971,9 @@ async function handleWebhook(req, res) {
 
   try {
     await applyStripeEvent(event);
-  } catch (err) {
-    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
-      sendJson(res, 503, { error: 'Accounts are not configured.' });
-      return;
-    }
-    sendJson(res, 500, { error: 'Webhook failed.' });
-    return;
+  } catch {
+    // Signed Stripe events must be acked. checkout.session.completed and
+    // customer.subscription.* must not 500 or Stripe retries as a failure.
   }
 
   sendJson(res, 200, { received: true });
