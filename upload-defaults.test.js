@@ -253,7 +253,7 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
     const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
     assert.ok(input, 're-tap test needs a typeahead input');
     assert.ok(list, 're-tap test needs a typeahead list');
-    assert.ok(typeof input.listeners.pointerdown === 'function', 'typeahead input must clear the pick latch on pointerdown');
+    assert.ok(typeof input.listeners.pointerdown === 'function', 'typeahead input must reopen from pointerdown (the half-focused re-tap path)');
     assert.ok(typeof input.listeners.touchend === 'function', 'typeahead input must open from touchend (post-gesture, keyboard-safe)');
     assert.ok(typeof input.listeners.pointerup === 'function', 'typeahead input must open from pointerup');
 
@@ -269,13 +269,13 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
     flushImmediate();
 
     // Re-tap the field WITHOUT clearing input.value — this is the path that was
-    // dead on iOS Safari: the picked label is still shown, pickOption just ran.
-    // pointerdown clears the settle latch; pointerup (post-gesture) opens the
-    // list — pointerdown must NOT open it or iOS suppresses the keyboard.
+    // dead on iOS Safari: the picked label is still shown, pickOption just ran,
+    // and the input is left half-focused so focus/click/pointerup do not fire.
+    // pointerdown (which always fires) must both clear the settle latch AND
+    // reopen the list — "quiet" so it doesn't schedule a scroll and lose the
+    // keyboard.
     input.listeners.pointerdown();
-    assert.ok(list.classList.contains('is-hidden'), 'pointerdown alone must not open the list (keyboard-safe)');
-    input.listeners.pointerup();
-    assert.ok(!list.classList.contains('is-hidden'), 're-tap on a filled field must reopen the list');
+    assert.ok(!list.classList.contains('is-hidden'), 're-tap pointerdown alone must reopen the list on a filled field');
     const reopened = listButtons(list);
     assert.ok(reopened.length >= 1, 're-tap must repopulate the option list');
     assert.ok(reopened.some(function (btn) { return btn.textContent === 'Pop'; }), 're-tap keeps the current value in the list');
@@ -382,6 +382,20 @@ function testTypeaheadOpenDefersScroll(catalog) {
         trigger + ' still scrolls the field into view once the gesture settles'
       );
     });
+
+    // pointerdown opens the list too (it is the only tap event that fires when
+    // the input is left half-focused after a pick), but "quiet": it must never
+    // schedule a scroll at all, since even a deferred scrollBy during the tap
+    // makes iOS abort it and suppress the keyboard.
+    global.window.scrolled = 0;
+    timers.length = 0;
+    list.classList.add('is-hidden');
+    input.listeners.pointerdown();
+    assert.ok(!list.classList.contains('is-hidden'), 'pointerdown reopens the list (half-focused re-tap path)');
+    assert.strictEqual(global.window.scrolled, 0, 'pointerdown open must not scroll synchronously');
+    assert.strictEqual(timers.length, 0, 'pointerdown open must not even schedule a deferred scroll');
+    runTimers();
+    assert.strictEqual(global.window.scrolled, 0, 'pointerdown open never scrolls; the trailing touchend does');
   } finally {
     if (prevWindow === undefined) delete global.window;
     else global.window = prevWindow;

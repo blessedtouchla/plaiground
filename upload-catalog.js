@@ -2176,7 +2176,8 @@ function bindTypeahead(select, items, getValue, getLabel) {
     doc.addEventListener('pointercancel', cancelHoldTouch, tapListen);
   }
 
-  function openList() {
+  function openList(opts) {
+    var quiet = opts === true || (opts && opts.quiet);
     // A tap that lands here with the list closed and nothing else claiming the
     // typeahead is a genuine new gesture — drop any latch left by a prior pick
     // so a filled field can reopen on iOS Safari.
@@ -2185,11 +2186,12 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
     if (activeTypeahead && activeTypeahead !== selfApi && typeaheadBusy(activeTypeahead)) return;
     showMatches(input.value);
-    // Never scroll synchronously here. openList() runs on touchend/click/focus,
-    // and a window.scrollBy() inside that gesture makes iOS Safari abort the tap
-    // and never raise the keyboard (long-press reaches focus by another path,
-    // which is why it works there). Defer every keepInputVisible() so the
-    // keyboard shows first, then the field scrolls into view.
+    // quiet = called from pointerdown, mid-gesture: show the list but schedule
+    // no scroll. window.scrollBy() at any point during the tap (even deferred a
+    // tick) makes iOS Safari treat the tap as a pan and never raise the
+    // keyboard. The trailing touchend/focus/click fire openList() again without
+    // quiet, once the gesture is over, and that pass does the scroll.
+    if (quiet) return;
     if (win && win.setTimeout) {
       if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
       win.setTimeout(function () {
@@ -2210,13 +2212,14 @@ function bindTypeahead(select, items, getValue, getLabel) {
     showMatches(input.value);
   });
   input.addEventListener('pointerdown', function () {
-    // The next real press on the field ends the post-pick settle window.
-    // Do NOT open the list here: openList() runs keepInputVisible(), and a
-    // programmatic scroll during pointerdown makes iOS Safari treat the tap as
-    // a pan — it cancels the gesture and never focuses the input, so the
-    // keyboard never appears. pointerup/touchend/focus/click (all post-gesture)
-    // open the list a few milliseconds later without that side effect.
+    // pointerdown is the only tap event guaranteed to fire regardless of the
+    // input's focus state. After a pick the input is left half-focused on iOS
+    // (a long-press then shows Copy/Select-All), so focus/click/pointerup do
+    // NOT reliably fire on the re-tap — pointerdown is what actually reopens a
+    // filled field. Open it "quiet" (no scroll) so the tap still raises the
+    // keyboard; the trailing touchend/focus does the scroll afterwards.
     clearPickLatch();
+    openList({ quiet: true });
   });
   input.addEventListener('touchend', openList);
   input.addEventListener('focus', openList);
