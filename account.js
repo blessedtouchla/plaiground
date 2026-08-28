@@ -395,7 +395,6 @@
   }
 
   function hydrateOverviewCovers(cards) {
-    if (!cards || !cards.length) return;
     if (!$('[data-release-tiles]')) return;
     if ($('[data-release-rows]')) return;
     if (typeof fetch !== 'function') return;
@@ -409,19 +408,37 @@
       })
       .then(function (result) {
         if (!result.ok || !result.data || !Array.isArray(result.data.releases)) return;
+        var api = statusApi();
         var byId = {};
         result.data.releases.forEach(function (row) {
           var id = String((row && (row.uuid || row.id)) || '').toLowerCase();
+          if (id) byId[id] = row;
+        });
+        var seen = {};
+        var next = (cards || []).map(function (card) {
+          var id = String((card && card.id) || '').toLowerCase();
+          if (id) seen[id] = true;
+          var row = byId[id];
+          if (!row) return card;
+          var mapped = api ? api.info(row.status) : null;
           var url = coverOf(row);
-          if (id && url) byId[id] = url;
+          return Object.assign({}, card, {
+            title: String((row.title || (card && card.title) || '')).trim(),
+            status: String((row.status || (card && card.status) || '')),
+            label: mapped ? mapped.label : (card && card.label),
+            group: mapped ? mapped.group : (card && card.group),
+            live: mapped ? mapped.live : false,
+            artwork_url: (card && card.artwork_url) || url,
+            alert: (api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : (card && card.alert) || '',
+          });
         });
-        var next = cards.map(function (card) {
-          var url = byId[String((card && card.id) || '').toLowerCase()];
-          if (!url || (card && card.artwork_url)) return card;
-          return Object.assign({}, card, { artwork_url: url });
+        result.data.releases.forEach(function (row) {
+          var id = String((row && (row.uuid || row.id)) || '').toLowerCase();
+          if (!id || seen[id]) return;
+          var card = api && typeof api.cardFromRow === 'function' ? api.cardFromRow(row) : null;
+          if (card) next.push(card);
         });
-        var changed = next.some(function (card, i) { return card !== cards[i]; });
-        if (changed) renderReleaseTiles(next);
+        renderOverview(next);
       })
       .catch(function () {});
   }
@@ -455,12 +472,23 @@
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
       var api = statusApi();
-      var mapped = api ? api.info(card.status) : { label: card.label || 'Pending', dot: card.live ? 'green' : 'yellow' };
+      var mapped = api ? api.info(card.status) : {
+        label: card.label || 'Pending',
+        dot: (card.status === 'live' || card.status === 'delivered') ? 'green' : 'yellow',
+        live: card.status === 'live' || card.status === 'delivered',
+      };
       status.className = 'release-tile-status is-' + (mapped.dot || 'gray');
       status.textContent = mapped.label || card.label || 'Pending';
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
+      var alertText = String((card && card.alert) || (api && typeof api.problemAlert === 'function' ? api.problemAlert(card) : '') || '').trim();
+      if (alertText) {
+        var note = document.createElement('p');
+        note.className = 'release-tile-alert';
+        note.textContent = alertText;
+        link.appendChild(note);
+      }
       host.appendChild(link);
     });
   }
