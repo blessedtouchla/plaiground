@@ -281,8 +281,8 @@ function runLoginWall() {
                 return prev.then(function () { return assertUnpaidProStays(page); });
               }, Promise.resolve()).then(function () {
                 const albumClick = load({
-                  pathname: '/dashboard.html',
-                  href: 'dashboard.html',
+                  pathname: '/releases.html',
+                  href: 'releases.html',
                   cookie: 'plaiground_signed=1',
                   account: staffAccount(),
                 });
@@ -290,7 +290,7 @@ function runLoginWall() {
                 fireClicks(albumClick, albumEvent);
                 return albumClick.api.whenReady().then(function () {
                   return Promise.resolve().then(function () {
-                    assert.strictEqual(albumClick.location.href, 'upload.html?type=album', 'dashboard Upload an album stays signed in');
+                    assert.strictEqual(albumClick.location.href, 'upload.html?type=album', 'Releases Upload an album stays signed in');
                     assert.ok(albumClick.location.href.indexOf('login.html') === -1);
 
                     const loggedOut401 = load({
@@ -388,7 +388,10 @@ function run() {
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(uploadHtml.indexOf('hasMembership()') === -1, 'upload.html must not use the stricter hasMembership file gate');
   const dash = fs.readFileSync(path.join(__dirname, 'dashboard.html'), 'utf8');
-  assert.ok(/data-signed-in-upload/.test(dash) && /type=album/.test(dash), 'dashboard album CTA waits for the session');
+  assert.ok(/data-signed-in-upload/.test(dash), 'Overview first-submit waits for the session');
+  assert.ok(!/type=album/.test(dash), 'Overview must not keep an album CTA');
+  const releasesHtml = fs.readFileSync(path.join(__dirname, 'releases.html'), 'utf8');
+  assert.ok(/data-signed-in-upload/.test(releasesHtml) && /type=album/.test(releasesHtml), 'Releases album CTA waits for the session');
   assert.ok(/data-new-release data-signed-in-upload>New release/.test(dash), 'Overview New release is a fresh upload');
   const leftover = load({
     seedLocal: { 'plaiground.store.draft': JSON.stringify({ title: 'Mexeu', release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }) },

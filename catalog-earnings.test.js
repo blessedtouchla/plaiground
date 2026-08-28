@@ -125,17 +125,15 @@ function run() {
   assert.ok(read('upload.html').indexOf('lib/cover-preview.js') !== -1);
   assert.ok(read('upload.html').indexOf('lib/cover-url.js') !== -1);
   assert.ok(read('dashboard.html').indexOf('lib/cover-url.js') !== -1);
-  assert.ok(read('dashboard.html').indexOf('Your release is in the catalog') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-first-song') !== -1);
   assert.ok(read('dashboard.html').indexOf('data-has-release') !== -1);
-  assert.ok(read('dashboard.html').indexOf('data-latest-edit') !== -1);
-  assert.ok(read('dashboard.html').indexOf('Edit release') !== -1);
-  assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(read('dashboard.html')), 'Creator Edit release entry is the catalog list');
+  assert.ok(read('dashboard.html').indexOf('data-next-up') !== -1);
+  assert.ok(read('dashboard.html').indexOf('Releases pending') !== -1);
+  assert.ok(read('dashboard.html').indexOf('Artist profiles') !== -1);
   assert.ok(/data-latest-edit href="releases.html">Edit release<\/a>/.test(read('library.html')), 'Library Edit release entry is the catalog list');
-  assert.ok(read('dashboard.html').indexOf('data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release.') !== -1);
   assert.ok(read('dashboard.html').indexOf('PRO •') === -1, 'publishing badge must not say Pro-only');
-  assert.ok(read('dashboard.html').indexOf('INCLUDED IN YOUR PLAN') !== -1);
   assert.ok(read('dashboard.html').indexOf('Upgrade to Pro only') === -1);
+  assert.ok(read('dashboard.html').indexOf('Your song is in the catalog') === -1, 'Overview is not a second Releases page');
   assert.ok(read('earnings.html').indexOf('data-require-membership="true"') !== -1);
   assert.ok(read('earnings.html').indexOf('data-require-paid') === -1, 'earnings must not bounce Basic to Pick a plan');
   assert.ok(read('earnings.html').indexOf('Upgrade to Creator') !== -1);
@@ -503,9 +501,10 @@ function run() {
   vm.runInNewContext(read('catalog.js'), cookieOnlyCatalog);
 
   assert.ok(read('releases.html').indexOf('data-signed-in-upload') !== -1, 'releases upload links wait for the session');
-  assert.ok(read('dashboard.html').indexOf('href="upload.html?type=album" data-album-upload data-signed-in-upload') !== -1
-    || /upload\.html\?type=album[^>]*data-signed-in-upload/.test(read('dashboard.html')),
-    'dashboard Upload an album waits for the session');
+  assert.ok(read('releases.html').indexOf('href="upload.html?type=album" data-album-upload data-signed-in-upload') !== -1
+    || /upload\.html\?type=album[^>]*data-signed-in-upload/.test(read('releases.html')),
+    'Releases Upload an album waits for the session');
+  assert.ok(read('dashboard.html').indexOf('upload.html?type=album') === -1, 'Overview must not keep Upload an album');
 
   const splits = loadScript('splits.js', {
     '[data-splits-empty]': makeEl({}),

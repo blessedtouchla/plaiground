@@ -47,10 +47,10 @@ function run() {
   const dashboard = read('dashboard.html');
   assert.ok(dashboard.indexOf('href="upload.html"') !== -1);
   assert.ok(dashboard.indexOf('Submit your first song') !== -1);
-  assert.ok(dashboard.indexOf('Create now') !== -1);
+  assert.ok(dashboard.indexOf('data-next-up') !== -1);
   assert.ok(dashboard.indexOf('data-first-song') !== -1);
   assert.ok(dashboard.indexOf('data-has-release') !== -1);
-  assert.ok(dashboard.indexOf('Pending') !== -1);
+  assert.ok(dashboard.indexOf('Releases pending') !== -1);
 
   const membership = read('membership.js');
   assert.ok(membership.indexOf('localStorage') !== -1);

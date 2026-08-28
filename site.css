@@ -2223,6 +2223,44 @@ body:not(.app) > .app-main > .topbar { display: none; }
   font-size: 14px;
   color: var(--muted-2);
 }
+.account-card a.row {
+  text-decoration: none;
+  color: inherit;
+}
+.next-up {
+  background: #111;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-bottom: 24px;
+}
+.next-up[hidden] { display: none !important; }
+.next-up h2 {
+  font-size: 1.4rem;
+  margin: 6px 0 8px;
+}
+.next-up p { color: var(--muted); }
+.dash-shortcuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 28px;
+}
+.dash-shortcuts[hidden] { display: none !important; }
+.dash-shortcut {
+  display: block;
+  background: #111;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  color: inherit;
+}
+.dash-shortcut h3 { margin: 0 0 6px; font-size: 1.1rem; }
+.dash-shortcut p { margin: 0; color: var(--muted); font-size: 14px; }
+.dash-talk { margin-top: 28px; }
+.release-tiles.is-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .dash-top {
   display: grid;
   grid-template-columns: 1.4fr 0.8fr;
@@ -3854,6 +3892,13 @@ body.app.artists-page .page {
   .release-pills [data-all-releases] { order: 1; }
   .release-pills [data-latest-edit] { order: 2; }
   .release-pills [data-new-release] { order: 3; }
+  .dash-shortcuts {
+    grid-template-columns: 1fr;
+  }
+  .release-tiles.is-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dash-talk { margin-top: 22px; }
 }
 
 @media (max-width: 400px) {

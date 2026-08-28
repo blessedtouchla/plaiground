@@ -450,8 +450,10 @@ function run() {
   const dash = read('dashboard.html');
   const howApp = read('how.html');
   assert.ok(!dash.includes('class="workflow"'), 'Overview must not keep the 4-step block in the page body');
-  assert.ok(dash.indexOf('Your releases') < dash.indexOf('How a submission works'), 'Overview How it works link stays at the bottom');
-  assert.ok(dash.indexOf('Unlock MSP') < dash.indexOf('data-msp-section'), 'publishing CTA sits above the MSP section');
+  assert.ok(dash.indexOf('Overview') < dash.indexOf('How a submission works'), 'Overview How it works link stays at the bottom');
+  assert.ok(dash.indexOf('data-next-up') < dash.indexOf('How a submission works'), 'next-up sits above How it works');
+  assert.ok(dash.indexOf('Talk to PLAI') < dash.indexOf('How a submission works'), 'Talk to PLAI sits above How it works');
+  assert.ok(!dash.includes('data-msp-section'), 'Overview must not keep an MSP earnings board');
   assert.ok(howApp.includes('01 Upload') && howApp.includes('02 Attest rights') && howApp.includes('03 Split sheet') && howApp.includes('04 Review'), 'signed-in How it works page keeps the 4-step flow');
   assert.ok(!/data-require-membership|data-require-paid/i.test(howApp), 'How it works must not dump signed-in users to login');
 

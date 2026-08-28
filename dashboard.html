@@ -52,30 +52,20 @@
         <strong>Account on hold</strong>
         <p>The renewal payment did not go through. Upload beyond Basic, publishing, Boost, and advanced analytics are locked. A later successful payment restores the plan.</p>
       </div>
+      <div class="next-up" data-next-up hidden>
+        <p class="kicker">Next up</p>
+        <h2 data-next-up-title>Submit your first song</h2>
+        <p data-next-up-body>Upload a finished track, confirm the rights, sign the split sheet.</p>
+        <p style="margin-top:16px">
+          <a class="btn btn-purple btn-md" href="upload.html" data-next-up-link data-signed-in-upload>Submit your first song</a>
+        </p>
+      </div>
       <div class="dash-top">
         <div class="page-head" style="margin:0">
-          <p class="kicker">Overview</p>
-          <h1>Your releases</h1>
-          <div data-first-song>
-            <p>Start your first song submission. Upload a finished track, confirm the rights, sign the split sheet. We register the publishing and deliver it everywhere.</p>
-            <p style="margin-top:18px">
-              <a class="btn btn-purple btn-md" href="upload.html" data-first-upload data-signed-in-upload>Submit your first song</a>
-              <a class="btn btn-ghost btn-md" href="upload.html?type=album" data-album-upload data-signed-in-upload>Upload an album</a>
-              <span style="color:var(--muted);font-size:13px;margin-left:12px">About 10 minutes, start to finish</span>
-            </p>
-          </div>
-          <div data-has-release hidden>
-            <div class="release-lede">
-              <p data-for-plans="basic">Your song is in the catalog. Basic includes this one lifetime release. <span class="release-status" data-latest-status>Pending</span></p>
-              <p data-for-plans="creator pro" hidden>Your song is in the catalog. <span class="release-status" data-latest-status>Pending</span></p>
-            </div>
-            <div class="release-pills">
-              <a class="btn btn-purple btn-md" href="upload.html" data-new-release data-signed-in-upload>New release</a>
-              <a class="btn btn-ghost btn-md" data-latest-edit href="releases.html">Edit release</a>
-              <a class="btn btn-ghost btn-md" href="releases.html" data-all-releases>All releases</a>
-            </div>
-            <span class="is-hidden" hidden data-latest-title>Your release</span>
-          </div>
+          <p class="kicker">Account</p>
+          <h1>Overview</h1>
+          <p data-for-plans="basic">Distribution is included. Publishing and Boosts unlock on Creator or Pro.</p>
+          <p data-for-plans="creator pro" hidden>Publishing and Boosts are on your plan.</p>
         </div>
         <div class="account-card">
           <div class="head-row" style="margin-bottom:8px">
@@ -83,6 +73,8 @@
             <span style="color:var(--gold);font-weight:800;font-size:12px" data-account-plan>—</span>
           </div>
           <div class="row"><span>Releases live</span><b data-account-releases>0</b></div>
+          <div class="row"><span>Releases pending</span><b data-account-pending>0</b></div>
+          <a class="row" href="artists.html"><span>Artist profiles</span><b data-account-artists>0</b></a>
           <div class="row"><span>Payout method</span><b style="color:var(--gold)">Not set up</b></div>
           <p style="margin-top:14px"><a class="learn" href="payouts.html" style="text-align:left;color:var(--gold)">Add a payout method</a></p>
         </div>
@@ -90,52 +82,32 @@
 
       <div class="release-board">
         <div class="head-row" style="margin-bottom:14px">
-          <h3>Cover and status</h3>
+          <h3>Recent releases</h3>
           <span style="color:var(--muted)" data-first-song>Nothing here yet</span>
-          <span style="color:var(--muted)" data-has-release hidden data-latest-status>Pending</span>
+          <a class="learn" href="releases.html" data-has-release data-all-releases hidden style="text-align:left">All releases</a>
         </div>
-        <div class="release-tiles" data-release-tiles hidden></div>
+        <div class="release-tiles is-strip" data-release-tiles hidden></div>
         <div class="empty" data-first-song>
           <h3>Your first release goes here.</h3>
-          <p>Once you submit, you’ll track content, plans, signatures and delivery from this panel.</p>
-          <p style="margin-top:16px">
-            <a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload data-signed-in-upload>Create now</a>
-            <a class="btn btn-ghost btn-sm" href="upload.html?type=album" data-album-upload data-signed-in-upload>Upload an album</a>
-          </p>
-        </div>
-        <div class="dash-note" data-has-release hidden>
-          <p data-for-plans="basic">Submitted and in the queue. Open it anytime — a second first upload is not included on Basic.</p>
-          <p data-for-plans="creator pro" hidden>Submitted and in the queue. Open it anytime.</p>
+          <p>Once you submit, it shows on Releases with its real status.</p>
         </div>
       </div>
 
-      <div class="pub-call" data-pub-call hidden>
-        <div>
-          <p class="ok" data-pub-badge>INCLUDED IN YOUR PLAN</p>
-          <h3 style="font-size:1.4rem;margin:8px 0">Unlock MSP — Multiple Streams of Revenue</h3>
-          <p style="color:var(--muted);max-width:520px">Publishing unlocks MSP (societies, not stores). Creator and Pro already include publishing. Basic stays locked.</p>
-        </div>
-        <div class="pub-call-actions">
-          <a class="btn btn-purple btn-md" href="publishing-register.html" data-publishing-register>Register for Publishing</a>
-          <p style="color:var(--muted);font-size:13px;margin-top:8px">Your release is in the catalog</p>
-        </div>
+      <div class="dash-shortcuts" data-dash-shortcuts data-for-plans="creator pro" hidden>
+        <a class="dash-shortcut" href="boosts.html">
+          <h3>Boosts</h3>
+          <p>Grow a live release.</p>
+        </a>
+        <a class="dash-shortcut" href="publishing-register.html" data-publishing-register>
+          <h3>Publishing</h3>
+          <p>Register for publishing.</p>
+        </a>
       </div>
 
-      <section class="msp-board" data-msp-section hidden>
-        <div class="head-row" style="margin-bottom:14px">
-          <h3>MSP</h3>
-          <span style="color:var(--muted)">Multiple Streams of Revenue</span>
-        </div>
-        <div class="panel lock msp-lock" data-msp-lock hidden>
-          <h3 class="y">MSP is locked until a song is live</h3>
-          <p class="y">Pending, draft, and not-live releases stay closed here. No revenue is shown until a release is live.</p>
-        </div>
-        <div class="msp-open" data-msp-open hidden>
-          <p class="hint">Open for live releases only. Amounts stay $0 until societies report.</p>
-          <div class="msp-songs" data-msp-songs></div>
-        </div>
-      </section>
-      <p class="how-link" style="margin-top:36px">
+      <p class="dash-talk">
+        <button type="button" class="btn btn-ghost btn-md" data-plai-talk aria-label="Talk to PLAI, pronounced PLAY">Talk to PLAI</button>
+      </p>
+      <p class="how-link" style="margin-top:24px">
         <a class="learn" href="how.html" style="text-align:left">How a submission works</a>
       </p>
     </div>

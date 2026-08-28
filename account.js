@@ -314,12 +314,10 @@
     var hasRelease = cards.length > 0 || ids.length > 0;
     var latestId = hasRelease ? String((cards[cards.length - 1] && cards[cards.length - 1].id) || ids[ids.length - 1] || '') : '';
     var latest = latestReleaseCard(me, latestId, cards);
-    var liveN = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
-      ? PlaigroundReleaseStatus.liveCount(me)
-      : cards.filter(function (card) { return card && card.live; }).length;
-    $all('[data-account-releases]').forEach(function (el) { setText(el, String(liveN)); });
+    paintAccountCounts(me, cards);
+    renderNextUp(me, cards);
     $all('[data-pub-call]').forEach(function (el) {
-      el.hidden = !hasRelease;
+      el.hidden = true;
     });
     renderOverview(cards);
     hydrateOverviewCovers(cards);
@@ -449,16 +447,122 @@
           if (card) next.push(card);
         });
         renderOverview(next);
+        paintAccountCounts(lastMe, next);
+        renderNextUp(lastMe, next);
       })
       .catch(function () {});
   }
 
+  function artistProfileCount(me) {
+    var roster = me && me.profile && Array.isArray(me.profile.artists) ? me.profile.artists : [];
+    var n = 0;
+    var i;
+    for (i = 0; i < roster.length; i += 1) {
+      var name = roster[i] && roster[i].name;
+      if (name && !isPlaceholderName(name)) n += 1;
+    }
+    return n;
+  }
+
+  function isPendingCard(card, api) {
+    if (!card || card.live) return false;
+    if (api && typeof api.isPendingPipeline === 'function') return api.isPendingPipeline(card);
+    var g = card.group || (api && typeof api.group === 'function' ? api.group(card.status) : '');
+    return g === 'pending' || g === 'processing' || g === 'rejected';
+  }
+
+  function paintAccountCounts(me, cards) {
+    var api = statusApi();
+    var list = Array.isArray(cards) ? cards : [];
+    var liveN = 0;
+    var pendingN = 0;
+    if (list.length) {
+      list.forEach(function (card) {
+        if (card && card.live) liveN += 1;
+        else if (isPendingCard(card, api)) pendingN += 1;
+      });
+    } else if (api && me) {
+      liveN = typeof api.liveCount === 'function' ? api.liveCount(me) : 0;
+      pendingN = typeof api.pendingCount === 'function' ? api.pendingCount(me) : 0;
+    }
+    $all('[data-account-releases]').forEach(function (el) { setText(el, String(liveN)); });
+    $all('[data-account-pending]').forEach(function (el) { setText(el, String(pendingN)); });
+    $all('[data-account-artists]').forEach(function (el) { setText(el, String(artistProfileCount(me))); });
+  }
+
+  function payoutSetUp(me) {
+    var raw = me && (me.payout_method || (me.profile && (me.profile.payout_method || me.profile.payout)));
+    return Boolean(raw && String(raw).trim());
+  }
+
+  function firstRealProblem(cards) {
+    var api = statusApi();
+    var i;
+    for (i = 0; i < (cards || []).length; i += 1) {
+      var card = cards[i];
+      if (!card || card.live) continue;
+      var alertText = String((card.alert || (api && typeof api.problemAlert === 'function' ? api.problemAlert(card) : '')) || '').trim();
+      if (alertText) return { card: card, alert: alertText };
+    }
+    return null;
+  }
+
+  function renderNextUp(me, cards) {
+    var host = $('[data-next-up]');
+    if (!host) return;
+    var list = Array.isArray(cards) ? cards : [];
+    var title = $('[data-next-up-title]');
+    var body = $('[data-next-up-body]');
+    var link = $('[data-next-up-link]');
+    var next = null;
+    if (!list.length) {
+      next = {
+        title: 'Submit your first song',
+        body: 'Upload a finished track, confirm the rights, sign the split sheet.',
+        href: 'upload.html',
+        label: 'Submit your first song',
+      };
+    } else {
+      var problem = firstRealProblem(list);
+      if (problem) {
+        next = {
+          title: 'Fix this release',
+          body: problem.alert,
+          href: problem.card.id ? ('song.html?id=' + encodeURIComponent(problem.card.id)) : 'releases.html',
+          label: 'Open release',
+        };
+      } else if (!payoutSetUp(me)) {
+        next = {
+          title: 'Add a payout method',
+          body: 'Set where royalties go when they clear.',
+          href: 'payouts.html',
+          label: 'Add a payout method',
+        };
+      }
+    }
+    host.hidden = !next;
+    if (!next) return;
+    if (title) setText(title, next.title);
+    if (body) setText(body, next.body);
+    if (link) {
+      link.setAttribute('href', next.href);
+      setText(link, next.label);
+    }
+  }
+
+  function recentStrip(cards) {
+    var list = Array.isArray(cards) ? cards.filter(Boolean) : [];
+    var out = [];
+    var i;
+    for (i = list.length - 1; i >= 0 && out.length < 4; i -= 1) {
+      out.push(list[i]);
+    }
+    return out;
+  }
+
   function renderOverview(cards) {
     var list = Array.isArray(cards) ? cards : [];
-    var hasRelease = list.length > 0;
-    var liveN = list.filter(function (card) { return card && card.live; }).length;
-    renderReleaseTiles(list);
-    renderMsp(list, hasRelease, liveN);
+    renderReleaseTiles(recentStrip(list));
   }
 
   function renderReleaseTiles(cards) {
