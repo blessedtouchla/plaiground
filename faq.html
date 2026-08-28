@@ -33,15 +33,24 @@
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <p class="side-label">Menu</p>
     <nav class="side-nav">
-      <a href="dashboard.html">Overview</a>
       <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
-      <a href="releases.html">Releases</a>
-      <a href="splits.html">Splits</a>
-      <a href="publishing-register.html" data-publishing-register>Publishing</a>
-      <a href="earnings.html">Earnings</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="boosts.html">Boosts</a>
-      <a href="payouts.html">Payouts</a>
+      <div class="side-item has-submenu" data-overview-menu>
+        <div class="side-item-row">
+          <a href="dashboard.html">Overview</a>
+          <button type="button" class="side-submenu-toggle" aria-expanded="false" aria-controls="overview-submenu" aria-label="Show Overview pages">
+            <span class="side-submenu-chevron" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="side-submenu" id="overview-submenu">
+          <a href="releases.html">Releases</a>
+          <a href="splits.html">Splits</a>
+          <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
+          <a href="earnings.html">Earnings</a>
+          <a href="analytics.html">Analytics</a>
+          <a href="payouts.html">Payouts</a>
+        </div>
+      </div>
+      <a href="boosts.html" data-for-plans="creator pro" hidden>Boosts</a>
       <a href="artists.html">Artist Profiles</a>
       <a href="settings.html">Settings</a>
       <a href="how.html">How it works</a>
@@ -76,10 +85,13 @@
         <div class="faq-filters">
           <button class="on" type="button" data-faq-filter="all">All questions</button>
           <button type="button" data-faq-filter="releasing">Releasing</button>
+          <button type="button" data-faq-filter="platforms">Platforms</button>
           <button type="button" data-faq-filter="artists">Artists</button>
           <button type="button" data-faq-filter="ai">AI and authorship</button>
+          <button type="button" data-faq-filter="monetize">Monetize (AI)</button>
           <button type="button" data-faq-filter="splits">Splits and publishing</button>
           <button type="button" data-faq-filter="money">Money and plans</button>
+          <button type="button" data-faq-filter="video">Video Collect</button>
           <button type="button" data-faq-filter="account">Plans and account</button>
         </div>
 
@@ -91,14 +103,23 @@
           </div>
           <div class="faq-item">
             <button class="q" type="button">Where do you deliver?</button>
-            <div class="a" data-faq-stores>
+            <div class="a">
               <p data-faq-store-count>We deliver to the live store catalog.</p>
-              <ul data-faq-store-list></ul>
+              <p>Every live store is listed under Platforms we distribute to.</p>
             </div>
           </div>
           <div class="faq-item">
             <button class="q" type="button">Do you assign an ISRC?</button>
             <p class="a">Yes. Metadata and ISRC are handled on every release.</p>
+          </div>
+        </div>
+
+        <div class="faq-group" data-faq-group="platforms" id="faq-platforms">
+          <h2>Platforms we distribute to</h2>
+          <div class="faq-platforms" data-faq-stores>
+            <p data-faq-store-count>We deliver to the live store catalog.</p>
+            <div data-faq-store-groups></div>
+            <ul data-faq-store-list hidden></ul>
           </div>
         </div>
 
@@ -132,6 +153,33 @@
             <button class="q" type="button">What is not allowed?</button>
             <p class="a">Voice cloning of an existing artist and inaccurate disclosure are not allowed. See the Rights Attestation.</p>
           </div>
+        </div>
+
+        <div class="faq-group" data-faq-group="monetize">
+          <h2>Monetize (AI)</h2>
+          <div class="faq-item">
+            <button class="q" type="button">Can Fully AI tracks go out?</button>
+            <p class="a">Full AI tracks are allowed. We still distribute even when a store will not pay. We still send the release.</p>
+          </div>
+          <div class="faq-item">
+            <button class="q" type="button">What is confirmed for Fully AI?</button>
+            <div class="a">
+              <p>We still send the release. We only list what is confirmed. We do not invent a pay or no-pay row for every store.</p>
+              <p>Tidal: will not pay royalties on music they identify as wholly AI-generated. They may still list it.</p>
+              <p>Deezer: tags fully AI, keeps it out of recs/playlists, and does not pay streams they call fraudulent.</p>
+              <p>Video Collect / YouTube Content ID / Meta Rights / TikTok video-claim: Fully AI cannot opt in. No AI and AI-assisted can. AI-assisted may get a review warning.</p>
+              <p>Spotify, Apple, YouTube Music, and most others: we send it. They may label it. They fight spam and impersonation. We do not promise they will pay every stream.</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <button class="q" type="button">How is AI-assisted treated?</button>
+            <p class="a">AI-assisted is treated as a human work with AI help. We distribute. Monetize follows each store’s normal rules plus their spam/impersonation rules. Not the same as Fully AI.</p>
+          </div>
+          <div class="faq-item">
+            <button class="q" type="button">How is No AI treated?</button>
+            <p class="a">No AI follows normal store pay rules.</p>
+          </div>
+          <p class="faq-plain">Platforms change this. FAQ is current as of August 28, 2026. A store can list a song and still not pay.</p>
         </div>
 
         <div class="faq-group" data-faq-group="splits">
@@ -180,6 +228,43 @@
             <button class="q" type="button">Can I cancel or take a song down?</button>
             <p class="a">Take a song down from the release page with Remove. A live store release asks stores to take it down and stays listed until they confirm. Draft, pending, and processing releases are removed from PLAIGROUND after you confirm. Plan cancellation is handled from the account page.</p>
           </div>
+        </div>
+
+        <div class="faq-group" data-faq-group="video">
+          <h2>YouTube Content ID / Video Collect</h2>
+          <div class="faq-item">
+            <button class="q" type="button">What is YouTube Content ID?</button>
+            <div class="a">
+              <p>YouTube Content ID is real collection on PLAIGROUND, not just sending the song to YouTube Music.</p>
+              <p>The product name is Video Collect. Creator and Pro only. Not Basic. Publishing not required.</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <button class="q" type="button">What family is this in?</button>
+            <p class="a">Same family: Instagram/Facebook (Meta Rights Manager) and TikTok native-video ID. Separate from YouTube Music, Instagram stickers, and TikTok Sounds.</p>
+          </div>
+          <div class="faq-item">
+            <button class="q" type="button">Who can opt in?</button>
+            <div class="a">
+              <p>Opt-in per song. Original audio only. Covers, samples, and already-claimed conflicts get a review.</p>
+              <p>No AI and AI-assisted can opt in. AI-assisted may get a review warning. Fully AI cannot opt in.</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <button class="q" type="button">What do I get paid?</button>
+            <div class="a">
+              <p>PLAIGROUND takes 0%. You get 100% of the payout.</p>
+              <p>First pay is usually the first royalty cycle after a match.</p>
+            </div>
+          </div>
+          <h3 class="faq-subhead">Platforms</h3>
+          <ul class="faq-plain-list">
+            <li>YouTube Content ID</li>
+            <li>Instagram/Facebook Meta Rights Manager</li>
+            <li>TikTok native-video ID</li>
+          </ul>
+          <h3 class="faq-subhead">Monetize</h3>
+          <p class="faq-plain">Video Collect is collection and monetize, not a views buy. Not the same as buying YouTube views. Views packages stay parked.</p>
         </div>
 
         <div class="faq-group" data-faq-group="account">
@@ -258,12 +343,20 @@
   <script src="lib/store-pick.js"></script>
   <script>
     (function () {
-      var root = document.querySelector('[data-faq-stores]');
-      if (!root || typeof PlaigroundStorePick === 'undefined') return;
+      if (typeof PlaigroundStorePick === 'undefined') return;
       function paint(stores) {
-        PlaigroundStorePick.paintFaqStores(root, stores);
+        var roots = document.querySelectorAll('[data-faq-stores]');
+        var info = null;
+        for (var i = 0; i < roots.length; i += 1) {
+          info = PlaigroundStorePick.paintFaqStores(roots[i], stores);
+        }
+        if (!info) info = PlaigroundStorePick.formatFaqStores(stores);
+        var counts = document.querySelectorAll('[data-faq-store-count]');
+        for (var c = 0; c < counts.length; c += 1) {
+          counts[c].textContent = info.sentence;
+        }
       }
-      paint(PlaigroundStorePick.DEFAULT_STORES);
+      paint();
       if (typeof fetch !== 'function') return;
       fetch('/api/tonegrid/stores', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
         .then(function (response) { return response.json().then(function (data) { return { ok: response.ok, data: data || {} }; }); })

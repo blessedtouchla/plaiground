@@ -941,12 +941,73 @@ body.app > .plai-bubble {
 }
 .side-nav a:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
 .side-nav a.on { background: var(--purple); color: #fff; }
-.side-nav a.side-action {
-  background: rgba(125, 60, 255, 0.22);
-  color: #fff;
+.side-nav a.side-action,
+.side-nav a.side-action.on {
+  background: #f3cb47;
+  color: #111;
   font-weight: 700;
 }
-.side-nav a.side-action:hover { background: var(--purple); color: #fff; }
+.side-nav a.side-action:hover,
+.side-nav a.side-action.on:hover {
+  background: #f6d45c;
+  color: #111;
+}
+.side-item.has-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.side-item-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.side-item-row > a { flex: 1 1 auto; min-width: 0; }
+.side-submenu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-2);
+  flex: 0 0 auto;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.side-submenu-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+.side-item.has-submenu.open .side-submenu-toggle,
+.side-item.has-submenu.is-current .side-submenu-toggle,
+.side-item-row > a.on + .side-submenu-toggle { color: #fff; }
+.side-submenu-chevron {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: -3px;
+}
+.side-item.has-submenu.open .side-submenu-chevron {
+  transform: rotate(-135deg);
+  margin-top: 2px;
+}
+.side-submenu {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 2px 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.side-item.has-submenu.open .side-submenu { display: flex; }
 .side-nav a.side-problem {
   margin-top: 4px;
   border: 1px solid rgba(245, 197, 66, 0.45);
@@ -2077,10 +2138,16 @@ body:not(.app) > .app-main > .topbar { display: none; }
 }
 .how-cols {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+}
+.app .how-who {
+  padding: 4px 0 28px;
+}
+.app .how-cols {
+  margin: 0 0 28px;
 }
 .how-col { padding: 36px 32px; }
 .how-col + .how-col { border-left: 1px solid var(--line); }
@@ -2299,6 +2366,56 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .faq-item.open button.q::after { content: "▴"; color: var(--green); border-color: var(--green); }
 .faq-item .a { display: none; color: var(--muted); padding: 0 40px 18px 0; max-width: 760px; }
 .faq-item.open .a { display: block; }
+.faq-item .a p { margin: 0 0 12px; }
+.faq-item .a p:last-child { margin-bottom: 0; }
+.faq-platforms {
+  max-width: 860px;
+  margin: 8px 0 8px;
+}
+.faq-platforms > p {
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+.faq-store-group { margin: 0 0 22px; }
+.faq-store-group h3 {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.faq-store-note {
+  color: var(--muted-2);
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+.faq-store-group ul,
+.faq-plain-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px 22px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--muted-2);
+  font-size: 14px;
+}
+.faq-plain-list { max-width: 760px; margin-bottom: 8px; }
+.faq-store-group li,
+.faq-plain-list li { padding: 3px 0; }
+.faq-subhead {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 22px 0 10px;
+}
+.faq-plain {
+  color: var(--muted);
+  max-width: 760px;
+  margin: 16px 0 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
 .stuck {
   display: flex;
   justify-content: space-between;
@@ -2691,6 +2808,25 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .song-store-links a:hover {
   color: #fff;
 }
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-alert { color: #ff8a8a; }
+.song-store-status {
+  display: grid;
+  gap: 10px;
+}
+.song-store-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+.song-store-status-row span:first-child { color: #fff; }
+.song-store-status-row .wait { color: #ff8a8a; }
+[data-song-codes] { white-space: pre-line; }
 .owner-embed {
   width: 100%;
   min-height: 152px;

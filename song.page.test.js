@@ -134,6 +134,10 @@ function loadSong(opts) {
     '[data-song-player]': makeEl({}),
     '[data-song-links]': makeEl({ hidden: true }),
     '[data-song-link-list]': makeEl({}),
+    '[data-song-stores]': makeEl({}),
+    '[data-song-stores-empty]': makeEl({ textContent: 'No store deliveries yet.' }),
+    '[data-song-stores-list]': makeEl({ hidden: true }),
+    '[data-song-codes]': makeEl({ textContent: 'UPC: Not assigned\nISRC: Not assigned' }),
     '[data-song-streams]': makeEl({ textContent: '0' }),
     '[data-song-earnings]': makeEl({ textContent: '$0.00' }),
     '[data-song-breakdown]': makeEl({ hidden: true }),
@@ -902,6 +906,10 @@ function run() {
   assert.ok(html.includes('data-song-links'));
   assert.ok(html.includes('data-song-link-list'));
   assert.ok(html.includes('<h3>Links</h3>'));
+  assert.ok(html.includes('<h3>Stores</h3>'));
+  assert.ok(html.includes('data-song-stores-list'));
+  assert.ok(html.includes('data-song-codes'));
+  assert.ok(!/ToneGrid|InterSpace|DistroKid/i.test(html));
   assert.ok(css.includes('.song-store-links'));
   assert.ok(html.includes('lib/live-player.js'));
   assert.ok(html.includes('data-song-streams'));
@@ -973,6 +981,9 @@ function run() {
   }), 'pending player stays disabled until live');
   assert.strictEqual(page.nodes['[data-song-links]'].hidden, true, 'pending song hides Links');
   assert.strictEqual(page.nodes['[data-song-link-list]'].children.length, 0);
+  assert.strictEqual(page.nodes['[data-song-stores-list]'].hidden, true, 'no deliveries stay empty');
+  assert.strictEqual(page.nodes['[data-song-stores-empty]'].hidden, false);
+  assert.ok(page.nodes['[data-song-codes]'].textContent.indexOf('Not assigned') !== -1);
   assert.strictEqual(page.nodes['[data-song-breakdown]'].hidden, true, 'Basic locks platform breakdown');
   assert.strictEqual(page.nodes['[data-song-publishing]'].hidden, true, 'Basic hides publishing');
   assert.strictEqual(page.nodes['[data-song-boosts]'].hidden, false, 'Basic can still see locked Boost history');
@@ -1082,6 +1093,11 @@ function run() {
   });
   assert.strictEqual(pendingWithIds.nodes['[data-song-links]'].hidden, true, 'pending never shows Links even if a delivery payload is present');
   assert.strictEqual(pendingWithIds.nodes['[data-song-link-list]'].children.length, 0);
+  assert.strictEqual(pendingWithIds.nodes['[data-song-stores-list]'].hidden, false, 'pending still shows real store delivery status');
+  assert.ok(pendingWithIds.nodes['[data-song-stores-list]'].children.some(function (child) {
+    return child && child.children && child.children[0] && child.children[0].textContent === 'Spotify'
+      && child.children[1] && child.children[1].textContent === 'Landed';
+  }));
 
   const liveStores = loadSong({ plan: 'basic', me: basicMe });
   liveStores.api.render({
@@ -1112,6 +1128,44 @@ function run() {
   assert.ok(hrefs.some(function (href) { return href.indexOf('OLAK5uy_testlist') !== -1; }));
   assert.ok(hrefs.indexOf('https://listen.tidal.com/album/123456789') !== -1);
   assert.deepStrictEqual(names.slice().sort(), ['Apple Music', 'Spotify', 'Tidal', 'YouTube Music']);
+
+  const storeStatus = loadSong({ plan: 'basic', me: basicMe });
+  storeStatus.api.render({
+    me: basicMe,
+    release: {
+      uuid: basicMe.tonegrid_release_ids[0],
+      title: 'Dolly',
+      status: 'live',
+      type: 'single',
+      upc: '194399123456',
+      tracks: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Dolly', isrc: 'USRC17607839' }],
+      deliveries: [
+        { dsp: 'spotify', status: 'live', dsp_release_id: 'spotify:album:7v0Ydolly00000000001' },
+        { dsp: 'apple-music', status: 'failed' },
+        { dsp: 'youtube-music', status: 'pending' },
+      ],
+    },
+    analytics: {},
+  });
+  assert.strictEqual(storeStatus.nodes['[data-song-stores-empty]'].hidden, true);
+  assert.strictEqual(storeStatus.nodes['[data-song-stores-list]'].hidden, false);
+  const destNames = storeStatus.nodes['[data-song-stores-list]'].children.map(function (row) {
+    return row && row.children && row.children[0] ? row.children[0].textContent : '';
+  });
+  const destStatus = storeStatus.nodes['[data-song-stores-list]'].children.map(function (row) {
+    return row && row.children && row.children[1] ? row.children[1].textContent : '';
+  });
+  assert.ok(destNames.indexOf('Spotify') !== -1);
+  assert.ok(destNames.indexOf('Apple Music') !== -1);
+  assert.ok(destNames.indexOf('YouTube Music') !== -1);
+  assert.strictEqual(destNames.length, 3, 'no fake 150 list');
+  assert.ok(destStatus.indexOf('Landed') !== -1);
+  assert.ok(destStatus.indexOf('Failed') !== -1);
+  assert.ok(destStatus.indexOf('Pending') !== -1);
+  assert.ok(storeStatus.nodes['[data-song-codes]'].textContent.indexOf('194399123456') !== -1);
+  assert.ok(storeStatus.nodes['[data-song-codes]'].textContent.indexOf('USRC17607839') !== -1);
+  assert.ok(storeStatus.nodes['[data-song-codes]'].textContent.indexOf('Takedown') === -1);
+  assert.ok(!/ToneGrid|InterSpace|DistroKid/i.test(JSON.stringify(destNames)));
 
   const listFirst = loadSong({ plan: 'basic', me: basicMe, search: '' });
   assert.strictEqual(

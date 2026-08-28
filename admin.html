@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Signups – PLAIGROUND</title>
+  <title>Admin – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -15,15 +15,24 @@
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <p class="side-label">Menu</p>
     <nav class="side-nav">
-      <a href="dashboard.html">Overview</a>
       <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
-      <a href="releases.html">Releases</a>
-      <a href="splits.html">Splits</a>
-      <a href="publishing-register.html" data-publishing-register>Publishing</a>
-      <a href="earnings.html">Earnings</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="boosts.html">Boosts</a>
-      <a href="payouts.html">Payouts</a>
+      <div class="side-item has-submenu" data-overview-menu>
+        <div class="side-item-row">
+          <a href="dashboard.html">Overview</a>
+          <button type="button" class="side-submenu-toggle" aria-expanded="false" aria-controls="overview-submenu" aria-label="Show Overview pages">
+            <span class="side-submenu-chevron" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="side-submenu" id="overview-submenu">
+          <a href="releases.html">Releases</a>
+          <a href="splits.html">Splits</a>
+          <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
+          <a href="earnings.html">Earnings</a>
+          <a href="analytics.html">Analytics</a>
+          <a href="payouts.html">Payouts</a>
+        </div>
+      </div>
+      <a href="boosts.html" data-for-plans="creator pro" hidden>Boosts</a>
       <a href="artists.html">Artist Profiles</a>
       <a href="settings.html">Settings</a>
       <a href="how.html">How it works</a>
@@ -45,25 +54,145 @@
     <div class="page">
       <div class="page-head">
         <p class="kicker">Owner</p>
-        <h1>Signups</h1>
-        <p>Every account in the store, newest first.</p>
+        <h1>Admin</h1>
+        <p>Every signup, paid checkout, subscription, money movement, and store submission.</p>
       </div>
-      <p class="hint" data-signups-status>Loading signups…</p>
+      <p class="hint" data-admin-status>Loading…</p>
+
       <p class="hint" data-signups-empty hidden>No accounts yet.</p>
       <div class="panel" data-signups-table hidden>
-        <h3>Accounts</h3>
-        <table class="data">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Plan</th>
-              <th>Status</th>
-              <th>Signed up</th>
-              <th>Stripe</th>
-            </tr>
-          </thead>
-          <tbody data-signups-body></tbody>
-        </table>
+        <h3>Signups</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Signed up</th>
+                <th>Stripe</th>
+              </tr>
+            </thead>
+            <tbody data-signups-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" data-checkouts-empty hidden>No paid checkouts yet.</p>
+      <div class="panel" data-checkouts-table hidden>
+        <h3>Paid checkouts</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Paid</th>
+              </tr>
+            </thead>
+            <tbody data-checkouts-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" data-subs-empty hidden>No subscriptions yet.</p>
+      <div class="panel" data-subs-table hidden>
+        <h3>Subscriptions</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Started</th>
+              </tr>
+            </thead>
+            <tbody data-subs-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" data-money-empty hidden>No charges, refunds, or payouts yet.</p>
+      <div class="panel" data-money-table hidden>
+        <h3>Money in and out</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Kind</th>
+                <th>Email</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody data-money-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" data-submissions-empty hidden>No submissions yet.</p>
+      <div class="panel" data-submissions-table hidden>
+        <h3>Submissions</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Street date</th>
+                <th>Live date</th>
+                <th>UPC</th>
+                <th>ISRC</th>
+                <th>Takedown</th>
+                <th>Alert</th>
+              </tr>
+            </thead>
+            <tbody data-submissions-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" data-destinations-empty hidden>No store deliveries yet.</p>
+      <div class="panel" data-destinations-table hidden>
+        <h3>Store deliveries</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Store</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody data-destinations-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" data-royalties-empty hidden>No store royalties yet.</p>
+      <div class="panel" data-royalties-table hidden>
+        <h3>Store royalties</h3>
+        <div class="admin-table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Store</th>
+                <th>Title</th>
+                <th>Streams</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody data-royalties-body></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
