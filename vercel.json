@@ -7,9 +7,21 @@
       "permanent": true
     },
     {
-      "source": "/:path((?!api/stripe/webhook$).*)",
+      "source": "/:file.html",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
-      "destination": "https://www.wannaplai.com/:path",
+      "destination": "https://www.wannaplai.com/:file.html",
+      "permanent": true
+    },
+    {
+      "source": "/admin",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/admin",
+      "permanent": true
+    },
+    {
+      "source": "/admin/:path*",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/admin/:path*",
       "permanent": true
     }
   ],
