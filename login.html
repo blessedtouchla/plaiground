@@ -191,6 +191,8 @@
           if (window.PlaigroundMembership) {
             window.PlaigroundMembership.recordSignedIn();
             if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+            window.location.href = window.PlaigroundMembership.signedInHome(result.data && result.data.email ? result.data.email : email);
+            return;
           }
           window.location.href = 'dashboard.html';
         }).catch(function () {

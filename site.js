@@ -242,7 +242,10 @@
   }
 
   function brandHomeHref(signedIn) {
-    return signedIn ? "dashboard.html" : "index.html";
+    if (!signedIn) return "index.html";
+    var api = window.PlaigroundMembership;
+    if (api && typeof api.signedInHome === "function") return api.signedInHome();
+    return "dashboard.html";
   }
 
   function eachHeaderBrandLogo(fn) {

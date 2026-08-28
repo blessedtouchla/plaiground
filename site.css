@@ -2814,6 +2814,8 @@ body:not(.app) > .app-main > .topbar { display: none; }
   -webkit-overflow-scrolling: touch;
 }
 .admin-alert { color: #ff8a8a; }
+.admin-section { scroll-margin-top: 24px; }
+[data-owner-desk] .pro-card { display: none; }
 .song-store-status {
   display: grid;
   gap: 10px;

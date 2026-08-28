@@ -267,7 +267,11 @@
           return;
         }
         if (!list.ok) {
-          global.location.replace(DENY);
+          var statusEl = $('[data-admin-status]') || $('[data-signups-status]');
+          if (statusEl) {
+            statusEl.hidden = false;
+            statusEl.textContent = 'Could not load the desk.';
+          }
           return;
         }
         render(list.data);
