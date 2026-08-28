@@ -7,6 +7,7 @@
   var WS_BASE = 'wss://api.x.ai/v1/realtime?agent_id=' + encodeURIComponent(AGENT_ID);
   var DISMISS_KEY = 'plai-bubble-dismissed';
   var STATE_KEY = 'plai-bubble-state';
+  var PHONE_MQ = '(max-width: 720px)';
   var CHUNK_MS = 100;
   var MAX_TURNS = 8;
   var MAX_TEXT = 400;
@@ -16,6 +17,7 @@
   var root;
   var talkPill;
   var textPill;
+  var chipBtn;
   var panel;
   var statusEl;
   var endBtn;
@@ -201,6 +203,36 @@
     sendBtn.disabled = !on;
   }
 
+  function isPhoneViewport() {
+    try {
+      return !!(window.matchMedia && window.matchMedia(PHONE_MQ).matches);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setMenuOpen(next) {
+    if (!root) return;
+    root.classList.toggle('is-menu-open', Boolean(next));
+    if (chipBtn) chipBtn.setAttribute('aria-expanded', next ? 'true' : 'false');
+  }
+
+  function syncPhoneChrome() {
+    if (!root) return;
+    var phone = isPhoneViewport();
+    root.classList.toggle('is-phone', phone);
+    if (!phone) setMenuOpen(false);
+  }
+
+  function bindPhoneMq() {
+    syncPhoneChrome();
+    if (!window.matchMedia) return;
+    var mq = window.matchMedia(PHONE_MQ);
+    function onChange() { syncPhoneChrome(); }
+    if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onChange);
+    else if (typeof mq.addListener === 'function') mq.addListener(onChange);
+  }
+
   function syncPills() {
     if (talkPill) {
       talkPill.setAttribute('aria-expanded', open && wantMic ? 'true' : 'false');
@@ -209,6 +241,9 @@
     if (textPill) {
       textPill.setAttribute('aria-expanded', open && !wantMic ? 'true' : 'false');
       textPill.classList.toggle('is-on', open && !wantMic && state !== 'not-configured');
+    }
+    if (chipBtn) {
+      chipBtn.classList.toggle('is-on', root && root.classList.contains('is-menu-open'));
     }
   }
 
@@ -874,10 +909,21 @@
     }, [
       el('span', { className: 'plai-bubble-label', text: 'Text PLAI' }),
     ]);
+    chipBtn = el('button', {
+      className: 'plai-bubble-chip',
+      type: 'button',
+      'aria-expanded': 'false',
+      'aria-controls': 'plai-bubble-menu',
+      'aria-label': 'PLAI, Talk or Text',
+      title: 'PLAI — Talk or Text',
+    }, [
+      el('span', { className: 'plai-bubble-label', text: 'PLAI' }),
+    ]);
     panel.id = 'plai-bubble-panel';
     root.appendChild(el('div', { className: 'plai-bubble-shell' }, [
       panel,
-      el('div', { className: 'plai-bubble-row' }, [talkPill, textPill, xPill]),
+      el('div', { className: 'plai-bubble-row', id: 'plai-bubble-menu' }, [talkPill, textPill, xPill]),
+      chipBtn,
     ]));
     document.body.appendChild(root);
 
@@ -895,7 +941,12 @@
     }
     talkPill.addEventListener('click', onPillClick);
     textPill.addEventListener('click', onPillClick);
+    chipBtn.addEventListener('click', function () {
+      setMenuOpen(!(root && root.classList.contains('is-menu-open')));
+      syncPills();
+    });
     window.addEventListener('pagehide', persistState);
+    bindPhoneMq();
     setState('idle');
     renderLog();
   }

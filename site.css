@@ -891,6 +891,15 @@ body.app > .plai-bubble {
   margin: 0;
   pointer-events: none;
 }
+@media (max-width: 720px) {
+  body.auth-full .plai-bubble,
+  body.app > .plai-bubble {
+    top: 92px;
+    right: 12px;
+    bottom: auto;
+    align-self: start;
+  }
+}
 .side {
   background: #0C0C12;
   border-right: 1px solid var(--line);
@@ -3618,8 +3627,10 @@ body:not(.app) > .app-main > .topbar { display: none; }
   body.auth-full .plai-bubble,
   body.app > .plai-bubble {
     z-index: 4000;
+    top: 92px;
     right: 12px;
-    bottom: 12px;
+    bottom: auto;
+    align-self: start;
   }
   .nav-inner {
     gap: 8px;
