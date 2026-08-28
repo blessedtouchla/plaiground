@@ -2334,6 +2334,56 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .faq-item.open button.q::after { content: "▴"; color: var(--green); border-color: var(--green); }
 .faq-item .a { display: none; color: var(--muted); padding: 0 40px 18px 0; max-width: 760px; }
 .faq-item.open .a { display: block; }
+.faq-item .a p { margin: 0 0 12px; }
+.faq-item .a p:last-child { margin-bottom: 0; }
+.faq-platforms {
+  max-width: 860px;
+  margin: 8px 0 8px;
+}
+.faq-platforms > p {
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+.faq-store-group { margin: 0 0 22px; }
+.faq-store-group h3 {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.faq-store-note {
+  color: var(--muted-2);
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+.faq-store-group ul,
+.faq-plain-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px 22px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--muted-2);
+  font-size: 14px;
+}
+.faq-plain-list { max-width: 760px; margin-bottom: 8px; }
+.faq-store-group li,
+.faq-plain-list li { padding: 3px 0; }
+.faq-subhead {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 22px 0 10px;
+}
+.faq-plain {
+  color: var(--muted);
+  max-width: 760px;
+  margin: 16px 0 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
 .stuck {
   display: flex;
   justify-content: space-between;
