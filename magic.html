@@ -210,6 +210,8 @@
           if (window.PlaigroundMembership) {
             window.PlaigroundMembership.recordSignedIn();
             if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
+            window.location.replace(window.PlaigroundMembership.signedInHome(result.data && result.data.email));
+            return;
           }
           window.location.replace('dashboard.html');
         }).catch(function () {

@@ -311,8 +311,21 @@ function runLoginWall() {
                         account: staffAccount(),
                       });
                       return loginBounce.api.whenReady().then(function () {
-                        assert.strictEqual(loginBounce.location.href, 'dashboard.html', 'live /api/me on login.html returns to the dashboard');
-                        console.log('membership.test.js ok');
+                        assert.strictEqual(loginBounce.location.href, '/admin', 'live owner session on login.html goes to the owner desk');
+                        const artistLogin = load({
+                          pathname: '/login.html',
+                          href: 'login.html',
+                          account: {
+                            email: 'victoriaimtanes@gmail.com',
+                            artist: 'Victoria',
+                            plan: 'creator',
+                            status: 'active',
+                          },
+                        });
+                        return artistLogin.api.whenReady().then(function () {
+                          assert.strictEqual(artistLogin.location.href, 'dashboard.html', 'artist login stays on Overview');
+                          console.log('membership.test.js ok');
+                        });
                       });
                     });
                   });

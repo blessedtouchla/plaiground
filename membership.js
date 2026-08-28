@@ -413,10 +413,65 @@
     return recordPlan(params.get('plan'));
   }
 
+  var OWNER_EMAIL = 'emailplaiground@gmail.com';
+  var ARTIST_HOME = 'dashboard.html';
+  var OWNER_HOME = '/admin';
+
+  function normalizeOwnerEmail(value) {
+    return String(value || '')
+      .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function ownerGmailKey(value) {
+    var email = normalizeOwnerEmail(value);
+    var at = email.lastIndexOf('@');
+    if (at <= 0) return '';
+    var domain = email.slice(at + 1);
+    if (domain !== 'gmail.com' && domain !== 'googlemail.com') return '';
+    return email.slice(0, at).split('+')[0].replace(/\./g, '');
+  }
+
+  function ownerEmailOf(account) {
+    if (typeof account === 'string') return account;
+    if (account && account.email) return account.email;
+    if (serverAccount && serverAccount.email) return serverAccount.email;
+    return '';
+  }
+
+  function isOwner(account) {
+    var a = normalizeOwnerEmail(ownerEmailOf(account));
+    var b = OWNER_EMAIL;
+    if (a && a === b) return true;
+    var keyA = ownerGmailKey(a);
+    var keyB = ownerGmailKey(b);
+    return Boolean(keyA && keyA === keyB);
+  }
+
+  function signedInHome(account) {
+    return isOwner(account) ? OWNER_HOME : ARTIST_HOME;
+  }
+
+  function pageFile() {
+    var path = String((global.location && global.location.pathname) || '');
+    return path.split('/').pop();
+  }
+
   function isMarketingHome() {
     var path = String((global.location && global.location.pathname) || '');
-    var file = path.split('/').pop();
+    var file = pageFile();
     return path === '/' || file === '' || file === 'index.html';
+  }
+
+  function isAdminPage() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = pageFile();
+    return file === 'admin' || file === 'admin.html' || path === '/admin' || path.indexOf('/admin/') === 0;
+  }
+
+  function isArtistOverview() {
+    return pageFile() === 'dashboard.html';
   }
 
   function homeWantsPricing() {
@@ -430,20 +485,26 @@
   function goDashboardFromHome() {
     if (!isMarketingHome() || homeWantsPricing()) return false;
     if (!isSignedIn()) return false;
-    global.location.replace('dashboard.html');
+    global.location.replace(signedInHome());
     return true;
   }
 
   function isLoginPage() {
-    var path = String((global.location && global.location.pathname) || '');
-    var file = path.split('/').pop();
-    return file === 'login.html';
+    return pageFile() === 'login.html';
   }
 
   function goDashboardFromLogin() {
     if (!isLoginPage()) return false;
     if (!(serverStatus === 200 && serverAccount)) return false;
-    global.location.replace('dashboard.html');
+    global.location.replace(signedInHome(serverAccount));
+    return true;
+  }
+
+  function goOwnerDeskFromOverview() {
+    if (isAdminPage()) return false;
+    if (!isArtistOverview()) return false;
+    if (!isOwner()) return false;
+    global.location.replace(OWNER_HOME);
     return true;
   }
 
@@ -582,6 +643,8 @@
     currentPlan: currentPlan,
     applyPlanCopy: applyPlanCopy,
     account: function () { return serverAccount; },
+    isOwner: isOwner,
+    signedInHome: signedInHome,
     whenReady: function (cb) {
       var next = accountReady.then(function (result) {
         if (typeof cb === 'function') cb(result);
@@ -600,6 +663,7 @@
   if (!goDashboardFromHome()) {
     accountReady.then(function (result) {
       if (result && result.ok) {
+        goOwnerDeskFromOverview();
         goDashboardFromHome();
         goDashboardFromLogin();
       }

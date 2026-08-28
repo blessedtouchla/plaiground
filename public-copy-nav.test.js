@@ -32,7 +32,6 @@ const APP_PAGES = [
   'faq.html',
   'contact.html',
   'plai.html',
-  'admin.html',
   'problem.html',
 ];
 
