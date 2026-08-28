@@ -2349,6 +2349,8 @@ body:not(.app) > .app-main > .topbar { display: none; }
   line-height: 1.4;
   white-space: normal;
 }
+.release-inline-status { display: none; }
+.rel > .release-row-alert { display: none; }
 .status-cell.has-alert { white-space: normal; }
 .status-cell.has-alert .release-row-alert {
   display: block;
@@ -3502,6 +3504,22 @@ body:not(.app) > .app-main > .topbar { display: none; }
   .release-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  .release-table-wrap table.data th:nth-child(n+3),
+  .release-table-wrap table.data td:nth-child(n+3) {
+    display: none;
+  }
+  .release-inline-status {
+    display: block;
+    margin-top: 4px;
+    font-weight: 700;
+  }
+  .release-inline-status.is-yellow { color: var(--gold); }
+  .release-inline-status.is-green { color: var(--green); }
+  .release-inline-status.is-red { color: #FF5C7A; }
+  .rel > .release-row-alert {
+    display: block;
+    margin-top: 4px;
   }
   .release-tile-alert,
   .status-cell.has-alert .release-row-alert {

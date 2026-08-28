@@ -368,6 +368,9 @@ function run() {
   assert.strictEqual(liveRow.children[2].children[1].textContent, 'Live');
   assert.strictEqual(fixRow.children[2].children[1].textContent, 'Needs fix');
   assert.strictEqual(fixRow.children[2].children[2].textContent, 'Cover art is too small.');
+  assert.ok(findByText(pendingRow.children[0], 'Pending'), 'phone inline status keeps Pending on the row');
+  assert.ok(findByText(fixRow.children[0], 'Needs fix'), 'phone inline status keeps Needs fix on the row');
+  assert.ok(findByText(fixRow.children[0], 'Cover art is too small.'), 'phone inline status keeps the real error on the row');
   assert.ok(String(fixRow.children[2].className).indexOf('has-alert') !== -1);
   assert.strictEqual(unknownRow.children[2].children[1].textContent, 'Pending');
   assert.notStrictEqual(unknownRow.children[2].children[1].textContent, 'Live', 'unknown status must not invent Live');
@@ -377,6 +380,8 @@ function run() {
 
   assert.ok(read('releases.html').includes('href="problem.html"'), 'Have a problem? stays the typed report page');
   assert.ok(read('catalog.js').includes("&& !$('[data-release-tiles]')"), 'Overview shares the catalog list');
+  assert.ok(read('site.css').includes('.release-inline-status'), 'phone Releases keeps status under the title so it stays readable');
+  assert.ok(read('site.css').includes('.release-tile-alert'), 'on-card store errors use existing chrome');
 
   catalogNodes['[data-release-empty-title]'] = makeEl({ textContent: 'Your first release goes here.' });
   catalogNodes['[data-release-empty-body]'] = makeEl({});
