@@ -2327,10 +2327,21 @@ function canonicalCatalogValue(select, raw) {
   return pick ? pick.value : null;
 }
 
+// TEMP STOPGAP — Genre ships as a plain native <select> (same as Download
+// price) while the typeahead re-tap bug is fixed separately: on iOS users
+// cannot change the pre-filled Genre through the typeahead overlay. Marked in
+// the HTML with data-native-picker on the <select>. To revert, drop that
+// attribute from the genre selects and delete this function + its two guards.
+// This deliberately does NOT touch bindTypeahead().
+function prefersNativeSelect(select) {
+  return !!(select && select.getAttribute && select.getAttribute('data-native-picker') != null);
+}
+
 function fillOneSelect(select, items, getValue, getLabel) {
   if (!select) return;
   if (isTypeaheadBound(select)) return;
   fillSelect(select, items, getValue, getLabel);
+  if (prefersNativeSelect(select)) return;
   try {
     bindTypeahead(select, items, getValue, getLabel);
   } catch (err) {}
@@ -2338,6 +2349,10 @@ function fillOneSelect(select, items, getValue, getLabel) {
 
 function ensureTypeahead(select, items, getValue, getLabel) {
   if (isTypeaheadBound(select)) return select;
+  if (prefersNativeSelect(select)) {
+    try { fillSelect(select, items, getValue, getLabel); } catch (err) {}
+    return select;
+  }
   bindTypeahead(select, items, getValue, getLabel);
   return select;
 }

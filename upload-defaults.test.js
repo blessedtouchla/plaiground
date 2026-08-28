@@ -849,6 +849,15 @@ function run() {
   assert.ok(upload.indexOf('<select id="tg-genre"') !== -1);
   assert.ok(upload.indexOf('<select id="tg-language"') !== -1);
   assert.ok(upload.indexOf('<select id="tg-price"') !== -1);
+  // TEMP STOPGAP: Genre ships as a plain native <select> (data-native-picker),
+  // same as Download price, while the typeahead re-tap bug is fixed separately.
+  // Language keeps the searchable typeahead. Revert by removing the attribute.
+  assert.ok(/<select id="tg-genre"[^>]*\bdata-native-picker\b/.test(upload), 'upload Genre is a native picker while the typeahead re-tap bug is open');
+  assert.ok(!/<select id="tg-language"[^>]*\bdata-native-picker\b/.test(upload), 'upload Language keeps the typeahead');
+  const reviewHtmlNative = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  const songHtmlNative = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
+  assert.ok(/<select id="tg-genre"[^>]*\bdata-native-picker\b/.test(reviewHtmlNative), 'review Genre is a native picker too');
+  assert.ok(/<select id="edit-genre"[^>]*\bdata-native-picker\b/.test(songHtmlNative), 'song edit Genre is a native picker too');
   assert.ok(upload.indexOf('plai-bubble.js') !== -1);
   assert.ok(upload.indexOf('membership.js') !== -1);
   assert.ok(upload.indexOf('data-require-membership="true"') !== -1);
@@ -917,6 +926,43 @@ function run() {
   assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'en' && row.name === 'English'; }));
   assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'es'; }));
   assert.ok(!catalog.LANGUAGES.some(function (row) { return row.code === 'English'; }));
+
+  // TEMP STOPGAP: a genre <select> carrying data-native-picker must be filled
+  // with options but NOT bound to the typeahead (no overlay input).
+  (function () {
+    const nativeGenre = fillableCatalogSelect('tg-genre', 'Select genre');
+    nativeGenre.setAttribute('data-native-picker', '');
+    const nativeLang = fillableCatalogSelect('tg-language', 'Select language');
+    const prevDoc = global.document;
+    const prevWin = global.window;
+    global.window = { setTimeout() { return 1; }, clearTimeout() {}, addEventListener() {} };
+    global.document = {
+      createElement(tag) { return mockTypeaheadEl(tag); },
+      addEventListener() {},
+      getElementById() { return null; },
+    };
+    try {
+      catalog.fillUploadSelects({
+        getElementById(id) {
+          if (id === 'tg-genre') return nativeGenre;
+          if (id === 'tg-language') return nativeLang;
+          return null;
+        },
+      });
+      assert.ok(nativeGenre.options.length > 100, 'native Genre still gets every option');
+      assert.strictEqual(catalog.isTypeaheadBound(nativeGenre), false, 'data-native-picker Genre must NOT bind the typeahead');
+      assert.strictEqual(typeaheadNodes(nativeGenre).input, null, 'data-native-picker Genre has no overlay input');
+      assert.ok(catalog.isTypeaheadBound(nativeLang), 'Language still binds the typeahead');
+      // ensureTypeahead (used by store-client on the review page) also respects it.
+      catalog.ensureTypeahead(nativeGenre, catalog.GENRES, function (n) { return n; }, function (n) { return n; });
+      assert.strictEqual(catalog.isTypeaheadBound(nativeGenre), false, 'ensureTypeahead leaves a native-picker Genre native');
+    } finally {
+      if (prevDoc === undefined) delete global.document;
+      else global.document = prevDoc;
+      if (prevWin === undefined) delete global.window;
+      else global.window = prevWin;
+    }
+  }());
 
   const genre = options(selectById(upload, 'tg-genre'));
   assert.deepStrictEqual(genre.map(function (opt) { return opt.value; }), ['']);
