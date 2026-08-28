@@ -253,8 +253,9 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
     const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
     assert.ok(input, 're-tap test needs a typeahead input');
     assert.ok(list, 're-tap test needs a typeahead list');
-    assert.ok(typeof input.listeners.pointerdown === 'function', 'typeahead input must open from a bare pointerdown');
-    assert.ok(typeof input.listeners.touchend === 'function', 'typeahead input must open from touchend too');
+    assert.ok(typeof input.listeners.pointerdown === 'function', 'typeahead input must clear the pick latch on pointerdown');
+    assert.ok(typeof input.listeners.touchend === 'function', 'typeahead input must open from touchend (post-gesture, keyboard-safe)');
+    assert.ok(typeof input.listeners.pointerup === 'function', 'typeahead input must open from pointerup');
 
     // Open the empty field and pick a value the normal way.
     input.listeners.focus();
@@ -269,7 +270,11 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
 
     // Re-tap the field WITHOUT clearing input.value — this is the path that was
     // dead on iOS Safari: the picked label is still shown, pickOption just ran.
+    // pointerdown clears the settle latch; pointerup (post-gesture) opens the
+    // list — pointerdown must NOT open it or iOS suppresses the keyboard.
     input.listeners.pointerdown();
+    assert.ok(list.classList.contains('is-hidden'), 'pointerdown alone must not open the list (keyboard-safe)');
+    input.listeners.pointerup();
     assert.ok(!list.classList.contains('is-hidden'), 're-tap on a filled field must reopen the list');
     const reopened = listButtons(list);
     assert.ok(reopened.length >= 1, 're-tap must repopulate the option list');

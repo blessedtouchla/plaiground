@@ -2201,8 +2201,12 @@ function bindTypeahead(select, items, getValue, getLabel) {
   });
   input.addEventListener('pointerdown', function () {
     // The next real press on the field ends the post-pick settle window.
+    // Do NOT open the list here: openList() runs keepInputVisible(), and a
+    // programmatic scroll during pointerdown makes iOS Safari treat the tap as
+    // a pan — it cancels the gesture and never focuses the input, so the
+    // keyboard never appears. pointerup/touchend/focus/click (all post-gesture)
+    // open the list a few milliseconds later without that side effect.
     clearPickLatch();
-    openList();
   });
   input.addEventListener('touchend', openList);
   input.addEventListener('focus', openList);
