@@ -299,6 +299,97 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
   }
 }
 
+function testTypeaheadOpenDefersScroll(catalog) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
+    querySelector(sel) {
+      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
+      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
+      return { setAttribute() {} };
+    },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre-scroll',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const timers = [];
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  const created = [];
+  global.window = {
+    innerHeight: 600,
+    innerWidth: 390,
+    addEventListener() {},
+    scrolled: 0,
+    scrollBy(x, y) { this.scrolled += y; },
+    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
+    clearTimeout() {},
+  };
+  global.document = {
+    addEventListener(type, fn) {
+      this.listeners = this.listeners || {};
+      this.listeners[type] = fn;
+    },
+    createElement(tag) {
+      const node = mockTypeaheadEl(tag);
+      created.push(node);
+      return node;
+    },
+    activeElement: null,
+  };
+  function runTimers() {
+    while (timers.length) {
+      const row = timers.shift();
+      if (typeof row.fn === 'function') row.fn();
+    }
+  }
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = created.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = created.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    assert.ok(input && list, 'scroll-defer test needs the typeahead nodes');
+    // Place the field well below the keyboard-safe zone so keepInputVisible would scroll.
+    input.getBoundingClientRect = function () {
+      return { top: 430, bottom: 474, left: 16, right: 300, width: 284, height: 44 };
+    };
+
+    ['touchend', 'click', 'focus', 'pointerup'].forEach(function (trigger) {
+      global.window.scrolled = 0;
+      list.classList.add('is-hidden');
+      input.listeners[trigger]();
+      assert.ok(!list.classList.contains('is-hidden'), trigger + ' opens the list');
+      assert.strictEqual(
+        global.window.scrolled, 0,
+        trigger + '-triggered openList must NOT scroll synchronously (iOS keyboard race)'
+      );
+      runTimers();
+      assert.ok(
+        global.window.scrolled !== 0,
+        trigger + ' still scrolls the field into view once the gesture settles'
+      );
+    });
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function fillableCatalogSelect(id, placeholder) {
   const optionsArr = [{ value: '', textContent: placeholder }];
   const field = mockField();
@@ -1226,6 +1317,7 @@ function run() {
     assert.strictEqual(catalog.canonicalCatalogValue(edit.select, 'Pop'), 'Pop');
     testTypeaheadDelayedBlurKeepsListPick(catalog, createdEdit);
     testTypeaheadFilledFieldReopensOnRetap(catalog);
+    testTypeaheadOpenDefersScroll(catalog);
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesTypeahead(catalog);
     testBasicTypeaheadFiltersAndEnglishFirst(catalog);

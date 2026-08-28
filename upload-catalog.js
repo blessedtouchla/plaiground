@@ -2185,13 +2185,23 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
     if (activeTypeahead && activeTypeahead !== selfApi && typeaheadBusy(activeTypeahead)) return;
     showMatches(input.value);
-    keepInputVisible();
+    // Never scroll synchronously here. openList() runs on touchend/click/focus,
+    // and a window.scrollBy() inside that gesture makes iOS Safari abort the tap
+    // and never raise the keyboard (long-press reaches focus by another path,
+    // which is why it works there). Defer every keepInputVisible() so the
+    // keyboard shows first, then the field scrolls into view.
     if (win && win.setTimeout) {
       if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
+      win.setTimeout(function () {
+        keepInputVisible();
+        placeList();
+      }, 0);
       placeTimer = win.setTimeout(function () {
         keepInputVisible();
         placeList();
       }, 280);
+    } else {
+      keepInputVisible();
     }
   }
 
