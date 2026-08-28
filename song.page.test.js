@@ -1189,9 +1189,15 @@ function run() {
   assert.ok(html.includes('data-life="taken_down"'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('data-edit-retry'));
-  assert.ok(/class="btn btn-purple btn-sm"[^>]*>Open full split sheet</.test(html), 'Open full split sheet is the size language');
-  assert.ok(/class="btn btn-purple btn-sm" data-edit-save/.test(html), 'Submit for editing matches Open full split sheet');
+  assert.ok(/class="btn btn-purple btn-sm"[^>]*>Open full split sheet</.test(html), 'Open full split sheet stays purple');
+  assert.ok(/class="btn btn-gold btn-sm" data-edit-save/.test(html), 'Submit for editing is the only gold CTA');
+  assert.ok(!/class="btn btn-purple btn-sm" data-edit-save/.test(html), 'Submit for editing is not purple');
+  assert.ok(/class="btn btn-purple btn-sm" data-edit-retry/.test(html), 'Retry stays purple');
+  assert.ok(/class="btn btn-purple btn-sm"[^>]*data-song-edit/.test(html) || /data-song-edit[^>]*class="btn btn-purple btn-sm"/.test(html), 'Edit release stays purple');
   assert.ok(/class="btn btn-ghost btn-sm" data-edit-cancel/.test(html), 'Cancel stays secondary');
+  assert.ok(/\.btn-gold \{[\s\S]*background:\s*#f3cb47/.test(css), 'Submit for editing uses brand gold #f3cb47');
+  assert.strictEqual((html.match(/class="btn btn-gold/g) || []).length, 1, 'Edit page has one gold button');
+  assert.ok(read('releases.html').includes('class="btn btn-purple btn-sm" data-edit-save'), 'list Save to the store stays purple');
   assert.ok(html.includes('data-edit-actions'));
   const splitsField = html.match(/<div class="field" data-edit-splits>[\s\S]*?<\/div>/);
   assert.ok(splitsField, 'Splits field exists');
