@@ -10,6 +10,8 @@ const requiredCode = fs.readFileSync(path.join(__dirname, 'lib', 'upload-require
 const audioAcceptCode = fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8');
 const storePickCode = fs.readFileSync(path.join(__dirname, 'lib', 'store-pick.js'), 'utf8');
 const objectHopCode = fs.readFileSync(path.join(__dirname, 'lib', 'object-hop.js'), 'utf8');
+const coverUrlCode = fs.readFileSync(path.join(__dirname, 'lib', 'cover-url.js'), 'utf8');
+const coverPreviewCode = fs.readFileSync(path.join(__dirname, 'lib', 'cover-preview.js'), 'utf8');
 const artistCheckCode = fs.readFileSync(path.join(__dirname, 'lib', 'artist-check.js'), 'utf8');
 const AUDIO = { name: 'night-drive.wav', type: 'audio/wav', size: 2048 };
 const ART = { name: 'cover.jpg', type: 'image/jpeg', size: 1024 };
@@ -194,6 +196,7 @@ function load(options) {
     attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
   const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
+  const reviewCover = makeEl({ attrs: { 'data-review-cover': '' } });
   const storeAll = makeEl({
     id: 'tg-store-all',
     type: 'checkbox',
@@ -374,6 +377,9 @@ function load(options) {
         if (sel === '[data-review-title]' || sel === '[data-review-meta]' || sel === '[data-submit-title]') {
           return opts.bind === 'submitted' ? makeEl({}) : null;
         }
+        if (sel === '[data-review-cover]') {
+          return opts.reviewCover ? reviewCover : null;
+        }
         if (sel === '[data-submit-stores]') {
           return opts.bind === 'submitted' ? submitStores : null;
         }
@@ -551,8 +557,12 @@ function load(options) {
   vm.runInNewContext(audioAcceptCode, context);
   vm.runInNewContext(storePickCode, context);
   vm.runInNewContext(objectHopCode, context);
+  vm.runInNewContext(coverUrlCode, context);
+  vm.runInNewContext(coverPreviewCode, context);
   context.PlaigroundAudioAccept = context.PlaigroundAudioAccept || context.window.PlaigroundAudioAccept;
   context.PlaigroundStorePick = context.PlaigroundStorePick || context.window.PlaigroundStorePick;
+  context.PlaigroundCoverUrl = context.PlaigroundCoverUrl || context.window.PlaigroundCoverUrl;
+  context.PlaigroundCoverPreview = context.PlaigroundCoverPreview || context.window.PlaigroundCoverPreview;
   if (opts.account) {
     context.PlaigroundMembership = {
       account: function () { return opts.account; },
@@ -613,6 +623,7 @@ function load(options) {
     attestStep,
     reviewStep,
     submitStores,
+    reviewCover,
     storeSummary,
     storePick,
     artist,
@@ -1102,6 +1113,47 @@ async function run() {
   assert.ok(!paySkip.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
   assert.notStrictEqual(paySkip.location.href, 'submitted.html');
   assert.ok(/split sheet/i.test(paySkip.status.textContent));
+
+  // Review & Pay must paint the release cover on its summary thumbnail.
+  const reviewCoverStored = load({
+    bind: 'review',
+    reviewCover: true,
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      name: 'The Midnights',
+      artwork_url: 'https://cdn.example/night-drive-cover.jpg',
+    },
+  });
+  await flush(2);
+  assert.ok(
+    String(reviewCoverStored.reviewCover.style.backgroundImage).indexOf('night-drive-cover.jpg') !== -1,
+    'Review & Pay paints the stored cover URL onto the thumbnail'
+  );
+  assert.ok(
+    reviewCoverStored.reviewCover.classList.contains('has-art'),
+    'Review & Pay cover thumbnail is marked has-art'
+  );
+
+  const reviewCoverHopped = load({
+    bind: 'review',
+    reviewCover: true,
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      name: 'The Midnights',
+      artwork_object_key: 'covers/11111111-1111-4111-8111-111111111111/night-drive.jpg',
+    },
+  });
+  await flush(4);
+  assert.ok(
+    String(reviewCoverHopped.reviewCover.style.backgroundImage).indexOf('hop.test/get') !== -1,
+    'Review & Pay resolves the artwork object key via previewUrl when there is no stored URL'
+  );
+  assert.ok(
+    reviewCoverHopped.reviewCover.classList.contains('has-art'),
+    'Review & Pay hopped cover thumbnail is marked has-art'
+  );
 
   const signedSubmit = load({
     bind: 'review',

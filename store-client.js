@@ -5017,11 +5017,61 @@
     }
   }
 
+  function coverUrlApi() {
+    try {
+      if (typeof PlaigroundCoverUrl !== 'undefined' && PlaigroundCoverUrl) return PlaigroundCoverUrl;
+    } catch (err) {}
+    return (typeof window !== 'undefined' && window && window.PlaigroundCoverUrl) || null;
+  }
+
+  function coverPreviewApi() {
+    try {
+      if (typeof PlaigroundCoverPreview !== 'undefined' && PlaigroundCoverPreview) return PlaigroundCoverPreview;
+    } catch (err) {}
+    return (typeof window !== 'undefined' && window && window.PlaigroundCoverPreview) || null;
+  }
+
+  function paintReviewCoverTile(el, url) {
+    if (!el) return;
+    var preview = coverPreviewApi();
+    if (preview && typeof preview.paintTile === 'function') {
+      preview.paintTile(el, url);
+      return;
+    }
+    var art = String(url || '').trim();
+    if (el.style) {
+      el.style.backgroundImage = art ? ('url("' + art.replace(/"/g, '') + '")') : '';
+      el.style.backgroundSize = art ? 'cover' : '';
+      el.style.backgroundPosition = art ? 'center' : '';
+    }
+    if (el.classList && el.classList.toggle) el.classList.toggle('has-art', Boolean(art));
+  }
+
+  function paintReviewCover(draft, el) {
+    el = el || document.querySelector('[data-review-cover]');
+    if (!el) return;
+    var api = coverUrlApi();
+    var url = api && typeof api.stored === 'function'
+      ? api.stored(draft)
+      : String((draft && draft.artwork_url) || '').trim();
+    if (url) paintReviewCoverTile(el, url);
+    var key = api && typeof api.objectKey === 'function'
+      ? api.objectKey(draft)
+      : String((draft && draft.artwork_object_key) || '').trim();
+    if (!url && key && hopApi() && typeof hopApi().previewUrl === 'function') {
+      hopApi().previewUrl(key).then(function (resolved) {
+        if (resolved && el.isConnected !== false) paintReviewCoverTile(el, resolved);
+      }, function () {});
+    }
+  }
+
   function fillReviewSummary() {
     var titleEl = document.querySelector('[data-review-title]');
     var metaEl = document.querySelector('[data-review-meta]');
-    if (!titleEl && !metaEl) return;
+    var coverEl = document.querySelector('[data-review-cover]');
+    if (!titleEl && !metaEl && !coverEl) return;
     var draft = readDraft();
+    if (coverEl) paintReviewCover(draft, coverEl);
     if (titleEl && draft.title) titleEl.textContent = draft.title;
     if (metaEl && draft.name) {
       metaEl.textContent = draft.genre
