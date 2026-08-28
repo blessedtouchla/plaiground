@@ -444,6 +444,20 @@ function run() {
   });
   assert.strictEqual(creditFix['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
   assert.notStrictEqual(emptyCover['[data-next-up-title]'].textContent, 'Fix this release', 'pending without a real problem must not invent a credit error');
+  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.', 'cover QC must not be rewritten as a songwriter leftover');
+
+  const legalOnly = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Fix Me',
+      tonegrid_status: 'needs-fix',
+      rejection_reason: 'Legal name is required.',
+    }] },
+  });
+  assert.strictEqual(legalOnly['[data-next-up-body]'].textContent, 'Legal name is required.', 'legal-name QC must not invent the songwriter leftover');
   assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('cccccccc-cccc-4ccc-8ccc-cccccccccccc') !== -1);
 
   const unknownTiles = fillAccount({

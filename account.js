@@ -511,11 +511,11 @@
     var raw = String(text || '').trim();
     if (!raw) return '';
     var lower = raw.toLowerCase();
-    var songwriter = /songwriter|composer|writer name|legal name/.test(lower);
-    var stage = /stage|rapper|band name|artist name/.test(lower);
+    var songwriter = /songwriter|composer|writer names?/.test(lower);
+    var stage = /stage|rapper|band name/.test(lower);
     var performer = /performer/.test(lower);
     var producer = /producer/.test(lower);
-    var credit = /credit|missing|required|need/.test(lower);
+    var credit = /credit|missing|required/.test(lower);
     if (songwriter && (stage || credit)) {
       return 'Stores need real songwriter names, not a stage, rapper, or band name.';
     }
