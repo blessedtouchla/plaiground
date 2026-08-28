@@ -281,6 +281,14 @@ function run() {
   assert.ok(siteCss.includes('overflow-x: hidden'));
   assert.ok(siteCss.includes('td.admin-signup-dup'));
   assert.ok(siteCss.includes('td.admin-lead'));
+  assert.ok(siteCss.includes('body.app[data-owner-desk]'));
+
+  const signedUpFn = adminJs.match(/function formatSignedUpAt[\s\S]*?return map\.month[\s\S]*?PT';\n  \}/);
+  assert.ok(signedUpFn, 'formatSignedUpAt stays on the owner desk');
+  const formatSignedUpAt = new Function(signedUpFn[0] + '; return formatSignedUpAt;')();
+  const pt = formatSignedUpAt('2026-08-27T00:16:00.000Z');
+  assert.ok(/Aug 26, 2026 5:16 PM PT/.test(pt), 'signed_up_at renders date and time PT, got ' + pt);
+  assert.strictEqual(formatSignedUpAt(''), '—');
 
   assert.ok(membership.includes("OWNER_HOME = '/admin'"));
   assert.ok(membership.includes('signedInHome'));

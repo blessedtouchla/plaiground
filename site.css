@@ -2836,11 +2836,21 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .admin-alert { color: #ff8a8a; }
 .admin-section { scroll-margin-top: 24px; }
 @media (max-width: 1180px) {
+  body.app[data-owner-desk],
+  body.app[data-owner-desk] .app-main,
+  body.app[data-owner-desk] .page,
+  [data-owner-desk] .panel {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
   [data-owner-desk] .admin-table-wrap {
     overflow-x: hidden;
+    max-width: 100%;
+    min-width: 0;
   }
   [data-owner-desk] .admin-table-wrap table.data {
     width: 100%;
+    max-width: 100%;
   }
   [data-owner-desk] .admin-table-wrap table.data thead {
     display: none;
