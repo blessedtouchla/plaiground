@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Artist Profiles – PLAIGROUND</title>
-  <meta http-equiv="refresh" content="0; url=artists.html" />
+  <title>Have a problem? – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -29,28 +28,45 @@
       <a href="settings.html">Settings</a>
       <a href="how.html">How it works</a>
       <a href="faq.html">FAQ</a>
-      <a class="side-problem" href="problem.html" data-have-problem>Have a problem?</a>
+      <a class="on side-problem" href="problem.html" data-have-problem>Have a problem?</a>
     </nav>
     <div class="pro-card">
       <h4 data-account-plan-title>Your plan</h4>
-      <p>Artist names now live on Artist Profiles.</p>
+      <p>Distribution is included. Publishing, Boosts, and deeper analytics unlock on Creator or Pro.</p>
     </div>
   </aside>
   <div class="app-main">
     <div class="topbar">
-      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
       <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
       <div class="page-head">
-        <p class="kicker">Release names</p>
-        <h1>Artist Profiles</h1>
+        <p class="kicker">Support</p>
+        <h1>Have a problem?</h1>
+        <p>Tell us what went wrong. There is no charge.</p>
       </div>
-      <p class="hint">This page moved. Open <a href="artists.html">Artist Profiles</a> to manage the names music is released under.</p>
+      <form class="panel problem-panel" data-problem-form>
+        <div class="field">
+          <label for="problem-text">What is the problem</label>
+          <textarea id="problem-text" name="problem" rows="7" data-problem-text placeholder="Describe the problem" required></textarea>
+        </div>
+        <p class="hint" data-problem-error hidden></p>
+        <div class="hero-ctas" style="justify-content:flex-start;margin:0">
+          <button class="btn btn-purple btn-md" type="submit" data-problem-submit>Submit</button>
+        </div>
+      </form>
+      <div class="panel problem-thanks" data-problem-thanks hidden>
+        <p data-problem-thanks-copy>Thank you. We will look at this within 24 hours.</p>
+        <p style="margin-top:18px">
+          <a class="btn btn-purple btn-md" href="dashboard.html" data-problem-overview>Back to Overview</a>
+        </p>
+      </div>
     </div>
   </div>
-  <script>location.replace('artists.html');</script>
+  <script src="membership.js" data-require-membership="true"></script>
+  <script src="account.js"></script>
   <script src="site.js"></script>
+  <script src="problem.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

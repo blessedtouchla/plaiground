@@ -1042,7 +1042,37 @@
   bindPlanConfirm();
   fromMembership().then(function (me) {
     if (me) fillAccount(me);
+    if (global.PlaigroundProblem && typeof global.PlaigroundProblem.mount === 'function') {
+      global.PlaigroundProblem.mount();
+    }
   });
+
+  function loadProblemChrome() {
+    var doc = global.document;
+    if (!doc) return;
+    function start() {
+      if (global.PlaigroundProblem && typeof global.PlaigroundProblem.mount === 'function') {
+        global.PlaigroundProblem.mount();
+      }
+    }
+    if (global.PlaigroundProblem) {
+      start();
+      return;
+    }
+    if (!doc.querySelector || !doc.querySelector('.side-nav, .flow-top, [data-problem-form]')) return;
+    var existing = doc.querySelector('script[src="problem.js"]');
+    if (existing) {
+      if (existing.addEventListener) existing.addEventListener('load', start);
+      return;
+    }
+    if (!doc.createElement) return;
+    var script = doc.createElement('script');
+    script.src = 'problem.js';
+    script.onload = start;
+    var parent = doc.body || doc.documentElement;
+    if (parent && parent.appendChild) parent.appendChild(script);
+  }
+  whenDomReady(loadProblemChrome);
 
   global.PlaigroundAccount = {
     fill: fillAccount,

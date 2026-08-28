@@ -29,10 +29,16 @@ const APP_PAGES = [
   'contact.html',
   'plai.html',
   'admin.html',
+  'problem.html',
 ];
 
 function run() {
   const index = read('index.html');
+  const indexNav = index.match(/<nav class="nav-links"[^>]*>[\s\S]*?<\/nav>/);
+  const indexHero = index.match(/<section class="hero"[\s\S]*?<\/section>/) || [''];
+  assert.ok(indexNav && !/Have a problem\?/.test(indexNav[0]), 'public landing nav must not add Have a problem?');
+  assert.ok(!/Have a problem\?/.test(indexHero[0]), 'public landing hero must not add Have a problem?');
+  assert.ok(!index.includes('data-have-problem'), 'public landing must not ship the signed-in problem control');
   assert.ok(index.includes('WANNA PLAI?'), 'homepage eyebrow must restore WANNA PLAI?');
   assert.ok(!/Built for any AI music creator/i.test(index), 'homepage must not use the AI-only eyebrow');
   assert.ok(!/for AI music creators/i.test(index), 'homepage meta must not say for AI music creators');
@@ -399,6 +405,7 @@ function run() {
     assert.ok(!/data-for-plans=/.test(sideNav[0]), file + ' must not plan-hide Publishing on Pro/Creator');
     assert.ok(!/>Admin</.test(sideNav[0]), file + ' must not put Admin on the artist menu');
     assert.ok(!/href="admin(?:\.html|\/signups)?"/.test(sideNav[0]), file + ' must not link the owner admin page');
+    assert.ok(/FAQ<\/a>\s*<a[^>]*data-have-problem[^>]*>Have a problem\?<\/a>/.test(sideNav[0]), file + ' must keep Have a problem? after FAQ');
   });
   assert.ok(/href="faq.html">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
   assert.ok(/class="on" href="faq.html">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');

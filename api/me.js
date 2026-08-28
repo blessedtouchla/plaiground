@@ -10,6 +10,7 @@
  * POST /api/me/artists  session required; create / link / update Artist Profiles.
  *                       Rewrite query uses resource=artists so it cannot clobber
  *                       the JSON verb (update / delete / create).
+ * POST /api/me/problem  session required; emails emailplaiground via Resend.
  * GET  /api/admin/signups  owner session only; list real users + Stripe GET
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
@@ -31,6 +32,7 @@ const {
   rejectUnconfirmed,
   sessionFromRequest,
 } = require('../lib/auth');
+const { MAIL_NOT_CONFIGURED, sendProblemReport } = require('../lib/mail');
 const { applyPaidSessionToAccount, recoverPaidPlan } = require('../lib/stripe-webhook');
 const { pathnameOf, queryValue } = require('../lib/route');
 const { isUuid, readBody, sendJson } = require('../lib/tonegrid');
@@ -53,7 +55,7 @@ function isArtists(req) {
   return queryValue(req, 'action') === 'artists' || queryValue(req, 'resource') === 'artists';
 }
 
-const ROUTE_ACTIONS = { artists: true, catalog: true, profile: true, 'admin-signups': true };
+const ROUTE_ACTIONS = { artists: true, catalog: true, profile: true, problem: true, 'admin-signups': true };
 
 function artistVerb(body) {
   const explicit = String((body && body.artist_action) || '').trim().toLowerCase();
@@ -80,6 +82,12 @@ function isAdminSignups(req) {
   const path = pathnameOf(req);
   if (path === '/api/admin/signups' || path === '/api/me/admin/signups') return true;
   return queryValue(req, 'action') === 'admin-signups';
+}
+
+function isProblem(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/problem') return true;
+  return queryValue(req, 'action') === 'problem';
 }
 
 async function adminSignups(req, res) {
@@ -518,9 +526,61 @@ async function saveArtists(req, res) {
   sendJson(res, 400, { error: 'Unknown artist action.' });
 }
 
+async function reportProblem(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (bodyHasPassword(body)) {
+    sendJson(res, 400, { error: 'Password is not accepted here.' });
+    return;
+  }
+
+  const problem = String((body && (body.problem || body.text || body.message)) || '').trim();
+  if (!problem) {
+    sendJson(res, 400, { error: 'Describe the problem.' });
+    return;
+  }
+
+  let mail;
+  try {
+    mail = await sendProblemReport({
+      email: row.email,
+      problem,
+    });
+  } catch {
+    mail = { mail_sent: false, error: 'Could not send the problem report.' };
+  }
+
+  if (!mail || !mail.mail_sent) {
+    const error = (mail && mail.error) || MAIL_NOT_CONFIGURED;
+    const status = error === MAIL_NOT_CONFIGURED ? 503 : 502;
+    sendJson(res, status, { ok: false, mail_sent: false, error });
+    return;
+  }
+
+  sendJson(res, 200, { ok: true, mail_sent: true });
+}
+
 module.exports = async function handler(req, res) {
   if (isAdminSignups(req)) {
     await adminSignups(req, res);
+    return;
+  }
+  if (isProblem(req)) {
+    await reportProblem(req, res);
     return;
   }
   if (isCatalog(req)) {

@@ -14,7 +14,7 @@ Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
 - `plai-session.js`
 - `signwell.js`
 
-`vercel.json` rewrites keep the public URLs (`/api/auth/signup`, `/api/me/catalog`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files.
+`vercel.json` rewrites keep the public URLs (`/api/auth/signup`, `/api/me/catalog`, `/api/me/problem`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files.
 
 Environment variables (set on the host; never commit values):
 
@@ -95,6 +95,7 @@ Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 - `POST /api/create-checkout-session` `{ action: "portal" }` (Stripe Customer Billing Portal, card update only; `{ no_card: true }` when there is no Stripe customer)
 - `POST /api/stripe/webhook` (Stripe-Signature; Hobby rewrite onto `create-checkout-session.js`)
 - `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
+- `POST /api/me/problem` (signed-in; `{ problem }` plus the session email; Resend to `emailplaiground@gmail.com`. Missing mail or a send failure returns `mail_sent: false` — the page does not fake success.)
 
 ToneGrid routes (no browser key):
 
