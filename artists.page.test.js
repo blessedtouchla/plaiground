@@ -136,6 +136,14 @@ function loadArtists() {
   const previewPanel = makeEl({ hidden: true });
   const editOpenBtn = makeEl({ attrs: { 'data-artist-edit-open': '' } });
   const editDoneBtn = makeEl({ attrs: { 'data-artist-edit-done': '' } });
+  const mappingPlaiBtn = makeEl({ attrs: { 'data-artist-mapping-plai': '' }, textContent: 'Text PLAI' });
+  const textPill = makeEl({ className: 'plai-bubble-pill is-text' });
+  textPill.clickCalls = 0;
+  textPill.click = function () { textPill.clickCalls += 1; };
+  const talkPill = makeEl({ className: 'plai-bubble-pill is-talk' });
+  talkPill.clickCalls = 0;
+  talkPill.click = function () { talkPill.clickCalls += 1; };
+  const plaiInput = makeEl({ className: 'plai-bubble-input', value: '' });
   const stored = {
     id: 'artist-1',
     name: 'Fuvtu',
@@ -185,6 +193,7 @@ function loadArtists() {
     '[data-artist-preview-pending]': makeEl({ hidden: true }),
     '[data-artist-edit-open]': editOpenBtn,
     '[data-artist-edit-done]': editDoneBtn,
+    '[data-artist-mapping-plai]': mappingPlaiBtn,
     '[data-artist-preview] [data-artist-delete]': makeEl({ attrs: { 'data-artist-delete': '' } }),
     '[data-artist-preview] [data-artist-edit-open]': editOpenBtn,
     '#artist-ai-detail': makeEl({ value: '' }),
@@ -223,7 +232,12 @@ function loadArtists() {
       body: makeEl({}),
       listeners: {},
       getElementById(id) { return nodes['#' + id] || null; },
-      querySelector(sel) { return nodes[sel] || null; },
+      querySelector(sel) {
+        if (sel === '.plai-bubble-pill.is-text') return textPill;
+        if (sel === '.plai-bubble-pill.is-talk') return talkPill;
+        if (sel === '.plai-bubble-input') return plaiInput;
+        return nodes[sel] || null;
+      },
       querySelectorAll(sel) {
         if (sel === '[data-artist-add]') return [addBtn];
         if (sel === '[data-artist-import]') return [importBtn];
@@ -232,6 +246,7 @@ function loadArtists() {
         if (sel === '[data-artist-platform-add]') return [addPlatformBtn];
         if (sel === '[data-artist-edit-open]') return [editOpenBtn];
         if (sel === '[data-artist-edit-done]') return [editDoneBtn];
+        if (sel === '[data-artist-mapping-plai]') return [mappingPlaiBtn];
         if (sel === '[data-human-contribution]') return [];
         if (sel === '[data-ai-contribution]') return [];
         if (sel === '[data-human-contribution], [data-ai-contribution]') return [];
@@ -308,6 +323,9 @@ function loadArtists() {
     platformsHost,
     previewPanel,
     editOpenBtn,
+    textPill,
+    talkPill,
+    plaiInput,
     checkMsg,
     yellow,
     red,
@@ -344,6 +362,10 @@ function run() {
   assert.ok(html.includes('Your artists'));
   assert.ok(html.includes('>Add artist<'));
   assert.ok(html.includes('>Import Artist<'));
+  assert.ok(html.includes('>Artist mapping<'));
+  assert.ok(html.includes('Having a hard time finding your URL, or confused about mapping?'));
+  assert.ok(html.includes('data-artist-mapping-plai'));
+  assert.ok(!/We deliver to 55|150 platforms|every store we deliver to:/.test(html), 'do not write a store-catalog essay on Artist mapping');
   assert.ok(!html.includes('Manage the names music is released under'));
   assert.ok(html.includes('Create the artist once. Later songs pick that profile — no retype every submit.'));
   assert.ok(html.includes('After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.'));
@@ -381,7 +403,7 @@ function run() {
   assert.ok(html.includes('href="settings.html">Settings</a>'));
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(!html.includes('data-require-paid'));
-  assert.ok(html.includes('skips the name warning'));
+  assert.ok(html.includes('Plus adds another row. Link artist saves.'));
   assert.ok(html.includes('Save artist'));
   assert.ok(!html.includes('Submit for edit'));
   assert.ok(html.includes('data-artist-delete'));
@@ -505,16 +527,29 @@ function run() {
   const beforePlus = page.importRows.querySelectorAll('[data-artist-platform-row]').length;
   page.api.addImportRow(null);
   assert.strictEqual(page.importRows.querySelectorAll('[data-artist-platform-row]').length, beforePlus + 1, 'plus adds another Import Artist row');
+  const hintRow = page.importRows.querySelector('[data-artist-platform-row]');
+  const hintSel = hintRow.querySelector('[data-artist-platform-slug]');
+  const hintUrl = hintRow.querySelector('[data-artist-platform-url]');
+  const hintCopy = hintRow.querySelector('[data-artist-platform-hint]');
+  hintSel.value = 'spotify';
+  hintSel.dispatchEvent('change');
+  assert.ok(/open\.spotify\.com\/artist/.test(hintUrl.placeholder), 'placeholder follows the picked store');
+  assert.ok(/open\.spotify\.com\/artist/.test(hintCopy.textContent), 'hint follows the picked store');
+  assert.strictEqual(page.api.openMappingPlai(), true);
+  assert.strictEqual(page.textPill.clickCalls, 1, 'Artist mapping opens Text PLAI');
+  assert.strictEqual(page.talkPill.clickCalls, 0, 'Artist mapping must not open Talk / the mic');
+  assert.ok(/Do not log into any store account/.test(page.plaiInput.value));
+  assert.ok(/Do not ask for a password/.test(page.plaiInput.value));
 
   page.api.applyMe({
-    profile: { artists: [{ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }] },
+    profile: { artists: [{ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }] },
   });
-  page.api.selectArtist({ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }, 'preview');
+  page.api.selectArtist({ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }, 'preview');
   assert.strictEqual(page.previewPanel.hidden, false, 'clicking a profile opens Preview');
   assert.strictEqual(page.nodes['[data-artist-edit]'].hidden, true, 'Edit stays closed until Edit is tapped');
-  assert.strictEqual(page.nodes['[data-artist-preview-name]'].textContent, 'Fuvtu');
+  assert.strictEqual(page.nodes['[data-artist-preview-name]'].textContent, 'Preview Act');
   assert.ok(!String(page.nodes['[data-artist-preview]'].textContent || '').includes('Legal first'));
-  page.api.editArtist({ id: 'artist-1', name: 'Fuvtu', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] });
+  page.api.editArtist({ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] });
   assert.strictEqual(page.nodes['[data-artist-edit]'].hidden, false, 'Edit opens the full-screen form');
   assert.strictEqual(page.previewPanel.hidden, true, 'full-screen Edit hides Preview');
   assert.ok(page.context.document.body.classList.contains('artist-editing'));

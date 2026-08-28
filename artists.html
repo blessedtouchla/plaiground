@@ -98,19 +98,20 @@
       </section>
 
       <section class="panel" id="artist-link-panel" data-artist-link-panel hidden>
-        <h3>Import Artist</h3>
+        <h3>Artist mapping</h3>
         <p class="hint">Pick a platform we deliver to and paste that artist page. Plus adds another row. Link artist saves.</p>
         <div class="field">
           <label for="artist-link-name">Display name</label>
           <input id="artist-link-name" type="text" placeholder="Name as it should appear" autocomplete="off" />
         </div>
         <div class="field artist-platforms-field" style="margin-top:18px">
-          <label>Store pages</label>
+          <label>Artist mapping</label>
           <div class="artist-platforms" data-artist-import-rows></div>
           <p class="hint is-red" data-artist-import-error hidden></p>
           <p class="artist-platforms-add">
             <button class="btn btn-ghost btn-sm" type="button" data-artist-import-add aria-label="Add another platform">+</button>
           </p>
+          <p class="hint artist-mapping-plai">Having a hard time finding your URL, or confused about mapping? <button class="btn-inline" type="button" data-artist-mapping-plai>Text PLAI</button>.</p>
         </div>
         <input id="artist-link-url" type="hidden" value="" autocomplete="off" />
         <p style="margin-top:16px"><button class="btn btn-purple" type="button" data-artist-link>Link artist</button></p>

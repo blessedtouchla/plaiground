@@ -1299,6 +1299,19 @@ table.data td.release-edit-col .btn {
   padding: 8px 12px;
 }
 .artist-platforms-add { margin-top: 12px; }
+.artist-mapping-plai { margin-top: 14px; }
+.btn-inline {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: var(--purple-bright, #a78bfa);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
 .artist-edit-screen {
   position: fixed;
   inset: 0;

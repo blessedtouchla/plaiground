@@ -526,7 +526,7 @@
     input.type = 'url';
     input.setAttribute('data-artist-platform-url', '');
     input.setAttribute('aria-label', 'Artist URL');
-    input.placeholder = 'Artist URL';
+    input.placeholder = (api && api.urlPlaceholder) ? api.urlPlaceholder(link && link.platform) : 'Artist URL';
     input.autocomplete = 'off';
     input.value = api && api.displayValue ? api.displayValue(link) : ((link && (link.value || link.url || link.id)) || '');
     input.disabled = locked === true;
@@ -540,16 +540,31 @@
     fields.appendChild(sel);
     fields.appendChild(input);
     fields.appendChild(remove);
+    var hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.setAttribute('data-artist-platform-hint', '');
     var err = document.createElement('p');
     err.className = 'hint is-red';
     err.setAttribute('data-artist-platform-row-error', '');
     err.hidden = true;
     row.appendChild(fields);
+    row.appendChild(hint);
     row.appendChild(err);
     host.appendChild(row);
     fillCatalogSelect(sel, link && link.platform);
+    function paintRowHint() {
+      var slug = sel ? String(sel.value || '') : '';
+      input.placeholder = (api && api.urlPlaceholder) ? api.urlPlaceholder(slug) : 'Artist URL';
+      hint.textContent = (api && api.urlHint) ? api.urlHint(slug) : '';
+    }
+    paintRowHint();
     if (!locked) {
-      if (sel.addEventListener) sel.addEventListener('change', onChange || function () {});
+      if (sel.addEventListener) {
+        sel.addEventListener('change', function () {
+          paintRowHint();
+          if (typeof onChange === 'function') onChange();
+        });
+      }
       if (input.addEventListener) {
         input.addEventListener('input', onChange || function () {});
         input.addEventListener('change', onChange || function () {});
@@ -562,6 +577,18 @@
       }
     }
     return row;
+  }
+
+  function openMappingPlai() {
+    var pill = document.querySelector('.plai-bubble-pill.is-text');
+    if (!pill || typeof pill.click !== 'function') return false;
+    pill.click();
+    var input = document.querySelector('.plai-bubble-input');
+    if (input && !String(input.value || '').trim()) {
+      input.value = 'Help me find my public artist page URL for mapping. Walk me to that page. Do not log into any store account. Do not ask for a password.';
+      if (typeof input.focus === 'function') input.focus();
+    }
+    return true;
   }
 
   function addPlatformRow(link, locked) {
@@ -1259,6 +1286,12 @@
         addImportRow(null);
       });
     }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-mapping-plai]'), function (btn) {
+      btn.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        openMappingPlai();
+      });
+    });
     var addPlatform = $('[data-artist-platform-add]');
     if (addPlatform) {
       addPlatform.addEventListener('click', function () {
@@ -1359,5 +1392,6 @@
     collectImportLinks: collectImportLinks,
     linksForArtist: linksForArtist,
     applyStoreCatalog: applyStoreCatalog,
+    openMappingPlai: openMappingPlai,
   };
 })(typeof window !== 'undefined' ? window : this);
