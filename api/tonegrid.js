@@ -493,6 +493,7 @@ function pickTracks(payload) {
       position: Number(row.position) || 1,
       language: String(row.language || '').trim().toLowerCase(),
       explicit: row.explicit === true,
+      isrc: String(row.isrc || row.ISRC || '').trim(),
     };
   }).filter(Boolean);
 }
@@ -526,6 +527,8 @@ function pickRelease(row) {
     dsps: parseStoreSlugs(row),
     deliveries: Array.isArray(row.deliveries) ? livePlayer.pickDeliveries(row.deliveries) : [],
     rejection_reason: String(row.rejection_reason || row.reject_reason || row.reason || row.notes || '').trim(),
+    upc: String(row.upc || row.UPC || row.barcode || row.ean || '').trim(),
+    isrc: String(row.isrc || row.ISRC || '').trim(),
   };
 }
 

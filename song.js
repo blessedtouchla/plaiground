@@ -713,6 +713,8 @@
       setHidden('[data-song-rejection]', true);
       mountLivePlayer(null);
       mountSongLinks(null);
+      mountStoreStatus(null);
+      setText('[data-song-codes]', 'UPC: Not assigned\nISRC: Not assigned');
       return;
     }
 
@@ -812,6 +814,8 @@
     var playerRelease = Object.assign({}, release, { status: step });
     mountLivePlayer(playerRelease);
     mountSongLinks(playerRelease);
+    mountStoreStatus(release);
+    setText('[data-song-codes]', codesText(release));
     var panelOpen = Boolean(panel && !panel.hidden && !editClosed);
     if (queryEdit() && !editClosed && !panelOpen) openEdit({ me: me, draft: draft, release: release });
   }
@@ -833,6 +837,38 @@
       : { live: false, links: [] };
     var show = Boolean(info && info.live && info.links && info.links.length);
     setHidden('[data-song-links]', !show);
+  }
+
+  function codesText(release) {
+    var upc = String((release && release.upc) || '').trim();
+    var isrcs = [];
+    var seen = {};
+    function pushIsrc(value) {
+      var code = String(value || '').trim();
+      if (!code || seen[code]) return;
+      seen[code] = true;
+      isrcs.push(code);
+    }
+    pushIsrc(release && release.isrc);
+    ((release && release.tracks) || []).forEach(function (track) {
+      pushIsrc(track && track.isrc);
+    });
+    return 'UPC: ' + (upc || 'Not assigned') + '\nISRC: ' + (isrcs.length ? isrcs.join(', ') : 'Not assigned');
+  }
+
+  function mountStoreStatus(release) {
+    var list = $('[data-song-stores-list]');
+    var empty = $('[data-song-stores-empty]');
+    var api = global.PlaigroundLivePlayer;
+    var rows = [];
+    if (list && api && typeof api.mountStoreStatus === 'function') {
+      rows = api.mountStoreStatus(list, release) || [];
+    } else if (list && api && typeof api.pickDeliveries === 'function') {
+      rows = api.pickDeliveries(release && release.deliveries) || [];
+    }
+    var show = Boolean(rows.length);
+    if (list) list.hidden = !show;
+    if (empty) empty.hidden = show;
   }
 
   function load() {
