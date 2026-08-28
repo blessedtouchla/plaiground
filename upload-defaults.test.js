@@ -832,10 +832,12 @@ function run() {
   assert.ok(upload.indexOf('placeholder="Optional featured"') !== -1);
 
   const settings = fs.readFileSync(path.join(__dirname, 'settings.html'), 'utf8');
-  assert.ok(settings.indexOf('<label>Artist name</label>') !== -1);
-  assert.ok(settings.indexOf('data-account-artist') !== -1);
-  assert.ok(settings.indexOf('placeholder="Artist name"') !== -1);
-  assert.ok(!/data-account-artist[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
+  assert.ok(settings.indexOf('<label>Artist name</label>') === -1);
+  assert.ok(settings.indexOf('data-account-artist') === -1);
+  assert.ok(settings.indexOf('<label>Username</label>') !== -1);
+  assert.ok(settings.indexOf('data-account-username') !== -1);
+  assert.ok(settings.indexOf('placeholder="Username"') !== -1);
+  assert.ok(!/data-account-username[^>]*(legal name|FIRST NAME LAST NAME)/i.test(settings));
   assert.ok(!/Legal name[\s\S]{0,80}required/i.test(settings));
   assert.ok(settings.indexOf('John ham') === -1);
   assert.ok(settings.indexOf('>VV<') === -1);
