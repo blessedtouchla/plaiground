@@ -277,6 +277,31 @@
   max-width: min(420px, calc(100vw - 32px));
 }
 
+.plai-bubble-chip {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 12px;
+  border: 1.5px solid #F5C542;
+  border-radius: 999px;
+  background: #0C0C12;
+  color: #F5C542;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.plai-bubble-chip:hover { background: #16161C; }
+
+.plai-bubble-chip.is-on {
+  box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.28);
+}
+
 .plai-bubble.is-closed .plai-bubble-panel,
 .plai-bubble.is-dismissed {
   display: none;
@@ -284,13 +309,50 @@
 
 .plai-bubble[hidden] { display: none !important; }
 
-@media (max-width: 640px) {
+/* Phone: one PLAI chip, top-right. Talk/Text stay in a menu — never over bottom CTAs. */
+@media (max-width: 720px) {
   .plai-bubble {
+    top: 92px;
     right: 12px;
-    bottom: 12px;
+    bottom: auto;
+    left: auto;
   }
-  .plai-bubble-pill {
-    padding: 10px 12px;
-    font-size: 13px;
+  .plai-bubble-shell {
+    align-items: flex-end;
+  }
+  .plai-bubble-chip {
+    display: inline-flex;
+    order: -1;
+  }
+  .plai-bubble-row {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 6px;
+    max-width: min(220px, calc(100vw - 24px));
+  }
+  .plai-bubble.is-menu-open .plai-bubble-row {
+    display: flex;
+  }
+  .plai-bubble-pill,
+  .plai-bubble-row .plai-bubble-x {
+    justify-content: center;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .plai-bubble-row .plai-bubble-x {
+    height: 32px;
+    font-size: 16px;
+    background: #1A1A22;
+    color: #C8C8D0;
+  }
+  .plai-bubble-panel {
+    order: 2;
+    width: min(320px, calc(100vw - 24px));
+    max-height: calc(100vh - 160px);
+    overflow: auto;
   }
 }
