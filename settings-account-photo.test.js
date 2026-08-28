@@ -69,7 +69,6 @@ function loadSettings(opts) {
   const pick = makeEl({ tagName: 'BUTTON', textContent: 'Change photo', attrs: {} });
   const input = makeEl({ tagName: 'INPUT', attrs: { type: 'file', hidden: '' } });
   const status = makeEl({ hidden: true });
-  const artist = makeEl({ tagName: 'INPUT', value: '' });
   const username = makeEl({ tagName: 'INPUT', value: '' });
   const legal = makeEl({ tagName: 'INPUT', value: '' });
   const country = makeEl({ tagName: 'INPUT', value: '' });
@@ -79,7 +78,6 @@ function loadSettings(opts) {
   const nodes = {
     '[data-account-avatar]': [header, settings],
     '[data-account-who]': [makeEl({ textContent: 'Hi there' })],
-    '[data-account-artist]': [artist],
     '[data-account-username]': [username],
     '[data-account-legal]': [legal],
     '[data-account-country]': [country],
@@ -232,7 +230,6 @@ function loadSettings(opts) {
     pick,
     input,
     status,
-    artist,
     username,
     legal,
     country,
@@ -467,7 +464,12 @@ async function run() {
     country: '',
     username: '',
   };
-  const tap = loadSettings({ calls: tapWrites, store: tapStore, plan: 'basic' });
+  const tap = loadSettings({
+    calls: tapWrites,
+    store: tapStore,
+    plan: 'basic',
+    me: { artist: 'Ada', email: 'victoriaimtanes@gmail.com', plan: 'basic', profile: { photo: PHOTO, genres: ['Pop'], specialties: [] } },
+  });
   await Promise.resolve();
   tap.username.value = 'tap_remix';
   tap.legal.value = 'Ada Lovelace';

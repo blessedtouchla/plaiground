@@ -206,9 +206,13 @@
             return;
           }
           var existingError = result.data && result.data.error ? String(result.data.error) : '';
-          var alreadyHasAccount = (result.data && result.data.code === 'EMAIL_EXISTS')
-            || (/already exists/i.test(existingError) && result.data && result.data.code !== 'USERNAME_TAKEN')
-            || /already have an account/i.test(existingError);
+          var usernameTaken = result.data && result.data.code === 'USERNAME_TAKEN';
+          var alreadyHasAccount = !usernameTaken && (
+            result.status === 409
+            || (result.data && result.data.code === 'EMAIL_EXISTS')
+            || /already exists/i.test(existingError)
+            || /already have an account/i.test(existingError)
+          );
           if (alreadyHasAccount) {
             var copy = existingError || 'An account with that email already exists. Log in.';
             setStatus(copy);
