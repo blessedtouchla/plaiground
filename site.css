@@ -2340,6 +2340,21 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .release-tile-status.is-green { color: var(--green); }
 .release-tile-status.is-red { color: #FF5C7A; }
 .release-tile-status.is-gray { color: var(--muted); }
+.release-tile-alert,
+.release-row-alert {
+  margin: 0;
+  color: #FF5C7A;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+}
+.status-cell.has-alert { white-space: normal; }
+.status-cell.has-alert .release-row-alert {
+  display: block;
+  margin-top: 6px;
+  max-width: 32ch;
+}
 .dash-note {
   margin-top: 14px;
   color: var(--muted);
@@ -3487,6 +3502,11 @@ body:not(.app) > .app-main > .topbar { display: none; }
   .release-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  .release-tile-alert,
+  .status-cell.has-alert .release-row-alert {
+    max-width: none;
+    font-size: 12px;
   }
   table.data td.release-edit-col .btn {
     min-height: 44px;

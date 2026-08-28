@@ -155,7 +155,8 @@
 
   function overviewCards(releases) {
     return (releases || []).map(function (row) {
-      var mapped = statusApi() ? statusApi().info(row && row.status) : {
+      var api = statusApi();
+      var mapped = api ? api.info(row && row.status) : {
         label: statusLabel(row && row.status),
         live: String((row && row.status) || '') === 'live' || String((row && row.status) || '') === 'delivered',
         dot: 'gray',
@@ -168,6 +169,7 @@
         live: mapped.live,
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
+        alert: (api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : '',
       };
     }).filter(function (card) {
       var api = statusApi();
@@ -206,6 +208,12 @@
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
+      if (card.alert) {
+        var note = document.createElement('p');
+        note.className = 'release-tile-alert';
+        note.textContent = card.alert;
+        link.appendChild(note);
+      }
       host.appendChild(link);
     });
   }
@@ -266,6 +274,16 @@
       var statusText = document.createElement('span');
       statusText.textContent = mapped.label;
       statusCell.appendChild(statusText);
+      var alertText = (statusApi() && typeof statusApi().problemAlert === 'function')
+        ? statusApi().problemAlert(row)
+        : '';
+      if (alertText) {
+        statusCell.className += ' has-alert';
+        var note = document.createElement('p');
+        note.className = 'release-row-alert';
+        note.textContent = alertText;
+        statusCell.appendChild(note);
+      }
 
       var splits = document.createElement('td');
       splits.textContent = '—';
@@ -404,6 +422,7 @@
         if (item && item.language) next.language = item.language;
         if (item && item.release_date) next.release_date = item.release_date;
         if (item && item.artist) next.artist = item.artist;
+        if (item && item.rejection_reason && !next.rejection_reason) next.rejection_reason = item.rejection_reason;
         var art = coverOf(item);
         if (art) next.artwork_url = art;
       });
@@ -449,7 +468,16 @@
           if (matchesDraft && draft && draft.tonegrid_status) return String(draft.tonegrid_status).toLowerCase();
           return matchesDraft && draft && !draft.submitted ? 'draft' : 'pending';
         })(),
-        rejection_reason: '',
+        rejection_reason: (function () {
+          var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+          var found = '';
+          stored.forEach(function (item) {
+            if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() === key) {
+              found = String((item && item.rejection_reason) || '').trim();
+            }
+          });
+          return found;
+        })(),
         genre: matchesDraft ? String(draft.genre || '').trim() : '',
         release_date: matchesDraft ? String(draft.release_date || '').trim() : '',
         artwork_url: (function () {
@@ -499,7 +527,7 @@
   }
 
   function load() {
-    if (!$('[data-release-rows]') && !$('[data-release-empty]')) return;
+    if (!$('[data-release-rows]') && !$('[data-release-empty]') && !$('[data-release-tiles]')) return;
     setStatus('Loading catalog…');
     Promise.all([getJson(RELEASES_URL), getJson(ANALYTICS_URL), loadAccount()])
       .then(function (results) {

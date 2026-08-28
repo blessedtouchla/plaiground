@@ -392,6 +392,43 @@ function run() {
     profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'pending' }] },
   });
   assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'empty placeholder stays when there is no cover');
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children.length, 3, 'pending tile has no fake error');
+
+  const mixedTiles = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: [
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    ],
+    profile: { releases: [
+      { tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Waiting', tonegrid_status: 'pending' },
+      { tonegrid_release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tonegrid_status: 'live' },
+      { tonegrid_release_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fix Me', tonegrid_status: 'needs-fix', rejection_reason: 'Cover art is too small.' },
+    ] },
+  });
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children.length, 3, 'Overview must include pending with live');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[1].children[2].textContent, 'Live');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Needs fix');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.');
+  assert.strictEqual(mixedTiles['[data-account-releases]'].textContent, '1', 'Releases live stays a live count');
+
+  const unknownTiles = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Maybe', tonegrid_status: 'mystery' }] },
+  });
+  assert.strictEqual(unknownTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
+  assert.notStrictEqual(unknownTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Live', 'unknown status must not invent Live');
+  assert.strictEqual(unknownTiles['[data-release-tiles]'].children[0].children.length, 3, 'unknown status has no fake error');
+  assert.strictEqual(unknownTiles['[data-account-releases]'].textContent, '0');
+
+  assert.ok(dash.includes('href="problem.html"'), 'Have a problem? stays the typed report page');
+  assert.ok(!/release-tile[\s\S]{0,200}Have a problem\?/.test(dash), 'on-card status is not the typed report');
 
   const namedField = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator' });
   assert.strictEqual(namedField['[data-account-artist]'].value, 'Victoria Imtanes', 'a real stored name stays');

@@ -76,6 +76,10 @@ function loadScript(file, nodes) {
   if (file === 'earnings.js') {
     vm.runInNewContext(read('lib/statement-pdf.js'), context);
   }
+  if (file === 'catalog.js') {
+    vm.runInNewContext(read('lib/cover-url.js'), context);
+    vm.runInNewContext(read('lib/release-status.js'), context);
+  }
   vm.runInNewContext(read(file), context);
   return context;
 }
@@ -333,6 +337,46 @@ function run() {
   ], 'live');
   assert.strictEqual(filtered.length, 1);
   assert.strictEqual(filtered[0].status, 'live');
+  const allShown = catalog.PlaigroundCatalog.applyFilter([
+    { uuid: '1', status: 'live' },
+    { uuid: '2', status: 'pending' },
+    { uuid: '3', status: 'needs-fix' },
+    { uuid: '4', status: 'mystery' },
+  ], 'all');
+  assert.strictEqual(allShown.length, 4, 'default Releases list includes pending and live');
+  assert.ok(allShown.some(function (row) { return row.status === 'pending'; }), 'pending stays in the All list');
+  assert.ok(allShown.some(function (row) { return row.status === 'live'; }), 'live stays in the All list');
+
+  catalog.PlaigroundCatalog.setFilter('all');
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Waiting', type: 'single', status: 'pending' },
+      { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', type: 'single', status: 'live' },
+      { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fix Me', type: 'single', status: 'needs-fix', rejection_reason: 'Cover art is too small.' },
+      { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'Maybe', type: 'single', status: 'mystery' },
+    ],
+    total: 4,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '4');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 4, 'Releases table is not live-only');
+  const pendingRow = catalogNodes['[data-release-rows]'].children[0];
+  const liveRow = catalogNodes['[data-release-rows]'].children[1];
+  const fixRow = catalogNodes['[data-release-rows]'].children[2];
+  const unknownRow = catalogNodes['[data-release-rows]'].children[3];
+  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'Pending');
+  assert.strictEqual(liveRow.children[2].children[1].textContent, 'Live');
+  assert.strictEqual(fixRow.children[2].children[1].textContent, 'Needs fix');
+  assert.strictEqual(fixRow.children[2].children[2].textContent, 'Cover art is too small.');
+  assert.ok(String(fixRow.children[2].className).indexOf('has-alert') !== -1);
+  assert.strictEqual(unknownRow.children[2].children[1].textContent, 'Pending');
+  assert.notStrictEqual(unknownRow.children[2].children[1].textContent, 'Live', 'unknown status must not invent Live');
+  assert.ok(!findByText(unknownRow, 'Cover art is too small.'), 'no fake error on an unknown row');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children.length, 4, 'Overview tiles on the shared list include pending');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.');
+
+  assert.ok(read('releases.html').includes('href="problem.html"'), 'Have a problem? stays the typed report page');
+  assert.ok(read('catalog.js').includes("&& !$('[data-release-tiles]')"), 'Overview shares the catalog list');
 
   catalogNodes['[data-release-empty-title]'] = makeEl({ textContent: 'Your first release goes here.' });
   catalogNodes['[data-release-empty-body]'] = makeEl({});
