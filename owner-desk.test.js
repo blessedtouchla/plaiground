@@ -253,6 +253,8 @@ function run() {
   assert.ok(!/Hi there/.test(adminHtml), 'owner desk does not greet as an artist');
   assert.ok(!/data-account-plan-title|data-account-who/.test(adminHtml));
   assert.ok(adminHtml.includes('<h3>Signups</h3>'));
+  assert.ok(/<th>Email<\/th>\s*<th>Name<\/th>\s*<th>Plan<\/th>\s*<th>Status<\/th>\s*<th>Signed up<\/th>\s*<th>Stripe<\/th>/.test(adminHtml));
+  assert.ok(!/Last login|Phone|IPI/i.test(adminHtml));
   assert.ok(adminHtml.includes('<h3>Paid checkouts</h3>'));
   assert.ok(adminHtml.includes('<h3>Subscriptions</h3>'));
   assert.ok(adminHtml.includes('<h3>Money in and out</h3>'));
@@ -266,7 +268,27 @@ function run() {
 
   assert.ok(adminJs.includes('emailplaiground@gmail.com'));
   assert.ok(adminJs.includes('Could not load the desk.'));
+  assert.ok(adminJs.includes('America/Los_Angeles'));
+  assert.ok(adminJs.includes('formatSignedUpAt'));
+  assert.ok(adminJs.includes('admin-signup-name'));
+  assert.ok(adminJs.includes('admin-lead'));
+  assert.ok(!adminJs.includes('row.username'));
   assert.ok(!/if \(!list\.ok\)[\s\S]{0,180}location\.replace\(DENY\)/.test(adminJs), 'confirmed owner is not bounced to Overview on a data miss');
+
+  const siteCss = read('site.css');
+  assert.ok(siteCss.includes('.admin-signup-meta'));
+  assert.ok(siteCss.includes('[data-owner-desk] .admin-table-wrap'));
+  assert.ok(siteCss.includes('overflow-x: hidden'));
+  assert.ok(siteCss.includes('td.admin-signup-dup'));
+  assert.ok(siteCss.includes('td.admin-lead'));
+  assert.ok(siteCss.includes('body.app[data-owner-desk]'));
+
+  const signedUpFn = adminJs.match(/function formatSignedUpAt[\s\S]*?return map\.month[\s\S]*?PT';\n  \}/);
+  assert.ok(signedUpFn, 'formatSignedUpAt stays on the owner desk');
+  const formatSignedUpAt = new Function(signedUpFn[0] + '; return formatSignedUpAt;')();
+  const pt = formatSignedUpAt('2026-08-27T00:16:00.000Z');
+  assert.ok(/Aug 26, 2026 5:16 PM PT/.test(pt), 'signed_up_at renders date and time PT, got ' + pt);
+  assert.strictEqual(formatSignedUpAt(''), '—');
 
   assert.ok(membership.includes("OWNER_HOME = '/admin'"));
   assert.ok(membership.includes('signedInHome'));
