@@ -540,6 +540,9 @@ function run() {
   assert.strictEqual(page.talkPill.clickCalls, 0, 'Artist mapping must not open Talk / the mic');
   assert.ok(/Do not log into any store account/.test(page.plaiInput.value));
   assert.ok(/Do not ask for a password/.test(page.plaiInput.value));
+  assert.ok(/Do not list every store/.test(page.plaiInput.value));
+  assert.ok(/Spotify, Apple Music, YouTube Music, Amazon, Deezer, Tidal/.test(page.plaiInput.value));
+  assert.ok(!/55/.test(page.plaiInput.value));
 
   page.api.applyMe({
     profile: { artists: [{ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }] },
