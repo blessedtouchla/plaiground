@@ -399,14 +399,24 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="dashboard.html">Overview<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>/.test(sideNav[0]), file + ' must put gold New release first, then Overview, then Artist Profiles');
+    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<div class="side-item has-submenu/.test(sideNav[0]), file + ' must put gold New release first, then the Overview submenu');
+    assert.ok(/data-overview-menu/.test(sideNav[0]) && /side-submenu-toggle/.test(sideNav[0]) && /side-submenu-chevron/.test(sideNav[0]), file + ' Overview must have a chevron that expands the submenu');
+    const submenu = sideNav[0].match(/<div class="side-submenu"[^>]*>[\s\S]*?<\/div>/);
+    assert.ok(submenu, file + ' must keep the boxed Overview submenu');
+    assert.ok(/<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="splits.html">Splits<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(submenu[0]), file + ' Overview submenu is Releases, Splits, Publishing, Earnings, Analytics, Payouts');
+    assert.ok(!/data-new-release/.test(submenu[0]), file + ' must not nest New release under Overview');
+    assert.ok(!/href="boosts.html"/.test(submenu[0]), file + ' must not nest Boosts under Overview');
+    assert.ok(!/href="artists.html"/.test(submenu[0]), file + ' must not nest Artist Profiles under Overview');
+    const mainNav = sideNav[0].replace(submenu[0], '');
+    assert.ok(!/href="payouts.html"/.test(mainNav), file + ' Payouts must not be a main row');
+    assert.ok(!/href="releases.html"/.test(mainNav) && !/href="splits.html"/.test(mainNav) && !/href="earnings.html"/.test(mainNav) && !/href="analytics.html"/.test(mainNav), file + ' must not leave Overview children on the main list');
+    assert.ok(/<\/div>\s*<a(?: class="on")? href="boosts.html"[^>]*>Boosts<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="settings.html">Settings<\/a>/.test(sideNav[0]), file + ' main list after Overview is Boosts, Artist Profiles, Settings');
+    assert.ok(/href="boosts.html"[^>]*data-for-plans="creator pro"/.test(sideNav[0]), file + ' Boosts is Creator/Pro only as live');
+    assert.ok(/data-publishing-register[^>]*data-for-plans="creator pro"/.test(submenu[0]) || /data-for-plans="creator pro"[^>]*data-publishing-register/.test(submenu[0]), file + ' Publishing is Creator/Pro only as live');
     assert.ok(!/href="song\.html"[^>]*>New release<\/a>/.test(sideNav[0]), file + ' New release must not go to song.html');
     assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
-    assert.ok(/href="splits.html">Splits<\/a>\s*<a(?: class="on")? href="publishing-register.html" data-publishing-register>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>/.test(sideNav[0]), file + ' must list Publishing after Splits');
-    assert.ok(sideNav[0].includes('data-publishing-register>Publishing</a>'), file + ' Publishing uses the paid-access register gate');
-    assert.ok(!/\bhidden\b[^>]*>Publishing<\/a>/.test(sideNav[0]), file + ' must not hide Publishing');
-    assert.ok(!/data-for-plans=/.test(sideNav[0]), file + ' must not plan-hide Publishing on Pro/Creator');
+    assert.ok(sideNav[0].includes('data-publishing-register'), file + ' Publishing uses the paid-access register gate');
     assert.ok(!/>Admin</.test(sideNav[0]), file + ' must not put Admin on the artist menu');
     assert.ok(!/href="admin(?:\.html|\/signups)?"/.test(sideNav[0]), file + ' must not link the owner admin page');
     assert.ok(/FAQ<\/a>\s*<a[^>]*data-have-problem[^>]*>Have a problem\?<\/a>/.test(sideNav[0]), file + ' must keep Have a problem? after FAQ');
@@ -419,14 +429,17 @@ function run() {
   assert.ok(!/data-require-membership|data-require-paid/i.test(read('contact.html')), 'Contact must not dump signed-in users to login');
 
   const pubRegNav = read('publishing-register.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
-  assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register>Publishing<\/a>/.test(pubRegNav[0]), 'Publishing is current on the register page');
+  assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register/.test(pubRegNav[0]), 'Publishing is current on the register page');
   assert.ok(js.includes('publishing-register.html') && js.includes('publishing.html') && js.includes('data-publishing-register'), 'shared app menu marks Publishing current on register/explainer');
+  assert.ok(js.includes('setupOverviewSubmenu') && js.includes('isPhoneAppMenu') && js.includes('max-width: 980px'), 'phone tap Overview expands the submenu without closing the drawer');
 
   const releases = read('releases.html');
   const siteCss = read('site.css');
   assert.ok(/\.side-nav a\.side-action(?:,[\s\S]*?\.side-nav a\.side-action\.on)? \{[\s\S]*?background:\s*#f3cb47/.test(siteCss), 'signed-in New release CTA uses the same gold #f3cb47 as Edit Submit');
   assert.ok(!/\.side-nav a\.side-action \{\s*background:\s*rgba\(125,\s*60,\s*255/.test(siteCss), 'New release is not another purple menu row');
   assert.ok(/\.side-nav a \{[\s\S]*?color:\s*var\(--muted-2\)/.test(siteCss), 'other signed-in menu items stay the default row, not gold');
+  assert.ok(/\.side-submenu \{[\s\S]*?border:\s*1px solid var\(--line\)/.test(siteCss), 'Overview submenu is a boxed list, not another purple row');
+  assert.ok(/\.side-item\.has-submenu\.open \.side-submenu \{ display: flex; \}/.test(siteCss), 'tapping Overview opens the boxed submenu');
   assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
   assert.ok(/class="btn btn-purple btn-md"[^>]*data-new-release/.test(releases), 'New release is the primary action');
   assert.ok(/class="btn btn-ghost btn-sm"[^>]*data-album-upload/.test(releases), 'Upload album stays a smaller secondary action');

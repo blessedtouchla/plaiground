@@ -51,6 +51,53 @@
     });
   }
 
+  function isPhoneAppMenu() {
+    return !!(window.matchMedia && window.matchMedia("(max-width: 980px)").matches);
+  }
+
+  function isOverviewHomeLink(link) {
+    if (!link || !link.closest) return false;
+    if (!link.closest("[data-overview-menu]")) return false;
+    return hrefFile(link.getAttribute("href")) === "dashboard.html";
+  }
+
+  function setupOverviewSubmenu(side) {
+    if (!side || !side.querySelector) return;
+    var item = side.querySelector("[data-overview-menu]");
+    if (!item || item.getAttribute("data-submenu-wired") === "1") return;
+    var toggle = item.querySelector(".side-submenu-toggle");
+    var overview = item.querySelector(".side-item-row a[href]");
+    var submenu = item.querySelector(".side-submenu");
+    if (!toggle || !submenu) return;
+    item.setAttribute("data-submenu-wired", "1");
+
+    function setSubmenuOpen(open) {
+      item.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Hide Overview pages" : "Show Overview pages");
+    }
+
+    if (item.classList.contains("open") || item.classList.contains("is-current") || submenu.querySelector("a.on")) {
+      item.classList.add("is-current");
+      setSubmenuOpen(true);
+    }
+
+    toggle.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      setSubmenuOpen(!item.classList.contains("open"));
+    });
+
+    if (overview) {
+      overview.addEventListener("click", function (event) {
+        if (!isPhoneAppMenu()) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setSubmenuOpen(!item.classList.contains("open"));
+      });
+    }
+  }
+
   function setupAppMenu() {
     var app = document.body;
     if (!app || !app.classList.contains("app")) return;
@@ -69,6 +116,24 @@
         el.classList.add("on");
       });
     }
+    var overviewPages = {
+      "dashboard.html": 1,
+      "releases.html": 1,
+      "song.html": 1,
+      "library.html": 1,
+      "splits.html": 1,
+      "splits-empty.html": 1,
+      "publishing-register.html": 1,
+      "publishing.html": 1,
+      "earnings.html": 1,
+      "analytics.html": 1,
+      "payouts.html": 1
+    };
+    if (overviewPages[page]) {
+      var overviewMenu = side.querySelector("[data-overview-menu]");
+      if (overviewMenu) overviewMenu.classList.add("open", "is-current");
+    }
+    setupOverviewSubmenu(side);
 
     var toggle = topbar.querySelector(".menu-toggle");
     if (!toggle) {
@@ -106,7 +171,10 @@
     wireToggle(toggle, isOpen, setOpen);
     backdrop.addEventListener("click", function () { setOpen(false); });
     side.querySelectorAll("a").forEach(function (link) {
-      link.addEventListener("click", function () { setOpen(false); });
+      link.addEventListener("click", function () {
+        if (isPhoneAppMenu() && isOverviewHomeLink(link)) return;
+        setOpen(false);
+      });
     });
   }
 
