@@ -374,6 +374,9 @@ function runStatic() {
   assert.ok(read('dashboard.html').includes('data-plai-talk'), 'Overview has a Talk to PLAI CTA');
   assert.ok(/data-plai-talk[^>]*>Talk to PLAI</.test(read('dashboard.html')), 'Overview Talk CTA is written PLAI');
   assert.ok(read('plai-bubble.js').includes('data-plai-talk'), 'Talk CTA opens the existing voice agent');
+  assert.ok(read('plai-bubble.js').includes('data-plai-text'), 'Troubleshoot opens the existing Text PLAI');
+  assert.ok(/data-plai-text[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot is written Troubleshoot');
+  assert.ok(!/data-plai-talk[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot must not open Talk to PLAI');
   assert.ok(!read('dashboard.html').includes('XAI_API_KEY'), 'Overview must not leak XAI_API_KEY');
 
   assert.ok(session.includes('process.env.XAI_API_KEY'), 'session route keeps the server key');
@@ -503,9 +506,28 @@ function runPageTalk() {
   });
 }
 
+function runPageText() {
+  const ui = loadWidget();
+  return wait(20).then(function () {
+    const cta = makeNode('button');
+    cta.setAttribute('data-plai-text', '');
+    cta.textContent = 'Troubleshoot';
+    ui.document.body.appendChild(cta);
+    const ev = { type: 'click', target: cta, currentTarget: cta, preventDefault: function () {} };
+    (ui.document.listeners.click || []).forEach(function (fn) { fn(ev); });
+    return wait(40).then(function () {
+      assert.strictEqual(ui.getUserMediaCalls.length, 0, 'FAQ Troubleshoot must not activate the mic');
+      assert.ok(/Text PLAI/.test(ui.statusText()), 'FAQ Troubleshoot opens Text PLAI');
+      assert.ok(/Mic is off/.test(ui.statusText()), 'FAQ Troubleshoot stays type only');
+      assert.strictEqual(ui.pill('text').getAttribute('aria-expanded'), 'true');
+      assert.strictEqual(ui.pill('talk').getAttribute('aria-expanded'), 'false');
+    });
+  });
+}
+
 function run() {
   runStatic();
-  return runClicks().then(runPhoneChrome).then(runPageTalk).then(function () {
+  return runClicks().then(runPhoneChrome).then(runPageTalk).then(runPageText).then(function () {
     console.log('plai-bubble.test.js ok');
   });
 }

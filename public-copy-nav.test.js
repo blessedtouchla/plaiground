@@ -105,6 +105,20 @@ function run() {
   assert.ok(/she\/her/i.test(faq), 'FAQ says PLAI uses she/her');
   assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ points to Talk and Text PLAI');
   assert.ok(/type only, no mic/i.test(faq), 'FAQ says Text PLAI is type only');
+  assert.ok(/My song is on the wrong artist page/i.test(faq), 'FAQ covers a song on the wrong artist page');
+  assert.ok(/Someone else.s song is on my artist page/i.test(faq), 'FAQ covers someone else\'s song on an artist page');
+  assert.ok(/Artist mapping looks wrong/i.test(faq), 'FAQ covers artist mapping');
+  assert.ok(/We can fix this by hand/i.test(faq) && /We can fix artist mapping by hand/i.test(faq), 'FAQ says these artist-page issues are fixed by hand');
+  assert.ok(/href="problem.html">Have a problem\?<\/a>/.test(faq), 'FAQ sends those issues through Have a problem?');
+  assert.ok(/data-plai-text[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot opens Text PLAI');
+  assert.ok(!/data-problem-form/.test(faq), 'FAQ must not invent a second problem form');
+  assert.ok(!/ToneGrid|InterSpace|Flossy|DistroKid/i.test(faq), 'FAQ must not name the store partner');
+  ['song.html', 'artists.html'].forEach(function (file) {
+    const page = read(file);
+    assert.ok(!/This song is on the wrong artist page/i.test(page), file + ' must not add the leftover wrong-page button');
+    assert.ok(!/Someone else.s song is on this page/i.test(page), file + ' must not add the leftover someone-else button');
+    assert.ok(!/data-plai-text/.test(page), file + ' must not get the FAQ Troubleshoot control');
+  });
   const plaiPointer = faq.indexOf('class="faq-plai"');
   const stuckAt = faq.indexOf('Still stuck on something?');
   assert.ok(plaiPointer !== -1 && stuckAt !== -1 && plaiPointer < stuckAt, 'short PLAI pointer sits near Still stuck, not the lead');

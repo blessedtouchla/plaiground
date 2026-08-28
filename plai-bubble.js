@@ -995,24 +995,26 @@
     mount();
   }
 
-  function openPageTalk(event) {
+  function openPageMode(useMic, event) {
     if (event && event.preventDefault) event.preventDefault();
     ensureMounted();
     if (!root) return;
     root.hidden = false;
     root.classList.remove('is-dismissed');
     setMenuOpen(false);
+    if (isLive() && wantMic === useMic) return;
     if (!configured) {
-      checkConfigured().then(function () { openMode(true); });
+      checkConfigured().then(function () { openMode(useMic); });
       return;
     }
-    openMode(true);
+    openMode(useMic);
   }
 
-  function closestPageTalk(target) {
+  function closestPageOpener(target) {
     var node = target;
     while (node && node !== document) {
-      if (node.getAttribute && node.getAttribute('data-plai-talk') != null) return node;
+      if (node.getAttribute && node.getAttribute('data-plai-text') != null) return { useMic: false };
+      if (node.getAttribute && node.getAttribute('data-plai-talk') != null) return { useMic: true };
       node = node.parentNode || node.parentElement;
     }
     return null;
@@ -1025,8 +1027,9 @@
       document.documentElement.setAttribute('data-plai-talk-bound', '1');
     }
     document.addEventListener('click', function (event) {
-      if (!closestPageTalk(event && event.target)) return;
-      openPageTalk(event);
+      var opener = closestPageOpener(event && event.target);
+      if (!opener) return;
+      openPageMode(opener.useMic, event);
     });
   }
 
