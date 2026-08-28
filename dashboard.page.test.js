@@ -100,6 +100,7 @@ function run() {
   assert.ok(dash.includes('data-first-song'), 'first-song empty strip hook is missing');
   assert.ok(dash.includes('data-has-release'), 'submitted-release hook is missing');
   assert.ok(dash.includes('All releases'), 'Overview strip keeps All releases');
+  assert.ok(/data-has-release[^>]*data-all-releases[^>]*hidden|data-all-releases[^>]*hidden/.test(dash), 'All releases stays hidden until there is a catalog');
   assert.ok(!dash.includes('View release'), 'Overview purple button must not stay View release');
   assert.ok(!dash.includes('Upload an album'), 'Overview must not keep Upload an album');
   assert.ok(!dash.includes('About 10 minutes'), 'Overview must not keep the album time line');
@@ -107,6 +108,7 @@ function run() {
   assert.ok(!dash.includes('Edit release'), 'Overview must not clone the Releases edit action');
   assert.ok(!/class="release-pills"/.test(dash), 'Overview must not keep the Releases pill row');
   const siteCss = read('site.css');
+  assert.ok(siteCss.includes('[data-has-release][hidden]'), 'All releases cannot leak through .learn display');
   assert.ok(siteCss.includes('table.data th.release-edit-col') && siteCss.includes('table.data td.release-edit-col .btn'), 'desktop Edit column from #140 stays aligned');
   assert.ok(read('account.js').includes("el.setAttribute('href', 'releases.html')"), 'sidebar Releases stays on the catalog list');
   assert.ok(!/data-latest-link/.test(dash), 'Overview must not rewrite a latest-song link');

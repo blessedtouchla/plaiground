@@ -2322,6 +2322,8 @@ body:not(.app) > .app-main > .topbar { display: none; }
   gap: 16px;
 }
 .release-tiles[hidden] { display: none !important; }
+[data-has-release][hidden],
+[data-first-song][hidden] { display: none !important; }
 .release-tile {
   display: flex;
   flex-direction: column;
