@@ -24,6 +24,10 @@ const APP_PAGES = [
   'profile.html',
   'library.html',
   'boosts.html',
+  'chart-push.html',
+  'streaming-push.html',
+  'social-push.html',
+  'video-collect.html',
   'publishing-register.html',
   'faq.html',
   'contact.html',
@@ -304,8 +308,8 @@ function run() {
   assert.ok(/Marketing Boosts/i.test(boosts), 'boosts.html stays a marketing dashboard');
   assert.ok(!/data-require-paid/i.test(boosts), 'boosts.html must not dump Basic to Pick a plan');
   assert.ok(/data-require-membership="true"/i.test(boosts), 'boosts.html stays a signed-in page');
-  assert.ok(boosts.includes('data-boost-state="not-live"'), 'Song not live is a real state tab');
-  assert.ok(boosts.includes('boosts.js'), 'boosts tabs have a handler');
+  assert.ok(boosts.includes('data-boost-hub'), 'boosts.html is the four-card Boost hub');
+  assert.ok(/Chart Push/.test(boosts) && /Streaming Push/.test(boosts) && /Social Push/.test(boosts) && /Video Collect/.test(boosts), 'hub lists the four live package titles');
   assert.ok(/Boosts are locked on Basic/i.test(boosts), 'Basic sees a Boost lock, not a plan pitch');
   assert.ok(/Creator and Pro can add a Boost/i.test(boosts), 'Boost lock is Creator + Pro');
 

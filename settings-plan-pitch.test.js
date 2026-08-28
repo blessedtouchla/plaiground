@@ -74,7 +74,7 @@ function run() {
   assert.ok(settingsPitch.includes('$16.58/month billed yearly'), 'settings.html is missing the yearly-as-monthly pitch');
   assert.ok(read('dashboard.html').includes('$16.58/month billed yearly'), 'dashboard keeps Pro yearly-as-monthly on the Pro-only line');
 
-  ['releases.html', 'splits.html', 'splits-empty.html', 'library.html', 'boosts.html'].forEach(function (file) {
+  ['releases.html', 'splits.html', 'splits-empty.html', 'library.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(!/>On Pro</.test(html), file + ' must not default to leftover On Pro');
     assert.ok(html.includes('data-account-plan-title'), file + ' plan title comes from /api/me');
