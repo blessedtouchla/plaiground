@@ -941,12 +941,73 @@ body.app > .plai-bubble {
 }
 .side-nav a:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
 .side-nav a.on { background: var(--purple); color: #fff; }
-.side-nav a.side-action {
-  background: rgba(125, 60, 255, 0.22);
-  color: #fff;
+.side-nav a.side-action,
+.side-nav a.side-action.on {
+  background: #f3cb47;
+  color: #111;
   font-weight: 700;
 }
-.side-nav a.side-action:hover { background: var(--purple); color: #fff; }
+.side-nav a.side-action:hover,
+.side-nav a.side-action.on:hover {
+  background: #f6d45c;
+  color: #111;
+}
+.side-item.has-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.side-item-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.side-item-row > a { flex: 1 1 auto; min-width: 0; }
+.side-submenu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-2);
+  flex: 0 0 auto;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.side-submenu-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+.side-item.has-submenu.open .side-submenu-toggle,
+.side-item.has-submenu.is-current .side-submenu-toggle,
+.side-item-row > a.on + .side-submenu-toggle { color: #fff; }
+.side-submenu-chevron {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: -3px;
+}
+.side-item.has-submenu.open .side-submenu-chevron {
+  transform: rotate(-135deg);
+  margin-top: 2px;
+}
+.side-submenu {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 2px 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.side-item.has-submenu.open .side-submenu { display: flex; }
 .side-nav a.side-problem {
   margin-top: 4px;
   border: 1px solid rgba(245, 197, 66, 0.45);

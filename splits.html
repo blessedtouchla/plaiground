@@ -15,15 +15,24 @@
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <p class="side-label">Menu</p>
     <nav class="side-nav">
-      <a href="dashboard.html">Overview</a>
       <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
-      <a href="releases.html">Releases</a>
-      <a class="on" href="splits.html">Splits</a>
-      <a href="publishing-register.html" data-publishing-register>Publishing</a>
-      <a href="earnings.html">Earnings</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="boosts.html">Boosts</a>
-      <a href="payouts.html">Payouts</a>
+      <div class="side-item has-submenu open is-current" data-overview-menu>
+        <div class="side-item-row">
+          <a href="dashboard.html">Overview</a>
+          <button type="button" class="side-submenu-toggle" aria-expanded="true" aria-controls="overview-submenu" aria-label="Hide Overview pages">
+            <span class="side-submenu-chevron" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="side-submenu" id="overview-submenu">
+          <a href="releases.html">Releases</a>
+          <a class="on" href="splits.html">Splits</a>
+          <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
+          <a href="earnings.html">Earnings</a>
+          <a href="analytics.html">Analytics</a>
+          <a href="payouts.html">Payouts</a>
+        </div>
+      </div>
+      <a href="boosts.html" data-for-plans="creator pro" hidden>Boosts</a>
       <a href="artists.html">Artist Profiles</a>
       <a href="settings.html">Settings</a>
       <a href="how.html">How it works</a>
