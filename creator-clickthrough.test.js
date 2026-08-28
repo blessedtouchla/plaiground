@@ -115,7 +115,7 @@ function run() {
   assert.ok(!bubbleJs.includes('XAI_API_KEY'));
   assert.ok(!/elevenlabs/i.test(bubbleJs));
 
-  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'playlists.html', 'charts.html', 'social-ads.html', 'video-collect.html', 'upload.html', 'settings.html'].forEach(function (file) {
+  ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html', 'upload.html', 'settings.html'].forEach(function (file) {
     const html = read(file);
     assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
     assert.ok(html.includes('plai-bubble.css'), file + ' must style Talk/Text PLAI');
@@ -123,9 +123,9 @@ function run() {
 
   const boostsHtml = read('boosts.html');
   assert.ok(boostsHtml.includes('data-boost-hub'));
-  assert.ok(boostsHtml.includes('href="playlists.html"'));
-  assert.ok(boostsHtml.includes('href="charts.html"'));
-  assert.ok(boostsHtml.includes('href="social-ads.html"'));
+  assert.ok(boostsHtml.includes('href="chart-push.html"'));
+  assert.ok(boostsHtml.includes('href="streaming-push.html"'));
+  assert.ok(boostsHtml.includes('href="social-push.html"'));
   assert.ok(boostsHtml.includes('href="video-collect.html"'));
   assert.ok(!boostsHtml.includes('Choose Chart Push'));
   assert.ok(!boostsHtml.includes('boosts.js'));
@@ -234,7 +234,7 @@ function run() {
   assert.ok(membership.includes("file === 'boost.html'"));
   assert.ok(membership.includes("location.replace('boosts.html')"));
 
-  ['dashboard.html', 'earnings.html', 'settings.html', 'releases.html', 'boosts.html', 'playlists.html', 'charts.html', 'social-ads.html', 'video-collect.html'].forEach(function (file) {
+  ['dashboard.html', 'earnings.html', 'settings.html', 'releases.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
     assert.ok(read(file).includes('href="boosts.html">Boosts</a>'), file + ' sidebar Boosts stays on signed-in boosts.html');
     assert.ok(read(file).indexOf('href="boost.html">Boosts</a>') === -1, file + ' sidebar must not land on the public tease');
     assert.ok(read(file).includes('href="releases.html">Releases</a>'), file + ' Creator menu Releases opens the catalog list');
