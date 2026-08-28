@@ -219,9 +219,28 @@
     });
   }
 
+  function leftoverOverviewRow(el) {
+    if (!el) return false;
+    var span = el.querySelector ? el.querySelector('span') : null;
+    var label = String((span && span.textContent) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    return label === 'split sheets signed' || label === 'plan renews';
+  }
+
+  function stripOverviewLeftoverRows() {
+    var rows = $all('.account-card .row');
+    var list = [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) list.push(rows[i]);
+    list.forEach(function (el) {
+      if (!leftoverOverviewRow(el)) return;
+      if (el.parentNode && el.parentNode.removeChild) el.parentNode.removeChild(el);
+    });
+  }
+
   function fillAccount(me) {
     if (!me) return;
     lastMe = me;
+    stripOverviewLeftoverRows();
     var artist = accountArtistField(me);
     var display = accountDisplayName(me);
     var first = firstName(display);
@@ -1067,6 +1086,8 @@
   }
 
   bindSignOut();
+  whenDomReady(stripOverviewLeftoverRows);
+  stripOverviewLeftoverRows();
   whenDomReady(bindManagePlan);
   whenDomReady(bindManageBilling);
   whenDomReady(bindChangePassword);
@@ -1116,6 +1137,7 @@
     fill: fillAccount,
     markPlanOption: markPlanOption,
     renderOverview: renderOverview,
+    stripOverviewLeftoverRows: stripOverviewLeftoverRows,
     accountPhoto: accountPhoto,
     readPhotoFile: readPhotoFile,
     saveAccountPhoto: saveAccountPhoto,

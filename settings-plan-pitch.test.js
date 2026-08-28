@@ -63,6 +63,7 @@ function run() {
   assert.ok(!read('dashboard.html').includes('Split sheets signed'), 'Overview must not show Split sheets signed');
 
   const account = read('account.js');
+  assert.ok(account.includes('stripOverviewLeftoverRows'), 'Overview leftover Split sheets signed / Plan renews rows are stripped');
   assert.ok(account.includes('current_period_end'), 'Settings paints renewal from the live Stripe current_period_end');
   assert.ok(account.includes('data-plan-renews'), 'Settings paints the renewal line in place');
   assert.ok(!/anniversary|created_at|signup_date/.test(account), 'Settings must not invent a billing anniversary');

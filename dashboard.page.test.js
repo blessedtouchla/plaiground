@@ -414,6 +414,52 @@ function run() {
   assert.ok(!dash.includes('Split sheets signed'), 'Overview must not show Split sheets signed');
   assert.ok(!dash.includes('Plan renews'), 'Overview must not show a Plan renews line');
   assert.ok(!dash.includes('data-plan-renews'), 'Overview must not paint a Stripe renewal date');
+  const accountCard = dash.match(/<div class="account-card">[\s\S]*?<\/div>\s*<\/div>\s*<div class="release-board">/);
+  assert.ok(accountCard, 'Overview Your account card is present');
+  assert.strictEqual((accountCard[0].match(/<div class="row">/g) || []).length, 2, 'Your account keeps only Releases live and Payout method');
+  assert.ok(accountCard[0].includes('Releases live'), 'Your account keeps Releases live');
+  assert.ok(accountCard[0].includes('Payout method'), 'Your account keeps Payout method');
+  assert.ok(!accountCard[0].includes('Split sheets signed'), 'Your account card must not keep Split sheets signed');
+  assert.ok(!accountCard[0].includes('Plan renews'), 'Your account card must not keep Plan renews');
+  assert.ok(read('account.js').includes('stripOverviewLeftoverRows'), 'Overview leftover rows are stripped if HTML still has them');
+  assert.ok(read('settings.html').includes('data-plan-renews'), 'Plan renews stays on Settings only');
+
+  const leftoverSigned = makeNode({ textContent: 'Split sheets signed' });
+  leftoverSigned.querySelector = function () { return { textContent: 'Split sheets signed' }; };
+  const leftoverRenews = makeNode({ textContent: 'Plan renews' });
+  leftoverRenews.querySelector = function () { return { textContent: 'Plan renews' }; };
+  const payoutRow = makeNode({ textContent: 'Payout method' });
+  payoutRow.querySelector = function () { return { textContent: 'Payout method' }; };
+  const leftoverParent = {
+    children: [leftoverSigned, leftoverRenews, payoutRow],
+    removeChild(child) {
+      this.children = this.children.filter(function (row) { return row !== child; });
+      return child;
+    },
+  };
+  leftoverSigned.parentNode = leftoverParent;
+  leftoverRenews.parentNode = leftoverParent;
+  payoutRow.parentNode = leftoverParent;
+  const leftoverDoc = {
+    currentScript: { getAttribute() { return null; } },
+    querySelector() { return null; },
+    querySelectorAll(sel) {
+      if (sel === '.account-card .row') return leftoverParent.children.slice();
+      return [];
+    },
+    addEventListener() {},
+  };
+  const leftoverCtx = {
+    document: leftoverDoc,
+    location: { href: 'dashboard.html', pathname: '/dashboard.html', search: '', replace() {} },
+    fetch() { return Promise.resolve({ ok: false, status: 401, json: async () => ({}) }); },
+  };
+  leftoverCtx.window = leftoverCtx;
+  leftoverCtx.globalThis = leftoverCtx;
+  vm.runInNewContext(read('account.js'), leftoverCtx);
+  leftoverCtx.PlaigroundAccount.stripOverviewLeftoverRows();
+  assert.strictEqual(leftoverParent.children.length, 1, 'leftover Split sheets signed and Plan renews rows are removed');
+  assert.strictEqual(leftoverParent.children[0], payoutRow, 'Payout method stays on the Your account card');
 
   const settings = read('settings.html');
   assert.ok(!settings.includes('Hi John'), 'settings.html must not hardcode Hi John');
