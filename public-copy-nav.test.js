@@ -66,6 +66,8 @@ function run() {
   assert.ok(!/ToneGrid (takes|take|fee|commission|cut)/i.test(how), 'do not invent a ToneGrid take on how-it-works');
   assert.ok(!/migrate/i.test(how), 'how-it-works must not add catalog migrate UI');
   assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'three steps stay Upload / Release / Get paid');
+  assert.ok(how.includes('First make the artist profile. Later songs pick that artist and prefill, then you submit.'), 'how-it-works adds artist profile first, then submit');
+  assert.ok(!/distrokid/i.test(how), 'how-it-works does not name a distributor');
   assert.ok(how.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), 'Upload step copy stays');
   assert.ok(how.includes('We generate the split sheet, everyone signs, and we deliver to 150 platforms on the date you choose.'), 'Release step copy stays');
   assert.ok(how.includes('Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked.'), 'Get paid step copy stays');
@@ -455,6 +457,7 @@ function run() {
   assert.ok(dash.indexOf('Talk to PLAI') < dash.indexOf('How a submission works'), 'Talk to PLAI sits above How it works');
   assert.ok(!dash.includes('data-msp-section'), 'Overview must not keep an MSP earnings board');
   assert.ok(howApp.includes('01 Upload') && howApp.includes('02 Attest rights') && howApp.includes('03 Split sheet') && howApp.includes('04 Review'), 'signed-in How it works page keeps the 4-step flow');
+  assert.ok(howApp.includes('Make the artist profile first. Later songs pick that artist and prefill, then you submit.'), 'signed-in How it works adds artist profile first');
   assert.ok(!/data-require-membership|data-require-paid/i.test(howApp), 'How it works must not dump signed-in users to login');
 
   const terms = read('terms.html');

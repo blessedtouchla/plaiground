@@ -88,14 +88,44 @@ function load(opts) {
   });
   const human = makeEl({ id: 'attest-human', value: '' });
   const rights = makeEl({ id: 'attest-rights' });
-  const solo = makeEl({ id: 'attest-solo' });
+  const solo = makeEl({ id: 'attest-solo', checked: true });
   const soloCard = makeEl({ id: 'solo-card' });
+  const soloWriter = makeEl({ attrs: { 'data-solo-writer': '' } });
+  const otherNo = makeEl({ attrs: { 'data-other-writers': 'false' }, on: 'on' });
+  const otherYes = makeEl({ attrs: { 'data-other-writers': 'true' } });
+  const otherToggle = makeEl({ attrs: { 'data-other-writers': '' } });
+  otherToggle.children = [otherNo, otherYes];
+  otherToggle.querySelector = function (sel) {
+    if (sel === '[data-other-writers].on') {
+      if (otherNo.classList.contains('on')) return otherNo;
+      if (otherYes.classList.contains('on')) return otherYes;
+    }
+    if (sel === '[data-other-writers]') return otherNo;
+    return null;
+  };
+  otherToggle.querySelectorAll = function (sel) {
+    if (sel === '[data-other-writers]') return [otherNo, otherYes];
+    return [];
+  };
+  const otherCountWrap = makeEl({ attrs: { 'data-other-writers-count': '' }, hidden: true });
+  const otherCount = makeEl({ id: 'attest-other-count', value: '1' });
+  const writerFirst = makeEl({ id: 'attest-writer-first', value: 'Ada' });
+  const writerLast = makeEl({ id: 'attest-writer-last', value: 'Night' });
+  const performer = makeEl({ id: 'attest-performer', value: 'Ada Night' });
+  const writerCredit = makeEl({ id: 'attest-writer-credit', value: '' });
+  const producer = makeEl({ id: 'attest-producer', value: 'Ada Night' });
+  const didLyrics = makeEl({ id: 'attest-did-lyrics' });
+  const didBeat = makeEl({ id: 'attest-did-beat' });
+  const directed = makeEl({ id: 'attest-directed' });
+  const directedWrap = makeEl({ attrs: { 'data-directed-claim': '' }, hidden: true });
   const status = makeEl({ id: 'attest-status' });
   const trigger = makeEl({ attrs: { href: 'split-sheet.html', 'data-attest-continue': '' }, textContent: 'Continue to the split sheet' });
   const localStorage = opts.localStorage || makeStorage();
   const sessionStorage = opts.sessionStorage || makeStorage();
   if (opts.draft) {
-    localStorage.setItem('plaiground.store.draft', JSON.stringify(opts.draft));
+    localStorage.setItem('plaiground.store.draft', JSON.stringify(Object.assign({ name: 'Ada Night' }, opts.draft)));
+  } else {
+    localStorage.setItem('plaiground.store.draft', JSON.stringify({ name: 'Ada Night', legal_first: 'Ada', legal_last: 'Night' }));
   }
   if (opts.sessionDraft) {
     sessionStorage.setItem('plaiground.store.draft', JSON.stringify(opts.sessionDraft));
@@ -106,12 +136,23 @@ function load(opts) {
 
   const document = {
     getElementById(id) {
-      if (id === 'attest-human') return human;
-      if (id === 'attest-rights') return rights;
-      if (id === 'attest-solo') return solo;
-      if (id === 'solo-card') return soloCard;
-      if (id === 'attest-status') return status;
-      return null;
+      const ids = {
+        'attest-human': human,
+        'attest-rights': rights,
+        'attest-solo': solo,
+        'solo-card': soloCard,
+        'attest-status': status,
+        'attest-other-count': otherCount,
+        'attest-writer-first': writerFirst,
+        'attest-writer-last': writerLast,
+        'attest-performer': performer,
+        'attest-writer-credit': writerCredit,
+        'attest-producer': producer,
+        'attest-did-lyrics': didLyrics,
+        'attest-did-beat': didBeat,
+        'attest-directed': directed,
+      };
+      return ids[id] || null;
     },
     querySelector(sel) {
       if (sel === '[data-made-how].on') {
@@ -123,11 +164,19 @@ function load(opts) {
       if (sel === '[data-human-count]') return count;
       if (sel === '[data-attest-continue]') return trigger;
       if (sel === '[data-human-section]') return humanSection;
+      if (sel === '[data-solo-writer]') return soloWriter;
+      if (sel === '[data-other-writers]') return otherToggle;
+      if (sel === '[data-other-writers-count]') return otherCountWrap;
+      if (sel === '[data-directed-claim]') return directedWrap;
+      if (sel === '[data-other-writers].on') {
+        return otherNo.classList.contains('on') ? otherNo : (otherYes.classList.contains('on') ? otherYes : null);
+      }
       return null;
     },
     querySelectorAll(sel) {
       if (sel === '[data-made-how]') return [ai, noAi, fullyAi];
       if (sel === '.tag, [data-human-tag]') return tags;
+      if (sel === '[data-other-writers]') return [otherNo, otherYes];
       return [];
     },
   };
@@ -138,6 +187,7 @@ function load(opts) {
     document,
     location: { href: 'attest.html' },
     PlaigroundUploadRequired: require('./lib/upload-required'),
+    PlaigroundReleaseCredits: require('./lib/release-credits'),
   };
   context.globalThis = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8'), context);
@@ -152,6 +202,15 @@ function load(opts) {
     rights,
     solo,
     soloCard,
+    otherNo,
+    otherYes,
+    otherCount,
+    writerFirst,
+    writerLast,
+    performer,
+    producer,
+    didBeat,
+    directed,
     trigger,
     status,
     localStorage,
@@ -174,6 +233,9 @@ function run() {
   assert.ok(html.indexOf('data-attest-continue') !== -1);
   assert.ok(html.indexOf('id="attest-solo"') !== -1);
   assert.ok(html.indexOf('I own 100% / I attest') !== -1);
+  assert.ok(html.indexOf('Other writers on this song?') !== -1);
+  assert.ok(html.indexOf('I directed this recording') !== -1);
+  assert.ok(html.indexOf('data-credits-card') !== -1);
   assert.ok(html.indexOf('0 selected') !== -1);
   assert.ok(html.indexOf('4 selected') === -1);
   assert.ok(!/class="tag on"/.test(html), 'chips must not be preselected in HTML');
@@ -212,7 +274,7 @@ function run() {
 
   page.rights.checked = true;
   page.trigger.listeners.click({ preventDefault() {} });
-  assert.strictEqual(page.location.href, 'split-sheet.html');
+  assert.strictEqual(page.location.href, 'review.html');
   const noAiDraft = JSON.parse(page.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(noAiDraft.made_how, 'no_ai');
   assert.strictEqual(noAiDraft.rights_confirmed, true);
@@ -237,7 +299,7 @@ function run() {
   again.human.value = '';
   again.trigger.listeners.click({ preventDefault() {} });
   assert.notStrictEqual(again.status.textContent, 'Describe the human contribution is required.');
-  assert.strictEqual(again.location.href, 'split-sheet.html');
+  assert.strictEqual(again.location.href, 'review.html');
 
   const full = load();
   full.fullyAi.listeners.click({ preventDefault() {} });
@@ -250,8 +312,11 @@ function run() {
   assert.strictEqual(full.status.textContent, 'Rights confirmation is required.');
   assert.notStrictEqual(full.location.href, 'split-sheet.html');
   full.rights.checked = true;
+  full.directed.checked = true;
+  if (full.directed.listeners.change) full.directed.listeners.change();
+  full.producer.value = 'Ada Night';
   full.trigger.listeners.click({ preventDefault() {} });
-  assert.strictEqual(full.location.href, 'split-sheet.html');
+  assert.strictEqual(full.location.href, 'review.html');
   const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(fullDraft.made_how, 'fully_ai');
   assert.strictEqual(fullDraft.rights_confirmed, true);

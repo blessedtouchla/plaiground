@@ -85,9 +85,60 @@
 
     <section class="flow-card" id="solo-card">
       <h3>Writers</h3>
-      <label class="checkline">
+      <p class="hint">Other writers on this song?</p>
+      <div class="auth-toggle" style="max-width:200px" data-other-writers>
+        <a class="on" href="#writers" data-other-writers="false">No</a>
+        <a href="#writers" data-other-writers="true">Yes</a>
+      </div>
+      <label class="checkline" style="margin-top:14px">
         <input id="attest-solo" type="checkbox" />
         I own 100% / I attest
+      </label>
+      <div data-solo-writer style="margin-top:16px">
+        <div class="form-grid">
+          <div class="field">
+            <label for="attest-writer-first">Legal first name</label>
+            <input id="attest-writer-first" type="text" placeholder="First name" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="attest-writer-last">Legal last name</label>
+            <input id="attest-writer-last" type="text" placeholder="Last name" autocomplete="off" />
+          </div>
+        </div>
+        <p class="hint">Private songwriter name. Prefills from the artist when we already have it. 100% skips signing, not this line.</p>
+      </div>
+      <div class="field" data-other-writers-count hidden style="margin-top:16px;max-width:220px">
+        <label for="attest-other-count">How many other writers?</label>
+        <input id="attest-other-count" type="number" min="1" max="4" step="1" value="1" inputmode="numeric" />
+      </div>
+    </section>
+
+    <section class="flow-card" data-credits-card>
+      <h3>Credits</h3>
+      <p class="hint">Every release needs these credits. Performer is the artist name, never AI.</p>
+      <div class="field">
+        <label for="attest-performer">Performer</label>
+        <input id="attest-performer" type="text" placeholder="Artist name" autocomplete="off" />
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label for="attest-writer-credit">Writer credit</label>
+        <input id="attest-writer-credit" type="text" placeholder="Legal name if they wrote lyrics" autocomplete="off" />
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label for="attest-producer">Producer</label>
+        <input id="attest-producer" type="text" placeholder="Producer name" autocomplete="off" />
+      </div>
+      <label class="checkline" style="margin-top:14px">
+        <input id="attest-did-lyrics" type="checkbox" />
+        I wrote the lyrics
+      </label>
+      <label class="checkline">
+        <input id="attest-did-beat" type="checkbox" />
+        I was involved in the beat
+      </label>
+      <label class="checkline" data-directed-claim hidden>
+        <input id="attest-directed" type="checkbox" />
+        I directed this recording
       </label>
     </section>
 
@@ -99,6 +150,7 @@
   </main>
   <script src="account.js"></script>
   <script src="lib/upload-required.js"></script>
+  <script src="lib/release-credits.js"></script>
   <script src="attest.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

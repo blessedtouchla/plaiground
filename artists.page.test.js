@@ -9,6 +9,18 @@ function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
 }
 
+function attrMatch(el, sel) {
+  const m = String(sel || '').match(/^\[([^\]]+)\]$/);
+  if (!m) return false;
+  return el && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, m[1]);
+}
+
+function walk(el, out) {
+  out.push(el);
+  (el.children || []).forEach(function (child) { walk(child, out); });
+  return out;
+}
+
 function makeEl(attrs) {
   const el = {
     hidden: Boolean(attrs && attrs.hidden),
@@ -17,6 +29,7 @@ function makeEl(attrs) {
     className: (attrs && attrs.className) || '',
     style: {},
     children: [],
+    parentNode: null,
     focused: false,
     scrollCalls: 0,
     attrs: Object.assign({}, (attrs && attrs.attrs) || {}),
@@ -32,8 +45,11 @@ function makeEl(attrs) {
       contains(name) { return Boolean(this.tokens[name]); },
     },
     closest(sel) {
-      if (sel === '[data-artist-add]' && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, 'data-artist-add')) return el;
-      if (sel === '[data-artist-import]' && el.attrs && Object.prototype.hasOwnProperty.call(el.attrs, 'data-artist-import')) return el;
+      var node = el;
+      while (node) {
+        if (attrMatch(node, sel)) return node;
+        node = node.parentNode;
+      }
       return null;
     },
     getAttribute(name) {
@@ -43,12 +59,14 @@ function makeEl(attrs) {
       this.attrs[name] = String(value);
     },
     querySelectorAll(sel) {
-      if (sel === '[data-genre]') {
-        return el.children.filter(function (child) {
-          return child && child.getAttribute && child.getAttribute('data-genre');
-        });
-      }
-      return [];
+      return walk(el, []).filter(function (node) {
+        if (node === el) return false;
+        if (sel === '[data-genre]') return node.getAttribute && node.getAttribute('data-genre');
+        if (sel === '[data-artist-platform-url]') return node.getAttribute && node.getAttribute('data-artist-platform-url') != null;
+        if (sel === '[data-artist-platform-slug]') return node.getAttribute && node.getAttribute('data-artist-platform-slug') != null;
+        if (sel === '[data-artist-platform-row]') return attrMatch(node, sel);
+        return attrMatch(node, sel);
+      });
     },
     querySelector(sel) {
       return (el.querySelectorAll(sel) || [])[0] || null;
@@ -66,7 +84,13 @@ function makeEl(attrs) {
       list.forEach(function (fn) { fn({ type: type, target: el }); });
     },
     appendChild(child) {
+      child.parentNode = el;
       el.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      el.children = el.children.filter(function (item) { return item !== child; });
+      if (child) child.parentNode = null;
       return child;
     },
   };
@@ -74,7 +98,10 @@ function makeEl(attrs) {
     get() { return el._text || ''; },
     set(value) {
       el._text = value == null ? '' : String(value);
-      if (el._text === '') el.children = [];
+      if (el._text === '') {
+        el.children.forEach(function (child) { child.parentNode = null; });
+        el.children = [];
+      }
     },
   });
   el._text = (attrs && attrs.textContent) || '';
@@ -102,6 +129,21 @@ function loadArtists() {
   deleteBtn.attrs = { 'data-artist-delete': '' };
   const photoEdit = makeEl({});
   const genrePicks = makeEl({});
+  const importRows = makeEl({});
+  const addImportBtn = makeEl({ attrs: { 'data-artist-import-add': '' } });
+  const platformsHost = makeEl({});
+  const addPlatformBtn = makeEl({ attrs: { 'data-artist-platform-add': '' } });
+  const previewPanel = makeEl({ hidden: true });
+  const editOpenBtn = makeEl({ attrs: { 'data-artist-edit-open': '' } });
+  const editDoneBtn = makeEl({ attrs: { 'data-artist-edit-done': '' } });
+  const mappingPlaiBtn = makeEl({ attrs: { 'data-artist-mapping-plai': '' }, textContent: 'Text PLAI' });
+  const textPill = makeEl({ className: 'plai-bubble-pill is-text' });
+  textPill.clickCalls = 0;
+  textPill.click = function () { textPill.clickCalls += 1; };
+  const talkPill = makeEl({ className: 'plai-bubble-pill is-talk' });
+  talkPill.clickCalls = 0;
+  talkPill.click = function () { talkPill.clickCalls += 1; };
+  const plaiInput = makeEl({ className: 'plai-bubble-input', value: '' });
   const stored = {
     id: 'artist-1',
     name: 'Fuvtu',
@@ -113,6 +155,7 @@ function loadArtists() {
     spotify_id: '',
     apple_id: '',
     store_url: '',
+    platform_links: [],
   };
   const nodes = {
     '#artist-create-panel': createPanel,
@@ -121,6 +164,7 @@ function loadArtists() {
     '[data-artist-link-panel]': linkPanel,
     '#artist-create-name': nameInput,
     '#artist-link-url': urlInput,
+    '#artist-link-name': makeEl({ value: '' }),
     '#artist-create-check': checkMsg,
     '#artist-create-yellow': yellow,
     '#artist-create-red': red,
@@ -128,10 +172,30 @@ function loadArtists() {
     '#artist-create-confirm': confirmBox,
     '#artist-name': artistName,
     '#artist-bio': bioInput,
-    '#artist-spotify': makeEl({ value: '' }),
-    '#artist-apple': makeEl({ value: '' }),
-    '#artist-store': makeEl({ value: '' }),
+    '#artist-legal-first': makeEl({ value: '' }),
+    '#artist-legal-last': makeEl({ value: '' }),
     '#artist-change': makeEl({ value: '' }),
+    '[data-artist-import-rows]': importRows,
+    '[data-artist-import-add]': addImportBtn,
+    '[data-artist-import-error]': makeEl({ hidden: true }),
+    '[data-artist-platforms]': platformsHost,
+    '[data-artist-platform-add]': addPlatformBtn,
+    '[data-artist-platform-error]': makeEl({ hidden: true }),
+    '[data-artist-preview]': previewPanel,
+    '[data-artist-preview-name]': makeEl({}),
+    '[data-artist-preview-badge]': makeEl({}),
+    '[data-artist-preview-bio]': makeEl({}),
+    '[data-artist-preview-photo]': makeEl({}),
+    '[data-artist-preview-genres]': makeEl({}),
+    '[data-artist-preview-genres-empty]': makeEl({ hidden: true }),
+    '[data-artist-preview-platforms]': makeEl({}),
+    '[data-artist-preview-platforms-empty]': makeEl({ hidden: true }),
+    '[data-artist-preview-pending]': makeEl({ hidden: true }),
+    '[data-artist-edit-open]': editOpenBtn,
+    '[data-artist-edit-done]': editDoneBtn,
+    '[data-artist-mapping-plai]': mappingPlaiBtn,
+    '[data-artist-preview] [data-artist-delete]': makeEl({ attrs: { 'data-artist-delete': '' } }),
+    '[data-artist-preview] [data-artist-edit-open]': editOpenBtn,
     '#artist-ai-detail': makeEl({ value: '' }),
     '#artist-ai-percent': makeEl({ value: '' }),
     '#artist-ai-range': makeEl({ value: '0' }),
@@ -165,13 +229,24 @@ function loadArtists() {
     document: {
       readyState: 'complete',
       hidden: false,
+      body: makeEl({}),
       listeners: {},
       getElementById(id) { return nodes['#' + id] || null; },
-      querySelector(sel) { return nodes[sel] || null; },
+      querySelector(sel) {
+        if (sel === '.plai-bubble-pill.is-text') return textPill;
+        if (sel === '.plai-bubble-pill.is-talk') return talkPill;
+        if (sel === '.plai-bubble-input') return plaiInput;
+        return nodes[sel] || null;
+      },
       querySelectorAll(sel) {
         if (sel === '[data-artist-add]') return [addBtn];
         if (sel === '[data-artist-import]') return [importBtn];
         if (sel === '[data-artist-delete]') return [deleteBtn];
+        if (sel === '[data-artist-import-add]') return [addImportBtn];
+        if (sel === '[data-artist-platform-add]') return [addPlatformBtn];
+        if (sel === '[data-artist-edit-open]') return [editOpenBtn];
+        if (sel === '[data-artist-edit-done]') return [editDoneBtn];
+        if (sel === '[data-artist-mapping-plai]') return [mappingPlaiBtn];
         if (sel === '[data-human-contribution]') return [];
         if (sel === '[data-ai-contribution]') return [];
         if (sel === '[data-human-contribution], [data-ai-contribution]') return [];
@@ -202,6 +277,10 @@ function loadArtists() {
         bio: body.bio != null ? body.bio : stored.bio,
         photo: body.photo != null ? body.photo : stored.photo,
         genres: Array.isArray(body.genres) ? body.genres : stored.genres,
+        platform_links: Array.isArray(body.platform_links) ? body.platform_links : stored.platform_links,
+        spotify_id: body.spotify_id != null ? body.spotify_id : stored.spotify_id,
+        apple_id: body.apple_id != null ? body.apple_id : stored.apple_id,
+        store_url: body.store_url != null ? body.store_url : stored.store_url,
       });
       if (body.action === 'update') Object.assign(stored, updated);
       return Promise.resolve({
@@ -226,6 +305,8 @@ function loadArtists() {
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(read('lib/artist-check.js'), context);
+  vm.runInNewContext(read('lib/store-pick.js'), context);
+  vm.runInNewContext(read('lib/platform-links.js'), context);
   vm.runInNewContext(read('artists.js'), context);
   return {
     api: context.PlaigroundArtists,
@@ -237,6 +318,14 @@ function loadArtists() {
     linkPanel,
     nameInput,
     urlInput,
+    importRows,
+    addImportBtn,
+    platformsHost,
+    previewPanel,
+    editOpenBtn,
+    textPill,
+    talkPill,
+    plaiInput,
     checkMsg,
     yellow,
     red,
@@ -252,6 +341,9 @@ function loadArtists() {
 
 function run() {
   const siteCss = read('site.css');
+  assert.ok(siteCss.includes('.artist-edit-screen'));
+  assert.ok(siteCss.includes('position: fixed'));
+  assert.ok(siteCss.includes('.artist-platform-row'));
   assert.ok(siteCss.includes('.artist-edit-actions'));
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]'));
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-delete]'));
@@ -269,7 +361,30 @@ function run() {
   assert.ok(html.includes('Artist Profiles'));
   assert.ok(html.includes('Your artists'));
   assert.ok(html.includes('>Add artist<'));
-  assert.ok(html.includes('>Import<'));
+  assert.ok(html.includes('>Import Artist<'));
+  assert.ok(html.includes('>Artist mapping<'));
+  assert.ok(html.includes('Having a hard time finding your URL, or confused about mapping?'));
+  assert.ok(html.includes('data-artist-mapping-plai'));
+  assert.ok(!/We deliver to 55|150 platforms|every store we deliver to:/.test(html), 'do not write a store-catalog essay on Artist mapping');
+  assert.ok(!html.includes('Manage the names music is released under'));
+  assert.ok(html.includes('Create the artist once. Later songs pick that profile — no retype every submit.'));
+  assert.ok(html.includes('After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.'));
+  assert.ok(html.includes('Import or merge here, not on submit.'));
+  assert.ok(html.includes('data-artist-preview'));
+  const previewChunk = html.slice(html.indexOf('data-artist-preview'), html.indexOf('class="artist-edit-screen"'));
+  assert.ok(/data-artist-edit-open[\s\S]*data-artist-delete/.test(previewChunk), 'Preview Edit stays left of Delete');
+  assert.ok(!/Legal first|Legal last|legal_first|legal_last/.test(previewChunk), 'public Preview must not show legal names');
+  assert.ok(html.includes('data-artist-import-rows'));
+  assert.ok(html.includes('data-artist-import-add'));
+  assert.ok(html.includes('data-artist-edit-done'));
+  assert.ok(html.includes('class="artist-edit-screen"'));
+  assert.ok(html.includes('lib/platform-links.js'));
+  assert.ok(html.includes('lib/store-pick.js'));
+  assert.ok(!html.includes('id="artist-spotify"'));
+  assert.ok(!html.includes('id="artist-apple"'));
+  assert.ok(!html.includes('id="artist-store"'));
+  assert.ok(!/legal first\+last/i.test(html.split('data-artist-preview')[1].split('artist-edit-screen')[0]));
+  assert.ok(!html.includes('Legal first name</label>\n          <input id="artist-preview'));
   assert.ok(html.includes('data-artist-add'));
   assert.ok(html.includes('data-artist-import'));
   assert.ok(html.includes('id="artist-create-panel"'));
@@ -288,7 +403,7 @@ function run() {
   assert.ok(html.includes('href="settings.html">Settings</a>'));
   assert.ok(!html.includes('data-require-membership'));
   assert.ok(!html.includes('data-require-paid'));
-  assert.ok(html.includes('skips the name warning'));
+  assert.ok(html.includes('Plus adds another row. Link artist saves.'));
   assert.ok(html.includes('Save artist'));
   assert.ok(!html.includes('Submit for edit'));
   assert.ok(html.includes('data-artist-delete'));
@@ -314,7 +429,11 @@ function run() {
   assert.ok(html.indexOf('data-artist-add') < rosterAt, 'Add artist choice must appear before Your artists');
   assert.ok(html.indexOf('data-artist-import') < rosterAt, 'Import choice must appear before Your artists');
   assert.ok(html.lastIndexOf('data-artist-add') > emptyAt, 'empty state must also offer Add artist');
-  assert.ok(html.lastIndexOf('data-artist-import') > emptyAt, 'empty state must also offer Import');
+  assert.ok(html.lastIndexOf('data-artist-import') > emptyAt, 'empty state must also offer Import Artist');
+  const previewAt = html.indexOf('data-artist-preview');
+  assert.ok(previewAt !== -1 && previewAt > rosterAt, 'Preview sits below Your artists');
+  const screenAt = html.indexOf('class="artist-edit-screen"');
+  assert.ok(screenAt !== -1 && screenAt > rosterAt, 'full-screen Edit sits off the list');
 
   const js = read('artists.js');
   assert.ok(html.includes('artists.js'));
@@ -397,11 +516,46 @@ function run() {
   assert.ok(!page.importBtn.classList.contains('is-on'));
   assert.strictEqual(page.nameInput.focused, true);
   assert.strictEqual(page.api.openArtistForm('import'), 'import');
-  assert.strictEqual(page.createPanel.hidden, true, 'switching to Import closes Add artist');
-  assert.strictEqual(page.linkPanel.hidden, false, 'Import opens the store-link form');
+  assert.strictEqual(page.createPanel.hidden, true, 'switching to Import Artist closes Add artist');
+  assert.strictEqual(page.linkPanel.hidden, false, 'Import Artist opens plus-rows');
   assert.ok(page.importBtn.classList.contains('is-on'));
   assert.ok(!page.addBtn.classList.contains('is-on'));
-  assert.strictEqual(page.urlInput.focused, true);
+  assert.ok(page.importRows.querySelectorAll('[data-artist-platform-row]').length >= 1, 'Import Artist starts with a platform + URL row');
+  const firstImportUrl = page.importRows.querySelector('[data-artist-platform-url]');
+  assert.ok(firstImportUrl, 'each Import Artist row has a URL field');
+  assert.ok(page.importRows.querySelector('[data-artist-platform-slug]'), 'each Import Artist row has a platform dropdown');
+  const beforePlus = page.importRows.querySelectorAll('[data-artist-platform-row]').length;
+  page.api.addImportRow(null);
+  assert.strictEqual(page.importRows.querySelectorAll('[data-artist-platform-row]').length, beforePlus + 1, 'plus adds another Import Artist row');
+  const hintRow = page.importRows.querySelector('[data-artist-platform-row]');
+  const hintSel = hintRow.querySelector('[data-artist-platform-slug]');
+  const hintUrl = hintRow.querySelector('[data-artist-platform-url]');
+  const hintCopy = hintRow.querySelector('[data-artist-platform-hint]');
+  hintSel.value = 'spotify';
+  hintSel.dispatchEvent('change');
+  assert.ok(/open\.spotify\.com\/artist/.test(hintUrl.placeholder), 'placeholder follows the picked store');
+  assert.ok(/open\.spotify\.com\/artist/.test(hintCopy.textContent), 'hint follows the picked store');
+  assert.strictEqual(page.api.openMappingPlai(), true);
+  assert.strictEqual(page.textPill.clickCalls, 1, 'Artist mapping opens Text PLAI');
+  assert.strictEqual(page.talkPill.clickCalls, 0, 'Artist mapping must not open Talk / the mic');
+  assert.ok(/Do not log into any store account/.test(page.plaiInput.value));
+  assert.ok(/Do not ask for a password/.test(page.plaiInput.value));
+  assert.ok(/Do not list every store/.test(page.plaiInput.value));
+  assert.ok(/Spotify, Apple Music, YouTube Music, Amazon, Deezer, Tidal/.test(page.plaiInput.value));
+  assert.ok(!/55/.test(page.plaiInput.value));
+
+  page.api.applyMe({
+    profile: { artists: [{ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }] },
+  });
+  page.api.selectArtist({ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] }, 'preview');
+  assert.strictEqual(page.previewPanel.hidden, false, 'clicking a profile opens Preview');
+  assert.strictEqual(page.nodes['[data-artist-edit]'].hidden, true, 'Edit stays closed until Edit is tapped');
+  assert.strictEqual(page.nodes['[data-artist-preview-name]'].textContent, 'Preview Act');
+  assert.ok(!String(page.nodes['[data-artist-preview]'].textContent || '').includes('Legal first'));
+  page.api.editArtist({ id: 'preview-1', name: 'Preview Act', source: 'created', badge: 'PLAIGROUND', bio: 'Shown on preview', genres: ['Pop'] });
+  assert.strictEqual(page.nodes['[data-artist-edit]'].hidden, false, 'Edit opens the full-screen form');
+  assert.strictEqual(page.previewPanel.hidden, true, 'full-screen Edit hides Preview');
+  assert.ok(page.context.document.body.classList.contains('artist-editing'));
 
   page.api.openArtistForm('add');
   page.nameInput.value = 'Fuvtu';
@@ -447,6 +601,15 @@ async function persistAndImmediateSave() {
       }],
     },
   });
+  page.api.editArtist({
+    id: 'artist-1',
+    name: 'Fuvtu',
+    source: 'created',
+    badge: 'PLAIGROUND',
+    bio: '',
+    photo: '',
+    genres: [],
+  });
   page.bioInput.value = 'saved from the phone';
   page.posts.length = 0;
   page.api.scheduleSave();
@@ -467,6 +630,7 @@ async function persistAndImmediateSave() {
   afterReload.api.applyMe({
     profile: { artists: [Object.assign({}, afterReload.stored)] },
   });
+  afterReload.api.editArtist(Object.assign({}, afterReload.stored));
   assert.strictEqual(afterReload.bioInput.value, 'saved from the phone', 'bio must persist after reload');
   assert.strictEqual(afterReload.artistName.value, 'Fuvtu');
   assert.ok(String(afterReload.nodes['[data-artist-photo-edit]'].style.backgroundImage || '').indexOf('data:image/jpeg') !== -1, 'photo must persist after reload');
@@ -482,6 +646,7 @@ async function persistAndImmediateSave() {
   leave.api.applyMe({
     profile: { artists: [Object.assign({}, leave.stored, { bio: 'stay on reload' })] },
   });
+  leave.api.editArtist(Object.assign({}, leave.stored, { bio: 'stay on reload' }));
   leave.bioInput.value = 'stay on reload';
   await Promise.resolve();
   await Promise.resolve();

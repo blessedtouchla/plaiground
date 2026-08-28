@@ -19,6 +19,7 @@
 const { listSignupRows } = require('../lib/admin-signups');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
+const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
 const {
   attachSession,
@@ -372,6 +373,8 @@ async function saveArtists(req, res) {
       name_check: check.level === 'empty' ? 'green' : check.level,
       review_status: check.level === 'red' ? 'pending' : '',
       impersonation_confirmed: body.confirm_different === true,
+      legal_first: body && body.legal_first,
+      legal_last: body && body.legal_last,
     });
     const nextProfile = profile.upsertArtist(stored, artist);
     const next = await persistRoster(row, nextProfile, stored.artists.length ? row.artist_name : name);
@@ -380,10 +383,41 @@ async function saveArtists(req, res) {
   }
 
   if (action === 'link') {
-    const parsed = artistCheck.parseStoreLink(body && (body.url || body.link || body.store_url));
-    if (!parsed.ok) {
-      sendJson(res, 400, { error: 'Paste a Spotify, Apple Music, or store artist link.' });
+    let parsed = null;
+    const url = body && (body.url || body.link || body.store_url);
+    const platform = body && body.platform;
+    if (platform && url) {
+      const matched = platformLinks.matchPlatformValue(platform, url);
+      if (matched.ok) parsed = matched;
+    }
+    if (!parsed || !parsed.ok) {
+      parsed = artistCheck.parseStoreLink(url);
+    }
+    if ((!parsed || !parsed.ok) && url) {
+      const guessed = platformLinks.guessPlatformFromUrl(url);
+      if (guessed) parsed = platformLinks.matchPlatformValue(guessed.slug, url);
+    }
+    let links = [];
+    if (body && body.platform_links !== undefined) {
+      const checked = platformLinks.validateList(body.platform_links);
+      if (checked.error) {
+        sendJson(res, 400, { error: checked.error });
+        return;
+      }
+      links = checked.links || [];
+      if (!parsed || !parsed.ok) parsed = links[0] || parsed;
+    }
+    if (!parsed || !parsed.ok) {
+      sendJson(res, 400, { error: 'Paste a store artist link.' });
       return;
+    }
+    if (!links.length) {
+      links = [{
+        platform: parsed.platform,
+        id: parsed.id || '',
+        url: parsed.url || url,
+        value: parsed.url || url,
+      }];
     }
     const name = String((body && body.name) || '').trim() || 'Linked artist';
     const artist = profile.normalizeArtist({
@@ -392,7 +426,8 @@ async function saveArtists(req, res) {
       badge: 'Linked',
       store_url: parsed.url,
       spotify_id: parsed.platform === 'spotify' ? parsed.id : '',
-      apple_id: parsed.platform === 'apple' ? parsed.id : '',
+      apple_id: (parsed.platform === 'apple' || parsed.platform === 'apple-music') ? parsed.id : '',
+      platform_links: links,
       name_check: 'green',
       locked: false,
     });
@@ -436,6 +471,15 @@ async function saveArtists(req, res) {
     const nextSpotify = body.spotify_id !== undefined ? String(body.spotify_id || '').trim() : current.spotify_id;
     const nextApple = body.apple_id !== undefined ? String(body.apple_id || '').trim() : current.apple_id;
     const nextUrl = body.store_url !== undefined ? String(body.store_url || '').trim() : current.store_url;
+    let nextLinks = current.platform_links;
+    if (!locked && body.platform_links !== undefined) {
+      const checked = platformLinks.validateList(body.platform_links);
+      if (checked.error) {
+        sendJson(res, 400, { error: checked.error });
+        return;
+      }
+      nextLinks = checked.links;
+    }
     let nameCheck = current.name_check;
     const applyName = !locked;
     if (applyName && nextName !== current.name && current.source !== 'linked') {
@@ -478,11 +522,20 @@ async function saveArtists(req, res) {
       spotify_id: applyName ? nextSpotify : current.spotify_id,
       apple_id: applyName ? nextApple : current.apple_id,
       store_url: applyName ? nextUrl : current.store_url,
+      platform_links: applyName
+        ? (body.platform_links !== undefined
+          ? nextLinks
+          : ((body.spotify_id !== undefined || body.apple_id !== undefined || body.store_url !== undefined)
+            ? undefined
+            : current.platform_links))
+        : current.platform_links,
       human_contributions: body.human_contributions !== undefined ? body.human_contributions : current.human_contributions,
       ai_contributions: body.ai_contributions !== undefined ? body.ai_contributions : current.ai_contributions,
       ai_process_detail: body.ai_process_detail !== undefined ? body.ai_process_detail : current.ai_process_detail,
       ai_involvement_percent: body.ai_involvement_percent !== undefined ? body.ai_involvement_percent : current.ai_involvement_percent,
       change_request: body.change_request !== undefined ? body.change_request : current.change_request,
+      legal_first: body.legal_first !== undefined ? body.legal_first : current.legal_first,
+      legal_last: body.legal_last !== undefined ? body.legal_last : current.legal_last,
       name_check: nameCheck,
       impersonation_confirmed: body.confirm_different === true || current.impersonation_confirmed,
       edit_status: '',

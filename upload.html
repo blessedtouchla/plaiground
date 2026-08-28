@@ -23,6 +23,7 @@
         <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800" data-upload-heading>Upload</h1>
       </div>
       <div class="upload-leave-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-upload-save-draft>Save draft</button>
         <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
         <button type="button" class="btn btn-ghost btn-sm" data-upload-start-over>Start over</button>
       </div>
@@ -131,13 +132,13 @@
 
     <section class="flow-card" data-upload-artist>
       <h3>Artist</h3>
-      <p class="hint" data-artist-copy>Choose who this song is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.</p>
+      <p class="hint" data-artist-copy>Choose who this song is released under. Artist name stays the public name. Legal first and last are private.</p>
       <div class="field">
         <label for="tg-artist-mode" data-artist-mode-label>Artist for this song</label>
         <select id="tg-artist-mode" class="details-select" autocomplete="off">
           <option value="choose">Choose artist profile</option>
           <option value="create">Create new artist profile</option>
-          <option value="link">Add external artist</option>
+          <option value="link">Import an existing artist</option>
         </select>
       </div>
       <div id="artist-choose-wrap" class="field" style="margin-top:14px">
@@ -152,6 +153,17 @@
           <input id="tg-artist-new" name="release-artist-new" type="text" value="" placeholder="Artist name" autocomplete="off" />
           <p class="hint" id="artist-name-check" hidden></p>
         </div>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="field">
+            <label for="tg-legal-first-create">Legal first name</label>
+            <input id="tg-legal-first-create" type="text" value="" placeholder="First name" autocomplete="off" data-legal-first />
+          </div>
+          <div class="field">
+            <label for="tg-legal-last-create">Legal last name</label>
+            <input id="tg-legal-last-create" type="text" value="" placeholder="Last name" autocomplete="off" data-legal-last />
+          </div>
+        </div>
+        <p class="hint">Required. Private. Not the artist name people see. Asked once, then saved on this artist.</p>
         <div id="artist-yellow-actions" class="artist-check-box is-yellow" hidden>
           <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
           <p class="hero-ctas" style="margin:12px 0 0">
@@ -172,16 +184,27 @@
         </div>
       </div>
       <div id="artist-link-wrap" hidden>
-        <div class="field" style="margin-top:14px">
-          <label for="tg-artist-link">Store artist link</label>
-          <input id="tg-artist-link" type="url" value="" placeholder="Spotify, Apple Music, or store artist URL" autocomplete="off" />
+        <div class="artist-check-box" data-artist-merge-note style="margin-top:14px">
+          <p>Import lives on Artist Profiles so the song hits the right page. Save draft, go import, come back and pick that artist.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-purple btn-sm" type="button" data-upload-save-draft-go-artists>Save draft and go to Artist Profiles</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-import-stay>Stay here</button>
+          </p>
         </div>
-        <div class="field" style="margin-top:14px">
-          <label for="tg-artist-link-name">Display name</label>
-          <input id="tg-artist-link-name" type="text" value="" placeholder="Name as it should appear" autocomplete="off" />
-          <p class="hint">A valid store link creates a Linked profile and skips the name warning.</p>
+        <input id="tg-artist-link" type="hidden" value="" />
+        <input id="tg-artist-link-name" type="hidden" value="" />
+      </div>
+      <div id="artist-legal-wrap" class="form-grid" style="margin-top:14px" data-artist-legal>
+        <div class="field">
+          <label for="tg-legal-first">Legal first name</label>
+          <input id="tg-legal-first" name="release-legal-first" type="text" value="" placeholder="First name" autocomplete="off" data-legal-first />
+        </div>
+        <div class="field">
+          <label for="tg-legal-last">Legal last name</label>
+          <input id="tg-legal-last" name="release-legal-last" type="text" value="" placeholder="Last name" autocomplete="off" data-legal-last />
         </div>
       </div>
+      <p class="hint" data-artist-legal-hint>Private songwriter name. Prefills from this artist when we already have it. Not the public artist name.</p>
       <input id="tg-artist" name="release-artist" type="hidden" value="" />
     </section>
 
@@ -259,6 +282,8 @@
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/upload-required.js"></script>
+  <script src="lib/release-credits.js"></script>
+  <script src="lib/upload-credits.js"></script>
   <script src="lib/artist-check.js"></script>
   <script src="lib/audio-accept.js"></script>
   <script src="lib/store-pick.js"></script>
