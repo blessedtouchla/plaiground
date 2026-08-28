@@ -2136,6 +2136,13 @@ body:not(.app) > .app-main > .topbar { display: none; }
   max-width: 640px;
   line-height: 1.55;
 }
+.how-who-note {
+  margin-top: 16px;
+  font-size: 0.98rem;
+  font-style: italic;
+  color: var(--magenta);
+  max-width: 560px;
+}
 .how-cols {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
