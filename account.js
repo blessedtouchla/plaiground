@@ -435,7 +435,9 @@
           if (id) seen[id] = true;
           var row = byId[id];
           if (!row) return card;
-          var mapped = api ? api.info(row.status) : null;
+          var mapped = (api && typeof api.displayInfo === 'function')
+            ? api.displayInfo(row)
+            : (api ? api.info(row.status) : null);
           var url = coverOf(row);
           return Object.assign({}, card, {
             title: String((row.title || (card && card.title) || '')).trim(),
@@ -444,7 +446,9 @@
             group: mapped ? mapped.group : (card && card.group),
             live: mapped ? mapped.live : false,
             artwork_url: (card && card.artwork_url) || url,
-            alert: (api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : (card && card.alert) || '',
+            alert: mapped && mapped.alert != null
+              ? mapped.alert
+              : ((api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : (card && card.alert) || ''),
           });
         });
         result.data.releases.forEach(function (row) {
@@ -524,20 +528,29 @@
   function readableFixCopy(text) {
     var raw = hideStoreNames(text);
     if (!raw) return '';
-    var lower = raw.toLowerCase();
+    var api = statusApi();
+    var qc = (api && Array.isArray(api.STORE_QC_LINES)) ? api.STORE_QC_LINES.join('\n') : '';
+    var vendor = raw;
+    var tail = '';
+    if (qc && raw.indexOf(qc) !== -1) {
+      vendor = raw.replace(qc, '').replace(/\n+$/g, '').trim();
+      tail = qc;
+    }
+    if (!vendor) return tail;
+    var lower = vendor.toLowerCase();
     var songwriter = /songwriter|composer|writer names?/.test(lower);
     var stage = /stage|rapper|\bband\b/.test(lower);
     var firstLast = /first(?:\s+and\s+|\s+)last/.test(lower);
     var performer = /performer/.test(lower);
     var producer = /producer/.test(lower);
     var credit = /credit|missing|required/.test(lower);
+    var rewritten = vendor;
     if (songwriter && (stage || credit || firstLast)) {
-      return 'Stores need real songwriter names, not a stage, rapper, or band name.';
+      rewritten = 'Stores need real songwriter names, not a stage, rapper, or band name.';
+    } else if ((performer || producer) && credit) {
+      rewritten = 'This release needs a performer credit and a producer credit.';
     }
-    if ((performer || producer) && credit) {
-      return 'This release needs a performer credit and a producer credit.';
-    }
-    return raw;
+    return tail ? (rewritten + '\n' + tail) : rewritten;
   }
 
   function renderNextUp(me, cards) {
@@ -630,12 +643,17 @@
         dot: (card.status === 'live' || card.status === 'delivered') ? 'green' : 'yellow',
         live: card.status === 'live' || card.status === 'delivered',
       };
-      status.className = 'release-tile-status is-' + (mapped.dot || 'gray');
-      status.textContent = mapped.label || card.label || 'Pending';
+      var tileLabel = card.label || mapped.label || 'Pending';
+      var tileDot = tileLabel === 'Needs fix' ? 'red' : (mapped.dot || 'gray');
+      status.className = 'release-tile-status is-' + tileDot;
+      status.textContent = tileLabel;
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
-      var alertText = String((card && card.alert) || (api && typeof api.problemAlert === 'function' ? api.problemAlert(card) : '') || '').trim();
+      var alertText = String((card && card.alert) || '').trim();
+      if (!alertText && api && typeof api.problemAlert === 'function') {
+        alertText = String(api.problemAlert(card) || '').trim();
+      }
       if (alertText) {
         var note = document.createElement('p');
         note.className = 'release-tile-alert';
@@ -711,6 +729,25 @@
     var status = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
       ? PlaigroundReleaseStatus.label(stored)
       : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'Needs fix' : 'Pending');
+    if (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus && typeof PlaigroundReleaseStatus.displayInfo === 'function') {
+      var latestRow = null;
+      if (me && me.profile && Array.isArray(me.profile.releases) && latestId) {
+        me.profile.releases.forEach(function (row) {
+          if (String((row && (row.tonegrid_release_id || row.id)) || '').toLowerCase() === String(latestId).toLowerCase()) {
+            latestRow = row;
+          }
+        });
+      }
+      if (Array.isArray(cards)) {
+        cards.forEach(function (card) {
+          if (card && card.id && String(card.id).toLowerCase() === String(latestId || '').toLowerCase()) {
+            latestRow = latestRow ? Object.assign({}, latestRow, card) : card;
+          }
+        });
+      }
+      var shown = PlaigroundReleaseStatus.displayInfo(latestRow, stored);
+      if (shown && shown.label) status = shown.label;
+    }
     return { title: title, status: status, href: href, editHref: editHref };
   }
 

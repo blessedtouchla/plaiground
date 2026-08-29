@@ -725,21 +725,31 @@
     var step = statusStep(release, draft);
     markLife(step);
     setText('[data-song-title]', release.title || 'Untitled');
-    setText('[data-song-pill]', statusLabel(step));
-    var pill = $('[data-song-pill]');
-    if (pill && pill.classList) {
-      pill.classList.toggle('pill-green', step === 'live');
-      pill.classList.toggle('is-yellow', step === 'pending' || step === 'processing');
-      pill.classList.toggle('is-red', step === 'rejected');
-    }
     var stored = storedRelease(me, release);
     if (stored && stored.tonegrid_status && !(release && release.status)) {
       release.status = stored.tonegrid_status;
     }
+    var merged = {};
+    if (stored) Object.keys(stored).forEach(function (key) { merged[key] = stored[key]; });
+    if (release) Object.keys(release).forEach(function (key) { merged[key] = release[key]; });
+    var rawStatus = (release && (release.status || release.tonegrid_status))
+      || (stored && (stored.tonegrid_status || stored.status))
+      || step;
+    var api = statusApi();
+    var shown = (api && typeof api.displayInfo === 'function') ? api.displayInfo(merged, rawStatus) : null;
+    var alertText = shown ? String(shown.alert || '').trim() : '';
     var rejection = String((release && release.rejection_reason) || (stored && stored.rejection_reason) || '').trim();
-    var rejected = step === 'rejected' || Boolean(rejection);
-    setHidden('[data-song-rejection]', !rejected);
-    setText('[data-song-rejection-reason]', rejection || 'The store sent this release back. Fix the details and resubmit.');
+    var pillLabel = shown && shown.label ? shown.label : statusLabel(step);
+    var needsFix = Boolean(alertText) || step === 'rejected' || Boolean(rejection);
+    setText('[data-song-pill]', pillLabel);
+    var pill = $('[data-song-pill]');
+    if (pill && pill.classList) {
+      pill.classList.toggle('pill-green', step === 'live');
+      pill.classList.toggle('is-yellow', !needsFix && (step === 'pending' || step === 'processing'));
+      pill.classList.toggle('is-red', needsFix);
+    }
+    setHidden('[data-song-rejection]', !needsFix);
+    setText('[data-song-rejection-reason]', alertText || rejection || 'The store sent this release back. Fix the details and resubmit.');
 
     var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
     var meta = [artist, typeLabel(release.type), yearOf(release.release_date), release.genre].filter(Boolean);
