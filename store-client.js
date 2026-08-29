@@ -1913,9 +1913,13 @@
       songTitle: draft.title || draft.songTitle || '',
     };
     if (Array.isArray(draft.dsps) && draft.dsps.length) submitBody.dsps = draft.dsps;
+    var legal = hopLegalFields(draft);
+    if (legal.legal_first) submitBody.legal_first = legal.legal_first;
+    if (legal.legal_last) submitBody.legal_last = legal.legal_last;
     if (!solo) {
       submitBody.document_id = documentId;
       if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
+      else if (legal.writers) submitBody.writers = legal.writers;
     }
     var ids = draftTrackIds(draft);
     if (ids.length) submitBody.track_id = ids[0];
@@ -2068,6 +2072,20 @@
     return sanitizePartnerCopy(fallback || '', status);
   }
 
+  function hopLegalFields(draft) {
+    var firstEl = document.getElementById('tg-legal-first') || document.getElementById('tg-legal-first-create');
+    var lastEl = document.getElementById('tg-legal-last') || document.getElementById('tg-legal-last-create');
+    var first = firstEl ? String(firstEl.value || '').trim() : '';
+    var last = lastEl ? String(lastEl.value || '').trim() : '';
+    if (!first) first = String((draft && draft.legal_first) || '').trim();
+    if (!last) last = String((draft && draft.legal_last) || '').trim();
+    var out = {};
+    if (first) out.legal_first = first;
+    if (last) out.legal_last = last;
+    if (draft && Array.isArray(draft.writers) && draft.writers.length) out.writers = draft.writers;
+    return out;
+  }
+
   function releasePayload(draft, releaseDate) {
     var body = {
       artist_id: draft.artist_id,
@@ -2081,7 +2099,7 @@
     if (draft.replaced_release_id) body.replace_release_id = draft.replaced_release_id;
     if (!body.instrumental && draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
-    return body;
+    return Object.assign(body, hopLegalFields(draft));
   }
 
   function selectedAudio() {
@@ -2264,6 +2282,7 @@
     };
     if (existingId) trackBody.track_id = existingId;
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
+    trackBody = Object.assign(trackBody, hopLegalFields(draft));
     var key = takeIdempotencyKey('track', draft, trackBody, force);
     return post(TRACKS_URL, trackBody, key).then(function (result) {
       if (isUnavailable(result)) {
@@ -3194,6 +3213,8 @@
       title: fieldValue('tg-title') || draft.title || '',
       name: syncArtistHidden() || fieldValue('tg-artist') || draft.name || '',
       featured: fieldValue('tg-featured') || draft.featured || '',
+      legal_first: fieldValue('tg-legal-first') || fieldValue('tg-legal-first-create') || draft.legal_first || '',
+      legal_last: fieldValue('tg-legal-last') || fieldValue('tg-legal-last-create') || draft.legal_last || '',
       genre: catalogFieldValue('tg-genre') || draft.genre || '',
       language: language || draft.language || '',
       price: fieldValue('tg-price') || draft.price || '',
@@ -4522,6 +4543,8 @@
         language: language,
         price: price,
         featured: featured,
+        legal_first: fields.legal_first || readDraft().legal_first || '',
+        legal_last: fields.legal_last || readDraft().legal_last || '',
         type: releaseType,
         explicit: explicit,
         instrumental: instrumental,
@@ -4558,6 +4581,8 @@
             language: language,
             price: price,
             featured: featured,
+            legal_first: fields.legal_first || readDraft().legal_first || '',
+            legal_last: fields.legal_last || readDraft().legal_last || '',
             type: releaseType,
             explicit: explicit,
             instrumental: instrumental,
