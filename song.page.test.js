@@ -4,6 +4,8 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const releaseStatus = require('./lib/release-status');
+const QC_LINES = releaseStatus.STORE_QC_LINES.join('\n');
 
 function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -970,7 +972,9 @@ function run() {
     analytics: { summary: { total_streams: 0, total_revenue_usd: 0 }, releases: [], dsps: [] },
   });
   assert.strictEqual(page.nodes['[data-song-title]'].textContent, 'Fuvtu');
-  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Pending');
+  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Needs fix');
+  assert.strictEqual(page.nodes['[data-song-rejection]'].hidden, false);
+  assert.strictEqual(page.nodes['[data-song-rejection-reason]'].textContent, QC_LINES);
   assert.ok(page.life.pending.classList.contains('on'));
   assert.ok(!page.life.live.classList.contains('on'), 'pending must not show Live');
   assert.ok(page.nodes['[data-song-meta]'].textContent.indexOf('Fuvtu') !== -1);
@@ -1642,7 +1646,7 @@ function run() {
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
-    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
+    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Needs fix');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
     assert.ok(editor.api.isLiveConfirmed({ status: 'live' }, {}) === true);
     assert.ok(editor.api.isLiveConfirmed({ status: 'pending' }, {}) === false);

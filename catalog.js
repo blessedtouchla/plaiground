@@ -156,11 +156,12 @@
   function overviewCards(releases) {
     return (releases || []).map(function (row) {
       var api = statusApi();
-      var mapped = api ? api.info(row && row.status) : {
+      var mapped = (api && typeof api.displayInfo === 'function') ? api.displayInfo(row) : (api ? api.info(row && row.status) : {
         label: statusLabel(row && row.status),
         live: String((row && row.status) || '') === 'live' || String((row && row.status) || '') === 'delivered',
         dot: 'gray',
-      };
+        alert: '',
+      });
       return {
         id: String((row && (row.uuid || row.id)) || ''),
         title: String((row && row.title) || '').trim(),
@@ -169,7 +170,7 @@
         live: mapped.live,
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
-        alert: (api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : '',
+        alert: mapped.alert || ((api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : ''),
       };
     }).filter(function (card) {
       var api = statusApi();
@@ -203,8 +204,10 @@
       var title = document.createElement('strong');
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
-      status.className = 'release-tile-status is-' + ((statusApi() && statusApi().dot(card.status)) || 'gray');
-      status.textContent = card.label || 'Pending';
+      var tileLabel = card.label || 'Pending';
+      var tileDot = tileLabel === 'Needs fix' ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray');
+      status.className = 'release-tile-status is-' + tileDot;
+      status.textContent = tileLabel;
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
@@ -228,10 +231,12 @@
       tr.className = 'is-pick';
       if (row.uuid && tr.setAttribute) tr.setAttribute('data-release-id', row.uuid);
       var live = statusApi() ? statusApi().isLive(row.status) : row.status === 'live';
-      var mapped = statusApi() ? statusApi().info(row.status) : { label: statusLabel(row.status), dot: live ? 'green' : 'yellow', live: live };
-      var alertText = (statusApi() && typeof statusApi().problemAlert === 'function')
+      var mapped = (statusApi() && typeof statusApi().displayInfo === 'function')
+        ? statusApi().displayInfo(row)
+        : (statusApi() ? statusApi().info(row.status) : { label: statusLabel(row.status), dot: live ? 'green' : 'yellow', live: live, alert: '' });
+      var alertText = mapped.alert || ((statusApi() && typeof statusApi().problemAlert === 'function')
         ? statusApi().problemAlert(row)
-        : '';
+        : '');
       var titleCell = document.createElement('td');
       var wrap = document.createElement('div');
       wrap.className = 'rel';

@@ -816,7 +816,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   text-transform: uppercase;
   margin-bottom: 8px;
 }
-.draft-banner p { color: #E8D48A; font-size: 14px; margin-bottom: 0; max-width: none; }
+.draft-banner p { color: #E8D48A; font-size: 14px; margin-bottom: 0; max-width: none; white-space: pre-line; }
 .draft-banner a {
   color: #fff;
   font-weight: 700;
@@ -2501,7 +2501,7 @@ body:not(.app) > .app-main > .topbar { display: none; }
   font-size: 1.4rem;
   margin: 6px 0 8px;
 }
-.next-up p { color: var(--muted); }
+.next-up p { color: var(--muted); white-space: pre-line; }
 .dash-shortcuts {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2660,7 +2660,7 @@ body:not(.app) > .app-main > .topbar { display: none; }
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
-  white-space: normal;
+  white-space: pre-line;
 }
 .release-inline-status { display: none; }
 .rel > .release-row-alert { display: none; }
@@ -2833,7 +2833,7 @@ body:not(.app) > .app-main > .topbar { display: none; }
   font-size: 13px;
 }
 .admin-signup-when { white-space: nowrap; }
-.admin-alert { color: #ff8a8a; }
+.admin-alert { color: #ff8a8a; white-space: pre-line; }
 .admin-section { scroll-margin-top: 24px; }
 @media (max-width: 1180px) {
   body.app[data-owner-desk],

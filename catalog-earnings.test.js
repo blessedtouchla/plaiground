@@ -5,6 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+const releaseStatus = require('./lib/release-status');
+const QC_LINES = releaseStatus.STORE_QC_LINES.join('\n');
+
 function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
 }
@@ -363,19 +366,23 @@ function run() {
   const liveRow = catalogNodes['[data-release-rows]'].children[1];
   const fixRow = catalogNodes['[data-release-rows]'].children[2];
   const unknownRow = catalogNodes['[data-release-rows]'].children[3];
-  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'Pending');
+  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'Needs fix');
   assert.strictEqual(liveRow.children[2].children[1].textContent, 'Live');
   assert.strictEqual(fixRow.children[2].children[1].textContent, 'Needs fix');
-  assert.strictEqual(fixRow.children[2].children[2].textContent, 'Cover art is too small.');
-  assert.ok(findByText(pendingRow.children[0], 'Pending'), 'phone inline status keeps Pending on the row');
+  assert.strictEqual(fixRow.children[2].children[2].textContent, 'Cover art is too small.\n' + QC_LINES);
+  assert.ok(findByText(pendingRow.children[0], 'Needs fix'), 'phone inline status keeps Needs fix on the row');
+  assert.ok(findByText(pendingRow.children[0], QC_LINES), 'phone inline status keeps the six store lines');
   assert.ok(findByText(fixRow.children[0], 'Needs fix'), 'phone inline status keeps Needs fix on the row');
-  assert.ok(findByText(fixRow.children[0], 'Cover art is too small.'), 'phone inline status keeps the real error on the row');
+  assert.ok(findByText(fixRow.children[0], 'Cover art is too small.\n' + QC_LINES), 'phone inline status keeps the real error on the row');
   assert.ok(String(fixRow.children[2].className).indexOf('has-alert') !== -1);
+  assert.ok(String(pendingRow.children[2].className).indexOf('has-alert') !== -1);
   assert.strictEqual(unknownRow.children[2].children[1].textContent, 'Pending');
   assert.notStrictEqual(unknownRow.children[2].children[1].textContent, 'Live', 'unknown status must not invent Live');
   assert.ok(!findByText(unknownRow, 'Cover art is too small.'), 'no fake error on an unknown row');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children.length, 4, 'Overview tiles on the shared list include pending');
-  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[3].textContent, QC_LINES);
 
   assert.ok(read('releases.html').includes('href="problem.html"'), 'Have a problem? stays the typed report page');
   assert.ok(read('catalog.js').includes("&& !$('[data-release-tiles]')"), 'Overview shares the catalog list');

@@ -5,6 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+const releaseStatus = require('./lib/release-status');
+const QC_LINES = releaseStatus.STORE_QC_LINES.join('\n');
+
 const BADGE = /account[\s_-]*ready/i;
 
 const LOGGED_IN_PAGES = [
@@ -269,7 +272,8 @@ function run() {
   assert.strictEqual(nodes['[data-account-releases]'].textContent, '0');
   assert.strictEqual(nodes['[data-account-pending]'].textContent, '1');
   assert.strictEqual(nodes['[data-next-up]'].hidden, false);
-  assert.strictEqual(nodes['[data-next-up-title]'].textContent, 'Add a payout method');
+  assert.strictEqual(nodes['[data-next-up-title]'].textContent, 'Fix this release');
+  assert.strictEqual(nodes['[data-next-up-body]'].textContent, QC_LINES);
   assert.strictEqual(nodes['[data-msp-section]'].hidden, true, 'Overview does not open an MSP board');
   assert.strictEqual(nodes['[data-msp-songs]'].children.length, 0);
 
@@ -392,8 +396,8 @@ function run() {
     profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'pending' }] },
   });
   assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'empty placeholder stays when there is no cover');
-  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
-  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children.length, 3, 'pending tile has no fake error');
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[3].textContent, QC_LINES);
 
   const mixedTiles = fillAccount({
     artist: 'Fuvtu',
@@ -412,12 +416,13 @@ function run() {
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children.length, 3, 'Overview strip includes pending with live');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[1].children[2].textContent, 'Live');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Pending');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[3].textContent, 'Cover art is too small.');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Needs fix');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[3].textContent, QC_LINES);
   assert.strictEqual(mixedTiles['[data-account-releases]'].textContent, '1', 'Releases live stays a live count');
   assert.strictEqual(mixedTiles['[data-account-pending]'].textContent, '2');
   assert.strictEqual(mixedTiles['[data-next-up-title]'].textContent, 'Fix this release');
-  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.');
+  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, QC_LINES);
 
   const songwriterFix = fillAccount({
     artist: 'Fuvtu',
@@ -431,7 +436,7 @@ function run() {
     }] },
   });
   assert.strictEqual(songwriterFix['[data-next-up-title]'].textContent, 'Fix this release');
-  assert.strictEqual(songwriterFix['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.');
+  assert.strictEqual(songwriterFix['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.\n' + QC_LINES);
 
   const creditFix = fillAccount({
     artist: 'Fuvtu',
@@ -444,9 +449,10 @@ function run() {
       rejection_reason: 'Missing performer credit and producer credit.',
     }] },
   });
-  assert.strictEqual(creditFix['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
-  assert.notStrictEqual(emptyCover['[data-next-up-title]'].textContent, 'Fix this release', 'pending without a real problem must not invent a credit error');
-  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.', 'cover QC must not be rewritten as a songwriter leftover');
+  assert.strictEqual(creditFix['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.\n' + QC_LINES);
+  assert.strictEqual(emptyCover['[data-next-up-title]'].textContent, 'Fix this release');
+  assert.strictEqual(emptyCover['[data-next-up-body]'].textContent, QC_LINES);
+  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, QC_LINES);
 
   const missingWriterNames = fillAccount({
     artist: 'Fuvtu',
@@ -459,7 +465,7 @@ function run() {
       rejection_reason: 'Missing songwriter names.',
     }] },
   });
-  assert.strictEqual(missingWriterNames['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.');
+  assert.strictEqual(missingWriterNames['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.\n' + QC_LINES);
 
   const firstLastWriter = fillAccount({
     artist: 'Fuvtu',
@@ -472,7 +478,7 @@ function run() {
       rejection_reason: 'Each songwriter must have a first and last name.',
     }] },
   });
-  assert.strictEqual(firstLastWriter['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.');
+  assert.strictEqual(firstLastWriter['[data-next-up-body]'].textContent, 'Stores need real songwriter names, not a stage, rapper, or band name.\n' + QC_LINES);
 
   const performerOnly = fillAccount({
     artist: 'Fuvtu',
@@ -485,7 +491,7 @@ function run() {
       rejection_reason: 'Performer credit is required.',
     }] },
   });
-  assert.strictEqual(performerOnly['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
+  assert.strictEqual(performerOnly['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.\n' + QC_LINES);
 
   const producerOnly = fillAccount({
     artist: 'Fuvtu',
@@ -498,7 +504,7 @@ function run() {
       rejection_reason: 'Producer credit is missing.',
     }] },
   });
-  assert.strictEqual(producerOnly['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.');
+  assert.strictEqual(producerOnly['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.\n' + QC_LINES);
 
   const legalOnly = fillAccount({
     artist: 'Fuvtu',
@@ -511,7 +517,7 @@ function run() {
       rejection_reason: 'Legal name is required.',
     }] },
   });
-  assert.strictEqual(legalOnly['[data-next-up-body]'].textContent, 'Legal name is required.', 'legal-name QC must not invent the songwriter leftover');
+  assert.strictEqual(legalOnly['[data-next-up-body]'].textContent, 'Legal name is required.\n' + QC_LINES, 'legal-name QC must not invent the songwriter leftover');
 
   const firstLastOnly = fillAccount({
     artist: 'Fuvtu',
@@ -524,10 +530,10 @@ function run() {
       rejection_reason: 'First and last name required.',
     }] },
   });
-  assert.strictEqual(firstLastOnly['[data-next-up-body]'].textContent, 'First and last name required.', 'first-last without songwriter must not invent that leftover');
+  assert.strictEqual(firstLastOnly['[data-next-up-body]'].textContent, 'First and last name required.\n' + QC_LINES, 'first-last without songwriter must not invent that leftover');
   assert.ok(!/ToneGrid|InterSpace|Flossy/i.test(songwriterFix['[data-next-up-body]'].textContent));
   assert.ok(!/ToneGrid|InterSpace|Flossy/i.test(creditFix['[data-next-up-body]'].textContent));
-  assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('cccccccc-cccc-4ccc-8ccc-cccccccccccc') !== -1);
+  assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') !== -1);
 
   const unknownTiles = fillAccount({
     artist: 'Fuvtu',
