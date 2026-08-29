@@ -898,6 +898,17 @@ function run() {
   assert.ok(upload.indexOf('indexedDB') === -1);
   assert.ok(upload.indexOf('Play this file here to confirm it is the right master') !== -1);
   assert.ok(upload.indexOf('id="tg-instrumental"') !== -1);
+  assert.ok(upload.indexOf('id="tg-legal-first"') !== -1);
+  assert.ok(upload.indexOf('id="tg-legal-last"') !== -1);
+  assert.ok(upload.indexOf('id="tg-label"') === -1);
+  assert.ok(upload.indexOf('id="tg-record-label"') === -1);
+  assert.ok(upload.indexOf('id="tg-copyright-year"') === -1);
+  assert.ok(upload.indexOf('id="tg-copyright-line"') === -1);
+  assert.ok(upload.indexOf('name="copyright_year"') === -1);
+  assert.ok(upload.indexOf('name="copyright_holder"') === -1);
+  assert.ok(upload.indexOf('name="label"') === -1);
+  assert.ok(!/Record label/i.test(upload));
+  assert.ok(!/Copyright year/i.test(upload));
   assert.ok(upload.indexOf('id="tg-lyrics"') !== -1);
   assert.ok(upload.indexOf('data-lyrics-open') !== -1);
   assert.ok(upload.indexOf('data-lyrics-field') !== -1);

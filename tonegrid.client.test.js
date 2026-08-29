@@ -173,6 +173,8 @@ function load(options) {
   const date = makeEl({ id: 'tg-release-date', value: opts.releaseDate || '' });
   const instrumental = makeEl({ id: 'tg-instrumental', checked: Boolean(opts.instrumental) });
   const languageField = makeEl({ attrs: { 'data-language-field': '' } });
+  const legalFirst = makeEl({ id: 'tg-legal-first', value: opts.legalFirst != null ? opts.legalFirst : 'Ada' });
+  const legalLast = makeEl({ id: 'tg-legal-last', value: opts.legalLast != null ? opts.legalLast : 'Night' });
   const lyrics = makeEl({ id: 'tg-lyrics', value: opts.lyrics || '' });
   const lyricsField = makeEl({ attrs: { 'data-lyrics-field': '' }, hidden: true });
   const lyricsOpen = makeEl({ id: 'tg-lyrics-open', attrs: { 'data-lyrics-open': '', 'aria-expanded': 'false' } });
@@ -238,6 +240,8 @@ function load(options) {
     'tg-genre': genre,
     'tg-language': language,
     'tg-price': price,
+    'tg-legal-first': legalFirst,
+    'tg-legal-last': legalLast,
     'tg-release-date': date,
     'tg-instrumental': instrumental,
     'tg-lyrics': lyrics,
@@ -778,6 +782,17 @@ async function run() {
   assert.strictEqual(releaseBody.type, 'single');
   assert.strictEqual(releaseBody.genre, 'Pop');
   assert.strictEqual(releaseBody.release_date, undefined);
+  assert.strictEqual(releaseBody.legal_first, 'Ada');
+  assert.strictEqual(releaseBody.legal_last, 'Night');
+  assert.strictEqual(releaseBody.label, undefined);
+  assert.strictEqual(releaseBody.copyright_year, undefined);
+  assert.strictEqual(releaseBody.copyright_holder, undefined);
+  assert.strictEqual(releaseBody.c_line, undefined);
+  assert.strictEqual(releaseBody.p_line, undefined);
+  assert.strictEqual(trackBody.legal_first, 'Ada');
+  assert.strictEqual(trackBody.legal_last, 'Night');
+  assert.strictEqual(trackBody.songwriters, undefined);
+  assert.strictEqual(trackBody.composers, undefined);
   assert.strictEqual(trackBody.language, 'en');
   assert.strictEqual(trackBody.release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
   assert.strictEqual(trackBody.title, 'Night Drive');

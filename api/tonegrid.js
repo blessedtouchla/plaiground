@@ -58,6 +58,7 @@ const profileLib = require('../lib/profile');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const uploadRequired = require('../lib/upload-required');
+const storeCredits = require('../lib/store-credits');
 const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
@@ -279,6 +280,22 @@ function releaseBelongsToCreateBody(row, body) {
   return Boolean(wantTitle && gotTitle && sameSongText(wantTitle, gotTitle));
 }
 
+function createdWriterId(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+  const candidates = [
+    payload.uuid,
+    payload.writer_uuid,
+    payload.writer && payload.writer.uuid,
+    payload.data && payload.data.uuid,
+    payload.data && payload.data.writer && payload.data.writer.uuid,
+  ];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const id = String(candidates[i] || '').trim();
+    if (isUuid(id)) return id;
+  }
+  return '';
+}
+
 function createdArtistId(payload) {
   if (!payload || typeof payload !== 'object') return '';
   const candidates = [
@@ -350,22 +367,104 @@ function isArtistGoneResult(result) {
   return false;
 }
 
-async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey) {
+async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey, credits) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
   let next = stored;
   if (status || reason !== undefined) {
     next = profileLib.applyReleaseStatus(stored, releaseId, status, reason);
   }
-  if (artworkUrl || artworkObjectKey) {
-    next = profileLib.upsertRelease(next, {
+  if (artworkUrl || artworkObjectKey || (credits && typeof credits === 'object')) {
+    next = profileLib.upsertRelease(next, Object.assign({
       id: releaseId,
       tonegrid_release_id: releaseId,
       artwork_url: artworkUrl,
       artwork_object_key: artworkObjectKey,
-    });
+    }, credits && typeof credits === 'object' ? credits : {}));
   }
   await accounts.updateProfile(row.id, { profile: next });
+}
+
+function creditArtistsOf(row) {
+  return rosterOf(row).artists || [];
+}
+
+function songwriterFromHop(body, row) {
+  return storeCredits.resolveSongwriter(body, creditArtistsOf(row));
+}
+
+function filledCreditsFromRow(row) {
+  if (!row || typeof row !== 'object') return null;
+  const keys = [
+    'label',
+    'copyright_year',
+    'copyright_holder',
+    'copyright_owner',
+    'rights_owner',
+    'master_owner',
+    'c_line',
+    'p_line',
+    'copyright_line',
+  ];
+  const out = {};
+  keys.forEach((key) => {
+    if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') {
+      out[key] = row[key];
+    }
+  });
+  if (Array.isArray(row.writers) && row.writers.length) out.writers = row.writers;
+  return Object.keys(out).length ? out : null;
+}
+
+async function applyReleaseCredits(releaseId, songwriter, year, opts) {
+  const options = opts || {};
+  const name = songwriter && songwriter.name;
+  if (!name) return { ok: true, skipped: true };
+  if (options.patch !== false) {
+    const patch = storeCredits.releasePatchFields(name, year);
+    const patched = await tonegridFetch('/releases/' + releaseId, {
+      method: 'PATCH',
+      body: patch,
+      idempotencyKey: hopIdempotencyKey('credits-patch', 'PATCH', '/releases/' + releaseId, JSON.stringify(patch)),
+    });
+    if (!patched.ok && !isMissingEndpoint(patched)) return patched;
+  }
+  const rights = storeCredits.rightsEnvelope(name, year);
+  if (!rights.p_line && !rights.c_line) return { ok: true };
+  const updated = await tonegridFetch('/releases/' + releaseId + '/rights', {
+    method: 'PUT',
+    body: rights,
+    idempotencyKey: hopIdempotencyKey('rights', 'PUT', '/releases/' + releaseId + '/rights', JSON.stringify(rights)),
+  });
+  if (!updated.ok && !isMissingEndpoint(updated)) return updated;
+  return { ok: true };
+}
+
+async function attachTrackWriters(trackId, songwriter) {
+  const name = songwriter && songwriter.name;
+  if (!name || !isUuid(trackId)) return { ok: true, skipped: true };
+  const writerBody = storeCredits.writerCreateBody(name);
+  const created = await tonegridFetch('/writers', {
+    method: 'POST',
+    body: writerBody,
+    idempotencyKey: hopIdempotencyKey('writer', 'POST', '/writers', name),
+  });
+  if (!created.ok) {
+    if (isMissingEndpoint(created)) return { ok: true, skipped: true };
+    return created;
+  }
+  const writerId = createdWriterId(created.data);
+  if (!writerId) {
+    return { ok: false, status: 502, data: { error: storeCredits.resolveSongwriter({}, []).error } };
+  }
+  const attach = storeCredits.trackWritersBody(writerId);
+  const put = await tonegridFetch('/tracks/' + trackId + '/writers', {
+    method: 'PUT',
+    body: attach,
+    idempotencyKey: hopIdempotencyKey('track-writers', 'PUT', '/tracks/' + trackId + '/writers', JSON.stringify(attach)),
+  });
+  if (!put.ok && !isMissingEndpoint(put)) return put;
+  return { ok: true };
 }
 
 async function createArtist(req, res) {
@@ -494,8 +593,21 @@ function pickTracks(payload) {
       language: String(row.language || '').trim().toLowerCase(),
       explicit: row.explicit === true,
       isrc: String(row.isrc || row.ISRC || '').trim(),
+      writers: Array.isArray(row.writers) ? row.writers : [],
+      composers: Array.isArray(row.composers) ? row.composers : [],
+      contributors: Array.isArray(row.contributors) ? row.contributors : [],
     };
   }).filter(Boolean);
+}
+
+function creditWritersOf(row) {
+  if (Array.isArray(row && row.writers) && row.writers.length) return row.writers;
+  if (Array.isArray(row && row.composers) && row.composers.length) return row.composers;
+  const contrib = Array.isArray(row && row.contributors) ? row.contributors : [];
+  return contrib.filter((item) => {
+    const role = String((item && item.role) || '').toLowerCase();
+    return /composer|songwriter|lyricist|writer/.test(role);
+  });
 }
 
 function artistNameOf(row) {
@@ -529,6 +641,16 @@ function pickRelease(row) {
     rejection_reason: String(row.rejection_reason || row.reject_reason || row.reason || row.notes || '').trim(),
     upc: String(row.upc || row.UPC || row.barcode || row.ean || '').trim(),
     isrc: String(row.isrc || row.ISRC || '').trim(),
+    label: String(row.label || row.label_name || row.record_label || '').trim(),
+    copyright_year: row.copyright_year || row.copyrightYear || '',
+    copyright_holder: String(row.copyright_holder || row.copyright_owner || row.copyrightOwner || '').trim(),
+    copyright_owner: String(row.copyright_owner || row.copyrightOwner || row.copyright_holder || '').trim(),
+    rights_owner: String(row.rights_owner || row.rightsOwner || row.copyright_holder || row.copyright_owner || '').trim(),
+    master_owner: String(row.master_owner || row.masterOwner || row.p_line_owner || row.copyright_holder || '').trim(),
+    c_line: String(row.c_line || row.cLine || '').trim(),
+    p_line: String(row.p_line || row.pLine || '').trim(),
+    copyright_line: String(row.copyright_line || row.copyrightLine || row.copyright_notice || '').trim(),
+    writers: creditWritersOf(row),
   };
 }
 
@@ -705,6 +827,26 @@ async function createRelease(req, res) {
     sendJson(res, 403, plans.limitBody(decision));
     return;
   }
+  const songwriter = songwriterFromHop(body, scope.row);
+  if (songwriter.error) {
+    sendJson(res, 400, { error: songwriter.error });
+    return;
+  }
+  const releaseDateEarly = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
+  const creditYear = storeCredits.copyrightYearFromDate(releaseDateEarly);
+  const storedCredits = storeCredits.storedCreditFields(songwriter.name, creditYear);
+
+  async function finishContinuedRelease(existingId) {
+    const credited = await applyReleaseCredits(existingId, songwriter, creditYear, { patch: true });
+    if (!credited.ok) {
+      sendJson(res, credited.status, credited.data);
+      return false;
+    }
+    await persistReleaseMeta(scope.row, existingId, null, undefined, '', '', storedCredits);
+    sendJson(res, 200, { uuid: existingId, continued: true });
+    return true;
+  }
+
   let deadReplaceId = '';
   // replace_release_id / only-catalog continue only for THIS song's living owned id.
   // GET /releases/:id 404 can be requireOwnedRelease (id not in this allow-list) while
@@ -713,7 +855,7 @@ async function createRelease(req, res) {
   if (isUuid(replaceId) && existingIds.some((id) => sameCatalogId(id, replaceId))) {
     const loaded = await fetchReleaseRow(replaceId);
     if (loaded.result && loaded.result.ok && releaseBelongsToCreateBody(loaded.row, body)) {
-      sendJson(res, 200, { uuid: replaceId, continued: true });
+      await finishContinuedRelease(replaceId);
       return;
     }
     if (isReleaseGoneResult(loaded.result)) {
@@ -724,7 +866,7 @@ async function createRelease(req, res) {
   if (explicitId && !sameCatalogId(explicitId, deadReplaceId)) {
     const loaded = await fetchReleaseRow(explicitId);
     if (loaded.result && loaded.result.ok) {
-      sendJson(res, 200, { uuid: explicitId, continued: true });
+      await finishContinuedRelease(explicitId);
       return;
     }
     if (isReleaseGoneResult(loaded.result)) {
@@ -741,7 +883,7 @@ async function createRelease(req, res) {
     const leftoverId = existingIds[0];
     const loaded = await fetchReleaseRow(leftoverId);
     if (loaded.result && loaded.result.ok && releaseBelongsToCreateBody(loaded.row, body)) {
-      sendJson(res, 200, { uuid: leftoverId, continued: true });
+      await finishContinuedRelease(leftoverId);
       return;
     }
     if (isReleaseGoneResult(loaded.result)) {
@@ -776,12 +918,12 @@ async function createRelease(req, res) {
     return;
   }
 
-  let payload = {
+  let payload = Object.assign({
     artist_id: artistId,
     title: fields.title,
     type,
     genre: fields.genre,
-  };
+  }, storeCredits.releaseCreateFields(songwriter.name, storeCredits.copyrightYearFromDate(releaseDate)));
   if (fields.language) payload.language = fields.language;
   if (releaseDate) payload.release_date = releaseDate;
 
@@ -807,6 +949,11 @@ async function createRelease(req, res) {
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
     if (releaseId) {
+      const credited = await applyReleaseCredits(releaseId, songwriter, storeCredits.copyrightYearFromDate(releaseDate), { patch: false });
+      if (!credited.ok) {
+        sendJson(res, credited.status, credited.data);
+        return;
+      }
       if (deadReplaceId) {
         await accounts.removeRelease(scope.userId, deadReplaceId);
       }
@@ -814,6 +961,8 @@ async function createRelease(req, res) {
         artistId: artistId,
         releaseId: releaseId,
       });
+      const latest = await accounts.findById(scope.userId);
+      await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', storedCredits);
     }
   }
   sendJson(res, result.status, result.data);
@@ -862,6 +1011,11 @@ async function createTrack(req, res) {
   const position = parsePosition(body && body.position);
   const explicit = parseExplicit(body && body.explicit);
   const fields = uploadRequired.validateTrackCreate(body);
+  const songwriter = songwriterFromHop(body, scope.row);
+  if (songwriter.error) {
+    sendJson(res, 400, { error: songwriter.error });
+    return;
+  }
 
   if (!releaseId) {
     sendJson(res, 400, { error: 'release_id is required.' });
@@ -872,6 +1026,11 @@ async function createTrack(req, res) {
     return;
   }
   if (continueTrackId && isUuid(continueTrackId) && idAllowed(scope.trackAllow, continueTrackId)) {
+    const attached = await attachTrackWriters(continueTrackId, songwriter);
+    if (!attached.ok) {
+      sendJson(res, attached.status, attached.data);
+      return;
+    }
     sendJson(res, 200, { uuid: continueTrackId, continued: true });
     return;
   }
@@ -905,7 +1064,16 @@ async function createTrack(req, res) {
   if (result.ok) {
     const trackId = createdTrackId(result.data);
     if (trackId) {
+      const attached = await attachTrackWriters(trackId, songwriter);
+      if (!attached.ok) {
+        sendJson(res, attached.status, attached.data);
+        return;
+      }
       await accounts.updateCatalog(scope.userId, { trackId });
+      const latest = await accounts.findById(scope.userId);
+      await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', {
+        writers: [{ name: songwriter.name, first_name: songwriter.first, last_name: songwriter.last }],
+      });
     }
   }
   sendJson(res, result.status, result.data);
@@ -1801,7 +1969,15 @@ async function getOneRelease(req, res, releaseId) {
     return;
   }
   if (loaded.row) {
-    await persistReleaseMeta(scope.row, releaseId, loaded.row.status, loaded.row.rejection_reason, loaded.row.artwork_url);
+    await persistReleaseMeta(
+      scope.row,
+      releaseId,
+      loaded.row.status,
+      loaded.row.rejection_reason,
+      loaded.row.artwork_url,
+      '',
+      filledCreditsFromRow(loaded.row)
+    );
   }
   sendJson(res, 200, Object.assign({ configured: true, sandbox: healthPayload().sandbox }, loaded.row));
 }
@@ -2102,6 +2278,12 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
 
+  const songwriter = songwriterFromHop(body, scope.row);
+  if (songwriter.error) {
+    sendJson(res, 400, { error: songwriter.error });
+    return;
+  }
+
   const submitFields = uploadRequired.validateSubmit(body, row);
   if (submitFields.error) {
     sendJson(res, 400, { error: submitFields.error });
@@ -2137,6 +2319,34 @@ async function submitRelease(req, res, releaseId) {
     }
   }
 
+  const creditYear = storeCredits.copyrightYearFromDate(releaseDate);
+  const credits = storeCredits.storedCreditFields(songwriter.name, creditYear);
+  const credited = await applyReleaseCredits(releaseId, songwriter, creditYear, { patch: true });
+  if (!credited.ok) {
+    sendJson(res, credited.status, credited.data);
+    return;
+  }
+  const trackIds = [];
+  (row.tracks || []).forEach((tr) => {
+    const tid = tr && (tr.uuid || tr.id);
+    if (tid) trackIds.push(String(tid));
+  });
+  if (body && body.track_id) trackIds.push(String(body.track_id));
+  if (body && Array.isArray(body.track_ids)) {
+    body.track_ids.forEach((tid) => trackIds.push(String(tid)));
+  }
+  const seenTracks = {};
+  for (let i = 0; i < trackIds.length; i += 1) {
+    const tid = String(trackIds[i] || '').trim();
+    if (!isUuid(tid) || seenTracks[tid]) continue;
+    seenTracks[tid] = true;
+    const writersHop = await attachTrackWriters(tid, songwriter);
+    if (!writersHop.ok) {
+      sendJson(res, writersHop.status, writersHop.data);
+      return;
+    }
+  }
+
   const submitted = await tonegridFetch('/releases/' + releaseId + '/submit', {
     method: 'POST',
     body: {},
@@ -2149,7 +2359,7 @@ async function submitRelease(req, res, releaseId) {
 
   const next = unwrapRelease(submitted.data) || submitted.data || {};
   const submittedStatus = String(next.status || 'pending').toLowerCase();
-  await persistReleaseMeta(scope.row, releaseId, submittedStatus, '');
+  await persistReleaseMeta(scope.row, releaseId, submittedStatus, '', '', '', credits);
   sendJson(res, submitted.status, {
     ok: true,
     signed: Boolean(signwellInfo.signed),
