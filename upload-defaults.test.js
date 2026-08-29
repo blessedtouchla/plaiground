@@ -822,7 +822,7 @@ function run() {
   assert.ok(upload.indexOf('placeholder="SONG TITLE"') !== -1);
   assert.ok(upload.indexOf('Choose artist profile') !== -1);
   assert.ok(upload.indexOf('Create new artist profile') !== -1);
-  assert.ok(upload.indexOf('Add external artist') !== -1);
+  assert.ok(upload.indexOf('Import an existing artist') !== -1);
   assert.ok(upload.indexOf('id="tg-artist-new"') !== -1);
   assert.ok(upload.indexOf('id="tg-artist-link"') !== -1);
   assert.ok(upload.indexOf('human_contributions') === -1);
