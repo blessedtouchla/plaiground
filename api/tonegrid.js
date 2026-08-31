@@ -357,19 +357,67 @@ async function listStoreReleasePages(queryExtra) {
   return { ok: true, rows: collected };
 }
 
-function artistMatchesCollision(row, body, artistId) {
-  const got = artistIdOfRelease(row);
-  if (got && artistId) return sameCatalogId(got, artistId);
-  const name = artistNameOf(row);
-  const wantName = String((body && (body.artist || body.artist_name || body.name)) || '').trim();
-  if (name && wantName && sameSongText(name, wantName)) return true;
-  if (got && artistId && !sameCatalogId(got, artistId)) return false;
-  return !got;
+function wantArtistNameOf(body) {
+  if (!body || typeof body !== 'object') return '';
+  return artistNameOf(body) || String(body.artist || body.artist_name || body.name || '').trim();
 }
 
-async function findStoreCollision(body, artistId) {
+function artistMatchesCollision(row, body, artistId, wantName) {
+  const gotId = artistIdOfRelease(row);
+  if (gotId && artistId) return sameCatalogId(gotId, artistId);
+  const gotName = artistNameOf(row);
+  const want = String(wantName || wantArtistNameOf(body) || '').trim();
+  if (gotName && want) {
+    return artistCheck.normalizeName(gotName) === artistCheck.normalizeName(want);
+  }
+  return false;
+}
+
+function artistConflictsCollision(row, body, artistId, wantName) {
+  const gotId = artistIdOfRelease(row);
+  if (gotId && artistId) return !sameCatalogId(gotId, artistId);
+  const gotName = artistNameOf(row);
+  const want = String(wantName || wantArtistNameOf(body) || '').trim();
+  if (gotName && want) {
+    return artistCheck.normalizeName(gotName) !== artistCheck.normalizeName(want);
+  }
+  return false;
+}
+
+function catalogHasId(ids, releaseId) {
+  return (ids || []).some((id) => sameCatalogId(id, releaseId));
+}
+
+async function resolveWantArtistName(body, artistId, userRow) {
+  const fromBody = wantArtistNameOf(body);
+  if (fromBody) return fromBody;
+  if (artistId && userRow) {
+    const list = (rosterOf(userRow).artists || []);
+    for (let i = 0; i < list.length; i += 1) {
+      if (sameCatalogId(list[i].tonegrid_artist_id, artistId) && list[i].name) {
+        return String(list[i].name).trim();
+      }
+    }
+  }
+  if (!artistId) return '';
+  const loaded = await tonegridFetch('/artists/' + artistId, { method: 'GET' });
+  if (!loaded.ok) return '';
+  const row = unwrapRelease(loaded.data) || loaded.data;
+  const name = row && (row.name || row.title);
+  return name ? String(name).trim() : '';
+}
+
+async function fetchStoreReleaseRaw(releaseId) {
+  const result = await tonegridFetch('/releases/' + releaseId, { method: 'GET' });
+  if (!result.ok) return { result, row: null };
+  return { result, row: unwrapRelease(result.data) || result.data };
+}
+
+async function findStoreCollision(body, artistId, options) {
   const wantTitle = String((body && body.title) || '').trim();
   if (!wantTitle) return null;
+  const skipIds = (options && options.skipIds) || [];
+  const wantName = (options && options.wantName) || wantArtistNameOf(body);
   const searches = [{ status: 'draft' }, { status: 'rejected' }, {}];
   const seen = Object.create(null);
   for (let s = 0; s < searches.length; s += 1) {
@@ -380,16 +428,15 @@ async function findStoreCollision(body, artistId) {
       const row = unwrapRelease(raw) || raw;
       const id = String((row && (row.uuid || row.release_uuid || row.id)) || '').trim();
       if (!isUuid(id) || seen[id.toLowerCase()]) continue;
+      if (catalogHasId(skipIds, id)) continue;
       if (!releaseBelongsToCreateBody(row, body)) continue;
       seen[id.toLowerCase()] = true;
       let detail = row;
-      if (!artistIdOfRelease(row) || !row.status) {
-        const loaded = await fetchReleaseRow(id);
-        if (loaded.result && loaded.result.ok && loaded.row) {
-          detail = Object.assign({}, row, loaded.row);
-        }
+      if (!artistIdOfRelease(row) || !artistNameOf(row) || !row.status) {
+        const loaded = await fetchStoreReleaseRaw(id);
+        if (loaded.row) detail = Object.assign({}, row, loaded.row);
       }
-      if (!artistMatchesCollision(detail, body, artistId)) continue;
+      if (!artistMatchesCollision(detail, body, artistId, wantName)) continue;
       return {
         id: id,
         status: normalizeReleaseStatus(detail.status || row.status),
@@ -1026,14 +1073,21 @@ async function createRelease(req, res) {
     }
   }
   const explicitId = (decision.continuing && isUuid(continueId)) ? continueId : '';
+  let skippedCatalogContinue = false;
   if (explicitId && !sameCatalogId(explicitId, deadReplaceId)) {
     const loaded = await fetchReleaseRow(explicitId);
-    if (loaded.result && loaded.result.ok) {
+    if (
+      loaded.result && loaded.result.ok
+      && releaseBelongsToCreateBody(loaded.row, body)
+      && !artistConflictsCollision(loaded.row, body, artistId)
+    ) {
       await finishContinuedRelease(explicitId);
       return;
     }
     if (isReleaseGoneResult(loaded.result)) {
       deadReplaceId = explicitId;
+    } else if (loaded.result && loaded.result.ok) {
+      skippedCatalogContinue = true;
     }
   } else if (
     !deadReplaceId
@@ -1053,8 +1107,11 @@ async function createRelease(req, res) {
       deadReplaceId = leftoverId;
     }
   }
-  if (!decision.allowed && !deadReplaceId) {
-    sendJson(res, 403, plans.limitBody(decision));
+  const createDecision = skippedCatalogContinue
+    ? plans.evaluate(scope.row, undefined, { type })
+    : decision;
+  if (!createDecision.allowed && !deadReplaceId) {
+    sendJson(res, 403, plans.limitBody(createDecision));
     return;
   }
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
@@ -1139,12 +1196,11 @@ async function createRelease(req, res) {
   }
 
   async function continueStoreLeftover(leftoverId) {
-    if (!existingIds.some((id) => sameCatalogId(id, leftoverId))) {
-      await accounts.updateCatalog(scope.userId, {
-        artistId: artistId,
-        releaseId: leftoverId,
-      });
-    }
+    if (catalogHasId(existingIds, leftoverId)) return false;
+    await accounts.updateCatalog(scope.userId, {
+      artistId: artistId,
+      releaseId: leftoverId,
+    });
     return finishContinuedRelease(leftoverId);
   }
 
@@ -1159,7 +1215,10 @@ async function createRelease(req, res) {
     return;
   }
   if (isAlreadyExistsResult(result)) {
-    const leftover = await findStoreCollision(body, artistId);
+    const leftover = await findStoreCollision(body, artistId, {
+      skipIds: existingIds,
+      wantName: await resolveWantArtistName(body, artistId, scope.row),
+    });
     if (leftover && leftover.id) {
       if (isBlockingStoreLeftover(leftover.status)) {
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
