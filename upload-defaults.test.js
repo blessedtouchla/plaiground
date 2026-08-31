@@ -851,15 +851,16 @@ function run() {
   assert.ok(upload.indexOf('<select id="tg-genre"') !== -1);
   assert.ok(upload.indexOf('<select id="tg-language"') !== -1);
   assert.ok(upload.indexOf('<select id="tg-price"') !== -1);
-  // TEMP STOPGAP: Genre ships as a plain native <select> (data-native-picker),
-  // same as Download price, while the typeahead re-tap bug is fixed separately.
-  // Language keeps the searchable typeahead. Revert by removing the attribute.
-  assert.ok(/<select id="tg-genre"[^>]*\bdata-native-picker\b/.test(upload), 'upload Genre is a native picker while the typeahead re-tap bug is open');
+  // PR #168's native-picker stopgap for Genre was reverted: Genre goes back
+  // through the same bindTypeahead() path as Language. prefersNativeSelect()
+  // and its guards stay in upload-catalog.js (harmless with no selects tagged
+  // data-native-picker) in case a future stopgap needs them again.
+  assert.ok(!/<select id="tg-genre"[^>]*\bdata-native-picker\b/.test(upload), 'upload Genre is back on the typeahead path');
   assert.ok(!/<select id="tg-language"[^>]*\bdata-native-picker\b/.test(upload), 'upload Language keeps the typeahead');
   const reviewHtmlNative = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   const songHtmlNative = fs.readFileSync(path.join(__dirname, 'song.html'), 'utf8');
-  assert.ok(/<select id="tg-genre"[^>]*\bdata-native-picker\b/.test(reviewHtmlNative), 'review Genre is a native picker too');
-  assert.ok(/<select id="edit-genre"[^>]*\bdata-native-picker\b/.test(songHtmlNative), 'song edit Genre is a native picker too');
+  assert.ok(!/<select id="tg-genre"[^>]*\bdata-native-picker\b/.test(reviewHtmlNative), 'review Genre is back on the typeahead path too');
+  assert.ok(!/<select id="edit-genre"[^>]*\bdata-native-picker\b/.test(songHtmlNative), 'song edit Genre is back on the typeahead path too');
   assert.ok(upload.indexOf('plai-bubble.js') !== -1);
   assert.ok(upload.indexOf('membership.js') !== -1);
   assert.ok(upload.indexOf('data-require-membership="true"') !== -1);
