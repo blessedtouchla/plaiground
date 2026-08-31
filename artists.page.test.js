@@ -308,6 +308,7 @@ function loadArtists() {
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(read('lib/artist-check.js'), context);
+  vm.runInNewContext(read('lib/release-credits.js'), context);
   vm.runInNewContext(read('lib/store-pick.js'), context);
   vm.runInNewContext(read('lib/platform-links.js'), context);
   vm.runInNewContext(read('artists.js'), context);
@@ -381,6 +382,7 @@ function run() {
   assert.ok(!html.includes('Manage the names music is released under'));
   assert.ok(html.includes('Required. Private. Not the artist name people see. Asked once, then saved on this artist.'));
   assert.ok(html.includes('id="artist-create-legal-first"') && html.includes('id="artist-create-legal-last"'));
+  assert.ok(html.includes('lib/release-credits.js'), 'Artist Profiles uses the shared legal-name copy');
   assert.ok(/id="artist-create-legal-first"[^>]*autocomplete="new-password"/.test(html), 'Artist Profiles create first must not use account autocomplete');
   assert.ok(/id="artist-create-legal-last"[^>]*autocomplete="new-password"/.test(html), 'Artist Profiles create last must not use account autocomplete');
   assert.ok(html.includes('Create the artist once. Later songs pick that profile — no retype every submit.'));
@@ -765,12 +767,46 @@ async function persistAndImmediateSave() {
   emptyPage.posts.length = 0;
   await emptyPage.api.createArtist(false);
   assert.strictEqual(emptyPage.posts.length, 0, 'Create artist with empty legal names must not save');
+  const emptyCopy = emptyPage.nodes['[data-artists-status]'].textContent;
+  assert.strictEqual(emptyCopy, emptyPage.context.PlaigroundReleaseCredits.LEGAL_BOTH);
+  assert.ok(!/stage name|rapper|\bband\b/i.test(emptyCopy), 'empty legal error must not lecture about stage names');
+  emptyPage.nodes['#artist-create-legal-first'].value = 'Ada';
+  emptyPage.nodes['#artist-create-legal-last'].value = '';
+  await emptyPage.api.createArtist(false);
+  assert.strictEqual(emptyPage.posts.length, 0, 'Create artist with empty last must not save');
+  assert.ok(!/stage name|rapper|\bband\b/i.test(emptyPage.nodes['[data-artists-status]'].textContent));
+  emptyPage.nodes['#artist-create-legal-first'].value = '';
+  emptyPage.nodes['#artist-create-legal-last'].value = 'German Nunez';
+  await emptyPage.api.createArtist(false);
+  assert.strictEqual(emptyPage.posts.length, 0, 'Create artist with empty first must not save');
   emptyPage.nodes['#artist-create-legal-first'].value = 'Ada';
   emptyPage.nodes['#artist-create-legal-last'].value = 'Night';
   await emptyPage.api.createArtist(false);
   assert.ok(emptyPage.posts.some(function (row) {
     return row.url === '/api/me/artists' && row.body && row.body.artist_action === 'create' && row.body.name === 'Fresh Act' && row.body.legal_first === 'Ada' && row.body.legal_last === 'Night';
   }), 'create artist must POST when the page shows empty');
+
+  const interceptorsPage = loadArtists();
+  const seenNames = [];
+  const origCheck = interceptorsPage.checkApi.checkArtistName;
+  interceptorsPage.checkApi.checkArtistName = function (name, opts) {
+    seenNames.push(name);
+    return origCheck.call(this, name, opts);
+  };
+  interceptorsPage.nameInput.value = 'The Interceptors';
+  interceptorsPage.nodes['#artist-create-legal-first'].value = 'Ada';
+  interceptorsPage.nodes['#artist-create-legal-last'].value = 'German Nunez';
+  interceptorsPage.posts.length = 0;
+  await interceptorsPage.api.createArtist(false);
+  assert.ok(interceptorsPage.posts.some(function (row) {
+    return row.body && row.body.artist_action === 'create'
+      && row.body.name === 'The Interceptors'
+      && row.body.legal_first === 'Ada'
+      && row.body.legal_last === 'German Nunez';
+  }), 'two-word legal last name must POST');
+  assert.ok(seenNames.indexOf('The Interceptors') !== -1, 'checkArtistName still runs on the display name');
+  assert.ok(seenNames.indexOf('German Nunez') === -1, 'checkArtistName must not run on legal last');
+  assert.ok(seenNames.indexOf('Ada German Nunez') === -1, 'checkArtistName must not run on the legal pair');
 
   const accountPage = loadArtists();
   accountPage.api.applyMe({

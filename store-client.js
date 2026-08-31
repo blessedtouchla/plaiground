@@ -3936,9 +3936,12 @@
     if (check.level === 'yellow' && !confirmDifferent) {
       return Promise.resolve({ error: (api && api.YELLOW_COPY) || 'Confirm this is a different artist to continue.' });
     }
+    var legal = hopLegalFields(readDraft());
     return post('/api/me/artists', {
       action: 'create',
       name: name,
+      legal_first: legal.legal_first || (fields && fields.legal_first) || '',
+      legal_last: legal.legal_last || (fields && fields.legal_last) || '',
       confirm_different: confirmDifferent,
     }).then(function (result) {
       if (result.status === 409 && result.data && result.data.code === 'ARTIST_NAME_YELLOW' && !confirmDifferent) {
