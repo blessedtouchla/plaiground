@@ -678,6 +678,28 @@ function filledUpload(extra) {
   }, extra || {});
 }
 
+function storeCreateHops(page) {
+  return (page.calls || []).filter(function (call) {
+    const url = String(call.url || '');
+    if (url.indexOf('/api/tonegrid/') !== 0) return false;
+    return url === '/api/tonegrid/artists'
+      || url === '/api/tonegrid/releases'
+      || url === '/api/tonegrid/tracks'
+      || /\/audio$/.test(url)
+      || /\/artwork$/.test(url);
+  });
+}
+
+function assertContinueLocalOnly(page, label) {
+  const tag = label || 'Continue';
+  assert.strictEqual(storeCreateHops(page).length, 0, tag + ' must not mint or hop before attest');
+  assert.ok(String(page.location.href).indexOf('attest.html') !== -1, tag + ' must go to attest.html');
+  const draft = draftOf(page.localStorage);
+  assert.strictEqual(draft.title, 'Night Drive');
+  assert.ok(!draft.release_id, tag + ' must not mint a store release_id');
+  assert.ok(!draft.track_id, tag + ' must not mint a store track_id');
+}
+
 function makeTrackRow(title, file, attrs) {
   const titleEl = { value: title || '' };
   const input = { files: file ? [file] : [], _plaigroundFile: file };
@@ -748,7 +770,7 @@ async function run() {
   const featuredEmpty = load(filledUpload({ featured: '' }));
   featuredEmpty.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(featuredEmpty.calls.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+  assertContinueLocalOnly(featuredEmpty, 'empty featured');
 
   const noArtwork = load(filledUpload({ artwork: null }));
   noArtwork.continueBtn.listeners.click({ preventDefault() {} });
@@ -770,58 +792,19 @@ async function run() {
   const upload = load(filledUpload({ featured: '', responses: uploadResponses.slice() }));
   upload.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Saving artist|Uploading|Converting|Opening|Creating/i.test(upload.loaderStep.textContent));
-  const uploadTonegrid = upload.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-  assert.ok(uploadTonegrid.length >= 3);
-  assert.strictEqual(uploadTonegrid[0].url, '/api/tonegrid/artists');
-  assert.strictEqual(uploadTonegrid[1].url, '/api/tonegrid/releases');
-  assert.strictEqual(uploadTonegrid[2].url, '/api/tonegrid/tracks');
-  assert.ok(upload.calls.some(function (call) { return call.url === '/api/me/catalog'; }));
-  const catalogBodies = upload.calls.filter(function (call) { return call.url === '/api/me/catalog'; }).map(function (call) {
-    return JSON.parse(call.init.body);
-  });
-  assert.ok(catalogBodies.some(function (body) { return body.track_id; }));
-  const artistBody = JSON.parse(uploadTonegrid[0].init.body);
-  const releaseBody = JSON.parse(uploadTonegrid[1].init.body);
-  const trackBody = JSON.parse(uploadTonegrid[2].init.body);
-  assert.strictEqual(artistBody.name, 'Ada Night');
-  assert.strictEqual(releaseBody.artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-  assert.strictEqual(releaseBody.title, 'Night Drive');
-  assert.strictEqual(releaseBody.type, 'single');
-  assert.strictEqual(releaseBody.genre, 'Pop');
-  assert.strictEqual(releaseBody.release_date, undefined);
-  assert.strictEqual(releaseBody.legal_first, 'Ada');
-  assert.strictEqual(releaseBody.legal_last, 'Night');
-  assert.strictEqual(releaseBody.label, undefined);
-  assert.strictEqual(releaseBody.copyright_holder, 'Ada Night');
-  assert.strictEqual(releaseBody.master_owner, 'Ada Night');
-  assert.ok(String(releaseBody.copyright_holder).indexOf('PLAIGROUND') === -1);
-  assert.ok(String(releaseBody.master_owner).indexOf('PLAIGROUND') === -1);
-  assert.strictEqual(releaseBody.c_line, undefined);
-  assert.strictEqual(releaseBody.p_line, undefined);
-  assert.strictEqual(trackBody.legal_first, 'Ada');
-  assert.strictEqual(trackBody.legal_last, 'Night');
-  assert.strictEqual(trackBody.songwriters, undefined);
-  assert.strictEqual(trackBody.composers, undefined);
-  assert.strictEqual(trackBody.language, 'en');
-  assert.strictEqual(trackBody.release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-  assert.strictEqual(trackBody.title, 'Night Drive');
-  assert.strictEqual(trackBody.position, 1);
-  assert.strictEqual(trackBody.explicit, false);
+  assert.ok(/Opening SignWell/i.test(upload.loaderStep.textContent + upload.status.textContent));
+  assertContinueLocalOnly(upload, 'Continue');
   const draft = draftOf(upload.localStorage);
-  assert.strictEqual(draft.artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-  assert.strictEqual(draft.release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-  assert.ok(draft.track_id);
-  assert.strictEqual(upload.location.href, 'attest.html');
-  const audioCall = upload.calls.find(function (call) {
-    return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
-  });
-  assert.ok(audioCall);
-  assertAudioKey(audioCall);
-  assert.ok(hoppedFile(upload.calls, AUDIO));
-  assert.ok(upload.calls.some(function (call) {
-    return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/artwork';
-  }));
+  assert.strictEqual(draft.name, 'Ada Night');
+  assert.strictEqual(draft.genre, 'Pop');
+  assert.strictEqual(draft.language, 'en');
+  assert.strictEqual(draft.legal_first, 'Ada');
+  assert.strictEqual(draft.legal_last, 'Night');
+  assert.ok(String(draft.copyright_holder || '').indexOf('PLAIGROUND') === -1);
+  assert.ok(String(draft.master_owner || '').indexOf('PLAIGROUND') === -1);
+  upload.retryBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  assert.strictEqual(storeCreateHops(upload).length, 0, 'Retry on upload must not POST /releases');
 
   const typedCredits = load(filledUpload({
     label: 'Night Records',
@@ -832,17 +815,14 @@ async function run() {
   }));
   typedCredits.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const typedRelease = typedCredits.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-  assert.ok(typedRelease);
-  const typedBody = JSON.parse(typedRelease.init.body);
-  assert.strictEqual(typedBody.label, 'Night Records');
-  assert.strictEqual(typedBody.copyright_holder, 'Jane Doe');
-  assert.strictEqual(typedBody.master_owner, 'Ada Night');
-  assert.strictEqual(typedBody.copyright_year, '2026');
-  assert.strictEqual(typedBody.legal_first, 'Ada');
-  assert.strictEqual(typedBody.legal_last, 'Night');
-  assert.ok(String(typedBody.copyright_holder).indexOf('PLAIGROUND') === -1);
-  assert.ok(String(typedBody.master_owner).indexOf('PLAIGROUND') === -1);
+  assertContinueLocalOnly(typedCredits, 'typed credits Continue');
+  const typedDraft = draftOf(typedCredits.localStorage);
+  assert.strictEqual(typedDraft.label, 'Night Records');
+  assert.strictEqual(typedDraft.copyright_holder, 'Jane Doe');
+  assert.strictEqual(typedDraft.master_owner, 'Ada Night');
+  assert.strictEqual(typedDraft.copyright_year, '2026');
+  assert.strictEqual(typedDraft.legal_first, 'Ada');
+  assert.strictEqual(typedDraft.legal_last, 'Night');
 
   const instrumentalOk = load(filledUpload({
     instrumental: true,
@@ -851,19 +831,11 @@ async function run() {
   }));
   instrumentalOk.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(instrumentalOk.calls.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+  assertContinueLocalOnly(instrumentalOk, 'instrumental Continue');
   assert.strictEqual(instrumentalOk.languageField.hidden, true);
-  const instRelease = instrumentalOk.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-  const instTrack = instrumentalOk.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
-  assert.ok(instRelease);
-  assert.ok(instTrack);
-  assert.strictEqual(JSON.parse(instRelease.init.body).instrumental, true);
-  assert.strictEqual(JSON.parse(instRelease.init.body).language, undefined);
-  assert.strictEqual(JSON.parse(instTrack.init.body).language, undefined);
   assert.strictEqual(draftOf(instrumentalOk.localStorage).instrumental, true);
   assert.strictEqual(draftOf(instrumentalOk.localStorage).lyrics, '');
   assert.strictEqual(instrumentalOk.lyricsField.hidden, true);
-  assert.strictEqual(instrumentalOk.location.href, 'attest.html');
 
   const lyricsPage = load(filledUpload({
     lyrics: '',
@@ -877,14 +849,8 @@ async function run() {
   assert.strictEqual(draftOf(lyricsPage.localStorage).lyrics, 'Verse one\nI wrote this tonight');
   lyricsPage.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
+  assertContinueLocalOnly(lyricsPage, 'lyrics Continue');
   assert.strictEqual(draftOf(lyricsPage.localStorage).lyrics, 'Verse one\nI wrote this tonight');
-  const lyricsRelease = lyricsPage.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-  const lyricsTrack = lyricsPage.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
-  assert.ok(lyricsRelease);
-  assert.ok(lyricsTrack);
-  assert.strictEqual(JSON.parse(lyricsRelease.init.body).lyrics, undefined, 'ToneGrid create/update has no lyrics field');
-  assert.strictEqual(JSON.parse(lyricsTrack.init.body).lyrics, undefined, 'ToneGrid create/update has no lyrics field');
-  assert.strictEqual(JSON.parse(lyricsTrack.init.body).lyric_text, undefined);
 
   const lyricsRestore = load(filledUpload({
     draft: { lyrics: 'Saved from the step bar', instrumental: false },
@@ -919,9 +885,8 @@ async function run() {
   }));
   explicitYes.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const explicitTrack = explicitYes.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
-  assert.ok(explicitTrack);
-  assert.strictEqual(JSON.parse(explicitTrack.init.body).explicit, true);
+  assertContinueLocalOnly(explicitYes, 'explicit Continue');
+  assert.strictEqual(draftOf(explicitYes.localStorage).explicit, true);
 
   const limited = load(filledUpload({
     responses: [{
@@ -932,36 +897,22 @@ async function run() {
   }));
   limited.continueBtn.listeners.click({ preventDefault() {} });
   await flush(3);
-  assert.strictEqual(limited.calls.length, 1);
-  assert.strictEqual(limited.calls[0].url, '/api/tonegrid/artists');
-  assert.strictEqual(limited.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
-  assert.ok(limited.status.classList.contains('upload-status-error'));
-  assert.strictEqual(limited.limit.hidden, false);
-  assert.strictEqual(limited.upgrade.hidden, false);
-  assert.notStrictEqual(limited.continueBtn.getAttribute('aria-busy'), 'true');
-  assert.notStrictEqual(limited.continueBtn.getAttribute('aria-disabled'), 'true');
-  assert.notStrictEqual(limited.location.href, 'attest.html');
-  assert.ok(limited.location.href.indexOf('attest.html') === -1);
+  assertContinueLocalOnly(limited, 'store PLAN_LIMIT on Continue');
+  assert.strictEqual(storeCreateHops(limited).length, 0);
 
   limited.continueBtn.listeners.click({ preventDefault() {} });
   await flush(3);
-  assert.ok(limited.calls.length >= 2, 'later click after PLAN_LIMIT must still run');
+  assert.strictEqual(storeCreateHops(limited).length, 0, 'later Continue still must not mint');
 
-  let frozenHold;
-  const held = new Promise(function (resolve) { frozenHold = resolve; });
   const frozen = load(filledUpload({
-    holdFirst: held,
-    holdWhen: '/api/tonegrid/artists',
     responses: uploadResponses.slice(),
   }));
   frozen.continueBtn.listeners.click({ preventDefault() {} });
   await flush(3);
-  assert.strictEqual(frozen.continueBtn.getAttribute('aria-busy'), 'true');
   frozen.continueBtn.listeners.click({ preventDefault() {} });
   await flush(2);
-  assert.strictEqual(frozen.calls.filter(function (call) { return call.url === '/api/tonegrid/artists'; }).length, 1);
-  frozenHold();
-  await flush();
+  assert.strictEqual(storeCreateHops(frozen).length, 0);
+  assert.ok(String(frozen.location.href).indexOf('attest.html') !== -1);
 
   const limitedRelease = load(filledUpload({
     responses: [
@@ -971,13 +922,7 @@ async function run() {
   }));
   limitedRelease.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
-  assert.ok(!limitedRelease.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
-  assert.strictEqual(limitedRelease.status.textContent, 'Creator includes 8 releases per month. Upgrade to Pro to upload more.');
-  assert.ok(limitedRelease.status.classList.contains('upload-status-error'));
-  assert.strictEqual(limitedRelease.limit.hidden, false);
-  assert.notStrictEqual(limitedRelease.continueBtn.getAttribute('aria-busy'), 'true');
-  assert.ok(limitedRelease.location.href.indexOf('attest.html') === -1);
+  assertContinueLocalOnly(limitedRelease, 'release PLAN_LIMIT on Continue');
 
   const reuseDraft = load(filledUpload({
     draft: {
@@ -1000,13 +945,10 @@ async function run() {
   }));
   reuseDraft.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const reuseTonegrid = reuseDraft.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-  assert.ok(reuseTonegrid.some(function (call) {
-    return call.url === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-  }), 'live draft.release_id must GET /api/tonegrid/releases/:id');
-  assert.ok(!reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }), 'reuse must not create a second artist');
-  assert.ok(!reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'reuse must not create a second release');
-  assert.ok(reuseTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
+  assert.strictEqual(storeCreateHops(reuseDraft).length, 0, 'reuse Continue must not hop');
+  assert.ok(!reuseDraft.calls.some(function (call) {
+    return String(call.url).indexOf('/api/tonegrid/') === 0;
+  }), 'reuse Continue must not GET or mint store rows');
   assert.strictEqual(reuseDraft.location.href, 'attest.html');
   assert.strictEqual(draftOf(reuseDraft.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 
@@ -1057,12 +999,7 @@ async function run() {
   }));
   retrySameIds.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const retryCalls = retrySameIds.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-  assert.ok(!retryCalls.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
-  assert.ok(!retryCalls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
-  assert.ok(!retryCalls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'second Continue must skip createTrack');
-  assert.ok(retryCalls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
-  assert.ok(retryCalls.some(function (call) { return String(call.url).indexOf('/artwork') !== -1; }));
+  assert.strictEqual(storeCreateHops(retrySameIds).length, 0, 'second Continue must not hop audio or artwork');
   assert.strictEqual(draftOf(retrySameIds.localStorage).release_idempotency_key, 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive');
   assert.strictEqual(draftOf(retrySameIds.localStorage).track_idempotency_key, 'plaiground-track-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb:1');
   assert.strictEqual(retrySameIds.location.href, 'attest.html');
@@ -1104,9 +1041,67 @@ async function run() {
   }));
   unavailable.continueBtn.listeners.click({ preventDefault() {} });
   await flush(3);
-  assert.strictEqual(unavailable.calls.length, 1);
-  assert.strictEqual(unavailable.status.textContent, 'Catalog sync is not configured yet.');
-  assert.strictEqual(unavailable.location.href, 'attest.html');
+  assertContinueLocalOnly(unavailable, 'unconfigured catalog Continue');
+
+  const afterAttestCreate = load({
+    bind: 'review',
+    releaseDate: '2026-09-12',
+    title: 'Night Drive',
+    artist: 'Ada Night',
+    genre: 'Pop',
+    language: 'en',
+    file: AUDIO,
+    artwork: ART,
+    label: 'Night Records',
+    copyrightOwner: 'Jane Doe',
+    phonogramOwner: 'Ada Night',
+    copyrightYear: '2026',
+    draft: attestDraft({
+      name: 'Ada Night',
+      title: 'Night Drive',
+      genre: 'Pop',
+      language: 'en',
+      legal_first: 'Ada',
+      legal_last: 'Night',
+      label: 'Night Records',
+      copyright_holder: 'Jane Doe',
+      master_owner: 'Ada Night',
+      copyright_year: '2026',
+      solo_owned_100: true,
+      release_date: '2026-09-12',
+    }),
+    account: {
+      plan: 'creator',
+      artist: 'Ada Night',
+      upload: { allowed: true, album_allowed: true, plan: 'creator' },
+    },
+    responses: uploadResponses.concat([
+      { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+    ]),
+  });
+  afterAttestCreate.payBtn.listeners.click({ preventDefault() {} });
+  await flush(16);
+  const afterTonegrid = afterAttestCreate.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
+  assert.ok(afterTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
+  assert.ok(afterTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
+  assert.ok(afterTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
+  const afterRelease = afterAttestCreate.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+  const afterTrack = afterAttestCreate.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
+  const afterBody = JSON.parse(afterRelease.init.body);
+  const afterTrackBody = JSON.parse(afterTrack.init.body);
+  assert.strictEqual(afterBody.title, 'Night Drive');
+  assert.strictEqual(afterBody.genre, 'Pop');
+  assert.strictEqual(afterBody.legal_first, 'Ada');
+  assert.strictEqual(afterBody.legal_last, 'Night');
+  assert.strictEqual(afterBody.label, 'Night Records');
+  assert.strictEqual(afterBody.copyright_holder, 'Jane Doe');
+  assert.strictEqual(afterBody.master_owner, 'Ada Night');
+  assert.ok(String(afterBody.copyright_holder).indexOf('PLAIGROUND') === -1);
+  assert.strictEqual(afterTrackBody.language, 'en');
+  assert.strictEqual(afterTrackBody.title, 'Night Drive');
+  assert.ok(afterAttestCreate.calls.some(function (call) {
+    return String(call.url).indexOf('/audio') !== -1;
+  }));
 
   const payNoDate = load({
     bind: 'review',
@@ -1299,77 +1294,41 @@ async function run() {
   assert.ok(retryTonegrid.some(function (call) { return call.url === '/api/tonegrid/tracks'; }));
   assert.strictEqual(draftOf(submittedRetry.localStorage).release_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 
-  let releaseHold;
-  const holdFirst = new Promise(function (resolve) { releaseHold = resolve; });
   const doubleClick = load(filledUpload({
     responses: uploadResponses.slice(),
-    holdFirst: holdFirst,
-    holdWhen: '/api/tonegrid/artists',
   }));
   doubleClick.continueBtn.listeners.click({ preventDefault() {} });
   await flush(2);
   doubleClick.continueBtn.listeners.click({ preventDefault() {} });
   await flush(2);
-  assert.strictEqual(doubleClick.calls.filter(function (call) {
-    return call.url === '/api/tonegrid/artists';
-  }).length, 1);
-  releaseHold();
-  await flush();
+  assert.strictEqual(storeCreateHops(doubleClick).length, 0);
+  assert.ok(String(doubleClick.location.href).indexOf('attest.html') !== -1);
 
-  let audioHold;
-  const holdAudio = new Promise(function (resolve) { audioHold = resolve; });
   const mp3Wait = load(filledUpload({
     file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
     responses: uploadResponses.slice(),
-    holdFirst: holdAudio,
-    holdWhen: '/audio',
   }));
   mp3Wait.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Converting MP3 to WAV/.test(mp3Wait.loaderStep.textContent), 'MP3 must show converting while the file is being prepared');
-  assert.ok(/take a minute/i.test(mp3Wait.loaderMeta.textContent + ' ' + mp3Wait.status.textContent));
-  assert.strictEqual(mp3Wait.loader.hidden, false, 'convert bar stays visible');
-  assert.ok(!/Uploading audio/.test(mp3Wait.loaderStep.textContent), 'do not call the convert wait "Uploading audio"');
-  audioHold();
-  await flush();
+  assertContinueLocalOnly(mp3Wait, 'MP3 Continue');
+  assert.ok(!/Uploading audio/.test(mp3Wait.loaderStep.textContent + mp3Wait.status.textContent));
 
-  let convertRelease;
-  const convertHold = new Promise(function (resolve) { convertRelease = resolve; });
-  let audioAfterConvert;
-  const holdAudioAfterConvert = new Promise(function (resolve) { audioAfterConvert = resolve; });
   const mp3Phases = load(filledUpload({
     file: { name: 'night-drive.mp3', type: 'audio/mpeg', size: 2048 },
     responses: uploadResponses.slice(),
-    convertHold: convertHold,
-    holdFirst: holdAudioAfterConvert,
-    holdWhen: '/audio',
   }));
   mp3Phases.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Converting MP3 to WAV/.test(mp3Phases.loaderStep.textContent));
-  assert.ok(/take a minute/i.test(mp3Phases.loaderMeta.textContent + ' ' + mp3Phases.status.textContent));
-  assert.ok(!/Uploading audio/.test(mp3Phases.loaderStep.textContent), 'converting must run before the store POST');
-  convertRelease();
-  await flush();
-  assert.ok(/Uploading audio/.test(mp3Phases.loaderStep.textContent + ' ' + mp3Phases.status.textContent), 'after convert, move to uploading');
-  assert.ok(!/Converting/.test(mp3Phases.loaderStep.textContent), 'do not keep converting copy after convert finishes');
-  audioAfterConvert();
-  await flush();
+  assertContinueLocalOnly(mp3Phases, 'MP3 phases Continue');
 
-  let wavHold;
-  const holdWav = new Promise(function (resolve) { wavHold = resolve; });
   const wavWait = load(filledUpload({
     file: { name: 'night-drive.wav', type: 'audio/wav', size: 2048 },
     responses: uploadResponses.slice(),
-    holdFirst: holdWav,
-    holdWhen: '/audio',
   }));
   wavWait.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Uploading audio/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent));
-  assert.ok(!/Converting/.test(wavWait.loaderStep.textContent + ' ' + wavWait.status.textContent + ' ' + wavWait.loaderMeta.textContent), 'WAV must not say converting');
-  wavHold();
-  await flush();
+  assertContinueLocalOnly(wavWait, 'WAV Continue');
+  assert.ok(!/Uploading audio/.test(wavWait.loaderStep.textContent + wavWait.status.textContent));
 
   function clickStepper(page, step) {
     const ev = {
@@ -1392,15 +1351,10 @@ async function run() {
     holdWhen: '/audio',
   }));
   const attestStartClick = clickStepper(attestStarts, attestStarts.attestStep);
-  assert.strictEqual(attestStartClick.prevented, true, 'Attest must not leave Upload before convert/upload finishes');
+  assert.strictEqual(attestStartClick.prevented, true, 'Attest stepper must go through Continue');
   await flush();
-  assert.ok(attestStarts.calls.some(function (call) {
-    return String(call.url).indexOf('/audio') !== -1;
-  }), 'Attest / Next starts convert+store work if it has not started');
-  assert.ok(/Converting MP3 to WAV/.test(attestStarts.loaderStep.textContent), 'late Attest click still shows converting');
-  assert.strictEqual(attestStarts.loader.hidden, false);
-  assert.ok(String(attestStarts.location.href).indexOf('attest.html') === -1);
-  assert.ok(String(attestStarts.location.href).indexOf('review.html') === -1);
+  assert.strictEqual(storeCreateHops(attestStarts).length, 0, 'Attest stepper must not hop before attest');
+  assert.ok(String(attestStarts.location.href).indexOf('attest.html') !== -1);
   attestStartHold();
   await flush();
 
@@ -1414,27 +1368,14 @@ async function run() {
   }));
   attestInFlight.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const artistsBefore = attestInFlight.calls.filter(function (call) {
-    return call.url === '/api/tonegrid/artists';
-  }).length;
-  const audioBefore = attestInFlight.calls.filter(function (call) {
-    return String(call.url).indexOf('/audio') !== -1;
-  }).length;
+  assertContinueLocalOnly(attestInFlight, 'in-flight Continue');
   const stayed = clickStepper(attestInFlight, attestInFlight.attestStep);
   assert.strictEqual(stayed.prevented, true);
   await flush();
-  assert.ok(String(attestInFlight.location.href).indexOf('attest.html') === -1, 'in-flight Attest must stay on Upload');
-  assert.ok(/Converting MP3 to WAV/.test(attestInFlight.loaderStep.textContent));
-  assert.strictEqual(attestInFlight.loader.hidden, false, 'keep the converting bar on the Attest click');
-  assert.strictEqual(attestInFlight.calls.filter(function (call) {
-    return call.url === '/api/tonegrid/artists';
-  }).length, artistsBefore, 'do not drop and restart the in-flight upload');
-  assert.strictEqual(attestInFlight.calls.filter(function (call) {
-    return String(call.url).indexOf('/audio') !== -1;
-  }).length, audioBefore);
+  assert.strictEqual(storeCreateHops(attestInFlight).length, 0);
   const reviewClick = clickStepper(attestInFlight, attestInFlight.reviewStep);
   assert.strictEqual(reviewClick.prevented, true);
-  assert.ok(String(attestInFlight.location.href).indexOf('review.html') === -1, 'do not skip to Review while convert is running');
+  assert.ok(String(attestInFlight.location.href).indexOf('review.html') === -1, 'do not skip to Review from Upload stepper');
   attestHold();
   await flush();
   assert.strictEqual(draftOf(attestInFlight.localStorage).audio_attached, true);
@@ -1446,9 +1387,7 @@ async function run() {
   }));
   phoneMp3.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(phoneMp3.calls.some(function (call) {
-    return String(call.url).indexOf('/api/tonegrid/') === 0;
-  }), 'phone MP3 MIME must not be rejected on the client');
+  assertContinueLocalOnly(phoneMp3, 'phone MP3 Continue');
 
   const mpegName = load(filledUpload({
     file: { name: 'clip.mpeg', type: '', size: 2048 },
@@ -1456,9 +1395,7 @@ async function run() {
   }));
   mpegName.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(mpegName.calls.some(function (call) {
-    return String(call.url).indexOf('/api/tonegrid/') === 0;
-  }));
+  assertContinueLocalOnly(mpegName, 'mpeg name Continue');
 
   const m4aBlocked = load(filledUpload({
     file: { name: 'song.m4a', type: 'audio/mp4', size: 2048 },
@@ -1490,27 +1427,12 @@ async function run() {
   }));
   album.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const albumTonegrid = album.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-  const albumRelease = albumTonegrid.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-  const albumTracks = albumTonegrid.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-  assert.ok(albumRelease);
-  assert.strictEqual(JSON.parse(albumRelease.init.body).type, 'album');
-  assert.strictEqual(JSON.parse(albumRelease.init.body).title, 'Night Drive LP');
-  assert.strictEqual(albumTracks.length, 2, 'album must add both tracks to one release');
-  assert.strictEqual(JSON.parse(albumTracks[0].init.body).title, 'Intro');
-  assert.strictEqual(JSON.parse(albumTracks[0].init.body).position, 1);
-  assert.strictEqual(JSON.parse(albumTracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-  assert.strictEqual(JSON.parse(albumTracks[1].init.body).title, 'Outro');
-  assert.strictEqual(JSON.parse(albumTracks[1].init.body).position, 2);
-  assert.strictEqual(JSON.parse(albumTracks[1].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-  assert.ok(album.calls.some(function (call) {
-    return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
-  }));
-  assert.ok(album.calls.some(function (call) {
-    return String(call.url) === '/api/tonegrid/tracks/dddddddd-dddd-4ddd-8ddd-dddddddddddd/audio';
-  }));
+  assert.strictEqual(storeCreateHops(album).length, 0, 'album Continue must not mint');
   assert.strictEqual(draftOf(album.localStorage).type, 'album');
-  assert.strictEqual(draftOf(album.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.strictEqual(draftOf(album.localStorage).title, 'Night Drive LP');
+  assert.ok(!draftOf(album.localStorage).release_id);
+  assert.ok(Array.isArray(draftOf(album.localStorage).tracks));
+  assert.strictEqual(draftOf(album.localStorage).tracks.length, 2);
   assert.strictEqual(album.location.href, 'attest.html');
 
   const basicAlbum = load(filledUpload({
@@ -1552,10 +1474,10 @@ async function run() {
   }));
   albumAfterSingle.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  const afterSingleRelease = albumAfterSingle.calls.filter(function (call) { return call.url === '/api/tonegrid/releases'; });
-  assert.strictEqual(afterSingleRelease.length, 1, 'new album must not reuse the existing single release');
-  assert.strictEqual(JSON.parse(afterSingleRelease[0].init.body).type, 'album');
+  assert.strictEqual(storeCreateHops(albumAfterSingle).length, 0);
   assert.notStrictEqual(draftOf(albumAfterSingle.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001');
+  assert.strictEqual(draftOf(albumAfterSingle.localStorage).type, 'album');
+  assert.ok(String(albumAfterSingle.location.href).indexOf('attest.html') !== -1);
 
   async function hungCreateTrackTrack2HidesLoader() {
     const hung = load(filledUpload({
@@ -1581,14 +1503,9 @@ async function run() {
     await flush();
     await new Promise(function (resolve) { setTimeout(resolve, 80); });
     await flush();
-    assert.strictEqual(hung.loader.hidden, true, 'hung createTrack for track 2 must hide the Working modal');
-    assert.ok(/track 2 of 2/i.test(hung.status.textContent + ' ' + hung.loaderStep.textContent), 'error must name track 2 of 2');
-    assert.ok(/We could not reach the store|failed/i.test(hung.status.textContent), 'error must include store/network text');
+    assert.strictEqual(storeCreateHops(hung).length, 0);
     assert.ok(!/ToneGrid/i.test(hung.status.textContent), 'timeout copy must not name the partner');
-    assert.notStrictEqual(hung.continueBtn.getAttribute('aria-busy'), 'true');
-    assert.notStrictEqual(hung.continueBtn.getAttribute('aria-disabled'), 'true');
-    assert.ok(String(hung.location.href).indexOf('attest.html') === -1, 'must not invent a success');
-    assert.strictEqual(draftOf(hung.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.ok(String(hung.location.href).indexOf('attest.html') !== -1);
   }
 
   async function rejectedAfterReleaseHidesLoader() {
@@ -1654,13 +1571,7 @@ async function run() {
     }));
     retry.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    const retryTonegrid = retry.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
-    assert.ok(!retryTonegrid.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'retry must not create a second album');
-    assert.ok(!retryTonegrid.some(function (call) { return call.url === '/api/tonegrid/artists'; }));
-    const retryTracks = retryTonegrid.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-    assert.strictEqual(retryTracks.length, 1, 'retry only creates the failed remaining track');
-    assert.strictEqual(JSON.parse(retryTracks[0].init.body).position, 2);
-    assert.strictEqual(JSON.parse(retryTracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(storeCreateHops(retry).length, 0, 'album Continue must not hop remaining tracks');
     assert.strictEqual(draftOf(retry.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
     assert.strictEqual(retry.location.href, 'attest.html');
   }
@@ -2017,21 +1928,7 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(14);
-    assert.ok(page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-    }), 'stale id must GET /api/tonegrid/releases/:id');
-    const createCalls = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    });
-    assert.strictEqual(createCalls.length, 1, '404 release must mint one fresh release');
-    const key = createCalls[0].init.headers['Idempotency-Key'];
-    assert.ok(key);
-    assert.notStrictEqual(key, 'plaiground-release-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:Night Drive');
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).replace_release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-    const track = page.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
-    assert.ok(track, 'live File must create a track on the new release');
-    assert.strictEqual(JSON.parse(track.init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(storeCreateHops(page).length, 0, 'stale id Continue must not mint before attest');
     assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/release not found/i.test(page.status.textContent));
   }
@@ -2058,15 +1955,7 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(12);
-    assert.ok(page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-    }));
-    assert.ok(!page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    }), 'live release_id must not create a second release');
-    assert.strictEqual(JSON.parse(page.calls.find(function (call) {
-      return call.url === '/api/tonegrid/tracks';
-    }).init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(storeCreateHops(page).length, 0, 'live release Continue must not hop');
     assert.strictEqual(draftOf(page.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
     assert.strictEqual(page.location.href, 'attest.html');
   }
@@ -2107,16 +1996,8 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const createCalls = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    });
-    assert.strictEqual(createCalls.length, 1, 'stale album release must recreate once');
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).type, 'album');
-    const tracks = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-    assert.strictEqual(tracks.length, 2);
-    assert.strictEqual(JSON.parse(tracks[0].init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
-    assert.strictEqual(JSON.parse(tracks[1].init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(storeCreateHops(page).length, 0);
+    assert.strictEqual(draftOf(page.localStorage).type, 'album');
     assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/release not found/i.test(page.status.textContent));
   }
@@ -2150,21 +2031,13 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(14);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'new title Continue must not mint');
     assert.ok(!page.calls.some(function (call) {
       return call.url === '/api/tonegrid/releases/' + mexeu;
     }), 'new title must not open another song release');
-    const createCalls = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    });
-    assert.strictEqual(createCalls.length, 1, 'new title must mint a release for this song');
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).title, 'Night Drive');
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).replace_release_id, undefined);
-    assert.strictEqual(JSON.parse(page.calls.find(function (call) {
-      return call.url === '/api/tonegrid/tracks';
-    }).init.body).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.notStrictEqual(draftOf(page.localStorage).release_id, mexeu);
+    assert.strictEqual(draftOf(page.localStorage).title, 'Night Drive');
     assert.strictEqual(page.location.href, 'attest.html');
-    assert.ok(!/release not found/i.test(page.status.textContent));
   }
 
   async function staleIdSecond404RecreatesAgain() {
@@ -2194,14 +2067,7 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const createCalls = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    });
-    assert.ok(createCalls.length >= 2, 'second 404 must create again instead of locking');
-    assert.strictEqual(JSON.parse(page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/tracks';
-    }).pop().init.body).release_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+    assert.strictEqual(storeCreateHops(page).length, 0);
     assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/release not found/i.test(page.status.textContent));
   }
@@ -2229,11 +2095,9 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(12);
-    assert.strictEqual(page.status.textContent, 'Could not create the release. Retry.');
-    assert.ok(!/release not found/i.test(page.status.textContent));
+    assert.strictEqual(storeCreateHops(page).length, 0);
+    assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/ToneGrid|Tonegrid/i.test(page.status.textContent));
-    assert.strictEqual(page.retryWrap.hidden, false);
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
   async function trackReleaseNotFoundIsNotRewritten() {
@@ -2256,10 +2120,9 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(14);
-    assert.ok(!/Could not create the release/.test(page.status.textContent));
-    assert.ok(/release not found/i.test(page.status.textContent));
+    assert.strictEqual(storeCreateHops(page).length, 0);
+    assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/ToneGrid|Tonegrid/i.test(page.status.textContent));
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
   async function createPostShowsRealSanitizedError() {
@@ -2283,10 +2146,9 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(12);
-    assert.strictEqual(page.status.textContent, 'artist_id is required.');
-    assert.ok(!/Could not create the release/.test(page.status.textContent));
+    assert.strictEqual(storeCreateHops(page).length, 0);
+    assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/ToneGrid|Tonegrid/i.test(page.status.textContent));
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
   }
 
   async function continuedDeadIdRetriesWithNewKey() {
@@ -2315,17 +2177,7 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const createCalls = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    });
-    assert.ok(createCalls.length >= 2, 'reattached dead id must POST again with a new key');
-    assert.notStrictEqual(
-      createCalls[0].init.headers['Idempotency-Key'],
-      createCalls[1].init.headers['Idempotency-Key']
-    );
-    assert.strictEqual(JSON.parse(createCalls[0].init.body).replace_release_id, dead);
-    assert.strictEqual(JSON.parse(createCalls[1].init.body).replace_release_id, dead);
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    assert.strictEqual(storeCreateHops(page).length, 0, 'dead id Continue must not mint before attest');
     assert.strictEqual(draftOf(page.localStorage).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/release not found/i.test(page.status.textContent));
@@ -2361,15 +2213,8 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const tracks = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-    assert.ok(tracks.length, 'empty store tracks after leftover mint must POST a new track');
-    assert.notStrictEqual(tracks[0].init.headers['Idempotency-Key'], leftover);
-    assert.strictEqual(JSON.parse(tracks[0].init.body).language, 'am');
-    assert.strictEqual(JSON.parse(tracks[0].init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
-    assert.ok(!page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    }), 'living leftover release must not mint a second release');
-    assert.strictEqual(draftOf(page.localStorage).track_id, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+    assert.strictEqual(storeCreateHops(page).length, 0, 'leftover Continue must not mint a track');
+    assert.strictEqual(draftOf(page.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
     assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!/Idempotency-Key|request body|ToneGrid/i.test(page.status.textContent));
   }
@@ -2415,29 +2260,9 @@ async function run() {
     creator.continueBtn.listeners.click({ preventDefault() {} });
     await flush(20);
     function assertSameSend(page, label) {
-      const minted = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-      assert.ok(minted.length, label + ' must mint a store track when catalog leftover is not on the store');
-      assert.ok(!JSON.parse(minted[0].init.body).track_id, label + ' must not send the leftover catalog track_id');
-      const audio = page.calls.filter(function (call) {
-        return String(call.url).indexOf('/audio') !== -1;
-      });
-      assert.ok(audio.length, label + ' must POST after minting');
-      audio.forEach(function (call) {
-        assert.strictEqual(
-          String(call.url),
-          '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio',
-          label + ' must attach to the new store track, not the leftover catalog id'
-        );
-        assertAudioKey(call, label);
-      });
-      assert.ok(hoppedFile(page.calls, file), label + ' must hop the same file Creator hops');
-      assert.ok(!page.calls.some(function (call) {
-        return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
-      }), label + ' must not POST audio to the leftover catalog track');
-      assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
-      assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
-      assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|InterSpace/i);
+      assert.strictEqual(storeCreateHops(page).length, 0, label + ' Continue must not mint before attest');
       assert.ok(String(page.location.href).indexOf('attest.html') !== -1, label + ' Continue must finish');
+      assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|InterSpace/i);
     }
     assertSameSend(basic, 'Basic');
     assertSameSend(creator, 'Creator');
@@ -2472,22 +2297,12 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.strictEqual(page.status.textContent, 'We could not finish this step.');
+    assert.strictEqual(storeCreateHops(page).length, 0);
     assert.ok(!/Idempotency-Key|request body|rotate the key|ToneGrid/i.test(page.status.textContent));
-    assert.strictEqual(page.retryWrap.hidden, false, 'leftover key reuse must show Retry');
-    assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
-    const first = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-    assert.strictEqual(first.length, 1);
-    assert.notStrictEqual(first[0].init.headers['Idempotency-Key'], leftover);
+    assert.strictEqual(page.location.href, 'attest.html');
     page.retryBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const after = page.calls.filter(function (call) { return call.url === '/api/tonegrid/tracks'; });
-    assert.ok(after.length > first.length, 'Retry must resend the track create');
-    assert.notStrictEqual(after[1].init.headers['Idempotency-Key'], first[0].init.headers['Idempotency-Key']);
-    assert.notStrictEqual(after[1].init.headers['Idempotency-Key'], leftover);
-    assert.strictEqual(JSON.parse(after[1].init.body).language, 'am');
-    assert.ok(!/Idempotency-Key|request body|rotate the key|ToneGrid/i.test(page.status.textContent));
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Retry must not hop before attest');
     assert.strictEqual(page.location.href, 'attest.html');
   }
 
@@ -2700,11 +2515,8 @@ async function run() {
     }));
     first.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    assert.ok(first.convertCalls >= 1, 'Basic MP3 upload converts on Continue');
-    assert.ok(first.calls.some(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    }), 'first convert/upload POSTs audio');
-    assert.strictEqual(draftOf(first.localStorage).audio_uploaded, true);
+    assert.strictEqual(storeCreateHops(first).length, 0, 'Continue must hold the MP3 locally');
+    assert.strictEqual(first.location.href, 'attest.html');
 
     const page = load({
       bind: 'review',
@@ -3072,15 +2884,9 @@ async function run() {
     }));
     basic.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    const basicAudio = basic.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    });
-    assert.ok(basicAudio.length, 'Basic must POST audio when the picked file was a normal song');
-    basicAudio.forEach(function (call) { assertAudioKey(call, 'Basic'); });
-    assert.ok(hoppedFile(basic.calls, fatWav), 'hop must be the converted WAV, not the original MP3');
-    assert.ok(!hoppedFile(basic.calls, original), 'original MP3 must not replace a hop-ready WAV');
+    assert.strictEqual(storeCreateHops(basic).length, 0, 'Basic Continue must not hop a converted WAV');
+    assert.strictEqual(basic.location.href, 'attest.html');
     assert.doesNotMatch(String(basic.status.textContent || ''), /200\s*MB/i, 'converted WAV over the old inbound leftover is not a real cap');
-    assert.doesNotMatch(String(basic.status.textContent || ''), /could not reach the store/i);
 
     const creator = load(filledUpload({
       file: original,
@@ -3099,15 +2905,9 @@ async function run() {
     }));
     creator.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    const creatorAudio = creator.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    });
-    assert.ok(creatorAudio.length, 'Creator must POST the same converted WAV when it is over the old inbound leftover');
-    creatorAudio.forEach(function (call) { assertAudioKey(call, 'Creator'); });
-    assert.ok(hoppedFile(creator.calls, fatWav), 'Creator transit hop must be the converted WAV');
-    assert.ok(!hoppedFile(creator.calls, original), 'Creator must not swap the hop back to the original MP3');
+    assert.strictEqual(storeCreateHops(creator).length, 0, 'Creator Continue must not hop a converted WAV');
+    assert.strictEqual(creator.location.href, 'attest.html');
     assert.doesNotMatch(String(creator.status.textContent || ''), /200\s*MB/i);
-    assert.doesNotMatch(String(creator.status.textContent || ''), /could not reach the store/i);
   }
 
   async function basicDesktopSubmitPostsOriginalWhenWavExceedsPlatform() {
@@ -3271,22 +3071,9 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(24);
-    const audio = page.calls.filter(function (call) {
-      return isAudioAttach(call.url);
-    });
-    assert.strictEqual(audio.length, 1, 'normal song over the inbound cap must POST one object key');
-    audio.forEach(function (call) {
-      assertAudioKey(call, 'Continue');
-      assert.ok(!audioChunkHeaders(call)['x-plaiground-upload-id'], 'Continue must hop, not chunk');
-    });
-    assert.ok(hoppedFile(page.calls, fatWav), 'hop PUT must be the converted WAV, not the original MP3');
-    assert.ok(!hoppedFile(page.calls, original), 'converted WAV must stay the hop body');
-    assert.ok(page.heldMaster === fatWav, 'converted WAV stays held');
-    assert.strictEqual(page.convertCalls, 1, 'convert-once still runs once on Continue');
-    assert.doesNotMatch(String(page.status.textContent || ''), /could not send the audio/i);
-    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Continue must hold audio locally, not hop');
     assert.doesNotMatch(String(page.status.textContent || ''), /ToneGrid|Idempotency-Key/i);
-    assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'Continue must finish after the hop lands');
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1);
   }
 
   async function reviewChunksPickedWavOverHopCap() {
@@ -3719,12 +3506,7 @@ async function run() {
     await flush();
     await new Promise(function (resolve) { setTimeout(resolve, 80); });
     await flush();
-    const audioPosts = page.calls.filter(function (call) {
-      return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
-    });
-    assert.ok(audioPosts.length >= 2, 'timeout must retry the same audio POST');
-    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'retry must not create a second release');
-    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'must reuse track_id and not create another track');
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Continue must not hop audio before attest');
     assert.strictEqual(draftOf(page.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
     assert.strictEqual(draftOf(page.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
     assert.strictEqual(page.location.href, 'attest.html');
@@ -3760,22 +3542,11 @@ async function run() {
     await flush();
     await new Promise(function (resolve) { setTimeout(resolve, 120); });
     await flush();
-    assert.strictEqual(page.convertCalls, 1, 'convert once on the first hop');
-    assert.ok(/could not reach the store/i.test(page.status.textContent));
-    assert.strictEqual(page.retryWrap.hidden, false);
-    const before = page.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    }).length;
+    assert.strictEqual(storeCreateHops(page).length, 0, 'leftover MP3 Continue must not hop');
+    assert.strictEqual(page.location.href, 'attest.html');
     page.retryBtn.listeners.click({ preventDefault() {} });
     await flush();
-    await new Promise(function (resolve) { setTimeout(resolve, 120); });
-    await flush();
-    const after = page.calls.filter(function (call) {
-      return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
-    });
-    assert.ok(after.length > before, 'Retry must resend the held WAV');
-    assert.strictEqual(page.convertCalls, 1, 'Retry must not reconvert the leftover MP3');
-    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }));
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Retry on upload must not hop');
   }
 
   async function audioTimeoutStillDownShowsRetry() {
@@ -3801,27 +3572,12 @@ async function run() {
     await flush();
     await new Promise(function (resolve) { setTimeout(resolve, 120); });
     await flush();
-    assert.strictEqual(page.status.textContent, 'We could not reach the store. Try again.');
-    assert.ok(!/ToneGrid/i.test(page.status.textContent));
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'must not invent a success');
-    assert.strictEqual(page.retryWrap.hidden, false, 'must show Retry after store timeout');
+    assert.strictEqual(storeCreateHops(page).length, 0);
+    assert.strictEqual(page.location.href, 'attest.html');
     assert.strictEqual(draftOf(page.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
-    const before = page.calls.filter(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    }).length;
-    assert.ok(before >= 2, 'automatic retry must POST audio at least twice');
     page.retryBtn.listeners.click({ preventDefault() {} });
     await flush();
-    await new Promise(function (resolve) { setTimeout(resolve, 120); });
-    await flush();
-    const after = page.calls.filter(function (call) {
-      return String(call.url) === '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio';
-    });
-    assert.ok(after.length > before, 'Retry control must re-POST the same track_id');
-    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'Retry must not create a second release');
-    assert.strictEqual(page.status.textContent, 'We could not reach the store. Try again.');
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
-    assert.strictEqual(draftOf(page.localStorage).track_id, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Retry must not hop before attest');
   }
 
   async function audioFakeSuccessImpossible() {
@@ -3846,10 +3602,9 @@ async function run() {
     }));
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'ok only when response.ok');
+    assert.strictEqual(storeCreateHops(page).length, 0);
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1);
     assert.ok(!/ToneGrid/i.test(page.status.textContent), 'partner body must be stripped');
-    assert.ok(/could not reach the store|the store did not respond|failed/i.test(page.status.textContent));
-    assert.strictEqual(page.retryWrap.hidden, false);
   }
 
   await audioTimeoutRetriesSameTrackThenSucceeds();
@@ -4046,6 +3801,8 @@ async function run() {
   assert.ok(source.includes('audio_converted'));
   assert.ok(source.includes('draftHasTrackFile'));
   assert.ok(source.includes('persistHeldAudio'));
+  assert.ok(source.includes('persistLocalUploadFiles'));
+  assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
   assert.ok(source.includes('isAudioRequiredError'));
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
@@ -4154,7 +3911,7 @@ async function run() {
   }
 
   async function objectErrorNeverPaintsObjectObject() {
-    const page = load(filledUpload({
+    const continued = load(filledUpload({
       draft: {
         artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -4170,11 +3927,40 @@ async function run() {
         { ok: false, status: 400, data: { error: { message: 'The store rejected the file.' } } },
       ],
     }));
-    page.continueBtn.listeners.click({ preventDefault() {} });
+    continued.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.strictEqual(storeCreateHops(continued).length, 0, 'Continue must not mint before attest');
+    assert.ok(String(continued.location.href).indexOf('attest.html') !== -1);
+    assert.ok(continued.status.textContent.indexOf('[object Object]') === -1);
+
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: AUDIO,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: ['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 400, data: { error: { message: 'The store rejected the file.' } } },
+      ],
+    });
     await flush(12);
     assert.ok(page.status.textContent.indexOf('[object Object]') === -1);
     assert.ok(/store rejected the file/i.test(page.status.textContent));
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'must not invent a success');
+    assert.ok(String(page.location.href).indexOf('submitted.html') === -1, 'must not invent a success');
     assert.strictEqual(page.retryWrap.hidden, false);
   }
 
@@ -4253,7 +4039,6 @@ async function run() {
 
   async function createNewArtistPostsLiveNameOnlyAndStaysOnUpload() {
     const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const liveId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const page = load(filledUpload({
       artistPicker: true,
       artist: '',
@@ -4272,13 +4057,6 @@ async function run() {
         },
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
-      responses: [
-        { ok: true, status: 201, data: { uuid: liveId } },
-        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
-        { ok: true, status: 200, data: { audio_status: 'processing' } },
-        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
-      ],
     }));
     await flush();
     page.artistMode.value = 'create';
@@ -4292,20 +4070,14 @@ async function run() {
     );
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
-    assert.ok(artistCall, 'Create new must POST a live store artist');
-    const artistBody = JSON.parse(artistCall.init.body);
-    assert.strictEqual(artistBody.name, 'Neon Nova');
-    assert.ok(!artistBody.artist_id);
-    assert.ok(!artistBody.uuid);
-    assert.ok(!artistBody.tonegrid_artist_id);
-    const releaseCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-    assert.ok(releaseCall, 'release must use the newly created artist id');
-    assert.strictEqual(JSON.parse(releaseCall.init.body).artist_id, liveId);
-    assert.notStrictEqual(JSON.parse(releaseCall.init.body).artist_id, leftover);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Create new Continue must not mint a store artist or release');
+    const artistCall = page.calls.find(function (call) { return call.url === '/api/me/artists'; });
+    assert.ok(artistCall, 'Create new must save the local roster artist');
+    assert.strictEqual(JSON.parse(artistCall.init.body).name, 'Neon Nova');
     assert.ok(String(page.location.href).indexOf('artists.html') === -1, 'must not bounce to Artist Profiles');
     assert.strictEqual(page.location.href, 'attest.html');
-    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.ok(!draftOf(page.localStorage).artist_id, 'leftover store artist_id must not stay on a create-new Continue');
+    assert.strictEqual(draftOf(page.localStorage).name, 'Neon Nova');
     page.artistMode.value = 'choose';
     if (page.artistMode.listeners.change) page.artistMode.listeners.change();
     const names = page.artistSelect.options.map(function (opt) { return opt.textContent; });
@@ -4360,11 +4132,36 @@ async function run() {
     if (page.artistNew.listeners.input) page.artistNew.listeners.input();
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(12);
-    assert.strictEqual(page.status.textContent, 'We could not create that artist. Try the name again.');
-    assert.ok(page.status.textContent.toLowerCase().indexOf('tenant') === -1);
-    assert.ok(page.status.textContent.toLowerCase().indexOf('tonegrid') === -1);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'create-new Continue must not mint before attest');
     assert.ok(!draftOf(page.localStorage).artist_id, 'dead leftover id must not stay on the draft');
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+    assert.strictEqual(page.location.href, 'attest.html');
+
+    const review = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        title: 'Night Drive',
+        name: 'Neon Nova',
+        genre: 'Pop',
+        language: 'en',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        upload: { allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'artist not found in this tenant' } },
+      ],
+    });
+    review.payBtn.listeners.click({ preventDefault() {} });
+    await flush(12);
+    assert.strictEqual(review.status.textContent, 'We could not create that artist. Try the name again.');
+    assert.ok(review.status.textContent.toLowerCase().indexOf('tenant') === -1);
+    assert.ok(review.status.textContent.toLowerCase().indexOf('tonegrid') === -1);
+    assert.ok(!draftOf(review.localStorage).artist_id, 'dead leftover id must not stay on the draft');
+    assert.ok(String(review.location.href).indexOf('submitted.html') === -1);
   }
 
   async function chooseLeftoverArtistIsGoneNotRecovered() {
@@ -4396,20 +4193,10 @@ async function run() {
     if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
-    if (artistCall) {
-      const artistBody = JSON.parse(artistCall.init.body);
-      assert.notStrictEqual(artistBody.artist_id, leftover, 'must not send the leftover store id');
-      assert.ok(!artistBody.uuid);
-      assert.ok(!artistBody.tonegrid_artist_id);
-    }
-    const releaseCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
-    assert.ok(!releaseCall, 'leftover sandbox artist must not be recovered onto a live release');
-    assert.strictEqual(page.status.textContent, 'We could not create that artist. Try the name again.');
-    assert.ok(page.status.textContent.toLowerCase().indexOf('tenant') === -1);
-    assert.ok(page.status.textContent.toLowerCase().indexOf('tonegrid') === -1);
-    assert.ok(!draftOf(page.localStorage).artist_id, 'dead leftover id must not stay on the draft');
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'leftover pick Continue must not mint before attest');
+    assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'leftover sandbox artist must not be recovered onto a live release');
+    assert.notStrictEqual(draftOf(page.localStorage).artist_id, leftover, 'dead leftover id must not stay on the draft');
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1);
   }
 
   async function basicArtistProfileAutoSelects() {
@@ -4604,61 +4391,101 @@ async function run() {
   }
 
   async function basicHopAudioPostWaitsForStoreHop() {
-    const hold = new Promise(function (resolve) { setTimeout(resolve, 80); });
-    const page = load(filledUpload({
+    const continued = load(filledUpload({
       account: {
         plan: 'basic',
         artist: 'Ada Night',
         upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
       },
+    }));
+    continued.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assertContinueLocalOnly(continued, 'Basic Continue');
+
+    const hold = new Promise(function (resolve) { setTimeout(resolve, 80); });
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: AUDIO,
+      artwork: ART,
       catalogTimeoutMs: 40,
       audioTimeoutMs: 300,
       holdWhen: '/api/tonegrid/tracks/cccccccc-cccc-4ccc-8ccc-cccccccccccc/audio',
       holdFirst: hold,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        artist: 'Ada Night',
+        upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
+      },
       responses: [
-        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
-        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
-    }));
-    page.continueBtn.listeners.click({ preventDefault() {} });
+    });
     await flush(16);
     await new Promise(function (resolve) { setTimeout(resolve, 160); });
     await flush(16);
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
-    assert.ok(audio.length, 'Basic Continue must POST the hopped object key');
+    assert.ok(audio.length, 'Basic Submit must POST the hopped object key');
     audio.forEach(function (call) { assertAudioKey(call, 'Basic hop'); });
     assert.strictEqual(audio.length, 1, 'a store hop slower than catalog timeout must not abort and retry as unreachable');
     assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
-    assert.ok(String(page.location.href).indexOf('attest.html') !== -1, 'slow store hop must still finish Continue');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
   async function creatorHopWavForwardsAndStore502IsNotSuccess() {
     const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
-    const page = load(filledUpload({
+    const continued = load(filledUpload({
       file: wav,
       account: {
         plan: 'creator',
         tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         upload: { allowed: true, used: 0, limit: 8, plan: 'creator', album_allowed: true },
       },
+    }));
+    continued.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assertContinueLocalOnly(continued, 'Creator Continue');
+
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: wav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 8, plan: 'creator', album_allowed: true },
+      },
       responses: [
-        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
-        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
         { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
       ],
-    }));
-    page.continueBtn.listeners.click({ preventDefault() {} });
+    });
     await flush(20);
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
-    assert.ok(audio.length, 'Creator Continue must POST the hop key');
+    assert.ok(audio.length, 'Creator Submit must POST the hop key');
     audio.forEach(function (call) { assertAudioKey(call, 'Creator 502'); });
-    assert.ok(hoppedFile(page.calls, wav), 'Creator Continue hops the WAV the store should receive');
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1, 'Creator store 502 is not a fake success');
+    assert.ok(hoppedFile(page.calls, wav), 'Creator Submit hops the WAV the store should receive');
+    assert.ok(String(page.location.href).indexOf('submitted.html') === -1, 'Creator store 502 is not a fake success');
     assert.match(String(page.status.textContent || ''), /could not reach the store/i);
     assert.ok(!/ToneGrid|retry the hop|try a smaller file/i.test(String(page.status.textContent || '')));
   }
@@ -4666,7 +4493,7 @@ async function run() {
   async function hopConvertedWavStore502IsNotSuccess() {
     const original = { name: 'night-drive.mp3', type: 'audio/mpeg', size: 5 * 1024 * 1024 };
     const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
-    const page = load(filledUpload({
+    const continued = load(filledUpload({
       file: original,
       countConvert: true,
       convertHold: wav,
@@ -4679,32 +4506,84 @@ async function run() {
         tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
       },
+    }));
+    continued.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assertContinueLocalOnly(continued, 'converted WAV Continue');
+
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: original,
+      countConvert: true,
+      convertHold: wav,
+      heldFile: wav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_picked_size: original.size,
+        audio_picked_name: original.name,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 1, plan: 'basic' },
+      },
       responses: [
-        { ok: true, status: 201, data: { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } },
-        { ok: true, status: 201, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } },
-        { ok: true, status: 201, data: { track: { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } } },
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
         { ok: false, status: 502, timedOut: true, data: { error: 'We could not reach the store. Try again.' } },
       ],
-    }));
-    page.continueBtn.listeners.click({ preventDefault() {} });
+    });
     await flush(20);
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
     assert.ok(audio.length, 'must POST the hop key');
     audio.forEach(function (call) { assertAudioKey(call, '502'); });
     assert.ok(hoppedFile(page.calls, wav), '502 path still hopped the converted WAV');
     assert.ok(!hoppedFile(page.calls, original), '502 must not be "fixed" by swapping to the original MP3');
-    assert.ok(String(page.location.href).indexOf('attest.html') === -1, '502 is not a fake success');
+    assert.ok(String(page.location.href).indexOf('submitted.html') === -1, '502 is not a fake success');
     assert.match(String(page.status.textContent || ''), /could not reach the store/i);
   }
 
   async function fatSongNeverHitsVercelAudioBody() {
     const fat = { name: 'fat-master.wav', type: 'audio/wav', size: 7 * 1024 * 1024 };
-    const page = load(filledUpload({ file: fat, responses: uploadResponses.slice() }));
-    page.continueBtn.listeners.click({ preventDefault() {} });
+    const continued = load(filledUpload({ file: fat, responses: uploadResponses.slice() }));
+    continued.continueBtn.listeners.click({ preventDefault() {} });
     await flush();
+    assertContinueLocalOnly(continued, 'fat song Continue');
+    assert.ok(continued.heldMaster === fat || continued.heldPicked === fat, 'Continue must hold the fat file locally');
+
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: fat,
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        name: 'Ada Night',
+        title: 'Night Drive',
+        genre: 'Pop',
+        language: 'en',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Ada Night',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: uploadResponses.concat([
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ]),
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
-    assert.ok(audio.length, 'fat song still attaches');
+    assert.ok(audio.length, 'fat song still attaches after attest');
     audio.forEach(function (call) {
       assertAudioKey(call, 'fat');
       assert.ok(String(call.init.body || '').length < 400, 'Vercel audio POST body stays a tiny object key');
