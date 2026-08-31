@@ -381,6 +381,8 @@ function run() {
   assert.ok(!html.includes('Manage the names music is released under'));
   assert.ok(html.includes('Required. Private. Not the artist name people see. Asked once, then saved on this artist.'));
   assert.ok(html.includes('id="artist-create-legal-first"') && html.includes('id="artist-create-legal-last"'));
+  assert.ok(/id="artist-create-legal-first"[^>]*autocomplete="new-password"/.test(html), 'Artist Profiles create first must not use account autocomplete');
+  assert.ok(/id="artist-create-legal-last"[^>]*autocomplete="new-password"/.test(html), 'Artist Profiles create last must not use account autocomplete');
   assert.ok(html.includes('Create the artist once. Later songs pick that profile — no retype every submit.'));
   assert.ok(html.includes('After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.'));
   assert.ok(html.includes('Import or merge here, not on submit.'));
@@ -703,6 +705,55 @@ async function persistAndImmediateSave() {
   const cancelled = await afterReload.api.deleteArtist('artist-1');
   assert.ok(cancelled && cancelled.cancelled === true, 'Delete still confirms first');
   assert.ok(afterReload.context.confirmCalls >= 1, 'Delete still confirms first');
+
+  const victoriaPage = loadArtists();
+  victoriaPage.nodes['#artist-create-legal-first'].value = 'Victoria';
+  victoriaPage.nodes['#artist-create-legal-last'].value = 'Reyes';
+  victoriaPage.api.applyMe({
+    artist: 'Victoria',
+    profile: {
+      legal_name: 'Victoria Reyes',
+      artists: [{
+        id: 'acct',
+        name: 'Victoria',
+        legal_first: 'Victoria',
+        legal_last: 'Reyes',
+        source: 'created',
+      }],
+    },
+  });
+  victoriaPage.api.openArtistForm('add');
+  assert.strictEqual(victoriaPage.nodes['#artist-create-legal-first'].value, '', 'Artist Profiles create first starts empty, not the account name');
+  assert.strictEqual(victoriaPage.nodes['#artist-create-legal-last'].value, '', 'Artist Profiles create last starts empty, not the account name');
+  victoriaPage.nodes['#artist-create-legal-first'].value = 'Ada';
+  victoriaPage.nodes['#artist-create-legal-first'].value = '';
+  victoriaPage.api.applyMe({
+    artist: 'Victoria',
+    profile: {
+      legal_name: 'Victoria Reyes',
+      artists: [{
+        id: 'acct',
+        name: 'Victoria',
+        legal_first: 'Victoria',
+        legal_last: 'Reyes',
+        source: 'created',
+      }],
+    },
+  });
+  assert.strictEqual(victoriaPage.nodes['#artist-create-legal-first'].value, '', 'emptying Artist Profiles create first must not refill from the account');
+  victoriaPage.api.selectArtist({
+    id: 'act-2',
+    name: 'Night Drive',
+    legal_first: 'Ada',
+    legal_last: 'Night',
+    source: 'created',
+    badge: 'PLAIGROUND',
+    genres: [],
+    photo: '',
+    bio: '',
+  }, 'edit');
+  assert.strictEqual(victoriaPage.nodes['#artist-legal-first'].value, 'Ada', 'edit still shows that artist’s saved legal first');
+  assert.strictEqual(victoriaPage.nodes['#artist-legal-last'].value, 'Night', 'edit still shows that artist’s saved legal last');
 
   const emptyPage = loadArtists();
   emptyPage.api.applyMe({ profile: { artists: [] } });

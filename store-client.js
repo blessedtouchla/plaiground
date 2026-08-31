@@ -2073,16 +2073,34 @@
   }
 
   function hopLegalFields(draft) {
-    var firstEl = document.getElementById('tg-legal-first') || document.getElementById('tg-legal-first-create');
-    var lastEl = document.getElementById('tg-legal-last') || document.getElementById('tg-legal-last-create');
+    var modeEl = document.getElementById('tg-artist-mode');
+    var mode = modeEl ? String(modeEl.value || '').trim() : '';
+    var firstEl = mode === 'create'
+      ? (document.getElementById('tg-legal-first-create') || document.getElementById('tg-legal-first'))
+      : (document.getElementById('tg-legal-first') || document.getElementById('tg-legal-first-create'));
+    var lastEl = mode === 'create'
+      ? (document.getElementById('tg-legal-last-create') || document.getElementById('tg-legal-last'))
+      : (document.getElementById('tg-legal-last') || document.getElementById('tg-legal-last-create'));
     var first = firstEl ? String(firstEl.value || '').trim() : '';
     var last = lastEl ? String(lastEl.value || '').trim() : '';
-    if (!first) first = String((draft && draft.legal_first) || '').trim();
-    if (!last) last = String((draft && draft.legal_last) || '').trim();
+    if (mode !== 'create') {
+      if (!first) first = String((draft && draft.legal_first) || '').trim();
+      if (!last) last = String((draft && draft.legal_last) || '').trim();
+    }
     var out = {};
-    if (first) out.legal_first = first;
-    if (last) out.legal_last = last;
-    if (draft && Array.isArray(draft.writers) && draft.writers.length) out.writers = draft.writers;
+    if (first) {
+      out.legal_first = first;
+      out.first_name = first;
+    }
+    if (last) {
+      out.legal_last = last;
+      out.last_name = last;
+    }
+    if (first && last) {
+      out.writers = [{ first_name: first, last_name: last, name: [first, last].join(' ') }];
+    } else if (draft && Array.isArray(draft.writers) && draft.writers.length) {
+      out.writers = draft.writers;
+    }
     return out;
   }
 
@@ -2094,6 +2112,7 @@
       genre: draft.genre || '',
       price: draft.price || '',
       instrumental: draft.instrumental === true,
+      label: 'PLAIGROUND',
     };
     if (draft.release_id) body.release_id = draft.release_id;
     if (draft.replaced_release_id) body.replace_release_id = draft.replaced_release_id;

@@ -452,18 +452,35 @@ async function applyReleaseCredits(releaseId, songwriter, year, opts) {
     body: rights,
     idempotencyKey: hopIdempotencyKey('rights', 'PUT', '/releases/' + releaseId + '/rights', JSON.stringify(rights)),
   });
-  if (!updated.ok && !isMissingEndpoint(updated)) return updated;
-  return { ok: true };
+  if (updated.ok) return { ok: true };
+  if (isMissingEndpoint(updated)) {
+    const retryBody = storeCredits.rightsEnvelopeRetry(name, year);
+    const retried = await tonegridFetch('/releases/' + releaseId + '/rights', {
+      method: 'PUT',
+      body: retryBody,
+      idempotencyKey: hopIdempotencyKey('rights-retry', 'PUT', '/releases/' + releaseId + '/rights', JSON.stringify(retryBody)),
+    });
+    if (retried.ok) return { ok: true };
+    const fallback = storeCredits.releasePatchFields(name, year);
+    const patchedRights = await tonegridFetch('/releases/' + releaseId, {
+      method: 'PATCH',
+      body: fallback,
+      idempotencyKey: hopIdempotencyKey('credits-rights-patch', 'PATCH', '/releases/' + releaseId, JSON.stringify(fallback)),
+    });
+    if (patchedRights.ok) return { ok: true };
+    return retried.ok === false ? retried : updated;
+  }
+  return updated;
 }
 
 async function attachTrackWriters(trackId, songwriter) {
   const name = songwriter && songwriter.name;
   if (!name || !isUuid(trackId)) return { ok: true, skipped: true };
-  const writerBody = storeCredits.writerCreateBody(name);
+  const writerBody = storeCredits.writerCreateBody(songwriter);
   const created = await tonegridFetch('/writers', {
     method: 'POST',
     body: writerBody,
-    idempotencyKey: hopIdempotencyKey('writer', 'POST', '/writers', name),
+    idempotencyKey: hopIdempotencyKey('writer', 'POST', '/writers', [name, songwriter.first || '', songwriter.last || ''].join('\n')),
   });
   if (!created.ok) {
     if (isMissingEndpoint(created)) return { ok: true, skipped: true };
@@ -473,7 +490,7 @@ async function attachTrackWriters(trackId, songwriter) {
   if (!writerId) {
     return { ok: false, status: 502, data: { error: storeCredits.resolveSongwriter({}, []).error } };
   }
-  const attach = storeCredits.trackWritersBody(writerId);
+  const attach = storeCredits.trackWritersBody(writerId, songwriter);
   const put = await tonegridFetch('/tracks/' + trackId + '/writers', {
     method: 'PUT',
     body: attach,
