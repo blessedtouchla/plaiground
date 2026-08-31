@@ -88,7 +88,18 @@ function makeEl(attrs) {
       if (name === 'max') this.max = '';
     },
     addEventListener(type, fn) {
-      this.listeners[type] = fn;
+      if (!this._listeners) this._listeners = Object.create(null);
+      if (!this._listeners[type]) this._listeners[type] = [];
+      this._listeners[type].push(fn);
+      const el = this;
+      this.listeners[type] = function (event) {
+        const list = el._listeners[type] || [];
+        let i;
+        for (i = 0; i < list.length; i += 1) list[i](event);
+      };
+    },
+    showPicker() {
+      this.pickerOpened = (this.pickerOpened || 0) + 1;
     },
     setCustomValidity(msg) {
       this.customValidity = String(msg || '');
@@ -283,7 +294,14 @@ function run() {
   assert.ok(!/id="tg-release-date"/.test(upload), 'do not add a second required date on upload');
   assert.ok(!/id="tg-release-date"/.test(attest), 'do not add a second required date on attest');
   assert.ok(css.includes('.date-picker') || css.includes('input[type="date"]'));
-  assert.ok(css.includes('color-scheme: dark'));
+  assert.ok(css.includes('color-scheme: light'), 'date inputs must use light scheme so iOS can present the sheet');
+  assert.ok(!/input\.date-picker[^{]*\{[^}]*color-scheme:\s*dark/.test(css.replace(/\n/g, ' ')), 'date inputs must not use color-scheme: dark');
+  assert.ok(/calendar-picker-indicator[\s\S]*?width:\s*100%/.test(css), 'calendar indicator must cover the whole field');
+  assert.ok(/calendar-picker-indicator[\s\S]*?height:\s*100%/.test(css), 'calendar indicator must cover the whole field');
+  assert.ok(!/calendar-picker-indicator[\s\S]*?width:\s*18px/.test(css), 'phone tap target must not be an 18px icon');
+  const storeClient = read('store-client.js');
+  assert.ok(storeClient.includes('showPicker'), 'review date field must open the native picker on tap');
+  assert.ok(!/persistReleaseDate\([^)]*snapIfEmpty:\s*true/.test(storeClient), 'picker tap must not snap a date');
   assert.ok(review.includes('id="tg-preorder-on"'));
   assert.ok(review.includes('id="tg-time-on"'));
   assert.ok(review.includes('id="tg-preorder-date"'));
@@ -305,6 +323,12 @@ function run() {
   assert.ok(!empty.date.min || empty.date.min <= todayLocal(), 'native min must not be the 7-day lock');
   assert.strictEqual(empty.date.required, true);
   assert.strictEqual(empty.date.value, '');
+  assert.ok(empty.date.listeners.click, 'release date must open on a tap of the whole field');
+  empty.date.listeners.click();
+  assert.ok(empty.date.pickerOpened >= 1, 'tapping an empty release date must call showPicker');
+  assert.strictEqual(empty.date.value, '', 'empty tap must not auto-snap a date');
+  empty.date.listeners.change();
+  assert.strictEqual(empty.date.value, '', 'empty change must not auto-snap a date that would close the picker');
   empty.payBtn.listeners.click({ preventDefault() {} });
   assert.strictEqual(empty.status.textContent, 'Release date is required.');
   assert.ok(!String(draftOf(empty.localStorage).release_date || '').trim());
@@ -344,6 +368,8 @@ function run() {
   assert.strictEqual(empty.preorderOn.attrs['aria-checked'], 'true');
   assert.strictEqual(empty.preorderPanel.hidden, false);
   assert.strictEqual(draftOf(empty.localStorage).select_preorder, true);
+  empty.preorderDate.listeners.click();
+  assert.ok(empty.preorderDate.pickerOpened >= 1, 'pre-order date must open the native picker on tap');
   empty.preorderDate.value = min;
   empty.preorderDate.listeners.change();
   assert.strictEqual(draftOf(empty.localStorage).preorder_date, min);

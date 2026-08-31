@@ -62,7 +62,18 @@ function makeEl(attrs) {
     },
     addEventListener(type, fn) {
       this.listeners = this.listeners || {};
-      this.listeners[type] = fn;
+      if (!this._listeners) this._listeners = Object.create(null);
+      if (!this._listeners[type]) this._listeners[type] = [];
+      this._listeners[type].push(fn);
+      const node = this;
+      this.listeners[type] = function (event) {
+        const list = node._listeners[type] || [];
+        let i;
+        for (i = 0; i < list.length; i += 1) list[i](event);
+      };
+    },
+    showPicker() {
+      this.pickerOpened = (this.pickerOpened || 0) + 1;
     },
     setCustomValidity(msg) {
       this.customValidity = String(msg || '');
@@ -1357,6 +1368,8 @@ function run() {
   assert.ok(html.includes('All stores will receive this release.'), 'store copy waits for the live catalog count');
   assert.ok(html.includes('id="edit-release-date"'));
   assert.ok(html.includes('id="edit-release-date-hint"'));
+  assert.ok(/calendar-picker-indicator[\s\S]*?width:\s*100%/.test(css), 'edit date indicator must cover the whole field');
+  assert.ok(read('song.js').includes('showPicker'), 'edit release date must open the native picker on tap');
   assert.ok(html.includes('id="edit-preorder-on"'));
   assert.ok(html.includes('id="edit-time-on"'));
   assert.ok(html.includes('id="edit-artist"'));
@@ -1581,6 +1594,17 @@ function run() {
   futureEdit.ids['edit-release-date'].value = insideEdit;
   futureEdit.ids['edit-release-date'].listeners.change();
   assert.strictEqual(futureEdit.ids['edit-release-date'].value, insideEdit, 'persistEditReleaseDate must not empty a date inside the 7-day window');
+  futureEdit.ids['edit-release-date'].listeners.click();
+  assert.ok(futureEdit.ids['edit-release-date'].pickerOpened >= 1, 'edit release date must open the native picker on tap');
+  futureEdit.ids['edit-preorder-date'].listeners.click();
+  assert.ok(futureEdit.ids['edit-preorder-date'].pickerOpened >= 1, 'edit pre-order date must open the native picker on tap');
+  futureEdit.ids['edit-release-date'].value = '';
+  futureEdit.ids['edit-release-date'].listeners.change();
+  assert.notStrictEqual(futureEdit.ids['edit-release-date'].value, localShift(7), 'empty edit change must not snap the 7-day lock');
+  assert.ok(
+    !futureEdit.ids['edit-release-date'].value || futureEdit.ids['edit-release-date'].value === insideEdit,
+    'empty edit change must keep the last date or stay empty'
+  );
 
   const editCalls = [];
   const editor = loadSong({

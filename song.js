@@ -1224,11 +1224,15 @@
       if (releaseId) writeDraftFor(releaseId, { release_date: picked });
       return picked;
     }
-    var snap = (existing && existing < minSubmitDate()) ? existing : minSubmitDate();
-    dateEl.value = snap;
-    markEditDateState(dateEl, snap, existing);
-    if (releaseId) writeDraftFor(releaseId, { release_date: snap });
-    return snap;
+    if (opts.snapIfEmpty) {
+      var snap = (existing && existing < minSubmitDate()) ? existing : minSubmitDate();
+      dateEl.value = snap;
+      markEditDateState(dateEl, snap, existing);
+      if (releaseId) writeDraftFor(releaseId, { release_date: snap });
+      return snap;
+    }
+    markEditDateState(dateEl, '', existing);
+    return '';
   }
 
   function collectSchedule() {
@@ -1259,12 +1263,34 @@
     };
   }
 
+  function openNativeDatePicker(dateEl) {
+    if (!dateEl || dateEl.disabled || typeof dateEl.showPicker !== 'function') return;
+    try {
+      dateEl.showPicker();
+    } catch (err) {
+      /* Safari throws if the sheet is already open or the call is not from a gesture. */
+    }
+  }
+
+  function bindNativeDatePicker(dateEl) {
+    if (!dateEl || !dateEl.addEventListener) return dateEl;
+    if (dateEl.type !== 'time') {
+      dateEl.type = 'date';
+      if (dateEl.setAttribute) dateEl.setAttribute('type', 'date');
+    }
+    dateEl.addEventListener('click', function () {
+      openNativeDatePicker(dateEl);
+    });
+    return dateEl;
+  }
+
   function bindSchedule() {
     ['edit-preorder-on', 'edit-time-on', 'edit-preorder-date', 'edit-release-time', 'edit-release-timezone', 'edit-release-date'].forEach(function (id) {
       var el = $('#' + id);
       if (!el || !el.addEventListener) return;
+      if (id === 'edit-release-date' || id === 'edit-preorder-date') bindNativeDatePicker(el);
       el.addEventListener('change', function () {
-        if (id === 'edit-release-date') persistEditReleaseDate(el);
+        if (id === 'edit-release-date') persistEditReleaseDate(el, { ignoreEmpty: true });
         collectSchedule();
       });
       el.addEventListener('input', function () {
