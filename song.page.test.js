@@ -1979,6 +1979,41 @@ function run() {
         assert.strictEqual(drafted.context.localStorage.getItem('plaiground.store.draft'), null);
         assert.ok(draftCalls.some((row) => row.method === 'DELETE' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
 
+        const savedDraftCalls = [];
+        const savedDrafted = loadSong({
+          plan: 'basic',
+          me: basicMe,
+          confirm: true,
+          calls: savedDraftCalls,
+          draft: { saved_draft: true, title: 'The recording.' },
+          fetch(url, options) {
+            const method = (options && options.method) || 'GET';
+            if (method === 'DELETE') {
+              return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({ ok: true, removed: true, redirect: '/releases.html' }),
+              });
+            }
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => ({
+                releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'The recording.', status: 'draft' }],
+              }),
+            });
+          },
+        });
+        savedDrafted.api.render({
+          me: basicMe,
+          draft: { saved_draft: true, title: 'The recording.' },
+          release: { uuid: basicMe.tonegrid_release_ids[0], title: 'The recording.', status: 'draft', type: 'single' },
+          analytics: {},
+        });
+        return savedDrafted.api.removeRelease().then(function (savedRemoved) {
+          assert.ok(savedRemoved.ok);
+          assert.strictEqual(savedDrafted.context.localStorage.getItem('plaiground.store.draft'), null, 'save-draft localStorage must drop with Remove');
+
         const liveCalls = [];
         const liveFail = loadSong({
           plan: 'basic',
@@ -2136,6 +2171,7 @@ function run() {
           });
         });
       });
+    });
     });
   });
   });

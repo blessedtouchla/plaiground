@@ -2013,12 +2013,23 @@
     return chain;
   }
 
-  function clearDraftIf(releaseId) {
+  function clearDraftIf(releaseId, title) {
     var draft = readDraft();
     var want = String(releaseId || '').toLowerCase();
-    if (!want || String(draft.release_id || '').toLowerCase() !== want) return;
+    var have = String(draft.release_id || '').toLowerCase();
+    var titleMatch = Boolean(title && draft.title && String(draft.title).trim().toLowerCase() === String(title).trim().toLowerCase());
+    var saved = draft.saved_draft === true || draft.saved_draft === 'true';
+    if (want && have && have === want) {
+      /* this release's upload draft */
+    } else if (titleMatch && (saved || !have)) {
+      /* leftover save-draft with no catalog id */
+    } else {
+      return;
+    }
     try { if (global.localStorage) global.localStorage.removeItem(DRAFT_KEY); } catch (err) {}
     try { if (global.sessionStorage) global.sessionStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    try { if (global.localStorage) global.localStorage.removeItem('plaiground.tonegrid.draft'); } catch (err) {}
+    try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.tonegrid.draft'); } catch (err) {}
   }
 
   function confirmRemove(release) {
@@ -2058,7 +2069,7 @@
         return { ok: false, result: result };
       }
       if (result.data && result.data.removed) {
-        clearDraftIf(id);
+        clearDraftIf(id, (release && release.title) || (lastEdit.draft && lastEdit.draft.title) || '');
         try { global.location.href = 'releases.html'; } catch (err) {}
         return { ok: true, removed: true, redirect: 'releases.html', result: result };
       }
