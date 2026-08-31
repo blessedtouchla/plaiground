@@ -280,7 +280,9 @@ function releaseBelongsToCreateBody(row, body) {
   if (!row) return false;
   const wantTitle = String((body && body.title) || '').trim();
   const gotTitle = String((row && row.title) || '').trim();
-  return Boolean(wantTitle && gotTitle && sameSongText(wantTitle, gotTitle));
+  if (wantTitle && gotTitle && sameSongText(wantTitle, gotTitle)) return true;
+  const stem = audioStemOf(body && (body.audio_name || body.audioName || body.audio_picked_name));
+  return Boolean(stem && gotTitle && sameSongText(gotTitle, stem));
 }
 
 const RECORD_EXISTS_COPY = 'A record with these details already exists.';
@@ -303,8 +305,36 @@ function isAlreadyExistsResult(result) {
   if (!result || result.ok) return false;
   const msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
   if (/already exists|already exist|a record with these details/.test(msg)) return true;
+  if (/fingerprint|audio[-_ ]?hash|unique constraint|duplicate key/.test(msg)) return true;
   if (result.status === 409 && /duplicate|unique|exists/.test(msg)) return true;
   return false;
+}
+
+const PROTECTED_CATALOG_IDS = [
+  'c0102e1c-b62b-4dcf-9fe1-00d063df51a4',
+  '6629b532-2e78-4be6-84eb-e4dfa9ac33e5',
+  '490b789a-0a33-4372-9d81-665f47b3cbf1',
+  '1f26369b-e107-4c79-bde1-4c5382f9d511',
+  'df51342b-ba22-4093-93ff-35b6402b61c0',
+];
+
+function protectedCatalogTitleOf(title) {
+  return String(title || '').trim().toLowerCase().replace(/,/g, '');
+}
+
+function isProtectedCatalogRelease(id, title) {
+  const nid = String(id || '').trim().toLowerCase();
+  if (nid && PROTECTED_CATALOG_IDS.some((have) => sameCatalogId(have, nid))) return true;
+  const n = protectedCatalogTitleOf(title);
+  return n === 'lightning'
+    || n === 'thank you dolly'
+    || n === 'metete en el groove'
+    || n === 'cgi'
+    || n === 'vhnjuk';
+}
+
+function audioStemOf(name) {
+  return String(name || '').trim().replace(/\.[a-z0-9]{2,5}$/i, '').trim();
 }
 
 function isDeletableStoreLeftover(status) {
@@ -364,13 +394,13 @@ function wantArtistNameOf(body) {
 
 function artistMatchesCollision(row, body, artistId, wantName) {
   const gotId = artistIdOfRelease(row);
-  if (gotId && artistId) return sameCatalogId(gotId, artistId);
+  const idMatch = Boolean(gotId && artistId && sameCatalogId(gotId, artistId));
   const gotName = artistNameOf(row);
   const want = String(wantName || wantArtistNameOf(body) || '').trim();
-  if (gotName && want) {
-    return artistCheck.normalizeName(gotName) === artistCheck.normalizeName(want);
-  }
-  return false;
+  const nameMatch = Boolean(
+    gotName && want && artistCheck.normalizeName(gotName) === artistCheck.normalizeName(want)
+  );
+  return idMatch || nameMatch;
 }
 
 function artistConflictsCollision(row, body, artistId, wantName) {
@@ -428,7 +458,7 @@ async function findStoreCollision(body, artistId, options) {
       const row = unwrapRelease(raw) || raw;
       const id = String((row && (row.uuid || row.release_uuid || row.id)) || '').trim();
       if (!isUuid(id) || seen[id.toLowerCase()]) continue;
-      if (catalogHasId(skipIds, id)) continue;
+      if (isProtectedCatalogRelease(id, row && row.title)) continue;
       if (!releaseBelongsToCreateBody(row, body)) continue;
       seen[id.toLowerCase()] = true;
       let detail = row;
@@ -1046,13 +1076,19 @@ async function createRelease(req, res) {
   const hopCredits = storeCredits.creditsFromHop(body, songwriter, creditYear);
   const storedCredits = storeCredits.storedCreditFields(hopCredits);
 
-  async function finishContinuedRelease(existingId) {
+  async function attachContinuedRelease(existingId) {
     const credited = await applyReleaseCredits(existingId, hopCredits, { patch: true });
-    if (!credited.ok) {
-      sendJson(res, credited.status, credited.data);
+    if (!credited.ok) return { ok: false, credited: credited };
+    await persistReleaseMeta(scope.row, existingId, null, undefined, '', '', storedCredits);
+    return { ok: true };
+  }
+
+  async function finishContinuedRelease(existingId) {
+    const attached = await attachContinuedRelease(existingId);
+    if (!attached.ok) {
+      sendJson(res, attached.credited.status, attached.credited.data);
       return false;
     }
-    await persistReleaseMeta(scope.row, existingId, null, undefined, '', '', storedCredits);
     sendJson(res, 200, { uuid: existingId, continued: true });
     return true;
   }
@@ -1196,12 +1232,15 @@ async function createRelease(req, res) {
   }
 
   async function continueStoreLeftover(leftoverId) {
-    if (catalogHasId(existingIds, leftoverId)) return false;
+    if (isProtectedCatalogRelease(leftoverId)) return false;
     await accounts.updateCatalog(scope.userId, {
       artistId: artistId,
       releaseId: leftoverId,
     });
-    return finishContinuedRelease(leftoverId);
+    const attached = await attachContinuedRelease(leftoverId);
+    if (!attached.ok) return false;
+    sendJson(res, 200, { uuid: leftoverId, continued: true });
+    return true;
   }
 
   const result = await postRelease(payload);
@@ -1220,13 +1259,19 @@ async function createRelease(req, res) {
       wantName: await resolveWantArtistName(body, artistId, scope.row),
     });
     if (leftover && leftover.id) {
+      if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) {
+        sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
+        return;
+      }
       if (isBlockingStoreLeftover(leftover.status)) {
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
         return;
       }
+      if (await continueStoreLeftover(leftover.id)) return;
       if (isDeletableStoreLeftover(leftover.status)) {
         const wiped = await deleteStoreRelease(leftover.id);
         if (isStoreDeleteGone(wiped)) {
+          await accounts.removeRelease(scope.userId, leftover.id);
           const retried = await postRelease(payload, { collideRetry: true });
           if (retried.ok) {
             if (!await rememberCreatedRelease(retried)) return;
@@ -1239,7 +1284,7 @@ async function createRelease(req, res) {
           }
         }
       }
-      if (await continueStoreLeftover(leftover.id)) return;
+      sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
       return;
     }
   }

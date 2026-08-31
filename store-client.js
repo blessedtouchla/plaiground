@@ -959,15 +959,16 @@
 
   function fileForStoreUpload(file) {
     var draft = readDraft();
+    var held = fileFromHeld(heldAudioFile);
     if (alreadyUploaded(draft)) return null;
-    if (looksLikeWav(heldAudioFile) && (alreadyConverted(draft) || !file || isMp3File(file))) {
-      return heldAudioFile;
+    if (looksLikeWav(held) && (alreadyConverted(draft) || !file || isMp3File(file))) {
+      return held;
     }
-    if (!file) return heldAudioFile || null;
+    if (!file) return held || null;
     if (alreadyConverted(draft) && isMp3File(file) && !looksLikeWav(file)) {
-      return looksLikeWav(heldAudioFile) ? heldAudioFile : null;
+      return looksLikeWav(held) ? held : null;
     }
-    return file;
+    return fileFromHeld(file) || file;
   }
 
   function pickedOriginalFile(file) {
@@ -1073,46 +1074,109 @@
     return false;
   }
 
+  function isHeldRecord(value) {
+    return Boolean(value && value.__held === 1 && (value.buffer || Number(value.size) > 0));
+  }
+
+  function cloneForHold(file) {
+    if (!file) return Promise.resolve(null);
+    if (isHeldRecord(file)) return Promise.resolve(file);
+    if (typeof file.arrayBuffer !== 'function') return Promise.resolve(file);
+    return Promise.resolve().then(function () {
+      return file.arrayBuffer();
+    }).then(function (buf) {
+      if (!buf || !buf.byteLength) return file;
+      return {
+        __held: 1,
+        name: file.name || '',
+        type: file.type || '',
+        lastModified: file.lastModified || Date.now(),
+        size: buf.byteLength,
+        buffer: buf,
+      };
+    }).catch(function () {
+      return file;
+    });
+  }
+
+  function fileFromHeld(value) {
+    if (!value) return null;
+    if (isHeldRecord(value)) {
+      if (typeof Blob === 'function' && value.buffer) {
+        try {
+          var blob = new Blob([value.buffer], { type: value.type || 'audio/wav' });
+          if (typeof File === 'function') {
+            return new File([blob], value.name || 'audio.wav', {
+              type: value.type || 'audio/wav',
+              lastModified: value.lastModified || Date.now(),
+            });
+          }
+          blob.name = value.name || 'audio.wav';
+          return blob;
+        } catch (err) {}
+      }
+      return {
+        name: value.name || 'audio.wav',
+        type: value.type || 'audio/wav',
+        size: value.size || (value.buffer && value.buffer.byteLength) || 0,
+        buffer: value.buffer,
+      };
+    }
+    if (value && value.size === 0 && value.buffer) {
+      return fileFromHeld({
+        __held: 1,
+        name: value.name,
+        type: value.type,
+        lastModified: value.lastModified,
+        size: value.buffer.byteLength || 0,
+        buffer: value.buffer,
+      });
+    }
+    return value;
+  }
+
   function rememberAudioFile(file) {
     if (!file) return Promise.resolve(null);
-    heldAudioFile = file;
-    return persistHeldAudio(file);
+    heldAudioFile = fileFromHeld(file) || file;
+    return persistHeldAudio(heldAudioFile);
   }
 
   function persistHeldSlot(file, key, assign) {
-    var ready = file;
-    if (ready && typeof assign === 'function') assign(ready);
-    return new Promise(function (resolve) {
-      if (!ready) {
-        resolve(null);
-        return;
-      }
-      try {
-        if (typeof indexedDB === 'undefined' || !indexedDB.open) {
-          resolve(ready);
+    return cloneForHold(file).then(function (stored) {
+      var live = (file && Number(file.size) > 0 ? file : null) || fileFromHeld(stored) || file;
+      if (live && typeof assign === 'function') assign(live);
+      return new Promise(function (resolve) {
+        if (!stored && !live) {
+          resolve(null);
           return;
         }
-        var req = indexedDB.open(AUDIO_HOLD_DB, 1);
-        req.onerror = function () { resolve(ready); };
-        req.onupgradeneeded = function () {
-          if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
-            req.result.createObjectStore(AUDIO_HOLD_STORE);
+        try {
+          if (typeof indexedDB === 'undefined' || !indexedDB.open) {
+            resolve(live || stored);
+            return;
           }
-        };
-        req.onsuccess = function () {
-          try {
-            var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readwrite');
-            tx.oncomplete = function () { resolve(ready); };
-            tx.onerror = function () { resolve(ready); };
-            tx.onabort = function () { resolve(ready); };
-            tx.objectStore(AUDIO_HOLD_STORE).put(ready, key);
-          } catch (err) {
-            resolve(ready);
-          }
-        };
-      } catch (err) {
-        resolve(ready);
-      }
+          var req = indexedDB.open(AUDIO_HOLD_DB, 1);
+          req.onerror = function () { resolve(live || stored); };
+          req.onupgradeneeded = function () {
+            if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
+              req.result.createObjectStore(AUDIO_HOLD_STORE);
+            }
+          };
+          req.onsuccess = function () {
+            try {
+              var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readwrite');
+              tx.oncomplete = function () { resolve(live || stored); };
+              tx.onerror = function () { resolve(live || stored); };
+              tx.onabort = function () { resolve(live || stored); };
+              tx.objectStore(AUDIO_HOLD_STORE).put(stored || live, key);
+            } catch (err) {
+              resolve(live || stored);
+            }
+          };
+        } catch (err) {
+          resolve(live || stored);
+        }
+      });
     });
   }
 
@@ -1161,18 +1225,29 @@
             var getMaster = store.get(AUDIO_HOLD_KEY);
             var getPicked = store.get(AUDIO_PICKED_KEY);
             var pending = 2;
+            function takeHeld(got, picked) {
+              var next = fileFromHeld(got);
+              if (!next) return;
+              if (picked) {
+                if (!heldPickedFile || !heldPickedFile.size) heldPickedFile = next;
+                return;
+              }
+              if (!heldAudioFile || !heldAudioFile.size) heldAudioFile = next;
+            }
             function one() {
               pending -= 1;
               if (pending <= 0) done();
             }
+            takeHeld(getMaster.result, false);
+            takeHeld(getPicked.result, true);
             getMaster.onerror = one;
             getPicked.onerror = one;
             getMaster.onsuccess = function () {
-              if (getMaster.result && !heldAudioFile) heldAudioFile = getMaster.result;
+              takeHeld(getMaster.result, false);
               one();
             };
             getPicked.onsuccess = function () {
-              if (getPicked.result && !heldPickedFile) heldPickedFile = getPicked.result;
+              takeHeld(getPicked.result, true);
               one();
             };
           } catch (err) {
@@ -1215,7 +1290,7 @@
     var next = writeDraft({
       release_id: living.id,
       track_id: trackId || draft.track_id || '',
-      audio_uploaded: Boolean((living.tracks && living.tracks.length) || draft.audio_uploaded || trackId),
+      audio_uploaded: Boolean(draft.audio_uploaded),
       audio_attached: Boolean(draft.audio_attached || draft.audio_name || (living.tracks && living.tracks.length)),
       replaced_release_id: '',
     });
@@ -1226,35 +1301,37 @@
   function findLivingSongRelease(draft, skipId) {
     var current = draft || readDraft();
     var ids = catalogReleaseIds().filter(function (id) {
-      return !sameUuid(id, skipId) && !isKnownDeadRelease(id);
+      return !sameUuid(id, skipId) && !isKnownDeadRelease(id) && !isProtectedCatalogRelease(id);
     });
     if (!ids.length) return Promise.resolve(null);
-    var matches = [];
-    var chain = Promise.resolve();
-    ids.forEach(function (id) {
-      chain = chain.then(function () {
-        return fetchReleaseTracks(id).then(function (loaded) {
-          if (!loaded.ok) {
-            if (isReleaseMissing(loaded.result)) markDeadRelease(id);
-            return;
-          }
-          var title = releaseTitleOf(loaded.data || (loaded.result && loaded.result.data));
-          var want = String((current && current.title) || '').trim();
-          if (want && title && !sameSongText(title, want)) return;
-          if (want && !title && !(loaded.tracks && loaded.tracks.length)) return;
-          matches.push({
-            id: id,
-            tracks: loaded.tracks || [],
-            result: loaded.result,
-            data: loaded.data,
-          });
-        });
+    var index = 0;
+    function next() {
+      if (index >= ids.length) return Promise.resolve(null);
+      var id = ids[index];
+      index += 1;
+      return fetchReleaseTracks(id).then(function (loaded) {
+        if (!loaded.ok) {
+          if (isReleaseMissing(loaded.result)) markDeadRelease(id);
+          return next();
+        }
+        var data = loaded.data || (loaded.result && loaded.result.data);
+        var title = releaseTitleOf(data);
+        var want = String((current && current.title) || '').trim();
+        if (want && title && !sameSongText(title, want)) return next();
+        if (want && !title && !(loaded.tracks && loaded.tracks.length)) return next();
+        if (isProtectedCatalogRelease(id, title)) return next();
+        if (!isAdoptableStoreStatus(releaseStatusOf(data))) return next();
+        return {
+          id: id,
+          tracks: loaded.tracks || [],
+          result: loaded.result,
+          data: data,
+          status: releaseStatusOf(data),
+          title: title,
+        };
       });
-    });
-    return chain.then(function () {
-      var withTracks = matches.filter(function (row) { return row.tracks && row.tracks.length; });
-      return withTracks[0] || matches[0] || null;
-    });
+    }
+    return next();
   }
 
   function shouldReattach(draft, hasFile, storeTracks) {
@@ -1297,6 +1374,53 @@
 
   function sameSongText(a, b) {
     return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  }
+
+  function releaseStatusOf(data) {
+    if (!data || typeof data !== 'object') return '';
+    if (data.status) return String(data.status);
+    if (data.release && data.release.status) return String(data.release.status);
+    if (data.data && data.data.status) return String(data.data.status);
+    return '';
+  }
+
+  function isAdoptableStoreStatus(status) {
+    var s = String(status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (!s) return true;
+    if (s === 'draft' || s === 'rejected' || s === 'needs_fix') return true;
+    if (
+      s === 'live'
+      || s === 'pending'
+      || s === 'pending_review'
+      || s === 'processing'
+      || s === 'approved'
+      || s === 'delivering'
+      || s === 'delivered'
+      || s === 'qc_inspection'
+    ) return false;
+    return true;
+  }
+
+  var PROTECTED_CATALOG_IDS = [
+    'c0102e1c-b62b-4dcf-9fe1-00d063df51a4',
+    '6629b532-2e78-4be6-84eb-e4dfa9ac33e5',
+    '490b789a-0a33-4372-9d81-665f47b3cbf1',
+    '1f26369b-e107-4c79-bde1-4c5382f9d511',
+    'df51342b-ba22-4093-93ff-35b6402b61c0',
+  ];
+
+  function isProtectedCatalogRelease(id, title) {
+    var nid = String(id || '').trim().toLowerCase();
+    var i;
+    for (i = 0; i < PROTECTED_CATALOG_IDS.length; i += 1) {
+      if (sameUuid(PROTECTED_CATALOG_IDS[i], nid)) return true;
+    }
+    var n = String(title || '').trim().toLowerCase().replace(/,/g, '');
+    return n === 'lightning'
+      || n === 'thank you dolly'
+      || n === 'metete en el groove'
+      || n === 'cgi'
+      || n === 'vhnjuk';
   }
 
   function releaseBelongsToThisSong(draft, fields) {
@@ -1529,10 +1653,22 @@
           result: { data: { error: 'Save the upload details first so a catalog artist exists.' } },
         };
       }
-      return createRelease(current, current.release_date || '').then(function (created) {
-        var resolved = asResolvedRelease(created);
-        if (resolved && (resolved.failed || resolved.missing)) resolved.createFreshFailed = true;
-        return resolved;
+      return findLivingSongRelease(current, '').then(function (living) {
+        if (living && living.id) {
+          var adopted = adoptLivingRelease(current, living);
+          return {
+            ok: true,
+            draft: adopted,
+            found: true,
+            tracks: living.tracks || [],
+            result: living.result,
+          };
+        }
+        return createRelease(current, current.release_date || '').then(function (created) {
+          var resolved = asResolvedRelease(created);
+          if (resolved && (resolved.failed || resolved.missing)) resolved.createFreshFailed = true;
+          return resolved;
+        });
       });
     });
   }
@@ -1600,13 +1736,7 @@
       });
     }
     if (!id) {
-      if (selectedAudio()) return createFreshRelease(current);
-      return findLivingSongRelease(current, '').then(function (living) {
-        if (living && living.id) {
-          return { ok: true, draft: adoptLivingRelease(current, living), found: true, tracks: living.tracks || [], result: living.result };
-        }
-        return createFreshRelease(current);
-      });
+      return createFreshRelease(current);
     }
     return fetchReleaseTracks(id).then(function (loaded) {
       if (loaded.ok) {
@@ -2152,6 +2282,9 @@
     if (draft.replaced_release_id) body.replace_release_id = draft.replaced_release_id;
     if (!body.instrumental && draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
+    if (draft.name) body.artist = draft.name;
+    if (draft.audio_name) body.audio_name = draft.audio_name;
+    if (draft.audio_picked_name) body.audio_picked_name = draft.audio_picked_name;
     return Object.assign(body, hopLegalFields(draft), hopCreditFields(draft));
   }
 
@@ -2161,14 +2294,15 @@
     var picked = (input && input.files && input.files[0])
       || (input && input._plaigroundFile)
       || null;
-    if (alreadyConverted(draft) && looksLikeWav(heldAudioFile)) {
-      if (!picked || isMp3File(picked) || picked === heldAudioFile) return heldAudioFile;
+    var held = fileFromHeld(heldAudioFile);
+    if (alreadyConverted(draft) && looksLikeWav(held)) {
+      if (!picked || isMp3File(picked) || picked === heldAudioFile || picked === held) return held;
     }
-    if (picked) {
+    if (picked && Number(picked.size) > 0) {
       rememberPickedAudio(picked);
       return picked;
     }
-    return heldAudioFile || null;
+    return held || null;
   }
 
   function selectedArtwork() {
@@ -4956,6 +5090,7 @@
         });
       }
     }
+    restoreHeldAudio();
     var retryBtn = document.querySelector('[data-upload-retry]');
     if (retryBtn && retryBtn.addEventListener && trigger) {
       retryBtn.addEventListener('click', function (event) {

@@ -3802,7 +3802,14 @@ async function run() {
   assert.ok(source.includes('draftHasTrackFile'));
   assert.ok(source.includes('persistHeldAudio'));
   assert.ok(source.includes('persistLocalUploadFiles'));
+  assert.ok(source.includes('cloneForHold'));
+  assert.ok(source.includes('fileFromHeld'));
+  assert.ok(source.includes('isProtectedCatalogRelease'));
+  assert.ok(source.includes('isAdoptableStoreStatus'));
+  assert.ok(!/if \(selectedAudio\(\)\) return createFreshRelease/.test(source), 'selectedAudio must not skip catalog adopt');
   assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
+  assert.ok(uploadHtml.includes('upload-continue-row'), 'Save draft sits next to Continue on phone');
+  assert.ok(!/Delete draft/.test(uploadHtml), 'must not add a Delete draft control');
   assert.ok(source.includes('isAudioRequiredError'));
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
@@ -4595,10 +4602,100 @@ async function run() {
     assert.ok(draftOf(page.localStorage).artwork_object_key.indexOf('covers/') === 0, 'covers persist via object key');
   }
 
+  async function reviewRetryAdoptsOwnedDraftAndHopsHeldWav() {
+    const leftover = '99999999-9999-4999-8999-999999999999';
+    const trackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
+    const dolly = 'df51342b-ba22-4093-93ff-35b6402b61c0';
+    const metete = '6629b532-2e78-4be6-84eb-e4dfa9ac33e5';
+    const cgi = '490b789a-0a33-4372-9d81-665f47b3cbf1';
+    const vhnjuk = 'c0102e1c-b62b-4dcf-9fe1-00d063df51a4';
+    const held = {
+      __held: 1,
+      name: 'The recording.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-11',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'Rainbow Road',
+        genre: 'Blues',
+        language: 'en',
+        audio_name: 'The recording.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-11',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [leftover, lightning, dolly, metete, cgi, vhnjuk],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', tracks: [{ uuid: trackId }] } },
+        { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
+        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', tracks: [{ uuid: trackId }] } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 0, 'owned draft must be adopted, not created again');
+    assert.ok(page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases/' + leftover;
+    }), 'must GET the owned Rainbow Road draft');
+    [lightning, dolly, metete, cgi, vhnjuk].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1 && String((call.init && call.init.method) || 'GET').toUpperCase() === 'DELETE';
+      }), 'must not touch protected ' + id);
+      assert.ok(!page.calls.some(function (call) {
+        return call.url === '/api/tonegrid/releases/' + id;
+      }), 'must not continue-over protected ' + id);
+    });
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'must hop restored held bytes onto the leftover track');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + trackId + '/audio');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0
+        && call.init
+        && call.init.body
+        && call.init.body.name === 'The recording.wav'
+        && Number(call.init.body.size) === 4096;
+    }), 'hop must send restored bytes even with no file input');
+
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const createAfterRetry = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createAfterRetry.length, 0, 'Retry must not POST a second create');
+    const audioAfter = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audioAfter.length >= 2, 'Retry must hop audio again');
+    assert.ok(audioAfter.every(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/' + trackId + '/audio';
+    }), 'Retry must attach to the same leftover track');
+  }
+
   await basicHopAudioPostWaitsForStoreHop();
   await creatorHopWavForwardsAndStore502IsNotSuccess();
   await hopConvertedWavStore502IsNotSuccess();
   await fatSongNeverHitsVercelAudioBody();
+  await reviewRetryAdoptsOwnedDraftAndHopsHeldWav();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();

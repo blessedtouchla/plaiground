@@ -1117,6 +1117,19 @@ body.app > .plai-bubble {
   flex: 0 1 auto;
   white-space: nowrap;
 }
+.upload-leave-actions [data-upload-save-draft],
+.upload-continue-row [data-upload-save-draft] {
+  display: inline-flex;
+  visibility: visible;
+  pointer-events: auto;
+}
+.upload-continue-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
 .plan-renews {
   color: var(--gold);
   font-size: 14px;
@@ -1451,6 +1464,14 @@ body.artist-editing { overflow: hidden; }
   }
   .upload-leave-actions {
     justify-content: flex-start;
+    width: 100%;
+  }
+  .upload-leave-actions [data-upload-save-draft],
+  .upload-continue-row [data-upload-save-draft] {
+    min-height: 44px;
+    align-items: center;
+  }
+  .upload-continue-row {
     width: 100%;
   }
   .artist-ai-cols { grid-template-columns: 1fr; }
