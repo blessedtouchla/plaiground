@@ -2013,23 +2013,29 @@
     return chain;
   }
 
+  function wipeUploadDraftStorage() {
+    try { if (global.localStorage) global.localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    try { if (global.sessionStorage) global.sessionStorage.removeItem(DRAFT_KEY); } catch (err) {}
+    try { if (global.localStorage) global.localStorage.removeItem('plaiground.tonegrid.draft'); } catch (err) {}
+    try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.tonegrid.draft'); } catch (err) {}
+    var membership = global.PlaigroundMembership;
+    if (membership && typeof membership.clearNewReleaseState === 'function') {
+      membership.clearNewReleaseState();
+    }
+    var files = global.PlaigroundUploadDraftFiles;
+    if (files && typeof files.wipeHeld === 'function') {
+      files.wipeHeld(global);
+    }
+  }
+
   function clearDraftIf(releaseId, title) {
     var draft = readDraft();
     var want = String(releaseId || '').toLowerCase();
     var have = String(draft.release_id || '').toLowerCase();
     var titleMatch = Boolean(title && draft.title && String(draft.title).trim().toLowerCase() === String(title).trim().toLowerCase());
-    var saved = draft.saved_draft === true || draft.saved_draft === 'true';
-    if (want && have && have === want) {
-      /* this release's upload draft */
-    } else if (titleMatch && (saved || !have)) {
-      /* leftover save-draft with no catalog id */
-    } else {
-      return;
+    if ((want && have && have === want) || titleMatch || !have) {
+      wipeUploadDraftStorage();
     }
-    try { if (global.localStorage) global.localStorage.removeItem(DRAFT_KEY); } catch (err) {}
-    try { if (global.sessionStorage) global.sessionStorage.removeItem(DRAFT_KEY); } catch (err) {}
-    try { if (global.localStorage) global.localStorage.removeItem('plaiground.tonegrid.draft'); } catch (err) {}
-    try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.tonegrid.draft'); } catch (err) {}
   }
 
   function confirmRemove(release) {
@@ -2070,6 +2076,7 @@
       }
       if (result.data && result.data.removed) {
         clearDraftIf(id, (release && release.title) || (lastEdit.draft && lastEdit.draft.title) || '');
+        wipeUploadDraftStorage();
         try { global.location.href = 'releases.html'; } catch (err) {}
         return { ok: true, removed: true, redirect: 'releases.html', result: result };
       }

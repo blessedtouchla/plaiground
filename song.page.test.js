@@ -217,6 +217,7 @@ function loadSong(opts) {
     setTimeout,
     clearTimeout,
     PlaigroundCatalogTimeoutMs: opts.catalogTimeoutMs || undefined,
+    deletedDbs: [],
     localStorage: {
       data: opts.draft ? { 'plaiground.store.draft': JSON.stringify(opts.draft) } : {},
       getItem(key) { return this.data[key] || null; },
@@ -289,6 +290,11 @@ function loadSong(opts) {
         return result;
       },
       account() { return opts.me || null; },
+      clearNewReleaseState() {
+        context.localStorage.removeItem('plaiground.store.draft');
+        context.localStorage.removeItem('plaiground.tonegrid.draft');
+        context.deletedDbs.push('plaiground-held-audio');
+      },
     },
     PlaigroundUploadCatalog: {
       GENRES: ['Electronic', 'Pop', 'Hip-Hop', 'Afrobeats'],
@@ -322,6 +328,7 @@ function loadSong(opts) {
       fillUploadSelects() {},
     },
   };
+  context.deletedDbs = [];
   context.window = context;
   context.globalThis = context;
   context.document.createElement = function () { return makeEl({}); };
@@ -940,6 +947,7 @@ function run() {
   assert.ok(read('song.js').includes('AUDIO_CHUNK_BYTES'));
   assert.ok(!html.includes('indexedDB'));
   assert.ok(!read('song.js').includes('indexedDB'));
+  assert.ok(read('song.js').includes('clearNewReleaseState') || read('song.js').includes('wipeHeld'), 'Remove wipes held audio through the existing draft helper, not a song.js idb hop');
   assert.ok(html.includes('0'));
   assert.ok(html.includes('$0.00'));
   assert.ok(css.includes('.cover-lg.has-art'));
@@ -1977,6 +1985,7 @@ function run() {
         assert.strictEqual(removed.redirect, 'releases.html');
         assert.strictEqual(drafted.context.location.href, 'releases.html');
         assert.strictEqual(drafted.context.localStorage.getItem('plaiground.store.draft'), null);
+        assert.ok(drafted.context.deletedDbs.indexOf('plaiground-held-audio') !== -1, 'Remove wipes held audio so upload cannot restore it');
         assert.ok(draftCalls.some((row) => row.method === 'DELETE' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)));
 
         const savedDraftCalls = [];
@@ -2013,6 +2022,7 @@ function run() {
         return savedDrafted.api.removeRelease().then(function (savedRemoved) {
           assert.ok(savedRemoved.ok);
           assert.strictEqual(savedDrafted.context.localStorage.getItem('plaiground.store.draft'), null, 'save-draft localStorage must drop with Remove');
+          assert.ok(savedDrafted.context.deletedDbs.indexOf('plaiground-held-audio') !== -1, 'save-draft held audio must drop with Remove');
 
         const liveCalls = [];
         const liveFail = loadSong({
