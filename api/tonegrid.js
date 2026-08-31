@@ -57,6 +57,7 @@ const coverUrl = require('../lib/cover-url');
 const profileLib = require('../lib/profile');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
+const splitSheets = require('../lib/split-sheets');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
 const audioConvert = require('../lib/audio-convert');
@@ -2402,7 +2403,8 @@ async function submitRelease(req, res, releaseId) {
 
   const next = unwrapRelease(submitted.data) || submitted.data || {};
   const submittedStatus = String(next.status || 'pending').toLowerCase();
-  await persistReleaseMeta(scope.row, releaseId, submittedStatus, '', '', '', credits);
+  const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
+  await persistReleaseMeta(scope.row, releaseId, submittedStatus, '', '', '', Object.assign({}, credits || {}, splitMeta));
   sendJson(res, submitted.status, {
     ok: true,
     signed: Boolean(signwellInfo.signed),

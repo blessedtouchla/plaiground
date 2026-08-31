@@ -2584,6 +2584,12 @@ body:not(.app) > .app-main > .topbar { display: none; }
   gap: 16px;
 }
 .release-tiles[hidden] { display: none !important; }
+[data-split-sheets] > p { color: var(--muted); margin: 0 0 14px; }
+[data-split-sheets-actions],
+[data-song-split-actions] { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+[data-song-split-preview][hidden],
+[data-song-split-download][hidden],
+[data-song-split-attest][hidden] { display: none !important; }
 [data-has-release][hidden],
 [data-first-song][hidden] { display: none !important; }
 .release-tile {

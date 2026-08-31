@@ -327,6 +327,7 @@
       el.hidden = true;
     });
     renderOverview(cards);
+    renderSplitSheets(me);
     hydrateOverviewCovers(cards);
     var plan = String(me.plan || '').toLowerCase();
     var paid = plan === 'creator' || plan === 'pro';
@@ -613,6 +614,40 @@
       list = global.PlaigroundReleaseCredits.withSavedDraft(list, readDraft());
     }
     renderReleaseTiles(list);
+  }
+
+  function splitSheetsApi() {
+    return (typeof PlaigroundSplitSheets !== 'undefined' && PlaigroundSplitSheets)
+      || global.PlaigroundSplitSheets
+      || null;
+  }
+
+  function renderSplitSheets(me) {
+    var host = $('[data-split-sheets-rows]');
+    if (!host) return;
+    var api = splitSheetsApi();
+    var works = api && typeof api.latestWorks === 'function'
+      ? api.latestWorks(me, readDraft(), 5)
+      : [];
+    var empty = !works.length;
+    $all('[data-split-sheets-empty]').forEach(function (el) { el.hidden = !empty; });
+    $all('[data-split-sheets-table]').forEach(function (el) { el.hidden = empty; });
+    host.textContent = '';
+    works.forEach(function (work) {
+      var tr = document.createElement('tr');
+      var title = document.createElement('td');
+      var name = document.createElement('b');
+      name.textContent = work.title || 'Untitled';
+      title.appendChild(name);
+      var writer = document.createElement('td');
+      writer.textContent = work.writer || '—';
+      var status = document.createElement('td');
+      status.textContent = work.status_copy || work.status_label || 'no';
+      tr.appendChild(title);
+      tr.appendChild(writer);
+      tr.appendChild(status);
+      host.appendChild(tr);
+    });
   }
 
   function renderReleaseTiles(cards) {
@@ -1433,6 +1468,7 @@
     fill: fillAccount,
     markPlanOption: markPlanOption,
     renderOverview: renderOverview,
+    renderSplitSheets: renderSplitSheets,
     stripOverviewLeftoverRows: stripOverviewLeftoverRows,
     accountPhoto: accountPhoto,
     readPhotoFile: readPhotoFile,

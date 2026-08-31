@@ -123,6 +123,13 @@ function run() {
   assert.ok(/data-for-plans="creator pro"[\s\S]*Boosts/.test(dash), 'Boost shortcut is Creator/Pro only');
   assert.ok(/data-for-plans="creator pro"[\s\S]*Publishing/.test(dash), 'Publishing shortcut is Creator/Pro only');
   assert.ok(dash.includes('data-plai-talk') && dash.includes('Talk to PLAI'), 'Overview Talk to PLAI CTA is missing');
+  assert.ok(dash.includes('data-split-sheets'), 'Overview Split sheets section is missing');
+  assert.ok(dash.includes('data-split-sheets-rows'), 'Overview latest split rows are missing');
+  assert.ok(/href="splits.html"[^>]*>Split sheets</.test(dash) || /data-split-sheets-all/.test(dash), 'Overview Split sheets button is missing');
+  assert.ok(dash.includes('Writers sign the sheet. The song can still submit.'), 'Overview split copy must stay honest');
+  assert.ok(!dash.includes('Every writer signs before delivery'), 'Overview must not say writers sign before delivery');
+  assert.ok(dash.indexOf('data-split-sheets') < dash.indexOf('data-dash-shortcuts'), 'Split sheets stays on Overview, not under Boosts');
+  assert.ok(!/data-for-plans="[^"]*"[^>]*>Split sheets</.test(dash), 'Split sheets is not plan-gated on Overview');
   assert.ok(!/P-L-A-I/.test(dash), 'Overview must not spell P-L-A-I');
   assert.ok(!/>PLAY</.test(dash), 'Overview must not rename PLAI to PLAY in UI copy');
   assert.ok(dash.includes('Releases pending'), 'Your account card is missing Releases pending');
@@ -218,6 +225,9 @@ function run() {
       '[data-account-plan-price]': makeNode({ textContent: 'Your plan' }),
       '[data-account-plan-year]': makeNode({ hidden: true }),
       '[data-release-tiles]': makeHost(),
+      '[data-split-sheets-rows]': makeHost(),
+      '[data-split-sheets-table]': makeNode({ hidden: true }),
+      '[data-split-sheets-empty]': makeNode({ hidden: false }),
       '[data-next-up]': makeNode({ hidden: true }),
       '[data-next-up-title]': makeNode({ textContent: 'Submit your first song' }),
       '[data-next-up-body]': makeNode({}),
@@ -250,6 +260,7 @@ function run() {
     fillCtx.globalThis = fillCtx;
     vm.runInNewContext(read('lib/cover-url.js'), fillCtx);
     vm.runInNewContext(read('lib/release-status.js'), fillCtx);
+    vm.runInNewContext(read('lib/split-sheets.js'), fillCtx);
     vm.runInNewContext(read('account.js'), fillCtx);
     fillCtx.PlaigroundAccount.fill(me);
     return nodes;
@@ -562,6 +573,41 @@ function run() {
   });
   assert.strictEqual(sixTiles['[data-release-tiles]'].children.length, 4, 'Overview strip is not the full catalog');
   assert.strictEqual(sixTiles['[data-account-pending]'].textContent, '6');
+
+  const splitLatest = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'basic',
+    tonegrid_release_ids: [
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      'ffffffff-ffff-4fff-8fff-ffffffffffff',
+    ],
+    profile: { releases: [
+      { tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'One', legal_first: 'Ada', legal_last: 'Night', solo_owned_100: true },
+      { tonegrid_release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Two', legal_first: 'Ada', legal_last: 'Night', solo_owned_100: true },
+      { tonegrid_release_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Three', signwell_document_id: 'doc_pending_01', signwell_status: 'awaiting_signature', writers: [{ first_name: 'Ada', last_name: 'Night' }, { first_name: 'Bea', last_name: 'Vale' }] },
+      { tonegrid_release_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'Four' },
+      { tonegrid_release_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'Five', signwell_signed: true, signwell_status: 'Completed', writers: [{ first_name: 'Ada', last_name: 'Night' }] },
+      { tonegrid_release_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', title: 'Six', legal_first: 'Ada', legal_last: 'Night', solo_owned_100: true },
+    ] },
+  });
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children.length, 5, 'Overview Split sheets shows latest 5');
+  assert.strictEqual(splitLatest['[data-split-sheets-table]'].hidden, false);
+  assert.strictEqual(splitLatest['[data-split-sheets-empty]'].hidden, true);
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children[0].children[0].children[0].textContent, 'Six');
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children[0].children[1].textContent, 'Ada Night');
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children[0].children[2].textContent, 'self-attested, no sheet required');
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children[1].children[2].textContent, 'yes');
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children[2].children[2].textContent, 'no');
+  assert.strictEqual(splitLatest['[data-split-sheets-rows]'].children[3].children[2].textContent, 'pending');
+  assert.notStrictEqual(splitLatest['[data-split-sheets-rows]'].children[0].children[1].textContent, 'Fuvtu', 'writer line is legal name, not stage name');
+
+  const splitEmpty = fillAccount({ artist: 'Fuvtu', plan: 'basic' });
+  assert.strictEqual(splitEmpty['[data-split-sheets-empty]'].hidden, false);
+  assert.strictEqual(splitEmpty['[data-split-sheets-table]'].hidden, true);
 
   const leftoverArtists = fillAccount({
     artist: 'Fuvtu',

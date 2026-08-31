@@ -573,6 +573,7 @@
   }
 
   var coverPreview = null;
+  var lastSplitPdf = '';
 
   function setCover(url) {
     if (coverPreview) {
@@ -609,21 +610,43 @@
   }
 
   function splitWriters(release, draft, me) {
-    var writers = (draft && Array.isArray(draft.writers)) ? draft.writers.filter(function (row) { return row && row.name; }) : [];
-    var artist = String((release && release.artist) || (draft && draft.name) || (me && me.artist) || '').trim();
-    var solo = Boolean(draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true')) && !String((draft && draft.featured) || '').trim();
-    if (!writers.length && !solo) return [];
-    if (solo || writers.length <= 1) {
-      var one = writers[0] && writers[0].name ? writers[0] : { name: artist, share: 100, role: '' };
-      if (!one.name) return [];
-      return [{ name: one.name, role: one.role || '', share: one.share || 100, signed: true }];
+    var stored = storedRelease(me, release) || {};
+    var row = Object.assign({}, stored, release || {});
+    var api = global.PlaigroundSplitSheets;
+    var writers = (draft && Array.isArray(draft.writers))
+      ? draft.writers.filter(function (item) { return item && (item.name || item.first_name || item.legal_first); })
+      : [];
+    if (!writers.length && Array.isArray(row.writers)) {
+      writers = row.writers.filter(function (item) { return item && (item.name || item.first_name || item.legal_first); });
     }
-    var signed = Boolean(draft && (draft.signwell_signed === true || String(draft.signwell_status || '') === 'Completed'));
-    return writers.map(function (row) {
+    var solo = api && typeof api.isSoloOwned === 'function'
+      ? api.isSoloOwned(row, draft)
+      : Boolean(draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true')) && !String((draft && draft.featured) || '').trim();
+    var legal = api && typeof api.writerFullName === 'function' ? api.writerFullName(row, draft) : '';
+    if (!writers.length && !solo && !legal) return [];
+    if (solo || writers.length <= 1) {
+      var one = writers[0] || {};
+      var name = legal;
+      if (!name && !solo) return [];
+      return [{
+        name: name,
+        role: one.role || '',
+        share: one.share || 100,
+        signed: true,
+        selfAttested: Boolean(solo),
+      }];
+    }
+    var signed = api && typeof api.signatureStatus === 'function'
+      ? api.signatureStatus(row, draft) === 'yes'
+      : Boolean(draft && (draft.signwell_signed === true || String(draft.signwell_status || '') === 'Completed'));
+    return writers.map(function (item) {
+      var fromWriter = api && typeof api.writerFullName === 'function'
+        ? api.writerFullName({ writers: [item] }, null)
+        : String((item && item.name) || '').trim();
       return {
-        name: String((row && row.name) || '').trim() || 'Writer',
-        role: String((row && (row.role || row.roles)) || '').trim(),
-        share: toNumber(row && row.share),
+        name: fromWriter || 'Writer',
+        role: String((item && (item.role || item.roles)) || '').trim(),
+        share: toNumber(item && item.share),
         signed: signed,
       };
     });
@@ -642,8 +665,13 @@
       if (row.share) bits.push(String(row.share).replace(/\.0$/, '') + '%');
       left.textContent = bits.join(' · ');
       var right = document.createElement('span');
-      right.className = row.signed ? 'live' : 'wait';
-      right.textContent = row.signed ? 'Signed' : 'Awaiting signature';
+      if (row.selfAttested) {
+        right.className = 'live';
+        right.textContent = 'self-attested';
+      } else {
+        right.className = row.signed ? 'live' : 'wait';
+        right.textContent = row.signed ? 'Signed' : 'Awaiting signature';
+      }
       line.appendChild(left);
       line.appendChild(right);
       host.appendChild(line);
@@ -710,6 +738,10 @@
       markEditHref('');
       setHidden('[data-song-remove]', true);
       setHidden('[data-song-split-empty]', false);
+      setHidden('[data-song-split-attest]', true);
+      lastSplitPdf = '';
+      setHidden('[data-song-split-preview]', true);
+      setHidden('[data-song-split-download]', true);
       setHidden('[data-song-rejection]', true);
       mountLivePlayer(null);
       mountSongLinks(null);
@@ -783,17 +815,41 @@
     if (paid) renderDsps(dsps);
 
     var writers = splitWriters(release, draft, me);
-    var hasWriters = writers.some(function (row) { return row.name; });
+    var storedSplit = storedRelease(me, release) || {};
+    var splitRow = Object.assign({}, storedSplit, release || {});
+    var splitApi = global.PlaigroundSplitSheets;
+    var splitStatus = splitApi && typeof splitApi.signatureStatus === 'function'
+      ? splitApi.signatureStatus(splitRow, draft)
+      : '';
+    var splitPdf = splitApi && typeof splitApi.existingPdf === 'function'
+      ? splitApi.existingPdf(splitRow, draft)
+      : '';
+    var soloSheet = splitApi && typeof splitApi.isSoloOwned === 'function'
+      ? splitApi.isSoloOwned(splitRow, draft)
+      : writers.some(function (row) { return row.selfAttested; });
+    var hasWriters = writers.some(function (row) { return row.name; }) || soloSheet;
     setHidden('[data-song-split-empty]', hasWriters);
-    if (hasWriters) {
+    setHidden('[data-song-split-attest]', !soloSheet);
+    if (soloSheet) {
+      setText('[data-song-split-attest]', 'self-attested, no sheet required');
+      setText('[data-song-split-status]', 'self-attested');
+      var attestStatus = $('[data-song-split-status]');
+      if (attestStatus) attestStatus.className = 'live';
+      if (hasWriters) renderWriters(writers);
+    } else if (hasWriters) {
       renderWriters(writers);
-      var signedCount = writers.filter(function (row) { return row.signed; }).length;
-      setText('[data-song-split-status]', signedCount + ' of ' + writers.length + ' signed');
+      var label = splitStatus === 'yes' ? 'yes' : splitStatus === 'pending' ? 'pending' : 'no';
+      setText('[data-song-split-status]', label);
       var statusEl = $('[data-song-split-status]');
-      if (statusEl) statusEl.className = signedCount === writers.length ? 'live' : 'wait';
+      if (statusEl) statusEl.className = splitStatus === 'yes' ? 'live' : 'wait';
     } else {
-      setText('[data-song-split-status]', '');
+      setText('[data-song-split-status]', 'no');
     }
+    var previewBtn = $('[data-song-split-preview]');
+    var downloadBtn = $('[data-song-split-download]');
+    lastSplitPdf = splitPdf;
+    if (previewBtn) previewBtn.hidden = !splitPdf;
+    if (downloadBtn) downloadBtn.hidden = !splitPdf;
 
     setHidden('[data-song-publishing]', !paid);
     setHidden('[data-song-boosts]', false);
@@ -2106,6 +2162,34 @@
     return true;
   }
 
+  function openExistingSplitPdf() {
+    var url = String(lastSplitPdf || '').trim();
+    if (!url) return false;
+    if (global.open) {
+      try { global.open(url, '_blank', 'noopener'); } catch (err) {}
+    }
+    return true;
+  }
+
+  function downloadExistingSplitPdf() {
+    var url = String(lastSplitPdf || '').trim();
+    if (!url) return false;
+    var doc = global.document;
+    if (!doc || typeof doc.createElement !== 'function') return false;
+    var link = doc.createElement('a');
+    link.href = url;
+    link.download = 'split-sheet.pdf';
+    link.rel = 'noopener';
+    if (doc.body && typeof doc.body.appendChild === 'function') {
+      doc.body.appendChild(link);
+      if (typeof link.click === 'function') link.click();
+      if (link.parentNode && typeof link.parentNode.removeChild === 'function') link.parentNode.removeChild(link);
+    } else if (typeof link.click === 'function') {
+      link.click();
+    }
+    return true;
+  }
+
   function bindDownload() {
     var btn = $('[data-song-download]');
     if (!btn || !btn.addEventListener) return;
@@ -2113,6 +2197,23 @@
       if (event && event.preventDefault) event.preventDefault();
       downloadReleaseStatement();
     });
+  }
+
+  function bindSplitSheet() {
+    var preview = $('[data-song-split-preview]');
+    if (preview && preview.addEventListener) {
+      preview.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        openExistingSplitPdf();
+      });
+    }
+    var download = $('[data-song-split-download]');
+    if (download && download.addEventListener) {
+      download.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        downloadExistingSplitPdf();
+      });
+    }
   }
 
   function bindSongRetry() {
@@ -2192,10 +2293,13 @@
     downloadReleaseStatement: downloadReleaseStatement,
     releaseStatementPdf: releaseStatementPdf,
     releaseStatementDoc: releaseStatementDoc,
+    openExistingSplitPdf: openExistingSplitPdf,
+    downloadExistingSplitPdf: downloadExistingSplitPdf,
   };
   fillCatalogSelects();
   bindEdit();
   bindSongRetry();
   bindDownload();
+  bindSplitSheet();
   load();
 })(window);

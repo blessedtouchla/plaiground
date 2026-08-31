@@ -148,6 +148,9 @@ function loadSong(opts) {
     '[data-song-writers]': makeEl({}),
     '[data-song-split-status]': makeEl({}),
     '[data-song-split-empty]': makeEl({ hidden: true }),
+    '[data-song-split-attest]': makeEl({ hidden: true }),
+    '[data-song-split-preview]': makeEl({ hidden: true }),
+    '[data-song-split-download]': makeEl({ hidden: true }),
     '[data-song-publishing]': makeEl({ hidden: true }),
     '[data-song-boosts]': makeEl({ hidden: true }),
     '[data-song-boost]': makeEl({ hidden: true }),
@@ -335,6 +338,7 @@ function loadSong(opts) {
   vm.runInNewContext(read('lib/cover-preview.js'), context);
   vm.runInNewContext(read('lib/object-hop.js'), context);
   vm.runInNewContext(read('lib/statement-pdf.js'), context);
+  vm.runInNewContext(read('lib/split-sheets.js'), context);
   vm.runInNewContext(read('song.js'), context);
   return { api: context.PlaigroundSong, nodes, life, ids, calls, context };
 }
@@ -957,7 +961,9 @@ function run() {
       release_date: '2026-08-24',
       submitted: true,
       solo_owned_100: true,
-      writers: [{ name: 'Fuvtu', share: 100 }],
+      legal_first: 'Ada',
+      legal_last: 'Night',
+      writers: [{ first_name: 'Ada', last_name: 'Night', name: 'Ada Night', share: 100 }],
     },
     release: {
       uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -1028,8 +1034,54 @@ function run() {
   coverPage.ids['edit-art'].listeners.change();
   assert.ok(coverPage.nodes['[data-song-cover]'].style.backgroundImage.indexOf('old.jpg') !== -1, 'clear restores the stored cover');
   assert.strictEqual(page.nodes['[data-song-writers]'].children.length, 1);
-  assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Fuvtu') !== -1);
+  assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Ada Night') !== -1);
+  assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Fuvtu') === -1);
   assert.ok(page.nodes['[data-song-writers]'].children[0].children[0].textContent.indexOf('Hale') === -1);
+  assert.strictEqual(page.nodes['[data-song-split-attest]'].hidden, false);
+  assert.strictEqual(page.nodes['[data-song-split-attest]'].textContent, 'self-attested, no sheet required');
+  assert.strictEqual(page.nodes['[data-song-split-status]'].textContent, 'self-attested');
+  assert.strictEqual(page.nodes['[data-song-split-preview]'].hidden, true, '100% does not invent a Preview PDF');
+  assert.strictEqual(page.nodes['[data-song-split-download]'].hidden, true, '100% does not invent a Download PDF');
+
+  const pendingSplit = loadSong({ plan: 'basic', me: basicMe, search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+  pendingSplit.api.render({
+    me: basicMe,
+    draft: {
+      release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      solo_owned_100: false,
+      signwell_document_id: 'doc_pending_01',
+      signwell_status: 'awaiting_signature',
+      writers: [
+        { first_name: 'Ada', last_name: 'Night', share: 50 },
+        { first_name: 'Bea', last_name: 'Vale', share: 50 },
+      ],
+    },
+    release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'pending', type: 'single' },
+    analytics: {},
+  });
+  assert.strictEqual(pendingSplit.nodes['[data-song-split-status]'].textContent, 'pending');
+  assert.strictEqual(pendingSplit.nodes['[data-song-split-attest]'].hidden, true);
+  assert.strictEqual(pendingSplit.nodes['[data-song-split-preview]'].hidden, true);
+
+  const havePdf = loadSong({ plan: 'basic', me: basicMe, search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+  havePdf.api.render({
+    me: Object.assign({}, basicMe, {
+      profile: {
+        releases: [{
+          tonegrid_release_id: basicMe.tonegrid_release_ids[0],
+          split_sheet_pdf: 'https://files.example/sheet.pdf',
+          signwell_signed: true,
+          signwell_status: 'Completed',
+          writers: [{ first_name: 'Ada', last_name: 'Night' }],
+        }],
+      },
+    }),
+    draft: {},
+    release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'pending', type: 'single' },
+    analytics: {},
+  });
+  assert.strictEqual(havePdf.nodes['[data-song-split-preview]'].hidden, false);
+  assert.strictEqual(havePdf.nodes['[data-song-split-download]'].hidden, false);
 
   const creator = loadSong({ plan: 'creator', me: { artist: 'Fuvtu', plan: 'creator', tonegrid_release_ids: basicMe.tonegrid_release_ids } });
   creator.api.render({
@@ -1223,9 +1275,17 @@ function run() {
   assert.strictEqual(blocked.uuid, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
   assert.notStrictEqual(blocked.title, 'Other');
 
-  const writers = page.api.splitWriters({ artist: 'Fuvtu' }, { solo_owned_100: true, name: 'Fuvtu' }, basicMe);
+  const writers = page.api.splitWriters(
+    { artist: 'Fuvtu' },
+    { solo_owned_100: true, name: 'Fuvtu', legal_first: 'Ada', legal_last: 'Night' },
+    basicMe
+  );
   assert.strictEqual(writers.length, 1);
-  assert.strictEqual(writers[0].name, 'Fuvtu');
+  assert.strictEqual(writers[0].name, 'Ada Night');
+  assert.strictEqual(writers[0].selfAttested, true);
+  assert.notStrictEqual(writers[0].name, 'Fuvtu');
+  const stageOnly = page.api.splitWriters({ artist: 'Fuvtu' }, { solo_owned_100: true, name: 'Fuvtu' }, basicMe);
+  assert.strictEqual(stageOnly[0].name, '', 'solo writer line does not fall back to stage name');
   assert.strictEqual(page.api.splitWriters({}, {}, basicMe).length, 0);
 
   const catalog = read('catalog.js');
@@ -1249,6 +1309,11 @@ function run() {
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('data-edit-retry'));
   assert.ok(/class="btn btn-purple btn-sm"[^>]*>Open full split sheet</.test(html), 'Open full split sheet stays purple');
+  assert.ok(html.includes('data-song-split-preview'), 'song.html has split Preview');
+  assert.ok(html.includes('data-song-split-download'), 'song.html has split Download');
+  assert.ok(html.includes('data-song-split-attest'), 'song.html has self-attested copy');
+  assert.ok(!/data-for-plans="[^"]*"[^>]*>Preview</.test(html), 'split Preview is not plan-gated');
+  assert.ok(!/data-for-plans="[^"]*"[^>]*>Download</.test(html), 'split Download is not plan-gated');
   assert.ok(/class="btn btn-gold btn-sm" data-edit-save/.test(html), 'Submit for editing is the only gold CTA');
   assert.ok(!/class="btn btn-purple btn-sm" data-edit-save/.test(html), 'Submit for editing is not purple');
   assert.ok(/class="btn btn-purple btn-sm" data-edit-retry/.test(html), 'Retry stays purple');

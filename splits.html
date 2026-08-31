@@ -25,10 +25,10 @@
         </div>
         <div class="side-submenu" id="overview-submenu">
           <a href="releases.html">Releases</a>
-          <a class="on" href="splits.html">Splits</a>
           <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
           <a href="earnings.html">Earnings</a>
           <a href="analytics.html">Analytics</a>
+          <a class="on" href="splits.html">Split sheets</a>
           <a href="payouts.html">Payouts</a>
         </div>
       </div>
@@ -55,11 +55,11 @@
       <div class="page-head">
         <p class="kicker">Rights</p>
         <h1>Split sheets</h1>
-        <p>Every writer signs before delivery. Shares must total 100%.</p>
+        <p>Writers sign the sheet. The song can still submit. Status stays pending until signed. Shares must total 100%.</p>
       </div>
       <table class="data" data-splits-table hidden>
         <thead>
-          <tr><th>Work</th><th>Writers</th><th>Signatures</th><th>Status</th></tr>
+          <tr><th>Work</th><th>Writer</th><th>Status</th></tr>
         </thead>
         <tbody data-splits-rows></tbody>
       </table>
@@ -75,6 +75,7 @@
       </div>
     </div>
   </div>
+  <script src="lib/split-sheets.js"></script>
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="splits.js"></script>
