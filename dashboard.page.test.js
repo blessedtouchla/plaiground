@@ -239,8 +239,15 @@ function run() {
     };
   }
 
-  function fillAccount(me) {
+  function fillAccount(me, draft) {
     const nodes = fillNodes();
+    const store = {
+      data: Object.create(null),
+      getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
+      setItem(key, value) { this.data[key] = String(value); },
+      removeItem(key) { delete this.data[key]; },
+    };
+    if (draft) store.setItem('plaiground.store.draft', JSON.stringify(draft));
     const fillDoc = {
       currentScript: { getAttribute() { return null; } },
       querySelector(sel) { return nodes[sel] || null; },
@@ -250,8 +257,8 @@ function run() {
     };
     const fillCtx = {
       URLSearchParams,
-      localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
-      sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+      localStorage: store,
+      sessionStorage: store,
       document: fillDoc,
       location: { href: 'dashboard.html', pathname: '/dashboard.html', search: '', replace() {} },
       fetch() { return Promise.resolve({ ok: false, status: 401, json: async () => ({}) }); },
@@ -260,6 +267,7 @@ function run() {
     fillCtx.globalThis = fillCtx;
     vm.runInNewContext(read('lib/cover-url.js'), fillCtx);
     vm.runInNewContext(read('lib/release-status.js'), fillCtx);
+    vm.runInNewContext(read('lib/release-credits.js'), fillCtx);
     vm.runInNewContext(read('lib/split-sheets.js'), fillCtx);
     vm.runInNewContext(read('account.js'), fillCtx);
     fillCtx.PlaigroundAccount.fill(me);
@@ -287,6 +295,18 @@ function run() {
   assert.strictEqual(nodes['[data-next-up-body]'].textContent, QC_LINES);
   assert.strictEqual(nodes['[data-msp-section]'].hidden, true, 'Overview does not open an MSP board');
   assert.strictEqual(nodes['[data-msp-songs]'].children.length, 0);
+
+  const draftOnly = fillAccount(
+    { artist: 'The Interceptors', plan: 'basic', email: 'victoriaimtanes@gmail.com' },
+    { saved_draft: true, title: 'The Interceptors', tonegrid_status: 'draft' }
+  );
+  assert.strictEqual(draftOnly['[data-first-song]'].hidden, true, 'local saved draft hides the empty strip');
+  assert.strictEqual(draftOnly['[data-has-release]'].hidden, false);
+  assert.strictEqual(draftOnly['[data-release-tiles]'].hidden, false);
+  assert.strictEqual(draftOnly['[data-release-tiles]'].children.length, 1);
+  assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].href, 'upload.html');
+  assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].children[1].textContent, 'The Interceptors');
+  assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].children[2].textContent, 'Draft');
 
   const named = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
   assert.strictEqual(named['[data-account-who]'].textContent, 'Hi Victoria!');

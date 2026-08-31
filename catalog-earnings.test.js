@@ -70,18 +70,28 @@ function loadScript(file, nodes) {
     },
     localStorage: {
       data: {},
-      getItem(key) { return this.data[key] || null; },
+      getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
       setItem(key, value) { this.data[key] = String(value); },
+      removeItem(key) { delete this.data[key]; },
+    },
+    sessionStorage: {
+      data: {},
+      getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
+      setItem(key, value) { this.data[key] = String(value); },
+      removeItem(key) { delete this.data[key]; },
     },
     window: {},
   };
   context.window = context;
+  context.globalThis = context;
+  context.sessionStorage = context.sessionStorage || context.localStorage;
   if (file === 'earnings.js') {
     vm.runInNewContext(read('lib/statement-pdf.js'), context);
   }
   if (file === 'catalog.js') {
     vm.runInNewContext(read('lib/cover-url.js'), context);
     vm.runInNewContext(read('lib/release-status.js'), context);
+    vm.runInNewContext(read('lib/release-credits.js'), context);
   }
   if (file === 'splits.js') {
     vm.runInNewContext(read('lib/split-sheets.js'), context);
@@ -302,6 +312,44 @@ function run() {
   assert.ok(read('song.js').includes("return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html'"), 'bare Edit href goes to the list, not latest');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 1, 'one release still shows the list row');
   assert.ok(catalogNodes['[data-release-table]'].hidden === false, 'one release must not skip the catalog list');
+
+  catalog.localStorage.data['plaiground.store.draft'] = JSON.stringify({
+    saved_draft: true,
+    tonegrid_status: 'draft',
+    title: 'The Interceptors',
+  });
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: '7a928125-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Rainbow Road', type: 'single', status: 'live' }],
+    total: 1,
+    analytics: {},
+  });
+  assert.ok(catalogNodes['[data-release-rows]'].children.length >= 2, 'Releases includes the local saved draft');
+  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'The Interceptors'), 'local draft shows by title');
+  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Draft'), 'local draft status is Draft');
+  const interceptorTitle = findByText(catalogNodes['[data-release-rows]'], 'The Interceptors');
+  assert.strictEqual(interceptorTitle.href, 'upload.html');
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: '7a928125-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Rainbow Road', type: 'single', status: 'live' }],
+    total: 1,
+    analytics: {},
+  });
+  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'The Interceptors'), 'reloading Releases still shows the saved draft');
+
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'The Interceptors', type: 'single', status: 'pending' },
+      { uuid: '7a928125-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Rainbow Road', type: 'single', status: 'live' },
+    ],
+    total: 2,
+    analytics: {},
+  });
+  const afterGhost = catalogNodes['[data-release-rows]'].children;
+  const interceptorRows = [];
+  afterGhost.forEach(function (row) {
+    if (findByText(row, 'The Interceptors')) interceptorRows.push(row);
+  });
+  assert.strictEqual(interceptorRows.length, 1, 'store-backed Interceptors drops the local ghost');
+  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Rainbow Road'), 'Rainbow Road stays');
 
   catalog.PlaigroundCatalog.render({
     releases: [{ title: 'No store id yet', type: 'single', status: 'draft' }],

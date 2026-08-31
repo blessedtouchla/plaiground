@@ -171,6 +171,8 @@
         live: mapped.live,
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
+        local_draft: Boolean(row && (row.local_draft || row.id === 'local-draft')),
+        href: row && (row.local_draft || row.id === 'local-draft') ? 'upload.html' : '',
         alert: mapped.alert || ((api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : ''),
       };
     }).filter(function (card) {
@@ -198,7 +200,9 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html';
+      link.href = (card.local_draft || card.id === 'local-draft' || card.href === 'upload.html')
+        ? 'upload.html'
+        : (card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html');
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       applyCover(art, card.artwork_url);
@@ -249,7 +253,9 @@
       resolveCoverFallback(thumb, row, thumbCover);
       var copy = document.createElement('div');
       var title = document.createElement('a');
-      title.href = row.local_draft ? 'upload.html' : (row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html');
+      title.href = (row.local_draft || row.id === 'local-draft')
+        ? 'upload.html'
+        : (row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html');
       title.textContent = row.title || 'Untitled';
       title.style.color = 'inherit';
       title.style.textDecoration = 'none';
@@ -275,10 +281,13 @@
 
       var editCell = document.createElement('td');
       editCell.className = 'release-edit-col';
-      var edit = document.createElement(row.uuid ? 'a' : 'button');
+      var localDraft = Boolean(row.local_draft || row.id === 'local-draft');
+      var edit = document.createElement(row.uuid || localDraft ? 'a' : 'button');
       edit.textContent = 'Edit release';
       edit.className = 'btn btn-ghost btn-sm';
-      if (row.uuid) {
+      if (localDraft) {
+        edit.href = 'upload.html';
+      } else if (row.uuid) {
         edit.href = 'song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1';
       } else {
         edit.type = 'button';
@@ -383,13 +392,18 @@
     lastReleases = (data && data.releases) || [];
     if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
       var localDraft = {};
-      try {
-        localDraft = JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.store.draft')) || '{}') || {};
-      } catch (err) {}
+      if (typeof global.PlaigroundReleaseCredits.displayDraft === 'function') {
+        localDraft = global.PlaigroundReleaseCredits.displayDraft(global) || {};
+      } else {
+        try {
+          localDraft = JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.store.draft')) || '{}') || {};
+        } catch (err) {}
+      }
       lastReleases = global.PlaigroundReleaseCredits.withSavedDraft(lastReleases, localDraft);
     }
     lastAnalytics = (data && data.analytics) || {};
     lastTotal = (data && data.total) || lastReleases.length;
+    if (lastReleases.length > lastTotal) lastTotal = lastReleases.length;
     if (!currentFilter) currentFilter = filterFromSearch();
     var shown = applyFilter(lastReleases, currentFilter);
     renderStats(lastReleases);

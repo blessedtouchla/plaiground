@@ -4487,8 +4487,20 @@
   function bindUpload() {
     var trigger = document.querySelector('[data-store-continue]');
     if (!trigger) return;
-    if (isNewReleaseStart()) {
-      clearNewReleaseDraft();
+    var freshStart = isNewReleaseStart();
+    if (freshStart) {
+      var credits = window.PlaigroundReleaseCredits;
+      var parked = credits && typeof credits.parkSavedDraft === 'function' && credits.parkSavedDraft(window);
+      if (parked) {
+        if (typeof credits.clearWorkingDraft === 'function') credits.clearWorkingDraft(window);
+        else {
+          try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+          try { sessionStorage.removeItem(DRAFT_KEY); } catch (err2) {}
+        }
+        if (typeof credits.markFreshStart === 'function') credits.markFreshStart(window);
+      } else {
+        clearNewReleaseDraft();
+      }
       stripNewReleaseFlag();
     }
     var cancelBtn = document.querySelector('[data-upload-cancel]');
@@ -4624,9 +4636,11 @@
     if (artInput && artInput.addEventListener) {
       artInput.addEventListener('change', refreshUploadGate);
     }
-    var savedDraft = readDraft();
-    restoreHeldAudio();
-    restoreUploadDraft(savedDraft);
+    var savedDraft = freshStart ? {} : readDraft();
+    if (!freshStart) {
+      restoreHeldAudio();
+      restoreUploadDraft(savedDraft);
+    }
     var instEl = $('tg-instrumental');
     if (instEl && savedDraft.instrumental === true) instEl.checked = true;
     var lyricsOpen = document.querySelector('[data-lyrics-open]');
