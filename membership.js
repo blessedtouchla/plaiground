@@ -95,7 +95,6 @@
   function clearSignedIn() {
     storeSet(SIGNED_IN_KEY, '');
     storeSet(SIGNED_IN_AT_KEY, '');
-    forgetOwnerArtistPages();
   }
 
   function signedInFresh() {
@@ -377,10 +376,6 @@
     global.document.addEventListener('click', function (event) {
       var target = event.target;
       if (!target || !target.closest) return;
-      if (target.closest('[data-owner-artist-home]')) {
-        rememberOwnerArtistPages();
-        return;
-      }
       var publishing = target.closest('[data-publishing-register]');
       var upload = target.closest('[data-signed-in-upload]');
       var fresh = target.closest('[data-new-release]');
@@ -421,7 +416,6 @@
   var OWNER_EMAIL = 'emailplaiground@gmail.com';
   var ARTIST_HOME = 'dashboard.html';
   var OWNER_HOME = '/admin';
-  var OWNER_ARTIST_KEY = 'plaiground.owner.artist';
 
   function normalizeOwnerEmail(value) {
     return String(value || '')
@@ -470,16 +464,6 @@
     return path === '/' || file === '' || file === 'index.html';
   }
 
-  function isAdminPage() {
-    var path = String((global.location && global.location.pathname) || '');
-    var file = pageFile();
-    return file === 'admin' || file === 'admin.html' || path === '/admin' || path.indexOf('/admin/') === 0;
-  }
-
-  function isArtistOverview() {
-    return pageFile() === 'dashboard.html';
-  }
-
   function homeWantsPricing() {
     try {
       return new URLSearchParams(global.location.search).get('needplan') === '1';
@@ -506,33 +490,10 @@
     return true;
   }
 
-  function rememberOwnerArtistPages() {
-    storageSet(global.sessionStorage, OWNER_ARTIST_KEY, '1');
-  }
-
-  function forgetOwnerArtistPages() {
-    storageSet(global.sessionStorage, OWNER_ARTIST_KEY, '');
-  }
-
-  function ownerWantsArtistPages() {
-    if (storageGet(global.sessionStorage, OWNER_ARTIST_KEY) === '1') return true;
-    try {
-      var params = new URLSearchParams((global.location && global.location.search) || '');
-      if (params.get('from') === 'admin') {
-        rememberOwnerArtistPages();
-        return true;
-      }
-    } catch (err) {}
-    return false;
-  }
-
   function goOwnerDeskFromOverview() {
-    if (isAdminPage()) return false;
-    if (!isArtistOverview()) return false;
-    if (!isOwner()) return false;
-    if (ownerWantsArtistPages()) return false;
-    global.location.replace(OWNER_HOME);
-    return true;
+    // Login and marketing-home still use signedInHome() -> /admin.
+    // Do not bounce Overview: the /admin Dashboard row must stay on dashboard.html.
+    return false;
   }
 
   function isBoostTease() {
