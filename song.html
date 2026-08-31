@@ -24,10 +24,10 @@
         </div>
         <div class="side-submenu" id="overview-submenu">
           <a class="on" href="releases.html">Releases</a>
-          <a href="splits.html">Splits</a>
           <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
           <a href="earnings.html">Earnings</a>
           <a href="analytics.html">Analytics</a>
+          <a href="splits.html">Split sheets</a>
           <a href="payouts.html">Payouts</a>
         </div>
       </div>
@@ -313,7 +313,10 @@
           </div>
           <div data-song-writers></div>
           <p class="hint" data-song-split-empty hidden>No split sheet on file for this release.</p>
-          <p style="margin-top:16px">
+          <p class="hint" data-song-split-attest hidden>self-attested, no sheet required</p>
+          <p style="margin-top:16px" data-song-split-actions>
+            <button type="button" class="btn btn-ghost btn-sm" data-song-split-preview hidden>Preview</button>
+            <button type="button" class="btn btn-purple btn-sm" data-song-split-download hidden>Download</button>
             <a class="btn btn-purple btn-sm" href="splits.html">Open full split sheet</a>
           </p>
         </div>
@@ -354,6 +357,7 @@
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
   <script src="lib/statement-pdf.js"></script>
+  <script src="lib/split-sheets.js"></script>
   <script src="song.js" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>

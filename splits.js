@@ -1,47 +1,33 @@
 (function (global) {
-  function isPlaceholderTitle(title) {
-    var next = String(title || '').trim().toLowerCase().replace(/\s+/g, ' ');
-    return next === 'neon sermon' || next === 'neon shadows' || next === 'neon santos';
-  }
-
-  function ownedIds(me) {
-    var raw = me && Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids : [];
-    var have = {};
-    raw.forEach(function (id) {
-      var key = String(id || '').trim().toLowerCase();
-      if (key) have[key] = true;
-    });
-    return have;
-  }
-
-  function realWorks(me) {
-    var have = ownedIds(me);
-    var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
-    var out = [];
-    var seen = {};
-    stored.forEach(function (row) {
-      var id = String((row && (row.tonegrid_release_id || row.id)) || '').trim().toLowerCase();
-      if (!id || !have[id] || seen[id] || isPlaceholderTitle(row && row.title)) return;
-      seen[id] = true;
-      out.push({
-        id: id,
-        title: String((row && row.title) || '').trim() || 'Untitled',
-      });
-    });
-    Object.keys(have).forEach(function (id) {
-      if (seen[id]) return;
-      out.push({ id: id, title: 'Untitled' });
-    });
-    return out;
-  }
-
   function setHidden(sel, hidden) {
     var el = document.querySelector(sel);
     if (el) el.hidden = Boolean(hidden);
   }
 
+  function readDraft() {
+    try {
+      var local = global.localStorage && (global.localStorage.getItem('plaiground.store.draft') || global.localStorage.getItem('plaiground.tonegrid.draft'));
+      var session = global.sessionStorage && (global.sessionStorage.getItem('plaiground.store.draft') || global.sessionStorage.getItem('plaiground.tonegrid.draft'));
+      return JSON.parse(local || session || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function sheetsApi() {
+    return (typeof PlaigroundSplitSheets !== 'undefined' && PlaigroundSplitSheets)
+      || global.PlaigroundSplitSheets
+      || null;
+  }
+
+  function realWorks(me, draft) {
+    var api = sheetsApi();
+    if (api && typeof api.realWorks === 'function') return api.realWorks(me, draft || readDraft());
+    return [];
+  }
+
   function render(me) {
-    var works = realWorks(me);
+    var works = realWorks(me, readDraft());
     var empty = !works.length;
     setHidden('[data-splits-empty]', !empty);
     setHidden('[data-splits-table]', empty);
@@ -54,23 +40,15 @@
       var title = document.createElement('td');
       var wrap = document.createElement('div');
       var name = document.createElement('b');
-      name.textContent = work.title;
-      var meta = document.createElement('small');
-      meta.style.color = 'var(--muted)';
-      meta.textContent = 'Work';
+      name.textContent = work.title || 'Untitled';
       wrap.appendChild(name);
-      wrap.appendChild(document.createElement('br'));
-      wrap.appendChild(meta);
       title.appendChild(wrap);
-      var writers = document.createElement('td');
-      writers.textContent = '—';
-      var signatures = document.createElement('td');
-      signatures.textContent = '—';
+      var writer = document.createElement('td');
+      writer.textContent = work.writer || '—';
       var status = document.createElement('td');
-      status.textContent = 'Pending';
+      status.textContent = work.status_copy || work.status_label || 'no';
       tr.appendChild(title);
-      tr.appendChild(writers);
-      tr.appendChild(signatures);
+      tr.appendChild(writer);
       tr.appendChild(status);
       host.appendChild(tr);
     });

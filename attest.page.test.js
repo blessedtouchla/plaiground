@@ -331,6 +331,8 @@ function run() {
   const soloDraft = JSON.parse(soloPage.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(soloDraft.solo_owned_100, true);
   assert.strictEqual(soloDraft.made_how, 'no_ai');
+  assert.ok(!Object.prototype.hasOwnProperty.call(soloDraft, 'signwell_document_id'));
+  assert.ok(!fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8').includes('/api/signwell'), '100% attest must not create SignWell');
 
   const featured = load();
   featured.localStorage.setItem('plaiground.store.draft', JSON.stringify({ featured: 'Guest Star' }));

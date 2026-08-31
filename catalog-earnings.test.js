@@ -83,6 +83,9 @@ function loadScript(file, nodes) {
     vm.runInNewContext(read('lib/cover-url.js'), context);
     vm.runInNewContext(read('lib/release-status.js'), context);
   }
+  if (file === 'splits.js') {
+    vm.runInNewContext(read('lib/split-sheets.js'), context);
+  }
   vm.runInNewContext(read(file), context);
   return context;
 }
@@ -528,6 +531,19 @@ function run() {
     profile: { releases: [{ title: 'Neon Sermon', tonegrid_status: 'live' }] },
   });
   assert.strictEqual(splits.document.querySelector('[data-splits-empty]').hidden, false);
+  splits.PlaigroundSplits.render({
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      legal_first: 'Ada',
+      legal_last: 'Night',
+      solo_owned_100: true,
+    }] },
+  });
+  assert.strictEqual(splits.document.querySelector('[data-splits-empty]').hidden, true);
+  assert.strictEqual(splits.document.querySelector('[data-splits-rows]').children[0].children[1].textContent, 'Ada Night');
+  assert.strictEqual(splits.document.querySelector('[data-splits-rows]').children[0].children[2].textContent, 'self-attested, no sheet required');
 
   return new Promise(function (resolve) { setImmediate(resolve); }).then(function () {
     return new Promise(function (resolve) { setImmediate(resolve); });

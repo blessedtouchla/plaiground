@@ -469,7 +469,7 @@ function run() {
     assert.ok(html.includes('class="side"') || html.includes("class='side'"), file + ' is missing the app menu');
     assert.ok(html.includes('src="site.js"'), file + ' must load the hamburger script');
     assert.ok(html.includes('href="how.html">How it works</a>'), file + ' must list How it works in the signed-in menu');
-    assert.ok(html.includes('href="splits.html">Splits</a>'), file + ' menu item must be Splits');
+    assert.ok(html.includes('href="splits.html">Split sheets</a>'), file + ' menu item must be Split sheets');
     assert.ok(html.includes('href="artists.html">Artist Profiles</a>'), file + ' must list Artist Profiles in the signed-in menu');
     assert.ok(html.includes('href="settings.html">Settings</a>'), file + ' must keep Settings separate from Artist Profiles');
     assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must list FAQ in the signed-in menu');
@@ -480,7 +480,7 @@ function run() {
     assert.ok(/data-overview-menu/.test(sideNav[0]) && /side-submenu-toggle/.test(sideNav[0]) && /side-submenu-chevron/.test(sideNav[0]), file + ' Overview must have a chevron that expands the submenu');
     const submenu = sideNav[0].match(/<div class="side-submenu"[^>]*>[\s\S]*?<\/div>/);
     assert.ok(submenu, file + ' must keep the boxed Overview submenu');
-    assert.ok(/<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="splits.html">Splits<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(submenu[0]), file + ' Overview submenu is Releases, Splits, Publishing, Earnings, Analytics, Payouts');
+    assert.ok(/<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(submenu[0]), file + ' Overview submenu is Releases, Publishing, Earnings, Analytics, Split sheets, Payouts');
     assert.ok(!/data-new-release/.test(submenu[0]), file + ' must not nest New release under Overview');
     assert.ok(!/href="boosts.html"/.test(submenu[0]), file + ' must not nest Boosts under Overview');
     assert.ok(!/href="artists.html"/.test(submenu[0]), file + ' must not nest Artist Profiles under Overview');
@@ -491,7 +491,9 @@ function run() {
     assert.ok(/href="boosts.html"[^>]*data-for-plans="creator pro"/.test(sideNav[0]), file + ' Boosts is Creator/Pro only as live');
     assert.ok(/data-publishing-register[^>]*data-for-plans="creator pro"/.test(submenu[0]) || /data-for-plans="creator pro"[^>]*data-publishing-register/.test(submenu[0]), file + ' Publishing is Creator/Pro only as live');
     assert.ok(!/href="song\.html"[^>]*>New release<\/a>/.test(sideNav[0]), file + ' New release must not go to song.html');
-    assert.ok(!/href="splits.html">Split sheets<\/a>/.test(html), file + ' must not use Split sheets as the menu label');
+    assert.ok(!/href="splits.html">Splits<\/a>/.test(html), file + ' must not keep the old Splits menu label');
+    assert.ok(!/href="payouts.html"[\s\S]{0,80}href="splits.html"/.test(submenu[0]), file + ' Split sheets sits immediately above Payouts, not after');
+    assert.ok(!/href="analytics.html"[^>]*>Analytics<\/a>\s*<a[^>]*href="payouts.html"/.test(submenu[0]), file + ' Split sheets is not nested inside Analytics or Payouts');
     assert.ok(sideNav, file + ' must keep the signed-in side nav');
     assert.ok(sideNav[0].includes('data-publishing-register'), file + ' Publishing uses the paid-access register gate');
     assert.ok(!/>Admin</.test(sideNav[0]), file + ' must not put Admin on the artist menu');

@@ -36,7 +36,7 @@
       <div class="head-row">
         <div>
           <h3>Who wrote it</h3>
-          <p class="hint">Every writer signs before we deliver, and shares must total 100%.</p>
+          <p class="hint">Writers sign the sheet. The song can still submit. Status stays pending until signed. Shares must total 100%.</p>
           <p class="hint">This sheet covers the writers’ 50% only. Shares among writers must total 100% of that writer’s half. PLAIGROUND is the publisher and holds the 50% publisher share. There is no admin fee.</p>
         </div>
         <div id="total-box" class="total-box">Total 100%</div>
@@ -51,7 +51,7 @@
       <p style="margin-top:14px">
         <button class="learn" id="add-writer" type="button" style="color:var(--purple-bright);text-align:left">+ Add collaborator</button>
       </p>
-      <p class="hint">Add every writer who contributed. Each one signs their own share before we deliver.</p>
+      <p class="hint">Add every writer who contributed. Each one signs their share. Submit does not wait.</p>
       <div id="incomplete-alert" class="alert" style="margin-top:12px">1 row incomplete: every collaborator needs an email before this sheet can be sent.</div>
       <p id="slot-note" class="hint is-hidden">The signing template currently has two writer slots. Extra writers are collected for the record.</p>
       <p class="hint">A writer with no PRO can still be added. Their publishing share is held until they have one on file.</p>
@@ -245,6 +245,9 @@
           }
         }
         if (shareCents() !== 10000) return 'Shares among writers must total 100% of the writer’s 50%.';
+        if (!payload.writers || payload.writers.length < 2) {
+          return 'Add a co-writer. Solo 100% is attested in the app and is not sent to SignWell.';
+        }
         return '';
       }
 
@@ -379,6 +382,10 @@
         var error = clientError(payload);
         if (error) {
           showStatus('bad', error);
+          return;
+        }
+        if (!payload.writers || payload.writers.length < 2) {
+          showStatus('bad', 'Add a co-writer. Solo 100% is attested in the app and is not sent to SignWell.');
           return;
         }
         if (!configured) {
