@@ -33,10 +33,16 @@ function loadMembership(options) {
       localStorage.setItem(key, options.seedLocal[key]);
     });
   }
+  if (options && options.seedSession) {
+    Object.keys(options.seedSession).forEach(function (key) {
+      sessionStorage.setItem(key, options.seedSession[key]);
+    });
+  }
+  const clicks = [];
   const location = {
     href: options.href || 'dashboard.html',
     pathname: options.pathname || '/dashboard.html',
-    search: '',
+    search: (options && options.search) || '',
     replace(next) { location.href = next; },
   };
   const context = {
@@ -54,13 +60,15 @@ function loadMembership(options) {
       cookie: '',
       currentScript: { getAttribute() { return null; } },
       querySelector() { return null; },
-      addEventListener() {},
+      addEventListener: function (type, handler) {
+        if (type === 'click') clicks.push(handler);
+      },
     },
     location,
   };
   context.window = context;
   vm.runInNewContext(read('membership.js'), context);
-  return { api: context.PlaigroundMembership, location };
+  return { api: context.PlaigroundMembership, location, sessionStorage, clicks };
 }
 
 function el(tag, attrs, kids) {
@@ -241,6 +249,9 @@ function run() {
   assert.ok(nav.includes('href="#submissions">Submissions</a>'));
   assert.ok(nav.includes('href="#deliveries">Deliveries</a>'));
   assert.ok(nav.includes('href="#royalties">Royalties</a>'));
+  assert.ok(/href="https:\/\/app\.tonegrid\.pro\/super\/login" target="_blank" rel="noopener noreferrer">ToneGrid dashboard<\/a>/.test(nav), 'owner desk opens the store partner dashboard in a new tab');
+  assert.ok(/href="dashboard.html">Dashboard<\/a>/.test(nav), 'owner desk can open the signed-in artist home in this session');
+  assert.ok(!/<a href="dashboard.html"[^>]*target="_blank"/.test(nav), 'artist home stays in this tab');
   assert.ok(nav.includes('href="settings.html">Settings</a>'));
   assert.ok(nav.includes('href="how.html">How it works</a>'));
   assert.ok(nav.includes('href="faq.html">FAQ</a>'));
@@ -265,7 +276,7 @@ function run() {
   assert.ok(adminHtml.includes('<h3>Store royalties</h3>'));
   assert.ok(adminHtml.includes('id="signups"') && adminHtml.includes('id="paid"') && adminHtml.includes('id="royalties"'));
   assert.ok(!adminHtml.includes('<iframe'));
-  assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(adminHtml));
+  assert.ok(!/InterSpace|DistroKid|\bFrank\b/i.test(adminHtml));
   assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(adminJs));
 
   assert.ok(adminJs.includes('emailplaiground@gmail.com'));
@@ -295,6 +306,7 @@ function run() {
   assert.ok(membership.includes("OWNER_HOME = '/admin'"));
   assert.ok(membership.includes('signedInHome'));
   assert.ok(membership.includes('goOwnerDeskFromOverview'));
+  assert.ok(!/function goOwnerDeskFromOverview\([\s\S]*?location\.replace\(OWNER_HOME\)/.test(membership), 'owner Overview is not bounced to /admin');
   assert.ok(siteJs.includes('signedInHome'));
   assert.ok(loginHtml.includes('signedInHome'));
   assert.ok(read('magic.html').includes('signedInHome'));
@@ -315,6 +327,8 @@ function run() {
     assert.ok(side, file + ' keeps the artist side nav');
     assert.ok(!/>Admin</.test(side[0]), file + ' must not put Admin on the artist menu');
     assert.ok(!/href="\/admin"|href="admin(?:\.html|\/signups)?"/.test(side[0]), file + ' must not link the owner desk');
+    assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro/i.test(side[0]), file + ' artist menu must not gain the owner store dashboard row');
+    assert.ok(!/>Dashboard<\/a>/.test(side[0]), file + ' artist menu must not gain the owner Dashboard row');
     assert.ok(side[0].includes('New release'), file + ' keeps New release for artists');
     assert.ok(side[0].includes('Overview'), file + ' keeps Overview for artists');
   });
@@ -344,6 +358,21 @@ function run() {
     href: '/admin',
     account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
   });
+  const ownerHome = loadMembership({
+    pathname: '/',
+    href: 'index.html',
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
+  const ownerReleases = loadMembership({
+    pathname: '/releases.html',
+    href: 'releases.html',
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
+  const ownerUpload = loadMembership({
+    pathname: '/upload.html',
+    href: 'upload.html',
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
 
   return Promise.all([
     owner.api.whenReady(),
@@ -351,16 +380,22 @@ function run() {
     herman.api.whenReady(),
     ownerLogin.api.whenReady(),
     ownerStay.api.whenReady(),
+    ownerHome.api.whenReady(),
+    ownerReleases.api.whenReady(),
+    ownerUpload.api.whenReady(),
   ]).then(function () {
     assert.strictEqual(owner.api.isOwner(), true);
     assert.strictEqual(owner.api.signedInHome(), '/admin');
-    assert.strictEqual(owner.location.href, '/admin', 'owner Overview session lands on /admin');
+    assert.strictEqual(owner.location.href, 'dashboard.html', 'owner Dashboard row stays on Overview');
     assert.strictEqual(victoria.api.isOwner(), false);
     assert.strictEqual(victoria.api.signedInHome(), 'dashboard.html');
     assert.strictEqual(victoria.location.href, 'dashboard.html', 'victoria stays on Overview');
     assert.strictEqual(herman.location.href, 'dashboard.html', 'Herman login stays on Overview');
     assert.strictEqual(ownerLogin.location.href, '/admin', 'owner already signed in on login.html goes to /admin');
     assert.strictEqual(ownerStay.location.href, '/admin', 'signed-in owner stays on /admin');
+    assert.strictEqual(ownerHome.location.href, '/admin', 'owner marketing-home still lands on /admin');
+    assert.strictEqual(ownerReleases.location.href, 'releases.html', 'owner can open Releases after Dashboard');
+    assert.strictEqual(ownerUpload.location.href, 'upload.html', 'owner can open New release after Dashboard');
 
     const artistBrand = runBrandNav({ email: 'victoriaimtanes@gmail.com' });
     assert.strictEqual(artistBrand.logo.getAttribute('href'), 'dashboard.html', 'artist wordmark stays Overview');

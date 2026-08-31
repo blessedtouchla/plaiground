@@ -78,7 +78,8 @@ function run() {
 
   fs.readdirSync(root).forEach(function (name) {
     if (!/\.html$/.test(name)) return;
-    if (name === 'terms.html' || name === 'split-sheet.html') return;
+    // Owner /admin may name the store partner. Every other page stays locked.
+    if (name === 'terms.html' || name === 'split-sheet.html' || name === 'admin.html') return;
     const raw = fs.readFileSync(path.join(root, name), 'utf8');
     htmlVisibleLeaks(raw).forEach(function (snippet) {
       leaks.push(name + ' html text: ' + snippet);
@@ -96,6 +97,17 @@ function run() {
   });
 
   assert.strictEqual(leaks.length, 0, 'user-facing ToneGrid/Tonegrid leaks:\n' + leaks.join('\n'));
+
+  const adminHtml = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
+  assert.ok(
+    /href="https:\/\/app\.tonegrid\.pro\/super\/login" target="_blank" rel="noopener noreferrer">ToneGrid dashboard<\/a>/.test(adminHtml),
+    'owner desk is the only page allowed to name the store partner dashboard'
+  );
+  ['account.js', 'site.js', 'faq.html', 'how.html', 'how-it-works.html', 'upload.html', 'dashboard.html', 'index.html'].forEach(function (rel) {
+    const raw = fs.readFileSync(path.join(root, rel), 'utf8');
+    assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro\/super\/login/i.test(raw), rel + ' must not gain the owner store dashboard row');
+    assert.ok(!/>Dashboard<\/a>/.test(raw), rel + ' must not gain the owner Dashboard row');
+  });
 
   const timeoutSrc = fs.readFileSync(path.join(root, 'store-client.js'), 'utf8');
   assert.ok(timeoutSrc.includes("return 'We could not reach the store. Try again.';"));

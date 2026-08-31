@@ -464,16 +464,6 @@
     return path === '/' || file === '' || file === 'index.html';
   }
 
-  function isAdminPage() {
-    var path = String((global.location && global.location.pathname) || '');
-    var file = pageFile();
-    return file === 'admin' || file === 'admin.html' || path === '/admin' || path.indexOf('/admin/') === 0;
-  }
-
-  function isArtistOverview() {
-    return pageFile() === 'dashboard.html';
-  }
-
   function homeWantsPricing() {
     try {
       return new URLSearchParams(global.location.search).get('needplan') === '1';
@@ -501,11 +491,9 @@
   }
 
   function goOwnerDeskFromOverview() {
-    if (isAdminPage()) return false;
-    if (!isArtistOverview()) return false;
-    if (!isOwner()) return false;
-    global.location.replace(OWNER_HOME);
-    return true;
+    // Login and marketing-home still use signedInHome() -> /admin.
+    // Do not bounce Overview: the /admin Dashboard row must stay on dashboard.html.
+    return false;
   }
 
   function isBoostTease() {
