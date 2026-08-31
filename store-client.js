@@ -1916,6 +1916,12 @@
     var legal = hopLegalFields(draft);
     if (legal.legal_first) submitBody.legal_first = legal.legal_first;
     if (legal.legal_last) submitBody.legal_last = legal.legal_last;
+    var credit = hopCreditFields(draft);
+    if (credit.label) submitBody.label = credit.label;
+    if (credit.copyright_holder) submitBody.copyright_holder = credit.copyright_holder;
+    if (credit.copyright_owner) submitBody.copyright_owner = credit.copyright_owner;
+    if (credit.master_owner) submitBody.master_owner = credit.master_owner;
+    if (credit.copyright_year) submitBody.copyright_year = credit.copyright_year;
     if (!solo) {
       submitBody.document_id = documentId;
       if (Array.isArray(draft.writers)) submitBody.writers = draft.writers;
@@ -2104,6 +2110,35 @@
     return out;
   }
 
+  function hopCreditFields(draft) {
+    var label = fieldValue('tg-label') || String((draft && draft.label) || '').trim();
+    if (label === 'PLAIGROUND') label = '';
+    var cOwner = fieldValue('tg-copyright-owner') || String((draft && draft.copyright_holder) || '').trim();
+    var pOwner = fieldValue('tg-phonogram-owner') || String((draft && draft.master_owner) || '').trim();
+    if (cOwner === 'PLAIGROUND') cOwner = '';
+    if (pOwner === 'PLAIGROUND') pOwner = '';
+    if (!cOwner || !pOwner) {
+      var legal = hopLegalFields(draft);
+      var name = [legal.legal_first, legal.legal_last].filter(Boolean).join(' ');
+      if (!cOwner) cOwner = name;
+      if (!pOwner) pOwner = name;
+    }
+    var year = fieldValue('tg-copyright-year') || String((draft && draft.copyright_year) || '').trim();
+    if (!year && draft && draft.release_date) {
+      var match = String(draft.release_date).match(/^(\d{4})/);
+      if (match) year = match[1];
+    }
+    var out = {};
+    if (label) out.label = label;
+    if (cOwner) {
+      out.copyright_holder = cOwner;
+      out.copyright_owner = cOwner;
+    }
+    if (pOwner) out.master_owner = pOwner;
+    if (year) out.copyright_year = year;
+    return out;
+  }
+
   function releasePayload(draft, releaseDate) {
     var body = {
       artist_id: draft.artist_id,
@@ -2112,13 +2147,12 @@
       genre: draft.genre || '',
       price: draft.price || '',
       instrumental: draft.instrumental === true,
-      label: 'PLAIGROUND',
     };
     if (draft.release_id) body.release_id = draft.release_id;
     if (draft.replaced_release_id) body.replace_release_id = draft.replaced_release_id;
     if (!body.instrumental && draft.language) body.language = draft.language;
     if (releaseDate) body.release_date = releaseDate;
-    return Object.assign(body, hopLegalFields(draft));
+    return Object.assign(body, hopLegalFields(draft), hopCreditFields(draft));
   }
 
   function selectedAudio() {
@@ -3234,6 +3268,10 @@
       featured: fieldValue('tg-featured') || draft.featured || '',
       legal_first: fieldValue('tg-legal-first') || fieldValue('tg-legal-first-create') || draft.legal_first || '',
       legal_last: fieldValue('tg-legal-last') || fieldValue('tg-legal-last-create') || draft.legal_last || '',
+      label: fieldValue('tg-label') || draft.label || '',
+      copyright_holder: fieldValue('tg-copyright-owner') || draft.copyright_holder || '',
+      master_owner: fieldValue('tg-phonogram-owner') || draft.master_owner || '',
+      copyright_year: fieldValue('tg-copyright-year') || draft.copyright_year || '',
       genre: catalogFieldValue('tg-genre') || draft.genre || '',
       language: language || draft.language || '',
       price: fieldValue('tg-price') || draft.price || '',
@@ -4151,6 +4189,10 @@
     fill('tg-artist', draft.name);
     fill('tg-featured', draft.featured);
     fill('tg-price', draft.price);
+    if (draft.label && draft.label !== 'PLAIGROUND') fill('tg-label', draft.label);
+    if (draft.copyright_holder && draft.copyright_holder !== 'PLAIGROUND') fill('tg-copyright-owner', draft.copyright_holder);
+    if (draft.master_owner && draft.master_owner !== 'PLAIGROUND') fill('tg-phonogram-owner', draft.master_owner);
+    fill('tg-copyright-year', draft.copyright_year);
     fill('tg-genre', draft.genre);
     fill('tg-language', draft.language);
     fill('tg-lyrics', draft.lyrics);
@@ -4564,6 +4606,10 @@
         featured: featured,
         legal_first: fields.legal_first || readDraft().legal_first || '',
         legal_last: fields.legal_last || readDraft().legal_last || '',
+        label: fields.label || readDraft().label || '',
+        copyright_holder: fields.copyright_holder || readDraft().copyright_holder || '',
+        master_owner: fields.master_owner || readDraft().master_owner || '',
+        copyright_year: fields.copyright_year || readDraft().copyright_year || '',
         type: releaseType,
         explicit: explicit,
         instrumental: instrumental,
@@ -4602,6 +4648,10 @@
             featured: featured,
             legal_first: fields.legal_first || readDraft().legal_first || '',
             legal_last: fields.legal_last || readDraft().legal_last || '',
+            label: fields.label || readDraft().label || '',
+            copyright_holder: fields.copyright_holder || readDraft().copyright_holder || '',
+            master_owner: fields.master_owner || readDraft().master_owner || '',
+            copyright_year: fields.copyright_year || readDraft().copyright_year || '',
             type: releaseType,
             explicit: explicit,
             instrumental: instrumental,
