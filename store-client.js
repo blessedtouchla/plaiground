@@ -566,6 +566,27 @@
     return ready;
   }
 
+  function openNativeDatePicker(dateEl) {
+    if (!dateEl || dateEl.disabled || typeof dateEl.showPicker !== 'function') return;
+    try {
+      dateEl.showPicker();
+    } catch (err) {
+      /* Safari throws if the sheet is already open or the call is not from a gesture. */
+    }
+  }
+
+  function bindNativeDatePicker(dateEl) {
+    if (!dateEl || !dateEl.addEventListener) return dateEl;
+    if (dateEl.type !== 'time') {
+      dateEl.type = 'date';
+      if (dateEl.setAttribute) dateEl.setAttribute('type', 'date');
+    }
+    dateEl.addEventListener('click', function () {
+      openNativeDatePicker(dateEl);
+    });
+    return dateEl;
+  }
+
   function bindReleaseDatePicker(dateEl) {
     if (!dateEl) return '';
     dateEl.type = 'date';
@@ -578,6 +599,7 @@
       dateEl.setAttribute('aria-describedby', 'tg-release-date-hint');
     }
     if (dateEl.removeAttribute) dateEl.removeAttribute('min');
+    bindNativeDatePicker(dateEl);
     var shown = normalizePickedDate(dateEl.value) || normalizePickedDate(readDraft().release_date);
     if (shown) dateEl.value = shown;
     markReleaseDateState(dateEl, shown);
@@ -720,6 +742,7 @@
         preorderEl.setAttribute('min', todayUtc());
       }
       preorderEl.value = normalizePreorderDate(draft.preorder_date, draft.release_date);
+      bindNativeDatePicker(preorderEl);
     }
     if (timeEl) {
       timeEl.value = draft.release_time || timeEl.value || '00:00';
@@ -5204,9 +5227,9 @@
     if (trigger) {
       markIncomplete(trigger, !String(readyDate || '').trim());
       if (dateEl && dateEl.addEventListener) {
-        var syncPickedDate = function (event) {
-          var ignoreEmpty = Boolean(event && event.type === 'input');
-          var picked = persistReleaseDate(dateEl, { ignoreEmpty: ignoreEmpty, snapIfEmpty: true });
+        var syncPickedDate = function () {
+          // Never snap on tap/change. Writing a date on first tap cancels the iOS sheet.
+          var picked = persistReleaseDate(dateEl, { ignoreEmpty: true });
           if ($('tg-preorder-on') || $('tg-time-on')) collectReleaseSchedule();
           markIncomplete(trigger, !picked);
         };
