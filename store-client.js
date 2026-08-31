@@ -1338,11 +1338,30 @@
     return next;
   }
 
+  function adoptCandidateIds(draft, skipId) {
+    var seen = {};
+    var out = [];
+    function add(id) {
+      var n = String(id || '').trim();
+      if (!isUuidValue(n)) return;
+      if (sameUuid(n, skipId) || isProtectedCatalogRelease(n)) return;
+      if (isKnownDeadRelease(n) && !isKnownAdoptRelease(n)) return;
+      var key = n.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(n);
+    }
+    var i;
+    var known = knownAdoptIdsForDraft(draft);
+    for (i = 0; i < known.length; i += 1) add(known[i]);
+    var catalog = catalogReleaseIds();
+    for (i = 0; i < catalog.length; i += 1) add(catalog[i]);
+    return out;
+  }
+
   function findLivingSongRelease(draft, skipId) {
     var current = draft || readDraft();
-    var ids = catalogReleaseIds().filter(function (id) {
-      return !sameUuid(id, skipId) && !isKnownDeadRelease(id) && !isProtectedCatalogRelease(id);
-    });
+    var ids = adoptCandidateIds(current, skipId);
     if (!ids.length) return Promise.resolve(null);
     var index = 0;
     function next() {
@@ -1351,7 +1370,7 @@
       index += 1;
       return fetchReleaseTracks(id).then(function (loaded) {
         if (!loaded.ok) {
-          if (isReleaseMissing(loaded.result)) markDeadRelease(id);
+          if (isReleaseMissing(loaded.result) && !isKnownAdoptRelease(id)) markDeadRelease(id);
           return next();
         }
         var data = loaded.data || (loaded.result && loaded.result.data);
@@ -1448,6 +1467,37 @@
     '1f26369b-e107-4c79-bde1-4c5382f9d511',
     'df51342b-ba22-4093-93ff-35b6402b61c0',
   ];
+
+  var KNOWN_ADOPT_RELEASES = [
+    {
+      id: '7a928125-b12e-4609-bd37-26ce0edf819e',
+      title: 'Rainbow Road',
+      artist: 'Victoria PLAIGROUND',
+    },
+  ];
+
+  function isKnownAdoptRelease(id) {
+    var nid = String(id || '').trim();
+    var i;
+    for (i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
+      if (sameUuid(KNOWN_ADOPT_RELEASES[i].id, nid)) return true;
+    }
+    return false;
+  }
+
+  function knownAdoptIdsForDraft(draft) {
+    var want = String((draft && draft.title) || '').trim();
+    var wantArtist = String((draft && draft.name) || '').trim();
+    var out = [];
+    var i;
+    for (i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
+      var row = KNOWN_ADOPT_RELEASES[i];
+      if (!sameSongText(row.title, want)) continue;
+      if (wantArtist && !sameSongText(row.artist, wantArtist)) continue;
+      out.push(row.id);
+    }
+    return out;
+  }
 
   function isProtectedCatalogRelease(id, title) {
     var nid = String(id || '').trim().toLowerCase();
@@ -1835,8 +1885,11 @@
       }
       return Promise.resolve({ ok: true, draft: next, reused: true });
     }
-    if (send && !force && !alreadyUploaded(next)) {
+    if (send && !alreadyUploaded(next)) {
       var attachId = trackIdOnStore(next.track_id, knownTracks) || firstStoreTrackId(knownTracks);
+      if (!attachId && (!force || isKnownAdoptRelease(next.release_id))) {
+        attachId = String(next.track_id || '').trim();
+      }
       if (attachId) {
         return uploadTrackAudio(attachId, send).then(function (audio) {
           if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next)) {

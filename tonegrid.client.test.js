@@ -3807,6 +3807,8 @@ async function run() {
   assert.ok(source.includes('isProtectedCatalogRelease'));
   assert.ok(source.includes('isAdoptableStoreStatus'));
   assert.ok(source.includes('livingReleaseArtistConflicts'));
+  assert.ok(source.includes('KNOWN_ADOPT_RELEASES'));
+  assert.ok(source.includes('7a928125-b12e-4609-bd37-26ce0edf819e'));
   assert.ok(source.includes('if (!want || !title || !sameSongText(title, want)) return next();'));
   assert.ok(!/if \(selectedAudio\(\)\) return createFreshRelease/.test(source), 'selectedAudio must not skip catalog adopt');
   assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
@@ -4605,7 +4607,7 @@ async function run() {
   }
 
   async function reviewRetryAdoptsOwnedDraftAndHopsHeldWav() {
-    const leftover = '99999999-9999-4999-8999-999999999999';
+    const leftover = '7a928125-b12e-4609-bd37-26ce0edf819e';
     const trackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
     const dolly = 'df51342b-ba22-4093-93ff-35b6402b61c0';
@@ -4618,6 +4620,14 @@ async function run() {
       type: 'audio/wav',
       size: 4096,
       buffer: new Uint8Array(4096).buffer,
+    };
+    const leftoverRow = {
+      uuid: leftover,
+      title: 'Rainbow Road',
+      status: 'draft',
+      artist_id: '11111111-1111-4111-8111-111111111111',
+      artist: 'Victoria PLAIGROUND',
+      tracks: [],
     };
     const page = load({
       bind: 'review',
@@ -4639,13 +4649,13 @@ async function run() {
         plan: 'creator',
         artist: 'Victoria PLAIGROUND',
         tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
-        tonegrid_release_ids: [leftover, lightning, dolly, metete, cgi, vhnjuk],
+        tonegrid_release_ids: [lightning, dolly, metete, cgi, vhnjuk],
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', artist_id: '11111111-1111-4111-8111-111111111111', artist: 'Victoria PLAIGROUND', tracks: [{ uuid: trackId }] } },
+        { ok: true, status: 200, data: leftoverRow },
+        { ok: true, status: 201, data: { uuid: trackId } },
         { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
-        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', artist_id: '11111111-1111-4111-8111-111111111111', artist: 'Victoria PLAIGROUND', tracks: [{ uuid: trackId }] } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
@@ -4657,6 +4667,11 @@ async function run() {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
     assert.strictEqual(createPosts.length, 0, 'owned draft must be adopted, not created again');
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 1, 'empty leftover must mint one track on the adopted uuid');
+    assert.strictEqual(JSON.parse(trackCreates[0].init.body).release_id, leftover);
     assert.ok(page.calls.some(function (call) {
       return call.url === '/api/tonegrid/releases/' + leftover;
     }), 'must GET the owned Rainbow Road draft');
@@ -4686,6 +4701,10 @@ async function run() {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
     assert.strictEqual(createAfterRetry.length, 0, 'Retry must not POST a second create');
+    const trackAfterRetry = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackAfterRetry.length, 1, 'Retry must hop the same leftover track, not mint another');
     const audioAfter = page.calls.filter(function (call) { return isAudioAttach(call.url); });
     assert.ok(audioAfter.length >= 2, 'Retry must hop audio again');
     assert.ok(audioAfter.every(function (call) {
