@@ -11,9 +11,10 @@
  * POST /api/tonegrid/releases
  * GET  /api/tonegrid/releases/:id          -> plus ddex/deliveries when live (dsp_release_id only)
  * PUT  /api/tonegrid/releases/:id          -> ToneGrid PATCH /releases/:uuid (edit in place)
- * DELETE /api/tonegrid/releases/:id        -> not live (draft/pending/processing/rejected):
- *                                         best-effort store DELETE, then drop locally;
- *                                         live: POST /ddex/purge (takedown only, never drop)
+ * DELETE /api/tonegrid/releases/:id        -> draft / rejected / not-live: store DELETE
+ *                                         must succeed (or 404 gone) BEFORE dropLocal;
+ *                                         live / pending / processing: takedown/cancel only,
+ *                                         never 200-removed while the store still has the row
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  * POST /api/tonegrid/releases/:id/dsps
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
@@ -34,9 +35,9 @@
  *
  * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
  * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
- * release. Pending / processing are not live in stores — drop them from
- * PLAIGROUND after confirm even when the store refuses DELETE. Live stays
- * purge-only. Never drop a live store release locally when the store refuses.
+ * release. Never 200-removed while the store still has the row. Live / pending /
+ * processing stay takedown/cancel (never fake-delete). Never drop a live store
+ * release locally when the store refuses.
  * POST and PUT /releases/:uuid/dsps exist. POST
  * /releases/:uuid/submit exists. GET /releases/:uuid/dsps is not registered.
  * Each ToneGrid write uses a hop-scoped Idempotency-Key (release, track,
@@ -280,6 +281,170 @@ function releaseBelongsToCreateBody(row, body) {
   const wantTitle = String((body && body.title) || '').trim();
   const gotTitle = String((row && row.title) || '').trim();
   return Boolean(wantTitle && gotTitle && sameSongText(wantTitle, gotTitle));
+}
+
+const RECORD_EXISTS_COPY = 'A record with these details already exists.';
+
+function artistIdOfRelease(row) {
+  if (!row || typeof row !== 'object') return '';
+  const candidates = [
+    row.artist_id,
+    row.artist_uuid,
+    row.artist && (row.artist.uuid || row.artist.id || row.artist.artist_id),
+  ];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const id = String(candidates[i] || '').trim();
+    if (isUuid(id)) return id;
+  }
+  return '';
+}
+
+function isAlreadyExistsResult(result) {
+  if (!result || result.ok) return false;
+  const msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+  if (/already exists|already exist|a record with these details/.test(msg)) return true;
+  if (result.status === 409 && /duplicate|unique|exists/.test(msg)) return true;
+  return false;
+}
+
+function isDeletableStoreLeftover(status) {
+  const s = normalizeReleaseStatus(status);
+  return !s || s === 'draft' || s === 'rejected' || s === 'needs_fix';
+}
+
+function isBlockingStoreLeftover(status) {
+  const s = normalizeReleaseStatus(status);
+  return storeFacingStatus(s) || cancelFirstStatus(s);
+}
+
+function isStoreDeleteGone(result) {
+  if (!result) return false;
+  if (result.ok) return true;
+  return result.status === 404 || isReleaseGoneResult(result);
+}
+
+async function deleteStoreRelease(releaseId) {
+  return tonegridFetch('/releases/' + releaseId, {
+    method: 'DELETE',
+    idempotencyKey: hopIdempotencyKey('delete-release', 'DELETE', '/releases/' + releaseId, releaseId),
+  });
+}
+
+function storeListTotal(payload, meta) {
+  const root = payload && typeof payload === 'object' ? payload : {};
+  return Number(root.total || (meta && meta.total) || 0) || 0;
+}
+
+async function listStoreReleasePages(queryExtra) {
+  const collected = [];
+  for (let page = 1; page <= 20; page += 1) {
+    const query = Object.assign({ per_page: 100, page: page }, queryExtra || {});
+    const result = await tonegridFetch('/releases', {
+      method: 'GET',
+      query: query,
+      timeoutMs: LIST_HOP_TIMEOUT_MS,
+    });
+    if (!result.ok) return { ok: collected.length > 0, result: result, rows: collected };
+    const rows = asList(result.data).map((row) => unwrapRelease(row) || row).filter(Boolean);
+    collected.push.apply(collected, rows);
+    const meta = parseStoreListMeta(result.data);
+    const total = storeListTotal(result.data, meta);
+    if (meta.lastPage && page >= meta.lastPage) break;
+    if (total && collected.length >= total) break;
+    if (!rows.length) break;
+    if (!meta.lastPage && !meta.nextCursor && rows.length < 100) break;
+  }
+  return { ok: true, rows: collected };
+}
+
+function wantArtistNameOf(body) {
+  if (!body || typeof body !== 'object') return '';
+  return artistNameOf(body) || String(body.artist || body.artist_name || body.name || '').trim();
+}
+
+function artistMatchesCollision(row, body, artistId, wantName) {
+  const gotId = artistIdOfRelease(row);
+  if (gotId && artistId) return sameCatalogId(gotId, artistId);
+  const gotName = artistNameOf(row);
+  const want = String(wantName || wantArtistNameOf(body) || '').trim();
+  if (gotName && want) {
+    return artistCheck.normalizeName(gotName) === artistCheck.normalizeName(want);
+  }
+  return false;
+}
+
+function artistConflictsCollision(row, body, artistId, wantName) {
+  const gotId = artistIdOfRelease(row);
+  if (gotId && artistId) return !sameCatalogId(gotId, artistId);
+  const gotName = artistNameOf(row);
+  const want = String(wantName || wantArtistNameOf(body) || '').trim();
+  if (gotName && want) {
+    return artistCheck.normalizeName(gotName) !== artistCheck.normalizeName(want);
+  }
+  return false;
+}
+
+function catalogHasId(ids, releaseId) {
+  return (ids || []).some((id) => sameCatalogId(id, releaseId));
+}
+
+async function resolveWantArtistName(body, artistId, userRow) {
+  const fromBody = wantArtistNameOf(body);
+  if (fromBody) return fromBody;
+  if (artistId && userRow) {
+    const list = (rosterOf(userRow).artists || []);
+    for (let i = 0; i < list.length; i += 1) {
+      if (sameCatalogId(list[i].tonegrid_artist_id, artistId) && list[i].name) {
+        return String(list[i].name).trim();
+      }
+    }
+  }
+  if (!artistId) return '';
+  const loaded = await tonegridFetch('/artists/' + artistId, { method: 'GET' });
+  if (!loaded.ok) return '';
+  const row = unwrapRelease(loaded.data) || loaded.data;
+  const name = row && (row.name || row.title);
+  return name ? String(name).trim() : '';
+}
+
+async function fetchStoreReleaseRaw(releaseId) {
+  const result = await tonegridFetch('/releases/' + releaseId, { method: 'GET' });
+  if (!result.ok) return { result, row: null };
+  return { result, row: unwrapRelease(result.data) || result.data };
+}
+
+async function findStoreCollision(body, artistId, options) {
+  const wantTitle = String((body && body.title) || '').trim();
+  if (!wantTitle) return null;
+  const skipIds = (options && options.skipIds) || [];
+  const wantName = (options && options.wantName) || wantArtistNameOf(body);
+  const searches = [{ status: 'draft' }, { status: 'rejected' }, {}];
+  const seen = Object.create(null);
+  for (let s = 0; s < searches.length; s += 1) {
+    const listed = await listStoreReleasePages(searches[s]);
+    const rows = listed.rows || [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const raw = rows[i];
+      const row = unwrapRelease(raw) || raw;
+      const id = String((row && (row.uuid || row.release_uuid || row.id)) || '').trim();
+      if (!isUuid(id) || seen[id.toLowerCase()]) continue;
+      if (catalogHasId(skipIds, id)) continue;
+      if (!releaseBelongsToCreateBody(row, body)) continue;
+      seen[id.toLowerCase()] = true;
+      let detail = row;
+      if (!artistIdOfRelease(row) || !artistNameOf(row) || !row.status) {
+        const loaded = await fetchStoreReleaseRaw(id);
+        if (loaded.row) detail = Object.assign({}, row, loaded.row);
+      }
+      if (!artistMatchesCollision(detail, body, artistId, wantName)) continue;
+      return {
+        id: id,
+        status: normalizeReleaseStatus(detail.status || row.status),
+        row: detail,
+      };
+    }
+  }
+  return null;
 }
 
 function createdWriterId(payload) {
@@ -908,14 +1073,21 @@ async function createRelease(req, res) {
     }
   }
   const explicitId = (decision.continuing && isUuid(continueId)) ? continueId : '';
+  let skippedCatalogContinue = false;
   if (explicitId && !sameCatalogId(explicitId, deadReplaceId)) {
     const loaded = await fetchReleaseRow(explicitId);
-    if (loaded.result && loaded.result.ok) {
+    if (
+      loaded.result && loaded.result.ok
+      && releaseBelongsToCreateBody(loaded.row, body)
+      && !artistConflictsCollision(loaded.row, body, artistId)
+    ) {
       await finishContinuedRelease(explicitId);
       return;
     }
     if (isReleaseGoneResult(loaded.result)) {
       deadReplaceId = explicitId;
+    } else if (loaded.result && loaded.result.ok) {
+      skippedCatalogContinue = true;
     }
   } else if (
     !deadReplaceId
@@ -935,8 +1107,11 @@ async function createRelease(req, res) {
       deadReplaceId = leftoverId;
     }
   }
-  if (!decision.allowed && !deadReplaceId) {
-    sendJson(res, 403, plans.limitBody(decision));
+  const createDecision = skippedCatalogContinue
+    ? plans.evaluate(scope.row, undefined, { type })
+    : decision;
+  if (!createDecision.allowed && !deadReplaceId) {
+    sendJson(res, 403, plans.limitBody(createDecision));
     return;
   }
   const releaseDate = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
@@ -978,7 +1153,7 @@ async function createRelease(req, res) {
   if (releaseDate) payload.release_date = releaseDate;
 
   const browserKey = headerValue(req, 'idempotency-key');
-  async function postRelease(nextPayload) {
+  async function postRelease(nextPayload, extra) {
     return tonegridFetch('/releases', {
       method: 'POST',
       body: nextPayload,
@@ -986,9 +1161,47 @@ async function createRelease(req, res) {
         'release',
         'POST',
         '/releases',
-        [JSON.stringify(nextPayload), browserKey || ''].join('\n')
+        [JSON.stringify(nextPayload), browserKey || '', extra && extra.collideRetry ? 'collide-retry' : ''].join('\n')
       ),
     });
+  }
+
+  async function rememberCreatedRelease(created) {
+    const releaseId = createdReleaseId(created.data);
+    if (!releaseId) return true;
+    const credited = await applyReleaseCredits(
+      releaseId,
+      storeCredits.creditsFromHop(
+        body,
+        songwriter,
+        storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
+          || storeCredits.copyrightYearFromDate(releaseDate)
+      ),
+      { patch: false }
+    );
+    if (!credited.ok) {
+      sendJson(res, credited.status, credited.data);
+      return false;
+    }
+    if (deadReplaceId) {
+      await accounts.removeRelease(scope.userId, deadReplaceId);
+    }
+    await accounts.updateCatalog(scope.userId, {
+      artistId: artistId,
+      releaseId: releaseId,
+    });
+    const latest = await accounts.findById(scope.userId);
+    await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', storedCredits);
+    return true;
+  }
+
+  async function continueStoreLeftover(leftoverId) {
+    if (catalogHasId(existingIds, leftoverId)) return false;
+    await accounts.updateCatalog(scope.userId, {
+      artistId: artistId,
+      releaseId: leftoverId,
+    });
+    return finishContinuedRelease(leftoverId);
   }
 
   const result = await postRelease(payload);
@@ -997,31 +1210,37 @@ async function createRelease(req, res) {
     return;
   }
   if (result.ok) {
-    const releaseId = createdReleaseId(result.data);
-    if (releaseId) {
-      const credited = await applyReleaseCredits(
-        releaseId,
-        storeCredits.creditsFromHop(
-          body,
-          songwriter,
-          storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
-            || storeCredits.copyrightYearFromDate(releaseDate)
-        ),
-        { patch: false }
-      );
-      if (!credited.ok) {
-        sendJson(res, credited.status, credited.data);
+    if (!await rememberCreatedRelease(result)) return;
+    sendJson(res, result.status, result.data);
+    return;
+  }
+  if (isAlreadyExistsResult(result)) {
+    const leftover = await findStoreCollision(body, artistId, {
+      skipIds: existingIds,
+      wantName: await resolveWantArtistName(body, artistId, scope.row),
+    });
+    if (leftover && leftover.id) {
+      if (isBlockingStoreLeftover(leftover.status)) {
+        sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
         return;
       }
-      if (deadReplaceId) {
-        await accounts.removeRelease(scope.userId, deadReplaceId);
+      if (isDeletableStoreLeftover(leftover.status)) {
+        const wiped = await deleteStoreRelease(leftover.id);
+        if (isStoreDeleteGone(wiped)) {
+          const retried = await postRelease(payload, { collideRetry: true });
+          if (retried.ok) {
+            if (!await rememberCreatedRelease(retried)) return;
+            sendJson(res, retried.status, retried.data);
+            return;
+          }
+          if (!isAlreadyExistsResult(retried)) {
+            sendJson(res, retried.status, retried.data);
+            return;
+          }
+        }
       }
-      await accounts.updateCatalog(scope.userId, {
-        artistId: artistId,
-        releaseId: releaseId,
-      });
-      const latest = await accounts.findById(scope.userId);
-      await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', storedCredits);
+      if (await continueStoreLeftover(leftover.id)) return;
+      return;
     }
   }
   sendJson(res, result.status, result.data);
@@ -2718,10 +2937,15 @@ async function deleteRelease(req, res, releaseId) {
   }
 
   if (!missing) {
-    await tonegridFetch('/releases/' + releaseId, {
-      method: 'DELETE',
-      idempotencyKey: hopIdempotencyKey('delete-release', 'DELETE', '/releases/' + releaseId, releaseId),
-    });
+    const deleted = await deleteStoreRelease(releaseId);
+    if (!isStoreDeleteGone(deleted)) {
+      sendJson(res, (deleted && deleted.status) || 502, {
+        error: tonegridErrorOf(deleted, 'The store could not remove this release.'),
+        removed: false,
+        takedown: false,
+      });
+      return;
+    }
   }
 
   const next = await dropLocalRelease(scope.row, releaseId);
