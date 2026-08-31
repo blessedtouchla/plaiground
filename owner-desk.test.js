@@ -33,10 +33,16 @@ function loadMembership(options) {
       localStorage.setItem(key, options.seedLocal[key]);
     });
   }
+  if (options && options.seedSession) {
+    Object.keys(options.seedSession).forEach(function (key) {
+      sessionStorage.setItem(key, options.seedSession[key]);
+    });
+  }
+  const clicks = [];
   const location = {
     href: options.href || 'dashboard.html',
     pathname: options.pathname || '/dashboard.html',
-    search: '',
+    search: (options && options.search) || '',
     replace(next) { location.href = next; },
   };
   const context = {
@@ -54,13 +60,15 @@ function loadMembership(options) {
       cookie: '',
       currentScript: { getAttribute() { return null; } },
       querySelector() { return null; },
-      addEventListener() {},
+      addEventListener: function (type, handler) {
+        if (type === 'click') clicks.push(handler);
+      },
     },
     location,
   };
   context.window = context;
   vm.runInNewContext(read('membership.js'), context);
-  return { api: context.PlaigroundMembership, location };
+  return { api: context.PlaigroundMembership, location, sessionStorage, clicks };
 }
 
 function el(tag, attrs, kids) {
@@ -242,6 +250,8 @@ function run() {
   assert.ok(nav.includes('href="#deliveries">Deliveries</a>'));
   assert.ok(nav.includes('href="#royalties">Royalties</a>'));
   assert.ok(/href="https:\/\/app\.tonegrid\.pro\/super\/login" target="_blank" rel="noopener noreferrer">ToneGrid dashboard<\/a>/.test(nav), 'owner desk opens the store partner dashboard in a new tab');
+  assert.ok(/href="dashboard.html" data-owner-artist-home>Dashboard<\/a>/.test(nav), 'owner desk can open the signed-in artist home in this session');
+  assert.ok(!/data-owner-artist-home[^>]*target="_blank"/.test(nav), 'artist home stays in this tab');
   assert.ok(nav.includes('href="settings.html">Settings</a>'));
   assert.ok(nav.includes('href="how.html">How it works</a>'));
   assert.ok(nav.includes('href="faq.html">FAQ</a>'));
@@ -296,6 +306,9 @@ function run() {
   assert.ok(membership.includes("OWNER_HOME = '/admin'"));
   assert.ok(membership.includes('signedInHome'));
   assert.ok(membership.includes('goOwnerDeskFromOverview'));
+  assert.ok(membership.includes("plaiground.owner.artist"));
+  assert.ok(membership.includes('[data-owner-artist-home]'));
+  assert.ok(membership.includes('ownerWantsArtistPages'));
   assert.ok(siteJs.includes('signedInHome'));
   assert.ok(loginHtml.includes('signedInHome'));
   assert.ok(read('magic.html').includes('signedInHome'));
@@ -317,6 +330,7 @@ function run() {
     assert.ok(!/>Admin</.test(side[0]), file + ' must not put Admin on the artist menu');
     assert.ok(!/href="\/admin"|href="admin(?:\.html|\/signups)?"/.test(side[0]), file + ' must not link the owner desk');
     assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro/i.test(side[0]), file + ' artist menu must not gain the owner store dashboard row');
+    assert.ok(!/data-owner-artist-home|>Dashboard<\/a>/.test(side[0]), file + ' artist menu must not gain the owner Dashboard row');
     assert.ok(side[0].includes('New release'), file + ' keeps New release for artists');
     assert.ok(side[0].includes('Overview'), file + ' keeps Overview for artists');
   });
@@ -346,6 +360,36 @@ function run() {
     href: '/admin',
     account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
   });
+  const ownerArtist = loadMembership({
+    pathname: '/dashboard.html',
+    href: 'dashboard.html',
+    seedSession: { 'plaiground.owner.artist': '1' },
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
+  const ownerFromAdmin = loadMembership({
+    pathname: '/dashboard.html',
+    href: 'dashboard.html?from=admin',
+    search: '?from=admin',
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
+  const ownerReleases = loadMembership({
+    pathname: '/releases.html',
+    href: 'releases.html',
+    seedSession: { 'plaiground.owner.artist': '1' },
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
+  const ownerUpload = loadMembership({
+    pathname: '/upload.html',
+    href: 'upload.html',
+    seedSession: { 'plaiground.owner.artist': '1' },
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
+  const ownerLoginWithArtistFlag = loadMembership({
+    pathname: '/login.html',
+    href: 'login.html',
+    seedSession: { 'plaiground.owner.artist': '1' },
+    account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+  });
 
   return Promise.all([
     owner.api.whenReady(),
@@ -353,6 +397,11 @@ function run() {
     herman.api.whenReady(),
     ownerLogin.api.whenReady(),
     ownerStay.api.whenReady(),
+    ownerArtist.api.whenReady(),
+    ownerFromAdmin.api.whenReady(),
+    ownerReleases.api.whenReady(),
+    ownerUpload.api.whenReady(),
+    ownerLoginWithArtistFlag.api.whenReady(),
   ]).then(function () {
     assert.strictEqual(owner.api.isOwner(), true);
     assert.strictEqual(owner.api.signedInHome(), '/admin');
@@ -363,6 +412,29 @@ function run() {
     assert.strictEqual(herman.location.href, 'dashboard.html', 'Herman login stays on Overview');
     assert.strictEqual(ownerLogin.location.href, '/admin', 'owner already signed in on login.html goes to /admin');
     assert.strictEqual(ownerStay.location.href, '/admin', 'signed-in owner stays on /admin');
+    assert.strictEqual(ownerArtist.location.href, 'dashboard.html', 'Dashboard from /admin stays on Overview');
+    assert.strictEqual(ownerFromAdmin.location.href, 'dashboard.html?from=admin', 'owner Dashboard query stays on Overview');
+    assert.strictEqual(ownerFromAdmin.sessionStorage.getItem('plaiground.owner.artist'), '1');
+    assert.strictEqual(ownerReleases.location.href, 'releases.html', 'owner can open Releases after Dashboard');
+    assert.strictEqual(ownerUpload.location.href, 'upload.html', 'owner can open New release after Dashboard');
+    assert.strictEqual(ownerLoginWithArtistFlag.location.href, '/admin', 'login still lands on /admin');
+
+    const ownerDashClick = loadMembership({
+      pathname: '/admin',
+      href: '/admin',
+      account: { email: 'emailplaiground@gmail.com', artist: 'Staff', plan: 'pro', status: 'active' },
+    });
+    ownerDashClick.clicks.forEach(function (handler) {
+      handler({
+        target: {
+          closest: function (sel) {
+            return sel === '[data-owner-artist-home]' ? { getAttribute: function () { return 'dashboard.html'; } } : null;
+          },
+        },
+      });
+    });
+    assert.strictEqual(ownerDashClick.sessionStorage.getItem('plaiground.owner.artist'), '1', 'Dashboard click keeps the owner session on artist pages');
+    assert.strictEqual(ownerDashClick.location.href, '/admin', 'Dashboard click does not log the owner out of /admin');
 
     const artistBrand = runBrandNav({ email: 'victoriaimtanes@gmail.com' });
     assert.strictEqual(artistBrand.logo.getAttribute('href'), 'dashboard.html', 'artist wordmark stays Overview');

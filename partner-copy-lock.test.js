@@ -106,6 +106,7 @@ function run() {
   ['account.js', 'site.js', 'faq.html', 'how.html', 'how-it-works.html', 'upload.html', 'dashboard.html', 'index.html'].forEach(function (rel) {
     const raw = fs.readFileSync(path.join(root, rel), 'utf8');
     assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro\/super\/login/i.test(raw), rel + ' must not gain the owner store dashboard row');
+    assert.ok(!/data-owner-artist-home/.test(raw), rel + ' must not gain the owner Dashboard row');
   });
 
   const timeoutSrc = fs.readFileSync(path.join(root, 'store-client.js'), 'utf8');
