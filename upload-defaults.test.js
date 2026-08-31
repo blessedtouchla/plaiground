@@ -900,6 +900,15 @@ function run() {
   assert.ok(upload.indexOf('id="tg-instrumental"') !== -1);
   assert.ok(upload.indexOf('id="tg-legal-first"') !== -1);
   assert.ok(upload.indexOf('id="tg-legal-last"') !== -1);
+  assert.ok(upload.indexOf('id="tg-legal-first-create"') !== -1);
+  assert.ok(upload.indexOf('id="tg-legal-last-create"') !== -1);
+  assert.ok(upload.indexOf('id="artist-legal-wrap"') !== -1);
+  assert.ok(/id="tg-legal-first-create"[^>]*autocomplete="new-password"/.test(upload), 'create legal first must not use account autocomplete');
+  assert.ok(/id="tg-legal-last-create"[^>]*autocomplete="new-password"/.test(upload), 'create legal last must not use account autocomplete');
+  const createLegalChunk = upload.slice(upload.indexOf('id="artist-create-wrap"'), upload.indexOf('id="artist-link-wrap"'));
+  assert.ok(!/data-legal-first/.test(createLegalChunk) && !/data-legal-last/.test(createLegalChunk), 'create legal fields must not share wrap data-legal selectors');
+  assert.ok(/id="artist-legal-wrap"[^>]*data-artist-legal/.test(upload));
+  assert.ok(/id="tg-legal-first"[^>]*data-legal-first/.test(upload), 'wrap pair keeps data-legal-first for existing-artist prefill');
   assert.ok(upload.indexOf('id="tg-label"') === -1);
   assert.ok(upload.indexOf('id="tg-record-label"') === -1);
   assert.ok(upload.indexOf('id="tg-copyright-year"') === -1);

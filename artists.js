@@ -719,6 +719,10 @@
     setHidden('[data-artist-link-panel]', add);
     markChoice(add ? 'add' : 'import');
     if (!add) seedImportRows();
+    if (add) {
+      if ($('#artist-create-legal-first')) $('#artist-create-legal-first').value = '';
+      if ($('#artist-create-legal-last')) $('#artist-create-legal-last').value = '';
+    }
     var panel = add ? $('#artist-create-panel') : $('#artist-link-panel');
     var input = add ? $('#artist-create-name') : $('[data-artist-import-rows] [data-artist-platform-url]');
     if (!input && !add) input = $('#artist-link-url');

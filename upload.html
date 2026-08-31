@@ -156,11 +156,11 @@
         <div class="form-grid" style="margin-top:14px">
           <div class="field">
             <label for="tg-legal-first-create">Legal first name</label>
-            <input id="tg-legal-first-create" type="text" value="" placeholder="First name" autocomplete="off" data-legal-first />
+            <input id="tg-legal-first-create" name="plaiground-create-legal-first" type="text" value="" placeholder="First name" autocomplete="new-password" />
           </div>
           <div class="field">
             <label for="tg-legal-last-create">Legal last name</label>
-            <input id="tg-legal-last-create" type="text" value="" placeholder="Last name" autocomplete="off" data-legal-last />
+            <input id="tg-legal-last-create" name="plaiground-create-legal-last" type="text" value="" placeholder="Last name" autocomplete="new-password" />
           </div>
         </div>
         <p class="hint">Required. Private. Not the artist name people see. Asked once, then saved on this artist.</p>
@@ -197,11 +197,11 @@
       <div id="artist-legal-wrap" class="form-grid" style="margin-top:14px" data-artist-legal>
         <div class="field">
           <label for="tg-legal-first">Legal first name</label>
-          <input id="tg-legal-first" name="release-legal-first" type="text" value="" placeholder="First name" autocomplete="off" data-legal-first />
+          <input id="tg-legal-first" name="release-legal-first" type="text" value="" placeholder="First name" autocomplete="plaiground-artist-legal-first" data-legal-first />
         </div>
         <div class="field">
           <label for="tg-legal-last">Legal last name</label>
-          <input id="tg-legal-last" name="release-legal-last" type="text" value="" placeholder="Last name" autocomplete="off" data-legal-last />
+          <input id="tg-legal-last" name="release-legal-last" type="text" value="" placeholder="Last name" autocomplete="plaiground-artist-legal-last" data-legal-last />
         </div>
       </div>
       <p class="hint" data-artist-legal-hint>Private songwriter name. Prefills from this artist when we already have it. Not the public artist name.</p>
