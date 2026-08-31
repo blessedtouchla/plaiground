@@ -784,7 +784,7 @@ async function run() {
   assert.strictEqual(releaseBody.release_date, undefined);
   assert.strictEqual(releaseBody.legal_first, 'Ada');
   assert.strictEqual(releaseBody.legal_last, 'Night');
-  assert.strictEqual(releaseBody.label, undefined);
+  assert.strictEqual(releaseBody.label, 'PLAIGROUND');
   assert.strictEqual(releaseBody.copyright_year, undefined);
   assert.strictEqual(releaseBody.copyright_holder, undefined);
   assert.strictEqual(releaseBody.c_line, undefined);
