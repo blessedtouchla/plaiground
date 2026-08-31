@@ -11,7 +11,7 @@
  *                       Rewrite query uses resource=artists so it cannot clobber
  *                       the JSON verb (update / delete / create).
  * POST /api/me/problem  session required; emails emailplaiground via Resend.
- * GET  /api/admin/signups  owner session only; signups, paid rows, store rows
+ * GET  /api/admin/signups  owner session only; signups, paid rows, store rows, growth events
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */

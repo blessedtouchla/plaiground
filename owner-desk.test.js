@@ -234,6 +234,7 @@ function run() {
   assert.ok(adminHtml.includes('data-owner-desk'));
   assert.ok(/href="\/admin">Admin</.test(nav), 'Admin is home on the owner desk');
   assert.ok(nav.includes('href="#signups">Signups</a>'));
+  assert.ok(nav.includes('href="#events">Events</a>'));
   assert.ok(nav.includes('href="#paid">Paid</a>'));
   assert.ok(nav.includes('href="#subs">Subs</a>'));
   assert.ok(nav.includes('href="#money">Money</a>'));
@@ -253,6 +254,7 @@ function run() {
   assert.ok(!/Hi there/.test(adminHtml), 'owner desk does not greet as an artist');
   assert.ok(!/data-account-plan-title|data-account-who/.test(adminHtml));
   assert.ok(adminHtml.includes('<h3>Signups</h3>'));
+  assert.ok(adminHtml.includes('<h3>Events</h3>'));
   assert.ok(/<th>Email<\/th>\s*<th>Name<\/th>\s*<th>Plan<\/th>\s*<th>Status<\/th>\s*<th>Signed up<\/th>\s*<th>Stripe<\/th>/.test(adminHtml));
   assert.ok(!/Last login|Phone|IPI/i.test(adminHtml));
   assert.ok(adminHtml.includes('<h3>Paid checkouts</h3>'));

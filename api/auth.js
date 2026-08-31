@@ -2,7 +2,8 @@
 
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
- * POST /api/auth/signup    pending user only; no session; tries confirm mail
+ * GET  /api/auth/pixel     → { pixel_id } from META_PIXEL_ID only; empty when unset
+ * POST /api/auth/signup    pending user only; no session; tries confirm mail; records signup once
  * POST /api/auth/login     confirmed users only; remember=true → 30-day cookie
  * POST /api/auth/logout
  * POST /api/auth/password  signed-in current + new password; no email token
@@ -44,6 +45,8 @@ const {
 } = require('../lib/mail');
 const { pathnameOf, queryValue } = require('../lib/route');
 const { readBody, sendJson } = require('../lib/tonegrid');
+const { pixelId } = require('../lib/growth-pixel');
+const { recordSignup } = require('../lib/growth-events');
 
 function authAction(req) {
   const path = pathnameOf(req);
@@ -80,6 +83,16 @@ async function bootstrap(req, res) {
     return;
   }
   sendJson(res, 200, { ok: true, configured: true });
+}
+
+async function pixel(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const id = pixelId();
+  sendJson(res, 200, { pixel_id: id });
 }
 
 async function signup(req, res) {
@@ -119,6 +132,11 @@ async function signup(req, res) {
 
   try {
     const row = await createUser({ email, password, artist, plan, username });
+    try {
+      await recordSignup(row);
+    } catch {
+      /* signup event must not fail account create */
+    }
     let mail;
     try {
       mail = await sendConfirmEmail({ email: row.email, artist: row.artist_name });
@@ -599,6 +617,10 @@ module.exports = async function handler(req, res) {
   }
   if (action === 'delete') {
     await deleteAccount(req, res);
+    return;
+  }
+  if (action === 'pixel') {
+    await pixel(req, res);
     return;
   }
   if (action === 'mail') {

@@ -40,6 +40,7 @@ const USER_FILES = [
   'lib/object-hop.js',
   'publishing-register.html',
   'publishing-register.js',
+  'lib/growth-mail.js',
 ];
 
 function stringLiterals(src) {

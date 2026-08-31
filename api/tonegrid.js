@@ -62,6 +62,7 @@ const storeCredits = require('../lib/store-credits');
 const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
+const growthEvents = require('../lib/growth-events');
 const objectStore = require('../lib/object-store');
 const { personalScope, idAllowed, rejectHold } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
@@ -367,7 +368,15 @@ function isArtistGoneResult(result) {
   return false;
 }
 
-async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey, credits) {
+async function notifyFirstStoreLive(user, status, extras) {
+  try {
+    await growthEvents.recordFirstStoreLive(user, status, extras);
+  } catch {
+    /* live hook must not block store-status writes */
+  }
+}
+
+async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, artworkObjectKey, credits, extras) {
   if (!row || !releaseId) return;
   const stored = rosterOf(row);
   let next = stored;
@@ -383,6 +392,13 @@ async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, ar
     }, credits && typeof credits === 'object' ? credits : {}));
   }
   await accounts.updateProfile(row.id, { profile: next });
+  if (status) {
+    await notifyFirstStoreLive(row, status, Object.assign({
+      release_id: releaseId,
+      links: extras && extras.links,
+      release: extras && extras.release,
+    }, extras || {}));
+  }
 }
 
 function creditArtistsOf(row) {
@@ -792,6 +808,15 @@ async function listReleases(req, res) {
     );
     nextProfile = profileLib.keepArtistsIfDropped(nextProfile, previous);
     await accounts.updateProfile(scope.userId, { profile: nextProfile });
+    const latestUser = await accounts.findById(scope.userId);
+    for (let i = 0; i < collected.length; i += 1) {
+      const liveRow = collected[i];
+      await notifyFirstStoreLive(latestUser || scope.row, liveRow && liveRow.status, {
+        release_id: liveRow && liveRow.uuid,
+        release: liveRow,
+        links: growthEvents.publicStoreLinks(liveRow),
+      });
+    }
   }
 
   sendJson(res, 200, {
@@ -1976,7 +2001,8 @@ async function getOneRelease(req, res, releaseId) {
       loaded.row.rejection_reason,
       loaded.row.artwork_url,
       '',
-      filledCreditsFromRow(loaded.row)
+      filledCreditsFromRow(loaded.row),
+      { release: loaded.row, links: growthEvents.publicStoreLinks(loaded.row) }
     );
   }
   sendJson(res, 200, Object.assign({ configured: true, sandbox: healthPayload().sandbox }, loaded.row));
