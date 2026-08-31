@@ -4294,12 +4294,23 @@
       showUploadRetry(retryable);
     }
 
-    function finishToAttest(nextHref, message) {
-      showUploadLoader('Opening SignWell');
-      setStatus('tg-status', message || 'Opening SignWell…');
+    function persistLocalUploadFiles() {
+      var files = (typeof window !== 'undefined' && window.PlaigroundUploadDraftFiles) || null;
+      var persistCover = files && typeof files.persistPickedFiles === 'function'
+        ? files.persistPickedFiles(window)
+        : Promise.resolve();
       return persistHeldAudio(heldAudioFile || selectedAudio()).then(function () {
         return persistPickedAudio(heldPickedFile);
       }).then(function () {
+        return persistCover;
+      });
+    }
+
+    function finishToAttest(nextHref, message) {
+      showUploadLoader('Opening SignWell');
+      setStatus('tg-status', message || 'Opening SignWell…');
+      return persistLocalUploadFiles().then(function () {
+        setUploadBusy(false);
         continueAfterCatalog(nextHref, message);
       });
     }
@@ -4471,78 +4482,8 @@
       }, true);
     }
 
-    function afterCatalogReady(draft, nextHref) {
-      showUploadLoader('Creating track');
-      setStatus('tg-status', 'Creating track…');
-      return afterRelease(draft).then(function (next) {
-        if (next && next.unavailable) {
-          finishToAttest(nextHref, 'Catalog sync is not configured yet.');
-          return true;
-        }
-        if (next && next.failed) {
-          failUpload((next.result && next.result.data && next.result.data.error) || 'Could not create the track.');
-          return false;
-        }
-        if (next && next.audio && next.audio.failed) {
-          failUpload((next.audio.result && next.audio.result.data && next.audio.result.data.error) || 'Could not upload audio.');
-          return false;
-        }
-        if (next && next.audio && next.audio.unavailable) {
-          finishToAttest(nextHref, 'Catalog sync is not configured yet.');
-          return true;
-        }
-        if (next && next.artwork && next.artwork.failed) {
-          failUpload((next.artwork.result && next.artwork.result.data && next.artwork.result.data.error) || 'Could not upload artwork.');
-          return false;
-        }
-        if (next && next.artwork && next.artwork.unavailable) {
-          finishToAttest(nextHref, 'Catalog sync is not configured yet.');
-          return true;
-        }
-        finishToAttest(nextHref);
-        return true;
-      }).catch(function (err) {
-        var step = '';
-        var stepEl = document.querySelector('[data-upload-loader-step]');
-        if (stepEl) step = String(stepEl.textContent || '').trim();
-        var detail = (err && err.message) || 'Could not reach catalog.';
-        failUpload(step ? (step + ' failed. ' + detail) : detail, false);
-        return false;
-      });
-    }
-
-    function afterArtistReady(draft, nextHref) {
-      var known = Boolean(draft.release_id && sessionReleaseId && sameUuid(draft.release_id, sessionReleaseId));
-      if (known) return afterCatalogReady(draft, nextHref);
-      showUploadLoader(draft.release_id ? 'Opening release' : 'Creating release');
-      setStatus('tg-status', draft.release_id ? 'Opening release…' : 'Creating release…');
-      return resolveLiveRelease(draft).then(function (created) {
-        if (created.unavailable) {
-          finishToAttest(nextHref, 'Catalog sync is not configured yet.');
-          return;
-        }
-        if (created.limited) {
-          failUpload(createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
-          return;
-        }
-        if (created.failed || created.missing) {
-          failUpload(
-            (created.result && created.result.data && created.result.data.error) || DEAD_RELEASE_COPY,
-            false,
-            { createFreshFailed: created.createFreshFailed === true }
-          );
-          return;
-        }
-        return afterCatalogReady(created.draft || draft, nextHref).then(function (ok) {
-          if (ok === false) return;
-          return recordLocalRelease(created.draft || draft, {
-            id: (created.draft || draft).plaiground_artist_id,
-            check: { level: (created.draft || draft).artist_check },
-          });
-        });
-      }).catch(function (err) {
-        failUpload((err && err.message) || 'Could not create release.', false);
-      });
+    function afterArtistReady(_draft, nextHref) {
+      return finishToAttest(nextHref);
     }
 
     trigger.addEventListener('click', function (event) {
@@ -4665,6 +4606,9 @@
             title_check: titleCheck,
             tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,
           }), me);
+          if (!continuingSame) {
+            draft = writeDraft({ artist_id: '', track_id: '' });
+          }
           var catalog = catalogFromAccount(me);
           if (releaseType === 'album' && !albumAllowedFor(me)) {
             failUpload(planLimitMessage(catalog.plan, 'album'), true);
@@ -4701,72 +4645,8 @@
               });
             }
             var artistMode = fieldValue('tg-artist-mode') || '';
-            var creatingNew = artistMode === 'create';
-            var choosingExisting = artistMode === 'choose';
-            if (creatingNew) nextDraft = writeDraft({ artist_id: '' });
-            if (!creatingNew && !choosingExisting) {
-              var reusing = Boolean(nextDraft.artist_id || nextDraft.release_id || (artist && artist.tonegridId));
-              if (artist && artist.tonegridId && !nextDraft.artist_id) {
-                nextDraft = writeDraft({ artist_id: artist.tonegridId });
-              }
-              if (reusing) return afterArtistReady(nextDraft, nextHref);
-            } else {
-              nextDraft = writeDraft({ artist_id: '' });
-            }
-            if (catalog.allowed === false) {
-              failUpload(planLimitMessage(catalog.plan), true);
-              return;
-            }
-            showUploadLoader('Saving artist');
-            setStatus('tg-status', 'Saving artist…');
-            return post(ARTISTS_URL, {
-              name: (artist && artist.name) || name,
-              plaiground_artist_id: (artist && artist.id) || '',
-              confirm_different: Boolean(artist && artist.confirmDifferent),
-              store_url: fieldValue('tg-artist-link'),
-            }).then(function (artistResult) {
-              if (artistResult.status === 409 && artistResult.data && artistResult.data.code === 'ARTIST_NAME_RED') {
-                writeDraft({ pending_review: true, tonegrid_status: 'pending_review', artist_check: 'red' });
-                return recordLocalRelease(readDraft(), artist).then(function () {
-                  finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
-                });
-              }
-              if (isUnavailable(artistResult)) {
-                finishToAttest(nextHref, 'Catalog sync is not configured yet.');
-                return;
-              }
-              if (isPlanLimit(artistResult)) {
-                failUpload(createErrorMessage(artistResult, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), true);
-                return;
-              }
-              if (!artistResult.ok) {
-                if (isArtistGoneError(artistResult.data && artistResult.data.error)) {
-                  writeDraft({ artist_id: '' });
-                  failUpload(ARTIST_GONE_COPY, false);
-                  return;
-                }
-                failUpload(artistResult.data.error || 'Could not save artist.', false);
-                return;
-              }
-              var artistId = pickUuid(artistResult.data);
-              var next = writeDraft({ artist_id: artistId });
-              if (artistId) saveCatalog({ artist_id: artistId });
-              if (artist && artist.id && artistId) {
-                post('/api/me/artists', { action: 'attach_tonegrid', id: artist.id, tonegrid_artist_id: artistId });
-              }
-              rememberRosterArtist({
-                id: (artist && artist.id) || artistId,
-                name: (artist && artist.name) || name,
-                source: 'created',
-                tonegrid_artist_id: artistId,
-              });
-              if (!artistId) {
-                writeDraft({ artist_id: '' });
-                failUpload(ARTIST_GONE_COPY, false);
-                return;
-              }
-              return afterArtistReady(next, nextHref);
-            });
+            if (artistMode === 'create') nextDraft = writeDraft({ artist_id: '' });
+            return afterArtistReady(nextDraft, nextHref);
           });
         })
         .catch(function () {
@@ -5020,6 +4900,7 @@
 
           setStatus('tg-status', 'Creating release…');
           showUploadLoader('Creating release');
+          return restoreHeldAudio().then(function () {
           return resolveLiveRelease(nextDraft).then(function (created) {
             if (created.unavailable) {
               hideUploadLoader();
@@ -5050,6 +4931,7 @@
             });
           }).catch(function (err) {
             failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
+          });
           });
         }).catch(function (err) {
           failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
@@ -5233,7 +5115,7 @@
     fillSubmitted();
     if (!document.querySelector('[data-submit-title]')) return;
     var draft = readDraft();
-    if (!draft.artist_id || !draft.title) return;
+    if (!draft.title) return;
     var afterCreate = function (nextDraft) {
       if (nextDraft.submitted) return;
       if (!documentIdOf(nextDraft) && !isSoloOwned(nextDraft)) {
@@ -5257,7 +5139,22 @@
       return;
     }
     setStatus('tg-status', 'Creating release…');
-    createRelease(draft, draft.release_date || '').then(function (created) {
+    restoreHeldAudio().then(function () {
+      return ensureCatalogArtist(readDraft());
+    }).then(function (ready) {
+      if (ready && (ready.unavailable || ready.limited || ready.failed || ready.missing)) {
+        hideUploadLoader();
+        if (ready.unavailable) setStatus('tg-status', 'Catalog sync is not configured yet.');
+        else if (ready.limited) {
+          setStatus('tg-status', createErrorMessage(ready.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+          showUpgrade(true);
+        } else {
+          setStatus('tg-status', createErrorMessage(ready.result, 'Could not create release.'));
+        }
+        return;
+      }
+      draft = (ready && ready.draft) || readDraft();
+    return createRelease(draft, draft.release_date || '').then(function (created) {
       if (created.unavailable) {
         setStatus('tg-status', 'Catalog sync is not configured yet.');
         return;
@@ -5285,6 +5182,10 @@
         hideUploadLoader();
         setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
       });
+    }).catch(function (err) {
+      hideUploadLoader();
+      setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
+    });
     }).catch(function (err) {
       hideUploadLoader();
       setStatus('tg-status', (err && err.message) || 'Could not reach catalog.');
