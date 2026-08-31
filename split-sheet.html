@@ -245,6 +245,9 @@
           }
         }
         if (shareCents() !== 10000) return 'Shares among writers must total 100% of the writer’s 50%.';
+        if (!payload.writers || payload.writers.length < 2) {
+          return 'Add a co-writer. Solo 100% is attested in the app and is not sent to SignWell.';
+        }
         return '';
       }
 
@@ -379,6 +382,10 @@
         var error = clientError(payload);
         if (error) {
           showStatus('bad', error);
+          return;
+        }
+        if (!payload.writers || payload.writers.length < 2) {
+          showStatus('bad', 'Add a co-writer. Solo 100% is attested in the app and is not sent to SignWell.');
           return;
         }
         if (!configured) {

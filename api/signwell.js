@@ -4,6 +4,8 @@
  * GET  /api/signwell            { configured }
  * GET  /api/signwell?id=        SignWell document status (server-only key)
  * POST /api/signwell            Create a document from the Writer Split Sheet template
+ *                               Refuses unless writers.length >= 2. Solo 100% is
+ *                               attested in-app and must never mint a document.
  *
  * Env: SIGNWELL_API_KEY, SIGNWELL_TEMPLATE_ID (never echo these).
  * Create-from-template uses test_mode: false (live paid Business).
@@ -69,9 +71,13 @@ function sharesSumTo100(shares) {
   return cents === 10000;
 }
 
+function tooFewWriters(input) {
+  return !Array.isArray(input) || input.length < 2;
+}
+
 function normalizeWriters(input) {
-  if (!Array.isArray(input) || input.length < 1 || input.length > MAX_WRITERS) {
-    return { error: 'Provide between 1 and 5 writers.' };
+  if (tooFewWriters(input) || input.length > MAX_WRITERS) {
+    return { error: 'SignWell is only for multi-writer split sheets. Add at least two writers.' };
   }
 
   const writers = [];
@@ -163,6 +169,19 @@ async function getStatus(req, res) {
 }
 
 async function createSplitDocument(body) {
+  const rawWriters = body && body.writers;
+  if (tooFewWriters(rawWriters)) {
+    return {
+      ok: false,
+      status: 400,
+      data: {
+        error: 'SignWell is only for multi-writer split sheets. One-writer 100% is attested in the app.',
+        code: 'solo_not_signwell',
+        signed: false,
+      },
+    };
+  }
+
   if (!signwell.isConfigured()) {
     return {
       ok: false,
@@ -181,14 +200,12 @@ async function createSplitDocument(body) {
   }
 
   const emailLinkOnly = Boolean(body && body.emailLinkOnly);
-  const parsed = normalizeWriters(body && body.writers);
+  const parsed = normalizeWriters(rawWriters);
   if (parsed.error) {
     return { ok: false, status: 400, data: { error: parsed.error, signed: false } };
   }
 
   const { writers } = parsed;
-  const excludePlaceholders = [];
-  if (writers.length < 2) excludePlaceholders.push('Writer 2');
 
   const payload = {
     test_mode: false,
@@ -197,9 +214,6 @@ async function createSplitDocument(body) {
     name: `${songTitle} – Writer Split Sheet`,
     recipients: buildRecipients(writers, emailLinkOnly),
   };
-  if (excludePlaceholders.length) {
-    payload.exclude_placeholders = excludePlaceholders;
-  }
 
   const result = await signwell.signwellFetch(signwell.CREATE_URL, {
     method: 'POST',

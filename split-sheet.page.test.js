@@ -136,20 +136,33 @@ function load(options) {
     localStorage,
     sessionStorage,
     addEventListener() {},
-    fetch(url) {
-      calls.push({ url: String(url) });
+    fetch(url, options) {
+      calls.push({ url: String(url), method: String((options && options.method) || 'GET') });
       if (String(url).indexOf('/api/signwell?id=') !== -1) {
         return Promise.resolve({
           ok: true,
           json: async () => (opts.signwellGet || { signed: false, status: 'Pending' }),
         });
       }
+      if (String((options && options.method) || 'GET').toUpperCase() === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ documentId: 'doc_must_not_mint_solo' }),
+        });
+      }
       return Promise.resolve({
         ok: true,
-        json: async () => ({ configured: false }),
+        json: async () => ({ configured: true }),
       });
     },
     PlaigroundUploadRequired: require('./lib/upload-required'),
+    PlaigroundReleaseCredits: {
+      seedWriters() {
+        return Array.isArray(opts.writers) && opts.writers.length
+          ? opts.writers
+          : [{ first_name: '', last_name: '', name: '', email: '', share: 100, pro: '' }];
+      },
+    },
   };
   context.window = context;
   context.globalThis = context;
@@ -226,6 +239,18 @@ async function run() {
   assert.ok(signed.calls.some(function (call) {
     return String(call.url).indexOf('/api/signwell?id=doc_email_signed_01') !== -1;
   }));
+
+  const soloMint = load({
+    draft: { title: 'Night Drive', solo_owned_100: true, legal_first: 'Ada', legal_last: 'Night' },
+    writers: [{ first_name: 'Ada', last_name: 'Night', name: 'Ada Night', email: 'ada@example.com', share: 100, pro: '' }],
+  });
+  await flush();
+  await soloMint.signBtn.listeners.click();
+  await flush();
+  assert.ok(!soloMint.calls.some(function (call) {
+    return String(call.method).toUpperCase() === 'POST' && String(call.url).indexOf('/api/signwell') !== -1;
+  }), '1-writer split-sheet.html must not POST /api/signwell');
+  assert.ok(soloMint.status.textContent.indexOf('attested') !== -1);
 
   console.log('split-sheet.page.test.js ok');
 }
