@@ -353,7 +353,7 @@
     if (draft && draft.tonegrid_status && !status) status = String(draft.tonegrid_status).toLowerCase();
     var api = statusApi();
     var g = api ? api.group(status) : '';
-    if (g === 'live' || g === 'rejected' || g === 'processing' || g === 'pending' || g === 'taken_down') return g;
+    if (g === 'live' || g === 'rejected' || g === 'processing' || g === 'pending' || g === 'removing' || g === 'taken_down') return g;
     if (status === 'live' || status === 'delivered') return 'live';
     if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'rejected';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'processing';
@@ -386,6 +386,7 @@
     if (step === 'draft') return 'Draft';
     if (step === 'signatures') return 'Awaiting signatures';
     if (step === 'processing') return 'Processing';
+    if (step === 'removing') return 'Removing';
     return 'Pending';
   }
 
@@ -858,7 +859,7 @@
     if (id && !release.uuid) release.uuid = id;
     markEditHref(id);
     setHidden('[data-song-edit]', false);
-    setHidden('[data-song-remove]', !me || !id || step === 'taken_down');
+    setHidden('[data-song-remove]', !me || !id || step === 'taken_down' || step === 'removing');
     var boostCta = $('[data-song-boost]');
     if (boostCta) {
       boostCta.classList.toggle('is-off', !paid);
@@ -1003,6 +1004,23 @@
               retryable = true;
             }
             return finish(mergeStoreRow(release, one), error);
+          });
+        }
+        if (!release && queryId()) {
+          return getJson(RELEASES_URL + '/' + encodeURIComponent(queryId())).then(function (one) {
+            if (one.status === 404) {
+              try { global.location.href = 'releases.html'; } catch (err) {}
+              return { redirect: 'releases.html', gone: true };
+            }
+            if (isHangLoad(one) && !error) {
+              error = catalogTimeoutMessage();
+              retryable = true;
+            }
+            var oneRow = (one.ok && one.data) ? one.data : null;
+            if (oneRow && (oneRow.uuid || oneRow.title)) {
+              return finish(oneRow, error);
+            }
+            return finish(release, error || 'No release on this account yet.');
           });
         }
         return finish(release, error || (release ? '' : 'No release on this account yet.'));
@@ -2040,12 +2058,50 @@
 
   function confirmRemove(release) {
     var step = statusStep(release, lastEdit.draft);
-    var live = step === 'live';
-    var message = live
+    var storeBacked = step === 'live' || step === 'pending' || step === 'processing' || step === 'removing';
+    var message = storeBacked
       ? 'Ask stores to take this release down? It stays listed until the store confirms. This cannot be undone.'
       : 'Remove this release from PLAIGROUND? This cannot be undone.';
     if (typeof global.confirm !== 'function') return false;
     return global.confirm(message);
+  }
+
+  function gonePollMs() {
+    if (global.PlaigroundGonePollMs === 0) return 0;
+    var n = Number(global.PlaigroundGonePollMs);
+    if (n > 0) return n;
+    return 2500;
+  }
+
+  function applyRemovingStatus(status) {
+    var next = status || 'takedown_submitted';
+    if (lastEdit.release) lastEdit.release.status = next;
+    var api = statusApi();
+    var pill = (api && typeof api.label === 'function') ? api.label(next) : statusLabel(statusStep({ status: next }, lastEdit.draft));
+    setText('[data-song-pill]', pill);
+    markLife(statusStep({ status: next }, lastEdit.draft));
+    setHidden('[data-song-remove]', true);
+  }
+
+  function pollUntilStoreGone(id, attempt) {
+    attempt = attempt || 0;
+    if (!id) return Promise.resolve({ ok: false });
+    return getJson('/api/tonegrid/releases/' + encodeURIComponent(id)).then(function (result) {
+      if (result.status === 404 || (result.data && (result.data.removed === true || result.data.gone === true))) {
+        clearDraftIf(id, (lastEdit.release && lastEdit.release.title) || (lastEdit.draft && lastEdit.draft.title) || '');
+        wipeUploadDraftStorage();
+        try { global.location.href = 'releases.html'; } catch (err) {}
+        return { ok: true, removed: true, redirect: 'releases.html', result: result };
+      }
+      if (result.ok && result.data && result.data.status) applyRemovingStatus(result.data.status);
+      var wait = gonePollMs();
+      if (wait && attempt < 20 && typeof global.setTimeout === 'function') {
+        global.setTimeout(function () { pollUntilStoreGone(id, attempt + 1); }, wait);
+      }
+      return { ok: true, takedown: true, status: (result.data && result.data.status) || 'takedown_submitted', result: result };
+    }).catch(function () {
+      return { ok: true, takedown: true, status: 'takedown_submitted' };
+    });
   }
 
   function removeRelease() {
@@ -2081,13 +2137,13 @@
         return { ok: true, removed: true, redirect: 'releases.html', result: result };
       }
       var status = (result.data && result.data.status) || 'takedown_submitted';
-      if (lastEdit.release) lastEdit.release.status = status;
-      setText('[data-song-pill]', statusLabel(statusStep({ status: status }, lastEdit.draft)));
-      markLife(statusStep({ status: status }, lastEdit.draft));
-      setHidden('[data-song-remove]', true);
+      applyRemovingStatus(status);
       setText('[data-song-status]', 'Takedown submitted to stores. This release stays listed until the store confirms.');
       setHidden('[data-song-status]', false);
-      return { ok: true, takedown: true, status: status, result: result };
+      return pollUntilStoreGone(id).then(function (polled) {
+        if (polled && polled.removed) return polled;
+        return { ok: true, takedown: true, status: (polled && polled.status) || status, result: result };
+      });
     }).catch(function () {
       if (btn) btn.removeAttribute('aria-busy');
       setText('[data-song-status]', 'We could not reach the store.');

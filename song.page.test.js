@@ -209,6 +209,7 @@ function loadSong(opts) {
     pending: makeEl({ life: 'pending' }),
     processing: makeEl({ life: 'processing' }),
     live: makeEl({ life: 'live' }),
+    removing: makeEl({ life: 'removing' }),
     taken_down: makeEl({ life: 'taken_down' }),
     rejected: makeEl({ life: 'rejected' }),
   };
@@ -216,6 +217,7 @@ function loadSong(opts) {
     Promise,
     setTimeout,
     clearTimeout,
+    PlaigroundGonePollMs: 0,
     PlaigroundCatalogTimeoutMs: opts.catalogTimeoutMs || undefined,
     deletedDbs: [],
     localStorage: {
@@ -231,7 +233,7 @@ function loadSong(opts) {
     document: {
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
-        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.taken_down, life.rejected];
+        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.removing, life.taken_down, life.rejected];
         if (sel === '[data-edit-explicit] [data-explicit]') return [];
         if (sel === '[data-edit-made-how]') return [];
         return [];
@@ -1314,6 +1316,7 @@ function run() {
   assert.ok(html.includes('lib/statement-pdf.js'));
   assert.ok(/data-song-download>Download<\/button>/.test(html));
   assert.ok(html.includes('data-life="taken_down"'));
+  assert.ok(html.includes('data-life="removing"'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('data-edit-retry'));
   assert.ok(/class="btn btn-purple btn-sm"[^>]*>Open full split sheet</.test(html), 'Open full split sheet stays purple');
@@ -1930,7 +1933,8 @@ function run() {
       analytics: {},
     });
     assert.strictEqual(down.nodes['[data-song-remove]'].hidden, true, 'taken down releases keep the lifetime slot');
-    assert.ok(down.life.taken_down.classList.contains('on'));
+    assert.ok(down.life.removing.classList.contains('on'));
+    assert.strictEqual(down.nodes['[data-song-pill]'].textContent, 'Removing');
 
     const cancelCalls = [];
     const cancelled = loadSong({
@@ -2074,15 +2078,18 @@ function run() {
               if (method === 'DELETE') {
                 return Promise.resolve({
                   ok: true,
-                  status: 200,
-                  json: async () => ({ ok: true, removed: true, takedown: false, redirect: '/releases.html' }),
+                  status: 202,
+                  json: async () => ({ ok: true, removed: false, takedown: true, status: 'takedown_submitted' }),
                 });
               }
               return Promise.resolve({
                 ok: true,
                 status: 200,
                 json: async () => ({
-                  releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending' }],
+                  uuid: basicMe.tonegrid_release_ids[0],
+                  title: 'mexeu',
+                  status: 'takedown_submitted',
+                  releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'takedown_submitted' }],
                 }),
               });
             },
@@ -2094,11 +2101,13 @@ function run() {
           });
           return pendingOk.api.removeRelease().then(function (pendingRemoved) {
             assert.ok(pendingRemoved.ok);
-            assert.strictEqual(pendingRemoved.removed, true);
-            assert.strictEqual(pendingRemoved.redirect, 'releases.html');
-            assert.ok(pendingCalls.some((row) => String(row.confirm || '').indexOf('Remove this release from PLAIGROUND') !== -1));
-            assert.ok(!pendingCalls.some((row) => /Ask stores|request from the stores|stays listed until the store confirms/i.test(String(row.confirm || ''))));
-            assert.strictEqual(pendingOk.context.location.href, 'releases.html');
+            assert.strictEqual(pendingRemoved.removed, undefined);
+            assert.strictEqual(pendingRemoved.takedown, true);
+            assert.ok(!pendingRemoved.redirect);
+            assert.ok(pendingCalls.some((row) => /Ask stores|stays listed until the store confirms/i.test(String(row.confirm || ''))));
+            assert.ok(!/Deleted|Taken down/i.test(pendingOk.nodes['[data-song-pill]'].textContent));
+            assert.ok(/Removing|Pending/i.test(pendingOk.nodes['[data-song-pill]'].textContent));
+            assert.notStrictEqual(pendingOk.context.location.href, 'releases.html');
 
             const processingCalls = [];
             const processingOk = loadSong({
@@ -2113,15 +2122,18 @@ function run() {
                 if (method === 'DELETE') {
                   return Promise.resolve({
                     ok: true,
-                    status: 200,
-                    json: async () => ({ ok: true, removed: true, takedown: false, redirect: '/releases.html' }),
+                    status: 202,
+                    json: async () => ({ ok: true, removed: false, takedown: true, status: 'takedown_submitted' }),
                   });
                 }
                 return Promise.resolve({
                   ok: true,
                   status: 200,
                   json: async () => ({
-                    releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'processing' }],
+                    uuid: basicMe.tonegrid_release_ids[0],
+                    title: 'mexeu',
+                    status: 'takedown_submitted',
+                    releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'takedown_submitted' }],
                   }),
                 });
               },
@@ -2133,10 +2145,11 @@ function run() {
             });
             return processingOk.api.removeRelease().then(function (processingRemoved) {
               assert.ok(processingRemoved.ok);
-              assert.strictEqual(processingRemoved.removed, true);
-              assert.ok(processingCalls.some((row) => String(row.confirm || '').indexOf('Remove this release from PLAIGROUND') !== -1));
-              assert.ok(!processingCalls.some((row) => /Ask stores|request from the stores/i.test(String(row.confirm || ''))));
-              assert.strictEqual(processingOk.context.location.href, 'releases.html');
+              assert.strictEqual(processingRemoved.removed, undefined);
+              assert.strictEqual(processingRemoved.takedown, true);
+              assert.ok(processingCalls.some((row) => /Ask stores|stays listed until the store confirms/i.test(String(row.confirm || ''))));
+              assert.ok(!/Deleted|Taken down/i.test(processingOk.nodes['[data-song-pill]'].textContent));
+              assert.notStrictEqual(processingOk.context.location.href, 'releases.html');
 
             const leftoverCalls = [];
             const leftover = loadSong({
@@ -2173,9 +2186,57 @@ function run() {
               assert.strictEqual(leftoverFail.ok, false);
               assert.strictEqual(leftover.nodes['[data-song-status]'].textContent, 'The store could not take this release down.');
               assert.ok(!/only draft or rejected releases can be deleted/i.test(leftover.nodes['[data-song-status]'].textContent));
+              assert.ok(!/ToneGrid|DistroKid/i.test(leftover.nodes['[data-song-status]'].textContent));
               assert.notStrictEqual(leftover.context.location.href, 'releases.html');
-              return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(function () {
-                console.log('song.page.test.js ok');
+
+              const goneCalls = [];
+              const pendingGone = loadSong({
+                plan: 'creator',
+                me: Object.assign({}, basicMe, { plan: 'creator' }),
+                confirm: true,
+                calls: goneCalls,
+                href: 'song.html?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                search: '?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                fetch(url, options) {
+                  const method = (options && options.method) || 'GET';
+                  if (method === 'DELETE') {
+                    return Promise.resolve({
+                      ok: true,
+                      status: 202,
+                      json: async () => ({ ok: true, removed: false, takedown: true, status: 'takedown_submitted' }),
+                    });
+                  }
+                  if (method === 'GET' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(String(url))) {
+                    return Promise.resolve({
+                      ok: false,
+                      status: 404,
+                      json: async () => ({ error: 'Release not found.' }),
+                    });
+                  }
+                  return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                      releases: [{ uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending' }],
+                    }),
+                  });
+                },
+              });
+              pendingGone.api.render({
+                me: Object.assign({}, basicMe, { plan: 'creator' }),
+                release: { uuid: basicMe.tonegrid_release_ids[0], title: 'mexeu', status: 'pending', type: 'single' },
+                analytics: {},
+              });
+              return pendingGone.api.removeRelease().then(function (goneRemoved) {
+                assert.ok(goneRemoved.ok);
+                assert.strictEqual(goneRemoved.removed, true);
+                assert.strictEqual(goneRemoved.redirect, 'releases.html');
+                assert.strictEqual(pendingGone.context.location.href, 'releases.html');
+                assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
+                assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(function () {
+                  console.log('song.page.test.js ok');
+                });
               });
             });
           });

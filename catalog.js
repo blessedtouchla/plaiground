@@ -56,10 +56,11 @@
     var api = statusApi();
     var g = api ? api.group(status) : '';
     if (g === 'live') return 'live';
-    if (g === 'pending' || g === 'processing') return 'review';
+    if (g === 'pending' || g === 'processing' || g === 'removing') return 'review';
     if (g === 'rejected') return 'review';
+    if (g === 'store_gone') return '';
     if (status === 'live' || status === 'delivered') return 'live';
-    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'rejected') return 'review';
+    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'rejected' || status === 'takedown_submitted' || status === 'removing') return 'review';
     return 'draft';
   }
 
@@ -174,6 +175,7 @@
       };
     }).filter(function (card) {
       var api = statusApi();
+      if (api && typeof api.isHiddenFromList === 'function' && api.isHiddenFromList(card && card.status)) return false;
       return !(api && typeof api.isPlaceholderRelease === 'function' && api.isPlaceholderRelease(card));
     });
   }

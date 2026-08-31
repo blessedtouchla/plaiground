@@ -638,7 +638,7 @@ async function persistReleaseMeta(row, releaseId, status, reason, artworkUrl, ar
     }, credits && typeof credits === 'object' ? credits : {}));
   }
   await accounts.updateProfile(row.id, { profile: next });
-  if (status) {
+  if (status && !isGoneHiddenStatus(status) && !isRemovingStoreStatus(status)) {
     await notifyFirstStoreLive(row, status, Object.assign({
       release_id: releaseId,
       links: extras && extras.links,
@@ -999,17 +999,27 @@ async function listReleases(req, res) {
       timeoutMs: LIST_HOP_TIMEOUT_MS,
     }).then((result) => ({ id, result }));
   }));
+  let latestAccount = scope.row;
   for (let i = 0; i < fetched.length; i += 1) {
     const id = fetched[i].id;
     const result = fetched[i].result;
-    let row = result.ok ? pickRelease(unwrapRelease(result.data)) : null;
     const local = storedById[String(id).toLowerCase()];
+    const localStatus = normalizeReleaseStatus((local && (local.tonegrid_status || local.status)) || '');
+    if (isReleaseGoneResult(result) && (isRemovingStoreStatus(localStatus) || isGoneHiddenStatus(localStatus))) {
+      if (isRemovingStoreStatus(localStatus)) {
+        latestAccount = (await hideGoneRelease(latestAccount, id)) || latestAccount;
+      }
+      continue;
+    }
+    if (isGoneHiddenStatus(localStatus) && !(result && result.ok)) continue;
+    let row = result.ok ? pickRelease(unwrapRelease(result.data)) : null;
+    if (row) row.status = displayStoreStatus(row.status);
     if (!row && local) {
       row = {
         uuid: id,
         title: local.title || '',
         type: 'single',
-        status: local.tonegrid_status || 'pending',
+        status: displayStoreStatus(local.tonegrid_status || 'pending'),
         genre: '',
         language: '',
         artwork_url: coverUrl.from(local),
@@ -1044,6 +1054,7 @@ async function listReleases(req, res) {
     if (row && !row.artwork_url && local) {
       row.artwork_url = coverUrl.from(local);
     }
+    if (row && isGoneHiddenStatus(row.status)) continue;
     await attachDeliveries(row, id);
     if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
     if (query.type && row.type !== normalizeReleaseType(query.type)) continue;
@@ -2361,11 +2372,16 @@ async function getOneRelease(req, res, releaseId) {
   const scope = await requireOwnedRelease(req, res, releaseId);
   if (!scope) return;
   const loaded = await fetchReleaseRow(releaseId);
+  const localStatus = localReleaseStatusOf(scope.row, releaseId);
   if (!loaded.result.ok) {
+    if (isReleaseGoneResult(loaded.result) && (isRemovingStoreStatus(localStatus) || isGoneHiddenStatus(localStatus))) {
+      if (isRemovingStoreStatus(localStatus)) await hideGoneRelease(scope.row, releaseId);
+    }
     sendJson(res, loaded.result.status, loaded.result.data);
     return;
   }
   if (loaded.row) {
+    loaded.row.status = displayStoreStatus(loaded.row.status);
     await persistReleaseMeta(
       scope.row,
       releaseId,
@@ -2440,8 +2456,23 @@ async function webhook(req, res) {
     sendJson(res, 404, { error: 'Release not found.' });
     return;
   }
-  await persistReleaseMeta(row, releaseId, status, reason);
-  sendJson(res, 200, { ok: true, release_id: releaseId, status: status || undefined });
+  const incoming = normalizeReleaseStatus(status);
+  if (incoming === 'taken_down' || incoming === 'deleted' || incoming === 'gone' || incoming === 'purged' || incoming === 'removed') {
+    const loaded = await fetchReleaseRow(releaseId);
+    if (isReleaseGoneResult(loaded.result)) {
+      await hideGoneRelease(row, releaseId);
+      sendJson(res, 200, { ok: true, release_id: releaseId, removed: true });
+      return;
+    }
+    if (loaded.result && loaded.result.ok) {
+      await persistReleaseMeta(row, releaseId, 'takedown_submitted', reason);
+      sendJson(res, 200, { ok: true, release_id: releaseId, status: 'takedown_submitted', removed: false });
+      return;
+    }
+  }
+  const nextStatus = incoming === 'taken_down' ? 'takedown_submitted' : status;
+  await persistReleaseMeta(row, releaseId, nextStatus, reason);
+  sendJson(res, 200, { ok: true, release_id: releaseId, status: nextStatus || undefined });
 }
 
 function releaseUpdatePayload(body) {
@@ -2959,6 +2990,36 @@ function leftoverDeleteCopy(error) {
   return /only draft or rejected releases can be deleted/i.test(String(error || ''));
 }
 
+function displayStoreStatus(status) {
+  const s = normalizeReleaseStatus(status);
+  if (s === 'taken_down') return 'takedown_submitted';
+  return status;
+}
+
+function isRemovingStoreStatus(status) {
+  const s = normalizeReleaseStatus(status);
+  return s === 'takedown_submitted' || s === 'taken_down' || s === 'removing';
+}
+
+function isGoneHiddenStatus(status) {
+  return normalizeReleaseStatus(status) === 'store_gone';
+}
+
+function needsStoreTakedown(status) {
+  return storeFacingStatus(status) || cancelFirstStatus(status) || isRemovingStoreStatus(status);
+}
+
+function localReleaseStatusOf(row, releaseId) {
+  const stored = rosterOf(row);
+  const want = String(releaseId || '').trim().toLowerCase();
+  const list = (stored && stored.releases) || [];
+  for (let i = 0; i < list.length; i += 1) {
+    const id = String((list[i] && (list[i].tonegrid_release_id || list[i].id)) || '').trim().toLowerCase();
+    if (id && id === want) return normalizeReleaseStatus(list[i].tonegrid_status || list[i].status);
+  }
+  return '';
+}
+
 function isMissingStoreEndpoint(result) {
   if (!result || result.ok) return false;
   if (result.status === 404 || result.status === 405) return true;
@@ -3003,6 +3064,44 @@ async function dropLocalRelease(row, releaseId) {
   return accounts.removeRelease(row.id, releaseId);
 }
 
+async function hideGoneRelease(row, releaseId) {
+  if (!row || !row.id || !releaseId) return row;
+  await persistReleaseMeta(row, releaseId, 'store_gone', '');
+  return accounts.findById(row.id);
+}
+
+function keepLifetimeSlot(status) {
+  const s = normalizeReleaseStatus(status);
+  return needsStoreTakedown(s) || isGoneHiddenStatus(s);
+}
+
+async function dropAfterStoreGone(row, releaseId, status) {
+  if (keepLifetimeSlot(status)) return hideGoneRelease(row, releaseId);
+  return dropLocalRelease(row, releaseId);
+}
+
+async function finishRemoved(res, next, scope, releaseId, extras) {
+  sendJson(res, 200, Object.assign({
+    ok: true,
+    removed: true,
+    takedown: false,
+    release_id: releaseId,
+    redirect: '/releases.html',
+    upload: plans.evaluate(next || scope.row),
+  }, extras || {}));
+}
+
+async function finishTakedownPending(res, row, releaseId) {
+  await persistReleaseMeta(row, releaseId, 'takedown_submitted', '');
+  sendJson(res, 202, {
+    ok: true,
+    takedown: true,
+    removed: false,
+    release_id: releaseId,
+    status: 'takedown_submitted',
+  });
+}
+
 async function deleteRelease(req, res, releaseId) {
   if (!isConfigured()) {
     notConfigured(res);
@@ -3012,7 +3111,7 @@ async function deleteRelease(req, res, releaseId) {
   if (!scope) return;
 
   const loaded = await fetchReleaseRow(releaseId);
-  if (loaded.result && !loaded.result.ok && loaded.result.status !== 404) {
+  if (loaded.result && !loaded.result.ok && !isReleaseGoneResult(loaded.result)) {
     sendJson(res, loaded.result.status, {
       error: tonegridErrorOf(loaded.result, 'The store could not load this release.'),
       removed: false,
@@ -3020,20 +3119,42 @@ async function deleteRelease(req, res, releaseId) {
     });
     return;
   }
-  const missing = Boolean(loaded.result && !loaded.result.ok && loaded.result.status === 404);
-  const status = loaded.row ? normalizeReleaseStatus(loaded.row.status) : '';
+  const missing = Boolean(loaded.result && isReleaseGoneResult(loaded.result));
+  const storeStatus = loaded.row ? normalizeReleaseStatus(loaded.row.status) : '';
+  const localStatus = localReleaseStatusOf(scope.row, releaseId);
+  const status = storeStatus || localStatus;
 
-  if (status === 'taken_down' || status === 'takedown_submitted') {
-    sendJson(res, 409, {
-      error: 'This release was taken down from stores. It still counts as your lifetime upload.',
-      removed: false,
-      takedown: false,
-      status: status || 'taken_down',
-    });
+  if (missing || isGoneHiddenStatus(localStatus)) {
+    const next = await dropAfterStoreGone(scope.row, releaseId, status || localStatus);
+    await finishRemoved(res, next, scope, releaseId);
     return;
   }
 
-  if (storeFacingStatus(status)) {
+  if (isRemovingStoreStatus(status) || isRemovingStoreStatus(storeStatus)) {
+    const deleted = await deleteStoreRelease(releaseId);
+    const again = await fetchReleaseRow(releaseId);
+    if (isReleaseGoneResult(again.result) || (isStoreDeleteGone(deleted) && again.result && isReleaseGoneResult(again.result))) {
+      const next = await dropAfterStoreGone(scope.row, releaseId, status);
+      await finishRemoved(res, next, scope, releaseId);
+      return;
+    }
+    if (again.result && again.result.ok) {
+      await finishTakedownPending(res, scope.row, releaseId);
+      return;
+    }
+    if (!isStoreDeleteGone(deleted)) {
+      sendJson(res, (deleted && deleted.status) || 502, {
+        error: tonegridErrorOf(deleted, 'The store could not remove this release.'),
+        removed: false,
+        takedown: false,
+      });
+      return;
+    }
+    await finishTakedownPending(res, scope.row, releaseId);
+    return;
+  }
+
+  if (needsStoreTakedown(status)) {
     const cancelled = await requestStoreCancelOrTakedown(releaseId, status);
     if (!cancelled || !cancelled.ok) {
       sendJson(res, (cancelled && cancelled.status) || 502, {
@@ -3043,39 +3164,37 @@ async function deleteRelease(req, res, releaseId) {
       });
       return;
     }
-    const nextStatus = 'takedown_submitted';
-    await persistReleaseMeta(scope.row, releaseId, nextStatus, '');
-    sendJson(res, 202, {
-      ok: true,
-      takedown: true,
+    const again = await fetchReleaseRow(releaseId);
+    if (isReleaseGoneResult(again.result)) {
+      const next = await dropAfterStoreGone(scope.row, releaseId, status);
+      await finishRemoved(res, next, scope, releaseId);
+      return;
+    }
+    await finishTakedownPending(res, scope.row, releaseId);
+    return;
+  }
+
+  const deleted = await deleteStoreRelease(releaseId);
+  if (!isStoreDeleteGone(deleted)) {
+    sendJson(res, (deleted && deleted.status) || 502, {
+      error: tonegridErrorOf(deleted, 'The store could not remove this release.'),
       removed: false,
-      release_id: releaseId,
-      status: nextStatus,
+      takedown: false,
+    });
+    return;
+  }
+  const again = await fetchReleaseRow(releaseId);
+  if (again.result && again.result.ok && !isReleaseGoneResult(again.result)) {
+    sendJson(res, 409, {
+      error: tonegridErrorOf(again.result, 'The store still has this release.'),
+      removed: false,
+      takedown: false,
     });
     return;
   }
 
-  if (!missing) {
-    const deleted = await deleteStoreRelease(releaseId);
-    if (!isStoreDeleteGone(deleted)) {
-      sendJson(res, (deleted && deleted.status) || 502, {
-        error: tonegridErrorOf(deleted, 'The store could not remove this release.'),
-        removed: false,
-        takedown: false,
-      });
-      return;
-    }
-  }
-
   const next = await dropLocalRelease(scope.row, releaseId);
-  sendJson(res, 200, {
-    ok: true,
-    removed: true,
-    takedown: false,
-    release_id: releaseId,
-    redirect: '/releases.html',
-    upload: plans.evaluate(next || scope.row),
-  });
+  await finishRemoved(res, next, scope, releaseId);
 }
 
 async function oneRelease(req, res, releaseId) {
