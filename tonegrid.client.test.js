@@ -3806,6 +3806,8 @@ async function run() {
   assert.ok(source.includes('fileFromHeld'));
   assert.ok(source.includes('isProtectedCatalogRelease'));
   assert.ok(source.includes('isAdoptableStoreStatus'));
+  assert.ok(source.includes('livingReleaseArtistConflicts'));
+  assert.ok(source.includes('if (!want || !title || !sameSongText(title, want)) return next();'));
   assert.ok(!/if \(selectedAudio\(\)\) return createFreshRelease/.test(source), 'selectedAudio must not skip catalog adopt');
   assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
   assert.ok(uploadHtml.includes('upload-continue-row'), 'Save draft sits next to Continue on phone');
@@ -4641,9 +4643,9 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', tracks: [{ uuid: trackId }] } },
+        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', artist_id: '11111111-1111-4111-8111-111111111111', artist: 'Victoria PLAIGROUND', tracks: [{ uuid: trackId }] } },
         { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
-        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', tracks: [{ uuid: trackId }] } },
+        { ok: true, status: 200, data: { uuid: leftover, title: 'Rainbow Road', status: 'draft', artist_id: '11111111-1111-4111-8111-111111111111', artist: 'Victoria PLAIGROUND', tracks: [{ uuid: trackId }] } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],

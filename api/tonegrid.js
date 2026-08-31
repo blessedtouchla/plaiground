@@ -446,7 +446,7 @@ async function fetchStoreReleaseRaw(releaseId) {
 async function findStoreCollision(body, artistId, options) {
   const wantTitle = String((body && body.title) || '').trim();
   if (!wantTitle) return null;
-  const skipIds = (options && options.skipIds) || [];
+  // Owned catalog ids stay visible: same-title leftovers must attach, not hide behind skipIds.
   const wantName = (options && options.wantName) || wantArtistNameOf(body);
   const searches = [{ status: 'draft' }, { status: 'rejected' }, {}];
   const seen = Object.create(null);
@@ -1255,7 +1255,6 @@ async function createRelease(req, res) {
   }
   if (isAlreadyExistsResult(result)) {
     const leftover = await findStoreCollision(body, artistId, {
-      skipIds: existingIds,
       wantName: await resolveWantArtistName(body, artistId, scope.row),
     });
     if (leftover && leftover.id) {

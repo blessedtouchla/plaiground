@@ -1268,6 +1268,46 @@
     return '';
   }
 
+  function releaseArtistNameOf(data) {
+    if (!data || typeof data !== 'object') return '';
+    if (typeof data.artist === 'string' && data.artist.trim()) return String(data.artist).trim();
+    if (data.artist && data.artist.name) return String(data.artist.name).trim();
+    if (data.artist_name) return String(data.artist_name).trim();
+    if (data.release && typeof data.release.artist === 'string') return String(data.release.artist).trim();
+    if (data.release && data.release.artist && data.release.artist.name) {
+      return String(data.release.artist.name).trim();
+    }
+    if (data.data && typeof data.data.artist === 'string') return String(data.data.artist).trim();
+    return '';
+  }
+
+  function releaseArtistIdOf(data) {
+    if (!data || typeof data !== 'object') return '';
+    var candidates = [
+      data.artist_id,
+      data.artist_uuid,
+      data.artist && (data.artist.uuid || data.artist.id || data.artist.artist_id),
+      data.release && (data.release.artist_id || data.release.artist_uuid),
+      data.release && data.release.artist && (data.release.artist.uuid || data.release.artist.id),
+    ];
+    var i;
+    for (i = 0; i < candidates.length; i += 1) {
+      var id = String(candidates[i] || '').trim();
+      if (isUuidValue(id)) return id;
+    }
+    return '';
+  }
+
+  function livingReleaseArtistConflicts(draft, data) {
+    var wantId = String((draft && draft.artist_id) || '').trim();
+    var gotId = releaseArtistIdOf(data);
+    if (wantId && gotId && !sameUuid(wantId, gotId)) return true;
+    var wantName = String((draft && draft.name) || '').trim();
+    var gotName = releaseArtistNameOf(data);
+    if (wantName && gotName && !sameSongText(wantName, gotName)) return true;
+    return false;
+  }
+
   function catalogReleaseIds() {
     var catalog = catalogFromAccount(accountRecord());
     var ids = (catalog.release_ids || []).slice();
@@ -1317,8 +1357,8 @@
         var data = loaded.data || (loaded.result && loaded.result.data);
         var title = releaseTitleOf(data);
         var want = String((current && current.title) || '').trim();
-        if (want && title && !sameSongText(title, want)) return next();
-        if (want && !title && !(loaded.tracks && loaded.tracks.length)) return next();
+        if (!want || !title || !sameSongText(title, want)) return next();
+        if (livingReleaseArtistConflicts(current, data)) return next();
         if (isProtectedCatalogRelease(id, title)) return next();
         if (!isAdoptableStoreStatus(releaseStatusOf(data))) return next();
         return {
