@@ -241,6 +241,7 @@ function run() {
   assert.ok(nav.includes('href="#submissions">Submissions</a>'));
   assert.ok(nav.includes('href="#deliveries">Deliveries</a>'));
   assert.ok(nav.includes('href="#royalties">Royalties</a>'));
+  assert.ok(/href="https:\/\/app\.tonegrid\.pro\/super\/login" target="_blank" rel="noopener noreferrer">ToneGrid dashboard<\/a>/.test(nav), 'owner desk opens the store partner dashboard in a new tab');
   assert.ok(nav.includes('href="settings.html">Settings</a>'));
   assert.ok(nav.includes('href="how.html">How it works</a>'));
   assert.ok(nav.includes('href="faq.html">FAQ</a>'));
@@ -265,7 +266,7 @@ function run() {
   assert.ok(adminHtml.includes('<h3>Store royalties</h3>'));
   assert.ok(adminHtml.includes('id="signups"') && adminHtml.includes('id="paid"') && adminHtml.includes('id="royalties"'));
   assert.ok(!adminHtml.includes('<iframe'));
-  assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(adminHtml));
+  assert.ok(!/InterSpace|DistroKid|\bFrank\b/i.test(adminHtml));
   assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(adminJs));
 
   assert.ok(adminJs.includes('emailplaiground@gmail.com'));
@@ -315,6 +316,7 @@ function run() {
     assert.ok(side, file + ' keeps the artist side nav');
     assert.ok(!/>Admin</.test(side[0]), file + ' must not put Admin on the artist menu');
     assert.ok(!/href="\/admin"|href="admin(?:\.html|\/signups)?"/.test(side[0]), file + ' must not link the owner desk');
+    assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro/i.test(side[0]), file + ' artist menu must not gain the owner store dashboard row');
     assert.ok(side[0].includes('New release'), file + ' keeps New release for artists');
     assert.ok(side[0].includes('Overview'), file + ' keeps Overview for artists');
   });
