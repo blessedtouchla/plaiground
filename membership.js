@@ -362,13 +362,25 @@
   }
 
   function clearNewReleaseState() {
-    try { if (global.localStorage) global.localStorage.removeItem('plaiground.store.draft'); } catch (err) {}
-    try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.store.draft'); } catch (err) {}
+    var credits = global.PlaigroundReleaseCredits;
+    if (credits && typeof credits.clearWorkingDraft === 'function') {
+      credits.clearWorkingDraft(global);
+    } else {
+      try { if (global.localStorage) global.localStorage.removeItem('plaiground.store.draft'); } catch (err) {}
+      try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.store.draft'); } catch (err2) {}
+    }
+    if (credits && typeof credits.clearHeldDraft === 'function') {
+      credits.clearHeldDraft(global);
+    } else {
+      try { if (global.localStorage) global.localStorage.removeItem('plaiground.store.held_draft'); } catch (err3) {}
+      try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.store.held_draft'); } catch (err4) {}
+    }
+    try { if (global.sessionStorage) global.sessionStorage.removeItem('plaiground.store.fresh'); } catch (err5) {}
     try {
       if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
         indexedDB.deleteDatabase('plaiground-held-audio');
       }
-    } catch (err) {}
+    } catch (err6) {}
   }
 
   function bindAccountClicks() {
@@ -384,7 +396,14 @@
       else if (fresh) event.preventDefault();
       var href = (publishing || upload || fresh).getAttribute('href') || (publishing ? PUBLISHING : 'upload.html');
       if (fresh) {
-        clearNewReleaseState();
+        var credits = global.PlaigroundReleaseCredits;
+        var parked = credits && typeof credits.parkSavedDraft === 'function' && credits.parkSavedDraft(global);
+        if (parked) {
+          if (typeof credits.markFreshStart === 'function') credits.markFreshStart(global);
+          if (typeof credits.clearWorkingDraft === 'function') credits.clearWorkingDraft(global);
+        } else {
+          clearNewReleaseState();
+        }
         href = withNewReleaseFlag(href);
       }
       accountReady.then(function () {

@@ -318,7 +318,17 @@
     });
     var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
     var cards = releaseCards(me);
-    var hasRelease = cards.length > 0 || ids.length > 0;
+    var credits = global.PlaigroundReleaseCredits;
+    var shownDraft = credits && typeof credits.displayDraft === 'function'
+      ? credits.displayDraft(global)
+      : readDraft();
+    var localShown = credits && typeof credits.withSavedDraft === 'function'
+      ? credits.withSavedDraft(cards, shownDraft)
+      : cards;
+    var hasLocalDraft = (localShown || []).some(function (row) {
+      return row && (row.local_draft === true || row.id === 'local-draft');
+    });
+    var hasRelease = cards.length > 0 || ids.length > 0 || hasLocalDraft;
     var latestId = hasRelease ? String((cards[cards.length - 1] && cards[cards.length - 1].id) || ids[ids.length - 1] || '') : '';
     var latest = latestReleaseCard(me, latestId, cards);
     paintAccountCounts(me, cards);
@@ -611,7 +621,10 @@
     var list = Array.isArray(cards) ? cards : [];
     list = recentStrip(list);
     if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
-      list = global.PlaigroundReleaseCredits.withSavedDraft(list, readDraft());
+      var shown = typeof global.PlaigroundReleaseCredits.displayDraft === 'function'
+        ? global.PlaigroundReleaseCredits.displayDraft(global)
+        : readDraft();
+      list = global.PlaigroundReleaseCredits.withSavedDraft(list, shown);
     }
     renderReleaseTiles(list);
   }

@@ -103,8 +103,10 @@ function load(options) {
     location,
   };
   context.window = context;
+  context.globalThis = context;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'lib/release-credits.js'), 'utf8'), context);
   vm.runInNewContext(code, context);
-  return { api: context.PlaigroundMembership, localStorage, sessionStorage, location, clicks, fetches };
+  return { api: context.PlaigroundMembership, credits: context.PlaigroundReleaseCredits, localStorage, sessionStorage, location, clicks, fetches };
 }
 
 function clickEvent(sel, href) {
@@ -430,6 +432,28 @@ function run() {
   fireClicks(leftover, newReleaseEvent);
   assert.ok(newReleaseEvent.prevented);
   assert.strictEqual(leftover.localStorage.getItem('plaiground.store.draft'), null, 'New release click clears leftover catalog ids');
+
+  const savedClick = load({
+    seedLocal: { 'plaiground.store.draft': JSON.stringify({ saved_draft: true, title: 'The Interceptors', tonegrid_status: 'draft' }) },
+    account: { email: 'ada@example.com', artist: 'Ada', plan: 'basic', status: 'active' },
+  });
+  const savedEvent = {
+    preventDefault() { this.prevented = true; },
+    target: {
+      closest(name) {
+        if (name === '[data-new-release]' || name === '[data-signed-in-upload]') {
+          return { getAttribute() { return 'upload.html'; }, hasAttribute() { return true; } };
+        }
+        return null;
+      },
+    },
+  };
+  fireClicks(savedClick, savedEvent);
+  assert.strictEqual(savedClick.localStorage.getItem('plaiground.store.draft'), null, 'New release starts a blank working form');
+  const held = JSON.parse(savedClick.localStorage.getItem('plaiground.store.held_draft') || '{}');
+  assert.strictEqual(held.saved_draft, true, 'saved Interceptors draft is parked, not destroyed');
+  assert.strictEqual(held.title, 'The Interceptors');
+  assert.strictEqual(savedClick.credits.displayDraft(savedClick).title, 'The Interceptors');
 
   const fresh = load();
   assert.strictEqual(fresh.api.hasMembership(), false);
