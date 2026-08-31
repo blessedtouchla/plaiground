@@ -4084,7 +4084,10 @@ async function run() {
     assert.strictEqual(storeCreateHops(page).length, 0, 'Create new Continue must not mint a store artist or release');
     const artistCall = page.calls.find(function (call) { return call.url === '/api/me/artists'; });
     assert.ok(artistCall, 'Create new must save the local roster artist');
-    assert.strictEqual(JSON.parse(artistCall.init.body).name, 'Neon Nova');
+    const artistBody = JSON.parse(artistCall.init.body);
+    assert.strictEqual(artistBody.name, 'Neon Nova');
+    assert.ok(artistBody.legal_first, 'create must send filled legal first with the display name');
+    assert.ok(artistBody.legal_last, 'create must send filled legal last with the display name');
     assert.ok(String(page.location.href).indexOf('artists.html') === -1, 'must not bounce to Artist Profiles');
     assert.strictEqual(page.location.href, 'attest.html');
     assert.ok(!draftOf(page.localStorage).artist_id, 'leftover store artist_id must not stay on a create-new Continue');

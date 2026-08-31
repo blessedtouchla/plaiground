@@ -918,8 +918,12 @@
     }
     var legalFirst = $('#artist-create-legal-first') ? String($('#artist-create-legal-first').value || '').trim() : '';
     var legalLast = $('#artist-create-legal-last') ? String($('#artist-create-legal-last').value || '').trim() : '';
-    if (!legalFirst || !legalLast) {
-      showStatus('Legal first and last name are both required. Not a stage name, rapper name, or band name.');
+    var credits = (typeof PlaigroundReleaseCredits !== 'undefined' && PlaigroundReleaseCredits) || null;
+    var legal = credits && typeof credits.validateLegalName === 'function'
+      ? credits.validateLegalName(legalFirst, legalLast)
+      : { error: (!legalFirst || !legalLast) ? 'Legal first and last name are both required.' : '', ok: Boolean(legalFirst && legalLast) };
+    if (legal.error) {
+      showStatus(legal.error);
       return Promise.resolve(null);
     }
     var check = paintCreateCheck();
