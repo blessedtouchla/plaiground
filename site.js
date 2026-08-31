@@ -497,4 +497,112 @@
   setupPublicSocials();
   setupBrandLogos();
   loadProblemChrome();
+
+  var PUBLIC_PIXEL_PAGES = {
+    "": true,
+    "index.html": true,
+    "about.html": true,
+    "how.html": true,
+    "how-it-works.html": true,
+    "faq.html": true,
+    "contact.html": true,
+    "basic.html": true,
+    "creator.html": true,
+    "pro.html": true,
+    "signup.html": true,
+    "login.html": true,
+    "forgot.html": true,
+    "magic.html": true,
+    "confirm.html": true,
+    "confirmed.html": true,
+    "terms.html": true,
+    "privacy.html": true,
+    "rights.html": true,
+    "cowriter.html": true,
+    "publishing.html": true,
+    "publishing-confirm.html": true
+  };
+
+  function pixelPageFile() {
+    var file = String((window.location && window.location.pathname) || "").split("/").pop() || "index.html";
+    if (!file || file === "/") file = "index.html";
+    return file.toLowerCase();
+  }
+
+  function isPublicPixelPage() {
+    return !!PUBLIC_PIXEL_PAGES[pixelPageFile()];
+  }
+
+  function pixelIdOk(value) {
+    return /^\d{5,20}$/.test(String(value || "").trim());
+  }
+
+  window.PlaigroundPixel = {
+    id: "",
+    ready: false,
+    q: [],
+    track: function (name) {
+      var eventName = String(name || "").trim();
+      if (eventName !== "CompleteRegistration") return;
+      if (window.fbq && this.ready) {
+        window.fbq("track", eventName);
+        return;
+      }
+      this.q.push(eventName);
+    }
+  };
+
+  function consumeSignupPixel() {
+    try {
+      if (window.sessionStorage && window.sessionStorage.getItem("plaigroundCompleteRegistration") === "1") {
+        window.PlaigroundPixel.track("CompleteRegistration");
+        window.sessionStorage.removeItem("plaigroundCompleteRegistration");
+      }
+    } catch (err) {}
+  }
+
+  function injectMetaPixel(id) {
+    if (!pixelIdOk(id)) return;
+    if (window.fbq) return;
+    window.PlaigroundPixel.id = id;
+    (function (f, b, e, v, n, t, s) {
+      if (f.fbq) return;
+      n = f.fbq = function () {
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      };
+      if (!f._fbq) f._fbq = n;
+      n.push = n;
+      n.loaded = !0;
+      n.version = "2.0";
+      n.queue = [];
+      t = b.createElement(e);
+      t.async = !0;
+      t.src = v;
+      s = b.getElementsByTagName(e)[0];
+      if (s && s.parentNode) s.parentNode.insertBefore(t, s);
+    })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    window.fbq("init", id);
+    window.PlaigroundPixel.ready = true;
+    if (isPublicPixelPage()) window.fbq("track", "PageView");
+    consumeSignupPixel();
+    window.PlaigroundPixel.q.forEach(function (name) {
+      window.fbq("track", name);
+    });
+    window.PlaigroundPixel.q = [];
+  }
+
+  function loadMetaPixel() {
+    if (!window.fetch) return;
+    fetch("/api/auth/pixel", { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; });
+      })
+      .then(function (data) {
+        var id = data && data.pixel_id;
+        if (pixelIdOk(id)) injectMetaPixel(id);
+      })
+      .catch(function () {});
+  }
+
+  loadMetaPixel();
 })();

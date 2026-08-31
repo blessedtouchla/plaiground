@@ -158,6 +158,16 @@
     });
   }
 
+  function renderEvents(events) {
+    fillTable('[data-events-table]', '[data-events-empty]', '[data-events-body]', events, function (row) {
+      return '<tr>'
+        + cell('Email', escapeHtml(dash(row.email)), 'admin-lead')
+        + cell('Event', escapeHtml(dash(row.event)))
+        + cell('When', escapeHtml(formatSignedUpAt(row.created_at)))
+        + '</tr>';
+    });
+  }
+
   function renderCheckouts(checkouts) {
     fillTable('[data-checkouts-table]', '[data-checkouts-empty]', '[data-checkouts-body]', checkouts, function (row) {
       return '<tr>'
@@ -259,6 +269,7 @@
     var status = $('[data-admin-status]') || $('[data-signups-status]');
     if (status) status.hidden = true;
     renderSignups(data && data.signups);
+    renderEvents(data && data.events);
     renderCheckouts(data && data.checkouts);
     renderSubs(data && data.subscriptions);
     renderMoney(data && data.money);

@@ -59,3 +59,12 @@ WITH flag AS (
 UPDATE users SET email_confirmed_at = created_at
 WHERE email_confirmed_at IS NULL
   AND EXISTS (SELECT 1 FROM flag);
+
+CREATE TABLE IF NOT EXISTS user_events (
+  user_id uuid NOT NULL,
+  event_name text NOT NULL,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, event_name),
+  CONSTRAINT user_events_name_check CHECK (event_name IN ('signup', 'first_upload', 'first_store_live', 'paid'))
+);
