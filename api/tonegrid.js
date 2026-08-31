@@ -433,12 +433,12 @@ function filledCreditsFromRow(row) {
   return Object.keys(out).length ? out : null;
 }
 
-async function applyReleaseCredits(releaseId, songwriter, year, opts) {
+async function applyReleaseCredits(releaseId, hopCredits, opts) {
   const options = opts || {};
-  const name = songwriter && songwriter.name;
-  if (!name) return { ok: true, skipped: true };
+  const credits = hopCredits && typeof hopCredits === 'object' ? hopCredits : {};
+  if (!credits.cOwner && !credits.pOwner) return { ok: true, skipped: true };
   if (options.patch !== false) {
-    const patch = storeCredits.releasePatchFields(name, year);
+    const patch = storeCredits.releasePatchFields(credits);
     const patched = await tonegridFetch('/releases/' + releaseId, {
       method: 'PATCH',
       body: patch,
@@ -446,7 +446,7 @@ async function applyReleaseCredits(releaseId, songwriter, year, opts) {
     });
     if (!patched.ok && !isMissingEndpoint(patched)) return patched;
   }
-  const rights = storeCredits.rightsEnvelope(name, year);
+  const rights = storeCredits.rightsEnvelope(credits);
   if (!rights.p_line && !rights.c_line) return { ok: true };
   const updated = await tonegridFetch('/releases/' + releaseId + '/rights', {
     method: 'PUT',
@@ -455,14 +455,14 @@ async function applyReleaseCredits(releaseId, songwriter, year, opts) {
   });
   if (updated.ok) return { ok: true };
   if (isMissingEndpoint(updated)) {
-    const retryBody = storeCredits.rightsEnvelopeRetry(name, year);
+    const retryBody = storeCredits.rightsEnvelopeRetry(credits);
     const retried = await tonegridFetch('/releases/' + releaseId + '/rights', {
       method: 'PUT',
       body: retryBody,
       idempotencyKey: hopIdempotencyKey('rights-retry', 'PUT', '/releases/' + releaseId + '/rights', JSON.stringify(retryBody)),
     });
     if (retried.ok) return { ok: true };
-    const fallback = storeCredits.releasePatchFields(name, year);
+    const fallback = storeCredits.releasePatchFields(credits);
     const patchedRights = await tonegridFetch('/releases/' + releaseId, {
       method: 'PATCH',
       body: fallback,
@@ -876,11 +876,13 @@ async function createRelease(req, res) {
     return;
   }
   const releaseDateEarly = normalizeReleaseDate(body && (body.release_date || body.releaseDate));
-  const creditYear = storeCredits.copyrightYearFromDate(releaseDateEarly);
-  const storedCredits = storeCredits.storedCreditFields(songwriter.name, creditYear);
+  const creditYear = storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
+    || storeCredits.copyrightYearFromDate(releaseDateEarly);
+  const hopCredits = storeCredits.creditsFromHop(body, songwriter, creditYear);
+  const storedCredits = storeCredits.storedCreditFields(hopCredits);
 
   async function finishContinuedRelease(existingId) {
-    const credited = await applyReleaseCredits(existingId, songwriter, creditYear, { patch: true });
+    const credited = await applyReleaseCredits(existingId, hopCredits, { patch: true });
     if (!credited.ok) {
       sendJson(res, credited.status, credited.data);
       return false;
@@ -966,7 +968,12 @@ async function createRelease(req, res) {
     title: fields.title,
     type,
     genre: fields.genre,
-  }, storeCredits.releaseCreateFields(songwriter.name, storeCredits.copyrightYearFromDate(releaseDate)));
+  }, storeCredits.releaseCreateFields(storeCredits.creditsFromHop(
+    body,
+    songwriter,
+    storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
+      || storeCredits.copyrightYearFromDate(releaseDate)
+  )));
   if (fields.language) payload.language = fields.language;
   if (releaseDate) payload.release_date = releaseDate;
 
@@ -992,7 +999,16 @@ async function createRelease(req, res) {
   if (result.ok) {
     const releaseId = createdReleaseId(result.data);
     if (releaseId) {
-      const credited = await applyReleaseCredits(releaseId, songwriter, storeCredits.copyrightYearFromDate(releaseDate), { patch: false });
+      const credited = await applyReleaseCredits(
+        releaseId,
+        storeCredits.creditsFromHop(
+          body,
+          songwriter,
+          storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
+            || storeCredits.copyrightYearFromDate(releaseDate)
+        ),
+        { patch: false }
+      );
       if (!credited.ok) {
         sendJson(res, credited.status, credited.data);
         return;
@@ -2363,9 +2379,11 @@ async function submitRelease(req, res, releaseId) {
     }
   }
 
-  const creditYear = storeCredits.copyrightYearFromDate(releaseDate);
-  const credits = storeCredits.storedCreditFields(songwriter.name, creditYear);
-  const credited = await applyReleaseCredits(releaseId, songwriter, creditYear, { patch: true });
+  const creditYear = storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
+    || storeCredits.copyrightYearFromDate(releaseDate);
+  const hopCredits = storeCredits.creditsFromHop(body, songwriter, creditYear);
+  const credits = storeCredits.storedCreditFields(hopCredits);
+  const credited = await applyReleaseCredits(releaseId, hopCredits, { patch: true });
   if (!credited.ok) {
     sendJson(res, credited.status, credited.data);
     return;

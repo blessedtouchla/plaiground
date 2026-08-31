@@ -239,13 +239,25 @@
         </div>
         <div class="field">
           <label for="tg-label">Record label</label>
-          <input id="tg-label" name="release-label" type="text" value="PLAIGROUND" readonly autocomplete="off" data-record-label />
+          <input id="tg-label" name="release-label" type="text" value="" autocomplete="off" data-record-label />
+          <p class="hint">Leave blank to use PLAIGROUND.</p>
         </div>
       </div>
-      <div class="field" style="margin-top:14px" data-copyright-line-wrap>
-        <label for="tg-copyright-line">Copyright</label>
-        <input id="tg-copyright-line" name="release-copyright-line" type="text" value="" readonly autocomplete="off" data-copyright-line />
-        <p class="hint">Rights and ℗ use the songwriter legal name. Year is the release year.</p>
+      <div class="form-grid three" style="margin-top:14px" data-copyright-wrap>
+        <div class="field">
+          <label for="tg-copyright-owner">©</label>
+          <input id="tg-copyright-owner" name="release-copyright-owner" type="text" value="" autocomplete="off" data-copyright-owner />
+          <p class="hint">The song.</p>
+        </div>
+        <div class="field">
+          <label for="tg-phonogram-owner">℗</label>
+          <input id="tg-phonogram-owner" name="release-phonogram-owner" type="text" value="" autocomplete="off" data-phonogram-owner />
+          <p class="hint">The recording.</p>
+        </div>
+        <div class="field">
+          <label for="tg-copyright-year">Year</label>
+          <input id="tg-copyright-year" name="release-copyright-year" type="text" inputmode="numeric" maxlength="4" value="" autocomplete="off" data-copyright-year />
+        </div>
       </div>
       <p class="hint" style="margin-top:8px">Explicit content</p>
       <div class="auth-toggle" style="max-width:200px" data-explicit-toggle>

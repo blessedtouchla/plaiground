@@ -175,6 +175,10 @@ function load(options) {
   const languageField = makeEl({ attrs: { 'data-language-field': '' } });
   const legalFirst = makeEl({ id: 'tg-legal-first', value: opts.legalFirst != null ? opts.legalFirst : 'Ada' });
   const legalLast = makeEl({ id: 'tg-legal-last', value: opts.legalLast != null ? opts.legalLast : 'Night' });
+  const recordLabel = makeEl({ id: 'tg-label', value: opts.label != null ? opts.label : '' });
+  const copyrightOwner = makeEl({ id: 'tg-copyright-owner', value: opts.copyrightOwner != null ? opts.copyrightOwner : '' });
+  const phonogramOwner = makeEl({ id: 'tg-phonogram-owner', value: opts.phonogramOwner != null ? opts.phonogramOwner : '' });
+  const copyrightYear = makeEl({ id: 'tg-copyright-year', value: opts.copyrightYear != null ? opts.copyrightYear : '' });
   const lyrics = makeEl({ id: 'tg-lyrics', value: opts.lyrics || '' });
   const lyricsField = makeEl({ attrs: { 'data-lyrics-field': '' }, hidden: true });
   const lyricsOpen = makeEl({ id: 'tg-lyrics-open', attrs: { 'data-lyrics-open': '', 'aria-expanded': 'false' } });
@@ -242,6 +246,10 @@ function load(options) {
     'tg-price': price,
     'tg-legal-first': legalFirst,
     'tg-legal-last': legalLast,
+    'tg-label': recordLabel,
+    'tg-copyright-owner': copyrightOwner,
+    'tg-phonogram-owner': phonogramOwner,
+    'tg-copyright-year': copyrightYear,
     'tg-release-date': date,
     'tg-instrumental': instrumental,
     'tg-lyrics': lyrics,
@@ -784,9 +792,11 @@ async function run() {
   assert.strictEqual(releaseBody.release_date, undefined);
   assert.strictEqual(releaseBody.legal_first, 'Ada');
   assert.strictEqual(releaseBody.legal_last, 'Night');
-  assert.strictEqual(releaseBody.label, 'PLAIGROUND');
-  assert.strictEqual(releaseBody.copyright_year, undefined);
-  assert.strictEqual(releaseBody.copyright_holder, undefined);
+  assert.strictEqual(releaseBody.label, undefined);
+  assert.strictEqual(releaseBody.copyright_holder, 'Ada Night');
+  assert.strictEqual(releaseBody.master_owner, 'Ada Night');
+  assert.ok(String(releaseBody.copyright_holder).indexOf('PLAIGROUND') === -1);
+  assert.ok(String(releaseBody.master_owner).indexOf('PLAIGROUND') === -1);
   assert.strictEqual(releaseBody.c_line, undefined);
   assert.strictEqual(releaseBody.p_line, undefined);
   assert.strictEqual(trackBody.legal_first, 'Ada');
@@ -812,6 +822,27 @@ async function run() {
   assert.ok(upload.calls.some(function (call) {
     return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/artwork';
   }));
+
+  const typedCredits = load(filledUpload({
+    label: 'Night Records',
+    copyrightOwner: 'Jane Doe',
+    phonogramOwner: 'Ada Night',
+    copyrightYear: '2026',
+    responses: uploadResponses.slice(),
+  }));
+  typedCredits.continueBtn.listeners.click({ preventDefault() {} });
+  await flush();
+  const typedRelease = typedCredits.calls.find(function (call) { return call.url === '/api/tonegrid/releases'; });
+  assert.ok(typedRelease);
+  const typedBody = JSON.parse(typedRelease.init.body);
+  assert.strictEqual(typedBody.label, 'Night Records');
+  assert.strictEqual(typedBody.copyright_holder, 'Jane Doe');
+  assert.strictEqual(typedBody.master_owner, 'Ada Night');
+  assert.strictEqual(typedBody.copyright_year, '2026');
+  assert.strictEqual(typedBody.legal_first, 'Ada');
+  assert.strictEqual(typedBody.legal_last, 'Night');
+  assert.ok(String(typedBody.copyright_holder).indexOf('PLAIGROUND') === -1);
+  assert.ok(String(typedBody.master_owner).indexOf('PLAIGROUND') === -1);
 
   const instrumentalOk = load(filledUpload({
     instrumental: true,
