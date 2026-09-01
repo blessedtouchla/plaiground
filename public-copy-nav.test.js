@@ -562,6 +562,34 @@ function run() {
   const terms = read('terms.html');
   assert.ok(terms.includes('src="site.js"'), 'terms.html has public nav chrome and needs the hamburger');
   assert.ok(terms.includes('href="index.html#pricing">Pricing</a>'), 'do not overwrite terms.html public copy');
+  assert.ok(terms.includes('emailplaiground@gmail.com'), 'terms.html keeps the public contact email');
+  assert.ok(terms.includes('mailto:emailplaiground@gmail.com'), 'terms.html contact is a mailto link');
+  assert.ok(!/Alfred/.test(terms), 'terms.html must not contain Alfred');
+  assert.ok(!terms.includes('90048'), 'terms.html must not contain 90048');
+  assert.ok(!terms.includes('515 N'), 'terms.html must not contain 515 N');
+  assert.ok(!terms.includes('#210'), 'terms.html must not contain #210');
+  assert.ok(!/West Hollywood/.test(terms), 'terms.html must not publish the apartment city');
+  assert.ok(!/Mail:/.test(terms), 'terms.html must not keep a Mail: street line');
+  assert.ok(/Los Angeles County/.test(terms), 'terms.html keeps Los Angeles County courts');
+  assert.ok(/California LLC/.test(terms), 'terms.html keeps California LLC');
+  const shippedHits = [];
+  function scanShipped(rel) {
+    const raw = read(rel);
+    if (/Alfred|90048|515 N|#210|West Hollywood/.test(raw)) shippedHits.push(rel);
+  }
+  fs.readdirSync(__dirname).forEach(function (name) {
+    if (/\.test\.js$/.test(name)) return;
+    if (/\.(html|js|json|md)$/.test(name)) scanShipped(name);
+  });
+  ['lib', 'api', 'data', 'assets'].forEach(function (dir) {
+    const full = path.join(__dirname, dir);
+    if (!fs.existsSync(full)) return;
+    fs.readdirSync(full).forEach(function (name) {
+      if (/\.test\.js$/.test(name)) return;
+      if (/\.(html|js|json|md)$/.test(name)) scanShipped(path.join(dir, name));
+    });
+  });
+  assert.strictEqual(shippedHits.length, 0, 'no public-facing file may ship the home street: ' + shippedHits.join(', '));
   const split = read('split-sheet.html');
   assert.ok(!split.includes('class="side"'), 'split-sheet.html is flow chrome, not the app sidebar');
   assert.ok(!split.includes('Learn more: Basic'), 'do not overwrite split-sheet.html');
