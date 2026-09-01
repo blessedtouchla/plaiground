@@ -3811,6 +3811,10 @@ async function run() {
   assert.ok(source.includes('7a928125-b12e-4609-bd37-26ce0edf819e'));
   assert.ok(source.includes('cefce28e-8020-435e-8097-177de07f0c44'));
   assert.ok(source.includes("sameSongText(row.title, 'FUEGO GODDESS')"), 'FUEGO title adopts without artist-name fingerprint');
+  assert.ok(source.includes('1f346f71-a70d-4648-bb66-5c5aff5f5243'));
+  assert.ok(source.includes('81e47b6f-6b13-44e6-a436-de81ffaa849f'));
+  assert.ok(source.includes('preferFuegoLeftoverTrack'));
+  assert.ok(source.includes('isFuegoLeftoverRelease'));
   assert.ok(source.includes('if (!want || !title || !sameSongText(title, want)) return next();'));
   assert.ok(!/if \(selectedAudio\(\)\) return createFreshRelease/.test(source), 'selectedAudio must not skip catalog adopt');
   assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
@@ -3881,7 +3885,7 @@ async function run() {
   assert.ok(source.includes('AUDIO_CHUNK_BYTES'));
   assert.ok(source.includes('function postChunkedAudio'));
   assert.ok(source.includes('x-plaiground-upload-id'));
-  assert.ok(source.includes('createTrackOnRelease(ready, { force: true })'));
+  assert.ok(source.includes('createTrackOnRelease(readyDraft, { force: true })'));
   assert.ok(source.includes('function platformPayloadCopy'));
   assert.ok(!source.includes('if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();'));
   assert.ok(!source.includes('ToneGrid did not respond'));
@@ -5059,6 +5063,18 @@ async function run() {
       responses: [
         { ok: false, status: 404, data: { error: 'Release not found.' } },
         { ok: true, status: 201, data: { uuid: leftover } },
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'FUEGO GODDESS',
+            status: 'draft',
+            artist_id: '11111111-1111-4111-8111-111111111111',
+            artist: 'Victoria PLAIGROUND',
+            tracks: [],
+          },
+        },
         { ok: true, status: 201, data: { uuid: trackId } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
@@ -5084,6 +5100,240 @@ async function run() {
     assert.ok(!/already exists/i.test(page.status.textContent));
   }
 
+  async function reviewSubmitFuegoLeftoverWithTwoTracksHopsExisting() {
+    const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const trackA = '1f346f71-a70d-4648-bb66-5c5aff5f5243';
+    const trackB = '81e47b6f-6b13-44e6-a436-de81ffaa849f';
+    const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
+    const dolly = 'df51342b-ba22-4093-93ff-35b6402b61c0';
+    const metete = '6629b532-2e78-4be6-84eb-e4dfa9ac33e5';
+    const cgi = '490b789a-0a33-4372-9d81-665f47b3cbf1';
+    const vhnjuk = 'c0102e1c-b62b-4dcf-9fe1-00d063df51a4';
+    const held = {
+      __held: 1,
+      name: 'FUEGO GODDESS.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const leftoverRow = {
+      uuid: leftover,
+      title: 'FUEGO GODDESS',
+      status: 'draft',
+      artist_id: 194,
+      artist: 'Victoria PLAIGROUND',
+      tracks: [
+        { uuid: trackB, title: 'FUEGO GODDESS', status: 'draft' },
+        { uuid: trackA, title: 'FUEGO GODDESS', status: 'draft' },
+      ],
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-09',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'FUEGO GODDESS',
+        genre: 'Latin',
+        language: 'en',
+        audio_name: 'FUEGO GODDESS.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-09',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [lightning, dolly, metete, cgi, vhnjuk],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: leftoverRow },
+        { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 0, 'leftover with tracks must not POST a second release');
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 0, 'leftover with tracks must not POST another /tracks');
+    assert.ok(page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases/' + leftover;
+    }), 'must GET leftover tracks on cefce28e');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, trackA, 'prefer the first known leftover track');
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'must hop audio onto an existing leftover track');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + trackA + '/audio');
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases'
+        && call.init
+        && String(call.init.method || 'GET').toUpperCase() === 'DELETE';
+    }), 'must never DELETE leftover');
+    assert.ok(!/already exists/i.test(page.status.textContent), 'must never surface RECORD_EXISTS_COPY');
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(rainbow) !== -1;
+    }), 'must not touch Rainbow Road uuid');
+    [lightning, dolly, metete, cgi, vhnjuk].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1 && String((call.init && call.init.method) || 'GET').toUpperCase() === 'DELETE';
+      }), 'must not DELETE protected ' + id);
+    });
+  }
+
+  async function reviewSubmitContinueFuegoLeftoverTracksInResponse() {
+    const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const trackA = '1f346f71-a70d-4648-bb66-5c5aff5f5243';
+    const trackB = '81e47b6f-6b13-44e6-a436-de81ffaa849f';
+    const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
+    const held = {
+      __held: 1,
+      name: 'FUEGO GODDESS.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-09',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'FUEGO GODDESS',
+        genre: 'Latin',
+        language: 'en',
+        audio_name: 'FUEGO GODDESS.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-09',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [lightning],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            continued: true,
+            tracks: [
+              { uuid: trackB, title: 'FUEGO GODDESS', status: 'draft' },
+              { uuid: trackA, title: 'FUEGO GODDESS', status: 'draft' },
+            ],
+          },
+        },
+        { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1, 'first Submit may POST create once');
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 0, 'continued leftover tracks must not mint another /tracks');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, trackA);
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'must hop audio onto the continued leftover track');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + trackA + '/audio');
+    assert.ok(!/already exists/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitDifferentTitleDoesNotAttachFuego() {
+    const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const fuegoTrackA = '1f346f71-a70d-4648-bb66-5c5aff5f5243';
+    const fuegoTrackB = '81e47b6f-6b13-44e6-a436-de81ffaa849f';
+    const minted = '33333333-3333-4333-8333-333333333333';
+    const trackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
+    const held = {
+      __held: 1,
+      name: 'Night Drive.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'Night Drive',
+        genre: 'Pop',
+        language: 'en',
+        audio_name: 'Night Drive.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [lightning],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: minted } },
+        { ok: true, status: 201, data: { uuid: trackId } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1, 'different title must POST a real new release');
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).title, 'Night Drive');
+    assert.strictEqual(draftOf(page.localStorage).release_id, minted);
+    assert.notStrictEqual(draftOf(page.localStorage).release_id, leftover);
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 1, 'different title mints a new track');
+    assert.strictEqual(JSON.parse(trackCreates[0].init.body).release_id, minted);
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(leftover) !== -1;
+    }), 'must not continue cefce28e for a different title');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(fuegoTrackA) !== -1 || String(call.url).indexOf(fuegoTrackB) !== -1;
+    }), 'must not reuse leftover FUEGO tracks for a different title');
+  }
+
   await basicHopAudioPostWaitsForStoreHop();
   await creatorHopWavForwardsAndStore502IsNotSuccess();
   await hopConvertedWavStore502IsNotSuccess();
@@ -5093,6 +5343,9 @@ async function run() {
   await reviewSubmit409AdoptsFuegoAndRetryClearsBusy();
   await reviewSubmit409AdoptsFuegoWithWrongArtistName();
   await reviewSubmit201PersistsFuegoAndDoesNotRemint();
+  await reviewSubmitFuegoLeftoverWithTwoTracksHopsExisting();
+  await reviewSubmitContinueFuegoLeftoverTracksInResponse();
+  await reviewSubmitDifferentTitleDoesNotAttachFuego();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();

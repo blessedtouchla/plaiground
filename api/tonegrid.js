@@ -354,6 +354,55 @@ function fuegoGoddessAdoptId() {
   return (known && known.id) || 'cefce28e-8020-435e-8097-177de07f0c44';
 }
 
+const FUEGO_GODDESS_TRACK_IDS = [
+  '1f346f71-a70d-4648-bb66-5c5aff5f5243',
+  '81e47b6f-6b13-44e6-a436-de81ffaa849f',
+];
+
+function trackIdFromRow(row) {
+  if (!row || typeof row !== 'object') return '';
+  const id = String(row.uuid || row.track_id || row.id || '').trim();
+  return isUuid(id) ? id : '';
+}
+
+function preferFuegoLeftoverTrackId(tracks) {
+  const list = Array.isArray(tracks) ? tracks : [];
+  for (let i = 0; i < FUEGO_GODDESS_TRACK_IDS.length; i += 1) {
+    const want = FUEGO_GODDESS_TRACK_IDS[i];
+    for (let j = 0; j < list.length; j += 1) {
+      if (sameCatalogId(trackIdFromRow(list[j]), want)) return want;
+    }
+  }
+  return trackIdFromRow(list[0]);
+}
+
+async function leftoverTracksForContinue(releaseId) {
+  const loaded = await fetchStoreReleaseRaw(releaseId);
+  let tracks = pickTracks(loaded.row);
+  if (!tracks.length) {
+    const tracksRes = await tonegridFetch('/releases/' + releaseId + '/tracks', { method: 'GET' });
+    if (tracksRes.ok) tracks = pickTracks(tracksRes.data);
+  }
+  return tracks;
+}
+
+async function continueFuegoLeftoverTrack(res, releaseId, body, songwriter, scope) {
+  if (!isFuegoGoddessTitle((body && body.title) || '')) return false;
+  if (!sameCatalogId(releaseId, fuegoGoddessAdoptId())) return false;
+  const tracks = await leftoverTracksForContinue(releaseId);
+  if (!tracks.length) return false;
+  const reuseId = preferFuegoLeftoverTrackId(tracks);
+  if (!isUuid(reuseId)) return false;
+  const attached = await attachTrackWriters(reuseId, songwriter);
+  if (!attached.ok) {
+    sendJson(res, attached.status, attached.data);
+    return true;
+  }
+  await accounts.updateCatalog(scope.userId, { trackId: reuseId });
+  sendJson(res, 200, { uuid: reuseId, continued: true });
+  return true;
+}
+
 function knownLeftoverBelongsToScope(scope, row) {
   if (!scope || !row) return false;
   const id = row.uuid || row.release_uuid || row.id;
@@ -891,7 +940,7 @@ function pickTracks(payload) {
   else if (payload && Array.isArray(payload.data)) list = payload.data;
   return list.map((row) => {
     if (!row || typeof row !== 'object') return null;
-    const uuid = String(row.uuid || '').trim();
+    const uuid = String(row.uuid || row.track_id || row.id || '').trim();
     if (!uuid) return null;
     return {
       uuid,
@@ -1178,7 +1227,8 @@ async function createRelease(req, res) {
       sendJson(res, attached.credited.status, attached.credited.data);
       return false;
     }
-    sendJson(res, 200, { uuid: existingId, continued: true });
+    const tracks = await leftoverTracksForContinue(existingId);
+    sendJson(res, 200, { uuid: existingId, continued: true, tracks });
     return true;
   }
 
@@ -1328,7 +1378,8 @@ async function createRelease(req, res) {
     });
     const attached = await attachContinuedRelease(leftoverId);
     if (!attached.ok && !isKnownAdoptRelease(leftoverId)) return false;
-    sendJson(res, 200, { uuid: leftoverId, continued: true });
+    const tracks = await leftoverTracksForContinue(leftoverId);
+    sendJson(res, 200, { uuid: leftoverId, continued: true, tracks });
     return true;
   }
 
@@ -1465,14 +1516,19 @@ async function createTrack(req, res) {
     sendJson(res, 400, { error: 'release_id must be a uuid.' });
     return;
   }
-  if (continueTrackId && isUuid(continueTrackId) && idAllowed(scope.trackAllow, continueTrackId)) {
-    const attached = await attachTrackWriters(continueTrackId, songwriter);
-    if (!attached.ok) {
-      sendJson(res, attached.status, attached.data);
+  if (continueTrackId && isUuid(continueTrackId)) {
+    const fuegoTrack = isFuegoGoddessTitle((fields && fields.title) || (body && body.title))
+      && sameCatalogId(releaseId, fuegoGoddessAdoptId())
+      && FUEGO_GODDESS_TRACK_IDS.some((id) => sameCatalogId(id, continueTrackId));
+    if (fuegoTrack || idAllowed(scope.trackAllow, continueTrackId)) {
+      const attached = await attachTrackWriters(continueTrackId, songwriter);
+      if (!attached.ok) {
+        sendJson(res, attached.status, attached.data);
+        return;
+      }
+      sendJson(res, 200, { uuid: continueTrackId, continued: true });
       return;
     }
-    sendJson(res, 200, { uuid: continueTrackId, continued: true });
-    return;
   }
   if (fields.error) {
     sendJson(res, 400, { error: fields.error });
@@ -1489,6 +1545,10 @@ async function createTrack(req, res) {
 
   const trackPayload = { title: fields.title, position, explicit };
   if (fields.language) trackPayload.language = fields.language;
+
+  if (await continueFuegoLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
+    return;
+  }
 
   const browserKey = headerValue(req, 'idempotency-key');
   const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
@@ -1514,6 +1574,11 @@ async function createTrack(req, res) {
       await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', {
         writers: [{ name: songwriter.name, first_name: songwriter.first, last_name: songwriter.last }],
       });
+    }
+  }
+  if (!result.ok && isAlreadyExistsResult(result)) {
+    if (await continueFuegoLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
+      return;
     }
   }
   sendJson(res, result.status, result.data);
