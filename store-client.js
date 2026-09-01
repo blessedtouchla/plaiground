@@ -2650,6 +2650,8 @@
     };
     if (existingId) trackBody.track_id = existingId;
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
+    if (draft.made_how) trackBody.made_how = draft.made_how;
+    if (draft.human_contribution) trackBody.human_contribution = draft.human_contribution;
     trackBody = Object.assign(trackBody, hopLegalFields(draft));
     var key = takeIdempotencyKey('track', draft, trackBody, force);
     return post(TRACKS_URL, trackBody, key).then(function (result) {

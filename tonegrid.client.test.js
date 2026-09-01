@@ -1220,6 +1220,8 @@ async function run() {
   });
   assert.ok(submitCall);
   assert.strictEqual(JSON.parse(submitCall.init.body).document_id, 'doc_split_sheet_01');
+  assert.strictEqual(JSON.parse(submitCall.init.body).made_how, 'ai_assisted');
+  assert.strictEqual(JSON.parse(submitCall.init.body).human_contribution, 'I wrote the lyrics and sang the lead.');
   assert.strictEqual(draftOf(signedSubmit.localStorage).tonegrid_status, 'pending');
 
   const soloSubmit = load({
@@ -3820,6 +3822,8 @@ async function run() {
   assert.ok(source.includes('if (!want || !title || !sameSongText(title, want)) return next();'));
   assert.ok(!/if \(selectedAudio\(\)\) return createFreshRelease/.test(source), 'selectedAudio must not skip catalog adopt');
   assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
+  assert.ok(source.includes('if (draft.made_how) trackBody.made_how = draft.made_how'), 'send-time track create forwards made_how');
+  assert.ok(source.includes('if (draft.human_contribution) trackBody.human_contribution = draft.human_contribution'), 'send-time track create forwards attest copy');
   assert.ok(uploadHtml.includes('upload-continue-row'), 'Save draft sits next to Continue on phone');
   assert.ok(!/Delete draft/.test(uploadHtml), 'must not add a Delete draft control');
   assert.ok(source.includes('isAudioRequiredError'));
