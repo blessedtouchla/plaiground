@@ -45,5 +45,19 @@
     { "source": "/api/tonegrid/:resource", "destination": "/api/tonegrid?resource=:resource" },
     { "source": "/api/stripe/webhook", "destination": "/api/create-checkout-session?action=webhook" },
     { "source": "/charts", "destination": "/charts.html" }
+  ],
+  "headers": [
+    {
+      "source": "/review.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/store-client.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    }
   ]
 }

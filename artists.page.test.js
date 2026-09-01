@@ -522,6 +522,7 @@ function run() {
     'plai-session.js',
     'signwell.js',
     'tonegrid.js',
+    'youtube.js',
   ]);
 
   const page = loadArtists();

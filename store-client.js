@@ -1367,7 +1367,9 @@
     unmarkDeadRelease(living.id);
     rememberSessionRelease(living.id, true, living.tracks || [], true);
     var trackId = '';
-    if (living.tracks && living.tracks.length) trackId = trackIdOf(living.tracks[0]);
+    if (living.tracks && living.tracks.length) {
+      trackId = trackIdOf(preferLeftoverTrack(living.tracks)) || trackIdOf(living.tracks[0]);
+    }
     var next = writeDraft({
       release_id: living.id,
       track_id: trackId || draft.track_id || '',
@@ -1520,6 +1522,11 @@
       title: 'FUEGO GODDESS',
       artist: 'Victoria PLAIGROUND',
     },
+    {
+      id: '0767cb74-c5aa-4b18-8023-729fd4fb2808',
+      title: 'I Set the Tone',
+      artist: 'VEXA',
+    },
   ];
 
   function isKnownAdoptRelease(id) {
@@ -1578,6 +1585,34 @@
 
   function preferFuegoLeftoverTrack(tracks) {
     return preferLeftoverTrack(tracks);
+  }
+
+  function fallbackTracksForKnownTitle(draft) {
+    if (sameSongText((draft && draft.title) || '', 'I Set the Tone')) {
+      return [{ uuid: 'afce23fb-aa5f-42ac-94ae-2ce58bf48402', title: 'I Set the Tone', status: 'draft' }];
+    }
+    return [];
+  }
+
+  function attachKnownLeftoverNow(draft) {
+    var current = draft || readDraft();
+    var known = knownAdoptIdsForDraft(current);
+    if (!known[0]) return null;
+    var fallback = fallbackTracksForKnownTitle(current);
+    return fetchReleaseTracks(known[0]).then(function (loaded) {
+      var found = (loaded.ok && loaded.tracks && loaded.tracks.length) ? loaded.tracks : fallback;
+      if (!found.length) found = fallback;
+      var adopted = adoptLivingRelease(current, { id: known[0], tracks: found });
+      return {
+        ok: true,
+        created: true,
+        found: true,
+        draft: adopted,
+        tracks: found,
+        tracksListed: found.length > 0,
+        result: { ok: true, status: 200, data: { uuid: known[0], continued: true, tracks: found } },
+      };
+    });
   }
 
   function isProtectedCatalogRelease(id, title) {
@@ -1776,10 +1811,42 @@
     };
   }
 
+  function existingStoreArtistId(draft) {
+    var current = draft || {};
+    var candidates = [
+      current.artist_id,
+      current.tonegrid_artist_id,
+      current.uuid,
+    ];
+    var i;
+    for (i = 0; i < candidates.length; i += 1) {
+      if (isUuidValue(candidates[i])) return String(candidates[i]).trim();
+    }
+    var artists = rosterFromMe();
+    var pgId = String(current.plaiground_artist_id || '').trim();
+    var name = String(current.name || '').trim();
+    for (i = 0; i < artists.length; i += 1) {
+      var row = artists[i] || {};
+      if (String(row.id || '') === 'account') continue;
+      var storeId = row.tonegrid_artist_id || row.uuid || '';
+      var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
+        || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
+      if (sameProfile && isUuidValue(storeId)) return String(storeId).trim();
+      if (sameProfile && isUuidValue(row.id)) return String(row.id).trim();
+    }
+    return '';
+  }
+
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
-    var artistId = String(current.artist_id || '').trim();
-    if (isUuidValue(artistId)) return Promise.resolve({ ok: true, draft: current });
+    var artistId = existingStoreArtistId(current);
+    if (isUuidValue(artistId)) {
+      if (String(current.artist_id || '').trim() !== artistId) {
+        current = writeDraft({ artist_id: artistId });
+        saveCatalog({ artist_id: artistId });
+      }
+      return Promise.resolve({ ok: true, draft: current });
+    }
     var name = String(current.name || '').trim();
     if (!name) {
       return Promise.resolve({
@@ -1831,6 +1898,8 @@
           result: { data: { error: 'Save the upload details first so a catalog artist exists.' } },
         };
       }
+      var knownNow = attachKnownLeftoverNow(current);
+      if (knownNow) return knownNow;
       return findLivingSongRelease(current, '').then(function (living) {
         if (living && living.id) {
           var adopted = adoptLivingRelease(current, living);
@@ -3399,6 +3468,8 @@
     if (!draft.artist_id || !draft.title) {
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
     }
+    var knownSkip = attachKnownLeftoverNow(draft);
+    if (knownSkip) return knownSkip;
     var body = releasePayload(draft, releaseDate);
     var key = takeIdempotencyKey('release', draft, body, Boolean(opts && opts.rotateKey));
     return post(RELEASES_URL, body, key).then(function (result) {
@@ -5114,6 +5185,9 @@
     if (isMissingTrackError({ data: { error: shown } }) && draftHasTrackFile(draft)) {
       shown = attachFailedMessage();
     }
+    if (/already exists|already exist|a record with these details/i.test(shown) && knownAdoptIdsForDraft(draft)[0]) {
+      shown = '';
+    }
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
     showSubmitRetry(Boolean(shown) || Boolean(message));
@@ -5286,6 +5360,35 @@
         trigger.setAttribute('aria-busy', 'true');
         showSubmitRetry(false);
         releaseRecreateCount = 0;
+        if (knownAdoptIdsForDraft(draft)[0] && !draft.release_id) {
+          ensureCatalogArtist(draft).then(function (ready) {
+            if (ready.unavailable || ready.limited || ready.failed || ready.missing) {
+              failSubmit(createErrorMessage(ready.result, 'Save the upload details first so a catalog artist exists.'), trigger);
+              return;
+            }
+            return attachKnownLeftoverNow(ready.draft || draft).then(function (attached) {
+              var next = (attached && attached.draft) || readDraft();
+              if (!next.release_id) {
+                failSubmit('Could not create release.', trigger);
+                return;
+              }
+              showUploadLoader('Uploading audio');
+              return restoreHeldAudio().then(function () {
+                return afterRelease(next).then(function (hopped) {
+                  if (hopped && hopped.failed) {
+                    failSubmit(createErrorMessage(hopped.result, 'Could not create the track.'), trigger);
+                    return;
+                  }
+                  hideUploadLoader();
+                  return finishSubmit(hopped && hopped.draft ? hopped.draft : next, releaseDate, trigger, nextHref);
+                });
+              });
+            });
+          }).catch(function (err) {
+            failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
+          });
+          return;
+        }
         ensureCatalogArtist(draft).then(function (ready) {
           if (ready.unavailable) {
             hideUploadLoader();
