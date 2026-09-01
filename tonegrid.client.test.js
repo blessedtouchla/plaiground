@@ -3810,8 +3810,12 @@ async function run() {
   assert.ok(source.includes('isAdoptableStoreStatus'));
   assert.ok(source.includes('livingReleaseArtistConflicts'));
   assert.ok(source.includes('KNOWN_ADOPT_RELEASES'));
+  assert.ok(source.includes('attachKnownLeftoverNow'));
   assert.ok(source.includes('7a928125-b12e-4609-bd37-26ce0edf819e'));
   assert.ok(source.includes('cefce28e-8020-435e-8097-177de07f0c44'));
+  assert.ok(source.includes('0767cb74-c5aa-4b18-8023-729fd4fb2808'));
+  assert.ok(source.includes("title: 'I Set the Tone'"));
+  assert.ok(source.includes('attachKnownLeftoverNow'));
   assert.ok(/function knownAdoptIdsForDraft[\s\S]*?if \(!sameSongText\(row\.title, want\)\) continue;/.test(source), 'known adopt is title-only, no artist-name fingerprint');
   assert.ok(source.includes('1f346f71-a70d-4648-bb66-5c5aff5f5243'));
   assert.ok(source.includes('81e47b6f-6b13-44e6-a436-de81ffaa849f'));
@@ -4887,8 +4891,6 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: false, status: 404, data: { error: 'Release not found.' } },
-        { ok: false, status: 409, data: { error: 'A record with these details already exists.' } },
         { ok: true, status: 200, data: leftoverRow },
         { ok: true, status: 201, data: { uuid: trackId } },
         { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
@@ -4902,7 +4904,7 @@ async function run() {
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createPosts.length, 1, 'first Submit may POST create once');
+    assert.strictEqual(createPosts.length, 0, 'known leftover must never POST create');
     assert.ok(!page.calls.some(function (call) {
       return call.url === '/api/tonegrid/releases'
         && call.init
@@ -4933,7 +4935,7 @@ async function run() {
     const createAfterRetry = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createAfterRetry.length, 1, 'Retry leftover busy must attach, not POST a second create');
+    assert.strictEqual(createAfterRetry.length, 0, 'Retry leftover busy must attach, not POST a second create');
     const trackAfterRetry = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
@@ -4991,8 +4993,6 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: false, status: 404, data: { error: 'Release not found.' } },
-        { ok: false, status: 409, data: { error: 'A record with these details already exists.' } },
         { ok: true, status: 200, data: leftoverRow },
         { ok: true, status: 201, data: { uuid: trackId } },
         { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
@@ -5006,7 +5006,7 @@ async function run() {
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createPosts.length, 1, 'first Submit may POST create once');
+    assert.strictEqual(createPosts.length, 0, 'known leftover must never POST create');
     assert.strictEqual(draftOf(page.localStorage).release_id, leftover, 'wrong artist name still adopts FUEGO on 409');
     const trackCreates = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
@@ -5028,7 +5028,7 @@ async function run() {
     const createAfterRetry = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createAfterRetry.length, 1, 'Retry must not POST a second create');
+    assert.strictEqual(createAfterRetry.length, 0, 'Retry must not POST a second create');
   }
 
   async function reviewSubmit201PersistsFuegoAndDoesNotRemint() {
@@ -5067,8 +5067,6 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: false, status: 404, data: { error: 'Release not found.' } },
-        { ok: true, status: 201, data: { uuid: leftover } },
         {
           ok: true,
           status: 200,
@@ -5092,7 +5090,7 @@ async function run() {
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createPosts.length, 1, '201 must persist the minted uuid and not POST create again');
+    assert.strictEqual(createPosts.length, 0, 'known leftover must never POST create');
     assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
     const trackCreates = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
@@ -5236,12 +5234,13 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: false, status: 404, data: { error: 'Release not found.' } },
         {
           ok: true,
           status: 200,
           data: {
             uuid: leftover,
+            title: 'FUEGO GODDESS',
+            status: 'draft',
             continued: true,
             tracks: [
               { uuid: trackB, title: 'FUEGO GODDESS', status: 'draft' },
@@ -5260,7 +5259,7 @@ async function run() {
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createPosts.length, 1, 'first Submit may POST create once');
+    assert.strictEqual(createPosts.length, 0, 'known leftover must never POST create');
     const trackCreates = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
@@ -5386,7 +5385,9 @@ async function run() {
           status: 200,
           data: {
             uuid: leftover,
-            continued: true,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
             tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft' }],
           },
         },
@@ -5401,8 +5402,7 @@ async function run() {
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createPosts.length, 1, 'Submit may POST once so the leftover can 200-continue');
-    assert.strictEqual(JSON.parse(createPosts[0].init.body).title, 'I Set the Tone');
+    assert.strictEqual(createPosts.length, 0, 'known I Set the Tone leftover must attach without a second create');
     const trackCreates = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
@@ -5425,7 +5425,7 @@ async function run() {
     const createAfterRetry = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createAfterRetry.length, 1, 'Retry must attach the same leftover, not POST a second create');
+    assert.strictEqual(createAfterRetry.length, 0, 'Retry must attach the same leftover, not POST a second create');
     assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
     assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
   }
@@ -5607,13 +5607,14 @@ async function run() {
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
-        { ok: false, status: 404, data: { error: 'Release not found.' } },
         {
           ok: true,
           status: 200,
           data: {
             uuid: leftover,
-            continued: true,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
             tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft', artist: 'VEXA' }],
           },
         },
@@ -5627,7 +5628,7 @@ async function run() {
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });
-    assert.strictEqual(createPosts.length, 1, 'stale leftover GET still POSTs once so the leftover can 200-continue');
+    assert.strictEqual(createPosts.length, 0, 'known VEXA leftover attaches on title-only GET, never a second create');
     assert.strictEqual(draftOf(page.localStorage).release_id, leftover, 'VEXA leftover must attach on title-only continue');
     assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
     const trackCreates = page.calls.filter(function (call) {
@@ -5635,6 +5636,166 @@ async function run() {
     });
     assert.strictEqual(trackCreates.length, 0, 'continue must reuse leftover track');
     assert.ok(page.calls.some(function (call) { return isAudioAttach(call.url); }));
+    assert.ok(!/already exists/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmit409AdoptsISetTheToneFromKnownList() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const leftoverRow = {
+      uuid: leftover,
+      title: 'I Set the Tone',
+      status: 'draft',
+      artist_id: 196,
+      artist: 'VEXA',
+      tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft' }],
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'Victoria PLAIGROUND',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        tonegrid_release_ids: [lightning],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 200, data: leftoverRow },
+        { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 0, 'I Set the Tone Submit must never POST create');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover, '409 must attach 0767cb74 from KNOWN_ADOPT');
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 0, 'must reuse leftover track afce23fb');
+    assert.ok(page.calls.some(function (call) { return isAudioAttach(call.url); }), 'must hop already-picked audio onto leftover');
+    assert.ok(!/already exists/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+    [fuego, rainbow].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1 && String((call.init && call.init.method) || 'GET').toUpperCase() === 'DELETE';
+      }), 'must not DELETE ' + id);
+    });
+
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const createAfterRetry = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createAfterRetry.length, 0, 'Retry must attach the same leftover, not POST a second create');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+  }
+
+  async function reviewSubmitReusesExistingVexaArtistUuid() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const vexaId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        plaiground_artist_id: 'pg-vexa',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        profile: {
+          artists: [{
+            id: 'pg-vexa',
+            name: 'VEXA',
+            source: 'created',
+            tonegrid_artist_id: vexaId,
+            spotify_id: '',
+            apple_id: '',
+            store_url: '',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            continued: true,
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft' }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/artists';
+    }), 'existing VEXA uuid must be reused, no POST /artists');
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 0, 'I Set the Tone Submit must never POST create');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, vexaId);
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
     assert.ok(!/already exists/i.test(page.status.textContent));
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
   }
@@ -5655,6 +5816,8 @@ async function run() {
   await reviewLeaveAndReturnAttachesOwnedISetTheTone();
   await reviewSubmitAttachesAnyOwnedLeftoverByTitle();
   await reviewSubmit409AdoptsISetTheToneWithVexaArtist();
+  await reviewSubmit409AdoptsISetTheToneFromKnownList();
+  await reviewSubmitReusesExistingVexaArtistUuid();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();

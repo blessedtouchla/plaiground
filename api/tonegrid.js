@@ -333,6 +333,11 @@ const KNOWN_ADOPT_RELEASES = [
     title: 'FUEGO GODDESS',
     artist: 'Victoria PLAIGROUND',
   },
+  {
+    id: '0767cb74-c5aa-4b18-8023-729fd4fb2808',
+    title: 'I Set the Tone',
+    artist: 'VEXA',
+  },
 ];
 
 function isKnownAdoptRelease(id) {
@@ -347,6 +352,15 @@ function knownAdoptRow(id) {
     if (sameCatalogId(KNOWN_ADOPT_RELEASES[i].id, nid)) return KNOWN_ADOPT_RELEASES[i];
   }
   return null;
+}
+
+function knownAdoptIdForTitle(title) {
+  const want = String(title || '').trim();
+  if (!want) return '';
+  for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
+    if (sameSongText(KNOWN_ADOPT_RELEASES[i].title, want)) return KNOWN_ADOPT_RELEASES[i].id;
+  }
+  return '';
 }
 
 function isFuegoGoddessTitle(title) {
@@ -422,6 +436,14 @@ async function continueLeftoverTrack(res, releaseId, body, songwriter, scope) {
     sendJson(res, attached.status, attached.data);
     return true;
   }
+  const leftoverAi = storeAi.trackAiFields(body);
+  if (leftoverAi) {
+    try {
+      await applyTrackAiDisclosure(reuseId, leftoverAi);
+    } catch {
+      /* leftover continue still hops if the AI tag misses */
+    }
+  }
   await accounts.updateCatalog(scope.userId, { trackId: reuseId });
   sendJson(res, 200, { uuid: reuseId, continued: true });
   return true;
@@ -457,13 +479,12 @@ async function findKnownAdoptCollision(body, artistId, wantName) {
     const id = known.id;
     if (isProtectedCatalogRelease(id)) continue;
     const loaded = await fetchStoreReleaseRaw(id);
-    if (!loaded.row) continue;
-    if (!releaseBelongsToCreateBody(loaded.row, body)) continue;
-    if (isBlockingStoreLeftover(loaded.row.status)) continue;
+    if (loaded.row && isBlockingStoreLeftover(loaded.row.status)) continue;
+    // Title-only. Numeric artist_id (196) and a different display name are fine.
     return {
       id: id,
-      status: normalizeReleaseStatus(loaded.row.status),
-      row: loaded.row,
+      status: normalizeReleaseStatus((loaded.row && loaded.row.status) || 'draft'),
+      row: loaded.row || { uuid: id, title: known.title },
     };
   }
   return null;
@@ -506,6 +527,9 @@ function isStoreDeleteGone(result) {
 }
 
 async function deleteStoreRelease(releaseId) {
+  if (isKnownAdoptRelease(releaseId) || isProtectedCatalogRelease(releaseId)) {
+    return { ok: false, status: 403, data: { error: 'Release cannot be removed.' } };
+  }
   return tonegridFetch('/releases/' + releaseId, {
     method: 'DELETE',
     idempotencyKey: hopIdempotencyKey('delete-release', 'DELETE', '/releases/' + releaseId, releaseId),
@@ -684,20 +708,23 @@ function rosterOf(row) {
 }
 
 function matchingTonegridArtist(row, body) {
+  const direct = String((body && (body.uuid || body.tonegrid_artist_id || body.artist_id)) || '').trim();
+  if (isUuid(direct)) return direct;
   const stored = rosterOf(row);
   const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
   const name = String((body && body.name) || '').trim();
   if (pgId) {
     const found = profileLib.findArtist(stored, pgId);
-    if (found && found.tonegrid_artist_id) return found.tonegrid_artist_id;
+    if (found && isUuid(found.tonegrid_artist_id)) return found.tonegrid_artist_id;
+    if (found && isUuid(found.uuid)) return found.uuid;
   }
   if (name) {
     const want = artistCheck.normalizeName(name);
     const list = stored.artists || [];
     for (let i = 0; i < list.length; i += 1) {
-      if (artistCheck.normalizeName(list[i].name) === want && list[i].tonegrid_artist_id) {
-        return list[i].tonegrid_artist_id;
-      }
+      if (artistCheck.normalizeName(list[i].name) !== want) continue;
+      if (isUuid(list[i].tonegrid_artist_id)) return list[i].tonegrid_artist_id;
+      if (isUuid(list[i].uuid)) return list[i].uuid;
     }
   }
   return '';
@@ -1498,17 +1525,18 @@ async function createRelease(req, res) {
     return true;
   }
 
-  async function continueKnownAdoptByTitle() {
+  async function continueKnownAdoptByTitle(opts) {
     const wantTitle = String((body && body.title) || '').trim();
     if (!wantTitle) return false;
+    const requireRow = !opts || opts.requireRow !== false;
     for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
       const known = KNOWN_ADOPT_RELEASES[i];
       if (!sameSongText(known.title, wantTitle)) continue;
       if (isProtectedCatalogRelease(known.id)) continue;
       const loaded = await fetchStoreReleaseRaw(known.id);
-      if (!loaded.row) continue;
-      if (isBlockingStoreLeftover(loaded.row.status)) continue;
-      if (!releaseBelongsToCreateBody(loaded.row, body)) continue;
+      if (loaded.row && isBlockingStoreLeftover(loaded.row.status)) continue;
+      if (requireRow && !loaded.row) continue;
+      // Title-only. Numeric artist_id 196 / display-name mismatch must still attach.
       return continueStoreLeftover(known.id);
     }
     return false;
@@ -1526,8 +1554,8 @@ async function createRelease(req, res) {
     return continueStoreLeftover(leftover.id);
   }
 
-  // Title-only: do not require artist-name fingerprint or uuid artist_id.
-  if (await continueOwnedFuegoGoddess()) return;
+  // Title-only: never POST a second create for a known leftover Draft.
+  if (await continueKnownAdoptByTitle({ requireRow: false })) return;
 
   let wantCollisionName = wantArtistNameOf(body);
 
@@ -1542,7 +1570,7 @@ async function createRelease(req, res) {
     return;
   }
   if (isAlreadyExistsResult(result)) {
-    if (await continueOwnedFuegoGoddess()) return;
+    if (await continueKnownAdoptByTitle({ requireRow: false })) return;
     if (!wantCollisionName) {
       wantCollisionName = await resolveWantArtistName(body, artistId, scope.row);
     }
@@ -1552,10 +1580,12 @@ async function createRelease(req, res) {
     });
     if (leftover && leftover.id) {
       if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) {
+        if (await continueKnownAdoptByTitle({ requireRow: false })) return;
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
         return;
       }
       if (isBlockingStoreLeftover(leftover.status)) {
+        if (await continueKnownAdoptByTitle({ requireRow: false })) return;
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
         return;
       }
@@ -1576,10 +1606,22 @@ async function createRelease(req, res) {
           }
         }
       }
+      const knownTitleId = knownAdoptIdForTitle((body && body.title) || '');
+      if (knownTitleId && await continueStoreLeftover(knownTitleId)) return;
+      if (knownTitleId) {
+        sendJson(res, 200, { uuid: knownTitleId, continued: true });
+        return;
+      }
       sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
       return;
     }
-    if (await continueOwnedFuegoGoddess()) return;
+    if (await continueKnownAdoptByTitle({ requireRow: false })) return;
+  }
+  const knownTitleId = knownAdoptIdForTitle((body && body.title) || '');
+  if (knownTitleId && isAlreadyExistsResult(result) && await continueStoreLeftover(knownTitleId)) return;
+  if (knownTitleId && isAlreadyExistsResult(result)) {
+    sendJson(res, 200, { uuid: knownTitleId, continued: true });
+    return;
   }
   sendJson(res, result.status, result.data);
 }
