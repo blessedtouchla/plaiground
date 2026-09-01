@@ -2281,26 +2281,31 @@ function bindTypeahead(select, items, getValue, getLabel) {
       return;
     }
     if (opened) taDebug(taTag + ' openList(' + via + ') full DONE, list open  ' + taSnap());
-    // Claim focus explicitly, deferred. No tap handler here calls input.focus()
-    // — a real <input> normally does not need one, since a tap's own default
-    // action grants focus. But showMatches() just did a chunk of synchronous
-    // DOM work (rebuilding the option list) inside the same gesture, which can
-    // make iOS silently drop that default focus grant, the same class of
-    // gesture disturbance #164/#165 found with a synchronous scroll. Deferred
-    // (setTimeout 0, after the gesture settles) and guarded (no-op if already
-    // focused) so this never fights the native grant, only backstops it.
-    function reclaimFocus() {
-      if (input.focus && doc && doc.activeElement !== input) {
-        taDebug(taTag + ' openList(' + via + ') reclaiming focus, was ' + taSnap());
-        try { input.focus(); } catch (err) {}
-      }
+    // Claim focus explicitly, SYNCHRONOUSLY, right here — no setTimeout. No tap
+    // handler here calls input.focus() — a real <input> normally does not need
+    // one, since a tap's own default action grants focus. But showMatches()
+    // just did a chunk of synchronous DOM work (rebuilding the option list)
+    // inside the same gesture, which can make iOS silently drop that default
+    // focus grant. Backstopping it is correct (see #209), but iOS Safari only
+    // *raises the keyboard* for a .focus() call made synchronously inside a
+    // trusted user gesture — a setTimeout(0)-deferred call (what #209 shipped)
+    // still moves document.activeElement and shows the focus ring, but the
+    // keyboard silently never appears. touchend/click/pointerup/focus are all
+    // trusted gesture handlers and this line runs synchronously within them,
+    // so it stays gesture-trusted. Only keepInputVisible()'s scrollBy() needs
+    // to be deferred — that's the actual thing #165 found unsafe mid-gesture,
+    // not focus itself. quiet (pointerdown, still mid-gesture) intentionally
+    // gets neither the focus grab nor the scroll here; the very next
+    // touchend/pointerup on the same tap does both, post-gesture.
+    if (input.focus && doc && doc.activeElement !== input) {
+      taDebug(taTag + ' openList(' + via + ') reclaiming focus synchronously, was ' + taSnap());
+      try { input.focus(); } catch (err) {}
     }
     if (win && win.setTimeout) {
       if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
       win.setTimeout(function () {
         keepInputVisible();
         placeList();
-        reclaimFocus();
       }, 0);
       placeTimer = win.setTimeout(function () {
         keepInputVisible();
@@ -2308,7 +2313,6 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }, 280);
     } else {
       keepInputVisible();
-      reclaimFocus();
     }
   }
 
