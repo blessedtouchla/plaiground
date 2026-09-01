@@ -277,8 +277,14 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
     input.listeners.pointerdown();
     assert.ok(!list.classList.contains('is-hidden'), 're-tap pointerdown alone must reopen the list on a filled field');
     const reopened = listButtons(list);
-    assert.ok(reopened.length >= 1, 're-tap must repopulate the option list');
-    assert.ok(reopened.some(function (btn) { return btn.textContent === 'Pop'; }), 're-tap keeps the current value in the list');
+    // The bug: showMatches(input.value) filtered the reopened list against the
+    // stale picked label ("Pop"), so only that one near-exact match rendered.
+    // A re-tap must show the full/capped catalog, same as a fresh empty tap.
+    assert.ok(reopened.length > 1, 're-tap must show more than just the previously picked option');
+    assert.ok(reopened.length <= catalog.TYPEAHEAD_LIST_CAP, 're-tap list is still capped like a fresh open');
+    assert.ok(reopened.some(function (btn) { return btn.textContent !== 'Pop'; }), 're-tap must show genres other than the one already picked, not a list filtered down to it');
+    assert.ok(list.children.some(function (node) { return /type to search/i.test(node.textContent); }), 're-tap shows the same "Type to search" hint as a fresh empty open');
+    assert.strictEqual(input.value, 'Pop', 're-tap must not clear or alter the visible field while browsing the reopened list');
 
     // A second value can now be picked to replace the first.
     input.value = 'Rock';
@@ -291,6 +297,8 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
     // And once more via focus alone (no pointerdown), covering the openList latch reset.
     input.listeners.focus();
     assert.ok(!list.classList.contains('is-hidden'), 'focus after a pick must also reopen a filled field');
+    assert.ok(listButtons(list).length > 1, 'focus-triggered reopen also shows the full list, not just "Rock"');
+    assert.strictEqual(input.value, 'Rock', 'focus-triggered reopen leaves the visible field alone too');
   } finally {
     if (prevWindow === undefined) delete global.window;
     else global.window = prevWindow;

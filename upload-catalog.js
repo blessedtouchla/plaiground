@@ -2260,7 +2260,13 @@ function bindTypeahead(select, items, getValue, getLabel) {
       taDebug(taTag + ' openList(' + via + ') EARLY: other typeahead busy  ' + taSnap());
       return;
     }
-    showMatches(input.value);
+    // A (re)open always shows every option, not a filter narrowed to whatever
+    // was previously picked. input.value keeps the picked label untouched here
+    // — blur still needs it to re-commit if the user taps away without picking
+    // again — but the dropdown itself starts from a blank query on every open.
+    // Typing still filters live via the 'input' listener below, which passes
+    // the real, current input.value on every keystroke.
+    showMatches('');
     var opened = list && list.classList && !list.classList.contains('is-hidden');
     if (!opened) {
       taDebug(taTag + ' openList(' + via + ') showMatches did NOT open (picking=' + (picking ? 1 : 0) + ')  ' + taSnap());
