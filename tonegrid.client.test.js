@@ -3810,6 +3810,7 @@ async function run() {
   assert.ok(source.includes('KNOWN_ADOPT_RELEASES'));
   assert.ok(source.includes('7a928125-b12e-4609-bd37-26ce0edf819e'));
   assert.ok(source.includes('cefce28e-8020-435e-8097-177de07f0c44'));
+  assert.ok(source.includes("sameSongText(row.title, 'FUEGO GODDESS')"), 'FUEGO title adopts without artist-name fingerprint');
   assert.ok(source.includes('if (!want || !title || !sameSongText(title, want)) return next();'));
   assert.ok(!/if \(selectedAudio\(\)\) return createFreshRelease/.test(source), 'selectedAudio must not skip catalog adopt');
   assert.ok(/function afterArtistReady\([^)]*\) \{\s*return finishToAttest/.test(source), 'Continue must not mint before attest');
@@ -3817,6 +3818,7 @@ async function run() {
   assert.ok(!/Delete draft/.test(uploadHtml), 'must not add a Delete draft control');
   assert.ok(source.includes('isAudioRequiredError'));
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
+  assert.ok(/src="store-client\.js\?v=[a-f0-9]+"/.test(reviewHtml), 'review.html cache-busts store-client.js');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review must not say Save and exit');
   assert.ok(reviewHtml.indexOf('id="tg-genre"') !== -1, 'Submit review can change genre');
@@ -4931,6 +4933,94 @@ async function run() {
     assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
   }
 
+  async function reviewSubmit409AdoptsFuegoWithWrongArtistName() {
+    const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const trackId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const lightning = '1f26369b-e107-4c79-bde1-4c5382f9d511';
+    const dolly = 'df51342b-ba22-4093-93ff-35b6402b61c0';
+    const metete = '6629b532-2e78-4be6-84eb-e4dfa9ac33e5';
+    const cgi = '490b789a-0a33-4372-9d81-665f47b3cbf1';
+    const vhnjuk = 'c0102e1c-b62b-4dcf-9fe1-00d063df51a4';
+    const held = {
+      __held: 1,
+      name: 'FUEGO GODDESS.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const leftoverRow = {
+      uuid: leftover,
+      title: 'FUEGO GODDESS',
+      status: 'draft',
+      artist_id: 194,
+      artist: 'Victoria PLAIGROUND',
+      tracks: [],
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-09',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Ada Night',
+        title: 'FUEGO GODDESS',
+        genre: 'Flamenco',
+        language: 'en',
+        audio_name: 'FUEGO GODDESS.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-09',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [lightning, dolly, metete, cgi, vhnjuk],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: false, status: 409, data: { error: 'A record with these details already exists.' } },
+        { ok: true, status: 200, data: leftoverRow },
+        { ok: true, status: 201, data: { uuid: trackId } },
+        { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1, 'first Submit may POST create once');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover, 'wrong artist name still adopts FUEGO on 409');
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 1, 'same click must mint one track on the attached uuid');
+    assert.strictEqual(JSON.parse(trackCreates[0].init.body).release_id, leftover);
+    assert.ok(page.calls.some(function (call) { return isAudioAttach(call.url); }), 'same click must hop audio onto the attached uuid');
+    assert.ok(!/already exists/i.test(page.status.textContent), 'owned FUEGO draft must not surface already-exists after attach');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(rainbow) !== -1;
+    }), 'must not touch Rainbow Road uuid');
+    [lightning, dolly, metete, cgi, vhnjuk].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1 && String((call.init && call.init.method) || 'GET').toUpperCase() === 'DELETE';
+      }), 'must not DELETE protected ' + id);
+    });
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const createAfterRetry = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createAfterRetry.length, 1, 'Retry must not POST a second create');
+  }
+
   async function reviewSubmit201PersistsFuegoAndDoesNotRemint() {
     const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
     const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
@@ -5001,6 +5091,7 @@ async function run() {
   await reviewRetryAdoptsOwnedDraftAndHopsHeldWav();
   await reviewRetryAdoptsFuegoOwnedDraftAndHopsHeldWav();
   await reviewSubmit409AdoptsFuegoAndRetryClearsBusy();
+  await reviewSubmit409AdoptsFuegoWithWrongArtistName();
   await reviewSubmit201PersistsFuegoAndDoesNotRemint();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
