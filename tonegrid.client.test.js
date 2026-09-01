@@ -3839,6 +3839,7 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901c4'), 'review.html must cache-bust past 20260901c4');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d1'), 'review.html must cache-bust past 20260901d1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d2'), 'review.html must cache-bust past 20260901d2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260901d3'), 'review.html must cache-bust past 20260901d3');
   assert.ok(reviewHtml.includes('lib/audio-accept.js'), 'Review loads the same accept helper as Upload');
   assert.ok(reviewHtml.includes('lib/audio-convert.js'), 'Review loads the convert hook before hop');
   assert.ok(reviewHtml.indexOf('lib/audio-accept.js') < reviewHtml.indexOf('store-client.js'), 'accept loads before store-client');
@@ -3850,11 +3851,14 @@ async function run() {
   const leftoverFn = source.match(/function leftoverHopFile\(file\) \{[\s\S]*?\n  \}/);
   assert.ok(leftoverFn, 'leftoverHopFile must stay a real function');
   assert.ok(leftoverFn[0].includes('heldPickedFile'), 'leftover hop can use the original pick');
+  assert.ok(leftoverFn[0].includes('selectedAudio') || leftoverFn[0].includes('[data-audio-input]'), 'leftover hop can use the live pick');
   assert.ok(
     leftoverFn[0].indexOf('heldPickedFile') < leftoverFn[0].indexOf('looksLikeWav(held)'),
     'leftover hop prefers the original picked MP3 over a device WAV'
   );
+  assert.ok(!/if \(looksLikeWav\(held\) && Number\(held\.size\) > 0\) return held;/.test(leftoverFn[0]), 'leftover hop must not prefer a ballooned device WAV');
   assert.ok(source.includes('leftoverOriginal'), 'leftover MP3 hops as-is so the server converts once');
+  assert.ok(/leftoverOriginal = Boolean\(force\)/.test(source), 'known leftover hop never calls convertHook/runConvertStep');
   assert.ok(source.includes('function storeTrackHasAudio'));
   assert.ok(source.includes('function leftoverHopFailure'));
   assert.ok(source.includes('function hopKnownLeftoverCover'));
@@ -6093,6 +6097,281 @@ async function run() {
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
   }
 
+  async function reviewSubmitKnownLeftoverEmptyAudioHopsHeldMp3NotWav() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const heldMp3 = {
+      __held: 1,
+      name: 'I Set the Tone.mp3',
+      type: 'audio/mpeg',
+      size: 2048,
+      buffer: new Uint8Array(2048).buffer,
+    };
+    const balloonWav = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 12000000,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: heldMp3,
+      heldFile: balloonWav,
+      heldPicked: heldMp3,
+      artwork: ART,
+      countConvert: true,
+      convertHold: balloonWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.mp3',
+        audio_picked_name: heldMp3.name,
+        audio_picked_size: heldMp3.size,
+        audio_attached: true,
+        audio_uploaded: true,
+        audio_converted: true,
+        artwork_name: 'cover.jpg',
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
+            tracks: [{
+              uuid: leftoverTrack,
+              title: 'I Set the Tone',
+              status: 'draft',
+              audio_url: null,
+              s3: null,
+            }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.strictEqual(page.convertCalls, 0, 'leftover hop must skip convertHook/runConvertStep');
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'must reuse leftover 0767cb74, not mint');
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'leftover uuid/track stay unchanged');
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'leftover empty-audio + held MP3 must hop');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
+    assert.ok(page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === heldMp3.name; } catch (err) { return false; }
+    }), 'leftover empty-audio + held MP3 hops MP3 not WAV');
+    assert.ok(!page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === balloonWav.name; } catch (err) { return false; }
+    }), 'must never hop the ballooned device WAV');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0
+        && call.init && call.init.body && call.init.body.name === heldMp3.name;
+    }), 'hop PUT body is the original picked MP3');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0
+        && call.init && call.init.body && call.init.body.name === balloonWav.name;
+    }), 'hop PUT must not be the ballooned WAV');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+    [fuego, rainbow].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1;
+      }), 'must not touch ' + id);
+    });
+    assert.ok(!/Retry/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitFuegoEmptyAudioHopsHeldMp3NotWav() {
+    const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const trackA = '1f346f71-a70d-4648-bb66-5c5aff5f5243';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const heldMp3 = {
+      __held: 1,
+      name: 'FUEGO GODDESS.mp3',
+      type: 'audio/mpeg',
+      size: 3072,
+      buffer: new Uint8Array(3072).buffer,
+    };
+    const balloonWav = {
+      __held: 1,
+      name: 'FUEGO GODDESS.wav',
+      type: 'audio/wav',
+      size: 14000000,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-09',
+      file: heldMp3,
+      heldFile: balloonWav,
+      heldPicked: heldMp3,
+      countConvert: true,
+      convertHold: balloonWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'FUEGO GODDESS',
+        genre: 'Latin',
+        language: 'es',
+        release_id: leftover,
+        track_id: trackA,
+        audio_name: 'FUEGO GODDESS.mp3',
+        audio_picked_name: heldMp3.name,
+        audio_picked_size: heldMp3.size,
+        audio_attached: true,
+        audio_uploaded: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-09',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'FUEGO GODDESS',
+            status: 'draft',
+            tracks: [
+              { uuid: trackA, title: 'FUEGO GODDESS', status: 'draft', audio_url: null, s3: null },
+            ],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.strictEqual(page.convertCalls, 0, 'FUEGO leftover hop must skip device convert');
+    assert.ok(page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === heldMp3.name; } catch (err) { return false; }
+    }), 'FUEGO leftover hops held MP3, not WAV');
+    assert.ok(!page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === balloonWav.name; } catch (err) { return false; }
+    }), 'FUEGO leftover must not hop a ballooned WAV');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(rainbow) !== -1;
+    }), 'must not touch Rainbow Road uuid');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+  }
+
+  async function reviewSubmitRainbowRoadEmptyAudioHopsHeldMp3NotWav() {
+    const leftover = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const leftoverTrack = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const heldMp3 = {
+      __held: 1,
+      name: 'Rainbow Road.mp3',
+      type: 'audio/mpeg',
+      size: 2560,
+      buffer: new Uint8Array(2560).buffer,
+    };
+    const balloonWav = {
+      __held: 1,
+      name: 'Rainbow Road.wav',
+      type: 'audio/wav',
+      size: 11000000,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-11',
+      file: heldMp3,
+      heldFile: balloonWav,
+      heldPicked: heldMp3,
+      countConvert: true,
+      convertHold: balloonWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'Rainbow Road',
+        genre: 'Blues',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'Rainbow Road.mp3',
+        audio_picked_name: heldMp3.name,
+        audio_picked_size: heldMp3.size,
+        audio_attached: true,
+        audio_uploaded: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-11',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'Rainbow Road',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'Rainbow Road', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.strictEqual(page.convertCalls, 0, 'Rainbow Road leftover hop must skip device convert');
+    assert.ok(page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === heldMp3.name; } catch (err) { return false; }
+    }), 'Rainbow Road leftover hops held MP3, not WAV');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(fuego) !== -1;
+    }), 'must not touch FUEGO leftover');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+  }
+
   async function reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy() {
     const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
     const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
@@ -6393,6 +6672,9 @@ async function run() {
   await reviewSubmitKnownLeftoverEmptyAudioHopsHeldFile();
   await reviewSubmitKnownLeftoverHop400DoesNotBecomePending();
   await reviewSubmitKnownLeftoverEmptyAudioHopsPickedMp3Once();
+  await reviewSubmitKnownLeftoverEmptyAudioHopsHeldMp3NotWav();
+  await reviewSubmitFuegoEmptyAudioHopsHeldMp3NotWav();
+  await reviewSubmitRainbowRoadEmptyAudioHopsHeldMp3NotWav();
   await reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy();
   await continueISetTheToneStaysLocal();
   await reviewSubmitNightDriveEmptyAudioDoesNotForceHop();

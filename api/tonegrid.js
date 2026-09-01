@@ -26,7 +26,7 @@
  * POST /api/tonegrid/tracks/:id/audio  -> JSON { object_key } (preferred) or leftover multipart
  *   Hop-to-store: pull the private object. Already-WAV/FLAC skips convert
  *   and gets the full store-forward timeout. MP3 converts once, then
- *   forwards with remaining Hobby time. Wrap as multipart field `audio`
+ *   forwards with the full store-forward timeout. Wrap as multipart field `audio`
  *   with a real audio MIME. Leftover multipart under the platform hop cap
  *   goes through as one body. Over that cap leftover clients may send
  *   x-plaiground-chunk-* parts; this function assembles, converts MP3 → WAV,
