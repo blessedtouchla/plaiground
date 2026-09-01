@@ -3,26 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Creator plan – PLAIGROUND</title>
+  <title>SIQA Charts – PLAIGROUND</title>
+  <meta name="description" content="Hear the chart. Don’t search it. SIQA ranks the week. Listen-only player by PLAIGROUND." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css" />
   <link rel="stylesheet" href="plai-bubble.css" />
+  <link rel="stylesheet" href="charts.css" />
 </head>
-<body>
+<body class="charts-page">
   <header class="nav">
     <div class="wrap nav-inner">
-      <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <a class="logo" href="index.html" aria-label="PLAIGROUND">
+        <img src="assets/plaiground-logo.png" alt="PLAIGROUND" />
+      </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="how-it-works.html">How it works</a>
         <a href="index.html#pricing">Plans and Pricing</a>
         <a href="basic.html">Learn more: Basic</a>
-        <a class="active" href="creator.html">Learn more: Creator</a>
+        <a href="creator.html">Learn more: Creator</a>
         <a href="pro.html">Learn more: Pro</a>
         <a class="nav-paid" href="royalties.html"><span class="nav-paid-long">How you get paid</span><span class="nav-paid-short">Royalties</span></a>
         <a href="faq.html">FAQ</a>
-        <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
+        <a class="nav-siqa active" href="/charts" style="color:#F3CB47">SIQA Charts</a>
       </nav>
       <div class="nav-actions">
         <a class="login" href="login.html">Log in</a>
@@ -31,87 +35,54 @@
     </div>
   </header>
 
-  <main>
-    <section class="page-hero left">
-      <div class="wrap hero-split">
-        <div>
-          <div class="plan-badge"><i></i> Creator plan • $14.99 a month</div>
-          <h1>Basic, with the paid features <span class="gold">unlocked.</span></h1>
-          <p class="sub">Creator is Basic with publishing, Marketing Boost, album, advanced analytics, and retrieve / get paid unlocked. Then the cap: 8 distribution uploads a month and 8 publishing registrations a month, counted separately. Pro unlocks unlimited.</p>
-          <button type="button" class="plan-year" data-checkout-plan="creator" data-checkout-interval="year" aria-label="Start Creator yearly checkout">or $149/year</button>
-          <div class="hero-ctas" style="justify-content:flex-start;margin-top:28px">
-            <button class="btn btn-purple btn-md" type="button" data-checkout-plan="creator" data-checkout-interval="month">Start Creator</button>
-            <a class="btn btn-ghost btn-md" href="pro.html">See Pro</a>
-          </div>
-        </div>
-        <div class="hero-visual" aria-hidden="true"></div>
+  <main class="charts-main">
+    <section class="charts-hero">
+      <div class="wrap">
+        <p class="charts-badge">Listen-only</p>
+        <p class="charts-kicker">
+          <img src="assets/plaiground-logo.png" alt="PLAIGROUND" />
+          SIQA’s chart · player by PLAIGROUND
+        </p>
+        <h1>Hear the chart.<br />Don’t search it.</h1>
+        <p class="charts-lead">SIQA ranks the week. We added play so you can tap a song and listen — instead of hunting every title on YouTube.</p>
+        <p class="charts-official">Official charts: <a href="https://www.thesiqa.com/charts">https://www.thesiqa.com/charts</a></p>
+        <p class="charts-week">Week of August 25th, 2026</p>
+        <p class="charts-disclaimer">Not affiliated · not a copy of SIQA</p>
+      </div>
+    </section>
+
+    <section class="charts-tools">
+      <div class="wrap">
+        <label class="charts-search">
+          <span>Search title or artist</span>
+          <input type="search" data-charts-search placeholder="Title or artist" autocomplete="off" />
+        </label>
       </div>
     </section>
 
     <section>
       <div class="wrap">
-        <ul class="feature-lines">
-          <li>Publishing, Marketing Boost, and album upload</li>
-          <li>Advanced analytics</li>
-          <li>Retrieve / get paid</li>
-          <li>8 distribution uploads a month</li>
-          <li>8 publishing registrations a month — a separate cap</li>
-          <li>Pro unlocks unlimited</li>
-        </ul>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrap process-row">
-        <article>
-          <span class="n">01</span>
-          <h3>Upload</h3>
-          <p>8 distribution uploads a month.</p>
-        </article>
-        <article>
-          <span class="n">02</span>
-          <h3>Register</h3>
-          <p>8 publishing registrations a month, counted separately from uploads.</p>
-        </article>
-        <article>
-          <span class="n">03</span>
-          <h3>Market</h3>
-          <p>Marketing Boost and album upload are unlocked.</p>
-        </article>
-        <article>
-          <span class="n">04</span>
-          <h3>Get paid</h3>
-          <p>Retrieve / get paid and advanced analytics are unlocked. <a href="royalties.html">How you get paid</a>.</p>
-        </article>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrap exclude-grid">
-        <h2>The monthly cap</h2>
-        <ul class="exclude-list">
-          <li>8 distribution uploads a month</li>
-          <li>8 publishing registrations a month</li>
-          <li>Those two caps are counted separately</li>
-          <li>Pro unlocks unlimited</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="cta-band">
-      <div class="cta-inner">
-        <h2>$14.99 a month.</h2>
-        <div>
-          <p>Creator is Basic with the paid features unlocked. Then the cap: 8 distribution uploads and 8 publishing registrations a month, counted separately. Pro unlocks unlimited.</p>
-          <button type="button" class="plan-year" data-checkout-plan="creator" data-checkout-interval="year" aria-label="Start Creator yearly checkout">or $149/year</button>
-          <div class="hero-ctas" style="justify-content:flex-start">
-            <button class="btn btn-dark btn-md" type="button" data-checkout-plan="creator" data-checkout-interval="month">Start Creator</button>
-            <a class="btn btn-ghost btn-md" href="basic.html">See Basic</a>
-          </div>
-        </div>
+        <ol class="charts-list" data-charts-list></ol>
       </div>
     </section>
   </main>
+
+  <div class="charts-player" data-charts-player hidden>
+    <div class="wrap charts-player-inner">
+      <div class="charts-now">
+        <img class="charts-cover is-empty" data-charts-now-cover alt="" />
+        <div class="charts-meta">
+          <div class="charts-title" data-charts-now-title></div>
+          <div class="charts-artist" data-charts-now-artist></div>
+        </div>
+      </div>
+      <iframe class="charts-frame" data-charts-frame title="Listen-only player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      <div class="charts-controls">
+        <button type="button" data-charts-prev>Prev</button>
+        <button type="button" data-charts-next>Next</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <div class="wrap">
@@ -158,6 +129,6 @@
   <script src="membership.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
-  <script src="checkout.js" defer></script>
+  <script src="charts.js"></script>
 </body>
 </html>
