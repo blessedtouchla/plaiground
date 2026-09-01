@@ -2281,11 +2281,26 @@ function bindTypeahead(select, items, getValue, getLabel) {
       return;
     }
     if (opened) taDebug(taTag + ' openList(' + via + ') full DONE, list open  ' + taSnap());
+    // Claim focus explicitly, deferred. No tap handler here calls input.focus()
+    // — a real <input> normally does not need one, since a tap's own default
+    // action grants focus. But showMatches() just did a chunk of synchronous
+    // DOM work (rebuilding the option list) inside the same gesture, which can
+    // make iOS silently drop that default focus grant, the same class of
+    // gesture disturbance #164/#165 found with a synchronous scroll. Deferred
+    // (setTimeout 0, after the gesture settles) and guarded (no-op if already
+    // focused) so this never fights the native grant, only backstops it.
+    function reclaimFocus() {
+      if (input.focus && doc && doc.activeElement !== input) {
+        taDebug(taTag + ' openList(' + via + ') reclaiming focus, was ' + taSnap());
+        try { input.focus(); } catch (err) {}
+      }
+    }
     if (win && win.setTimeout) {
       if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
       win.setTimeout(function () {
         keepInputVisible();
         placeList();
+        reclaimFocus();
       }, 0);
       placeTimer = win.setTimeout(function () {
         keepInputVisible();
@@ -2293,6 +2308,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }, 280);
     } else {
       keepInputVisible();
+      reclaimFocus();
     }
   }
 

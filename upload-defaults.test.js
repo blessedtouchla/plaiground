@@ -412,6 +412,99 @@ function testTypeaheadOpenDefersScroll(catalog) {
   }
 }
 
+function testTypeaheadOpenReclaimsFocus(catalog) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
+    querySelector(sel) {
+      if (sel === '.typeahead-input') return this.children.find(function (node) { return node.className === 'typeahead-input'; }) || null;
+      if (sel === '.typeahead-list') return this.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; }) || null;
+      return { setAttribute() {} };
+    },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre-focus',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const timers = [];
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  const created = [];
+  const unrelatedField = { id: 'tg-featured', tagName: 'INPUT' };
+  const doc = {
+    addEventListener(type, fn) {
+      this.listeners = this.listeners || {};
+      this.listeners[type] = fn;
+    },
+    createElement(tag) {
+      const node = mockTypeaheadEl(tag);
+      created.push(node);
+      return node;
+    },
+    activeElement: unrelatedField,
+  };
+  global.window = {
+    innerHeight: 600,
+    innerWidth: 390,
+    addEventListener() {},
+    setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
+    clearTimeout() {},
+  };
+  global.document = doc;
+  function runTimers() {
+    while (timers.length) {
+      const row = timers.shift();
+      if (typeof row.fn === 'function') row.fn();
+    }
+  }
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = created.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = created.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    assert.ok(input && list, 'focus-reclaim test needs the typeahead nodes');
+    // A real <input>.focus() moves document.activeElement to itself.
+    input.focus = function () { doc.activeElement = input; };
+
+    // Featured Artist (or whatever the user was in before) is still focused —
+    // this reopen is the tap-triggered path, not a genuine native focus event,
+    // so iOS's own default focus grant may never have landed on this input.
+    assert.strictEqual(doc.activeElement, unrelatedField, 'starts with an unrelated field focused, like the device report');
+    input.listeners.touchend();
+    assert.ok(!list.classList.contains('is-hidden'), 'touchend opens the list');
+    assert.strictEqual(doc.activeElement, unrelatedField, 'focus must not be grabbed synchronously mid-gesture');
+    runTimers();
+    assert.strictEqual(doc.activeElement, input, 'once the gesture settles, the typeahead input must become document.activeElement');
+
+    // If a real focus event already landed first, reclaimFocus() must not
+    // call .focus() again (it would be redundant, not harmful, but this
+    // confirms the guard actually checks activeElement rather than always firing).
+    let refocusCalls = 0;
+    const realFocus = input.focus;
+    input.focus = function () { refocusCalls += 1; realFocus(); };
+    input.listeners.focus();
+    runTimers();
+    assert.strictEqual(refocusCalls, 0, 'reclaimFocus() is a no-op once the input is already document.activeElement');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function fillableCatalogSelect(id, placeholder) {
   const optionsArr = [{ value: '', textContent: placeholder }];
   const field = mockField();
@@ -1414,6 +1507,7 @@ function run() {
     testTypeaheadDelayedBlurKeepsListPick(catalog, createdEdit);
     testTypeaheadFilledFieldReopensOnRetap(catalog);
     testTypeaheadOpenDefersScroll(catalog);
+    testTypeaheadOpenReclaimsFocus(catalog);
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesTypeahead(catalog);
     testBasicTypeaheadFiltersAndEnglishFirst(catalog);
