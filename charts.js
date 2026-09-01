@@ -1,10 +1,13 @@
 (function () {
   var RANK_ONE_ID = "Hl5_Lc6b3AU";
+  var EMBED_ORIGIN = "https://www.wannaplai.com";
   var DATA_URL = "data/siqa-chart.json";
   var tracks = [];
   var filtered = [];
   var currentIndex = -1;
   var inflight = Object.create(null);
+  var ytPlayer = null;
+  var pendingVideoId = "";
 
   var listEl = document.querySelector("[data-charts-list]");
   var searchEl = document.querySelector("[data-charts-search]");
@@ -19,6 +22,55 @@
   function coverUrl(id) {
     if (!id) return "";
     return "https://i.ytimg.com/vi/" + encodeURIComponent(id) + "/hqdefault.jpg";
+  }
+
+  function embedUrl(id) {
+    return "https://www.youtube.com/embed/" + encodeURIComponent(id)
+      + "?autoplay=1&modestbranding=1&rel=0&playsinline=1&enablejsapi=1&origin=https://www.wannaplai.com";
+  }
+
+  function bindYouTubePlayer() {
+    if (ytPlayer || !frameEl || !(window.YT && typeof YT.Player === "function")) return;
+    ytPlayer = new YT.Player(frameEl, {
+      host: "https://www.youtube.com",
+      playerVars: {
+        autoplay: 1,
+        modestbranding: 1,
+        rel: 0,
+        playsinline: 1,
+        enablejsapi: 1,
+        origin: EMBED_ORIGIN
+      },
+      events: {
+        onReady: function (event) {
+          var target = event && event.target;
+          if (pendingVideoId && target && typeof target.loadVideoById === "function") {
+            target.loadVideoById(pendingVideoId);
+          } else if (target && typeof target.playVideo === "function") {
+            target.playVideo();
+          }
+        }
+      }
+    });
+  }
+
+  function loadEmbed(id) {
+    if (!id) return;
+    pendingVideoId = id;
+    if (ytPlayer && typeof ytPlayer.loadVideoById === "function") {
+      ytPlayer.loadVideoById(id);
+      return;
+    }
+    if (frameEl) frameEl.src = embedUrl(id);
+    bindYouTubePlayer();
+  }
+
+  window.onYouTubeIframeAPIReady = function () {
+    bindYouTubePlayer();
+  };
+
+  if (window.YT && typeof YT.Player === "function") {
+    bindYouTubePlayer();
   }
 
   function applyRankOne(track) {
@@ -100,9 +152,7 @@
       if (track.youtubeId) nowCover.src = coverUrl(track.youtubeId);
       else nowCover.removeAttribute("src");
     }
-    if (frameEl && track.youtubeId) {
-      frameEl.src = "https://www.youtube.com/embed/" + encodeURIComponent(track.youtubeId) + "?autoplay=1&rel=0";
-    }
+    if (track.youtubeId) loadEmbed(track.youtubeId);
     if (prevBtn) prevBtn.disabled = currentIndex <= 0;
     if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= filtered.length - 1;
     renderList();

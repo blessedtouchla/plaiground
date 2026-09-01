@@ -55,6 +55,27 @@ function run() {
   assert.ok(!/youtubei\/v1\/search/.test(js), 'browser must not call InnerTube');
   assert.ok(!/AIza/.test(js) && !/AIza/.test(html), 'no YouTube API key in the frontend');
 
+  const playerHtml = html.slice(html.indexOf('data-charts-player'), html.indexOf('<footer>'));
+  assert.ok(playerHtml.length > 0, 'player bar markup is on the page');
+  assert.ok(/<iframe[^>]*data-charts-frame/.test(playerHtml), 'player is a YouTube iframe embed');
+  assert.ok(html.includes('https://www.youtube.com/iframe_api'), 'page loads the YouTube IFrame Player API');
+  assert.ok(js.includes('onYouTubeIframeAPIReady') && js.includes('YT.Player'), 'JS binds the IFrame Player API');
+  assert.ok(js.includes('https://www.youtube.com/embed/'), 'embed URL is youtube.com/embed/VIDEO_ID');
+  assert.ok(js.includes('modestbranding=1'), 'embed uses modestbranding=1');
+  assert.ok(js.includes('rel=0'), 'embed uses rel=0');
+  assert.ok(js.includes('playsinline=1'), 'embed uses playsinline=1');
+  assert.ok(js.includes('origin=https://www.wannaplai.com'), 'embed sets origin to wannaplai.com');
+  assert.ok(js.includes('enablejsapi=1'), 'embed enables the IFrame API');
+  assert.ok(!/allowfullscreen/i.test(playerHtml), 'player iframe does not request fullscreen');
+  assert.ok(!/picture-in-picture/i.test(playerHtml), 'player iframe does not request picture-in-picture');
+  assert.ok(!/youtube\.com\/watch/.test(js) && !/youtube\.com\/watch/.test(playerHtml), 'no youtube.com/watch in player or JS');
+  assert.ok(!/youtu\.be/.test(js) && !/youtu\.be/.test(playerHtml), 'no youtu.be links in player or JS');
+  assert.ok(!/window\.location/.test(js) && !/window\.open/.test(js), 'player never navigates or opens a window');
+  assert.ok(!/target="_blank"/.test(playerHtml), 'player bar has no target=_blank');
+  assert.ok(!/Open in YouTube|Watch on YouTube/i.test(html + js), 'no owned Open/Watch on YouTube control');
+  assert.ok(js.includes('document.createElement("button")'), 'chart rows are on-page buttons');
+  assert.ok(/position:\s*fixed/.test(css) || /position:\s*sticky/.test(css), 'player bar stays on the page while scrolling');
+
   assert.ok(api.includes('youtubei/v1/search'), 'server POSTs InnerTube search');
   assert.ok(/clientName:\s*'WEB'/.test(api), 'InnerTube uses WEB client context');
   assert.ok(api.includes('new Map()') || api.includes('cache'), 'server caches video ids in memory');
