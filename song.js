@@ -42,7 +42,7 @@
   function sanitizePartnerCopy(text, status) {
     var next = String(text == null ? '' : text);
     if (status === 413 || /request entry too large|request entity too large|payload too large|function_payload_too_large|content too large/i.test(next)) {
-      return 'We could not send the audio. Retry.';
+      return 'We could not send the audio.';
     }
     if (/audio must be 200\s*mb or smaller/i.test(next)) return AUDIO_SIZE_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
@@ -1063,7 +1063,7 @@
   function hopPut(kind, file) {
     var api = hopApi();
     if (!api || typeof api.put !== 'function' || !file) {
-      return Promise.reject(new Error(kind === 'audio' ? 'We could not send the audio. Retry.' : 'We could not finish this step.'));
+      return Promise.reject(new Error(kind === 'audio' ? 'We could not send the audio.' : 'We could not finish this step.'));
     }
     return api.put(kind, file);
   }
@@ -1991,7 +1991,7 @@
           return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key }));
         }).catch(function (err) {
           if (err && err.timedOut) throw err;
-          return { ok: false, data: { error: (err && err.message) || 'We could not send the audio. Retry.' } };
+          return { ok: false, data: { error: (err && err.message) || 'We could not send the audio.' } };
         });
       });
     }).then(function (result) {

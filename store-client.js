@@ -199,7 +199,7 @@
   }
 
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
-  var AUDIO_SEND_COPY = 'We could not send the audio. Retry.';
+  var AUDIO_SEND_COPY = 'We could not send the audio.';
 
   function isPlatformPayloadError(text, status) {
     if (status === 413) return true;
@@ -273,6 +273,7 @@
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
     if (isArtistGoneError(next) || /\btenant\b/i.test(next)) return ARTIST_GONE_COPY;
+    if (/we could not send the audio/i.test(next)) return AUDIO_SEND_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\bCloudflare\b/gi, 'the store');
@@ -3289,7 +3290,9 @@
       if (!copy) return { file: file, didConvert: false, copy: '' };
       showConvertLoader(copy);
       var hook = convertHook();
-      if (!hook) return { file: file, didConvert: false, copy: copy };
+      if (!hook) {
+        return { file: file, didConvert: false, copy: copy, failed: true, result: { data: { error: AUDIO_SEND_COPY } } };
+      }
       return withCatalogTimeout(function () {
         return Promise.resolve(hook(file));
       }).then(function (next) {
@@ -3301,12 +3304,12 @@
             return { file: ready, didConvert: true, copy: copy };
           });
         }
-        return { file: file, didConvert: true, copy: copy };
+        return { file: file, didConvert: false, copy: copy, failed: true, result: { data: { error: AUDIO_SEND_COPY } } };
       }).catch(function (err) {
         if (err && err.timedOut) {
           return { file: file, didConvert: false, copy: copy, failed: true, timedOut: true, result: storeUnreachableResult() };
         }
-        return { file: file, didConvert: false, copy: copy };
+        return { file: file, didConvert: false, copy: copy, failed: true, result: { data: { error: AUDIO_SEND_COPY } } };
       });
     });
   }
@@ -3493,10 +3496,19 @@
           if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next)) {
             return { ok: true, draft: next, track: track, audio: audio };
           }
-          if (!audio.failed && !audio.unavailable) {
-            next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
+          if (audio.failed || audio.unavailable) {
+            return {
+              ok: false,
+              failed: Boolean(audio.failed),
+              unavailable: Boolean(audio.unavailable),
+              result: audio.result,
+              draft: next,
+              track: track,
+              audio: audio,
+            };
           }
-          return { ok: !audio.failed && !audio.unavailable, draft: next, track: track, audio: audio };
+          next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
+          return { ok: true, draft: next, track: track, audio: audio };
         });
       }
       return chain.then(function (result) {
