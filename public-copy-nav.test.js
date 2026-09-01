@@ -225,6 +225,11 @@ function run() {
     assert.ok(nav[0].includes('href="creator.html">Learn more: Creator</a>'), file + ' header still lists Learn more: Creator for the shared menu to nest');
     assert.ok(nav[0].includes('href="pro.html">Learn more: Pro</a>'), file + ' header still lists Learn more: Pro for the shared menu to nest');
     assert.ok(!/href="boost.html">Marketing Boost<\/a>/.test(nav[0]), file + ' must not put Marketing Boost in the public header');
+    const navLinks = nav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
+    const lastNav = navLinks[navLinks.length - 1] || '';
+    assert.ok(/SIQA Charts/.test(lastNav), file + ' last public nav item is SIQA Charts');
+    assert.ok(/href="\/charts"/.test(lastNav), file + ' SIQA Charts goes to /charts');
+    assert.ok(/#F3CB47/.test(lastNav), file + ' SIQA Charts is gold');
   });
 
   const royalties = read('royalties.html');
