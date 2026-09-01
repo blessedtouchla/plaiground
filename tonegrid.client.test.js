@@ -513,6 +513,9 @@ function load(options) {
         });
       }
       if (String(url).indexOf('https://hop.test/') === 0) {
+        if (opts.failHopPut) {
+          return Promise.resolve({ ok: false, status: 500, json: async () => ({}) });
+        }
         return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
       }
       if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
@@ -3834,6 +3837,13 @@ async function run() {
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(/src="store-client\.js\?v=[a-f0-9]+"/.test(reviewHtml), 'review.html cache-busts store-client.js');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901c4'), 'review.html must cache-bust past 20260901c4');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260901d1'), 'review.html must cache-bust past 20260901d1');
+  assert.ok(reviewHtml.includes('lib/audio-accept.js'), 'Review loads the same accept helper as Upload');
+  assert.ok(reviewHtml.includes('lib/audio-convert.js'), 'Review loads the convert hook before hop');
+  assert.ok(reviewHtml.indexOf('lib/audio-accept.js') < reviewHtml.indexOf('store-client.js'), 'accept loads before store-client');
+  assert.ok(reviewHtml.indexOf('lib/audio-convert.js') < reviewHtml.indexOf('store-client.js'), 'convert loads before store-client');
+  assert.ok(reviewHtml.indexOf('lib/audio-convert.js') < reviewHtml.indexOf('store-client.js'), 'convert hook is on Review');
+  assert.ok(uploadHtml.includes('lib/audio-convert.js'), 'Upload keeps the convert hook Review now shares');
   assert.ok(source.includes('function knownLeftoverNeedsAudioHop'));
   assert.ok(source.includes('function leftoverHopFile'));
   assert.ok(source.includes('function storeTrackHasAudio'));
@@ -3886,7 +3896,8 @@ async function run() {
   assert.ok(!uploadHtml.includes('data-checkout-plan="pro"'), 'album upgrade must not open a second Checkout');
   assert.ok(!/catalog-migrate|catalogMigrate/.test(source + uploadHtml));
   assert.ok(source.includes("return 'We could not reach the store. Try again.';"));
-  assert.ok(source.includes("We could not send the audio. Retry."));
+  assert.ok(source.includes("We could not send the audio."));
+  assert.ok(!source.includes("We could not send the audio. Retry."), 'audio send copy must not tell her Retry');
   assert.ok(source.includes('function fileForTransitUpload'));
   const transitFn = source.match(/function fileForTransitUpload\(file\) \{[\s\S]*?\n  \}/);
   assert.ok(transitFn, 'fileForTransitUpload must stay a real function');
@@ -5956,12 +5967,191 @@ async function run() {
     assert.ok(!page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
     }), 'hop 400 must not POST submit');
-    assert.ok(/could not send the audio/i.test(page.status.textContent), 'hop 400 must surface send copy');
+    assert.strictEqual(page.status.textContent, 'We could not send the audio.');
+    assert.ok(!/Retry/i.test(page.status.textContent), 'send copy must not tell her Retry');
     assert.ok(!/pending/i.test(page.status.textContent), 'hop 400 must not look like pending');
     assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
-    assert.ok(!page.retryWrap.hidden, 'hop 400 must show Retry with the send copy');
+    assert.ok(!page.retryWrap.hidden, 'hop fail still offers the retry control');
     assert.notStrictEqual(page.location.href, 'submitted.html');
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitKnownLeftoverEmptyAudioConvertsHeldMp3ThenHops() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const heldMp3 = {
+      __held: 1,
+      name: 'I Set the Tone.mp3',
+      type: 'audio/mpeg',
+      size: 2048,
+      buffer: new Uint8Array(2048).buffer,
+    };
+    const heldWav = { name: 'I Set the Tone.wav', type: 'audio/wav', size: 4096 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: heldMp3,
+      heldFile: heldMp3,
+      heldPicked: heldMp3,
+      artwork: ART,
+      countConvert: true,
+      convertHold: heldWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.mp3',
+        audio_attached: true,
+        audio_uploaded: true,
+        audio_converted: true,
+        artwork_name: 'cover.jpg',
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
+            tracks: [{
+              uuid: leftoverTrack,
+              title: 'I Set the Tone',
+              status: 'draft',
+              audio_url: null,
+              s3: null,
+            }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.ok(page.convertCalls >= 1, 'leftover empty-audio + held MP3 must convert on the device');
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'must reuse leftover 0767cb74, not mint');
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'must reuse leftover track afce23fb');
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'must hop converted WAV onto leftover track');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
+    assert.ok(hoppedFile(page.calls, heldWav), 'must hop the converted WAV, not a 60s server MP3');
+    assert.ok(!hoppedFile(page.calls, heldMp3), 'must not hop the raw MP3');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/artwork';
+    }), 'must hop cover onto leftover 0767cb74');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
+    }), 'must submit leftover after convert+hop');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+    [fuego, rainbow].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1;
+      }), 'must not touch ' + id);
+    });
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: null,
+      heldFile: held,
+      failHopPut: true,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        audio_uploaded: true,
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0;
+    }), 'must attempt hop PUT');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
+    }), 'hop PUT fail must not POST submit');
+    assert.strictEqual(page.status.textContent, 'We could not send the audio.');
+    assert.ok(!/Retry/i.test(page.status.textContent), 'hop PUT fail must not tell her Retry');
+    assert.ok(!/pending/i.test(page.status.textContent));
+    assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.notStrictEqual(page.location.href, 'submitted.html');
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function continueISetTheToneStaysLocal() {
+    const page = load(filledUpload({
+      title: 'I Set the Tone',
+      artist: 'VEXA',
+      file: { name: 'I Set the Tone.mp3', type: 'audio/mpeg', size: 2048 },
+    }));
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush();
+    assert.strictEqual(storeCreateHops(page).length, 0, 'Continue-to-attest stays local');
+    assert.ok(String(page.location.href).indexOf('attest.html') !== -1);
+    assert.strictEqual(draftOf(page.localStorage).title, 'I Set the Tone');
+    assert.ok(!draftOf(page.localStorage).release_id, 'Continue must not mint leftover 0767cb74');
+    assert.ok(!draftOf(page.localStorage).track_id, 'Continue must not hop leftover track');
   }
 
   async function reviewSubmitNightDriveEmptyAudioDoesNotForceHop() {
@@ -6183,6 +6373,9 @@ async function run() {
   await reviewSubmitReusesExistingVexaArtistUuid();
   await reviewSubmitKnownLeftoverEmptyAudioHopsHeldFile();
   await reviewSubmitKnownLeftoverHop400DoesNotBecomePending();
+  await reviewSubmitKnownLeftoverEmptyAudioConvertsHeldMp3ThenHops();
+  await reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy();
+  await continueISetTheToneStaysLocal();
   await reviewSubmitNightDriveEmptyAudioDoesNotForceHop();
   await reviewSubmitFuegoEmptyAudioHopsHeldFile();
   await reviewSubmitRainbowRoadEmptyAudioHopsHeldFile();

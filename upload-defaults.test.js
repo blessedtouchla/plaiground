@@ -1210,6 +1210,10 @@ function run() {
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review Cancel must not say Save and exit');
   assert.ok(reviewHtml.indexOf('upload-catalog.js') !== -1, 'Submit review loads the Creator catalog lists');
+  assert.ok(reviewHtml.indexOf('lib/audio-accept.js') !== -1, 'Submit review loads audio accept');
+  assert.ok(reviewHtml.indexOf('lib/audio-convert.js') !== -1, 'Submit review loads on-device convert');
+  assert.ok(reviewHtml.indexOf('lib/audio-accept.js') < reviewHtml.indexOf('store-client.js'), 'accept loads before store-client');
+  assert.ok(reviewHtml.indexOf('lib/audio-convert.js') < reviewHtml.indexOf('store-client.js'), 'convert loads before store-client');
   assert.ok(catalogSrc.indexOf('isCoarsePointer') !== -1 && catalogSrc.indexOf('pointer: coarse') !== -1, 'iPhone must not use the desktop fixed overlay');
   assert.ok(catalogSrc.indexOf('Do not rewrite the visible field while') !== -1, 'genre labels must not autofill mid-type');
   assert.ok(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{[\s\S]*?html\.is-typeahead-open[\s\S]*?pointer-events:\s*none/.test(css), 'desktop open genre still disables the language field under the list');

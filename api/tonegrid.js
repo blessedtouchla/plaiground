@@ -106,7 +106,7 @@ const {
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_AUDIO_TRANSIT_BYTES = 512 * 1024 * 1024;
 const AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
-const AUDIO_SEND_COPY = 'We could not send the audio. Retry.';
+const AUDIO_SEND_COPY = 'We could not send the audio.';
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
 const STORE_FACING = new Set([
