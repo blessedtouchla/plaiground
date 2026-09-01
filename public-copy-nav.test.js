@@ -504,6 +504,25 @@ function run() {
     assert.ok(!/>Admin</.test(sideNav[0]), file + ' must not put Admin on the artist menu');
     assert.ok(!/href="admin(?:\.html|\/signups)?"/.test(sideNav[0]), file + ' must not link the owner admin page');
     assert.ok(/FAQ<\/a>\s*<a[^>]*data-have-problem[^>]*>Have a problem\?<\/a>/.test(sideNav[0]), file + ' must keep Have a problem? after FAQ');
+    const sideLinks = sideNav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
+    const lastSide = sideLinks[sideLinks.length - 1] || '';
+    assert.ok(/SIQA Charts/.test(lastSide), file + ' last signed-in nav item is SIQA Charts');
+    assert.ok(/href="\/charts"/.test(lastSide), file + ' SIQA Charts goes to /charts');
+    assert.ok(/#F3CB47/.test(lastSide), file + ' SIQA Charts is gold');
+    assert.ok(/class="nav-siqa"/.test(lastSide), file + ' SIQA Charts uses nav-siqa');
+    assert.ok(!/SIQA Charts/.test(submenu[0]), file + ' must not nest SIQA Charts under Overview');
+    assert.ok(/Have a problem\?<\/a>\s*<a class="nav-siqa" href="\/charts" style="color:#F3CB47">SIQA Charts<\/a>/.test(sideNav[0]), file + ' SIQA Charts sits last after Have a problem?');
+  });
+  assert.ok(!index.includes('class="side-nav"'), 'homepage must not share the signed-in side-nav');
+  fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); }).forEach(function (file) {
+    const html = read(file);
+    const sideNav = html.match(/<nav class="side-nav"[^>]*>[\s\S]*?<\/nav>/);
+    if (!sideNav) return;
+    const sideLinks = sideNav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
+    const lastSide = sideLinks[sideLinks.length - 1] || '';
+    assert.ok(/SIQA Charts/.test(lastSide), file + ' side-nav last item is SIQA Charts');
+    assert.ok(/href="\/charts"/.test(lastSide), file + ' side-nav SIQA Charts goes to /charts');
+    assert.ok(/#F3CB47/.test(lastSide), file + ' side-nav SIQA Charts is gold');
   });
   assert.ok(/href="faq.html">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
   assert.ok(/class="on" href="faq.html">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');
@@ -522,6 +541,8 @@ function run() {
   assert.ok(/\.side-nav a\.side-action(?:,[\s\S]*?\.side-nav a\.side-action\.on)? \{[\s\S]*?background:\s*#f3cb47/.test(siteCss), 'signed-in New release CTA uses the same gold #f3cb47 as Edit Submit');
   assert.ok(!/\.side-nav a\.side-action \{\s*background:\s*rgba\(125,\s*60,\s*255/.test(siteCss), 'New release is not another purple menu row');
   assert.ok(/\.side-nav a \{[\s\S]*?color:\s*var\(--muted-2\)/.test(siteCss), 'other signed-in menu items stay the default row, not gold');
+  assert.ok(/\.side-nav a\.nav-siqa(?:,[\s\S]*?\.side-nav a\.nav-siqa:hover)? \{[\s\S]*?color:\s*#F3CB47/.test(siteCss), 'signed-in SIQA Charts is gold text, not a gold button');
+  assert.ok(!/\.side-nav a\.nav-siqa[\s\S]{0,120}background:\s*#f3cb47/i.test(siteCss), 'SIQA Charts must not reuse the New release gold pill');
   assert.ok(/\.side-submenu \{[\s\S]*?border:\s*1px solid var\(--line\)/.test(siteCss), 'Overview submenu is a boxed list, not another purple row');
   assert.ok(/\.side-item\.has-submenu\.open \.side-submenu \{ display: flex; \}/.test(siteCss), 'tapping Overview opens the boxed submenu');
   assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
