@@ -982,6 +982,17 @@
     return /\.wav$/i.test(name) || /audio\/(x-)?wav|audio\/wave/.test(type);
   }
 
+  function leftoverHopFile(file) {
+    var held = fileFromHeld(heldAudioFile);
+    var live = fileFromHeld(file);
+    var picked = fileFromHeld(heldPickedFile);
+    if (looksLikeWav(held) && Number(held.size) > 0) return held;
+    if (held && Number(held.size) > 0) return held;
+    if (live && Number(live.size) > 0) return live;
+    if (picked && Number(picked.size) > 0) return picked;
+    return selectedAudio() || null;
+  }
+
   function fileForStoreUpload(file) {
     var draft = readDraft();
     var held = fileFromHeld(heldAudioFile);
@@ -1594,6 +1605,62 @@
     return [];
   }
 
+  function storeTrackHasAudio(row) {
+    if (!row || typeof row !== 'object') return false;
+    function present(value) {
+      if (value == null || value === false) return false;
+      if (typeof value === 'object') {
+        return present(value.url || value.key || value.s3 || value.audio_url || value.s3_key);
+      }
+      return Boolean(String(value).trim());
+    }
+    return present(row.audio_url)
+      || present(row.s3)
+      || present(row.s3_key)
+      || present(row.s3_url)
+      || present(row.audio_s3)
+      || present(row.audio_object_key)
+      || present(row.object_key)
+      || present(row.audio);
+  }
+
+  function knownLeftoverNeedsAudioHop(draft, tracks) {
+    if (!draft) return false;
+    if (!isKnownAdoptRelease(draft.release_id) && !knownAdoptIdsForDraft(draft)[0]) return false;
+    var rows = tracks || [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+      if (storeTrackHasAudio(rows[i])) return false;
+    }
+    return true;
+  }
+
+  function leftoverHopFailure(audio, draft) {
+    var result = (audio && audio.result) || { ok: false, data: { error: AUDIO_SEND_COPY } };
+    if (!result.data) result.data = {};
+    var err = String(result.data.error || '');
+    if (!err || isAudioRequiredError(err)) result.data.error = AUDIO_SEND_COPY;
+    return { failed: true, result: result, draft: draft };
+  }
+
+  function hopKnownLeftoverCover(draft) {
+    var art = selectedArtwork();
+    if (!art && !(draft && draft.artwork_object_key)) return Promise.resolve({ ok: true, draft: draft });
+    if (!draft || !draft.release_id) return Promise.resolve({ ok: true, draft: draft });
+    return uploadArtwork(draft.release_id, art).then(function (artwork) {
+      if (artwork && (artwork.failed || artwork.unavailable)) return artwork;
+      return { ok: true, draft: draft };
+    });
+  }
+
+  function clearStaleLeftoverUploadFlags(draft, send) {
+    var next = draft || readDraft();
+    var patch = {};
+    if (flagOn(next.audio_uploaded)) patch.audio_uploaded = false;
+    if (send && !looksLikeWav(send) && flagOn(next.audio_converted)) patch.audio_converted = false;
+    return Object.keys(patch).length ? writeDraft(patch) : next;
+  }
+
   function attachKnownLeftoverNow(draft) {
     var current = draft || readDraft();
     var known = knownAdoptIdsForDraft(current);
@@ -2017,12 +2084,17 @@
   function createMissingTracks(draft, opts) {
     var next = draft;
     var knownTracks = (opts && opts.tracks) || [];
+    var needsKnownHop = knownLeftoverNeedsAudioHop(next, knownTracks);
     var send = fileForStoreUpload(selectedAudio());
+    if (needsKnownHop) {
+      send = leftoverHopFile(selectedAudio()) || send;
+      next = clearStaleLeftoverUploadFlags(next, send);
+    }
     var liveFile = Boolean(selectedAudio()) || Boolean(send) || albumRowsForSubmit(next).some(function (track) {
       return track && (track.audio || track.file);
     });
     var force = Boolean(opts && opts.force);
-    if ((alreadyUploaded(next) || alreadyConverted(next)) && !force && knownTracks.length) {
+    if ((alreadyUploaded(next) || alreadyConverted(next)) && !force && knownTracks.length && !needsKnownHop) {
       next = persistFoundTracks(next, knownTracks);
       var reuseId = next.track_id || (knownTracks[0] && trackIdOf(knownTracks[0]));
       if (send && reuseId && !alreadyUploaded(next)) {
@@ -2042,17 +2114,20 @@
       }
       return Promise.resolve({ ok: true, draft: next, reused: true });
     }
-    if (send && !alreadyUploaded(next)) {
+    if (send && (!alreadyUploaded(next) || needsKnownHop)) {
       var attachId = trackIdOnStore(next.track_id, knownTracks) || firstStoreTrackId(knownTracks);
       if (!attachId && (!force || isKnownAdoptRelease(next.release_id))) {
         attachId = String(next.track_id || '').trim();
       }
       if (attachId) {
-        return uploadTrackAudio(attachId, send).then(function (audio) {
-          if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next)) {
+        return uploadTrackAudio(attachId, send, null, { force: needsKnownHop }).then(function (audio) {
+          if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next) && !needsKnownHop) {
             return { ok: true, draft: next, reused: true };
           }
-          if (audio.failed || audio.unavailable) return audio;
+          if (audio.skipped && needsKnownHop) return leftoverHopFailure(audio, next);
+          if (audio.failed || audio.unavailable) {
+            return needsKnownHop ? leftoverHopFailure(audio, next) : audio;
+          }
           next = writeDraft({
             track_id: attachId,
             audio_uploaded: true,
@@ -2063,6 +2138,7 @@
           return { ok: true, draft: next, reused: true };
         });
       }
+      if (needsKnownHop) return leftoverHopFailure(null, next);
     }
     if (!liveFile && knownTracks.length) {
       return Promise.resolve({ ok: true, draft: persistFoundTracks(next, knownTracks), reused: true });
@@ -2192,7 +2268,29 @@
       }
       var hasId = draftHasTrackId(next);
       var storeTracks = (resolved.tracks && resolved.tracks.length) ? resolved.tracks : [];
+      var needsKnownHop = knownLeftoverNeedsAudioHop(next, storeTracks);
       var existingSend = fileForStoreUpload(selectedAudio());
+      if (needsKnownHop && storeTracks.length) {
+        next = persistFoundTracks(next, storeTracks);
+        existingSend = leftoverHopFile(selectedAudio()) || existingSend;
+        next = clearStaleLeftoverUploadFlags(next, existingSend);
+        var leftoverTrackId = next.track_id || trackIdOf(preferLeftoverTrack(storeTracks));
+        if (!existingSend || !leftoverTrackId) return leftoverHopFailure(null, next);
+        return uploadTrackAudio(leftoverTrackId, existingSend, null, { force: true }).then(function (audio) {
+          if (audio.skipped || audio.failed || audio.unavailable) return leftoverHopFailure(audio, next);
+          next = writeDraft({
+            track_id: leftoverTrackId,
+            audio_uploaded: true,
+            audio_attached: true,
+            audio_converted: true,
+            audio_name: existingSend.name || next.audio_name || '',
+          });
+          return hopKnownLeftoverCover(next).then(function (cover) {
+            if (cover && (cover.failed || cover.unavailable)) return cover;
+            return { ok: true, draft: next };
+          });
+        });
+      }
       if ((resolved.found || storeTracks.length) && storeTracks.length) {
         next = persistFoundTracks(next, storeTracks);
         if (existingSend && next.track_id && !alreadyUploaded(next)) {
@@ -3213,11 +3311,14 @@
     });
   }
 
-  function uploadTrackAudio(trackId, file, label) {
-    var send = fileForStoreUpload(file);
+  function uploadTrackAudio(trackId, file, label, opts) {
+    var force = Boolean(opts && opts.force);
+    var send = force
+      ? (leftoverHopFile(file) || fileForStoreUpload(file) || fileFromHeld(file) || file)
+      : fileForStoreUpload(file);
     if (!trackId) return Promise.resolve({ skipped: true });
-    if (alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
-    if (!send) return Promise.resolve({ skipped: true, reused: Boolean(alreadyConverted(readDraft())) });
+    if (!force && alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
+    if (!send) return Promise.resolve({ skipped: true, reused: Boolean(!force && alreadyConverted(readDraft())) });
     var sendLabel = label || 'Uploading audio';
     return runConvertStep(send).then(function (ready) {
       if (ready && ready.failed) return ready;
@@ -5179,7 +5280,8 @@
     keepHeldWavForRetry();
     var shown = sanitizePartnerCopy(message || '');
     var draft = readDraft();
-    if (isAudioRequiredError(shown) && alreadyHasAudio(draft)) {
+    var knownLeftover = Boolean(knownAdoptIdsForDraft(draft)[0] || isKnownAdoptRelease(draft && draft.release_id));
+    if (isAudioRequiredError(shown) && alreadyHasAudio(draft) && !knownLeftover) {
       shown = '';
     }
     if (isMissingTrackError({ data: { error: shown } }) && draftHasTrackFile(draft)) {
@@ -5187,6 +5289,9 @@
     }
     if (/already exists|already exist|a record with these details/i.test(shown) && knownAdoptIdsForDraft(draft)[0]) {
       shown = '';
+    }
+    if (knownLeftover && (isAudioRequiredError(shown) || isAudioRequiredError(message) || /could not send the audio/i.test(String(shown || message || '')))) {
+      shown = AUDIO_SEND_COPY;
     }
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
@@ -5231,7 +5336,8 @@
         }
         if (sent.unsigned || sent.trial || sent.failed) {
           var submitErr = createErrorMessage(sent.result, 'Could not submit the release.');
-          if (isAudioRequiredError(submitErr) && alreadyHasAudio(next || draft)) {
+          var knownLeftover = Boolean(knownAdoptIdsForDraft(next || draft)[0] || isKnownAdoptRelease((next || draft).release_id));
+          if (isAudioRequiredError(submitErr) && alreadyHasAudio(next || draft) && !knownLeftover) {
             hideUploadLoader();
             if (trigger) trigger.removeAttribute('aria-busy');
             writeDraft({ submitted: true, tonegrid_status: 'pending' });

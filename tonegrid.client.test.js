@@ -3833,6 +3833,13 @@ async function run() {
   assert.ok(source.includes('isAudioRequiredError'));
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
   assert.ok(/src="store-client\.js\?v=[a-f0-9]+"/.test(reviewHtml), 'review.html cache-busts store-client.js');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260901c4'), 'review.html must cache-bust past 20260901c4');
+  assert.ok(source.includes('function knownLeftoverNeedsAudioHop'));
+  assert.ok(source.includes('function leftoverHopFile'));
+  assert.ok(source.includes('function storeTrackHasAudio'));
+  assert.ok(source.includes('function leftoverHopFailure'));
+  assert.ok(source.includes('function hopKnownLeftoverCover'));
+  assert.ok(source.includes('needsKnownHop && storeTracks.length'));
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review must not say Save and exit');
   assert.ok(reviewHtml.indexOf('id="tg-genre"') !== -1, 'Submit review can change genre');
@@ -5800,6 +5807,362 @@ async function run() {
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
   }
 
+  async function reviewSubmitKnownLeftoverEmptyAudioHopsHeldFile() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: null,
+      heldFile: held,
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        audio_uploaded: true,
+        audio_converted: true,
+        artwork_object_key: 'covers/04c74127-11a8-40cf-beec-d1ffa16abd70/0767cb74-cover.jpg',
+        artwork_name: 'cover.jpg',
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
+            tracks: [{
+              uuid: leftoverTrack,
+              title: 'I Set the Tone',
+              status: 'draft',
+              audio_url: null,
+              s3: null,
+            }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 0, 'known leftover empty-audio must never POST create');
+    const trackCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(trackCreates.length, 0, 'must hop leftover track afce23fb, not mint another');
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'known leftover empty-audio + held file must hop that track');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/artwork';
+    }), 'must hop cover onto the leftover release');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
+    }), 'must submit the leftover uuid after hop');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+    [fuego, rainbow].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1;
+      }), 'must not touch ' + id);
+    });
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitKnownLeftoverHop400DoesNotBecomePending() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        audio_uploaded: true,
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+        { ok: false, status: 400, data: { error: 'We could not send the audio. Retry.' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.ok(page.calls.some(function (call) { return isAudioAttach(call.url); }), 'must attempt leftover hop');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
+    }), 'hop 400 must not POST submit');
+    assert.ok(/could not send the audio/i.test(page.status.textContent), 'hop 400 must surface send copy');
+    assert.ok(!/pending/i.test(page.status.textContent), 'hop 400 must not look like pending');
+    assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.ok(!page.retryWrap.hidden, 'hop 400 must show Retry with the send copy');
+    assert.notStrictEqual(page.location.href, 'submitted.html');
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitNightDriveEmptyAudioDoesNotForceHop() {
+    const releaseId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const trackId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const held = {
+      __held: 1,
+      name: 'Night Drive.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        release_id: releaseId,
+        track_id: trackId,
+        audio_name: 'Night Drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'basic',
+        artist: 'Ada Night',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        tonegrid_release_ids: [releaseId],
+        tonegrid_track_ids: [trackId],
+        upload: { allowed: false, used: 1, limit: 1, plan: 'basic' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: releaseId,
+            title: 'Night Drive',
+            tracks: [{ uuid: trackId, audio_url: null, s3: null }],
+          },
+        },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(16);
+    assert.ok(!page.calls.some(function (call) { return isAudioAttach(call.url); }), 'Night Drive must not force-hop empty-audio');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
+    }), 'Night Drive Review still submits the living release');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.ok(!/no longer on this page|re-attach/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitFuegoEmptyAudioHopsHeldFile() {
+    const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const trackA = '1f346f71-a70d-4648-bb66-5c5aff5f5243';
+    const trackB = '81e47b6f-6b13-44e6-a436-de81ffaa849f';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const held = {
+      __held: 1,
+      name: 'FUEGO GODDESS.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-09',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'FUEGO GODDESS',
+        genre: 'Latin',
+        language: 'es',
+        release_id: leftover,
+        track_id: trackA,
+        audio_name: 'FUEGO GODDESS.wav',
+        audio_attached: true,
+        audio_uploaded: true,
+        solo_owned_100: true,
+        release_date: '2026-09-09',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'FUEGO GODDESS',
+            status: 'draft',
+            tracks: [
+              { uuid: trackB, title: 'FUEGO GODDESS', status: 'draft', audio_url: null, s3: null },
+              { uuid: trackA, title: 'FUEGO GODDESS', status: 'draft', audio_url: null, s3: null },
+            ],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'FUEGO leftover must never POST create');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/' + trackA + '/audio';
+    }), 'FUEGO empty-audio must hop the preferred leftover track');
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }), 'FUEGO leftover must not mint another track');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(rainbow) !== -1;
+    }), 'must not touch Rainbow Road uuid');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, trackA);
+  }
+
+  async function reviewSubmitRainbowRoadEmptyAudioHopsHeldFile() {
+    const leftover = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const leftoverTrack = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const held = {
+      __held: 1,
+      name: 'Rainbow Road.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-11',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '11111111-1111-4111-8111-111111111111',
+        name: 'Victoria PLAIGROUND',
+        title: 'Rainbow Road',
+        genre: 'Blues',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'Rainbow Road.wav',
+        audio_attached: true,
+        audio_uploaded: true,
+        solo_owned_100: true,
+        release_date: '2026-09-11',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '11111111-1111-4111-8111-111111111111',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'Rainbow Road',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'Rainbow Road', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'Rainbow Road leftover must never POST create');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/' + leftoverTrack + '/audio';
+    }), 'Rainbow Road empty-audio must hop its leftover track');
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }), 'Rainbow Road leftover must not mint another track');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(fuego) !== -1;
+    }), 'must not touch FUEGO leftover');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+  }
+
   await basicHopAudioPostWaitsForStoreHop();
   await creatorHopWavForwardsAndStore502IsNotSuccess();
   await hopConvertedWavStore502IsNotSuccess();
@@ -5818,6 +6181,11 @@ async function run() {
   await reviewSubmit409AdoptsISetTheToneWithVexaArtist();
   await reviewSubmit409AdoptsISetTheToneFromKnownList();
   await reviewSubmitReusesExistingVexaArtistUuid();
+  await reviewSubmitKnownLeftoverEmptyAudioHopsHeldFile();
+  await reviewSubmitKnownLeftoverHop400DoesNotBecomePending();
+  await reviewSubmitNightDriveEmptyAudioDoesNotForceHop();
+  await reviewSubmitFuegoEmptyAudioHopsHeldFile();
+  await reviewSubmitRainbowRoadEmptyAudioHopsHeldFile();
   await albumPickedFileSticksWithEmptyMime();
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();
