@@ -2260,7 +2260,13 @@ function bindTypeahead(select, items, getValue, getLabel) {
       taDebug(taTag + ' openList(' + via + ') EARLY: other typeahead busy  ' + taSnap());
       return;
     }
-    showMatches(input.value);
+    // A (re)open always shows every option, not a filter narrowed to whatever
+    // was previously picked. input.value keeps the picked label untouched here
+    // — blur still needs it to re-commit if the user taps away without picking
+    // again — but the dropdown itself starts from a blank query on every open.
+    // Typing still filters live via the 'input' listener below, which passes
+    // the real, current input.value on every keystroke.
+    showMatches('');
     var opened = list && list.classList && !list.classList.contains('is-hidden');
     if (!opened) {
       taDebug(taTag + ' openList(' + via + ') showMatches did NOT open (picking=' + (picking ? 1 : 0) + ')  ' + taSnap());
@@ -2275,11 +2281,26 @@ function bindTypeahead(select, items, getValue, getLabel) {
       return;
     }
     if (opened) taDebug(taTag + ' openList(' + via + ') full DONE, list open  ' + taSnap());
+    // Claim focus explicitly, deferred. No tap handler here calls input.focus()
+    // — a real <input> normally does not need one, since a tap's own default
+    // action grants focus. But showMatches() just did a chunk of synchronous
+    // DOM work (rebuilding the option list) inside the same gesture, which can
+    // make iOS silently drop that default focus grant, the same class of
+    // gesture disturbance #164/#165 found with a synchronous scroll. Deferred
+    // (setTimeout 0, after the gesture settles) and guarded (no-op if already
+    // focused) so this never fights the native grant, only backstops it.
+    function reclaimFocus() {
+      if (input.focus && doc && doc.activeElement !== input) {
+        taDebug(taTag + ' openList(' + via + ') reclaiming focus, was ' + taSnap());
+        try { input.focus(); } catch (err) {}
+      }
+    }
     if (win && win.setTimeout) {
       if (placeTimer && win.clearTimeout) win.clearTimeout(placeTimer);
       win.setTimeout(function () {
         keepInputVisible();
         placeList();
+        reclaimFocus();
       }, 0);
       placeTimer = win.setTimeout(function () {
         keepInputVisible();
@@ -2287,6 +2308,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
       }, 280);
     } else {
       keepInputVisible();
+      reclaimFocus();
     }
   }
 
