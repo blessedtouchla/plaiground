@@ -30,7 +30,42 @@ function run() {
   assert.ok(html.includes('Not affiliated · not a copy of SIQA'), 'disclaimer is exact');
   assert.ok(html.includes('assets/plaiground-logo.png'), 'uses the existing PLAIGROUND logo');
   assert.ok(!/collab/i.test(html) && !/PLAIGROUND × SIQA/.test(html), 'must not call this a collab');
-  assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(html), 'charts page must not name a store partner');
+  assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(html + css + js), 'charts page must not name a store partner');
+
+  const sheetAt = html.indexOf('data-charts-sheet');
+  assert.ok(sheetAt > 0, 'how-it-is-calculated sheet is on the same page');
+  const visibleHero = html.slice(0, sheetAt);
+  assert.ok(visibleHero.includes('Top 100'), 'page says these are SIQA’s Top 100 without opening the sheet');
+  assert.ok(visibleHero.includes('These are SIQA’s weekly Top 100 AI songs.'), 'Top 100 line is exact');
+  assert.ok(visibleHero.includes('Ranked 50/50 streams + airplay vs social. Method is SIQA’s.'), 'ranking teaser is visible next to Top 100');
+  assert.ok(visibleHero.includes('How it’s calculated'), 'exact button label How it’s calculated is visible');
+  assert.ok(/<button[^>]*data-charts-calc-open[^>]*>How it’s calculated<\/button>/.test(visibleHero), 'How it’s calculated is an on-page button');
+  assert.ok(html.includes('week of Aug 25, 2026'), 'sheet names week of Aug 25, 2026');
+  assert.ok(html.includes('50% streams'), 'page source includes 50% streams');
+  assert.ok(html.includes('emailplaiground@gmail.com'), 'page source includes emailplaiground@gmail.com');
+  assert.ok(html.includes('thesiqa.com/charts-faq'), 'page source includes thesiqa.com/charts-faq');
+  assert.ok(
+    html.includes('These are SIQA’s weekly Top 100 AI songs (week of Aug 25, 2026 until they update).'),
+    'sheet week line is locked'
+  );
+  assert.ok(
+    html.includes('SIQA’s public score is 50% streams and airplay + 50% social impact. Listening: Spotify, Apple Music, YouTube. Social: TikTok, Instagram Reels. Discovery includes Shazam. Inner math is theirs and proprietary. Updates Tuesdays 12pm PT. No pay-to-chart.'),
+    'sheet method copy is locked'
+  );
+  assert.ok(
+    html.includes('We love this because it is an honest AI chart with a disclosed method, not a fake playlist buy.'),
+    'sheet why-we-love copy is locked'
+  );
+  assert.ok(
+    html.includes('If you run charts (genre, language, country, AI-class) and want them listened-to on PLAIGROUND, write'),
+    'sheet invite copy is locked'
+  );
+  assert.ok(html.includes('https://www.thesiqa.com/charts-faq'), 'official SIQA FAQ is a real outbound URL');
+  assert.ok(html.includes('data-charts-sheet-close'), 'sheet closes from X or backdrop');
+  assert.ok(!/youtube\.com\/watch/.test(html) && !/youtu\.be/.test(html), 'no YouTube watch links on /charts');
+  assert.ok(!read('index.html').includes('How it’s calculated'), 'homepage files unchanged');
+  assert.ok(!read('index.html').includes('thesiqa.com/charts-faq'), 'homepage files unchanged');
+  assert.ok(!read('index.html').includes('50% streams and airplay'), 'homepage files unchanged');
 
   assert.ok(/#D03083/.test(css) && /#F3CB47/.test(css) && /#782FB1/.test(css), 'charts CSS uses brand pink, gold, purple');
   assert.ok(/#61B63A/.test(css) && /#F09416/.test(css) && /#08060C/.test(css), 'charts CSS uses brand green, orange, dark');

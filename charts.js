@@ -236,4 +236,29 @@
       filtered = tracks.slice();
       renderList();
     });
+
+  var sheetEl = document.querySelector("[data-charts-sheet]");
+  var calcOpen = document.querySelector("[data-charts-calc-open]");
+
+  function setSheetOpen(open) {
+    if (!sheetEl) return;
+    if (open) sheetEl.removeAttribute("hidden");
+    else sheetEl.setAttribute("hidden", "");
+  }
+
+  if (calcOpen) {
+    calcOpen.addEventListener("click", function () {
+      setSheetOpen(true);
+    });
+  }
+  if (sheetEl) {
+    sheetEl.addEventListener("click", function (event) {
+      if (event.target && event.target.getAttribute("data-charts-sheet-close") !== null) {
+        setSheetOpen(false);
+      }
+    });
+  }
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") setSheetOpen(false);
+  });
 })();
