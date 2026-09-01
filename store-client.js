@@ -987,6 +987,7 @@
     var held = fileFromHeld(heldAudioFile);
     var live = fileFromHeld(file);
     var picked = fileFromHeld(heldPickedFile);
+    if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
     if (looksLikeWav(held) && Number(held.size) > 0) return held;
     if (held && Number(held.size) > 0) return held;
     if (live && Number(live.size) > 0) return live;
@@ -3323,7 +3324,11 @@
     if (!force && alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
     if (!send) return Promise.resolve({ skipped: true, reused: Boolean(!force && alreadyConverted(readDraft())) });
     var sendLabel = label || 'Uploading audio';
-    return runConvertStep(send).then(function (ready) {
+    var leftoverOriginal = force && send && !looksLikeWav(send);
+    var convertStep = leftoverOriginal
+      ? Promise.resolve({ file: send, didConvert: false, copy: '', skipped: true })
+      : runConvertStep(send);
+    return convertStep.then(function (ready) {
       if (ready && ready.failed) return ready;
       var convertLabel = ready.copy;
       var keepConvert = Boolean(convertLabel && !ready.didConvert);
