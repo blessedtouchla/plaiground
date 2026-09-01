@@ -460,6 +460,8 @@ function testTypeaheadOpenReclaimsFocus(catalog) {
     innerHeight: 600,
     innerWidth: 390,
     addEventListener() {},
+    scrolled: 0,
+    scrollBy(x, y) { this.scrolled += y; },
     setTimeout(fn, ms) { timers.push({ fn: fn, ms: ms == null ? 0 : ms }); return timers.length; },
     clearTimeout() {},
   };
@@ -477,6 +479,10 @@ function testTypeaheadOpenReclaimsFocus(catalog) {
     assert.ok(input && list, 'focus-reclaim test needs the typeahead nodes');
     // A real <input>.focus() moves document.activeElement to itself.
     input.focus = function () { doc.activeElement = input; };
+    // Place the field well below the keyboard-safe zone so keepInputVisible would scroll.
+    input.getBoundingClientRect = function () {
+      return { top: 430, bottom: 474, left: 16, right: 300, width: 284, height: 44 };
+    };
 
     // Featured Artist (or whatever the user was in before) is still focused —
     // this reopen is the tap-triggered path, not a genuine native focus event,
@@ -484,19 +490,36 @@ function testTypeaheadOpenReclaimsFocus(catalog) {
     assert.strictEqual(doc.activeElement, unrelatedField, 'starts with an unrelated field focused, like the device report');
     input.listeners.touchend();
     assert.ok(!list.classList.contains('is-hidden'), 'touchend opens the list');
-    assert.strictEqual(doc.activeElement, unrelatedField, 'focus must not be grabbed synchronously mid-gesture');
+    // iOS Safari only raises the on-screen keyboard for a .focus() call made
+    // SYNCHRONOUSLY inside a trusted gesture handler (#209 deferred it via
+    // setTimeout(0) to dodge #165's scroll bug, which moved activeElement but
+    // silently never raised the keyboard). touchend is itself a trusted
+    // gesture, so the reclaim must happen synchronously, in this same call.
+    assert.strictEqual(doc.activeElement, input, 'touchend must reclaim focus SYNCHRONOUSLY so iOS treats it as gesture-trusted and raises the keyboard');
+    // The scroll is the part #165 actually found unsafe mid-gesture — that
+    // half of the fix stays deferred.
+    assert.strictEqual(global.window.scrolled, 0, 'the scroll-into-view must still be deferred, unlike focus');
     runTimers();
-    assert.strictEqual(doc.activeElement, input, 'once the gesture settles, the typeahead input must become document.activeElement');
+    assert.ok(global.window.scrolled !== 0, 'the deferred scroll still runs once the gesture settles');
 
-    // If a real focus event already landed first, reclaimFocus() must not
-    // call .focus() again (it would be redundant, not harmful, but this
-    // confirms the guard actually checks activeElement rather than always firing).
+    // pointerdown (quiet, still mid-gesture) must NOT grab focus — same
+    // reasoning as it never scrolls: even a synchronous focus call this early
+    // risks disturbing iOS's own gesture recognition before it resolves the
+    // tap. The very next touchend/pointerup on the same tap does the reclaim.
+    doc.activeElement = unrelatedField;
+    list.classList.add('is-hidden');
+    input.listeners.pointerdown();
+    assert.strictEqual(doc.activeElement, unrelatedField, 'pointerdown alone must not grab focus (still mid-gesture)');
+
+    // If a real focus event already landed first, the reclaim must not call
+    // .focus() again (harmless either way, but confirms the guard actually
+    // checks activeElement rather than always firing).
     let refocusCalls = 0;
     const realFocus = input.focus;
     input.focus = function () { refocusCalls += 1; realFocus(); };
+    doc.activeElement = input;
     input.listeners.focus();
-    runTimers();
-    assert.strictEqual(refocusCalls, 0, 'reclaimFocus() is a no-op once the input is already document.activeElement');
+    assert.strictEqual(refocusCalls, 0, 'the focus reclaim is a no-op once the input is already document.activeElement');
   } finally {
     if (prevWindow === undefined) delete global.window;
     else global.window = prevWindow;
