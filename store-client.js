@@ -1028,13 +1028,11 @@
 
   function persistFoundTracks(draft, tracks) {
     var ordered = tracks || [];
-    if (isFuegoGoddessTitle(draft && draft.title) && isFuegoLeftoverRelease(draft && draft.release_id)) {
-      var prefer = preferFuegoLeftoverTrack(ordered);
-      if (prefer) {
-        ordered = [prefer].concat(ordered.filter(function (row) {
-          return !sameUuid(trackIdOf(row), trackIdOf(prefer));
-        }));
-      }
+    var prefer = preferLeftoverTrack(ordered);
+    if (prefer) {
+      ordered = [prefer].concat(ordered.filter(function (row) {
+        return !sameUuid(trackIdOf(row), trackIdOf(prefer));
+      }));
     }
     var ids = [];
     ordered.forEach(function (row) {
@@ -1106,6 +1104,14 @@
       if (sameUuid(deadReleaseIds[i], id)) return true;
     }
     return false;
+  }
+
+  function unmarkDeadRelease(id) {
+    var next = String(id || '').trim();
+    if (!next) return;
+    deadReleaseIds = deadReleaseIds.filter(function (have) {
+      return !sameUuid(have, next);
+    });
   }
 
   function isHeldRecord(value) {
@@ -1358,6 +1364,7 @@
 
   function adoptLivingRelease(draft, living) {
     if (!living || !living.id) return draft;
+    unmarkDeadRelease(living.id);
     rememberSessionRelease(living.id, true, living.tracks || [], true);
     var trackId = '';
     if (living.tracks && living.tracks.length) trackId = trackIdOf(living.tracks[0]);
@@ -1411,9 +1418,6 @@
         var title = releaseTitleOf(data);
         var want = String((current && current.title) || '').trim();
         if (!want || !title || !sameSongText(title, want)) return next();
-        if (livingReleaseArtistConflicts(current, data)) {
-          if (!(isFuegoGoddessTitle(want) && isFuegoLeftoverRelease(id))) return next();
-        }
         if (isProtectedCatalogRelease(id, title)) return next();
         if (!isAdoptableStoreStatus(releaseStatusOf(data))) return next();
         return {
@@ -1502,6 +1506,7 @@
     '490b789a-0a33-4372-9d81-665f47b3cbf1',
     '1f26369b-e107-4c79-bde1-4c5382f9d511',
     'df51342b-ba22-4093-93ff-35b6402b61c0',
+    '7544eade-ce02-472c-92d0-a5d61609999d',
   ];
 
   var KNOWN_ADOPT_RELEASES = [
@@ -1528,17 +1533,11 @@
 
   function knownAdoptIdsForDraft(draft) {
     var want = String((draft && draft.title) || '').trim();
-    var wantArtist = String((draft && draft.name) || '').trim();
     var out = [];
     var i;
     for (i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
       var row = KNOWN_ADOPT_RELEASES[i];
       if (!sameSongText(row.title, want)) continue;
-      if (sameSongText(row.title, 'FUEGO GODDESS')) {
-        out.push(row.id);
-        continue;
-      }
-      if (wantArtist && !sameSongText(row.artist, wantArtist)) continue;
       out.push(row.id);
     }
     return out;
@@ -1548,6 +1547,10 @@
     '1f346f71-a70d-4648-bb66-5c5aff5f5243',
     '81e47b6f-6b13-44e6-a436-de81ffaa849f',
   ];
+
+  var PREFERRED_LEFTOVER_TRACK_IDS = FUEGO_GODDESS_TRACK_IDS.concat([
+    'afce23fb-aa5f-42ac-94ae-2ce58bf48402',
+  ]);
 
   function fuegoGoddessAdoptId() {
     return 'cefce28e-8020-435e-8097-177de07f0c44';
@@ -1561,8 +1564,8 @@
     return sameUuid(id, fuegoGoddessAdoptId());
   }
 
-  function preferFuegoLeftoverTrack(tracks) {
-    var preferred = FUEGO_GODDESS_TRACK_IDS;
+  function preferLeftoverTrack(tracks) {
+    var preferred = PREFERRED_LEFTOVER_TRACK_IDS;
     var i;
     var j;
     for (i = 0; i < preferred.length; i += 1) {
@@ -1571,6 +1574,10 @@
       }
     }
     return (tracks && tracks[0]) || null;
+  }
+
+  function preferFuegoLeftoverTrack(tracks) {
+    return preferLeftoverTrack(tracks);
   }
 
   function isProtectedCatalogRelease(id, title) {
@@ -1583,6 +1590,7 @@
     return n === 'lightning'
       || n === 'thank you dolly'
       || n === 'metete en el groove'
+      || n === 'too the moon'
       || n === 'cgi'
       || n === 'vhnjuk';
   }
@@ -3263,11 +3271,9 @@
       function proceed(readyDraft, tracks, tracksListed) {
         if (tracks.length) {
           readyDraft = persistFoundTracks(readyDraft, tracks);
-          if (isFuegoGoddessTitle(readyDraft.title) && isFuegoLeftoverRelease(readyDraft.release_id)) {
-            var reuse = preferFuegoLeftoverTrack(tracks);
-            var reuseId = trackIdOf(reuse);
-            if (reuseId) readyDraft = writeDraft({ track_id: reuseId });
-          }
+          var reuse = preferLeftoverTrack(tracks);
+          var reuseId = trackIdOf(reuse);
+          if (reuseId) readyDraft = writeDraft({ track_id: reuseId });
           return createTrackOnRelease(readyDraft);
         }
         if (tracksListed && (readyDraft.track_id || readyDraft.track_idempotency_key)) {
@@ -3281,7 +3287,7 @@
         }
         return createTrackOnRelease(readyDraft);
       }
-      if (isFuegoGoddessTitle(ready.title) && isFuegoLeftoverRelease(ready.release_id) && !storeTracks.length && !listed) {
+      if (ready.release_id && !storeTracks.length && !listed && (isKnownAdoptRelease(ready.release_id) || resolved.found)) {
         return fetchReleaseTracks(ready.release_id).then(function (loaded) {
           var found = (loaded.ok && loaded.tracks) ? loaded.tracks : [];
           if (found.length) {
@@ -3352,9 +3358,6 @@
 
   function adoptKnownDraftOnCollide(draft, result) {
     var known = knownAdoptIdsForDraft(draft);
-    if (!known.length) {
-      return Promise.resolve({ failed: true, result: result, draft: draft });
-    }
     return findLivingSongRelease(draft, '').then(function (living) {
       if (living && living.id) {
         var adopted = adoptLivingRelease(draft, living);
@@ -3367,7 +3370,7 @@
           result: living.result || { ok: true, status: 200, data: { uuid: living.id, continued: true } },
         };
       }
-      if (isFuegoGoddessTitle(draft && draft.title) && isFuegoLeftoverRelease(known[0])) {
+      if (known[0]) {
         return fetchReleaseTracks(known[0]).then(function (loaded) {
           var found = (loaded.ok && loaded.tracks && loaded.tracks.length) ? loaded.tracks : [];
           var adoptedKnown = adoptLivingRelease(draft, { id: known[0], tracks: found });
@@ -3382,15 +3385,7 @@
           };
         });
       }
-      var adoptedKnown = adoptLivingRelease(draft, { id: known[0], tracks: [] });
-      return {
-        ok: true,
-        created: true,
-        found: true,
-        draft: adoptedKnown,
-        tracks: [],
-        result: { ok: true, status: 200, data: { uuid: known[0], continued: true } },
-      };
+      return { failed: true, result: result, draft: draft };
     });
   }
 
@@ -3420,7 +3415,7 @@
             draft: cleared,
           };
         }
-        if (isAlreadyExistsResult(result) && knownAdoptIdsForDraft(draft).length) {
+        if (isAlreadyExistsResult(result)) {
           return adoptKnownDraftOnCollide(draft, result);
         }
         return { failed: true, result: result, draft: draft };
@@ -3448,6 +3443,7 @@
       var next = draft;
       var continuedTracks = releaseTrackList(result.data);
       if (releaseId) {
+        unmarkDeadRelease(releaseId);
         next = writeDraft({
           release_id: releaseId,
           release_date: releaseDate || draft.release_date || '',
