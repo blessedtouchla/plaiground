@@ -16,6 +16,8 @@
  *                                         live / pending / processing: takedown/cancel only,
  *                                         never 200-removed while the store still has the row
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
+ *                                         made_how ai_assisted/fully_ai PATCHes
+ *                                         includes_ai on each track; no_ai omits it
  * POST /api/tonegrid/releases/:id/dsps
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
  * POST /api/tonegrid/releases/:id/artwork  -> ToneGrid POST /releases/:uuid/artwork
@@ -61,6 +63,7 @@ const signwellApi = require('./signwell');
 const splitSheets = require('../lib/split-sheets');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
+const storeAi = require('../lib/store-ai');
 const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
@@ -915,6 +918,15 @@ async function attachTrackWriters(trackId, songwriter) {
   return { ok: true };
 }
 
+async function applyTrackAiDisclosure(trackId, fields) {
+  if (!fields || !isUuid(trackId)) return { ok: true, skipped: true };
+  return tonegridFetch('/tracks/' + trackId, {
+    method: 'PATCH',
+    body: fields,
+    idempotencyKey: hopIdempotencyKey('track-ai', 'PATCH', '/tracks/' + trackId, JSON.stringify(fields)),
+  });
+}
+
 async function createArtist(req, res) {
   const scope = await personalScope(req, res);
   if (!scope) return;
@@ -1656,6 +1668,7 @@ async function createTrack(req, res) {
 
   const trackPayload = { title: fields.title, position, explicit };
   if (fields.language) trackPayload.language = fields.language;
+  storeAi.applyTrackAiFields(trackPayload, body);
 
   if (isKnownAdoptRelease(releaseId) && await continueLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
     return;
@@ -2990,6 +3003,7 @@ async function submitRelease(req, res, releaseId) {
     body.track_ids.forEach((tid) => trackIds.push(String(tid)));
   }
   const seenTracks = {};
+  const aiFields = storeAi.trackAiFields(body);
   for (let i = 0; i < trackIds.length; i += 1) {
     const tid = String(trackIds[i] || '').trim();
     if (!isUuid(tid) || seenTracks[tid]) continue;
@@ -2998,6 +3012,13 @@ async function submitRelease(req, res, releaseId) {
     if (!writersHop.ok) {
       sendJson(res, writersHop.status, writersHop.data);
       return;
+    }
+    if (aiFields) {
+      const tagged = await applyTrackAiDisclosure(tid, aiFields);
+      if (!tagged.ok) {
+        sendJson(res, tagged.status, tagged.data);
+        return;
+      }
     }
   }
 
@@ -3179,6 +3200,7 @@ async function updateTrack(req, res, trackId) {
     }
     payload.explicit = explicit;
   }
+  storeAi.applyTrackAiFields(payload, body);
   if (!Object.keys(payload).length) {
     sendJson(res, 400, { error: 'Provide title, language, or explicit.' });
     return;
