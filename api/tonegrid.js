@@ -345,6 +345,15 @@ function knownAdoptRow(id) {
   return null;
 }
 
+function isFuegoGoddessTitle(title) {
+  return sameSongText(title, 'FUEGO GODDESS');
+}
+
+function fuegoGoddessAdoptId() {
+  const known = knownAdoptRow('cefce28e-8020-435e-8097-177de07f0c44');
+  return (known && known.id) || 'cefce28e-8020-435e-8097-177de07f0c44';
+}
+
 function knownLeftoverBelongsToScope(scope, row) {
   if (!scope || !row) return false;
   const id = row.uuid || row.release_uuid || row.id;
@@ -1323,8 +1332,22 @@ async function createRelease(req, res) {
     return true;
   }
 
+  async function continueOwnedFuegoGoddess(requireStoreRow) {
+    if (!isFuegoGoddessTitle(body && body.title)) return false;
+    const fuegoId = fuegoGoddessAdoptId();
+    const loaded = await fetchStoreReleaseRaw(fuegoId);
+    if (requireStoreRow && !loaded.row) return false;
+    return continueStoreLeftover(fuegoId);
+  }
+
+  // Title-only: do not require artist-name fingerprint or uuid artist_id.
+  if (await continueOwnedFuegoGoddess(true)) return;
+
   let wantCollisionName = wantArtistNameOf(body);
-  const titleMayBeKnown = KNOWN_ADOPT_RELEASES.some((row) => sameSongText(row.title, body && body.title));
+  const titleMayBeKnown = KNOWN_ADOPT_RELEASES.some((row) => {
+    if (isFuegoGoddessTitle(row.title)) return false;
+    return sameSongText(row.title, body && body.title);
+  });
   if (titleMayBeKnown) {
     wantCollisionName = await resolveWantArtistName(body, artistId, scope.row);
     const knownLeftover = await findKnownAdoptCollision(body, artistId, wantCollisionName);
@@ -1344,6 +1367,7 @@ async function createRelease(req, res) {
     return;
   }
   if (isAlreadyExistsResult(result)) {
+    if (await continueOwnedFuegoGoddess(false)) return;
     const leftover = await findStoreCollision(body, artistId, {
       wantName: wantCollisionName,
     });
@@ -1351,6 +1375,9 @@ async function createRelease(req, res) {
       if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) {
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
         return;
+      }
+      if (sameCatalogId(leftover.id, fuegoGoddessAdoptId())) {
+        if (await continueStoreLeftover(leftover.id)) return;
       }
       if (isBlockingStoreLeftover(leftover.status)) {
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
@@ -1376,6 +1403,7 @@ async function createRelease(req, res) {
       sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
       return;
     }
+    if (await continueOwnedFuegoGoddess(false)) return;
   }
   sendJson(res, result.status, result.data);
 }

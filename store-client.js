@@ -1523,6 +1523,10 @@
     for (i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
       var row = KNOWN_ADOPT_RELEASES[i];
       if (!sameSongText(row.title, want)) continue;
+      if (sameSongText(row.title, 'FUEGO GODDESS')) {
+        out.push(row.id);
+        continue;
+      }
       if (wantArtist && !sameSongText(row.artist, wantArtist)) continue;
       out.push(row.id);
     }
