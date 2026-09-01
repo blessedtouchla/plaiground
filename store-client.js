@@ -987,11 +987,16 @@
     var held = fileFromHeld(heldAudioFile);
     var live = fileFromHeld(file);
     var picked = fileFromHeld(heldPickedFile);
+    var input = document.querySelector('[data-audio-input]');
+    var fromInput = fileFromHeld((input && input.files && input.files[0]) || (input && input._plaigroundFile) || null);
     if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
-    if (looksLikeWav(held) && Number(held.size) > 0) return held;
-    if (held && Number(held.size) > 0) return held;
-    if (live && Number(live.size) > 0) return live;
+    if (fromInput && Number(fromInput.size) > 0 && !looksLikeWav(fromInput)) return fromInput;
+    if (live && Number(live.size) > 0 && !looksLikeWav(live)) return live;
+    if (held && Number(held.size) > 0 && !looksLikeWav(held)) return held;
     if (picked && Number(picked.size) > 0) return picked;
+    if (fromInput && Number(fromInput.size) > 0) return fromInput;
+    if (live && Number(live.size) > 0) return live;
+    if (held && Number(held.size) > 0) return held;
     return selectedAudio() || null;
   }
 
@@ -1019,6 +1024,10 @@
   }
 
   function fileForTransitUpload(file) {
+    var draft = readDraft();
+    if (isKnownAdoptRelease(draft && draft.release_id) || knownAdoptIdsForDraft(draft)[0]) {
+      return leftoverHopFile(file) || fileFromHeld(file) || file;
+    }
     return fileForStoreUpload(file) || file || heldAudioFile;
   }
 
@@ -3324,7 +3333,7 @@
     if (!force && alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
     if (!send) return Promise.resolve({ skipped: true, reused: Boolean(!force && alreadyConverted(readDraft())) });
     var sendLabel = label || 'Uploading audio';
-    var leftoverOriginal = force && send && !looksLikeWav(send);
+    var leftoverOriginal = Boolean(force);
     var convertStep = leftoverOriginal
       ? Promise.resolve({ file: send, didConvert: false, copy: '', skipped: true })
       : runConvertStep(send);
