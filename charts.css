@@ -64,6 +64,114 @@
   margin-bottom: 18px;
 }
 
+.charts-rank-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  max-width: 720px;
+  margin: 0 0 18px;
+}
+
+.charts-top100 {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.charts-method-teaser {
+  color: #C8C8D0;
+  font-size: 14px;
+  margin: 0;
+}
+
+.charts-calc-btn {
+  display: inline-block;
+  border: 1px solid rgba(243, 203, 71, 0.45);
+  background: transparent;
+  color: #F3CB47;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.charts-calc-btn:hover,
+.charts-calc-btn:focus {
+  border-color: #F3CB47;
+  outline: none;
+}
+
+.charts-sheet[hidden] {
+  display: none;
+}
+
+.charts-sheet:not([hidden]) {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.charts-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 6, 12, 0.72);
+}
+
+.charts-sheet-panel {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 12vh auto 0;
+  padding: 24px 22px 20px;
+  border: 1px solid rgba(243, 203, 71, 0.28);
+  border-radius: 16px;
+  background: #110e16;
+  color: #fff;
+}
+
+.charts-sheet-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #C8C8D0;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.charts-sheet-x:hover,
+.charts-sheet-x:focus {
+  color: #fff;
+  outline: none;
+}
+
+.charts-sheet-panel h2 {
+  font-size: 18px;
+  margin: 0 28px 14px 0;
+}
+
+.charts-sheet-panel p {
+  color: #C8C8D0;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.charts-sheet-panel a {
+  color: #F3CB47;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .charts-official,
 .charts-week,
 .charts-disclaimer {
@@ -284,5 +392,19 @@
   .charts-cover {
     width: 48px;
     height: 48px;
+  }
+
+  .charts-sheet:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .charts-sheet-panel {
+    margin: 0;
+    max-width: none;
+    max-height: 80vh;
+    overflow: auto;
+    border-radius: 16px 16px 0 0;
   }
 }
