@@ -9,7 +9,8 @@
   color: #fff;
 }
 
-.charts-page .charts-main {
+.charts-page .charts-main,
+.charts-page footer {
   padding-bottom: 220px;
 }
 
@@ -199,7 +200,9 @@
 }
 
 .charts-player {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
   z-index: 40;
   border-top: 1px solid rgba(243, 203, 71, 0.28);
