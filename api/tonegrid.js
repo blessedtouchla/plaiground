@@ -316,6 +316,7 @@ const PROTECTED_CATALOG_IDS = [
   '490b789a-0a33-4372-9d81-665f47b3cbf1',
   '1f26369b-e107-4c79-bde1-4c5382f9d511',
   'df51342b-ba22-4093-93ff-35b6402b61c0',
+  '7544eade-ce02-472c-92d0-a5d61609999d',
 ];
 
 const KNOWN_ADOPT_RELEASES = [
@@ -359,21 +360,29 @@ const FUEGO_GODDESS_TRACK_IDS = [
   '81e47b6f-6b13-44e6-a436-de81ffaa849f',
 ];
 
+const PREFERRED_LEFTOVER_TRACK_IDS = FUEGO_GODDESS_TRACK_IDS.concat([
+  'afce23fb-aa5f-42ac-94ae-2ce58bf48402',
+]);
+
 function trackIdFromRow(row) {
   if (!row || typeof row !== 'object') return '';
   const id = String(row.uuid || row.track_id || row.id || '').trim();
   return isUuid(id) ? id : '';
 }
 
-function preferFuegoLeftoverTrackId(tracks) {
+function preferLeftoverTrackId(tracks) {
   const list = Array.isArray(tracks) ? tracks : [];
-  for (let i = 0; i < FUEGO_GODDESS_TRACK_IDS.length; i += 1) {
-    const want = FUEGO_GODDESS_TRACK_IDS[i];
+  for (let i = 0; i < PREFERRED_LEFTOVER_TRACK_IDS.length; i += 1) {
+    const want = PREFERRED_LEFTOVER_TRACK_IDS[i];
     for (let j = 0; j < list.length; j += 1) {
       if (sameCatalogId(trackIdFromRow(list[j]), want)) return want;
     }
   }
   return trackIdFromRow(list[0]);
+}
+
+function preferFuegoLeftoverTrackId(tracks) {
+  return preferLeftoverTrackId(tracks);
 }
 
 async function leftoverTracksForContinue(releaseId) {
@@ -386,12 +395,24 @@ async function leftoverTracksForContinue(releaseId) {
   return tracks;
 }
 
-async function continueFuegoLeftoverTrack(res, releaseId, body, songwriter, scope) {
-  if (!isFuegoGoddessTitle((body && body.title) || '')) return false;
-  if (!sameCatalogId(releaseId, fuegoGoddessAdoptId())) return false;
-  const tracks = await leftoverTracksForContinue(releaseId);
+function leftoverTracksMatchingTitle(tracks, title) {
+  const list = Array.isArray(tracks) ? tracks : [];
+  const want = String(title || '').trim();
+  if (!want) return list;
+  const titled = list.filter((row) => {
+    const got = String((row && row.title) || '').trim();
+    return !got || sameSongText(got, want);
+  });
+  return titled.length ? titled : list;
+}
+
+async function continueLeftoverTrack(res, releaseId, body, songwriter, scope) {
+  const tracks = leftoverTracksMatchingTitle(
+    await leftoverTracksForContinue(releaseId),
+    (body && body.title) || ''
+  );
   if (!tracks.length) return false;
-  const reuseId = preferFuegoLeftoverTrackId(tracks);
+  const reuseId = preferLeftoverTrackId(tracks);
   if (!isUuid(reuseId)) return false;
   const attached = await attachTrackWriters(reuseId, songwriter);
   if (!attached.ok) {
@@ -401,6 +422,10 @@ async function continueFuegoLeftoverTrack(res, releaseId, body, songwriter, scop
   await accounts.updateCatalog(scope.userId, { trackId: reuseId });
   sendJson(res, 200, { uuid: reuseId, continued: true });
   return true;
+}
+
+async function continueFuegoLeftoverTrack(res, releaseId, body, songwriter, scope) {
+  return continueLeftoverTrack(res, releaseId, body, songwriter, scope);
 }
 
 function knownLeftoverBelongsToScope(scope, row) {
@@ -422,17 +447,15 @@ function knownLeftoverBelongsToScope(scope, row) {
 
 async function findKnownAdoptCollision(body, artistId, wantName) {
   const wantTitle = String((body && body.title) || '').trim();
-  const wantArtist = String(wantName || wantArtistNameOf(body) || '').trim();
+  if (!wantTitle) return null;
   for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
     const known = KNOWN_ADOPT_RELEASES[i];
     if (!sameSongText(known.title, wantTitle)) continue;
-    if (wantArtist && !sameSongText(known.artist, wantArtist) && !sameSongText(known.artist, artistNameOf(body))) continue;
     const id = known.id;
     if (isProtectedCatalogRelease(id)) continue;
     const loaded = await fetchStoreReleaseRaw(id);
     if (!loaded.row) continue;
     if (!releaseBelongsToCreateBody(loaded.row, body)) continue;
-    if (!artistMatchesCollision(loaded.row, body, artistId, wantName)) continue;
     if (isBlockingStoreLeftover(loaded.row.status)) continue;
     return {
       id: id,
@@ -454,6 +477,7 @@ function isProtectedCatalogRelease(id, title) {
   return n === 'lightning'
     || n === 'thank you dolly'
     || n === 'metete en el groove'
+    || n === 'too the moon'
     || n === 'cgi'
     || n === 'vhnjuk';
 }
@@ -577,6 +601,7 @@ async function findStoreCollision(body, artistId, options) {
   if (known && known.id) return known;
   const searches = [{ status: 'draft' }, { status: 'rejected' }, {}];
   const seen = Object.create(null);
+  let titleOnly = null;
   for (let s = 0; s < searches.length; s += 1) {
     const listed = await listStoreReleasePages(searches[s]);
     const rows = listed.rows || [];
@@ -593,15 +618,17 @@ async function findStoreCollision(body, artistId, options) {
         const loaded = await fetchStoreReleaseRaw(id);
         if (loaded.row) detail = Object.assign({}, row, loaded.row);
       }
-      if (!artistMatchesCollision(detail, body, artistId, wantName)) continue;
-      return {
+      if (isBlockingStoreLeftover(detail.status || row.status)) continue;
+      const hit = {
         id: id,
         status: normalizeReleaseStatus(detail.status || row.status),
         row: detail,
       };
+      if (artistMatchesCollision(detail, body, artistId, wantName)) return hit;
+      if (!titleOnly) titleOnly = hit;
     }
   }
-  return null;
+  return titleOnly;
 }
 
 function createdWriterId(payload) {
@@ -1453,36 +1480,44 @@ async function createRelease(req, res) {
       artistId: artistId,
       releaseId: leftoverId,
     });
-    const attached = await attachContinuedRelease(leftoverId);
-    if (!attached.ok && !isKnownAdoptRelease(leftoverId)) return false;
+    await attachContinuedRelease(leftoverId);
     const tracks = await leftoverTracksForContinue(leftoverId);
     sendJson(res, 200, { uuid: leftoverId, continued: true, tracks });
     return true;
   }
 
-  async function continueOwnedFuegoGoddess(requireStoreRow) {
-    if (!isFuegoGoddessTitle(body && body.title)) return false;
-    const fuegoId = fuegoGoddessAdoptId();
-    const loaded = await fetchStoreReleaseRaw(fuegoId);
-    if (requireStoreRow && !loaded.row) return false;
-    return continueStoreLeftover(fuegoId);
+  async function continueKnownAdoptByTitle() {
+    const wantTitle = String((body && body.title) || '').trim();
+    if (!wantTitle) return false;
+    for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
+      const known = KNOWN_ADOPT_RELEASES[i];
+      if (!sameSongText(known.title, wantTitle)) continue;
+      if (isProtectedCatalogRelease(known.id)) continue;
+      const loaded = await fetchStoreReleaseRaw(known.id);
+      if (!loaded.row) continue;
+      if (isBlockingStoreLeftover(loaded.row.status)) continue;
+      if (!releaseBelongsToCreateBody(loaded.row, body)) continue;
+      return continueStoreLeftover(known.id);
+    }
+    return false;
+  }
+
+  async function continueOwnedFuegoGoddess() {
+    return continueKnownAdoptByTitle();
+  }
+
+  async function continueOwnedLeftoverByTitle(wantName) {
+    const leftover = await findStoreCollision(body, artistId, { wantName: wantName });
+    if (!leftover || !leftover.id) return false;
+    if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) return false;
+    if (isBlockingStoreLeftover(leftover.status)) return false;
+    return continueStoreLeftover(leftover.id);
   }
 
   // Title-only: do not require artist-name fingerprint or uuid artist_id.
-  if (await continueOwnedFuegoGoddess(true)) return;
+  if (await continueOwnedFuegoGoddess()) return;
 
   let wantCollisionName = wantArtistNameOf(body);
-  const titleMayBeKnown = KNOWN_ADOPT_RELEASES.some((row) => {
-    if (isFuegoGoddessTitle(row.title)) return false;
-    return sameSongText(row.title, body && body.title);
-  });
-  if (titleMayBeKnown) {
-    wantCollisionName = await resolveWantArtistName(body, artistId, scope.row);
-    const knownLeftover = await findKnownAdoptCollision(body, artistId, wantCollisionName);
-    if (knownLeftover && knownLeftover.id) {
-      if (await continueStoreLeftover(knownLeftover.id)) return;
-    }
-  }
 
   const result = await postRelease(payload);
   if (!result.ok && isArtistGoneResult(result)) {
@@ -1495,7 +1530,11 @@ async function createRelease(req, res) {
     return;
   }
   if (isAlreadyExistsResult(result)) {
-    if (await continueOwnedFuegoGoddess(false)) return;
+    if (await continueOwnedFuegoGoddess()) return;
+    if (!wantCollisionName) {
+      wantCollisionName = await resolveWantArtistName(body, artistId, scope.row);
+    }
+    if (await continueOwnedLeftoverByTitle(wantCollisionName)) return;
     const leftover = await findStoreCollision(body, artistId, {
       wantName: wantCollisionName,
     });
@@ -1503,9 +1542,6 @@ async function createRelease(req, res) {
       if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) {
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
         return;
-      }
-      if (sameCatalogId(leftover.id, fuegoGoddessAdoptId())) {
-        if (await continueStoreLeftover(leftover.id)) return;
       }
       if (isBlockingStoreLeftover(leftover.status)) {
         sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
@@ -1531,7 +1567,7 @@ async function createRelease(req, res) {
       sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
       return;
     }
-    if (await continueOwnedFuegoGoddess(false)) return;
+    if (await continueOwnedFuegoGoddess()) return;
   }
   sendJson(res, result.status, result.data);
 }
@@ -1594,10 +1630,8 @@ async function createTrack(req, res) {
     return;
   }
   if (continueTrackId && isUuid(continueTrackId)) {
-    const fuegoTrack = isFuegoGoddessTitle((fields && fields.title) || (body && body.title))
-      && sameCatalogId(releaseId, fuegoGoddessAdoptId())
-      && FUEGO_GODDESS_TRACK_IDS.some((id) => sameCatalogId(id, continueTrackId));
-    if (fuegoTrack || idAllowed(scope.trackAllow, continueTrackId)) {
+    const preferredTrack = PREFERRED_LEFTOVER_TRACK_IDS.some((id) => sameCatalogId(id, continueTrackId));
+    if (preferredTrack || idAllowed(scope.trackAllow, continueTrackId)) {
       const attached = await attachTrackWriters(continueTrackId, songwriter);
       if (!attached.ok) {
         sendJson(res, attached.status, attached.data);
@@ -1623,7 +1657,7 @@ async function createTrack(req, res) {
   const trackPayload = { title: fields.title, position, explicit };
   if (fields.language) trackPayload.language = fields.language;
 
-  if (await continueFuegoLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
+  if (isKnownAdoptRelease(releaseId) && await continueLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
     return;
   }
 
@@ -1654,7 +1688,7 @@ async function createTrack(req, res) {
     }
   }
   if (!result.ok && isAlreadyExistsResult(result)) {
-    if (await continueFuegoLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
+    if (await continueLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
       return;
     }
   }
