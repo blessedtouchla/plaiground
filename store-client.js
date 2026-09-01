@@ -984,17 +984,17 @@
   }
 
   function leftoverHopFile(file) {
+    var input = document.querySelector('[data-audio-input]');
+    var fromInput = fileFromHeld((input && input.files && input.files[0]) || (input && input._plaigroundFile) || null);
     var held = fileFromHeld(heldAudioFile);
     var live = fileFromHeld(file);
     var picked = fileFromHeld(heldPickedFile);
-    var input = document.querySelector('[data-audio-input]');
-    var fromInput = fileFromHeld((input && input.files && input.files[0]) || (input && input._plaigroundFile) || null);
-    if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
     if (fromInput && Number(fromInput.size) > 0 && !looksLikeWav(fromInput)) return fromInput;
+    if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
     if (live && Number(live.size) > 0 && !looksLikeWav(live)) return live;
     if (held && Number(held.size) > 0 && !looksLikeWav(held)) return held;
-    if (picked && Number(picked.size) > 0) return picked;
     if (fromInput && Number(fromInput.size) > 0) return fromInput;
+    if (picked && Number(picked.size) > 0) return picked;
     if (live && Number(live.size) > 0) return live;
     if (held && Number(held.size) > 0) return held;
     return selectedAudio() || null;
@@ -1644,6 +1644,12 @@
       if (storeTrackHasAudio(rows[i])) return false;
     }
     return true;
+  }
+
+  function leftoverNeedsReviewPick(draft) {
+    if (!draft) return false;
+    if (!isKnownAdoptRelease(draft.release_id) && !knownAdoptIdsForDraft(draft)[0]) return false;
+    return knownLeftoverNeedsAudioHop(draft, draft.tracks || []);
   }
 
   function leftoverHopFailure(audio, draft) {
@@ -5402,6 +5408,57 @@
     fillReviewSummary();
   }
 
+  function leftoverPickName(file) {
+    return file && file.name ? String(file.name) : '';
+  }
+
+  function paintLeftoverPickName(el, file) {
+    if (!el) return;
+    var name = leftoverPickName(file);
+    el.textContent = name;
+    setPanelHidden(el, !name);
+  }
+
+  function bindLeftoverReviewPick() {
+    var card = document.querySelector('[data-leftover-hop]');
+    var audioInput = document.querySelector('[data-audio-input]');
+    var artInput = document.querySelector('[data-art-input]');
+    var audioPick = document.querySelector('[data-leftover-audio-pick]');
+    var artPick = document.querySelector('[data-leftover-art-pick]');
+    var audioName = document.querySelector('[data-leftover-audio-name]');
+    var artName = document.querySelector('[data-leftover-art-name]');
+    var show = leftoverNeedsReviewPick(readDraft());
+    if (card) setPanelHidden(card, !show);
+    if (audioPick && audioInput && audioPick.addEventListener) {
+      audioPick.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        if (audioInput.click) audioInput.click();
+      });
+    }
+    if (artPick && artInput && artPick.addEventListener) {
+      artPick.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        if (artInput.click) artInput.click();
+      });
+    }
+    if (audioInput && audioInput.addEventListener) {
+      audioInput.addEventListener('change', function () {
+        var picked = audioFileOf(audioInput);
+        if (!picked) return;
+        if (!looksLikeWav(picked)) rememberPickedOriginal(picked);
+        persistPickedAudio(picked);
+        paintLeftoverPickName(audioName, picked);
+      });
+    }
+    if (artInput && artInput.addEventListener) {
+      artInput.addEventListener('change', function () {
+        paintLeftoverPickName(artName, selectedArtwork());
+      });
+    }
+    paintLeftoverPickName(audioName, audioFileOf(audioInput));
+    paintLeftoverPickName(artName, selectedArtwork());
+  }
+
   function bindReviewCatalog() {
     var genre = $('tg-genre');
     var language = $('tg-language');
@@ -5439,6 +5496,7 @@
       cancelBtn.addEventListener('click', cancelInProgressSubmit);
     }
     bindReviewCatalog();
+    bindLeftoverReviewPick();
     bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {
