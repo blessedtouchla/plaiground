@@ -683,6 +683,71 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
   });
 }
 
+// matchingTonegridArtist() only checks this account's own local roster. When
+// that roster lost track of an artist's tonegrid_artist_id (a different local
+// profile record was used, or the link never got written), POST /artists
+// re-attempts a create and the store rejects it because the slug is already
+// taken - the artist genuinely exists over there, we just do not know its id.
+// This mirrors findStoreCollision()'s self-heal for release-title collisions:
+// search the store's own /artists list and adopt the match instead of
+// relaying the raw "slug already taken" error.
+function isSlugTakenResult(result) {
+  if (!result || result.ok) return false;
+  const msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+  if (!msg) return false;
+  if (/slug/.test(msg) && /(already|taken|exist|in use|duplicate)/.test(msg)) return true;
+  if (result.status === 409 && /slug/.test(msg)) return true;
+  return false;
+}
+
+async function listStoreArtistPages(queryExtra) {
+  const collected = [];
+  for (let page = 1; page <= 20; page += 1) {
+    const query = Object.assign({ per_page: 100, page: page }, queryExtra || {});
+    const result = await tonegridFetch('/artists', {
+      method: 'GET',
+      query: query,
+      timeoutMs: LIST_HOP_TIMEOUT_MS,
+    });
+    if (!result.ok) return { ok: collected.length > 0, result: result, rows: collected };
+    const rows = asList(result.data).map((row) => unwrapRelease(row) || row).filter(Boolean);
+    collected.push.apply(collected, rows);
+    const meta = parseStoreListMeta(result.data);
+    const total = storeListTotal(result.data, meta);
+    if (meta.lastPage && page >= meta.lastPage) break;
+    if (total && collected.length >= total) break;
+    if (!rows.length) break;
+    if (!meta.lastPage && !meta.nextCursor && rows.length < 100) break;
+  }
+  return { ok: true, rows: collected };
+}
+
+function artistRowMatches(row, name, slug) {
+  const gotSlug = String((row && row.slug) || '').trim().toLowerCase();
+  if (slug && gotSlug && gotSlug === String(slug).toLowerCase()) return true;
+  const gotName = String((row && row.name) || '').trim();
+  if (name && gotName && artistCheck.normalizeName(gotName) === artistCheck.normalizeName(name)) return true;
+  return false;
+}
+
+async function findExistingArtistBySlug(name, slug) {
+  if (!name && !slug) return null;
+  const passes = [{ q: name || slug }, {}];
+  const seen = Object.create(null);
+  for (let p = 0; p < passes.length; p += 1) {
+    const listed = await listStoreArtistPages(passes[p]);
+    const rows = listed.rows || [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const row = rows[i];
+      const id = String((row && (row.uuid || row.artist_uuid || row.id)) || '').trim();
+      if (!isUuid(id) || seen[id.toLowerCase()]) continue;
+      seen[id.toLowerCase()] = true;
+      if (artistRowMatches(row, name, slug)) return { id: id, row: row };
+    }
+  }
+  return null;
+}
+
 function isArtistGoneResult(result) {
   if (!result || result.ok) return false;
   if (typeof isMissingEndpoint === 'function' && isMissingEndpoint(result)) return false;
@@ -910,6 +975,18 @@ async function createArtist(req, res) {
       await accounts.updateCatalog(scope.userId, { artistId: artistId, replaceArtistId: true });
       const latest = await accounts.findById(scope.userId);
       await attachTonegridArtist(latest || scope.row, pgId, artistId);
+    }
+    sendJson(res, result.status, result.data);
+    return;
+  }
+  if (isSlugTakenResult(result)) {
+    const existing = await findExistingArtistBySlug(name, slug);
+    if (existing && existing.id) {
+      await accounts.updateCatalog(scope.userId, { artistId: existing.id, replaceArtistId: true });
+      const latest = await accounts.findById(scope.userId);
+      await attachTonegridArtist(latest || scope.row, pgId, existing.id);
+      sendJson(res, 200, { uuid: existing.id, continued: true });
+      return;
     }
   }
   sendJson(res, result.status, result.data);
