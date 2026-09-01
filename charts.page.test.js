@@ -93,6 +93,15 @@ function run() {
   assert.ok(/href="\/charts"/.test(last), 'SIQA Charts goes to /charts');
   assert.ok(/#F3CB47/.test(last), 'SIQA Charts is gold');
 
+  const dashNav = read('dashboard.html').match(/<nav class="side-nav"[^>]*>[\s\S]*?<\/nav>/);
+  assert.ok(dashNav, 'dashboard keeps a signed-in side-nav');
+  const dashLinks = dashNav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
+  const lastDash = dashLinks[dashLinks.length - 1] || '';
+  assert.ok(/SIQA Charts/.test(lastDash), 'signed-in side-nav last item is SIQA Charts');
+  assert.ok(/href="\/charts"/.test(lastDash), 'signed-in SIQA Charts goes to /charts');
+  assert.ok(/#F3CB47/.test(lastDash), 'signed-in SIQA Charts is gold');
+  assert.ok(!read('index.html').includes('class="side-nav"'), 'homepage does not share signed-in side-nav');
+
   console.log('charts.page.test.js ok');
 }
 

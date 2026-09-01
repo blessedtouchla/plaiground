@@ -256,6 +256,11 @@ function run() {
   assert.ok(nav.includes('href="how.html">How it works</a>'));
   assert.ok(nav.includes('href="faq.html">FAQ</a>'));
   assert.ok(nav.includes('data-have-problem'));
+  const ownerLinks = nav.match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
+  const lastOwner = ownerLinks[ownerLinks.length - 1] || '';
+  assert.ok(/SIQA Charts/.test(lastOwner), 'owner desk last nav item is SIQA Charts');
+  assert.ok(/href="\/charts"/.test(lastOwner), 'owner desk SIQA Charts goes to /charts');
+  assert.ok(/#F3CB47/.test(lastOwner), 'owner desk SIQA Charts is gold');
   assert.ok(!/New release/.test(nav), 'owner desk hides New release');
   assert.ok(!/Overview/.test(nav), 'owner desk hides Overview');
   assert.ok(!/Boosts/.test(nav), 'owner desk hides Boosts');
