@@ -128,7 +128,7 @@ function run() {
       assert.ok(!BUY.test(html), file + ' must not become a live buy');
       assert.ok(!TOGGLE.test(html), file + ' must not ship a Video Collect toggle');
       assert.ok(/data-require-membership="true"/.test(html));
-      assert.ok(html.includes('href="boosts.html">Boosts</a>'));
+      assert.ok(/href="boosts.html"[^>]*>Boosts</.test(html));
     }
   });
 

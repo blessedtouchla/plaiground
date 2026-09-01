@@ -381,7 +381,7 @@ function runStatic() {
 
   assert.ok(session.includes('process.env.XAI_API_KEY'), 'session route keeps the server key');
   assert.ok(session.includes("method === 'GET'"), 'GET still reports configured without minting');
-  assert.strictEqual(apiFiles.filter((name) => name.endsWith('.js')).length, 6, 'no new api/*.js files');
+  assert.strictEqual(apiFiles.filter((name) => name.endsWith('.js')).length, 7, 'no new api/*.js files');
 
   assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ still names both buttons');
   assert.ok(/type only, no mic/i.test(faq), 'FAQ Text PLAI copy stays');

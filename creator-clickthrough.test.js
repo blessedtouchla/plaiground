@@ -235,7 +235,7 @@ function run() {
   assert.ok(membership.includes("location.replace('boosts.html')"));
 
   ['dashboard.html', 'earnings.html', 'settings.html', 'releases.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
-    assert.ok(read(file).includes('href="boosts.html">Boosts</a>'), file + ' sidebar Boosts stays on signed-in boosts.html');
+    assert.ok(/href="boosts.html"[^>]*>Boosts</.test(read(file)), file + ' sidebar Boosts stays on signed-in boosts.html');
     assert.ok(read(file).indexOf('href="boost.html">Boosts</a>') === -1, file + ' sidebar must not land on the public tease');
     assert.ok(read(file).includes('href="releases.html">Releases</a>'), file + ' Creator menu Releases opens the catalog list');
     assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read(file)), file + ' menu Releases must not deep-link a song');
