@@ -6065,8 +6065,18 @@ async function run() {
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
     assert.ok(audio.length, 'must hop original MP3 onto leftover track');
     assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
-    assert.ok(hoppedFile(page.calls, heldMp3), 'must hop the original picked MP3 so the server converts once');
-    assert.ok(!hoppedFile(page.calls, heldWav), 'must not hop a second device WAV convert');
+    assert.ok(page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === heldMp3.name; } catch (err) { return false; }
+    }), 'must hop the original picked MP3 so the server converts once');
+    assert.ok(!page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === heldWav.name; } catch (err) { return false; }
+    }), 'must not hop a second device WAV convert');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0
+        && call.init && call.init.body && call.init.body.name === heldMp3.name;
+    }), 'hop PUT body is the original picked MP3');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/' + leftover + '/artwork';
     }), 'must hop cover onto leftover 0767cb74');
