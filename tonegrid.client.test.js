@@ -3838,6 +3838,7 @@ async function run() {
   assert.ok(/src="store-client\.js\?v=[a-f0-9]+"/.test(reviewHtml), 'review.html cache-busts store-client.js');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901c4'), 'review.html must cache-bust past 20260901c4');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d1'), 'review.html must cache-bust past 20260901d1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260901d2'), 'review.html must cache-bust past 20260901d2');
   assert.ok(reviewHtml.includes('lib/audio-accept.js'), 'Review loads the same accept helper as Upload');
   assert.ok(reviewHtml.includes('lib/audio-convert.js'), 'Review loads the convert hook before hop');
   assert.ok(reviewHtml.indexOf('lib/audio-accept.js') < reviewHtml.indexOf('store-client.js'), 'accept loads before store-client');
@@ -3846,6 +3847,14 @@ async function run() {
   assert.ok(uploadHtml.includes('lib/audio-convert.js'), 'Upload keeps the convert hook Review now shares');
   assert.ok(source.includes('function knownLeftoverNeedsAudioHop'));
   assert.ok(source.includes('function leftoverHopFile'));
+  const leftoverFn = source.match(/function leftoverHopFile\(file\) \{[\s\S]*?\n  \}/);
+  assert.ok(leftoverFn, 'leftoverHopFile must stay a real function');
+  assert.ok(leftoverFn[0].includes('heldPickedFile'), 'leftover hop can use the original pick');
+  assert.ok(
+    leftoverFn[0].indexOf('heldPickedFile') < leftoverFn[0].indexOf('looksLikeWav(held)'),
+    'leftover hop prefers the original picked MP3 over a device WAV'
+  );
+  assert.ok(source.includes('leftoverOriginal'), 'leftover MP3 hops as-is so the server converts once');
   assert.ok(source.includes('function storeTrackHasAudio'));
   assert.ok(source.includes('function leftoverHopFailure'));
   assert.ok(source.includes('function hopKnownLeftoverCover'));
@@ -5976,7 +5985,7 @@ async function run() {
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
   }
 
-  async function reviewSubmitKnownLeftoverEmptyAudioConvertsHeldMp3ThenHops() {
+  async function reviewSubmitKnownLeftoverEmptyAudioHopsPickedMp3Once() {
     const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
     const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
     const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
@@ -6046,7 +6055,7 @@ async function run() {
       ],
     });
     await flush(28);
-    assert.ok(page.convertCalls >= 1, 'leftover empty-audio + held MP3 must convert on the device');
+    assert.strictEqual(page.convertCalls, 0, 'leftover hop must not convert the picked MP3 on the device');
     assert.strictEqual(page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     }).length, 0, 'must reuse leftover 0767cb74, not mint');
@@ -6054,16 +6063,16 @@ async function run() {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     }).length, 0, 'must reuse leftover track afce23fb');
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
-    assert.ok(audio.length, 'must hop converted WAV onto leftover track');
+    assert.ok(audio.length, 'must hop original MP3 onto leftover track');
     assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
-    assert.ok(hoppedFile(page.calls, heldWav), 'must hop the converted WAV, not a 60s server MP3');
-    assert.ok(!hoppedFile(page.calls, heldMp3), 'must not hop the raw MP3');
+    assert.ok(hoppedFile(page.calls, heldMp3), 'must hop the original picked MP3 so the server converts once');
+    assert.ok(!hoppedFile(page.calls, heldWav), 'must not hop a second device WAV convert');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/' + leftover + '/artwork';
     }), 'must hop cover onto leftover 0767cb74');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
-    }), 'must submit leftover after convert+hop');
+    }), 'must submit leftover after hop');
     assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
     assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
     [fuego, rainbow].forEach(function (id) {
@@ -6373,7 +6382,7 @@ async function run() {
   await reviewSubmitReusesExistingVexaArtistUuid();
   await reviewSubmitKnownLeftoverEmptyAudioHopsHeldFile();
   await reviewSubmitKnownLeftoverHop400DoesNotBecomePending();
-  await reviewSubmitKnownLeftoverEmptyAudioConvertsHeldMp3ThenHops();
+  await reviewSubmitKnownLeftoverEmptyAudioHopsPickedMp3Once();
   await reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy();
   await continueISetTheToneStaysLocal();
   await reviewSubmitNightDriveEmptyAudioDoesNotForceHop();

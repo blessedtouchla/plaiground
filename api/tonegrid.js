@@ -24,9 +24,10 @@
  * POST /api/tonegrid/tracks
  * PUT  /api/tonegrid/tracks/:id            -> ToneGrid PATCH /tracks/:uuid
  * POST /api/tonegrid/tracks/:id/audio  -> JSON { object_key } (preferred) or leftover multipart
- *   Hop-to-store: pull the private object, wrap WAV/FLAC as multipart field
- *   `audio` with a real audio MIME, and POST that body to the store inside
- *   the Hobby 60s budget. Leftover multipart under the platform hop cap
+ *   Hop-to-store: pull the private object. Already-WAV/FLAC skips convert
+ *   and gets the full store-forward timeout. MP3 converts once, then
+ *   forwards with remaining Hobby time. Wrap as multipart field `audio`
+ *   with a real audio MIME. Leftover multipart under the platform hop cap
  *   goes through as one body. Over that cap leftover clients may send
  *   x-plaiground-chunk-* parts; this function assembles, converts MP3 → WAV,
  *   then hops once.
@@ -75,6 +76,7 @@ const {
   DOCUMENTED_DSPS,
   LIST_HOP_TIMEOUT_MS,
   STORE_FORWARD_TIMEOUT_MS,
+  storeForwardTimeoutMs,
   RELEASE_TYPES,
   SUBMITTABLE,
   YOUTUBE_MUSIC_SLUG,
@@ -1955,11 +1957,24 @@ async function trackAudio(req, res, trackId) {
       sendJson(res, (err && err.status) || 400, { error: (err && err.message) || objectStore.AUDIO_SEND_COPY });
       return;
     }
-    const preparedHop = await audioConvert.prepareFromBytes(
-      hopped.body,
-      hopped.filename,
-      hopped.contentType
-    );
+    const hopKind = audioConvert.sniffKind(hopped.body, hopped.filename, hopped.contentType);
+    let preparedHop;
+    if (hopKind === 'wav' || hopKind === 'flac') {
+      preparedHop = Object.assign(
+        audioConvert.buildAudioMultipart(
+          audioConvert.storeFilename(hopped.filename, hopKind),
+          audioConvert.storeMime(hopKind),
+          hopped.body
+        ),
+        { kind: hopKind, converted: false }
+      );
+    } else {
+      preparedHop = await audioConvert.prepareFromBytes(
+        hopped.body,
+        hopped.filename,
+        hopped.contentType
+      );
+    }
     if (preparedHop.error) {
       sendJson(res, 400, { error: preparedHop.error });
       return;
@@ -1968,12 +1983,12 @@ async function trackAudio(req, res, trackId) {
       sendJson(res, 400, { error: 'MP3 must be converted to WAV before it goes to the store.' });
       return;
     }
-    const remain = Math.max(8000, STORE_FORWARD_TIMEOUT_MS - (Date.now() - hopStarted));
+    const timeoutMs = storeForwardTimeoutMs(preparedHop.converted, hopStarted);
     const hopResult = await tonegridFetch('/tracks/' + id + '/audio', {
       method: 'POST',
       rawBody: preparedHop.rawBody,
       contentType: preparedHop.contentType,
-      timeoutMs: remain,
+      timeoutMs: timeoutMs,
       idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(preparedHop.rawBody)),
     });
     const hopPayload = hopResult.data && typeof hopResult.data === 'object'
