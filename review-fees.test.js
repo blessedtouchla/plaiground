@@ -47,13 +47,15 @@ function run() {
   assert.ok(split.indexOf('data-for-plans="basic"') !== -1);
 
   assert.ok(review.indexOf('data-review-cover') !== -1, 'review.html thumbnail has a cover hook');
+  const storeClientAt = review.search(/src="store-client\.js(\?v=[^"]+)?"/);
+  assert.ok(storeClientAt !== -1, 'review.html loads store-client.js');
   ['lib/cover-url.js', 'lib/cover-preview.js', 'lib/object-hop.js'].forEach(function (src) {
     assert.ok(
       review.indexOf('src="' + src + '"') !== -1,
       'review.html loads ' + src + ' so the cover thumbnail can resolve'
     );
     assert.ok(
-      review.indexOf('src="' + src + '"') < review.indexOf('src="store-client.js"'),
+      review.indexOf('src="' + src + '"') < storeClientAt,
       src + ' must load before store-client.js'
     );
   });
