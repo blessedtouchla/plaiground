@@ -324,6 +324,11 @@ const KNOWN_ADOPT_RELEASES = [
     title: 'Rainbow Road',
     artist: 'Victoria PLAIGROUND',
   },
+  {
+    id: 'cefce28e-8020-435e-8097-177de07f0c44',
+    title: 'FUEGO GODDESS',
+    artist: 'Victoria PLAIGROUND',
+  },
 ];
 
 function isKnownAdoptRelease(id) {
@@ -331,13 +336,27 @@ function isKnownAdoptRelease(id) {
   return Boolean(nid && KNOWN_ADOPT_RELEASES.some((have) => sameCatalogId(have.id, nid)));
 }
 
+function knownAdoptRow(id) {
+  const nid = String(id || '').trim();
+  if (!nid) return null;
+  for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
+    if (sameCatalogId(KNOWN_ADOPT_RELEASES[i].id, nid)) return KNOWN_ADOPT_RELEASES[i];
+  }
+  return null;
+}
+
 function knownLeftoverBelongsToScope(scope, row) {
-  if (!scope || !row || !isKnownAdoptRelease(row.uuid || row.release_uuid || row.id)) return false;
-  if (isProtectedCatalogRelease(row.uuid || row.release_uuid || row.id, row.title)) return false;
-  if (sameSongText(row.title, 'Rainbow Road') === false) return false;
+  if (!scope || !row) return false;
+  const id = row.uuid || row.release_uuid || row.id;
+  const known = knownAdoptRow(id);
+  if (!known) return false;
+  if (isProtectedCatalogRelease(id, row.title)) return false;
+  if (row.title && sameSongText(row.title, known.title) === false) return false;
   const rowArtist = artistCheck.normalizeName(artistNameOf(row) || '');
   const accountArtist = artistCheck.normalizeName((scope.row && scope.row.artist_name) || '');
   if (rowArtist && accountArtist && rowArtist === accountArtist) return true;
+  const knownArtist = artistCheck.normalizeName(known.artist || '');
+  if (knownArtist && accountArtist && knownArtist === accountArtist) return true;
   const rowArtistId = artistIdOfRelease(row);
   if (rowArtistId && scope.artistId && sameCatalogId(rowArtistId, scope.artistId)) return true;
   return false;

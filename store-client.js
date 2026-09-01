@@ -298,11 +298,13 @@
     }
     return asId(payload.uuid)
       || asId(payload.id)
+      || asId(payload.release_uuid)
       || asId(payload.artist && (payload.artist.uuid || payload.artist.id))
       || asId(payload.release && (payload.release.uuid || payload.release.id))
       || asId(payload.track && (payload.track.uuid || payload.track.id))
       || asId(payload.data && payload.data.uuid)
       || asId(payload.data && payload.data.id)
+      || asId(payload.data && payload.data.release_uuid)
       || asId(payload.data && payload.data.artist && (payload.data.artist.uuid || payload.data.artist.id))
       || asId(payload.data && payload.data.release && (payload.data.release.uuid || payload.data.release.id))
       || asId(payload.data && payload.data.track && (payload.data.track.uuid || payload.data.track.id));
@@ -1495,6 +1497,11 @@
     {
       id: '7a928125-b12e-4609-bd37-26ce0edf819e',
       title: 'Rainbow Road',
+      artist: 'Victoria PLAIGROUND',
+    },
+    {
+      id: 'cefce28e-8020-435e-8097-177de07f0c44',
+      title: 'FUEGO GODDESS',
       artist: 'Victoria PLAIGROUND',
     },
   ];
@@ -3267,6 +3274,43 @@
     return ('plaiground-release-' + String(draft.artist_id || '') + ':' + String(draft.title || '')).slice(0, 255);
   }
 
+  function isAlreadyExistsResult(result) {
+    if (!result || result.ok) return false;
+    var msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+    if (/already exists|already exist|a record with these details/.test(msg)) return true;
+    if (result.status === 409 && /duplicate|unique|exists/.test(msg)) return true;
+    return false;
+  }
+
+  function adoptKnownDraftOnCollide(draft, result) {
+    var known = knownAdoptIdsForDraft(draft);
+    if (!known.length) {
+      return Promise.resolve({ failed: true, result: result, draft: draft });
+    }
+    return findLivingSongRelease(draft, '').then(function (living) {
+      if (living && living.id) {
+        var adopted = adoptLivingRelease(draft, living);
+        return {
+          ok: true,
+          created: true,
+          found: true,
+          draft: adopted,
+          tracks: living.tracks || [],
+          result: living.result || { ok: true, status: 200, data: { uuid: living.id, continued: true } },
+        };
+      }
+      var adoptedKnown = adoptLivingRelease(draft, { id: known[0], tracks: [] });
+      return {
+        ok: true,
+        created: true,
+        found: true,
+        draft: adoptedKnown,
+        tracks: [],
+        result: { ok: true, status: 200, data: { uuid: known[0], continued: true } },
+      };
+    });
+  }
+
   function createRelease(draft, releaseDate, opts) {
     if (draft.release_id) {
       rememberSessionRelease(draft.release_id);
@@ -3293,9 +3337,16 @@
             draft: cleared,
           };
         }
+        if (isAlreadyExistsResult(result) && knownAdoptIdsForDraft(draft).length) {
+          return adoptKnownDraftOnCollide(draft, result);
+        }
         return { failed: true, result: result, draft: draft };
       }
       var releaseId = pickUuid(result.data);
+      if (!releaseId) {
+        var knownCreated = knownAdoptIdsForDraft(draft);
+        if (knownCreated[0]) releaseId = knownCreated[0];
+      }
       if (releaseId && draft.replaced_release_id && sameUuid(releaseId, draft.replaced_release_id)) {
         if (opts && opts.retriedDead) {
           return {
@@ -5228,7 +5279,7 @@
     if (retryBtn && retryBtn.addEventListener && trigger) {
       retryBtn.addEventListener('click', function (event) {
         if (event && event.preventDefault) event.preventDefault();
-        if (trigger.getAttribute('aria-busy') === 'true') return;
+        trigger.removeAttribute('aria-busy');
         rotateIdempotencyKeys();
         showSubmitRetry(false);
         if (trigger.listeners && typeof trigger.listeners.click === 'function') {
