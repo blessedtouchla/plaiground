@@ -4297,7 +4297,7 @@ async function run() {
   assert.ok(source.includes('AUDIO_CHUNK_BYTES'));
   assert.ok(source.includes('function postChunkedAudio'));
   assert.ok(source.includes('x-plaiground-upload-id'));
-  assert.ok(source.includes('createTrackOnRelease(readyDraft, { force: true })'));
+  assert.ok(source.includes('createTrackOnRelease(ready, { force: true })'));
   assert.ok(source.includes('function platformPayloadCopy'));
   assert.ok(!source.includes('if (isPlatformPayloadError(next, status)) return catalogTimeoutMessage();'));
   assert.ok(!source.includes('ToneGrid did not respond'));

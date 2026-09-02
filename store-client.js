@@ -2062,7 +2062,7 @@
       var next = writeDraft({ artist_id: id, tonegrid_artist_id: id });
       saveCatalog({ artist_id: id });
       rememberRosterArtist({
-        id: current.plaiground_artist_id || id,
+        id: current.plaiground_artist_id || name,
         name: name,
         tonegrid_artist_id: id,
         source: 'created',
