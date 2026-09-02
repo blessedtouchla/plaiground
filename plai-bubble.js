@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  try {
+    if (window.parent && window.parent !== window) return;
+  } catch (err) {}
+
   var SAMPLE_RATE = 24000;
   var AGENT_ID = 'agent_BDVzp3Ar3ABtyov5';
   var SESSION_URL = '/api/plai-session';

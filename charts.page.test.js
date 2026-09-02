@@ -95,6 +95,10 @@ function run() {
   assert.ok(/<iframe[^>]*data-charts-frame/.test(playerHtml), 'player is a YouTube iframe embed');
   assert.ok(html.includes('https://www.youtube.com/iframe_api'), 'page loads the YouTube IFrame Player API');
   assert.ok(js.includes('onYouTubeIframeAPIReady') && js.includes('YT.Player'), 'JS binds the IFrame Player API');
+  assert.ok(js.includes('onStateChange'), 'player watches YouTube state so the next chart song can autoplay');
+  assert.ok(js.includes('playAt(currentIndex + 1)'), 'ended songs advance to the next row');
+  assert.ok(html.includes('data-charts-browse'), 'browse iframe keeps the player open across the site');
+  assert.ok(/class="charts-browse"/.test(css) || /html\.is-charts-browse/.test(css), 'browse iframe stays above the player bar');
   assert.ok(js.includes('https://www.youtube.com/embed/'), 'embed URL is youtube.com/embed/VIDEO_ID');
   assert.ok(js.includes('modestbranding=1'), 'embed uses modestbranding=1');
   assert.ok(js.includes('rel=0'), 'embed uses rel=0');
