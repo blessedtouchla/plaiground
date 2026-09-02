@@ -1613,7 +1613,7 @@
     var labelEl = $('#edit-label');
     if (labelEl) {
       var storedLabel = String(release.label || release.record_label || draft.label || '').trim();
-      labelEl.value = (!storedLabel || storedLabel === 'PLAIGROUND') ? '' : storedLabel;
+      labelEl.value = (storedLabel && storedLabel !== 'PLAIGROUND') ? storedLabel : 'PLAIGROUND';
     }
     if (genre) {
       genre.disabled = false;

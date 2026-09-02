@@ -1566,7 +1566,7 @@ function run() {
   assert.ok(html.includes('fillUploadSelects(document)'));
   assert.ok(html.includes('<select id="edit-genre"'));
   assert.ok(html.includes('id="edit-label"'));
-  assert.ok(html.includes('Leave blank to use PLAIGROUND.'));
+  assert.ok(html.includes('PLAIGROUND is the default. Type your own imprint if you have one.'));
   assert.ok(!html.includes('<input id="edit-genre"'));
   assert.ok(!html.includes('id="edit-subgenre"'));
   assert.ok(!html.includes('name="release-subgenre"'));
