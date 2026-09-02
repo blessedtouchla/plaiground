@@ -767,10 +767,24 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
 // relaying the raw "slug already taken" error.
 function isSlugTakenResult(result) {
   if (!result || result.ok) return false;
-  const msg = String((result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+  const data = result.data || {};
+  const bags = [data.errors, data.fields];
+  const parts = [data.error, data.message];
+  bags.forEach((bag) => {
+    if (!bag || typeof bag !== 'object' || Array.isArray(bag)) return;
+    Object.keys(bag).forEach((key) => {
+      parts.push(key);
+      const value = bag[key];
+      if (typeof value === 'string') parts.push(value);
+      else if (Array.isArray(value)) value.forEach((item) => parts.push(typeof item === 'string' ? item : (item && item.message) || ''));
+      else if (value && typeof value.message === 'string') parts.push(value.message);
+    });
+  });
+  const msg = parts.join(' ').toLowerCase();
   if (!msg) return false;
   if (/slug/.test(msg) && /(already|taken|exist|in use|duplicate)/.test(msg)) return true;
   if (result.status === 409 && /slug/.test(msg)) return true;
+  if (result.status === 422 && /slug/.test(msg) && /taken|already/.test(msg)) return true;
   return false;
 }
 
