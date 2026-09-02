@@ -117,6 +117,7 @@ function loadSong(opts) {
     'edit-genre-type': makeEl({ id: 'edit-genre-type', className: 'typeahead-input', value: '' }),
     'edit-language-type': makeEl({ id: 'edit-language-type', className: 'typeahead-input', value: '' }),
     'edit-featured': makeEl({ id: 'edit-featured', value: '' }),
+    'edit-label': makeEl({ id: 'edit-label', value: '' }),
     'edit-genre': makeEl({ id: 'edit-genre', value: '', options: [{}] }),
     'edit-language': makeEl({ id: 'edit-language', value: '', options: [{}] }),
     'edit-price': makeEl({ id: 'edit-price', value: '$0.99' }),
@@ -191,6 +192,7 @@ function loadSong(opts) {
     '#edit-title': ids['edit-title'],
     '#edit-artist': ids['edit-artist'],
     '#edit-featured': ids['edit-featured'],
+    '#edit-label': ids['edit-label'],
     '#edit-genre': ids['edit-genre'],
     '#edit-language': ids['edit-language'],
     '#edit-price': ids['edit-price'],
@@ -432,7 +434,8 @@ function testEditSubmitLeftovers() {
   return multi.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'multi-writer can still edit while a split is awaiting');
     assert.strictEqual(result.applied, true);
-    assert.ok(!multiCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)), 'pending edit must not wait on the store');
+    assert.ok(multiCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\/releases\//.test(row.url)), 'pending edit hops record label');
+    assert.ok(!multiCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(row.url)), 'pending edit must not mint a new store release');
     assert.ok(!multiCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)), 'edit must not block on a split sheet submit');
     assert.ok(!/edit-submitted\.html/.test(String(multi.context.location.href)), 'pending edit stays on the song');
     assert.strictEqual(multi.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
@@ -501,8 +504,8 @@ function testEditSubmitLeftovers() {
     return awaiting.api.submitEdit().then(function (awaitingResult) {
       assert.ok(awaitingResult.ok, 'awaiting-split edit must save without a new split');
       assert.strictEqual(awaitingResult.applied, true);
+      assert.ok(awaitingCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\/releases\//.test(row.url)), 'pending edit hops record label');
       assert.ok(!awaitingCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
-      assert.ok(!awaitingCalls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\//.test(row.url)));
       assert.ok(!/edit-submitted\.html/.test(String(awaiting.context.location.href)));
       assert.strictEqual(awaiting.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
       assert.ok(!/Create the split sheet/.test(awaiting.nodes['[data-edit-error]'].textContent));
@@ -760,7 +763,12 @@ function testAllPlanEditRule() {
         return;
       }
       assert.ok(result.applied, plan + ' pending applies immediately');
-      assert.ok(!calls.some((row) => row.method && row.method !== 'GET' && /\/api\/tonegrid\//.test(row.url)));
+      const labelPut = calls.find((row) => row.method === 'PUT' && /\/api\/tonegrid\/releases\//.test(row.url));
+      assert.ok(labelPut, plan + ' pending edit hops record label');
+      let labelBody = {};
+      try { labelBody = JSON.parse(labelPut.body); } catch (err) { labelBody = {}; }
+      assert.strictEqual(labelBody.record_label, 'PLAIGROUND');
+      assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(row.url)));
       assert.strictEqual(page.nodes['[data-song-title]'].textContent, title);
     });
   }
@@ -1383,6 +1391,8 @@ function run() {
   assert.ok(html.includes('upload-catalog.js'));
   assert.ok(html.includes('fillUploadSelects(document)'));
   assert.ok(html.includes('<select id="edit-genre"'));
+  assert.ok(html.includes('id="edit-label"'));
+  assert.ok(html.includes('Leave blank to use PLAIGROUND.'));
   assert.ok(!html.includes('<input id="edit-genre"'));
   assert.ok(!html.includes('id="edit-subgenre"'));
   assert.ok(!html.includes('name="release-subgenre"'));
@@ -1699,7 +1709,8 @@ function run() {
     assert.strictEqual(result.applied, true);
     assert.strictEqual(result.releaseId, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     const mutating = editCalls.filter((row) => row.method && row.method !== 'GET');
-    assert.ok(!mutating.some((row) => /\/api\/tonegrid\//.test(row.url)), 'pending edit must not wait on the store');
+    assert.ok(mutating.some((row) => row.method === 'PUT' && /\/api\/tonegrid\/releases\//.test(row.url)), 'pending edit hops record label');
+    assert.ok(!mutating.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(row.url)), 'pending edit must not mint a new store release');
     assert.ok(mutating.some((row) => row.method === 'POST' && /\/api\/me\/artists$/.test(row.url)), 'pending edit records the Plaiground release');
     assert.ok(!mutating.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)), 'pending edit must not wait on a second store submit');
     assert.ok(!/edit-submitted\.html/.test(String(editor.context.location.href)), 'pending edit does not go to the store confirm page');
@@ -1867,7 +1878,9 @@ function run() {
       creatorPending.ids['edit-language'].value = 'en';
       return creatorPending.api.submitEdit().then(function (creatorResult) {
         assert.ok(creatorResult.applied, 'Creator pending also applies immediately');
-        assert.ok(!creatorPendingCalls.some((row) => row.method && row.method !== 'GET' && /\/api\/tonegrid\//.test(row.url)));
+        const pendingLabel = creatorPendingCalls.find((row) => row.method === 'PUT' && /\/api\/tonegrid\/releases\//.test(row.url));
+        assert.ok(pendingLabel, 'Creator pending hops record label');
+        assert.ok(!creatorPendingCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(row.url)));
         assert.strictEqual(creatorPending.nodes['[data-song-title]'].textContent, 'Creator Pending');
 
         const creatorLiveCalls = [];

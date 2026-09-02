@@ -1562,6 +1562,11 @@
       if (artistField && artistField.classList) artistField.classList.remove('is-locked');
     }
     if (featured) featured.value = String(draft.featured || '').trim();
+    var labelEl = $('#edit-label');
+    if (labelEl) {
+      var storedLabel = String(release.label || release.record_label || draft.label || '').trim();
+      labelEl.value = (!storedLabel || storedLabel === 'PLAIGROUND') ? '' : storedLabel;
+    }
     if (genre) {
       genre.disabled = false;
       if (genre.removeAttribute) {
@@ -1757,6 +1762,7 @@
         release_date: String((draft && draft.release_date) || (release && release.release_date) || '').trim(),
         dsps: Array.isArray(draft && draft.dsps) ? draft.dsps : (Array.isArray(release && release.dsps) ? release.dsps : []),
         featured: String((draft && draft.featured) || (release && release.featured) || '').trim(),
+        label: String((draft && draft.label) || (release && (release.label || release.record_label)) || '').trim(),
         price: String((draft && draft.price) || (release && release.price) || '').trim(),
         select_preorder: Boolean(draft && draft.select_preorder),
         preorder_date: String((draft && draft.preorder_date) || '').trim(),
@@ -1773,6 +1779,20 @@
         body: JSON.stringify(body),
       }).catch(function () {});
     } catch (err) {}
+  }
+
+  function hopRecordLabelBody(value) {
+    var label = String(value || '').trim();
+    if (label === 'PLAIGROUND') label = '';
+    label = label || 'PLAIGROUND';
+    return { label: label, record_label: label, label_name: label };
+  }
+
+  function typedRecordLabel() {
+    var el = $('#edit-label');
+    var typed = el ? String(el.value || '').trim() : '';
+    if (typed === 'PLAIGROUND') return '';
+    return typed;
   }
 
   function applyImmediateEdit(id, fields) {
@@ -1794,6 +1814,7 @@
         price: fields.price,
         release_date: fields.release_date,
         dsps: fields.dsps,
+        label: fields.label || undefined,
         artwork_url: keep || undefined,
         artwork_object_key: hopped.coverKey || undefined,
         edit_applied: true,
@@ -1805,6 +1826,7 @@
       if (fields.lyrics !== undefined) draft.lyrics = fields.lyrics;
       if (fields.release_date) draft.release_date = fields.release_date;
       if (Array.isArray(fields.dsps)) draft.dsps = fields.dsps;
+      if (fields.label) draft.label = fields.label;
       if (keep) draft.artwork_url = keep;
       if (hopped.coverKey) draft.artwork_object_key = hopped.coverKey;
       draft.edit_applied = true;
@@ -1827,6 +1849,10 @@
       if (fields.lyrics !== undefined) release.lyrics = fields.lyrics;
       if (fields.release_date) release.release_date = fields.release_date;
       if (Array.isArray(fields.dsps) && fields.dsps.length) release.dsps = fields.dsps;
+      if (fields.label) {
+        release.label = fields.label;
+        release.record_label = fields.label;
+      }
       // Never paint a blob: preview URL here: closeEdit() revokes it via
       // coverPreview.clear() right before render() would draw it, guaranteeing
       // a broken image. Leave artwork_url untouched (falls back to whatever
@@ -1836,6 +1862,7 @@
       lastEdit.draft = draft;
       lastEdit.release = release;
       persistPlaigroundRelease(draft, release);
+      sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'PUT', hopRecordLabelBody(fields.label)).then(function () {}, function () {});
       var saveBtn = $('[data-edit-save]');
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       showEditRetry(false);
@@ -1884,6 +1911,7 @@
     var lyrics = selectedEditLyrics(instrumental);
     var price = $('#edit-price') ? String($('#edit-price').value || '').trim() : '';
     var featured = $('#edit-featured') ? String($('#edit-featured').value || '').trim() : '';
+    var label = typedRecordLabel();
     var schedule = collectSchedule();
     var date = schedule.release_date;
     var art = selectedEditFile('edit-art');
@@ -1909,6 +1937,7 @@
       featured: featured,
       instrumental: instrumental,
       lyrics: lyrics,
+      label: label || 'PLAIGROUND',
       explicit: selectedExplicit(),
       made_how: selectedMadeHow() || draft.made_how || '',
       release_date: date,
@@ -1936,6 +1965,7 @@
         release_date: date,
         dsps: dsps,
         art: art,
+        label: label,
       });
     }
 
@@ -1953,6 +1983,7 @@
     if (date) releaseBody.release_date = date;
     if (genre) releaseBody.genre = genre;
     if (language || instrumental) releaseBody.language = language;
+    Object.assign(releaseBody, hopRecordLabelBody(label));
 
     var chain = runHop('release', sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'PUT', releaseBody)).then(function (result) {
       if (!result.ok) errors.push(applyToneGridError(result, result.data && /date/i.test(result.data.error || '') ? 'release_date' : 'title', $('#edit-title')));

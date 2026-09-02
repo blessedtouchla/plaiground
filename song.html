@@ -146,6 +146,12 @@
             <p class="field-why">Saved on this Plaiground release. The store has no featured-artist field on update.</p>
           </div>
           <div class="field">
+            <label for="edit-label">Record label</label>
+            <input id="edit-label" name="release-label" type="text" value="" autocomplete="off" data-record-label placeholder="PLAIGROUND" />
+            <p class="hint">Leave blank to use PLAIGROUND.</p>
+            <p class="field-why" data-edit-why="label">This is the label stores show on the release.</p>
+          </div>
+          <div class="field">
             <label for="edit-genre">Genre</label>
             <select id="edit-genre" name="release-genre" class="details-select" autocomplete="off">
               <option value="">Select genre</option>
@@ -360,7 +366,7 @@
   <script src="lib/object-hop.js"></script>
   <script src="lib/statement-pdf.js"></script>
   <script src="lib/split-sheets.js"></script>
-  <script src="song.js" defer></script>
+  <script src="song.js?v=20260902e1" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
