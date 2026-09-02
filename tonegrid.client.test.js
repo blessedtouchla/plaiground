@@ -4154,13 +4154,13 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902b1'), 'review.html must cache-bust past 20260902b1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html must cache-bust past 20260902c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html must cache-bust past 20260902c2');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260902c5'), 'review.html cache-busts store-client.js at 20260902c5');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260902c6'), 'review.html cache-busts store-client.js at 20260902c6');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c5'), 'upload.html cache-busts store-client.js at 20260902c5');
-  assert.ok(attestHtml.includes('store-client.js?v=20260902c5'), 'attest.html cache-busts store-client.js at 20260902c5');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c5'), 'split-sheet.html cache-busts store-client.js at 20260902c5');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c6'), 'upload.html cache-busts store-client.js at 20260902c6');
+  assert.ok(attestHtml.includes('store-client.js?v=20260902c6'), 'attest.html cache-busts store-client.js at 20260902c6');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c6'), 'split-sheet.html cache-busts store-client.js at 20260902c6');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
@@ -4219,6 +4219,8 @@ async function run() {
   assert.ok(catalogArtistFn[0].includes('name: name'), 'POST /artists sends the stage name');
   assert.ok(!catalogArtistFn[0].includes('existingStoreArtistId'), 'first Submit must not skip mint on a draft uuid');
   assert.ok(!catalogArtistFn[0].includes('GET') && !/artists\?/.test(catalogArtistFn[0]), 'must not invent a live-catalog-first GET /artists path');
+  assert.ok(source.includes('function fieldErrorText'), 'Validation failed must surface store field errors');
+  assert.ok(source.includes('validation failed'), 'createErrorMessage must unwrap ToneGrid Validation failed');
   const chosenStoreFn = source.match(/function liveChosenStoreArtistId\(artist\) \{[\s\S]*?\n  \}/);
   assert.ok(chosenStoreFn, 'liveChosenStoreArtistId must stay a real function');
   assert.ok(chosenStoreFn[0].includes('tonegridId') || chosenStoreFn[0].includes('tonegrid_artist_id'), 'Continue persists the roster store uuid');

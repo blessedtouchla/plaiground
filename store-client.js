@@ -2632,8 +2632,34 @@
     setPanelHidden(document.querySelector('[data-album-pro-upgrade]'), true);
   }
 
+  function fieldErrorText(data) {
+    if (!data || typeof data !== 'object') return '';
+    var bags = [data.errors, data.fields];
+    var out = [];
+    var b;
+    for (b = 0; b < bags.length; b += 1) {
+      var bag = bags[b];
+      if (!bag || typeof bag !== 'object' || Array.isArray(bag)) continue;
+      Object.keys(bag).forEach(function (key) {
+        var value = bag[key];
+        if (typeof value === 'string' && value.trim()) out.push(value.trim());
+        else if (Array.isArray(value)) {
+          value.forEach(function (item) {
+            if (typeof item === 'string' && item.trim()) out.push(item.trim());
+            else if (item && typeof item.message === 'string' && item.message.trim()) out.push(item.message.trim());
+          });
+        } else if (value && typeof value.message === 'string' && value.message.trim()) {
+          out.push(value.message.trim());
+        }
+      });
+    }
+    return out.join(' ');
+  }
+
   function createErrorMessage(result, fallback) {
     var raw = result && result.data ? result.data.error : '';
+    var fields = fieldErrorText(result && result.data);
+    if (fields && (!raw || /^validation failed\.?$/i.test(String(raw).trim()))) raw = fields;
     var status = result && result.status;
     noteStoreFailure(result);
     if (isNoStoreResponse(result) && !/sandbox[- ]only|not enabled for (distribution|delivery)|production (key|account|environment) required/i.test(String(raw || ''))) {
