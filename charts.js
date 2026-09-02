@@ -49,6 +49,16 @@
           } else if (target && typeof target.playVideo === "function") {
             target.playVideo();
           }
+        },
+        onStateChange: function (event) {
+          if (Number(event && event.data) !== 0) return;
+          var data = event.target && typeof event.target.getVideoData === "function"
+            ? event.target.getVideoData()
+            : {};
+          var endedId = data && data.video_id;
+          var track = filtered[currentIndex];
+          if (!track || !track.youtubeId || endedId !== track.youtubeId) return;
+          if (currentIndex >= 0 && currentIndex < filtered.length - 1) playAt(currentIndex + 1);
         }
       }
     });
@@ -221,6 +231,60 @@
       if (currentIndex >= 0 && currentIndex < filtered.length - 1) playAt(currentIndex + 1);
     });
   }
+
+  var browseEl = document.querySelector("[data-charts-browse]");
+
+  function sameSiteHref(href) {
+    if (!href) return "";
+    var raw = String(href).trim();
+    if (!raw || raw.charAt(0) === "#") return "";
+    if (/^(mailto|tel|javascript):/i.test(raw)) return "";
+    var link = document.createElement("a");
+    link.href = raw;
+    var here = document.createElement("a");
+    here.href = document.baseURI || "/";
+    if (link.protocol !== "http:" && link.protocol !== "https:") return "";
+    if (link.origin !== here.origin) return "";
+    return link.href;
+  }
+
+  function isChartsHref(href) {
+    var link = document.createElement("a");
+    link.href = href;
+    var path = String(link.pathname || "");
+    return path === "/charts" || /\/charts\.html$/.test(path);
+  }
+
+  function openBrowse(href) {
+    if (!browseEl) return;
+    if (isChartsHref(href)) {
+      browseEl.hidden = true;
+      browseEl.removeAttribute("src");
+      document.documentElement.classList.remove("is-charts-browse");
+      return;
+    }
+    browseEl.hidden = false;
+    browseEl.src = href;
+    document.documentElement.classList.add("is-charts-browse");
+  }
+
+  document.addEventListener("click", function (event) {
+    if (!playerEl || playerEl.hidden) return;
+    if (event.defaultPrevented || event.button) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    var node = event.target;
+    while (node && node !== document && !(node.tagName === "A" && node.getAttribute)) {
+      node = node.parentNode;
+    }
+    if (!node || node.tagName !== "A") return;
+    if (playerEl.contains(node) || (browseEl && browseEl.contains(node))) return;
+    if (node.getAttribute("download") != null) return;
+    if (String(node.getAttribute("target") || "").toLowerCase() === "_blank") return;
+    var href = sameSiteHref(node.getAttribute("href"));
+    if (!href) return;
+    event.preventDefault();
+    openBrowse(href);
+  }, true);
 
   fetch(DATA_URL)
     .then(function (res) { return res.json(); })
