@@ -1141,10 +1141,32 @@ function creditWritersOf(row) {
   if (Array.isArray(row && row.writers) && row.writers.length) return row.writers;
   if (Array.isArray(row && row.composers) && row.composers.length) return row.composers;
   const contrib = Array.isArray(row && row.contributors) ? row.contributors : [];
-  return contrib.filter((item) => {
+  const matched = contrib.filter((item) => {
     const role = String((item && item.role) || '').toLowerCase();
     return /composer|songwriter|lyricist|writer/.test(role);
   });
+  if (matched.length) return matched;
+  const tracks = Array.isArray(row && row.tracks) ? row.tracks : [];
+  for (let i = 0; i < tracks.length; i += 1) {
+    const found = creditWritersOf(Object.assign({}, tracks[i], { tracks: undefined }));
+    if (found.length) return found;
+  }
+  return [];
+}
+
+function labelNameOf(row) {
+  if (!row || typeof row !== 'object') return '';
+  if (typeof row.label === 'string') return row.label.trim();
+  if (row.label && typeof row.label === 'object') {
+    return String(row.label.name || row.label.title || row.label.label || '').trim();
+  }
+  return String(row.label_name || row.record_label || row.recordLabel || '').trim();
+}
+
+function rightsBag(row) {
+  if (row && row.rights && typeof row.rights === 'object' && !Array.isArray(row.rights)) return row.rights;
+  if (row && row.copyright && typeof row.copyright === 'object' && !Array.isArray(row.copyright)) return row.copyright;
+  return {};
 }
 
 function artistNameOf(row) {
@@ -1178,17 +1200,55 @@ function pickRelease(row) {
     rejection_reason: String(row.rejection_reason || row.reject_reason || row.reason || row.notes || '').trim(),
     upc: String(row.upc || row.UPC || row.barcode || row.ean || '').trim(),
     isrc: String(row.isrc || row.ISRC || '').trim(),
-    label: String(row.label || row.label_name || row.record_label || '').trim(),
-    copyright_year: row.copyright_year || row.copyrightYear || '',
-    copyright_holder: String(row.copyright_holder || row.copyright_owner || row.copyrightOwner || '').trim(),
-    copyright_owner: String(row.copyright_owner || row.copyrightOwner || row.copyright_holder || '').trim(),
-    rights_owner: String(row.rights_owner || row.rightsOwner || row.copyright_holder || row.copyright_owner || '').trim(),
-    master_owner: String(row.master_owner || row.masterOwner || row.p_line_owner || row.copyright_holder || '').trim(),
-    c_line: String(row.c_line || row.cLine || '').trim(),
-    p_line: String(row.p_line || row.pLine || '').trim(),
-    copyright_line: String(row.copyright_line || row.copyrightLine || row.copyright_notice || '').trim(),
+    label: labelNameOf(row),
+    copyright_year: row.copyright_year || row.copyrightYear || rightsBag(row).copyright_year || '',
+    copyright_holder: String(row.copyright_holder || row.copyright_owner || row.copyrightOwner || rightsBag(row).copyright_holder || '').trim(),
+    copyright_owner: String(row.copyright_owner || row.copyrightOwner || row.copyright_holder || rightsBag(row).copyright_owner || '').trim(),
+    rights_owner: String(row.rights_owner || row.rightsOwner || row.copyright_holder || row.copyright_owner || rightsBag(row).rights_owner || '').trim(),
+    master_owner: String(row.master_owner || row.masterOwner || row.p_line_owner || row.copyright_holder || rightsBag(row).master_owner || '').trim(),
+    c_line: String(row.c_line || row.cLine || rightsBag(row).c_line || '').trim(),
+    p_line: String(row.p_line || row.pLine || rightsBag(row).p_line || '').trim(),
+    copyright_line: String(row.copyright_line || row.copyrightLine || row.copyright_notice || rightsBag(row).copyright_line || '').trim(),
     writers: creditWritersOf(row),
   };
+}
+
+function overlayCredits(row, credits) {
+  if (!row || !credits) return row;
+  Object.keys(credits).forEach((key) => {
+    const value = credits[key];
+    if (key === 'writers') {
+      if ((!Array.isArray(row.writers) || !row.writers.length) && Array.isArray(value) && value.length) {
+        row.writers = value;
+      }
+      return;
+    }
+    if (value === undefined || value === null || String(value).trim() === '') return;
+    if (row[key] === undefined || row[key] === null || String(row[key]).trim() === '') {
+      row[key] = value;
+    }
+  });
+  return row;
+}
+
+async function attachRights(row, releaseId) {
+  if (!row) return row;
+  if (row.c_line || row.p_line || row.copyright_line) return row;
+  const id = String(releaseId || row.uuid || '').trim();
+  if (!id) return row;
+  const result = await tonegridFetch('/releases/' + id + '/rights', { method: 'GET' });
+  if (!result.ok) return row;
+  const rights = (result.data && (result.data.rights || result.data)) || {};
+  return overlayCredits(row, {
+    c_line: rights.c_line || rights.cLine || '',
+    p_line: rights.p_line || rights.pLine || '',
+    copyright_line: rights.copyright_line || rights.copyrightLine || '',
+    copyright_year: rights.copyright_year || rights.copyrightYear || '',
+    copyright_holder: rights.copyright_holder || rights.copyrightHolder || '',
+    copyright_owner: rights.copyright_owner || rights.copyrightOwner || '',
+    rights_owner: rights.rights_owner || rights.rightsOwner || '',
+    master_owner: rights.master_owner || rights.masterOwner || '',
+  });
 }
 
 async function attachDeliveries(row, releaseId) {
@@ -1312,7 +1372,9 @@ async function listReleases(req, res) {
     if (row && !row.artwork_url && local) {
       row.artwork_url = coverUrl.from(local);
     }
+    if (row && local) overlayCredits(row, filledCreditsFromRow(local));
     if (row && isGoneHiddenStatus(row.status)) continue;
+    await attachRights(row, id);
     await attachDeliveries(row, id);
     if (query.status && row.status !== String(query.status).trim().toLowerCase()) continue;
     if (query.type && row.type !== normalizeReleaseType(query.type)) continue;
@@ -2711,6 +2773,12 @@ async function getOneRelease(req, res, releaseId) {
   }
   if (loaded.row) {
     loaded.row.status = displayStoreStatus(loaded.row.status);
+    const local = (rosterOf(scope.row).releases || []).find((item) => {
+      const key = String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase();
+      return key === String(releaseId).toLowerCase();
+    });
+    if (local) overlayCredits(loaded.row, filledCreditsFromRow(local));
+    await attachRights(loaded.row, releaseId);
     await persistReleaseMeta(
       scope.row,
       releaseId,

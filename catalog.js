@@ -463,6 +463,22 @@
         if (item && item.rejection_reason && !next.rejection_reason) next.rejection_reason = item.rejection_reason;
         var art = coverOf(item);
         if (art) next.artwork_url = art;
+        [
+          'label',
+          'copyright_year',
+          'copyright_holder',
+          'copyright_owner',
+          'rights_owner',
+          'master_owner',
+          'c_line',
+          'p_line',
+          'copyright_line',
+        ].forEach(function (key) {
+          if (item && item[key] && !next[key]) next[key] = item[key];
+        });
+        if ((!Array.isArray(next.writers) || !next.writers.length) && Array.isArray(item.writers) && item.writers.length) {
+          next.writers = item.writers;
+        }
       });
       var applied = draft && (draft.edit_applied === true || draft.edit_applied === 'true');
       if (draft && String(draft.release_id || '').toLowerCase() === id && (!live || applied)) {
