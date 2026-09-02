@@ -2497,7 +2497,9 @@
     if (legal.legal_first) submitBody.legal_first = legal.legal_first;
     if (legal.legal_last) submitBody.legal_last = legal.legal_last;
     var credit = hopCreditFields(draft);
-    if (credit.label) submitBody.label = credit.label;
+    submitBody.label = credit.label || 'PLAIGROUND';
+    submitBody.record_label = credit.record_label || submitBody.label;
+    submitBody.label_name = credit.label_name || submitBody.label;
     if (credit.copyright_holder) submitBody.copyright_holder = credit.copyright_holder;
     if (credit.copyright_owner) submitBody.copyright_owner = credit.copyright_owner;
     if (credit.master_owner) submitBody.master_owner = credit.master_owner;
@@ -2737,7 +2739,10 @@
       if (match) year = match[1];
     }
     var out = {};
-    if (label) out.label = label;
+    label = label || 'PLAIGROUND';
+    out.label = label;
+    out.record_label = label;
+    out.label_name = label;
     if (cOwner) {
       out.copyright_holder = cOwner;
       out.copyright_owner = cOwner;

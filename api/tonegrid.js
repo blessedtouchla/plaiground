@@ -916,19 +916,32 @@ function filledCreditsFromRow(row) {
   return Object.keys(out).length ? out : null;
 }
 
+async function patchStoreLabel(releaseId, rawLabel) {
+  const label = storeCredits.hopLabel(rawLabel);
+  const documented = { label: label };
+  const first = await tonegridFetch('/releases/' + releaseId, {
+    method: 'PATCH',
+    body: documented,
+    idempotencyKey: hopIdempotencyKey('label', 'PATCH', '/releases/' + releaseId, label),
+  });
+  if (first.ok || isMissingEndpoint(first)) return { ok: true, skipped: !first.ok };
+  const aliases = storeCredits.hopLabelFields(label);
+  const second = await tonegridFetch('/releases/' + releaseId, {
+    method: 'PATCH',
+    body: aliases,
+    idempotencyKey: hopIdempotencyKey('label-aliases', 'PATCH', '/releases/' + releaseId, label),
+  });
+  if (second.ok || isMissingEndpoint(second)) return { ok: true, skipped: !second.ok };
+  return first;
+}
+
 async function applyReleaseCredits(releaseId, hopCredits, opts) {
   const options = opts || {};
   const credits = hopCredits && typeof hopCredits === 'object' ? hopCredits : {};
+  const labeled = await patchStoreLabel(releaseId, credits.label);
   if (!credits.cOwner && !credits.pOwner) {
     if (options.patch === false) return { ok: true, skipped: true };
-    const label = storeCredits.hopLabel(credits.label);
-    const patched = await tonegridFetch('/releases/' + releaseId, {
-      method: 'PATCH',
-      body: { label: label, record_label: label, label_name: label },
-      idempotencyKey: hopIdempotencyKey('credits-label', 'PATCH', '/releases/' + releaseId, label),
-    });
-    if (patched.ok || isMissingEndpoint(patched)) return { ok: true, skipped: !patched.ok };
-    return patched;
+    return labeled;
   }
   if (options.patch !== false) {
     const patch = storeCredits.releasePatchFields(credits);
@@ -1676,7 +1689,7 @@ async function createRelease(req, res) {
         storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
           || storeCredits.copyrightYearFromDate(releaseDate)
       ),
-      { patch: false }
+      { patch: true }
     );
     if (!credited.ok) {
       sendJson(res, credited.status, credited.data);
