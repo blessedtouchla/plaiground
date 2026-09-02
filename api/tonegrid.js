@@ -715,7 +715,8 @@ function matchingTonegridArtist(row, body) {
   const name = String((body && body.name) || '').trim();
 
   function liveStoreId(found) {
-    const id = String((found && found.tonegrid_artist_id) || '').trim();
+    if (!found) return '';
+    const id = String((found.tonegrid_artist_id) || '').trim();
     if (!id || !isUuid(id)) return '';
     const localIds = [
       pgId,
@@ -991,8 +992,7 @@ async function createArtist(req, res) {
       sendJson(res, 200, { uuid: continueId, continued: true });
       return;
     }
-    sendJson(res, loaded.status || 404, { error: ARTIST_GONE_COPY });
-    return;
+    // Leftover / not-in-tenant: mint by stage name + slug. Do not 404 ARTIST_GONE.
   }
 
   const artistGate = uploadRequired.validateArtist(body);
