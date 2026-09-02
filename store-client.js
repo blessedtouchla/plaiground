@@ -2398,7 +2398,19 @@
             return { ok: true, draft: next };
           });
         }
-        return { ok: true, draft: next };
+        if (!storeTracks.some(storeTrackHasAudio) && next.track_id && String(next.audio_object_key || '').trim()) {
+          return uploadTrackAudio(next.track_id, null, null, { force: true }).then(function (audio) {
+            if (audio.failed || audio.unavailable) return leftoverHopFailure(audio, next);
+            return hopKnownLeftoverCover(next).then(function (cover) {
+              if (cover && (cover.failed || cover.unavailable)) return cover;
+              return { ok: true, draft: next };
+            });
+          });
+        }
+        return hopKnownLeftoverCover(next).then(function (cover) {
+          if (cover && (cover.failed || cover.unavailable)) return cover;
+          return { ok: true, draft: next };
+        });
       }
       if (hasId || hasFile || uploaded || picked || titled || existingSend || draftHasTrackFile(next) || String(next.title || '').trim()) {
         return createMissingTracks(next, {
@@ -2498,6 +2510,8 @@
     var ids = draftTrackIds(draft);
     if (ids.length) submitBody.track_id = ids[0];
     if (ids.length > 1) submitBody.track_ids = ids;
+    if (draft.artwork_object_key) submitBody.artwork_object_key = draft.artwork_object_key;
+    if (draft.audio_object_key) submitBody.audio_object_key = draft.audio_object_key;
     return resolveSubmitTracks(draft).then(function (ready) {
       if (ready.recover) return { recover: true, result: ready.result, draft: ready.draft || draft };
       if (ready.failed) return { failed: true, result: ready.result, draft: ready.draft || draft };
@@ -3441,7 +3455,17 @@
       : fileForStoreUpload(file);
     if (!trackId) return Promise.resolve({ skipped: true });
     if (!force && alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
-    if (!send) return Promise.resolve({ skipped: true, reused: Boolean(!force && alreadyConverted(readDraft())) });
+    if (!send) {
+      var key = String((readDraft() && readDraft().audio_object_key) || '').trim();
+      if (key) {
+        return post(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', { object_key: key }).then(function (result) {
+          if (isUnavailable(result)) return { unavailable: true, result: result };
+          if (result && result.ok) return { uploaded: true, result: result, object_key: key };
+          return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: AUDIO_SEND_COPY } }) };
+        });
+      }
+      return Promise.resolve({ skipped: true, reused: Boolean(!force && alreadyConverted(readDraft())) });
+    }
     var sendLabel = label || 'Uploading audio';
     var leftoverOriginal = Boolean(force);
     var convertStep = leftoverOriginal
@@ -3619,19 +3643,43 @@
           next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
           return { ok: true, draft: next, track: track, audio: audio };
         });
+      } else if (!file && next.track_id && String(next.audio_object_key || '').trim()) {
+        chain = uploadTrackAudio(next.track_id, null, null, { force: true }).then(function (audio) {
+          if (audio.failed || audio.unavailable) {
+            return {
+              ok: false,
+              failed: Boolean(audio.failed),
+              unavailable: Boolean(audio.unavailable),
+              result: audio.result,
+              draft: next,
+              track: track,
+              audio: audio,
+            };
+          }
+          return { ok: true, draft: next, track: track, audio: audio };
+        });
       }
       return chain.then(function (result) {
         if (!result.ok || result.failed || result.unavailable) return result;
-        if (!art || !next.release_id) return result;
-        showUploadLoader('Uploading artwork');
-        setStatus('tg-status', 'Uploading artwork…');
-        return uploadArtwork(next.release_id, art, function (percent) {
-          showUploadLoader('Uploading artwork', percent);
-        }).then(function (artwork) {
-          result.artwork = artwork;
-          result.ok = !artwork.failed && !artwork.unavailable;
-          return result;
-        });
+        if (art && next.release_id) {
+          showUploadLoader('Uploading artwork');
+          setStatus('tg-status', 'Uploading artwork…');
+          return uploadArtwork(next.release_id, art, function (percent) {
+            showUploadLoader('Uploading artwork', percent);
+          }).then(function (artwork) {
+            result.artwork = artwork;
+            result.ok = !artwork.failed && !artwork.unavailable;
+            return result;
+          });
+        }
+        if (next.artwork_object_key && next.release_id) {
+          return uploadArtwork(next.release_id, null).then(function (artwork) {
+            result.artwork = artwork;
+            result.ok = !artwork.failed && !artwork.unavailable;
+            return result;
+          });
+        }
+        return result;
       });
     });
   }

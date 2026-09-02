@@ -4154,13 +4154,13 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902b1'), 'review.html must cache-bust past 20260902b1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html must cache-bust past 20260902c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html must cache-bust past 20260902c2');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260902c7'), 'review.html cache-busts store-client.js at 20260902c7');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260902c8'), 'review.html cache-busts store-client.js at 20260902c8');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c7'), 'upload.html cache-busts store-client.js at 20260902c7');
-  assert.ok(attestHtml.includes('store-client.js?v=20260902c7'), 'attest.html cache-busts store-client.js at 20260902c7');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c7'), 'split-sheet.html cache-busts store-client.js at 20260902c7');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c8'), 'upload.html cache-busts store-client.js at 20260902c8');
+  assert.ok(attestHtml.includes('store-client.js?v=20260902c8'), 'attest.html cache-busts store-client.js at 20260902c8');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c8'), 'split-sheet.html cache-busts store-client.js at 20260902c8');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
@@ -4237,6 +4237,8 @@ async function run() {
   assert.ok(source.includes('function leftoverHopFailure'));
   assert.ok(source.includes('function hopKnownLeftoverCover'));
   assert.ok(source.includes('needsKnownHop && storeTracks.length'));
+  assert.ok(source.includes('if (next.artwork_object_key && next.release_id)'), 'Retry hops cover from object_key without a Review file picker');
+  assert.ok(source.includes("{ object_key: key }"), 'Retry hops audio from object_key without a Review file picker');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review must not say Save and exit');
   assert.ok(reviewHtml.indexOf('id="tg-genre"') !== -1, 'Submit review can change genre');
