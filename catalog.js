@@ -46,7 +46,8 @@
     if (api) return api.label(status);
     if (status === 'live' || status === 'delivered') return 'Live';
     if (status === 'draft') return 'Draft';
-    if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'Needs fix';
+    if (status === 'rejected' || status === 'qc_rejected' || status === 'qc_failed' || status === 'error' || status === 'failed') return 'QC rejected';
+    if (status === 'needs-fix' || status === 'needs_fix') return 'Needs fix';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'Processing';
     if (status === 'pending') return 'Pending';
     return 'Pending';
@@ -56,11 +57,11 @@
     var api = statusApi();
     var g = api ? api.group(status) : '';
     if (g === 'live') return 'live';
-    if (g === 'pending' || g === 'processing' || g === 'removing') return 'review';
+    if (g === 'pending' || g === 'processing' || g === 'removing' || g === 'needs_fix' || g === 'qc_rejected') return 'review';
     if (g === 'rejected') return 'review';
     if (g === 'store_gone') return '';
     if (status === 'live' || status === 'delivered') return 'live';
-    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'rejected' || status === 'takedown_submitted' || status === 'removing') return 'review';
+    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'rejected' || status === 'qc_rejected' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
     return 'draft';
   }
 
@@ -211,7 +212,7 @@
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
       var tileLabel = card.label || 'Pending';
-      var tileDot = tileLabel === 'Needs fix' ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray');
+      var tileDot = (tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray');
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
       link.appendChild(art);

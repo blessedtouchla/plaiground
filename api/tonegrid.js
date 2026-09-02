@@ -512,9 +512,20 @@ function audioStemOf(name) {
   return String(name || '').trim().replace(/\.[a-z0-9]{2,5}$/i, '').trim();
 }
 
+function isQcRejectedLeftover(status) {
+  const s = normalizeReleaseStatus(status);
+  return s === 'rejected'
+    || s === 'error'
+    || s === 'failed'
+    || s === 'fail'
+    || s === 'qc_rejected'
+    || s === 'qc_reject'
+    || s === 'qc_failed';
+}
+
 function isDeletableStoreLeftover(status) {
   const s = normalizeReleaseStatus(status);
-  return !s || s === 'draft' || s === 'rejected' || s === 'needs_fix';
+  return !s || s === 'draft' || s === 'needs_fix' || isQcRejectedLeftover(s);
 }
 
 function isBlockingStoreLeftover(status) {
@@ -528,8 +539,14 @@ function isStoreDeleteGone(result) {
   return result.status === 404 || isReleaseGoneResult(result);
 }
 
-async function deleteStoreRelease(releaseId) {
-  if (isKnownAdoptRelease(releaseId) || isProtectedCatalogRelease(releaseId)) {
+function protectHardDelete(releaseId, title, status) {
+  if (isKnownAdoptRelease(releaseId)) return true;
+  if (!isProtectedCatalogRelease(releaseId, title)) return false;
+  return !isQcRejectedLeftover(status);
+}
+
+async function deleteStoreRelease(releaseId, status, title) {
+  if (protectHardDelete(releaseId, title, status)) {
     return { ok: false, status: 403, data: { error: 'Release cannot be removed.' } };
   }
   return tonegridFetch('/releases/' + releaseId, {
@@ -1785,7 +1802,7 @@ async function createRelease(req, res) {
       }
       if (await continueStoreLeftover(leftover.id)) return;
       if (isDeletableStoreLeftover(leftover.status) && !isKnownAdoptRelease(leftover.id)) {
-        const wiped = await deleteStoreRelease(leftover.id);
+        const wiped = await deleteStoreRelease(leftover.id, leftover.status, leftover.row && leftover.row.title);
         if (isStoreDeleteGone(wiped)) {
           await accounts.removeRelease(scope.userId, leftover.id);
           const retried = await postRelease(payload, { collideRetry: true });
@@ -3515,6 +3532,11 @@ function leftoverDeleteCopy(error) {
   return /only draft or rejected releases can be deleted/i.test(String(error || ''));
 }
 
+function resultErrorText(result) {
+  if (!result || !result.data) return '';
+  return String(result.data.error || result.data.message || '');
+}
+
 function displayStoreStatus(status) {
   const s = normalizeReleaseStatus(status);
   if (s === 'taken_down') return 'takedown_submitted';
@@ -3648,6 +3670,7 @@ async function deleteRelease(req, res, releaseId) {
   const storeStatus = loaded.row ? normalizeReleaseStatus(loaded.row.status) : '';
   const localStatus = localReleaseStatusOf(scope.row, releaseId);
   const status = storeStatus || localStatus;
+  const title = loaded.row && loaded.row.title;
 
   if (missing || isGoneHiddenStatus(localStatus)) {
     const next = await dropAfterStoreGone(scope.row, releaseId, status || localStatus);
@@ -3656,7 +3679,7 @@ async function deleteRelease(req, res, releaseId) {
   }
 
   if (isRemovingStoreStatus(status) || isRemovingStoreStatus(storeStatus)) {
-    const deleted = await deleteStoreRelease(releaseId);
+    const deleted = await deleteStoreRelease(releaseId, status, title);
     const again = await fetchReleaseRow(releaseId);
     if (isReleaseGoneResult(again.result) || (isStoreDeleteGone(deleted) && again.result && isReleaseGoneResult(again.result))) {
       const next = await dropAfterStoreGone(scope.row, releaseId, status);
@@ -3681,7 +3704,20 @@ async function deleteRelease(req, res, releaseId) {
 
   if (needsStoreTakedown(status)) {
     const cancelled = await requestStoreCancelOrTakedown(releaseId, status);
-    if (!cancelled || !cancelled.ok) {
+    if (cancelled && cancelled.ok) {
+      const again = await fetchReleaseRow(releaseId);
+      if (isReleaseGoneResult(again.result)) {
+        const next = await dropAfterStoreGone(scope.row, releaseId, status);
+        await finishRemoved(res, next, scope, releaseId);
+        return;
+      }
+      await finishTakedownPending(res, scope.row, releaseId);
+      return;
+    }
+    const canHardDelete = leftoverDeleteCopy(resultErrorText(cancelled))
+      || isQcRejectedLeftover(storeStatus)
+      || isQcRejectedLeftover(localStatus);
+    if (!canHardDelete) {
       sendJson(res, (cancelled && cancelled.status) || 502, {
         error: storeTakedownError(cancelled),
         takedown: false,
@@ -3689,17 +3725,9 @@ async function deleteRelease(req, res, releaseId) {
       });
       return;
     }
-    const again = await fetchReleaseRow(releaseId);
-    if (isReleaseGoneResult(again.result)) {
-      const next = await dropAfterStoreGone(scope.row, releaseId, status);
-      await finishRemoved(res, next, scope, releaseId);
-      return;
-    }
-    await finishTakedownPending(res, scope.row, releaseId);
-    return;
   }
 
-  const deleted = await deleteStoreRelease(releaseId);
+  const deleted = await deleteStoreRelease(releaseId, storeStatus || localStatus, title);
   if (!isStoreDeleteGone(deleted)) {
     sendJson(res, (deleted && deleted.status) || 502, {
       error: tonegridErrorOf(deleted, 'The store could not remove this release.'),

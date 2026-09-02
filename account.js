@@ -490,7 +490,7 @@
     if (!card || card.live) return false;
     if (api && typeof api.isPendingPipeline === 'function') return api.isPendingPipeline(card);
     var g = card.group || (api && typeof api.group === 'function' ? api.group(card.status) : '');
-    return g === 'pending' || g === 'processing' || g === 'rejected';
+    return g === 'pending' || g === 'processing' || g === 'needs_fix' || g === 'qc_rejected' || g === 'rejected';
   }
 
   function paintAccountCounts(me, cards) {
@@ -692,7 +692,7 @@
         live: card.status === 'live' || card.status === 'delivered',
       };
       var tileLabel = card.label || mapped.label || 'Pending';
-      var tileDot = tileLabel === 'Needs fix' ? 'red' : (mapped.dot || 'gray');
+      var tileDot = (tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : (mapped.dot || 'gray');
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
       link.appendChild(art);
@@ -776,7 +776,7 @@
     if (!stored) stored = (draft && draft.submitted === false) ? 'draft' : 'pending';
     var status = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
       ? PlaigroundReleaseStatus.label(stored)
-      : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'Needs fix' : 'Pending');
+      : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'QC rejected' : 'Pending');
     if (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus && typeof PlaigroundReleaseStatus.displayInfo === 'function') {
       var latestRow = null;
       if (me && me.profile && Array.isArray(me.profile.releases) && latestId) {

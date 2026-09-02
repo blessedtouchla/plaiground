@@ -171,6 +171,8 @@ function loadSong(opts) {
     '[data-song-download]': makeEl({}),
     '[data-song-rejection]': makeEl({ hidden: true }),
     '[data-song-rejection-reason]': makeEl({}),
+    '[data-song-qc-rejected]': makeEl({ hidden: true }),
+    '[data-song-qc-reason]': makeEl({}),
     '[data-release-edit]': panel,
     '[data-edit-status]': makeEl({}),
     '[data-edit-error]': makeEl({ hidden: true }),
@@ -225,6 +227,8 @@ function loadSong(opts) {
     removing: makeEl({ life: 'removing' }),
     taken_down: makeEl({ life: 'taken_down' }),
     rejected: makeEl({ life: 'rejected' }),
+    needs_fix: makeEl({ life: 'needs_fix' }),
+    qc_rejected: makeEl({ life: 'qc_rejected' }),
   };
   const context = {
     Promise,
@@ -246,7 +250,7 @@ function loadSong(opts) {
     document: {
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
-        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.removing, life.taken_down, life.rejected];
+        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.removing, life.taken_down, life.rejected, life.needs_fix, life.qc_rejected];
         if (sel === '[data-edit-explicit] [data-explicit]') return [];
         if (sel === '[data-edit-made-how]') return [];
         return [];
