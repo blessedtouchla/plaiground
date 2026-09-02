@@ -844,6 +844,14 @@ function isArtistGoneResult(result) {
   return false;
 }
 
+async function notifyFirstUpload(user, extras) {
+  try {
+    await growthEvents.recordFirstUpload(user, extras);
+  } catch {
+    /* mail hook must not block store submit */
+  }
+}
+
 async function notifyFirstStoreLive(user, status, extras) {
   try {
     await growthEvents.recordFirstStoreLive(user, status, extras);
@@ -3121,6 +3129,7 @@ async function submitRelease(req, res, releaseId) {
   const submittedStatus = String(next.status || 'pending').toLowerCase();
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
   await persistReleaseMeta(scope.row, releaseId, submittedStatus, '', '', '', Object.assign({}, credits || {}, splitMeta));
+  await notifyFirstUpload(scope.row, { release_id: releaseId });
   sendJson(res, submitted.status, {
     ok: true,
     signed: Boolean(signwellInfo.signed),
