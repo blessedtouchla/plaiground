@@ -272,7 +272,13 @@
     if (isPlatformPayloadError(next, status)) return platformPayloadCopy();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
-    if (isArtistGoneError(next) || /\btenant\b/i.test(next)) return ARTIST_GONE_COPY;
+    if (isArtistGoneError(next) || /\btenant\b/i.test(next)) {
+      var named = readDraft();
+      if (named && String(named.plaiground_artist_id || '').trim() && String(named.name || '').trim()) {
+        return STEP_FAIL_COPY;
+      }
+      return ARTIST_GONE_COPY;
+    }
     if (/we could not send the audio/i.test(next)) return AUDIO_SEND_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
@@ -1928,18 +1934,38 @@
     var i;
     for (i = 0; i < artists.length; i += 1) {
       var row = artists[i] || {};
-      if (String(row.id || '') === 'account') continue;
+      var storeId = String(row.tonegrid_artist_id || '').trim();
+      if (String(row.id || '') === 'account') {
+        if (isUuidValue(storeId) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
+          return storeId;
+        }
+        continue;
+      }
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
       if (!sameProfile) continue;
-      if (isUuidValue(row.tonegrid_artist_id)) return String(row.tonegrid_artist_id).trim();
+      if (isUuidValue(storeId)) return storeId;
       return '';
     }
     return '';
   }
 
+  function liveChosenStoreArtistId(artist) {
+    if (!artist) return '';
+    var id = String(artist.tonegridId || artist.tonegrid_artist_id || '').trim();
+    if (!isUuidValue(id)) return '';
+    if (isLocalProfileArtistId(id, {
+      plaiground_artist_id: artist.id,
+      name: artist.name,
+    })) return '';
+    return id;
+  }
+
   function existingStoreArtistId(draft) {
     var current = draft || {};
+    if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
+      return String(current.tonegrid_artist_id).trim();
+    }
     var fromRoster = matchingRosterStoreArtistId(current);
     if (fromRoster) return fromRoster;
     var candidates = [current.tonegrid_artist_id, current.artist_id];
@@ -1971,8 +1997,11 @@
     var current = draft || readDraft();
     var artistId = existingStoreArtistId(current);
     if (isUuidValue(artistId)) {
-      if (String(current.artist_id || '').trim() !== artistId) {
-        current = writeDraft({ artist_id: artistId });
+      var reuse = {};
+      if (String(current.artist_id || '').trim() !== artistId) reuse.artist_id = artistId;
+      if (String(current.tonegrid_artist_id || '').trim() !== artistId) reuse.tonegrid_artist_id = artistId;
+      if (Object.keys(reuse).length) {
+        current = writeDraft(reuse);
         saveCatalog({ artist_id: artistId });
       }
       return Promise.resolve({ ok: true, draft: current });
@@ -3666,11 +3695,17 @@
       }
       if (!result.ok) {
         if (isArtistGoneError(result.data && result.data.error)) {
-          var cleared = writeDraft({ artist_id: '' });
+          var kept = draft;
+          if (!String((draft && draft.plaiground_artist_id) || '').trim() && !knownAdoptIdsForDraft(draft)[0]) {
+            kept = writeDraft({ artist_id: '' });
+          }
+          var goneCopy = String((kept && kept.plaiground_artist_id) || '').trim()
+            ? STEP_FAIL_COPY
+            : ARTIST_GONE_COPY;
           return {
             failed: true,
-            result: { data: { error: ARTIST_GONE_COPY } },
-            draft: cleared,
+            result: { data: { error: goneCopy } },
+            draft: kept,
           };
         }
         if (isAlreadyExistsResult(result)) {
@@ -5274,7 +5309,10 @@
             tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,
           }), me);
           if (!continuingSame) {
-            draft = writeDraft({ artist_id: '', track_id: '' });
+            var keepStoreArtist = existingStoreArtistId(readDraft());
+            draft = writeDraft(keepStoreArtist
+              ? { track_id: '' }
+              : { artist_id: '', track_id: '' });
           }
           var catalog = catalogFromAccount(me);
           if (releaseType === 'album' && !albumAllowedFor(me)) {
@@ -5291,18 +5329,30 @@
               failUpload(artist.error, false);
               return;
             }
-            var nextDraft = writeDraft({
+            var artistMode = fieldValue('tg-artist-mode') || '';
+            var storeId = liveChosenStoreArtistId(artist);
+            if (!storeId && artistMode !== 'create') storeId = existingStoreArtistId(readDraft());
+            var persist = {
               name: (artist && artist.name) || name,
-              plaiground_artist_id: (artist && artist.id) || '',
+              plaiground_artist_id: (artist && artist.id && artist.id !== 'account') ? artist.id : '',
               artist_check: (artist && artist.check && artist.check.level) || '',
               artist_linked: Boolean(artist && artist.linked),
               confirm_different: Boolean(artist && artist.confirmDifferent),
-            });
+            };
+            if (artistMode === 'create') {
+              persist.artist_id = '';
+              persist.tonegrid_artist_id = '';
+            } else if (storeId) {
+              persist.artist_id = storeId;
+              persist.tonegrid_artist_id = storeId;
+            }
+            var nextDraft = writeDraft(persist);
             if (artist && artist.name) {
               rememberRosterArtist({
                 id: artist.id,
                 name: artist.name,
                 source: artist.linked ? 'linked' : 'created',
+                tonegrid_artist_id: storeId || artist.tonegridId || artist.tonegrid_artist_id || '',
               });
             }
             if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {
@@ -5311,8 +5361,7 @@
                 finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
               });
             }
-            var artistMode = fieldValue('tg-artist-mode') || '';
-            if (artistMode === 'create') nextDraft = writeDraft({ artist_id: '' });
+            if (artistMode === 'create') nextDraft = writeDraft({ artist_id: '', tonegrid_artist_id: '' });
             return afterArtistReady(nextDraft, nextHref);
           });
         })
