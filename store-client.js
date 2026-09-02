@@ -2002,17 +2002,6 @@
 
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
-    var artistId = matchingRosterStoreArtistId(current) || existingStoreArtistId(current);
-    if (isUuidValue(artistId) && !isLocalProfileArtistId(artistId, current)) {
-      var reuse = {};
-      if (String(current.artist_id || '').trim() !== artistId) reuse.artist_id = artistId;
-      if (String(current.tonegrid_artist_id || '').trim() !== artistId) reuse.tonegrid_artist_id = artistId;
-      if (Object.keys(reuse).length) {
-        current = writeDraft(reuse);
-        saveCatalog({ artist_id: artistId });
-      }
-      return Promise.resolve({ ok: true, draft: current });
-    }
     var name = String(current.name || '').trim();
     if (!name) {
       return Promise.resolve({
@@ -2025,6 +2014,7 @@
     return post(ARTISTS_URL, {
       name: name,
       plaiground_artist_id: current.plaiground_artist_id || '',
+      confirm_different: current.confirm_different === true,
     }).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
       if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
