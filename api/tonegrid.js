@@ -997,31 +997,71 @@ async function applyReleaseCredits(releaseId, hopCredits, opts) {
   return updated;
 }
 
+function isSoftWriterMiss(result) {
+  if (!result || result.ok) return true;
+  if (isMissingEndpoint(result)) return true;
+  return result.status === 400 || result.status === 422;
+}
+
+async function stampTrackSongwriter(trackId, songwriter) {
+  const fields = storeCredits.trackSongwriterFields(songwriter);
+  if (!fields) return { ok: true, skipped: true };
+  const bodies = [
+    { contributors: fields.contributors },
+    { songwriters: fields.songwriters, composers: fields.composers },
+    fields,
+  ];
+  for (let i = 0; i < bodies.length; i += 1) {
+    const body = bodies[i];
+    const patched = await tonegridFetch('/tracks/' + trackId, {
+      method: 'PATCH',
+      body: body,
+      idempotencyKey: hopIdempotencyKey(
+        'track-songwriter-' + i,
+        'PATCH',
+        '/tracks/' + trackId,
+        JSON.stringify(body)
+      ),
+    });
+    if (patched.ok) return { ok: true };
+    if (!isSoftWriterMiss(patched)) return patched;
+  }
+  return { ok: true, skipped: true };
+}
+
 async function attachTrackWriters(trackId, songwriter) {
   const name = songwriter && songwriter.name;
   if (!name || !isUuid(trackId)) return { ok: true, skipped: true };
+  const stamped = await stampTrackSongwriter(trackId, songwriter);
   const writerBody = storeCredits.writerCreateBody(songwriter);
   const created = await tonegridFetch('/writers', {
     method: 'POST',
     body: writerBody,
     idempotencyKey: hopIdempotencyKey('writer', 'POST', '/writers', [name, songwriter.first || '', songwriter.last || ''].join('\n')),
   });
-  if (!created.ok) {
-    if (isMissingEndpoint(created)) return { ok: true, skipped: true };
+  if (created.ok) {
+    const writerId = createdWriterId(created.data);
+    if (writerId) {
+      const attach = storeCredits.trackWritersBody(writerId, songwriter);
+      const put = await tonegridFetch('/tracks/' + trackId + '/writers', {
+        method: 'PUT',
+        body: attach,
+        idempotencyKey: hopIdempotencyKey('track-writers', 'PUT', '/tracks/' + trackId + '/writers', JSON.stringify(attach)),
+      });
+      if (put.ok) return { ok: true };
+      if (!isSoftWriterMiss(put) && !(stamped && stamped.ok)) return put;
+    }
+  } else if (!isSoftWriterMiss(created) && !(stamped && stamped.ok)) {
     return created;
   }
-  const writerId = createdWriterId(created.data);
-  if (!writerId) {
-    return { ok: false, status: 502, data: { error: storeCredits.resolveSongwriter({}, []).error } };
-  }
-  const attach = storeCredits.trackWritersBody(writerId, songwriter);
-  const put = await tonegridFetch('/tracks/' + trackId + '/writers', {
+  const named = storeCredits.trackWritersNameBody(songwriter);
+  const namedPut = await tonegridFetch('/tracks/' + trackId + '/writers', {
     method: 'PUT',
-    body: attach,
-    idempotencyKey: hopIdempotencyKey('track-writers', 'PUT', '/tracks/' + trackId + '/writers', JSON.stringify(attach)),
+    body: named,
+    idempotencyKey: hopIdempotencyKey('track-writers-name', 'PUT', '/tracks/' + trackId + '/writers', JSON.stringify(named)),
   });
-  if (!put.ok && !isMissingEndpoint(put)) return put;
-  return { ok: true };
+  if (namedPut.ok || isSoftWriterMiss(namedPut) || (stamped && stamped.ok)) return { ok: true };
+  return namedPut;
 }
 
 async function hopSubmitArtwork(scope, releaseId, hopKey) {
