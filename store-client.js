@@ -2101,7 +2101,7 @@
       });
       saveCatalog({ artist_id: id });
       rememberRosterArtist({
-        id: pgId || current.plaiground_artist_id || id,
+        id: pgId || current.plaiground_artist_id || name,
         name: name,
         tonegrid_artist_id: id,
         source: 'created',
