@@ -358,7 +358,7 @@
     if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'rejected';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'processing';
     if (status === 'pending') return 'pending';
-    if (status === 'draft' && !(draft && draft.submitted)) return 'draft';
+    if (status === 'draft') return 'draft';
     var writers = (draft && Array.isArray(draft.writers)) ? draft.writers : [];
     var solo = Boolean(draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true')) && !String((draft && draft.featured) || '').trim();
     var signed = Boolean(draft && (draft.signwell_signed === true || String(draft.signwell_status || '') === 'Completed' || String(draft.signwell_status || '') === 'solo'));
@@ -504,6 +504,29 @@
 
   function isLiveConfirmed(release, draft) {
     return statusStep(release, draft) === 'live';
+  }
+
+  function storeStatusOf(release, draft) {
+    return String(
+      (release && (release.status || release.tonegrid_status))
+      || (draft && draft.tonegrid_status)
+      || ''
+    ).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  }
+
+  function isStoreDraft(release, draft) {
+    return storeStatusOf(release, draft) === 'draft';
+  }
+
+  function firstTrackId(release, draft) {
+    var track = (release && release.tracks && release.tracks[0]) || {};
+    return String(
+      track.uuid
+      || track.id
+      || track.track_id
+      || (draft && (draft.track_id || draft.tonegrid_track_id))
+      || ''
+    ).trim();
   }
 
   function truthyApplied(value) {
@@ -1125,6 +1148,19 @@
     if (whyName && reason) setFieldWhy(whyName, reason);
   }
 
+  function unlockControl(el, whyName, reason) {
+    if (el) {
+      el.disabled = false;
+      if (el.removeAttribute) {
+        el.removeAttribute('disabled');
+        el.removeAttribute('aria-disabled');
+      }
+      var field = el.closest ? el.closest('.field') : null;
+      if (field && field.classList) field.classList.remove('is-locked');
+    }
+    if (whyName) setFieldWhy(whyName, reason || '');
+  }
+
   function applyToneGridError(result, whyName, el) {
     var message = sanitizePartnerCopy((result && result.data && result.data.error) || 'The store rejected the edit.', result && result.status);
     if (el || whyName) lockControl(el, whyName, message);
@@ -1631,11 +1667,21 @@
         ? ('Splits stay on this release · ' + writers.map(function (row) { return row.name; }).join(', ') + '.')
         : 'No split sheet on file for this release.';
     }
-    if (track.uuid && $('#edit-audio')) {
-      $('#edit-audio').removeAttribute('disabled');
-      $('#edit-audio').setAttribute('data-track-id', track.uuid);
-    } else if ($('#edit-audio')) {
-      lockControl($('#edit-audio'), 'audio', 'This release has no track ID yet, so audio cannot be replaced.');
+    var audioEl = $('#edit-audio');
+    var trackId = firstTrackId(release, draft);
+    var draftOnStore = isStoreDraft(release, draft);
+    if (audioEl && (trackId || draftOnStore)) {
+      unlockControl(
+        audioEl,
+        'audio',
+        draftOnStore
+          ? 'Drafts can replace the audio. Saving sends the new file to the store on this same release.'
+          : 'Replace the master on this same track if the store allows it. This is not a new release.'
+      );
+      if (trackId) audioEl.setAttribute('data-track-id', trackId);
+      else if (audioEl.removeAttribute) audioEl.removeAttribute('data-track-id');
+    } else if (audioEl) {
+      lockControl(audioEl, 'audio', 'This release has no track ID yet, so audio cannot be replaced.');
     }
     getJson('/api/tonegrid/stores').then(function (result) {
       fillStores((result.ok && result.data && result.data.stores) || [], release.dsps || draft.dsps || []);
@@ -1895,7 +1941,9 @@
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
     showEditRetry(false);
     var liveEdit = isLiveConfirmed(lastEdit.release, lastEdit.draft);
+    var draftEdit = isStoreDraft(lastEdit.release, lastEdit.draft);
     if (liveEdit) setEditError('Submitting edit to the store…');
+    else if (draftEdit) setEditError('Saving this draft to the store…');
     else setEditError('');
     var title = $('#edit-title') ? String($('#edit-title').value || '').trim() : '';
     var artistName = $('#edit-artist') ? String($('#edit-artist').value || '').trim() : '';
@@ -1916,7 +1964,11 @@
     var date = schedule.release_date;
     var art = selectedEditFile('edit-art');
     var audio = selectedEditFile('edit-audio');
-    var trackId = $('#edit-audio') ? $('#edit-audio').getAttribute('data-track-id') : '';
+    var trackId = String(
+      ($('#edit-audio') && $('#edit-audio').getAttribute('data-track-id'))
+      || firstTrackId(lastEdit.release, lastEdit.draft)
+      || ''
+    ).trim();
     var dsps = selectedStores();
     if (!instrumental && !language) {
       setEditError('Language is required.');
@@ -1953,7 +2005,7 @@
       edit_applied: true,
     });
 
-    if (!liveEdit) {
+    if (!liveEdit && !draftEdit) {
       return applyImmediateEdit(id, {
         title: title,
         artist: artistName,
@@ -1976,6 +2028,60 @@
       return task.then(function (result) {
         hops.push({ label: label, ok: Boolean(result && result.ok), status: result && result.status, data: result && result.data });
         return result;
+      });
+    }
+
+    function pickCreatedTrackId(result) {
+      var data = (result && result.data) || {};
+      var row = data.track || data;
+      return String((row && (row.uuid || row.track_id || row.id)) || data.uuid || data.track_id || data.id || '').trim();
+    }
+
+    function editTrackCreateBody() {
+      var body = {
+        release_id: id,
+        title: title || (release.title || ''),
+        position: 1,
+        explicit: selectedExplicit(),
+      };
+      if (language || instrumental) body.language = language;
+      var writers = splitWriters(release, draft, me);
+      var name = writers[0] && writers[0].name ? String(writers[0].name).trim() : '';
+      var first = String((draft && (draft.legal_first || draft.legalFirst)) || (me && me.legal_first) || '').trim();
+      var last = String((draft && (draft.legal_last || draft.legalLast)) || (me && me.legal_last) || '').trim();
+      if (!first && name) {
+        var parts = name.split(/\s+/);
+        first = parts[0] || '';
+        last = parts.slice(1).join(' ');
+      }
+      if (first) body.legal_first = first;
+      if (last) body.legal_last = last;
+      if (name || first) {
+        body.writers = [{
+          name: name || (first + (last ? ' ' + last : '')),
+          first_name: first,
+          last_name: last,
+        }];
+      }
+      if (draft && draft.made_how) body.made_how = draft.made_how;
+      return body;
+    }
+
+    function ensureEditTrackId(currentId) {
+      var have = String(currentId || '').trim();
+      if (have) return Promise.resolve(have);
+      if (!draftEdit || !audio) return Promise.resolve('');
+      return runHop('track_create', sendJson('/api/tonegrid/tracks', 'POST', editTrackCreateBody())).then(function (result) {
+        if (!result || !result.ok) {
+          errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));
+          return '';
+        }
+        var minted = pickCreatedTrackId(result);
+        if (minted) {
+          if ($('#edit-audio')) $('#edit-audio').setAttribute('data-track-id', minted);
+          writeDraftFor(id, { track_id: minted });
+        }
+        return minted;
       });
     }
 
@@ -2007,22 +2113,27 @@
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
-      if (!audio || !trackId) {
-        if (audio && !trackId) errors.push('This release has no track ID yet, so audio cannot be replaced.');
-        return { ok: true, skipped: true };
-      }
-      return audioAllowed(audio).then(function (ok) {
-        if (!ok) {
-          var message = (global.PlaigroundAudioAccept && global.PlaigroundAudioAccept.ERROR) || 'Audio must be WAV, FLAC, or MP3.';
-          errors.push(message);
-          return { ok: false, skipped: false, data: { error: message } };
+      if (!audio) return { ok: true, skipped: true };
+      return ensureEditTrackId(trackId).then(function (readyId) {
+        trackId = readyId;
+        if (!trackId) {
+          var missing = 'This release has no track ID yet, so audio cannot be replaced.';
+          errors.push(missing);
+          return { ok: false, skipped: false, data: { error: missing } };
         }
-        return hopPut('audio', audio).then(function (key) {
-          writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
-          return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key }));
-        }).catch(function (err) {
-          if (err && err.timedOut) throw err;
-          return { ok: false, data: { error: (err && err.message) || 'We could not send the audio.' } };
+        return audioAllowed(audio).then(function (ok) {
+          if (!ok) {
+            var message = (global.PlaigroundAudioAccept && global.PlaigroundAudioAccept.ERROR) || 'Audio must be WAV, FLAC, or MP3.';
+            errors.push(message);
+            return { ok: false, skipped: false, data: { error: message } };
+          }
+          return hopPut('audio', audio).then(function (key) {
+            writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
+            return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key }));
+          }).catch(function (err) {
+            if (err && err.timedOut) throw err;
+            return { ok: false, data: { error: (err && err.message) || 'We could not send the audio.' } };
+          });
         });
       });
     }).then(function (result) {
@@ -2076,6 +2187,25 @@
         persistPlaigroundRelease(saved, local);
         lastEdit.draft = saved;
         lastEdit.release = local;
+        if (draftEdit) {
+          showEditRetry(false);
+          setEditError('');
+          closeEdit();
+          render({
+            me: lastEdit.me,
+            draft: saved,
+            release: local,
+            analytics: lastEdit.analytics || {},
+          });
+          return {
+            ok: true,
+            created: false,
+            applied: true,
+            hops: hops,
+            releaseId: id,
+            status: nextStatus,
+          };
+        }
         return goEditSubmitted(id, hops, nextStatus);
       });
     }).catch(function (err) {
@@ -2416,6 +2546,7 @@
     removeRelease: removeRelease,
     isCreateReleaseUrl: isCreateReleaseUrl,
     isLiveConfirmed: isLiveConfirmed,
+    isStoreDraft: isStoreDraft,
     overlayPendingEdit: overlayPendingEdit,
     currentEditState: currentEditState,
     artistProfileId: artistProfileId,
