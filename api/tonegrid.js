@@ -984,6 +984,77 @@ async function attachTrackWriters(trackId, songwriter) {
   return { ok: true };
 }
 
+async function hopSubmitArtwork(scope, releaseId, hopKey) {
+  const key = String(hopKey || '').trim();
+  if (!key || !isUuid(releaseId)) return { ok: true, skipped: true };
+  try {
+    const hopped = await loadHoppedObject(scope, key, 'cover');
+    const wrapped = objectStore.asMultipart('artwork', hopped.filename, hopped.contentType || 'image/jpeg', hopped.body);
+    const result = await tonegridFetch('/releases/' + releaseId + '/artwork', {
+      method: 'POST',
+      rawBody: wrapped.rawBody,
+      contentType: wrapped.contentType,
+      idempotencyKey: hopIdempotencyKey('artwork', 'POST', '/releases/' + releaseId + '/artwork', key),
+    });
+    if (result.ok) {
+      const uploaded = coverUrl.from(result.data) || coverUrl.from(unwrapRelease(result.data));
+      await persistReleaseMeta(scope.row, releaseId, null, undefined, uploaded, key);
+    }
+    return result;
+  } catch (err) {
+    return { ok: false, status: (err && err.status) || 400, data: { error: (err && err.message) || objectStore.STEP_FAIL_COPY } };
+  }
+}
+
+async function hopSubmitAudio(scope, trackId, hopKey) {
+  const key = String(hopKey || '').trim();
+  if (!key || !isUuid(trackId)) return { ok: true, skipped: true };
+  try {
+    const hopped = await loadHoppedObject(scope, key, 'audio');
+    const hopKind = audioConvert.sniffKind(hopped.body, hopped.filename, hopped.contentType);
+    let preparedHop;
+    if (hopKind === 'wav' || hopKind === 'flac') {
+      preparedHop = Object.assign(
+        audioConvert.buildAudioMultipart(
+          audioConvert.storeFilename(hopped.filename, hopKind),
+          audioConvert.storeMime(hopKind),
+          hopped.body
+        ),
+        { kind: hopKind, converted: false }
+      );
+    } else {
+      preparedHop = await audioConvert.prepareFromBytes(hopped.body, hopped.filename, hopped.contentType);
+    }
+    if (preparedHop.error) return { ok: false, status: 400, data: { error: preparedHop.error } };
+    return tonegridFetch('/tracks/' + trackId + '/audio', {
+      method: 'POST',
+      rawBody: preparedHop.rawBody,
+      contentType: preparedHop.contentType,
+      timeoutMs: storeForwardTimeoutMs(preparedHop.converted, Date.now()),
+      idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + trackId + '/audio', key),
+    });
+  } catch (err) {
+    return { ok: false, status: (err && err.status) || 400, data: { error: (err && err.message) || objectStore.AUDIO_SEND_COPY } };
+  }
+}
+
+async function hopSubmitAssets(scope, releaseId, body, row) {
+  const artKey = String((body && (body.artwork_object_key || body.artworkObjectKey)) || '').trim();
+  const audioKey = String((body && (body.audio_object_key || body.audioObjectKey)) || '').trim();
+  let trackId = String((body && (body.track_id || body.trackId)) || '').trim();
+  if (!isUuid(trackId) && row && Array.isArray(row.tracks)) {
+    for (let i = 0; i < row.tracks.length; i += 1) {
+      const tid = String((row.tracks[i] && (row.tracks[i].uuid || row.tracks[i].id)) || '').trim();
+      if (isUuid(tid)) {
+        trackId = tid;
+        break;
+      }
+    }
+  }
+  if (artKey) await hopSubmitArtwork(scope, releaseId, artKey);
+  if (audioKey && isUuid(trackId)) await hopSubmitAudio(scope, trackId, audioKey);
+}
+
 async function applyTrackAiDisclosure(trackId, fields) {
   if (!fields || !isUuid(trackId)) return { ok: true, skipped: true };
   return tonegridFetch('/tracks/' + trackId, {
@@ -3084,6 +3155,7 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   const row = loaded.row || {};
+  await hopSubmitAssets(scope, releaseId, body, row);
   const status = String(row.status || '').toLowerCase();
   if (status === 'pending' || status === 'approved' || status === 'live') {
     sendJson(res, 200, {
