@@ -4154,13 +4154,13 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902b1'), 'review.html must cache-bust past 20260902b1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html must cache-bust past 20260902c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html must cache-bust past 20260902c2');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260902c6'), 'review.html cache-busts store-client.js at 20260902c6');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260902c7'), 'review.html cache-busts store-client.js at 20260902c7');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c6'), 'upload.html cache-busts store-client.js at 20260902c6');
-  assert.ok(attestHtml.includes('store-client.js?v=20260902c6'), 'attest.html cache-busts store-client.js at 20260902c6');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c6'), 'split-sheet.html cache-busts store-client.js at 20260902c6');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c7'), 'upload.html cache-busts store-client.js at 20260902c7');
+  assert.ok(attestHtml.includes('store-client.js?v=20260902c7'), 'attest.html cache-busts store-client.js at 20260902c7');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c7'), 'split-sheet.html cache-busts store-client.js at 20260902c7');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
