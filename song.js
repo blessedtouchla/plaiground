@@ -353,9 +353,10 @@
     if (draft && draft.tonegrid_status && !status) status = String(draft.tonegrid_status).toLowerCase();
     var api = statusApi();
     var g = api ? api.group(status) : '';
-    if (g === 'live' || g === 'rejected' || g === 'processing' || g === 'pending' || g === 'removing' || g === 'taken_down') return g;
+    if (g === 'live' || g === 'needs_fix' || g === 'qc_rejected' || g === 'processing' || g === 'pending' || g === 'removing' || g === 'taken_down') return g;
     if (status === 'live' || status === 'delivered') return 'live';
-    if (status === 'rejected' || status === 'needs-fix' || status === 'needs_fix') return 'rejected';
+    if (status === 'needs-fix' || status === 'needs_fix' || status === 'needsfix') return 'needs_fix';
+    if (status === 'rejected' || status === 'qc_rejected' || status === 'qc_failed' || status === 'qc_reject' || status === 'error' || status === 'failed') return 'qc_rejected';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'processing';
     if (status === 'pending') return 'pending';
     if (status === 'draft') return 'draft';
@@ -382,7 +383,8 @@
     var api = statusApi();
     if (api) return api.label(step);
     if (step === 'live') return 'Live';
-    if (step === 'rejected') return 'Needs fix';
+    if (step === 'needs_fix') return 'Needs fix';
+    if (step === 'qc_rejected' || step === 'rejected') return 'QC rejected';
     if (step === 'draft') return 'Draft';
     if (step === 'signatures') return 'Awaiting signatures';
     if (step === 'processing') return 'Processing';
@@ -767,6 +769,7 @@
       setHidden('[data-song-split-preview]', true);
       setHidden('[data-song-split-download]', true);
       setHidden('[data-song-rejection]', true);
+      setHidden('[data-song-qc-rejected]', true);
       mountLivePlayer(null);
       mountSongLinks(null);
       mountStoreStatus(null);
@@ -795,17 +798,26 @@
     var shown = (api && typeof api.displayInfo === 'function') ? api.displayInfo(merged, rawStatus) : null;
     var alertText = shown ? String(shown.alert || '').trim() : '';
     var rejection = String((release && release.rejection_reason) || (stored && stored.rejection_reason) || '').trim();
+    var leftoverOnly = Boolean(rejection) && api && typeof api.isLeftoverQcLine === 'function'
+      && rejection.split(/\n+/).map(function (line) { return line.trim(); }).filter(Boolean)
+        .every(function (line) { return api.isLeftoverQcLine(line); });
+    if (leftoverOnly && api && api.isQcRejected && api.isQcRejected(rawStatus)) rejection = '';
+    if (leftoverOnly && api && api.isProblem && !api.isProblem(rawStatus)) rejection = '';
     var pillLabel = shown && shown.label ? shown.label : statusLabel(step);
-    var needsFix = Boolean(alertText) || step === 'rejected' || Boolean(rejection);
+    var needsFix = (shown && shown.group === 'needs_fix') || step === 'needs_fix'
+      || (shown && shown.label === 'Needs fix' && !((shown && shown.group === 'qc_rejected') || step === 'qc_rejected'));
+    var qcRejected = (shown && shown.group === 'qc_rejected') || step === 'qc_rejected';
     setText('[data-song-pill]', pillLabel);
     var pill = $('[data-song-pill]');
     if (pill && pill.classList) {
       pill.classList.toggle('pill-green', step === 'live');
-      pill.classList.toggle('is-yellow', !needsFix && (step === 'pending' || step === 'processing'));
-      pill.classList.toggle('is-red', needsFix);
+      pill.classList.toggle('is-yellow', !needsFix && !qcRejected && (step === 'pending' || step === 'processing'));
+      pill.classList.toggle('is-red', needsFix || qcRejected);
     }
     setHidden('[data-song-rejection]', !needsFix);
-    setText('[data-song-rejection-reason]', alertText || rejection || 'The store sent this release back. Fix the details and resubmit.');
+    setHidden('[data-song-qc-rejected]', !qcRejected);
+    setText('[data-song-rejection-reason]', !needsFix ? '' : (alertText || rejection || 'The store sent this release back. Fix the details and resubmit.'));
+    setText('[data-song-qc-reason]', !qcRejected ? '' : (alertText || rejection || 'QC rejected this leftover.'));
 
     var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
     var meta = [artist, typeLabel(release.type), yearOf(release.release_date), release.genre].filter(Boolean);
@@ -881,7 +893,7 @@
     var id = releaseId(release);
     if (id && !release.uuid) release.uuid = id;
     markEditHref(id);
-    setHidden('[data-song-edit]', false);
+    setHidden('[data-song-edit]', qcRejected);
     setHidden('[data-song-remove]', !me || !id || step === 'taken_down' || step === 'removing');
     var boostCta = $('[data-song-boost]');
     if (boostCta) {
@@ -2245,10 +2257,13 @@
 
   function confirmRemove(release) {
     var step = statusStep(release, lastEdit.draft);
+    var qcRejected = step === 'qc_rejected';
     var storeBacked = step === 'live' || step === 'pending' || step === 'processing' || step === 'removing';
-    var message = storeBacked
-      ? 'Ask stores to take this release down? It stays listed until the store confirms. This cannot be undone.'
-      : 'Remove this release from PLAIGROUND? This cannot be undone.';
+    var message = qcRejected
+      ? "This leftover was rejected in QC. Remove it, then start a new release and pick the audio on Upload. This cannot be undone."
+      : storeBacked
+        ? 'Ask stores to take this release down? It stays listed until the store confirms. This cannot be undone.'
+        : 'Remove this release from PLAIGROUND? This cannot be undone.';
     if (typeof global.confirm !== 'function') return false;
     return global.confirm(message);
   }
@@ -2312,6 +2327,12 @@
         var err = (result.data && result.data.error) || 'The store could not remove this release.';
         if (/only draft or rejected releases can be deleted/i.test(err)) {
           err = 'The store could not take this release down.';
+        }
+        if (/cannot be removed/i.test(err)) {
+          var step = statusStep(release || {}, lastEdit.draft);
+          if (step === 'qc_rejected') {
+            err = 'The store still has this leftover. Try Remove again in a moment.';
+          }
         }
         setText('[data-song-status]', err);
         setHidden('[data-song-status]', false);

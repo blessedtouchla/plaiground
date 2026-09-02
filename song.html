@@ -63,6 +63,11 @@
         <p data-song-rejection-reason></p>
         <p class="hint">Use Edit release, then Submit for editing to send the fix back.</p>
       </div>
+      <div class="draft-banner" data-song-qc-rejected hidden>
+        <strong>QC rejected</strong>
+        <p data-song-qc-reason></p>
+        <p class="hint">Don't retry this leftover. Remove it, then start a new release and pick the audio on Upload.</p>
+      </div>
       <div class="life" data-song-life>
         <span data-life="draft">Draft</span>
         <span data-life="signatures">Awaiting Signatures</span>
@@ -71,7 +76,8 @@
         <span data-life="live">Live</span>
         <span data-life="removing">Removing</span>
         <span data-life="taken_down">Taken down</span>
-        <span data-life="rejected">Needs fix</span>
+        <span data-life="needs_fix">Needs fix</span>
+        <span data-life="qc_rejected">QC rejected</span>
       </div>
       <div class="song-top">
         <div>
@@ -350,7 +356,7 @@
     </div>
   </div>
   <script src="lib/cover-url.js"></script>
-  <script src="lib/release-status.js"></script>
+  <script src="lib/release-status.js?v=20260902qc3"></script>
   <script src="lib/live-player.js"></script>
   <script src="membership.js"></script>
   <script src="account.js"></script>
@@ -366,7 +372,7 @@
   <script src="lib/object-hop.js"></script>
   <script src="lib/statement-pdf.js"></script>
   <script src="lib/split-sheets.js"></script>
-  <script src="song.js?v=20260902e1" defer></script>
+  <script src="song.js?v=20260902qc3" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
