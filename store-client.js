@@ -281,6 +281,7 @@
       return ARTIST_GONE_COPY;
     }
     if (/we could not send the audio/i.test(next)) return AUDIO_SEND_COPY;
+    if (/ai_elements/i.test(next)) return 'Tell us which parts of the track used AI.';
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\bCloudflare\b/gi, 'the store');
