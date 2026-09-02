@@ -2013,6 +2013,33 @@ body:not(.app) > .app-main > .topbar { display: none; }
 .landing-tease {
   padding: 8px 0 72px;
 }
+.founding-50 {
+  margin-top: 28px;
+  max-width: 640px;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+.founding-50 p { color: var(--muted-2); font-size: 0.98rem; line-height: 1.5; margin: 0 0 8px; }
+.founding-50 p:last-child { margin-bottom: 0; }
+.founding-50-kicker {
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.founding-50-lead {
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.founding-50-welcome { color: var(--magenta); font-weight: 600; }
+.founding-50 strong { color: #fff; }
 .landing-tease h2 {
   font-size: clamp(2rem, 4vw, 2.75rem);
   font-weight: 800;

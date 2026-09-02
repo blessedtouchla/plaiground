@@ -43,6 +43,9 @@ function run() {
   assert.ok(!/Have a problem\?/.test(indexHero[0]), 'public landing hero must not add Have a problem?');
   assert.ok(!index.includes('data-have-problem'), 'public landing must not ship the signed-in problem control');
   assert.ok(index.includes('WANNA PLAI?'), 'homepage eyebrow must restore WANNA PLAI?');
+  assert.ok(index.includes('The game has already changed. Are you ready to Plai?'), 'homepage ships this-week voice');
+  assert.ok(index.includes('First 50 uploads'), 'homepage names Founding 50 as first fifty uploads');
+  assert.ok(!/30 days of Pro/i.test(index), 'Founding 50 must not be sold as 30 days of Pro');
   assert.ok(!/Built for any AI music creator/i.test(index), 'homepage must not use the AI-only eyebrow');
   assert.ok(!/for AI music creators/i.test(index), 'homepage meta must not say for AI music creators');
   assert.ok(/for artists and all music/i.test(index), 'homepage meta must be all-music');
