@@ -919,7 +919,17 @@ function filledCreditsFromRow(row) {
 async function applyReleaseCredits(releaseId, hopCredits, opts) {
   const options = opts || {};
   const credits = hopCredits && typeof hopCredits === 'object' ? hopCredits : {};
-  if (!credits.cOwner && !credits.pOwner) return { ok: true, skipped: true };
+  if (!credits.cOwner && !credits.pOwner) {
+    if (options.patch === false) return { ok: true, skipped: true };
+    const label = storeCredits.hopLabel(credits.label);
+    const patched = await tonegridFetch('/releases/' + releaseId, {
+      method: 'PATCH',
+      body: { label: label, record_label: label, label_name: label },
+      idempotencyKey: hopIdempotencyKey('credits-label', 'PATCH', '/releases/' + releaseId, label),
+    });
+    if (patched.ok || isMissingEndpoint(patched)) return { ok: true, skipped: !patched.ok };
+    return patched;
+  }
   if (options.patch !== false) {
     const patch = storeCredits.releasePatchFields(credits);
     const patched = await tonegridFetch('/releases/' + releaseId, {
@@ -3156,6 +3166,23 @@ async function submitRelease(req, res, releaseId) {
   }
   const row = loaded.row || {};
   await hopSubmitAssets(scope, releaseId, body, row);
+  const creditYearEarly = storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
+    || storeCredits.copyrightYearFromDate(row.release_date)
+    || storeCredits.copyrightYearFromDate(body && (body.release_date || body.releaseDate))
+    || new Date().getUTCFullYear();
+  const songwriterEarly = songwriterFromHop(body, scope.row);
+  const hopCreditsEarly = storeCredits.creditsFromHop(
+    body,
+    (songwriterEarly && !songwriterEarly.error) ? songwriterEarly : { name: '' },
+    creditYearEarly
+  );
+  hopCreditsEarly.label = storeCredits.hopLabel(hopCreditsEarly.label);
+  const labeled = await applyReleaseCredits(releaseId, hopCreditsEarly, { patch: true });
+  if (!labeled.ok && !isMissingEndpoint(labeled)) {
+    sendJson(res, labeled.status, labeled.data);
+    return;
+  }
+  await persistReleaseMeta(scope.row, releaseId, null, undefined, '', '', storeCredits.storedCreditFields(hopCreditsEarly));
   const status = String(row.status || '').toLowerCase();
   if (status === 'pending' || status === 'approved' || status === 'live') {
     sendJson(res, 200, {
