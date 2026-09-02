@@ -1936,6 +1936,18 @@
     };
   }
 
+  function rosterLocalArtistId(row) {
+    if (!row || String(row.id || '') === 'account') return '';
+    return String(row.id || row.artist_id || row.plaiground_artist_id || row.uuid || '').trim();
+  }
+
+  function rosterStoreArtistId(row) {
+    var storeId = String((row && row.tonegrid_artist_id) || '').trim();
+    if (!isUuidValue(storeId)) return '';
+    if (sameUuid(storeId, rosterLocalArtistId(row))) return '';
+    return storeId;
+  }
+
   function isLocalProfileArtistId(id, draft) {
     var want = String(id || '').trim();
     if (!isUuidValue(want)) return false;
@@ -1947,7 +1959,7 @@
     for (i = 0; i < artists.length; i += 1) {
       var row = artists[i] || {};
       if (String(row.id || '') === 'account') continue;
-      var storeId = String(row.tonegrid_artist_id || '').trim();
+      var storeId = rosterStoreArtistId(row);
       if (storeId && sameUuid(want, storeId)) return false;
       if (sameUuid(want, row.id) || sameUuid(want, row.artist_id) || sameUuid(want, row.uuid) || sameUuid(want, row.plaiground_artist_id)) {
         return true;
@@ -1964,17 +1976,18 @@
     var i;
     for (i = 0; i < artists.length; i += 1) {
       var row = artists[i] || {};
-      var storeId = String(row.tonegrid_artist_id || '').trim();
+      var storeId = rosterStoreArtistId(row);
       if (String(row.id || '') === 'account') {
-        if (isUuidValue(storeId) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
-          return storeId;
+        var accountStore = String(row.tonegrid_artist_id || '').trim();
+        if (isUuidValue(accountStore) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
+          return accountStore;
         }
         continue;
       }
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
       if (!sameProfile) continue;
-      if (isUuidValue(storeId)) return storeId;
+      if (storeId) return storeId;
       return '';
     }
     return '';
@@ -1994,10 +2007,11 @@
   function existingStoreArtistId(draft) {
     var current = draft || {};
     if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
-      return String(current.tonegrid_artist_id).trim();
+      var accountId = String(current.tonegrid_artist_id).trim();
+      return isLocalProfileArtistId(accountId, current) ? '' : accountId;
     }
     var fromRoster = matchingRosterStoreArtistId(current);
-    if (fromRoster) return fromRoster;
+    if (fromRoster && !isLocalProfileArtistId(fromRoster, current)) return fromRoster;
     var candidates = [current.tonegrid_artist_id, current.artist_id];
     var liveOnDraft = '';
     var i;
@@ -2008,16 +2022,16 @@
       }
     }
     if (liveOnDraft && current.tonegrid_artist_id && sameUuid(liveOnDraft, current.tonegrid_artist_id)) {
-      return liveOnDraft;
+      return isLocalProfileArtistId(liveOnDraft, current) ? '' : liveOnDraft;
     }
     var artists = rosterFromMe();
     var pgId = String(current.plaiground_artist_id || '').trim();
     var name = String(current.name || '').trim();
-    var profileNeedsCreate = artists.some(function (row) {
+    var profileNeedsCreate = Boolean(pgId) || artists.some(function (row) {
       if (!row || String(row.id || '') === 'account') return false;
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
-      return sameProfile && !isUuidValue(row.tonegrid_artist_id);
+      return sameProfile && !rosterStoreArtistId(row);
     });
     if (profileNeedsCreate) return '';
     return liveOnDraft;
@@ -2045,9 +2059,25 @@
         result: { data: { error: 'Artist name is required.' } },
       });
     }
+    var pgId = String(current.plaiground_artist_id || '').trim();
+    if (!pgId && name) {
+      var roster = rosterFromMe();
+      var r;
+      for (r = 0; r < roster.length; r += 1) {
+        var row = roster[r] || {};
+        if (String(row.id || '') === 'account') continue;
+        if (String(row.name || '').toLowerCase() === name.toLowerCase()) {
+          pgId = rosterLocalArtistId(row);
+          break;
+        }
+      }
+    }
+    if (pgId && String(current.plaiground_artist_id || '').trim() !== pgId) {
+      current = writeDraft({ plaiground_artist_id: pgId });
+    }
     return post(ARTISTS_URL, {
       name: name,
-      plaiground_artist_id: current.plaiground_artist_id || '',
+      plaiground_artist_id: pgId,
     }).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
       if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
@@ -2060,10 +2090,14 @@
           draft: current,
         };
       }
-      var next = writeDraft({ artist_id: id, tonegrid_artist_id: id });
+      var next = writeDraft({
+        artist_id: id,
+        tonegrid_artist_id: id,
+        plaiground_artist_id: pgId || current.plaiground_artist_id || '',
+      });
       saveCatalog({ artist_id: id });
       rememberRosterArtist({
-        id: current.plaiground_artist_id || id,
+        id: pgId || current.plaiground_artist_id || id,
         name: name,
         tonegrid_artist_id: id,
         source: 'created',
@@ -5350,6 +5384,7 @@
             var artistMode = fieldValue('tg-artist-mode') || '';
             var storeId = liveChosenStoreArtistId(artist);
             if (!storeId && artistMode !== 'create') storeId = existingStoreArtistId(readDraft());
+            if (storeId && isLocalProfileArtistId(storeId, readDraft())) storeId = '';
             var persist = {
               name: (artist && artist.name) || name,
               plaiground_artist_id: (artist && artist.id && artist.id !== 'account') ? artist.id : '',
@@ -5357,10 +5392,10 @@
               artist_linked: Boolean(artist && artist.linked),
               confirm_different: Boolean(artist && artist.confirmDifferent),
             };
-            if (artistMode === 'create') {
+            if (artistMode === 'create' || !storeId) {
               persist.artist_id = '';
               persist.tonegrid_artist_id = '';
-            } else if (storeId) {
+            } else {
               persist.artist_id = storeId;
               persist.tonegrid_artist_id = storeId;
             }
@@ -5370,7 +5405,7 @@
                 id: artist.id,
                 name: artist.name,
                 source: artist.linked ? 'linked' : 'created',
-                tonegrid_artist_id: storeId || artist.tonegridId || artist.tonegrid_artist_id || '',
+                tonegrid_artist_id: storeId || liveChosenStoreArtistId(artist) || '',
               });
             }
             if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {
