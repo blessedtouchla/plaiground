@@ -2651,6 +2651,60 @@ async function run() {
     assert.ok(!/could not create that artist/i.test(page.status.textContent));
   }
 
+  async function reviewSubmitRealStoreArtistUuidReuses() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        title: 'Night Drive',
+        name: 'VEXA',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: liveId,
+        tonegrid_artist_id: liveId,
+        plaiground_artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'VEXA',
+            source: 'created',
+            tonegrid_artist_id: liveId,
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/artists';
+    }), 'real store artist uuid must reuse and not POST create');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.notStrictEqual(draftOf(page.localStorage).artist_id, localId);
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1);
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, liveId);
+    assert.notStrictEqual(JSON.parse(createCalls[0].init.body).artist_id, localId);
+    assert.ok(!/could not create that artist/i.test(page.status.textContent));
+  }
+
   async function reviewSubmitAccountRowReusesLiveStoreArtist() {
     const liveId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
     const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
@@ -3891,6 +3945,7 @@ async function run() {
   await reviewSubmitEnsuresCatalogArtist();
   await reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce();
   await reviewSubmitLocalIdMirroredAsStoreIdStillMints();
+  await reviewSubmitRealStoreArtistUuidReuses();
   await reviewSubmitAccountRowReusesLiveStoreArtist();
   await reviewSubmitAmplifyGoneIsStepFailNotArtistGone();
   await reviewSubmitDoesNotReconvertHeldMp3();
@@ -4097,12 +4152,21 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d5'), 'review.html must cache-bust past 20260901d5');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902a1'), 'review.html must cache-bust past leftover skip 20260902a1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902b1'), 'review.html must cache-bust past 20260902b1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html cache-busts store-client.js at 20260902c1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html must cache-bust past 20260902c1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html cache-busts store-client.js at 20260902c2');
+  const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
+  const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
+  const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c2'), 'upload.html cache-busts store-client.js at 20260902c2');
+  assert.ok(attestHtml.includes('store-client.js?v=20260902c2'), 'attest.html cache-busts store-client.js at 20260902c2');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c2'), 'split-sheet.html cache-busts store-client.js at 20260902c2');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
   assert.ok(!reviewHtml.includes('data-leftover-hop'), 'Review must not keep leftover pickers');
   assert.ok(!reviewHtml.includes('data-leftover-audio-pick'), 'Review must not have Pick original audio');
+  assert.ok(!reviewHtml.includes('data-leftover-cover-pick'), 'Review must not have leftover cover pick');
+  assert.ok(!reviewHtml.includes('leftover-hop-note'), 'Review must not have leftover hop note');
   assert.ok(!reviewHtml.includes('data-leftover-art-pick'), 'Review must not have Pick cover');
   assert.ok(!/Pick original audio/.test(reviewHtml), 'Review must not say Pick original audio');
   assert.ok(!/Pick cover/.test(reviewHtml), 'Review must not say Pick cover');
@@ -4135,12 +4199,20 @@ async function run() {
   assert.ok(source.includes('function isLocalProfileArtistId'));
   assert.ok(source.includes('function matchingRosterStoreArtistId'));
   assert.ok(source.includes('function liveChosenStoreArtistId'));
+  assert.ok(source.includes('function rosterStoreArtistId'));
+  assert.ok(source.includes('function liveReleaseArtistId'));
+  assert.ok(source.includes("ARTIST_GONE_COPY = 'We could not create that artist. Try the name again.'"));
+  assert.ok(!source.includes('if (storeId && sameUuid(want, storeId)) return false'), 'mirrored tonegrid_artist_id must not count as a store artist');
   const storeArtistFn = source.match(/function existingStoreArtistId\(draft\) \{[\s\S]*?\n  \}/);
   assert.ok(storeArtistFn, 'existingStoreArtistId must stay a real function');
   assert.ok(!storeArtistFn[0].includes('current.uuid'), 'existingStoreArtistId must never treat draft.uuid as a store artist');
   assert.ok(!/return String\(row\.id\)/.test(storeArtistFn[0]), 'existingStoreArtistId must never return a local profile id');
   assert.ok(storeArtistFn[0].includes("=== 'account'"), 'account row with a live tonegrid_artist_id must return that store uuid');
   assert.ok(storeArtistFn[0].includes('tonegrid_artist_id') || source.includes('matchingRosterStoreArtistId'), 'only a live store artist uuid counts');
+  assert.ok(storeArtistFn[0].includes('isLocalProfileArtistId'), 'existingStoreArtistId must refuse a local profile uuid');
+  const localProfileFn = source.match(/function isLocalProfileArtistId\(id, draft\) \{[\s\S]*?\n  \}/);
+  assert.ok(localProfileFn, 'isLocalProfileArtistId must stay a real function');
+  assert.ok(!/tonegrid_artist_id[\s\S]*return false/.test(localProfileFn[0]), 'copied tonegrid_artist_id must not make a local id a store artist');
   const chosenStoreFn = source.match(/function liveChosenStoreArtistId\(artist\) \{[\s\S]*?\n  \}/);
   assert.ok(chosenStoreFn, 'liveChosenStoreArtistId must stay a real function');
   assert.ok(chosenStoreFn[0].includes('tonegridId') || chosenStoreFn[0].includes('tonegrid_artist_id'), 'Continue persists the roster store uuid');
