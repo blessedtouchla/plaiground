@@ -483,6 +483,16 @@ function load(options) {
           json: async () => ({ created: created, check: { level: 'green' } }),
         });
       }
+      if (String(url) === '/api/tonegrid/artists' || String(url).indexOf('/api/tonegrid/artists?') === 0) {
+        const method = String((init && init.method) || 'GET').toUpperCase();
+        if (method === 'GET') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ data: liveArtistsPayload(opts) }),
+          });
+        }
+      }
       if (String(url).indexOf('/api/tonegrid/stores') !== -1) {
         return Promise.resolve({
           ok: true,
@@ -682,16 +692,56 @@ function filledUpload(extra) {
   }, extra || {});
 }
 
+function artistCallMethod(call) {
+  return String((call && call.init && call.init.method) || 'GET').toUpperCase();
+}
+
+function isArtistsGet(call) {
+  const url = String((call && call.url) || '');
+  return (url === '/api/tonegrid/artists' || url.indexOf('/api/tonegrid/artists?') === 0)
+    && artistCallMethod(call) === 'GET';
+}
+
+function isArtistsPost(call) {
+  return String((call && call.url) || '') === '/api/tonegrid/artists'
+    && artistCallMethod(call) === 'POST';
+}
+
 function storeCreateHops(page) {
   return (page.calls || []).filter(function (call) {
     const url = String(call.url || '');
     if (url.indexOf('/api/tonegrid/') !== 0) return false;
-    return url === '/api/tonegrid/artists'
-      || url === '/api/tonegrid/releases'
+    if (url === '/api/tonegrid/artists' || url.indexOf('/api/tonegrid/artists?') === 0) {
+      return artistCallMethod(call) === 'POST';
+    }
+    return url === '/api/tonegrid/releases'
       || url === '/api/tonegrid/tracks'
       || /\/audio$/.test(url)
       || /\/artwork$/.test(url);
   });
+}
+
+function liveArtistsPayload(opts) {
+  if (Array.isArray(opts.liveArtists)) return opts.liveArtists;
+  const out = [];
+  const seen = Object.create(null);
+  function add(id, name) {
+    const uuid = String(id || '').trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) return;
+    const key = uuid.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push({ uuid: uuid, name: String(name || '').trim() });
+  }
+  const acc = opts.account || {};
+  add(acc.tonegrid_artist_id, acc.artist);
+  const roster = (acc.profile && acc.profile.artists) || [];
+  roster.forEach(function (row) {
+    const storeId = String((row && row.tonegrid_artist_id) || '').trim();
+    const localId = String((row && (row.id || row.plaiground_artist_id)) || '').trim();
+    if (storeId && storeId.toLowerCase() !== localId.toLowerCase()) add(storeId, row && row.name);
+  });
+  return out;
 }
 
 function assertContinueLocalOnly(page, label) {
@@ -2492,7 +2542,8 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const artistCall = page.calls.find(function (call) { return call.url === '/api/tonegrid/artists'; });
+    assert.ok(page.calls.some(isArtistsGet), 'review submit must GET the live catalog before mint');
+    const artistCall = page.calls.find(isArtistsPost);
     assert.ok(artistCall, 'review submit without a draft artist id must POST a live artist');
     assert.strictEqual(JSON.parse(artistCall.init.body).name, 'Ada Night');
     assert.ok(!JSON.parse(artistCall.init.body).artist_id);
@@ -2560,11 +2611,8 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(20);
-    const artistPosts = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/artists'
-        && call.init
-        && String(call.init.method || 'POST').toUpperCase() === 'POST';
-    });
+    assert.ok(page.calls.some(isArtistsGet), 'Amplify Submit must GET the live catalog before mint');
+    const artistPosts = page.calls.filter(isArtistsPost);
     assert.strictEqual(artistPosts.length, 1, 'Amplify Submit must POST create once');
     const artistBody = JSON.parse(artistPosts[0].init.body);
     assert.strictEqual(artistBody.name, 'Amplify');
@@ -2632,11 +2680,8 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(20);
-    const artistPosts = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/artists'
-        && call.init
-        && String(call.init.method || 'POST').toUpperCase() === 'POST';
-    });
+    assert.ok(page.calls.some(isArtistsGet), 'mirrored local id must GET the live catalog before mint');
+    const artistPosts = page.calls.filter(isArtistsPost);
     assert.strictEqual(artistPosts.length, 1, 'local profile mirrored as tonegrid_artist_id must still mint once');
     const artistBody = JSON.parse(artistPosts[0].init.body);
     assert.strictEqual(artistBody.name, 'New Act');
@@ -2691,9 +2736,8 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.ok(!page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/artists';
-    }), 'real store artist uuid must reuse and not POST create');
+    assert.ok(page.calls.some(isArtistsGet), 'real store artist uuid must GET the live catalog');
+    assert.ok(!page.calls.some(isArtistsPost), 'real store artist uuid must reuse and not POST create');
     assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
     assert.notStrictEqual(draftOf(page.localStorage).artist_id, localId);
     const createCalls = page.calls.filter(function (call) {
@@ -2735,9 +2779,8 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.ok(!page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/artists';
-    }), 'account row with a live store uuid must reuse it and not POST create');
+    assert.ok(page.calls.some(isArtistsGet), 'account row must GET the live catalog');
+    assert.ok(!page.calls.some(isArtistsPost), 'account row with a live store uuid must reuse it and not POST create');
     assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
     assert.strictEqual(draftOf(page.localStorage).tonegrid_artist_id, liveId);
     const createCalls = page.calls.filter(function (call) {
@@ -2746,6 +2789,141 @@ async function run() {
     assert.strictEqual(createCalls.length, 1);
     assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, liveId);
     assert.ok(!/could not create that artist/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitLocalDraftIdEmptyRosterMintsFromLiveCatalog() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: { name: 'new-song.mp3', type: 'audio/mpeg', size: 2048 },
+      artwork: ART,
+      liveArtists: [],
+      draft: Object.assign(attestDraft(), {
+        title: 'First Send',
+        name: 'New Stage Name',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    assert.ok(page.calls.some(isArtistsGet), 'empty plaiground_artist_id must GET the live catalog');
+    const artistPosts = page.calls.filter(isArtistsPost);
+    assert.strictEqual(artistPosts.length, 1, 'unknown local uuid must mint a store artist');
+    const artistBody = JSON.parse(artistPosts[0].init.body);
+    assert.strictEqual(artistBody.name, 'New Stage Name');
+    assert.ok(!artistBody.artist_id, 'must not send the local profile uuid as artist_id');
+    assert.ok(!artistBody.uuid, 'must not send draft.uuid as a store artist');
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1);
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist_id, liveId);
+    assert.notStrictEqual(JSON.parse(createPosts[0].init.body).artist_id, localId);
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_artist_id, liveId);
+  }
+
+  async function reviewSubmitLiveCatalogUuidReusesWithoutMint() {
+    const liveId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      liveArtists: [{ uuid: liveId, name: 'VEXA' }],
+      draft: Object.assign(attestDraft(), {
+        title: 'Night Drive',
+        name: 'VEXA',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: liveId,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(page.calls.some(isArtistsGet), 'live uuid must GET /artists before reuse');
+    assert.ok(!page.calls.some(isArtistsPost), 'draft artist_id equal to a live GET uuid must not POST /artists');
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1);
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, liveId);
+  }
+
+  async function reviewSubmitLiveCatalogNameMatchReusesWithoutSecondMint() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const vexaId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      liveArtists: [
+        { uuid: '11111111-1111-4111-8111-111111111111', name: 'The hellos' },
+        { uuid: '22222222-2222-4222-8222-222222222222', name: 'The Iintercepterzz' },
+        { uuid: vexaId, name: 'VEXA' },
+        { uuid: '33333333-3333-4333-8333-333333333333', name: 'Vicki G' },
+        { uuid: '44444444-4444-4444-8444-444444444444', name: 'Victoria PLAIGROUND' },
+      ],
+      draft: Object.assign(attestDraft(), {
+        title: 'Night Drive',
+        name: 'VEXA',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(page.calls.some(isArtistsGet), 'name match must GET the live catalog');
+    assert.ok(!page.calls.some(isArtistsPost), 'live GET name match must reuse VEXA, no second mint');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, vexaId);
+    assert.notStrictEqual(draftOf(page.localStorage).artist_id, localId);
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1);
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, vexaId);
+    assert.notStrictEqual(JSON.parse(createCalls[0].init.body).artist_id, localId);
   }
 
   async function reviewSubmitAmplifyGoneIsStepFailNotArtistGone() {
@@ -2797,11 +2975,7 @@ async function run() {
 
     page.retryBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    const artistPosts = page.calls.filter(function (call) {
-      return call.url === '/api/tonegrid/artists'
-        && call.init
-        && String(call.init.method || 'POST').toUpperCase() === 'POST';
-    });
+    const artistPosts = page.calls.filter(isArtistsPost);
     assert.strictEqual(artistPosts.length, 2, 'Retry retries the same create-once path');
     assert.ok(!page.calls.some(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
@@ -3947,6 +4121,9 @@ async function run() {
   await reviewSubmitLocalIdMirroredAsStoreIdStillMints();
   await reviewSubmitRealStoreArtistUuidReuses();
   await reviewSubmitAccountRowReusesLiveStoreArtist();
+  await reviewSubmitLocalDraftIdEmptyRosterMintsFromLiveCatalog();
+  await reviewSubmitLiveCatalogUuidReusesWithoutMint();
+  await reviewSubmitLiveCatalogNameMatchReusesWithoutSecondMint();
   await reviewSubmitAmplifyGoneIsStepFailNotArtistGone();
   await reviewSubmitDoesNotReconvertHeldMp3();
   await reviewSubmitIgnoresAudioRequiredWhenHeld();
@@ -4153,13 +4330,14 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902a1'), 'review.html must cache-bust past leftover skip 20260902a1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902b1'), 'review.html must cache-bust past 20260902b1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html must cache-bust past 20260902c1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html cache-busts store-client.js at 20260902c2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html must cache-bust past 20260902c2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260902c3'), 'review.html cache-busts store-client.js at 20260902c3');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c2'), 'upload.html cache-busts store-client.js at 20260902c2');
-  assert.ok(attestHtml.includes('store-client.js?v=20260902c2'), 'attest.html cache-busts store-client.js at 20260902c2');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c2'), 'split-sheet.html cache-busts store-client.js at 20260902c2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260902c3'), 'upload.html cache-busts store-client.js at 20260902c3');
+  assert.ok(attestHtml.includes('store-client.js?v=20260902c3'), 'attest.html cache-busts store-client.js at 20260902c3');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260902c3'), 'split-sheet.html cache-busts store-client.js at 20260902c3');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
@@ -4210,6 +4388,17 @@ async function run() {
   assert.ok(storeArtistFn[0].includes("=== 'account'"), 'account row with a live tonegrid_artist_id must return that store uuid');
   assert.ok(storeArtistFn[0].includes('tonegrid_artist_id') || source.includes('matchingRosterStoreArtistId'), 'only a live store artist uuid counts');
   assert.ok(storeArtistFn[0].includes('isLocalProfileArtistId'), 'existingStoreArtistId must refuse a local profile uuid');
+  assert.ok(storeArtistFn[0].includes('isLiveCatalogArtistId'), 'existingStoreArtistId must confirm the uuid against the live GET /artists list');
+  const liveReleaseFn = source.match(/function liveReleaseArtistId\(draft\) \{[\s\S]*?\n  \}/);
+  assert.ok(liveReleaseFn, 'liveReleaseArtistId must stay a real function');
+  assert.ok(liveReleaseFn[0].includes('isLiveCatalogArtistId'), 'liveReleaseArtistId must not return a draft uuid until it is in the live catalog');
+  assert.ok(source.includes('function loadLiveCatalogArtists'), 'ensureCatalogArtist must GET the live catalog');
+  assert.ok(/getJson\(ARTISTS_URL\)/.test(source), 'live catalog load must GET /api/tonegrid/artists');
+  const ensureFn = source.match(/function ensureCatalogArtist\(draft\) \{[\s\S]*?\n  \}/);
+  assert.ok(ensureFn, 'ensureCatalogArtist must stay a real function');
+  assert.ok(ensureFn[0].includes('loadLiveCatalogArtists'), 'ensureCatalogArtist must talk to the live catalog, not localStorage');
+  assert.ok(/body = \{ name: name \}/.test(ensureFn[0]) || /\{ name: name \}/.test(ensureFn[0]), 'mint posts the stage name only');
+  assert.ok(!/post\(ARTISTS_URL, \{[\s\S]*artist_id:/.test(ensureFn[0]), 'must not send a local profile uuid as artist_id');
   const localProfileFn = source.match(/function isLocalProfileArtistId\(id, draft\) \{[\s\S]*?\n  \}/);
   assert.ok(localProfileFn, 'isLocalProfileArtistId must stay a real function');
   assert.ok(!/tonegrid_artist_id[\s\S]*return false/.test(localProfileFn[0]), 'copied tonegrid_artist_id must not make a local id a store artist');
@@ -6255,9 +6444,8 @@ async function run() {
     await flush(8);
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(28);
-    assert.ok(!page.calls.some(function (call) {
-      return call.url === '/api/tonegrid/artists';
-    }), 'existing VEXA uuid must be reused, no POST /artists');
+    assert.ok(page.calls.some(isArtistsGet), 'existing VEXA must GET the live catalog');
+    assert.ok(!page.calls.some(isArtistsPost), 'existing VEXA uuid must be reused, no POST /artists');
     const createPosts = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     });

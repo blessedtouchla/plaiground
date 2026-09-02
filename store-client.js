@@ -2003,110 +2003,172 @@
     return id;
   }
 
-  function existingStoreArtistId(draft) {
-    var current = draft || {};
-    if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
-      var accountId = String(current.tonegrid_artist_id).trim();
-      return isLocalProfileArtistId(accountId, current) ? '' : accountId;
-    }
-    var fromRoster = matchingRosterStoreArtistId(current);
-    if (fromRoster && !isLocalProfileArtistId(fromRoster, current)) return fromRoster;
-    var candidates = [current.tonegrid_artist_id, current.artist_id];
-    var liveOnDraft = '';
+  var liveCatalogArtists = [];
+
+  function parseLiveCatalogArtists(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (payload && Array.isArray(payload.data)) return payload.data;
+    if (payload && Array.isArray(payload.artists)) return payload.artists;
+    if (payload && payload.data && Array.isArray(payload.data.data)) return payload.data.data;
+    return [];
+  }
+
+  function rememberLiveCatalogArtist(id, name) {
+    var want = String(id || '').trim();
+    if (!isUuidValue(want)) return;
+    var label = String(name || '').trim();
     var i;
-    for (i = 0; i < candidates.length; i += 1) {
-      if (isUuidValue(candidates[i]) && !isLocalProfileArtistId(candidates[i], current)) {
-        liveOnDraft = String(candidates[i]).trim();
-        break;
+    for (i = 0; i < liveCatalogArtists.length; i += 1) {
+      if (sameUuid(liveCatalogArtists[i].id, want)) {
+        if (label) liveCatalogArtists[i].name = label;
+        return;
       }
     }
-    if (liveOnDraft && !isLocalProfileArtistId(liveOnDraft, current)) return liveOnDraft;
-    var artists = rosterFromMe();
-    var pgId = String(current.plaiground_artist_id || '').trim();
-    var name = String(current.name || '').trim();
-    var profileNeedsCreate = artists.some(function (row) {
-      if (!row || String(row.id || '') === 'account') return false;
-      var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
-        || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
-      return sameProfile && !rosterStoreArtistId(row);
+    liveCatalogArtists.push({ id: want, name: label });
+  }
+
+  function isLiveCatalogArtistId(id) {
+    var want = String(id || '').trim();
+    if (!isUuidValue(want)) return false;
+    var i;
+    for (i = 0; i < liveCatalogArtists.length; i += 1) {
+      if (sameUuid(liveCatalogArtists[i].id, want)) return true;
+    }
+    return false;
+  }
+
+  function liveCatalogArtistIdByName(name) {
+    var want = String(name || '').trim().toLowerCase();
+    if (!want) return '';
+    var i;
+    for (i = 0; i < liveCatalogArtists.length; i += 1) {
+      var got = String(liveCatalogArtists[i].name || '').trim().toLowerCase();
+      if (got && got === want) return liveCatalogArtists[i].id;
+    }
+    return '';
+  }
+
+  function loadLiveCatalogArtists() {
+    return getJson(ARTISTS_URL).then(function (result) {
+      if (isUnavailable(result)) return result;
+      liveCatalogArtists = [];
+      if (!result || !result.ok) return result;
+      var rows = parseLiveCatalogArtists(result.data);
+      var i;
+      for (i = 0; i < rows.length; i += 1) {
+        var row = rows[i] || {};
+        var id = pickUuid(row) || String(row.uuid || row.artist_id || row.id || '').trim();
+        var name = String(row.name || row.artist || '').trim();
+        if (isUuidValue(id)) rememberLiveCatalogArtist(id, name);
+      }
+      return result;
     });
-    if (profileNeedsCreate || pgId) return '';
-    return liveOnDraft;
+  }
+
+  function persistLiveStoreArtist(current, artistId) {
+    var next = current || {};
+    var reuse = {};
+    if (String(next.artist_id || '').trim() !== artistId) reuse.artist_id = artistId;
+    if (String(next.tonegrid_artist_id || '').trim() !== artistId) reuse.tonegrid_artist_id = artistId;
+    if (Object.keys(reuse).length) {
+      next = writeDraft(reuse);
+      saveCatalog({ artist_id: artistId });
+    }
+    return next;
+  }
+
+  function existingStoreArtistId(draft) {
+    var current = draft || {};
+    var byName = liveCatalogArtistIdByName(current.name);
+    if (byName && !isLocalProfileArtistId(byName, current)) return byName;
+    if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
+      var accountId = String(current.tonegrid_artist_id).trim();
+      if (!isLocalProfileArtistId(accountId, current) && isLiveCatalogArtistId(accountId)) return accountId;
+    }
+    var fromRoster = matchingRosterStoreArtistId(current);
+    if (fromRoster && !isLocalProfileArtistId(fromRoster, current) && isLiveCatalogArtistId(fromRoster)) {
+      return fromRoster;
+    }
+    var candidates = [current.tonegrid_artist_id, current.artist_id];
+    var i;
+    for (i = 0; i < candidates.length; i += 1) {
+      var candidate = String(candidates[i] || '').trim();
+      if (isUuidValue(candidate) && !isLocalProfileArtistId(candidate, current) && isLiveCatalogArtistId(candidate)) {
+        return candidate;
+      }
+    }
+    return '';
   }
 
   function liveReleaseArtistId(draft) {
     var current = draft || {};
     var id = String(current.artist_id || '').trim();
-    if (isUuidValue(id) && !isLocalProfileArtistId(id, current)) return id;
+    if (isUuidValue(id) && !isLocalProfileArtistId(id, current) && isLiveCatalogArtistId(id)) return id;
     return existingStoreArtistId(current) || '';
   }
 
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
-    var artistId = existingStoreArtistId(current);
-    if (isUuidValue(artistId) && !isLocalProfileArtistId(artistId, current)) {
-      var reuse = {};
-      if (String(current.artist_id || '').trim() !== artistId) reuse.artist_id = artistId;
-      if (String(current.tonegrid_artist_id || '').trim() !== artistId) reuse.tonegrid_artist_id = artistId;
-      if (Object.keys(reuse).length) {
-        current = writeDraft(reuse);
-        saveCatalog({ artist_id: artistId });
+    return loadLiveCatalogArtists().then(function (listed) {
+      if (listed && listed.unavailable) return { unavailable: true, result: listed, draft: current };
+      var artistId = existingStoreArtistId(current);
+      if (isUuidValue(artistId) && isLiveCatalogArtistId(artistId) && !isLocalProfileArtistId(artistId, current)) {
+        return { ok: true, draft: persistLiveStoreArtist(current, artistId) };
       }
-      return Promise.resolve({ ok: true, draft: current });
-    }
-    var name = String(current.name || '').trim();
-    if (!name) {
-      return Promise.resolve({
-        failed: true,
-        missing: true,
-        draft: current,
-        result: { data: { error: 'Artist name is required.' } },
-      });
-    }
-    var pgId = String(current.plaiground_artist_id || '').trim();
-    if (!pgId && name) {
-      var roster = rosterFromMe();
-      var r;
-      for (r = 0; r < roster.length; r += 1) {
-        var row = roster[r] || {};
-        if (String(row.id || '') === 'account') continue;
-        if (String(row.name || '').toLowerCase() === name.toLowerCase()) {
-          pgId = rosterLocalArtistId(row);
-          break;
-        }
-      }
-    }
-    if (pgId && String(current.plaiground_artist_id || '').trim() !== pgId) {
-      current = writeDraft({ plaiground_artist_id: pgId });
-    }
-    return post(ARTISTS_URL, {
-      name: name,
-      plaiground_artist_id: pgId || '',
-    }).then(function (result) {
-      if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
-      if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
-      if (!result.ok) return { failed: true, result: result, draft: current };
-      var id = pickUuid(result.data);
-      if (!id || isLocalProfileArtistId(id, current)) {
+      var name = String(current.name || '').trim();
+      if (!name) {
         return {
           failed: true,
-          result: { data: { error: createErrorMessage(result, 'Could not save artist.') } },
+          missing: true,
           draft: current,
+          result: { data: { error: 'Artist name is required.' } },
         };
       }
-      var next = writeDraft({
-        artist_id: id,
-        tonegrid_artist_id: id,
-        plaiground_artist_id: pgId || current.plaiground_artist_id || '',
+      var pgId = String(current.plaiground_artist_id || '').trim();
+      if (!pgId && name) {
+        var roster = rosterFromMe();
+        var r;
+        for (r = 0; r < roster.length; r += 1) {
+          var row = roster[r] || {};
+          if (String(row.id || '') === 'account') continue;
+          if (String(row.name || '').toLowerCase() === name.toLowerCase()) {
+            pgId = rosterLocalArtistId(row);
+            break;
+          }
+        }
+      }
+      if (pgId && String(current.plaiground_artist_id || '').trim() !== pgId) {
+        current = writeDraft({ plaiground_artist_id: pgId });
+      }
+      var body = { name: name };
+      if (pgId) body.plaiground_artist_id = pgId;
+      return post(ARTISTS_URL, body).then(function (result) {
+        if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
+        if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
+        if (!result.ok) return { failed: true, result: result, draft: current };
+        var id = pickUuid(result.data);
+        if (!id || isLocalProfileArtistId(id, current)) {
+          return {
+            failed: true,
+            result: { data: { error: createErrorMessage(result, 'Could not save artist.') } },
+            draft: current,
+          };
+        }
+        rememberLiveCatalogArtist(id, name);
+        var next = writeDraft({
+          artist_id: id,
+          tonegrid_artist_id: id,
+          plaiground_artist_id: pgId || current.plaiground_artist_id || '',
+        });
+        saveCatalog({ artist_id: id });
+        rememberRosterArtist({
+          id: pgId || current.plaiground_artist_id || name,
+          name: name,
+          tonegrid_artist_id: id,
+          source: 'created',
+        });
+        return { ok: true, draft: next, created: true };
       });
-      saveCatalog({ artist_id: id });
-      rememberRosterArtist({
-        id: pgId || current.plaiground_artist_id || name,
-        name: name,
-        tonegrid_artist_id: id,
-        source: 'created',
-      });
-      return { ok: true, draft: next, created: true };
     });
   }
 
@@ -2778,14 +2840,18 @@
   }
 
   function releasePayload(draft, releaseDate) {
+    var artistId = liveReleaseArtistId(draft);
+    if (artistId && (isLocalProfileArtistId(artistId, draft) || !isLiveCatalogArtistId(artistId))) {
+      artistId = '';
+    }
     var body = {
-      artist_id: liveReleaseArtistId(draft),
       title: draft.title,
       type: draft.type || 'single',
       genre: draft.genre || '',
       price: draft.price || '',
       instrumental: draft.instrumental === true,
     };
+    if (artistId) body.artist_id = artistId;
     if (draft.release_id) body.release_id = draft.release_id;
     if (draft.replaced_release_id) body.replace_release_id = draft.replaced_release_id;
     if (!body.instrumental && draft.language) body.language = draft.language;
@@ -3735,6 +3801,9 @@
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
     }
     var artistId = liveReleaseArtistId(draft);
+    if (artistId && (isLocalProfileArtistId(artistId, draft) || !isLiveCatalogArtistId(artistId))) {
+      artistId = '';
+    }
     if (!artistId) {
       if (opts && opts.mintedArtist) {
         return Promise.resolve({

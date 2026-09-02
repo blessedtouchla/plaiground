@@ -724,24 +724,31 @@ function matchingTonegridArtist(row, body) {
   const stored = rosterOf(row);
   const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
   const name = String((body && body.name) || '').trim();
+  const localRowId = String((row && row.id) || '').trim();
+  function usableStoreId(id) {
+    const want = String(id || '').trim();
+    if (!isUuid(want)) return '';
+    if (localRowId && want.toLowerCase() === localRowId.toLowerCase()) return '';
+    if (isLocalProfileArtistId(row, want)) return '';
+    return want;
+  }
   const storeHint = String((body && body.tonegrid_artist_id) || '').trim();
-  if (isUuid(storeHint) && !isLocalProfileArtistId(row, storeHint)) return storeHint;
+  if (usableStoreId(storeHint)) return storeHint;
   const artistHint = String((body && body.artist_id) || '').trim();
   if (isUuid(artistHint) && artistHint !== pgId && !isLocalProfileArtistId(row, artistHint)) {
     const asLocal = profileLib.findArtist(stored, artistHint);
-    if (asLocal && isUuid(asLocal.tonegrid_artist_id)) return asLocal.tonegrid_artist_id;
-    if (!asLocal) return artistHint;
+    if (asLocal && usableStoreId(asLocal.tonegrid_artist_id)) return asLocal.tonegrid_artist_id;
   }
   if (pgId) {
     const found = profileLib.findArtist(stored, pgId) || profileLib.resolveArtist(stored, pgId, name);
-    if (found && isUuid(found.tonegrid_artist_id)) return found.tonegrid_artist_id;
+    if (found && usableStoreId(found.tonegrid_artist_id)) return found.tonegrid_artist_id;
   }
   if (name) {
     const want = artistCheck.normalizeName(name);
     const list = stored.artists || [];
     for (let i = 0; i < list.length; i += 1) {
       if (artistCheck.normalizeName(list[i].name) !== want) continue;
-      if (isUuid(list[i].tonegrid_artist_id)) return list[i].tonegrid_artist_id;
+      if (usableStoreId(list[i].tonegrid_artist_id)) return list[i].tonegrid_artist_id;
     }
   }
   return '';
