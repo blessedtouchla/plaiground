@@ -1997,34 +1997,12 @@
     }
     var fromRoster = matchingRosterStoreArtistId(current);
     if (fromRoster && !isLocalProfileArtistId(fromRoster, current)) return fromRoster;
-    var candidates = [current.tonegrid_artist_id, current.artist_id];
-    var liveOnDraft = '';
-    var i;
-    for (i = 0; i < candidates.length; i += 1) {
-      if (isUuidValue(candidates[i]) && !isLocalProfileArtistId(candidates[i], current)) {
-        liveOnDraft = String(candidates[i]).trim();
-        break;
-      }
-    }
-    if (liveOnDraft && current.tonegrid_artist_id && sameUuid(liveOnDraft, current.tonegrid_artist_id)) {
-      if (!isLocalProfileArtistId(liveOnDraft, current)) return liveOnDraft;
-    }
-    var artists = rosterFromMe();
-    var pgId = String(current.plaiground_artist_id || '').trim();
-    var name = String(current.name || '').trim();
-    var profileNeedsCreate = artists.some(function (row) {
-      if (!row || String(row.id || '') === 'account') return false;
-      var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
-        || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
-      return sameProfile && !isUuidValue(row.tonegrid_artist_id);
-    });
-    if (profileNeedsCreate) return '';
-    return isLocalProfileArtistId(liveOnDraft, current) ? '' : liveOnDraft;
+    return '';
   }
 
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
-    var artistId = existingStoreArtistId(current);
+    var artistId = matchingRosterStoreArtistId(current) || existingStoreArtistId(current);
     if (isUuidValue(artistId) && !isLocalProfileArtistId(artistId, current)) {
       var reuse = {};
       if (String(current.artist_id || '').trim() !== artistId) reuse.artist_id = artistId;

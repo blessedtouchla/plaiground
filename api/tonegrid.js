@@ -713,16 +713,33 @@ function matchingTonegridArtist(row, body) {
   const stored = rosterOf(row);
   const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
   const name = String((body && body.name) || '').trim();
+
+  function liveStoreId(found) {
+    const id = String((found && found.tonegrid_artist_id) || '').trim();
+    if (!id || !isUuid(id)) return '';
+    const localIds = [
+      pgId,
+      found.id,
+      found.artist_id,
+      found.plaiground_artist_id,
+      found.uuid,
+    ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+    if (localIds.includes(id.toLowerCase())) return '';
+    return id;
+  }
+
   if (pgId) {
     const found = profileLib.findArtist(stored, pgId);
-    if (found && found.tonegrid_artist_id) return found.tonegrid_artist_id;
+    const id = liveStoreId(found);
+    if (id) return id;
   }
   if (name) {
     const want = artistCheck.normalizeName(name);
     const list = stored.artists || [];
     for (let i = 0; i < list.length; i += 1) {
-      if (artistCheck.normalizeName(list[i].name) === want && list[i].tonegrid_artist_id) {
-        return list[i].tonegrid_artist_id;
+      if (artistCheck.normalizeName(list[i].name) === want) {
+        const id = liveStoreId(list[i]);
+        if (id) return id;
       }
     }
   }
