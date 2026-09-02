@@ -2420,7 +2420,6 @@ async function run() {
       }),
       responses: [
         { ok: false, status: 404, data: { error: 'Release not found.' } },
-        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
@@ -2429,13 +2428,16 @@ async function run() {
     await flush(18);
     assert.strictEqual(page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    }).length, 1, 'dead id with no living catalog row may mint once');
+    }).length, 0, 'dead leftover must not remint a second release');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio';
-    }), 'held File must upload onto the new track');
+    }), 'held File must hop onto a track on the leftover');
     assert.ok(page.calls.some(function (call) {
-      return String(call.url) === '/api/tonegrid/releases/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit';
-    }));
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    }), 'submit stays on the leftover uuid');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('dddddddd-dddd-4ddd-8ddd-dddddddddddd') !== -1;
+    }), 'must not remint');
     assert.ok(!/no longer on this page|re-attach/i.test(page.status.textContent));
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
@@ -2729,19 +2731,20 @@ async function run() {
       },
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     await flush(16);
-    assert.strictEqual(page.convertCalls, 0, 'Review Submit must not convert again');
-    assert.ok(!page.calls.some(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    }), 'Submit reuses the already-uploaded track');
+    assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'empty leftover must create a store track');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio';
+    }), 'step-1 File must hop onto the new track');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
     }));
     assert.ok(!/audio file is required/i.test(page.status.textContent));
-    assert.ok(!/Converting MP3 to WAV/.test(page.loaderStep.textContent));
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
@@ -2995,17 +2998,19 @@ async function run() {
       }),
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     await flush(16);
-    assert.strictEqual(page.convertCalls, 0, 'already-converted WAV must not convert again');
-    assert.ok(!page.calls.some(function (call) {
-      return String(call.url).indexOf('/audio') !== -1;
-    }), 'leftover MP3 must not POST audio a second time');
+    assert.ok(page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'empty leftover must create a store track');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio';
+    }), 'step-1 File must hop onto the new track');
     assert.ok(!page.calls.some(function (call) {
       return String(call.url).indexOf('/convert') !== -1;
-    }), 'must not start a second convert');
+    }), 'must not start a store convert');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
     }), 'normal song still submits JSON');
@@ -4025,6 +4030,10 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d3'), 'review.html must cache-bust past 20260901d3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d4'), 'review.html must cache-bust past 20260901d4');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d5'), 'review.html must cache-bust past 20260901d5');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260902a1'), 'review.html must cache-bust past leftover skip 20260902a1');
+  assert.ok(source.includes('function afterRelease'));
+  assert.ok(source.includes('function createTrackOnRelease'));
+  assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
   assert.ok(!reviewHtml.includes('data-leftover-hop'), 'Review must not keep leftover pickers');
   assert.ok(!reviewHtml.includes('data-leftover-audio-pick'), 'Review must not have Pick original audio');
   assert.ok(!reviewHtml.includes('data-leftover-art-pick'), 'Review must not have Pick cover');
