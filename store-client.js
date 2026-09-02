@@ -272,7 +272,13 @@
     if (isPlatformPayloadError(next, status)) return platformPayloadCopy();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
-    if (isArtistGoneError(next) || /\btenant\b/i.test(next)) return ARTIST_GONE_COPY;
+    if (isArtistGoneError(next) || /\btenant\b/i.test(next)) {
+      var named = readDraft();
+      if (named && String(named.plaiground_artist_id || '').trim() && String(named.name || '').trim()) {
+        return STEP_FAIL_COPY;
+      }
+      return ARTIST_GONE_COPY;
+    }
     if (/we could not send the audio/i.test(next)) return AUDIO_SEND_COPY;
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
@@ -984,17 +990,17 @@
   }
 
   function leftoverHopFile(file) {
+    var input = document.querySelector('[data-audio-input]');
+    var fromInput = fileFromHeld((input && input.files && input.files[0]) || (input && input._plaigroundFile) || null);
     var held = fileFromHeld(heldAudioFile);
     var live = fileFromHeld(file);
     var picked = fileFromHeld(heldPickedFile);
-    var input = document.querySelector('[data-audio-input]');
-    var fromInput = fileFromHeld((input && input.files && input.files[0]) || (input && input._plaigroundFile) || null);
-    if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
     if (fromInput && Number(fromInput.size) > 0 && !looksLikeWav(fromInput)) return fromInput;
+    if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
     if (live && Number(live.size) > 0 && !looksLikeWav(live)) return live;
     if (held && Number(held.size) > 0 && !looksLikeWav(held)) return held;
-    if (picked && Number(picked.size) > 0) return picked;
     if (fromInput && Number(fromInput.size) > 0) return fromInput;
+    if (picked && Number(picked.size) > 0) return picked;
     if (live && Number(live.size) > 0) return live;
     if (held && Number(held.size) > 0) return held;
     return selectedAudio() || null;
@@ -1646,6 +1652,17 @@
     return true;
   }
 
+  function leftoverNeedsReviewPick(draft) {
+    if (!draft) return false;
+    var rows = draft.tracks || [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+      if (storeTrackHasAudio(rows[i])) return false;
+    }
+    if (String(draft.audio_url || draft.audio_s3_key || '').trim()) return false;
+    return true;
+  }
+
   function leftoverHopFailure(audio, draft) {
     var result = (audio && audio.result) || { ok: false, data: { error: AUDIO_SEND_COPY } };
     if (!result.data) result.data = {};
@@ -1889,38 +1906,102 @@
     };
   }
 
+  function isLocalProfileArtistId(id, draft) {
+    var want = String(id || '').trim();
+    if (!isUuidValue(want)) return false;
+    var current = draft || {};
+    var pgId = String(current.plaiground_artist_id || '').trim();
+    if (pgId && sameUuid(want, pgId)) return true;
+    var artists = rosterFromMe();
+    var i;
+    for (i = 0; i < artists.length; i += 1) {
+      var row = artists[i] || {};
+      if (String(row.id || '') === 'account') continue;
+      var storeId = String(row.tonegrid_artist_id || '').trim();
+      if (storeId && sameUuid(want, storeId)) return false;
+      if (sameUuid(want, row.id) || sameUuid(want, row.artist_id) || sameUuid(want, row.uuid) || sameUuid(want, row.plaiground_artist_id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function matchingRosterStoreArtistId(draft) {
+    var current = draft || {};
+    var artists = rosterFromMe();
+    var pgId = String(current.plaiground_artist_id || '').trim();
+    var name = String(current.name || '').trim();
+    var i;
+    for (i = 0; i < artists.length; i += 1) {
+      var row = artists[i] || {};
+      var storeId = String(row.tonegrid_artist_id || '').trim();
+      if (String(row.id || '') === 'account') {
+        if (isUuidValue(storeId) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
+          return storeId;
+        }
+        continue;
+      }
+      var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
+        || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
+      if (!sameProfile) continue;
+      if (isUuidValue(storeId)) return storeId;
+      return '';
+    }
+    return '';
+  }
+
+  function liveChosenStoreArtistId(artist) {
+    if (!artist) return '';
+    var id = String(artist.tonegridId || artist.tonegrid_artist_id || '').trim();
+    if (!isUuidValue(id)) return '';
+    if (isLocalProfileArtistId(id, {
+      plaiground_artist_id: artist.id,
+      name: artist.name,
+    })) return '';
+    return id;
+  }
+
   function existingStoreArtistId(draft) {
     var current = draft || {};
-    var candidates = [
-      current.artist_id,
-      current.tonegrid_artist_id,
-      current.uuid,
-    ];
+    if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
+      return String(current.tonegrid_artist_id).trim();
+    }
+    var fromRoster = matchingRosterStoreArtistId(current);
+    if (fromRoster) return fromRoster;
+    var candidates = [current.tonegrid_artist_id, current.artist_id];
+    var liveOnDraft = '';
     var i;
     for (i = 0; i < candidates.length; i += 1) {
-      if (isUuidValue(candidates[i])) return String(candidates[i]).trim();
+      if (isUuidValue(candidates[i]) && !isLocalProfileArtistId(candidates[i], current)) {
+        liveOnDraft = String(candidates[i]).trim();
+        break;
+      }
+    }
+    if (liveOnDraft && current.tonegrid_artist_id && sameUuid(liveOnDraft, current.tonegrid_artist_id)) {
+      return liveOnDraft;
     }
     var artists = rosterFromMe();
     var pgId = String(current.plaiground_artist_id || '').trim();
     var name = String(current.name || '').trim();
-    for (i = 0; i < artists.length; i += 1) {
-      var row = artists[i] || {};
-      if (String(row.id || '') === 'account') continue;
-      var storeId = row.tonegrid_artist_id || row.uuid || '';
+    var profileNeedsCreate = artists.some(function (row) {
+      if (!row || String(row.id || '') === 'account') return false;
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
-      if (sameProfile && isUuidValue(storeId)) return String(storeId).trim();
-      if (sameProfile && isUuidValue(row.id)) return String(row.id).trim();
-    }
-    return '';
+      return sameProfile && !isUuidValue(row.tonegrid_artist_id);
+    });
+    if (profileNeedsCreate) return '';
+    return liveOnDraft;
   }
 
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
     var artistId = existingStoreArtistId(current);
     if (isUuidValue(artistId)) {
-      if (String(current.artist_id || '').trim() !== artistId) {
-        current = writeDraft({ artist_id: artistId });
+      var reuse = {};
+      if (String(current.artist_id || '').trim() !== artistId) reuse.artist_id = artistId;
+      if (String(current.tonegrid_artist_id || '').trim() !== artistId) reuse.tonegrid_artist_id = artistId;
+      if (Object.keys(reuse).length) {
+        current = writeDraft(reuse);
         saveCatalog({ artist_id: artistId });
       }
       return Promise.resolve({ ok: true, draft: current });
@@ -1949,8 +2030,14 @@
           draft: current,
         };
       }
-      var next = writeDraft({ artist_id: id });
+      var next = writeDraft({ artist_id: id, tonegrid_artist_id: id });
       saveCatalog({ artist_id: id });
+      rememberRosterArtist({
+        id: current.plaiground_artist_id || id,
+        name: name,
+        tonegrid_artist_id: id,
+        source: 'created',
+      });
       return { ok: true, draft: next, created: true };
     });
   }
@@ -3608,11 +3695,17 @@
       }
       if (!result.ok) {
         if (isArtistGoneError(result.data && result.data.error)) {
-          var cleared = writeDraft({ artist_id: '' });
+          var kept = draft;
+          if (!String((draft && draft.plaiground_artist_id) || '').trim() && !knownAdoptIdsForDraft(draft)[0]) {
+            kept = writeDraft({ artist_id: '' });
+          }
+          var goneCopy = String((kept && kept.plaiground_artist_id) || '').trim()
+            ? STEP_FAIL_COPY
+            : ARTIST_GONE_COPY;
           return {
             failed: true,
-            result: { data: { error: ARTIST_GONE_COPY } },
-            draft: cleared,
+            result: { data: { error: goneCopy } },
+            draft: kept,
           };
         }
         if (isAlreadyExistsResult(result)) {
@@ -5216,7 +5309,10 @@
             tracks: releaseType === 'album' ? persistAlbumTracks(albumTracks).tracks : readDraft().tracks,
           }), me);
           if (!continuingSame) {
-            draft = writeDraft({ artist_id: '', track_id: '' });
+            var keepStoreArtist = existingStoreArtistId(readDraft());
+            draft = writeDraft(keepStoreArtist
+              ? { track_id: '' }
+              : { artist_id: '', track_id: '' });
           }
           var catalog = catalogFromAccount(me);
           if (releaseType === 'album' && !albumAllowedFor(me)) {
@@ -5233,18 +5329,30 @@
               failUpload(artist.error, false);
               return;
             }
-            var nextDraft = writeDraft({
+            var artistMode = fieldValue('tg-artist-mode') || '';
+            var storeId = liveChosenStoreArtistId(artist);
+            if (!storeId && artistMode !== 'create') storeId = existingStoreArtistId(readDraft());
+            var persist = {
               name: (artist && artist.name) || name,
-              plaiground_artist_id: (artist && artist.id) || '',
+              plaiground_artist_id: (artist && artist.id && artist.id !== 'account') ? artist.id : '',
               artist_check: (artist && artist.check && artist.check.level) || '',
               artist_linked: Boolean(artist && artist.linked),
               confirm_different: Boolean(artist && artist.confirmDifferent),
-            });
+            };
+            if (artistMode === 'create') {
+              persist.artist_id = '';
+              persist.tonegrid_artist_id = '';
+            } else if (storeId) {
+              persist.artist_id = storeId;
+              persist.tonegrid_artist_id = storeId;
+            }
+            var nextDraft = writeDraft(persist);
             if (artist && artist.name) {
               rememberRosterArtist({
                 id: artist.id,
                 name: artist.name,
                 source: artist.linked ? 'linked' : 'created',
+                tonegrid_artist_id: storeId || artist.tonegridId || artist.tonegrid_artist_id || '',
               });
             }
             if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {
@@ -5253,8 +5361,7 @@
                 finishToAttest(nextHref, 'This artist name is held for review and was not sent to the store.');
               });
             }
-            var artistMode = fieldValue('tg-artist-mode') || '';
-            if (artistMode === 'create') nextDraft = writeDraft({ artist_id: '' });
+            if (artistMode === 'create') nextDraft = writeDraft({ artist_id: '', tonegrid_artist_id: '' });
             return afterArtistReady(nextDraft, nextHref);
           });
         })
@@ -5402,6 +5509,57 @@
     fillReviewSummary();
   }
 
+  function leftoverPickName(file) {
+    return file && file.name ? String(file.name) : '';
+  }
+
+  function paintLeftoverPickName(el, file) {
+    if (!el) return;
+    var name = leftoverPickName(file);
+    el.textContent = name;
+    setPanelHidden(el, !name);
+  }
+
+  function bindLeftoverReviewPick() {
+    var card = document.querySelector('[data-leftover-hop]');
+    var audioInput = document.querySelector('[data-audio-input]');
+    var artInput = document.querySelector('[data-art-input]');
+    var audioPick = document.querySelector('[data-leftover-audio-pick]');
+    var artPick = document.querySelector('[data-leftover-art-pick]');
+    var audioName = document.querySelector('[data-leftover-audio-name]');
+    var artName = document.querySelector('[data-leftover-art-name]');
+    var show = leftoverNeedsReviewPick(readDraft());
+    if (card) setPanelHidden(card, !show);
+    if (audioPick && audioInput && audioPick.addEventListener) {
+      audioPick.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        if (audioInput.click) audioInput.click();
+      });
+    }
+    if (artPick && artInput && artPick.addEventListener) {
+      artPick.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        if (artInput.click) artInput.click();
+      });
+    }
+    if (audioInput && audioInput.addEventListener) {
+      audioInput.addEventListener('change', function () {
+        var picked = audioFileOf(audioInput);
+        if (!picked) return;
+        if (!looksLikeWav(picked)) rememberPickedOriginal(picked);
+        persistPickedAudio(picked);
+        paintLeftoverPickName(audioName, picked);
+      });
+    }
+    if (artInput && artInput.addEventListener) {
+      artInput.addEventListener('change', function () {
+        paintLeftoverPickName(artName, selectedArtwork());
+      });
+    }
+    paintLeftoverPickName(audioName, audioFileOf(audioInput));
+    paintLeftoverPickName(artName, selectedArtwork());
+  }
+
   function bindReviewCatalog() {
     var genre = $('tg-genre');
     var language = $('tg-language');
@@ -5439,6 +5597,7 @@
       cancelBtn.addEventListener('click', cancelInProgressSubmit);
     }
     bindReviewCatalog();
+    bindLeftoverReviewPick();
     bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {

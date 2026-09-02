@@ -709,16 +709,32 @@ function rosterOf(row) {
   return profileLib.recoverRoster(profileLib.readStored(row), row && row.artist_name, row && row.tonegrid_artist_id);
 }
 
+function isLocalProfileArtistId(row, id) {
+  const want = String(id || '').trim();
+  if (!isUuid(want)) return false;
+  const stored = rosterOf(row);
+  const found = profileLib.findArtist(stored, want) || profileLib.resolveArtist(stored, want, '');
+  if (!found) return false;
+  const storeId = String(found.tonegrid_artist_id || '').trim();
+  if (isUuid(storeId) && storeId.toLowerCase() === want.toLowerCase()) return false;
+  return true;
+}
+
 function matchingTonegridArtist(row, body) {
-  const direct = String((body && (body.uuid || body.tonegrid_artist_id || body.artist_id)) || '').trim();
-  if (isUuid(direct)) return direct;
   const stored = rosterOf(row);
   const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
   const name = String((body && body.name) || '').trim();
+  const storeHint = String((body && body.tonegrid_artist_id) || '').trim();
+  if (isUuid(storeHint) && !isLocalProfileArtistId(row, storeHint)) return storeHint;
+  const artistHint = String((body && body.artist_id) || '').trim();
+  if (isUuid(artistHint) && artistHint !== pgId && !isLocalProfileArtistId(row, artistHint)) {
+    const asLocal = profileLib.findArtist(stored, artistHint);
+    if (asLocal && isUuid(asLocal.tonegrid_artist_id)) return asLocal.tonegrid_artist_id;
+    if (!asLocal) return artistHint;
+  }
   if (pgId) {
-    const found = profileLib.findArtist(stored, pgId);
+    const found = profileLib.findArtist(stored, pgId) || profileLib.resolveArtist(stored, pgId, name);
     if (found && isUuid(found.tonegrid_artist_id)) return found.tonegrid_artist_id;
-    if (found && isUuid(found.uuid)) return found.uuid;
   }
   if (name) {
     const want = artistCheck.normalizeName(name);
@@ -726,7 +742,6 @@ function matchingTonegridArtist(row, body) {
     for (let i = 0; i < list.length; i += 1) {
       if (artistCheck.normalizeName(list[i].name) !== want) continue;
       if (isUuid(list[i].tonegrid_artist_id)) return list[i].tonegrid_artist_id;
-      if (isUuid(list[i].uuid)) return list[i].uuid;
     }
   }
   return '';
@@ -970,15 +985,16 @@ async function createArtist(req, res) {
 
   const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
   const continueId = matchingTonegridArtist(scope.row, body);
-  // Name-only create must POST. Never fall back to a leftover catalog UUID.
+  // Only a live store artist uuid counts. Local profile / draft uuids never continue.
   if (continueId) {
     const loaded = await tonegridFetch('/artists/' + continueId, { method: 'GET' });
     if (loaded.ok) {
+      if (pgId) await attachTonegridArtist(scope.row, pgId, continueId);
       sendJson(res, 200, { uuid: continueId, continued: true });
       return;
     }
-    sendJson(res, loaded.status || 404, { error: ARTIST_GONE_COPY });
-    return;
+    // Stale store id: fall through to one create or adopt by exact name/slug.
+    // Do not return ARTIST_GONE_COPY when the local profile already exists.
   }
 
   const artistGate = uploadRequired.validateArtist(body);

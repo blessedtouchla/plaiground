@@ -2478,7 +2478,6 @@ async function run() {
       account: {
         plan: 'creator',
         artist: 'Ada Night',
-        tonegrid_artist_id: leftover,
         upload: { allowed: true, album_allowed: true, plan: 'creator' },
       },
       responses: [
@@ -2509,6 +2508,186 @@ async function run() {
     }));
     assert.strictEqual(draftOf(page.localStorage).release_id, releaseId);
     assert.ok(!/Could not create the release/.test(page.status.textContent));
+  }
+
+  async function reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: { name: 'amplify.mp3', type: 'audio/mpeg', size: 2048 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'Herman Amplify',
+        name: 'Amplify',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: localId,
+        plaiground_artist_id: localId,
+        legal_first: 'Herman',
+        legal_last: 'Amplify',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Amplify',
+            source: 'created',
+            legal_first: 'Herman',
+            legal_last: 'Amplify',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const artistPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/artists'
+        && call.init
+        && String(call.init.method || 'POST').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(artistPosts.length, 1, 'Amplify Submit must POST create once');
+    const artistBody = JSON.parse(artistPosts[0].init.body);
+    assert.strictEqual(artistBody.name, 'Amplify');
+    assert.strictEqual(artistBody.plaiground_artist_id, localId);
+    assert.ok(!artistBody.artist_id, 'must not send the local profile uuid as a store artist_id');
+    assert.ok(!artistBody.uuid, 'must not send draft.uuid as a store artist');
+    assert.ok(!artistBody.legal_first, 'legal first is filled-only, not required for create');
+    assert.ok(!artistBody.legal_last, 'legal last is filled-only, not required for create');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.notStrictEqual(draftOf(page.localStorage).artist_id, localId);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1, 'Amplify first send mints one release under the new store artist');
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist_id, liveId);
+    assert.ok(!/could not create that artist/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('0767cb74-c5aa-4b18-8023-729fd4fb2808') !== -1;
+    }), 'must not remint leftover I Set the Tone');
+  }
+
+  async function reviewSubmitAccountRowReusesLiveStoreArtist() {
+    const liveId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      draft: Object.assign(attestDraft(), {
+        title: 'Night Drive',
+        name: 'Victoria PLAIGROUND',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: 'account',
+        tonegrid_artist_id: liveId,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: liveId,
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/artists';
+    }), 'account row with a live store uuid must reuse it and not POST create');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_artist_id, liveId);
+    const createCalls = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
+    });
+    assert.strictEqual(createCalls.length, 1);
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, liveId);
+    assert.ok(!/could not create that artist/i.test(page.status.textContent));
+  }
+
+  async function reviewSubmitAmplifyGoneIsStepFailNotArtistGone() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: { name: 'amplify.mp3', type: 'audio/mpeg', size: 2048 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'Herman Amplify',
+        name: 'Amplify',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: localId,
+        plaiground_artist_id: localId,
+        legal_first: 'Herman',
+        legal_last: 'Amplify',
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Amplify',
+            source: 'created',
+            legal_first: 'Herman',
+            legal_last: 'Amplify',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 404, data: { error: 'artist not found in this tenant' } },
+        { ok: false, status: 404, data: { error: 'artist not found in this tenant' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(page.status.textContent, 'We could not finish this step.');
+    assert.ok(!/could not create that artist/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace|tenant/i.test(page.status.textContent));
+    assert.strictEqual(draftOf(page.localStorage).plaiground_artist_id, localId);
+    assert.ok(page.retryWrap && page.retryWrap.hidden === false, 'Retry stays on Review after a named-profile fail');
+
+    page.retryBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    const artistPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/artists'
+        && call.init
+        && String(call.init.method || 'POST').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(artistPosts.length, 2, 'Retry retries the same create-once path');
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }), 'Retry must not mint a release when the store artist is still missing');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf('0767cb74-c5aa-4b18-8023-729fd4fb2808') !== -1;
+    }), 'Retry must not remint leftover I Set the Tone');
   }
 
   async function reviewSubmitDoesNotReconvertHeldMp3() {
@@ -3640,6 +3819,9 @@ async function run() {
   await reviewHeldFileUploadsAfterDeadRelease();
   await reviewReattachOnlyWhenNeverHadAudio();
   await reviewSubmitEnsuresCatalogArtist();
+  await reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce();
+  await reviewSubmitAccountRowReusesLiveStoreArtist();
+  await reviewSubmitAmplifyGoneIsStepFailNotArtistGone();
   await reviewSubmitDoesNotReconvertHeldMp3();
   await reviewSubmitIgnoresAudioRequiredWhenHeld();
   await reviewSubmitSendsHeldWavWhenStoreTracksEmpty();
@@ -3840,6 +4022,16 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d1'), 'review.html must cache-bust past 20260901d1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d2'), 'review.html must cache-bust past 20260901d2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d3'), 'review.html must cache-bust past 20260901d3');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260901d4'), 'review.html must cache-bust past 20260901d4');
+  assert.ok(reviewHtml.includes('data-audio-input'), 'Review leftover hop needs a live audio File input');
+  assert.ok(reviewHtml.includes('data-art-input'), 'Review leftover hop needs a live cover File input');
+  assert.ok(/Pick the original audio \(MP3 is fine\), then Submit/.test(reviewHtml), 'Review leftover copy tells her to pick then Submit');
+  assert.ok(reviewHtml.includes('data-leftover-hop'), 'Review leftover pickers share one card');
+  const leftoverCard = reviewHtml.match(/data-leftover-hop[\s\S]*?<\/section>/);
+  assert.ok(leftoverCard, 'Review leftover card stays on the existing Review flow');
+  assert.ok(!/Retry/i.test(leftoverCard[0]), 'leftover pick copy must not say Retry');
+  assert.ok(!/convert/i.test(leftoverCard[0]), 'leftover pick copy must not say convert');
+  assert.ok(!/ToneGrid|DistroKid/i.test(leftoverCard[0]), 'leftover pick copy must not name the store');
   assert.ok(reviewHtml.includes('lib/audio-accept.js'), 'Review loads the same accept helper as Upload');
   assert.ok(reviewHtml.includes('lib/audio-convert.js'), 'Review loads the convert hook before hop');
   assert.ok(reviewHtml.indexOf('lib/audio-accept.js') < reviewHtml.indexOf('store-client.js'), 'accept loads before store-client');
@@ -3853,9 +4045,34 @@ async function run() {
   assert.ok(leftoverFn[0].includes('heldPickedFile'), 'leftover hop can use the original pick');
   assert.ok(leftoverFn[0].includes('selectedAudio') || leftoverFn[0].includes('[data-audio-input]'), 'leftover hop can use the live pick');
   assert.ok(
+    leftoverFn[0].indexOf('fromInput') < leftoverFn[0].indexOf('heldPickedFile'),
+    'leftover hop prefers a live Review pick over a restored wav-typed blob'
+  );
+  assert.ok(
     leftoverFn[0].indexOf('heldPickedFile') < leftoverFn[0].indexOf('looksLikeWav(held)'),
     'leftover hop prefers the original picked MP3 over a device WAV'
   );
+  assert.ok(source.includes('function leftoverNeedsReviewPick'));
+  assert.ok(source.includes('function bindLeftoverReviewPick'));
+  assert.ok(source.includes('rememberPickedOriginal'));
+  assert.ok(source.includes('persistPickedAudio'));
+  assert.ok(source.includes('function existingStoreArtistId'));
+  assert.ok(source.includes('function isLocalProfileArtistId'));
+  assert.ok(source.includes('function matchingRosterStoreArtistId'));
+  assert.ok(source.includes('function liveChosenStoreArtistId'));
+  const storeArtistFn = source.match(/function existingStoreArtistId\(draft\) \{[\s\S]*?\n  \}/);
+  assert.ok(storeArtistFn, 'existingStoreArtistId must stay a real function');
+  assert.ok(!storeArtistFn[0].includes('current.uuid'), 'existingStoreArtistId must never treat draft.uuid as a store artist');
+  assert.ok(!/return String\(row\.id\)/.test(storeArtistFn[0]), 'existingStoreArtistId must never return a local profile id');
+  assert.ok(storeArtistFn[0].includes("=== 'account'"), 'account row with a live tonegrid_artist_id must return that store uuid');
+  assert.ok(storeArtistFn[0].includes('tonegrid_artist_id') || source.includes('matchingRosterStoreArtistId'), 'only a live store artist uuid counts');
+  const chosenStoreFn = source.match(/function liveChosenStoreArtistId\(artist\) \{[\s\S]*?\n  \}/);
+  assert.ok(chosenStoreFn, 'liveChosenStoreArtistId must stay a real function');
+  assert.ok(chosenStoreFn[0].includes('tonegridId') || chosenStoreFn[0].includes('tonegrid_artist_id'), 'Continue persists the roster store uuid');
+  assert.ok(chosenStoreFn[0].includes('isLocalProfileArtistId'), 'Continue must never persist a local profile uuid as artist_id');
+  const reviewPickFn = source.match(/function leftoverNeedsReviewPick\(draft\) \{[\s\S]*?\n  \}/);
+  assert.ok(reviewPickFn, 'leftoverNeedsReviewPick must stay a real function');
+  assert.ok(reviewPickFn[0].includes('audio_url') || reviewPickFn[0].includes('storeTrackHasAudio'), 'Review File pickers show when store audio is null');
   assert.ok(!/if \(looksLikeWav\(held\) && Number\(held\.size\) > 0\) return held;/.test(leftoverFn[0]), 'leftover hop must not prefer a ballooned device WAV');
   assert.ok(source.includes('leftoverOriginal'), 'leftover MP3 hops as-is so the server converts once');
   assert.ok(/leftoverOriginal = Boolean\(force\)/.test(source), 'known leftover hop never calls convertHook/runConvertStep');
@@ -4257,8 +4474,44 @@ async function run() {
     await flush(16);
     assert.strictEqual(storeCreateHops(page).length, 0, 'leftover pick Continue must not mint before attest');
     assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'leftover sandbox artist must not be recovered onto a live release');
-    assert.notStrictEqual(draftOf(page.localStorage).artist_id, leftover, 'dead leftover id must not stay on the draft');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, leftover, 'choose-existing Continue persists the roster store uuid locally');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_artist_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).plaiground_artist_id, 'pg-leftover');
     assert.ok(String(page.location.href).indexOf('attest.html') !== -1);
+  }
+
+  async function chooseExistingContinuePersistsLiveStoreArtistIds() {
+    const liveId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: liveId,
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Victoria PLAIGROUND',
+            source: 'created',
+            tonegrid_artist_id: liveId,
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    await flush();
+    page.artistSelect.value = localId;
+    page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === localId; });
+    if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'choose-existing Continue must not mint a store artist or release');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).plaiground_artist_id, localId);
+    assert.strictEqual(page.location.href, 'attest.html');
   }
 
   async function basicArtistProfileAutoSelects() {
@@ -6212,6 +6465,115 @@ async function run() {
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
   }
 
+  async function reviewSubmitKnownLeftoverLiveInputBeatsRestoredWav() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const fuego = 'cefce28e-8020-435e-8097-177de07f0c44';
+    const rainbow = '7a928125-b12e-4609-bd37-26ce0edf819e';
+    const liveMp3 = {
+      name: 'I Set the Tone.mp3',
+      type: 'audio/mpeg',
+      size: 2048,
+    };
+    const restoredWav = {
+      __held: 1,
+      name: 'I Set the Tone.mp3',
+      type: 'audio/wav',
+      size: 2048,
+      buffer: new Uint8Array(2048).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-10',
+      file: liveMp3,
+      heldFile: restoredWav,
+      heldPicked: restoredWav,
+      artwork: ART,
+      countConvert: true,
+      convertHold: restoredWav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.mp3',
+        audio_picked_name: liveMp3.name,
+        audio_picked_size: liveMp3.size,
+        audio_attached: true,
+        audio_uploaded: true,
+        audio_converted: true,
+        artwork_name: 'cover.jpg',
+        solo_owned_100: true,
+        release_date: '2026-09-10',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        tonegrid_release_ids: [leftover],
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
+            tracks: [{
+              uuid: leftoverTrack,
+              title: 'I Set the Tone',
+              status: 'draft',
+              audio_url: null,
+              s3: null,
+            }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(28);
+    assert.strictEqual(page.convertCalls, 0, 'live leftover pick must not convert');
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'must reuse leftover 0767cb74, not mint');
+    assert.strictEqual(page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }).length, 0, 'must reuse leftover track afce23fb');
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'live Review pick must hop leftover track afce23fb');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
+    assert.ok(page.calls.some(function (call) {
+      if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
+      try { return JSON.parse(call.init.body).filename === liveMp3.name; } catch (err) { return false; }
+    }), 'must hop the live Review MP3');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0
+        && call.init && call.init.body && call.init.body.name === liveMp3.name
+        && String(call.init.body.type || '') !== 'audio/wav';
+    }), 'live input File wins over a restored wav-typed blob');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/artwork';
+    }), 'must hop cover onto leftover 0767cb74');
+    assert.strictEqual(draftOf(page.localStorage).release_id, leftover);
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+    [fuego, rainbow].forEach(function (id) {
+      assert.ok(!page.calls.some(function (call) {
+        return String(call.url).indexOf(id) !== -1;
+      }), 'must not touch ' + id);
+    });
+    assert.ok(!/Retry/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+  }
+
   async function reviewSubmitFuegoEmptyAudioHopsHeldMp3NotWav() {
     const leftover = 'cefce28e-8020-435e-8097-177de07f0c44';
     const trackA = '1f346f71-a70d-4648-bb66-5c5aff5f5243';
@@ -6673,6 +7035,7 @@ async function run() {
   await reviewSubmitKnownLeftoverHop400DoesNotBecomePending();
   await reviewSubmitKnownLeftoverEmptyAudioHopsPickedMp3Once();
   await reviewSubmitKnownLeftoverEmptyAudioHopsHeldMp3NotWav();
+  await reviewSubmitKnownLeftoverLiveInputBeatsRestoredWav();
   await reviewSubmitFuegoEmptyAudioHopsHeldMp3NotWav();
   await reviewSubmitRainbowRoadEmptyAudioHopsHeldMp3NotWav();
   await reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy();
@@ -6690,6 +7053,7 @@ async function run() {
   await createNewArtistNameCheckGreenYellowRed();
   await leftoverArtistTenantErrorIsNamelessAndDropsDeadId();
   await chooseLeftoverArtistIsGoneNotRecovered();
+  await chooseExistingContinuePersistsLiveStoreArtistIds();
   await basicGenreLanguagePickSticks();
   await cancelClearsDraftAndNextNewReleaseIsBlank();
   await cancelOnSubmitReviewLandsOnDashboard();
