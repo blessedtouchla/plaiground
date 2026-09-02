@@ -901,10 +901,176 @@ function testDraftArtworkNeverBlob() {
   assert.ok(page.nodes['[data-song-cover]'].style.backgroundImage.indexOf('blob:cover-cover.jpg') !== -1, 'the picked file previews locally while the panel is still open');
   return page.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'a draft release must save a newly added cover');
-    assert.strictEqual(result.applied, true, 'draft status saves through the immediate-edit path, not the store submit path');
+    assert.strictEqual(result.applied, true, 'draft stays on the song after the store hop');
+    assert.ok(page.calls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)), 'draft cover hops to the store');
     const release = page.api.currentEditState().release;
     assert.ok(!release.artwork_url || !/^blob:/i.test(release.artwork_url), 'release.artwork_url must never be a revoked blob: URL once closeEdit() has run');
     assert.ok(!/blob:/i.test(page.nodes['[data-song-cover]'].style.backgroundImage || ''), 'the painted cover tile must not reference a revoked blob: URL');
+  });
+}
+
+function testDraftAudioReplace() {
+  const me = {
+    artist: 'Fuvtu',
+    plan: 'basic',
+    legal_first: 'Ada',
+    legal_last: 'Night',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const audioFile = { name: 'season-of-love.wav', type: 'audio/wav', size: 2048 };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+  const unlocked = loadSong({ plan: 'basic', me, search: '?id=' + releaseId });
+  unlocked.ids['edit-audio'].attrs = {};
+  unlocked.ids['edit-audio'].disabled = true;
+  unlocked.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Season of Love',
+      submitted: true,
+      tonegrid_status: 'draft',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Season of Love',
+      status: 'draft',
+      genre: 'Pop',
+      language: 'en',
+      tracks: [],
+    },
+  });
+  assert.strictEqual(unlocked.ids['edit-audio'].disabled, false, 'draft audio stays pickable even without a track id');
+  assert.ok(!unlocked.ids['edit-audio'].classList.contains('is-locked'));
+  assert.ok(unlocked.api.isStoreDraft({ status: 'draft' }, { submitted: true }));
+  assert.ok(!unlocked.api.isStoreDraft({ status: 'pending' }, { submitted: true }));
+
+  const replaceCalls = [];
+  const replacePage = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls: replaceCalls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(url).split('?')[0])) {
+        throw new Error('must reuse the existing draft track');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'draft' }),
+      });
+    },
+  });
+  replacePage.ids['edit-title'].value = 'Season of Love';
+  replacePage.ids['edit-genre'].value = 'Pop';
+  replacePage.ids['edit-language'].value = 'en';
+  replacePage.ids['edit-release-date'].value = '2026-09-12';
+  replacePage.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Season of Love',
+      submitted: true,
+      tonegrid_status: 'draft',
+      track_id: trackId,
+      made_how: 'no_ai',
+      legal_first: 'Ada',
+      legal_last: 'Night',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Season of Love',
+      status: 'draft',
+      genre: 'Pop',
+      language: 'en',
+      tracks: [{ uuid: trackId, title: 'Season of Love' }],
+    },
+  });
+  replacePage.ids['edit-title'].value = 'Season of Love';
+  replacePage.ids['edit-genre'].value = 'Pop';
+  replacePage.ids['edit-language'].value = 'en';
+  replacePage.ids['edit-audio'].files = [audioFile];
+  assert.strictEqual(replacePage.ids['edit-audio'].disabled, false);
+  assert.strictEqual(replacePage.ids['edit-audio'].getAttribute('data-track-id'), trackId);
+
+  return replacePage.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'draft audio replace must save');
+    assert.strictEqual(result.applied, true, 'draft stays on the song after hopping audio');
+    assert.ok(replaceCalls.some((row) => row.method === 'PUT' && /\/releases\/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa$/.test(row.url)), 'draft edit PUTs the release');
+    const audioHop = replaceCalls.find((row) => row.method === 'POST' && /\/tracks\/cccccccc-cccc-4ccc-8ccc-cccccccccccc\/audio$/.test(row.url));
+    assert.ok(audioHop, 'draft edit POSTs replacement audio onto the existing track');
+    let audioBody = {};
+    try { audioBody = JSON.parse(audioHop.body); } catch (err) { audioBody = {}; }
+    assert.ok(audioBody.object_key, 'audio hop sends the object key, not a new release');
+    assert.ok(!replaceCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])), 'draft audio replace must not mint a new release, artist, or track');
+    assert.ok(!/edit-submitted\.html/.test(String(replacePage.context.location.href)), 'draft edit does not leave the song page');
+
+    const mintCalls = [];
+    const mintedTrack = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const mintPage = loadSong({
+      plan: 'basic',
+      me,
+      search: '?id=' + releaseId,
+      calls: mintCalls,
+      fetch(url, options) {
+        const method = (options && options.method) || 'GET';
+        if (method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(url).split('?')[0])) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ uuid: mintedTrack }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ ok: true, uuid: releaseId, status: 'draft' }),
+        });
+      },
+    });
+    mintPage.ids['edit-title'].value = 'Season of Love';
+    mintPage.ids['edit-genre'].value = 'Pop';
+    mintPage.ids['edit-language'].value = 'en';
+    mintPage.ids['edit-release-date'].value = '2026-09-12';
+    mintPage.api.openEdit({
+      me,
+      draft: {
+        release_id: releaseId,
+        title: 'Season of Love',
+        submitted: true,
+        tonegrid_status: 'draft',
+        made_how: 'no_ai',
+        legal_first: 'Ada',
+        legal_last: 'Night',
+      },
+      release: {
+        uuid: releaseId,
+        title: 'Season of Love',
+        status: 'draft',
+        genre: 'Pop',
+        language: 'en',
+        tracks: [],
+      },
+    });
+    mintPage.ids['edit-title'].value = 'Season of Love';
+    mintPage.ids['edit-genre'].value = 'Pop';
+    mintPage.ids['edit-language'].value = 'en';
+    mintPage.ids['edit-audio'].files = [audioFile];
+    assert.strictEqual(mintPage.ids['edit-audio'].disabled, false, 'draft with no track still lets you pick audio');
+    return mintPage.api.submitEdit().then(function (minted) {
+      assert.ok(minted.ok, 'draft with no track creates one then hops audio');
+      const create = mintCalls.find((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0]));
+      assert.ok(create, 'missing draft track is minted on save');
+      let createBody = {};
+      try { createBody = JSON.parse(create.body); } catch (err) { createBody = {}; }
+      assert.strictEqual(createBody.release_id, releaseId);
+      assert.strictEqual(createBody.title, 'Season of Love');
+      assert.ok(mintCalls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + mintedTrack + '/audio') !== -1), 'new track then receives the audio');
+      assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])), 'draft track mint must not POST a new release or artist');
+    });
   });
 }
 
@@ -1374,7 +1540,11 @@ function run() {
   assert.ok(!/M\. Hale|I\. Novak/.test(confirmHtml));
   assert.ok(!html.includes('All 55 stores'), 'edit page must not hardcode a store count');
   assert.ok(html.includes('All stores will receive this release.'), 'store copy waits for the live catalog count');
-  assert.ok(html.includes('id="edit-release-date"'));
+  assert.ok(html.includes('id="edit-audio"'));
+  assert.ok(read('song.js').includes('function isStoreDraft'));
+  assert.ok(read('song.js').includes('function firstTrackId'));
+  assert.ok(read('song.js').includes('ensureEditTrackId'));
+  assert.ok(read('song.js').includes('draftEdit'));
   assert.ok(html.includes('id="edit-release-date-hint"'));
   assert.ok(/calendar-picker-indicator[\s\S]*?width:\s*100%/.test(css), 'edit date indicator must cover the whole field');
   assert.ok(read('song.js').includes('showPicker'), 'edit release date must open the native picker on tap');
@@ -2271,7 +2441,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
