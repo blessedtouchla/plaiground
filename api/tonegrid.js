@@ -2975,6 +2975,12 @@ function releaseUpdatePayload(body) {
     const language = normalizeLanguage(body.language);
     if (language) payload.language = language;
   }
+  if (body.label !== undefined || body.record_label !== undefined || body.label_name !== undefined) {
+    const label = storeCredits.hopLabel(body.record_label || body.label_name || body.label);
+    payload.label = label;
+    payload.record_label = label;
+    payload.label_name = label;
+  }
   return { payload };
 }
 
@@ -3005,7 +3011,7 @@ async function updateRelease(req, res, releaseId) {
     return;
   }
   if (!Object.keys(parsed.payload).length) {
-    sendJson(res, 400, { error: 'Provide title, release_date, genre, or language.' });
+    sendJson(res, 400, { error: 'Provide title, release_date, genre, language, or record label.' });
     return;
   }
 
