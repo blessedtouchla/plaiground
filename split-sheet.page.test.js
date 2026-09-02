@@ -191,6 +191,8 @@ async function flush() {
 
 async function run() {
   const html = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
+  assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'split-sheet keeps the step-1 files through the page');
+  assert.ok(html.indexOf('keepHeldFiles') !== -1, 'split-sheet re-holds files before Review');
   assert.ok(html.indexOf('id="song-title"') !== -1);
   assert.ok(html.indexOf('value="Neon Shadows"') === -1);
   assert.ok(html.indexOf('value="Victoria Reyes"') === -1);

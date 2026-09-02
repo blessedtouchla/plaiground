@@ -93,6 +93,7 @@
   </main>
 
   <script src="lib/upload-required.js"></script>
+  <script src="lib/upload-draft-files.js"></script>
   <script src="lib/release-credits.js"></script>
   <script src="https://static.signwell.com/assets/embedded.js"></script>
   <script>
@@ -551,6 +552,19 @@
       refreshIncomplete();
       var existingId = readDraft().signwell_document_id;
       if (existingId) refreshSignWellStatus(existingId);
+      function keepCarriedFiles() {
+        var files = window.PlaigroundUploadDraftFiles;
+        if (files && typeof files.keepHeldFiles === 'function') return files.keepHeldFiles(window);
+        return Promise.resolve(null);
+      }
+      keepCarriedFiles();
+      var reviewLinks = document.querySelectorAll ? document.querySelectorAll('a[href="review.html"]') : [];
+      Array.prototype.forEach.call(reviewLinks, function (link) {
+        if (!link || !link.addEventListener) return;
+        link.addEventListener('click', function () {
+          keepCarriedFiles();
+        });
+      });
     })();
   </script>
   <script src="problem.js"></script>
