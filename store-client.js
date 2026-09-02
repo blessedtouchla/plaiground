@@ -1974,7 +1974,7 @@
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
       if (!sameProfile) continue;
-      if (isUuidValue(storeId)) return storeId;
+      if (isUuidValue(storeId) && !isLocalProfileArtistId(storeId, current)) return storeId;
       return '';
     }
     return '';
@@ -1997,7 +1997,7 @@
       return String(current.tonegrid_artist_id).trim();
     }
     var fromRoster = matchingRosterStoreArtistId(current);
-    if (fromRoster) return fromRoster;
+    if (fromRoster && !isLocalProfileArtistId(fromRoster, current)) return fromRoster;
     var candidates = [current.tonegrid_artist_id, current.artist_id];
     var liveOnDraft = '';
     var i;
@@ -5350,6 +5350,7 @@
             var artistMode = fieldValue('tg-artist-mode') || '';
             var storeId = liveChosenStoreArtistId(artist);
             if (!storeId && artistMode !== 'create') storeId = existingStoreArtistId(readDraft());
+            if (storeId && isLocalProfileArtistId(storeId, readDraft())) storeId = '';
             var persist = {
               name: (artist && artist.name) || name,
               plaiground_artist_id: (artist && artist.id && artist.id !== 'account') ? artist.id : '',
@@ -5357,10 +5358,10 @@
               artist_linked: Boolean(artist && artist.linked),
               confirm_different: Boolean(artist && artist.confirmDifferent),
             };
-            if (artistMode === 'create') {
+            if (artistMode === 'create' || !storeId) {
               persist.artist_id = '';
               persist.tonegrid_artist_id = '';
-            } else if (storeId) {
+            } else {
               persist.artist_id = storeId;
               persist.tonegrid_artist_id = storeId;
             }
@@ -5370,7 +5371,7 @@
                 id: artist.id,
                 name: artist.name,
                 source: artist.linked ? 'linked' : 'created',
-                tonegrid_artist_id: storeId || artist.tonegridId || artist.tonegrid_artist_id || '',
+                tonegrid_artist_id: storeId || liveChosenStoreArtistId(artist) || '',
               });
             }
             if (artist && (artist.skipTonegrid || (artist.check && artist.check.level === 'red'))) {

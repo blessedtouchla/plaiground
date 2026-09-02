@@ -2587,6 +2587,70 @@ async function run() {
     }), 'must not remint leftover I Set the Tone');
   }
 
+  async function reviewSubmitLocalIdMirroredAsStoreIdStillMints() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-12',
+      file: { name: 'new-act.mp3', type: 'audio/mpeg', size: 2048 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'First Song',
+        name: 'New Act',
+        genre: 'Pop',
+        language: 'en',
+        artist_id: localId,
+        tonegrid_artist_id: localId,
+        plaiground_artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-12',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'New Act',
+            source: 'created',
+            tonegrid_artist_id: localId,
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(20);
+    const artistPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/artists'
+        && call.init
+        && String(call.init.method || 'POST').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(artistPosts.length, 1, 'local profile mirrored as tonegrid_artist_id must still mint once');
+    const artistBody = JSON.parse(artistPosts[0].init.body);
+    assert.strictEqual(artistBody.name, 'New Act');
+    assert.strictEqual(artistBody.plaiground_artist_id, localId);
+    assert.ok(!artistBody.artist_id, 'must not POST the local profile uuid as a store artist_id');
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1);
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist_id, liveId);
+    assert.ok(!/could not create that artist/i.test(page.status.textContent));
+  }
+
   async function reviewSubmitAccountRowReusesLiveStoreArtist() {
     const liveId = '04c74127-11a8-40cf-beec-d1ffa16abd70';
     const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
@@ -3826,6 +3890,7 @@ async function run() {
   await reviewReattachOnlyWhenNeverHadAudio();
   await reviewSubmitEnsuresCatalogArtist();
   await reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce();
+  await reviewSubmitLocalIdMirroredAsStoreIdStillMints();
   await reviewSubmitAccountRowReusesLiveStoreArtist();
   await reviewSubmitAmplifyGoneIsStepFailNotArtistGone();
   await reviewSubmitDoesNotReconvertHeldMp3();
@@ -4031,6 +4096,8 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d4'), 'review.html must cache-bust past 20260901d4');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d5'), 'review.html must cache-bust past 20260901d5');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902a1'), 'review.html must cache-bust past leftover skip 20260902a1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260902b1'), 'review.html must cache-bust past 20260902b1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260902c1'), 'review.html cache-busts store-client.js at 20260902c1');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
@@ -4521,6 +4588,41 @@ async function run() {
     assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
     assert.strictEqual(draftOf(page.localStorage).tonegrid_artist_id, liveId);
     assert.strictEqual(draftOf(page.localStorage).plaiground_artist_id, localId);
+    assert.strictEqual(page.location.href, 'attest.html');
+  }
+
+  async function chooseLocalOnlyProfileContinueDoesNotPersistLocalIdAsStoreArtist() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const leftover = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const page = load(filledUpload({
+      artistPicker: true,
+      artist: '',
+      draft: { artist_id: leftover },
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: leftover,
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'New Act',
+            source: 'created',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    await flush();
+    page.artistSelect.value = localId;
+    page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === localId; });
+    if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
+    page.continueBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(storeCreateHops(page).length, 0, 'choose local-only Continue must not mint');
+    assert.ok(!draftOf(page.localStorage).artist_id, 'must not persist the local profile uuid as artist_id');
+    assert.ok(!draftOf(page.localStorage).tonegrid_artist_id, 'must not persist a store artist id before first Submit');
+    assert.strictEqual(draftOf(page.localStorage).plaiground_artist_id, localId);
+    assert.strictEqual(draftOf(page.localStorage).name, 'New Act');
     assert.strictEqual(page.location.href, 'attest.html');
   }
 
@@ -7065,6 +7167,7 @@ async function run() {
   await leftoverArtistTenantErrorIsNamelessAndDropsDeadId();
   await chooseLeftoverArtistIsGoneNotRecovered();
   await chooseExistingContinuePersistsLiveStoreArtistIds();
+  await chooseLocalOnlyProfileContinueDoesNotPersistLocalIdAsStoreArtist();
   await basicGenreLanguagePickSticks();
   await cancelClearsDraftAndNextNewReleaseIsBlank();
   await cancelOnSubmitReviewLandsOnDashboard();
