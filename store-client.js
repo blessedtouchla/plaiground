@@ -4938,7 +4938,7 @@
     fill('tg-artist', draft.name);
     fill('tg-featured', draft.featured);
     fill('tg-price', draft.price);
-    if (draft.label && draft.label !== 'PLAIGROUND') fill('tg-label', draft.label);
+    fill('tg-label', (draft.label && draft.label !== 'PLAIGROUND') ? draft.label : 'PLAIGROUND');
     if (draft.copyright_holder && draft.copyright_holder !== 'PLAIGROUND') fill('tg-copyright-owner', draft.copyright_holder);
     if (draft.master_owner && draft.master_owner !== 'PLAIGROUND') fill('tg-phonogram-owner', draft.master_owner);
     fill('tg-copyright-year', draft.copyright_year);

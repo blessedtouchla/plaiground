@@ -1035,9 +1035,9 @@ function run() {
   assert.ok(/id="artist-legal-wrap"[^>]*data-artist-legal/.test(upload));
   assert.ok(/id="tg-legal-first"[^>]*data-legal-first/.test(upload), 'wrap pair keeps data-legal-first for existing-artist prefill');
   assert.ok(/id="tg-label"/.test(upload), 'Record label field is on the form');
-  assert.ok(!/id="tg-label"[^>]*value="PLAIGROUND"/.test(upload), 'Record label is not prefilled with PLAIGROUND');
+  assert.ok(/id="tg-label"[^>]*value="PLAIGROUND"/.test(upload), 'Record label is prefilled with PLAIGROUND');
   assert.ok(!/id="tg-label"[^>]*\breadonly\b/.test(upload), 'Record label is editable');
-  assert.ok(upload.indexOf('Leave blank to use PLAIGROUND.') !== -1, 'label helper says leave blank to use PLAIGROUND');
+  assert.ok(upload.indexOf('PLAIGROUND is the default. Type your own imprint if you have one.') !== -1, 'label helper says PLAIGROUND is the default');
   assert.ok(upload.indexOf('id="tg-copyright-owner"') !== -1);
   assert.ok(upload.indexOf('id="tg-phonogram-owner"') !== -1);
   assert.ok(upload.indexOf('id="tg-copyright-year"') !== -1);
