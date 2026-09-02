@@ -57,17 +57,6 @@
               </select>
             </div>
           </div>
-          <div data-leftover-hop hidden>
-            <p class="hint">Pick the original audio (MP3 is fine), then Submit.</p>
-            <p style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 0">
-              <button class="btn btn-ghost btn-sm" type="button" data-leftover-audio-pick>Pick original audio</button>
-              <button class="btn btn-ghost btn-sm" type="button" data-leftover-art-pick>Pick cover</button>
-            </p>
-            <p class="hint" data-leftover-audio-name hidden></p>
-            <p class="hint" data-leftover-art-name hidden></p>
-            <input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input />
-            <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
-          </div>
         </section>
         <section class="flow-card" data-review-lyrics hidden>
           <h3>Lyrics</h3>
@@ -195,8 +184,9 @@
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
+  <script src="lib/upload-draft-files.js"></script>
   <script src="upload-catalog.js"></script>
-  <script src="store-client.js?v=20260901d5" defer></script>
+  <script src="store-client.js?v=20260902a1" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {

@@ -222,6 +222,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
+  assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
   assert.ok(html.indexOf('data-made-how="ai_assisted"') !== -1);
   assert.ok(html.indexOf('data-made-how="no_ai"') !== -1);
   assert.ok(html.indexOf('data-made-how="fully_ai"') !== -1);

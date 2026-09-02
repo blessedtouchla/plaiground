@@ -327,7 +327,7 @@ function load(options) {
   stepper.className = 'stepper';
   stepper.contains = function () { return true; };
 
-  const heldStore = { master: opts.heldFile || null, picked: opts.heldPicked || null };
+  const heldStore = { master: opts.heldFile || null, picked: opts.heldPicked || null, cover: opts.heldArtwork || opts.artwork || null };
   const context = {
     URLSearchParams,
     Promise,
@@ -369,7 +369,7 @@ function load(options) {
         });
         return req;
       },
-      deleteDatabase: function () { heldStore.master = null; heldStore.picked = null; },
+      deleteDatabase: function () { heldStore.master = null; heldStore.picked = null; heldStore.cover = null; },
     },
     document: {
       getElementById(id) {
@@ -655,6 +655,7 @@ function load(options) {
     get lastStoreFailure() { return context.PlaigroundLastStoreFailure || null; },
     get heldPicked() { return heldStore.picked || null; },
     get heldMaster() { return heldStore.master || null; },
+    get heldArtwork() { return heldStore.cover || null; },
   };
 }
 
@@ -2761,7 +2762,7 @@ async function run() {
         release_date: '2026-09-12',
       }),
       responses: [
-        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', audio_url: 'https://cdn.example/night-drive.wav' }] } },
         { ok: false, status: 400, data: { error: 'audio file is required.' } },
       ],
     });
@@ -4023,39 +4024,37 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d2'), 'review.html must cache-bust past 20260901d2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d3'), 'review.html must cache-bust past 20260901d3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260901d4'), 'review.html must cache-bust past 20260901d4');
-  assert.ok(reviewHtml.includes('data-audio-input'), 'Review leftover hop needs a live audio File input');
-  assert.ok(reviewHtml.includes('data-art-input'), 'Review leftover hop needs a live cover File input');
-  assert.ok(/Pick the original audio \(MP3 is fine\), then Submit/.test(reviewHtml), 'Review leftover copy tells her to pick then Submit');
-  assert.ok(reviewHtml.includes('data-leftover-hop'), 'Review leftover pickers share one card');
-  const leftoverCard = reviewHtml.match(/data-leftover-hop[\s\S]*?<\/section>/);
-  assert.ok(leftoverCard, 'Review leftover card stays on the existing Review flow');
-  assert.ok(!/Retry/i.test(leftoverCard[0]), 'leftover pick copy must not say Retry');
-  assert.ok(!/convert/i.test(leftoverCard[0]), 'leftover pick copy must not say convert');
-  assert.ok(!/ToneGrid|DistroKid/i.test(leftoverCard[0]), 'leftover pick copy must not name the store');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260901d5'), 'review.html must cache-bust past 20260901d5');
+  assert.ok(!reviewHtml.includes('data-leftover-hop'), 'Review must not keep leftover pickers');
+  assert.ok(!reviewHtml.includes('data-leftover-audio-pick'), 'Review must not have Pick original audio');
+  assert.ok(!reviewHtml.includes('data-leftover-art-pick'), 'Review must not have Pick cover');
+  assert.ok(!/Pick original audio/.test(reviewHtml), 'Review must not say Pick original audio');
+  assert.ok(!/Pick cover/.test(reviewHtml), 'Review must not say Pick cover');
+  assert.ok(!reviewHtml.includes('data-audio-input'), 'Upload is the only audio pick');
+  assert.ok(!reviewHtml.includes('data-art-input'), 'Upload is the only cover pick');
+  assert.ok(reviewHtml.includes('lib/upload-draft-files.js'), 'Review restores the step-1 files from IndexedDB');
   assert.ok(reviewHtml.includes('lib/audio-accept.js'), 'Review loads the same accept helper as Upload');
   assert.ok(reviewHtml.includes('lib/audio-convert.js'), 'Review loads the convert hook before hop');
   assert.ok(reviewHtml.indexOf('lib/audio-accept.js') < reviewHtml.indexOf('store-client.js'), 'accept loads before store-client');
   assert.ok(reviewHtml.indexOf('lib/audio-convert.js') < reviewHtml.indexOf('store-client.js'), 'convert loads before store-client');
-  assert.ok(reviewHtml.indexOf('lib/audio-convert.js') < reviewHtml.indexOf('store-client.js'), 'convert hook is on Review');
+  assert.ok(reviewHtml.indexOf('lib/upload-draft-files.js') < reviewHtml.indexOf('store-client.js'), 'file hold loads before store-client');
   assert.ok(uploadHtml.includes('lib/audio-convert.js'), 'Upload keeps the convert hook Review now shares');
   assert.ok(source.includes('function knownLeftoverNeedsAudioHop'));
   assert.ok(source.includes('function leftoverHopFile'));
   const leftoverFn = source.match(/function leftoverHopFile\(file\) \{[\s\S]*?\n  \}/);
   assert.ok(leftoverFn, 'leftoverHopFile must stay a real function');
-  assert.ok(leftoverFn[0].includes('heldPickedFile'), 'leftover hop can use the original pick');
-  assert.ok(leftoverFn[0].includes('selectedAudio') || leftoverFn[0].includes('[data-audio-input]'), 'leftover hop can use the live pick');
-  assert.ok(
-    leftoverFn[0].indexOf('fromInput') < leftoverFn[0].indexOf('heldPickedFile'),
-    'leftover hop prefers a live Review pick over a restored wav-typed blob'
-  );
+  assert.ok(leftoverFn[0].includes('heldPickedFile'), 'hop uses the original step-1 pick');
+  assert.ok(!leftoverFn[0].includes('fromInput'), 'hop must not prefer a Review File input');
   assert.ok(
     leftoverFn[0].indexOf('heldPickedFile') < leftoverFn[0].indexOf('looksLikeWav(held)'),
-    'leftover hop prefers the original picked MP3 over a device WAV'
+    'hop prefers the original picked MP3 over a device WAV'
   );
-  assert.ok(source.includes('function leftoverNeedsReviewPick'));
-  assert.ok(source.includes('function bindLeftoverReviewPick'));
+  assert.ok(!source.includes('function leftoverNeedsReviewPick'));
+  assert.ok(!source.includes('function bindLeftoverReviewPick'));
   assert.ok(source.includes('rememberPickedOriginal'));
   assert.ok(source.includes('persistPickedAudio'));
+  assert.ok(source.includes('persistHeldArtwork'));
+  assert.ok(source.includes("ARTWORK_HOLD_KEY = 'cover'"));
   assert.ok(source.includes('function existingStoreArtistId'));
   assert.ok(source.includes('function isLocalProfileArtistId'));
   assert.ok(source.includes('function matchingRosterStoreArtistId'));
@@ -4070,9 +4069,11 @@ async function run() {
   assert.ok(chosenStoreFn, 'liveChosenStoreArtistId must stay a real function');
   assert.ok(chosenStoreFn[0].includes('tonegridId') || chosenStoreFn[0].includes('tonegrid_artist_id'), 'Continue persists the roster store uuid');
   assert.ok(chosenStoreFn[0].includes('isLocalProfileArtistId'), 'Continue must never persist a local profile uuid as artist_id');
-  const reviewPickFn = source.match(/function leftoverNeedsReviewPick\(draft\) \{[\s\S]*?\n  \}/);
-  assert.ok(reviewPickFn, 'leftoverNeedsReviewPick must stay a real function');
-  assert.ok(reviewPickFn[0].includes('audio_url') || reviewPickFn[0].includes('storeTrackHasAudio'), 'Review File pickers show when store audio is null');
+  const leftoverHopGate = source.match(/function knownLeftoverNeedsAudioHop\(draft, tracks\) \{[\s\S]*?\n  \}/);
+  assert.ok(leftoverHopGate, 'knownLeftoverNeedsAudioHop must stay a real function');
+  assert.ok(!leftoverHopGate[0].includes('isKnownAdoptRelease'), 'hop is not gated on KNOWN_ADOPT ids');
+  assert.ok(!leftoverHopGate[0].includes('knownAdoptIdsForDraft'), 'hop is not gated on a title allowlist');
+  assert.ok(leftoverHopGate[0].includes('heldPickedFile') || leftoverHopGate[0].includes('leftoverHopFile'), 'empty leftover hops the carried step-1 file');
   assert.ok(!/if \(looksLikeWav\(held\) && Number\(held\.size\) > 0\) return held;/.test(leftoverFn[0]), 'leftover hop must not prefer a ballooned device WAV');
   assert.ok(source.includes('leftoverOriginal'), 'leftover MP3 hops as-is so the server converts once');
   assert.ok(/leftoverOriginal = Boolean\(force\)/.test(source), 'known leftover hop never calls convertHook/runConvertStep');
@@ -6485,9 +6486,9 @@ async function run() {
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-10',
-      file: liveMp3,
+      file: null,
       heldFile: restoredWav,
-      heldPicked: restoredWav,
+      heldPicked: liveMp3,
       artwork: ART,
       countConvert: true,
       convertHold: restoredWav,
@@ -6541,7 +6542,7 @@ async function run() {
       ],
     });
     await flush(28);
-    assert.strictEqual(page.convertCalls, 0, 'live leftover pick must not convert');
+    assert.strictEqual(page.convertCalls, 0, 'step-1 leftover hop must not convert');
     assert.strictEqual(page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     }).length, 0, 'must reuse leftover 0767cb74, not mint');
@@ -6549,17 +6550,17 @@ async function run() {
       return call.url === '/api/tonegrid/tracks' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
     }).length, 0, 'must reuse leftover track afce23fb');
     const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
-    assert.ok(audio.length, 'live Review pick must hop leftover track afce23fb');
+    assert.ok(audio.length, 'step-1 held MP3 must hop leftover track afce23fb');
     assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
     assert.ok(page.calls.some(function (call) {
       if (call.url !== '/api/tonegrid/uploads' || !call.init || !call.init.body) return false;
       try { return JSON.parse(call.init.body).filename === liveMp3.name; } catch (err) { return false; }
-    }), 'must hop the live Review MP3');
+    }), 'must hop the step-1 picked MP3');
     assert.ok(page.calls.some(function (call) {
       return String(call.url).indexOf('https://hop.test/') === 0
         && call.init && call.init.body && call.init.body.name === liveMp3.name
         && String(call.init.body.type || '') !== 'audio/wav';
-    }), 'live input File wins over a restored wav-typed blob');
+    }), 'step-1 picked MP3 wins over a restored wav-typed blob');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/' + leftover + '/artwork';
     }), 'must hop cover onto leftover 0767cb74');
@@ -6859,11 +6860,12 @@ async function run() {
             tracks: [{ uuid: trackId, audio_url: null, s3: null }],
           },
         },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     await flush(16);
-    assert.ok(!page.calls.some(function (call) { return isAudioAttach(call.url); }), 'Night Drive must not force-hop empty-audio');
+    assert.ok(page.calls.some(function (call) { return isAudioAttach(call.url); }), 'empty leftover + carried file must hop');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
     }), 'Night Drive Review still submits the living release');

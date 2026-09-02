@@ -86,6 +86,7 @@
   function clearHeldAudio() {
     heldAudioFile = null;
     heldPickedFile = null;
+    heldArtworkFile = null;
     try {
       if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
         indexedDB.deleteDatabase(AUDIO_HOLD_DB);
@@ -990,16 +991,12 @@
   }
 
   function leftoverHopFile(file) {
-    var input = document.querySelector('[data-audio-input]');
-    var fromInput = fileFromHeld((input && input.files && input.files[0]) || (input && input._plaigroundFile) || null);
     var held = fileFromHeld(heldAudioFile);
     var live = fileFromHeld(file);
     var picked = fileFromHeld(heldPickedFile);
-    if (fromInput && Number(fromInput.size) > 0 && !looksLikeWav(fromInput)) return fromInput;
     if (picked && Number(picked.size) > 0 && !looksLikeWav(picked)) return picked;
     if (live && Number(live.size) > 0 && !looksLikeWav(live)) return live;
     if (held && Number(held.size) > 0 && !looksLikeWav(held)) return held;
-    if (fromInput && Number(fromInput.size) > 0) return fromInput;
     if (picked && Number(picked.size) > 0) return picked;
     if (live && Number(live.size) > 0) return live;
     if (held && Number(held.size) > 0) return held;
@@ -1030,8 +1027,7 @@
   }
 
   function fileForTransitUpload(file) {
-    var draft = readDraft();
-    if (isKnownAdoptRelease(draft && draft.release_id) || knownAdoptIdsForDraft(draft)[0]) {
+    if (file && !looksLikeWav(file)) {
       return leftoverHopFile(file) || fileFromHeld(file) || file;
     }
     return fileForStoreUpload(file) || file || heldAudioFile;
@@ -1108,10 +1104,12 @@
   var deadReleaseIds = [];
   var heldAudioFile = null;
   var heldPickedFile = null;
+  var heldArtworkFile = null;
   var AUDIO_HOLD_DB = 'plaiground-held-audio';
   var AUDIO_HOLD_STORE = 'files';
   var AUDIO_HOLD_KEY = 'master';
   var AUDIO_PICKED_KEY = 'picked';
+  var ARTWORK_HOLD_KEY = 'cover';
   var releaseRecreateCount = 0;
   var MAX_RELEASE_RECREATES = 2;
   var DEAD_RELEASE_COPY = 'Could not create the release. Retry.';
@@ -1167,25 +1165,38 @@
     });
   }
 
+  function heldFallbackType(value) {
+    if (value && value.type) return value.type;
+    if (value && /\.(jpe?g|png)$/i.test(value.name || '')) return 'image/jpeg';
+    return 'audio/wav';
+  }
+
+  function heldFallbackName(value) {
+    if (value && value.name) return value.name;
+    return heldFallbackType(value).indexOf('image/') === 0 ? 'cover.jpg' : 'audio.wav';
+  }
+
   function fileFromHeld(value) {
     if (!value) return null;
     if (isHeldRecord(value)) {
+      var mime = heldFallbackType(value);
+      var label = heldFallbackName(value);
       if (typeof Blob === 'function' && value.buffer) {
         try {
-          var blob = new Blob([value.buffer], { type: value.type || 'audio/wav' });
+          var blob = new Blob([value.buffer], { type: mime });
           if (typeof File === 'function') {
-            return new File([blob], value.name || 'audio.wav', {
-              type: value.type || 'audio/wav',
+            return new File([blob], label, {
+              type: mime,
               lastModified: value.lastModified || Date.now(),
             });
           }
-          blob.name = value.name || 'audio.wav';
+          blob.name = label;
           return blob;
         } catch (err) {}
       }
       return {
-        name: value.name || 'audio.wav',
-        type: value.type || 'audio/wav',
+        name: label,
+        type: mime,
         size: value.size || (value.buffer && value.buffer.byteLength) || 0,
         buffer: value.buffer,
       };
@@ -1260,6 +1271,18 @@
     return persistHeldSlot(ready, AUDIO_PICKED_KEY, function (next) { heldPickedFile = next; });
   }
 
+  function persistHeldArtwork(file) {
+    var ready = file || heldArtworkFile;
+    if (ready) heldArtworkFile = ready;
+    return persistHeldSlot(ready, ARTWORK_HOLD_KEY, function (next) { heldArtworkFile = next; });
+  }
+
+  function rememberArtworkFile(file) {
+    if (!file) return Promise.resolve(null);
+    heldArtworkFile = fileFromHeld(file) || file;
+    return persistHeldArtwork(heldArtworkFile);
+  }
+
   function restoreHeldAudio() {
     return new Promise(function (resolve) {
       function done() {
@@ -1268,9 +1291,14 @@
           var live = (input && input.files && input.files[0]) || (input && input._plaigroundFile) || null;
           if (live && !looksLikeWav(live)) rememberPickedOriginal(live);
         }
+        if (!heldArtworkFile) {
+          var artInput = document.querySelector('[data-art-input]');
+          var art = (artInput && artInput.files && artInput.files[0]) || (artInput && artInput._plaigroundFile) || null;
+          if (art) rememberArtworkFile(art);
+        }
         resolve(heldAudioFile || null);
       }
-      if (heldAudioFile && heldPickedFile) {
+      if (heldAudioFile && heldPickedFile && heldArtworkFile) {
         resolve(heldAudioFile);
         return;
       }
@@ -1292,12 +1320,17 @@
             var store = tx.objectStore(AUDIO_HOLD_STORE);
             var getMaster = store.get(AUDIO_HOLD_KEY);
             var getPicked = store.get(AUDIO_PICKED_KEY);
-            var pending = 2;
-            function takeHeld(got, picked) {
+            var getCover = store.get(ARTWORK_HOLD_KEY);
+            var pending = 3;
+            function takeHeld(got, slot) {
               var next = fileFromHeld(got);
               if (!next) return;
-              if (picked) {
+              if (slot === 'picked') {
                 if (!heldPickedFile || !heldPickedFile.size) heldPickedFile = next;
+                return;
+              }
+              if (slot === 'cover') {
+                if (!heldArtworkFile || !heldArtworkFile.size) heldArtworkFile = next;
                 return;
               }
               if (!heldAudioFile || !heldAudioFile.size) heldAudioFile = next;
@@ -1306,16 +1339,22 @@
               pending -= 1;
               if (pending <= 0) done();
             }
-            takeHeld(getMaster.result, false);
-            takeHeld(getPicked.result, true);
+            takeHeld(getMaster.result, 'master');
+            takeHeld(getPicked.result, 'picked');
+            takeHeld(getCover.result, 'cover');
             getMaster.onerror = one;
             getPicked.onerror = one;
+            getCover.onerror = one;
             getMaster.onsuccess = function () {
-              takeHeld(getMaster.result, false);
+              takeHeld(getMaster.result, 'master');
               one();
             };
             getPicked.onsuccess = function () {
-              takeHeld(getPicked.result, true);
+              takeHeld(getPicked.result, 'picked');
+              one();
+            };
+            getCover.onsuccess = function () {
+              takeHeld(getCover.result, 'cover');
               one();
             };
           } catch (err) {
@@ -1643,24 +1682,15 @@
 
   function knownLeftoverNeedsAudioHop(draft, tracks) {
     if (!draft) return false;
-    if (!isKnownAdoptRelease(draft.release_id) && !knownAdoptIdsForDraft(draft)[0]) return false;
     var rows = tracks || [];
-    var i;
-    for (i = 0; i < rows.length; i += 1) {
-      if (storeTrackHasAudio(rows[i])) return false;
-    }
-    return true;
-  }
-
-  function leftoverNeedsReviewPick(draft) {
-    if (!draft) return false;
-    var rows = draft.tracks || [];
+    if (!rows.length) return false;
     var i;
     for (i = 0; i < rows.length; i += 1) {
       if (storeTrackHasAudio(rows[i])) return false;
     }
     if (String(draft.audio_url || draft.audio_s3_key || '').trim()) return false;
-    return true;
+    if (!alreadyUploaded(draft)) return false;
+    return Boolean(leftoverHopFile(null) || heldPickedFile || heldAudioFile);
   }
 
   function leftoverHopFailure(audio, draft) {
@@ -2753,9 +2783,14 @@
 
   function selectedArtwork() {
     var input = document.querySelector('[data-art-input]');
-    if (input && input.files && input.files[0]) return input.files[0];
-    if (input && input._plaigroundFile) return input._plaigroundFile;
-    return null;
+    var live = (input && input.files && input.files[0])
+      || (input && input._plaigroundFile)
+      || null;
+    if (live && Number(live.size) > 0) {
+      heldArtworkFile = fileFromHeld(live) || live;
+      return live;
+    }
+    return fileFromHeld(heldArtworkFile) || null;
   }
 
   function queryTypeAlbum() {
@@ -4998,12 +5033,12 @@
       var files = (typeof window !== 'undefined' && window.PlaigroundUploadDraftFiles) || null;
       var persistCover = files && typeof files.persistPickedFiles === 'function'
         ? files.persistPickedFiles(window)
-        : Promise.resolve();
-      return persistHeldAudio(heldAudioFile || selectedAudio()).then(function () {
-        return persistPickedAudio(heldPickedFile);
-      }).then(function () {
-        return persistCover;
-      });
+        : persistHeldArtwork(heldArtworkFile || selectedArtwork());
+      return Promise.all([
+        persistHeldAudio(heldAudioFile || selectedAudio()),
+        persistPickedAudio(heldPickedFile),
+        persistCover,
+      ]);
     }
 
     function finishToAttest(nextHref, message) {
@@ -5069,7 +5104,11 @@
     }
     var artInput = document.querySelector('[data-art-input]');
     if (artInput && artInput.addEventListener) {
-      artInput.addEventListener('change', refreshUploadGate);
+      artInput.addEventListener('change', function () {
+        var art = selectedArtwork();
+        if (art) persistHeldArtwork(art);
+        refreshUploadGate();
+      });
     }
     var savedDraft = freshStart ? {} : readDraft();
     if (!freshStart) {
@@ -5509,57 +5548,6 @@
     fillReviewSummary();
   }
 
-  function leftoverPickName(file) {
-    return file && file.name ? String(file.name) : '';
-  }
-
-  function paintLeftoverPickName(el, file) {
-    if (!el) return;
-    var name = leftoverPickName(file);
-    el.textContent = name;
-    setPanelHidden(el, !name);
-  }
-
-  function bindLeftoverReviewPick() {
-    var card = document.querySelector('[data-leftover-hop]');
-    var audioInput = document.querySelector('[data-audio-input]');
-    var artInput = document.querySelector('[data-art-input]');
-    var audioPick = document.querySelector('[data-leftover-audio-pick]');
-    var artPick = document.querySelector('[data-leftover-art-pick]');
-    var audioName = document.querySelector('[data-leftover-audio-name]');
-    var artName = document.querySelector('[data-leftover-art-name]');
-    var show = leftoverNeedsReviewPick(readDraft());
-    if (card) setPanelHidden(card, !show);
-    if (audioPick && audioInput && audioPick.addEventListener) {
-      audioPick.addEventListener('click', function (event) {
-        if (event && event.preventDefault) event.preventDefault();
-        if (audioInput.click) audioInput.click();
-      });
-    }
-    if (artPick && artInput && artPick.addEventListener) {
-      artPick.addEventListener('click', function (event) {
-        if (event && event.preventDefault) event.preventDefault();
-        if (artInput.click) artInput.click();
-      });
-    }
-    if (audioInput && audioInput.addEventListener) {
-      audioInput.addEventListener('change', function () {
-        var picked = audioFileOf(audioInput);
-        if (!picked) return;
-        if (!looksLikeWav(picked)) rememberPickedOriginal(picked);
-        persistPickedAudio(picked);
-        paintLeftoverPickName(audioName, picked);
-      });
-    }
-    if (artInput && artInput.addEventListener) {
-      artInput.addEventListener('change', function () {
-        paintLeftoverPickName(artName, selectedArtwork());
-      });
-    }
-    paintLeftoverPickName(audioName, audioFileOf(audioInput));
-    paintLeftoverPickName(artName, selectedArtwork());
-  }
-
   function bindReviewCatalog() {
     var genre = $('tg-genre');
     var language = $('tg-language');
@@ -5597,7 +5585,6 @@
       cancelBtn.addEventListener('click', cancelInProgressSubmit);
     }
     bindReviewCatalog();
-    bindLeftoverReviewPick();
     bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {

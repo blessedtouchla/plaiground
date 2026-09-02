@@ -349,6 +349,13 @@
       if (el && el.addEventListener) el.addEventListener('change', refresh);
     });
 
+    function keepCarriedFiles() {
+      var files = root.PlaigroundUploadDraftFiles;
+      if (files && typeof files.keepHeldFiles === 'function') {
+        try { files.keepHeldFiles(root); } catch (err) {}
+      }
+    }
+
     trigger.addEventListener('click', function (event) {
       if (event && event.preventDefault) event.preventDefault();
       var fields = collect();
@@ -370,11 +377,13 @@
         );
       }
       setStatus('');
+      keepCarriedFiles();
       if (root.location) root.location.href = nextHref(fields);
       return true;
     });
 
     applyDraft(readDraft());
+    keepCarriedFiles();
     refresh();
     return {
       collect: collect,
