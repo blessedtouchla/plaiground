@@ -1936,19 +1936,6 @@
     };
   }
 
-  function rosterLocalArtistId(row) {
-    if (!row || String(row.id || '') === 'account') return '';
-    return String(row.id || row.plaiground_artist_id || row.uuid || row.artist_id || '').trim();
-  }
-
-  function rosterStoreArtistId(row) {
-    var storeId = String((row && row.tonegrid_artist_id) || '').trim();
-    if (!isUuidValue(storeId)) return '';
-    if (sameUuid(storeId, rosterLocalArtistId(row))) return '';
-    if (sameUuid(storeId, row && row.id)) return '';
-    return storeId;
-  }
-
   function isLocalProfileArtistId(id, draft) {
     var want = String(id || '').trim();
     if (!isUuidValue(want)) return false;
@@ -1960,7 +1947,7 @@
     for (i = 0; i < artists.length; i += 1) {
       var row = artists[i] || {};
       if (String(row.id || '') === 'account') continue;
-      if (sameUuid(want, row.id) || sameUuid(want, row.plaiground_artist_id) || sameUuid(want, row.uuid) || sameUuid(want, row.artist_id)) {
+      if (sameUuid(want, row.id) || sameUuid(want, row.artist_id) || sameUuid(want, row.uuid) || sameUuid(want, row.plaiground_artist_id)) {
         return true;
       }
     }
@@ -1975,18 +1962,17 @@
     var i;
     for (i = 0; i < artists.length; i += 1) {
       var row = artists[i] || {};
-      var storeId = rosterStoreArtistId(row);
+      var storeId = String(row.tonegrid_artist_id || '').trim();
       if (String(row.id || '') === 'account') {
-        var accountStore = String(row.tonegrid_artist_id || '').trim();
-        if (isUuidValue(accountStore) && !isLocalProfileArtistId(accountStore, current) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
-          return accountStore;
+        if (isUuidValue(storeId) && !isLocalProfileArtistId(storeId, current) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
+          return storeId;
         }
         continue;
       }
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
       if (!sameProfile) continue;
-      if (storeId && !isLocalProfileArtistId(storeId, current)) return storeId;
+      if (isUuidValue(storeId) && !isLocalProfileArtistId(storeId, current)) return storeId;
       return '';
     }
     return '';
@@ -2020,7 +2006,9 @@
         break;
       }
     }
-    if (liveOnDraft && !isLocalProfileArtistId(liveOnDraft, current)) return liveOnDraft;
+    if (liveOnDraft && current.tonegrid_artist_id && sameUuid(liveOnDraft, current.tonegrid_artist_id)) {
+      if (!isLocalProfileArtistId(liveOnDraft, current)) return liveOnDraft;
+    }
     var artists = rosterFromMe();
     var pgId = String(current.plaiground_artist_id || '').trim();
     var name = String(current.name || '').trim();
@@ -2028,17 +2016,10 @@
       if (!row || String(row.id || '') === 'account') return false;
       var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
         || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
-      return sameProfile && !rosterStoreArtistId(row);
+      return sameProfile && !isUuidValue(row.tonegrid_artist_id);
     });
-    if (profileNeedsCreate || pgId) return '';
-    return liveOnDraft;
-  }
-
-  function liveReleaseArtistId(draft) {
-    var current = draft || {};
-    var id = String(current.artist_id || '').trim();
-    if (isUuidValue(id) && !isLocalProfileArtistId(id, current)) return id;
-    return existingStoreArtistId(current) || '';
+    if (profileNeedsCreate) return '';
+    return isLocalProfileArtistId(liveOnDraft, current) ? '' : liveOnDraft;
   }
 
   function ensureCatalogArtist(draft) {
@@ -2063,45 +2044,25 @@
         result: { data: { error: 'Artist name is required.' } },
       });
     }
-    var pgId = String(current.plaiground_artist_id || '').trim();
-    if (!pgId && name) {
-      var roster = rosterFromMe();
-      var r;
-      for (r = 0; r < roster.length; r += 1) {
-        var row = roster[r] || {};
-        if (String(row.id || '') === 'account') continue;
-        if (String(row.name || '').toLowerCase() === name.toLowerCase()) {
-          pgId = rosterLocalArtistId(row);
-          break;
-        }
-      }
-    }
-    if (pgId && String(current.plaiground_artist_id || '').trim() !== pgId) {
-      current = writeDraft({ plaiground_artist_id: pgId });
-    }
     return post(ARTISTS_URL, {
       name: name,
-      plaiground_artist_id: pgId || '',
+      plaiground_artist_id: current.plaiground_artist_id || '',
     }).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
       if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
       if (!result.ok) return { failed: true, result: result, draft: current };
       var id = pickUuid(result.data);
-      if (!id || isLocalProfileArtistId(id, current)) {
+      if (!id) {
         return {
           failed: true,
           result: { data: { error: createErrorMessage(result, 'Could not save artist.') } },
           draft: current,
         };
       }
-      var next = writeDraft({
-        artist_id: id,
-        tonegrid_artist_id: id,
-        plaiground_artist_id: pgId || current.plaiground_artist_id || '',
-      });
+      var next = writeDraft({ artist_id: id, tonegrid_artist_id: id });
       saveCatalog({ artist_id: id });
       rememberRosterArtist({
-        id: pgId || current.plaiground_artist_id || name,
+        id: current.plaiground_artist_id || id,
         name: name,
         tonegrid_artist_id: id,
         source: 'created',
@@ -2123,7 +2084,7 @@
     return ensureCatalogArtist(current).then(function (ready) {
       if (ready.unavailable || ready.limited || ready.failed || ready.missing) return ready;
       current = ready.draft || current;
-      if (!liveReleaseArtistId(current)) {
+      if (!current.artist_id) {
         return {
           failed: true,
           missing: true,
@@ -2779,7 +2740,7 @@
 
   function releasePayload(draft, releaseDate) {
     var body = {
-      artist_id: liveReleaseArtistId(draft),
+      artist_id: draft.artist_id,
       title: draft.title,
       type: draft.type || 'single',
       genre: draft.genre || '',
@@ -3731,27 +3692,12 @@
       rememberSessionRelease(draft.release_id);
       return Promise.resolve({ skipped: true, draft: draft });
     }
-    if (!draft.title) {
+    if (!draft.artist_id || !draft.title) {
       return Promise.resolve({ skipped: true, missing: true, draft: draft });
-    }
-    var artistId = liveReleaseArtistId(draft);
-    if (!artistId) {
-      if (opts && opts.mintedArtist) {
-        return Promise.resolve({
-          failed: true,
-          missing: true,
-          draft: draft,
-          result: { data: { error: 'Save the upload details first so a catalog artist exists.' } },
-        });
-      }
-      return ensureCatalogArtist(draft).then(function (ready) {
-        if (ready.unavailable || ready.limited || ready.failed || ready.missing) return ready;
-        return createRelease(ready.draft || draft, releaseDate, Object.assign({}, opts || {}, { mintedArtist: true }));
-      });
     }
     var knownSkip = attachKnownLeftoverNow(draft);
     if (knownSkip) return knownSkip;
-    var body = releasePayload(Object.assign({}, draft, { artist_id: artistId }), releaseDate);
+    var body = releasePayload(draft, releaseDate);
     var key = takeIdempotencyKey('release', draft, body, Boolean(opts && opts.rotateKey));
     return post(RELEASES_URL, body, key).then(function (result) {
       if (isUnavailable(result)) {
