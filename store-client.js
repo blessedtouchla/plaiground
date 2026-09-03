@@ -1577,6 +1577,10 @@
     '1f26369b-e107-4c79-bde1-4c5382f9d511',
     'df51342b-ba22-4093-93ff-35b6402b61c0',
     '7544eade-ce02-472c-92d0-a5d61609999d',
+    'd412cc82',
+    '37524790',
+    'e41e056b',
+    '9956c52b',
   ];
 
   var KNOWN_ADOPT_RELEASES = [
@@ -1683,6 +1687,7 @@
 
   function knownLeftoverNeedsAudioHop(draft, tracks) {
     if (!draft) return false;
+    if (isProtectedCatalogRelease(draft.release_id, draft.title)) return false;
     var rows = tracks || [];
     if (!rows.length) return false;
     var i;
@@ -1741,17 +1746,34 @@
     });
   }
 
+  function protectedCatalogIdMatch(have, want) {
+    var a = String(have || '').trim().toLowerCase();
+    var b = String(want || '').trim().toLowerCase();
+    if (!a || !b) return false;
+    if (a === b) return true;
+    var ha = a.replace(/-/g, '');
+    var hb = b.replace(/-/g, '');
+    if (!/^[0-9a-f]{8,}$/.test(ha) || !/^[0-9a-f]{8,}$/.test(hb)) return false;
+    if (ha.length < 8 || hb.length < 8) return false;
+    return ha.indexOf(hb) === 0 || hb.indexOf(ha) === 0;
+  }
+
   function isProtectedCatalogRelease(id, title) {
     var nid = String(id || '').trim().toLowerCase();
     var i;
     for (i = 0; i < PROTECTED_CATALOG_IDS.length; i += 1) {
-      if (sameUuid(PROTECTED_CATALOG_IDS[i], nid)) return true;
+      if (protectedCatalogIdMatch(PROTECTED_CATALOG_IDS[i], nid)) return true;
     }
     var n = String(title || '').trim().toLowerCase().replace(/,/g, '');
     return n === 'lightning'
       || n === 'thank you dolly'
+      || n === 'dolly'
       || n === 'metete en el groove'
+      || n === 'metete'
       || n === 'too the moon'
+      || n === 'golden era'
+      || n === 'night sky'
+      || n === 'game time'
       || n === 'cgi'
       || n === 'vhnjuk';
   }
@@ -2514,6 +2536,10 @@
     if (ids.length > 1) submitBody.track_ids = ids;
     if (draft.artwork_object_key) submitBody.artwork_object_key = draft.artwork_object_key;
     if (draft.audio_object_key) submitBody.audio_object_key = draft.audio_object_key;
+    if (draft.credits && typeof draft.credits === 'object') submitBody.credits = draft.credits;
+    if (Array.isArray(draft.contributors) && draft.contributors.length) {
+      submitBody.contributors = draft.contributors;
+    }
     return resolveSubmitTracks(draft).then(function (ready) {
       if (ready.recover) return { recover: true, result: ready.result, draft: ready.draft || draft };
       if (ready.failed) return { failed: true, result: ready.result, draft: ready.draft || draft };

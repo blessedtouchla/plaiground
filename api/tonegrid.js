@@ -277,6 +277,18 @@ function sameCatalogId(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase() && Boolean(String(a || '').trim());
 }
 
+function protectedCatalogIdMatch(have, want) {
+  const a = String(have || '').trim().toLowerCase();
+  const b = String(want || '').trim().toLowerCase();
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const ha = a.replace(/-/g, '');
+  const hb = b.replace(/-/g, '');
+  if (!/^[0-9a-f]{8,}$/.test(ha) || !/^[0-9a-f]{8,}$/.test(hb)) return false;
+  if (ha.length < 8 || hb.length < 8) return false;
+  return ha.indexOf(hb) === 0 || hb.indexOf(ha) === 0;
+}
+
 function sameSongText(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 }
@@ -322,6 +334,10 @@ const PROTECTED_CATALOG_IDS = [
   '1f26369b-e107-4c79-bde1-4c5382f9d511',
   'df51342b-ba22-4093-93ff-35b6402b61c0',
   '7544eade-ce02-472c-92d0-a5d61609999d',
+  'd412cc82',
+  '37524790',
+  'e41e056b',
+  '9956c52b',
 ];
 
 const KNOWN_ADOPT_RELEASES = [
@@ -498,12 +514,17 @@ function protectedCatalogTitleOf(title) {
 
 function isProtectedCatalogRelease(id, title) {
   const nid = String(id || '').trim().toLowerCase();
-  if (nid && PROTECTED_CATALOG_IDS.some((have) => sameCatalogId(have, nid))) return true;
+  if (nid && PROTECTED_CATALOG_IDS.some((have) => protectedCatalogIdMatch(have, nid))) return true;
   const n = protectedCatalogTitleOf(title);
   return n === 'lightning'
     || n === 'thank you dolly'
+    || n === 'dolly'
     || n === 'metete en el groove'
+    || n === 'metete'
     || n === 'too the moon'
+    || n === 'golden era'
+    || n === 'night sky'
+    || n === 'game time'
     || n === 'cgi'
     || n === 'vhnjuk';
 }
@@ -543,6 +564,11 @@ function protectHardDelete(releaseId, title, status) {
   if (isKnownAdoptRelease(releaseId)) return true;
   if (!isProtectedCatalogRelease(releaseId, title)) return false;
   return !isQcRejectedLeftover(status);
+}
+
+function isRemovedCatalogRelease(id) {
+  return protectedCatalogIdMatch('df51342b-ba22-4093-93ff-35b6402b61c0', id)
+    || protectedCatalogIdMatch('7544eade-ce02-472c-92d0-a5d61609999d', id);
 }
 
 async function deleteStoreRelease(releaseId, status, title) {
@@ -1003,14 +1029,17 @@ function isSoftWriterMiss(result) {
   return result.status === 400 || result.status === 422;
 }
 
-async function stampTrackSongwriter(trackId, songwriter) {
-  const fields = storeCredits.trackSongwriterFields(songwriter);
+async function stampTrackSongwriter(trackId, songwriter, extras) {
+  const fields = storeCredits.mergeTrackContributors(songwriter, extras)
+    || storeCredits.trackSongwriterFields(songwriter);
   if (!fields) return { ok: true, skipped: true };
   const bodies = [
     { contributors: fields.contributors },
-    { songwriters: fields.songwriters, composers: fields.composers },
+    fields.songwriters || fields.composers
+      ? { songwriters: fields.songwriters, composers: fields.composers }
+      : null,
     fields,
-  ];
+  ].filter(Boolean);
   for (let i = 0; i < bodies.length; i += 1) {
     const body = bodies[i];
     const patched = await tonegridFetch('/tracks/' + trackId, {
@@ -1029,10 +1058,12 @@ async function stampTrackSongwriter(trackId, songwriter) {
   return { ok: true, skipped: true };
 }
 
-async function attachTrackWriters(trackId, songwriter) {
+async function attachTrackWriters(trackId, songwriter, extras) {
   const name = songwriter && songwriter.name;
-  if (!name || !isUuid(trackId)) return { ok: true, skipped: true };
-  const stamped = await stampTrackSongwriter(trackId, songwriter);
+  const roles = storeCredits.declaredTrackContributors(extras);
+  if ((!name && !roles.length) || !isUuid(trackId)) return { ok: true, skipped: true };
+  const stamped = await stampTrackSongwriter(trackId, songwriter, extras);
+  if (!name) return stamped && stamped.ok === false ? stamped : { ok: true };
   const writerBody = storeCredits.writerCreateBody(songwriter);
   const created = await tonegridFetch('/writers', {
     method: 'POST',
@@ -3169,6 +3200,10 @@ async function submitRelease(req, res, releaseId) {
     sendJson(res, 400, { error: 'Save the upload first.' });
     return;
   }
+  if (isRemovedCatalogRelease(id)) {
+    sendJson(res, 409, { error: 'This release cannot be updated.' });
+    return;
+  }
   const scope = await requireOwnedRelease(req, res, releaseId);
   if (!scope) return;
 
@@ -3344,7 +3379,7 @@ async function submitRelease(req, res, releaseId) {
     const tid = String(trackIds[i] || '').trim();
     if (!isUuid(tid) || seenTracks[tid]) continue;
     seenTracks[tid] = true;
-    const writersHop = await attachTrackWriters(tid, songwriter);
+    const writersHop = await attachTrackWriters(tid, songwriter, body);
     if (!writersHop.ok) {
       sendJson(res, writersHop.status, writersHop.data);
       return;
@@ -3883,3 +3918,7 @@ module.exports.pickDsps = pickDsps;
 module.exports.pickTerritories = pickTerritories;
 module.exports.pickDeliveries = livePlayer.pickDeliveries;
 module.exports.pickSeries = pickSeries;
+module.exports.isProtectedCatalogRelease = isProtectedCatalogRelease;
+module.exports.protectHardDelete = protectHardDelete;
+module.exports.protectedCatalogIdMatch = protectedCatalogIdMatch;
+module.exports.isRemovedCatalogRelease = isRemovedCatalogRelease;
