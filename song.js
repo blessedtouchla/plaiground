@@ -521,14 +521,80 @@
   }
 
   function firstTrackId(release, draft) {
-    var track = (release && release.tracks && release.tracks[0]) || {};
-    return String(
-      track.uuid
-      || track.id
-      || track.track_id
-      || (draft && (draft.track_id || draft.tonegrid_track_id))
-      || ''
-    ).trim();
+    var ids = existingTrackIds(release, draft);
+    return ids[0] || '';
+  }
+
+  function existingTrackIds(release, draft) {
+    var out = [];
+    var seen = Object.create(null);
+    function add(id) {
+      var next = String(id || '').trim();
+      if (!next) return;
+      var key = next.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(next);
+    }
+    ((release && release.tracks) || []).forEach(function (track) {
+      add(track && (track.uuid || track.id || track.track_id));
+    });
+    add(draft && (draft.track_id || draft.tonegrid_track_id));
+    return out;
+  }
+
+  function trackHasStoreAudio(track) {
+    if (!track || typeof track !== 'object') return false;
+    return Boolean(
+      track.audio_url
+      || track.audio_s3_key
+      || track.audio_object_key
+      || track.audio_key
+      || track.has_audio
+      || track.audio
+    );
+  }
+
+  function pendingAudioTrackIds(release, draft, selectedId) {
+    var existing = existingTrackIds(release, draft);
+    var picked = String(selectedId || '').trim();
+    if (!existing.length) return picked ? [picked] : [];
+    var empty = [];
+    ((release && release.tracks) || []).forEach(function (track) {
+      var id = String((track && (track.uuid || track.id || track.track_id)) || '').trim();
+      if (id && !trackHasStoreAudio(track)) empty.push(id);
+    });
+    if (empty.length) return empty;
+    if (picked) return [picked];
+    return [existing[0]];
+  }
+
+  function pendingCreditBody(draft) {
+    var credits = draft && draft.credits && typeof draft.credits === 'object' && !Array.isArray(draft.credits)
+      ? draft.credits
+      : {};
+    var rows = [];
+    var seen = Object.create(null);
+    function add(name, role) {
+      var nextName = String(name || '').trim();
+      var nextRole = String(role || '').trim();
+      if (!nextName || !nextRole) return;
+      var lower = nextName.toLowerCase();
+      if (lower === 'ai' || lower === 'artificial intelligence' || lower === 'an ai' || lower === 'the ai') return;
+      var key = lower + '|' + nextRole.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      rows.push({ name: nextName, role: nextRole });
+    }
+    (Array.isArray(draft && draft.contributors) ? draft.contributors : []).forEach(function (row) {
+      if (!row || typeof row !== 'object') return;
+      add(row.name || [row.first_name, row.last_name].filter(Boolean).join(' '), row.role);
+    });
+    add(credits.performer, 'Performer');
+    add(credits.producer, 'Producer');
+    add(credits.engineer, 'Engineer');
+    if (!rows.length) return null;
+    return { contributors: rows, credits: credits };
   }
 
   function truthyApplied(value) {
@@ -1855,6 +1921,7 @@
   }
 
   function applyImmediateEdit(id, fields) {
+    var creditSource = lastEdit.draft;
     var hopCover = fields.art ? hopPut('cover', fields.art).catch(function () { return ''; }) : Promise.resolve('');
     return hopCover.then(function (coverKey) {
       return fileToCoverDataUrl(coverKey ? null : fields.art).then(function (storedCover) {
@@ -1922,6 +1989,15 @@
       lastEdit.release = release;
       persistPlaigroundRelease(draft, release);
       sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'PUT', hopRecordLabelBody(fields.label)).then(function () {}, function () {});
+      if (hopped.coverKey) {
+        sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', 'POST', { object_key: hopped.coverKey }).then(function () {}, function () {});
+      }
+      var creditBody = pendingCreditBody(creditSource) || pendingCreditBody(draft);
+      if (creditBody) {
+        existingTrackIds(release, draft).forEach(function (tid) {
+          sendJson('/api/tonegrid/tracks/' + encodeURIComponent(tid), 'PUT', creditBody).then(function () {}, function () {});
+        });
+      }
       var saveBtn = $('[data-edit-save]');
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       showEditRetry(false);
@@ -2054,7 +2130,16 @@
           }
           return hopPut('audio', audio).then(function (key) {
             writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
-            return sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key });
+            var audioIds = pendingAudioTrackIds(lastEdit.release, lastEdit.draft, trackId);
+            if (!audioIds.length) audioIds = [trackId];
+            var chain = Promise.resolve({ ok: true });
+            audioIds.forEach(function (tid) {
+              chain = chain.then(function (prev) {
+                if (prev && !prev.ok) return prev;
+                return sendJson('/api/tonegrid/tracks/' + encodeURIComponent(tid) + '/audio', 'POST', { object_key: key });
+              });
+            });
+            return chain;
           }).then(function (result) {
             if (result && !result.ok) {
               if (saveBtn) saveBtn.removeAttribute('aria-busy');
@@ -2117,6 +2202,8 @@
     function ensureEditTrackId(currentId) {
       var have = String(currentId || '').trim();
       if (have) return Promise.resolve(have);
+      var existing = existingTrackIds(lastEdit.release, lastEdit.draft);
+      if (existing.length) return Promise.resolve(existing[0]);
       if (!audio) return Promise.resolve('');
       var pendingOnStore = storeStatusOf(lastEdit.release, lastEdit.draft) === 'pending';
       if (!draftEdit && !pendingOnStore) return Promise.resolve('');
@@ -2178,7 +2265,16 @@
           }
           return hopPut('audio', audio).then(function (key) {
             writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
-            return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key }));
+            var audioIds = pendingAudioTrackIds(lastEdit.release, lastEdit.draft, trackId);
+            if (!audioIds.length) audioIds = [trackId];
+            var chain = Promise.resolve({ ok: true });
+            audioIds.forEach(function (tid) {
+              chain = chain.then(function (prev) {
+                if (prev && !prev.ok) return prev;
+                return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(tid) + '/audio', 'POST', { object_key: key }));
+              });
+            });
+            return chain;
           }).catch(function (err) {
             if (err && err.timedOut) throw err;
             return { ok: false, data: { error: (err && err.message) || 'We could not send the audio.' } };

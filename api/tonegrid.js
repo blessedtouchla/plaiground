@@ -277,6 +277,18 @@ function sameCatalogId(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase() && Boolean(String(a || '').trim());
 }
 
+function protectedCatalogIdMatch(have, want) {
+  const a = String(have || '').trim().toLowerCase();
+  const b = String(want || '').trim().toLowerCase();
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const ha = a.replace(/-/g, '');
+  const hb = b.replace(/-/g, '');
+  if (!/^[0-9a-f]{8,}$/.test(ha) || !/^[0-9a-f]{8,}$/.test(hb)) return false;
+  if (ha.length < 8 || hb.length < 8) return false;
+  return ha.indexOf(hb) === 0 || hb.indexOf(ha) === 0;
+}
+
 function sameSongText(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 }
@@ -322,6 +334,10 @@ const PROTECTED_CATALOG_IDS = [
   '1f26369b-e107-4c79-bde1-4c5382f9d511',
   'df51342b-ba22-4093-93ff-35b6402b61c0',
   '7544eade-ce02-472c-92d0-a5d61609999d',
+  'd412cc82',
+  '37524790',
+  'e41e056b',
+  '9956c52b',
 ];
 
 const KNOWN_ADOPT_RELEASES = [
@@ -498,12 +514,17 @@ function protectedCatalogTitleOf(title) {
 
 function isProtectedCatalogRelease(id, title) {
   const nid = String(id || '').trim().toLowerCase();
-  if (nid && PROTECTED_CATALOG_IDS.some((have) => sameCatalogId(have, nid))) return true;
+  if (nid && PROTECTED_CATALOG_IDS.some((have) => protectedCatalogIdMatch(have, nid))) return true;
   const n = protectedCatalogTitleOf(title);
   return n === 'lightning'
     || n === 'thank you dolly'
+    || n === 'dolly'
     || n === 'metete en el groove'
+    || n === 'metete'
     || n === 'too the moon'
+    || n === 'golden era'
+    || n === 'night sky'
+    || n === 'game time'
     || n === 'cgi'
     || n === 'vhnjuk';
 }
@@ -539,10 +560,9 @@ function isStoreDeleteGone(result) {
   return result.status === 404 || isReleaseGoneResult(result);
 }
 
-function protectHardDelete(releaseId, title, status) {
+function protectHardDelete(releaseId, title) {
   if (isKnownAdoptRelease(releaseId)) return true;
-  if (!isProtectedCatalogRelease(releaseId, title)) return false;
-  return !isQcRejectedLeftover(status);
+  return isProtectedCatalogRelease(releaseId, title);
 }
 
 async function deleteStoreRelease(releaseId, status, title) {
@@ -3543,8 +3563,10 @@ async function updateTrack(req, res, trackId) {
     payload.explicit = explicit;
   }
   storeAi.applyTrackAiFields(payload, body);
+  const creditRoles = storeCredits.declaredTrackContributors(body);
+  if (creditRoles.length) payload.contributors = creditRoles;
   if (!Object.keys(payload).length) {
-    sendJson(res, 400, { error: 'Provide title, language, or explicit.' });
+    sendJson(res, 400, { error: 'Provide title, language, explicit, or contributors.' });
     return;
   }
 
@@ -3888,3 +3910,6 @@ module.exports.pickDsps = pickDsps;
 module.exports.pickTerritories = pickTerritories;
 module.exports.pickDeliveries = livePlayer.pickDeliveries;
 module.exports.pickSeries = pickSeries;
+module.exports.isProtectedCatalogRelease = isProtectedCatalogRelease;
+module.exports.protectHardDelete = protectHardDelete;
+module.exports.protectedCatalogIdMatch = protectedCatalogIdMatch;

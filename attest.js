@@ -46,6 +46,7 @@
     var performer = document.getElementById('attest-performer');
     var writerCredit = document.getElementById('attest-writer-credit');
     var producer = document.getElementById('attest-producer');
+    var engineer = document.getElementById('attest-engineer');
     var didLyrics = document.getElementById('attest-did-lyrics');
     var didBeat = document.getElementById('attest-did-beat');
     var directed = document.getElementById('attest-directed');
@@ -118,6 +119,7 @@
           performer: performer ? String(performer.value || '').trim() : '',
           writer: writerCredit ? String(writerCredit.value || '').trim() : '',
           producer: producer ? String(producer.value || '').trim() : '',
+          engineer: engineer ? String(engineer.value || '').trim() : '',
         },
       };
       if (root.PlaigroundReleaseCredits && root.PlaigroundReleaseCredits.seedWriters) {
@@ -190,18 +192,31 @@
       }
     }
 
+    function namedTrackRole(value) {
+      var raw = String(value || '').trim();
+      if (!raw) return false;
+      var lower = raw.toLowerCase();
+      if (lower === 'ai' || lower === 'artificial intelligence' || lower === 'an ai' || lower === 'the ai') return false;
+      return true;
+    }
+
     function pageError(fields) {
       if (root.PlaigroundUploadRequired && root.PlaigroundUploadRequired.validateAttestPage) {
         var checked = root.PlaigroundUploadRequired.validateAttestPage(fields);
-        return checked && checked.error ? checked.error : '';
-      }
-      if (!fields.made_how) return 'How the song was made is required.';
-      if (fields.made_how === 'ai_assisted') {
-        if (!fields.human_elements.length && !fields.human_contribution) {
-          return 'Human element is required.';
+        if (checked && checked.error) return checked.error;
+      } else {
+        if (!fields.made_how) return 'How the song was made is required.';
+        if (fields.made_how === 'ai_assisted') {
+          if (!fields.human_elements.length && !fields.human_contribution) {
+            return 'Human element is required.';
+          }
         }
+        if (!fields.rights_confirmed) return 'Rights confirmation is required.';
       }
-      if (!fields.rights_confirmed) return 'Rights confirmation is required.';
+      var credits = (fields && fields.credits) || {};
+      if (!namedTrackRole(credits.performer) && !namedTrackRole(credits.producer) && !namedTrackRole(credits.engineer)) {
+        return 'Add a performer, producer, or engineer name for each track.';
+      }
       return '';
     }
 
@@ -267,6 +282,7 @@
       if (performer && draft.credits && draft.credits.performer) performer.value = draft.credits.performer;
       if (writerCredit && draft.credits && draft.credits.writer) writerCredit.value = draft.credits.writer;
       if (producer && draft.credits && draft.credits.producer) producer.value = draft.credits.producer;
+      if (engineer && draft.credits && draft.credits.engineer) engineer.value = draft.credits.engineer;
       if (didLyrics && draft.did_lyrics != null) didLyrics.checked = draft.did_lyrics === true || draft.did_lyrics === 'true';
       if (didBeat && draft.did_beat != null) didBeat.checked = draft.did_beat === true || draft.did_beat === 'true';
       if (directed && draft.directed != null) directed.checked = draft.directed === true || draft.directed === 'true';
@@ -339,7 +355,7 @@
         refresh();
       });
     }
-    [writerFirst, writerLast, performer, writerCredit, producer, otherCount].forEach(function (el) {
+    [writerFirst, writerLast, performer, writerCredit, producer, engineer, otherCount].forEach(function (el) {
       if (el && el.addEventListener) {
         el.addEventListener('input', refresh);
         el.addEventListener('change', refresh);

@@ -1243,6 +1243,221 @@ function testPendingAudioReplace() {
   });
 }
 
+function testNightSkyExistingTracks() {
+  const me = {
+    artist: 'Night sky',
+    plan: 'basic',
+    legal_first: 'Ada',
+    legal_last: 'Night',
+    tonegrid_release_ids: ['37524790-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackOne = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const trackTwo = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const audioFile = { name: 'night-sky.wav', type: 'audio/wav', size: 4096 };
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(url).split('?')[0])) {
+        throw new Error('Night sky must PATCH existing tracks only');
+      }
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(url).split('?')[0])) {
+        throw new Error('Night sky must not remint');
+      }
+      if (method === 'DELETE') throw new Error('must not delete a store release');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'Night sky';
+  page.ids['edit-genre'].value = 'Pop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-label'].value = '';
+  page.ids['edit-art'].files = [{ name: 'night-sky.jpg', type: 'image/jpeg' }];
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Night sky',
+      submitted: true,
+      tonegrid_status: 'pending',
+      made_how: 'no_ai',
+      legal_first: 'Ada',
+      legal_last: 'Night',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Night sky',
+      status: 'pending',
+      genre: 'Pop',
+      language: 'en',
+      tracks: [
+        { uuid: trackOne, title: 'Night sky 1' },
+        { uuid: trackTwo, title: 'Night sky 2' },
+      ],
+    },
+  });
+  page.ids['edit-audio'].files = [audioFile];
+  page.ids['edit-audio'].removeAttribute('data-track-id');
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'Night sky save must stay on the existing row');
+    const audioUrls = calls
+      .filter((row) => row.method === 'POST' && /\/tracks\/[^/]+\/audio/.test(String(row.url)))
+      .map((row) => String(row.url));
+    assert.ok(audioUrls.some((url) => url.indexOf(trackOne) !== -1), 'first existing Night sky track receives audio');
+    assert.ok(audioUrls.some((url) => url.indexOf(trackTwo) !== -1), 'second existing Night sky track receives audio');
+    assert.ok(calls.some((row) => row.method === 'POST' && /\/releases\/[^/]+\/artwork/.test(String(row.url))), 'Night sky cover POSTs on this release');
+    const labelPut = calls.find((row) => row.method === 'PUT' && /\/releases\/37524790/.test(String(row.url)) && !/\/dsps$/.test(String(row.url)));
+    assert.ok(labelPut, 'Night sky PUTs a label on the existing release');
+    let labelBody = {};
+    try { labelBody = JSON.parse(labelPut.body); } catch (err) { labelBody = {}; }
+    assert.strictEqual(labelBody.label, 'PLAIGROUND');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0])), 'Night sky must not mint a third track');
+    assert.ok(!calls.some((row) => row.method === 'DELETE'));
+  });
+}
+
+function testDollyCreditsPatch() {
+  const me = {
+    artist: 'Thank You, Dolly',
+    plan: 'basic',
+    legal_first: 'Ada',
+    legal_last: 'Night',
+    tonegrid_release_ids: ['df51342b-ba22-4093-93ff-35b6402b61c0'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(url).split('?')[0])) {
+        throw new Error('Dolly credits must PATCH in place');
+      }
+      if (method === 'DELETE') throw new Error('must not delete a store release');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'rejected' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'Thank You, Dolly';
+  page.ids['edit-genre'].value = 'Pop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Thank You, Dolly',
+      submitted: true,
+      tonegrid_status: 'rejected',
+      track_id: trackId,
+      credits: { performer: 'Ada Night', producer: 'Ada Night' },
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Thank You, Dolly',
+      status: 'rejected',
+      genre: 'Pop',
+      language: 'en',
+      tracks: [{ uuid: trackId, title: 'Thank You, Dolly' }],
+    },
+  });
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'Dolly credit save must stay on the existing row');
+    const creditPut = calls.find((row) => row.method === 'PUT' && String(row.url).indexOf('/tracks/' + trackId) !== -1);
+    assert.ok(creditPut, 'collected credits PATCH the existing Dolly track');
+    let body = {};
+    try { body = JSON.parse(creditPut.body); } catch (err) { body = {}; }
+    assert.ok(Array.isArray(body.contributors));
+    assert.ok(body.contributors.some((row) => row.role === 'Performer' && row.name === 'Ada Night'));
+    assert.ok(body.contributors.some((row) => row.role === 'Producer' && row.name === 'Ada Night'));
+    assert.ok(!calls.some((row) => row.method === 'DELETE'));
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])));
+  });
+}
+
+function testMeteteCoverLabel() {
+  const me = {
+    artist: 'Metete',
+    plan: 'basic',
+    legal_first: 'Ada',
+    legal_last: 'Night',
+    tonegrid_release_ids: ['6629b532-2e78-4be6-84eb-e4dfa9ac33e5'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(url).split('?')[0])) {
+        throw new Error('Metete must PATCH in place');
+      }
+      if (method === 'DELETE') throw new Error('must not delete a store release');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'Metete en el groove';
+  page.ids['edit-genre'].value = 'Afrobeats';
+  page.ids['edit-language'].value = 'es';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-label'].value = '';
+  page.ids['edit-art'].files = [{ name: 'metete.jpg', type: 'image/jpeg' }];
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Metete en el groove',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: trackId,
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Metete en el groove',
+      status: 'pending',
+      genre: 'Afrobeats',
+      language: 'es',
+      tracks: [{ uuid: trackId, title: 'Metete en el groove' }],
+    },
+  });
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'Metete cover/label save must stay on the existing row');
+    assert.ok(calls.some((row) => row.method === 'POST' && String(row.url).indexOf('/releases/' + releaseId + '/artwork') !== -1), 'Metete cover POSTs on this release');
+    const labelPut = calls.find((row) => row.method === 'PUT' && String(row.url).indexOf('/releases/' + releaseId) !== -1 && !/\/dsps$/.test(String(row.url)));
+    assert.ok(labelPut, 'Metete PUTs a label on the existing release');
+    let labelBody = {};
+    try { labelBody = JSON.parse(labelPut.body); } catch (err) { labelBody = {}; }
+    assert.strictEqual(labelBody.label, 'PLAIGROUND');
+    assert.ok(!calls.some((row) => row.method === 'DELETE'));
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])));
+  });
+}
+
 function run() {
   const html = read('song.html');
   const css = read('site.css');
@@ -2610,7 +2825,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testNightSkyExistingTracks).then(testMeteteCoverLabel).then(testDollyCreditsPatch).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
@@ -2637,5 +2852,8 @@ if (require.main === module) {
   module.exports = {
     testPendingAudioReplace: testPendingAudioReplace,
     testDraftAudioReplace: testDraftAudioReplace,
+    testNightSkyExistingTracks: testNightSkyExistingTracks,
+    testMeteteCoverLabel: testMeteteCoverLabel,
+    testDollyCreditsPatch: testDollyCreditsPatch,
   };
 }
