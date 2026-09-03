@@ -1866,13 +1866,41 @@
     return typed;
   }
 
+  function isRemovedCatalogRow(id) {
+    var n = String(id || '').trim().toLowerCase().replace(/-/g, '');
+    return n.indexOf('df51342b') === 0 || n.indexOf('7544eade') === 0;
+  }
+
+  function failPendingEdit(id, message) {
+    var saveBtn = $('[data-edit-save]');
+    if (saveBtn) saveBtn.removeAttribute('aria-busy');
+    showEditRetry(true);
+    setEditError(message || 'The cover or audio did not reach the store. Try again.');
+    return { ok: false, created: false, applied: false, releaseId: id };
+  }
+
   function applyImmediateEdit(id, fields) {
-    var hopCover = fields.art ? hopPut('cover', fields.art).catch(function () { return ''; }) : Promise.resolve('');
+    var hopCover = fields.art ? hopPut('cover', fields.art) : Promise.resolve('');
     return hopCover.then(function (coverKey) {
-      return fileToCoverDataUrl(coverKey ? null : fields.art).then(function (storedCover) {
-        return { coverKey: coverKey, storedCover: storedCover };
+      if (fields.art && !String(coverKey || '').trim()) {
+        return failPendingEdit(id, 'The cover did not reach the store. Try again.');
+      }
+      var artSend = coverKey
+        ? sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', 'POST', { object_key: coverKey })
+        : Promise.resolve({ ok: true, skipped: true });
+      return artSend.then(function (artResult) {
+        if (fields.art && (!artResult || !artResult.ok)) {
+          return failPendingEdit(
+            id,
+            applyToneGridError(artResult, 'artwork', $('#edit-art')) || 'The cover did not reach the store. Try again.'
+          );
+        }
+        return fileToCoverDataUrl(coverKey ? null : fields.art).then(function (storedCover) {
+          return { coverKey: coverKey, storedCover: storedCover };
+        });
       });
     }).then(function (hopped) {
+      if (!hopped || hopped.ok === false) return hopped;
       var cover = persistableCoverUrl(hopped.storedCover) || pendingCoverUrl(fields.art);
       var keep = persistableCoverUrl(cover);
       var draft = writeDraftFor(id, {
@@ -1934,9 +1962,6 @@
       lastEdit.release = release;
       persistPlaigroundRelease(draft, release);
       sendJson('/api/tonegrid/releases/' + encodeURIComponent(id), 'PUT', hopRecordLabelBody(fields.label)).then(function () {}, function () {});
-      if (hopped.coverKey) {
-        sendJson('/api/tonegrid/releases/' + encodeURIComponent(id) + '/artwork', 'POST', { object_key: hopped.coverKey }).then(function () {}, function () {});
-      }
       var saveBtn = $('[data-edit-save]');
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       showEditRetry(false);
@@ -1955,6 +1980,8 @@
         releaseId: id,
         hops: [],
       };
+    }).catch(function (err) {
+      return failPendingEdit(id, (err && err.message) || 'The cover did not reach the store. Try again.');
     });
   }
 
@@ -1966,6 +1993,11 @@
       return Promise.resolve({ ok: false, created: false });
     }
     var saveBtn = $('[data-edit-save]');
+    if (isRemovedCatalogRow(id)) {
+      if (saveBtn) saveBtn.removeAttribute('aria-busy');
+      setEditError('This release cannot be updated.');
+      return Promise.resolve({ ok: false, created: false, releaseId: id });
+    }
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
     showEditRetry(false);
     var liveEdit = isLiveConfirmed(lastEdit.release, lastEdit.draft);
@@ -2056,9 +2088,7 @@
       return ensureEditTrackId(trackId).then(function (readyId) {
         trackId = readyId;
         if (!trackId) {
-          if (saveBtn) saveBtn.removeAttribute('aria-busy');
-          setEditError('This release has no track ID yet, so audio cannot be replaced.');
-          return { ok: false, created: false, releaseId: id };
+          return failPendingEdit(id, 'This release has no track ID yet, so audio cannot be replaced.');
         }
         return audioAllowed(audio).then(function (ok) {
           if (!ok) {
@@ -2068,21 +2098,23 @@
             return { ok: false, created: false, releaseId: id };
           }
           return hopPut('audio', audio).then(function (key) {
+            if (!String(key || '').trim()) {
+              return failPendingEdit(id, 'The audio did not reach the store. Try again.');
+            }
             writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
             return sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key });
           }).then(function (result) {
+            if (result && result.ok === false && result.applied === false) return result;
             if (result && !result.ok) {
-              if (saveBtn) saveBtn.removeAttribute('aria-busy');
-              setEditError(applyToneGridError(result, 'audio', $('#edit-audio')));
-              return { ok: false, created: false, releaseId: id };
+              return failPendingEdit(id, applyToneGridError(result, 'audio', $('#edit-audio')) || 'The audio did not reach the store. Try again.');
             }
             return applyPendingFields();
           });
         });
       }).catch(function (err) {
-        if (saveBtn) saveBtn.removeAttribute('aria-busy');
-        setEditError((err && err.message) || 'We could not send the audio.');
-        return { ok: false, created: false, releaseId: id, timedOut: Boolean(err && err.timedOut) };
+        var failed = failPendingEdit(id, (err && err.message) || 'The audio did not reach the store. Try again.');
+        failed.timedOut = Boolean(err && err.timedOut);
+        return failed;
       });
     }
 
@@ -2136,7 +2168,7 @@
       if (existing.length) return Promise.resolve(existing[0]);
       if (!audio) return Promise.resolve('');
       var pendingOnStore = storeStatusOf(lastEdit.release, lastEdit.draft) === 'pending';
-      if (!draftEdit && !pendingOnStore) return Promise.resolve('');
+      if (pendingOnStore || !draftEdit) return Promise.resolve('');
       return runHop('track_create', sendJson('/api/tonegrid/tracks', 'POST', editTrackCreateBody())).then(function (result) {
         if (!result || !result.ok) {
           errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));

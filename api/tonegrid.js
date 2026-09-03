@@ -565,6 +565,11 @@ function protectHardDelete(releaseId, title) {
   return isProtectedCatalogRelease(releaseId, title);
 }
 
+function isRemovedCatalogRelease(id) {
+  return protectedCatalogIdMatch('df51342b-ba22-4093-93ff-35b6402b61c0', id)
+    || protectedCatalogIdMatch('7544eade-ce02-472c-92d0-a5d61609999d', id);
+}
+
 async function deleteStoreRelease(releaseId, status, title) {
   if (protectHardDelete(releaseId, title, status)) {
     return { ok: false, status: 403, data: { error: 'Release cannot be removed.' } };
@@ -3194,6 +3199,10 @@ async function submitRelease(req, res, releaseId) {
     sendJson(res, 400, { error: 'Save the upload first.' });
     return;
   }
+  if (isRemovedCatalogRelease(id)) {
+    sendJson(res, 409, { error: 'This release cannot be updated.' });
+    return;
+  }
   const scope = await requireOwnedRelease(req, res, releaseId);
   if (!scope) return;
 
@@ -3911,3 +3920,4 @@ module.exports.pickSeries = pickSeries;
 module.exports.isProtectedCatalogRelease = isProtectedCatalogRelease;
 module.exports.protectHardDelete = protectHardDelete;
 module.exports.protectedCatalogIdMatch = protectedCatalogIdMatch;
+module.exports.isRemovedCatalogRelease = isRemovedCatalogRelease;

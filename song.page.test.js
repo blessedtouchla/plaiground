@@ -1177,7 +1177,6 @@ function testPendingAudioReplace() {
     assert.ok(!/edit-submitted\.html/.test(String(replacePage.context.location.href)), 'pending audio attach stays on the song');
 
     const mintCalls = [];
-    const mintedTrack = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
     const mintPage = loadSong({
       plan: 'basic',
       me,
@@ -1186,11 +1185,7 @@ function testPendingAudioReplace() {
       fetch(url, options) {
         const method = (options && options.method) || 'GET';
         if (method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(url).split('?')[0])) {
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            json: async () => ({ uuid: mintedTrack }),
-          });
+          throw new Error('pending edit must not invent a track');
         }
         if (method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(url).split('?')[0])) {
           throw new Error('pending empty-audio row must not remint the release');
@@ -1231,14 +1226,10 @@ function testPendingAudioReplace() {
     mintPage.ids['edit-language'].value = 'en';
     mintPage.ids['edit-audio'].files = [audioFile];
     return mintPage.api.submitEdit().then(function (minted) {
-      assert.ok(minted.ok, 'pending row with no track creates one on this release then hops audio');
-      const create = mintCalls.find((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0]));
-      assert.ok(create, 'empty pending track is minted on this same release');
-      let createBody = {};
-      try { createBody = JSON.parse(create.body); } catch (err) { createBody = {}; }
-      assert.strictEqual(createBody.release_id, releaseId);
-      assert.ok(mintCalls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + mintedTrack + '/audio') !== -1), 'new track on this pending row then receives the audio');
-      assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])), 'pending track mint must not POST a new release or artist');
+      assert.strictEqual(minted.ok, false, 'pending row with no track must fail instead of inventing one');
+      assert.ok(/no track ID/i.test(String(mintPage.nodes['[data-edit-error]'].textContent || '')));
+      assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0])), 'pending edit must not invent a track');
+      assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])), 'pending must not POST a new release or artist');
     });
   });
 }
@@ -1300,6 +1291,113 @@ function testPendingCoverAttach() {
     assert.ok(calls.some((row) => row.method === 'POST' && String(row.url).indexOf('/releases/' + releaseId + '/artwork') !== -1), 'pending edit POSTs cover onto this release');
     assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])));
     assert.ok(!calls.some((row) => row.method === 'DELETE'));
+  });
+}
+
+function testPendingCoverFailLoudly() {
+  const me = {
+    artist: 'Herman Watson',
+    plan: 'basic',
+    tonegrid_release_ids: ['d412cc82-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/artwork$/.test(String(url).split('?')[0])) {
+        return Promise.resolve({
+          ok: false,
+          status: 502,
+          json: async () => ({ error: 'Artwork upload failed.' }),
+        });
+      }
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(url).split('?')[0])) {
+        throw new Error('failed cover must not remint');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'Golden Era';
+  page.ids['edit-genre'].value = 'Hip-Hop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-art'].files = [{ name: 'golden-era.jpg', type: 'image/jpeg' }];
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Golden Era',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Golden Era',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      tracks: [{ uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'Golden Era' }],
+    },
+  });
+  return page.api.submitEdit().then(function (result) {
+    assert.strictEqual(result.ok, false, 'cover POST miss must fail the pending save');
+    assert.strictEqual(result.applied, false);
+    assert.ok(String(page.nodes['[data-edit-error]'].textContent || '').trim(), 'cover miss must show an error');
+    assert.ok(calls.some((row) => row.method === 'POST' && /\/artwork$/.test(String(row.url))));
+    assert.ok(!/edit-submitted\.html/.test(String(page.context.location.href)));
+  });
+}
+
+function testRemovedCatalogUntouched() {
+  const me = {
+    artist: 'Ada Night',
+    plan: 'basic',
+    tonegrid_release_ids: [
+      'df51342b-ba22-4093-93ff-35b6402b61c0',
+      '7544eade-ce02-472c-92d0-a5d61609999d',
+    ],
+  };
+  function runOne(releaseId, title) {
+    const calls = [];
+    const page = loadSong({
+      plan: 'basic',
+      me,
+      search: '?id=' + releaseId,
+      calls,
+      fetch() {
+        throw new Error('removed catalog must not be touched');
+      },
+    });
+    page.ids['edit-title'].value = title;
+    page.ids['edit-genre'].value = 'Pop';
+    page.ids['edit-language'].value = 'en';
+    page.ids['edit-release-date'].value = '2026-09-12';
+    page.ids['edit-art'].files = [{ name: 'cover.jpg', type: 'image/jpeg' }];
+    page.api.openEdit({
+      me,
+      draft: { release_id: releaseId, title: title, submitted: true, tonegrid_status: 'pending' },
+      release: { uuid: releaseId, title: title, status: 'pending', genre: 'Pop', language: 'en', tracks: [] },
+    });
+    return page.api.submitEdit().then(function (result) {
+      assert.strictEqual(result.ok, false);
+      assert.ok(/cannot be updated/i.test(String(page.nodes['[data-edit-error]'].textContent || '')));
+      assert.ok(!calls.some((row) => /\/api\/tonegrid\//.test(String(row.url)) && /df51342b|7544eade/.test(String(row.url))), title + ' must not PATCH the removed row');
+      assert.ok(!calls.some((row) => row.method === 'POST' && /\/(artwork|audio)$/.test(String(row.url).split('?')[0])));
+      assert.ok(!calls.some((row) => row.method === 'PATCH' || row.method === 'PUT' || row.method === 'DELETE'));
+    });
+  }
+  return runOne(me.tonegrid_release_ids[0], 'Thank You, Dolly').then(function () {
+    return runOne(me.tonegrid_release_ids[1], 'Too the moon');
   });
 }
 
@@ -2670,7 +2768,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingCoverAttach).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testRemovedCatalogUntouched).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
@@ -2698,5 +2796,7 @@ if (require.main === module) {
     testPendingAudioReplace: testPendingAudioReplace,
     testDraftAudioReplace: testDraftAudioReplace,
     testPendingCoverAttach: testPendingCoverAttach,
+    testPendingCoverFailLoudly: testPendingCoverFailLoudly,
+    testRemovedCatalogUntouched: testRemovedCatalogUntouched,
   };
 }
