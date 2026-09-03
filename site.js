@@ -367,37 +367,108 @@
     });
   }
 
+  function isBlogHref(href) {
+    var file = hrefFile(href);
+    return file === "blog.html" || file === "blog" || file === "/blog";
+  }
+
+  function isBlogPage() {
+    var page = hrefFile((window.location && window.location.pathname) || "");
+    return page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog";
+  }
+
+  function linkText(el) {
+    return String((el && el.textContent) || "").replace(/\s+/g, " ").trim();
+  }
+
+  function findNavSiqa(root) {
+    if (!root || !root.querySelectorAll) return null;
+    var links = root.querySelectorAll("a[href]");
+    var i;
+    var el;
+    var href;
+    var file;
+    var text;
+    for (i = 0; i < links.length; i += 1) {
+      el = links[i];
+      if (el.classList && el.classList.contains("nav-siqa")) return el;
+    }
+    for (i = 0; i < links.length; i += 1) {
+      el = links[i];
+      href = el.getAttribute("href") || "";
+      file = hrefFile(href);
+      if (file === "charts" || file === "charts.html" || href === "/charts" || href === "/charts.html") return el;
+    }
+    for (i = 0; i < links.length; i += 1) {
+      el = links[i];
+      text = linkText(el);
+      if (/SIQA/i.test(text)) return el;
+    }
+    return null;
+  }
+
+  function findNavBlog(root) {
+    if (!root || !root.querySelectorAll) return null;
+    var links = root.querySelectorAll("a[href]");
+    var i;
+    var el;
+    var href;
+    var file;
+    var text;
+    for (i = 0; i < links.length; i += 1) {
+      el = links[i];
+      href = el.getAttribute("href") || "";
+      file = hrefFile(href);
+      if (isBlogHref(href) || file === "blog.html" || file === "blog") return el;
+    }
+    for (i = 0; i < links.length; i += 1) {
+      el = links[i];
+      text = linkText(el);
+      if (text === "Blog") return el;
+    }
+    return null;
+  }
+
   function setupPublicBlogLink(links) {
     if (!links) return;
-    var existing = links.querySelector('a[href="blog.html"], a[href="/blog"]');
-    var page = hrefFile((window.location && window.location.pathname) || "");
-    var onBlog = page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog";
-    if (existing) {
-      if (onBlog) existing.classList.add("active");
-      if (links.firstElementChild !== existing) links.insertBefore(existing, links.firstElementChild);
-      return;
+    var blog = findNavBlog(links);
+    if (!blog) {
+      blog = document.createElement("a");
+      blog.href = "blog.html";
+      blog.textContent = "Blog";
     }
-    var blog = document.createElement("a");
-    blog.href = "blog.html";
-    blog.textContent = "Blog";
-    if (onBlog) blog.classList.add("active");
+    if (isBlogPage()) blog.classList.add("active");
+    if (blog.parentNode) blog.parentNode.removeChild(blog);
     if (links.firstElementChild) links.insertBefore(blog, links.firstElementChild);
     else links.appendChild(blog);
+    var siqa = findNavSiqa(links);
+    if (siqa && links.lastElementChild !== siqa) links.appendChild(siqa);
   }
 
   function setupAppBlogLink(side) {
     if (!side || !side.querySelector) return;
     var nav = side.querySelector(".side-nav");
     if (!nav) return;
-    if (nav.querySelector('a[href="blog.html"], a[href="/blog"]')) return;
-    var blog = document.createElement("a");
-    blog.href = "blog.html";
-    blog.textContent = "Blog";
-    var page = hrefFile((window.location && window.location.pathname) || "");
-    if (page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog") blog.classList.add("on");
-    var siqa = nav.querySelector("a.nav-siqa") || nav.querySelector('a[href="/charts"]');
-    if (siqa) nav.insertBefore(blog, siqa);
-    else nav.appendChild(blog);
+    var blog = findNavBlog(nav);
+    if (!blog) {
+      blog = document.createElement("a");
+      blog.href = "blog.html";
+      blog.textContent = "Blog";
+    }
+    if (isBlogPage()) blog.classList.add("on");
+    if (blog.parentNode) blog.parentNode.removeChild(blog);
+    var after = nav.querySelector("a.side-action[data-new-release]") || nav.querySelector("a.side-action") || nav.querySelector("[data-new-release]");
+    if (after && after.parentNode === nav) {
+      var ref = after.nextElementSibling;
+      if (ref) nav.insertBefore(blog, ref);
+      else nav.appendChild(blog);
+    } else if (nav.firstElementChild) {
+      nav.insertBefore(blog, nav.firstElementChild);
+    } else {
+      nav.appendChild(blog);
+    }
+    var siqa = findNavSiqa(nav);
+    if (siqa && nav.lastElementChild !== siqa) nav.appendChild(siqa);
   }
 
   function setupPublicPlansMenu(links) {
