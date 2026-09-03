@@ -135,6 +135,7 @@
       if (overviewMenu) overviewMenu.classList.add("open", "is-current");
     }
     setupOverviewSubmenu(side);
+    setupAppBlogLink(side);
 
     var toggle = topbar.querySelector(".menu-toggle");
     if (!toggle) {
@@ -211,6 +212,7 @@
     }
 
     setupPublicPlansMenu(links);
+    setupPublicBlogLink(links);
 
     function isOpen() {
       return header.classList.contains("nav-open");
@@ -363,6 +365,39 @@
     document.addEventListener("click", function (event) {
       if (!item.contains(event.target)) setSubmenuOpen(item, false);
     });
+  }
+
+  function setupPublicBlogLink(links) {
+    if (!links) return;
+    var existing = links.querySelector('a[href="blog.html"], a[href="/blog"]');
+    var page = hrefFile((window.location && window.location.pathname) || "");
+    var onBlog = page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog";
+    if (existing) {
+      if (onBlog) existing.classList.add("active");
+      if (links.firstElementChild !== existing) links.insertBefore(existing, links.firstElementChild);
+      return;
+    }
+    var blog = document.createElement("a");
+    blog.href = "blog.html";
+    blog.textContent = "Blog";
+    if (onBlog) blog.classList.add("active");
+    if (links.firstElementChild) links.insertBefore(blog, links.firstElementChild);
+    else links.appendChild(blog);
+  }
+
+  function setupAppBlogLink(side) {
+    if (!side || !side.querySelector) return;
+    var nav = side.querySelector(".side-nav");
+    if (!nav) return;
+    if (nav.querySelector('a[href="blog.html"], a[href="/blog"]')) return;
+    var blog = document.createElement("a");
+    blog.href = "blog.html";
+    blog.textContent = "Blog";
+    var page = hrefFile((window.location && window.location.pathname) || "");
+    if (page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog") blog.classList.add("on");
+    var siqa = nav.querySelector("a.nav-siqa") || nav.querySelector('a[href="/charts"]');
+    if (siqa) nav.insertBefore(blog, siqa);
+    else nav.appendChild(blog);
   }
 
   function setupPublicPlansMenu(links) {
@@ -520,7 +555,19 @@
     "rights.html": true,
     "cowriter.html": true,
     "publishing.html": true,
-    "publishing-confirm.html": true
+    "publishing-confirm.html": true,
+    "blog.html": true,
+    "blog": true,
+    "blog-welcome.html": true,
+    "welcome": true,
+    "blog-first-release.html": true,
+    "first-release": true,
+    "blog-meet-plai.html": true,
+    "meet-plai": true,
+    "blog-meet-siva.html": true,
+    "meet-siva": true,
+    "blog-what-a-human-did.html": true,
+    "what-a-human-did": true
   };
 
   function pixelPageFile() {
