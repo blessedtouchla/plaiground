@@ -32,7 +32,7 @@
       <a class="st on" href="upload.html"><b>Upload Audio</b><span>Audio and details</span></a>
       <a class="st" href="attest.html"><b>Attest rights</b><span>AI disclosure</span></a>
       <a class="st" href="split-sheet.html"><b>Split sheet</b><span>Writers and shares</span></a>
-      <a class="st" href="review.html"><b>Review &amp; pay</b><span>Cost and delivery</span></a>
+      <a class="st" href="review.html"><b>Review & pay</b><span>Cost and delivery</span></a>
     </div>
 
     <section class="flow-card" data-release-type>
@@ -55,7 +55,7 @@
       <div class="upload-limit" data-album-pro-upgrade hidden>
         <p>Albums with 9 or more tracks are on Pro. Pro is $5 extra on monthly (Creator $14.99 → Pro $19.99). Yearly Creator upgrades to yearly Pro and you pay the same-interval difference — Confirm shows the real amount due. Charge only after Submit. This updates your existing Stripe subscription.</p>
         <p class="hero-ctas" style="margin:12px 0 0">
-          <a class="btn btn-purple btn-sm" data-album-pro-confirm href="plan-confirm.html?plan=pro&amp;interval=month">Confirm Pro upgrade</a>
+          <a class="btn btn-purple btn-sm" data-album-pro-confirm href="plan-confirm.html?plan=pro&interval=month">Confirm Pro upgrade</a>
         </p>
       </div>
     </section>
@@ -132,7 +132,7 @@
 
     <section class="flow-card" data-upload-artist>
       <h3>Artist</h3>
-      <p class="hint" data-artist-copy>Choose who this song is released under. Artist name stays the public name. Legal first and last are private.</p>
+      <p class="hint" data-artist-copy>Choose who this song is released under. Artist name is the public name stores show.</p>
       <div class="field">
         <label for="tg-artist-mode" data-artist-mode-label>Artist for this song</label>
         <select id="tg-artist-mode" class="details-select" autocomplete="off">
@@ -153,17 +153,6 @@
           <input id="tg-artist-new" name="release-artist-new" type="text" value="" placeholder="Artist name" autocomplete="off" />
           <p class="hint" id="artist-name-check" hidden></p>
         </div>
-        <div class="form-grid" style="margin-top:14px">
-          <div class="field">
-            <label for="tg-legal-first-create">Legal first name</label>
-            <input id="tg-legal-first-create" name="plaiground-create-legal-first" type="text" value="" placeholder="First name" autocomplete="new-password" />
-          </div>
-          <div class="field">
-            <label for="tg-legal-last-create">Legal last name</label>
-            <input id="tg-legal-last-create" name="plaiground-create-legal-last" type="text" value="" placeholder="Last name" autocomplete="new-password" />
-          </div>
-        </div>
-        <p class="hint">Required. Private. Not the artist name people see. Asked once, then saved on this artist.</p>
         <div id="artist-yellow-actions" class="artist-check-box is-yellow" hidden>
           <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
           <p class="hero-ctas" style="margin:12px 0 0">
@@ -194,17 +183,6 @@
         <input id="tg-artist-link" type="hidden" value="" />
         <input id="tg-artist-link-name" type="hidden" value="" />
       </div>
-      <div id="artist-legal-wrap" class="form-grid" style="margin-top:14px" data-artist-legal>
-        <div class="field">
-          <label for="tg-legal-first">Legal first name</label>
-          <input id="tg-legal-first" name="release-legal-first" type="text" value="" placeholder="First name" autocomplete="plaiground-artist-legal-first" data-legal-first />
-        </div>
-        <div class="field">
-          <label for="tg-legal-last">Legal last name</label>
-          <input id="tg-legal-last" name="release-legal-last" type="text" value="" placeholder="Last name" autocomplete="plaiground-artist-legal-last" data-legal-last />
-        </div>
-      </div>
-      <p class="hint" data-artist-legal-hint>Private songwriter name. Prefills from this artist when we already have it. Not the public artist name.</p>
       <input id="tg-artist" name="release-artist" type="hidden" value="" />
     </section>
 
@@ -319,282 +297,5 @@
   <script src="lib/upload-leave.js"></script>
   <script src="store-client.js?v=20260902label1" defer></script>
   <script src="plai-bubble.js" defer></script>
-  <script>
-    (function () {
-      var DEMO_VALUES = {
-        'neon shadows': true,
-        'victoria reyes': true,
-        'victoria void': true,
-        'electronic / synthwave': true,
-        'english': true,
-        '$0.99': true
-      };
-      document.querySelectorAll('.form-grid.three input, .form-grid.three select').forEach(function (el) {
-        var raw = String(el.value || '').trim();
-        if (el.tagName === 'SELECT') {
-          if (!raw || DEMO_VALUES[raw.toLowerCase()]) el.selectedIndex = 0;
-          return;
-        }
-        if (!raw) {
-          el.value = '';
-          return;
-        }
-        if (DEMO_VALUES[raw.toLowerCase()]) el.value = '';
-      });
-
-      var drop = document.querySelector('[data-audio-drop]');
-      var input = document.querySelector('[data-audio-input]');
-      var preview = document.querySelector('[data-audio-preview]');
-      var nameEl = document.querySelector('[data-audio-name]');
-      var metaEl = document.querySelector('[data-audio-meta]');
-      var player = document.querySelector('[data-audio-player]');
-      var playBtn = document.querySelector('[data-audio-play]');
-      var previewHint = document.querySelector('[data-audio-preview-hint]');
-      var previewUrl = '';
-
-      function revokeAudioPreview() {
-        if (player) {
-          try { player.pause(); } catch (err) {}
-          player.removeAttribute('src');
-          if (typeof player.load === 'function') player.load();
-        }
-        if (previewUrl && window.URL && URL.revokeObjectURL) {
-          try { URL.revokeObjectURL(previewUrl); } catch (err) {}
-        }
-        previewUrl = '';
-        if (playBtn) {
-          playBtn.textContent = '▶';
-          playBtn.setAttribute('aria-label', 'Play');
-        }
-      }
-
-      function bindAudioPreview(file) {
-        revokeAudioPreview();
-        if (!file || !player || !window.URL || !URL.createObjectURL) return;
-        previewUrl = URL.createObjectURL(file);
-        player.src = previewUrl;
-      }
-
-      function showFile(file) {
-        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
-          if (!window.PlaigroundMembership.requireMembership()) return;
-        }
-        if (!file || !input) return;
-        try {
-          var dt = new DataTransfer();
-          dt.items.add(file);
-          input.files = dt.files;
-        } catch (err) {}
-        input._plaigroundFile = file;
-        if (nameEl) nameEl.textContent = file.name;
-        if (metaEl) metaEl.textContent = file.type || 'Audio file';
-        if (preview) preview.hidden = false;
-        if (previewHint) previewHint.hidden = false;
-        if (drop) drop.hidden = true;
-        bindAudioPreview(file);
-      }
-
-      if (drop && input) {
-        drop.addEventListener('dragover', function (event) {
-          event.preventDefault();
-          drop.classList.add('is-over');
-        });
-        drop.addEventListener('dragleave', function () {
-          drop.classList.remove('is-over');
-        });
-        drop.addEventListener('drop', function (event) {
-          event.preventDefault();
-          drop.classList.remove('is-over');
-          var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-          showFile(file);
-        });
-        input.addEventListener('change', function () {
-          showFile(input.files && input.files[0]);
-        });
-      }
-
-      if (playBtn && player) {
-        playBtn.addEventListener('click', function (event) {
-          event.preventDefault();
-          if (!player.getAttribute('src') && !player.src) return;
-          if (player.paused === false) player.pause();
-          else if (typeof player.play === 'function') player.play();
-        });
-        player.addEventListener('play', function () {
-          playBtn.textContent = '❚❚';
-          playBtn.setAttribute('aria-label', 'Pause');
-        });
-        player.addEventListener('pause', function () {
-          playBtn.textContent = '▶';
-          playBtn.setAttribute('aria-label', 'Play');
-        });
-        player.addEventListener('ended', function () {
-          playBtn.textContent = '▶';
-          playBtn.setAttribute('aria-label', 'Play');
-        });
-      }
-      window.addEventListener('pagehide', revokeAudioPreview);
-      window.addEventListener('beforeunload', revokeAudioPreview);
-
-      var artInput = document.querySelector('[data-art-input]');
-      var artBox = document.querySelector('[data-art-box]');
-      var artMeta = document.querySelector('[data-art-meta]');
-      var artClear = document.querySelector('[data-art-clear]');
-      var DEFAULT_ART_META = '3000 × 3000 px · JPG or PNG';
-      var artPreview = null;
-
-      function rememberArtwork(file) {
-        try {
-          var current = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
-          if (file) {
-            current.artwork_name = file.name;
-            current.artwork_type = file.type || '';
-            current.artwork_size = Number(file.size) || 0;
-          } else {
-            delete current.artwork_name;
-            delete current.artwork_type;
-            delete current.artwork_size;
-            delete current.artwork_object_key;
-          }
-          var text = JSON.stringify(current);
-          try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
-          try { sessionStorage.setItem('plaiground.store.draft', text); } catch (err) {}
-        } catch (err) {}
-      }
-
-      function showArt(file) {
-        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
-          if (!window.PlaigroundMembership.requireMembership()) return;
-        }
-        if (!artInput) return;
-        if (file) {
-          var name = String(file.name || '').toLowerCase();
-          var type = String(file.type || '').toLowerCase();
-          if (!(/\.(jpe?g|png)$/.test(name) || /image\/(jpeg|jpg|png)/.test(type))) return;
-          try {
-            var dt = new DataTransfer();
-            dt.items.add(file);
-            artInput.files = dt.files;
-          } catch (err) {
-            artInput._plaigroundFile = file;
-          }
-        }
-        if (artPreview) artPreview.showFile(file || null);
-      }
-
-      if (artInput && window.PlaigroundCoverPreview && typeof window.PlaigroundCoverPreview.bind === 'function') {
-        var storedArt = '';
-        try {
-          var draft = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
-          storedArt = String(draft.artwork_url || '').trim();
-          if (!storedArt && draft.artwork_object_key && window.PlaigroundObjectHop && typeof window.PlaigroundObjectHop.previewUrl === 'function') {
-            window.PlaigroundObjectHop.previewUrl(draft.artwork_object_key).then(function (url) {
-              if (url && artPreview && typeof artPreview.setStored === 'function') artPreview.setStored(url);
-            });
-          }
-        } catch (err) {}
-        artPreview = window.PlaigroundCoverPreview.bind({
-          input: artInput,
-          tile: artBox,
-          clearButton: artClear,
-          storedUrl: storedArt,
-          emptyNote: DEFAULT_ART_META,
-          hasNote: DEFAULT_ART_META,
-          window: window,
-          accept: function () {
-            if (window.PlaigroundMembership && typeof window.PlaigroundMembership.requireMembership === 'function') {
-              return window.PlaigroundMembership.requireMembership();
-            }
-            return true;
-          },
-          onChange: function (file) {
-            if (artMeta) artMeta.textContent = file && file.name ? file.name : DEFAULT_ART_META;
-            rememberArtwork(file);
-            if (file && window.PlaigroundObjectHop && typeof window.PlaigroundObjectHop.put === 'function') {
-              window.PlaigroundObjectHop.put('cover', file).then(function (key) {
-                try {
-                  var current = JSON.parse(localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '{}') || {};
-                  current.artwork_object_key = key;
-                  current.artwork_name = file.name || current.artwork_name || '';
-                  current.artwork_size = Number(file.size) || 0;
-                  var text = JSON.stringify(current);
-                  try { localStorage.setItem('plaiground.store.draft', text); } catch (err) {}
-                  try { sessionStorage.setItem('plaiground.store.draft', text); } catch (err) {}
-                } catch (err) {}
-              }).catch(function () {});
-            }
-          },
-        });
-        window.PlaigroundUploadCover = artPreview;
-      }
-
-      if (artInput) {
-        document.querySelectorAll('[data-art-pick]').forEach(function (el) {
-          el.addEventListener('click', function (event) {
-            event.preventDefault();
-            if (typeof artInput.click === 'function') artInput.click();
-          });
-        });
-        if (!artPreview) {
-          artInput.addEventListener('change', function () {
-            showArt(artInput.files && artInput.files[0]);
-          });
-        }
-      }
-
-      var explicitToggle = document.querySelector('[data-explicit-toggle]');
-      if (explicitToggle) {
-        explicitToggle.addEventListener('click', function (event) {
-          var choice = event.target && event.target.closest && event.target.closest('[data-explicit]');
-          if (!choice) return;
-          event.preventDefault();
-          explicitToggle.querySelectorAll('[data-explicit]').forEach(function (el) {
-            el.classList.toggle('on', el === choice);
-          });
-        });
-      }
-
-      var instrumental = document.getElementById('tg-instrumental');
-      var languageField = document.querySelector('[data-language-field]');
-      var lyricsOpen = document.querySelector('[data-lyrics-open]');
-      var lyricsField = document.querySelector('[data-lyrics-field]');
-      var lyricsInput = document.getElementById('tg-lyrics');
-      function setHiddenEl(el, hidden) {
-        if (!el) return;
-        el.hidden = Boolean(hidden);
-        if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', Boolean(hidden));
-      }
-      function openLyrics() {
-        if (!lyricsField || (instrumental && instrumental.checked)) return;
-        setHiddenEl(lyricsField, false);
-        if (lyricsOpen && lyricsOpen.setAttribute) lyricsOpen.setAttribute('aria-expanded', 'true');
-        if (lyricsInput && typeof lyricsInput.focus === 'function') lyricsInput.focus();
-      }
-      function syncInstrumental() {
-        var on = Boolean(instrumental && instrumental.checked);
-        if (languageField) {
-          languageField.hidden = on;
-          if (languageField.classList && languageField.classList.toggle) {
-            languageField.classList.toggle('is-hidden', on);
-          }
-        }
-        setHiddenEl(lyricsOpen, on);
-        if (on) {
-          setHiddenEl(lyricsField, true);
-          if (lyricsOpen && lyricsOpen.setAttribute) lyricsOpen.setAttribute('aria-expanded', 'false');
-        }
-      }
-      if (lyricsOpen) {
-        lyricsOpen.addEventListener('click', function (event) {
-          event.preventDefault();
-          openLyrics();
-        });
-      }
-      if (instrumental) {
-        instrumental.addEventListener('change', syncInstrumental);
-        syncInstrumental();
-      }
-    })();
-  </script>
 </body>
 </html>
