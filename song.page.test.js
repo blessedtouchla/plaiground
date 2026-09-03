@@ -1088,7 +1088,7 @@ function testPendingAudioReplace() {
   };
   const audioFile = { name: 'golden-era.wav', type: 'audio/wav', size: 4096 };
   const releaseId = me.tonegrid_release_ids[0];
-  const trackId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const trackId = 'cc81621f-cccc-4ccc-8ccc-cccccccccccc';
 
   const unlocked = loadSong({ plan: 'basic', me, search: '?id=' + releaseId });
   unlocked.ids['edit-audio'].attrs = {};
@@ -1169,10 +1169,7 @@ function testPendingAudioReplace() {
     assert.ok(result.ok, 'pending audio re-attach must save on the same row');
     assert.strictEqual(result.applied, true, 'pending stays on the song after hopping audio');
     const audioHop = replaceCalls.find((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1);
-    assert.ok(audioHop, 'pending edit POSTs the master onto the existing track');
-    let audioBody = {};
-    try { audioBody = JSON.parse(audioHop.body); } catch (err) { audioBody = {}; }
-    assert.ok(audioBody.object_key, 'pending audio hop sends the object key');
+    assert.ok(audioHop, 'pending edit POSTs the master onto track cc81621f');
     assert.ok(!replaceCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])), 'pending audio attach must not remint a release, artist, or track');
     assert.ok(!/edit-submitted\.html/.test(String(replacePage.context.location.href)), 'pending audio attach stays on the song');
 
@@ -1231,6 +1228,82 @@ function testPendingAudioReplace() {
       assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0])), 'pending edit must not invent a track');
       assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])), 'pending must not POST a new release or artist');
     });
+  });
+}
+
+function testPendingAudioResolvesHiddenTrack() {
+  const me = {
+    artist: 'Herman Watson',
+    plan: 'basic',
+    legal_first: 'Herman',
+    legal_last: 'Watson',
+    tonegrid_release_ids: ['d412cc82-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'cc81621f-cccc-4ccc-8ccc-cccccccccccc';
+  const audioFile = { name: 'golden-era.wav', type: 'audio/wav', size: 4096 };
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'GET' && String(url).indexOf('/api/tonegrid/releases/' + releaseId) !== -1) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            uuid: releaseId,
+            title: 'GOLDEN ERA',
+            status: 'pending',
+            artwork_url: 'https://cdn.example/wrong-season-of-love.png',
+            tracks: [{ uuid: trackId, title: 'GOLDEN ERA' }],
+          }),
+        });
+      }
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(url).split('?')[0])) {
+        throw new Error('pending audio must not remint');
+      }
+      if (method === 'DELETE') throw new Error('must not delete a store release');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'GOLDEN ERA';
+  page.ids['edit-genre'].value = 'Hip-Hop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'GOLDEN ERA',
+      submitted: true,
+      tonegrid_status: 'pending',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'GOLDEN ERA',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      artwork_url: 'https://cdn.example/wrong-season-of-love.png',
+      tracks: [],
+    },
+  });
+  page.ids['edit-audio'].files = [audioFile];
+  if (page.ids['edit-audio'].removeAttribute) page.ids['edit-audio'].removeAttribute('data-track-id');
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'pending save must POST audio after resolving the hidden track');
+    assert.ok(calls.some((row) => row.method === 'GET' && String(row.url).indexOf('/releases/' + releaseId) !== -1), 'pending audio loads the existing track when the list row hid it');
+    assert.ok(calls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1), 'master POSTs onto cc81621f');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/artwork$/.test(String(row.url))), 'audio-only save must not POST a new cover');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])));
   });
 }
 
@@ -2768,7 +2841,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testRemovedCatalogUntouched).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testRemovedCatalogUntouched).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
@@ -2795,6 +2868,7 @@ if (require.main === module) {
   module.exports = {
     testPendingAudioReplace: testPendingAudioReplace,
     testDraftAudioReplace: testDraftAudioReplace,
+    testPendingAudioResolvesHiddenTrack: testPendingAudioResolvesHiddenTrack,
     testPendingCoverAttach: testPendingCoverAttach,
     testPendingCoverFailLoudly: testPendingCoverFailLoudly,
     testRemovedCatalogUntouched: testRemovedCatalogUntouched,
