@@ -34,6 +34,7 @@
       <a class="st" href="split-sheet.html"><b>Split sheet</b><span>Writers and shares</span></a>
       <a class="st" href="review.html"><b>Review & pay</b><span>Cost and delivery</span></a>
     </div>
+
     <section class="flow-card" data-release-type>
       <h3>Release type</h3>
       <div class="auth-toggle" style="max-width:240px" data-type-toggle>
@@ -42,6 +43,23 @@
       </div>
       <p class="hint" data-album-hint hidden>An album is one store release with multiple tracks under the same artist. Creator and Pro only.</p>
     </section>
+
+    <section class="flow-card" data-album-count hidden>
+      <h3>How many songs?</h3>
+      <p class="hint">Pick the track count first. Audio rows show after that.</p>
+      <div class="field" style="max-width:220px">
+        <label for="tg-album-count">Songs / tracks</label>
+        <input id="tg-album-count" type="number" min="1" step="1" inputmode="numeric" data-album-count-input placeholder="e.g. 4" autocomplete="off" />
+      </div>
+      <p style="margin-top:16px"><button class="btn btn-purple btn-sm" type="button" data-album-count-go>Set track count</button></p>
+      <div class="upload-limit" data-album-pro-upgrade hidden>
+        <p>Albums with 9 or more tracks are on Pro. Pro is $5 extra on monthly (Creator $14.99 → Pro $19.99). Yearly Creator upgrades to yearly Pro and you pay the same-interval difference — Confirm shows the real amount due. Charge only after Submit. This updates your existing Stripe subscription.</p>
+        <p class="hero-ctas" style="margin:12px 0 0">
+          <a class="btn btn-purple btn-sm" data-album-pro-confirm href="plan-confirm.html?plan=pro&interval=month">Confirm Pro upgrade</a>
+        </p>
+      </div>
+    </section>
+
     <section class="flow-card" data-single-audio>
       <div class="head-row">
         <h3>Upload your audio</h3>
@@ -61,7 +79,33 @@
         <button class="play" type="button" data-audio-play aria-label="Play">▶</button>
       </div>
       <p class="hint" data-audio-preview-hint hidden>Play this file here to confirm it is the right master before you continue. It stays on this device only.</p>
+      <div class="opt-grid">
+        <label class="dashbox checkline" for="tg-instrumental">
+          <input id="tg-instrumental" name="release-instrumental" type="checkbox" />
+          <span>Instrumental<br /><span>Optional, helps sync licensing</span></span>
+        </label>
+        <button type="button" class="dashbox" id="tg-lyrics-open" data-lyrics-open aria-expanded="false" aria-controls="tg-lyrics-panel">
+          Lyrics<br /><span>Type or paste lyrics</span>
+        </button>
+      </div>
+      <div class="field lyrics-field" id="tg-lyrics-panel" data-lyrics-field hidden>
+        <label for="tg-lyrics">Lyrics</label>
+        <textarea id="tg-lyrics" name="release-lyrics" rows="8" placeholder="Type or paste lyrics" autocomplete="off"></textarea>
+        <p class="hint">Optional timed .srt or .lrc file. Lyrics save with this release on PLAIGROUND.</p>
+      </div>
     </section>
+
+    <section class="flow-card" data-album-tracks hidden>
+      <div class="head-row">
+        <div>
+          <h3>Tracks</h3>
+          <p class="hint" style="margin:6px 0 0">Add, reorder, or remove tracks after you set the count. Each track needs its own audio and title.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" data-add-track>Add track</button>
+      </div>
+      <div data-track-list></div>
+    </section>
+
     <section class="flow-card">
       <h3>Cover art</h3>
       <div class="art-row">
@@ -76,6 +120,7 @@
         </div>
         <div class="art-guide">
           <h4 style="margin-bottom:8px">Artwork guidelines</h4>
+          <p class="hint">Make sure the artwork meets our guidelines.</p>
           <ul style="color:var(--muted-2);font-size:14px;padding-left:18px">
             <li>Recommended size is 3000px, maximum 5000px</li>
             <li>Cover artwork must be a square</li>
@@ -84,6 +129,7 @@
         </div>
       </div>
     </section>
+
     <section class="flow-card" data-upload-artist>
       <h3>Artist</h3>
       <p class="hint" data-artist-copy>Choose who this song is released under. Artist name is the public name stores show.</p>
@@ -101,23 +147,65 @@
           <option value="">Select an artist</option>
         </select>
       </div>
+      <div id="artist-create-wrap" hidden>
+        <div class="field" style="margin-top:14px">
+          <label for="tg-artist-new">Artist name</label>
+          <input id="tg-artist-new" name="release-artist-new" type="text" value="" placeholder="Artist name" autocomplete="off" />
+          <p class="hint" id="artist-name-check" hidden></p>
+        </div>
+        <div id="artist-yellow-actions" class="artist-check-box is-yellow" hidden>
+          <p>An artist with this name already exists. Link their page if this is the same artist, or confirm this is a different artist.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-to-link>Link existing artist</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-continue-different">Continue as a different artist</button>
+          </p>
+          <label class="checkline" id="artist-impersonation-wrap" hidden style="margin-top:12px;display:flex;gap:10px;align-items:flex-start">
+            <input id="artist-confirm-different" type="checkbox" />
+            <span>I confirm this is not impersonation and I understand this release may be reviewed.</span>
+          </label>
+        </div>
+        <div id="artist-red-actions" class="artist-check-box is-red" hidden>
+          <p>This name is too close to an existing artist and can’t be released automatically.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-to-link>Link existing artist</button>
+            <button class="btn btn-purple btn-sm" type="button" id="artist-submit-review">Submit for review</button>
+          </p>
+        </div>
+      </div>
+      <div id="artist-link-wrap" hidden>
+        <div class="artist-check-box" data-artist-merge-note style="margin-top:14px">
+          <p>Import lives on Artist Profiles so the song hits the right page. Save draft, go import, come back and pick that artist.</p>
+          <p class="hero-ctas" style="margin:12px 0 0">
+            <button class="btn btn-purple btn-sm" type="button" data-upload-save-draft-go-artists>Save draft and go to Artist Profiles</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-artist-import-stay>Stay here</button>
+          </p>
+        </div>
+        <input id="tg-artist-link" type="hidden" value="" />
+        <input id="tg-artist-link-name" type="hidden" value="" />
+      </div>
       <input id="tg-artist" name="release-artist" type="hidden" value="" />
     </section>
+
     <section class="flow-card">
       <h3>Submit the details</h3>
       <div class="form-grid three">
         <div class="field">
           <label for="tg-title" data-title-label>Song title</label>
           <input id="tg-title" name="release-title" type="text" value="" placeholder="SONG TITLE" autocomplete="off" />
+          <p class="hint" id="title-check-msg" hidden></p>
         </div>
         <div class="field"><label for="tg-featured">Featured artist</label><input id="tg-featured" name="release-featured" type="text" value="" placeholder="Optional featured" autocomplete="off" /></div>
         <div class="field">
           <label for="tg-genre">Genre</label>
-          <select id="tg-genre" name="release-genre" class="details-select" autocomplete="off"><option value="">Select genre</option></select>
+          <select id="tg-genre" name="release-genre" class="details-select" autocomplete="off">
+            <option value="">Select genre</option>
+          </select>
         </div>
         <div class="field" data-language-field>
           <label for="tg-language">Language</label>
-          <select id="tg-language" name="release-language" class="details-select" autocomplete="off"><option value="">Select language</option></select>
+          <select id="tg-language" name="release-language" class="details-select" autocomplete="off">
+            <option value="">Select language</option>
+          </select>
         </div>
         <div class="field">
           <label for="tg-price">Download price</label>
@@ -130,20 +218,69 @@
         <div class="field">
           <label for="tg-label">Record label</label>
           <input id="tg-label" name="release-label" type="text" value="PLAIGROUND" autocomplete="off" data-record-label />
+          <p class="hint">PLAIGROUND is the default. Type your own imprint if you have one.</p>
         </div>
       </div>
       <div class="form-grid three" style="margin-top:14px" data-copyright-wrap>
-        <div class="field"><label for="tg-copyright-owner">©</label><input id="tg-copyright-owner" name="release-copyright-owner" type="text" value="" autocomplete="off" data-copyright-owner /></div>
-        <div class="field"><label for="tg-phonogram-owner">℗</label><input id="tg-phonogram-owner" name="release-phonogram-owner" type="text" value="" autocomplete="off" data-phonogram-owner /></div>
-        <div class="field"><label for="tg-copyright-year">Year</label><input id="tg-copyright-year" name="release-copyright-year" type="text" inputmode="numeric" maxlength="4" value="" autocomplete="off" data-copyright-year /></div>
+        <div class="field">
+          <label for="tg-copyright-owner">©</label>
+          <input id="tg-copyright-owner" name="release-copyright-owner" type="text" value="" autocomplete="off" data-copyright-owner />
+          <p class="hint">The song.</p>
+        </div>
+        <div class="field">
+          <label for="tg-phonogram-owner">℗</label>
+          <input id="tg-phonogram-owner" name="release-phonogram-owner" type="text" value="" autocomplete="off" data-phonogram-owner />
+          <p class="hint">The recording.</p>
+        </div>
+        <div class="field">
+          <label for="tg-copyright-year">Year</label>
+          <input id="tg-copyright-year" name="release-copyright-year" type="text" inputmode="numeric" maxlength="4" value="" autocomplete="off" data-copyright-year />
+        </div>
+      </div>
+      <p class="hint" style="margin-top:8px">Explicit content</p>
+      <div class="auth-toggle" style="max-width:200px" data-explicit-toggle>
+        <a class="on" href="#explicit" data-explicit="false">No</a>
+        <a href="#explicit" data-explicit="true">Yes</a>
+      </div>
+      <div class="field" style="margin-top:18px" data-store-pick>
+        <label>Stores</label>
+        <div class="store-pick-bar">
+          <label class="toggle-line" for="tg-store-all">
+            <input id="tg-store-all" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" data-store-all />
+            <span class="toggle on" aria-hidden="true"></span>
+            <span>Pre-select all stores</span>
+          </label>
+          <button class="btn btn-ghost btn-sm" type="button" data-store-customize>Customize</button>
+        </div>
+        <p class="hint" data-store-summary>All stores will receive this release.</p>
+        <div class="store-pick is-hidden" data-store-list hidden></div>
       </div>
       <div class="upload-continue-row">
         <button type="button" class="btn btn-ghost btn-md" data-upload-save-draft>Save draft</button>
         <a class="btn btn-purple btn-lg" data-store-continue href="attest.html">Continue to attest rights</a>
       </div>
       <p class="hint" id="tg-status" hidden></p>
+      <p id="tg-retry-wrap" data-upload-retry-wrap hidden>
+        <button type="button" class="btn btn-purple btn-sm" data-upload-retry>Retry</button>
+      </p>
+      <div class="upload-limit" id="tg-limit" hidden>
+        <p id="tg-limit-copy">This is a new song. Basic includes one release.</p>
+        <p class="hero-ctas" style="margin:0">
+          <a class="btn btn-purple btn-sm" href="creator.html">Upgrade to Creator</a>
+          <a class="btn btn-ghost btn-sm" href="pro.html">Upgrade to Pro</a>
+        </p>
+      </div>
+      <p class="hint" id="tg-upgrade" hidden>Need more uploads? Upgrade to <a href="creator.html">Creator</a> or <a href="pro.html">Pro</a>.</p>
     </section>
   </main>
+  <div class="upload-loader is-hidden" data-upload-loader hidden aria-live="polite" aria-busy="true">
+    <div class="flow-card upload-loader-card">
+      <p class="kicker">Working</p>
+      <h3 data-upload-loader-step>Uploading audio</h3>
+      <div class="bar" data-upload-loader-bar><i data-upload-loader-fill></i></div>
+      <p class="hint" data-upload-loader-meta></p>
+    </div>
+  </div>
   <script src="account.js"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/upload-required.js"></script>
