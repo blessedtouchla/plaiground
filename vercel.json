@@ -44,7 +44,13 @@
     { "source": "/api/tonegrid/tracks/:id", "destination": "/api/tonegrid?resource=track&id=:id" },
     { "source": "/api/tonegrid/:resource", "destination": "/api/tonegrid?resource=:resource" },
     { "source": "/api/stripe/webhook", "destination": "/api/create-checkout-session?action=webhook" },
-    { "source": "/charts", "destination": "/charts.html" }
+    { "source": "/charts", "destination": "/charts.html" },
+    { "source": "/blog", "destination": "/blog.html" },
+    { "source": "/blog/welcome", "destination": "/blog-welcome.html" },
+    { "source": "/blog/first-release", "destination": "/blog-first-release.html" },
+    { "source": "/blog/meet-plai", "destination": "/blog-meet-plai.html" },
+    { "source": "/blog/meet-siva", "destination": "/blog-meet-siva.html" },
+    { "source": "/blog/what-a-human-did", "destination": "/blog-what-a-human-did.html" }
   ],
   "headers": [
     {
