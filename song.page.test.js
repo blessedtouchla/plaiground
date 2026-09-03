@@ -1285,6 +1285,7 @@ function testPendingAudioResolvesHiddenTrack() {
       title: 'GOLDEN ERA',
       submitted: true,
       tonegrid_status: 'pending',
+      artwork_object_key: 'covers/season-of-love-vicki-g.jpg',
     },
     release: {
       uuid: releaseId,
@@ -1298,11 +1299,23 @@ function testPendingAudioResolvesHiddenTrack() {
   });
   page.ids['edit-audio'].files = [audioFile];
   if (page.ids['edit-audio'].removeAttribute) page.ids['edit-audio'].removeAttribute('data-track-id');
+  page.context.localStorage.setItem('plaiground.store.draft', JSON.stringify({
+    release_id: releaseId,
+    title: 'GOLDEN ERA',
+    submitted: true,
+    tonegrid_status: 'pending',
+    artwork_object_key: 'covers/season-of-love-vicki-g.jpg',
+  }));
   return page.api.submitEdit().then(function (result) {
     assert.ok(result.ok, 'pending save must POST audio after resolving the hidden track');
     assert.ok(calls.some((row) => row.method === 'GET' && String(row.url).indexOf('/releases/' + releaseId) !== -1), 'pending audio loads the existing track when the list row hid it');
-    assert.ok(calls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1), 'master POSTs onto cc81621f');
-    assert.ok(!calls.some((row) => row.method === 'POST' && /\/artwork$/.test(String(row.url))), 'audio-only save must not POST a new cover');
+    const audioHop = calls.find((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1);
+    assert.ok(audioHop, 'master POSTs onto cc81621f');
+    const audioBody = typeof audioHop.body === 'string' ? JSON.parse(audioHop.body) : {};
+    assert.ok(String(audioBody.object_key || '').trim(), 'pending master hops then POSTs object_key, not leftover multipart');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/artwork$/.test(String(row.url))), 'audio-only save must not POST leftover Season of Love art');
+    const stored = JSON.parse(page.context.localStorage.getItem('plaiground.store.draft') || '{}');
+    assert.ok(!String(stored.artwork_object_key || '').trim(), 'leftover Season of Love key must be dropped so leftover hop cannot re-POST it');
     assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])));
   });
 }
@@ -1428,6 +1441,146 @@ function testPendingCoverFailLoudly() {
     assert.ok(String(page.nodes['[data-edit-error]'].textContent || '').trim(), 'cover miss must show an error');
     assert.ok(calls.some((row) => row.method === 'POST' && /\/artwork$/.test(String(row.url))));
     assert.ok(!/edit-submitted\.html/.test(String(page.context.location.href)));
+  });
+}
+
+function testPendingIgnoresLeftoverTrackId() {
+  const me = {
+    artist: 'Herman Watson',
+    plan: 'basic',
+    legal_first: 'Herman',
+    legal_last: 'Watson',
+    tonegrid_release_ids: ['d412cc82-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const leftoverTrack = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const trackId = 'cc81621f-cccc-4ccc-8ccc-cccccccccccc';
+  const audioFile = { name: 'golden-era.wav', type: 'audio/wav', size: 4096 };
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'GET' && String(url).indexOf('/api/tonegrid/releases/' + releaseId) !== -1) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            uuid: releaseId,
+            title: 'GOLDEN ERA',
+            status: 'pending',
+            tracks: [{ uuid: trackId, title: 'GOLDEN ERA' }],
+          }),
+        });
+      }
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(url).split('?')[0])) {
+        throw new Error('pending audio must not remint');
+      }
+      if (String(url).indexOf('/tracks/' + leftoverTrack + '/audio') !== -1) {
+        throw new Error('must not POST the leftover Season of Love track');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'GOLDEN ERA';
+  page.ids['edit-genre'].value = 'Hip-Hop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'GOLDEN ERA',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: leftoverTrack,
+    },
+    release: {
+      uuid: releaseId,
+      title: 'GOLDEN ERA',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      tracks: [],
+    },
+  });
+  page.ids['edit-audio'].files = [audioFile];
+  page.ids['edit-audio'].setAttribute('data-track-id', leftoverTrack);
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'pending save must ignore leftover track id and POST Golden Era');
+    assert.ok(calls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1), 'master POSTs onto cc81621f');
+    assert.ok(!calls.some((row) => String(row.url).indexOf('/tracks/' + leftoverTrack + '/audio') !== -1), 'must not POST leftover track');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/artwork$/.test(String(row.url))), 'audio-only save must not POST leftover cover');
+  });
+}
+
+function testPendingPickedCoverStillPosts() {
+  const me = {
+    artist: 'Herman Watson',
+    plan: 'basic',
+    legal_first: 'Herman',
+    legal_last: 'Watson',
+    tonegrid_release_ids: ['d412cc82-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'cc81621f-cccc-4ccc-8ccc-cccccccccccc';
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(url).split('?')[0])) {
+        throw new Error('pending cover+master must not remint');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.ids['edit-title'].value = 'Golden Era';
+  page.ids['edit-genre'].value = 'Hip-Hop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-art'].files = [{ name: 'golden-era.jpg', type: 'image/jpeg' }];
+  page.ids['edit-audio'].files = [{ name: 'golden-era.wav', type: 'audio/wav', size: 4096 }];
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Golden Era',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: trackId,
+      artwork_object_key: 'covers/season-of-love-vicki-g.jpg',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Golden Era',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      tracks: [{ uuid: trackId, title: 'Golden Era' }],
+    },
+  });
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'picked cover + master must both POST');
+    const art = calls.find((row) => row.method === 'POST' && String(row.url).indexOf('/releases/' + releaseId + '/artwork') !== -1);
+    assert.ok(art, 'picked Golden Era cover must still POST');
+    const artBody = typeof art.body === 'string' ? JSON.parse(art.body) : {};
+    assert.ok(String(artBody.object_key || '').indexOf('golden-era.jpg') !== -1, 'cover POST must use the picked Golden Era file, not leftover Season of Love');
+    assert.ok(calls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1), 'master POSTs onto cc81621f');
   });
 }
 
@@ -2841,7 +2994,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testRemovedCatalogUntouched).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testPendingIgnoresLeftoverTrackId).then(testPendingPickedCoverStillPosts).then(testRemovedCatalogUntouched).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
@@ -2871,6 +3024,8 @@ if (require.main === module) {
     testPendingAudioResolvesHiddenTrack: testPendingAudioResolvesHiddenTrack,
     testPendingCoverAttach: testPendingCoverAttach,
     testPendingCoverFailLoudly: testPendingCoverFailLoudly,
+    testPendingIgnoresLeftoverTrackId: testPendingIgnoresLeftoverTrackId,
+    testPendingPickedCoverStillPosts: testPendingPickedCoverStillPosts,
     testRemovedCatalogUntouched: testRemovedCatalogUntouched,
   };
 }
