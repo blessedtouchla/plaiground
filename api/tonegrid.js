@@ -560,9 +560,10 @@ function isStoreDeleteGone(result) {
   return result.status === 404 || isReleaseGoneResult(result);
 }
 
-function protectHardDelete(releaseId, title) {
+function protectHardDelete(releaseId, title, status) {
   if (isKnownAdoptRelease(releaseId)) return true;
-  return isProtectedCatalogRelease(releaseId, title);
+  if (!isProtectedCatalogRelease(releaseId, title)) return false;
+  return !isQcRejectedLeftover(status);
 }
 
 function isRemovedCatalogRelease(id) {
