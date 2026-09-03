@@ -3563,10 +3563,8 @@ async function updateTrack(req, res, trackId) {
     payload.explicit = explicit;
   }
   storeAi.applyTrackAiFields(payload, body);
-  const creditRoles = storeCredits.declaredTrackContributors(body);
-  if (creditRoles.length) payload.contributors = creditRoles;
   if (!Object.keys(payload).length) {
-    sendJson(res, 400, { error: 'Provide title, language, explicit, or contributors.' });
+    sendJson(res, 400, { error: 'Provide title, language, or explicit.' });
     return;
   }
 
