@@ -1078,6 +1078,171 @@ function testDraftAudioReplace() {
   });
 }
 
+function testPendingAudioReplace() {
+  const me = {
+    artist: 'Herman Watson',
+    plan: 'basic',
+    legal_first: 'Herman',
+    legal_last: 'Watson',
+    tonegrid_release_ids: ['d412cc82-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const audioFile = { name: 'golden-era.wav', type: 'audio/wav', size: 4096 };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+
+  const unlocked = loadSong({ plan: 'basic', me, search: '?id=' + releaseId });
+  unlocked.ids['edit-audio'].attrs = {};
+  unlocked.ids['edit-audio'].disabled = true;
+  unlocked.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Golden Era',
+      submitted: true,
+      tonegrid_status: 'pending',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Golden Era',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      tracks: [],
+    },
+  });
+  assert.strictEqual(unlocked.ids['edit-audio'].disabled, false, 'pending empty-audio row stays pickable so a master can be re-attached');
+  assert.ok(!unlocked.ids['edit-audio'].classList.contains('is-locked'));
+
+  const replaceCalls = [];
+  const replacePage = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls: replaceCalls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      if (method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(url).split('?')[0])) {
+        throw new Error('must reuse the existing pending track');
+      }
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(url).split('?')[0])) {
+        throw new Error('pending audio attach must not remint');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  replacePage.ids['edit-title'].value = 'Golden Era';
+  replacePage.ids['edit-genre'].value = 'Hip-Hop';
+  replacePage.ids['edit-language'].value = 'en';
+  replacePage.ids['edit-release-date'].value = '2026-09-12';
+  replacePage.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Golden Era',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: trackId,
+      made_how: 'no_ai',
+      legal_first: 'Herman',
+      legal_last: 'Watson',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Golden Era',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      tracks: [{ uuid: trackId, title: 'Golden Era' }],
+    },
+  });
+  replacePage.ids['edit-title'].value = 'Golden Era';
+  replacePage.ids['edit-genre'].value = 'Hip-Hop';
+  replacePage.ids['edit-language'].value = 'en';
+  replacePage.ids['edit-audio'].files = [audioFile];
+  assert.strictEqual(replacePage.ids['edit-audio'].getAttribute('data-track-id'), trackId);
+
+  return replacePage.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'pending audio re-attach must save on the same row');
+    assert.strictEqual(result.applied, true, 'pending stays on the song after hopping audio');
+    const audioHop = replaceCalls.find((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + trackId + '/audio') !== -1);
+    assert.ok(audioHop, 'pending edit POSTs the master onto the existing track');
+    let audioBody = {};
+    try { audioBody = JSON.parse(audioHop.body); } catch (err) { audioBody = {}; }
+    assert.ok(audioBody.object_key, 'pending audio hop sends the object key');
+    assert.ok(!replaceCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])), 'pending audio attach must not remint a release, artist, or track');
+    assert.ok(!/edit-submitted\.html/.test(String(replacePage.context.location.href)), 'pending audio attach stays on the song');
+
+    const mintCalls = [];
+    const mintedTrack = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+    const mintPage = loadSong({
+      plan: 'basic',
+      me,
+      search: '?id=' + releaseId,
+      calls: mintCalls,
+      fetch(url, options) {
+        const method = (options && options.method) || 'GET';
+        if (method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(url).split('?')[0])) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ uuid: mintedTrack }),
+          });
+        }
+        if (method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(url).split('?')[0])) {
+          throw new Error('pending empty-audio row must not remint the release');
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+        });
+      },
+    });
+    mintPage.ids['edit-title'].value = 'Golden Era';
+    mintPage.ids['edit-genre'].value = 'Hip-Hop';
+    mintPage.ids['edit-language'].value = 'en';
+    mintPage.ids['edit-release-date'].value = '2026-09-12';
+    mintPage.api.openEdit({
+      me,
+      draft: {
+        release_id: releaseId,
+        title: 'Golden Era',
+        submitted: true,
+        tonegrid_status: 'pending',
+        made_how: 'no_ai',
+        legal_first: 'Herman',
+        legal_last: 'Watson',
+      },
+      release: {
+        uuid: releaseId,
+        title: 'Golden Era',
+        status: 'pending',
+        genre: 'Hip-Hop',
+        language: 'en',
+        tracks: [],
+      },
+    });
+    mintPage.ids['edit-title'].value = 'Golden Era';
+    mintPage.ids['edit-genre'].value = 'Hip-Hop';
+    mintPage.ids['edit-language'].value = 'en';
+    mintPage.ids['edit-audio'].files = [audioFile];
+    return mintPage.api.submitEdit().then(function (minted) {
+      assert.ok(minted.ok, 'pending row with no track creates one on this release then hops audio');
+      const create = mintCalls.find((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0]));
+      assert.ok(create, 'empty pending track is minted on this same release');
+      let createBody = {};
+      try { createBody = JSON.parse(create.body); } catch (err) { createBody = {}; }
+      assert.strictEqual(createBody.release_id, releaseId);
+      assert.ok(mintCalls.some((row) => row.method === 'POST' && String(row.url).indexOf('/tracks/' + mintedTrack + '/audio') !== -1), 'new track on this pending row then receives the audio');
+      assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])), 'pending track mint must not POST a new release or artist');
+    });
+  });
+}
+
 function run() {
   const html = read('song.html');
   const css = read('site.css');
@@ -2445,7 +2610,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
@@ -2463,7 +2628,14 @@ function run() {
     });
 }
 
-Promise.resolve(run()).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  Promise.resolve(run()).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+} else {
+  module.exports = {
+    testPendingAudioReplace: testPendingAudioReplace,
+    testDraftAudioReplace: testDraftAudioReplace,
+  };
+}

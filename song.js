@@ -1682,7 +1682,8 @@
     var audioEl = $('#edit-audio');
     var trackId = firstTrackId(release, draft);
     var draftOnStore = isStoreDraft(release, draft);
-    if (audioEl && (trackId || draftOnStore)) {
+    var pendingOnStore = storeStatusOf(release, draft) === 'pending';
+    if (audioEl && (trackId || draftOnStore || pendingOnStore)) {
       unlockControl(
         audioEl,
         'audio',
@@ -2017,24 +2018,58 @@
       edit_applied: true,
     });
 
-    if (!liveEdit && !draftEdit) {
-      return applyImmediateEdit(id, {
-        title: title,
-        artist: artistName,
-        featured: featured,
-        genre: genre,
-        language: language,
-        lyrics: lyrics,
-        price: price,
-        release_date: date,
-        dsps: dsps,
-        art: art,
-        label: label,
-      });
-    }
-
     var errors = [];
     var hops = [];
+
+    if (!liveEdit && !draftEdit) {
+      function applyPendingFields() {
+        return applyImmediateEdit(id, {
+          title: title,
+          artist: artistName,
+          featured: featured,
+          genre: genre,
+          language: language,
+          lyrics: lyrics,
+          price: price,
+          release_date: date,
+          dsps: dsps,
+          art: art,
+          label: label,
+        });
+      }
+      if (!audio) return applyPendingFields();
+      return ensureEditTrackId(trackId).then(function (readyId) {
+        trackId = readyId;
+        if (!trackId) {
+          if (saveBtn) saveBtn.removeAttribute('aria-busy');
+          setEditError('This release has no track ID yet, so audio cannot be replaced.');
+          return { ok: false, created: false, releaseId: id };
+        }
+        return audioAllowed(audio).then(function (ok) {
+          if (!ok) {
+            var message = (global.PlaigroundAudioAccept && global.PlaigroundAudioAccept.ERROR) || 'Audio must be WAV, FLAC, or MP3.';
+            if (saveBtn) saveBtn.removeAttribute('aria-busy');
+            setEditError(message);
+            return { ok: false, created: false, releaseId: id };
+          }
+          return hopPut('audio', audio).then(function (key) {
+            writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
+            return sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key });
+          }).then(function (result) {
+            if (result && !result.ok) {
+              if (saveBtn) saveBtn.removeAttribute('aria-busy');
+              setEditError(applyToneGridError(result, 'audio', $('#edit-audio')));
+              return { ok: false, created: false, releaseId: id };
+            }
+            return applyPendingFields();
+          });
+        });
+      }).catch(function (err) {
+        if (saveBtn) saveBtn.removeAttribute('aria-busy');
+        setEditError((err && err.message) || 'We could not send the audio.');
+        return { ok: false, created: false, releaseId: id, timedOut: Boolean(err && err.timedOut) };
+      });
+    }
 
     function runHop(label, task) {
       return task.then(function (result) {
@@ -2082,7 +2117,9 @@
     function ensureEditTrackId(currentId) {
       var have = String(currentId || '').trim();
       if (have) return Promise.resolve(have);
-      if (!draftEdit || !audio) return Promise.resolve('');
+      if (!audio) return Promise.resolve('');
+      var pendingOnStore = storeStatusOf(lastEdit.release, lastEdit.draft) === 'pending';
+      if (!draftEdit && !pendingOnStore) return Promise.resolve('');
       return runHop('track_create', sendJson('/api/tonegrid/tracks', 'POST', editTrackCreateBody())).then(function (result) {
         if (!result || !result.ok) {
           errors.push(applyToneGridError(result, 'audio', $('#edit-audio')));

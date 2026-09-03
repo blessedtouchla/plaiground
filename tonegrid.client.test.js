@@ -1210,6 +1210,7 @@ async function run() {
       track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       signwell_document_id: 'doc_split_sheet_01',
       release_date: '2026-09-12',
+      credits: { performer: 'Ada Night', producer: 'Ada Night' },
     }),
     responses: [
       { ok: true, status: 200, data: { signed: true, status: 'Completed' } },
@@ -1226,6 +1227,10 @@ async function run() {
   assert.strictEqual(JSON.parse(submitCall.init.body).document_id, 'doc_split_sheet_01');
   assert.strictEqual(JSON.parse(submitCall.init.body).made_how, 'ai_assisted');
   assert.strictEqual(JSON.parse(submitCall.init.body).human_contribution, 'I wrote the lyrics and sang the lead.');
+  assert.deepStrictEqual(JSON.parse(submitCall.init.body).credits, {
+    performer: 'Ada Night',
+    producer: 'Ada Night',
+  }, 'already-collected track credits must ride along on submit');
   assert.strictEqual(draftOf(signedSubmit.localStorage).tonegrid_status, 'pending');
 
   const soloSubmit = load({

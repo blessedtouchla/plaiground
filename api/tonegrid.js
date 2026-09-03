@@ -1003,14 +1003,17 @@ function isSoftWriterMiss(result) {
   return result.status === 400 || result.status === 422;
 }
 
-async function stampTrackSongwriter(trackId, songwriter) {
-  const fields = storeCredits.trackSongwriterFields(songwriter);
+async function stampTrackSongwriter(trackId, songwriter, extras) {
+  const fields = storeCredits.mergeTrackContributors(songwriter, extras)
+    || storeCredits.trackSongwriterFields(songwriter);
   if (!fields) return { ok: true, skipped: true };
   const bodies = [
     { contributors: fields.contributors },
-    { songwriters: fields.songwriters, composers: fields.composers },
+    fields.songwriters || fields.composers
+      ? { songwriters: fields.songwriters, composers: fields.composers }
+      : null,
     fields,
-  ];
+  ].filter(Boolean);
   for (let i = 0; i < bodies.length; i += 1) {
     const body = bodies[i];
     const patched = await tonegridFetch('/tracks/' + trackId, {
@@ -1029,10 +1032,12 @@ async function stampTrackSongwriter(trackId, songwriter) {
   return { ok: true, skipped: true };
 }
 
-async function attachTrackWriters(trackId, songwriter) {
+async function attachTrackWriters(trackId, songwriter, extras) {
   const name = songwriter && songwriter.name;
-  if (!name || !isUuid(trackId)) return { ok: true, skipped: true };
-  const stamped = await stampTrackSongwriter(trackId, songwriter);
+  const roles = storeCredits.declaredTrackContributors(extras);
+  if ((!name && !roles.length) || !isUuid(trackId)) return { ok: true, skipped: true };
+  const stamped = await stampTrackSongwriter(trackId, songwriter, extras);
+  if (!name) return stamped && stamped.ok === false ? stamped : { ok: true };
   const writerBody = storeCredits.writerCreateBody(songwriter);
   const created = await tonegridFetch('/writers', {
     method: 'POST',
@@ -3344,7 +3349,7 @@ async function submitRelease(req, res, releaseId) {
     const tid = String(trackIds[i] || '').trim();
     if (!isUuid(tid) || seenTracks[tid]) continue;
     seenTracks[tid] = true;
-    const writersHop = await attachTrackWriters(tid, songwriter);
+    const writersHop = await attachTrackWriters(tid, songwriter, body);
     if (!writersHop.ok) {
       sendJson(res, writersHop.status, writersHop.data);
       return;

@@ -2514,6 +2514,10 @@
     if (ids.length > 1) submitBody.track_ids = ids;
     if (draft.artwork_object_key) submitBody.artwork_object_key = draft.artwork_object_key;
     if (draft.audio_object_key) submitBody.audio_object_key = draft.audio_object_key;
+    if (draft.credits && typeof draft.credits === 'object') submitBody.credits = draft.credits;
+    if (Array.isArray(draft.contributors) && draft.contributors.length) {
+      submitBody.contributors = draft.contributors;
+    }
     return resolveSubmitTracks(draft).then(function (ready) {
       if (ready.recover) return { recover: true, result: ready.result, draft: ready.draft || draft };
       if (ready.failed) return { failed: true, result: ready.result, draft: ready.draft || draft };
