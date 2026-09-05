@@ -282,10 +282,59 @@
     return isSignedIn() && hasPlan();
   }
 
+  function safeNext(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) return '';
+    if (raw.indexOf('//') !== -1 || raw.indexOf('\\') !== -1 || raw.indexOf('..') !== -1) return '';
+    var pathOnly = raw.split('?')[0].split('#')[0];
+    if (!pathOnly) return '';
+    var file = pathOnly.split('/').pop();
+    if (file === 'login.html' || file === 'signup.html' || file === 'login' || file === 'signup') return '';
+    if (raw.charAt(0) === '/') {
+      if (!/^\/[A-Za-z0-9._~/-]*$/.test(pathOnly)) return '';
+      return raw.length > 180 ? '' : raw;
+    }
+    if (!/^[A-Za-z0-9._-]+\.html$/.test(pathOnly)) return '';
+    return raw.length > 180 ? '' : raw;
+  }
+
+  function currentReturnPath() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop() || '';
+    if (path === '/admin' || path === '/admin/') return '/admin';
+    if (path === '/charts' || path === '/charts/') return '/charts';
+    if (!file || file === 'login.html') return '';
+    var search = String((global.location && global.location.search) || '');
+    var hash = String((global.location && global.location.hash) || '');
+    return safeNext(file + search + hash);
+  }
+
+  function nextFromQuery() {
+    try {
+      var params = new URLSearchParams(global.location.search);
+      return safeNext(params.get('next') || params.get('return'));
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function loginHref(next) {
+    var dest = arguments.length ? safeNext(next) : currentReturnPath();
+    if (!dest) return LOGIN;
+    return LOGIN + '?next=' + encodeURIComponent(dest);
+  }
+
+  function afterLoginHome(account) {
+    var next = nextFromQuery();
+    if (next) return next;
+    return signedInHome(account);
+  }
+
   function requireMembership() {
     if (!accountSettled) return true;
     if (isConfirmedLoggedOut()) {
-      global.location.replace(LOGIN);
+      global.location.replace(loginHref());
       return false;
     }
     if (serverStatus === 200 && !hasPlan()) {
@@ -324,7 +373,7 @@
     }
     if (!accountSettled) return true;
     if (isConfirmedLoggedOut()) {
-      global.location.replace(LOGIN);
+      global.location.replace(loginHref());
       return false;
     }
     if (serverStatus === 200) {
@@ -340,13 +389,13 @@
       if (hasLiveSession() || serverStatus === 200) return publishingHref();
       return PUBLISHING;
     }
-    return LOGIN;
+    return loginHref(PUBLISHING);
   }
 
   function destinationForSignedInUpload(href) {
     var dest = href || 'upload.html';
     if (!accountSettled || !isConfirmedLoggedOut()) return dest;
-    return LOGIN;
+    return loginHref(dest);
   }
 
   function withNewReleaseFlag(href) {
@@ -505,7 +554,7 @@
   function goDashboardFromLogin() {
     if (!isLoginPage()) return false;
     if (!(serverStatus === 200 && serverAccount)) return false;
-    global.location.replace(signedInHome(serverAccount));
+    global.location.replace(afterLoginHome(serverAccount));
     return true;
   }
 
@@ -652,6 +701,8 @@
     account: function () { return serverAccount; },
     isOwner: isOwner,
     signedInHome: signedInHome,
+    loginHref: loginHref,
+    afterLoginHome: afterLoginHome,
     whenReady: function (cb) {
       var next = accountReady.then(function (result) {
         if (typeof cb === 'function') cb(result);
@@ -682,26 +733,32 @@
     });
   }
 
-  if (scriptFlag('data-require-membership')) {
-    if (typeof global.fetch === 'function') {
-      accountReady.then(function () { requireMembership(); });
-    } else {
-      requireMembership();
+  function markAuthGate(pending) {
+    try {
+      var root = global.document && global.document.documentElement;
+      if (!root || !root.setAttribute) return;
+      if (pending) root.setAttribute('data-auth-gate', 'pending');
+      else root.removeAttribute('data-auth-gate');
+    } catch (err) {}
+  }
+
+  function runGatedCheck(check) {
+    if (!hasLiveSession()) markAuthGate(true);
+    function finish() {
+      if (check()) markAuthGate(false);
     }
+    if (typeof global.fetch === 'function') accountReady.then(finish);
+    else finish();
+  }
+
+  if (scriptFlag('data-require-membership')) {
+    runGatedCheck(requireMembership);
   }
   if (scriptFlag('data-require-paid')) {
-    if (typeof global.fetch === 'function') {
-      accountReady.then(function () { requirePaidAccess(); });
-    } else {
-      requirePaidAccess();
-    }
+    runGatedCheck(requirePaidAccess);
   }
   if (scriptFlag('data-require-publishing')) {
-    if (typeof global.fetch === 'function') {
-      accountReady.then(function () { requirePublishingAccess(); });
-    } else {
-      requirePublishingAccess();
-    }
+    runGatedCheck(requirePublishingAccess);
   }
   revealPricingHint();
   whenDomReady(function () {

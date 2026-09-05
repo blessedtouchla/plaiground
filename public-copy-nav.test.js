@@ -209,6 +209,7 @@ function run() {
     assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must feature FAQ on the public menu');
     assert.ok(html.includes('href="how-it-works.html">How it works</a>'), file + ' keeps How it works public');
     assert.ok(html.includes('href="login.html">Log in</a>'), file + ' keeps Log in');
+    assert.ok(!/data-require-membership="true"/.test(html), file + ' stays public when logged out');
     assert.ok(html.includes('Release Now'), file + ' keeps Release Now');
     assert.ok(!/href="boost.html">Boost<\/a>/.test(html), file + ' must not put Boost on the public menu');
     assert.ok(!/>Admin</.test(html), file + ' must not put Admin on the public menu');
@@ -514,6 +515,17 @@ function run() {
     assert.ok(/Have a problem\?<\/a>\s*<a class="nav-siqa" href="\/charts" style="color:#F3CB47">SIQA Charts<\/a>/.test(sideNav[0]), file + ' SIQA Charts sits last after Have a problem?');
   });
   assert.ok(!index.includes('class="side-nav"'), 'homepage must not share the signed-in side-nav');
+  assert.ok(/href="boost.html">Marketing boosts<\/a>/.test(index), 'homepage marketing tease stays on the public Boost page');
+  assert.ok(!/<section class="landing-tease"[\s\S]*href="boosts.html"/.test(index), 'logged-out homepage must not send people into boosts.html');
+  const vercel = JSON.parse(read('vercel.json'));
+  assert.ok((vercel.rewrites || []).some(function (row) {
+    return row.source === '/login' && row.destination === '/login.html';
+  }), '/login must rewrite to login.html');
+  ['/pricing.html', '/plans.html', '/pricing', '/plans'].forEach(function (source) {
+    assert.ok((vercel.redirects || []).some(function (row) {
+      return row.source === source && String(row.destination).indexOf('#pricing') !== -1;
+    }), source + ' must redirect to the live plans section');
+  });
   fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); }).forEach(function (file) {
     const html = read(file);
     const sideNav = html.match(/<nav class="side-nav"[^>]*>[\s\S]*?<\/nav>/);
@@ -578,7 +590,8 @@ function run() {
   assert.ok(howApp.includes('<h3>Upload</h3>') && howApp.includes('<h3>Release</h3>') && howApp.includes('<h3>Get paid</h3>'), 'signed-in How it works is Upload / Release / Get paid');
   assert.ok(!howApp.includes('01 Artist profile') && !howApp.includes('Attest rights') && !howApp.includes('Review &amp; pay'), 'signed-in How it works drops the extra numbered steps');
   assert.ok(!howApp.includes('Five steps from a finished track') && !howApp.includes('Four steps from a finished track'), 'signed-in How it works is three steps');
-  assert.ok(!/data-require-membership|data-require-paid/i.test(howApp), 'How it works must not dump signed-in users to login');
+  assert.ok(/data-require-membership="true"/i.test(howApp), 'signed-in How it works dumps logged-out visitors to login');
+  assert.ok(!/data-require-paid/i.test(howApp), 'signed-in How it works must not dump Basic to Pick a plan');
 
   const terms = read('terms.html');
   assert.ok(terms.includes('src="site.js"'), 'terms.html has public nav chrome and needs the hamburger');

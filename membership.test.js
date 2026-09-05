@@ -306,6 +306,7 @@ function runLoginWall() {
                     });
                     return loggedOut401.api.whenReady().then(function () {
                       assert.ok(loggedOut401.location.href.indexOf('login.html') !== -1, 'true logged-out 401 still goes to login');
+                      assert.ok(loggedOut401.location.href.indexOf('next=payouts.html') !== -1, 'logged-out dump keeps a safe return path');
 
                       const loginBounce = load({
                         pathname: '/login.html',
@@ -326,7 +327,40 @@ function runLoginWall() {
                         });
                         return artistLogin.api.whenReady().then(function () {
                           assert.strictEqual(artistLogin.location.href, 'dashboard.html', 'artist login stays on Overview');
-                          console.log('membership.test.js ok');
+                          const returnLogin = load({
+                            pathname: '/login.html',
+                            href: 'login.html?next=boosts.html',
+                            search: '?next=boosts.html',
+                            account: {
+                              email: 'victoriaimtanes@gmail.com',
+                              artist: 'Victoria',
+                              plan: 'creator',
+                              status: 'active',
+                            },
+                          });
+                          return returnLogin.api.whenReady().then(function () {
+                            assert.strictEqual(returnLogin.location.href, 'boosts.html', 'login ?next= returns to the gated page');
+                            assert.strictEqual(returnLogin.api.afterLoginHome(), 'boosts.html');
+                            const evilLogin = load({
+                              pathname: '/login.html',
+                              href: 'login.html?next=https://evil.example',
+                              search: '?next=https://evil.example',
+                              account: {
+                                email: 'victoriaimtanes@gmail.com',
+                                artist: 'Victoria',
+                                plan: 'creator',
+                                status: 'active',
+                              },
+                            });
+                            return evilLogin.api.whenReady().then(function () {
+                              assert.strictEqual(evilLogin.location.href, 'dashboard.html', 'off-site next is ignored');
+                              assert.strictEqual(evilLogin.api.loginHref('https://evil.example'), 'login.html');
+                              assert.strictEqual(evilLogin.api.loginHref('//evil.example'), 'login.html');
+                              assert.strictEqual(evilLogin.api.loginHref('../login.html'), 'login.html');
+                              assert.strictEqual(returnLogin.api.loginHref('boosts.html'), 'login.html?next=boosts.html');
+                              console.log('membership.test.js ok');
+                            });
+                          });
                         });
                       });
                     });
@@ -394,7 +428,31 @@ function runFlowStepper() {
 
 function run() {
   runFlowStepper();
-  const dumpedPages = ['upload.html', 'attest.html', 'boosts.html', 'payouts.html', 'earnings.html', 'analytics.html'];
+  const dumpedPages = [
+    'dashboard.html',
+    'upload.html',
+    'attest.html',
+    'releases.html',
+    'earnings.html',
+    'analytics.html',
+    'splits.html',
+    'splits-empty.html',
+    'payouts.html',
+    'boosts.html',
+    'artists.html',
+    'settings.html',
+    'problem.html',
+    'how.html',
+    'library.html',
+    'song.html',
+    'admin.html',
+    'chart-push.html',
+    'streaming-push.html',
+    'social-push.html',
+    'video-collect.html',
+    'review.html',
+    'submitted.html',
+  ];
   dumpedPages.forEach(function (file) {
     const html = fs.readFileSync(path.join(__dirname, file), 'utf8');
     assert.ok(/data-require-membership="true"/.test(html), file + ' still uses the membership gate');
