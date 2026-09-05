@@ -123,6 +123,8 @@ function run() {
     return rule.source === '/charts' && rule.destination === '/charts.html';
   });
   assert.ok(rewrite, 'vercel.json rewrites /charts to /charts.html');
+  assert.ok(read('plai-bubble.js').includes('data-charts-player'), 'PLAI measures the sticky charts player');
+  assert.ok(read('plai-bubble.css').includes('--plai-sticky-clearance'), 'PLAI parks above the sticky charts player');
   const loginRewrite = (vercel.rewrites || []).find(function (rule) {
     return rule.source === '/login' && rule.destination === '/login.html';
   });

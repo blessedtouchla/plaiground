@@ -223,9 +223,53 @@
 
   function syncPhoneChrome() {
     if (!root) return;
-    var phone = isPhoneViewport();
-    root.classList.toggle('is-phone', phone);
-    if (!phone) setMenuOpen(false);
+    root.classList.toggle('is-phone', isPhoneViewport());
+  }
+
+  function measureStickyClearance() {
+    var height = 0;
+    var viewH = window.innerHeight || 0;
+    var nodes = [];
+    if (document.querySelectorAll) {
+      nodes = document.querySelectorAll('[data-charts-player], .charts-player, [data-plai-sticky]');
+    }
+    var i;
+    for (i = 0; i < nodes.length; i += 1) {
+      var node = nodes[i];
+      if (!node || node.hidden) continue;
+      if (node.getAttribute && node.getAttribute('hidden') != null) continue;
+      var rect = node.getBoundingClientRect ? node.getBoundingClientRect() : null;
+      if (!rect || !rect.height) continue;
+      if (!viewH || rect.bottom >= viewH - 8) {
+        height = Math.max(height, Math.round(rect.height));
+      }
+    }
+    return height;
+  }
+
+  function applyStickyClearance() {
+    if (!root || !root.style || typeof root.style.setProperty !== 'function') return;
+    root.style.setProperty('--plai-sticky-clearance', measureStickyClearance() + 'px');
+  }
+
+  function bindStickyClearance() {
+    applyStickyClearance();
+    if (window.addEventListener) window.addEventListener('resize', applyStickyClearance);
+    if (typeof MutationObserver === 'function' && document.documentElement) {
+      var mo = new MutationObserver(applyStickyClearance);
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['hidden', 'class'],
+        childList: true,
+        subtree: true,
+      });
+    }
+    if (typeof ResizeObserver === 'function' && document.querySelectorAll) {
+      var sticky = document.querySelectorAll('[data-charts-player], .charts-player, [data-plai-sticky]');
+      var ro = new ResizeObserver(applyStickyClearance);
+      var j;
+      for (j = 0; j < sticky.length; j += 1) ro.observe(sticky[j]);
+    }
   }
 
   function bindPhoneMq() {
@@ -951,6 +995,7 @@
     });
     window.addEventListener('pagehide', persistState);
     bindPhoneMq();
+    bindStickyClearance();
     setState('idle');
     renderLog();
   }
