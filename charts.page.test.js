@@ -123,6 +123,18 @@ function run() {
     return rule.source === '/charts' && rule.destination === '/charts.html';
   });
   assert.ok(rewrite, 'vercel.json rewrites /charts to /charts.html');
+  assert.ok(read('plai-bubble.js').includes('data-charts-player'), 'PLAI measures the sticky charts player');
+  assert.ok(read('plai-bubble.css').includes('--plai-sticky-clearance'), 'PLAI parks above the sticky charts player');
+  const loginRewrite = (vercel.rewrites || []).find(function (rule) {
+    return rule.source === '/login' && rule.destination === '/login.html';
+  });
+  assert.ok(loginRewrite, 'vercel.json rewrites /login to /login.html');
+  ['/pricing.html', '/plans.html', '/pricing', '/plans'].forEach(function (source) {
+    const rule = (vercel.redirects || []).find(function (row) {
+      return row.source === source && String(row.destination).indexOf('#pricing') !== -1;
+    });
+    assert.ok(rule, 'vercel.json redirects ' + source + ' to the live plans section');
+  });
 
   const nav = html.match(/<nav class="nav-links"[^>]*>[\s\S]*?<\/nav>/);
   assert.ok(nav, 'charts page keeps the public nav');

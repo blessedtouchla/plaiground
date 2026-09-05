@@ -2110,7 +2110,7 @@ function run() {
   assert.ok(html.includes('The store keeps the same artist ID'));
   assert.ok(!html.includes('The store locks the catalog artist'));
   assert.ok(!html.includes('tonegrid.js'));
-  assert.ok(!html.includes('data-require-membership'));
+  assert.ok(html.includes('data-require-membership="true"'), 'song.html dumps logged-out visitors to login');
   assert.ok(html.includes('upload-catalog.js'));
   assert.ok(html.includes('fillUploadSelects(document)'));
   assert.ok(html.includes('<select id="edit-genre"'));

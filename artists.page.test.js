@@ -424,7 +424,7 @@ function run() {
   assert.ok(html.includes('class="app artists-page"'), 'Artist Profiles page can lift Save artist above Talk/Text');
   assert.ok(html.includes('href="artists.html">Artist Profiles</a>'));
   assert.ok(html.includes('href="settings.html">Settings</a>'));
-  assert.ok(!html.includes('data-require-membership'));
+  assert.ok(html.includes('data-require-membership="true"'), 'Artist Profiles dumps logged-out visitors to login');
   assert.ok(!html.includes('data-require-paid'));
   assert.ok(html.includes('Plus adds another row. Link artist saves.'));
   assert.ok(html.includes('Save artist'));

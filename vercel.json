@@ -23,6 +23,26 @@
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/admin/:path*",
       "permanent": true
+    },
+    {
+      "source": "/pricing.html",
+      "destination": "/index.html#pricing",
+      "permanent": true
+    },
+    {
+      "source": "/plans.html",
+      "destination": "/index.html#pricing",
+      "permanent": true
+    },
+    {
+      "source": "/pricing",
+      "destination": "/index.html#pricing",
+      "permanent": true
+    },
+    {
+      "source": "/plans",
+      "destination": "/index.html#pricing",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -34,6 +54,8 @@
     { "source": "/api/admin/signups", "destination": "/api/me?action=admin-signups" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/signups", "destination": "/admin.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/login/", "destination": "/login.html" },
     { "source": "/api/signwell/:id", "destination": "/api/signwell?id=:id" },
     { "source": "/api/tonegrid/releases/:id/submit", "destination": "/api/tonegrid?resource=submit&id=:id" },
     { "source": "/api/tonegrid/releases/:id/dsps", "destination": "/api/tonegrid?resource=dsps&id=:id" },

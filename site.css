@@ -886,10 +886,17 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 
 /* —— App shell —— */
 .app { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
+html[data-auth-gate="pending"] body.app .side,
+html[data-auth-gate="pending"] body.app .topbar,
+html[data-auth-gate="pending"] body.app .page,
+html[data-auth-gate="pending"] body:not(.app) > .flow-top,
+html[data-auth-gate="pending"] body:not(.app) > main {
+  visibility: hidden;
+}
 body.app > .plai-bubble {
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  bottom: max(24px, calc(var(--plai-sticky-clearance, 0px) + 16px));
   z-index: 4000;
   grid-column: 1 / -1;
   grid-row: 1;
@@ -903,10 +910,10 @@ body.app > .plai-bubble {
 @media (max-width: 720px) {
   body.auth-full .plai-bubble,
   body.app > .plai-bubble {
-    top: 92px;
+    top: auto;
     right: 12px;
-    bottom: auto;
-    align-self: start;
+    bottom: max(24px, calc(var(--plai-sticky-clearance, 0px) + 16px));
+    align-self: end;
   }
 }
 .side {
@@ -4234,10 +4241,10 @@ body.app.artists-page .page {
   body.auth-full .plai-bubble,
   body.app > .plai-bubble {
     z-index: 4000;
-    top: 92px;
+    top: auto;
     right: 12px;
-    bottom: auto;
-    align-self: start;
+    bottom: max(24px, calc(var(--plai-sticky-clearance, 0px) + 16px));
+    align-self: end;
   }
   .nav-inner {
     gap: 8px;

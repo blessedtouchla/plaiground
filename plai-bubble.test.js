@@ -29,7 +29,15 @@ function makeNode(tag) {
     attrs: Object.create(null),
     listeners: Object.create(null),
     dataset: Object.create(null),
-    style: {},
+    style: {
+      setProperty(key, value) { this[key] = String(value); },
+      getPropertyValue(key) { return this[key] == null ? '' : String(this[key]); },
+    },
+    getBoundingClientRect() {
+      const height = Number(this._height || 0);
+      const viewH = 800;
+      return { width: 320, height: height, top: viewH - height, bottom: viewH, left: 0, right: 320 };
+    },
     value: '',
     _innerHTML: '',
     scrollTop: 0,
@@ -125,6 +133,9 @@ function matches(node, sel) {
   if (sel.indexOf('[data-mode="') === 0) {
     return node.getAttribute('data-mode') === sel.slice(12, -2);
   }
+  if (sel.charAt(0) === '[' && sel.indexOf('=') === -1) {
+    return node.getAttribute && node.getAttribute(sel.slice(1, -1)) != null;
+  }
   return node.tagName === String(sel).toUpperCase();
 }
 
@@ -154,9 +165,10 @@ function loadWidget(options) {
       return queryOne(body, sel);
     },
     querySelectorAll: function (sel) {
+      const parts = String(sel).split(',').map(function (part) { return part.trim(); });
       const out = [];
       walk(body, function (n) {
-        if (matches(n, sel)) out.push(n);
+        if (parts.some(function (part) { return matches(n, part); })) out.push(n);
       });
       return out;
     },
@@ -215,6 +227,7 @@ function loadWidget(options) {
         };
       },
       addEventListener: function () {},
+      innerHeight: 800,
       matchMedia: function (query) {
         return {
           matches: Boolean(options.phone) && /max-width:\s*720px/.test(String(query)),
@@ -264,6 +277,14 @@ function loadWidget(options) {
   context.window.WebSocket = FakeWebSocket;
   context.window.navigator = context.navigator;
   context.window.fetch = context.fetch;
+  if (options.chartsPlayer) {
+    const player = makeNode('div');
+    player.setAttribute('data-charts-player', '');
+    player.className = 'charts-player';
+    player.hidden = options.chartsPlayer.hidden === true;
+    player._height = options.chartsPlayer.height || 220;
+    body.appendChild(player);
+  }
   vm.runInNewContext(read('plai-bubble.js'), context, { filename: 'plai-bubble.js' });
   return {
     document: document,
@@ -339,32 +360,36 @@ function runStatic() {
 
   assert.ok(css.includes('.plai-bubble-pill.is-text'), 'Text PLAI has its own chrome');
   assert.ok(css.includes('.plai-bubble-hint'), 'PLAY pronunciation hint is styled');
-  assert.ok(css.includes('.plai-bubble-chip'), 'phone collapse uses a PLAI chip');
+  assert.ok(css.includes('.plai-bubble-chip'), 'collapsed chrome uses a PLAI chip');
   assert.ok(js.includes("text: 'PLAI'") && js.includes('plai-bubble-chip'), 'chip label stays PLAI');
   assert.ok(!/plai-bubble-chip[\s\S]{0,400}PLAY/.test(js), 'do not rename the chip PLAY');
   assert.ok(!/plai-avatar\.png/.test(js) && !/plai-avatar\.png/.test(css), 'do not put the girl PNG on the signed-in bubble');
-  assert.ok(js.includes("PHONE_MQ = '(max-width: 720px)'"), 'phone collapse matches the 720px breakpoint');
+  assert.ok(js.includes("PHONE_MQ = '(max-width: 720px)'"), 'phone layout matches the 720px breakpoint');
+  assert.ok(css.includes('--plai-sticky-clearance'), 'bubble parks above sticky bottom bars');
+  assert.ok(css.includes('calc(var(--plai-sticky-clearance) + 16px)'), 'sticky bars get a 16px gap');
+  assert.ok(js.includes('data-charts-player') && js.includes('applyStickyClearance'), '/charts player lifts the chip');
 
   const phoneCss = css.match(/@media\s*\(max-width:\s*720px\)\s*\{[\s\S]*$/);
   assert.ok(phoneCss, 'phone chrome lives in a 720px query');
-  assert.ok(/\.plai-bubble\s*\{[\s\S]*?top:\s*92px/.test(phoneCss[0]), 'phone bubble sits top-right');
-  assert.ok(/\.plai-bubble\s*\{[\s\S]*?bottom:\s*auto/.test(phoneCss[0]), 'phone bubble is not pinned to the bottom');
-  assert.ok(/\.plai-bubble-chip\s*\{[\s\S]*?display:\s*inline-flex/.test(phoneCss[0]), 'phone shows the PLAI chip');
-  assert.ok(/\.plai-bubble-row\s*\{[\s\S]*?display:\s*none/.test(phoneCss[0]), 'phone hides the Talk/Text pair until the chip opens');
-  assert.ok(/\.plai-bubble\.is-menu-open \.plai-bubble-row/.test(phoneCss[0]), 'open chip reveals Talk/Text as a menu');
+  assert.ok(!/\.plai-bubble\s*\{[\s\S]*?top:\s*92px/.test(phoneCss[0]), 'phone chip stays bottom-right, not top-right');
+  assert.ok(!/\.plai-bubble\s*\{[\s\S]*?bottom:\s*auto/.test(phoneCss[0]), 'phone chip is not pulled off the bottom');
+  assert.ok(/\.plai-bubble-chip\s*\{[\s\S]*?display:\s*inline-flex/.test(css), 'the gold PLAI chip is the default control');
+  assert.ok(/\.plai-bubble-row\s*\{[\s\S]*?display:\s*none/.test(css), 'Talk/Text stay hidden until the chip opens');
+  assert.ok(/\.plai-bubble\.is-menu-open \.plai-bubble-row/.test(css), 'open chip reveals Talk/Text as a menu');
   assert.ok(!/bottom:\s*1?2px/.test(phoneCss[0]), 'phone Talk/Text must not sit on Submit');
 
   const desktopBubble = css.match(/\.plai-bubble\s*\{[\s\S]*?\}/);
-  assert.ok(desktopBubble && /bottom:\s*24px/.test(desktopBubble[0]) && /right:\s*24px/.test(desktopBubble[0]), 'desktop keeps Talk/Text bottom-right');
+  assert.ok(desktopBubble && /max\(24px/.test(desktopBubble[0]) && /right:\s*24px/.test(desktopBubble[0]), 'marketing pages keep a 24px bottom safe zone');
   const desktopChip = css.match(/\.plai-bubble-chip\s*\{[\s\S]*?\}/);
-  assert.ok(desktopChip && /display:\s*none/.test(desktopChip[0]), 'desktop does not show the PLAI chip');
+  assert.ok(desktopChip && /display:\s*inline-flex/.test(desktopChip[0]), 'desktop starts as one gold PLAI chip');
+  assert.ok(/#F3CB47/.test(desktopChip[0]) || /#F5C542/.test(desktopChip[0]), 'the collapsed chip is gold');
 
   const siteCss = read('site.css');
   assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome keeps Talk/Text PLAI on screen');
   assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text PLAI');
   assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{[^}]*bottom:\s*12px/.test(siteCss), 'signed-in phone chrome must not pin Talk/Text over bottom CTAs');
   const sitePhone = siteCss.match(/@media\s*\(max-width:\s*720px\)\s*\{[\s\S]*?body\.app\s*>\s*\.plai-bubble[\s\S]*?\}/);
-  assert.ok(sitePhone && /top:\s*92px/.test(sitePhone[0]) && /bottom:\s*auto/.test(sitePhone[0]), 'signed-in phone bubble stays top-right');
+  assert.ok(sitePhone && /top:\s*auto/.test(sitePhone[0]) && /--plai-sticky-clearance/.test(sitePhone[0]), 'signed-in phone chip stays above sticky bars');
   assert.ok(!read('upload.html').includes('data-plai-coach-float'), 'signed-in submit must not get the landing girl');
   assert.ok(!read('upload.html').includes('plai-avatar.png'), 'signed-in submit must not load the girl PNG');
   ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
@@ -450,12 +475,16 @@ function runPhoneChrome() {
     const root = desktop.root();
     const chip = desktop.chip();
     assert.ok(root && chip, 'desktop still mounts the bubble and chip node');
-    assert.ok(!root.classList.contains('is-phone'), 'desktop does not collapse to the phone chip');
-    assert.ok(!root.classList.contains('is-menu-open'), 'desktop does not open a phone menu');
+    assert.ok(!root.classList.contains('is-phone'), 'desktop is not the phone breakpoint');
+    assert.ok(!root.classList.contains('is-menu-open'), 'desktop starts as one collapsed chip');
     assert.strictEqual(chip.querySelector('.plai-bubble-label').textContent, 'PLAI');
     assert.ok(desktop.pill('talk') && desktop.pill('text'), 'desktop keeps the Talk + Text pair');
     assert.strictEqual(desktop.pill('talk').querySelector('.plai-bubble-label').textContent, 'Talk to PLAI');
     assert.strictEqual(desktop.pill('text').querySelector('.plai-bubble-label').textContent, 'Text PLAI');
+    chip.click();
+    assert.ok(root.classList.contains('is-menu-open'), 'tapping the desktop chip opens Talk / Text');
+    chip.click();
+    assert.ok(!root.classList.contains('is-menu-open'), 'tapping the desktop chip again collapses it');
 
     const phone = loadWidget({ phone: true });
     return wait(20).then(function () {
@@ -525,9 +554,20 @@ function runPageText() {
   });
 }
 
+function runChartsClearance() {
+  const clear = loadWidget({ chartsPlayer: { height: 220 } });
+  return wait(20).then(function () {
+    assert.strictEqual(clear.root().style.getPropertyValue('--plai-sticky-clearance'), '220px', 'visible charts player lifts the chip');
+    const hidden = loadWidget({ chartsPlayer: { height: 220, hidden: true } });
+    return wait(20).then(function () {
+      assert.strictEqual(hidden.root().style.getPropertyValue('--plai-sticky-clearance'), '0px', 'hidden charts player leaves the 24px marketing safe zone');
+    });
+  });
+}
+
 function run() {
   runStatic();
-  return runClicks().then(runPhoneChrome).then(runPageTalk).then(runPageText).then(function () {
+  return runClicks().then(runPhoneChrome).then(runPageTalk).then(runPageText).then(runChartsClearance).then(function () {
     console.log('plai-bubble.test.js ok');
   });
 }

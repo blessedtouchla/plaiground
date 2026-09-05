@@ -102,7 +102,8 @@ function run() {
 
   const tease = index.match(/<section class="landing-tease"[\s\S]*?<\/section>/);
   assert.ok(tease);
-  assert.ok(/href="boosts.html">Marketing boosts<\/a>/.test(tease[0]), 'homepage marketing tease points at the Boost hub');
+  assert.ok(/href="boost.html">Marketing boosts<\/a>/.test(tease[0]), 'homepage marketing tease points at the public Boost page');
+  assert.ok(!/href="boosts.html"/.test(tease[0]), 'logged-out homepage must not open the signed-in Boosts shell');
   assert.ok(!/href="video-collect\.html"/.test(tease[0]));
 
   const chartOpts = optionCards(chart);

@@ -1,9 +1,10 @@
 /* Floating PLAI voice bubble. Positioned fixed — does not shift .wrap. */
 
 .plai-bubble {
+  --plai-sticky-clearance: 0px;
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  bottom: max(24px, calc(var(--plai-sticky-clearance) + 16px));
   z-index: 4000;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #fff;
@@ -269,7 +270,7 @@
 .plai-bubble-x:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
 
 .plai-bubble-row {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
@@ -277,26 +278,30 @@
   max-width: min(420px, calc(100vw - 32px));
 }
 
+.plai-bubble.is-menu-open .plai-bubble-row {
+  display: flex;
+}
+
 .plai-bubble-chip {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  height: 32px;
-  padding: 0 12px;
-  border: 1.5px solid #F5C542;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
   border-radius: 999px;
-  background: #0C0C12;
-  color: #F5C542;
+  background: #F3CB47;
+  color: #08060C;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
-.plai-bubble-chip:hover { background: #16161C; }
+.plai-bubble-chip:hover { background: #F5C542; }
 
 .plai-bubble-chip.is-on {
   box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.28);
@@ -309,32 +314,23 @@
 
 .plai-bubble[hidden] { display: none !important; }
 
-/* Phone: one PLAI chip, top-right. Talk/Text stay in a menu — never over bottom CTAs. */
+/* Phone: same collapsed gold chip, still above any sticky bottom bar. */
 @media (max-width: 720px) {
   .plai-bubble {
-    top: 92px;
     right: 12px;
-    bottom: auto;
     left: auto;
+    top: auto;
   }
   .plai-bubble-shell {
     align-items: flex-end;
   }
-  .plai-bubble-chip {
-    display: inline-flex;
-    order: -1;
-  }
   .plai-bubble-row {
-    display: none;
     flex-direction: column;
     align-items: stretch;
     flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 6px;
     max-width: min(220px, calc(100vw - 24px));
-  }
-  .plai-bubble.is-menu-open .plai-bubble-row {
-    display: flex;
   }
   .plai-bubble-pill,
   .plai-bubble-row .plai-bubble-x {
@@ -350,7 +346,6 @@
     color: #C8C8D0;
   }
   .plai-bubble-panel {
-    order: 2;
     width: min(320px, calc(100vw - 24px));
     max-height: calc(100vh - 160px);
     overflow: auto;
