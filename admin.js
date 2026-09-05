@@ -140,16 +140,22 @@
   function renderSignups(signups) {
     fillTable('[data-signups-table]', '[data-signups-empty]', '[data-signups-body]', signups, function (row) {
       var name = dash(row && row.name);
+      var bits = String(row && row.name || '').trim().split(/\s+/).filter(Boolean);
+      var first = bits[0] || '';
+      var last = bits.slice(1).join(' ');
+      var nameLine = (first || last)
+        ? ('First ' + (first || '—') + ' · Last ' + (last || '—'))
+        : 'First — · Last —';
       var when = formatSignedUpAt(row && row.signed_up_at);
       return '<tr>'
         + cell('Email',
           '<div class="admin-signup-email">' + escapeHtml(dash(row.email)) + '</div>'
           + '<div class="admin-signup-meta">'
-          + '<span class="admin-signup-name">' + escapeHtml(name) + '</span>'
+          + '<span class="admin-signup-name">' + escapeHtml(nameLine) + '</span>'
           + '<span class="admin-signup-when">' + escapeHtml(when) + '</span>'
           + '</div>',
           'admin-lead')
-        + cell('Name', escapeHtml(name), 'admin-signup-dup')
+        + cell('Name', escapeHtml(nameLine), 'admin-signup-dup')
         + cell('Plan', escapeHtml(planLabel(row.plan)))
         + cell('Status', escapeHtml(dash(row.status)))
         + cell('Signed up', escapeHtml(when), 'admin-signup-dup')
