@@ -98,25 +98,25 @@
               <h3>Creator <span class="current-badge">Current</span></h3>
               <div class="price">$14.99/month</div>
               <p>Creator is Basic with the paid features unlocked. Then a monthly cap.</p>
-              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=creator&amp;interval=month" data-plan-option="creator:month">Creator · $14.99/month</a>
+              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=creator&interval=month" data-plan-option="creator:month">Creator · $14.99/month</a>
             </article>
             <article class="offer">
               <h3>Creator <span class="current-badge">Current</span></h3>
               <div class="price">$12.42/month</div>
               <p>Billed yearly ($149). Same Creator features. Then a monthly cap.</p>
-              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=creator&amp;interval=year" data-plan-option="creator:year">Creator · $12.42/month billed yearly</a>
+              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=creator&interval=year" data-plan-option="creator:year">Creator · $12.42/month billed yearly</a>
             </article>
             <article class="offer magenta">
               <h3>Pro <span class="current-badge">Current</span></h3>
               <div class="price">$19.99/month</div>
               <p>Same as Creator, unlimited, plus catalog migration.</p>
-              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=pro&amp;interval=month" data-plan-option="pro:month">Pro · $19.99/month</a>
+              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=pro&interval=month" data-plan-option="pro:month">Pro · $19.99/month</a>
             </article>
             <article class="offer magenta">
               <h3>Pro <span class="current-badge">Current</span></h3>
               <div class="price">$16.58/month</div>
               <p>Billed yearly ($199). Same as Creator, unlimited.</p>
-              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=pro&amp;interval=year" data-plan-option="pro:year">Pro · $16.58/month billed yearly</a>
+              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=pro&interval=year" data-plan-option="pro:year">Pro · $16.58/month billed yearly</a>
             </article>
           </div>
         </div>
@@ -131,6 +131,12 @@
           <button class="btn btn-purple btn-sm" type="button" data-manage-billing>Update card</button>
         </div>
         <p class="learn" data-manage-billing-status hidden></p>
+      </div>
+      <div class="panel">
+        <h3>Rejected</h3>
+        <p class="hint">QC rejects stay here after they leave Releases and the store. They are a log, not live releases.</p>
+        <p class="hint" data-rejected-empty>No rejected releases yet.</p>
+        <div data-rejected-list></div>
       </div>
       <div class="panel">
         <h3>Security</h3>
@@ -171,6 +177,7 @@
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
+  <script src="lib/rejected-log.js?v=20260905r1"></script>
   <script src="checkout.js"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
