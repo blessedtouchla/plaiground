@@ -50,7 +50,9 @@
     { "source": "/blog/first-release", "destination": "/blog-first-release.html" },
     { "source": "/blog/meet-plai", "destination": "/blog-meet-plai.html" },
     { "source": "/blog/meet-siva", "destination": "/blog-meet-siva.html" },
-    { "source": "/blog/what-a-human-did", "destination": "/blog-what-a-human-did.html" }
+    { "source": "/blog/what-a-human-did", "destination": "/blog-what-a-human-did.html" },
+    { "source": "/blog/split-sheets", "destination": "/blog-split-sheets.html" },
+    { "source": "/blog/publishing-is-not-distribution", "destination": "/blog-publishing-is-not-distribution.html" }
   ],
   "headers": [
     {
