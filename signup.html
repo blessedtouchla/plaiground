@@ -51,6 +51,14 @@
         <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
         <form id="signup-form">
           <div class="field">
+            <label for="first-name">First name</label>
+            <input id="first-name" name="first_name" type="text" placeholder="First name" autocomplete="given-name" required />
+          </div>
+          <div class="field">
+            <label for="last-name">Last name</label>
+            <input id="last-name" name="last_name" type="text" placeholder="Last name" autocomplete="family-name" required />
+          </div>
+          <div class="field">
             <label for="username">Username</label>
             <input id="username" name="username" type="text" placeholder="Optional community handle" autocomplete="nickname" />
             <p class="hint">Optional. Unique if you set one. Sign-in stays email.</p>
@@ -96,32 +104,12 @@
         <div class="footer-brand">
           <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
           <p>Distribution, publishing and splits for all music. Traditional, AI-assisted, and fully AI tracks are accepted.</p>
-          <div class="socials">
-            <a href="https://www.facebook.com/profile.php?id=61593116849937" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg></a>
-            <a href="https://www.instagram.com/plaigroundmusic" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z"/></svg></a>
-          </div>
         </div>
         <div class="footer-col">
           <h4>Product</h4>
           <a href="how-it-works.html">How it works</a>
           <a href="index.html#pricing">Plans and Pricing</a>
-          <a href="basic.html">Learn more: Basic</a>
-          <a href="creator.html">Learn more: Creator</a>
-          <a href="pro.html">Learn more: Pro</a>
-          <a href="boost.html">Marketing Boost</a>
-          <a href="royalties.html">How you get paid</a>
           <a href="faq.html">FAQ</a>
-        </div>
-        <div class="footer-col">
-          <h4>Company</h4>
-          <a href="about.html">About us</a>
-          <a href="contact.html">Contact us</a>
-        </div>
-        <div class="footer-col">
-          <h4>Legal</h4>
-          <a href="terms.html">Terms of Service</a>
-          <a href="rights.html">Rights Attestation</a>
-          <a href="privacy.html">Privacy</a>
         </div>
         <div class="footer-col">
           <h4>Account</h4>
@@ -141,13 +129,11 @@
       if (!form) return;
       var status = document.getElementById('auth-status');
       var button = form.querySelector('button[type="submit"]');
-
       function setStatus(text) {
         if (!status) return;
         status.textContent = text || '';
         status.hidden = !text;
       }
-
       function chosenPlan() {
         var params = new URLSearchParams(window.location.search);
         var fromQuery = String(params.get('plan') || '').trim().toLowerCase();
@@ -157,14 +143,17 @@
         }
         return '';
       }
-
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var emailEl = document.getElementById('email');
         var usernameEl = document.getElementById('username');
         var passwordEl = document.getElementById('password');
+        var firstEl = document.getElementById('first-name');
+        var lastEl = document.getElementById('last-name');
         var email = emailEl ? String(emailEl.value || '').trim() : '';
         var username = usernameEl ? String(usernameEl.value || '').trim() : '';
+        var firstName = firstEl ? String(firstEl.value || '').trim() : '';
+        var lastName = lastEl ? String(lastEl.value || '').trim() : '';
         var password = passwordEl ? String(passwordEl.value || '') : '';
         var plan = chosenPlan();
         try {
@@ -172,10 +161,20 @@
           else sessionStorage.removeItem('plaigroundSignupEmail');
           sessionStorage.removeItem('plaigroundSignupArtist');
         } catch (err) {}
-
-        var body = { email: email, password: password };
+        var body = {
+          email: email,
+          password: password,
+          legal_first: firstName,
+          legal_last: lastName,
+          first_name: firstName,
+          last_name: lastName,
+        };
         if (username) body.username = username;
         if (plan) body.plan = plan;
+        if (!firstName || !lastName) {
+          setStatus('First and last name are required.');
+          return;
+        }
         if (password.length < 8) {
           setStatus('Password must be at least 8 characters.');
           return;
@@ -185,7 +184,6 @@
           button.setAttribute('aria-busy', 'true');
         }
         setStatus('');
-
         fetch('/api/auth/signup', {
           method: 'POST',
           credentials: 'same-origin',
