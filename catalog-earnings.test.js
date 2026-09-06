@@ -345,6 +345,30 @@ function run() {
     'attest.html',
     'complete upload step resumes at attest'
   );
+  catalog.PlaigroundCatalog.render({
+    releases: [{
+      uuid: '77777777-7777-4777-8777-777777777777',
+      title: 'Unicorn in West Hollywood',
+      type: 'single',
+      status: 'draft',
+    }],
+    total: 1,
+    analytics: {},
+  });
+  const unicornEdit = findByText(catalogNodes['[data-release-rows]'].children[0].children[1], 'Edit release');
+  const unicornTitle = findByText(catalogNodes['[data-release-rows]'].children[0], 'Unicorn in West Hollywood');
+  assert.strictEqual(unicornEdit.href, 'upload.html', 'Unicorn in West Hollywood Edit resumes the full upload flow');
+  assert.strictEqual(unicornTitle.href, 'upload.html', 'Unicorn in West Hollywood title resumes upload, not song Edit');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].href, 'upload.html');
+  assert.ok(String(unicornEdit.href).indexOf('song.html') === -1);
+  assert.strictEqual(
+    catalog.PlaigroundCatalog.resumeHref({
+      uuid: '77777777-7777-4777-8777-777777777777',
+      title: 'Unicorn in West Hollywood',
+      status: 'draft',
+    }),
+    'upload.html'
+  );
   catalog.localStorage.data['plaiground.store.draft'] = '{}';
   assert.ok(!findByText(catalogNodes['[data-release-rows]'].children[0].children[0], 'Edit release'), 'Edit release is not jammed after the title');
   assert.ok(read('releases.html').includes('href="releases.html">Releases</a>'), 'sidebar Releases stays on the catalog list');

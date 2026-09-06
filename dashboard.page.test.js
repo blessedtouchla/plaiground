@@ -321,6 +321,23 @@ function run() {
   assert.strictEqual(storeDraft['[data-release-tiles]'].children[0].href, 'upload.html', 'Overview draft uuid resumes the new-release flow');
   assert.ok(String(storeDraft['[data-release-tiles]'].children[0].href).indexOf('song.html') === -1);
   assert.strictEqual(storeDraft['[data-next-up-link]'].href, 'upload.html', 'next-up continues an unsubmitted draft at upload');
+  const unicorn = fillAccount({
+    artist: 'Victoria',
+    plan: 'basic',
+    email: 'victoriaimtanes@gmail.com',
+    tonegrid_release_ids: ['77777777-7777-4777-8777-777777777777'],
+    profile: {
+      releases: [{
+        tonegrid_release_id: '77777777-7777-4777-8777-777777777777',
+        title: 'Unicorn in West Hollywood',
+        tonegrid_status: 'draft',
+      }],
+    },
+  });
+  assert.strictEqual(unicorn['[data-release-tiles]'].children[0].href, 'upload.html', 'Unicorn in West Hollywood Overview resumes upload');
+  assert.ok(String(unicorn['[data-release-tiles]'].children[0].href).indexOf('song.html') === -1);
+  assert.strictEqual(unicorn['[data-release-tiles]'].children[0].children[1].textContent, 'Unicorn in West Hollywood');
+  assert.strictEqual(unicorn['[data-next-up-link]'].href, 'upload.html');
   const submittedPending = fillAccount({
     artist: 'Victoria',
     plan: 'basic',
