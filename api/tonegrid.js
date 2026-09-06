@@ -1155,6 +1155,17 @@ async function hopSubmitAudio(scope, trackId, hopKey) {
   const key = String(hopKey || '').trim();
   if (!key || !isUuid(trackId)) return { ok: true, skipped: true };
   try {
+    const existing = await tonegridFetch('/tracks/' + trackId, { method: 'GET' });
+    const existingRow = existing && existing.data && existing.data.track && typeof existing.data.track === 'object'
+      ? existing.data.track
+      : (existing && existing.data);
+    if (existing && existing.ok && (uploadRequired.trackHasStoreAudio(existingRow) || uploadRequired.audioAttachAccepted(existingRow))) {
+      return { ok: true, skipped: true, already: true, data: existing.data };
+    }
+  } catch (err) {
+    /* GET miss must not skip the hop — first land still needs the master posted. */
+  }
+  try {
     const hopped = await loadHoppedObject(scope, key, 'audio');
     const hopKind = audioConvert.sniffKind(hopped.body, hopped.filename, hopped.contentType);
     let preparedHop;
@@ -1171,13 +1182,17 @@ async function hopSubmitAudio(scope, trackId, hopKey) {
       preparedHop = await audioConvert.prepareFromBytes(hopped.body, hopped.filename, hopped.contentType);
     }
     if (preparedHop.error) return { ok: false, status: 400, data: { error: preparedHop.error } };
-    return tonegridFetch('/tracks/' + trackId + '/audio', {
+    const forwarded = await tonegridFetch('/tracks/' + trackId + '/audio', {
       method: 'POST',
       rawBody: preparedHop.rawBody,
       contentType: preparedHop.contentType,
       timeoutMs: storeForwardTimeoutMs(preparedHop.converted, Date.now()),
       idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + trackId + '/audio', key),
     });
+    if (forwarded && forwarded.ok && !uploadRequired.audioAttachAccepted(forwarded.data)) {
+      return { ok: false, status: 400, data: { error: uploadRequired.AUDIO_REQUIRED } };
+    }
+    return forwarded;
   } catch (err) {
     return { ok: false, status: (err && err.status) || 400, data: { error: (err && err.message) || objectStore.AUDIO_SEND_COPY } };
   }
@@ -1203,7 +1218,7 @@ async function hopSubmitAssets(scope, releaseId, body, row) {
     if (art && art.ok === false) return Object.assign({ audioOk: audioOk, coverOk: false }, art);
     if (art && art.ok) coverOk = true;
   }
-  if (audioKey && isUuid(trackId)) {
+  if (audioKey && isUuid(trackId) && !audioOk) {
     const audio = await hopSubmitAudio(scope, trackId, audioKey);
     if (!audio || audio.ok === false) {
       return audio && audio.status
@@ -1366,6 +1381,13 @@ function pickTracks(payload) {
       writers: Array.isArray(row.writers) ? row.writers : [],
       composers: Array.isArray(row.composers) ? row.composers : [],
       contributors: Array.isArray(row.contributors) ? row.contributors : [],
+      audio_url: String(row.audio_url || row.s3_url || '').trim(),
+      audio_s3_key: String(row.audio_s3_key || row.s3_key || row.s3 || '').trim(),
+      s3_key: String(row.s3_key || row.audio_s3_key || '').trim(),
+      s3: String(row.s3 || '').trim(),
+      s3_url: String(row.s3_url || '').trim(),
+      audio_status: String(row.audio_status || '').trim(),
+      file_size: Number(row.file_size) || 0,
     };
   }).filter(Boolean);
 }
@@ -2325,6 +2347,10 @@ async function trackAudio(req, res, trackId) {
     const hopPayload = hopResult.data && typeof hopResult.data === 'object'
       ? Object.assign({}, hopResult.data)
       : hopResult.data;
+    if (hopResult.ok && !uploadRequired.audioAttachAccepted(hopPayload)) {
+      sendJson(res, 400, { error: uploadRequired.AUDIO_REQUIRED });
+      return;
+    }
     if (hopResult.ok && hopKey && hopPayload && typeof hopPayload === 'object') hopPayload.audio_object_key = hopKey;
     sendJson(res, hopResult.status, hopPayload);
     return;
@@ -2467,6 +2493,10 @@ async function trackAudio(req, res, trackId) {
     idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(prepared.rawBody || raw)),
   });
   const payload = result.data && typeof result.data === 'object' ? Object.assign({}, result.data) : result.data;
+  if (result.ok && !uploadRequired.audioAttachAccepted(payload)) {
+    sendJson(res, 400, { error: uploadRequired.AUDIO_REQUIRED });
+    return;
+  }
   if (result.ok && hopKey && payload && typeof payload === 'object') payload.audio_object_key = hopKey;
   sendJson(res, result.status, payload);
 }

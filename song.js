@@ -1035,7 +1035,17 @@
       lastEdit.me = me;
       lastEdit.analytics = analytics;
     } else {
-      lastEdit = { me: me, draft: draft, release: release, analytics: analytics };
+      var keepTracks = (lastEdit.release && lastEdit.release.tracks) || [];
+      var keepAudio = Boolean(lastEdit.storeHasAudio);
+      var keepCover = Boolean(lastEdit.storeHasCover);
+      var nextRelease = release;
+      if (nextRelease && (!nextRelease.tracks || !nextRelease.tracks.length) && keepTracks.length
+        && String((lastEdit.release && lastEdit.release.uuid) || '') === String((nextRelease && nextRelease.uuid) || '')) {
+        nextRelease = Object.assign({}, nextRelease, { tracks: keepTracks });
+      }
+      lastEdit = { me: me, draft: draft, release: nextRelease, analytics: analytics };
+      lastEdit.storeHasAudio = keepAudio || storeReleaseHasAudio(nextRelease, draft);
+      lastEdit.storeHasCover = keepCover || storeReleaseHasCover(nextRelease, draft);
     }
     var playerRelease = Object.assign({}, release, { status: step });
     mountLivePlayer(playerRelease);
@@ -1724,7 +1734,18 @@
       showSongError('This release has no store ID yet, so it cannot be edited.');
       return false;
     }
-    lastEdit = { me: me, draft: draft, release: release, analytics: opts.analytics || lastEdit.analytics || {} };
+    if (lastEdit.release && releaseId(lastEdit.release) !== id) {
+      lastEdit.storeHasAudio = false;
+      lastEdit.storeHasCover = false;
+    }
+    lastEdit = {
+      me: me,
+      draft: draft,
+      release: release,
+      analytics: opts.analytics || lastEdit.analytics || {},
+      storeHasAudio: storeReleaseHasAudio(release, draft) || Boolean(lastEdit.storeHasAudio),
+      storeHasCover: storeReleaseHasCover(release, draft) || Boolean(lastEdit.storeHasCover),
+    };
     editClosed = false;
     syncEditTroubleshoot();
     panel.hidden = false;
@@ -1950,6 +1971,8 @@
 
   function trackRowHasAudio(row) {
     if (!row || typeof row !== 'object') return false;
+    var status = String(row.audio_status || '').toLowerCase();
+    if (status === 'processing' || status === 'uploaded' || status === 'ready' || status === 'ok') return true;
     if (Number(row.file_size) > 0) return true;
     return Boolean(String(row.audio_url || row.audio_s3_key || row.s3_key || row.s3_url || '').trim());
   }
@@ -1970,6 +1993,14 @@
       || (draft && (draft.artwork_url || draft.cover_art_url || draft.cover_url || draft.artwork_object_key))
       || ''
     ).trim());
+  }
+
+  function editHasStoreAudio(release, draft) {
+    return storeReleaseHasAudio(release, draft) || Boolean(lastEdit && lastEdit.storeHasAudio);
+  }
+
+  function editHasStoreCover(release, draft) {
+    return storeReleaseHasCover(release, draft) || Boolean(lastEdit && lastEdit.storeHasCover);
   }
 
   function collectedLeaveName(draft, release, me) {
@@ -2028,15 +2059,10 @@
   }
 
   function resultDeniesAudio(result) {
+    if (!result || result.ok === false) return true;
     var data = (result && result.data) || {};
-    var row = data.track || data;
-    if (!row || typeof row !== 'object') return false;
-    if (!Object.prototype.hasOwnProperty.call(row, 'audio_url')
-      && !Object.prototype.hasOwnProperty.call(row, 'audio_s3_key')
-      && !Object.prototype.hasOwnProperty.call(row, 'file_size')) {
-      return false;
-    }
-    return !trackRowHasAudio(row);
+    if (data.error) return true;
+    return !resultHasAudio(result);
   }
 
   function persistableCoverUrl(url) {
@@ -2329,9 +2355,9 @@
       if (saveBtn) saveBtn.removeAttribute('aria-busy');
       return Promise.resolve({ ok: false, created: false });
     }
-    var draft = lastEdit.draft || readDraft();
     var me = lastEdit.me;
     var release = lastEdit.release || {};
+    var draft = lastEdit.draft || readDraft();
     var artistId = String((me && me.tonegrid_artist_id) || draft.artist_id || '').trim();
     writeDraftFor(id, {
       title: title,
@@ -2382,11 +2408,11 @@
           trackId: trackId,
         });
       }
-      if (!audio && !storeReleaseHasAudio(lastEdit.release, lastEdit.draft)) {
-        return failPendingEdit(id, AUDIO_REQUIRED_COPY);
+      if (!audio && !editHasStoreAudio(release, draft) && !isGoldenEraRelease(id)) {
+        return Promise.resolve(failPendingEdit(id, AUDIO_REQUIRED_COPY));
       }
-      if (!art && !storeReleaseHasCover(lastEdit.release, lastEdit.draft) && !isGoldenEraRelease(id)) {
-        return failPendingEdit(id, COVER_REQUIRED_COPY);
+      if (!art && !editHasStoreCover(release, draft) && !isGoldenEraRelease(id)) {
+        return Promise.resolve(failPendingEdit(id, COVER_REQUIRED_COPY));
       }
       if (!audio) return applyPendingFields();
       return resolvePendingTrackId(id, lastEdit.release, lastEdit.draft, trackId).then(function (readyId) {
@@ -2533,7 +2559,7 @@
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
-      if (!audio && !storeReleaseHasAudio(lastEdit.release, lastEdit.draft)) {
+      if (!audio && !editHasStoreAudio(release, draft)) {
         errors.push(AUDIO_REQUIRED_COPY);
         return { ok: false, skipped: false, data: { error: AUDIO_REQUIRED_COPY } };
       }

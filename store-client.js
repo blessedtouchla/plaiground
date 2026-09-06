@@ -209,7 +209,11 @@
   }
 
   function fileForFirstSubmitAttach(file) {
-    return leftoverHopFile(file) || fileFromHeld(file) || fileFromHeld(heldAudioFile) || fileFromHeld(heldPickedFile) || selectedAudio() || file || null;
+    var held = fileFromHeld(heldAudioFile);
+    if (looksLikeWav(held) && Number(held.size) > 0) return held;
+    var live = fileFromHeld(file) || selectedAudio();
+    if (live && Number(live.size) > 0) return live;
+    return fileFromHeld(heldPickedFile) || leftoverHopFile(file) || file || null;
   }
 
   function isFirstSubmitLeave(draft) {
@@ -472,7 +476,7 @@
       });
       if (!looksLikeWav(file)) rememberPickedOriginal(file);
     }
-    if (alreadyConverted(draft) && looksLikeWav(heldAudioFile) && !looksLikeWav(file)) {
+    if (alreadyConverted(draft) && !looksLikeWav(file)) {
       rememberPickedOriginal(file);
       return;
     }
@@ -1150,6 +1154,7 @@
   var sessionReleaseVerified = '';
   var sessionReleaseTracks = [];
   var sessionReleaseTracksListed = false;
+  var sessionAudioAttachedId = '';
   var deadReleaseIds = [];
   var heldAudioFile = null;
   var heldPickedFile = null;
@@ -1382,7 +1387,9 @@
                 if (!heldArtworkFile || !heldArtworkFile.size) heldArtworkFile = next;
                 return;
               }
-              if (!heldAudioFile || !heldAudioFile.size) heldAudioFile = next;
+              if (!heldAudioFile || !heldAudioFile.size || (isMp3File(heldAudioFile) && looksLikeWav(next))) {
+                heldAudioFile = next;
+              }
             }
             function one() {
               pending -= 1;
@@ -1558,6 +1565,41 @@
     return pickedAudioEvidence(draft) || Boolean(draft && String(draft.title || '').trim());
   }
 
+  function markSessionAudioAttached(trackId) {
+    sessionAudioAttachedId = String(trackId || '').trim();
+  }
+
+  function clearSessionAudioAttached() {
+    sessionAudioAttachedId = '';
+  }
+
+  function sessionHasAttachedAudio(trackId) {
+    if (!sessionAudioAttachedId) return false;
+    var want = String(trackId || '').trim();
+    if (!want) return true;
+    return sameUuid(sessionAudioAttachedId, want);
+  }
+
+  function rememberSessionAttachedTrack(releaseId, trackId) {
+    markSessionAudioAttached(trackId);
+    var id = String(releaseId || (readDraft() && readDraft().release_id) || '').trim();
+    var tid = String(trackId || '').trim();
+    if (!id || !tid) return;
+    var row = { uuid: tid, audio_status: 'processing' };
+    var tracks = sessionReleaseTracks && sessionReleaseTracks.length ? sessionReleaseTracks.slice() : [];
+    var found = false;
+    var i;
+    for (i = 0; i < tracks.length; i += 1) {
+      if (sameUuid(trackIdOf(tracks[i]), tid) || sameUuid((tracks[i] && tracks[i].uuid) || '', tid)) {
+        tracks[i] = Object.assign({}, tracks[i], row);
+        found = true;
+        break;
+      }
+    }
+    if (!found) tracks.push(row);
+    rememberSessionRelease(id, true, tracks, true);
+  }
+
   function rememberSessionRelease(id, verified, tracks, listed) {
     var next = String(id || '').trim();
     if (!next) return;
@@ -1723,6 +1765,8 @@
       }
       return Boolean(String(value).trim());
     }
+    var status = String(row.audio_status || '').toLowerCase();
+    if (status === 'processing' || status === 'uploaded' || status === 'ready' || status === 'ok') return true;
     return present(row.audio_url)
       || present(row.s3)
       || present(row.s3_key)
@@ -1845,6 +1889,7 @@
     sessionReleaseVerified = '';
     sessionReleaseTracks = [];
     sessionReleaseTracksListed = false;
+    clearSessionAudioAttached();
     var stored = Array.isArray(current.tracks) ? current.tracks.map(function (track) {
       var next = {};
       Object.keys(track || {}).forEach(function (key) { next[key] = track[key]; });
@@ -1977,6 +2022,7 @@
     sessionReleaseVerified = '';
     sessionReleaseTracks = [];
     sessionReleaseTracksListed = false;
+    clearSessionAudioAttached();
     var rows = qsAll('[data-track-row]');
     var i;
     for (i = 0; i < rows.length; i += 1) {
@@ -2073,6 +2119,20 @@
 
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
+    var existing = String(current.artist_id || '').trim();
+    if (isUuidValue(existing) && !isLocalProfileArtistId(existing, current)) {
+      return Promise.resolve({ ok: true, draft: current, reused: true });
+    }
+    var tonegridId = String(current.tonegrid_artist_id || '').trim();
+    if (isUuidValue(tonegridId) && !isLocalProfileArtistId(tonegridId, current)) {
+      var reusedTone = writeDraft({ artist_id: tonegridId, tonegrid_artist_id: tonegridId });
+      return Promise.resolve({ ok: true, draft: reusedTone, reused: true });
+    }
+    var fromRoster = existingStoreArtistId(current);
+    if (fromRoster) {
+      var rostered = writeDraft({ artist_id: fromRoster, tonegrid_artist_id: fromRoster });
+      return Promise.resolve({ ok: true, draft: rostered, reused: true });
+    }
     var name = String(current.name || '').trim();
     if (!name) {
       return Promise.resolve({
@@ -2246,6 +2306,15 @@
     var knownTracks = (opts && opts.tracks) || [];
     var needsKnownHop = knownLeftoverNeedsAudioHop(next, knownTracks);
     var send = fileForStoreUpload(selectedAudio());
+    var force = Boolean(opts && opts.force);
+    if (
+      isFirstSubmitLeave(next)
+      && !needsKnownHop
+      && !force
+      && sessionHasAttachedAudio(next.track_id)
+    ) {
+      return Promise.resolve({ ok: true, draft: next, reused: true, storeHasAudio: true });
+    }
     if (needsKnownHop) {
       send = leftoverHopFile(selectedAudio()) || send;
       next = clearStaleLeftoverUploadFlags(next, send);
@@ -2253,7 +2322,6 @@
     var liveFile = Boolean(selectedAudio()) || Boolean(send) || albumRowsForSubmit(next).some(function (track) {
       return track && (track.audio || track.file);
     });
-    var force = Boolean(opts && opts.force);
     if ((alreadyUploaded(next) || alreadyConverted(next)) && !force && knownTracks.length && !needsKnownHop) {
       next = persistFoundTracks(next, knownTracks);
       if (isFirstSubmitLeave(next) && !knownTracks.some(storeTrackHasAudio)) {
@@ -2510,8 +2578,11 @@
       }
       if ((resolved.found || storeTracks.length) && storeTracks.length) {
         next = persistFoundTracks(next, storeTracks);
-        var storeHasAudio = storeTracks.some(storeTrackHasAudio);
+        var storeHasAudio = storeTracks.some(storeTrackHasAudio) || sessionHasAttachedAudio(next.track_id);
         var firstSend = fileForFirstSubmitAttach(selectedAudio()) || existingSend;
+        if (!storeHasAudio && isFirstSubmitLeave(next) && sessionHasAttachedAudio(next.track_id)) {
+          return { ok: true, draft: next, storeHasAudio: true };
+        }
         if (!storeHasAudio && isFirstSubmitLeave(next)) {
           if (firstSend && next.track_id) {
             return uploadTrackAudio(next.track_id, firstSend, null, { force: true }).then(function (audio) {
@@ -2681,7 +2752,11 @@
       if (ready.failed) return { failed: true, result: ready.result, draft: ready.draft || draft };
       if (ready.unavailable) return { unavailable: true, result: ready.result, draft: ready.draft || draft };
       var next = stampLeaveCredits(ready.draft || draft);
-      if (isFirstSubmitLeave(next) && ready.storeHasAudio === false) {
+      if (
+        isFirstSubmitLeave(next)
+        && ready.storeHasAudio === false
+        && !sessionHasAttachedAudio(next.track_id)
+      ) {
         return missingAudioResult(next);
       }
       if (isFirstSubmitLeave(next) && !firstSubmitHasCover({ artwork: selectedArtwork(), artwork_object_key: next.artwork_object_key }, next)) {
@@ -3407,7 +3482,14 @@
         });
       }
       function interpret(result, err) {
-        if (result && result.ok) return { uploaded: true, result: result };
+        var gate = rules();
+        if (result && result.ok && gate && typeof gate.audioAttachAccepted === 'function' && !gate.audioAttachAccepted(result.data)) {
+          return { failed: true, result: { data: { error: AUDIO_REQUIRED_COPY } } };
+        }
+        if (result && result.ok) {
+          rememberSessionAttachedTrack(readDraft().release_id, trackId);
+          return { uploaded: true, result: result };
+        }
         if (isUnavailable(result)) return { unavailable: true, result: result };
         if (isNoStoreResponse(result, err)) {
           noteStoreFailure(result || storeUnreachableResult(), err);
@@ -3417,7 +3499,14 @@
         return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: AUDIO_SEND_COPY } }) };
       }
       return postFile(transit).then(function (result) {
-        if (result && result.ok) return { uploaded: true, result: result };
+        var gate = rules();
+        if (result && result.ok && gate && typeof gate.audioAttachAccepted === 'function' && !gate.audioAttachAccepted(result.data)) {
+          return { failed: true, result: { data: { error: AUDIO_REQUIRED_COPY } } };
+        }
+        if (result && result.ok) {
+          rememberSessionAttachedTrack(readDraft().release_id, trackId);
+          return { uploaded: true, result: result };
+        }
         if (isUnavailable(result)) return { unavailable: true, result: result };
         if (isNoStoreResponse(result)) {
           return postFile(transit).then(function (retry) {
@@ -3632,7 +3721,9 @@
   function uploadTrackAudio(trackId, file, label, opts) {
     var force = Boolean(opts && opts.force);
     var send = force
-      ? (leftoverHopFile(file) || fileForStoreUpload(file) || fileFromHeld(file) || file)
+      ? (isFirstSubmitLeave(readDraft())
+        ? (fileForStoreUpload(file) || fileFromHeld(heldAudioFile) || leftoverHopFile(file) || fileFromHeld(file) || file)
+        : (leftoverHopFile(file) || fileForStoreUpload(file) || fileFromHeld(file) || file))
       : fileForStoreUpload(file);
     if (!trackId) return Promise.resolve({ skipped: true });
     if (!force && alreadyUploaded(readDraft())) return Promise.resolve({ skipped: true, reused: true });
@@ -3641,7 +3732,14 @@
       if (key) {
         return post(TRACKS_URL + '/' + encodeURIComponent(trackId) + '/audio', { object_key: key }).then(function (result) {
           if (isUnavailable(result)) return { unavailable: true, result: result };
-          if (result && result.ok) return { uploaded: true, result: result, object_key: key };
+          var gate = rules();
+          if (result && result.ok && gate && typeof gate.audioAttachAccepted === 'function' && !gate.audioAttachAccepted(result.data)) {
+            return { failed: true, result: { data: { error: AUDIO_REQUIRED_COPY } } };
+          }
+          if (result && result.ok) {
+            rememberSessionAttachedTrack(readDraft().release_id, trackId);
+            return { uploaded: true, result: result, object_key: key };
+          }
           return { failed: true, result: sanitizeResultError(result || { ok: false, data: { error: AUDIO_SEND_COPY } }) };
         });
       }
@@ -3767,6 +3865,7 @@
       var ready = resolved.draft || draft;
       if (ready.type === 'album') return afterAlbumRelease(ready);
       var storeTracks = (resolved.tracks && resolved.tracks.length) ? resolved.tracks : [];
+      var storeHasAudio = storeTracks.some(storeTrackHasAudio);
       var listed = resolved.tracksListed === true || Boolean(
         resolved.result
         && resolved.result.data
@@ -3774,7 +3873,7 @@
       );
       if (storeTracks.length) {
         ready = persistFoundTracks(ready, storeTracks);
-        return createTrackOnRelease(ready);
+        return createTrackOnRelease(ready, { storeHasAudio: storeHasAudio });
       }
       if (listed || ready.track_id || ready.track_idempotency_key || resolved.found) {
         ready = writeDraft({
@@ -3784,9 +3883,10 @@
           audio_uploaded: false,
           audio_converted: false,
         });
-        return createTrackOnRelease(ready, { force: true });
+        clearSessionAudioAttached();
+        return createTrackOnRelease(ready, { force: true, storeHasAudio: storeHasAudio });
       }
-      return createTrackOnRelease(ready);
+      return createTrackOnRelease(ready, { storeHasAudio: storeHasAudio });
     });
   }
 
@@ -3794,6 +3894,9 @@
     return createTrack(draft, { force: Boolean(opts && opts.force), title: draft && draft.title }).then(function (track) {
       var next = track.draft || draft;
       if (track.unavailable || track.failed) return track;
+      return restoreHeldAudio().then(function () {
+      next = readDraft();
+      if (track.track_id && !next.track_id) next = writeDraft({ track_id: track.track_id });
       if (!track.track_id && !next.track_id) {
         return {
           failed: true,
@@ -3801,66 +3904,98 @@
           result: (track && track.result) || { data: { error: 'Could not create the track.' } },
         };
       }
-      var file = selectedAudio();
+      var file = fileForFirstSubmitAttach(selectedAudio());
       var art = selectedArtwork();
       if (file && file.name) next = writeDraft({ audio_name: file.name });
       var chain = Promise.resolve({ ok: true, draft: next, track: track });
-      if (file && next.track_id && needsAudioUpload(next, file)) {
-        chain = uploadTrackAudio(next.track_id, file).then(function (audio) {
-          if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next)) {
+      var firstLeave = isFirstSubmitLeave(next);
+      var storeHasAudio = Boolean(opts && opts.storeHasAudio);
+      if (file && next.track_id && (needsAudioUpload(next, file) || (firstLeave && !storeHasAudio))) {
+        chain = uploadTrackAudio(next.track_id, file, null, firstLeave && !storeHasAudio ? { force: true } : null).then(function (audio) {
+          if (audio.skipped && firstLeave) {
+            return missingAudioResult(next);
+          }
+          if (audio.failed && audioRequiredResult(audio) && alreadyHasAudio(next) && !firstLeave) {
             return { ok: true, draft: next, track: track, audio: audio };
           }
           if (audio.failed || audio.unavailable) {
-            return {
-              ok: false,
-              failed: Boolean(audio.failed),
-              unavailable: Boolean(audio.unavailable),
-              result: audio.result,
-              draft: next,
-              track: track,
-              audio: audio,
-            };
+            return firstLeave
+              ? missingAudioResult(next)
+              : {
+                ok: false,
+                failed: Boolean(audio.failed),
+                unavailable: Boolean(audio.unavailable),
+                result: audio.result,
+                draft: next,
+                track: track,
+                audio: audio,
+              };
           }
           next = writeDraft({ audio_uploaded: true, audio_attached: true, audio_converted: true, audio_name: file.name || next.audio_name || '' });
+          rememberSessionAttachedTrack(next.release_id, next.track_id);
           return { ok: true, draft: next, track: track, audio: audio };
         });
-      } else if (!file && next.track_id && String(next.audio_object_key || '').trim()) {
+      } else if (next.track_id && String(next.audio_object_key || '').trim()) {
         chain = uploadTrackAudio(next.track_id, null, null, { force: true }).then(function (audio) {
+          if (audio.skipped && firstLeave) return missingAudioResult(next);
           if (audio.failed || audio.unavailable) {
-            return {
-              ok: false,
-              failed: Boolean(audio.failed),
-              unavailable: Boolean(audio.unavailable),
-              result: audio.result,
-              draft: next,
-              track: track,
-              audio: audio,
-            };
+            return firstLeave
+              ? missingAudioResult(next)
+              : {
+                ok: false,
+                failed: Boolean(audio.failed),
+                unavailable: Boolean(audio.unavailable),
+                result: audio.result,
+                draft: next,
+                track: track,
+                audio: audio,
+              };
           }
           return { ok: true, draft: next, track: track, audio: audio };
         });
+      } else if (firstLeave && !storeHasAudio) {
+        chain = Promise.resolve(missingAudioResult(next));
       }
       return chain.then(function (result) {
         if (!result.ok || result.failed || result.unavailable) return result;
+        function markCoverFail(artwork) {
+          result.artwork = artwork;
+          result.ok = false;
+          result.failed = true;
+          result.unavailable = Boolean(artwork && artwork.unavailable);
+          result.result = (artwork && artwork.result) || { data: { error: COVER_REQUIRED_COPY } };
+          return result;
+        }
         if (art && next.release_id) {
           showUploadLoader('Uploading artwork');
           setStatus('tg-status', 'Uploading artwork…');
           return uploadArtwork(next.release_id, art, function (percent) {
             showUploadLoader('Uploading artwork', percent);
           }).then(function (artwork) {
+            if (artwork.failed || artwork.unavailable) return markCoverFail(artwork);
             result.artwork = artwork;
-            result.ok = !artwork.failed && !artwork.unavailable;
+            result.ok = true;
             return result;
           });
         }
         if (next.artwork_object_key && next.release_id) {
           return uploadArtwork(next.release_id, null).then(function (artwork) {
+            if (artwork.failed || artwork.unavailable) return markCoverFail(artwork);
             result.artwork = artwork;
-            result.ok = !artwork.failed && !artwork.unavailable;
+            result.ok = true;
             return result;
           });
         }
+        if (firstLeave && !firstSubmitHasCover({ artwork: art, artwork_object_key: next.artwork_object_key }, next)) {
+          return {
+            ok: false,
+            failed: true,
+            result: { data: { error: COVER_REQUIRED_COPY } },
+            draft: next,
+          };
+        }
         return result;
+      });
       });
     });
   }
@@ -5847,17 +5982,23 @@
           markIncomplete(trigger, true);
           return;
         }
+        trigger.setAttribute('aria-busy', 'true');
+        restoreHeldAudio().then(function () {
+        draft = readDraft();
         if (isFirstSubmitLeave(draft) && !firstSubmitHasAudio({ audio: selectedAudio(), audio_object_key: draft.audio_object_key }, draft)) {
+          trigger.removeAttribute('aria-busy');
           setStatus('tg-status', AUDIO_REQUIRED_COPY);
           markIncomplete(trigger, true);
           return;
         }
         if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({ artwork: selectedArtwork(), artwork_object_key: draft.artwork_object_key }, draft)) {
+          trigger.removeAttribute('aria-busy');
           setStatus('tg-status', COVER_REQUIRED_COPY);
           markIncomplete(trigger, true);
           return;
         }
         if (isFirstSubmitLeave(draft) && !String(draft.name || draft.artist || draft.artist_name || collectedSoloName(draft) || '').trim()) {
+          trigger.removeAttribute('aria-busy');
           setStatus('tg-status', 'Primary artist is required.');
           markIncomplete(trigger, true);
           return;
@@ -5873,15 +6014,16 @@
         draft = writeDraft(submitPatch);
 
         if (!isSoloOwned(draft) && !documentIdOf(draft)) {
+          trigger.removeAttribute('aria-busy');
           setStatus('tg-status', 'Create the split sheet before submitting.');
           return;
         }
         if (!draft.release_id && !draft.title) {
+          trigger.removeAttribute('aria-busy');
           setStatus('tg-status', 'Song title is required.');
           return;
         }
 
-        trigger.setAttribute('aria-busy', 'true');
         showSubmitRetry(false);
         releaseRecreateCount = 0;
         if (knownAdoptIdsForDraft(draft)[0] && !draft.release_id) {
@@ -5965,6 +6107,9 @@
             failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
           });
           });
+        }).catch(function (err) {
+          failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
+        });
         }).catch(function (err) {
           failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
         });

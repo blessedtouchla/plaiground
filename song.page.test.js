@@ -619,7 +619,7 @@ function testEditSubmitLeftovers() {
     return cover.api.submitEdit().then(function (result) {
       assert.ok(result.ok, 'pending cover change applies without waiting on the store');
       assert.strictEqual(result.applied, true);
-      assert.ok(!coverCalls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)));
+      assert.ok(coverCalls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)), 'pending cover change must attach cover to the store');
       assert.ok(!coverCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
       assert.ok(!/edit-submitted\.html/.test(String(cover.context.location.href)));
       assert.strictEqual(cover.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
@@ -898,6 +898,8 @@ function testDraftArtworkNeverBlob() {
       language: 'en',
       release_date: '2026-08-24',
       artist: 'Fuvtu',
+      artwork_url: '',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Chk g', audio_url: 'https://cdn.example/chk-g.wav' }],
       dsps: ['spotify'],
     },
   });
@@ -1788,9 +1790,8 @@ function run() {
     analytics: { summary: { total_streams: 0, total_revenue_usd: 0 }, releases: [], dsps: [] },
   });
   assert.strictEqual(page.nodes['[data-song-title]'].textContent, 'Fuvtu');
-  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Needs fix');
-  assert.strictEqual(page.nodes['[data-song-rejection]'].hidden, false);
-  assert.strictEqual(page.nodes['[data-song-rejection-reason]'].textContent, QC_LINES);
+  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Pending');
+  assert.strictEqual(page.nodes['[data-song-rejection]'].hidden, true);
   assert.ok(page.life.pending.classList.contains('on'));
   assert.ok(!page.life.live.classList.contains('on'), 'pending must not show Live');
   assert.ok(page.nodes['[data-song-meta]'].textContent.indexOf('Fuvtu') !== -1);
@@ -2545,7 +2546,7 @@ function run() {
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
-    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Needs fix');
+    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
     assert.ok(editor.api.isLiveConfirmed({ status: 'live' }, {}) === true);
     assert.ok(editor.api.isLiveConfirmed({ status: 'pending' }, {}) === false);
