@@ -298,8 +298,54 @@ function run() {
   const catalogEdit = findByText(catalogNodes['[data-release-rows]'].children[0].children[1], 'Edit release');
   assert.ok(catalogEdit, 'catalog cards must include Edit release');
   assert.strictEqual(catalogEdit.tagName, 'A');
-  assert.ok(String(catalogEdit.href).indexOf('song.html?id=11111111-1111-4111-8111-111111111111') !== -1);
-  assert.ok(String(catalogEdit.href).indexOf('edit=1') !== -1);
+  assert.strictEqual(catalogEdit.href, 'upload.html', 'never-submitted ToneGrid draft Edit resumes upload');
+  assert.ok(String(catalogEdit.href).indexOf('song.html') === -1, 'never-submitted draft must not open song Edit');
+  const draftTitle = findByText(catalogNodes['[data-release-rows]'].children[0], 'Night Drive');
+  assert.strictEqual(draftTitle.href, 'upload.html', 'draft title resumes the new-release flow');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].href, 'upload.html', 'draft overview tile resumes upload');
+  assert.strictEqual(
+    catalog.PlaigroundCatalog.resumeHref({ uuid: '11111111-1111-4111-8111-111111111111', status: 'draft' }),
+    'upload.html'
+  );
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: '22222222-2222-4222-8222-222222222222', title: 'My heart', type: 'single', status: 'pending' }],
+    total: 1,
+    analytics: {},
+  });
+  const pendingEdit = findByText(catalogNodes['[data-release-rows]'].children[0].children[1], 'Edit release');
+  assert.ok(String(pendingEdit.href).indexOf('song.html?id=22222222-2222-4222-8222-222222222222') !== -1);
+  assert.ok(String(pendingEdit.href).indexOf('edit=1') !== -1, 'submitted pending still uses song Edit');
+  catalog.localStorage.data['plaiground.store.draft'] = JSON.stringify({
+    release_id: '33333333-3333-4333-8333-333333333333',
+    submitted: false,
+    title: 'ToneGrid draft',
+  });
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: '33333333-3333-4333-8333-333333333333', title: 'ToneGrid draft', type: 'single', status: 'pending' }],
+    total: 1,
+    analytics: {},
+  });
+  const unsubmittedPending = findByText(catalogNodes['[data-release-rows]'].children[0].children[1], 'Edit release');
+  assert.strictEqual(unsubmittedPending.href, 'upload.html', 'matching store draft submitted:false resumes upload, not song Edit');
+  catalog.localStorage.data['plaiground.store.draft'] = JSON.stringify({
+    release_id: '44444444-4444-4444-8444-444444444444',
+    submitted: false,
+    title: 'Ready to attest',
+    name: 'Ada Night',
+    genre: 'Pop',
+    audio_name: 'ready.wav',
+    artwork_name: 'ready.jpg',
+  });
+  assert.strictEqual(
+    catalog.PlaigroundCatalog.resumeHref({
+      uuid: '44444444-4444-4444-8444-444444444444',
+      status: 'draft',
+      title: 'Ready to attest',
+    }),
+    'attest.html',
+    'complete upload step resumes at attest'
+  );
+  catalog.localStorage.data['plaiground.store.draft'] = '{}';
   assert.ok(!findByText(catalogNodes['[data-release-rows]'].children[0].children[0], 'Edit release'), 'Edit release is not jammed after the title');
   assert.ok(read('releases.html').includes('href="releases.html">Releases</a>'), 'sidebar Releases stays on the catalog list');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('releases.html')), 'sidebar Releases must not point at a leftover song');
