@@ -1033,13 +1033,27 @@ async function stampTrackSongwriter(trackId, songwriter, extras) {
   const fields = storeCredits.mergeTrackContributors(songwriter, extras)
     || storeCredits.trackSongwriterFields(songwriter);
   if (!fields) return { ok: true, skipped: true };
+  const roleRows = Array.isArray(fields.contributors) ? fields.contributors : [];
+  const performerProducer = roleRows.filter((row) => {
+    const role = String((row && row.role) || '').toLowerCase();
+    return role === 'performer' || role === 'producer';
+  });
   const bodies = [
     { contributors: fields.contributors },
+    fields,
+    fields.songwriters || fields.composers
+      ? Object.assign(
+        { songwriters: fields.songwriters, composers: fields.composers },
+        performerProducer.length ? { contributors: performerProducer } : {}
+      )
+      : null,
+    performerProducer.length ? { contributors: performerProducer } : null,
     fields.songwriters || fields.composers
       ? { songwriters: fields.songwriters, composers: fields.composers }
       : null,
-    fields,
   ].filter(Boolean);
+  let lastOk = false;
+  let sentPerformerProducer = false;
   for (let i = 0; i < bodies.length; i += 1) {
     const body = bodies[i];
     const patched = await tonegridFetch('/tracks/' + trackId, {
@@ -1052,10 +1066,30 @@ async function stampTrackSongwriter(trackId, songwriter, extras) {
         JSON.stringify(body)
       ),
     });
-    if (patched.ok) return { ok: true };
+    if (patched.ok) {
+      lastOk = true;
+      if (bodyHasPerformerProducer(body)) sentPerformerProducer = true;
+      if (bodyHasPerformerProducer(body) || !fieldsHavePerformerProducer(fields)) return { ok: true };
+      continue;
+    }
     if (!isSoftWriterMiss(patched)) return patched;
   }
-  return { ok: true, skipped: true };
+  if (fieldsHavePerformerProducer(fields) && !sentPerformerProducer) {
+    return { ok: false, status: 400, data: { error: 'Credits could not be attached.' } };
+  }
+  return lastOk ? { ok: true } : { ok: true, skipped: true };
+}
+
+function bodyHasPerformerProducer(body) {
+  const rows = (body && Array.isArray(body.contributors)) ? body.contributors : [];
+  return rows.some((row) => {
+    const role = String((row && row.role) || '').toLowerCase();
+    return role === 'performer' || role === 'producer';
+  });
+}
+
+function fieldsHavePerformerProducer(fields) {
+  return bodyHasPerformerProducer(fields);
 }
 
 async function attachTrackWriters(trackId, songwriter, extras) {
@@ -1162,8 +1196,25 @@ async function hopSubmitAssets(scope, releaseId, body, row) {
       }
     }
   }
-  if (artKey) await hopSubmitArtwork(scope, releaseId, artKey);
-  if (audioKey && isUuid(trackId)) await hopSubmitAudio(scope, trackId, audioKey);
+  let audioOk = uploadRequired.releaseHasStoreAudio(row);
+  let coverOk = uploadRequired.releaseHasStoreCover(row);
+  if (artKey) {
+    const art = await hopSubmitArtwork(scope, releaseId, artKey);
+    if (art && art.ok === false) return Object.assign({ audioOk: audioOk, coverOk: false }, art);
+    if (art && art.ok) coverOk = true;
+  }
+  if (audioKey && isUuid(trackId)) {
+    const audio = await hopSubmitAudio(scope, trackId, audioKey);
+    if (!audio || audio.ok === false) {
+      return audio && audio.status
+        ? Object.assign({ audioOk: false, coverOk: coverOk }, audio)
+        : { ok: false, audioOk: false, coverOk: coverOk, status: 400, data: { error: uploadRequired.AUDIO_REQUIRED } };
+    }
+    audioOk = true;
+  } else if (audioKey && !isUuid(trackId)) {
+    return { ok: false, audioOk: false, coverOk: coverOk, status: 400, data: { error: uploadRequired.AUDIO_REQUIRED } };
+  }
+  return { ok: true, audioOk: audioOk, coverOk: coverOk };
 }
 
 async function applyTrackAiDisclosure(trackId, fields) {
@@ -1968,7 +2019,7 @@ async function createTrack(req, res) {
   if (continueTrackId && isUuid(continueTrackId)) {
     const preferredTrack = PREFERRED_LEFTOVER_TRACK_IDS.some((id) => sameCatalogId(id, continueTrackId));
     if (preferredTrack || idAllowed(scope.trackAllow, continueTrackId)) {
-      const attached = await attachTrackWriters(continueTrackId, songwriter);
+      const attached = await attachTrackWriters(continueTrackId, songwriter, body);
       if (!attached.ok) {
         sendJson(res, attached.status, attached.data);
         return;
@@ -2012,7 +2063,7 @@ async function createTrack(req, res) {
   if (result.ok) {
     const trackId = createdTrackId(result.data);
     if (trackId) {
-      const attached = await attachTrackWriters(trackId, songwriter);
+      const attached = await attachTrackWriters(trackId, songwriter, body);
       if (!attached.ok) {
         sendJson(res, attached.status, attached.data);
         return;
@@ -3276,7 +3327,20 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   const row = loaded.row || {};
-  await hopSubmitAssets(scope, releaseId, body, row);
+  const hopped = await hopSubmitAssets(scope, releaseId, body, row);
+  if (hopped && hopped.ok === false) {
+    sendJson(res, hopped.status || 400, hopped.data || { error: uploadRequired.AUDIO_REQUIRED });
+    return;
+  }
+  const leftoverSend = isKnownAdoptRelease(releaseId);
+  if (!leftoverSend && !(hopped && hopped.audioOk) && !uploadRequired.releaseHasStoreAudio(row)) {
+    sendJson(res, 400, { error: uploadRequired.AUDIO_REQUIRED });
+    return;
+  }
+  if (!leftoverSend && !(hopped && hopped.coverOk) && !uploadRequired.releaseHasStoreCover(row)) {
+    sendJson(res, 400, { error: uploadRequired.COVER_REQUIRED });
+    return;
+  }
   const creditYearEarly = storeCredits.copyrightYearFromDate(body && (body.copyright_year || body.copyrightYear))
     || storeCredits.copyrightYearFromDate(row.release_date)
     || storeCredits.copyrightYearFromDate(body && (body.release_date || body.releaseDate))
@@ -3294,6 +3358,28 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   await persistReleaseMeta(scope.row, releaseId, null, undefined, '', '', storeCredits.storedCreditFields(hopCreditsEarly));
+  const earlyTrackIds = [];
+  (row.tracks || []).forEach((tr) => {
+    const tid = tr && (tr.uuid || tr.id);
+    if (tid) earlyTrackIds.push(String(tid));
+  });
+  if (body && body.track_id) earlyTrackIds.push(String(body.track_id));
+  if (body && Array.isArray(body.track_ids)) {
+    body.track_ids.forEach((tid) => earlyTrackIds.push(String(tid)));
+  }
+  if (!leftoverSend && songwriterEarly && !songwriterEarly.error) {
+    const seenEarly = {};
+    for (let i = 0; i < earlyTrackIds.length; i += 1) {
+      const tid = String(earlyTrackIds[i] || '').trim();
+      if (!isUuid(tid) || seenEarly[tid]) continue;
+      seenEarly[tid] = true;
+      const writersHop = await attachTrackWriters(tid, songwriterEarly, body);
+      if (!writersHop.ok) {
+        sendJson(res, writersHop.status, writersHop.data);
+        return;
+      }
+    }
+  }
   const status = String(row.status || '').toLowerCase();
   if (status === 'pending' || status === 'approved' || status === 'live') {
     sendJson(res, 200, {
