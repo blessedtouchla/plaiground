@@ -616,11 +616,81 @@
   function tracksFromPayload(payload) {
     if (!payload) return [];
     if (Array.isArray(payload)) return payload;
+    if (typeof payload !== 'object') return [];
     if (Array.isArray(payload.tracks)) return payload.tracks;
     if (payload.tracks && Array.isArray(payload.tracks.data)) return payload.tracks.data;
+    if (payload.release && payload.release !== payload) {
+      var fromRelease = tracksFromPayload(payload.release);
+      if (fromRelease.length) return fromRelease;
+    }
+    if (payload.data && payload.data !== payload && !Array.isArray(payload.data)) {
+      var fromData = tracksFromPayload(payload.data);
+      if (fromData.length) return fromData;
+    }
     if (payload.data && Array.isArray(payload.data.tracks)) return payload.data.tracks;
     if (payload.data && Array.isArray(payload.data)) return payload.data;
     return [];
+  }
+
+  function fetchEditStoreTracks(releaseId) {
+    var id = String(releaseId || '').trim();
+    if (!id || isRemovedCatalogRow(id)) return Promise.resolve({ ok: false, tracks: [], data: {} });
+    var tracksUrl = RELEASES_URL + '/' + encodeURIComponent(id) + '/tracks';
+    var releaseUrl = RELEASES_URL + '/' + encodeURIComponent(id);
+    function fromRelease() {
+      return getJson(releaseUrl).then(function (one) {
+        var payload = (one && one.data) || {};
+        return { ok: Boolean(one && one.ok), tracks: tracksFromPayload(payload), data: payload };
+      }).catch(function () {
+        return { ok: false, tracks: [], data: {} };
+      });
+    }
+    return getJson(tracksUrl).then(function (listed) {
+      var listedTracks = tracksFromPayload((listed && listed.data) || {});
+      if (listed && listed.ok && listedTracks.length) {
+        return { ok: true, tracks: listedTracks, data: listed.data };
+      }
+      return fromRelease();
+    }).catch(fromRelease);
+  }
+
+  function applyEditStoreAssets(payload, tracks) {
+    var list = Array.isArray(tracks) ? tracks.slice() : [];
+    if (!list.length) list = tracksFromPayload(payload);
+    var row = payload && typeof payload === 'object'
+      ? (payload.release && typeof payload.release === 'object' ? Object.assign({}, payload, payload.release) : payload)
+      : {};
+    if (lastEdit.release) {
+      var next = Object.assign({}, lastEdit.release);
+      if (list.length) next.tracks = list;
+      if (row.artwork_url) next.artwork_url = next.artwork_url || row.artwork_url;
+      if (row.cover_art_url) next.cover_art_url = next.cover_art_url || row.cover_art_url;
+      if (row.cover_url) next.cover_url = next.cover_url || row.cover_url;
+      if (row.artwork_object_key) next.artwork_object_key = next.artwork_object_key || row.artwork_object_key;
+      lastEdit.release = next;
+    }
+    var hasAudio = storeReleaseHasAudio(lastEdit.release, lastEdit.draft);
+    if (!hasAudio) {
+      var i;
+      for (i = 0; i < list.length; i += 1) {
+        if (trackRowHasAudio(list[i])) {
+          hasAudio = true;
+          break;
+        }
+      }
+    }
+    lastEdit.storeHasAudio = Boolean(lastEdit.storeHasAudio) || hasAudio;
+    lastEdit.storeHasCover = Boolean(lastEdit.storeHasCover) || storeReleaseHasCover(lastEdit.release || row, lastEdit.draft);
+    return Boolean(lastEdit.storeHasAudio);
+  }
+
+  function refreshEditStoreAssets(releaseId) {
+    return fetchEditStoreTracks(releaseId).then(function (got) {
+      applyEditStoreAssets(got && got.data, got && got.tracks);
+      return Boolean(lastEdit.storeHasAudio);
+    }).catch(function () {
+      return Boolean(lastEdit.storeHasAudio);
+    });
   }
 
   function resolvePendingTrackId(releaseId, release, draft, selectedId) {
@@ -644,8 +714,8 @@
       var have = existingTrackIds(release, draft)[0] || '';
       if (isUuidTrack(have)) return Promise.resolve(have);
     }
-    return getJson(RELEASES_URL + '/' + encodeURIComponent(releaseId)).then(function (one) {
-      var tracks = tracksFromPayload((one && one.data) || {});
+    return fetchEditStoreTracks(releaseId).then(function (got) {
+      var tracks = (got && got.tracks) || [];
       if (isGoldenEraRelease(releaseId)) return pickPinnedTrackId(tracks, GOLDEN_ERA_TRACK);
       return String((tracks[0] && (tracks[0].uuid || tracks[0].id || tracks[0].track_id)) || '').trim();
     });
@@ -1139,8 +1209,16 @@
         var release = pickRelease((list.ok && list.data.releases) || [], me, draft);
         function mergeStoreRow(current, one) {
           if (!one || !one.ok || !one.data) return current;
-          if (one.data.uuid || one.data.title || one.data.artwork_url) {
-            return Object.assign({}, current || {}, one.data);
+          var payload = one.data;
+          var row = payload;
+          if (payload.release && typeof payload.release === 'object') {
+            row = Object.assign({}, payload, payload.release);
+          }
+          var extra = tracksFromPayload(payload);
+          if (row.uuid || row.title || row.artwork_url || extra.length) {
+            var next = Object.assign({}, current || {}, row);
+            if (extra.length) next.tracks = extra;
+            return next;
           }
           return current;
         }
@@ -1178,22 +1256,13 @@
             return finish(mergeStoreRow(release, one), error);
           });
         }
-        if (release && release.uuid && releaseMissingTracks(release) && (
-          storeStatusOf(release, draft) === 'pending'
-          || (draft && draft.submitted)
-          || isGoldenEraRelease(release.uuid)
-        )) {
+        if (release && release.uuid && !isRemovedCatalogRow(release.uuid) && (releaseMissingTracks(release) || !storeReleaseHasAudio(release, draft))) {
           return getJson(RELEASES_URL + '/' + encodeURIComponent(release.uuid)).then(function (one) {
             if (isHangLoad(one) && !error) {
               error = catalogTimeoutMessage();
               retryable = true;
             }
-            var next = mergeStoreRow(release, one);
-            if (isGoldenEraRelease(release.uuid) && releaseMissingTracks(next)) {
-              var extra = tracksFromPayload(one && one.data);
-              if (extra.length) next.tracks = extra;
-            }
-            return finish(next, error);
+            return finish(mergeStoreRow(release, one), error);
           });
         }
         if (!release && queryId()) {
@@ -1849,15 +1918,15 @@
     var trackId = firstTrackId(release, draft);
     var draftOnStore = isStoreDraft(release, draft);
     var pendingOnStore = storeStatusOf(release, draft) === 'pending';
+    var knownStoreAudio = editHasStoreAudio(release, draft);
+    var knownMissingAudio = Array.isArray(release.tracks) && release.tracks.length && !knownStoreAudio;
     if (audioEl && (trackId || draftOnStore || pendingOnStore)) {
       unlockControl(
         audioEl,
         'audio',
-        !storeReleaseHasAudio(release, draft)
-          ? AUDIO_REQUIRED_COPY
-          : (draftOnStore
-            ? 'Drafts can replace the audio. Saving sends the new file to the store on this same release.'
-            : 'Replace the master on this same track if the store allows it. This is not a new release.')
+        knownStoreAudio
+          ? editAudioReplaceHint(release, draft)
+          : (knownMissingAudio ? AUDIO_REQUIRED_COPY : '')
       );
       if (trackId) audioEl.setAttribute('data-track-id', trackId);
       else if (audioEl.removeAttribute) audioEl.removeAttribute('data-track-id');
@@ -1878,14 +1947,18 @@
     ['title', 'genre', 'language', 'release_date', 'stores', 'artwork'].forEach(function (name) {
       setFieldWhy(name, '');
     });
-    if (!storeReleaseHasAudio(release, draft)) {
+    if (knownMissingAudio) {
       setEditError(AUDIO_REQUIRED_COPY);
       setFieldWhy('audio', AUDIO_REQUIRED_COPY);
     }
-    if (!storeReleaseHasCover(release, draft)) {
+    if (!editHasStoreCover(release, draft)) {
       setFieldWhy('artwork', COVER_REQUIRED_COPY);
-      if (storeReleaseHasAudio(release, draft)) setEditError(COVER_REQUIRED_COPY);
+      if (knownStoreAudio) setEditError(COVER_REQUIRED_COPY);
     }
+    refreshEditStoreAssets(id).then(function () {
+      if (editClosed || releaseId(lastEdit.release) !== id) return;
+      paintEditMediaHints(lastEdit.release, lastEdit.draft);
+    });
     try {
       if (global.history && global.history.replaceState) {
         global.history.replaceState({}, '', editHref(id));
@@ -1974,17 +2047,64 @@
     var status = String(row.audio_status || '').toLowerCase();
     if (status === 'processing' || status === 'uploaded' || status === 'ready' || status === 'ok') return true;
     if (Number(row.file_size) > 0) return true;
-    return Boolean(String(row.audio_url || row.audio_s3_key || row.s3_key || row.s3_url || '').trim());
+    return Boolean(String(
+      row.audio_url
+      || row.audio_s3_key
+      || row.s3_key
+      || row.s3_url
+      || row.audio_object_key
+      || row.object_key
+      || row.s3
+      || row.audio
+      || ''
+    ).trim());
   }
 
   function storeReleaseHasAudio(release, draft) {
-    var tracks = (release && release.tracks) || [];
+    var tracks = ((release && release.tracks) || []).slice();
+    var extra = tracksFromPayload(release);
     var i;
+    for (i = 0; i < extra.length; i += 1) tracks.push(extra[i]);
     for (i = 0; i < tracks.length; i += 1) {
       if (trackRowHasAudio(tracks[i])) return true;
     }
     if (draft && trackRowHasAudio(draft)) return true;
     return false;
+  }
+
+  function editAudioReplaceHint(release, draft) {
+    return isStoreDraft(release, draft)
+      ? 'Drafts can replace the audio. Saving sends the new file to the store on this same release.'
+      : 'Replace the master on this same track if the store allows it. This is not a new release.';
+  }
+
+  function paintEditMediaHints(release, draft) {
+    release = release || lastEdit.release || {};
+    draft = draft || lastEdit.draft || {};
+    var audioEl = $('#edit-audio');
+    var trackId = firstTrackId(release, draft);
+    var draftOnStore = isStoreDraft(release, draft);
+    var pendingOnStore = storeStatusOf(release, draft) === 'pending';
+    var hasAudio = editHasStoreAudio(release, draft);
+    var hasCover = editHasStoreCover(release, draft);
+    if (audioEl && (trackId || draftOnStore || pendingOnStore)) {
+      unlockControl(audioEl, 'audio', hasAudio ? editAudioReplaceHint(release, draft) : AUDIO_REQUIRED_COPY);
+      if (trackId) audioEl.setAttribute('data-track-id', trackId);
+      else if (audioEl.removeAttribute) audioEl.removeAttribute('data-track-id');
+    } else if (audioEl) {
+      lockControl(audioEl, 'audio', 'This release has no track ID yet, so audio cannot be replaced.');
+    }
+    if (!hasAudio) {
+      setEditError(AUDIO_REQUIRED_COPY);
+      setFieldWhy('audio', AUDIO_REQUIRED_COPY);
+    } else {
+      var err = $('[data-edit-error]');
+      if (err && String(err.textContent || '') === AUDIO_REQUIRED_COPY) setEditError('');
+    }
+    if (!hasCover) {
+      setFieldWhy('artwork', COVER_REQUIRED_COPY);
+      if (hasAudio) setEditError(COVER_REQUIRED_COPY);
+    }
   }
 
   function storeReleaseHasCover(release, draft) {
@@ -2408,14 +2528,17 @@
           trackId: trackId,
         });
       }
-      if (!audio && !editHasStoreAudio(release, draft) && !isGoldenEraRelease(id)) {
-        return Promise.resolve(failPendingEdit(id, AUDIO_REQUIRED_COPY));
-      }
-      if (!art && !editHasStoreCover(release, draft) && !isGoldenEraRelease(id)) {
-        return Promise.resolve(failPendingEdit(id, COVER_REQUIRED_COPY));
-      }
-      if (!audio) return applyPendingFields();
-      return resolvePendingTrackId(id, lastEdit.release, lastEdit.draft, trackId).then(function (readyId) {
+      function afterStoreAssets() {
+        var current = lastEdit.release || release;
+        var currentDraft = lastEdit.draft || draft;
+        if (!audio && !editHasStoreAudio(current, currentDraft) && !isGoldenEraRelease(id)) {
+          return failPendingEdit(id, AUDIO_REQUIRED_COPY);
+        }
+        if (!art && !editHasStoreCover(current, currentDraft) && !isGoldenEraRelease(id)) {
+          return failPendingEdit(id, COVER_REQUIRED_COPY);
+        }
+        if (!audio) return applyPendingFields();
+        return resolvePendingTrackId(id, lastEdit.release, lastEdit.draft, trackId).then(function (readyId) {
         trackId = readyId;
         if (!trackId) {
           return failPendingEdit(id, 'This release has no track ID yet, so audio cannot be replaced.');
@@ -2442,26 +2565,28 @@
                 return failPendingEdit(id, applyToneGridError(result, 'audio', $('#edit-audio')) || 'The audio did not reach the store. Try again.');
               }
               if (resultDeniesAudio(result)) {
-                return getJson(RELEASES_URL + '/' + encodeURIComponent(id)).then(function (one) {
-                  var tracks = tracksFromPayload((one && one.data) || {});
-                  var row = tracks[0] || {};
-                  if (!trackRowHasAudio(row)) {
+                return refreshEditStoreAssets(id).then(function (hasAudio) {
+                  if (!hasAudio && !editHasStoreAudio(lastEdit.release, lastEdit.draft)) {
                     return failPendingEdit(id, AUDIO_REQUIRED_COPY);
                   }
+                  lastEdit.storeHasAudio = true;
                   writeDraftFor(id, { audio_name: audio.name || '', audio_uploaded: true });
                   return applyPendingFields();
                 });
               }
+              lastEdit.storeHasAudio = true;
               writeDraftFor(id, { audio_name: audio.name || '', audio_uploaded: true });
               return applyPendingFields();
             });
           });
         });
-      }).catch(function (err) {
-        var failed = failPendingEdit(id, (err && err.message) || 'The audio did not reach the store. Try again.');
-        failed.timedOut = Boolean(err && err.timedOut);
-        return failed;
-      });
+        }).catch(function (err) {
+          var failed = failPendingEdit(id, (err && err.message) || 'The audio did not reach the store. Try again.');
+          failed.timedOut = Boolean(err && err.timedOut);
+          return failed;
+        });
+      }
+      return refreshEditStoreAssets(id).then(afterStoreAssets);
     }
 
     function runHop(label, task) {
@@ -2559,45 +2684,55 @@
       });
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'artwork', $('#edit-art')));
-      if (!audio && !editHasStoreAudio(release, draft)) {
-        errors.push(AUDIO_REQUIRED_COPY);
-        return { ok: false, skipped: false, data: { error: AUDIO_REQUIRED_COPY } };
-      }
-      if (!audio) return { ok: true, skipped: true };
-      return ensureEditTrackId(trackId).then(function (readyId) {
-        trackId = readyId;
-        if (!trackId) {
-          var missing = 'This release has no track ID yet, so audio cannot be replaced.';
-          errors.push(missing);
-          return { ok: false, skipped: false, data: { error: missing } };
+      return refreshEditStoreAssets(id).then(function () {
+        if (!audio && !editHasStoreAudio(lastEdit.release || release, lastEdit.draft || draft)) {
+          errors.push(AUDIO_REQUIRED_COPY);
+          return { ok: false, skipped: false, data: { error: AUDIO_REQUIRED_COPY } };
         }
-        return audioAllowed(audio).then(function (ok) {
-          if (!ok) {
-            var message = (global.PlaigroundAudioAccept && global.PlaigroundAudioAccept.ERROR) || 'Audio must be WAV, FLAC, or MP3.';
-            errors.push(message);
-            return { ok: false, skipped: false, data: { error: message } };
+        if (!audio) return { ok: true, skipped: true };
+        return ensureEditTrackId(trackId).then(function (readyId) {
+          trackId = readyId;
+          if (!trackId) {
+            var missing = 'This release has no track ID yet, so audio cannot be replaced.';
+            errors.push(missing);
+            return { ok: false, skipped: false, data: { error: missing } };
           }
-          return hopPut('audio', audio).then(function (key) {
-            if (!String(key || '').trim()) {
-              return { ok: false, data: { error: AUDIO_REQUIRED_COPY } };
+          return audioAllowed(audio).then(function (ok) {
+            if (!ok) {
+              var message = (global.PlaigroundAudioAccept && global.PlaigroundAudioAccept.ERROR) || 'Audio must be WAV, FLAC, or MP3.';
+              errors.push(message);
+              return { ok: false, skipped: false, data: { error: message } };
             }
-            writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
-            return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key })).then(function (audioResult) {
-              if (audioResult && resultDeniesAudio(audioResult)) {
-                audioResult.ok = false;
-                if (!audioResult.data || !audioResult.data.error) {
-                  audioResult.data = { error: AUDIO_REQUIRED_COPY };
+            return hopPut('audio', audio).then(function (key) {
+              if (!String(key || '').trim()) {
+                return { ok: false, data: { error: AUDIO_REQUIRED_COPY } };
+              }
+              writeDraftFor(id, { audio_object_key: key, audio_name: audio.name || '' });
+              return runHop('audio', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId) + '/audio', 'POST', { object_key: key })).then(function (audioResult) {
+                if (audioResult && resultDeniesAudio(audioResult)) {
+                  return refreshEditStoreAssets(id).then(function (hasAudio) {
+                    if (hasAudio || editHasStoreAudio(lastEdit.release, lastEdit.draft)) {
+                      lastEdit.storeHasAudio = true;
+                      audioResult.ok = true;
+                      return audioResult;
+                    }
+                    audioResult.ok = false;
+                    if (!audioResult.data || !audioResult.data.error) {
+                      audioResult.data = { error: AUDIO_REQUIRED_COPY };
+                    }
+                    return audioResult;
+                  });
+                }
+                if (audioResult && audioResult.ok) lastEdit.storeHasAudio = true;
+                if (audioResult && audioResult.ok && !resultHasAudio(audioResult)) {
+                  audioResult.ok = true;
                 }
                 return audioResult;
-              }
-              if (audioResult && audioResult.ok && !resultHasAudio(audioResult)) {
-                audioResult.ok = true;
-              }
-              return audioResult;
+              });
+            }).catch(function (err) {
+              if (err && err.timedOut) throw err;
+              return { ok: false, data: { error: (err && err.message) || 'We could not send the audio.' } };
             });
-          }).catch(function (err) {
-            if (err && err.timedOut) throw err;
-            return { ok: false, data: { error: (err && err.message) || 'We could not send the audio.' } };
           });
         });
       });

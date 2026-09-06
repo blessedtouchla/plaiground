@@ -1313,6 +1313,102 @@ function testPendingMissingAudioBlocksSave() {
   });
 }
 
+function testPendingStoreTracksAudioAllowsSaveWithoutFile() {
+  const me = {
+    artist: 'Herman Watson',
+    plan: 'basic',
+    legal_first: 'Herman',
+    legal_last: 'Watson',
+    tonegrid_release_ids: ['8067582d-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch(url, options) {
+      const method = (options && options.method) || 'GET';
+      const path = String(url).split('?')[0];
+      if (method === 'GET' && path === '/api/tonegrid/releases/' + releaseId + '/tracks') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            tracks: [{
+              uuid: trackId,
+              title: 'Mr Herman',
+              audio_url: 'https://cdn.example/mr-herman.wav',
+              audio_s3_key: 'audio/mr-herman.wav',
+              file_size: 22000000,
+              audio_status: 'ready',
+            }],
+          }),
+        });
+      }
+      if (method === 'GET' && path === '/api/tonegrid/releases/' + releaseId) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            uuid: releaseId,
+            title: 'Mr Herman',
+            status: 'pending',
+            artwork_url: 'https://cdn.example/mr-herman.jpg',
+          }),
+        });
+      }
+      if (method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(path)) {
+        throw new Error('store-audio edit must not remint');
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Mr Herman',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: trackId,
+      made_how: 'no_ai',
+      legal_first: 'Herman',
+      legal_last: 'Watson',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Mr Herman',
+      status: 'pending',
+      genre: 'Hip-Hop',
+      language: 'en',
+      artwork_url: 'https://cdn.example/mr-herman.jpg',
+      tracks: [],
+    },
+  });
+  page.ids['edit-title'].value = 'Mr Herman';
+  page.ids['edit-genre'].value = 'Hip-Hop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  page.ids['edit-audio'].files = [];
+  page.ids['edit-audio']._plaigroundFile = null;
+  assert.ok(!/audio required/i.test(String(page.nodes['[data-edit-error]'].textContent || '')), 'empty nested tracks must not flash Audio required before the tracks refresh');
+  return page.api.submitEdit().then(function (result) {
+    assert.ok(result.ok, 'Edit save must keep other fields when the store already has a master');
+    assert.ok(!/audio required/i.test(String(page.nodes['[data-edit-error]'].textContent || '')), 'must not show Audio required when tracks API has the master');
+    assert.ok(calls.some((row) => row.method === 'GET' && String(row.url).indexOf('/releases/' + releaseId + '/tracks') !== -1), 'Edit refresh reads the tracks endpoint');
+    assert.ok(calls.some((row) => row.method === 'PUT' && /\/api\/tonegrid\/releases\//.test(row.url)), 'other-field save still hops the release');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/audio$/.test(String(row.url))), 'existing master must not force a new audio POST');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists|tracks)$/.test(String(row.url).split('?')[0])), 'store-audio edit must not remint');
+  });
+}
+
 function testPendingAudioResolvesHiddenTrack() {
   const me = {
     artist: 'Herman Watson',
@@ -3081,7 +3177,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingMissingAudioBlocksSave).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testPendingIgnoresLeftoverTrackId).then(testPendingPickedCoverStillPosts).then(testRemovedCatalogUntouched).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingMissingAudioBlocksSave).then(testPendingStoreTracksAudioAllowsSaveWithoutFile).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testPendingIgnoresLeftoverTrackId).then(testPendingPickedCoverStillPosts).then(testRemovedCatalogUntouched).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
@@ -3107,6 +3203,7 @@ if (require.main === module) {
 } else {
   module.exports = {
     testPendingAudioReplace: testPendingAudioReplace,
+    testPendingStoreTracksAudioAllowsSaveWithoutFile: testPendingStoreTracksAudioAllowsSaveWithoutFile,
     testDraftAudioReplace: testDraftAudioReplace,
     testPendingAudioResolvesHiddenTrack: testPendingAudioResolvesHiddenTrack,
     testPendingCoverAttach: testPendingCoverAttach,
