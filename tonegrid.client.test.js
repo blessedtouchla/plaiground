@@ -4222,6 +4222,10 @@ async function run() {
   assert.ok(catalogArtistFn, 'ensureCatalogArtist must stay a real function');
   assert.ok(catalogArtistFn[0].includes('post(ARTISTS_URL'), 'ensureCatalogArtist POSTs /artists by stage name');
   assert.ok(catalogArtistFn[0].includes('name: name'), 'POST /artists sends the stage name');
+  assert.ok(catalogArtistFn[0].includes('catalogArtistMapping(current)'), 'ensureCatalogArtist sends saved profile mapping URLs');
+  assert.ok(source.includes('function catalogArtistMapping'));
+  assert.ok(source.includes('function mergeCatalogArtistMapping'));
+  assert.ok(source.includes('mergeCatalogArtistMapping(draft)'), 'afterRelease merges mapping URLs when the store artist is still null');
   assert.ok(!catalogArtistFn[0].includes('existingStoreArtistId'), 'first Submit must not skip mint on a draft uuid');
   assert.ok(!catalogArtistFn[0].includes('GET') && !/artists\?/.test(catalogArtistFn[0]), 'must not invent a live-catalog-first GET /artists path');
   assert.ok(source.includes('function fieldErrorText'), 'Validation failed must surface store field errors');

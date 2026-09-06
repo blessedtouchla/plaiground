@@ -56,6 +56,7 @@
 const crypto = require('crypto');
 const accounts = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
+const artistMappingPush = require('../lib/artist-mapping-push');
 const plans = require('../lib/plans');
 const coverUrl = require('../lib/cover-url');
 const profileLib = require('../lib/profile');
@@ -800,6 +801,27 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
   });
 }
 
+async function mergeLinkedArtistMapping(row, body, tonegridId, storeArtist) {
+  if (!tonegridId) return { skipped: true, reason: 'no_tonegrid_id' };
+  try {
+    const artist = artistMappingPush.artistFromRoster(rosterOf(row), body);
+    return await artistMappingPush.pushArtistMapping({
+      artist: Object.assign({}, artist, { tonegrid_artist_id: tonegridId }),
+      tonegridArtistId: tonegridId,
+      storeArtist: storeArtist,
+      onlyIfNull: true,
+    });
+  } catch (err) {
+    console.error(artistMappingPush.LOG_PREFIX, {
+      artist_id: tonegridId,
+      status: 0,
+      error: err && err.message,
+      fields: [],
+    });
+    return { ok: false, error: (err && err.message) || artistMappingPush.FAIL_COPY };
+  }
+}
+
 // matchingTonegridArtist() only checks this account's own local roster. When
 // that roster lost track of an artist's tonegrid_artist_id (a different local
 // profile record was used, or the link never got written), POST /artists
@@ -1193,6 +1215,7 @@ async function createArtist(req, res) {
   if (continueId) {
     const loaded = await tonegridFetch('/artists/' + continueId, { method: 'GET' });
     if (loaded.ok) {
+      await mergeLinkedArtistMapping(scope.row, body, continueId, loaded.data);
       sendJson(res, 200, { uuid: continueId, continued: true });
       return;
     }
@@ -1261,6 +1284,7 @@ async function createArtist(req, res) {
       await accounts.updateCatalog(scope.userId, { artistId: artistId, replaceArtistId: true });
       const latest = await accounts.findById(scope.userId);
       await attachTonegridArtist(latest || scope.row, pgId, artistId);
+      await mergeLinkedArtistMapping(latest || scope.row, body, artistId, result.data);
     }
     sendJson(res, result.status, result.data);
     return;
@@ -1271,6 +1295,7 @@ async function createArtist(req, res) {
       await accounts.updateCatalog(scope.userId, { artistId: existing.id, replaceArtistId: true });
       const latest = await accounts.findById(scope.userId);
       await attachTonegridArtist(latest || scope.row, pgId, existing.id);
+      await mergeLinkedArtistMapping(latest || scope.row, body, existing.id, existing.row);
       sendJson(res, 200, { uuid: existing.id, continued: true });
       return;
     }

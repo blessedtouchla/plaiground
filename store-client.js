@@ -2023,6 +2023,42 @@
     return '';
   }
 
+  function catalogArtistMapping(draft) {
+    var current = draft || {};
+    var artists = rosterFromMe();
+    var pgId = String(current.plaiground_artist_id || '').trim();
+    var name = String(current.name || '').trim().toLowerCase();
+    var row = null;
+    var i;
+    for (i = 0; i < artists.length; i += 1) {
+      var item = artists[i] || {};
+      if (pgId && (String(item.id || '') === pgId || String(item.artist_id || '') === pgId || String(item.plaiground_artist_id || '') === pgId)) {
+        row = item;
+        break;
+      }
+      if (!row && name && String(item.name || '').trim().toLowerCase() === name) row = item;
+    }
+    if (!row) return {};
+    var out = {};
+    if (Array.isArray(row.platform_links) && row.platform_links.length) out.platform_links = row.platform_links;
+    if (String(row.spotify_id || '').trim()) out.spotify_id = String(row.spotify_id).trim();
+    if (String(row.apple_id || '').trim()) out.apple_id = String(row.apple_id).trim();
+    if (String(row.store_url || '').trim()) out.store_url = String(row.store_url).trim();
+    return out;
+  }
+
+  function mergeCatalogArtistMapping(draft) {
+    var current = draft || readDraft();
+    var mapping = catalogArtistMapping(current);
+    if (!mapping.platform_links && !mapping.spotify_id && !mapping.apple_id && !mapping.store_url) {
+      return Promise.resolve();
+    }
+    return post(ARTISTS_URL, Object.assign({
+      name: String(current.name || '').trim(),
+      plaiground_artist_id: current.plaiground_artist_id || '',
+    }, mapping)).then(function () { return; }).catch(function () { return; });
+  }
+
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
     var name = String(current.name || '').trim();
@@ -2034,11 +2070,11 @@
         result: { data: { error: 'Artist name is required.' } },
       });
     }
-    return post(ARTISTS_URL, {
+    return post(ARTISTS_URL, Object.assign({
       name: name,
       plaiground_artist_id: current.plaiground_artist_id || '',
       confirm_different: current.confirm_different === true,
-    }).then(function (result) {
+    }, catalogArtistMapping(current))).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
       if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
       if (!result.ok) return { failed: true, result: result, draft: current };
@@ -3612,6 +3648,7 @@
   }
 
   function afterRelease(draft) {
+    return mergeCatalogArtistMapping(draft).then(function () {
     return resolveLiveRelease(draft).then(function (resolved) {
       if (resolved.unavailable || resolved.limited || resolved.failed || resolved.missing) return resolved;
       var ready = resolved.draft || draft;
@@ -3637,6 +3674,7 @@
         return createTrackOnRelease(ready, { force: true });
       }
       return createTrackOnRelease(ready);
+    });
     });
   }
 
