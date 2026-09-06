@@ -656,6 +656,7 @@ async function persistAndImmediateSave() {
   assert.strictEqual(update.body.bio, 'saved from the phone');
   assert.strictEqual(update.url, '/api/me/artists');
   assert.strictEqual(update.body.artist_action, 'update');
+  assert.ok(Array.isArray(update.body.platform_links), 'Artist Profile save sends mapping URLs for the store push');
   assert.ok(!update.body.submit_edit);
 
   await page.api.saveArtist({ quiet: true });

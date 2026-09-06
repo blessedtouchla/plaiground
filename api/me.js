@@ -19,6 +19,7 @@
 const { listAdminOverview } = require('../lib/admin-overview');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
+const artistMappingPush = require('../lib/artist-mapping-push');
 const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
 const releaseCredits = require('../lib/release-credits');
@@ -323,6 +324,32 @@ async function persistRoster(row, nextProfile, artistName) {
   });
 }
 
+async function pushSavedArtistMapping(res, row, artist, extras) {
+  const push = await artistMappingPush.pushArtistMapping({
+    artist: artist,
+    onlyIfNull: false,
+  });
+  if (push.skipped || push.ok) return false;
+  sendJson(res, 502, Object.assign(publicUser(row), extras || {}, {
+    error: artistMappingPush.FAIL_COPY,
+    mapping_error: true,
+  }));
+  return true;
+}
+
+async function backfillLinkedMappings(stored) {
+  try {
+    await artistMappingPush.backfillRosterMappings(stored);
+  } catch (err) {
+    console.error(artistMappingPush.LOG_PREFIX, {
+      artist_id: '',
+      status: 0,
+      error: err && err.message,
+      fields: ['backfill'],
+    });
+  }
+}
+
 async function saveArtists(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.setHeader('Allow', 'GET, POST');
@@ -337,9 +364,11 @@ async function saveArtists(req, res) {
   if (req.method === 'GET') {
     if (shouldPersistRecoveredRoster(row, stored)) {
       const next = await persistRoster(row, stored);
+      await backfillLinkedMappings(stored);
       sendJson(res, 200, publicUser(next || row));
       return;
     }
+    await backfillLinkedMappings(stored);
     sendJson(res, 200, publicUser(row));
     return;
   }
@@ -451,7 +480,9 @@ async function saveArtists(req, res) {
     });
     const nextProfile = profile.upsertArtist(stored, artist);
     const next = await persistRoster(row, nextProfile, stored.artists.length ? row.artist_name : name);
-    sendJson(res, 200, Object.assign(publicUser(next || row), { created: artist, check: { level: 'green', skip: true, linked: true } }));
+    const linkedPayload = Object.assign(publicUser(next || row), { created: artist, check: { level: 'green', skip: true, linked: true } });
+    if (await pushSavedArtistMapping(res, next || row, artist, linkedPayload)) return;
+    sendJson(res, 200, linkedPayload);
     return;
   }
 
@@ -565,10 +596,12 @@ async function saveArtists(req, res) {
     }
     const nextProfile = profile.upsertArtist(stored, artist);
     const next = await persistRoster(row, nextProfile);
-    sendJson(res, 200, Object.assign(publicUser(next || row), {
+    const updatedPayload = Object.assign(publicUser(next || row), {
       updated: artist,
       submitted_edit: false,
-    }));
+    });
+    if (await pushSavedArtistMapping(res, next || row, artist, updatedPayload)) return;
+    sendJson(res, 200, updatedPayload);
     return;
   }
 
@@ -590,6 +623,7 @@ async function saveArtists(req, res) {
       tonegrid_artist_id: String((body && body.tonegrid_artist_id) || '').trim(),
     }));
     const next = await persistRoster(row, profile.upsertArtist(stored, artist));
+    if (await pushSavedArtistMapping(res, next || row, artist, publicUser(next || row))) return;
     sendJson(res, 200, publicUser(next || row));
     return;
   }
@@ -689,6 +723,7 @@ module.exports = async function handler(req, res) {
     if (shouldPersistRecoveredRoster(next || row, stored)) {
       next = await persistRoster(next || row, stored);
     }
+    await backfillLinkedMappings(stored);
     sendJson(res, 200, publicUser(next || row));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
