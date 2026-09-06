@@ -41,6 +41,13 @@
               <div style="color:var(--muted);font-size:13px" data-review-meta>Artist name · Single · Electronic</div>
               <div style="color:var(--muted);font-size:13px">Release date set at submit · Duration after upload · ISRC auto-assigned</div>
               <p class="hint" data-review-audio-error hidden></p>
+              <div data-review-audio-repick hidden style="margin-top:10px">
+                <label class="btn btn-ghost btn-sm">
+                  Re-attach master
+                  <input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-review-master-pick />
+                </label>
+                <p class="hint" data-review-audio-name></p>
+              </div>
             </div>
           </div>
           <div class="form-grid" style="margin-top:16px">
@@ -182,10 +189,10 @@
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
-  <script src="lib/upload-draft-files.js"></script>
+  <script src="lib/upload-draft-files.js?v=20260906r1"></script>
   <script src="lib/solo-credits-stamp.js?v=20260905s1"></script>
   <script src="upload-catalog.js"></script>
-  <script src="store-client.js?v=20260906a3" defer></script>
+  <script src="store-client.js?v=20260906r1" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {

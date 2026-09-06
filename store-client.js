@@ -202,6 +202,7 @@
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
   var AUDIO_SEND_COPY = 'We could not send the audio.';
   var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
+  var REVIEW_REATTACH_COPY = 'Go back to Upload and re-attach your master';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
 
   function missingAudioResult(draft) {
@@ -972,6 +973,21 @@
     return 'The audio file is no longer on this page. Go back to Upload and re-attach it, then return to Review.';
   }
 
+  function reviewMissingMasterCopy() {
+    return REVIEW_REATTACH_COPY;
+  }
+
+  function onReviewPage() {
+    return Boolean(document.querySelector('[data-store-submit]') || document.querySelector('[data-review-title]'));
+  }
+
+  function isReviewMissingMasterMessage(value) {
+    var text = String(value || '');
+    if (!text) return false;
+    if (text === AUDIO_REQUIRED_COPY || text === REVIEW_REATTACH_COPY) return true;
+    return isAudioRequiredError(text) || /audio required/i.test(text);
+  }
+
   function genuineEmptyMessage() {
     return 'Please add at least one track.';
   }
@@ -1344,7 +1360,7 @@
     return new Promise(function (resolve) {
       function done() {
         if (!heldPickedFile) {
-          var input = document.querySelector('[data-audio-input]');
+          var input = liveAudioInput();
           var live = (input && input.files && input.files[0]) || (input && input._plaigroundFile) || null;
           if (live && !looksLikeWav(live)) rememberPickedOriginal(live);
         }
@@ -1424,6 +1440,70 @@
         done();
       }
     });
+  }
+
+  function refreshHeldAudioSlots() {
+    return restoreHeldAudio().then(function () {
+      return persistHeldAudio(heldAudioFile);
+    }).then(function () {
+      return persistPickedAudio(heldPickedFile);
+    }).then(function () {
+      return persistHeldArtwork(heldArtworkFile);
+    });
+  }
+
+  function reviewAudioAccept() {
+    var helper = audioAccept();
+    return (helper && helper.ACCEPT) || 'audio/*,.wav,.flac,.mp3,.mpeg,.mpga';
+  }
+
+  function syncReviewAudioRepick() {
+    var wrap = document.querySelector('[data-review-audio-repick]');
+    if (!wrap) return;
+    var draft = readDraft();
+    var file = selectedAudio();
+    var hasMaster = firstSubmitHasAudio({ audio: file, audio_object_key: draft.audio_object_key }, draft);
+    setHiddenEl(wrap, hasMaster);
+    var nameEl = document.querySelector('[data-review-audio-name]');
+    if (nameEl) nameEl.textContent = file && file.name ? String(file.name) : '';
+  }
+
+  function bindReviewAudioRepick() {
+    var input = document.querySelector('[data-review-master-pick]');
+    var wrap = document.querySelector('[data-review-audio-repick]');
+    if (!input || !wrap) return;
+    if (input.getAttribute && !input.getAttribute('accept')) {
+      input.setAttribute('accept', reviewAudioAccept());
+    }
+    if (input.addEventListener) {
+      input.addEventListener('change', function () {
+        var picked = audioFileOf(input) || (input.files && input.files[0]) || input._plaigroundFile || null;
+        if (!picked || !Number(picked.size)) return;
+        rememberPickedAudio(picked);
+        writeDraft({
+          audio_name: picked.name || '',
+          audio_attached: true,
+          audio_uploaded: false,
+          audio_converted: false,
+          audio_picked_size: Number(picked.size) || 0,
+          audio_picked_name: picked.name || '',
+        });
+        persistHeldAudio(picked);
+        persistPickedAudio(looksLikeWav(picked) ? heldPickedFile : picked);
+        setStatus('tg-status', '');
+        markStatusError(false);
+        fillReviewSummary();
+        var trigger = document.querySelector('[data-store-submit]');
+        var dateEl = $('tg-release-date');
+        if (trigger) markIncomplete(trigger, !String((dateEl && dateEl.value) || readDraft().release_date || '').trim());
+      });
+    }
+    syncReviewAudioRepick();
+  }
+
+  function bindAttestHold() {
+    if (!document.querySelector('[data-attest-continue]')) return;
+    refreshHeldAudioSlots();
   }
 
   function releaseTitleOf(data) {
@@ -3019,9 +3099,14 @@
     return Object.assign(body, hopLegalFields(draft), hopCreditFields(draft));
   }
 
+  function liveAudioInput() {
+    return document.querySelector('[data-audio-input]')
+      || document.querySelector('[data-review-master-pick]');
+  }
+
   function selectedAudio() {
     var draft = readDraft();
-    var input = document.querySelector('[data-audio-input]');
+    var input = liveAudioInput();
     var picked = (input && input.files && input.files[0])
       || (input && input._plaigroundFile)
       || null;
@@ -5405,14 +5490,14 @@
 
     function persistLocalUploadFiles() {
       var files = (typeof window !== 'undefined' && window.PlaigroundUploadDraftFiles) || null;
-      var persistCover = files && typeof files.persistPickedFiles === 'function'
-        ? files.persistPickedFiles(window)
-        : persistHeldArtwork(heldArtworkFile || selectedArtwork());
-      return Promise.all([
-        persistHeldAudio(heldAudioFile || selectedAudio()),
-        persistPickedAudio(heldPickedFile),
-        persistCover,
-      ]);
+      return persistHeldAudio(heldAudioFile || selectedAudio()).then(function () {
+        return persistPickedAudio(heldPickedFile);
+      }).then(function () {
+        if (files && typeof files.persistPickedFiles === 'function') {
+          return files.persistPickedFiles(window);
+        }
+        return persistHeldArtwork(heldArtworkFile || selectedArtwork());
+      });
     }
 
     function finishToAttest(nextHref, message) {
@@ -5839,6 +5924,14 @@
     }
     if (knownLeftover && (isAudioRequiredError(shown) || isAudioRequiredError(message) || /could not send the audio/i.test(String(shown || message || '')))) {
       shown = AUDIO_SEND_COPY;
+    } else if (
+      shown !== attachFailedMessage()
+      && !knownLeftover
+      && onReviewPage()
+      && !fileForFirstSubmitAttach(selectedAudio())
+      && isReviewMissingMasterMessage(shown || message)
+    ) {
+      shown = reviewMissingMasterCopy();
     }
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
@@ -5964,6 +6057,7 @@
       cancelBtn.addEventListener('click', cancelInProgressSubmit);
     }
     bindReviewCatalog();
+    bindReviewAudioRepick();
     bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {
@@ -6000,8 +6094,9 @@
         draft = readDraft();
         if (isFirstSubmitLeave(draft) && !firstSubmitHasAudio({ audio: selectedAudio(), audio_object_key: draft.audio_object_key }, draft)) {
           trigger.removeAttribute('aria-busy');
-          setStatus('tg-status', AUDIO_REQUIRED_COPY);
+          setStatus('tg-status', reviewMissingMasterCopy());
           markIncomplete(trigger, true);
+          syncReviewAudioRepick();
           return;
         }
         if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({ artwork: selectedArtwork(), artwork_object_key: draft.artwork_object_key }, draft)) {
@@ -6150,7 +6245,10 @@
         });
       }
     }
-    restoreHeldAudio();
+    refreshHeldAudioSlots().then(function () {
+      fillReviewSummary();
+      syncReviewAudioRepick();
+    });
     var retryBtn = document.querySelector('[data-upload-retry]');
     if (retryBtn && retryBtn.addEventListener && trigger) {
       retryBtn.addEventListener('click', function (event) {
@@ -6260,9 +6358,10 @@
     var audioNote = document.querySelector('[data-review-audio-error]');
     var missingMaster = isFirstSubmitLeave(draft) && !firstSubmitHasAudio({ audio: selectedAudio(), audio_object_key: draft.audio_object_key }, draft);
     if (audioNote) {
-      audioNote.textContent = missingMaster ? AUDIO_REQUIRED_COPY : '';
+      audioNote.textContent = missingMaster ? reviewMissingMasterCopy() : '';
       audioNote.hidden = !missingMaster;
     }
+    syncReviewAudioRepick();
     var lyricsBox = document.querySelector('[data-review-lyrics]');
     var lyricsTextEl = document.querySelector('[data-review-lyrics-text]');
     var lyricsCopy = '';
@@ -6403,6 +6502,7 @@
 
   bindUpload();
   bindReview();
+  bindAttestHold();
   fillReviewSummary();
   bindSubmitted();
 })();

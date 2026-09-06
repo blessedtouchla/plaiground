@@ -352,8 +352,9 @@
     function keepCarriedFiles() {
       var files = root.PlaigroundUploadDraftFiles;
       if (files && typeof files.keepHeldFiles === 'function') {
-        try { files.keepHeldFiles(root); } catch (err) {}
+        try { return files.keepHeldFiles(root); } catch (err) {}
       }
+      return null;
     }
 
     trigger.addEventListener('click', function (event) {
@@ -377,8 +378,16 @@
         );
       }
       setStatus('');
-      keepCarriedFiles();
-      if (root.location) root.location.href = nextHref(fields);
+      var next = nextHref(fields);
+      function goNext() {
+        if (root.location) root.location.href = next;
+      }
+      var hold = keepCarriedFiles();
+      if (hold && typeof hold.then === 'function') {
+        hold.then(goNext, goNext);
+      } else {
+        goNext();
+      }
       return true;
     });
 

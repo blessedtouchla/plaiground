@@ -203,6 +203,20 @@ function load(options) {
   });
   const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
   const reviewCover = makeEl({ attrs: { 'data-review-cover': '' } });
+  const reviewAudioError = makeEl({ attrs: { 'data-review-audio-error': '' } });
+  const reviewAudioName = makeEl({ attrs: { 'data-review-audio-name': '' } });
+  const reviewMasterPick = makeEl({
+    attrs: { 'data-review-master-pick': '' },
+    files: opts.reviewFile ? [opts.reviewFile] : [],
+  });
+  if (opts.reviewFile) reviewMasterPick._plaigroundFile = opts.reviewFile;
+  const reviewAudioRepick = makeEl({ attrs: { 'data-review-audio-repick': '' } });
+  reviewAudioRepick.hidden = true;
+  reviewAudioRepick.querySelector = function (sel) {
+    if (sel === '[data-review-master-pick]') return reviewMasterPick;
+    if (sel === '[data-review-audio-name]') return reviewAudioName;
+    return null;
+  };
   const storeAll = makeEl({
     id: 'tg-store-all',
     type: 'checkbox',
@@ -391,6 +405,18 @@ function load(options) {
         }
         if (sel === '[data-review-cover]') {
           return opts.reviewCover ? reviewCover : null;
+        }
+        if (sel === '[data-review-audio-error]') {
+          return opts.bind === 'review' ? reviewAudioError : null;
+        }
+        if (sel === '[data-review-audio-repick]') {
+          return opts.bind === 'review' ? reviewAudioRepick : null;
+        }
+        if (sel === '[data-review-master-pick]') {
+          return opts.bind === 'review' ? reviewMasterPick : null;
+        }
+        if (sel === '[data-review-audio-name]') {
+          return opts.bind === 'review' ? reviewAudioName : null;
         }
         if (sel === '[data-submit-stores]') {
           return opts.bind === 'submitted' ? submitStores : null;
@@ -639,6 +665,10 @@ function load(options) {
     reviewStep,
     submitStores,
     reviewCover,
+    reviewAudioError,
+    reviewAudioRepick,
+    reviewMasterPick,
+    reviewAudioName,
     storeSummary,
     storePick,
     artist,
@@ -1168,7 +1198,53 @@ async function run() {
   await flush(4);
   assert.ok(!payNoAudio.calls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
   assert.ok(!payNoAudio.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
-  assert.strictEqual(payNoAudio.status.textContent, 'Audio required — upload your master before sending');
+  assert.strictEqual(payNoAudio.status.textContent, 'Go back to Upload and re-attach your master');
+  assert.ok(!payNoAudio.reviewAudioRepick.hidden, 'empty hold shows the Review re-pick');
+
+  const payHeldIdb = load({
+    bind: 'review',
+    releaseDate: '2026-09-20',
+    heldFile: AUDIO,
+    artist: 'Ada Night',
+    draft: Object.assign(attestDraft(), {
+      name: 'Ada Night',
+      title: 'Night Drive',
+      solo_owned_100: true,
+      release_date: '2026-09-20',
+      artwork_url: 'https://cdn.example/cover.jpg',
+    }),
+  });
+  payHeldIdb.payBtn.listeners.click({ preventDefault() {} });
+  await flush(8);
+  assert.notStrictEqual(payHeldIdb.status.textContent, 'Go back to Upload and re-attach your master');
+  assert.notStrictEqual(payHeldIdb.status.textContent, 'Audio required — upload your master before sending');
+  assert.ok(payHeldIdb.calls.length, 'held IDB master must pass firstSubmitHasAudio');
+
+  const payRepick = load({
+    bind: 'review',
+    releaseDate: '2026-09-20',
+    artist: 'Ada Night',
+    draft: Object.assign(attestDraft(), {
+      name: 'Ada Night',
+      title: 'Night Drive',
+      solo_owned_100: true,
+      release_date: '2026-09-20',
+      artwork_url: 'https://cdn.example/cover.jpg',
+    }),
+  });
+  payRepick.payBtn.listeners.click({ preventDefault() {} });
+  await flush(4);
+  assert.strictEqual(payRepick.status.textContent, 'Go back to Upload and re-attach your master');
+  payRepick.reviewMasterPick.files = [AUDIO];
+  payRepick.reviewMasterPick._plaigroundFile = AUDIO;
+  payRepick.reviewMasterPick.listeners.change({ target: payRepick.reviewMasterPick });
+  await flush(4);
+  payRepick.payBtn.removeAttribute('aria-busy');
+  payRepick.payBtn.listeners.click({ preventDefault() {} });
+  await flush(8);
+  assert.notStrictEqual(payRepick.status.textContent, 'Go back to Upload and re-attach your master');
+  assert.notStrictEqual(payRepick.status.textContent, 'Audio required — upload your master before sending');
+  assert.ok(payRepick.calls.length, 'Review re-pick must supply a File for the Submit gate');
 
   const paySkip = load({
     bind: 'review',
@@ -1761,7 +1837,7 @@ async function run() {
     assert.ok(!page.calls.some(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
     }), 'must not create a second release');
-    assert.strictEqual(page.status.textContent, 'Audio required — upload your master before sending');
+    assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
     assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
@@ -1864,7 +1940,7 @@ async function run() {
     }), 'genuine empty must not POST submit');
     assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'untitled empty must not invent a track');
     assert.ok(
-      /please add at least one track|audio required|song title is required|could not create the track/i.test(page.status.textContent),
+      /please add at least one track|audio required|re-attach your master|song title is required|could not create the track/i.test(page.status.textContent),
       page.status.textContent || 'empty first-submit must fail loud'
     );
     assert.notStrictEqual(page.location.href, 'submitted.html');
@@ -1934,7 +2010,7 @@ async function run() {
     assert.ok(!page.calls.some(function (call) {
       return String(call.url).indexOf('/submit') !== -1;
     }), 'audio_name without a master must not submit');
-    assert.strictEqual(page.status.textContent, 'Audio required — upload your master before sending');
+    assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
@@ -4269,13 +4345,22 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html must cache-bust past 20260902c2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c8'), 'review.html must cache-bust past 20260902c8');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260903audio1'), 'review.html must cache-bust past 20260903audio1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html cache-busts store-client.js at 20260906a3');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html must cache-bust past 20260906a3');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260906r1'), 'review.html cache-busts store-client.js at 20260906r1');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906a3'), 'upload.html cache-busts store-client.js at 20260906a3');
-  assert.ok(attestHtml.includes('store-client.js?v=20260906a3'), 'attest.html cache-busts store-client.js at 20260906a3');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906a3'), 'split-sheet.html cache-busts store-client.js at 20260906a3');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906r1'), 'upload.html cache-busts store-client.js at 20260906r1');
+  assert.ok(attestHtml.includes('store-client.js?v=20260906r1'), 'attest.html cache-busts store-client.js at 20260906r1');
+  assert.ok(attestHtml.includes('attest.js?v=20260906r1'), 'attest.html cache-busts attest.js at 20260906r1');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906r1'), 'split-sheet.html cache-busts store-client.js at 20260906r1');
+  assert.ok(source.includes('REVIEW_REATTACH_COPY'));
+  assert.ok(source.includes('Go back to Upload and re-attach your master'));
+  assert.ok(source.includes('refreshHeldAudioSlots'));
+  assert.ok(source.includes('bindReviewAudioRepick'));
+  assert.ok(source.includes('bindAttestHold'));
+  assert.ok(reviewHtml.includes('data-review-master-pick'), 'Review can re-attach a missing master');
+  assert.ok(reviewHtml.includes('data-review-audio-repick'));
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
