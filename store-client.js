@@ -202,7 +202,10 @@
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
   var AUDIO_SEND_COPY = 'We could not send the audio.';
   var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
+  var REVIEW_REATTACH_COPY = 'Go back to Upload and re-attach your master';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
+  var LEAVE_UPLOAD_COPY = 'Saving your upload…';
+  var HOLD_PERSIST_MS = 12000;
 
   function missingAudioResult(draft) {
     return { failed: true, missingAudio: true, result: { data: { error: AUDIO_REQUIRED_COPY } }, draft: draft };
@@ -972,6 +975,21 @@
     return 'The audio file is no longer on this page. Go back to Upload and re-attach it, then return to Review.';
   }
 
+  function reviewMissingMasterCopy() {
+    return REVIEW_REATTACH_COPY;
+  }
+
+  function onReviewPage() {
+    return Boolean(document.querySelector('[data-store-submit]') || document.querySelector('[data-review-title]'));
+  }
+
+  function isReviewMissingMasterMessage(value) {
+    var text = String(value || '');
+    if (!text) return false;
+    if (text === AUDIO_REQUIRED_COPY || text === REVIEW_REATTACH_COPY) return true;
+    return isAudioRequiredError(text) || /audio required/i.test(text);
+  }
+
   function genuineEmptyMessage() {
     return 'Please add at least one track.';
   }
@@ -1322,6 +1340,58 @@
     return persistHeldSlot(ready, AUDIO_HOLD_KEY, function (next) { heldAudioFile = next; });
   }
 
+  function persistHeldBundle(audio, picked, artwork) {
+    var items = [
+      { file: audio || heldAudioFile, key: AUDIO_HOLD_KEY, assign: function (next) { heldAudioFile = next; } },
+      { file: picked || heldPickedFile, key: AUDIO_PICKED_KEY, assign: function (next) { heldPickedFile = next; } },
+      { file: artwork || heldArtworkFile, key: ARTWORK_HOLD_KEY, assign: function (next) { heldArtworkFile = next; } },
+    ];
+    return Promise.all(items.map(function (item) {
+      return cloneForHold(item.file).then(function (stored) {
+        var live = (item.file && Number(item.file.size) > 0 ? item.file : null) || fileFromHeld(stored) || item.file;
+        if (live && typeof item.assign === 'function') item.assign(live);
+        return { key: item.key, stored: stored, live: live };
+      });
+    })).then(function (rows) {
+      return new Promise(function (resolve) {
+        var ready = rows.filter(function (row) { return row.stored || row.live; });
+        if (!ready.length) {
+          resolve(null);
+          return;
+        }
+        try {
+          if (typeof indexedDB === 'undefined' || !indexedDB.open) {
+            resolve(ready);
+            return;
+          }
+          var req = indexedDB.open(AUDIO_HOLD_DB, 1);
+          req.onerror = function () { resolve(ready); };
+          req.onupgradeneeded = function () {
+            if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
+              req.result.createObjectStore(AUDIO_HOLD_STORE);
+            }
+          };
+          req.onsuccess = function () {
+            try {
+              var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readwrite');
+              tx.oncomplete = function () { resolve(ready); };
+              tx.onerror = function () { resolve(ready); };
+              tx.onabort = function () { resolve(ready); };
+              var store = tx.objectStore(AUDIO_HOLD_STORE);
+              ready.forEach(function (row) {
+                store.put(row.stored || row.live, row.key);
+              });
+            } catch (err) {
+              resolve(ready);
+            }
+          };
+        } catch (err) {
+          resolve(ready);
+        }
+      });
+    });
+  }
+
   function persistPickedAudio(file) {
     var ready = file || heldPickedFile;
     if (ready) heldPickedFile = ready;
@@ -1344,7 +1414,7 @@
     return new Promise(function (resolve) {
       function done() {
         if (!heldPickedFile) {
-          var input = document.querySelector('[data-audio-input]');
+          var input = liveAudioInput();
           var live = (input && input.files && input.files[0]) || (input && input._plaigroundFile) || null;
           if (live && !looksLikeWav(live)) rememberPickedOriginal(live);
         }
@@ -1424,6 +1494,66 @@
         done();
       }
     });
+  }
+
+  function refreshHeldAudioSlots() {
+    return restoreHeldAudio().then(function () {
+      return persistHeldBundle(heldAudioFile, heldPickedFile, heldArtworkFile);
+    });
+  }
+
+  function reviewAudioAccept() {
+    var helper = audioAccept();
+    return (helper && helper.ACCEPT) || 'audio/*,.wav,.flac,.mp3,.mpeg,.mpga';
+  }
+
+  function syncReviewAudioRepick() {
+    var wrap = document.querySelector('[data-review-audio-repick]');
+    if (!wrap) return;
+    var draft = readDraft();
+    var file = selectedAudio();
+    var hasMaster = firstSubmitHasAudio({ audio: file, audio_object_key: draft.audio_object_key }, draft);
+    setHiddenEl(wrap, hasMaster);
+    var nameEl = document.querySelector('[data-review-audio-name]');
+    if (nameEl) nameEl.textContent = file && file.name ? String(file.name) : '';
+  }
+
+  function bindReviewAudioRepick() {
+    var input = document.querySelector('[data-review-master-pick]');
+    var wrap = document.querySelector('[data-review-audio-repick]');
+    if (!input || !wrap) return;
+    if (input.getAttribute && !input.getAttribute('accept')) {
+      input.setAttribute('accept', reviewAudioAccept());
+    }
+    if (input.addEventListener) {
+      input.addEventListener('change', function () {
+        var picked = audioFileOf(input) || (input.files && input.files[0]) || input._plaigroundFile || null;
+        if (!picked || !Number(picked.size)) return;
+        rememberPickedAudio(picked);
+        writeDraft({
+          audio_name: picked.name || '',
+          audio_attached: true,
+          audio_uploaded: false,
+          audio_converted: false,
+          audio_picked_size: Number(picked.size) || 0,
+          audio_picked_name: picked.name || '',
+        });
+        persistHeldAudio(picked);
+        persistPickedAudio(looksLikeWav(picked) ? heldPickedFile : picked);
+        setStatus('tg-status', '');
+        markStatusError(false);
+        fillReviewSummary();
+        var trigger = document.querySelector('[data-store-submit]');
+        var dateEl = $('tg-release-date');
+        if (trigger) markIncomplete(trigger, !String((dateEl && dateEl.value) || readDraft().release_date || '').trim());
+      });
+    }
+    syncReviewAudioRepick();
+  }
+
+  function bindAttestHold() {
+    if (!document.querySelector('[data-attest-continue]')) return;
+    refreshHeldAudioSlots();
   }
 
   function releaseTitleOf(data) {
@@ -3019,9 +3149,14 @@
     return Object.assign(body, hopLegalFields(draft), hopCreditFields(draft));
   }
 
+  function liveAudioInput() {
+    return document.querySelector('[data-audio-input]')
+      || document.querySelector('[data-review-master-pick]');
+  }
+
   function selectedAudio() {
     var draft = readDraft();
-    var input = document.querySelector('[data-audio-input]');
+    var input = liveAudioInput();
     var picked = (input && input.files && input.files[0])
       || (input && input._plaigroundFile)
       || null;
@@ -5405,20 +5540,59 @@
 
     function persistLocalUploadFiles() {
       var files = (typeof window !== 'undefined' && window.PlaigroundUploadDraftFiles) || null;
-      var persistCover = files && typeof files.persistPickedFiles === 'function'
-        ? files.persistPickedFiles(window)
-        : persistHeldArtwork(heldArtworkFile || selectedArtwork());
-      return Promise.all([
-        persistHeldAudio(heldAudioFile || selectedAudio()),
-        persistPickedAudio(heldPickedFile),
-        persistCover,
-      ]);
+      var audio = heldAudioFile || selectedAudio();
+      var picked = heldPickedFile;
+      var artwork = heldArtworkFile || selectedArtwork();
+      return persistHeldBundle(audio, picked, artwork).then(function () {
+        if (files && typeof files.persistPickedFiles === 'function') {
+          return files.persistPickedFiles(window);
+        }
+        return null;
+      });
+    }
+
+    function holdPersistTimeoutMs() {
+      var forced = 0;
+      try {
+        if (typeof window !== 'undefined') forced = Number(window.PLAIGROUND_HOLD_PERSIST_MS);
+      } catch (err) {}
+      if (forced > 0 && isFinite(forced)) return forced;
+      return HOLD_PERSIST_MS;
+    }
+
+    function withHoldPersistTimeout(work) {
+      var ms = holdPersistTimeoutMs();
+      var settled = false;
+      return new Promise(function (resolve) {
+        var timer = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          resolve(null);
+        }, ms);
+        Promise.resolve(work).then(function (value) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }, function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(null);
+        });
+      });
+    }
+
+    function leaveUploadLoaderCopy() {
+      return LEAVE_UPLOAD_COPY;
     }
 
     function finishToAttest(nextHref, message) {
-      showUploadLoader('Opening SignWell');
-      setStatus('tg-status', message || 'Opening SignWell…');
-      return persistLocalUploadFiles().then(function () {
+      var leaveCopy = leaveUploadLoaderCopy();
+      showUploadLoader(leaveCopy);
+      if (message && /signwell/i.test(String(message))) message = leaveCopy;
+      setStatus('tg-status', message || leaveCopy);
+      return withHoldPersistTimeout(persistLocalUploadFiles()).then(function () {
         setUploadBusy(false);
         continueAfterCatalog(nextHref, message);
       });
@@ -5839,6 +6013,14 @@
     }
     if (knownLeftover && (isAudioRequiredError(shown) || isAudioRequiredError(message) || /could not send the audio/i.test(String(shown || message || '')))) {
       shown = AUDIO_SEND_COPY;
+    } else if (
+      shown !== attachFailedMessage()
+      && !knownLeftover
+      && onReviewPage()
+      && !fileForFirstSubmitAttach(selectedAudio())
+      && isReviewMissingMasterMessage(shown || message)
+    ) {
+      shown = reviewMissingMasterCopy();
     }
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
@@ -5964,6 +6146,7 @@
       cancelBtn.addEventListener('click', cancelInProgressSubmit);
     }
     bindReviewCatalog();
+    bindReviewAudioRepick();
     bindStorePick(storePickRoot(), readDraft().dsps);
 
     if (trigger) {
@@ -6000,8 +6183,9 @@
         draft = readDraft();
         if (isFirstSubmitLeave(draft) && !firstSubmitHasAudio({ audio: selectedAudio(), audio_object_key: draft.audio_object_key }, draft)) {
           trigger.removeAttribute('aria-busy');
-          setStatus('tg-status', AUDIO_REQUIRED_COPY);
+          setStatus('tg-status', reviewMissingMasterCopy());
           markIncomplete(trigger, true);
+          syncReviewAudioRepick();
           return;
         }
         if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({ artwork: selectedArtwork(), artwork_object_key: draft.artwork_object_key }, draft)) {
@@ -6150,7 +6334,10 @@
         });
       }
     }
-    restoreHeldAudio();
+    refreshHeldAudioSlots().then(function () {
+      fillReviewSummary();
+      syncReviewAudioRepick();
+    });
     var retryBtn = document.querySelector('[data-upload-retry]');
     if (retryBtn && retryBtn.addEventListener && trigger) {
       retryBtn.addEventListener('click', function (event) {
@@ -6260,9 +6447,10 @@
     var audioNote = document.querySelector('[data-review-audio-error]');
     var missingMaster = isFirstSubmitLeave(draft) && !firstSubmitHasAudio({ audio: selectedAudio(), audio_object_key: draft.audio_object_key }, draft);
     if (audioNote) {
-      audioNote.textContent = missingMaster ? AUDIO_REQUIRED_COPY : '';
+      audioNote.textContent = missingMaster ? reviewMissingMasterCopy() : '';
       audioNote.hidden = !missingMaster;
     }
+    syncReviewAudioRepick();
     var lyricsBox = document.querySelector('[data-review-lyrics]');
     var lyricsTextEl = document.querySelector('[data-review-lyrics-text]');
     var lyricsCopy = '';
@@ -6403,6 +6591,7 @@
 
   bindUpload();
   bindReview();
+  bindAttestHold();
   fillReviewSummary();
   bindSubmitted();
 })();
