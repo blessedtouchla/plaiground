@@ -179,6 +179,7 @@
   var saveInFlight = false;
   var saveAgain = false;
   var saveAgainKeepalive = false;
+  var savePromise = Promise.resolve(null);
 
   function isAccepted(artist) {
     if (!artist || !artist.name) return false;
@@ -1068,19 +1069,20 @@
   function saveArtist(opts) {
     var quiet = Boolean(opts && opts.quiet);
     var keepalive = Boolean(opts && opts.keepalive);
+    var revealErrors = Boolean(opts && opts.revealErrors) || !quiet;
     if (!current.selected) {
-      if (!quiet) showError('Select an artist first.');
+      if (revealErrors) showError('Select an artist first.');
       return Promise.resolve(null);
     }
     if (saveInFlight) {
       saveAgain = true;
       if (keepalive) saveAgainKeepalive = true;
-      return Promise.resolve(null);
+      return savePromise;
     }
     showError('');
-    var platforms = collectPlatformLinks({ strict: !quiet });
+    var platforms = collectPlatformLinks({ strict: revealErrors && !quiet });
     if (platforms.error) {
-      if (!quiet) showError(platforms.error);
+      if (revealErrors) showError(platforms.error);
       return Promise.resolve(null);
     }
     saveInFlight = true;
@@ -1115,7 +1117,7 @@
       confirm_different: true,
     };
     if (nextPhoto !== storedPhoto) body.photo = nextPhoto;
-    return post('/api/me/artists', body, { keepalive: keepalive }).then(function (result) {
+    savePromise = post('/api/me/artists', body, { keepalive: keepalive }).then(function (result) {
       saveInFlight = false;
       if (saveAgain) {
         saveAgain = false;
@@ -1138,6 +1140,20 @@
       saveInFlight = false;
       showError('Could not save artist.');
       return null;
+    });
+    return savePromise;
+  }
+
+  function finishEdit() {
+    if (!current.selected) return Promise.resolve(null);
+    if (saveTimer) {
+      try { clearTimeout(saveTimer); } catch (err) {}
+      saveTimer = null;
+    }
+    return saveArtist({ quiet: true, revealErrors: true }).then(function (data) {
+      if (!data || !data.updated) return data;
+      if (current.selected) selectArtist(current.selected, 'preview');
+      return data;
     });
   }
 
@@ -1297,7 +1313,7 @@
     var linkBtn = $('[data-artist-link]');
     if (linkBtn) linkBtn.addEventListener('click', function () { linkArtist(); });
     var saveBtn = $('[data-artist-save]');
-    if (saveBtn) saveBtn.addEventListener('click', function () { saveArtist(); });
+    if (saveBtn) saveBtn.addEventListener('click', function () { return finishEdit(); });
     Array.prototype.forEach.call(document.querySelectorAll('[data-artist-delete]'), function (btn) {
       btn.addEventListener('click', function () {
         deleteArtist(btn.getAttribute('data-artist-delete') || '');
@@ -1358,9 +1374,7 @@
     }
     var doneEdit = $('[data-artist-edit-done]');
     if (doneEdit) {
-      doneEdit.addEventListener('click', function () {
-        if (current.selected) selectArtist(current.selected, 'preview');
-      });
+      doneEdit.addEventListener('click', function () { return finishEdit(); });
     }
     if (document.addEventListener) {
       document.addEventListener('click', function (event) {
@@ -1432,6 +1446,7 @@
     createArtist: createArtist,
     linkArtist: linkArtist,
     saveArtist: saveArtist,
+    finishEdit: finishEdit,
     scheduleSave: scheduleSave,
     flushSave: flushSave,
     deleteArtist: deleteArtist,
