@@ -204,6 +204,8 @@
   var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
   var REVIEW_REATTACH_COPY = 'Go back to Upload and re-attach your master';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
+  var LEAVE_UPLOAD_COPY = 'Saving your upload…';
+  var HOLD_PERSIST_MS = 12000;
 
   function missingAudioResult(draft) {
     return { failed: true, missingAudio: true, result: { data: { error: AUDIO_REQUIRED_COPY } }, draft: draft };
@@ -5549,10 +5551,48 @@
       });
     }
 
+    function holdPersistTimeoutMs() {
+      var forced = 0;
+      try {
+        if (typeof window !== 'undefined') forced = Number(window.PLAIGROUND_HOLD_PERSIST_MS);
+      } catch (err) {}
+      if (forced > 0 && isFinite(forced)) return forced;
+      return HOLD_PERSIST_MS;
+    }
+
+    function withHoldPersistTimeout(work) {
+      var ms = holdPersistTimeoutMs();
+      var settled = false;
+      return new Promise(function (resolve) {
+        var timer = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          resolve(null);
+        }, ms);
+        Promise.resolve(work).then(function (value) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }, function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(null);
+        });
+      });
+    }
+
+    function leaveUploadLoaderCopy() {
+      return LEAVE_UPLOAD_COPY;
+    }
+
     function finishToAttest(nextHref, message) {
-      showUploadLoader('Opening SignWell');
-      setStatus('tg-status', message || 'Opening SignWell…');
-      return persistLocalUploadFiles().then(function () {
+      var leaveCopy = leaveUploadLoaderCopy();
+      showUploadLoader(leaveCopy);
+      if (message && /signwell/i.test(String(message))) message = leaveCopy;
+      setStatus('tg-status', message || leaveCopy);
+      return withHoldPersistTimeout(persistLocalUploadFiles()).then(function () {
         setUploadBusy(false);
         continueAfterCatalog(nextHref, message);
       });

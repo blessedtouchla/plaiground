@@ -347,6 +347,7 @@ function load(options) {
     Promise,
     setTimeout,
     clearTimeout,
+    PLAIGROUND_HOLD_PERSIST_MS: opts.holdPersistMs || 0,
     localStorage,
     sessionStorage,
     indexedDB: {
@@ -377,6 +378,7 @@ function load(options) {
             },
           },
         };
+        if (opts.hangHold) return req;
         setImmediate(function () {
           if (typeof req.onupgradeneeded === 'function') req.onupgradeneeded();
           if (typeof req.onsuccess === 'function') req.onsuccess();
@@ -834,7 +836,8 @@ async function run() {
   const upload = load(filledUpload({ featured: '', responses: uploadResponses.slice() }));
   upload.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
-  assert.ok(/Opening SignWell/i.test(upload.loaderStep.textContent + upload.status.textContent));
+  assert.ok(/Saving your upload/i.test(upload.loaderStep.textContent + upload.status.textContent));
+  assert.ok(!/signwell/i.test(upload.loaderStep.textContent + upload.status.textContent), 'solo Continue must never imply SignWell');
   assertContinueLocalOnly(upload, 'Continue');
   const draft = draftOf(upload.localStorage);
   assert.strictEqual(draft.name, 'Ada Night');
@@ -847,6 +850,20 @@ async function run() {
   upload.retryBtn.listeners.click({ preventDefault() {} });
   await flush();
   assert.strictEqual(storeCreateHops(upload).length, 0, 'Retry on upload must not POST /releases');
+
+  const hangHold = load(filledUpload({
+    hangHold: true,
+    holdPersistMs: 30,
+    featured: '',
+    responses: uploadResponses.slice(),
+  }));
+  hangHold.continueBtn.listeners.click({ preventDefault() {} });
+  await flush(2);
+  assert.ok(/Saving your upload/i.test(hangHold.loaderStep.textContent + hangHold.status.textContent));
+  assert.ok(!/signwell/i.test(hangHold.loaderStep.textContent + hangHold.status.textContent));
+  await new Promise(function (resolve) { setTimeout(resolve, 80); });
+  await flush(4);
+  assertContinueLocalOnly(hangHold, 'hung IDB persist still Continues');
 
   const typedCredits = load(filledUpload({
     label: 'Night Records',
@@ -4281,7 +4298,11 @@ async function run() {
   assert.ok(source.includes('keepUploadBarVisible'));
   assert.ok(fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8').includes("return 'Converting to WAV';"));
   assert.ok(source.includes('Uploading artwork'));
-  assert.ok(source.includes('Opening SignWell'));
+  assert.ok(source.includes('Saving your upload'));
+  assert.ok(source.includes('LEAVE_UPLOAD_COPY'));
+  assert.ok(source.includes('HOLD_PERSIST_MS'));
+  assert.ok(source.includes('withHoldPersistTimeout'));
+  assert.ok(!source.includes('Opening SignWell'), 'Upload Continue must not say Opening SignWell');
   assert.ok(source.includes('Audio must be WAV, FLAC, or MP3.'));
   assert.ok(!source.includes('Audio must be WAV or FLAC.'));
   assert.ok(!source.includes('Neon Shadows'));
@@ -4348,14 +4369,15 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c8'), 'review.html must cache-bust past 20260902c8');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260903audio1'), 'review.html must cache-bust past 20260903audio1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html must cache-bust past 20260906a3');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260906c1'), 'review.html cache-busts store-client.js at 20260906c1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260906c1'), 'review.html must cache-bust past 20260906c1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260906c2'), 'review.html cache-busts store-client.js at 20260906c2');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c1'), 'upload.html cache-busts store-client.js at 20260906c1');
-  assert.ok(attestHtml.includes('store-client.js?v=20260906c1'), 'attest.html cache-busts store-client.js at 20260906c1');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c2'), 'upload.html cache-busts store-client.js at 20260906c2');
+  assert.ok(attestHtml.includes('store-client.js?v=20260906c2'), 'attest.html cache-busts store-client.js at 20260906c2');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c1'), 'split-sheet.html cache-busts store-client.js at 20260906c1');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c2'), 'split-sheet.html cache-busts store-client.js at 20260906c2');
   assert.ok(source.includes('REVIEW_REATTACH_COPY'));
   assert.ok(source.includes('Go back to Upload and re-attach your master'));
   assert.ok(source.includes('refreshHeldAudioSlots'));
