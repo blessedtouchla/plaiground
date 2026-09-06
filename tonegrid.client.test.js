@@ -863,7 +863,10 @@ async function run() {
   assert.ok(!/signwell/i.test(hangHold.loaderStep.textContent + hangHold.status.textContent));
   await new Promise(function (resolve) { setTimeout(resolve, 80); });
   await flush(4);
-  assertContinueLocalOnly(hangHold, 'hung IDB persist still Continues');
+  assert.ok(String(hangHold.location.href).indexOf('attest.html') === -1, 'hung IDB persist must not leave Upload');
+  assert.ok(/Could not keep your master/i.test(hangHold.status.textContent), hangHold.status.textContent);
+  assert.ok(/re-pick/i.test(hangHold.status.textContent));
+  assert.strictEqual(storeCreateHops(hangHold).length, 0, 'hung IDB persist must not mint or hop');
 
   const typedCredits = load(filledUpload({
     label: 'Night Records',
@@ -1257,6 +1260,7 @@ async function run() {
   payRepick.reviewMasterPick._plaigroundFile = AUDIO;
   payRepick.reviewMasterPick.listeners.change({ target: payRepick.reviewMasterPick });
   await flush(4);
+  assert.strictEqual(payRepick.reviewAudioName.textContent, 'night-drive.wav', 'Review re-pick shows the held filename');
   payRepick.payBtn.removeAttribute('aria-busy');
   payRepick.payBtn.listeners.click({ preventDefault() {} });
   await flush(8);
@@ -2645,6 +2649,41 @@ async function run() {
     assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
     assert.ok(!/Audio required — upload your master before sending/.test(page.status.textContent));
     assert.ok(!page.reviewAudioRepick.hidden, 'failSubmit missing master shows Re-attach');
+  }
+
+  async function reviewFailSubmitHeldFileUsesSendCopy() {
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      file: AUDIO,
+      heldFile: AUDIO,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 400, data: { error: 'audio file is required.' } },
+        { ok: false, status: 400, data: { error: 'audio file is required.' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(!/Audio required — upload your master before sending/.test(page.status.textContent), page.status.textContent);
+    assert.ok(
+      /We could not send the audio|Could not attach the audio/i.test(page.status.textContent),
+      page.status.textContent || 'held File + store audio-required must use send-fail copy'
+    );
+    assert.ok(!page.reviewAudioRepick.hidden, 'held File send-fail keeps Re-attach visible');
   }
 
   async function reviewReattachOnlyWhenNeverHadAudio() {
@@ -4183,6 +4222,7 @@ async function run() {
   await reviewSubmitUsesStoreTracksWithoutFile();
   await reviewHeldFileUploadsAfterDeadRelease();
   await reviewFailSubmitMissingMasterUsesReattachCopy();
+  await reviewFailSubmitHeldFileUsesSendCopy();
   await reviewReattachOnlyWhenNeverHadAudio();
   await reviewSubmitEnsuresCatalogArtist();
   await reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce();
@@ -4405,18 +4445,26 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html must cache-bust past 20260906a3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c1'), 'review.html must cache-bust past 20260906c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c2'), 'review.html must cache-bust past 20260906c2');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260906c3'), 'review.html cache-busts store-client.js at 20260906c3');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260906c3'), 'review.html must cache-bust past 20260906c3');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260906c4'), 'review.html cache-busts store-client.js at 20260906c4');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c3'), 'upload.html cache-busts store-client.js at 20260906c3');
-  assert.ok(attestHtml.includes('store-client.js?v=20260906c3'), 'attest.html cache-busts store-client.js at 20260906c3');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c4'), 'upload.html cache-busts store-client.js at 20260906c4');
+  assert.ok(attestHtml.includes('store-client.js?v=20260906c4'), 'attest.html cache-busts store-client.js at 20260906c4');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c3'), 'split-sheet.html cache-busts store-client.js at 20260906c3');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c4'), 'split-sheet.html cache-busts store-client.js at 20260906c4');
   assert.ok(source.includes('REVIEW_REATTACH_COPY'));
   assert.ok(source.includes('Go back to Upload and re-attach your master'));
   assert.ok(source.includes('reviewHeldMasterFile'));
+  assert.ok(source.includes('reviewSubmitAudioFailCopy'));
+  assert.ok(source.includes('confirmHeldMasterReadback'));
+  assert.ok(source.includes('HOLD_KEEP_PHONE_COPY'));
+  assert.ok(source.includes('Could not keep your master on this phone'));
+  assert.ok(source.includes('timedOut'));
+  assert.ok(!/withHoldPersistTimeout\(persistLocalUploadFiles\(\)\)\.then\(function \(\) \{\s*setUploadBusy\(false\);\s*continueAfterCatalog/.test(source), 'hold timeout must not leave Upload');
   assert.ok(/failSubmit[\s\S]*syncReviewAudioRepick\(true\)/.test(source), 'Review failSubmit must show Re-attach master');
+  assert.ok(!/onReviewPage\(\) && !reviewHeldMasterFile\(\)\s*\n\s*\? reviewMissingMasterCopy\(\)\s*\n\s*: AUDIO_REQUIRED_COPY/.test(source), 'Review must not fall through to Audio required copy');
   assert.ok(source.includes('refreshHeldAudioSlots'));
   assert.ok(source.includes('persistHeldBundle'));
   assert.ok(source.includes('bindReviewAudioRepick'));
