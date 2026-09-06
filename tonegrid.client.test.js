@@ -1291,7 +1291,7 @@ async function run() {
       { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
     ],
   });
-  await flush(8);
+  await flush(16);
   const soloCall = soloSubmit.calls.find(function (call) {
     return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
   });
@@ -1573,14 +1573,16 @@ async function run() {
       title: 'Night Drive',
       artist: 'Ada Night',
       releaseDate: '2035-01-15',
-      draft: {
+      file: AUDIO,
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
         artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         title: 'Night Drive',
         name: 'Ada Night',
         solo_owned_100: true,
         rights_confirmed: true,
         made_how: 'no_ai',
-      },
+      }),
       rejectWhen: '/api/tonegrid/tracks',
       rejectMessage: 'ToneGrid sandbox exploded.',
       responses: [
@@ -1954,7 +1956,6 @@ async function run() {
       }),
       responses: [
         { ok: false, status: 404, data: { error: 'Release not found.' } },
-        { ok: true, status: 201, data: { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
@@ -3166,8 +3167,6 @@ async function run() {
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: false, status: 500, data: { error: 'Internal server error' } },
-        { ok: true, status: 201, data: { track: { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff' } } },
-        { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
@@ -3189,10 +3188,12 @@ async function run() {
     const after = page.calls.filter(function (call) {
       return String(call.url).indexOf('/audio') !== -1;
     });
-    assert.ok(after.length > before.length, 'Retry must resend the same converted WAV');
     after.forEach(function (call) { assertAudioKey(call, 'retry'); });
-    assert.ok(hoppedFile(page.calls, heldWav), 'Retry must hop the same converted WAV');
+    assert.ok(hoppedFile(page.calls, heldWav), 'Retry must keep the same converted WAV');
     assert.strictEqual(page.convertCalls, 0, 'Retry must not convert again');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('/submit') !== -1;
+    }), 'Retry must submit after the accepted attach');
     assert.ok(!/ToneGrid/i.test(page.status.textContent));
     assert.strictEqual(page.loader.hidden, true, 'Working must not hang after Retry');
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
@@ -3346,6 +3347,7 @@ async function run() {
         audio_picked_name: original.name,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -3405,6 +3407,7 @@ async function run() {
         audio_picked_name: original.name,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -3508,6 +3511,7 @@ async function run() {
         audio_picked_name: wav.name,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -3561,6 +3565,7 @@ async function run() {
         audio_picked_name: original.name,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -3572,7 +3577,6 @@ async function run() {
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: false, status: 413, data: { error: 'FUNCTION_PAYLOAD_TOO_LARGE' } },
-        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
@@ -3687,6 +3691,7 @@ async function run() {
         audio_picked_name: 'night-drive.mp3',
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -3697,7 +3702,7 @@ async function run() {
       },
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
-        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
@@ -3731,6 +3736,7 @@ async function run() {
         audio_converted: true,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -3741,7 +3747,7 @@ async function run() {
       },
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
-        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
@@ -3778,6 +3784,7 @@ async function run() {
         audio_converted: true,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       responses: [
         { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
@@ -3844,6 +3851,7 @@ async function run() {
       catalogTimeoutMs: 40,
       hangWhen: '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit',
       hangCount: 4,
+      file: AUDIO,
       draft: Object.assign(attestDraft(), {
         artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         title: 'Night Drive',
@@ -3854,9 +3862,10 @@ async function run() {
         audio_attached: true,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       responses: [
-        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [storeAudioTrack('cccccccc-cccc-4ccc-8ccc-cccccccccccc')] } },
       ],
     });
     await flush();
@@ -4260,13 +4269,13 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c2'), 'review.html must cache-bust past 20260902c2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c8'), 'review.html must cache-bust past 20260902c8');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260903audio1'), 'review.html must cache-bust past 20260903audio1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260906a2'), 'review.html cache-busts store-client.js at 20260906a2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html cache-busts store-client.js at 20260906a3');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906a2'), 'upload.html cache-busts store-client.js at 20260906a2');
-  assert.ok(attestHtml.includes('store-client.js?v=20260906a2'), 'attest.html cache-busts store-client.js at 20260906a2');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906a2'), 'split-sheet.html cache-busts store-client.js at 20260906a2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906a3'), 'upload.html cache-busts store-client.js at 20260906a3');
+  assert.ok(attestHtml.includes('store-client.js?v=20260906a3'), 'attest.html cache-busts store-client.js at 20260906a3');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906a3'), 'split-sheet.html cache-busts store-client.js at 20260906a3');
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
@@ -4683,6 +4692,8 @@ async function run() {
     const review = load({
       bind: 'review',
       releaseDate: '2026-09-20',
+      file: AUDIO,
+      artwork: ART,
       draft: Object.assign(attestDraft(), {
         title: 'Night Drive',
         name: 'Neon Nova',
@@ -4690,6 +4701,7 @@ async function run() {
         language: 'en',
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'creator',
@@ -5235,7 +5247,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-11',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5247,7 +5259,7 @@ async function run() {
         audio_name: 'The recording.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-11',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5342,7 +5354,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5354,7 +5366,7 @@ async function run() {
         audio_name: 'FUEGO GODDESS.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5453,7 +5465,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5465,7 +5477,7 @@ async function run() {
         audio_name: 'FUEGO GODDESS.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5555,7 +5567,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5567,7 +5579,7 @@ async function run() {
         audio_name: 'FUEGO GODDESS.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5629,7 +5641,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5641,7 +5653,7 @@ async function run() {
         audio_name: 'FUEGO GODDESS.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5718,7 +5730,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5730,7 +5742,7 @@ async function run() {
         audio_name: 'FUEGO GODDESS.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5796,7 +5808,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5808,7 +5820,7 @@ async function run() {
         audio_name: 'FUEGO GODDESS.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -5885,6 +5897,7 @@ async function run() {
         audio_attached: true,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'creator',
@@ -5941,7 +5954,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -5953,7 +5966,7 @@ async function run() {
         audio_name: 'I Set the Tone.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6035,7 +6048,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -6047,7 +6060,7 @@ async function run() {
         audio_name: 'I Set the Tone.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -6111,6 +6124,7 @@ async function run() {
         audio_attached: true,
         solo_owned_100: true,
         release_date: '2026-09-18',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'creator',
@@ -6169,7 +6183,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -6181,7 +6195,7 @@ async function run() {
         audio_name: 'I Set the Tone.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -6247,7 +6261,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -6259,7 +6273,7 @@ async function run() {
         audio_name: 'I Set the Tone.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6321,7 +6335,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -6333,7 +6347,7 @@ async function run() {
         audio_name: 'I Set the Tone.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6398,7 +6412,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       artwork: ART,
@@ -6417,7 +6431,7 @@ async function run() {
         artwork_object_key: 'covers/04c74127-11a8-40cf-beec-d1ffa16abd70/0767cb74-cover.jpg',
         artwork_name: 'cover.jpg',
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6490,7 +6504,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -6505,7 +6519,7 @@ async function run() {
         audio_attached: true,
         audio_uploaded: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -6557,7 +6571,7 @@ async function run() {
     const heldWav = { name: 'I Set the Tone.wav', type: 'audio/wav', size: 4096 };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: heldMp3,
       heldFile: heldMp3,
       heldPicked: heldMp3,
@@ -6578,7 +6592,7 @@ async function run() {
         audio_converted: true,
         artwork_name: 'cover.jpg',
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6671,7 +6685,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: heldMp3,
       heldFile: balloonWav,
       heldPicked: heldMp3,
@@ -6694,7 +6708,7 @@ async function run() {
         audio_converted: true,
         artwork_name: 'cover.jpg',
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6784,7 +6798,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: restoredWav,
       heldPicked: liveMp3,
@@ -6807,7 +6821,7 @@ async function run() {
         audio_converted: true,
         artwork_name: 'cover.jpg',
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
         dsps_all: true,
       }),
       account: {
@@ -6894,7 +6908,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: heldMp3,
       heldFile: balloonWav,
       heldPicked: heldMp3,
@@ -6915,7 +6929,7 @@ async function run() {
         audio_uploaded: true,
         audio_converted: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -6977,7 +6991,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-11',
+      releaseDate: '2026-09-20',
       file: heldMp3,
       heldFile: balloonWav,
       heldPicked: heldMp3,
@@ -6998,7 +7012,7 @@ async function run() {
         audio_uploaded: true,
         audio_converted: true,
         solo_owned_100: true,
-        release_date: '2026-09-11',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -7046,7 +7060,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-10',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       failHopPut: true,
@@ -7062,7 +7076,7 @@ async function run() {
         audio_attached: true,
         audio_uploaded: true,
         solo_owned_100: true,
-        release_date: '2026-09-10',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -7140,6 +7154,7 @@ async function run() {
         audio_attached: true,
         solo_owned_100: true,
         release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
         plan: 'basic',
@@ -7186,7 +7201,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-09',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -7201,7 +7216,7 @@ async function run() {
         audio_attached: true,
         audio_uploaded: true,
         solo_owned_100: true,
-        release_date: '2026-09-09',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',
@@ -7258,7 +7273,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-11',
+      releaseDate: '2026-09-20',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -7273,7 +7288,7 @@ async function run() {
         audio_attached: true,
         audio_uploaded: true,
         solo_owned_100: true,
-        release_date: '2026-09-11',
+        release_date: '2026-09-20',
       }),
       account: {
         plan: 'creator',

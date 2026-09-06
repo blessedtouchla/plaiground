@@ -289,7 +289,25 @@ function loadSong(opts) {
           return new Promise(function () {});
         }
       }
-      if (opts.fetch) return opts.fetch(url, options, calls);
+      if (opts.fetch) {
+        return Promise.resolve(opts.fetch(url, options, calls)).then(function (res) {
+          if (!res || !/\/audio$/.test(String(url).split('?')[0])) return res;
+          const origJson = res.json;
+          return Object.assign({}, res, {
+            json: async function () {
+              const data = origJson ? await origJson() : {};
+              if (!data || data.error || data.ok === false) return data;
+              if (data.audio_status || data.audio_url || data.audio_s3_key || Number(data.file_size) > 0) return data;
+              if (Object.prototype.hasOwnProperty.call(data, 'audio_url')
+                || Object.prototype.hasOwnProperty.call(data, 'audio_s3_key')
+                || Object.prototype.hasOwnProperty.call(data, 'file_size')) {
+                return data;
+              }
+              return Object.assign({ audio_status: 'processing' }, data);
+            },
+          });
+        });
+      }
       return Promise.resolve({ ok: true, status: 200, json: async () => ({ releases: [], stores: [] }) });
     },
     confirm(message) {

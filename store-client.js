@@ -982,7 +982,9 @@
 
   function keepHeldWavForRetry() {
     if (!looksLikeWav(heldAudioFile)) return;
-    writeDraft({ audio_uploaded: false });
+    if (!sessionHasAttachedAudio((readDraft() || {}).track_id)) {
+      writeDraft({ audio_uploaded: false });
+    }
     if (heldPickedFile) persistPickedAudio(heldPickedFile);
     persistHeldAudio(heldAudioFile);
   }
@@ -1088,6 +1090,7 @@
 
   function needsAudioUpload(draft, file) {
     if (alreadyUploaded(draft)) return false;
+    if (sessionHasAttachedAudio(draft && draft.track_id)) return false;
     return Boolean(fileForStoreUpload(file));
   }
 
@@ -1787,6 +1790,7 @@
       if (storeTrackHasAudio(rows[i])) return false;
     }
     if (String(draft.audio_url || draft.audio_s3_key || '').trim()) return false;
+    if (sessionHasAttachedAudio(draft.track_id || firstStoreTrackId(rows))) return false;
     if (!alreadyUploaded(draft)) return false;
     return Boolean(leftoverHopFile(null) || heldPickedFile || heldAudioFile);
   }
@@ -2127,11 +2131,6 @@
     if (isUuidValue(tonegridId) && !isLocalProfileArtistId(tonegridId, current)) {
       var reusedTone = writeDraft({ artist_id: tonegridId, tonegrid_artist_id: tonegridId });
       return Promise.resolve({ ok: true, draft: reusedTone, reused: true });
-    }
-    var fromRoster = existingStoreArtistId(current);
-    if (fromRoster) {
-      var rostered = writeDraft({ artist_id: fromRoster, tonegrid_artist_id: fromRoster });
-      return Promise.resolve({ ok: true, draft: rostered, reused: true });
     }
     var name = String(current.name || '').trim();
     if (!name) {
@@ -2608,7 +2607,7 @@
           }
           return missingAudioResult(next);
         }
-        if (existingSend && next.track_id && !alreadyUploaded(next)) {
+        if (existingSend && next.track_id && !alreadyUploaded(next) && !storeHasAudio) {
           return uploadTrackAudio(next.track_id, existingSend).then(function (audio) {
             if (audio.failed && audioRequiredResult(audio) && alreadyConverted(next) && storeHasAudio) {
               return { ok: true, draft: next, storeHasAudio: storeHasAudio };
@@ -3873,6 +3872,12 @@
       );
       if (storeTracks.length) {
         ready = persistFoundTracks(ready, storeTracks);
+        if (knownLeftoverNeedsAudioHop(ready, storeTracks)) {
+          return { ok: true, draft: ready };
+        }
+        return createTrackOnRelease(ready, { storeHasAudio: storeHasAudio });
+      }
+      if (!isFirstSubmitLeave(ready) && ready.track_id) {
         return createTrackOnRelease(ready, { storeHasAudio: storeHasAudio });
       }
       if (listed || ready.track_id || ready.track_idempotency_key || resolved.found) {
@@ -3881,10 +3886,9 @@
           track_idempotency_key: '',
           track_idempotency_body: '',
           audio_uploaded: false,
-          audio_converted: false,
         });
         clearSessionAudioAttached();
-        return createTrackOnRelease(ready, { force: true, storeHasAudio: storeHasAudio });
+        return createTrackOnRelease(ready, { force: true });
       }
       return createTrackOnRelease(ready, { storeHasAudio: storeHasAudio });
     });
@@ -3909,9 +3913,9 @@
       if (file && file.name) next = writeDraft({ audio_name: file.name });
       var chain = Promise.resolve({ ok: true, draft: next, track: track });
       var firstLeave = isFirstSubmitLeave(next);
-      var storeHasAudio = Boolean(opts && opts.storeHasAudio);
-      if (file && next.track_id && (needsAudioUpload(next, file) || (firstLeave && !storeHasAudio))) {
-        chain = uploadTrackAudio(next.track_id, file, null, firstLeave && !storeHasAudio ? { force: true } : null).then(function (audio) {
+      var storeHasAudio = Boolean(opts && opts.storeHasAudio) || sessionHasAttachedAudio(next.track_id);
+      if (file && next.track_id && !storeHasAudio && (needsAudioUpload(next, file) || firstLeave)) {
+        chain = uploadTrackAudio(next.track_id, file, null, firstLeave ? { force: true } : null).then(function (audio) {
           if (audio.skipped && firstLeave) {
             return missingAudioResult(next);
           }
@@ -3919,7 +3923,9 @@
             return { ok: true, draft: next, track: track, audio: audio };
           }
           if (audio.failed || audio.unavailable) {
-            return firstLeave
+            var attachDenied = audioRequiredResult(audio)
+              || /audio required/i.test(String((audio.result && audio.result.data && audio.result.data.error) || ''));
+            return firstLeave && attachDenied
               ? missingAudioResult(next)
               : {
                 ok: false,
@@ -3935,11 +3941,18 @@
           rememberSessionAttachedTrack(next.release_id, next.track_id);
           return { ok: true, draft: next, track: track, audio: audio };
         });
-      } else if (next.track_id && String(next.audio_object_key || '').trim()) {
+      } else if (
+        next.track_id
+        && String(next.audio_object_key || '').trim()
+        && !storeHasAudio
+        && !sessionHasAttachedAudio(next.track_id)
+      ) {
         chain = uploadTrackAudio(next.track_id, null, null, { force: true }).then(function (audio) {
           if (audio.skipped && firstLeave) return missingAudioResult(next);
           if (audio.failed || audio.unavailable) {
-            return firstLeave
+            var attachDenied = audioRequiredResult(audio)
+              || /audio required/i.test(String((audio.result && audio.result.data && audio.result.data.error) || ''));
+            return firstLeave && attachDenied
               ? missingAudioResult(next)
               : {
                 ok: false,
@@ -6027,6 +6040,10 @@
         showSubmitRetry(false);
         releaseRecreateCount = 0;
         if (knownAdoptIdsForDraft(draft)[0] && !draft.release_id) {
+          var leftoverArtist = matchingRosterStoreArtistId(draft);
+          if (leftoverArtist) {
+            draft = writeDraft({ artist_id: leftoverArtist, tonegrid_artist_id: leftoverArtist });
+          }
           ensureCatalogArtist(draft).then(function (ready) {
             if (ready.unavailable || ready.limited || ready.failed || ready.missing) {
               failSubmit(createErrorMessage(ready.result, 'Save the upload details first so a catalog artist exists.'), trigger);
