@@ -222,7 +222,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20260906r1') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20260906c1') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
   const attestSrc = fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8');
   assert.ok(/hold\.then\(goNext/.test(attestSrc), 'attest Continue awaits the IDB re-hold before leaving');

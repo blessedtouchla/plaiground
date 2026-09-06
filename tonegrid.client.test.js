@@ -1217,8 +1217,9 @@ async function run() {
   payHeldIdb.payBtn.listeners.click({ preventDefault() {} });
   await flush(8);
   assert.notStrictEqual(payHeldIdb.status.textContent, 'Go back to Upload and re-attach your master');
-  assert.notStrictEqual(payHeldIdb.status.textContent, 'Audio required — upload your master before sending');
-  assert.ok(payHeldIdb.calls.length, 'held IDB master must pass firstSubmitHasAudio');
+  assert.ok(payHeldIdb.calls.some(function (call) {
+    return String(call.url).indexOf('/api/tonegrid/') === 0;
+  }), 'held IDB master must pass firstSubmitHasAudio');
 
   const payRepick = load({
     bind: 'review',
@@ -1243,8 +1244,9 @@ async function run() {
   payRepick.payBtn.listeners.click({ preventDefault() {} });
   await flush(8);
   assert.notStrictEqual(payRepick.status.textContent, 'Go back to Upload and re-attach your master');
-  assert.notStrictEqual(payRepick.status.textContent, 'Audio required — upload your master before sending');
-  assert.ok(payRepick.calls.length, 'Review re-pick must supply a File for the Submit gate');
+  assert.ok(payRepick.calls.some(function (call) {
+    return String(call.url).indexOf('/api/tonegrid/') === 0;
+  }), 'Review re-pick must supply a File for the Submit gate');
 
   const paySkip = load({
     bind: 'review',
@@ -4346,17 +4348,18 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260902c8'), 'review.html must cache-bust past 20260902c8');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260903audio1'), 'review.html must cache-bust past 20260903audio1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html must cache-bust past 20260906a3');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260906r1'), 'review.html cache-busts store-client.js at 20260906r1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260906c1'), 'review.html cache-busts store-client.js at 20260906c1');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906r1'), 'upload.html cache-busts store-client.js at 20260906r1');
-  assert.ok(attestHtml.includes('store-client.js?v=20260906r1'), 'attest.html cache-busts store-client.js at 20260906r1');
-  assert.ok(attestHtml.includes('attest.js?v=20260906r1'), 'attest.html cache-busts attest.js at 20260906r1');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906r1'), 'split-sheet.html cache-busts store-client.js at 20260906r1');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c1'), 'upload.html cache-busts store-client.js at 20260906c1');
+  assert.ok(attestHtml.includes('store-client.js?v=20260906c1'), 'attest.html cache-busts store-client.js at 20260906c1');
+  assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c1'), 'split-sheet.html cache-busts store-client.js at 20260906c1');
   assert.ok(source.includes('REVIEW_REATTACH_COPY'));
   assert.ok(source.includes('Go back to Upload and re-attach your master'));
   assert.ok(source.includes('refreshHeldAudioSlots'));
+  assert.ok(source.includes('persistHeldBundle'));
   assert.ok(source.includes('bindReviewAudioRepick'));
   assert.ok(source.includes('bindAttestHold'));
   assert.ok(reviewHtml.includes('data-review-master-pick'), 'Review can re-attach a missing master');

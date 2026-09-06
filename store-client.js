@@ -1338,6 +1338,58 @@
     return persistHeldSlot(ready, AUDIO_HOLD_KEY, function (next) { heldAudioFile = next; });
   }
 
+  function persistHeldBundle(audio, picked, artwork) {
+    var items = [
+      { file: audio || heldAudioFile, key: AUDIO_HOLD_KEY, assign: function (next) { heldAudioFile = next; } },
+      { file: picked || heldPickedFile, key: AUDIO_PICKED_KEY, assign: function (next) { heldPickedFile = next; } },
+      { file: artwork || heldArtworkFile, key: ARTWORK_HOLD_KEY, assign: function (next) { heldArtworkFile = next; } },
+    ];
+    return Promise.all(items.map(function (item) {
+      return cloneForHold(item.file).then(function (stored) {
+        var live = (item.file && Number(item.file.size) > 0 ? item.file : null) || fileFromHeld(stored) || item.file;
+        if (live && typeof item.assign === 'function') item.assign(live);
+        return { key: item.key, stored: stored, live: live };
+      });
+    })).then(function (rows) {
+      return new Promise(function (resolve) {
+        var ready = rows.filter(function (row) { return row.stored || row.live; });
+        if (!ready.length) {
+          resolve(null);
+          return;
+        }
+        try {
+          if (typeof indexedDB === 'undefined' || !indexedDB.open) {
+            resolve(ready);
+            return;
+          }
+          var req = indexedDB.open(AUDIO_HOLD_DB, 1);
+          req.onerror = function () { resolve(ready); };
+          req.onupgradeneeded = function () {
+            if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
+              req.result.createObjectStore(AUDIO_HOLD_STORE);
+            }
+          };
+          req.onsuccess = function () {
+            try {
+              var tx = req.result.transaction(AUDIO_HOLD_STORE, 'readwrite');
+              tx.oncomplete = function () { resolve(ready); };
+              tx.onerror = function () { resolve(ready); };
+              tx.onabort = function () { resolve(ready); };
+              var store = tx.objectStore(AUDIO_HOLD_STORE);
+              ready.forEach(function (row) {
+                store.put(row.stored || row.live, row.key);
+              });
+            } catch (err) {
+              resolve(ready);
+            }
+          };
+        } catch (err) {
+          resolve(ready);
+        }
+      });
+    });
+  }
+
   function persistPickedAudio(file) {
     var ready = file || heldPickedFile;
     if (ready) heldPickedFile = ready;
@@ -1444,11 +1496,7 @@
 
   function refreshHeldAudioSlots() {
     return restoreHeldAudio().then(function () {
-      return persistHeldAudio(heldAudioFile);
-    }).then(function () {
-      return persistPickedAudio(heldPickedFile);
-    }).then(function () {
-      return persistHeldArtwork(heldArtworkFile);
+      return persistHeldBundle(heldAudioFile, heldPickedFile, heldArtworkFile);
     });
   }
 
@@ -5490,13 +5538,14 @@
 
     function persistLocalUploadFiles() {
       var files = (typeof window !== 'undefined' && window.PlaigroundUploadDraftFiles) || null;
-      return persistHeldAudio(heldAudioFile || selectedAudio()).then(function () {
-        return persistPickedAudio(heldPickedFile);
-      }).then(function () {
+      var audio = heldAudioFile || selectedAudio();
+      var picked = heldPickedFile;
+      var artwork = heldArtworkFile || selectedArtwork();
+      return persistHeldBundle(audio, picked, artwork).then(function () {
         if (files && typeof files.persistPickedFiles === 'function') {
           return files.persistPickedFiles(window);
         }
-        return persistHeldArtwork(heldArtworkFile || selectedArtwork());
+        return null;
       });
     }
 
