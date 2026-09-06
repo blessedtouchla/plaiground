@@ -2614,6 +2614,39 @@ async function run() {
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
+  async function reviewFailSubmitMissingMasterUsesReattachCopy() {
+    const emptyHold = { name: 'night-drive.wav', type: 'audio/wav', size: 0 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      file: emptyHold,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        audio_object_key: 'objects/stale-master',
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 400, data: { error: 'audio file is required.' } },
+        { ok: false, status: 400, data: { error: 'audio file is required.' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
+    assert.ok(!/Audio required — upload your master before sending/.test(page.status.textContent));
+    assert.ok(!page.reviewAudioRepick.hidden, 'failSubmit missing master shows Re-attach');
+  }
+
   async function reviewReattachOnlyWhenNeverHadAudio() {
     const page = load({
       bind: 'review',
@@ -4149,6 +4182,7 @@ async function run() {
   await reviewKeepsLivingReleaseForThisTitle();
   await reviewSubmitUsesStoreTracksWithoutFile();
   await reviewHeldFileUploadsAfterDeadRelease();
+  await reviewFailSubmitMissingMasterUsesReattachCopy();
   await reviewReattachOnlyWhenNeverHadAudio();
   await reviewSubmitEnsuresCatalogArtist();
   await reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce();
@@ -4370,16 +4404,19 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260903audio1'), 'review.html must cache-bust past 20260903audio1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906a3'), 'review.html must cache-bust past 20260906a3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c1'), 'review.html must cache-bust past 20260906c1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260906c2'), 'review.html cache-busts store-client.js at 20260906c2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260906c2'), 'review.html must cache-bust past 20260906c2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260906c3'), 'review.html cache-busts store-client.js at 20260906c3');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c2'), 'upload.html cache-busts store-client.js at 20260906c2');
-  assert.ok(attestHtml.includes('store-client.js?v=20260906c2'), 'attest.html cache-busts store-client.js at 20260906c2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260906c3'), 'upload.html cache-busts store-client.js at 20260906c3');
+  assert.ok(attestHtml.includes('store-client.js?v=20260906c3'), 'attest.html cache-busts store-client.js at 20260906c3');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c2'), 'split-sheet.html cache-busts store-client.js at 20260906c2');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260906c3'), 'split-sheet.html cache-busts store-client.js at 20260906c3');
   assert.ok(source.includes('REVIEW_REATTACH_COPY'));
   assert.ok(source.includes('Go back to Upload and re-attach your master'));
+  assert.ok(source.includes('reviewHeldMasterFile'));
+  assert.ok(/failSubmit[\s\S]*syncReviewAudioRepick\(true\)/.test(source), 'Review failSubmit must show Re-attach master');
   assert.ok(source.includes('refreshHeldAudioSlots'));
   assert.ok(source.includes('persistHeldBundle'));
   assert.ok(source.includes('bindReviewAudioRepick'));
