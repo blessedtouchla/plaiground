@@ -208,7 +208,10 @@
   var HOLD_PERSIST_MS = 12000;
 
   function missingAudioResult(draft) {
-    return { failed: true, missingAudio: true, result: { data: { error: AUDIO_REQUIRED_COPY } }, draft: draft };
+    var copy = onReviewPage() && !reviewHeldMasterFile()
+      ? REVIEW_REATTACH_COPY
+      : AUDIO_REQUIRED_COPY;
+    return { failed: true, missingAudio: true, result: { data: { error: copy } }, draft: draft };
   }
 
   function fileForFirstSubmitAttach(file) {
@@ -979,6 +982,11 @@
     return REVIEW_REATTACH_COPY;
   }
 
+  function reviewHeldMasterFile() {
+    var file = fileForFirstSubmitAttach(selectedAudio());
+    return file && Number(file.size) > 0 ? file : null;
+  }
+
   function onReviewPage() {
     return Boolean(document.querySelector('[data-store-submit]') || document.querySelector('[data-review-title]'));
   }
@@ -1507,12 +1515,15 @@
     return (helper && helper.ACCEPT) || 'audio/*,.wav,.flac,.mp3,.mpeg,.mpga';
   }
 
-  function syncReviewAudioRepick() {
+  function syncReviewAudioRepick(forceShow) {
     var wrap = document.querySelector('[data-review-audio-repick]');
     if (!wrap) return;
     var draft = readDraft();
     var file = selectedAudio();
-    var hasMaster = firstSubmitHasAudio({ audio: file, audio_object_key: draft.audio_object_key }, draft);
+    var hasFile = Boolean(reviewHeldMasterFile());
+    var hasMaster = forceShow
+      ? hasFile
+      : firstSubmitHasAudio({ audio: file, audio_object_key: draft.audio_object_key }, draft);
     setHiddenEl(wrap, hasMaster);
     var nameEl = document.querySelector('[data-review-audio-name]');
     if (nameEl) nameEl.textContent = file && file.name ? String(file.name) : '';
@@ -6002,7 +6013,10 @@
     var shown = sanitizePartnerCopy(message || '');
     var draft = readDraft();
     var knownLeftover = Boolean(knownAdoptIdsForDraft(draft)[0] || isKnownAdoptRelease(draft && draft.release_id));
-    if (isAudioRequiredError(shown) && alreadyHasAudio(draft) && !knownLeftover) {
+    var reviewNoMaster = onReviewPage() && !reviewHeldMasterFile();
+    if (reviewNoMaster && (isAudioRequiredError(shown) || isAudioRequiredError(message) || isReviewMissingMasterMessage(shown || message))) {
+      shown = reviewMissingMasterCopy();
+    } else if (isAudioRequiredError(shown) && alreadyHasAudio(draft) && !knownLeftover) {
       shown = AUDIO_REQUIRED_COPY;
     }
     if (isMissingTrackError({ data: { error: shown } }) && draftHasTrackFile(draft)) {
@@ -6017,7 +6031,7 @@
       shown !== attachFailedMessage()
       && !knownLeftover
       && onReviewPage()
-      && !fileForFirstSubmitAttach(selectedAudio())
+      && !reviewHeldMasterFile()
       && isReviewMissingMasterMessage(shown || message)
     ) {
       shown = reviewMissingMasterCopy();
@@ -6025,6 +6039,9 @@
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
     showSubmitRetry(Boolean(shown) || Boolean(message));
+    if (onReviewPage() && (shown === reviewMissingMasterCopy() || (reviewNoMaster && isReviewMissingMasterMessage(shown || message)))) {
+      syncReviewAudioRepick(true);
+    }
   }
 
   function finishSubmit(draft, releaseDate, trigger, nextHref) {
@@ -6076,7 +6093,12 @@
             return;
           }
           if (isAudioRequiredError(submitErr) && !knownLeftover) {
-            failSubmit(AUDIO_REQUIRED_COPY, trigger);
+            failSubmit(
+              onReviewPage() && !reviewHeldMasterFile()
+                ? reviewMissingMasterCopy()
+                : AUDIO_REQUIRED_COPY,
+              trigger
+            );
             return;
           }
           failSubmit(submitErr, trigger);
