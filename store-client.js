@@ -2047,12 +2047,15 @@
     return out;
   }
 
+  function hasCatalogArtistMapping(draft) {
+    var mapping = catalogArtistMapping(draft);
+    return Boolean(mapping.platform_links || mapping.spotify_id || mapping.apple_id || mapping.store_url);
+  }
+
   function mergeCatalogArtistMapping(draft) {
     var current = draft || readDraft();
+    if (!hasCatalogArtistMapping(current)) return Promise.resolve();
     var mapping = catalogArtistMapping(current);
-    if (!mapping.platform_links && !mapping.spotify_id && !mapping.apple_id && !mapping.store_url) {
-      return Promise.resolve();
-    }
     return post(ARTISTS_URL, Object.assign({
       name: String(current.name || '').trim(),
       plaiground_artist_id: current.plaiground_artist_id || '',
@@ -3647,8 +3650,12 @@
     });
   }
 
-  function afterRelease(draft) {
-    return mergeCatalogArtistMapping(draft).then(function () {
+  function afterRelease(draft, opts) {
+    if (!(opts && opts.merged) && hasCatalogArtistMapping(draft)) {
+      return mergeCatalogArtistMapping(draft).then(function () {
+        return afterRelease(draft, { merged: true });
+      });
+    }
     return resolveLiveRelease(draft).then(function (resolved) {
       if (resolved.unavailable || resolved.limited || resolved.failed || resolved.missing) return resolved;
       var ready = resolved.draft || draft;
@@ -3674,7 +3681,6 @@
         return createTrackOnRelease(ready, { force: true });
       }
       return createTrackOnRelease(ready);
-    });
     });
   }
 
