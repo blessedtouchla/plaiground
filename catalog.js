@@ -244,6 +244,12 @@
       var alertText = mapped.alert || ((statusApi() && typeof statusApi().problemAlert === 'function')
         ? statusApi().problemAlert(row)
         : '');
+      if (!alertText && Array.isArray(row.tracks) && row.tracks.length) {
+        var hasMaster = row.tracks.some(function (track) {
+          return track && (track.audio_url || track.audio_s3_key || track.s3_key || Number(track.file_size) > 0);
+        });
+        if (!hasMaster) alertText = 'Audio required — upload your master before sending';
+      }
       var titleCell = document.createElement('td');
       var wrap = document.createElement('div');
       wrap.className = 'rel';

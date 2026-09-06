@@ -289,7 +289,25 @@ function loadSong(opts) {
           return new Promise(function () {});
         }
       }
-      if (opts.fetch) return opts.fetch(url, options, calls);
+      if (opts.fetch) {
+        return Promise.resolve(opts.fetch(url, options, calls)).then(function (res) {
+          if (!res || !/\/audio$/.test(String(url).split('?')[0])) return res;
+          const origJson = res.json;
+          return Object.assign({}, res, {
+            json: async function () {
+              const data = origJson ? await origJson() : {};
+              if (!data || data.error || data.ok === false) return data;
+              if (data.audio_status || data.audio_url || data.audio_s3_key || Number(data.file_size) > 0) return data;
+              if (Object.prototype.hasOwnProperty.call(data, 'audio_url')
+                || Object.prototype.hasOwnProperty.call(data, 'audio_s3_key')
+                || Object.prototype.hasOwnProperty.call(data, 'file_size')) {
+                return data;
+              }
+              return Object.assign({ audio_status: 'processing' }, data);
+            },
+          });
+        });
+      }
       return Promise.resolve({ ok: true, status: 200, json: async () => ({ releases: [], stores: [] }) });
     },
     confirm(message) {
@@ -397,7 +415,8 @@ function openFilledEdit(page, extraDraft) {
       language: 'en',
       release_date: '2026-08-24',
       artist: 'Fuvtu',
-      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+      artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
       dsps: ['spotify'],
     },
   });
@@ -497,7 +516,8 @@ function testEditSubmitLeftovers() {
         language: 'en',
         release_date: '2026-08-24',
         artist: 'Fuvtu',
-        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
         dsps: ['spotify'],
       },
     });
@@ -566,7 +586,8 @@ function testEditSubmitLeftovers() {
         language: 'en',
         release_date: '2026-08-24',
         artist: 'Fuvtu',
-        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
         dsps: ['spotify'],
       },
     });
@@ -616,7 +637,7 @@ function testEditSubmitLeftovers() {
     return cover.api.submitEdit().then(function (result) {
       assert.ok(result.ok, 'pending cover change applies without waiting on the store');
       assert.strictEqual(result.applied, true);
-      assert.ok(!coverCalls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)));
+      assert.ok(coverCalls.some((row) => row.method === 'POST' && /\/artwork$/.test(row.url)), 'pending cover change must attach cover to the store');
       assert.ok(!coverCalls.some((row) => row.method === 'POST' && /\/submit$/.test(row.url)));
       assert.ok(!/edit-submitted\.html/.test(String(cover.context.location.href)));
       assert.strictEqual(cover.nodes['[data-song-title]'].textContent, 'Fuvtu Edit');
@@ -677,7 +698,8 @@ function testEditSubmitLeftovers() {
           language: 'en',
           release_date: '2026-08-24',
           artist: 'Fuvtu',
-          tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+          artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
           dsps: ['spotify'],
         },
       });
@@ -751,7 +773,8 @@ function testAllPlanEditRule() {
         status: status,
         genre: 'Electronic',
         language: 'en',
-        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
         dsps: ['spotify'],
       },
     });
@@ -893,6 +916,8 @@ function testDraftArtworkNeverBlob() {
       language: 'en',
       release_date: '2026-08-24',
       artist: 'Fuvtu',
+      artwork_url: '',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Chk g', audio_url: 'https://cdn.example/chk-g.wav' }],
       dsps: ['spotify'],
     },
   });
@@ -1228,6 +1253,63 @@ function testPendingAudioReplace() {
       assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/tracks$/.test(String(row.url).split('?')[0])), 'pending edit must not invent a track');
       assert.ok(!mintCalls.some((row) => row.method === 'POST' && /\/api\/tonegrid\/(releases|artists)$/.test(String(row.url).split('?')[0])), 'pending must not POST a new release or artist');
     });
+  });
+}
+
+function testPendingMissingAudioBlocksSave() {
+  const me = {
+    artist: 'Vicki G',
+    plan: 'basic',
+    legal_first: 'Vicki',
+    legal_last: 'G',
+    tonegrid_release_ids: ['40cec4ed-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+  };
+  const releaseId = me.tonegrid_release_ids[0];
+  const trackId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const calls = [];
+  const page = loadSong({
+    plan: 'basic',
+    me,
+    search: '?id=' + releaseId,
+    calls,
+    fetch() {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, uuid: releaseId, status: 'pending' }),
+      });
+    },
+  });
+  page.api.openEdit({
+    me,
+    draft: {
+      release_id: releaseId,
+      title: 'Season of love',
+      submitted: true,
+      tonegrid_status: 'pending',
+      track_id: trackId,
+      made_how: 'no_ai',
+      legal_first: 'Vicki',
+      legal_last: 'G',
+    },
+    release: {
+      uuid: releaseId,
+      title: 'Season of love',
+      status: 'pending',
+      genre: 'Pop',
+      language: 'en',
+      tracks: [{ uuid: trackId, title: 'Season of love', audio_url: null, audio_s3_key: null, file_size: null }],
+    },
+  });
+  page.ids['edit-title'].value = 'Season of love';
+  page.ids['edit-genre'].value = 'Pop';
+  page.ids['edit-language'].value = 'en';
+  page.ids['edit-release-date'].value = '2026-09-12';
+  return page.api.submitEdit().then(function (result) {
+    assert.strictEqual(result.ok, false, 'pending save without a master must not update the store row');
+    assert.ok(/audio required/i.test(String(page.nodes['[data-edit-error]'].textContent || '')));
+    assert.ok(!calls.some((row) => row.method === 'PUT'), 'missing audio must not PUT the release');
+    assert.ok(!calls.some((row) => row.method === 'POST' && /\/audio$/.test(String(row.url))), 'missing audio must not pretend to attach');
   });
 }
 
@@ -1726,9 +1808,8 @@ function run() {
     analytics: { summary: { total_streams: 0, total_revenue_usd: 0 }, releases: [], dsps: [] },
   });
   assert.strictEqual(page.nodes['[data-song-title]'].textContent, 'Fuvtu');
-  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Needs fix');
-  assert.strictEqual(page.nodes['[data-song-rejection]'].hidden, false);
-  assert.strictEqual(page.nodes['[data-song-rejection-reason]'].textContent, QC_LINES);
+  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Pending');
+  assert.strictEqual(page.nodes['[data-song-rejection]'].hidden, true);
   assert.ok(page.life.pending.classList.contains('on'));
   assert.ok(!page.life.live.classList.contains('on'), 'pending must not show Live');
   assert.ok(page.nodes['[data-song-meta]'].textContent.indexOf('Fuvtu') !== -1);
@@ -2239,7 +2320,7 @@ function run() {
       language: 'en',
       release_date: '2026-08-24',
       artist: 'Fuvtu',
-      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', language: 'en' }],
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', language: 'en', audio_url: 'https://cdn.example/fuvtu.wav' }],
       dsps: ['spotify', 'youtube-music'],
     },
   });
@@ -2270,7 +2351,8 @@ function run() {
       title: 'Fuvtu',
       status: 'pending',
       language: 'en',
-      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+      artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
     },
   });
   assert.strictEqual(page.ids['edit-lyrics'].value, 'Night after night');
@@ -2316,7 +2398,8 @@ function run() {
       title: 'Fuvtu',
       status: 'pending',
       release_date: localShift(14),
-      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+      artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
     },
   });
   assert.ok(
@@ -2412,7 +2495,8 @@ function run() {
       language: 'en',
       release_date: '2026-08-24',
       artist: 'Fuvtu',
-      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+      artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
       dsps: ['spotify'],
     },
   });
@@ -2480,7 +2564,7 @@ function run() {
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
-    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Needs fix');
+    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
     assert.ok(editor.api.isLiveConfirmed({ status: 'live' }, {}) === true);
     assert.ok(editor.api.isLiveConfirmed({ status: 'pending' }, {}) === false);
@@ -2525,7 +2609,8 @@ function run() {
         status: 'live',
         genre: 'Electronic',
         language: 'en',
-        tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+        artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
         dsps: ['spotify'],
       },
     });
@@ -2592,7 +2677,8 @@ function run() {
           status: 'pending',
           genre: 'Electronic',
           language: 'en',
-          tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+          artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
           dsps: ['spotify'],
         },
       });
@@ -2645,7 +2731,8 @@ function run() {
             status: 'live',
             genre: 'Electronic',
             language: 'en',
-            tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu' }],
+            artwork_url: 'https://cdn.example/fuvtu.jpg',
+      tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Fuvtu', audio_url: 'https://cdn.example/fuvtu.wav' }],
             dsps: ['spotify'],
           },
         });
@@ -2994,7 +3081,7 @@ function run() {
                 assert.strictEqual(pendingGone.context.location.href, 'releases.html');
                 assert.ok(!goneCalls.some((row) => /ToneGrid|DistroKid/i.test(String(row.confirm || ''))));
                 assert.ok(!/ToneGrid|DistroKid/i.test(pendingGone.nodes['[data-song-status]'].textContent));
-                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testPendingIgnoresLeftoverTrackId).then(testPendingPickedCoverStillPosts).then(testRemovedCatalogUntouched).then(function () {
+                return testEditSubmitLeftovers().then(testSongLoadHangRetry).then(testEditLiveStoreCount).then(testDraftArtworkNeverBlob).then(testDraftAudioReplace).then(testPendingAudioReplace).then(testPendingMissingAudioBlocksSave).then(testPendingAudioResolvesHiddenTrack).then(testPendingCoverAttach).then(testPendingCoverFailLoudly).then(testPendingIgnoresLeftoverTrackId).then(testPendingPickedCoverStillPosts).then(testRemovedCatalogUntouched).then(function () {
                   console.log('song.page.test.js ok');
                 });
               });
