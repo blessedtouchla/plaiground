@@ -337,6 +337,19 @@ async function pushSavedArtistMapping(res, row, artist, extras) {
   return true;
 }
 
+async function backfillLinkedMappings(stored) {
+  try {
+    await artistMappingPush.backfillRosterMappings(stored);
+  } catch (err) {
+    console.error(artistMappingPush.LOG_PREFIX, {
+      artist_id: '',
+      status: 0,
+      error: err && err.message,
+      fields: ['backfill'],
+    });
+  }
+}
+
 async function saveArtists(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.setHeader('Allow', 'GET, POST');
@@ -351,9 +364,11 @@ async function saveArtists(req, res) {
   if (req.method === 'GET') {
     if (shouldPersistRecoveredRoster(row, stored)) {
       const next = await persistRoster(row, stored);
+      await backfillLinkedMappings(stored);
       sendJson(res, 200, publicUser(next || row));
       return;
     }
+    await backfillLinkedMappings(stored);
     sendJson(res, 200, publicUser(row));
     return;
   }
@@ -708,6 +723,7 @@ module.exports = async function handler(req, res) {
     if (shouldPersistRecoveredRoster(next || row, stored)) {
       next = await persistRoster(next || row, stored);
     }
+    await backfillLinkedMappings(stored);
     sendJson(res, 200, publicUser(next || row));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
