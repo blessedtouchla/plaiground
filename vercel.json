@@ -76,7 +76,8 @@
     { "source": "/blog/split-sheets", "destination": "/blog-split-sheets.html" },
     { "source": "/blog/publishing-is-not-distribution", "destination": "/blog-publishing-is-not-distribution.html" },
     { "source": "/blog/vs-distributors", "destination": "/blog-vs-distributors.html" },
-    { "source": "/blog/leave-basic", "destination": "/blog-leave-basic.html" }
+    { "source": "/blog/leave-basic", "destination": "/blog-leave-basic.html" },
+    { "source": "/blog/artist-bot-playbook", "destination": "/blog-artist-bot-playbook.html" }
   ],
   "headers": [
     {
