@@ -446,6 +446,39 @@ function run() {
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
 
+  catalog.PlaigroundCatalog.setFilter('all');
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Approved Live', type: 'single', status: 'approved', delivered_at: '2026-09-08T16:10:57Z' },
+      { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Still Processing', type: 'single', status: 'approved' },
+      { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Waiting', type: 'single', status: 'pending' },
+      { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'Sent Back', type: 'single', status: 'rejected', approved_at: '2026-01-01T00:00:00Z' },
+    ],
+    total: 4,
+    analytics: {},
+  });
+  const approvedLiveRow = catalogNodes['[data-release-rows]'].children[0];
+  const processingRow = catalogNodes['[data-release-rows]'].children[1];
+  const waitingRow = catalogNodes['[data-release-rows]'].children[2];
+  const sentBackRow = catalogNodes['[data-release-rows]'].children[3];
+  assert.strictEqual(approvedLiveRow.children[2].children[1].textContent, 'Live', 'approved + delivered_at must label Live');
+  assert.ok(String(approvedLiveRow.children[2].className).indexOf('is-green') !== -1);
+  assert.ok(String(approvedLiveRow.children[2].className).indexOf(' live') !== -1);
+  assert.strictEqual(processingRow.children[2].children[1].textContent, 'Processing');
+  assert.notStrictEqual(waitingRow.children[2].children[1].textContent, 'Live', 'pending without delivered_at must not read Live');
+  assert.strictEqual(sentBackRow.children[2].children[1].textContent, 'QC rejected');
+  assert.strictEqual(catalogNodes['[data-stat="live"]'].textContent, '1', 'delivered_at approved counts as live');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.ok(String(catalogNodes['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
+  catalog.PlaigroundCatalog.setFilter('live');
+  const liveOnly = catalog.PlaigroundCatalog.applyFilter([
+    { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Approved Live', status: 'approved', delivered_at: '2026-09-08T16:10:57Z' },
+    { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Still Processing', status: 'approved' },
+  ], 'live');
+  assert.strictEqual(liveOnly.length, 1);
+  assert.strictEqual(liveOnly[0].title, 'Approved Live');
+  catalog.PlaigroundCatalog.setFilter('all');
+
   assert.ok(read('releases.html').includes('href="problem.html"'), 'Have a problem? stays the typed report page');
   assert.ok(read('catalog.js').includes("&& !$('[data-release-tiles]')"), 'Overview shares the catalog list');
   assert.ok(read('site.css').includes('.release-inline-status'), 'phone Releases keeps status under the title so it stays readable');

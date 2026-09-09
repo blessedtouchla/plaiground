@@ -55,6 +55,13 @@
 
   function statusGroup(status) {
     var api = statusApi();
+    if (status && typeof status === 'object') {
+      if (api && typeof api.displayInfo === 'function') {
+        var shown = api.displayInfo(status);
+        if (shown && shown.group === 'live') return 'live';
+      }
+      return statusGroup(status.status || status.tonegrid_status || '');
+    }
     var g = api ? api.group(status) : '';
     if (g === 'live') return 'live';
     if (g === 'pending' || g === 'processing' || g === 'removing' || g === 'needs_fix' || g === 'qc_rejected') return 'review';
@@ -93,7 +100,7 @@
   function counts(releases) {
     var out = { total: releases.length, live: 0, review: 0, draft: 0 };
     releases.forEach(function (row) {
-      var group = statusGroup(row.status);
+      var group = statusGroup(row);
       out[group] += 1;
     });
     return out;
@@ -207,6 +214,8 @@
         status: String((row && row.status) || ''),
         label: mapped.label,
         live: mapped.live,
+        dot: mapped.dot,
+        delivered_at: row && (row.delivered_at || row.deliveredAt) || '',
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
         local_draft: false,
@@ -247,7 +256,7 @@
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
       var tileLabel = card.label || 'Pending';
-      var tileDot = (tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray');
+      var tileDot = card.live ? 'green' : ((card.dot) || ((tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray')));
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
       link.appendChild(art);
@@ -272,10 +281,15 @@
       var tr = document.createElement('tr');
       tr.className = 'is-pick';
       if (row.uuid && tr.setAttribute) tr.setAttribute('data-release-id', row.uuid);
-      var live = statusApi() ? statusApi().isLive(row.status) : row.status === 'live';
       var mapped = (statusApi() && typeof statusApi().displayInfo === 'function')
         ? statusApi().displayInfo(row)
-        : (statusApi() ? statusApi().info(row.status) : { label: statusLabel(row.status), dot: live ? 'green' : 'yellow', live: live, alert: '' });
+        : (statusApi() ? statusApi().info(row.status) : {
+          label: statusLabel(row.status),
+          dot: (row.status === 'live' || row.status === 'delivered') ? 'green' : 'yellow',
+          live: row.status === 'live' || row.status === 'delivered',
+          alert: '',
+        });
+      var live = mapped.live;
       var alertText = mapped.alert || ((statusApi() && typeof statusApi().problemAlert === 'function')
         ? statusApi().problemAlert(row)
         : '');
@@ -393,7 +407,7 @@
     var list = releases || [];
     if (!filter || filter === 'all') return list;
     return list.filter(function (row) {
-      return statusGroup(row && row.status) === filter;
+      return statusGroup(row) === filter;
     });
   }
 
@@ -492,7 +506,7 @@
       if (!row) return row;
       var id = String(row.uuid || row.id || '').toLowerCase();
       if (!id) return row;
-      var live = statusApi() ? statusApi().isLive(row.status) : (String(row.status || '') === 'live' || String(row.status || '') === 'delivered');
+      var live = statusApi() ? statusApi().isLive(row) : (String(row.status || '') === 'live' || String(row.status || '') === 'delivered');
       var next = Object.assign({}, row);
       stored.forEach(function (item) {
         if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() !== id) return;
@@ -502,6 +516,9 @@
         if (item && item.release_date) next.release_date = item.release_date;
         if (item && item.artist) next.artist = item.artist;
         if (item && item.rejection_reason && !next.rejection_reason) next.rejection_reason = item.rejection_reason;
+        if (item && (item.delivered_at || item.deliveredAt) && !next.delivered_at && !next.deliveredAt) {
+          next.delivered_at = item.delivered_at || item.deliveredAt;
+        }
         var art = coverOf(item);
         if (art) next.artwork_url = art;
         [
@@ -584,6 +601,16 @@
             }
           });
           return found || (matchesDraft ? coverOf(draft) : '');
+        })(),
+        delivered_at: (function () {
+          var stored = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
+          var found = '';
+          stored.forEach(function (item) {
+            if (String((item && (item.tonegrid_release_id || item.id)) || '').toLowerCase() === key) {
+              found = String((item && (item.delivered_at || item.deliveredAt)) || '').trim();
+            }
+          });
+          return found;
         })(),
       });
     });

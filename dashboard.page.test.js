@@ -404,6 +404,22 @@ function run() {
   assert.strictEqual(liveRelease['[data-msp-songs]'].children.length, 0);
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[1].textContent, 'Night Drive');
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+
+  const deliveredApproved = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{
+      tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      tonegrid_status: 'approved',
+      delivered_at: '2026-09-08T16:10:57Z',
+    }] },
+  });
+  assert.strictEqual(deliveredApproved['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.ok(String(deliveredApproved['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
+  assert.strictEqual(deliveredApproved['[data-account-releases]'].textContent, '1');
+  assert.strictEqual(deliveredApproved['[data-account-pending]'].textContent, '0');
   assert.strictEqual(liveRelease['[data-account-releases]'].textContent, '1');
   assert.strictEqual(liveRelease['[data-account-pending]'].textContent, '0');
   assert.strictEqual(liveRelease['[data-next-up-title]'].textContent, 'Add a payout method');

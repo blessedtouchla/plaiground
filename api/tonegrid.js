@@ -1433,6 +1433,13 @@ function artistNameOf(row) {
   return String(row.artist_name || row.primary_artist || '').trim();
 }
 
+function pickDeliveredAt(row) {
+  if (!row || typeof row !== 'object') return '';
+  const raw = row.delivered_at != null && row.delivered_at !== '' ? row.delivered_at : row.deliveredAt;
+  if (raw == null) return '';
+  return String(raw).trim();
+}
+
 function pickRelease(row) {
   if (!row || typeof row !== 'object') return null;
   const title = String(row.title || '').trim();
@@ -1448,6 +1455,7 @@ function pickRelease(row) {
     artwork_url: coverUrl.from(row),
     release_date: normalizeReleaseDate(row.release_date || row.releaseDate) || '',
     created_at: typeof row.created_at === 'string' ? row.created_at : '',
+    delivered_at: pickDeliveredAt(row),
     artist: artistNameOf(row),
     tracks: pickTracks(row),
     dsps: parseStoreSlugs(row),
@@ -1598,6 +1606,7 @@ async function listReleases(req, res) {
         artwork_url: coverUrl.from(local),
         release_date: '',
         created_at: '',
+        delivered_at: pickDeliveredAt(local),
         artist: '',
         tracks: [],
         dsps: [],
@@ -1615,6 +1624,7 @@ async function listReleases(req, res) {
         artwork_url: coverUrl.from(local),
         release_date: '',
         created_at: '',
+        delivered_at: '',
         artist: '',
         tracks: [],
         dsps: [],
@@ -1648,6 +1658,7 @@ async function listReleases(req, res) {
         tonegrid_status: row.status,
         rejection_reason: row.rejection_reason,
         artwork_url: row.artwork_url,
+        delivered_at: row.delivered_at,
       });
     });
     nextProfile = profileLib.recoverRoster(
