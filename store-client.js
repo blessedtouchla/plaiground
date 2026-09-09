@@ -5534,6 +5534,7 @@
 
   function restoreUploadDraft(draft) {
     draft = draft || readDraft();
+    if (draft && (draft.saved_draft === true || draft.saved_draft === 'true')) return;
     function fill(id, value) {
       var el = $(id);
       if (!el || value == null || value === '') return;
