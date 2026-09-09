@@ -522,6 +522,18 @@
     return storeStatusOf(release, draft) === 'draft';
   }
 
+  function isUnsubmittedDraft(release, draft) {
+    var api = statusApi();
+    if (api && typeof api.isUnsubmittedDraft === 'function') return api.isUnsubmittedDraft(release, draft);
+    var credits = global.PlaigroundReleaseCredits;
+    if (credits && typeof credits.isUnsubmittedDraft === 'function') return credits.isUnsubmittedDraft(release, draft);
+    if (draft && (draft.saved_draft === true || draft.saved_draft === 'true')) return true;
+    if (release && (release.local_draft === true || release.id === 'local-draft')) return true;
+    var submitted = (draft && draft.submitted) || (release && release.submitted);
+    if (submitted === true || submitted === 'true') return false;
+    return isStoreDraft(release, draft);
+  }
+
   function firstTrackId(release, draft) {
     var id = String((release && (release.uuid || release.id)) || (draft && draft.release_id) || queryId() || '').trim();
     if (isGoldenEraRelease(id)) {
@@ -1123,7 +1135,15 @@
     mountStoreStatus(release);
     setText('[data-song-codes]', codesText(release));
     var panelOpen = Boolean(panel && !panel.hidden && !editClosed);
-    if (queryEdit() && !editClosed && !panelOpen) openEdit({ me: me, draft: draft, release: release });
+    if (queryEdit() && !editClosed && !panelOpen) {
+      if (isUnsubmittedDraft(release, draft)) {
+        try {
+          if (global.location) global.location.replace('releases.html');
+        } catch (err) {}
+        return;
+      }
+      openEdit({ me: me, draft: draft, release: release });
+    }
   }
 
   function mountLivePlayer(release) {

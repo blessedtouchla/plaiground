@@ -508,10 +508,8 @@ function run() {
   };
   fireClicks(savedClick, savedEvent);
   assert.strictEqual(savedClick.localStorage.getItem('plaiground.store.draft'), null, 'New release starts a blank working form');
-  const held = JSON.parse(savedClick.localStorage.getItem('plaiground.store.held_draft') || '{}');
-  assert.strictEqual(held.saved_draft, true, 'saved Interceptors draft is parked, not destroyed');
-  assert.strictEqual(held.title, 'The Interceptors');
-  assert.strictEqual(savedClick.credits.displayDraft(savedClick).title, 'The Interceptors');
+  assert.strictEqual(savedClick.localStorage.getItem('plaiground.store.held_draft'), null, 'leftover saved draft is not parked for resume');
+  assert.strictEqual(savedClick.credits.displayDraft(savedClick).title, undefined);
 
   const fresh = load();
   assert.strictEqual(fresh.api.hasMembership(), false);

@@ -291,8 +291,7 @@ function run() {
   assert.strictEqual(nodes['[data-account-releases]'].textContent, '0');
   assert.strictEqual(nodes['[data-account-pending]'].textContent, '1');
   assert.strictEqual(nodes['[data-next-up]'].hidden, false);
-  assert.strictEqual(nodes['[data-next-up-title]'].textContent, 'Fix this release');
-  assert.strictEqual(nodes['[data-next-up-body]'].textContent, QC_LINES);
+  assert.strictEqual(nodes['[data-next-up-title]'].textContent, 'Add a payout method');
   assert.strictEqual(nodes['[data-msp-section]'].hidden, true, 'Overview does not open an MSP board');
   assert.strictEqual(nodes['[data-msp-songs]'].children.length, 0);
 
@@ -300,13 +299,9 @@ function run() {
     { artist: 'The Interceptors', plan: 'basic', email: 'victoriaimtanes@gmail.com' },
     { saved_draft: true, title: 'The Interceptors', tonegrid_status: 'draft' }
   );
-  assert.strictEqual(draftOnly['[data-first-song]'].hidden, true, 'local saved draft hides the empty strip');
-  assert.strictEqual(draftOnly['[data-has-release]'].hidden, false);
-  assert.strictEqual(draftOnly['[data-release-tiles]'].hidden, false);
-  assert.strictEqual(draftOnly['[data-release-tiles]'].children.length, 1);
-  assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].href, 'upload.html');
-  assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].children[1].textContent, 'The Interceptors');
-  assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].children[2].textContent, 'Draft');
+  assert.strictEqual(draftOnly['[data-first-song]'].hidden, false, 'leftover local draft is not a release');
+  assert.strictEqual(draftOnly['[data-has-release]'].hidden, true);
+  assert.ok(!draftOnly['[data-release-tiles]'].children.length, 'local saved draft does not resume on Overview');
 
   const named = fillAccount({ artist: 'Victoria Imtanes', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
   assert.strictEqual(named['[data-account-who]'].textContent, 'Hi Victoria!');
@@ -427,8 +422,7 @@ function run() {
     profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'pending' }] },
   });
   assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'empty placeholder stays when there is no cover');
-  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
-  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[3].textContent, QC_LINES);
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
 
   const mixedTiles = fillAccount({
     artist: 'Fuvtu',
@@ -447,13 +441,12 @@ function run() {
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children.length, 3, 'Overview strip includes pending with live');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[1].children[2].textContent, 'Live');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Needs fix');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Pending');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[3].textContent, QC_LINES);
   assert.strictEqual(mixedTiles['[data-account-releases]'].textContent, '1', 'Releases live stays a live count');
   assert.strictEqual(mixedTiles['[data-account-pending]'].textContent, '2');
   assert.strictEqual(mixedTiles['[data-next-up-title]'].textContent, 'Fix this release');
-  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, QC_LINES);
+  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.\n' + QC_LINES);
 
   const songwriterFix = fillAccount({
     artist: 'Fuvtu',
@@ -481,9 +474,8 @@ function run() {
     }] },
   });
   assert.strictEqual(creditFix['[data-next-up-body]'].textContent, 'This release needs a performer credit and a producer credit.\n' + QC_LINES);
-  assert.strictEqual(emptyCover['[data-next-up-title]'].textContent, 'Fix this release');
-  assert.strictEqual(emptyCover['[data-next-up-body]'].textContent, QC_LINES);
-  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, QC_LINES);
+  assert.strictEqual(emptyCover['[data-next-up-title]'].textContent, 'Add a payout method');
+  assert.strictEqual(mixedTiles['[data-next-up-body]'].textContent, 'Cover art is too small.\n' + QC_LINES);
 
   const missingWriterNames = fillAccount({
     artist: 'Fuvtu',
@@ -564,7 +556,7 @@ function run() {
   assert.strictEqual(firstLastOnly['[data-next-up-body]'].textContent, 'First and last name required.\n' + QC_LINES, 'first-last without songwriter must not invent that leftover');
   assert.ok(!/ToneGrid|InterSpace|Flossy/i.test(songwriterFix['[data-next-up-body]'].textContent));
   assert.ok(!/ToneGrid|InterSpace|Flossy/i.test(creditFix['[data-next-up-body]'].textContent));
-  assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') !== -1);
+  assert.ok(String(mixedTiles['[data-next-up-link]'].href).indexOf('cccccccc-cccc-4ccc-8ccc-cccccccccccc') !== -1);
 
   const unknownTiles = fillAccount({
     artist: 'Fuvtu',

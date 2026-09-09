@@ -155,8 +155,45 @@
     });
   }
 
+  function isUnsubmittedDraft(row, draft) {
+    var api = statusApi();
+    if (api && typeof api.isUnsubmittedDraft === 'function' && api.isUnsubmittedDraft(row, draft)) return true;
+    if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.isUnsubmittedDraft === 'function') {
+      if (global.PlaigroundReleaseCredits.isUnsubmittedDraft(row, draft)) return true;
+    }
+    if (!row) return false;
+    if (row.local_draft === true || row.id === 'local-draft') return true;
+    if (row.saved_draft === true || row.saved_draft === 'true') return true;
+    if (row.submitted === true || row.submitted === 'true') return false;
+    var status = String(row.status || row.tonegrid_status || '').toLowerCase();
+    if (status === 'draft') return true;
+    if (draft) {
+      var id = String(row.uuid || row.id || '').toLowerCase();
+      var draftId = String(draft.release_id || '').toLowerCase();
+      if (id && draftId === id && (draft.submitted === false || draft.submitted === 'false' || draft.saved_draft)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function dropUnsubmitted(releases, draft) {
+    return (releases || []).filter(function (row) {
+      return !isUnsubmittedDraft(row, draft);
+    });
+  }
+
+  function catalogHref(row, opts) {
+    opts = opts || {};
+    if (isUnsubmittedDraft(row)) return '';
+    var id = row && (row.uuid || (row.id && row.id !== 'local-draft' ? row.id : ''));
+    if (!id) return opts.edit ? '' : 'releases.html';
+    if (opts.edit) return 'song.html?id=' + encodeURIComponent(id) + '&edit=1';
+    return 'song.html?id=' + encodeURIComponent(id);
+  }
+
   function overviewCards(releases) {
-    return (releases || []).map(function (row) {
+    return dropUnsubmitted(releases || []).map(function (row) {
       var api = statusApi();
       var mapped = (api && typeof api.displayInfo === 'function') ? api.displayInfo(row) : (api ? api.info(row && row.status) : {
         label: statusLabel(row && row.status),
@@ -172,8 +209,8 @@
         live: mapped.live,
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
-        local_draft: Boolean(row && (row.local_draft || row.id === 'local-draft')),
-        href: row && (row.local_draft || row.id === 'local-draft') ? 'upload.html' : '',
+        local_draft: false,
+        href: '',
         alert: mapped.alert || ((api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : ''),
       };
     }).filter(function (card) {
@@ -201,9 +238,7 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = (card.local_draft || card.id === 'local-draft' || card.href === 'upload.html')
-        ? 'upload.html'
-        : (card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html');
+      link.href = catalogHref(card) || 'releases.html';
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       applyCover(art, card.artwork_url);
@@ -260,9 +295,7 @@
       resolveCoverFallback(thumb, row, thumbCover);
       var copy = document.createElement('div');
       var title = document.createElement('a');
-      title.href = (row.local_draft || row.id === 'local-draft')
-        ? 'upload.html'
-        : (row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html');
+      title.href = catalogHref(row) || 'releases.html';
       title.textContent = row.title || 'Untitled';
       title.style.color = 'inherit';
       title.style.textDecoration = 'none';
@@ -288,17 +321,21 @@
 
       var editCell = document.createElement('td');
       editCell.className = 'release-edit-col';
-      var localDraft = Boolean(row.local_draft || row.id === 'local-draft');
-      var edit = document.createElement(row.uuid || localDraft ? 'a' : 'button');
+      var editHref = catalogHref(row, { edit: true });
+      var edit = document.createElement(editHref || row.uuid ? 'a' : 'button');
       edit.textContent = 'Edit release';
       edit.className = 'btn btn-ghost btn-sm';
-      if (localDraft) {
-        edit.href = 'upload.html';
-      } else if (row.uuid) {
+      if (editHref) {
+        edit.href = editHref;
+      } else if (row.uuid && !isUnsubmittedDraft(row)) {
         edit.href = 'song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1';
-      } else {
+      } else if (!row.uuid && !isUnsubmittedDraft(row)) {
         edit.type = 'button';
         edit.setAttribute('data-edit-missing', '');
+      } else {
+        edit.type = 'button';
+        edit.setAttribute('data-edit-blocked', '');
+        edit.hidden = true;
       }
       editCell.appendChild(edit);
 
@@ -397,17 +434,14 @@
 
   function render(data) {
     lastReleases = (data && data.releases) || [];
+    var localDraft = readDraft();
+    if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.dropLeftoverSavedDraft === 'function') {
+      global.PlaigroundReleaseCredits.dropLeftoverSavedDraft(global);
+    }
     if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
-      var localDraft = {};
-      if (typeof global.PlaigroundReleaseCredits.displayDraft === 'function') {
-        localDraft = global.PlaigroundReleaseCredits.displayDraft(global) || {};
-      } else {
-        try {
-          localDraft = JSON.parse((global.localStorage && global.localStorage.getItem('plaiground.store.draft')) || '{}') || {};
-        } catch (err) {}
-      }
       lastReleases = global.PlaigroundReleaseCredits.withSavedDraft(lastReleases, localDraft);
     }
+    lastReleases = dropUnsubmitted(lastReleases, localDraft);
     lastAnalytics = (data && data.analytics) || {};
     lastTotal = (data && data.total) || lastReleases.length;
     if (lastReleases.length > lastTotal) lastTotal = lastReleases.length;
@@ -933,6 +967,8 @@
 
   global.PlaigroundCatalog = {
     render: render,
+    isUnsubmittedDraft: isUnsubmittedDraft,
+    catalogHref: catalogHref,
     accountFallback: accountFallback,
     overlayPendingCatalog: overlayPendingCatalog,
     applyFilter: applyFilter,
