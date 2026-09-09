@@ -275,12 +275,12 @@ function run() {
   assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '0');
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, false);
   catalog.PlaigroundCatalog.render({
-    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'draft', artwork_url: 'https://cdn.example/night.jpg' }],
+    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'pending', artwork_url: 'https://cdn.example/night.jpg' }],
     total: 1,
     analytics: { releases: [{ release_uuid: '11111111-1111-4111-8111-111111111111', streams: 12 }] },
   });
   assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '1');
-  assert.strictEqual(catalogNodes['[data-stat="draft"]'].textContent, '1');
+  assert.strictEqual(catalogNodes['[data-stat="review"]'].textContent, '1');
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, true);
   assert.strictEqual(catalogNodes['[data-release-table]'].hidden, false);
   const firstRow = catalogNodes['[data-release-rows]'].children[0];
@@ -290,7 +290,7 @@ function run() {
   assert.strictEqual(firstRow.children[5].textContent, '$0.00');
   assert.ok(catalogNodes['[data-release-tiles]'].children[0].children[0].style.backgroundImage.indexOf('night.jpg') !== -1, 'Releases tiles paint catalog cover art');
   catalog.PlaigroundCatalog.render({
-    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'draft' }],
+    releases: [{ uuid: '11111111-1111-4111-8111-111111111111', title: 'Night Drive', type: 'single', status: 'pending' }],
     total: 1,
     analytics: {},
   });
@@ -304,6 +304,11 @@ function run() {
   assert.ok(read('releases.html').includes('href="releases.html">Releases</a>'), 'sidebar Releases stays on the catalog list');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('releases.html')), 'sidebar Releases must not point at a leftover song');
   assert.ok(!/side-nav[\s\S]{0,400}href="song\.html/.test(read('dashboard.html')), 'Creator menu Releases must not point at a leftover song');
+  const uploadHtml = read('upload.html');
+  assert.ok(!/Save draft/.test(uploadHtml), 'upload.html has no Save draft control');
+  assert.ok(!/data-upload-save-draft/.test(uploadHtml), 'upload.html has no save-draft button');
+  assert.ok(read('catalog.js').includes('function isUnsubmittedDraft'), 'catalog cancels unsubmitted resume-to-Edit');
+  assert.ok(read('catalog.js').includes('dropUnsubmitted'), 'catalog drops leftover local/unsubmitted drafts');
   assert.ok(read('catalog.js').includes("editPanel.hidden = true"), 'Releases must not auto-open Edit release');
   assert.ok(read('catalog.js').includes("editCell.className = 'release-edit-col'"), 'Edit release is built as its own table column');
   assert.ok(!read('catalog.js').includes('copy.appendChild(edit)'), 'Edit release is not jammed after the title');
@@ -312,6 +317,14 @@ function run() {
   assert.ok(read('song.js').includes("return next ? ('song.html?id=' + encodeURIComponent(next) + '&edit=1') : 'releases.html'"), 'bare Edit href goes to the list, not latest');
   assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 1, 'one release still shows the list row');
   assert.ok(catalogNodes['[data-release-table]'].hidden === false, 'one release must not skip the catalog list');
+
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'Unicorn in West Hollywood', type: 'single', status: 'draft' }],
+    total: 1,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 0, 'unsubmitted store draft has no resume row');
+  assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'Edit release'), 'unsubmitted draft does not offer Edit release');
 
   catalog.localStorage.data['plaiground.store.draft'] = JSON.stringify({
     saved_draft: true,
@@ -323,17 +336,18 @@ function run() {
     total: 1,
     analytics: {},
   });
-  assert.ok(catalogNodes['[data-release-rows]'].children.length >= 2, 'Releases includes the local saved draft');
-  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'The Interceptors'), 'local draft shows by title');
-  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Draft'), 'local draft status is Draft');
-  const interceptorTitle = findByText(catalogNodes['[data-release-rows]'], 'The Interceptors');
-  assert.strictEqual(interceptorTitle.href, 'upload.html');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 1, 'local saved draft is not a resume row');
+  assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'The Interceptors'), 'local draft does not show');
+  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Rainbow Road'), 'live release stays');
+  const liveEdit = findByText(catalogNodes['[data-release-rows]'].children[0].children[1], 'Edit release');
+  assert.ok(String(liveEdit.href).indexOf('song.html?id=7a928125-aaaa-4aaa-8aaa-aaaaaaaaaaaa') !== -1);
+  assert.ok(String(liveEdit.href).indexOf('edit=1') !== -1, 'submitted/live Edit release still uses song Edit');
   catalog.PlaigroundCatalog.render({
     releases: [{ uuid: '7a928125-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Rainbow Road', type: 'single', status: 'live' }],
     total: 1,
     analytics: {},
   });
-  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'The Interceptors'), 'reloading Releases still shows the saved draft');
+  assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'The Interceptors'), 'reloading Releases still hides the leftover draft');
 
   catalog.PlaigroundCatalog.render({
     releases: [
@@ -352,7 +366,7 @@ function run() {
   assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Rainbow Road'), 'Rainbow Road stays');
 
   catalog.PlaigroundCatalog.render({
-    releases: [{ title: 'No store id yet', type: 'single', status: 'draft' }],
+    releases: [{ title: 'No store id yet', type: 'single', status: 'pending' }],
     total: 1,
     analytics: {},
   });
@@ -417,23 +431,20 @@ function run() {
   const liveRow = catalogNodes['[data-release-rows]'].children[1];
   const fixRow = catalogNodes['[data-release-rows]'].children[2];
   const unknownRow = catalogNodes['[data-release-rows]'].children[3];
-  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'Needs fix');
+  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'Pending');
   assert.strictEqual(liveRow.children[2].children[1].textContent, 'Live');
   assert.strictEqual(fixRow.children[2].children[1].textContent, 'Needs fix');
   assert.strictEqual(fixRow.children[2].children[2].textContent, 'Cover art is too small.\n' + QC_LINES);
-  assert.ok(findByText(pendingRow.children[0], 'Needs fix'), 'phone inline status keeps Needs fix on the row');
-  assert.ok(findByText(pendingRow.children[0], QC_LINES), 'phone inline status keeps the six store lines');
+  assert.ok(findByText(pendingRow.children[0], 'Pending'), 'phone inline status keeps Pending on the row');
   assert.ok(findByText(fixRow.children[0], 'Needs fix'), 'phone inline status keeps Needs fix on the row');
   assert.ok(findByText(fixRow.children[0], 'Cover art is too small.\n' + QC_LINES), 'phone inline status keeps the real error on the row');
   assert.ok(String(fixRow.children[2].className).indexOf('has-alert') !== -1);
-  assert.ok(String(pendingRow.children[2].className).indexOf('has-alert') !== -1);
   assert.strictEqual(unknownRow.children[2].children[1].textContent, 'Pending');
   assert.notStrictEqual(unknownRow.children[2].children[1].textContent, 'Live', 'unknown status must not invent Live');
   assert.ok(!findByText(unknownRow, 'Cover art is too small.'), 'no fake error on an unknown row');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children.length, 4, 'Overview tiles on the shared list include pending');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
-  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
-  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[3].textContent, QC_LINES);
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
 
   assert.ok(read('releases.html').includes('href="problem.html"'), 'Have a problem? stays the typed report page');
   assert.ok(read('catalog.js').includes("&& !$('[data-release-tiles]')"), 'Overview shares the catalog list');

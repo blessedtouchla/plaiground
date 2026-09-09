@@ -319,16 +319,23 @@
     var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
     var cards = releaseCards(me);
     var credits = global.PlaigroundReleaseCredits;
+    if (credits && typeof credits.dropLeftoverSavedDraft === 'function') {
+      credits.dropLeftoverSavedDraft(global);
+    }
     var shownDraft = credits && typeof credits.displayDraft === 'function'
       ? credits.displayDraft(global)
       : readDraft();
     var localShown = credits && typeof credits.withSavedDraft === 'function'
       ? credits.withSavedDraft(cards, shownDraft)
       : cards;
-    var hasLocalDraft = (localShown || []).some(function (row) {
-      return row && (row.local_draft === true || row.id === 'local-draft');
+    localShown = (localShown || []).filter(function (row) {
+      if (credits && typeof credits.isUnsubmittedDraft === 'function') return !credits.isUnsubmittedDraft(row, shownDraft);
+      var api = statusApi();
+      if (api && typeof api.isUnsubmittedDraft === 'function') return !api.isUnsubmittedDraft(row, shownDraft);
+      return !(row && (row.local_draft === true || row.id === 'local-draft' || String(row.status || '') === 'draft'));
     });
-    var hasRelease = cards.length > 0 || ids.length > 0 || hasLocalDraft;
+    cards = localShown;
+    var hasRelease = cards.length > 0 || ids.length > 0;
     var latestId = hasRelease ? String((cards[cards.length - 1] && cards[cards.length - 1].id) || ids[ids.length - 1] || '') : '';
     var latest = latestReleaseCard(me, latestId, cards);
     paintAccountCounts(me, cards);
@@ -465,8 +472,13 @@
         result.data.releases.forEach(function (row) {
           var id = String((row && (row.uuid || row.id)) || '').toLowerCase();
           if (!id || seen[id]) return;
+          if (api && typeof api.isUnsubmittedDraft === 'function' && api.isUnsubmittedDraft(row)) return;
           var card = api && typeof api.cardFromRow === 'function' ? api.cardFromRow(row) : null;
           if (card) next.push(card);
+        });
+        next = next.filter(function (card) {
+          if (api && typeof api.isUnsubmittedDraft === 'function') return !api.isUnsubmittedDraft(card);
+          return !(card && (card.local_draft || card.id === 'local-draft' || String(card.status || '') === 'draft'));
         });
         renderOverview(next);
         paintAccountCounts(lastMe, next);
@@ -620,12 +632,22 @@
   function renderOverview(cards) {
     var list = Array.isArray(cards) ? cards : [];
     list = recentStrip(list);
-    if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
-      var shown = typeof global.PlaigroundReleaseCredits.displayDraft === 'function'
-        ? global.PlaigroundReleaseCredits.displayDraft(global)
-        : readDraft();
-      list = global.PlaigroundReleaseCredits.withSavedDraft(list, shown);
+    var credits = global.PlaigroundReleaseCredits;
+    if (credits && typeof credits.dropLeftoverSavedDraft === 'function') {
+      credits.dropLeftoverSavedDraft(global);
     }
+    if (credits && typeof credits.withSavedDraft === 'function') {
+      var shown = typeof credits.displayDraft === 'function'
+        ? credits.displayDraft(global)
+        : readDraft();
+      list = credits.withSavedDraft(list, shown);
+    }
+    list = (list || []).filter(function (row) {
+      if (credits && typeof credits.isUnsubmittedDraft === 'function') return !credits.isUnsubmittedDraft(row);
+      var api = statusApi();
+      if (api && typeof api.isUnsubmittedDraft === 'function') return !api.isUnsubmittedDraft(row);
+      return !(row && (row.local_draft === true || row.id === 'local-draft' || String(row.status || '') === 'draft'));
+    });
     renderReleaseTiles(list);
   }
 
@@ -675,9 +697,10 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = (card.local_draft || card.id === 'local-draft')
-        ? 'upload.html'
-        : (card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html');
+      if (card.local_draft || card.id === 'local-draft' || String(card.status || '') === 'draft') {
+        return;
+      }
+      link.href = card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html';
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       art.setAttribute('aria-hidden', 'true');
