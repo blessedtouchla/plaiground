@@ -1,0 +1,24 @@
+{
+  "name": "PLAIGROUND",
+  "short_name": "PLAIGROUND",
+  "description": "Upload once. Get paid everywhere.",
+  "start_url": "/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0F",
+  "theme_color": "#0B0B0F",
+  "icons": [
+    {
+      "src": "assets/plaiground-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/plaiground-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
