@@ -173,7 +173,7 @@
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
         local_draft: Boolean(row && (row.local_draft || row.id === 'local-draft')),
-        href: row && (row.local_draft || row.id === 'local-draft') ? 'upload.html' : '',
+        href: rowOpenHref(row),
         alert: mapped.alert || ((api && typeof api.problemAlert === 'function') ? api.problemAlert(row) : ''),
       };
     }).filter(function (card) {
@@ -201,9 +201,8 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = (card.local_draft || card.id === 'local-draft' || card.href === 'upload.html')
-        ? 'upload.html'
-        : (card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html');
+      link.href = card.href || rowOpenHref(card);
+      rememberResumeAttr(link, card);
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       applyCover(art, card.artwork_url);
@@ -260,9 +259,8 @@
       resolveCoverFallback(thumb, row, thumbCover);
       var copy = document.createElement('div');
       var title = document.createElement('a');
-      title.href = (row.local_draft || row.id === 'local-draft')
-        ? 'upload.html'
-        : (row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid)) : 'releases.html');
+      title.href = rowOpenHref(row);
+      rememberResumeAttr(title, row);
       title.textContent = row.title || 'Untitled';
       title.style.color = 'inherit';
       title.style.textDecoration = 'none';
@@ -289,13 +287,13 @@
       var editCell = document.createElement('td');
       editCell.className = 'release-edit-col';
       var localDraft = Boolean(row.local_draft || row.id === 'local-draft');
-      var edit = document.createElement(row.uuid || localDraft ? 'a' : 'button');
+      var canResume = Boolean(row.uuid || localDraft);
+      var edit = document.createElement(canResume ? 'a' : 'button');
       edit.textContent = 'Edit release';
       edit.className = 'btn btn-ghost btn-sm';
-      if (localDraft) {
-        edit.href = 'upload.html';
-      } else if (row.uuid) {
-        edit.href = 'song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1';
+      if (canResume) {
+        edit.href = rowResumeHref(row);
+        rememberResumeAttr(edit, row);
       } else {
         edit.type = 'button';
         edit.setAttribute('data-edit-missing', '');
@@ -449,6 +447,51 @@
     } catch (err) {
       return {};
     }
+  }
+
+  function rowIsUnsubmitted(row) {
+    var api = statusApi();
+    if (api && typeof api.isUnsubmittedDraft === 'function') {
+      return api.isUnsubmittedDraft(row, readDraft());
+    }
+    return Boolean(row && (row.local_draft || row.id === 'local-draft' || String(row.status || row.tonegrid_status || '').toLowerCase() === 'draft'));
+  }
+
+  function rowResumeHref(row) {
+    var api = statusApi();
+    if (api && typeof api.resumeHref === 'function') return api.resumeHref(row, readDraft());
+    return rowIsUnsubmitted(row)
+      ? 'upload.html'
+      : (row && row.uuid ? ('song.html?id=' + encodeURIComponent(row.uuid) + '&edit=1') : 'releases.html');
+  }
+
+  function rowOpenHref(row) {
+    var api = statusApi();
+    if (api && typeof api.openHref === 'function') return api.openHref(row, readDraft());
+    return rowIsUnsubmitted(row)
+      ? 'upload.html'
+      : (row && (row.uuid || row.id) && row.id !== 'local-draft'
+        ? ('song.html?id=' + encodeURIComponent(row.uuid || row.id))
+        : 'releases.html');
+  }
+
+  function rememberResumeAttr(el, row) {
+    if (!el || !el.setAttribute || !rowIsUnsubmitted(row)) return;
+    var id = String((row && (row.uuid || (row.id !== 'local-draft' ? row.id : ''))) || '').trim();
+    if (id) el.setAttribute('data-resume-id', id);
+  }
+
+  function rememberResumeDraft(id) {
+    var nextId = String(id || '').trim();
+    if (!nextId || nextId === 'local-draft') return;
+    var draft = readDraft();
+    var have = String(draft.release_id || '').trim();
+    if (have && have.toLowerCase() !== nextId.toLowerCase()) return;
+    if (have.toLowerCase() === nextId.toLowerCase()) return;
+    try {
+      var next = Object.assign({}, draft, { release_id: nextId, submitted: false });
+      if (global.localStorage) global.localStorage.setItem('plaiground.store.draft', JSON.stringify(next));
+    } catch (err) {}
   }
 
   function overlayPendingCatalog(releases, me) {
@@ -891,6 +934,11 @@
     var host = $('[data-release-rows]');
     if (host && host.addEventListener) {
       host.addEventListener('click', function (event) {
+        var resumeLink = event.target && event.target.closest ? event.target.closest('a[data-resume-id], a[href^="upload.html"], a[href^="attest.html"]') : null;
+        if (resumeLink) {
+          rememberResumeDraft(resumeLink.getAttribute('data-resume-id'));
+          return;
+        }
         var missing = event.target && event.target.closest ? event.target.closest('[data-edit-missing]') : null;
         if (missing) {
           if (event.preventDefault) event.preventDefault();
@@ -906,11 +954,29 @@
           setStatus('This release has no store ID yet, so it cannot be edited.');
           return;
         }
+        var row = lastReleases.filter(function (item) {
+          return item && String(item.uuid || '') === String(id);
+        })[0] || { uuid: id };
+        if (rowIsUnsubmitted(row)) {
+          rememberResumeDraft(id);
+          global.location.href = rowResumeHref(row);
+          return;
+        }
         global.location.href = 'song.html?id=' + encodeURIComponent(id);
       });
     }
     var saveBtn = $('[data-edit-save]');
     if (saveBtn) saveBtn.addEventListener('click', saveEdit);
+  }
+
+  function bindTiles() {
+    var host = $('[data-release-tiles]');
+    if (!host || !host.addEventListener || (host.getAttribute && host.getAttribute('data-resume-bound'))) return;
+    if (host.setAttribute) host.setAttribute('data-resume-bound', '1');
+    host.addEventListener('click', function (event) {
+      var link = event.target && event.target.closest ? event.target.closest('a[data-resume-id], a[href^="upload.html"], a[href^="attest.html"]') : null;
+      if (link) rememberResumeDraft(link.getAttribute('data-resume-id'));
+    });
   }
 
   function bindFilters() {
@@ -939,10 +1005,14 @@
     setFilter: function (next) { currentFilter = String(next || 'all'); },
     fillEdit: fillEdit,
     coverPreview: function () { return editCover; },
+    isUnsubmittedDraft: rowIsUnsubmitted,
+    resumeHref: rowResumeHref,
+    openHref: rowOpenHref,
   };
   bindFilters();
   currentFilter = filterFromSearch();
   bindEdit();
+  bindTiles();
   bindCoverPreview();
   load();
 })(window);

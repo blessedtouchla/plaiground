@@ -305,6 +305,63 @@ function run() {
   assert.strictEqual(draftOnly['[data-release-tiles]'].hidden, false);
   assert.strictEqual(draftOnly['[data-release-tiles]'].children.length, 1);
   assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].href, 'upload.html');
+  const storeDraft = fillAccount({
+    artist: 'Victoria',
+    plan: 'basic',
+    email: 'victoriaimtanes@gmail.com',
+    tonegrid_release_ids: ['55555555-5555-4555-8555-555555555555'],
+    profile: {
+      releases: [{
+        tonegrid_release_id: '55555555-5555-4555-8555-555555555555',
+        title: 'My heart',
+        tonegrid_status: 'draft',
+      }],
+    },
+  });
+  assert.strictEqual(storeDraft['[data-release-tiles]'].children[0].href, 'upload.html', 'Overview draft uuid resumes the new-release flow');
+  assert.ok(String(storeDraft['[data-release-tiles]'].children[0].href).indexOf('song.html') === -1);
+  assert.strictEqual(storeDraft['[data-next-up-link]'].href, 'upload.html', 'next-up continues an unsubmitted draft at upload');
+  const unicorn = fillAccount({
+    artist: 'Victoria',
+    plan: 'basic',
+    email: 'victoriaimtanes@gmail.com',
+    tonegrid_release_ids: ['77777777-7777-4777-8777-777777777777'],
+    profile: {
+      releases: [{
+        tonegrid_release_id: '77777777-7777-4777-8777-777777777777',
+        title: 'Unicorn in West Hollywood',
+        tonegrid_status: 'draft',
+      }],
+    },
+  });
+  assert.strictEqual(unicorn['[data-release-tiles]'].children[0].href, 'upload.html', 'Unicorn in West Hollywood Overview resumes upload');
+  assert.ok(String(unicorn['[data-release-tiles]'].children[0].href).indexOf('song.html') === -1);
+  assert.strictEqual(unicorn['[data-release-tiles]'].children[0].children[1].textContent, 'Unicorn in West Hollywood');
+  assert.strictEqual(unicorn['[data-next-up-link]'].href, 'upload.html');
+  const submittedPending = fillAccount({
+    artist: 'Victoria',
+    plan: 'basic',
+    email: 'victoriaimtanes@gmail.com',
+    tonegrid_release_ids: ['66666666-6666-4666-8666-666666666666'],
+    profile: {
+      releases: [{
+        tonegrid_release_id: '66666666-6666-4666-8666-666666666666',
+        title: 'Sent song',
+        tonegrid_status: 'pending',
+        label_name: 'Night Work',
+        rights_owner: 'Ada Night',
+        master_owner: 'Ada Night',
+        copyright_year: '2026',
+        writers: [{ name: 'Ada Night' }],
+        copyright_line: '© 2026 Ada Night.',
+      }],
+    },
+  });
+  assert.strictEqual(
+    submittedPending['[data-release-tiles]'].children[0].href,
+    'song.html?id=66666666-6666-4666-8666-666666666666',
+    'submitted pending Overview tile still opens the song'
+  );
   assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].children[1].textContent, 'The Interceptors');
   assert.strictEqual(draftOnly['[data-release-tiles]'].children[0].children[2].textContent, 'Draft');
 

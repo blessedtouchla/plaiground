@@ -332,7 +332,7 @@
     var latestId = hasRelease ? String((cards[cards.length - 1] && cards[cards.length - 1].id) || ids[ids.length - 1] || '') : '';
     var latest = latestReleaseCard(me, latestId, cards);
     paintAccountCounts(me, cards);
-    renderNextUp(me, cards);
+    renderNextUp(me, localShown.length ? localShown : cards);
     $all('[data-pub-call]').forEach(function (el) {
       el.hidden = true;
     });
@@ -385,6 +385,38 @@
 
   function statusApi() {
     return (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus) || null;
+  }
+
+  function rowIsUnsubmitted(row) {
+    var api = statusApi();
+    if (api && typeof api.isUnsubmittedDraft === 'function') {
+      return api.isUnsubmittedDraft(row, readDraft());
+    }
+    return Boolean(row && (row.local_draft || row.id === 'local-draft' || String(row.status || row.tonegrid_status || '').toLowerCase() === 'draft'));
+  }
+
+  function rowResumeHref(row) {
+    var api = statusApi();
+    if (api && typeof api.resumeHref === 'function') return api.resumeHref(row, readDraft());
+    return rowIsUnsubmitted(row) ? 'upload.html' : (row && row.id ? ('song.html?id=' + encodeURIComponent(row.id) + '&edit=1') : 'releases.html');
+  }
+
+  function rowOpenHref(row) {
+    var api = statusApi();
+    if (api && typeof api.openHref === 'function') return api.openHref(row, readDraft());
+    if (row && row.href) return row.href;
+    return rowIsUnsubmitted(row)
+      ? 'upload.html'
+      : (row && row.id && row.id !== 'local-draft' ? ('song.html?id=' + encodeURIComponent(row.id)) : 'releases.html');
+  }
+
+  function firstUnsubmittedCard(cards) {
+    var list = Array.isArray(cards) ? cards : [];
+    var i;
+    for (i = 0; i < list.length; i += 1) {
+      if (rowIsUnsubmitted(list[i])) return list[i];
+    }
+    return null;
   }
 
   function releaseCards(me) {
@@ -581,12 +613,20 @@
       };
     } else {
       var problem = firstRealProblem(list);
-      if (problem) {
+      var draftCard = firstUnsubmittedCard(list);
+      if (problem && !rowIsUnsubmitted(problem.card)) {
         next = {
           title: 'Fix this release',
           body: problem.alert,
           href: problem.card.id ? ('song.html?id=' + encodeURIComponent(problem.card.id)) : 'releases.html',
           label: 'Open release',
+        };
+      } else if (draftCard) {
+        next = {
+          title: 'Continue your release',
+          body: 'Finish upload, attest, writers, and submit.',
+          href: rowResumeHref(draftCard),
+          label: 'Continue release',
         };
       } else if (!payoutSetUp(me)) {
         next = {
@@ -675,9 +715,11 @@
     cards.forEach(function (card) {
       var link = document.createElement('a');
       link.className = 'release-tile';
-      link.href = (card.local_draft || card.id === 'local-draft')
-        ? 'upload.html'
-        : (card.id ? ('song.html?id=' + encodeURIComponent(card.id)) : 'releases.html');
+      link.href = card.href || rowOpenHref(card);
+      if (rowIsUnsubmitted(card)) {
+        var resumeId = String((card.uuid || (card.id !== 'local-draft' ? card.id : '')) || '').trim();
+        if (resumeId && link.setAttribute) link.setAttribute('data-resume-id', resumeId);
+      }
       var art = document.createElement('span');
       art.className = 'release-tile-art';
       art.setAttribute('aria-hidden', 'true');
