@@ -269,6 +269,8 @@ function run() {
     '[data-release-count]': makeEl({}),
     '[data-release-status]': makeEl({ hidden: true }),
     '[data-release-tiles]': makeEl({}),
+    '[data-rejected-section]': makeEl({ hidden: true }),
+    '[data-rejected-rows]': makeEl({}),
   };
   const catalog = loadScript('catalog.js', catalogNodes);
   catalog.PlaigroundCatalog.render({ releases: [], total: 0, analytics: {} });
@@ -362,7 +364,7 @@ function run() {
   afterGhost.forEach(function (row) {
     if (findByText(row, 'The Interceptors')) interceptorRows.push(row);
   });
-  assert.strictEqual(interceptorRows.length, 1, 'store-backed Interceptors drops the local ghost');
+  assert.strictEqual(interceptorRows.length, 1, 'store-backed Interceptors stays a single row');
   assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Rainbow Road'), 'Rainbow Road stays');
 
   catalog.PlaigroundCatalog.render({
@@ -413,6 +415,66 @@ function run() {
   assert.strictEqual(allShown.length, 4, 'default Releases list includes pending and live');
   assert.ok(allShown.some(function (row) { return row.status === 'pending'; }), 'pending stays in the All list');
   assert.ok(allShown.some(function (row) { return row.status === 'live'; }), 'live stays in the All list');
+
+  catalog.PlaigroundCatalog.setFilter('all');
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'd412cc82-7acb-44ef-9c04-f92e4f2bcda6', title: 'GOLDEN ERA', type: 'single', status: 'rejected', rejection_reason: 'Audio quality issues' },
+      { uuid: '6629b532-2e78-4be6-84eb-e4dfa9ac33e5', title: 'Metete en el groove', type: 'single', status: 'rejected', rejection_reason: 'Invalid cover art' },
+      { uuid: '37524790-6cbf-4726-a386-384ab959731a', title: 'The night sky', type: 'single', status: 'rejected', rejection_reason: 'Incomplete metadata' },
+      { uuid: 'e41e056b-b316-4de7-ba0f-037f49629377', title: 'Lightning', type: 'single', status: 'draft' },
+      { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'My heart', type: 'single', status: 'draft' },
+      { uuid: '7a928125-b12e-4609-bd37-26ce0edf819e', title: 'Rainbow Road', type: 'single', status: 'live' },
+      { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'I Set the Tone', type: 'single', status: 'draft' },
+      { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'Unicorn', type: 'single', status: 'draft' },
+      { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'FUEGO', type: 'single', status: 'draft' },
+      { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff', title: 'Take it Back with Grace', type: 'single', status: 'draft' },
+    ],
+    total: 10,
+    analytics: {},
+  });
+  const rejectedRows = catalogNodes['[data-rejected-rows]'].children;
+  assert.strictEqual(rejectedRows.length, 4, 'Rejected lists GOLDEN ERA, Metete, The night sky, and Lightning');
+  assert.strictEqual(catalogNodes['[data-rejected-section]'].hidden, false);
+  ['GOLDEN ERA', 'Metete en el groove', 'The night sky', 'Lightning'].forEach(function (title) {
+    assert.ok(findByText(catalogNodes['[data-rejected-rows]'], title), title + ' lands in Rejected');
+  });
+  ['My heart', 'I Set the Tone', 'Rainbow Road', 'Unicorn', 'FUEGO', 'Take it Back with Grace'].forEach(function (title) {
+    assert.ok(!findByText(catalogNodes['[data-rejected-rows]'], title), title + ' stays out of Rejected');
+  });
+  ['My heart', 'I Set the Tone', 'Unicorn', 'FUEGO', 'Take it Back with Grace'].forEach(function (title) {
+    assert.ok(!findByText(catalogNodes['[data-release-rows]'], title), title + ' is dropped as an unsubmitted draft');
+  });
+  assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Rainbow Road'), 'live catalog stays in the main list');
+  assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'Lightning'), 'Lightning is not left in the main list');
+  assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'GOLDEN ERA'), 'rejected rows leave the main list');
+  const resubmit = findByText(rejectedRows[0], 'Resubmit');
+  assert.ok(resubmit, 'each rejected row has Resubmit');
+  assert.strictEqual(resubmit.tagName, 'A');
+  assert.strictEqual(resubmit.href, 'upload.html');
+  assert.ok(!/song\.html|edit=1/i.test(String(resubmit.href)), 'Resubmit is the new-release/attest path, not Edit');
+  rejectedRows.forEach(function (row) {
+    const btn = findByText(row, 'Resubmit');
+    assert.ok(btn);
+    assert.strictEqual(btn.href, 'upload.html');
+    assert.ok(!findByText(row, 'Edit release'), 'rejected rows do not get Edit release');
+  });
+  assert.ok(!findByText(catalogNodes['[data-rejected-rows]'], 'DistroKid'));
+  assert.ok(read('releases.html').includes('<h3>Rejected</h3>'), 'Releases has a Rejected heading');
+  assert.ok(read('releases.html').includes('data-rejected-section'), 'Rejected section is marked');
+  assert.ok(read('releases.html').includes('data-rejected-rows'), 'Rejected rows host is marked');
+  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r1'), 'releases.html cache-busts release-status.js');
+  assert.ok(read('releases.html').includes('catalog.js?v=20260910r1'), 'releases.html cache-busts catalog.js');
+  assert.ok(!/data-upload-save-draft|Save draft/.test(read('releases.html')), 'Save draft stays off Releases');
+  assert.ok(!/DistroKid/i.test(read('releases.html')));
+  assert.ok(read('catalog.js').includes("return 'upload.html'"), 'Resubmit stays on the new-release path');
+  const rejectedFn = read('catalog.js').slice(
+    read('catalog.js').indexOf('function renderRejectedRows'),
+    read('catalog.js').indexOf('var lastReleases')
+  );
+  assert.ok(/data-resubmit/.test(rejectedFn) && /resubmitHref\(/.test(rejectedFn), 'Resubmit is built as a new-release link');
+  assert.ok(!/song\.html/.test(rejectedFn) && !/edit=1/.test(rejectedFn), 'rejected Resubmit does not go to Edit');
+  assert.ok(!/fetch\(/.test(rejectedFn) && rejectedFn.indexOf('/api/tonegrid/releases') === -1, 'Resubmit click does not mint a store release');
 
   catalog.PlaigroundCatalog.setFilter('all');
   catalog.PlaigroundCatalog.render({

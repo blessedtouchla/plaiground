@@ -1244,6 +1244,18 @@ table.data td.release-edit-col .btn {
   white-space: nowrap;
 }
 .release-edit { margin-top: 24px; }
+.rejected-section {
+  margin-top: 28px;
+}
+.rejected-section[hidden] { display: none; }
+.rejected-section h3 {
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+.rejected-section .release-table-wrap {
+  margin-top: 0;
+}
 .profile-hero {
   display: flex;
   align-items: center;
@@ -4083,6 +4095,18 @@ body.app.artists-page .page {
     min-width: 44px;
     padding: 10px 14px;
     position: static;
+  }
+  .rejected-section {
+    margin-top: 22px;
+  }
+  .rejected-section h3 {
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+  }
+  .rejected-section [data-resubmit] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
   }
   .edit-actions {
     flex-direction: column;

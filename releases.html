@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260908d1" />
+  <link rel="stylesheet" href="site.css?v=20260910r1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app">
@@ -84,6 +84,17 @@
           <tbody data-release-rows></tbody>
         </table>
       </div>
+      <section class="rejected-section" data-rejected-section hidden>
+        <h3>Rejected</h3>
+        <div class="release-table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Release</th><th class="release-edit-col">Resubmit</th><th>Status</th><th>Splits</th><th>Streams</th><th>Earnings</th></tr>
+            </thead>
+            <tbody data-rejected-rows></tbody>
+          </table>
+        </div>
+      </section>
       <section class="flow-card release-edit" data-release-edit hidden>
         <div class="head-row">
           <h3>Edit release</h3>
@@ -141,15 +152,15 @@
     </div>
   </div>
   <script src="lib/cover-url.js"></script>
-  <script src="lib/release-status.js?v=20260909dlv2"></script>
-  <script src="lib/release-credits.js?v=20260908d1"></script>
+  <script src="lib/release-status.js?v=20260910r1"></script>
+  <script src="lib/release-credits.js?v=20260910r1"></script>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js?v=20260909dlv2"></script>
   <script src="upload-catalog.js"></script>
   <script src="lib/store-pick.js"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
-  <script src="catalog.js?v=20260909dlv2" defer></script>
+  <script src="catalog.js?v=20260910r1" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

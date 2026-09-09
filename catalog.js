@@ -64,12 +64,43 @@
     }
     var g = api ? api.group(status) : '';
     if (g === 'live') return 'live';
-    if (g === 'pending' || g === 'processing' || g === 'removing' || g === 'needs_fix' || g === 'qc_rejected') return 'review';
-    if (g === 'rejected') return 'review';
+    if (g === 'pending' || g === 'processing' || g === 'removing' || g === 'needs_fix') return 'review';
+    if (g === 'qc_rejected' || g === 'rejected') return 'rejected';
     if (g === 'store_gone') return '';
     if (status === 'live' || status === 'delivered') return 'live';
-    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'rejected' || status === 'qc_rejected' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
+    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
+    if (status === 'rejected' || status === 'qc_rejected') return 'rejected';
     return 'draft';
+  }
+
+  function isReturnedRow(row) {
+    var api = statusApi();
+    if (api && typeof api.isReturnedRelease === 'function') return api.isReturnedRelease(row);
+    return statusGroup(row && row.status) === 'rejected';
+  }
+
+  function splitRejected(releases) {
+    var api = statusApi();
+    if (api && typeof api.splitRejected === 'function') return api.splitRejected(releases);
+    var main = [];
+    var rejected = [];
+    (releases || []).forEach(function (row) {
+      if (isReturnedRow(row)) rejected.push(row);
+      else main.push(row);
+    });
+    return { main: main, rejected: rejected };
+  }
+
+  function resubmitHref() {
+    var api = statusApi();
+    if (api && typeof api.resubmitHref === 'function') return api.resubmitHref();
+    return 'upload.html';
+  }
+
+  function mergeReturned(releases, me) {
+    var api = statusApi();
+    if (api && typeof api.mergeReturnedCatalog === 'function') return api.mergeReturnedCatalog(releases, me);
+    return releases || [];
   }
 
   function typeLabel(type) {
@@ -163,8 +194,9 @@
   }
 
   function isUnsubmittedDraft(row, draft) {
+    if (isReturnedRow(row)) return false;
     var api = statusApi();
-    if (api && typeof api.isUnsubmittedDraft === 'function' && api.isUnsubmittedDraft(row, draft)) return true;
+    if (api && typeof api.isUnsubmittedDraft === 'function') return api.isUnsubmittedDraft(row, draft);
     if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.isUnsubmittedDraft === 'function') {
       if (global.PlaigroundReleaseCredits.isUnsubmittedDraft(row, draft)) return true;
     }
@@ -225,6 +257,7 @@
     }).filter(function (card) {
       var api = statusApi();
       if (api && typeof api.isHiddenFromList === 'function' && api.isHiddenFromList(card && card.status)) return false;
+      if (api && typeof api.isReturnedRelease === 'function' && api.isReturnedRelease(card)) return false;
       return !(api && typeof api.isPlaceholderRelease === 'function' && api.isPlaceholderRelease(card));
     });
   }
@@ -388,9 +421,102 @@
     });
   }
 
+  function renderRejectedRows(releases) {
+    var host = $('[data-rejected-rows]');
+    var section = $('[data-rejected-section]');
+    if (!host) {
+      if (section) section.hidden = true;
+      return;
+    }
+    host.textContent = '';
+    var list = releases || [];
+    if (section) section.hidden = !list.length;
+    list.forEach(function (row) {
+      var tr = document.createElement('tr');
+      if (row.uuid && tr.setAttribute) tr.setAttribute('data-release-id', row.uuid);
+      var mapped = (statusApi() && typeof statusApi().displayInfo === 'function')
+        ? statusApi().displayInfo(row)
+        : (statusApi() ? statusApi().info(row.status) : { label: 'Rejected', dot: 'red', live: false, alert: '' });
+      var alertText = mapped.alert || ((statusApi() && typeof statusApi().problemAlert === 'function')
+        ? statusApi().problemAlert(row)
+        : '');
+      if (!alertText) alertText = String((row && row.rejection_reason) || '').trim();
+      var titleCell = document.createElement('td');
+      var wrap = document.createElement('div');
+      wrap.className = 'rel';
+      var thumb = document.createElement('span');
+      thumb.className = 'thumb grey';
+      var thumbCover = coverOf(row);
+      applyCover(thumb, thumbCover);
+      resolveCoverFallback(thumb, row, thumbCover);
+      var copy = document.createElement('div');
+      var title = document.createElement('strong');
+      title.textContent = row.title || 'Untitled';
+      var meta = document.createElement('small');
+      var when = formatDate(row.release_date);
+      meta.textContent = typeLabel(row.type) + (when ? ' · ' + when : '');
+      var inlineStatus = document.createElement('small');
+      inlineStatus.className = 'release-inline-status is-red';
+      inlineStatus.textContent = 'Rejected';
+      copy.appendChild(title);
+      copy.appendChild(meta);
+      copy.appendChild(inlineStatus);
+      if (alertText) {
+        var inlineAlert = document.createElement('p');
+        inlineAlert.className = 'release-row-alert';
+        inlineAlert.textContent = alertText;
+        copy.appendChild(inlineAlert);
+      }
+      wrap.appendChild(thumb);
+      wrap.appendChild(copy);
+      titleCell.appendChild(wrap);
+
+      var actionCell = document.createElement('td');
+      actionCell.className = 'release-edit-col';
+      var resubmit = document.createElement('a');
+      resubmit.textContent = 'Resubmit';
+      resubmit.className = 'btn btn-purple btn-sm';
+      resubmit.href = resubmitHref();
+      resubmit.setAttribute('data-resubmit', '');
+      actionCell.appendChild(resubmit);
+
+      var statusCell = document.createElement('td');
+      statusCell.className = 'status-cell is-red';
+      var dot = document.createElement('i');
+      dot.className = 'status-dot';
+      statusCell.appendChild(dot);
+      var statusText = document.createElement('span');
+      statusText.textContent = 'Rejected';
+      statusCell.appendChild(statusText);
+      if (alertText) {
+        statusCell.className += ' has-alert';
+        var note = document.createElement('p');
+        note.className = 'release-row-alert';
+        note.textContent = alertText;
+        statusCell.appendChild(note);
+      }
+
+      var splits = document.createElement('td');
+      splits.textContent = '—';
+      var streamCell = document.createElement('td');
+      streamCell.textContent = '0';
+      var earnCell = document.createElement('td');
+      earnCell.textContent = '$0.00';
+
+      tr.appendChild(titleCell);
+      tr.appendChild(actionCell);
+      tr.appendChild(statusCell);
+      tr.appendChild(splits);
+      tr.appendChild(streamCell);
+      tr.appendChild(earnCell);
+      host.appendChild(tr);
+    });
+  }
+
   var lastReleases = [];
   var lastAnalytics = {};
   var lastTotal = 0;
+  var lastMe = null;
   var currentFilter = 'all';
 
   function filterFromSearch() {
@@ -455,17 +581,24 @@
     if (global.PlaigroundReleaseCredits && typeof global.PlaigroundReleaseCredits.withSavedDraft === 'function') {
       lastReleases = global.PlaigroundReleaseCredits.withSavedDraft(lastReleases, localDraft);
     }
+    lastMe = (data && data.me) || lastMe;
+    lastReleases = mergeReturned(lastReleases, lastMe);
     lastReleases = dropUnsubmitted(lastReleases, localDraft);
     lastAnalytics = (data && data.analytics) || {};
-    lastTotal = (data && data.total) || lastReleases.length;
-    if (lastReleases.length > lastTotal) lastTotal = lastReleases.length;
+    var parts = splitRejected(lastReleases);
+    var main = parts.main;
+    var rejected = parts.rejected;
+    lastTotal = (data && data.total) || main.length;
+    if (main.length > lastTotal) lastTotal = main.length;
     if (!currentFilter) currentFilter = filterFromSearch();
-    var shown = applyFilter(lastReleases, currentFilter);
-    renderStats(lastReleases);
+    var shown = applyFilter(main, currentFilter);
+    renderStats(main);
     renderRows(shown, lastAnalytics);
-    renderOverviewTiles(lastReleases);
+    renderRejectedRows(rejected);
+    renderOverviewTiles(main);
     var empty = !shown.length;
-    setHidden('[data-release-empty]', !empty);
+    var hideEmptyCard = !empty || (rejected.length > 0 && !main.length && (!currentFilter || currentFilter === 'all'));
+    setHidden('[data-release-empty]', hideEmptyCard);
     setHidden('[data-release-table]', empty);
     var copy = emptyCopy(currentFilter);
     setText('[data-release-empty-title]', copy.title);
@@ -660,11 +793,11 @@
           if (sessionLooksSignedIn(me)) {
             var signedInOwned = accountFallback(me, []);
             setStatus('');
-            render({ releases: overlayPendingCatalog(signedInOwned, me), total: signedInOwned.length, analytics: {} });
+            render({ releases: overlayPendingCatalog(signedInOwned, me), total: signedInOwned.length, analytics: {}, me: me });
             return;
           }
           setStatus('');
-          render({ releases: [], total: 0, analytics: {} });
+          render({ releases: [], total: 0, analytics: {}, me: me });
           return;
         }
         var owned = accountFallback(me, (list.ok && list.data && list.data.releases) || []);
@@ -672,12 +805,12 @@
           setStatus(list.data && list.data.error === 'Accounts are not configured.'
             ? 'Accounts are not configured.'
             : (owned.length ? '' : 'Catalog sync is not configured yet.'));
-          render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {} });
+          render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {}, me: me });
           return;
         }
         if (!list.ok) {
           setStatus(owned.length ? '' : (list.data.error || 'Could not load releases.'));
-          render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {} });
+          render({ releases: overlayPendingCatalog(owned, me), total: owned.length, analytics: {}, me: me });
           return;
         }
         var releases = list.data.releases || [];
@@ -687,6 +820,7 @@
           releases: releases,
           total: list.data.total || releases.length,
           analytics: analytics.ok ? analytics.data : {},
+          me: me,
         });
         setStatus('');
       })
@@ -988,7 +1122,7 @@
           global.history.replaceState({}, '', url);
         }
       } catch (err) {}
-      render({ releases: lastReleases, analytics: lastAnalytics, total: lastTotal });
+      render({ releases: lastReleases, analytics: lastAnalytics, total: lastTotal, me: lastMe });
     });
   }
 
@@ -999,6 +1133,9 @@
     accountFallback: accountFallback,
     overlayPendingCatalog: overlayPendingCatalog,
     applyFilter: applyFilter,
+    isReturnedRow: isReturnedRow,
+    resubmitHref: resubmitHref,
+    splitRejected: splitRejected,
     setFilter: function (next) { currentFilter = String(next || 'all'); },
     fillEdit: fillEdit,
     coverPreview: function () { return editCover; },
