@@ -522,13 +522,16 @@ function run() {
   const approvedLiveRow = catalogNodes['[data-release-rows]'].children[0];
   const processingRow = catalogNodes['[data-release-rows]'].children[1];
   const waitingRow = catalogNodes['[data-release-rows]'].children[2];
-  const sentBackRow = catalogNodes['[data-release-rows]'].children[3];
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 3, 'rejected Sent Back leaves the main list');
+  const sentBackRow = catalogNodes['[data-rejected-rows]'].children[0];
   assert.strictEqual(approvedLiveRow.children[2].children[1].textContent, 'Live', 'approved + delivered_at must label Live');
   assert.ok(String(approvedLiveRow.children[2].className).indexOf('is-green') !== -1);
   assert.ok(String(approvedLiveRow.children[2].className).indexOf(' live') !== -1);
   assert.strictEqual(processingRow.children[2].children[1].textContent, 'Processing');
   assert.notStrictEqual(waitingRow.children[2].children[1].textContent, 'Live', 'pending without delivered_at must not read Live');
-  assert.strictEqual(sentBackRow.children[2].children[1].textContent, 'QC rejected');
+  assert.ok(sentBackRow, 'rejected Sent Back still lists in Rejected');
+  assert.ok(findByText(sentBackRow, 'Sent Back'));
+  assert.ok(findByText(sentBackRow, 'Rejected'));
   assert.strictEqual(catalogNodes['[data-stat="live"]'].textContent, '1', 'delivered_at approved counts as live');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
   assert.ok(String(catalogNodes['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
