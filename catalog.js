@@ -250,6 +250,8 @@
         dot: mapped.dot,
         out: mapped.out || '',
         delivered_at: row && (row.delivered_at || row.deliveredAt) || '',
+        release_date: row && (row.release_date || row.releaseDate) || '',
+        updated_at: row && (row.updated_at || row.updatedAt) || '',
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
         local_draft: false,

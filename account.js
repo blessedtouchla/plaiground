@@ -464,6 +464,8 @@
             group: mapped ? mapped.group : (card && card.group),
             live: mapped ? mapped.live : false,
             delivered_at: row.delivered_at || row.deliveredAt || (card && card.delivered_at) || '',
+            release_date: row.release_date || row.releaseDate || (card && card.release_date) || '',
+            updated_at: row.updated_at || row.updatedAt || (card && card.updated_at) || '',
             artwork_url: (card && card.artwork_url) || url,
             alert: mapped && mapped.alert != null
               ? mapped.alert
@@ -620,13 +622,68 @@
     }
   }
 
+  function stampMs(value) {
+    var raw = String(value == null ? '' : value).trim();
+    if (!raw) return 0;
+    var ms = Date.parse(raw);
+    return isFinite(ms) ? ms : 0;
+  }
+
+  function cardStamp(card, keys) {
+    var i;
+    for (i = 0; i < keys.length; i += 1) {
+      var ms = stampMs(card && card[keys[i]]);
+      if (ms) return ms;
+    }
+    return 0;
+  }
+
+  function isRecentLive(card) {
+    if (!card) return false;
+    var api = statusApi();
+    if (api && typeof api.displayInfo === 'function') {
+      var mapped = api.displayInfo(card);
+      if (mapped && mapped.live) return true;
+    } else if (api && typeof api.isLive === 'function' && api.isLive(card)) {
+      return true;
+    }
+    if (card.live === true) return true;
+    if (card.displayInfo && card.displayInfo.live) return true;
+    var status = String(card.status || card.tonegrid_status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    var delivered = String(card.delivered_at || card.deliveredAt || '').trim();
+    if (status === 'live' || status === 'delivered') return true;
+    if ((status === 'approved' || status === 'processing' || status === 'delivering') && delivered) return true;
+    if (delivered && status !== 'rejected' && status !== 'needs_fix' && status !== 'needsfix' && status !== 'qc_rejected' && status !== 'qc_reject') return true;
+    return false;
+  }
+
+  function isRecentDraft(card) {
+    if (!card) return true;
+    var api = statusApi();
+    if (api && typeof api.isUnsubmittedDraft === 'function' && api.isUnsubmittedDraft(card)) return true;
+    return card.local_draft === true || card.saved_draft === true || card.id === 'local-draft' || String(card.status || card.tonegrid_status || '') === 'draft';
+  }
+
   function recentStrip(cards) {
     var list = Array.isArray(cards) ? cards.filter(Boolean) : [];
-    var out = [];
+    var live = [];
+    var rest = [];
     var i;
-    for (i = list.length - 1; i >= 0 && out.length < 4; i -= 1) {
-      out.push(list[i]);
+    for (i = 0; i < list.length; i += 1) {
+      var card = list[i];
+      if (isRecentLive(card)) live.push(card);
+      else if (!isRecentDraft(card)) rest.push(card);
     }
+    live.sort(function (a, b) {
+      return cardStamp(b, ['delivered_at', 'deliveredAt', 'release_date', 'releaseDate', 'updated_at', 'updatedAt'])
+        - cardStamp(a, ['delivered_at', 'deliveredAt', 'release_date', 'releaseDate', 'updated_at', 'updatedAt']);
+    });
+    rest.sort(function (a, b) {
+      return cardStamp(b, ['updated_at', 'updatedAt', 'release_date', 'releaseDate'])
+        - cardStamp(a, ['updated_at', 'updatedAt', 'release_date', 'releaseDate']);
+    });
+    var out = live.slice(0, 4);
+    for (i = 0; i < rest.length && out.length < 4; i += 1) out.push(rest[i]);
     return out;
   }
 
@@ -1513,6 +1570,7 @@
     fill: fillAccount,
     markPlanOption: markPlanOption,
     renderOverview: renderOverview,
+    recentStrip: recentStrip,
     renderSplitSheets: renderSplitSheets,
     stripOverviewLeftoverRows: stripOverviewLeftoverRows,
     accountPhoto: accountPhoto,

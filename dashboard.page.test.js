@@ -464,10 +464,11 @@ function run() {
     ] },
   });
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children.length, 3, 'Overview strip includes pending with live');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[1].children[2].textContent, 'Live');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'PLAIGROUND QC');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[1].textContent, 'Night Drive');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[1].children[2].textContent, 'PLAIGROUND QC');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Needs fix');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
   assert.strictEqual(mixedTiles['[data-account-releases]'].textContent, '1', 'Releases live stays a live count');
   assert.strictEqual(mixedTiles['[data-account-pending]'].textContent, '2');
   assert.strictEqual(mixedTiles['[data-next-up-title]'].textContent, 'Fix this release');
@@ -610,6 +611,64 @@ function run() {
   });
   assert.strictEqual(sixTiles['[data-release-tiles]'].children.length, 4, 'Overview strip is not the full catalog');
   assert.strictEqual(sixTiles['[data-account-pending]'].textContent, '6');
+
+  const currentCatalog = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: [
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+      '44444444-4444-4444-8444-444444444444',
+      '55555555-5555-4555-8555-555555555555',
+    ],
+    profile: { releases: [
+      { tonegrid_release_id: '11111111-1111-4111-8111-111111111111', title: 'My way back home', tonegrid_status: 'approved', delivered_at: '2026-09-07T20:07:56Z', release_date: '2026-09-13' },
+      { tonegrid_release_id: '22222222-2222-4222-8222-222222222222', title: 'Season of love', tonegrid_status: 'live', delivered_at: '2026-09-09T16:10:57Z' },
+      { tonegrid_release_id: '33333333-3333-4333-8333-333333333333', title: 'Lost 2', tonegrid_status: 'qc_inspection', updated_at: '2026-09-10T08:00:00Z' },
+      { tonegrid_release_id: '44444444-4444-4444-8444-444444444444', title: 'Dolly', tonegrid_status: 'qc_inspection', updated_at: '2026-09-10T09:00:00Z' },
+      { tonegrid_release_id: '55555555-5555-4555-8555-555555555555', title: 'Mr Herman', tonegrid_status: 'qc_inspection', updated_at: '2026-09-10T10:00:00Z' },
+    ] },
+  });
+  const currentTitles = Array.prototype.map.call(currentCatalog['[data-release-tiles]'].children, function (tile) {
+    return tile.children[1].textContent;
+  });
+  assert.strictEqual(currentCatalog['[data-release-tiles]'].children.length, 4, 'Overview Recent stays capped at 4');
+  assert.ok(currentTitles.indexOf('My way back home') !== -1, 'Live My way back home stays on Overview Recent');
+  assert.ok(currentTitles.indexOf('Season of love') !== -1, 'Live Season of love stays on Overview Recent');
+  assert.strictEqual(currentTitles[0], 'Season of love', 'Live tiles sort by delivered_at desc');
+  assert.strictEqual(currentTitles[1], 'My way back home', 'older Live stays ahead of Platform QC');
+  assert.strictEqual(currentCatalog['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(currentCatalog['[data-release-tiles]'].children[1].children[2].textContent, 'Live');
+  assert.ok(currentTitles.filter(function (title) {
+    return title === 'Lost 2' || title === 'Dolly' || title === 'Mr Herman';
+  }).length === 2, 'two Platform QC tiles fill the remaining slots');
+  assert.ok(read('account.js').includes('function isRecentLive'), 'Overview Recent prefers the Releases live signal');
+  assert.ok(read('dashboard.html').includes('account.js?v=20260910live1'), 'Overview cache-busts the Live-first strip');
+
+  const fiveLive = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: [
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    ],
+    profile: { releases: [
+      { tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Oldest Live', tonegrid_status: 'live', delivered_at: '2026-08-01T00:00:00Z' },
+      { tonegrid_release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Live Two', tonegrid_status: 'live', delivered_at: '2026-08-08T00:00:00Z' },
+      { tonegrid_release_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Live Three', tonegrid_status: 'live', delivered_at: '2026-08-15T00:00:00Z' },
+      { tonegrid_release_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'Live Four', tonegrid_status: 'live', delivered_at: '2026-08-22T00:00:00Z' },
+      { tonegrid_release_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'Newest Live', tonegrid_status: 'live', delivered_at: '2026-08-29T00:00:00Z' },
+    ] },
+  });
+  const fiveLiveTitles = Array.prototype.map.call(fiveLive['[data-release-tiles]'].children, function (tile) {
+    return tile.children[1].textContent;
+  });
+  assert.deepStrictEqual(fiveLiveTitles, ['Newest Live', 'Live Four', 'Live Three', 'Live Two']);
+  assert.ok(fiveLiveTitles.indexOf('Oldest Live') === -1, 'fifth Live falls off after the four newest');
 
   const splitLatest = fillAccount({
     artist: 'Fuvtu',
