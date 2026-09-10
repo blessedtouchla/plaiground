@@ -354,6 +354,10 @@
     var status = String((release && (release.status || release.tonegrid_status)) || '').toLowerCase();
     if (draft && draft.tonegrid_status && !status) status = String(draft.tonegrid_status).toLowerCase();
     var api = statusApi();
+    if (api && typeof api.displayInfo === 'function' && release) {
+      var deliveredLive = api.displayInfo(release, status);
+      if (deliveredLive && deliveredLive.group === 'live') return 'live';
+    }
     var g = api ? api.group(status) : '';
     if (g === 'live' || g === 'needs_fix' || g === 'qc_rejected' || g === 'processing' || g === 'pending' || g === 'removing' || g === 'taken_down') return g;
     if (status === 'live' || status === 'delivered') return 'live';
@@ -1016,8 +1020,8 @@
     setText('[data-song-pill]', pillLabel);
     var pill = $('[data-song-pill]');
     if (pill && pill.classList) {
-      pill.classList.toggle('pill-green', step === 'live');
-      pill.classList.toggle('is-yellow', !needsFix && !qcRejected && (step === 'pending' || step === 'processing'));
+      pill.classList.toggle('pill-green', (shown && shown.live) || step === 'live');
+      pill.classList.toggle('is-yellow', !needsFix && !qcRejected && !((shown && shown.live) || step === 'live') && (step === 'pending' || step === 'processing'));
       pill.classList.toggle('is-red', needsFix || qcRejected);
     }
     setHidden('[data-song-rejection]', !needsFix);

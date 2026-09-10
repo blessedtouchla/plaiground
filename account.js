@@ -463,6 +463,7 @@
             label: mapped ? mapped.label : (card && card.label),
             group: mapped ? mapped.group : (card && card.group),
             live: mapped ? mapped.live : false,
+            delivered_at: row.delivered_at || row.deliveredAt || (card && card.delivered_at) || '',
             artwork_url: (card && card.artwork_url) || url,
             alert: mapped && mapped.alert != null
               ? mapped.alert
@@ -709,13 +710,15 @@
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
       var api = statusApi();
-      var mapped = api ? api.info(card.status) : {
-        label: card.label || 'Pending',
-        dot: (card.status === 'live' || card.status === 'delivered') ? 'green' : 'yellow',
-        live: card.status === 'live' || card.status === 'delivered',
-      };
+      var mapped = (api && typeof api.displayInfo === 'function')
+        ? api.displayInfo(card)
+        : (api ? api.info(card.status) : {
+          label: card.label || 'Pending',
+          dot: (card.status === 'live' || card.status === 'delivered' || card.live) ? 'green' : 'yellow',
+          live: card.status === 'live' || card.status === 'delivered' || Boolean(card.live),
+        });
       var tileLabel = card.label || mapped.label || 'Pending';
-      var tileDot = (tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : (mapped.dot || 'gray');
+      var tileDot = (card.live || mapped.live) ? 'green' : ((tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : (mapped.dot || 'gray'));
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
       link.appendChild(art);

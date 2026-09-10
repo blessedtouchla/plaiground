@@ -2027,6 +2027,30 @@ function run() {
     analytics: {},
   });
   assert.strictEqual(live.nodes['[data-song-pill]'].textContent, 'Live');
+
+  const deliveredApproved = loadSong({ plan: 'basic', me: basicMe });
+  deliveredApproved.api.render({
+    me: basicMe,
+    release: {
+      uuid: basicMe.tonegrid_release_ids[0],
+      title: 'Fuvtu',
+      status: 'approved',
+      type: 'single',
+      delivered_at: '2026-09-08T16:10:57Z',
+    },
+    analytics: {},
+  });
+  assert.strictEqual(deliveredApproved.nodes['[data-song-pill]'].textContent, 'Live');
+  assert.ok(deliveredApproved.nodes['[data-song-pill]'].classList.contains('pill-green'));
+  assert.ok(deliveredApproved.life.live.classList.contains('on'));
+  const stillProcessing = loadSong({ plan: 'basic', me: basicMe });
+  stillProcessing.api.render({
+    me: basicMe,
+    release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Fuvtu', status: 'approved', type: 'single' },
+    analytics: {},
+  });
+  assert.strictEqual(stillProcessing.nodes['[data-song-pill]'].textContent, 'Processing');
+  assert.ok(!stillProcessing.nodes['[data-song-pill]'].classList.contains('pill-green'));
   assert.ok(live.life.live.classList.contains('on'));
   assert.ok(live.nodes['[data-song-player]'].children.some(function (child) {
     return child && String(child.textContent || '').indexOf('Stream links appear') !== -1;
