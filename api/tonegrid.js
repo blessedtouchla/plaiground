@@ -22,6 +22,7 @@
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
  * POST /api/tonegrid/releases/:id/artwork  -> ToneGrid POST /releases/:uuid/artwork
  * POST /api/tonegrid/tracks
+ * GET  /api/tonegrid/tracks/:id            -> ToneGrid GET /tracks/:uuid
  * PUT  /api/tonegrid/tracks/:id            -> ToneGrid PATCH /tracks/:uuid
  * POST /api/tonegrid/tracks/:id/audio  -> JSON { object_key } (preferred) or leftover multipart
  *   Hop-to-store: pull the private object. Already-WAV/FLAC skips convert
@@ -3637,13 +3638,42 @@ async function trackOwned(scope, trackId) {
   return false;
 }
 
+async function getTrack(req, res, trackId) {
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const id = String(trackId || '').trim();
+  if (!isUuid(id)) {
+    sendJson(res, 400, { error: 'track id must be a uuid.' });
+    return;
+  }
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+  if (!(await trackOwned(scope, id))) {
+    sendJson(res, 404, { error: 'Track not found.' });
+    return;
+  }
+  const result = await tonegridFetch('/tracks/' + id, { method: 'GET' });
+  if (!result.ok) {
+    sendJson(res, result.status, result.data);
+    return;
+  }
+  const picked = pickTracks([asObject(result.data)])[0] || pickTracks(result.data)[0];
+  sendJson(res, 200, picked || asObject(result.data));
+}
+
 async function updateTrack(req, res, trackId) {
   if (!isConfigured()) {
     notConfigured(res);
     return;
   }
+  if (req.method === 'GET') {
+    await getTrack(req, res, trackId);
+    return;
+  }
   if (req.method !== 'PUT') {
-    res.setHeader('Allow', 'PUT');
+    res.setHeader('Allow', 'GET, PUT');
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }

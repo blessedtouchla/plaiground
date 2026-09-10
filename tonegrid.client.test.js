@@ -518,6 +518,19 @@ function load(options) {
           json: async () => ({ stores: opts.catalogStores || [] }),
         });
       }
+      const trackGet = String(url).match(/^\/api\/tonegrid\/tracks\/([0-9a-f-]+)$/i);
+      const trackGetMethod = String((init && init.method) || 'GET').toUpperCase();
+      if (trackGet && trackGetMethod === 'GET') {
+        const trackId = trackGet[1];
+        const fromMap = opts.trackById && (opts.trackById[trackId] || opts.trackById[String(trackId).toLowerCase()]);
+        const queued = Array.isArray(opts.trackGets) && opts.trackGets.length ? opts.trackGets.shift() : null;
+        const row = queued || opts.storeTrack || fromMap || { uuid: trackId };
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => row,
+        });
+      }
       if (String(url) === '/api/tonegrid/uploads') {
         const minted = JSON.parse((init && init.body) || '{}');
         const kind = String(minted.kind || 'audio');
@@ -1218,8 +1231,8 @@ async function run() {
   await flush(4);
   assert.ok(!payNoAudio.calls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
   assert.ok(!payNoAudio.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
-  assert.strictEqual(payNoAudio.status.textContent, 'Go back to Upload and re-attach your master');
-  assert.ok(!payNoAudio.reviewAudioRepick.hidden, 'empty hold shows the Review re-pick');
+  assert.ok(!/re-attach your master/i.test(payNoAudio.status.textContent), 'Review must not ask to re-attach');
+  assert.ok(payNoAudio.reviewAudioRepick.hidden, 'Review has no Re-attach master');
 
   const payHeldIdb = load({
     bind: 'review',
@@ -1236,38 +1249,10 @@ async function run() {
   });
   payHeldIdb.payBtn.listeners.click({ preventDefault() {} });
   await flush(8);
-  assert.notStrictEqual(payHeldIdb.status.textContent, 'Go back to Upload and re-attach your master');
+  assert.ok(!/re-attach your master/i.test(payHeldIdb.status.textContent));
   assert.ok(payHeldIdb.calls.some(function (call) {
     return String(call.url).indexOf('/api/tonegrid/') === 0;
   }), 'held IDB master must pass firstSubmitHasAudio');
-
-  const payRepick = load({
-    bind: 'review',
-    releaseDate: '2026-09-20',
-    artist: 'Ada Night',
-    draft: Object.assign(attestDraft(), {
-      name: 'Ada Night',
-      title: 'Night Drive',
-      solo_owned_100: true,
-      release_date: '2026-09-20',
-      artwork_url: 'https://cdn.example/cover.jpg',
-    }),
-  });
-  payRepick.payBtn.listeners.click({ preventDefault() {} });
-  await flush(4);
-  assert.strictEqual(payRepick.status.textContent, 'Go back to Upload and re-attach your master');
-  payRepick.reviewMasterPick.files = [AUDIO];
-  payRepick.reviewMasterPick._plaigroundFile = AUDIO;
-  payRepick.reviewMasterPick.listeners.change({ target: payRepick.reviewMasterPick });
-  await flush(4);
-  assert.strictEqual(payRepick.reviewAudioName.textContent, 'night-drive.wav', 'Review re-pick shows the held filename');
-  payRepick.payBtn.removeAttribute('aria-busy');
-  payRepick.payBtn.listeners.click({ preventDefault() {} });
-  await flush(8);
-  assert.notStrictEqual(payRepick.status.textContent, 'Go back to Upload and re-attach your master');
-  assert.ok(payRepick.calls.some(function (call) {
-    return String(call.url).indexOf('/api/tonegrid/') === 0;
-  }), 'Review re-pick must supply a File for the Submit gate');
 
   const paySkip = load({
     bind: 'review',
@@ -1860,7 +1845,7 @@ async function run() {
     assert.ok(!page.calls.some(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
     }), 'must not create a second release');
-    assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
+    assert.ok(!/re-attach your master/i.test(page.status.textContent), 'Review must not ask to re-attach');
     assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
@@ -1963,7 +1948,7 @@ async function run() {
     }), 'genuine empty must not POST submit');
     assert.ok(!page.calls.some(function (call) { return call.url === '/api/tonegrid/tracks'; }), 'untitled empty must not invent a track');
     assert.ok(
-      /please add at least one track|audio required|re-attach your master|song title is required|could not create the track/i.test(page.status.textContent),
+      /please add at least one track|audio required|song title is required|could not create the track/i.test(page.status.textContent),
       page.status.textContent || 'empty first-submit must fail loud'
     );
     assert.notStrictEqual(page.location.href, 'submitted.html');
@@ -2033,7 +2018,7 @@ async function run() {
     assert.ok(!page.calls.some(function (call) {
       return String(call.url).indexOf('/submit') !== -1;
     }), 'audio_name without a master must not submit');
-    assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
+    assert.ok(!/re-attach your master/i.test(page.status.textContent), 'Review must not ask to re-attach');
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
@@ -2618,7 +2603,7 @@ async function run() {
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
-  async function reviewFailSubmitMissingMasterUsesReattachCopy() {
+  async function reviewFailSubmitMissingMasterDoesNotAskRepick() {
     const emptyHold = { name: 'night-drive.wav', type: 'audio/wav', size: 0 };
     const page = load({
       bind: 'review',
@@ -2646,9 +2631,8 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.strictEqual(page.status.textContent, 'Go back to Upload and re-attach your master');
-    assert.ok(!/Audio required — upload your master before sending/.test(page.status.textContent));
-    assert.ok(!page.reviewAudioRepick.hidden, 'failSubmit missing master shows Re-attach');
+    assert.ok(!/re-attach your master/i.test(page.status.textContent), 'Review must not ask to re-attach');
+    assert.ok(page.reviewAudioRepick.hidden, 'Review has no Re-attach master');
   }
 
   async function reviewFailSubmitHeldFileUsesSendCopy() {
@@ -2683,7 +2667,93 @@ async function run() {
       /We could not send the audio|Could not attach the audio/i.test(page.status.textContent),
       page.status.textContent || 'held File + store audio-required must use send-fail copy'
     );
-    assert.ok(!page.reviewAudioRepick.hidden, 'held File send-fail keeps Re-attach visible');
+    assert.ok(page.reviewAudioRepick.hidden, 'Review has no Re-attach master');
+  }
+
+  async function reviewSubmitStoreHasAudioDoesNotHop() {
+    const releaseId = '1fc1dd72-00bc-4677-8f98-164d116b42a9';
+    const trackId = '2817eeff-1bc6-4ddf-acc4-7e4c4b1180e3';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      storeTrack: {
+        uuid: trackId,
+        audio_s3_key: 'tracks/28/2026/09/e166bab099116ab2da9aeebf64740fff.wav',
+        file_size: 36885522,
+      },
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        release_id: releaseId,
+        track_id: trackId,
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: releaseId, title: 'Night Drive', tracks: [] } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(16);
+    assert.ok(!page.calls.some(function (call) {
+      return /\/audio$/.test(String(call.url)) || String(call.url).indexOf('https://hop.test/') === 0;
+    }), 'store-has-audio Submit must not hop');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
+    }), 'Submit continues to the release send');
+    assert.ok(!/We could not send the audio/i.test(page.status.textContent));
+    assert.ok(!/re-attach/i.test(page.status.textContent));
+    assert.ok(page.reviewAudioRepick.hidden, 'Review has no Re-attach master');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
+  async function reviewHopEmptyRecoversWhenTrackHasAudio() {
+    const releaseId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const trackId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      file: AUDIO,
+      heldFile: AUDIO,
+      failHopPut: true,
+      trackGets: [
+        { uuid: trackId },
+        {
+          uuid: trackId,
+          audio_s3_key: 'tracks/28/2026/09/e166bab099116ab2da9aeebf64740fff.wav',
+          file_size: 36885522,
+        },
+      ],
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        release_id: releaseId,
+        track_id: trackId,
+        audio_name: 'night-drive.wav',
+        audio_uploaded: false,
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
+      }),
+      responses: [
+        { ok: true, status: 200, data: { uuid: releaseId, tracks: [{ uuid: trackId }] } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
+    }), 'empty hop + /tracks audio must still submit');
+    assert.ok(!/We could not send the audio/i.test(page.status.textContent));
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
   async function reviewReattachOnlyWhenNeverHadAudio() {
@@ -2704,9 +2774,10 @@ async function run() {
     });
     await flush(12);
     assert.ok(
-      /audio required|no longer on this page|re-attach|could not create the track|could not attach the audio/i.test(page.status.textContent),
+      /audio required|no longer on this page|could not create the track|could not attach the audio/i.test(page.status.textContent),
       page.status.textContent || 'titled draft that never had a master must fail loud'
     );
+    assert.ok(!/re-attach your master/i.test(page.status.textContent));
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
@@ -4221,8 +4292,10 @@ async function run() {
   await reviewKeepsLivingReleaseForThisTitle();
   await reviewSubmitUsesStoreTracksWithoutFile();
   await reviewHeldFileUploadsAfterDeadRelease();
-  await reviewFailSubmitMissingMasterUsesReattachCopy();
+  await reviewFailSubmitMissingMasterDoesNotAskRepick();
   await reviewFailSubmitHeldFileUsesSendCopy();
+  await reviewSubmitStoreHasAudioDoesNotHop();
+  await reviewHopEmptyRecoversWhenTrackHasAudio();
   await reviewReattachOnlyWhenNeverHadAudio();
   await reviewSubmitEnsuresCatalogArtist();
   await reviewSubmitAmplifyLocalProfileCreatesStoreArtistOnce();
@@ -4449,7 +4522,8 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c2'), 'review.html must cache-bust past 20260906c2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c3'), 'review.html must cache-bust past 20260906c3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c4'), 'review.html must cache-bust past 20260906c4');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260908d1'), 'review.html cache-busts store-client.js at 20260908d1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260908d1'), 'review.html must cache-bust past 20260908d1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260909a1'), 'review.html cache-busts store-client.js at 20260909a1');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
@@ -4457,23 +4531,30 @@ async function run() {
   assert.ok(attestHtml.includes('store-client.js?v=20260908d1'), 'attest.html cache-busts store-client.js at 20260908d1');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
   assert.ok(splitSheetHtml.includes('store-client.js?v=20260908d1'), 'split-sheet.html cache-busts store-client.js at 20260908d1');
-  assert.ok(source.includes('REVIEW_REATTACH_COPY'));
-  assert.ok(source.includes('Go back to Upload and re-attach your master'));
+  assert.ok(!source.includes('REVIEW_REATTACH_COPY'));
+  assert.ok(!source.includes('Go back to Upload and re-attach your master'));
+  assert.ok(!reviewHtml.includes('Re-attach master'), 'Review has no Re-attach master');
+  assert.ok(!reviewHtml.includes('data-review-master-pick'), 'Upload is the only audio pick');
+  assert.ok(!reviewHtml.includes('data-review-audio-repick'));
+  assert.ok(!reviewHtml.includes('Save draft'), 'Review does not restore Save draft');
   assert.ok(source.includes('reviewHeldMasterFile'));
   assert.ok(source.includes('reviewSubmitAudioFailCopy'));
+  assert.ok(source.includes('hydrateSubmitTracks'));
+  assert.ok(source.includes('recoverStoreAudio'));
+  assert.ok(source.includes('fetchStoreTrack'));
+  assert.ok(source.includes('file_size'));
+  assert.ok(source.includes('audio_s3_key'));
   assert.ok(source.includes('confirmHeldMasterReadback'));
   assert.ok(source.includes('HOLD_KEEP_PHONE_COPY'));
   assert.ok(source.includes('Could not keep your master on this phone'));
   assert.ok(source.includes('timedOut'));
   assert.ok(!/withHoldPersistTimeout\(persistLocalUploadFiles\(\)\)\.then\(function \(\) \{\s*setUploadBusy\(false\);\s*continueAfterCatalog/.test(source), 'hold timeout must not leave Upload');
-  assert.ok(/failSubmit[\s\S]*syncReviewAudioRepick\(true\)/.test(source), 'Review failSubmit must show Re-attach master');
+  assert.ok(!/failSubmit[\s\S]*syncReviewAudioRepick\(true\)/.test(source), 'Review failSubmit must not show Re-attach master');
   assert.ok(!/onReviewPage\(\) && !reviewHeldMasterFile\(\)\s*\n\s*\? reviewMissingMasterCopy\(\)\s*\n\s*: AUDIO_REQUIRED_COPY/.test(source), 'Review must not fall through to Audio required copy');
   assert.ok(source.includes('refreshHeldAudioSlots'));
   assert.ok(source.includes('persistHeldBundle'));
   assert.ok(source.includes('bindReviewAudioRepick'));
   assert.ok(source.includes('bindAttestHold'));
-  assert.ok(reviewHtml.includes('data-review-master-pick'), 'Review can re-attach a missing master');
-  assert.ok(reviewHtml.includes('data-review-audio-repick'));
   assert.ok(source.includes('function afterRelease'));
   assert.ok(source.includes('function createTrackOnRelease'));
   assert.ok(!source.includes('function hopStep1FilesOntoRelease'), 'must not invent a leftover hop');
