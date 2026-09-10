@@ -2023,6 +2023,8 @@ async function run() {
   }
 
   async function reviewSubmitRecreatesTrackOnFreshRelease() {
+    const dead = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const fresh = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-20',
@@ -2032,7 +2034,9 @@ async function run() {
         artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         title: 'Night Drive',
         name: 'Ada Night',
-        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        genre: 'Pop',
+        language: 'en',
+        release_id: dead,
         track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
         audio_name: 'night-drive.wav',
         solo_owned_100: true,
@@ -2040,6 +2044,7 @@ async function run() {
       }),
       responses: [
         { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: true, status: 201, data: { uuid: fresh } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
@@ -2047,21 +2052,33 @@ async function run() {
       ],
     });
     await flush(16);
+    const artistCreates = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/artists' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(artistCreates.length, 0, 'dead-id review must reuse the draft artist_id');
     const createCalls = page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
     });
-    assert.strictEqual(createCalls.length, 0, 'must not mint a second release while attaching the master');
+    assert.strictEqual(createCalls.length, 1, 'stale release_id 404 must mint a fresh release');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).title, 'Night Drive');
+    assert.strictEqual(JSON.parse(createCalls[0].init.body).artist_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     const track = page.calls.find(function (call) { return call.url === '/api/tonegrid/tracks'; });
     assert.ok(track, 'must create a track so the master has a home');
-    assert.strictEqual(JSON.parse(track.init.body).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.strictEqual(JSON.parse(track.init.body).release_id, fresh);
     assert.ok(page.calls.some(function (call) {
       return /\/api\/tonegrid\/tracks\/[^/]+\/audio$/.test(String(call.url));
-    }), 'dead-id review must still POST the master');
+    }), 'fresh release must still POST the master');
     assert.ok(page.calls.some(function (call) {
-      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+      return String(call.url) === '/api/tonegrid/releases/' + fresh + '/submit';
     }));
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + dead + '/submit';
+    }), 'must not submit the dead release id');
     assert.ok(!/please add at least one track/i.test(page.status.textContent));
-    assert.strictEqual(draftOf(page.localStorage).release_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    assert.ok(!/release not found/i.test(page.status.textContent));
+    assert.strictEqual(draftOf(page.localStorage).release_id, fresh);
+    assert.strictEqual(draftOf(page.localStorage).genre, 'Pop');
+    assert.strictEqual(draftOf(page.localStorage).language, 'en');
     assert.strictEqual(draftOf(page.localStorage).audio_attached, true);
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
@@ -2563,6 +2580,8 @@ async function run() {
   }
 
   async function reviewHeldFileUploadsAfterDeadRelease() {
+    const dead = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const fresh = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-20',
@@ -2570,7 +2589,7 @@ async function run() {
       draft: Object.assign(attestDraft(), {
         artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         title: 'Night Drive',
-        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        release_id: dead,
         track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
         audio_name: 'night-drive.wav',
         audio_uploaded: true,
@@ -2581,6 +2600,7 @@ async function run() {
       }),
       responses: [
         { ok: false, status: 404, data: { error: 'Release not found.' } },
+        { ok: true, status: 201, data: { uuid: fresh } },
         { ok: true, status: 201, data: { track: { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' } } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
@@ -2589,17 +2609,18 @@ async function run() {
     await flush(18);
     assert.strictEqual(page.calls.filter(function (call) {
       return call.url === '/api/tonegrid/releases' && call.init && call.init.method === 'POST';
-    }).length, 0, 'dead leftover must not remint a second release');
+    }).length, 1, 'stale leftover 404 must mint a fresh release');
     assert.ok(page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/tracks/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/audio';
-    }), 'held File must hop onto a track on the leftover');
+    }), 'held File must hop onto a track on the fresh release');
     assert.ok(page.calls.some(function (call) {
-      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
-    }), 'submit stays on the leftover uuid');
+      return String(call.url) === '/api/tonegrid/releases/' + fresh + '/submit';
+    }), 'submit uses the minted release');
     assert.ok(!page.calls.some(function (call) {
-      return String(call.url).indexOf('dddddddd-dddd-4ddd-8ddd-dddddddddddd') !== -1;
-    }), 'must not remint');
+      return String(call.url) === '/api/tonegrid/releases/' + dead + '/submit';
+    }), 'must not submit the dead leftover uuid');
     assert.ok(!/no longer on this page|re-attach/i.test(page.status.textContent));
+    assert.strictEqual(draftOf(page.localStorage).release_id, fresh);
     assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
   }
 
@@ -4524,16 +4545,17 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c4'), 'review.html must cache-bust past 20260906c4');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260908d1'), 'review.html must cache-bust past 20260908d1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260909a1'), 'review.html must cache-bust past 20260909a1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260910c1'), 'review.html cache-busts store-client.js at 20260910c1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260910c1'), 'review.html must cache-bust past 20260910c1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260910c2'), 'review.html cache-busts store-client.js at 20260910c2');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260910c1'), 'upload.html cache-busts store-client.js at 20260910c1');
-  assert.ok(attestHtml.includes('store-client.js?v=20260910c1'), 'attest.html cache-busts store-client.js at 20260910c1');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260910c2'), 'upload.html cache-busts store-client.js at 20260910c2');
+  assert.ok(attestHtml.includes('store-client.js?v=20260910c2'), 'attest.html cache-busts store-client.js at 20260910c2');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(/data-upload-cancel>Cancel</.test(attestHtml), 'Attest Cancel is a real button');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260910c1'), 'split-sheet.html cache-busts store-client.js at 20260910c1');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260910c2'), 'split-sheet.html cache-busts store-client.js at 20260910c2');
   assert.ok(splitSheetHtml.indexOf('Save and exit') === -1, 'Writers must not say Save and exit');
   assert.ok(/data-upload-cancel>Cancel</.test(splitSheetHtml), 'Writers Cancel is a real button');
   assert.ok(!source.includes('REVIEW_REATTACH_COPY'));
@@ -4644,6 +4666,9 @@ async function run() {
   assert.ok(reviewHtml.indexOf('id="tg-language"') === -1, 'Review must not keep an editable language picker');
   assert.ok(reviewHtml.indexOf('data-review-genre') !== -1, 'Review shows the Upload genre as read-only');
   assert.ok(reviewHtml.indexOf('data-review-language') !== -1, 'Review shows the Upload language as read-only');
+  assert.ok(source.includes("catalogFieldValue('tg-genre') || draft.genre"), 'Review submit uses Upload draft genre when pickers are gone');
+  assert.ok(source.includes('afterRelease(readDraft(), { mintMissing: true })'), 'Review remints when draft.release_id 404s');
+  assert.ok(source.includes('sessionReleaseAlive'), 'mintMissing must not reuse a leftover-kept dead session id');
   assert.ok(reviewHtml.includes('data-upload-retry'));
   assert.ok(reviewHtml.includes('Retry'));
   assert.ok(!/ToneGrid/.test(reviewHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));

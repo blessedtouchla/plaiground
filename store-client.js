@@ -1257,6 +1257,7 @@
   var sessionReleaseId = '';
   var sessionReleaseChecked = '';
   var sessionReleaseVerified = '';
+  var sessionReleaseAlive = '';
   var sessionReleaseTracks = [];
   var sessionReleaseTracksListed = false;
   var sessionAudioAttachedId = '';
@@ -1802,13 +1803,22 @@
     rememberSessionRelease(id, true, tracks, true);
   }
 
+  function markSessionReleaseAlive(id) {
+    var next = String(id || '').trim();
+    if (!next) return;
+    sessionReleaseAlive = next;
+  }
+
   function rememberSessionRelease(id, verified, tracks, listed) {
     var next = String(id || '').trim();
     if (!next) return;
     var same = sameUuid(sessionReleaseId, next) || sameUuid(sessionReleaseChecked, next);
     sessionReleaseId = next;
     sessionReleaseChecked = next;
-    if (verified) sessionReleaseVerified = next;
+    if (verified) {
+      sessionReleaseVerified = next;
+      markSessionReleaseAlive(next);
+    }
     if (arguments.length >= 3) {
       sessionReleaseTracks = tracks || [];
       sessionReleaseTracksListed = listed === true;
@@ -2174,6 +2184,7 @@
     sessionReleaseId = '';
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
+    sessionReleaseAlive = '';
     sessionReleaseTracks = [];
     sessionReleaseTracksListed = false;
     clearSessionAudioAttached();
@@ -2307,6 +2318,7 @@
     sessionReleaseId = '';
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
+    sessionReleaseAlive = '';
     sessionReleaseTracks = [];
     sessionReleaseTracksListed = false;
     clearSessionAudioAttached();
@@ -2506,7 +2518,7 @@
       }
       var keepId = String((current && current.release_id) || skipId || '').trim();
       if (keepId) {
-        rememberSessionRelease(keepId, true, [], true);
+        rememberSessionRelease(keepId, false, [], true);
         return { ok: true, draft: current, found: true, tracks: [], keepLeftover: true, tracksListed: true };
       }
       return deadReleaseResult(loaded && loaded.result, current);
@@ -2524,11 +2536,13 @@
         if (opts && opts.mintMissing) {
           return createFreshRelease(clearDeadReleaseIds(current));
         }
-        rememberSessionRelease(id, true, [], true);
+        rememberSessionRelease(id, false, [], true);
         return { ok: true, draft: current, found: true, tracks: [], keepLeftover: true, tracksListed: true };
       });
     }
-    if (id && sessionReleaseVerified && sameUuid(id, sessionReleaseVerified)) {
+    var reuseSession = !(opts && opts.mintMissing)
+      || (id && sessionReleaseAlive && sameUuid(id, sessionReleaseAlive));
+    if (reuseSession && id && sessionReleaseVerified && sameUuid(id, sessionReleaseVerified)) {
       return Promise.resolve({
         ok: true,
         draft: current,
@@ -2538,7 +2552,7 @@
         tracksListed: sessionReleaseTracksListed,
       });
     }
-    if (id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
+    if (reuseSession && id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
       return Promise.resolve({
         ok: true,
         draft: current,
@@ -2548,7 +2562,7 @@
         tracksListed: sessionReleaseTracksListed,
       });
     }
-    if (id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
+    if (reuseSession && id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
       return Promise.resolve({
         ok: true,
         draft: current,
@@ -2568,6 +2582,7 @@
           && Object.prototype.hasOwnProperty.call(loaded.result.data, 'tracks')
         );
         rememberSessionRelease(id, true, loaded.tracks, listed);
+        markSessionReleaseAlive(id);
         return { ok: true, draft: current, found: true, tracks: loaded.tracks, tracksListed: listed, result: loaded.result };
       }
       if (isUnavailable(loaded.result)) {
@@ -2971,13 +2986,37 @@
     return { submitted: true, draft: next, result: result };
   }
 
-  function postSubmitRelease(draft, submitBody, date, documentId, solo) {
+  function postSubmitRelease(draft, submitBody, date, documentId, solo, opts) {
     var key = takeIdempotencyKey('submit', draft, submitBody);
     return post(
       '/api/tonegrid/releases/' + encodeURIComponent(draft.release_id) + '/submit',
       submitBody,
       key
     ).then(function (result) {
+      if (
+        !result.ok
+        && isReleaseMissing(result)
+        && !(opts && opts.retriedMissing)
+      ) {
+        return resolveLiveRelease(clearDeadReleaseIds(draft), { mintMissing: true }).then(function (resolved) {
+          if (resolved.unavailable || resolved.limited || resolved.failed || resolved.missing) {
+            return applySubmitResult(resolved.draft || draft, date, documentId, solo, result);
+          }
+          var fresh = resolved.draft || readDraft();
+          return afterRelease(fresh, { mintMissing: true }).then(function (hopped) {
+            if (hopped && (hopped.unavailable || hopped.limited)) return hopped;
+            if (hopped && (hopped.failed || hopped.missing)) {
+              return { failed: true, result: hopped.result || result, draft: hopped.draft || fresh };
+            }
+            var next = hopped && hopped.draft ? hopped.draft : fresh;
+            var nextBody = Object.assign({}, submitBody);
+            var nextIds = draftTrackIds(next);
+            if (nextIds.length) nextBody.track_id = nextIds[0];
+            if (nextIds.length > 1) nextBody.track_ids = nextIds;
+            return postSubmitRelease(next, nextBody, date, documentId, solo, { retriedMissing: true });
+          });
+        });
+      }
       return applySubmitResult(draft, date, documentId, solo, result);
     });
   }
@@ -3517,9 +3556,8 @@
         !result.ok
         && isReleaseMissing(result)
         && info.retriedRelease !== true
-        && !(draft.release_id && sessionReleaseVerified && sameUuid(draft.release_id, sessionReleaseVerified))
       ) {
-        return resolveLiveRelease(clearDeadReleaseIds(draft)).then(function (resolved) {
+        return resolveLiveRelease(clearDeadReleaseIds(draft), { mintMissing: true }).then(function (resolved) {
           if (resolved.unavailable) return resolved;
           if (resolved.limited || resolved.failed || resolved.missing) {
             return {
@@ -4178,8 +4216,8 @@
     });
   }
 
-  function afterRelease(draft) {
-    return resolveLiveRelease(draft).then(function (resolved) {
+  function afterRelease(draft, opts) {
+    return resolveLiveRelease(draft, opts).then(function (resolved) {
       if (resolved.unavailable || resolved.limited || resolved.failed || resolved.missing) return resolved;
       var ready = resolved.draft || draft;
       if (ready.type === 'album') return afterAlbumRelease(ready);
@@ -4459,6 +4497,7 @@
         } else {
           rememberSessionRelease(releaseId);
         }
+        markSessionReleaseAlive(releaseId);
       }
       if (releaseId || draft.artist_id) {
         saveCatalog({ artist_id: draft.artist_id, release_id: releaseId });
@@ -6463,7 +6502,7 @@
               }
               showUploadLoader('Uploading audio');
               return restoreHeldAudio().then(function () {
-                return afterRelease(next).then(function (hopped) {
+                return afterRelease(next, { mintMissing: true }).then(function (hopped) {
                   if (hopped && hopped.failed) {
                     failSubmit(createErrorMessage(hopped.result, 'Could not create the track.'), trigger);
                     return;
@@ -6516,7 +6555,7 @@
               return;
             }
             showUploadLoader('Creating track');
-            return afterRelease(created.draft || nextDraft).then(function (next) {
+            return afterRelease(created.draft || nextDraft, { mintMissing: true }).then(function (next) {
               if (next && next.failed) {
                 failSubmit(createErrorMessage(next.result, 'Could not create the track.'), trigger);
                 return;
@@ -6590,7 +6629,7 @@
     if (draft.release_id && !draft.submitted && String(readyDate || '').trim() && (documentIdOf(draft) || isSoloOwned(draft))) {
       setStatus('tg-status', 'Checking SignWell…');
       restoreHeldAudio().then(function () {
-        return afterRelease(readDraft());
+        return afterRelease(readDraft(), { mintMissing: true });
       }).then(function (next) {
         if (next && next.failed) {
           failSubmit(createErrorMessage(next.result, 'Could not create the track.'), trigger);
