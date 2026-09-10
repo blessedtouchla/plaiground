@@ -2892,7 +2892,7 @@ function run() {
     const releasePdf = page.api.releaseStatementPdf();
     assert.ok(releasePdf.indexOf('%PDF') === 0);
     assert.ok(releasePdf.indexOf('Fuvtu') !== -1);
-    assert.ok(releasePdf.indexOf('Pending') !== -1);
+    assert.ok(releasePdf.indexOf('PLAIGROUND QC') !== -1);
     assert.ok(releasePdf.indexOf('$0.00') !== -1);
     assert.ok(releasePdf.indexOf('Streams') !== -1);
     assert.ok(!/7,412,908|Neon Sermon|Victoria Reyes/.test(releasePdf));
