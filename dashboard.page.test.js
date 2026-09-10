@@ -404,6 +404,7 @@ function run() {
   assert.strictEqual(liveRelease['[data-msp-songs]'].children.length, 0);
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[1].textContent, 'Night Drive');
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[3].textContent, 'Out now');
 
   const deliveredApproved = fillAccount({
     artist: 'Fuvtu',
@@ -417,6 +418,7 @@ function run() {
     }] },
   });
   assert.strictEqual(deliveredApproved['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(deliveredApproved['[data-release-tiles]'].children[0].children[3].textContent, 'Out now');
   assert.ok(String(deliveredApproved['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
   assert.strictEqual(deliveredApproved['[data-account-releases]'].textContent, '1');
   assert.strictEqual(deliveredApproved['[data-account-pending]'].textContent, '0');
@@ -438,7 +440,14 @@ function run() {
     profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Night Drive', tonegrid_status: 'pending' }] },
   });
   assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[0].style.backgroundImage || '', '', 'empty placeholder stays when there is no cover');
-  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
+  assert.strictEqual(emptyCover['[data-release-tiles]'].children[0].children[2].textContent, 'PLAIGROUND QC');
+  const platformQcTiles = fillAccount({
+    artist: 'Fuvtu',
+    plan: 'creator',
+    tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Dolly', tonegrid_status: 'qc_inspection' }] },
+  });
+  assert.strictEqual(platformQcTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Platform QC');
 
   const mixedTiles = fillAccount({
     artist: 'Fuvtu',
@@ -457,7 +466,7 @@ function run() {
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children.length, 3, 'Overview strip includes pending with live');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Needs fix');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[1].children[2].textContent, 'Live');
-  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'Pending');
+  assert.strictEqual(mixedTiles['[data-release-tiles]'].children[2].children[2].textContent, 'PLAIGROUND QC');
   assert.strictEqual(mixedTiles['[data-release-tiles]'].children[0].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
   assert.strictEqual(mixedTiles['[data-account-releases]'].textContent, '1', 'Releases live stays a live count');
   assert.strictEqual(mixedTiles['[data-account-pending]'].textContent, '2');
@@ -580,7 +589,7 @@ function run() {
     tonegrid_release_ids: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
     profile: { releases: [{ tonegrid_release_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Maybe', tonegrid_status: 'mystery' }] },
   });
-  assert.strictEqual(unknownTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
+  assert.strictEqual(unknownTiles['[data-release-tiles]'].children[0].children[2].textContent, 'PLAIGROUND QC');
   assert.notStrictEqual(unknownTiles['[data-release-tiles]'].children[0].children[2].textContent, 'Live', 'unknown status must not invent Live');
   assert.strictEqual(unknownTiles['[data-release-tiles]'].children[0].children.length, 3, 'unknown status has no fake error');
   assert.strictEqual(unknownTiles['[data-account-releases]'].textContent, '0');

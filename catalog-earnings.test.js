@@ -463,8 +463,8 @@ function run() {
   assert.ok(read('releases.html').includes('<h3>Rejected</h3>'), 'Releases has a Rejected heading');
   assert.ok(read('releases.html').includes('data-rejected-section'), 'Rejected section is marked');
   assert.ok(read('releases.html').includes('data-rejected-rows'), 'Rejected rows host is marked');
-  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r1'), 'releases.html cache-busts release-status.js');
-  assert.ok(read('releases.html').includes('catalog.js?v=20260910r1'), 'releases.html cache-busts catalog.js');
+  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r3'), 'releases.html cache-busts release-status.js');
+  assert.ok(read('releases.html').includes('catalog.js?v=20260910r3'), 'releases.html cache-busts catalog.js');
   assert.ok(!/data-upload-save-draft|Save draft/.test(read('releases.html')), 'Save draft stays off Releases');
   assert.ok(!/DistroKid/i.test(read('releases.html')));
   assert.ok(read('catalog.js').includes("return 'upload.html'"), 'Resubmit stays on the new-release path');
@@ -493,20 +493,20 @@ function run() {
   const liveRow = catalogNodes['[data-release-rows]'].children[1];
   const fixRow = catalogNodes['[data-release-rows]'].children[2];
   const unknownRow = catalogNodes['[data-release-rows]'].children[3];
-  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'Pending');
+  assert.strictEqual(pendingRow.children[2].children[1].textContent, 'PLAIGROUND QC');
   assert.strictEqual(liveRow.children[2].children[1].textContent, 'Live');
   assert.strictEqual(fixRow.children[2].children[1].textContent, 'Needs fix');
   assert.strictEqual(fixRow.children[2].children[2].textContent, 'Cover art is too small.\n' + QC_LINES);
-  assert.ok(findByText(pendingRow.children[0], 'Pending'), 'phone inline status keeps Pending on the row');
+  assert.ok(findByText(pendingRow.children[0], 'PLAIGROUND QC'), 'phone inline status keeps PLAIGROUND QC on the row');
   assert.ok(findByText(fixRow.children[0], 'Needs fix'), 'phone inline status keeps Needs fix on the row');
   assert.ok(findByText(fixRow.children[0], 'Cover art is too small.\n' + QC_LINES), 'phone inline status keeps the real error on the row');
   assert.ok(String(fixRow.children[2].className).indexOf('has-alert') !== -1);
-  assert.strictEqual(unknownRow.children[2].children[1].textContent, 'Pending');
+  assert.strictEqual(unknownRow.children[2].children[1].textContent, 'PLAIGROUND QC');
   assert.notStrictEqual(unknownRow.children[2].children[1].textContent, 'Live', 'unknown status must not invent Live');
   assert.ok(!findByText(unknownRow, 'Cover art is too small.'), 'no fake error on an unknown row');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children.length, 4, 'Overview tiles on the shared list include pending');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[2].children[3].textContent, 'Cover art is too small.\n' + QC_LINES);
-  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Pending');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'PLAIGROUND QC');
 
   catalog.PlaigroundCatalog.setFilter('all');
   catalog.PlaigroundCatalog.render({
@@ -525,9 +525,12 @@ function run() {
   assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 3, 'rejected Sent Back leaves the main list');
   const sentBackRow = catalogNodes['[data-rejected-rows]'].children[0];
   assert.strictEqual(approvedLiveRow.children[2].children[1].textContent, 'Live', 'approved + delivered_at must label Live');
+  assert.strictEqual(approvedLiveRow.children[2].children[2].textContent, 'Out now');
   assert.ok(String(approvedLiveRow.children[2].className).indexOf('is-green') !== -1);
   assert.ok(String(approvedLiveRow.children[2].className).indexOf(' live') !== -1);
+  assert.ok(String(approvedLiveRow.children[2].className).indexOf('has-out') !== -1);
   assert.strictEqual(processingRow.children[2].children[1].textContent, 'Processing');
+  assert.strictEqual(waitingRow.children[2].children[1].textContent, 'PLAIGROUND QC');
   assert.notStrictEqual(waitingRow.children[2].children[1].textContent, 'Live', 'pending without delivered_at must not read Live');
   assert.ok(sentBackRow, 'rejected Sent Back still lists in Rejected');
   assert.ok(findByText(sentBackRow, 'Sent Back'));
@@ -535,6 +538,17 @@ function run() {
   assert.strictEqual(catalogNodes['[data-stat="live"]'].textContent, '1', 'delivered_at approved counts as live');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
   assert.ok(String(catalogNodes['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[3].textContent, 'Out now');
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Preorder', type: 'single', status: 'live', release_date: '2026-12-25' },
+    ],
+    total: 1,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[2].children[1].textContent, 'Live');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[2].children[2].textContent, 'Out Dec 25');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[3].textContent, 'Out Dec 25');
   catalog.PlaigroundCatalog.setFilter('live');
   const liveOnly = catalog.PlaigroundCatalog.applyFilter([
     { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Approved Live', status: 'approved', delivered_at: '2026-09-08T16:10:57Z' },
@@ -542,6 +556,27 @@ function run() {
   ], 'live');
   assert.strictEqual(liveOnly.length, 1);
   assert.strictEqual(liveOnly[0].title, 'Approved Live');
+  catalog.PlaigroundCatalog.setFilter('all');
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Dolly', type: 'single', status: 'qc_inspection' },
+      { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Mr Herman', type: 'single', status: 'qc_inspection' },
+      { uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', title: 'Lost 2', type: 'single', status: 'qc_inspection' },
+      { uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', title: 'Waiting', type: 'single', status: 'pending' },
+      { uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'Still Processing', type: 'single', status: 'approved' },
+      { uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff', title: 'Night Drive', type: 'single', status: 'approved', delivered_at: '2026-09-08T16:10:57Z' },
+    ],
+    total: 6,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[2].children[1].textContent, 'Platform QC');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[1].children[2].children[1].textContent, 'Platform QC');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[2].children[2].children[1].textContent, 'Platform QC');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[3].children[2].children[1].textContent, 'PLAIGROUND QC');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[4].children[2].children[1].textContent, 'Processing');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[5].children[2].children[1].textContent, 'Live');
+  assert.ok(findByText(catalogNodes['[data-release-rows]'].children[0].children[0], 'Platform QC'));
+  assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(catalogNodes['[data-release-rows]'].children[0].textContent));
   catalog.PlaigroundCatalog.setFilter('all');
 
   assert.ok(read('releases.html').includes('href="problem.html"'), 'Have a problem? stays the typed report page');

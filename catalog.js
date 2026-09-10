@@ -48,9 +48,10 @@
     if (status === 'draft') return 'Draft';
     if (status === 'rejected' || status === 'qc_rejected' || status === 'qc_failed' || status === 'error' || status === 'failed') return 'QC rejected';
     if (status === 'needs-fix' || status === 'needs_fix') return 'Needs fix';
+    if (status === 'qc_inspection') return 'Platform QC';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'Processing';
-    if (status === 'pending') return 'Pending';
-    return 'Pending';
+    if (status === 'pending' || status === 'pending_review') return 'PLAIGROUND QC';
+    return 'PLAIGROUND QC';
   }
 
   function statusGroup(status) {
@@ -64,11 +65,11 @@
     }
     var g = api ? api.group(status) : '';
     if (g === 'live') return 'live';
-    if (g === 'pending' || g === 'processing' || g === 'removing' || g === 'needs_fix') return 'review';
+    if (g === 'pending' || g === 'processing' || g === 'platform_qc' || g === 'removing' || g === 'needs_fix') return 'review';
     if (g === 'qc_rejected' || g === 'rejected') return 'rejected';
     if (g === 'store_gone') return '';
     if (status === 'live' || status === 'delivered') return 'live';
-    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
+    if (status === 'pending' || status === 'pending_review' || status === 'qc_inspection' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
     if (status === 'rejected' || status === 'qc_rejected') return 'rejected';
     return 'draft';
   }
@@ -247,6 +248,7 @@
         label: mapped.label,
         live: mapped.live,
         dot: mapped.dot,
+        out: mapped.out || '',
         delivered_at: row && (row.delivered_at || row.deliveredAt) || '',
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
@@ -288,13 +290,19 @@
       var title = document.createElement('strong');
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
-      var tileLabel = card.label || 'Pending';
+      var tileLabel = card.label || 'PLAIGROUND QC';
       var tileDot = card.live ? 'green' : ((card.dot) || ((tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray')));
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
+      if (card.out) {
+        var out = document.createElement('small');
+        out.className = 'release-out-line';
+        out.textContent = card.out;
+        link.appendChild(out);
+      }
       if (card.alert) {
         var note = document.createElement('p');
         note.className = 'release-tile-alert';
@@ -356,6 +364,12 @@
       inlineStatus.className = 'release-inline-status is-' + mapped.dot;
       inlineStatus.textContent = mapped.label;
       copy.appendChild(inlineStatus);
+      if (mapped.out) {
+        var inlineOut = document.createElement('small');
+        inlineOut.className = 'release-out-line';
+        inlineOut.textContent = mapped.out;
+        copy.appendChild(inlineOut);
+      }
       if (alertText) {
         var inlineAlert = document.createElement('p');
         inlineAlert.className = 'release-row-alert';
@@ -394,6 +408,13 @@
       var statusText = document.createElement('span');
       statusText.textContent = mapped.label;
       statusCell.appendChild(statusText);
+      if (mapped.out) {
+        statusCell.className += ' has-out';
+        var outLine = document.createElement('small');
+        outLine.className = 'release-out-line';
+        outLine.textContent = mapped.out;
+        statusCell.appendChild(outLine);
+      }
       if (alertText) {
         statusCell.className += ' has-alert';
         var note = document.createElement('p');

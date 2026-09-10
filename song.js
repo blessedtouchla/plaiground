@@ -359,12 +359,13 @@
       if (deliveredLive && deliveredLive.group === 'live') return 'live';
     }
     var g = api ? api.group(status) : '';
-    if (g === 'live' || g === 'needs_fix' || g === 'qc_rejected' || g === 'processing' || g === 'pending' || g === 'removing' || g === 'taken_down') return g;
+    if (g === 'live' || g === 'needs_fix' || g === 'qc_rejected' || g === 'processing' || g === 'platform_qc' || g === 'pending' || g === 'removing' || g === 'taken_down') return g;
     if (status === 'live' || status === 'delivered') return 'live';
     if (status === 'needs-fix' || status === 'needs_fix' || status === 'needsfix') return 'needs_fix';
     if (status === 'rejected' || status === 'qc_rejected' || status === 'qc_failed' || status === 'qc_reject' || status === 'error' || status === 'failed') return 'qc_rejected';
+    if (status === 'qc_inspection') return 'platform_qc';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'processing';
-    if (status === 'pending') return 'pending';
+    if (status === 'pending' || status === 'pending_review') return 'pending';
     if (status === 'draft') return 'draft';
     var writers = (draft && Array.isArray(draft.writers)) ? draft.writers : [];
     var solo = Boolean(draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true')) && !String((draft && draft.featured) || '').trim();
@@ -393,9 +394,10 @@
     if (step === 'qc_rejected' || step === 'rejected') return 'QC rejected';
     if (step === 'draft') return 'Draft';
     if (step === 'signatures') return 'Awaiting signatures';
+    if (step === 'platform_qc' || step === 'qc_inspection') return 'Platform QC';
     if (step === 'processing') return 'Processing';
     if (step === 'removing') return 'Removing';
-    return 'Pending';
+    return 'PLAIGROUND QC';
   }
 
   function getJson(url) {
@@ -959,7 +961,7 @@
       setHidden('[data-song-status]', false);
       setText('[data-song-title]', 'Untitled');
       setText('[data-song-meta]', '');
-      setText('[data-song-pill]', 'Pending');
+      setText('[data-song-pill]', 'PLAIGROUND QC');
       markLife('pending');
       setCover('');
       setText('[data-song-streams]', '0');
@@ -1021,7 +1023,7 @@
     var pill = $('[data-song-pill]');
     if (pill && pill.classList) {
       pill.classList.toggle('pill-green', (shown && shown.live) || step === 'live');
-      pill.classList.toggle('is-yellow', !needsFix && !qcRejected && !((shown && shown.live) || step === 'live') && (step === 'pending' || step === 'processing'));
+      pill.classList.toggle('is-yellow', !needsFix && !qcRejected && !((shown && shown.live) || step === 'live') && (step === 'pending' || step === 'processing' || step === 'platform_qc'));
       pill.classList.toggle('is-red', needsFix || qcRejected);
     }
     setHidden('[data-song-rejection]', !needsFix);
