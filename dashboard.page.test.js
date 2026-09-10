@@ -404,6 +404,7 @@ function run() {
   assert.strictEqual(liveRelease['[data-msp-songs]'].children.length, 0);
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[1].textContent, 'Night Drive');
   assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(liveRelease['[data-release-tiles]'].children[0].children[3].textContent, 'Out now');
 
   const deliveredApproved = fillAccount({
     artist: 'Fuvtu',
@@ -417,6 +418,7 @@ function run() {
     }] },
   });
   assert.strictEqual(deliveredApproved['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
+  assert.strictEqual(deliveredApproved['[data-release-tiles]'].children[0].children[3].textContent, 'Out now');
   assert.ok(String(deliveredApproved['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
   assert.strictEqual(deliveredApproved['[data-account-releases]'].textContent, '1');
   assert.strictEqual(deliveredApproved['[data-account-pending]'].textContent, '0');

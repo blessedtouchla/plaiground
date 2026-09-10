@@ -463,8 +463,8 @@ function run() {
   assert.ok(read('releases.html').includes('<h3>Rejected</h3>'), 'Releases has a Rejected heading');
   assert.ok(read('releases.html').includes('data-rejected-section'), 'Rejected section is marked');
   assert.ok(read('releases.html').includes('data-rejected-rows'), 'Rejected rows host is marked');
-  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r2'), 'releases.html cache-busts release-status.js');
-  assert.ok(read('releases.html').includes('catalog.js?v=20260910r2'), 'releases.html cache-busts catalog.js');
+  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r3'), 'releases.html cache-busts release-status.js');
+  assert.ok(read('releases.html').includes('catalog.js?v=20260910r3'), 'releases.html cache-busts catalog.js');
   assert.ok(!/data-upload-save-draft|Save draft/.test(read('releases.html')), 'Save draft stays off Releases');
   assert.ok(!/DistroKid/i.test(read('releases.html')));
   assert.ok(read('catalog.js').includes("return 'upload.html'"), 'Resubmit stays on the new-release path');
@@ -525,8 +525,10 @@ function run() {
   assert.strictEqual(catalogNodes['[data-release-rows]'].children.length, 3, 'rejected Sent Back leaves the main list');
   const sentBackRow = catalogNodes['[data-rejected-rows]'].children[0];
   assert.strictEqual(approvedLiveRow.children[2].children[1].textContent, 'Live', 'approved + delivered_at must label Live');
+  assert.strictEqual(approvedLiveRow.children[2].children[2].textContent, 'Out now');
   assert.ok(String(approvedLiveRow.children[2].className).indexOf('is-green') !== -1);
   assert.ok(String(approvedLiveRow.children[2].className).indexOf(' live') !== -1);
+  assert.ok(String(approvedLiveRow.children[2].className).indexOf('has-out') !== -1);
   assert.strictEqual(processingRow.children[2].children[1].textContent, 'Processing');
   assert.strictEqual(waitingRow.children[2].children[1].textContent, 'PLAIGROUND QC');
   assert.notStrictEqual(waitingRow.children[2].children[1].textContent, 'Live', 'pending without delivered_at must not read Live');
@@ -536,6 +538,17 @@ function run() {
   assert.strictEqual(catalogNodes['[data-stat="live"]'].textContent, '1', 'delivered_at approved counts as live');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
   assert.ok(String(catalogNodes['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[3].textContent, 'Out now');
+  catalog.PlaigroundCatalog.render({
+    releases: [
+      { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Preorder', type: 'single', status: 'live', release_date: '2026-12-25' },
+    ],
+    total: 1,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[2].children[1].textContent, 'Live');
+  assert.strictEqual(catalogNodes['[data-release-rows]'].children[0].children[2].children[2].textContent, 'Out Dec 25');
+  assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[3].textContent, 'Out Dec 25');
   catalog.PlaigroundCatalog.setFilter('live');
   const liveOnly = catalog.PlaigroundCatalog.applyFilter([
     { uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Approved Live', status: 'approved', delivered_at: '2026-09-08T16:10:57Z' },

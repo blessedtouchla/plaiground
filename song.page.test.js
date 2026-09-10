@@ -2270,7 +2270,7 @@ function run() {
   assert.ok(html.includes('data-life="removing"'));
   assert.ok(html.includes('data-life="platform_qc">Platform QC</span>'));
   assert.ok(html.includes('data-life="pending">PLAIGROUND QC</span>'));
-  assert.ok(html.includes('lib/release-status.js?v=20260910r2'));
+  assert.ok(html.includes('lib/release-status.js?v=20260910r3'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('data-edit-retry'));
   assert.ok(/class="btn btn-purple btn-sm"[^>]*>Open full split sheet</.test(html), 'Open full split sheet stays purple');

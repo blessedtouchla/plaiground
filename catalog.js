@@ -248,6 +248,7 @@
         label: mapped.label,
         live: mapped.live,
         dot: mapped.dot,
+        out: mapped.out || '',
         delivered_at: row && (row.delivered_at || row.deliveredAt) || '',
         artwork_url: coverOf(row),
         artwork_object_key: coverObjectKeyOf(row),
@@ -296,6 +297,12 @@
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
+      if (card.out) {
+        var out = document.createElement('small');
+        out.className = 'release-out-line';
+        out.textContent = card.out;
+        link.appendChild(out);
+      }
       if (card.alert) {
         var note = document.createElement('p');
         note.className = 'release-tile-alert';
@@ -357,6 +364,12 @@
       inlineStatus.className = 'release-inline-status is-' + mapped.dot;
       inlineStatus.textContent = mapped.label;
       copy.appendChild(inlineStatus);
+      if (mapped.out) {
+        var inlineOut = document.createElement('small');
+        inlineOut.className = 'release-out-line';
+        inlineOut.textContent = mapped.out;
+        copy.appendChild(inlineOut);
+      }
       if (alertText) {
         var inlineAlert = document.createElement('p');
         inlineAlert.className = 'release-row-alert';
@@ -395,6 +408,13 @@
       var statusText = document.createElement('span');
       statusText.textContent = mapped.label;
       statusCell.appendChild(statusText);
+      if (mapped.out) {
+        statusCell.className += ' has-out';
+        var outLine = document.createElement('small');
+        outLine.className = 'release-out-line';
+        outLine.textContent = mapped.out;
+        statusCell.appendChild(outLine);
+      }
       if (alertText) {
         statusCell.className += ' has-alert';
         var note = document.createElement('p');

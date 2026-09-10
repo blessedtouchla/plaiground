@@ -724,6 +724,12 @@
       link.appendChild(art);
       link.appendChild(title);
       link.appendChild(status);
+      if (mapped.out || card.out) {
+        var out = document.createElement('small');
+        out.className = 'release-out-line';
+        out.textContent = mapped.out || card.out;
+        link.appendChild(out);
+      }
       var alertText = String((card && card.alert) || '').trim();
       if (!alertText && api && typeof api.problemAlert === 'function') {
         alertText = String(api.problemAlert(card) || '').trim();
