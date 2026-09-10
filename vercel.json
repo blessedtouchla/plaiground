@@ -79,7 +79,8 @@
     { "source": "/blog/leave-basic", "destination": "/blog-leave-basic.html" },
     { "source": "/blog/artist-bot-playbook", "destination": "/blog-artist-bot-playbook.html" },
     { "source": "/blog/boosts", "destination": "/blog-boosts.html" },
-    { "source": "/blog/sync", "destination": "/blog-sync.html" }
+    { "source": "/blog/sync", "destination": "/blog-sync.html" },
+    { "source": "/blog/30-day-plan", "destination": "/blog-30-day-plan.html" }
   ],
   "headers": [
     {
