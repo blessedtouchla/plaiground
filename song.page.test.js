@@ -222,6 +222,7 @@ function loadSong(opts) {
     draft: makeEl({ life: 'draft' }),
     signatures: makeEl({ life: 'signatures' }),
     pending: makeEl({ life: 'pending' }),
+    platform_qc: makeEl({ life: 'platform_qc' }),
     processing: makeEl({ life: 'processing' }),
     live: makeEl({ life: 'live' }),
     removing: makeEl({ life: 'removing' }),
@@ -250,7 +251,7 @@ function loadSong(opts) {
     document: {
       querySelector(sel) { return nodes[sel] || null; },
       querySelectorAll(sel) {
-        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.processing, life.live, life.removing, life.taken_down, life.rejected, life.needs_fix, life.qc_rejected];
+        if (sel === '[data-life]') return [life.draft, life.signatures, life.pending, life.platform_qc, life.processing, life.live, life.removing, life.taken_down, life.rejected, life.needs_fix, life.qc_rejected];
         if (sel === '[data-edit-explicit] [data-explicit]') return [];
         if (sel === '[data-edit-made-how]') return [];
         return [];
@@ -1904,7 +1905,7 @@ function run() {
     analytics: { summary: { total_streams: 0, total_revenue_usd: 0 }, releases: [], dsps: [] },
   });
   assert.strictEqual(page.nodes['[data-song-title]'].textContent, 'Fuvtu');
-  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'Pending');
+  assert.strictEqual(page.nodes['[data-song-pill]'].textContent, 'PLAIGROUND QC');
   assert.strictEqual(page.nodes['[data-song-rejection]'].hidden, true);
   assert.ok(page.life.pending.classList.contains('on'));
   assert.ok(!page.life.live.classList.contains('on'), 'pending must not show Live');
@@ -2051,6 +2052,17 @@ function run() {
   });
   assert.strictEqual(stillProcessing.nodes['[data-song-pill]'].textContent, 'Processing');
   assert.ok(!stillProcessing.nodes['[data-song-pill]'].classList.contains('pill-green'));
+  const platformQc = loadSong({ plan: 'basic', me: basicMe });
+  platformQc.api.render({
+    me: basicMe,
+    release: { uuid: basicMe.tonegrid_release_ids[0], title: 'Dolly', status: 'qc_inspection', type: 'single' },
+    analytics: {},
+  });
+  assert.strictEqual(platformQc.nodes['[data-song-pill]'].textContent, 'Platform QC');
+  assert.ok(platformQc.life.platform_qc.classList.contains('on'));
+  assert.ok(!platformQc.life.pending.classList.contains('on'));
+  assert.ok(!platformQc.life.processing.classList.contains('on'));
+  assert.ok(!platformQc.nodes['[data-song-pill]'].classList.contains('pill-green'));
   assert.ok(live.life.live.classList.contains('on'));
   assert.ok(live.nodes['[data-song-player]'].children.some(function (child) {
     return child && String(child.textContent || '').indexOf('Stream links appear') !== -1;
@@ -2256,6 +2268,9 @@ function run() {
   assert.ok(/data-song-download>Download<\/button>/.test(html));
   assert.ok(html.includes('data-life="taken_down"'));
   assert.ok(html.includes('data-life="removing"'));
+  assert.ok(html.includes('data-life="platform_qc">Platform QC</span>'));
+  assert.ok(html.includes('data-life="pending">PLAIGROUND QC</span>'));
+  assert.ok(html.includes('lib/release-status.js?v=20260910r2'));
   assert.ok(html.includes('data-edit-save'));
   assert.ok(html.includes('data-edit-retry'));
   assert.ok(/class="btn btn-purple btn-sm"[^>]*>Open full split sheet</.test(html), 'Open full split sheet stays purple');
@@ -2684,7 +2699,7 @@ function run() {
     assert.ok(editor.api.isCreateReleaseUrl('/api/tonegrid/releases', 'POST'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PUT'));
     assert.ok(!editor.api.isCreateReleaseUrl('/api/tonegrid/releases/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/submit', 'POST'));
-    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'Pending');
+    assert.strictEqual(editor.nodes['[data-song-pill]'].textContent, 'PLAIGROUND QC');
     assert.ok(!editor.life.live.classList.contains('on'), 'edit must not fake LIVE');
     assert.ok(editor.api.isLiveConfirmed({ status: 'live' }, {}) === true);
     assert.ok(editor.api.isLiveConfirmed({ status: 'pending' }, {}) === false);
@@ -3073,7 +3088,7 @@ function run() {
             assert.ok(!pendingRemoved.redirect);
             assert.ok(pendingCalls.some((row) => /Ask stores|stays listed until the store confirms/i.test(String(row.confirm || ''))));
             assert.ok(!/Deleted|Taken down/i.test(pendingOk.nodes['[data-song-pill]'].textContent));
-            assert.ok(/Removing|Pending/i.test(pendingOk.nodes['[data-song-pill]'].textContent));
+            assert.ok(/Removing|PLAIGROUND QC/i.test(pendingOk.nodes['[data-song-pill]'].textContent));
             assert.notStrictEqual(pendingOk.context.location.href, 'releases.html');
 
             const processingCalls = [];

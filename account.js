@@ -399,7 +399,7 @@
     if (api && typeof api.ownedReleases === 'function') return api.ownedReleases(me);
     var ids = Array.isArray(me && me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
     return ids.map(function (id) {
-      return { id: String(id), title: '', status: 'pending', label: 'Pending', group: 'pending', live: false, artwork_url: '' };
+      return { id: String(id), title: '', status: 'pending', label: 'PLAIGROUND QC', group: 'pending', live: false, artwork_url: '' };
     });
   }
 
@@ -713,11 +713,11 @@
       var mapped = (api && typeof api.displayInfo === 'function')
         ? api.displayInfo(card)
         : (api ? api.info(card.status) : {
-          label: card.label || 'Pending',
+          label: card.label || 'PLAIGROUND QC',
           dot: (card.status === 'live' || card.status === 'delivered' || card.live) ? 'green' : 'yellow',
           live: card.status === 'live' || card.status === 'delivered' || Boolean(card.live),
         });
-      var tileLabel = card.label || mapped.label || 'Pending';
+      var tileLabel = card.label || mapped.label || 'PLAIGROUND QC';
       var tileDot = (card.live || mapped.live) ? 'green' : ((tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : (mapped.dot || 'gray'));
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
@@ -802,7 +802,7 @@
     if (!stored) stored = (draft && draft.submitted === false) ? 'draft' : 'pending';
     var status = (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus)
       ? PlaigroundReleaseStatus.label(stored)
-      : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'QC rejected' : 'Pending');
+      : (stored === 'live' ? 'Live' : stored === 'draft' ? 'Draft' : stored === 'rejected' ? 'QC rejected' : stored === 'qc_inspection' ? 'Platform QC' : stored === 'approved' || stored === 'processing' || stored === 'delivering' ? 'Processing' : 'PLAIGROUND QC');
     if (typeof PlaigroundReleaseStatus !== 'undefined' && PlaigroundReleaseStatus && typeof PlaigroundReleaseStatus.displayInfo === 'function') {
       var latestRow = null;
       if (me && me.profile && Array.isArray(me.profile.releases) && latestId) {

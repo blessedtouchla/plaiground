@@ -48,9 +48,10 @@
     if (status === 'draft') return 'Draft';
     if (status === 'rejected' || status === 'qc_rejected' || status === 'qc_failed' || status === 'error' || status === 'failed') return 'QC rejected';
     if (status === 'needs-fix' || status === 'needs_fix') return 'Needs fix';
+    if (status === 'qc_inspection') return 'Platform QC';
     if (status === 'approved' || status === 'processing' || status === 'delivering') return 'Processing';
-    if (status === 'pending') return 'Pending';
-    return 'Pending';
+    if (status === 'pending' || status === 'pending_review') return 'PLAIGROUND QC';
+    return 'PLAIGROUND QC';
   }
 
   function statusGroup(status) {
@@ -64,11 +65,11 @@
     }
     var g = api ? api.group(status) : '';
     if (g === 'live') return 'live';
-    if (g === 'pending' || g === 'processing' || g === 'removing' || g === 'needs_fix') return 'review';
+    if (g === 'pending' || g === 'processing' || g === 'platform_qc' || g === 'removing' || g === 'needs_fix') return 'review';
     if (g === 'qc_rejected' || g === 'rejected') return 'rejected';
     if (g === 'store_gone') return '';
     if (status === 'live' || status === 'delivered') return 'live';
-    if (status === 'pending' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
+    if (status === 'pending' || status === 'pending_review' || status === 'qc_inspection' || status === 'approved' || status === 'processing' || status === 'delivering' || status === 'needs_fix' || status === 'takedown_submitted' || status === 'removing') return 'review';
     if (status === 'rejected' || status === 'qc_rejected') return 'rejected';
     return 'draft';
   }
@@ -288,7 +289,7 @@
       var title = document.createElement('strong');
       title.textContent = card.title || 'Untitled';
       var status = document.createElement('span');
-      var tileLabel = card.label || 'Pending';
+      var tileLabel = card.label || 'PLAIGROUND QC';
       var tileDot = card.live ? 'green' : ((card.dot) || ((tileLabel === 'Needs fix' || tileLabel === 'QC rejected') ? 'red' : ((statusApi() && statusApi().dot(card.status)) || 'gray')));
       status.className = 'release-tile-status is-' + tileDot;
       status.textContent = tileLabel;
