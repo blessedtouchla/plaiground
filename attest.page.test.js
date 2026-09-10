@@ -234,6 +234,9 @@ function run() {
   TAGS.forEach(function (label) {
     assert.ok(html.indexOf(label) !== -1, 'missing tag ' + label);
   });
+  assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(html), 'Attest Cancel is a real button');
+  assert.ok(html.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
+  assert.ok(html.indexOf('lib/upload-cancel-overview.js?v=20260910c1') !== -1, 'Attest Cancel clears the draft and goes to Overview');
   assert.ok(html.indexOf('data-attest-continue') !== -1);
   assert.ok(html.indexOf('id="attest-solo"') !== -1);
   assert.ok(html.indexOf('I own 100% / I attest') !== -1);

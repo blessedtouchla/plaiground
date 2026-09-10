@@ -123,7 +123,7 @@
   function cancelInProgressUpload(event) {
     if (event && event.preventDefault) event.preventDefault();
     if (!confirmCancelInProgress()) return false;
-    return leaveAfterCancel('upload.html?new=1');
+    return leaveAfterCancel('dashboard.html');
   }
 
   function cancelInProgressSubmit(event) {
@@ -2495,11 +2495,14 @@
     });
   }
 
-  function mintOrReuseAfterDead(current, skipId, loaded) {
+  function mintOrReuseAfterDead(current, skipId, loaded, opts) {
     return findLivingSongRelease(current, skipId).then(function (living) {
       if (living && living.id) {
         var adopted = adoptLivingRelease(current, living);
         return { ok: true, draft: adopted, found: true, tracks: living.tracks || [], result: living.result };
+      }
+      if (opts && opts.mintMissing) {
+        return createFreshRelease(clearDeadReleaseIds(current));
       }
       var keepId = String((current && current.release_id) || skipId || '').trim();
       if (keepId) {
@@ -2510,13 +2513,16 @@
     });
   }
 
-  function resolveLiveRelease(draft) {
+  function resolveLiveRelease(draft, opts) {
     var current = draft || readDraft();
     var id = String(current.release_id || '').trim();
     if (id && isKnownDeadRelease(id)) {
       return findLivingSongRelease(current, id).then(function (living) {
         if (living && living.id) {
           return { ok: true, draft: adoptLivingRelease(current, living), found: true, tracks: living.tracks || [], result: living.result };
+        }
+        if (opts && opts.mintMissing) {
+          return createFreshRelease(clearDeadReleaseIds(current));
         }
         rememberSessionRelease(id, true, [], true);
         return { ok: true, draft: current, found: true, tracks: [], keepLeftover: true, tracksListed: true };
@@ -2579,7 +2585,7 @@
       if (!isReleaseMissing(loaded.result) && loaded.result && loaded.result.status && loaded.result.status !== 404) {
         return { failed: true, result: loaded.result || { data: { error: 'Could not load release.' } }, draft: current };
       }
-      return mintOrReuseAfterDead(current, id, loaded);
+      return mintOrReuseAfterDead(current, id, loaded, opts);
     });
   }
 
@@ -6322,7 +6328,10 @@
   function bindReviewCatalog() {
     var genre = $('tg-genre');
     var language = $('tg-language');
-    if (!genre && !language) return;
+    if (!genre && !language) {
+      fillReviewSummary();
+      return;
+    }
     var catalog = null;
     try { catalog = ensureUploadTypeahead(); } catch (err) {}
     var draft = readDraft();
@@ -6415,10 +6424,10 @@
         }
         var pick = storePickSnapshot();
         var submitPatch = { release_date: releaseDate, dsps: pick.slugs, dsps_all: pick.allOn };
-        var reviewGenre = catalogFieldValue('tg-genre');
-        var reviewLanguage = reviewInstrumental() ? '' : catalogLanguageValue();
+        var reviewGenre = catalogFieldValue('tg-genre') || draft.genre || '';
+        var reviewLanguage = reviewInstrumental() ? '' : (catalogLanguageValue() || draft.language || '');
         if (reviewGenre) submitPatch.genre = reviewGenre;
-        if (!reviewInstrumental()) submitPatch.language = reviewLanguage || draft.language || '';
+        if (!reviewInstrumental()) submitPatch.language = reviewLanguage;
         else submitPatch.language = '';
         if (pick.total > 0) submitPatch.dsps_total = pick.total;
         draft = writeDraft(submitPatch);
@@ -6489,7 +6498,7 @@
           setStatus('tg-status', nextDraft.release_id ? 'Uploading audio…' : 'Creating release…');
           showUploadLoader(nextDraft.release_id ? 'Uploading audio' : 'Creating release');
           return restoreHeldAudio().then(function () {
-          return resolveLiveRelease(readDraft()).then(function (created) {
+          return resolveLiveRelease(readDraft(), { mintMissing: true }).then(function (created) {
             if (created.unavailable) {
               hideUploadLoader();
               trigger.removeAttribute('aria-busy');
@@ -6656,6 +6665,25 @@
       metaEl.textContent = draft.genre
         ? draft.name + ' · Single · ' + draft.genre
         : draft.name + ' · Single';
+    }
+    var genreEl = document.querySelector('[data-review-genre]');
+    var languageEl = document.querySelector('[data-review-language]');
+    if (genreEl) genreEl.textContent = String(draft.genre || '').trim() || '—';
+    if (languageEl) {
+      var langCode = reviewInstrumental() ? '' : String(draft.language || '').trim();
+      var langLabel = langCode;
+      var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
+      if (langCode && catalog && Array.isArray(catalog.LANGUAGES)) {
+        var i;
+        for (i = 0; i < catalog.LANGUAGES.length; i += 1) {
+          var row = catalog.LANGUAGES[i];
+          if (row && (row.code === langCode || row.name === langCode)) {
+            langLabel = row.name || row.code;
+            break;
+          }
+        }
+      }
+      languageEl.textContent = langLabel || '—';
     }
     var audioNote = document.querySelector('[data-review-audio-error]');
     if (audioNote) {

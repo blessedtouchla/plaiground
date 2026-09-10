@@ -4436,7 +4436,7 @@ async function run() {
   assert.ok(source.includes('function cancelInProgressUpload'));
   assert.ok(source.includes('Cancel this upload? This loses the in-progress info.'));
   assert.ok(!source.includes('function uploadCancelHasStarted'));
-  assert.ok(source.includes("leaveAfterCancel('upload.html?new=1')") || source.includes("location.href = 'upload.html?new=1'"));
+  assert.ok(source.includes("leaveAfterCancel('dashboard.html')") || source.includes("location.href = 'dashboard.html'"));
   assert.ok(source.includes("leaveAfterCancel('dashboard.html')") || source.includes("location.href = 'dashboard.html'"), 'Submit Cancel lands on the dashboard');
   assert.ok(source.includes('function cancelInProgressSubmit'));
   assert.ok(/data-upload-cancel/.test(uploadHtml));
@@ -4523,14 +4523,19 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c3'), 'review.html must cache-bust past 20260906c3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260906c4'), 'review.html must cache-bust past 20260906c4');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260908d1'), 'review.html must cache-bust past 20260908d1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260909a1'), 'review.html cache-busts store-client.js at 20260909a1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260909a1'), 'review.html must cache-bust past 20260909a1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260910c1'), 'review.html cache-busts store-client.js at 20260910c1');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260908d1'), 'upload.html cache-busts store-client.js at 20260908d1');
-  assert.ok(attestHtml.includes('store-client.js?v=20260908d1'), 'attest.html cache-busts store-client.js at 20260908d1');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260910c1'), 'upload.html cache-busts store-client.js at 20260910c1');
+  assert.ok(attestHtml.includes('store-client.js?v=20260910c1'), 'attest.html cache-busts store-client.js at 20260910c1');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260908d1'), 'split-sheet.html cache-busts store-client.js at 20260908d1');
+  assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
+  assert.ok(/data-upload-cancel>Cancel</.test(attestHtml), 'Attest Cancel is a real button');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260910c1'), 'split-sheet.html cache-busts store-client.js at 20260910c1');
+  assert.ok(splitSheetHtml.indexOf('Save and exit') === -1, 'Writers must not say Save and exit');
+  assert.ok(/data-upload-cancel>Cancel</.test(splitSheetHtml), 'Writers Cancel is a real button');
   assert.ok(!source.includes('REVIEW_REATTACH_COPY'));
   assert.ok(!source.includes('Go back to Upload and re-attach your master'));
   assert.ok(!reviewHtml.includes('Re-attach master'), 'Review has no Re-attach master');
@@ -4635,8 +4640,10 @@ async function run() {
   assert.ok(source.includes("{ object_key: key }"), 'Retry hops audio from object_key without a Review file picker');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review must not say Save and exit');
-  assert.ok(reviewHtml.indexOf('id="tg-genre"') !== -1, 'Submit review can change genre');
-  assert.ok(reviewHtml.indexOf('id="tg-language"') !== -1, 'Submit review can change language');
+  assert.ok(reviewHtml.indexOf('id="tg-genre"') === -1, 'Review must not keep an editable genre picker');
+  assert.ok(reviewHtml.indexOf('id="tg-language"') === -1, 'Review must not keep an editable language picker');
+  assert.ok(reviewHtml.indexOf('data-review-genre') !== -1, 'Review shows the Upload genre as read-only');
+  assert.ok(reviewHtml.indexOf('data-review-language') !== -1, 'Review shows the Upload language as read-only');
   assert.ok(reviewHtml.includes('data-upload-retry'));
   assert.ok(reviewHtml.includes('Retry'));
   assert.ok(!/ToneGrid/.test(reviewHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
@@ -5172,7 +5179,8 @@ async function run() {
     assert.strictEqual(mid.confirms[0], 'Cancel this upload? This loses the in-progress info.');
     assert.strictEqual(mid.localStorage.getItem('plaiground.store.draft'), null, 'Cancel clears the leftover draft');
     assert.strictEqual(mid.sessionStorage.getItem('plaiground.store.draft'), null, 'Cancel clears the session draft');
-    assert.ok(String(mid.location.href).indexOf('upload.html?new=1') !== -1, 'Cancel reopens a blank New release');
+    assert.ok(String(mid.location.href).indexOf('dashboard.html') !== -1, 'Cancel lands on Overview');
+    assert.ok(String(mid.location.href).indexOf('upload.html?new=1') === -1, 'Cancel must not reopen New release');
     assert.ok(cancelDoesNotDeleteCatalog(mid), 'Cancel must not delete existing catalog releases');
     assert.deepStrictEqual(mid.calls.filter(function (call) {
       return String((call.init && call.init.method) || '').toUpperCase() === 'DELETE';
@@ -5218,7 +5226,7 @@ async function run() {
     assert.strictEqual(empty.confirms.length, 1, 'first Cancel tap always confirms before drop');
     assert.strictEqual(empty.confirms[0], 'Cancel this upload? This loses the in-progress info.');
     assert.strictEqual(empty.localStorage.getItem('plaiground.store.draft'), null);
-    assert.ok(String(empty.location.href).indexOf('upload.html?new=1') !== -1);
+    assert.ok(String(empty.location.href).indexOf('dashboard.html') !== -1);
   }
 
   async function cancelOnSubmitReviewLandsOnDashboard() {

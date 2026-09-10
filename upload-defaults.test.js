@@ -1168,6 +1168,12 @@ function run() {
   assert.ok(upload.indexOf('lib/upload-leave.js') !== -1, 'New release loads Cancel / Start over without store-client');
   assert.ok(upload.indexOf('upload-leave-actions') !== -1, 'Cancel and Start over share a wrap-safe action row');
   assert.ok(upload.indexOf('Save and exit') === -1, 'upload Cancel must not say Save and exit');
+  const attestHtmlCancel = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
+  const splitHtmlCancel = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
+  assert.ok(attestHtmlCancel.indexOf('Save and exit') === -1, 'Attest Cancel must not say Save and exit');
+  assert.ok(/data-upload-cancel>Cancel</.test(attestHtmlCancel), 'Attest Cancel is a real button');
+  assert.ok(splitHtmlCancel.indexOf('Save and exit') === -1, 'Writers Cancel must not say Save and exit');
+  assert.ok(/data-upload-cancel>Cancel</.test(splitHtmlCancel), 'Writers Cancel is a real button');
   assert.ok(!/if \(typeaheadApplying\) return/.test(catalogSrc), 'fillUploadSelects must not skip bind while a pick is applying');
   const bindFn = tonegridSrc.slice(tonegridSrc.indexOf('function bindUploadCatalog'), tonegridSrc.indexOf('function restoreUploadDraft'));
   assert.ok(bindFn.indexOf('plan') === -1, 'genre/language bind is not plan-gated');
@@ -1205,8 +1211,10 @@ function run() {
   assert.ok(catalogSrc.indexOf('isSubmitReviewPage') === -1, 'Submit review no longer special-cases away from Basic typeahead');
   assert.ok(catalogSrc.indexOf('bindTypeToFilterNative') !== -1, 'phone fallback still finds Hip-Hop by typing');
   const reviewHtml = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
-  assert.ok(/id="tg-genre"/.test(reviewHtml), 'Submit review has the same genre field as Creator');
-  assert.ok(/id="tg-language"/.test(reviewHtml), 'Submit review has the same language field as Creator');
+  assert.ok(!/id="tg-genre"/.test(reviewHtml), 'Review genre is confirm-only, picked on Upload');
+  assert.ok(!/id="tg-language"/.test(reviewHtml), 'Review language is confirm-only, picked on Upload');
+  assert.ok(/data-review-genre/.test(reviewHtml), 'Review shows the Upload genre');
+  assert.ok(/data-review-language/.test(reviewHtml), 'Review shows the Upload language');
   assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review Cancel must not say Save and exit');
   assert.ok(reviewHtml.indexOf('upload-catalog.js') !== -1, 'Submit review loads the Creator catalog lists');
