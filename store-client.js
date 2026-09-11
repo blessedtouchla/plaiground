@@ -203,6 +203,7 @@
   var AUDIO_SEND_COPY = 'We could not send the audio.';
   var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
+  var REVIEW_MISSING_AUDIO_COPY = 'Attach your master audio before submitting';
   var LEAVE_UPLOAD_COPY = 'Saving your upload…';
   var HOLD_KEEP_PHONE_COPY = 'Could not keep your master on this phone — re-pick the .wav and try Continue again';
   var HOLD_KEEP_DESKTOP_COPY = 'Could not keep your master on this computer — re-pick the .wav and try Continue again';
@@ -988,7 +989,7 @@
   function isReviewMissingMasterMessage(value) {
     var text = String(value || '');
     if (!text) return false;
-    if (text === AUDIO_REQUIRED_COPY) return true;
+    if (text === AUDIO_REQUIRED_COPY || text === REVIEW_MISSING_AUDIO_COPY) return true;
     return isAudioRequiredError(text) || /audio required/i.test(text);
   }
 
@@ -6446,6 +6447,8 @@
           && !draft.track_id
         ) {
           trigger.removeAttribute('aria-busy');
+          setStatus('tg-status', REVIEW_MISSING_AUDIO_COPY);
+          markStatusError(true);
           markIncomplete(trigger, true);
           return;
         }

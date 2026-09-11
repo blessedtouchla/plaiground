@@ -1231,6 +1231,12 @@ async function run() {
   await flush(4);
   assert.ok(!payNoAudio.calls.some(function (call) { return String(call.url).indexOf('/audio') !== -1; }));
   assert.ok(!payNoAudio.calls.some(function (call) { return String(call.url).indexOf('/submit') !== -1; }));
+  assert.strictEqual(payNoAudio.status.textContent, 'Attach your master audio before submitting');
+  assert.strictEqual(payNoAudio.status.hidden, false, 'missing-audio early-return must unhide #tg-status');
+  assert.ok(payNoAudio.status.classList.contains('upload-status-error'));
+  assert.ok(payNoAudio.payBtn.classList.contains('is-incomplete'), 'faded Submit still keeps the status line');
+  assert.notStrictEqual(payNoAudio.payBtn.getAttribute('aria-busy'), 'true');
+  assert.notStrictEqual(payNoAudio.location.href, 'submitted.html');
   assert.ok(!/re-attach your master/i.test(payNoAudio.status.textContent), 'Review must not ask to re-attach');
   assert.ok(payNoAudio.reviewAudioRepick.hidden, 'Review has no Re-attach master');
 
@@ -4546,16 +4552,19 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260908d1'), 'review.html must cache-bust past 20260908d1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260909a1'), 'review.html must cache-bust past 20260909a1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260910c1'), 'review.html must cache-bust past 20260910c1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260910c2'), 'review.html cache-busts store-client.js at 20260910c2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260910c2'), 'review.html must cache-bust past 20260910c2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260911a1'), 'review.html cache-busts store-client.js at 20260911a1');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260910c2'), 'upload.html cache-busts store-client.js at 20260910c2');
-  assert.ok(attestHtml.includes('store-client.js?v=20260910c2'), 'attest.html cache-busts store-client.js at 20260910c2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260911a1'), 'upload.html cache-busts store-client.js at 20260911a1');
+  assert.ok(attestHtml.includes('store-client.js?v=20260911a1'), 'attest.html cache-busts store-client.js at 20260911a1');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(/data-upload-cancel>Cancel</.test(attestHtml), 'Attest Cancel is a real button');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260910c2'), 'split-sheet.html cache-busts store-client.js at 20260910c2');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260911a1'), 'split-sheet.html cache-busts store-client.js at 20260911a1');
+  assert.ok(source.includes('REVIEW_MISSING_AUDIO_COPY'), 'Review missing-audio early-return has named copy');
+  assert.ok(source.includes("setStatus('tg-status', REVIEW_MISSING_AUDIO_COPY)"), 'audio-hold early-return must setStatus');
   assert.ok(splitSheetHtml.indexOf('Save and exit') === -1, 'Writers must not say Save and exit');
   assert.ok(/data-upload-cancel>Cancel</.test(splitSheetHtml), 'Writers Cancel is a real button');
   assert.ok(!source.includes('REVIEW_REATTACH_COPY'));
