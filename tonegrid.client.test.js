@@ -1262,6 +1262,97 @@ async function run() {
     return String(call.url).indexOf('/api/tonegrid/') === 0;
   }), 'held IDB master must pass firstSubmitHasAudio');
 
+  const payNoCover = load({
+    bind: 'review',
+    releaseDate: '2026-09-20',
+    heldFile: AUDIO,
+    artist: 'Ada Night',
+    draft: Object.assign(attestDraft(), {
+      name: 'Ada Night',
+      title: 'Night Drive',
+      solo_owned_100: true,
+      release_date: '2026-09-20',
+    }),
+  });
+  payNoCover.payBtn.listeners.click({ preventDefault() {} });
+  await flush(6);
+  assert.strictEqual(payNoCover.status.textContent, 'Cover art is required.');
+  assert.strictEqual(payNoCover.status.hidden, false);
+  assert.ok(payNoCover.status.classList.contains('upload-status-error'));
+  assert.ok(!payNoCover.calls.some(function (call) { return call.url === '/api/tonegrid/releases'; }), 'missing cover must not mint');
+
+  const payHeldCoverMints = load({
+    bind: 'review',
+    reviewCover: true,
+    releaseDate: '2026-09-20',
+    heldFile: AUDIO,
+    heldArtwork: ART,
+    artist: 'Ada Night',
+    draft: Object.assign(attestDraft(), {
+      name: 'Ada Night',
+      title: 'Night Drive',
+      artwork_name: 'cover.jpg',
+      solo_owned_100: true,
+      release_date: '2026-09-20',
+    }),
+    account: {
+      plan: 'creator',
+      artist: 'Ada Night',
+      upload: { allowed: true, album_allowed: true, plan: 'creator' },
+    },
+    responses: uploadResponses.concat([
+      { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+    ]),
+  });
+  await flush(4);
+  assert.ok(payHeldCoverMints.reviewCover.classList.contains('has-art'), 'Review hydrates cover from the held Upload file');
+  payHeldCoverMints.payBtn.listeners.click({ preventDefault() {} });
+  await flush(16);
+  assert.notStrictEqual(payHeldCoverMints.status.textContent, 'Cover art is required.');
+  assert.ok(payHeldCoverMints.calls.some(function (call) {
+    return call.url === '/api/tonegrid/releases';
+  }), 'held master+cover must mint a new release_id');
+  assert.ok(payHeldCoverMints.calls.some(function (call) {
+    return call.url === '/api/tonegrid/tracks';
+  }), 'held master+cover must create a track');
+
+  const paySessionCover = load({
+    bind: 'review',
+    releaseDate: '2026-09-20',
+    heldFile: AUDIO,
+    artist: 'Ada Night',
+    draft: Object.assign(attestDraft(), {
+      name: 'Ada Night',
+      title: 'Night Drive',
+      artwork_name: 'cover.jpg',
+      solo_owned_100: true,
+      release_date: '2026-09-20',
+    }),
+    sessionDraft: Object.assign(attestDraft(), {
+      name: 'Ada Night',
+      title: 'Night Drive',
+      artwork_name: 'cover.jpg',
+      artwork_url: 'https://cdn.example/from-session.jpg',
+      audio_object_key: 'audio/11111111-1111-4111-8111-111111111111/master.wav',
+      solo_owned_100: true,
+      release_date: '2026-09-20',
+    }),
+    account: {
+      plan: 'creator',
+      artist: 'Ada Night',
+      upload: { allowed: true, album_allowed: true, plan: 'creator' },
+    },
+    responses: uploadResponses.concat([
+      { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+    ]),
+  });
+  paySessionCover.payBtn.listeners.click({ preventDefault() {} });
+  await flush(16);
+  assert.strictEqual(draftOf(paySessionCover.localStorage).artwork_url, 'https://cdn.example/from-session.jpg');
+  assert.ok(paySessionCover.calls.some(function (call) {
+    return call.url === '/api/tonegrid/releases';
+  }), 'session cover+audio keys must mint a release');
+
   const payHeldMp3 = load({
     bind: 'review',
     releaseDate: '2026-09-20',
@@ -4655,16 +4746,19 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260910c1'), 'review.html must cache-bust past 20260910c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260910c2'), 'review.html must cache-bust past 20260910c2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260911a1'), 'review.html must cache-bust past 20260911a1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260911a2'), 'review.html cache-busts store-client.js at 20260911a2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260911a2'), 'review.html must cache-bust past 20260911a2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260911a3'), 'review.html cache-busts store-client.js at 20260911a3');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260911a2'), 'upload.html cache-busts store-client.js at 20260911a2');
-  assert.ok(attestHtml.includes('store-client.js?v=20260911a2'), 'attest.html cache-busts store-client.js at 20260911a2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260911a3'), 'upload.html cache-busts store-client.js at 20260911a3');
+  assert.ok(attestHtml.includes('store-client.js?v=20260911a3'), 'attest.html cache-busts store-client.js at 20260911a3');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(/data-upload-cancel>Cancel</.test(attestHtml), 'Attest Cancel is a real button');
-  assert.ok(splitSheetHtml.includes('store-client.js?v=20260911a2'), 'split-sheet.html cache-busts store-client.js at 20260911a2');
+  assert.ok(splitSheetHtml.includes('store-client.js?v=20260911a3'), 'split-sheet.html cache-busts store-client.js at 20260911a3');
+  assert.ok(source.includes('heldMasterSize(heldArtworkFile)'), 'Review cover gate sees the held Upload cover');
+  assert.ok(/artwork_name/.test(source.slice(source.indexOf('function firstSubmitHasCover'))), 'Review cover gate keeps artwork_name from Upload');
   assert.ok(source.includes('REVIEW_MISSING_AUDIO_COPY'), 'Review missing-audio early-return has named copy');
   assert.ok(source.includes("setStatus('tg-status', REVIEW_MISSING_AUDIO_COPY)"), 'audio-hold early-return must setStatus');
   assert.ok(source.includes('mergeDraftStores'), 'Review reads session+local draft media keys');

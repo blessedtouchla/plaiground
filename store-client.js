@@ -1593,6 +1593,7 @@
               store.put({
                 audio_object_key: String(draftMeta.audio_object_key || '').trim(),
                 artwork_object_key: String(draftMeta.artwork_object_key || '').trim(),
+                artwork_url: String(draftMeta.artwork_url || draftMeta.cover_art_url || draftMeta.cover_url || '').trim(),
                 audio_name: String(draftMeta.audio_name || '').trim(),
                 artwork_name: String(draftMeta.artwork_name || '').trim(),
               }, AUDIO_HOLD_META_KEY);
@@ -1631,8 +1632,13 @@
     var patch = {};
     var audioKey = String((meta && meta.audio_object_key) || (heldAudioFile && heldAudioFile.object_key) || '').trim();
     var coverKey = String((meta && meta.artwork_object_key) || (heldArtworkFile && heldArtworkFile.object_key) || '').trim();
+    var coverUrl = '';
+    var api = coverUrlApi();
+    if (api && typeof api.stored === 'function') coverUrl = String(api.stored(draft) || '').trim();
+    if (!coverUrl) coverUrl = String((meta && meta.artwork_url) || draft.artwork_url || draft.cover_art_url || draft.cover_url || '').trim();
     if (audioKey && !String(draft.audio_object_key || '').trim()) patch.audio_object_key = audioKey;
     if (coverKey && !String(draft.artwork_object_key || '').trim()) patch.artwork_object_key = coverKey;
+    if (coverUrl && !String(draft.artwork_url || '').trim()) patch.artwork_url = coverUrl;
     if (heldAudioFile && heldAudioFile.name && !draft.audio_name) patch.audio_name = heldAudioFile.name;
     if (heldArtworkFile && heldArtworkFile.name && !draft.artwork_name) patch.artwork_name = heldArtworkFile.name;
     if (heldMasterSize(heldAudioFile) > 0 || heldMasterSize(heldPickedFile) > 0) patch.audio_attached = true;
@@ -4951,8 +4957,13 @@
 
   function firstSubmitHasCover(fields, draft) {
     if (fields && fields.artwork) return true;
+    if (heldMasterSize(heldArtworkFile) > 0) return true;
     if (String((fields && fields.artwork_object_key) || (draft && draft.artwork_object_key) || '').trim()) return true;
+    if (String((fields && fields.artwork_name) || (draft && draft.artwork_name) || '').trim()) return true;
     if (String((draft && (draft.artwork_url || draft.cover_art_url || draft.cover_url)) || '').trim()) return true;
+    var api = coverUrlApi();
+    if (api && typeof api.stored === 'function' && api.stored(draft || fields || {})) return true;
+    if (api && typeof api.objectKey === 'function' && api.objectKey(draft || fields || {})) return true;
     return false;
   }
 
@@ -6601,15 +6612,21 @@
           markIncomplete(trigger, true);
           return;
         }
-        if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({ artwork: selectedArtwork(), artwork_object_key: draft.artwork_object_key }, draft)) {
+        if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({
+          artwork: selectedArtwork(),
+          artwork_object_key: draft.artwork_object_key,
+          artwork_name: draft.artwork_name,
+        }, draft)) {
           trigger.removeAttribute('aria-busy');
           setStatus('tg-status', COVER_REQUIRED_COPY);
+          markStatusError(true);
           markIncomplete(trigger, true);
           return;
         }
         if (isFirstSubmitLeave(draft) && !String(draft.name || draft.artist || draft.artist_name || collectedSoloName(draft) || '').trim()) {
           trigger.removeAttribute('aria-busy');
           setStatus('tg-status', 'Primary artist is required.');
+          markStatusError(true);
           markIncomplete(trigger, true);
           return;
         }
@@ -6829,10 +6846,19 @@
   function paintReviewCover(draft, el) {
     el = el || document.querySelector('[data-review-cover]');
     if (!el) return;
+    draft = draft || readDraft();
     var api = coverUrlApi();
     var url = api && typeof api.stored === 'function'
       ? api.stored(draft)
-      : String((draft && draft.artwork_url) || '').trim();
+      : String((draft && (draft.artwork_url || draft.cover_art_url || draft.cover_url)) || '').trim();
+    if (!url) {
+      var heldCover = selectedArtwork();
+      if (heldCover) {
+        try {
+          if (typeof URL !== 'undefined' && URL.createObjectURL) url = URL.createObjectURL(heldCover);
+        } catch (err) {}
+      }
+    }
     if (url) paintReviewCoverTile(el, url);
     var key = api && typeof api.objectKey === 'function'
       ? api.objectKey(draft)
