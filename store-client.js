@@ -75,6 +75,76 @@
     try { sessionStorage.setItem(key, value); } catch (err) {}
   }
 
+  var DRAFT_MEDIA_KEYS = [
+    'audio_object_key',
+    'artwork_object_key',
+    'audio_name',
+    'artwork_name',
+    'artwork_url',
+    'cover_art_url',
+    'cover_url',
+    'audio_hop_size',
+    'artwork_size',
+  ];
+
+  function parseStoredDraft(text) {
+    try {
+      return JSON.parse(text || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function storageDraftOf(store) {
+    if (!store || typeof store.getItem !== 'function') return {};
+    try {
+      return parseStoredDraft(store.getItem(DRAFT_KEY));
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function isParkedStoreDraft(draft) {
+    return Boolean(draft && (draft.saved_draft === true || draft.saved_draft === 'true'));
+  }
+
+  function filledDraftValue(value) {
+    if (value == null) return false;
+    if (value === false) return true;
+    if (typeof value === 'number') return true;
+    if (typeof value === 'string') return String(value).trim() !== '';
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    return Boolean(value);
+  }
+
+  function mergeDraftStores(local, session) {
+    var localRow = local && typeof local === 'object' ? local : {};
+    var sessionRow = session && typeof session === 'object' ? session : {};
+    var localParked = isParkedStoreDraft(localRow);
+    var sessionParked = isParkedStoreDraft(sessionRow);
+    if (localParked && sessionParked) return {};
+    if (localParked && !Object.keys(sessionRow).length) return {};
+    if (sessionParked && !Object.keys(localRow).length) return {};
+    if (localParked && !sessionParked) localRow = {};
+    if (sessionParked && !localParked) sessionRow = {};
+    var next = {};
+    Object.keys(localRow).forEach(function (key) {
+      if (key === 'saved_draft') return;
+      next[key] = localRow[key];
+    });
+    Object.keys(sessionRow).forEach(function (key) {
+      if (key === 'saved_draft') return;
+      if (!filledDraftValue(next[key]) && filledDraftValue(sessionRow[key])) next[key] = sessionRow[key];
+      else if (filledDraftValue(sessionRow[key]) && !filledDraftValue(localRow[key])) next[key] = sessionRow[key];
+    });
+    DRAFT_MEDIA_KEYS.forEach(function (key) {
+      if (filledDraftValue(sessionRow[key])) next[key] = sessionRow[key];
+      else if (filledDraftValue(localRow[key])) next[key] = localRow[key];
+    });
+    return next;
+  }
+
   function isNewReleaseStart() {
     try {
       return new URLSearchParams((typeof location !== 'undefined' && location.search) || '').get('new') === '1';
@@ -148,11 +218,20 @@
   }
 
   function readDraft() {
-    var draft;
-    try {
-      draft = JSON.parse(storageGet(DRAFT_KEY) || '{}') || {};
-    } catch (err) {
-      draft = {};
+    var localRow = {};
+    var sessionRow = {};
+    try { localRow = storageDraftOf(localStorage); } catch (err) {}
+    try { sessionRow = storageDraftOf(sessionStorage); } catch (err2) {}
+    var draft = mergeDraftStores(localRow, sessionRow);
+    if (!Object.keys(draft).length && !isParkedStoreDraft(localRow) && !isParkedStoreDraft(sessionRow)) {
+      try { draft = parseStoredDraft(storageGet(DRAFT_KEY)); } catch (err3) { draft = {}; }
+    }
+    if (isParkedStoreDraft(localRow) || isParkedStoreDraft(sessionRow)) {
+      try { storageSet(DRAFT_KEY, Object.keys(draft).length ? JSON.stringify(draft) : ''); } catch (err4) {}
+      if (!Object.keys(draft).length) {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (err5) {}
+        try { sessionStorage.removeItem(DRAFT_KEY); } catch (err6) {}
+      }
     }
     if (isDemoCopy(draft.title)) draft.title = '';
     if (isDemoCopy(draft.name)) draft.name = '';
@@ -169,6 +248,10 @@
     Object.keys(patch || {}).forEach(function (key) {
       if (patch[key] !== undefined) next[key] = patch[key];
     });
+    DRAFT_MEDIA_KEYS.forEach(function (key) {
+      if (!filledDraftValue(next[key]) && filledDraftValue(current[key])) next[key] = current[key];
+    });
+    delete next.saved_draft;
     storageSet(DRAFT_KEY, JSON.stringify(next));
     return next;
   }
@@ -203,6 +286,7 @@
   var AUDIO_SEND_COPY = 'We could not send the audio.';
   var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
+  var REVIEW_MISSING_AUDIO_COPY = 'Attach your master audio before submitting';
   var LEAVE_UPLOAD_COPY = 'Saving your upload…';
   var HOLD_KEEP_PHONE_COPY = 'Could not keep your master on this phone — re-pick the .wav and try Continue again';
   var HOLD_KEEP_DESKTOP_COPY = 'Could not keep your master on this computer — re-pick the .wav and try Continue again';
@@ -217,6 +301,7 @@
     if (looksLikeWav(held) && Number(held.size) > 0) return held;
     var live = fileFromHeld(file) || selectedAudio();
     if (live && Number(live.size) > 0) return live;
+    if (held && heldMasterSize(held) > 0) return held;
     return fileFromHeld(heldPickedFile) || leftoverHopFile(file) || file || null;
   }
 
@@ -988,7 +1073,7 @@
   function isReviewMissingMasterMessage(value) {
     var text = String(value || '');
     if (!text) return false;
-    if (text === AUDIO_REQUIRED_COPY) return true;
+    if (text === AUDIO_REQUIRED_COPY || text === REVIEW_MISSING_AUDIO_COPY) return true;
     return isAudioRequiredError(text) || /audio required/i.test(text);
   }
 
@@ -1270,6 +1355,7 @@
   var AUDIO_HOLD_KEY = 'master';
   var AUDIO_PICKED_KEY = 'picked';
   var ARTWORK_HOLD_KEY = 'cover';
+  var AUDIO_HOLD_META_KEY = 'meta';
   var releaseRecreateCount = 0;
   var MAX_RELEASE_RECREATES = 2;
   var DEAD_RELEASE_COPY = 'Could not create the release. Retry.';
@@ -1319,6 +1405,7 @@
         lastModified: file.lastModified || Date.now(),
         size: buf.byteLength,
         buffer: buf,
+        object_key: String((file && file.object_key) || '').trim(),
       };
     }).catch(function () {
       return file;
@@ -1345,12 +1432,15 @@
         try {
           var blob = new Blob([value.buffer], { type: mime });
           if (typeof File === 'function') {
-            return new File([blob], label, {
+            var out = new File([blob], label, {
               type: mime,
               lastModified: value.lastModified || Date.now(),
             });
+            if (value.object_key) out.object_key = value.object_key;
+            return out;
           }
           blob.name = label;
+          if (value.object_key) blob.object_key = value.object_key;
           return blob;
         } catch (err) {}
       }
@@ -1359,6 +1449,7 @@
         type: mime,
         size: value.size || (value.buffer && value.buffer.byteLength) || 0,
         buffer: value.buffer,
+        object_key: String(value.object_key || '').trim(),
       };
     }
     if (value && value.size === 0 && value.buffer) {
@@ -1382,6 +1473,15 @@
 
   function persistHeldSlot(file, key, assign) {
     return cloneForHold(file).then(function (stored) {
+      var draft = readDraft();
+      if (stored && stored.__held === 1) {
+        if (key === AUDIO_HOLD_KEY && !stored.object_key && draft.audio_object_key) {
+          stored.object_key = String(draft.audio_object_key);
+        }
+        if (key === ARTWORK_HOLD_KEY && !stored.object_key && draft.artwork_object_key) {
+          stored.object_key = String(draft.artwork_object_key);
+        }
+      }
       var live = (file && Number(file.size) > 0 ? file : null) || fileFromHeld(stored) || file;
       if (live && typeof assign === 'function') assign(live);
       return new Promise(function (resolve) {
@@ -1433,6 +1533,15 @@
     ];
     return Promise.all(items.map(function (item) {
       return cloneForHold(item.file).then(function (stored) {
+        var draft = readDraft();
+        if (stored && stored.__held === 1) {
+          if (item.key === AUDIO_HOLD_KEY && !stored.object_key && draft.audio_object_key) {
+            stored.object_key = String(draft.audio_object_key);
+          }
+          if (item.key === ARTWORK_HOLD_KEY && !stored.object_key && draft.artwork_object_key) {
+            stored.object_key = String(draft.artwork_object_key);
+          }
+        }
         var live = (item.file && Number(item.file.size) > 0 ? item.file : null) || fileFromHeld(stored) || item.file;
         if (live && typeof item.assign === 'function') item.assign(live);
         return { key: item.key, stored: stored, live: live };
@@ -1480,6 +1589,14 @@
               ready.forEach(function (row) {
                 store.put(row.stored || row.live, row.key);
               });
+              var draftMeta = readDraft();
+              store.put({
+                audio_object_key: String(draftMeta.audio_object_key || '').trim(),
+                artwork_object_key: String(draftMeta.artwork_object_key || '').trim(),
+                artwork_url: String(draftMeta.artwork_url || draftMeta.cover_art_url || draftMeta.cover_url || '').trim(),
+                audio_name: String(draftMeta.audio_name || '').trim(),
+                artwork_name: String(draftMeta.artwork_name || '').trim(),
+              }, AUDIO_HOLD_META_KEY);
               verify = store.get(AUDIO_HOLD_KEY);
             } catch (err) {
               done(null, false);
@@ -1510,9 +1627,31 @@
     return persistHeldArtwork(heldArtworkFile);
   }
 
+  function persistRestoredHoldMarks(meta) {
+    var draft = readDraft();
+    var patch = {};
+    var audioKey = String((meta && meta.audio_object_key) || (heldAudioFile && heldAudioFile.object_key) || '').trim();
+    var coverKey = String((meta && meta.artwork_object_key) || (heldArtworkFile && heldArtworkFile.object_key) || '').trim();
+    var coverUrl = '';
+    var api = coverUrlApi();
+    if (api && typeof api.stored === 'function') coverUrl = String(api.stored(draft) || '').trim();
+    if (!coverUrl) coverUrl = String((meta && meta.artwork_url) || draft.artwork_url || draft.cover_art_url || draft.cover_url || '').trim();
+    if (audioKey && !String(draft.audio_object_key || '').trim()) patch.audio_object_key = audioKey;
+    if (coverKey && !String(draft.artwork_object_key || '').trim()) patch.artwork_object_key = coverKey;
+    if (coverUrl && !String(draft.artwork_url || '').trim()) patch.artwork_url = coverUrl;
+    if (heldAudioFile && heldAudioFile.name && !draft.audio_name) patch.audio_name = heldAudioFile.name;
+    if (heldArtworkFile && heldArtworkFile.name && !draft.artwork_name) patch.artwork_name = heldArtworkFile.name;
+    if (heldMasterSize(heldAudioFile) > 0 || heldMasterSize(heldPickedFile) > 0) patch.audio_attached = true;
+    if (Object.keys(patch).length) writeDraft(patch);
+  }
+
   function restoreHeldAudio() {
     return new Promise(function (resolve) {
+      var settled = false;
+      var holdMeta = null;
       function done() {
+        if (settled) return;
+        settled = true;
         if (!heldPickedFile) {
           var input = liveAudioInput();
           var live = (input && input.files && input.files[0]) || (input && input._plaigroundFile) || null;
@@ -1523,19 +1662,29 @@
           var art = (artInput && artInput.files && artInput.files[0]) || (artInput && artInput._plaigroundFile) || null;
           if (art) rememberArtworkFile(art);
         }
-        resolve(heldAudioFile || null);
+        persistRestoredHoldMarks(holdMeta);
+        resolve(heldAudioFile || heldPickedFile || null);
       }
       if (heldAudioFile && heldPickedFile && heldArtworkFile) {
+        persistRestoredHoldMarks(null);
         resolve(heldAudioFile);
         return;
       }
+      var timer = null;
+      try {
+        if (typeof setTimeout === 'function') timer = setTimeout(done, 800);
+      } catch (err) {}
+      function finish() {
+        try { if (timer && typeof clearTimeout === 'function') clearTimeout(timer); } catch (err2) {}
+        done();
+      }
       try {
         if (typeof indexedDB === 'undefined' || !indexedDB.open) {
-          done();
+          finish();
           return;
         }
         var req = indexedDB.open(AUDIO_HOLD_DB, 1);
-        req.onerror = function () { done(); };
+        req.onerror = function () { finish(); };
         req.onupgradeneeded = function () {
           if (req.result && !req.result.objectStoreNames.contains(AUDIO_HOLD_STORE)) {
             req.result.createObjectStore(AUDIO_HOLD_STORE);
@@ -1548,10 +1697,15 @@
             var getMaster = store.get(AUDIO_HOLD_KEY);
             var getPicked = store.get(AUDIO_PICKED_KEY);
             var getCover = store.get(ARTWORK_HOLD_KEY);
-            var pending = 3;
+            var getMeta = store.get(AUDIO_HOLD_META_KEY);
             function takeHeld(got, slot) {
+              if (slot === 'meta') {
+                if (got && typeof got === 'object') holdMeta = got;
+                return;
+              }
               var next = fileFromHeld(got);
               if (!next) return;
+              if (got && got.object_key && !next.object_key) next.object_key = got.object_key;
               if (slot === 'picked') {
                 if (!heldPickedFile || !heldPickedFile.size) heldPickedFile = next;
                 return;
@@ -1564,34 +1718,34 @@
                 heldAudioFile = next;
               }
             }
-            function one() {
-              pending -= 1;
-              if (pending <= 0) done();
+            function harvest() {
+              takeHeld(getMaster.result, 'master');
+              takeHeld(getPicked.result, 'picked');
+              takeHeld(getCover.result, 'cover');
+              takeHeld(getMeta.result, 'meta');
+              finish();
             }
+            tx.oncomplete = harvest;
+            tx.onerror = finish;
+            tx.onabort = finish;
+            getMaster.onsuccess = function () { takeHeld(getMaster.result, 'master'); };
+            getPicked.onsuccess = function () { takeHeld(getPicked.result, 'picked'); };
+            getCover.onsuccess = function () { takeHeld(getCover.result, 'cover'); };
+            getMeta.onsuccess = function () { takeHeld(getMeta.result, 'meta'); };
+            getMaster.onerror = function () {};
+            getPicked.onerror = function () {};
+            getCover.onerror = function () {};
+            getMeta.onerror = function () {};
             takeHeld(getMaster.result, 'master');
             takeHeld(getPicked.result, 'picked');
             takeHeld(getCover.result, 'cover');
-            getMaster.onerror = one;
-            getPicked.onerror = one;
-            getCover.onerror = one;
-            getMaster.onsuccess = function () {
-              takeHeld(getMaster.result, 'master');
-              one();
-            };
-            getPicked.onsuccess = function () {
-              takeHeld(getPicked.result, 'picked');
-              one();
-            };
-            getCover.onsuccess = function () {
-              takeHeld(getCover.result, 'cover');
-              one();
-            };
+            takeHeld(getMeta.result, 'meta');
           } catch (err) {
-            done();
+            finish();
           }
         };
       } catch (err) {
-        done();
+        finish();
       }
     });
   }
@@ -4792,6 +4946,7 @@
 
   function firstSubmitHasAudio(fields, draft) {
     if (fileForFirstSubmitAttach(fields && fields.audio)) return true;
+    if (heldMasterSize(heldAudioFile) > 0 || heldMasterSize(heldPickedFile) > 0) return true;
     if (String((fields && fields.audio_object_key) || (draft && draft.audio_object_key) || '').trim()) return true;
     var gate = rules();
     if (gate && typeof gate.releaseHasStoreAudio === 'function' && gate.releaseHasStoreAudio(fields || draft)) {
@@ -4802,8 +4957,13 @@
 
   function firstSubmitHasCover(fields, draft) {
     if (fields && fields.artwork) return true;
+    if (heldMasterSize(heldArtworkFile) > 0) return true;
     if (String((fields && fields.artwork_object_key) || (draft && draft.artwork_object_key) || '').trim()) return true;
+    if (String((fields && fields.artwork_name) || (draft && draft.artwork_name) || '').trim()) return true;
     if (String((draft && (draft.artwork_url || draft.cover_art_url || draft.cover_url)) || '').trim()) return true;
+    var api = coverUrlApi();
+    if (api && typeof api.stored === 'function' && api.stored(draft || fields || {})) return true;
+    if (api && typeof api.objectKey === 'function' && api.objectKey(draft || fields || {})) return true;
     return false;
   }
 
@@ -6406,6 +6566,7 @@
     bindReviewCatalog();
     bindReviewAudioRepick();
     bindStorePick(storePickRoot(), readDraft().dsps);
+    restoreHeldAudio();
 
     if (trigger) {
       trigger.addEventListener('click', function (event) {
@@ -6446,18 +6607,26 @@
           && !draft.track_id
         ) {
           trigger.removeAttribute('aria-busy');
+          setStatus('tg-status', REVIEW_MISSING_AUDIO_COPY);
+          markStatusError(true);
           markIncomplete(trigger, true);
           return;
         }
-        if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({ artwork: selectedArtwork(), artwork_object_key: draft.artwork_object_key }, draft)) {
+        if (isFirstSubmitLeave(draft) && !firstSubmitHasCover({
+          artwork: selectedArtwork(),
+          artwork_object_key: draft.artwork_object_key,
+          artwork_name: draft.artwork_name,
+        }, draft)) {
           trigger.removeAttribute('aria-busy');
           setStatus('tg-status', COVER_REQUIRED_COPY);
+          markStatusError(true);
           markIncomplete(trigger, true);
           return;
         }
         if (isFirstSubmitLeave(draft) && !String(draft.name || draft.artist || draft.artist_name || collectedSoloName(draft) || '').trim()) {
           trigger.removeAttribute('aria-busy');
           setStatus('tg-status', 'Primary artist is required.');
+          markStatusError(true);
           markIncomplete(trigger, true);
           return;
         }
@@ -6677,10 +6846,19 @@
   function paintReviewCover(draft, el) {
     el = el || document.querySelector('[data-review-cover]');
     if (!el) return;
+    draft = draft || readDraft();
     var api = coverUrlApi();
     var url = api && typeof api.stored === 'function'
       ? api.stored(draft)
-      : String((draft && draft.artwork_url) || '').trim();
+      : String((draft && (draft.artwork_url || draft.cover_art_url || draft.cover_url)) || '').trim();
+    if (!url) {
+      var heldCover = selectedArtwork();
+      if (heldCover) {
+        try {
+          if (typeof URL !== 'undefined' && URL.createObjectURL) url = URL.createObjectURL(heldCover);
+        } catch (err) {}
+      }
+    }
     if (url) paintReviewCoverTile(el, url);
     var key = api && typeof api.objectKey === 'function'
       ? api.objectKey(draft)
