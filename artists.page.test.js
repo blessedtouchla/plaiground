@@ -336,6 +336,7 @@ function loadArtists() {
     bioInput,
     artistName,
     saveBtn,
+    editDoneBtn,
     posts,
     stored,
     nodes,
@@ -428,10 +429,13 @@ function run() {
   assert.ok(!html.includes('data-require-paid'));
   assert.ok(html.includes('Plus adds another row. Link artist saves.'));
   assert.ok(html.includes('Save artist'));
+  assert.ok(html.includes('data-artist-submit'));
+  assert.ok(/src="artists\.js\?v=20260906s1"/.test(html), 'Artist Profiles cache-busts artists.js so Submit/Done persist ships');
   assert.ok(!html.includes('Submit for edit'));
   assert.ok(html.includes('data-artist-delete'));
   assert.ok(html.includes('class="artist-edit-actions"'));
   assert.ok(html.includes('Edits save as you type'));
+  assert.ok(html.includes('Save artist and Done persist and close'));
   assert.ok(/class="artist-edit-actions"[\s\S]*data-artist-save[\s\S]*data-artist-delete/.test(html), 'Delete and Save artist share one chrome row');
   assert.ok(!/<div class="head-row">[\s\S]*data-artist-delete/.test(html), 'Delete must not sit in the title/badge row');
   assert.ok(html.includes('Pending edit'));
@@ -485,6 +489,8 @@ function run() {
   assert.ok(js.includes("artist_action: 'delete'"));
   assert.ok(js.includes('scheduleSave'));
   assert.ok(js.includes('flushSave'));
+  assert.ok(js.includes('function finishEdit'));
+  assert.ok(js.includes('return finishEdit()'));
   assert.ok(js.includes("addEventListener('input', scheduleSave)"));
   assert.ok(js.includes("addEventListener('pagehide', flushSave)"));
   assert.ok(js.includes('keepQuietSave'));
@@ -619,7 +625,7 @@ function run() {
   });
   assert.strictEqual(page.api.applyMe({ ok: true }), undefined, 'a 200 without a roster must not wipe Your artists');
 
-  return persistAndImmediateSave();
+  return persistAndImmediateSave().then(submitAndDonePersist);
 }
 
 async function persistAndImmediateSave() {
@@ -822,6 +828,137 @@ async function persistAndImmediateSave() {
   assert.ok(accountPage.posts.some(function (row) {
     return row.body && row.body.artist_action === 'create' && row.body.name === 'Second Act';
   }), 'create artist must POST when the page only has the seeded account id');
+}
+
+async function clickEditAction(el) {
+  const pending = (el.listeners.click || []).map(function (fn) { return fn({ type: 'click', target: el, preventDefault() {} }); });
+  await Promise.all(pending);
+}
+
+async function settleArtistsPage() {
+  var i;
+  for (i = 0; i < 20; i += 1) await Promise.resolve();
+}
+
+async function submitAndDonePersist() {
+  const page = loadArtists();
+  await settleArtistsPage();
+  page.api.applyMe({
+    profile: {
+      artists: [{
+        id: 'artist-1',
+        name: 'Fuvtu',
+        source: 'created',
+        badge: 'PLAIGROUND',
+        bio: 'old bio',
+        photo: '',
+        genres: [],
+        platform_links: [],
+      }],
+    },
+  });
+  page.api.editArtist({
+    id: 'artist-1',
+    name: 'Fuvtu',
+    source: 'created',
+    badge: 'PLAIGROUND',
+    bio: 'old bio',
+    photo: '',
+    genres: [],
+    platform_links: [],
+  });
+  page.artistName.value = 'Night Drive';
+  page.bioInput.value = 'saved from Submit';
+  page.nodes['#artist-legal-first'].value = 'Ada';
+  page.nodes['#artist-legal-last'].value = 'Night';
+  page.api.addPlatformRow(null, false);
+  page.posts.length = 0;
+  await clickEditAction(page.saveBtn);
+  const submitPost = page.posts.find(function (row) {
+    return row.body && row.body.action === 'update' && row.body.bio === 'saved from Submit';
+  });
+  assert.ok(submitPost, 'tapping Save artist / Submit must POST /api/me/artists');
+  assert.strictEqual(submitPost.body.name, 'Night Drive');
+  assert.strictEqual(submitPost.body.legal_first, 'Ada');
+  assert.strictEqual(submitPost.body.legal_last, 'Night');
+  assert.ok(!submitPost.body.submit_edit);
+  assert.strictEqual(page.nodes['[data-artist-edit]'].hidden, true, 'Submit must close Edit like Done');
+  assert.strictEqual(page.previewPanel.hidden, false, 'Submit must land on Preview like Done');
+  assert.strictEqual(page.nodes['[data-artist-preview-name]'].textContent, 'Night Drive');
+  assert.strictEqual(page.nodes['[data-artist-preview-bio]'].textContent, 'saved from Submit');
+
+  const donePage = loadArtists();
+  await settleArtistsPage();
+  donePage.api.applyMe({
+    profile: {
+      artists: [{
+        id: 'artist-1',
+        name: 'Fuvtu',
+        source: 'created',
+        badge: 'PLAIGROUND',
+        bio: '',
+        photo: '',
+        genres: [],
+      }],
+    },
+  });
+  donePage.api.editArtist({
+    id: 'artist-1',
+    name: 'Fuvtu',
+    source: 'created',
+    badge: 'PLAIGROUND',
+    bio: '',
+    photo: '',
+    genres: [],
+  });
+  donePage.bioInput.value = 'saved from Done';
+  donePage.posts.length = 0;
+  await clickEditAction(donePage.editDoneBtn);
+  assert.ok(donePage.posts.some(function (row) {
+    return row.body && row.body.action === 'update' && row.body.bio === 'saved from Done';
+  }), 'Done must flush the same persist path as Submit');
+  assert.strictEqual(donePage.nodes['[data-artist-edit]'].hidden, true, 'Done still closes Edit');
+  assert.strictEqual(donePage.previewPanel.hidden, false, 'Done still lands on Preview');
+  assert.strictEqual(donePage.nodes['[data-artist-preview-bio]'].textContent, 'saved from Done');
+
+  const failPage = loadArtists();
+  await settleArtistsPage();
+  failPage.api.applyMe({
+    profile: {
+      artists: [{
+        id: 'artist-1',
+        name: 'Fuvtu',
+        source: 'created',
+        badge: 'PLAIGROUND',
+        bio: 'keep me',
+        photo: '',
+        genres: [],
+      }],
+    },
+  });
+  failPage.api.editArtist({
+    id: 'artist-1',
+    name: 'Fuvtu',
+    source: 'created',
+    badge: 'PLAIGROUND',
+    bio: 'keep me',
+    photo: '',
+    genres: [],
+  });
+  failPage.bioInput.value = 'must not fake success';
+  failPage.context.fetch = function () {
+    return Promise.resolve({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Could not save artist.' }),
+    });
+  };
+  failPage.nodes['[data-artist-edit]'].hidden = false;
+  failPage.previewPanel.hidden = true;
+  await clickEditAction(failPage.saveBtn);
+  assert.strictEqual(failPage.nodes['[data-artist-edit]'].hidden, false, 'failed Submit must stay on Edit');
+  assert.strictEqual(failPage.previewPanel.hidden, true, 'failed Submit must not fake a Preview success');
+  assert.ok(/Could not save artist/.test(failPage.nodes['[data-artist-error]'].textContent), 'failed Submit must show a real error');
 
   console.log('artists.page.test.js ok');
 }
