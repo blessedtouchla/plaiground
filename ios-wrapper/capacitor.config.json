@@ -1,0 +1,13 @@
+{
+  "appId": "com.plaiground.app",
+  "appName": "PLAIGROUND",
+  "webDir": "www",
+  "server": {
+    "url": "https://wannaplai.com",
+    "cleartext": false,
+    "allowNavigation": [
+      "wannaplai.com",
+      "*.wannaplai.com"
+    ]
+  }
+}
