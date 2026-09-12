@@ -68,3 +68,17 @@ CREATE TABLE IF NOT EXISTS user_events (
   PRIMARY KEY (user_id, event_name),
   CONSTRAINT user_events_name_check CHECK (event_name IN ('signup', 'first_upload', 'first_store_live', 'paid'))
 );
+
+CREATE TABLE IF NOT EXISTS community_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid,
+  artist_name text NOT NULL DEFAULT '',
+  title text NOT NULL,
+  made text NOT NULL,
+  humans text[] NOT NULL DEFAULT ARRAY[]::text[],
+  platform text NOT NULL DEFAULT '',
+  badges text[] NOT NULL DEFAULT ARRAY[]::text[],
+  audio_name text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT community_posts_made_check CHECK (made IN ('full_ai', 'ai_assisted', 'no_ai'))
+);
