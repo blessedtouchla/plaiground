@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Community – PLAIGROUND</title>
+  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="plai-bubble.css" />
+</head>
+<body class="app">
+  <div class="app-main" style="margin:0">
+    <div class="page">
+      <p class="kicker">Plai+</p>
+      <h1>Community</h1>
+      <p>Share AI music. Say what a human did. Listen.</p>
+
+      <section class="release-board" style="margin-top:24px">
+        <h2>Post a track</h2>
+        <form data-community-post>
+          <p>
+            <label>Title<br />
+              <input type="text" name="title" required maxlength="120" />
+            </label>
+          </p>
+          <p>
+            <label>Audio file<br />
+              <input type="file" name="audio" accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,audio/flac,audio/x-flac,.wav,.mp3,.flac" required />
+            </label>
+          </p>
+          <fieldset>
+            <legend>How was this track made?</legend>
+            <label><input type="radio" name="made" value="full_ai" required /> Full AI</label>
+            <label><input type="radio" name="made" value="ai_assisted" /> AI assisted</label>
+            <label><input type="radio" name="made" value="no_ai" /> No AI</label>
+          </fieldset>
+          <fieldset data-assisted-fields hidden>
+            <legend>What did a human do?</legend>
+            <label><input type="checkbox" name="human" value="lyrics" /> Wrote the lyrics</label>
+            <label><input type="checkbox" name="human" value="vocal" /> Sang / recorded vocals</label>
+            <label><input type="checkbox" name="human" value="played" /> Played an instrument</label>
+            <label><input type="checkbox" name="human" value="mix" /> Arranged / produced / mixed</label>
+          </fieldset>
+          <p data-platform-fields>
+            <label>Platform (optional)<br />
+              <select name="platform">
+                <option value="">Prefer not to say</option>
+                <option value="suno">Suno</option>
+                <option value="udio">Udio</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </p>
+          <p><button type="submit" class="btn btn-purple">Post to Community</button></p>
+        </form>
+      </section>
+
+      <section class="release-board" style="margin-top:24px">
+        <h2>Feed</h2>
+        <div data-community-feed></div>
+      </section>
+    </div>
+  </div>
+  <script src="lib/community-disclose.js"></script>
+  <script src="community.js"></script>
+  <script src="site.js"></script>
+</body>
+</html>
