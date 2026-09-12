@@ -4598,9 +4598,33 @@ body.app.artists-page .page {
   min-height: 36px;
   color: var(--muted);
 }
+.upload-page .upload-opt-toggles .toggle-input {
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  clip: rect(0, 0, 0, 0);
+}
+.upload-page .upload-opt-toggles .toggle {
+  display: inline-block;
+}
 .upload-page .upload-opt-hint {
   flex: 1 1 100%;
   margin: 2px 0 0;
+}
+.upload-page .upload-audio-splat {
+  display: block;
+  width: 26px;
+  height: 20px;
+  margin: 0 auto 8px;
+  border-radius: 62% 38% 58% 42%;
+  background:
+    radial-gradient(circle at 32% 38%, rgba(208, 48, 131, 0.92) 0 42%, transparent 58%),
+    radial-gradient(circle at 72% 52%, rgba(120, 47, 177, 0.88) 0 40%, transparent 60%),
+    radial-gradient(circle at 50% 78%, rgba(208, 48, 131, 0.42) 0 36%, transparent 58%);
+  transform: rotate(-14deg);
+  pointer-events: none;
 }
 .upload-page .upload-lyrics-card {
   margin: 14px 0 0;
@@ -4859,6 +4883,10 @@ button.stage-chip {
   border: 0;
   box-shadow: none;
   color: var(--stage-gold);
+}
+.release-stage-audio .audio-drop[hidden],
+.release-stage-drop[hidden] {
+  display: none !important;
 }
 .upload-page .upload-continue-row + [data-stage-send-hint] {
   margin-top: 10px;

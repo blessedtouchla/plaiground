@@ -70,8 +70,10 @@ function run() {
   assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ly3'), 'upload cache-busts site.css at 20260912ly3');
-  assert.ok(upload.includes('store-client.js?v=20260912ly3'), 'upload cache-busts store-client.js at 20260912ly3');
+  assert.ok(upload.includes('site.css?v=20260912ly4'), 'upload cache-busts site.css at 20260912ly4');
+  assert.ok(upload.includes('lib/upload-audio-bind.js?v=20260912ly4'), 'upload cache-busts audio bind at 20260912ly4');
+  assert.ok(upload.includes('upload-audio-splat'), 'empty drop has a soft splat mark');
+  assert.ok(upload.includes('role="switch"') && upload.includes('toggle-line'), 'Instrumental/Add lyrics stay soft toggles');
   const audioTag = upload.match(/<input[^>]*id="tg-audio-file"[^>]*>/)[0];
   assert.ok(audioTag.includes('accept="'), 'Add audio has an accept list');
   assert.ok(!/accept="[^"]*audio\/\*/.test(audioTag), 'Add audio must not use audio/* (iOS Photo Library)');
