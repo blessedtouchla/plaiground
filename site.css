@@ -4871,12 +4871,21 @@ button.stage-chip {
 }
 
 /* —— Upload header stage (quiet text steps + type line + tiny leave) —— */
+.upload-page .upload-hero {
+  margin: 0 0 16px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #fff;
+}
 .upload-page .upload-progress-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px 20px;
-  margin: 0 0 18px;
+  margin: 0 0 12px;
 }
 .upload-page .stepper {
   display: flex;
@@ -4934,28 +4943,13 @@ button.stage-chip {
 .upload-page .st span {
   display: none;
 }
-.upload-page .upload-head {
-  margin-bottom: 16px;
-  gap: 16px 40px;
-}
-.upload-page .upload-head-copy {
-  min-width: 0;
-}
-.upload-page .upload-head .kicker {
+.upload-page .upload-page-label {
   margin: 0 0 10px;
-  font-size: 12px;
-  font-weight: 500;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--muted);
-}
-.upload-page .upload-title {
-  margin: 0;
-  font-family: "Space Grotesk", Inter, sans-serif;
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  color: var(--purple);
 }
 .upload-page .upload-leave-actions {
   flex: 0 0 auto;
