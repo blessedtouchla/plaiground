@@ -5110,7 +5110,7 @@ button.stage-chip {
   font-weight: 400;
 }
 .upload-page .upload-type-toggle a.on {
-  color: var(--stage-purple);
+  color: var(--stage-gold);
   background: none;
 }
 .upload-page .upload-type-line .hint {
@@ -5208,6 +5208,34 @@ button.stage-chip {
 .upload-page .st.upload-step-splits::after {
   content: none;
 }
+.upload-page .upload-type-toggle {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  background: #16161C;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+.upload-page .upload-type-toggle a {
+  text-align: center;
+  min-width: 72px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+}
+.upload-page .upload-type-toggle a + a::before {
+  content: none;
+  margin: 0;
+}
+.upload-page .upload-type-toggle a.on {
+  background: var(--stage-gold);
+  color: #111;
+}
 .upload-page .btn-purple {
   background: var(--stage-purple);
   box-shadow: 0 8px 24px rgba(120, 47, 177, 0.28);
@@ -5227,24 +5255,26 @@ button.stage-chip {
   box-shadow: none;
 }
 .upload-page .stage-chip.chip-audio {
-  color: var(--stage-purple);
-  border-color: rgba(120, 47, 177, 0.55);
+  color: var(--stage-magenta);
+  border-color: var(--stage-magenta);
+  box-shadow: none;
 }
 .upload-page .stage-chip.chip-audio:hover,
 .upload-page .stage-chip.chip-audio.is-on {
-  color: var(--stage-purple);
-  border-color: var(--stage-purple);
-  box-shadow: 0 0 0 1px rgba(120, 47, 177, 0.2);
+  color: var(--stage-magenta);
+  border-color: var(--stage-magenta);
+  box-shadow: none;
 }
 .upload-page .stage-chip.chip-cover {
-  color: var(--stage-gold);
-  border-color: rgba(243, 203, 71, 0.42);
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
 }
 .upload-page .stage-chip.chip-cover:hover,
 .upload-page .stage-chip.chip-cover.is-on {
-  color: var(--stage-gold);
-  border-color: var(--stage-gold);
-  box-shadow: 0 0 0 1px rgba(243, 203, 71, 0.18);
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow: none;
 }
 .upload-page .release-stage-hero [data-art-meta].is-error,
 .upload-page .hint.is-error,
