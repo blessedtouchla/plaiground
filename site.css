@@ -4869,3 +4869,134 @@ button.stage-chip {
     opacity: 0.22;
   }
 }
+
+/* —— Upload header stage (dots + type line + tiny leave) —— */
+.upload-page .upload-head {
+  margin-bottom: 4px;
+}
+.upload-page .upload-head-copy {
+  min-width: 0;
+}
+.upload-page .upload-head .kicker {
+  margin-bottom: 4px;
+}
+.upload-page .upload-title {
+  font-size: 1.55rem !important;
+  line-height: 1.1;
+  margin: 0;
+}
+.upload-page .stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
+  margin: 8px 0 0;
+  grid-template-columns: none;
+}
+.upload-page .st {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border-radius: 0;
+  padding: 2px 4px 2px 0;
+  color: var(--muted-2);
+}
+.upload-page .st::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  flex: 0 0 auto;
+}
+.upload-page .st:not(:last-child)::after {
+  content: "·";
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.28);
+  font-weight: 400;
+}
+.upload-page .st.on {
+  background: transparent;
+}
+.upload-page .st.on::before {
+  background: #c8c8d0;
+}
+.upload-page .st b {
+  display: inline;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted-2);
+}
+.upload-page .st.on b {
+  color: #e8e8ee;
+}
+.upload-page a.st:hover,
+.upload-page .st[role="link"]:hover {
+  outline: none;
+}
+.upload-page a.st:hover b {
+  color: #fff;
+}
+.upload-page .st span {
+  display: none;
+}
+.upload-page .upload-leave-actions .btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  min-height: 0;
+  border-width: 1px;
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: transparent;
+}
+.upload-page .upload-leave-actions .btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+}
+.upload-page .upload-type-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 8px 0 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+.upload-page .upload-type-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+.upload-page .upload-type-toggle a {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: none;
+  background: none;
+  border-radius: 0;
+}
+.upload-page .upload-type-toggle a + a::before {
+  content: "|";
+  margin: 0 8px;
+  color: rgba(255, 255, 255, 0.22);
+  font-weight: 400;
+}
+.upload-page .upload-type-toggle a.on {
+  color: #e8e8ee;
+  background: none;
+}
+.upload-page .upload-type-line .hint {
+  margin: 0;
+  font-size: 12px;
+}

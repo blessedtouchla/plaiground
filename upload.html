@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912s5" />
+  <link rel="stylesheet" href="site.css?v=20260912h1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -18,25 +18,25 @@
   </div>
   <main class="page wrap-wide upload-page">
     <div class="head-row upload-head">
-      <div>
+      <div class="upload-head-copy">
         <p class="kicker" data-upload-kicker>Submit a song</p>
-        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800" data-upload-heading>Upload</h1>
+        <h1 class="upload-title" style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800" data-upload-heading>Upload</h1>
+        <nav class="stepper" aria-label="Release steps">
+          <a class="st on" href="upload.html" aria-current="step"><b>Upload</b></a>
+          <a class="st" href="attest.html"><b>Attest</b></a>
+          <a class="st" href="split-sheet.html"><b>Splits</b></a>
+          <a class="st" href="review.html"><b>Review</b></a>
+        </nav>
       </div>
       <div class="upload-leave-actions">
         <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
         <button type="button" class="btn btn-ghost btn-sm" data-upload-start-over>Start over</button>
       </div>
     </div>
-    <div class="stepper">
-      <a class="st on" href="upload.html"><b>Upload Audio</b><span>Audio and details</span></a>
-      <a class="st" href="attest.html"><b>Attest rights</b><span>AI disclosure</span></a>
-      <a class="st" href="split-sheet.html"><b>Split sheet</b><span>Writers and shares</span></a>
-      <a class="st" href="review.html"><b>Review & pay</b><span>Cost and delivery</span></a>
-    </div>
 
-    <section class="flow-card upload-quiet-card" data-release-type>
-      <h3>Release type</h3>
-      <div class="auth-toggle" style="max-width:240px" data-type-toggle>
+    <section class="upload-type-line" data-release-type>
+      <h3 class="sr-only">Release type</h3>
+      <div class="upload-type-toggle" data-type-toggle>
         <a class="on" href="upload.html" data-type="single">Single</a>
         <a href="upload.html?type=album" data-type="album">Album</a>
       </div>
