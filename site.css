@@ -4559,7 +4559,7 @@ body.app.artists-page .page {
 }
 .release-stage-board {
   display: grid;
-  grid-template-columns: minmax(96px, 140px) minmax(0, 1fr) minmax(96px, 140px);
+  grid-template-columns: minmax(118px, 168px) minmax(0, 1fr) minmax(118px, 168px);
   grid-template-areas:
     "chip-audio hero chip-cover"
     "chip-credits under chip-send";
@@ -4713,6 +4713,10 @@ button.stage-chip {
   gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
+  min-height: 0;
+}
+.release-sleeve-actions [data-art-resize]:not([hidden]) {
+  display: inline-flex;
 }
 .release-stage-under {
   grid-area: under;
