@@ -5427,3 +5427,10 @@ button.stage-chip {
   display: inline-flex;
   margin-top: 18px;
 }
+.upload-page .prescreen {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.upload-page .prescreen .pill {
+  background: #16161c;
+  color: var(--muted);
+}
