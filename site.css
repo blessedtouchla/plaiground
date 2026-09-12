@@ -4912,7 +4912,9 @@ button.stage-chip {
   color: var(--stage-gold);
 }
 .release-stage-audio .audio-drop[hidden],
-.release-stage-drop[hidden] {
+.release-stage-drop[hidden],
+.release-stage-audio .audio-bar[hidden],
+.upload-page [data-audio-preview-hint][hidden] {
   display: none !important;
 }
 .upload-page .upload-continue-row + [data-stage-send-hint] {
