@@ -4734,7 +4734,7 @@ async function run() {
   assert.ok(source.includes("leaveAfterCancel('dashboard.html')") || source.includes("location.href = 'dashboard.html'"), 'Submit Cancel lands on the dashboard');
   assert.ok(source.includes('function cancelInProgressSubmit'));
   assert.ok(/data-upload-cancel/.test(uploadHtml));
-  assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(uploadHtml), 'Cancel is a real secondary button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(uploadHtml), 'Cancel is a real secondary control');
   assert.ok(uploadHtml.indexOf('Save and exit') === -1, 'upload must not say Save and exit');
   assert.ok(source.includes('keepUploadBarVisible'));
   assert.ok(fs.readFileSync(path.join(__dirname, 'lib', 'audio-accept.js'), 'utf8').includes("return 'Converting to WAV';"));
@@ -4833,9 +4833,15 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly1'), 'upload.html must cache-bust past 20260912ly1');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly2'), 'upload.html must cache-bust past 20260912ly2');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly3'), 'upload.html must cache-bust past 20260912ly3');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912ly5'), 'upload.html cache-busts store-client.js at 20260912ly5');
+  assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly5'), 'upload.html must cache-bust past 20260912ly5');
+  assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912tc2'), 'upload.html must cache-bust past 20260912tc2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912tc3'), 'upload.html cache-busts store-client.js at 20260912tc3');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly7'), 'upload.html must cache-bust past 20260912ly7');
-  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ly8'), 'upload.html cache-busts site.css at 20260912ly8');
+  assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly8'), 'upload.html must cache-bust past 20260912ly8');
+  assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912sg4'), 'upload.html must cache-bust past 20260912sg4');
+  assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912tc1'), 'upload.html must cache-bust past 20260912tc1');
+  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912tc2'), 'upload.html cache-busts site.css at 20260912tc2');
+  assert.strictEqual((uploadHtmlForBust.match(/href="site\.css\?v=/g) || []).length, 1, 'upload.html has one site.css link');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');

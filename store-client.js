@@ -1772,7 +1772,7 @@
 
   function reviewAudioAccept() {
     var helper = audioAccept();
-    return (helper && helper.ACCEPT) || 'audio/*,.wav,.flac,.mp3,.mpeg,.mpga';
+    return (helper && helper.ACCEPT) || '.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg';
   }
 
   function syncReviewAudioRepick() {
@@ -5652,7 +5652,7 @@
     }
     if (artistMode) artistMode.textContent = album ? 'Artist for this album' : 'Artist for this song';
     var titleInput = $('tg-title');
-    if (titleInput) titleInput.setAttribute('placeholder', album ? 'ALBUM TITLE' : 'SONG TITLE');
+    if (titleInput) titleInput.setAttribute('placeholder', album ? 'Album title' : 'Song title');
     if (showTracks) ensureAlbumTracks();
   }
 

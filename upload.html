@@ -7,9 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912sg4" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912ly8" />
+  <link rel="stylesheet" href="site.css?v=20260912tc2" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -28,11 +26,15 @@
         <a class="st" href="review.html"><b>Review</b></a>
       </nav>
       <div class="upload-leave-actions">
-        <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-upload-start-over>Start over</button>
+        <button type="button" class="btn btn-ghost btn-sm upload-leave-icon" data-upload-cancel aria-label="Cancel" title="Cancel">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.2 2.2l7.6 7.6M9.8 2.2l-7.6 7.6"/></svg>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm upload-leave-icon" data-upload-start-over aria-label="Start over" title="Start over">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9.6 6A3.6 3.6 0 1 1 8.4 3.1"/><path d="M8.1 1.6v2.2h2.2"/></svg>
+        </button>
       </div>
     </div>
-    <p class="upload-page-label" data-upload-heading>Upload</p>
+    <p class="upload-page-label sr-only" data-upload-heading>Upload</p>
 
     <section class="upload-type-line" data-release-type>
       <h3 class="sr-only">Release type</h3>
@@ -60,7 +62,7 @@
     </section>
 
     <section class="release-stage" data-release-stage>
-      <p class="release-stage-progress">Building your release<span>Audio · Cover · Credits · Send</span></p>
+      <p class="release-stage-progress sr-only">Building your release<span>Audio · Cover · Credits · Send</span></p>
       <div class="release-stage-board">
         <button type="button" class="stage-chip chip-audio" data-stage-chip="audio" data-stage-pick="audio">Add audio</button>
         <button type="button" class="stage-chip chip-cover" data-stage-chip="cover" data-art-pick>Add cover</button>
@@ -68,17 +70,17 @@
           <div class="release-sleeve is-empty" id="upload-cover" data-release-sleeve data-stage-drop>
             <div class="release-sleeve-disc" aria-hidden="true"></div>
             <div class="art release-sleeve-face" role="button" tabindex="0" aria-label="Add cover art" data-art-box data-stage-pick="cover"></div>
-            <div class="release-sleeve-title-wrap">
-              <label class="sr-only" for="tg-title" data-title-label>Song title</label>
-              <input id="tg-title" name="release-title" class="release-sleeve-title-input" type="text" value="" placeholder="SONG TITLE" autocomplete="off" />
-              <p class="release-sleeve-title" data-stage-title aria-hidden="true"></p>
-              <p class="hint" id="title-check-msg" hidden></p>
-            </div>
           </div>
           <p class="release-sleeve-actions">
             <button class="btn btn-ghost btn-sm" type="button" data-art-clear hidden>Clear</button>
             <button class="btn btn-purple btn-sm" type="button" data-art-resize hidden>Resize for me</button>
           </p>
+          <div class="field upload-title-field">
+            <label for="tg-title" data-title-label>Song title</label>
+            <input id="tg-title" name="release-title" type="text" value="" placeholder="Song title" autocomplete="off" />
+            <p class="hint" id="title-check-msg" hidden></p>
+          </div>
+          <p class="release-sleeve-title sr-only" data-stage-title aria-hidden="true"></p>
           <input id="tg-art-file" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
           <p class="hint upload-stage-caption sr-only" data-art-meta>3000 × 3000 px · JPG or PNG</p>
           <p class="release-stage-missing sr-only" data-stage-missing>Add audio to start this release.</p>
@@ -293,8 +295,8 @@
   <script src="lib/upload-draft-files.js?v=20260912ly6"></script>
   <script src="lib/upload-credits.js?v=20260908d1"></script>
   <script src="lib/artist-check.js"></script>
-  <script src="lib/audio-accept.js"></script>
-  <script src="lib/upload-audio-bind.js?v=20260912ly6"></script>
+  <script src="lib/audio-accept.js?v=20260912tc3"></script>
+  <script src="lib/upload-audio-bind.js?v=20260912tc3"></script>
   <script src="lib/audio-convert.js"></script>
   <script src="lib/store-pick.js?v=20260912a2"></script>
   <script src="lib/cover-url.js"></script>
@@ -303,8 +305,8 @@
   <script src="lib/object-hop.js"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
-  <script src="store-client.js?v=20260912ly5" defer></script>
-  <script src="lib/upload-stage.js?v=20260912s6"></script>
+  <script src="store-client.js?v=20260912tc3" defer></script>
+  <script src="lib/upload-stage.js?v=20260912s7"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>
