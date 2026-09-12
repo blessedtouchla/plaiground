@@ -943,7 +943,7 @@ function run() {
   const upload = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(/id="tg-title"[^>]*value=""/.test(upload));
   assert.ok(/id="tg-artist"[^>]*value=""/.test(upload));
-  assert.ok(upload.indexOf('placeholder="SONG TITLE"') !== -1);
+  assert.ok(upload.indexOf('placeholder="Song title"') !== -1);
   assert.ok(upload.indexOf('Choose artist profile') !== -1);
   assert.ok(upload.indexOf('Create new artist profile') !== -1);
   assert.ok(upload.indexOf('Import an existing artist') !== -1);
@@ -1169,8 +1169,8 @@ function run() {
   assert.ok(tonegridSrc.indexOf('isNewReleaseStart') !== -1);
   assert.ok(tonegridSrc.indexOf('function cancelInProgressUpload') !== -1, 'mid-upload Cancel must wipe the leftover draft');
   assert.ok(tonegridSrc.indexOf('Cancel this upload? This loses the in-progress info.') !== -1);
-  assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(upload), 'Cancel is a real secondary button');
-  assert.ok(/class="btn btn-ghost btn-sm" data-upload-start-over>Start over</.test(upload), 'Start over is a real secondary button next to Cancel');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(upload), 'Cancel is a real secondary control');
+  assert.ok(/data-upload-start-over[^>]*aria-label="Start over"/.test(upload), 'Start over is a real secondary control next to Cancel');
   assert.ok(upload.indexOf('lib/upload-leave.js') !== -1, 'New release loads Cancel / Start over without store-client');
   assert.ok(upload.indexOf('upload-leave-actions') !== -1, 'Cancel and Start over share a wrap-safe action row');
   assert.ok(upload.indexOf('Save and exit') === -1, 'upload Cancel must not say Save and exit');

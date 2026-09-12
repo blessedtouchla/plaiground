@@ -5652,7 +5652,7 @@
     }
     if (artistMode) artistMode.textContent = album ? 'Artist for this album' : 'Artist for this song';
     var titleInput = $('tg-title');
-    if (titleInput) titleInput.setAttribute('placeholder', album ? 'ALBUM TITLE' : 'SONG TITLE');
+    if (titleInput) titleInput.setAttribute('placeholder', album ? 'Album title' : 'Song title');
     if (showTracks) ensureAlbumTracks();
   }
 

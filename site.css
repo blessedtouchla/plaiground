@@ -5126,6 +5126,73 @@ button.stage-chip {
   }
 }
 
+/* —— Upload Tesla cut (one progress line + tiny leave icons) —— */
+.upload-page .upload-page-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.upload-page .release-stage-progress {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.upload-page .upload-leave-actions {
+  gap: 4px;
+}
+.upload-page .upload-leave-actions .btn.upload-leave-icon {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.34);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.upload-page .upload-leave-actions .btn.upload-leave-icon svg {
+  display: block;
+  pointer-events: none;
+}
+.upload-page .upload-leave-actions .btn.upload-leave-icon:hover {
+  color: rgba(255, 255, 255, 0.62);
+  border-color: transparent;
+  background: transparent;
+}
+.upload-page .upload-title-field {
+  width: min(320px, 78vw);
+  margin: 12px auto 4px;
+  text-align: left;
+}
+.upload-page .release-sleeve-title-wrap,
+.upload-page .release-sleeve-title-input {
+  display: none !important;
+}
+.upload-page .release-sleeve-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
 /* —— Upload sleeve helper quiet (chips + BUILDING YOUR RELEASE stay) —— */
 .upload-page .release-stage-drop,
 .upload-page .release-stage-audio .audio-drop {
