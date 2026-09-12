@@ -4870,92 +4870,111 @@ button.stage-chip {
   }
 }
 
-/* —— Upload header stage (dots + type line + tiny leave) —— */
-.upload-page .upload-head {
-  margin-bottom: 4px;
-}
-.upload-page .upload-head-copy {
-  min-width: 0;
-}
-.upload-page .upload-head .kicker {
-  margin-bottom: 4px;
-}
-.upload-page .upload-title {
-  font-size: 1.55rem !important;
-  line-height: 1.1;
-  margin: 0;
-}
+/* —— Upload header stage (progress pills + type line + tiny leave) —— */
 .upload-page .stepper {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 2px;
-  margin: 8px 0 0;
+  gap: 8px;
+  margin: 0 0 18px;
   grid-template-columns: none;
 }
 .upload-page .st {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   background: transparent;
-  border-radius: 0;
-  padding: 2px 4px 2px 0;
-  color: var(--muted-2);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: var(--muted);
+  cursor: default;
+  font-family: inherit;
 }
-.upload-page .st::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.28);
-  flex: 0 0 auto;
-}
-.upload-page .st:not(:last-child)::after {
-  content: "·";
-  margin-left: 8px;
-  color: rgba(255, 255, 255, 0.28);
-  font-weight: 400;
-}
-.upload-page .st.on {
-  background: transparent;
-}
-.upload-page .st.on::before {
-  background: #c8c8d0;
+.upload-page .st::before,
+.upload-page .st::after {
+  content: none;
 }
 .upload-page .st b {
   display: inline;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--muted-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+.upload-page .st.on {
+  border-color: transparent;
 }
 .upload-page .st.on b {
-  color: #e8e8ee;
+  color: inherit;
+}
+.upload-page .st:nth-child(1).on {
+  background: var(--purple);
+  color: #fff;
+}
+.upload-page .st:nth-child(2).on {
+  background: var(--magenta);
+  color: #fff;
+}
+.upload-page .st:nth-child(3).on {
+  background: var(--gold);
+  color: #111;
+}
+.upload-page .st:nth-child(4).on {
+  background: var(--green);
+  color: #111;
 }
 .upload-page a.st:hover,
 .upload-page .st[role="link"]:hover {
   outline: none;
 }
 .upload-page a.st:hover b {
-  color: #fff;
+  color: inherit;
 }
 .upload-page .st span {
   display: none;
 }
+.upload-page .upload-head {
+  margin-bottom: 16px;
+  gap: 16px 40px;
+}
+.upload-page .upload-head-copy {
+  min-width: 0;
+}
+.upload-page .upload-head .kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.upload-page .upload-title {
+  font-family: inherit;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--purple);
+}
+.upload-page .upload-leave-actions {
+  padding-top: 22px;
+}
 .upload-page .upload-leave-actions .btn {
-  padding: 3px 8px;
+  padding: 4px 9px;
   font-size: 11px;
   font-weight: 500;
   line-height: 1.2;
   min-height: 0;
   border-width: 1px;
-  color: var(--muted-2);
-  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--muted);
+  border-color: rgba(255, 255, 255, 0.14);
   background: transparent;
 }
 .upload-page .upload-leave-actions .btn:hover {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.45);
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.28);
   background: transparent;
 }
 .upload-page .upload-type-line {
@@ -4963,7 +4982,7 @@ button.stage-chip {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px 12px;
-  margin: 8px 0 6px;
+  margin: 4px 0 22px;
   padding: 0;
   background: none;
   border: none;
@@ -4980,7 +4999,7 @@ button.stage-chip {
 .upload-page .upload-type-toggle a {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   padding: 0;
   text-decoration: none;
   background: none;
@@ -4993,10 +5012,16 @@ button.stage-chip {
   font-weight: 400;
 }
 .upload-page .upload-type-toggle a.on {
-  color: #e8e8ee;
+  color: var(--muted-2);
   background: none;
 }
 .upload-page .upload-type-line .hint {
   margin: 0;
   font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 720px) {
+  .upload-page .upload-leave-actions {
+    padding-top: 8px;
+  }
 }
