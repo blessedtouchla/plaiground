@@ -16,12 +16,14 @@
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
   </div>
-  <main class="page wrap-wide">
-    <div class="stepper">
-      <a class="st" href="upload.html"><b>01 Upload Audio</b><span class="done">Complete</span></a>
-      <a class="st on" href="attest.html"><b>02 Attest rights</b><span>AI disclosure</span></a>
-      <a class="st" href="split-sheet.html"><b>03 Writers and splits</b><span>Names and shares</span></a>
-      <a class="st" href="review.html"><b>04 Review &amp; pay</b><span>Cost and delivery</span></a>
+  <main class="page wrap-wide upload-page">
+    <div class="upload-progress-row">
+      <nav class="stepper" aria-label="Release progress">
+        <a class="st" href="upload.html"><b>Upload</b></a>
+        <a class="st on" href="attest.html" aria-current="step"><b>Attest</b></a>
+        <a class="st upload-step-splits sr-only" href="split-sheet.html"><b>Splits</b></a>
+        <a class="st" href="review.html"><b>Review</b></a>
+      </nav>
     </div>
     <div class="head-row">
       <div>
@@ -87,6 +89,7 @@
       <a class="btn btn-ghost btn-md" href="upload.html">Back</a>
       <a class="btn btn-purple btn-md" data-attest-continue href="split-sheet.html">Continue to writers and splits</a>
     </div>
+    <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
     <p class="hint" id="attest-status" hidden></p>
   </main>
   <script src="account.js?v=20260910live1"></script>

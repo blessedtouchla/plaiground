@@ -57,11 +57,30 @@
     return a;
   }
 
+  function inFlowTop(el) {
+    var node = el;
+    while (node) {
+      if (node.classList && node.classList.contains('flow-top')) return true;
+      node = node.parentNode;
+    }
+    return false;
+  }
+
+  function hideHeaderProblem() {
+    var top = document.querySelector && document.querySelector('.flow-top');
+    if (!top) return;
+    var existing = top.querySelector('[data-have-problem]');
+    if (!existing) return;
+    existing.hidden = true;
+    if (existing.classList && existing.classList.toggle) existing.classList.toggle('is-hidden', true);
+  }
+
   function syncExisting(show) {
     if (!document.querySelectorAll) return;
     document.querySelectorAll('[data-have-problem]').forEach(function (el) {
-      el.hidden = !show;
-      if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
+      var hide = !show || inFlowTop(el);
+      el.hidden = hide;
+      if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', hide);
     });
   }
 
@@ -83,10 +102,21 @@
     nav.appendChild(makeLink('side-problem'));
   }
 
-  function injectFlowTop(show) {
+  function flowPage() {
+    if (!document.querySelector) return null;
+    return document.querySelector('main.upload-page')
+      || document.querySelector('main.page')
+      || document.querySelector('main.center-page')
+      || document.querySelector('main');
+  }
+
+  function injectFlowFooter(show) {
+    hideHeaderProblem();
     var top = document.querySelector && document.querySelector('.flow-top');
     if (!top) return;
-    var existing = top.querySelector('[data-have-problem]');
+    var page = flowPage();
+    if (!page) return;
+    var existing = page.querySelector('[data-have-problem]');
     if (!show) {
       if (existing) existing.hidden = true;
       return;
@@ -95,17 +125,15 @@
       existing.hidden = false;
       return;
     }
-    var link = makeLink('btn btn-ghost btn-sm have-problem');
-    var who = top.querySelector('.who');
-    if (who && who.parentNode === top) top.insertBefore(link, who);
-    else top.appendChild(link);
+    page.appendChild(makeLink('btn btn-ghost btn-sm have-problem'));
   }
 
   function mount() {
     var show = isSignedIn();
     syncExisting(show);
+    hideHeaderProblem();
     injectSideNav(show);
-    injectFlowTop(show);
+    injectFlowFooter(show);
     return show;
   }
 

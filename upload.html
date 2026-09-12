@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912tc2" />
+  <link rel="stylesheet" href="site.css?v=20260912ba5" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -22,7 +22,7 @@
       <nav class="stepper" aria-label="Release progress">
         <a class="st on" href="upload.html" aria-current="step"><b>Upload</b></a>
         <a class="st" href="attest.html"><b>Attest</b></a>
-        <a class="st" href="split-sheet.html"><b>Splits</b></a>
+        <a class="st upload-step-splits sr-only" href="split-sheet.html"><b>Splits</b></a>
         <a class="st" href="review.html"><b>Review</b></a>
       </nav>
       <div class="upload-leave-actions">
@@ -279,6 +279,7 @@
       </div>
       <p class="hint" id="tg-upgrade" hidden>Need more uploads? Upgrade to <a href="creator.html">Creator</a> or <a href="pro.html">Pro</a>.</p>
     </section>
+    <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
   </main>
   <div class="upload-loader is-hidden" data-upload-loader hidden aria-live="polite" aria-busy="true">
     <div class="flow-card upload-loader-card">
