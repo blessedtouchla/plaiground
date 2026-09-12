@@ -4871,13 +4871,22 @@ button.stage-chip {
 }
 
 /* —— Upload header stage (progress pills + type line + tiny leave) —— */
+.upload-page .upload-progress-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 0 0 18px;
+}
 .upload-page .stepper {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 0 0 18px;
+  margin: 0;
   grid-template-columns: none;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 .upload-page .st {
   display: inline-flex;
@@ -4959,7 +4968,11 @@ button.stage-chip {
   color: var(--purple);
 }
 .upload-page .upload-leave-actions {
-  padding-top: 22px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-top: 2px;
+  justify-content: flex-end;
+  width: auto;
 }
 .upload-page .upload-leave-actions .btn {
   padding: 4px 9px;
@@ -5022,6 +5035,8 @@ button.stage-chip {
 }
 @media (max-width: 720px) {
   .upload-page .upload-leave-actions {
-    padding-top: 8px;
+    justify-content: flex-end;
+    width: auto;
+    padding-top: 2px;
   }
 }
