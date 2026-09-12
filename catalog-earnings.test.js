@@ -464,7 +464,7 @@ function run() {
   assert.ok(read('releases.html').includes('data-rejected-section'), 'Rejected section is marked');
   assert.ok(read('releases.html').includes('data-rejected-rows'), 'Rejected rows host is marked');
   assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r3'), 'releases.html cache-busts release-status.js');
-  assert.ok(read('releases.html').includes('catalog.js?v=20260910r3'), 'releases.html cache-busts catalog.js');
+  assert.ok(read('releases.html').includes('catalog.js?v=20260912a1'), 'releases.html cache-busts catalog.js');
   assert.ok(!/data-upload-save-draft|Save draft/.test(read('releases.html')), 'Save draft stays off Releases');
   assert.ok(!/DistroKid/i.test(read('releases.html')));
   assert.ok(read('catalog.js').includes("return 'upload.html'"), 'Resubmit stays on the new-release path');

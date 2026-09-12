@@ -919,7 +919,15 @@
       trackTitle.setAttribute('data-track-id', track.uuid || '');
     }
     getJson('/api/tonegrid/stores').then(function (result) {
-      fillStores((result.ok && result.data.stores) || [], release.dsps || []);
+      var stores = (result.ok && result.data.stores) || [];
+      if (global.PlaigroundStorePick && global.PlaigroundStorePick.selectableStores) {
+        stores = global.PlaigroundStorePick.selectableStores(stores);
+      }
+      var picked = (release.dsps || []).filter(function (slug) {
+        return !(global.PlaigroundStorePick && global.PlaigroundStorePick.isExcludedStore
+          && global.PlaigroundStorePick.isExcludedStore(slug));
+      });
+      fillStores(stores, picked);
     });
     if (genre) {
       genre.disabled = false;

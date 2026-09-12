@@ -3203,7 +3203,11 @@
       title: draft.title || '',
       songTitle: draft.title || draft.songTitle || '',
     };
-    if (Array.isArray(draft.dsps) && draft.dsps.length) submitBody.dsps = draft.dsps;
+    if (Array.isArray(draft.dsps) && draft.dsps.length) {
+      submitBody.dsps = typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selectableSlugs
+        ? PlaigroundStorePick.selectableSlugs(draft.dsps)
+        : draft.dsps;
+    }
     var legal = hopLegalFields(draft);
     if (legal.legal_first) submitBody.legal_first = legal.legal_first;
     if (legal.legal_last) submitBody.legal_last = legal.legal_last;
@@ -4890,14 +4894,23 @@
 
   function selectedUploadStores() {
     var root = storePickRoot();
+    var slugs;
     if (root && typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selected) {
-      return PlaigroundStorePick.selected(root);
+      slugs = PlaigroundStorePick.selected(root);
+    } else {
+      var draft = readDraft();
+      slugs = Array.isArray(draft.dsps) ? draft.dsps.slice() : [];
     }
-    var draft = readDraft();
-    return Array.isArray(draft.dsps) ? draft.dsps.slice() : [];
+    if (typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selectableSlugs) {
+      return PlaigroundStorePick.selectableSlugs(slugs);
+    }
+    return slugs;
   }
 
   function persistStorePick(slugs, allOn, total) {
+    if (typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selectableSlugs) {
+      slugs = PlaigroundStorePick.selectableSlugs(slugs || []);
+    }
     var patch = { dsps: slugs || [], dsps_all: allOn !== false };
     var n = Number(total);
     if (n > 0) patch.dsps_total = n;
@@ -4927,6 +4940,7 @@
     if (draft.dsps_all !== false) picked = null;
     function apply(stores) {
       var catalog = Array.isArray(stores) ? stores : [];
+      if (PlaigroundStorePick.selectableStores) catalog = PlaigroundStorePick.selectableStores(catalog);
       PlaigroundStorePick.bind(root, {
         stores: catalog,
         selected: picked && picked.length ? picked : null,
@@ -6959,6 +6973,9 @@
     if (document.querySelector('[data-submit-stores]')) {
       getJson('/api/tonegrid/stores').then(function (result) {
         var stores = (result.ok && result.data && result.data.stores) || [];
+        if (typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selectableStores) {
+          stores = PlaigroundStorePick.selectableStores(stores);
+        }
         if (!stores.length) return;
         paintSubmittedStores(writeDraft({ dsps_total: stores.length }));
       }).catch(function () {});
