@@ -4652,7 +4652,7 @@ button.stage-chip {
   width: min(320px, 78vw);
   height: min(320px, 78vw);
   border-radius: 8px;
-  border: 1px dashed rgba(243, 203, 71, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(165deg, rgba(120, 47, 177, 0.28), #0a0a0a 55%),
     #050505;
@@ -4747,17 +4747,46 @@ button.stage-chip {
 .release-stage-missing.is-ready {
   color: var(--stage-gold);
 }
+.release-stage-hairline {
+  display: block;
+  width: min(320px, 78vw);
+  height: 0;
+  margin: 16px auto 0;
+  border: 0;
+  border-top: 1px solid #f3cb47;
+  opacity: 0.92;
+}
 .release-stage-audio {
   width: min(420px, 100%);
 }
-.release-stage-audio .audio-drop {
-  padding: 18px 14px;
-  margin-bottom: 8px;
-  border-color: rgba(255, 255, 255, 0.16);
+.release-stage-audio .audio-drop,
+.release-stage-drop {
+  display: block;
+  margin: 8px auto 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
 }
-.release-stage-audio .audio-drop.is-over {
-  border-color: var(--stage-magenta);
-  box-shadow: 0 0 20px rgba(120, 47, 177, 0.2);
+.release-stage-audio .audio-drop span,
+.release-stage-drop span {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.release-stage-audio .audio-drop.is-over,
+.release-stage-drop.is-over {
+  border: 0;
+  box-shadow: none;
+  color: var(--stage-gold);
 }
 .upload-page .upload-continue-row + [data-stage-send-hint] {
   margin-top: 10px;

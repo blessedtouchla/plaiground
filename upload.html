@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912s4" />
+  <link rel="stylesheet" href="site.css?v=20260912s5" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -82,6 +82,7 @@
           <input id="tg-art-file" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
           <p class="hint" data-art-meta>3000 × 3000 px · JPG or PNG</p>
           <p class="release-stage-missing" data-stage-missing>Add audio to start this release.</p>
+          <hr class="release-stage-hairline" data-stage-hairline />
         </div>
         <a class="stage-chip chip-credits" data-stage-chip="credits" href="#upload-credits">Credits</a>
         <a class="stage-chip chip-send" data-stage-chip="send" href="#upload-send">Send</a>
@@ -91,7 +92,7 @@
           </div>
           <div id="upload-audio" data-single-audio class="release-stage-audio">
             <h3 class="sr-only">Upload your audio</h3>
-            <label class="dashbox audio-drop" data-audio-drop data-stage-pick="audio" for="tg-audio-file">
+            <label class="release-stage-drop audio-drop" data-audio-drop data-stage-pick="audio" for="tg-audio-file">
               Drop WAV, FLAC, or MP3 here
               <span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>
               <input id="tg-audio-file" type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input />
@@ -299,7 +300,7 @@
   <script src="lib/upload-leave.js?v=20260908d1"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
   <script src="store-client.js?v=20260912a2" defer></script>
-  <script src="lib/upload-stage.js?v=20260912s4"></script>
+  <script src="lib/upload-stage.js?v=20260912s5"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>
