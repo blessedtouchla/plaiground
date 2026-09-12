@@ -4697,8 +4697,10 @@ button.stage-chip {
 }
 .stage-chip.chip-audio { grid-area: chip-audio; justify-self: end; }
 .stage-chip.chip-cover { grid-area: chip-cover; justify-self: start; }
-.stage-chip.chip-credits { grid-area: chip-credits; justify-self: end; }
-.stage-chip.chip-send { grid-area: chip-send; justify-self: start; }
+.stage-chip.chip-credits,
+.stage-step.chip-credits { grid-area: chip-credits; justify-self: end; }
+.stage-chip.chip-send,
+.stage-step.chip-send { grid-area: chip-send; justify-self: start; }
 .stage-chip:hover {
   color: #fff;
   border-color: rgba(208, 48, 131, 0.45);
@@ -4967,10 +4969,16 @@ button.stage-chip {
     gap: 12px;
   }
   .stage-chip.chip-audio,
-  .stage-chip.chip-cover,
-  .stage-chip.chip-credits,
-  .stage-chip.chip-send {
+  .stage-chip.chip-cover {
     justify-self: stretch;
+  }
+  .stage-chip.chip-credits,
+  .stage-step.chip-credits {
+    justify-self: start;
+  }
+  .stage-chip.chip-send,
+  .stage-step.chip-send {
+    justify-self: end;
   }
   .release-stage-hero {
     padding: 4px 8px 0;
@@ -5435,40 +5443,51 @@ button.stage-chip {
   color: var(--muted);
 }
 
-/* —— Upload leftover: quiet Credits/Send chips + Artist card —— */
-.upload-page .stage-chip.chip-credits,
-.upload-page .stage-chip.chip-send {
-  min-height: 32px;
-  padding: 6px 12px;
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* —— Upload leftover: tiny side Credits/Send steps + Artist card —— */
+.upload-page .stage-step.chip-credits,
+.upload-page .stage-step.chip-send {
+  display: inline;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
   box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+  font-family: "Space Grotesk", Inter, sans-serif;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: none;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.upload-page .stage-chip.chip-credits:hover,
-.upload-page .stage-chip.chip-send:hover {
+.upload-page .stage-step.chip-credits:hover,
+.upload-page .stage-step.chip-send:hover {
+  color: var(--muted);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.upload-page .stage-step.chip-credits.is-on,
+.upload-page .stage-step.chip-send.is-on {
   color: var(--muted-2);
-  border-color: rgba(255, 255, 255, 0.28);
-  background: transparent;
+  background: none;
+  border: 0;
   box-shadow: none;
 }
-.upload-page .stage-chip.chip-credits.is-on {
-  color: var(--stage-blue);
-  border-color: var(--stage-blue);
-  background: transparent;
-  box-shadow: none;
-  font-weight: 700;
-}
-.upload-page .stage-chip.chip-send.is-on {
-  color: var(--stage-gold);
-  border-color: var(--stage-gold);
-  background: transparent;
-  box-shadow: none;
-  font-weight: 700;
+@media (max-width: 800px) {
+  .upload-page .stage-step.chip-credits,
+  .upload-page .stage-step.chip-send {
+    justify-self: start;
+    width: auto;
+    max-width: none;
+  }
+  .upload-page .stage-step.chip-send {
+    justify-self: end;
+  }
 }
 .upload-page [data-upload-artist] {
   background: #0a0a0a;
