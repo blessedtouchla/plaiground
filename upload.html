@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912s2" />
+  <link rel="stylesheet" href="site.css?v=20260912s3" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -62,12 +62,12 @@
     <section class="release-stage" data-release-stage>
       <p class="release-stage-progress">Building your release<span>Audio · Cover · Credits · Send</span></p>
       <div class="release-stage-board">
-        <a class="stage-chip chip-audio" data-stage-chip="audio" href="#upload-audio">Audio</a>
-        <a class="stage-chip chip-cover" data-stage-chip="cover" href="#upload-cover">Cover</a>
+        <button type="button" class="stage-chip chip-audio" data-stage-chip="audio" data-stage-pick="audio">Audio</button>
+        <button type="button" class="stage-chip chip-cover" data-stage-chip="cover" data-stage-pick="cover">Cover</button>
         <div class="release-stage-hero">
           <div class="release-sleeve is-empty" id="upload-cover" data-release-sleeve data-stage-drop>
             <div class="release-sleeve-disc" aria-hidden="true"></div>
-            <div class="art release-sleeve-face" role="img" aria-label="Cover art placeholder" data-art-box data-art-pick></div>
+            <div class="art release-sleeve-face" role="button" tabindex="0" aria-label="Add cover art" data-art-box data-stage-pick="cover"></div>
             <div class="release-sleeve-title-wrap">
               <label class="sr-only" for="tg-title" data-title-label>Song title</label>
               <input id="tg-title" name="release-title" class="release-sleeve-title-input" type="text" value="" placeholder="SONG TITLE" autocomplete="off" />
@@ -79,7 +79,7 @@
             <button class="btn btn-ghost btn-sm" type="button" data-art-pick>Add artwork</button>
             <button class="btn btn-ghost btn-sm" type="button" data-art-clear hidden>Clear</button>
           </p>
-          <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
+          <input id="tg-art-file" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
           <p class="hint" data-art-meta>3000 × 3000 px · JPG or PNG</p>
           <p class="release-stage-missing" data-stage-missing>Add audio to start this release.</p>
         </div>
@@ -91,10 +91,10 @@
           </div>
           <div id="upload-audio" data-single-audio class="release-stage-audio">
             <h3 class="sr-only">Upload your audio</h3>
-            <label class="dashbox audio-drop" data-audio-drop>
+            <label class="dashbox audio-drop" data-audio-drop data-stage-pick="audio" for="tg-audio-file">
               Drop WAV, FLAC, or MP3 here
               <span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>
-              <input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input />
+              <input id="tg-audio-file" type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input />
             </label>
             <div class="audio-bar" data-audio-preview hidden>
               <div>
@@ -299,7 +299,7 @@
   <script src="lib/upload-leave.js?v=20260908d1"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
   <script src="store-client.js?v=20260912a2" defer></script>
-  <script src="lib/upload-stage.js?v=20260912s2"></script>
+  <script src="lib/upload-stage.js?v=20260912s3"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

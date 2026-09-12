@@ -4580,7 +4580,14 @@ body.app.artists-page .page {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
   transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+button.stage-chip {
+  margin: 0;
 }
 .stage-chip.chip-audio { grid-area: chip-audio; justify-self: end; }
 .stage-chip.chip-cover { grid-area: chip-cover; justify-self: start; }
