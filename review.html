@@ -17,7 +17,7 @@
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
   </div>
-  <main class="page wrap-wide">
+  <main class="page wrap-wide upload-page">
     <div class="head-row">
       <div>
         <p class="kicker">Submit a song</p>
@@ -25,11 +25,13 @@
       </div>
       <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
     </div>
-    <div class="stepper">
-      <a class="st" href="upload.html"><b>01 Upload Audio</b><span class="done">Complete</span></a>
-      <a class="st" href="attest.html"><b>02 Attest rights</b><span class="done">Complete</span></a>
-      <a class="st" href="split-sheet.html"><b>03 Split sheet</b><span class="done">Complete</span></a>
-      <a class="st on" href="review.html"><b>04 Review & pay</b><span>Cost and delivery</span></a>
+    <div class="upload-progress-row">
+      <nav class="stepper" aria-label="Release progress">
+        <a class="st" href="upload.html"><b>Upload</b></a>
+        <a class="st" href="attest.html"><b>Attest</b></a>
+        <a class="st upload-step-splits sr-only" href="split-sheet.html"><b>Splits</b></a>
+        <a class="st on" href="review.html" aria-current="step"><b>Review</b></a>
+      </nav>
     </div>
     <div class="review-grid">
       <div>

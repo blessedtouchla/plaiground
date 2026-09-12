@@ -5032,14 +5032,14 @@ button.stage-chip {
   background: none;
 }
 .upload-page .st.on b {
-  color: #e8e8ee;
+  color: var(--stage-purple);
 }
 .upload-page a.st:hover,
 .upload-page .st[role="link"]:hover {
   outline: none;
 }
 .upload-page a.st:hover b {
-  color: #e8e8ee;
+  color: var(--muted-2);
 }
 .upload-page .st span {
   display: none;
@@ -5110,7 +5110,7 @@ button.stage-chip {
   font-weight: 400;
 }
 .upload-page .upload-type-toggle a.on {
-  color: var(--muted-2);
+  color: var(--stage-purple);
   background: none;
 }
 .upload-page .upload-type-line .hint {
@@ -5191,6 +5191,94 @@ button.stage-chip {
   margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
+}
+
+/* —— Upload brand accents (Tesla leftover: sparse purple/gold) —— */
+.upload-page .st.upload-step-splits {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.upload-page .st.upload-step-splits::after {
+  content: none;
+}
+.upload-page .btn-purple {
+  background: var(--stage-purple);
+  box-shadow: 0 8px 24px rgba(120, 47, 177, 0.28);
+}
+.upload-page .btn-purple:hover {
+  background: var(--stage-purple);
+  box-shadow: 0 8px 24px rgba(120, 47, 177, 0.36);
+}
+.upload-page .stage-chip:hover {
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.upload-page .stage-chip.is-on,
+.upload-page .stage-chip.chip-send.is-on {
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+.upload-page .stage-chip.chip-audio {
+  color: var(--stage-purple);
+  border-color: rgba(120, 47, 177, 0.55);
+}
+.upload-page .stage-chip.chip-audio:hover,
+.upload-page .stage-chip.chip-audio.is-on {
+  color: var(--stage-purple);
+  border-color: var(--stage-purple);
+  box-shadow: 0 0 0 1px rgba(120, 47, 177, 0.2);
+}
+.upload-page .stage-chip.chip-cover {
+  color: var(--stage-gold);
+  border-color: rgba(243, 203, 71, 0.42);
+}
+.upload-page .stage-chip.chip-cover:hover,
+.upload-page .stage-chip.chip-cover.is-on {
+  color: var(--stage-gold);
+  border-color: var(--stage-gold);
+  box-shadow: 0 0 0 1px rgba(243, 203, 71, 0.18);
+}
+.upload-page .release-stage-hero [data-art-meta].is-error,
+.upload-page .hint.is-error,
+.upload-page #tg-status.upload-status-error {
+  color: var(--stage-magenta);
+}
+.upload-page .upload-audio-splat {
+  background:
+    radial-gradient(circle at 32% 38%, rgba(120, 47, 177, 0.92) 0 42%, transparent 58%),
+    radial-gradient(circle at 72% 52%, rgba(120, 47, 177, 0.62) 0 40%, transparent 60%),
+    radial-gradient(circle at 50% 78%, rgba(120, 47, 177, 0.28) 0 36%, transparent 58%);
+}
+.upload-page .release-sleeve-disc {
+  background:
+    radial-gradient(circle at 50% 50%,
+      #1c1c1c 0 13%,
+      #2a2a2a 14%,
+      #111 40%,
+      var(--stage-purple) 41%,
+      #111 42%,
+      #0a0a0a 68%,
+      var(--stage-purple) 69%,
+      #0a0a0a 70%);
+}
+.upload-page .art.release-sleeve-face {
+  box-shadow: 0 0 0 1px rgba(120, 47, 177, 0.12), 0 0 28px rgba(120, 47, 177, 0.16), 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+.upload-page .release-sleeve.is-filled .release-sleeve-face {
+  border-color: rgba(120, 47, 177, 0.32);
+  box-shadow: 0 0 0 1px rgba(120, 47, 177, 0.18), 0 0 34px rgba(120, 47, 177, 0.22);
+}
+.upload-page .release-sleeve.is-over .release-sleeve-face,
+.upload-page .release-sleeve.is-over {
+  box-shadow: 0 0 0 1px rgba(120, 47, 177, 0.45), 0 0 36px rgba(120, 47, 177, 0.28);
 }
 
 /* —— Upload sleeve helper quiet (chips + BUILDING YOUR RELEASE stay) —— */
