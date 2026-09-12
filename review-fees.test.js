@@ -36,6 +36,12 @@ function run() {
 
   assert.ok(submitted.indexOf('164 of 163 stores') === -1);
   assert.ok(submitted.indexOf('data-submit-stores') !== -1);
+  assert.ok(submitted.indexOf('data-submit-release-date') !== -1);
+  assert.ok(submitted.indexOf('data-submit-deliver-date') !== -1);
+  assert.ok(submitted.indexOf('PG-2026-0314') === -1);
+  assert.ok(submitted.indexOf('12 Sep') === -1);
+  assert.ok(submitted.indexOf('M. Hale') === -1);
+  assert.ok(submitted.indexOf('I. Novak') === -1);
   assert.ok(submitted.indexOf('$0.00 · included in membership') !== -1);
   assert.ok(submitted.indexOf('Distribution is included. Nothing extra was charged on this release.') !== -1);
   assert.ok(submitted.indexOf('Publishing and distribution are included in membership. Nothing extra was charged on this release.') !== -1);

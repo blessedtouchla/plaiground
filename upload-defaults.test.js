@@ -1423,6 +1423,8 @@ function run() {
 
   const submitted = fs.readFileSync(path.join(__dirname, 'submitted.html'), 'utf8');
   assert.ok(submitted.indexOf('data-submit-stores') !== -1);
+  assert.ok(submitted.indexOf('data-submit-release-date') !== -1);
+  assert.ok(submitted.indexOf('store-client.js?v=20260912a3') !== -1);
   assert.ok(submitted.indexOf('lib/store-pick.js') !== -1);
   assert.ok(submitted.indexOf('164 of 163 stores') === -1);
   assert.ok(submitted.indexOf('164 of 164 stores') === -1);
