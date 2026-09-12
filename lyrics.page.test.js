@@ -79,7 +79,7 @@ function run() {
   assert.ok(!upload.includes('site.css?v=20260912ly8'), 'upload must cache-bust past 20260912ly8');
   assert.ok(!upload.includes('site.css?v=20260912tc1'), 'upload must cache-bust past 20260912tc1');
   assert.ok(/upload-stage-caption sr-only/.test(upload), 'sleeve helpers do not force a read');
-  assert.ok(upload.includes('store-client.js?v=20260912tc2'), 'upload cache-busts store-client.js at 20260912tc2');
+  assert.ok(upload.includes('store-client.js?v=20260912tc3'), 'upload cache-busts store-client.js at 20260912tc3');
   assert.ok(!/<button[^>]*data-audio-play/.test(upload), 'single-upload chip has no extra play');
   assert.ok(upload.includes('data-audio-clear>Clear<'), 'attached audio Clear matches cover language');
   assert.ok(upload.includes('upload-audio-splat'), 'empty drop has a soft splat mark');
@@ -102,6 +102,7 @@ function run() {
   assert.ok(review.includes('data-review-lyrics-text'));
 
   assert.ok(!/accept="audio\/\*,\.wav/.test(tonegrid), 'album-track Add audio is file-only too');
+  assert.ok(!tonegrid.includes("'audio/*,.wav"), 'store-client fallback accept no longer starts with audio/*');
   assert.ok(tonegrid.includes("lyrics: instrumental ? '' : (selectedLyrics() || draft.lyrics || '')"));
   assert.ok(tonegrid.includes('openLyricsField'));
   assert.ok(tonegrid.includes('data-track-lyrics'));

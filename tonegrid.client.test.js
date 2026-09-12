@@ -4834,7 +4834,8 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly2'), 'upload.html must cache-bust past 20260912ly2');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly3'), 'upload.html must cache-bust past 20260912ly3');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly5'), 'upload.html must cache-bust past 20260912ly5');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912tc2'), 'upload.html cache-busts store-client.js at 20260912tc2');
+  assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912tc2'), 'upload.html must cache-bust past 20260912tc2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912tc3'), 'upload.html cache-busts store-client.js at 20260912tc3');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly7'), 'upload.html must cache-bust past 20260912ly7');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly8'), 'upload.html must cache-bust past 20260912ly8');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912sg4'), 'upload.html must cache-bust past 20260912sg4');

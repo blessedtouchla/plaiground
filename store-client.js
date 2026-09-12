@@ -1772,7 +1772,7 @@
 
   function reviewAudioAccept() {
     var helper = audioAccept();
-    return (helper && helper.ACCEPT) || 'audio/*,.wav,.flac,.mp3,.mpeg,.mpga';
+    return (helper && helper.ACCEPT) || '.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg';
   }
 
   function syncReviewAudioRepick() {
