@@ -4863,7 +4863,7 @@
         }
       }
     }
-    if (!id) return null;
+    if (!id || id === '__create__' || id === '__link__') return null;
     return { id: id, name: name };
   }
 
@@ -5151,9 +5151,38 @@
     if (!modeEl) return;
 
     function showMode(mode) {
-      setBoxHidden('artist-choose-wrap', mode !== 'choose');
+      setBoxHidden('artist-choose-wrap', false);
       setBoxHidden('artist-create-wrap', mode !== 'create');
       setBoxHidden('artist-link-wrap', mode !== 'link');
+    }
+
+    function appendModeChoices(sel) {
+      var createOpt = document.createElement('option');
+      createOpt.value = '__create__';
+      createOpt.textContent = 'Create new artist profile';
+      sel.appendChild(createOpt);
+      var linkOpt = document.createElement('option');
+      linkOpt.value = '__link__';
+      linkOpt.textContent = 'Import an existing artist';
+      sel.appendChild(linkOpt);
+    }
+
+    function syncPickerToMode() {
+      var sel = $('tg-artist-select');
+      var mode = fieldValue('tg-artist-mode') || 'choose';
+      if (!sel) return;
+      if (mode === 'create') setSelectValue(sel, '__create__');
+      else if (mode === 'link') setSelectValue(sel, '__link__');
+    }
+
+    function applyPickerMode() {
+      var sel = $('tg-artist-select');
+      if (!sel || !modeEl) return;
+      var picked = String(sel.value || '');
+      if (picked === '__create__') modeEl.value = 'create';
+      else if (picked === '__link__') modeEl.value = 'link';
+      else modeEl.value = 'choose';
+      showMode(modeEl.value || 'choose');
     }
 
     function clearSelect(sel) {
@@ -5198,6 +5227,7 @@
         opt.textContent = artist.name;
         sel.appendChild(opt);
       });
+      appendModeChoices(sel);
       if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) {
         setSelectValue(sel, current);
       } else if (artists.length === 1) {
@@ -5205,6 +5235,7 @@
       } else {
         setSelectValue(sel, '');
       }
+      syncPickerToMode();
       syncArtistHidden();
     }
 
@@ -5259,13 +5290,16 @@
 
     modeEl.addEventListener('change', function () {
       showMode(modeEl.value || 'choose');
+      syncPickerToMode();
       syncArtistHidden();
       liveNameCheck();
     });
     showMode(modeEl.value || 'choose');
+    syncPickerToMode();
     var artistSel = $('tg-artist-select');
     if (artistSel && artistSel.addEventListener) {
       artistSel.addEventListener('change', function () {
+        applyPickerMode();
         syncArtistHidden();
         liveNameCheck();
       });
@@ -5285,6 +5319,7 @@
       btn.addEventListener('click', function () {
         modeEl.value = 'link';
         showMode('link');
+        syncPickerToMode();
       });
     });
     var continueDifferent = $('artist-continue-different');
