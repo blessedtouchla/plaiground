@@ -1017,7 +1017,8 @@ function run() {
   assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') === -1);
   assert.ok(upload.indexOf('data-audio-preview') !== -1);
   assert.ok(upload.indexOf('data-audio-player') !== -1);
-  assert.ok(upload.indexOf('data-audio-play') !== -1);
+  assert.ok(upload.indexOf('data-audio-play') === -1);
+  assert.ok(upload.indexOf('data-audio-clear') !== -1);
   assert.ok(upload.indexOf('URL.createObjectURL') !== -1);
   assert.ok(upload.indexOf('URL.revokeObjectURL') !== -1);
   assert.ok(upload.indexOf('pagehide') !== -1);

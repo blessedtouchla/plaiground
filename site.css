@@ -4590,13 +4590,13 @@ body.app.artists-page .page {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 28px;
-  margin-top: 14px;
+  gap: 2px 22px;
+  margin-top: 6px;
 }
 .upload-page .upload-opt-toggles .toggle-line {
   margin: 0;
-  min-height: 36px;
-  color: var(--muted);
+  min-height: 28px;
+  color: var(--muted-2);
 }
 .upload-page .upload-opt-toggles .toggle-input {
   width: 1px;
@@ -4611,12 +4611,7 @@ body.app.artists-page .page {
 }
 .upload-page .upload-opt-hint {
   flex: 1 1 100%;
-  margin: 2px 0 0;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  opacity: 0.72;
+  margin: 0;
 }
 .upload-page .upload-audio-splat {
   display: block;
@@ -4632,7 +4627,7 @@ body.app.artists-page .page {
   pointer-events: none;
 }
 .upload-page .upload-lyrics-card {
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   width: 100%;
 }
 .upload-page .upload-lyrics-card[hidden] {
@@ -4809,7 +4804,7 @@ button.stage-chip {
   clip: rect(0, 0, 0, 0);
 }
 .release-sleeve-actions {
-  margin: 12px 0 0;
+  margin: 6px 0 0;
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -4824,7 +4819,7 @@ button.stage-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   min-width: 0;
 }
 .release-wave {
@@ -4839,27 +4834,28 @@ button.stage-chip {
 }
 .release-stage-missing {
   margin: 0;
-  color: var(--muted);
-  font-size: 10px;
+  color: var(--muted-2);
+  font-size: 12px;
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   text-transform: none;
   text-align: center;
   max-width: 420px;
   line-height: 1.4;
-  opacity: 0.72;
+  opacity: 1;
 }
 .upload-page [data-art-meta],
 .upload-page [data-stage-missing],
 .upload-page [data-audio-preview-hint],
-.upload-page .upload-stage-caption {
-  font-size: 10px;
+.upload-page .upload-stage-caption,
+.upload-page .upload-opt-hint {
+  font-size: 12px;
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   text-transform: none;
-  color: var(--muted);
-  opacity: 0.72;
-  margin-top: 8px;
+  color: var(--muted-2);
+  opacity: 1;
+  margin-top: 4px;
   margin-bottom: 0;
 }
 .release-stage-missing.is-ready {
@@ -4869,7 +4865,7 @@ button.stage-chip {
   display: block;
   width: min(320px, 78vw);
   height: 0;
-  margin: 16px auto 0;
+  margin: 8px auto 0;
   border: 0;
   border-top: 1px solid #f3cb47;
   opacity: 0.92;
@@ -4877,10 +4873,19 @@ button.stage-chip {
 .release-stage-audio {
   width: min(420px, 100%);
 }
+.release-stage-audio .audio-bar {
+  gap: 10px;
+  margin: 4px auto 0;
+  padding: 8px 12px;
+}
+.release-stage-audio [data-audio-clear] {
+  flex: 0 0 auto;
+  margin: 0;
+}
 .release-stage-audio .audio-drop,
 .release-stage-drop {
   display: block;
-  margin: 8px auto 0;
+  margin: 4px auto 0;
   padding: 0;
   border: 0;
   background: none;

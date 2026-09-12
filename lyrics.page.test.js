@@ -75,8 +75,10 @@ function run() {
   assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ly5'), 'upload cache-busts site.css at 20260912ly5');
+  assert.ok(upload.includes('site.css?v=20260912ly6'), 'upload cache-busts site.css at 20260912ly6');
   assert.ok(upload.includes('store-client.js?v=20260912ly5'), 'upload cache-busts store-client.js at 20260912ly5');
+  assert.ok(!/<button[^>]*data-audio-play/.test(upload), 'single-upload chip has no extra play');
+  assert.ok(upload.includes('data-audio-clear>Clear<'), 'attached audio Clear matches cover language');
   assert.ok(upload.includes('upload-audio-splat'), 'empty drop has a soft splat mark');
   assert.ok(upload.includes('role="switch"') && upload.includes('toggle-line'), 'Instrumental/Add lyrics stay soft toggles');
   const audioTag = upload.match(/<input[^>]*id="tg-audio-file"[^>]*>/)[0];

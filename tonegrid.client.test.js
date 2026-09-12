@@ -4834,8 +4834,8 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly2'), 'upload.html must cache-bust past 20260912ly2');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912ly3'), 'upload.html must cache-bust past 20260912ly3');
   assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912ly5'), 'upload.html cache-busts store-client.js at 20260912ly5');
-  assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly4'), 'upload.html must cache-bust past 20260912ly4');
-  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ly5'), 'upload.html cache-busts site.css at 20260912ly5');
+  assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly5'), 'upload.html must cache-bust past 20260912ly5');
+  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ly6'), 'upload.html cache-busts site.css at 20260912ly6');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
