@@ -4558,3 +4558,314 @@ body.app.artists-page .page {
     padding: 10px 14px;
   }
 }
+
+/* —— Upload release stage (center sleeve, side chips) —— */
+.upload-page {
+  --stage-magenta: #d03083;
+  --stage-purple: #782fb1;
+  --stage-gold: #f3cb47;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.upload-page .upload-quiet-card {
+  padding: 14px 18px;
+}
+.upload-page .upload-quiet-card,
+.upload-page .upload-credits-card {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+.release-stage {
+  margin: 10px 0 28px;
+  padding: 8px 0 6px;
+}
+.release-stage-progress {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0 0 22px;
+}
+.release-stage-progress span {
+  display: block;
+  margin-top: 6px;
+  letter-spacing: 0.12em;
+  color: rgba(243, 203, 71, 0.72);
+  font-size: 11px;
+}
+.release-stage-board {
+  display: grid;
+  grid-template-columns: minmax(118px, 168px) minmax(0, 1fr) minmax(118px, 168px);
+  grid-template-areas:
+    "chip-audio hero chip-cover"
+    "chip-credits under chip-send";
+  gap: 18px 22px;
+  align-items: center;
+}
+.stage-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #0a0a0a;
+  color: #c8c8d0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+button.stage-chip {
+  margin: 0;
+}
+.stage-chip.chip-audio { grid-area: chip-audio; justify-self: end; }
+.stage-chip.chip-cover { grid-area: chip-cover; justify-self: start; }
+.stage-chip.chip-credits { grid-area: chip-credits; justify-self: end; }
+.stage-chip.chip-send { grid-area: chip-send; justify-self: start; }
+.stage-chip:hover {
+  color: #fff;
+  border-color: rgba(208, 48, 131, 0.45);
+}
+.stage-chip.is-on {
+  color: #fff;
+  border-color: var(--stage-magenta);
+  box-shadow: 0 0 0 1px rgba(208, 48, 131, 0.22), 0 0 18px rgba(120, 47, 177, 0.2);
+}
+.stage-chip.chip-send.is-on {
+  color: var(--stage-gold);
+  border-color: var(--stage-gold);
+  box-shadow: 0 0 0 1px rgba(243, 203, 71, 0.18), 0 0 16px rgba(243, 203, 71, 0.1);
+}
+.release-stage-hero {
+  grid-area: hero;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: visible;
+  padding: 8px 32px 0;
+}
+.release-sleeve {
+  position: relative;
+  width: min(320px, 78vw);
+  margin: 0 auto;
+}
+.release-sleeve-disc {
+  position: absolute;
+  width: 78%;
+  height: 78%;
+  right: -14%;
+  top: 11%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%,
+      #1c1c1c 0 13%,
+      #2a2a2a 14%,
+      #111 40%,
+      var(--stage-purple) 41%,
+      #111 42%,
+      #0a0a0a 68%,
+      var(--stage-magenta) 69%,
+      #0a0a0a 70%);
+  opacity: 0.46;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, right 0.25s ease;
+}
+.release-sleeve.is-filled .release-sleeve-disc {
+  opacity: 0.14;
+  right: -10%;
+}
+.art.release-sleeve-face {
+  position: relative;
+  z-index: 1;
+  width: min(320px, 78vw);
+  height: min(320px, 78vw);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(165deg, rgba(120, 47, 177, 0.28), #0a0a0a 55%),
+    #050505;
+  box-shadow: 0 0 0 1px rgba(208, 48, 131, 0.12), 0 0 28px rgba(120, 47, 177, 0.16), 0 18px 50px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.release-sleeve.is-filled .release-sleeve-face {
+  border-style: solid;
+  border-color: rgba(208, 48, 131, 0.32);
+  box-shadow: 0 0 0 1px rgba(208, 48, 131, 0.18), 0 0 34px rgba(120, 47, 177, 0.22);
+}
+.release-sleeve.is-over .release-sleeve-face,
+.release-sleeve.is-over {
+  box-shadow: 0 0 0 1px rgba(208, 48, 131, 0.45), 0 0 36px rgba(120, 47, 177, 0.28);
+}
+.release-sleeve-title-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 28px 18px 16px;
+  pointer-events: none;
+}
+.release-sleeve.is-filled .release-sleeve-title-wrap {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+}
+.release-sleeve-title-input {
+  pointer-events: auto;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  font-size: clamp(1.15rem, 3vw, 1.65rem);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  caret-color: var(--stage-gold);
+  outline: none;
+}
+.release-sleeve-title-input::placeholder {
+  color: rgba(243, 203, 71, 0.42);
+  letter-spacing: 0.08em;
+  font-size: 0.78em;
+  font-weight: 700;
+}
+.release-sleeve-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.release-sleeve-actions {
+  margin: 12px 0 0;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 0;
+}
+.release-sleeve-actions [data-art-resize]:not([hidden]) {
+  display: inline-flex;
+}
+.release-stage-under {
+  grid-area: under;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.release-wave {
+  width: min(420px, 100%);
+  height: 56px;
+}
+.release-wave canvas,
+[data-stage-wave-canvas] {
+  display: block;
+  width: 100%;
+  height: 56px;
+}
+.release-stage-missing {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  max-width: 420px;
+  line-height: 1.45;
+}
+.release-stage-missing.is-ready {
+  color: var(--stage-gold);
+}
+.release-stage-hairline {
+  display: block;
+  width: min(320px, 78vw);
+  height: 0;
+  margin: 16px auto 0;
+  border: 0;
+  border-top: 1px solid #f3cb47;
+  opacity: 0.92;
+}
+.release-stage-audio {
+  width: min(420px, 100%);
+}
+.release-stage-audio .audio-drop,
+.release-stage-drop {
+  display: block;
+  margin: 8px auto 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+.release-stage-audio .audio-drop span,
+.release-stage-drop span {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.release-stage-audio .audio-drop.is-over,
+.release-stage-drop.is-over {
+  border: 0;
+  box-shadow: none;
+  color: var(--stage-gold);
+}
+.upload-page .upload-continue-row + [data-stage-send-hint] {
+  margin-top: 10px;
+}
+#upload-audio,
+#upload-cover,
+#upload-credits,
+#upload-send {
+  scroll-margin-top: 28px;
+}
+@media (max-width: 800px) {
+  .release-stage-board {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "chip-audio chip-cover"
+      "hero hero"
+      "under under"
+      "chip-credits chip-send";
+    gap: 12px;
+  }
+  .stage-chip.chip-audio,
+  .stage-chip.chip-cover,
+  .stage-chip.chip-credits,
+  .stage-chip.chip-send {
+    justify-self: stretch;
+  }
+  .release-stage-hero {
+    padding: 4px 8px 0;
+  }
+  .release-sleeve-disc {
+    right: -8%;
+    opacity: 0.22;
+  }
+}
