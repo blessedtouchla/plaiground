@@ -5696,7 +5696,7 @@
       + '<p class="hint">Optional. Timed .srt or .lrc can be added later.</p></div>'
       + '<label class="dashbox audio-drop" data-audio-drop>Drop WAV, FLAC, or MP3 here'
       + '<span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>'
-      + '<input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input /></label>'
+      + '<input type="file" accept=".wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input /></label>'
       + '<div class="audio-bar" data-audio-preview hidden><div>'
       + '<b data-audio-name>No file selected</b>'
       + '<div style="color:var(--muted);font-size:12px" data-audio-meta>WAV, FLAC, or MP3 · 16-bit or higher</div></div>'

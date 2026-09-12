@@ -70,8 +70,18 @@ function run() {
   assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ly2'), 'upload cache-busts site.css at 20260912ly2');
-  assert.ok(upload.includes('store-client.js?v=20260912ly2'), 'upload cache-busts store-client.js at 20260912ly2');
+  assert.ok(upload.includes('site.css?v=20260912ly3'), 'upload cache-busts site.css at 20260912ly3');
+  assert.ok(upload.includes('store-client.js?v=20260912ly3'), 'upload cache-busts store-client.js at 20260912ly3');
+  const audioTag = upload.match(/<input[^>]*id="tg-audio-file"[^>]*>/)[0];
+  assert.ok(audioTag.includes('accept="'), 'Add audio has an accept list');
+  assert.ok(!/accept="[^"]*audio\/\*/.test(audioTag), 'Add audio must not use audio/* (iOS Photo Library)');
+  assert.ok(!/accept="[^"]*\*\/\*/.test(audioTag), 'Add audio must not accept */*');
+  assert.ok(!/accept="[^"]*image/.test(audioTag), 'Add audio must not accept image types');
+  assert.ok(!/\bcapture\b/.test(audioTag), 'Add audio must not set capture');
+  assert.ok(audioTag.includes('.wav') && audioTag.includes('.flac') && audioTag.includes('.mp3'), 'Add audio accept matches existing WAV/FLAC/MP3');
+  assert.ok(!/m4a|aiff|aif/i.test(audioTag), 'Add audio must not widen to M4A/AIFF');
+  const artTag = upload.match(/<input[^>]*id="tg-art-file"[^>]*>/)[0];
+  assert.ok(/image\/jpeg|image\/png/.test(artTag), 'Cover picker stays image-capable');
 
   assert.ok(song.includes('id="edit-lyrics"'));
   assert.ok(song.includes('<label for="edit-lyrics">Lyrics</label>'));
@@ -79,6 +89,7 @@ function run() {
   assert.ok(review.includes('data-review-lyrics'));
   assert.ok(review.includes('data-review-lyrics-text'));
 
+  assert.ok(!/accept="audio\/\*,\.wav/.test(tonegrid), 'album-track Add audio is file-only too');
   assert.ok(tonegrid.includes("lyrics: instrumental ? '' : (selectedLyrics() || draft.lyrics || '')"));
   assert.ok(tonegrid.includes('openLyricsField'));
   assert.ok(tonegrid.includes('data-track-lyrics'));
