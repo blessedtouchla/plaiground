@@ -19,8 +19,22 @@
     return toNumber(value).toLocaleString('en-US');
   }
 
+  function isInactiveDspError(text) {
+    var raw = String(text || '');
+    if (/not found or inactive/i.test(raw)) return true;
+    return /youtube[-_ ]?music/i.test(raw) && /not found|inactive|unavailable/i.test(raw);
+  }
+
+  function inactiveStoreCopy(list) {
+    if (global.PlaigroundStorePick && global.PlaigroundStorePick.inactiveStoreError) {
+      return global.PlaigroundStorePick.inactiveStoreError(list);
+    }
+    return 'YouTube Music is not available. Choose other stores and submit again.';
+  }
+
   function sanitizePartnerCopy(text) {
     var next = String(text == null ? '' : text);
+    if (isInactiveDspError(next)) return inactiveStoreCopy();
     next = next.replace(/\bthe\s+ToneGrid\b/gi, 'the store');
     next = next.replace(/ToneGrid/gi, 'the store');
     next = next.replace(/\s{2,}/g, ' ').replace(/^\s+|\s+$/g, '');
@@ -865,9 +879,13 @@
     }
     var host = $('[data-edit-stores]');
     if (!host) return [];
-    return Array.prototype.slice.call(host.querySelectorAll('input[type="checkbox"]:checked')).map(function (el) {
+    var slugs = Array.prototype.slice.call(host.querySelectorAll('input[type="checkbox"]:checked')).map(function (el) {
       return el.value;
     });
+    if (global.PlaigroundStorePick && global.PlaigroundStorePick.selectableSlugs) {
+      return global.PlaigroundStorePick.selectableSlugs(slugs);
+    }
+    return slugs;
   }
 
   function fillStores(stores, selected) {
@@ -1018,6 +1036,14 @@
     var panel = $('[data-release-edit]');
     var id = panel && panel.getAttribute('data-release-id');
     if (!id) return;
+    var storeRoot = $('[data-store-pick]') || $('[data-edit-stores]');
+    if (storeRoot && global.PlaigroundStorePick && global.PlaigroundStorePick.selectedBlocked) {
+      var blocked = global.PlaigroundStorePick.selectedBlocked(storeRoot);
+      if (blocked && blocked.length) {
+        setEditError(inactiveStoreCopy(blocked));
+        return;
+      }
+    }
     var saveBtn = $('[data-edit-save]');
     if (saveBtn) saveBtn.setAttribute('aria-busy', 'true');
     setEditError('Saving…');

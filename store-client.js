@@ -409,8 +409,22 @@
     return row;
   }
 
+  function isInactiveDspError(text) {
+    var raw = String(text || '');
+    if (/not found or inactive/i.test(raw)) return true;
+    return /youtube[-_ ]?music/i.test(raw) && /not found|inactive|unavailable/i.test(raw);
+  }
+
+  function inactiveStoreCopy(list) {
+    if (typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.inactiveStoreError) {
+      return PlaigroundStorePick.inactiveStoreError(list);
+    }
+    return 'YouTube Music is not available. Choose other stores and submit again.';
+  }
+
   function sanitizePartnerCopy(text, status) {
     var next = humanErrorText(text, '');
+    if (isInactiveDspError(next)) return inactiveStoreCopy();
     if (isPlatformPayloadError(next, status)) return platformPayloadCopy();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
@@ -4917,6 +4931,14 @@
     writeDraft(patch);
   }
 
+  function selectedBlockedStores() {
+    var root = storePickRoot();
+    if (!root || typeof PlaigroundStorePick === 'undefined' || !PlaigroundStorePick.selectedBlocked) {
+      return [];
+    }
+    return PlaigroundStorePick.selectedBlocked(root) || [];
+  }
+
   function storePickSnapshot() {
     var root = storePickRoot();
     var draft = readDraft();
@@ -6645,6 +6667,14 @@
           return;
         }
         var pick = storePickSnapshot();
+        var blocked = selectedBlockedStores();
+        if (blocked.length) {
+          trigger.removeAttribute('aria-busy');
+          setStatus('tg-status', inactiveStoreCopy(blocked));
+          markStatusError(true);
+          markIncomplete(trigger, true);
+          return;
+        }
         var submitPatch = { release_date: releaseDate, dsps: pick.slugs, dsps_all: pick.allOn };
         var reviewGenre = catalogFieldValue('tg-genre') || draft.genre || '';
         var reviewLanguage = reviewInstrumental() ? '' : (catalogLanguageValue() || draft.language || '');
