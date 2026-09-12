@@ -420,7 +420,7 @@ function load(options) {
         if (sel === '[data-store-continue]') return opts.bind === 'review' || opts.bind === 'submitted' ? null : continueBtn;
         if (sel === '[data-store-submit]') return opts.bind === 'review' ? payBtn : null;
         if (sel === '[data-review-title]' || sel === '[data-review-meta]') {
-          return opts.bind === 'submitted' ? makeEl({}) : null;
+          return null;
         }
         if (sel === '[data-submit-title]') {
           return opts.bind === 'submitted' ? submitTitle : null;
