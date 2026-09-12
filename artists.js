@@ -451,6 +451,7 @@
     var api = platformApi();
     if (api && api.platformList) return api.platformList();
     var pick = storePickApi();
+    if (pick && pick.selectableStores) return pick.selectableStores(pick.DEFAULT_STORES || []);
     if (pick && pick.normalizeStores) return pick.normalizeStores(pick.DEFAULT_STORES || []);
     return [];
   }
@@ -613,7 +614,7 @@
     pill.click();
     var input = document.querySelector('.plai-bubble-input');
     if (input && !String(input.value || '').trim()) {
-      input.value = 'Help me find the public artist page URL for mapping. Walk me through the main stores only: Spotify, Apple Music, YouTube Music, Amazon, Deezer, Tidal. Do not list every store. Do not log into any store account. Do not ask for a password.';
+      input.value = 'Help me find the public artist page URL for mapping. Walk me through the main stores only: Spotify, Apple Music, Amazon, Deezer, Tidal. Do not list every store. Do not log into any store account. Do not ask for a password.';
       if (typeof input.focus === 'function') input.focus();
     }
     return true;

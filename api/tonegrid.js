@@ -101,9 +101,9 @@ const {
   parseStoreRows,
   parseStoreSlugs,
   readBody,
+  selectableDspSlugs,
   sendJson,
   tonegridFetch,
-  withYouTubeMusic,
 } = require('../lib/tonegrid');
 
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
@@ -3227,7 +3227,7 @@ async function updateRelease(req, res, releaseId) {
 }
 
 async function attachStores(releaseId, slugs) {
-  const dsps = withYouTubeMusic(slugs && slugs.length ? slugs : DOCUMENTED_DSPS);
+  const dsps = selectableDspSlugs(slugs && slugs.length ? slugs : DOCUMENTED_DSPS);
   const path = '/releases/' + releaseId + '/dsps';
   const posted = await tonegridFetch(path, {
     method: 'POST',
@@ -3243,7 +3243,7 @@ async function attachStores(releaseId, slugs) {
 }
 
 async function replaceStores(releaseId, slugs) {
-  const dsps = withYouTubeMusic(slugs || []);
+  const dsps = selectableDspSlugs(slugs || []);
   const path = '/releases/' + releaseId + '/dsps';
   return tonegridFetch(path, {
     method: 'PUT',
@@ -3544,7 +3544,7 @@ async function submitRelease(req, res, releaseId) {
     status: String(next.status || 'pending').toLowerCase(),
     message: typeof next.message === 'string' ? next.message : 'Release submitted for review.',
     release_date: releaseDate,
-    dsps: withYouTubeMusic(slugs || DOCUMENTED_DSPS),
+    dsps: selectableDspSlugs(slugs || DOCUMENTED_DSPS),
     document: signwellInfo.document,
   });
 }

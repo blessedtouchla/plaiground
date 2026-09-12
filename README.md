@@ -115,7 +115,7 @@ ToneGrid routes (no browser key):
 - `GET /api/tonegrid/analytics` (session; filtered to that user’s ToneGrid ids)
 - `GET /api/tonegrid/releases` (session; filtered)
 - `GET /api/tonegrid/releases/:id` and `PUT /api/tonegrid/releases/:id` (session; title/date/genre/language)
-- `POST /api/tonegrid/releases/:id/dsps` and `PUT /api/tonegrid/releases/:id/dsps` (always includes `youtube-music`)
+- `POST /api/tonegrid/releases/:id/dsps` and `PUT /api/tonegrid/releases/:id/dsps` (excludes inactive DSPs and `youtube-music`)
 - `POST /api/tonegrid/releases/:id/artwork` (multipart field `artwork`)
 - `POST /api/tonegrid/releases/:id/submit` (SignWell document must be Completed; then attach stores and `POST /releases/:uuid/submit`. Does not call `/distribute` or `/approve`)
 - `PUT /api/tonegrid/tracks/:id` (session; parent must still be draft for ToneGrid)
