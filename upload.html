@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912ly4" />
+  <link rel="stylesheet" href="site.css?v=20260912ly5" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -80,7 +80,7 @@
             <button class="btn btn-purple btn-sm" type="button" data-art-resize hidden>Resize for me</button>
           </p>
           <input id="tg-art-file" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden data-art-input />
-          <p class="hint" data-art-meta>3000 × 3000 px · JPG or PNG</p>
+          <p class="hint upload-stage-caption" data-art-meta>3000 × 3000 px · JPG or PNG</p>
           <p class="release-stage-missing" data-stage-missing>Add audio to start this release.</p>
           <hr class="release-stage-hairline" data-stage-hairline />
         </div>
@@ -95,18 +95,17 @@
             <label class="release-stage-drop audio-drop" data-audio-drop data-stage-pick="audio" for="tg-audio-file">
               <span class="upload-audio-splat" aria-hidden="true"></span>
               Drop WAV, FLAC, or MP3 here
-              <span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>
               <input id="tg-audio-file" type="file" accept=".wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input />
             </label>
             <div class="audio-bar" data-audio-preview hidden>
               <div>
                 <b data-audio-name>No file selected</b>
-                <div style="color:var(--muted);font-size:12px" data-audio-meta>WAV, FLAC, or MP3 · 16-bit or higher</div>
+                <div style="color:var(--muted);font-size:12px" data-audio-meta></div>
               </div>
               <audio data-audio-player controls preload="metadata"></audio>
               <button class="play" type="button" data-audio-play aria-label="Play">▶</button>
             </div>
-            <p class="hint" data-audio-preview-hint hidden>Play this file here to confirm it is the right master before you continue. It stays on this device only.</p>
+            <p class="hint upload-stage-caption" data-audio-preview-hint hidden>Preview</p>
             <div class="upload-opt-toggles">
               <label class="toggle-line" for="tg-instrumental">
                 <input id="tg-instrumental" class="toggle-input" name="release-instrumental" type="checkbox" role="switch" aria-checked="false" />
@@ -118,7 +117,7 @@
                 <span class="toggle" aria-hidden="true"></span>
                 <span>Add lyrics</span>
               </label>
-              <p class="hint upload-opt-hint">Optional — skip if you don’t need them.</p>
+              <p class="hint upload-opt-hint">Optional</p>
             </div>
             <div class="flow-card field lyrics-field upload-lyrics-card" id="tg-lyrics-panel" data-lyrics-field hidden>
               <label for="tg-lyrics">Lyrics</label>
@@ -302,9 +301,9 @@
   <script src="lib/cover-preview.js"></script>
   <script src="lib/cover-bind.js"></script>
   <script src="lib/object-hop.js"></script>
-  <script src="lib/upload-leave.js?v=20260908d1"></script>
+  <script src="lib/upload-leave.js?v=20260912ly5"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
-  <script src="store-client.js?v=20260912ly3" defer></script>
+  <script src="store-client.js?v=20260912ly5" defer></script>
   <script src="lib/upload-stage.js?v=20260912s5"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

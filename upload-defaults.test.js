@@ -1014,7 +1014,7 @@ function run() {
   assert.ok(upload.indexOf('lib/object-store.js') === -1);
   assert.ok(upload.indexOf('data-art-clear') !== -1);
   assert.ok(upload.indexOf('data-art-box') !== -1);
-  assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') !== -1);
+  assert.ok(upload.indexOf('MP3 is converted to WAV before it goes to stores') === -1);
   assert.ok(upload.indexOf('data-audio-preview') !== -1);
   assert.ok(upload.indexOf('data-audio-player') !== -1);
   assert.ok(upload.indexOf('data-audio-play') !== -1);
@@ -1022,7 +1022,8 @@ function run() {
   assert.ok(upload.indexOf('URL.revokeObjectURL') !== -1);
   assert.ok(upload.indexOf('pagehide') !== -1);
   assert.ok(upload.indexOf('indexedDB') === -1);
-  assert.ok(upload.indexOf('Play this file here to confirm it is the right master') !== -1);
+  assert.ok(upload.indexOf('Play this file here to confirm it is the right master') === -1);
+  assert.ok(upload.indexOf('data-audio-preview-hint hidden>Preview<') !== -1);
   assert.ok(upload.indexOf('id="tg-instrumental"') !== -1);
   assert.ok(upload.indexOf('id="tg-legal-first"') !== -1);
   assert.ok(upload.indexOf('id="tg-legal-last"') !== -1);

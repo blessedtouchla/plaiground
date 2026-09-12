@@ -4612,6 +4612,11 @@ body.app.artists-page .page {
 .upload-page .upload-opt-hint {
   flex: 1 1 100%;
   margin: 2px 0 0;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.72;
 }
 .upload-page .upload-audio-splat {
   display: block;
@@ -4835,10 +4840,27 @@ button.stage-chip {
 .release-stage-missing {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
   text-align: center;
   max-width: 420px;
-  line-height: 1.45;
+  line-height: 1.4;
+  opacity: 0.72;
+}
+.upload-page [data-art-meta],
+.upload-page [data-stage-missing],
+.upload-page [data-audio-preview-hint],
+.upload-page .upload-stage-caption {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--muted);
+  opacity: 0.72;
+  margin-top: 8px;
+  margin-bottom: 0;
 }
 .release-stage-missing.is-ready {
   color: var(--stage-gold);

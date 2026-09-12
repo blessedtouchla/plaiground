@@ -54,7 +54,12 @@ function run() {
   assert.ok(/id="tg-lyrics-open"[^>]*role="switch"/.test(upload), 'Add lyrics is a soft switch');
   assert.ok(upload.includes('toggle-line'), 'pair uses existing soft toggle language');
   assert.ok(upload.includes('Add lyrics'), 'Add lyrics label stays');
-  assert.ok(upload.includes('Optional — skip if you don’t need them.'), 'one muted optional helper under the pair');
+  assert.ok(upload.includes('>Optional<'), 'one short Optional helper under the pair');
+  assert.ok(!upload.includes('Optional — skip if you don’t need them.'), 'long Optional helper is gone');
+  assert.ok(!upload.includes('Play this file here to confirm it is the right master'), 'confirm-master lecture is gone');
+  assert.ok(!upload.includes('stays on this device only'), 'device-only lecture is gone');
+  assert.ok(upload.includes('data-audio-preview-hint hidden>Preview<'), 'attached audio hint is Preview');
+  assert.ok(!upload.includes('MP3 is converted to WAV'), 'MP3 lecture is gone from Upload');
   assert.ok(upload.includes('<label for="tg-lyrics">Lyrics</label>'));
   assert.ok(upload.includes('<textarea id="tg-lyrics"'));
   assert.ok(upload.includes('data-lyrics-field'));
@@ -70,8 +75,8 @@ function run() {
   assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ly4'), 'upload cache-busts site.css at 20260912ly4');
-  assert.ok(upload.includes('lib/upload-audio-bind.js?v=20260912ly4'), 'upload cache-busts audio bind at 20260912ly4');
+  assert.ok(upload.includes('site.css?v=20260912ly5'), 'upload cache-busts site.css at 20260912ly5');
+  assert.ok(upload.includes('store-client.js?v=20260912ly5'), 'upload cache-busts store-client.js at 20260912ly5');
   assert.ok(upload.includes('upload-audio-splat'), 'empty drop has a soft splat mark');
   assert.ok(upload.includes('role="switch"') && upload.includes('toggle-line'), 'Instrumental/Add lyrics stay soft toggles');
   const audioTag = upload.match(/<input[^>]*id="tg-audio-file"[^>]*>/)[0];
