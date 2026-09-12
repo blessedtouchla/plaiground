@@ -4411,6 +4411,7 @@ body.app.artists-page .page {
   height: 56px;
   margin: 0;
   font-size: 11px;
+  box-shadow: 0 0 0 2px var(--magenta);
 }
 .plai-coach-chat {
   min-height: 280px;
@@ -4494,12 +4495,48 @@ body.app.artists-page .page {
 }
 .plai-coach-float-hit::-webkit-details-marker { display: none; }
 .plai-coach-float-pop {
-  width: min(260px, calc(100vw - 48px));
-  padding: 18px 18px 20px;
+  position: relative;
+  width: min(340px, calc(100vw - 48px));
+  padding: 20px 44px 18px 20px;
+  border-color: var(--purple-bright);
 }
 .plai-coach-float-pop p {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.plai-coach-float-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
   color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+}
+.plai-coach-float-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.plai-coach-float-close:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  color: #fff;
+}
+.plai-coach-float-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.plai-coach-float-actions .btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 @media (max-width: 800px) {
   .plai-coach-grid { grid-template-columns: 1fr; }

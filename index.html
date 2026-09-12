@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="site.css?v=20260912w1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body>
@@ -225,22 +225,28 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <div class="plai-coach-float" data-plai-coach-float>
+  <div class="plai-coach-float" data-plai-coach-float hidden>
     <details>
-      <summary class="plai-coach-float-hit" aria-label="Need help getting your track out?">
+      <summary class="plai-coach-float-hit" aria-label="Welcome from PLAI">
         <span class="avatar plai-coach-avatar is-float" aria-hidden="true">
           <img src="assets/plai-avatar.png" alt="" onerror="this.hidden=true" />
           <span>PLAI</span>
         </span>
       </summary>
-      <div class="card plai-coach-float-pop">
-        <p>Need help getting your track out?</p>
-        <a class="btn btn-purple btn-sm" href="plai.html">Talk to PLAI</a>
+      <div class="card plai-coach-float-pop" role="region" aria-labelledby="plai-welcome-copy">
+        <button type="button" class="plai-coach-float-close" data-plai-welcome-dismiss aria-label="Dismiss welcome">×</button>
+        <p id="plai-welcome-copy">Hello — welcome. Is it your first time here? Feel free to click Talk to talk to me, or Text to ask any questions about getting started, uploading your first song, or anything.</p>
+        <div class="plai-coach-float-actions">
+          <button type="button" class="btn btn-purple btn-sm" data-plai-talk aria-label="Talk to PLAI, pronounced PLAY">Talk</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-plai-text aria-label="Text PLAI, text only, microphone stays off">Text</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-plai-welcome-dismiss>Got it</button>
+        </div>
       </div>
     </details>
   </div>
   <script src="membership.js"></script>
-  <script src="site.js"></script>
+  <script src="site.js?v=20260912w1"></script>
+  <script src="plai-welcome.js?v=20260912w1"></script>
   <script src="plai-bubble.js" defer></script>
   <script src="checkout.js" defer></script>
 </body>

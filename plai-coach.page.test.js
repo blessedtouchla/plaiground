@@ -3,6 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { EventEmitter } = require('events');
 
 function read(file) {
@@ -104,14 +105,31 @@ function runStatic() {
   assert.ok(!/Real AI coming soon/i.test(page) && !/function sendMessage/.test(page), 'do not ship a fake sendMessage AI');
   assert.ok(!/<style[\s>]/.test(page), 'do not paste standalone inline page styles');
 
+  const welcome = index.match(/data-plai-coach-float[\s\S]*?<\/div>\s*<script src="membership\.js">/);
   assert.ok(index.includes('data-plai-coach-float'), 'homepage has the circular PLAI float');
-  assert.ok(index.includes('Need help getting your track out?'), 'homepage popup copy is locked');
-  assert.ok(/href="plai.html">Talk to PLAI<\/a>/.test(index), 'homepage popup links to the coach page');
+  assert.ok(welcome, 'homepage welcome is the existing PLAI girl card');
+  assert.ok(/Is it your first time here\?/.test(welcome[0]), 'homepage welcome copy is locked');
+  assert.ok(/Feel free to click Talk/.test(welcome[0]) && /or Text to ask/.test(welcome[0]), 'welcome points at Talk and Text');
+  assert.ok(/uploading your first song/.test(welcome[0]), 'welcome mentions uploading a first song');
+  assert.ok(/data-plai-talk[^>]*>Talk</.test(welcome[0]), 'welcome Talk opens the existing Talk path');
+  assert.ok(/data-plai-text[^>]*>Text</.test(welcome[0]), 'welcome Text opens the existing Text path');
+  assert.ok(/data-plai-welcome-dismiss/.test(welcome[0]) && /Got it</.test(welcome[0]), 'welcome is dismissible');
+  assert.ok(!/href="plai\.html"/.test(welcome[0]), 'welcome must not invent a new public bot page');
+  assert.ok(!/Need help getting your track out\?/.test(index), 'old always-on nag copy is gone');
+  assert.ok(!/ToneGrid|Tonegrid|DistroKid|chart|stream/i.test(welcome[0]), 'welcome must not promise charts or name distributors');
+  assert.ok(!/Capacitor|App Store|hop\/submit/i.test(welcome[0]), 'welcome must not invent hop or store work');
+  assert.ok(index.includes('plai-welcome.js?v=20260912w1'), 'homepage cache-busts the welcome script at 20260912w1');
+  assert.ok(index.includes('site.css?v=20260912w1'), 'homepage cache-busts site.css at 20260912w1');
+  assert.ok(index.includes('site.js?v=20260912w1'), 'homepage cache-busts site.js at 20260912w1');
   const floatBlock = css.match(/\.plai-coach-float\s*\{[\s\S]*?\}/);
   assert.ok(floatBlock && /bottom:\s*92px/.test(floatBlock[0]), 'homepage float sits above the Talk/Text pair');
+  assert.ok(css.includes('.plai-coach-float-close'), 'welcome close control is styled');
+  assert.ok(css.includes('.plai-coach-float-actions'), 'welcome Talk/Text row is styled');
 
-  ['faq.html', 'how-it-works.html', 'dashboard.html', 'about.html', 'contact.html'].forEach(function (file) {
-    assert.ok(!read(file).includes('data-plai-coach-float'), file + ' must not get the homepage-only coach float');
+  ['faq.html', 'how-it-works.html', 'dashboard.html', 'about.html', 'contact.html', 'upload.html'].forEach(function (file) {
+    const html = read(file);
+    assert.ok(!html.includes('data-plai-coach-float'), file + ' must not get the homepage-only coach float');
+    assert.ok(!html.includes('plai-welcome.js'), file + ' must not load the first-visit welcome');
   });
 
   assert.ok(bubbleJs.includes("AGENT_ID = 'agent_BDVzp3Ar3ABtyov5'"), 'Talk/Text stay on the existing voice agent');
@@ -131,17 +149,157 @@ function runStatic() {
   assert.ok(!/linear-gradient/.test(coach), 'do not add a second gradient system for PLAI');
   assert.ok(!/#d03083|#782fb1|#f3cb47|#0a0a0f|#12121a|#1e1e2e/.test(coach), 'do not paste her standalone palette');
 
-  ['plai.html', 'index.html', 'plai-coach.js', 'plai-bubble.js', 'plai-bubble.css', 'site.js'].forEach(function (file) {
+  ['plai.html', 'index.html', 'plai-coach.js', 'plai-bubble.js', 'plai-bubble.css', 'site.js', 'plai-welcome.js'].forEach(function (file) {
     const text = read(file);
     assert.ok(!text.includes('XAI_API_KEY'), file + ' must not leak XAI_API_KEY');
     assert.ok(!/elevenlabs/i.test(text), file + ' must not add ElevenLabs');
     assert.ok(!text.includes('agent_9BWdEFlNcpLwxoQR'), file + ' must not hardcode the coach agent');
   });
   assert.ok(!/ToneGrid|Tonegrid/.test(page.replace(/<script\b[\s\S]*?<\/script>/gi, '')), 'no ToneGrid in coach page copy');
+  const welcomeJs = read('plai-welcome.js');
+  assert.ok(welcomeJs.includes("STORAGE_KEY = 'plaiground.plai-welcome-dismissed'"), 'welcome remembers dismiss in localStorage');
+  assert.ok(welcomeJs.includes("COOKIE_NAME = 'plai_welcome_dismissed'"), 'welcome also remembers dismiss in a cookie');
+  assert.ok(welcomeJs.includes('data-plai-talk') && welcomeJs.includes('data-plai-text'), 'welcome Talk/Text stay on the site bubble paths');
+}
+
+function makeBtn(attrs) {
+  const node = {
+    attrs: Object.assign({}, attrs || {}),
+    listeners: Object.create(null),
+    setAttribute(key, value) { this.attrs[key] = String(value); },
+    getAttribute(key) { return Object.prototype.hasOwnProperty.call(this.attrs, key) ? this.attrs[key] : null; },
+    addEventListener(type, fn) {
+      if (!this.listeners[type]) this.listeners[type] = [];
+      this.listeners[type].push(fn);
+    },
+    click(event) {
+      const ev = event || { preventDefault: function () {}, stopPropagation: function () {} };
+      (this.listeners.click || []).forEach(function (fn) { fn(ev); });
+    },
+  };
+  return node;
+}
+
+function loadWelcome(opts) {
+  opts = opts || {};
+  const store = Object.assign({}, opts.storage || {});
+  let cookie = opts.cookie || '';
+  const closeBtn = makeBtn({ 'data-plai-welcome-dismiss': '' });
+  const gotIt = makeBtn({ 'data-plai-welcome-dismiss': '' });
+  const talk = makeBtn({ 'data-plai-talk': '' });
+  const text = makeBtn({ 'data-plai-text': '' });
+  const details = {
+    open: false,
+    listeners: Object.create(null),
+    addEventListener(type, fn) {
+      if (!this.listeners[type]) this.listeners[type] = [];
+      this.listeners[type].push(fn);
+    },
+  };
+  const root = {
+    hidden: true,
+    attrs: Object.create(null),
+    setAttribute(key, value) { this.attrs[key] = String(value); },
+    querySelector(sel) { return sel === 'details' ? details : null; },
+    querySelectorAll(sel) {
+      if (sel === '[data-plai-welcome-dismiss]') return [closeBtn, gotIt];
+      if (sel === '[data-plai-talk], [data-plai-text]') return [talk, text];
+      return [];
+    },
+  };
+  const docListeners = Object.create(null);
+  const document = {
+    get cookie() { return cookie; },
+    set cookie(value) {
+      const bit = String(value || '').split(';')[0];
+      const eq = bit.indexOf('=');
+      const name = eq === -1 ? bit : bit.slice(0, eq);
+      const rest = cookie ? cookie.split('; ') : [];
+      const next = rest.filter(function (part) { return part.indexOf(name + '=') !== 0; });
+      next.push(bit);
+      cookie = next.join('; ');
+    },
+    querySelector(sel) { return sel === '[data-plai-coach-float]' ? root : null; },
+    addEventListener(type, fn) {
+      if (!docListeners[type]) docListeners[type] = [];
+      docListeners[type].push(fn);
+    },
+  };
+  const membership = opts.membership || {
+    isSignedIn: function () { return false; },
+  };
+  vm.runInNewContext(read('plai-welcome.js'), {
+    window: {
+      localStorage: {
+        getItem: function (key) { return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null; },
+        setItem: function (key, value) { store[key] = String(value); },
+      },
+      PlaigroundMembership: membership,
+    },
+    document: document,
+  });
+  return {
+    root: root,
+    details: details,
+    closeBtn: closeBtn,
+    gotIt: gotIt,
+    talk: talk,
+    text: text,
+    store: store,
+    cookie: function () { return cookie; },
+    keydown: function (key) {
+      const ev = { key: key };
+      (docListeners.keydown || []).forEach(function (fn) { fn(ev); });
+    },
+  };
+}
+
+function runWelcome() {
+  const first = loadWelcome();
+  assert.strictEqual(first.root.hidden, false, 'fresh first visit shows the welcome');
+  assert.strictEqual(first.details.open, true, 'fresh first visit pops the PLAI card');
+  assert.strictEqual(first.root.attrs['data-plai-welcome-state'], 'open');
+
+  first.closeBtn.click();
+  assert.strictEqual(first.root.hidden, true, 'X dismisses the welcome');
+  assert.strictEqual(first.store['plaiground.plai-welcome-dismissed'], '1');
+  assert.ok(/plai_welcome_dismissed=1/.test(first.cookie()), 'dismiss writes the cookie too');
+
+  const again = loadWelcome({ storage: { 'plaiground.plai-welcome-dismissed': '1' } });
+  assert.strictEqual(again.root.hidden, true, 'dismissed visitors do not get the nag again');
+  assert.strictEqual(again.details.open, false);
+
+  const cookied = loadWelcome({ cookie: 'plai_welcome_dismissed=1' });
+  assert.strictEqual(cookied.root.hidden, true, 'cookie dismiss also stops the nag');
+
+  const signedIn = loadWelcome({
+    membership: { isSignedIn: function () { return true; } },
+  });
+  assert.strictEqual(signedIn.root.hidden, true, 'signed-in homepage must not pop the first-visit welcome');
+  assert.ok(!signedIn.store['plaiground.plai-welcome-dismissed'], 'signed-in hide is not a forever dismiss');
+
+  const talk = loadWelcome();
+  talk.talk.click();
+  assert.strictEqual(talk.root.hidden, true, 'Talk dismisses the welcome so it does not cover the page');
+  assert.strictEqual(talk.store['plaiground.plai-welcome-dismissed'], '1');
+
+  const text = loadWelcome();
+  text.text.click();
+  assert.strictEqual(text.store['plaiground.plai-welcome-dismissed'], '1', 'Text also stops the nag');
+
+  const got = loadWelcome();
+  got.gotIt.click();
+  assert.strictEqual(got.root.hidden, true, 'Got it dismisses forever');
+
+  const esc = loadWelcome();
+  esc.keydown('Escape');
+  assert.strictEqual(esc.root.hidden, true, 'Escape dismisses the welcome');
+  assert.strictEqual(esc.store['plaiground.plai-welcome-dismissed'], '1');
 }
 
 async function run() {
   runStatic();
+  runWelcome();
   await runSession();
   console.log('plai-coach.page.test.js ok');
 }
