@@ -4580,10 +4580,37 @@ body.app.artists-page .page {
   padding: 14px 18px;
 }
 .upload-page .upload-quiet-card,
-.upload-page .upload-credits-card {
+.upload-page .upload-credits-card,
+.upload-page .upload-lyrics-card {
   background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: none;
+}
+.upload-page .upload-opt-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  margin-top: 14px;
+}
+.upload-page .upload-opt-checks .checkline {
+  margin: 0;
+  align-items: center;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.upload-page .upload-opt-checks .checkline input {
+  margin-top: 0;
+  width: 15px;
+  height: 15px;
+}
+.upload-page .upload-lyrics-card {
+  margin: 14px 0 0;
+  width: 100%;
+}
+.upload-page .upload-lyrics-card[hidden] {
+  display: none !important;
 }
 .release-stage {
   margin: 10px 0 28px;

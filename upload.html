@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912s5" />
+  <link rel="stylesheet" href="site.css?v=20260912ly1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -106,16 +106,17 @@
               <button class="play" type="button" data-audio-play aria-label="Play">▶</button>
             </div>
             <p class="hint" data-audio-preview-hint hidden>Play this file here to confirm it is the right master before you continue. It stays on this device only.</p>
-            <div class="opt-grid">
-              <label class="dashbox checkline" for="tg-instrumental">
+            <div class="upload-opt-checks">
+              <label class="checkline" for="tg-instrumental">
                 <input id="tg-instrumental" name="release-instrumental" type="checkbox" />
-                <span>Instrumental<br /><span>Optional, helps sync licensing</span></span>
+                <span>Instrumental</span>
               </label>
-              <button type="button" class="dashbox" id="tg-lyrics-open" data-lyrics-open aria-expanded="false" aria-controls="tg-lyrics-panel">
-                Lyrics<br /><span>Type or paste lyrics</span>
-              </button>
+              <label class="checkline" for="tg-lyrics-open" data-lyrics-open-wrap>
+                <input id="tg-lyrics-open" name="release-add-lyrics" type="checkbox" data-lyrics-open aria-expanded="false" aria-controls="tg-lyrics-panel" />
+                <span>Add lyrics</span>
+              </label>
             </div>
-            <div class="field lyrics-field" id="tg-lyrics-panel" data-lyrics-field hidden>
+            <div class="flow-card field lyrics-field upload-lyrics-card" id="tg-lyrics-panel" data-lyrics-field hidden>
               <label for="tg-lyrics">Lyrics</label>
               <textarea id="tg-lyrics" name="release-lyrics" rows="8" placeholder="Type or paste lyrics" autocomplete="off"></textarea>
               <p class="hint">Optional timed .srt or .lrc file. Lyrics save with this release on PLAIGROUND.</p>
@@ -299,7 +300,7 @@
   <script src="lib/object-hop.js"></script>
   <script src="lib/upload-leave.js?v=20260908d1"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
-  <script src="store-client.js?v=20260912a2" defer></script>
+  <script src="store-client.js?v=20260912ly1" defer></script>
   <script src="lib/upload-stage.js?v=20260912s5"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

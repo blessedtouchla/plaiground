@@ -1052,6 +1052,9 @@ function run() {
   assert.ok(upload.indexOf('data-lyrics-field') !== -1);
   assert.ok(upload.indexOf('<label for="tg-lyrics">Lyrics</label>') !== -1);
   assert.ok(upload.indexOf('Add lyrics file') === -1);
+  assert.ok(upload.indexOf('Optional, helps sync licensing') === -1);
+  assert.ok(/id="tg-lyrics-open"[^>]*type="checkbox"/.test(upload));
+  assert.ok(upload.indexOf('Add lyrics') !== -1);
   assert.ok(upload.indexOf('type="checkbox"') !== -1);
   assert.ok(upload.indexOf('data-language-field') !== -1);
   assert.ok(upload.indexOf('data-upload-loader') !== -1);

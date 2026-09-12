@@ -955,8 +955,9 @@ async function run() {
     responses: uploadResponses.slice(),
   }));
   assert.strictEqual(lyricsPage.lyricsField.hidden, true);
-  lyricsPage.lyricsOpen.listeners.click({ preventDefault() {} });
-  assert.strictEqual(lyricsPage.lyricsField.hidden, false, 'click Lyrics must open the textarea');
+  lyricsPage.lyricsOpen.checked = true;
+  lyricsPage.lyricsOpen.listeners.change();
+  assert.strictEqual(lyricsPage.lyricsField.hidden, false, 'Add lyrics checkbox must open the textarea');
   lyricsPage.lyrics.value = 'Verse one\nI wrote this tonight';
   if (lyricsPage.lyrics.listeners.input) lyricsPage.lyrics.listeners.input();
   assert.strictEqual(draftOf(lyricsPage.localStorage).lyrics, 'Verse one\nI wrote this tonight');
@@ -4828,7 +4829,9 @@ async function run() {
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912a2'), 'upload.html cache-busts store-client.js at 20260912a2');
+  assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912a2'), 'upload.html must cache-bust past 20260912a2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260912ly1'), 'upload.html cache-busts store-client.js at 20260912ly1');
+  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ly1'), 'upload.html cache-busts site.css at 20260912ly1');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
