@@ -6991,6 +6991,80 @@
     if (copy) el.textContent = copy;
   }
 
+  function formatSubmittedDate(value) {
+    var raw = String(value || '').trim();
+    var match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return raw;
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var month = months[Number(match[2]) - 1];
+    if (!month) return raw;
+    return month + ' ' + Number(match[3]) + ' ' + match[1];
+  }
+
+  function submittedWriterNames(draft) {
+    var names = [];
+    function add(name) {
+      name = String(name || '').trim();
+      if (name && names.indexOf(name) === -1) names.push(name);
+    }
+    var writers = (draft && Array.isArray(draft.writers)) ? draft.writers : [];
+    var i;
+    for (i = 0; i < writers.length; i += 1) {
+      var row = writers[i] || {};
+      add(row.name || row.writer || row.legal_name || [row.first_name || row.legal_first, row.last_name || row.legal_last].filter(Boolean).join(' '));
+    }
+    if (!names.length && draft) add([draft.legal_first, draft.legal_last].filter(Boolean).join(' '));
+    return names;
+  }
+
+  function submittedWritersCopy(draft) {
+    var names = submittedWriterNames(draft);
+    var solo = Boolean(draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true'));
+    if (solo && names.length <= 1) {
+      return names[0]
+        ? names[0] + ' attested ownership. No co-writer links to send.'
+        : 'Your attestation is on file. No co-writer links to send.';
+    }
+    if (names.length === 1) return names[0] + ' gets a signing link once the scan clears.';
+    if (names.length === 2) return names[0] + ' and ' + names[1] + ' get signing links once the scan clears.';
+    if (names.length > 2) {
+      return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1] + ' get signing links once the scan clears.';
+    }
+    return '';
+  }
+
+  function paintSubmittedDate(draft) {
+    var shown = formatSubmittedDate(draft && draft.release_date);
+    var dateEl = document.querySelector('[data-submit-release-date]');
+    if (dateEl && shown) dateEl.textContent = shown;
+    var nodes = document.querySelectorAll('[data-submit-deliver-date]');
+    var i;
+    for (i = 0; i < nodes.length; i += 1) {
+      if (shown) nodes[i].textContent = shown;
+    }
+  }
+
+  function paintSubmittedOrder(draft) {
+    var el = document.querySelector('[data-submit-order]');
+    if (!el) return;
+    var id = String((draft && draft.release_id) || '').trim();
+    if (id) el.textContent = id;
+  }
+
+  function paintSubmittedWriters(draft) {
+    var el = document.querySelector('[data-submit-writers]');
+    if (!el) return;
+    var copy = submittedWritersCopy(draft);
+    if (copy) el.textContent = copy;
+  }
+
+  function paintSubmittedConfirm(draft) {
+    paintSubmittedStores(draft);
+    paintSubmittedDate(draft);
+    paintSubmittedOrder(draft);
+    paintSubmittedWriters(draft);
+  }
+
   function fillSubmitted() {
     var titleEl = document.querySelector('[data-submit-title]');
     if (!titleEl) return;
@@ -6999,7 +7073,7 @@
     if (draft.tonegrid_status) setStatus('tg-status', 'Store status: ' + draft.tonegrid_status);
     var view = document.querySelector('a[href="song.html"]');
     if (view && draft.release_id) view.setAttribute('href', 'song.html?id=' + encodeURIComponent(draft.release_id));
-    paintSubmittedStores(draft);
+    paintSubmittedConfirm(draft);
     if (document.querySelector('[data-submit-stores]')) {
       getJson('/api/tonegrid/stores').then(function (result) {
         var stores = (result.ok && result.data && result.data.stores) || [];
@@ -7018,6 +7092,7 @@
     var draft = readDraft();
     if (!draft.title) return;
     var afterCreate = function (nextDraft) {
+      paintSubmittedConfirm(nextDraft);
       if (nextDraft.submitted) return;
       if (!documentIdOf(nextDraft) && !isSoloOwned(nextDraft)) {
         setStatus('tg-status', 'Create the split sheet before submitting.');

@@ -23,9 +23,9 @@
       <p class="center-lead" data-for-plans="basic">Distribution is included. Nothing extra was charged on this release.</p>
       <p class="center-lead" data-for-plans="creator pro" hidden>Publishing and distribution are included in membership. Nothing extra was charged on this release.</p>
       <div class="confirm-bar">
-        <div><small>Order</small><b>PG-2026-0314</b></div>
+        <div><small>Order</small><b data-submit-order>—</b></div>
         <div><small>Total paid</small><b class="lime">$0.00 · included in membership</b></div>
-        <div><small>Release date</small><b>12 Sep 2026</b></div>
+        <div><small>Release date</small><b data-submit-release-date>—</b></div>
         <div><small>Stores</small><b data-submit-stores></b></div>
       </div>
       <p class="section-lbl">What happens next</p>
@@ -38,7 +38,7 @@
         <article>
           <div class="n">02</div>
           <h3>Split sheet sent</h3>
-          <p>M. Hale and I. Novak get signing links once the scan clears.</p>
+          <p data-submit-writers>Co-writers get signing links once the scan clears.</p>
         </article>
         <article>
           <div class="n">03</div>
@@ -48,8 +48,8 @@
         <article>
           <div class="n">04</div>
           <h3>Review and deliver</h3>
-          <p data-for-plans="basic">We deliver on the release date you picked. Nothing extra is charged for distribution.</p>
-          <p data-for-plans="creator pro" hidden>We deliver on 12 Sep. Publishing is filed within 10 business days.</p>
+          <p data-for-plans="basic">We deliver on <span data-submit-deliver-date>the release date you picked</span>. Nothing extra is charged for distribution.</p>
+          <p data-for-plans="creator pro" hidden>We deliver on <span data-submit-deliver-date>the release date you picked</span>. Publishing is filed within 10 business days.</p>
         </article>
       </div>
       <p class="hint" id="tg-status" hidden></p>
@@ -62,7 +62,7 @@
   </main>
   <script src="lib/upload-required.js"></script>
   <script src="lib/store-pick.js?v=20260912a2"></script>
-  <script src="store-client.js?v=20260912a2" defer></script>
+  <script src="store-client.js?v=20260912a3" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script src="problem.js"></script>
 </body>

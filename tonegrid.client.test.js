@@ -202,6 +202,18 @@ function load(options) {
     attrs: { href: 'submitted.html', 'data-store-submit': '' },
   });
   const submitStores = makeEl({ attrs: { 'data-submit-stores': '' } });
+  const submitTitle = makeEl({ attrs: { 'data-submit-title': '' } });
+  const submitReleaseDate = makeEl({ attrs: { 'data-submit-release-date': '' } });
+  const submitOrder = makeEl({ attrs: { 'data-submit-order': '' } });
+  const submitWriters = makeEl({ attrs: { 'data-submit-writers': '' } });
+  const submitDeliverDate = makeEl({ attrs: { 'data-submit-deliver-date': '' } });
+  const submitDeliverDatePro = makeEl({ attrs: { 'data-submit-deliver-date': '' } });
+  submitTitle.textContent = 'Your song is in the queue.';
+  submitReleaseDate.textContent = '—';
+  submitOrder.textContent = '—';
+  submitWriters.textContent = 'Co-writers get signing links once the scan clears.';
+  submitDeliverDate.textContent = 'the release date you picked';
+  submitDeliverDatePro.textContent = 'the release date you picked';
   const reviewCover = makeEl({ attrs: { 'data-review-cover': '' } });
   const reviewAudioError = makeEl({ attrs: { 'data-review-audio-error': '' } });
   const reviewAudioName = makeEl({ attrs: { 'data-review-audio-name': '' } });
@@ -399,13 +411,31 @@ function load(options) {
       querySelectorAll(sel) {
         if (sel === '[data-track-row]') return liveRows;
         if (sel === '[data-type]') return opts.typeLinks || [];
+        if (sel === '[data-submit-deliver-date]') {
+          return opts.bind === 'submitted' ? [submitDeliverDate, submitDeliverDatePro] : [];
+        }
         return [];
       },
       querySelector(sel) {
         if (sel === '[data-store-continue]') return opts.bind === 'review' || opts.bind === 'submitted' ? null : continueBtn;
         if (sel === '[data-store-submit]') return opts.bind === 'review' ? payBtn : null;
-        if (sel === '[data-review-title]' || sel === '[data-review-meta]' || sel === '[data-submit-title]') {
-          return opts.bind === 'submitted' ? makeEl({}) : null;
+        if (sel === '[data-review-title]' || sel === '[data-review-meta]') {
+          return null;
+        }
+        if (sel === '[data-submit-title]') {
+          return opts.bind === 'submitted' ? submitTitle : null;
+        }
+        if (sel === '[data-submit-release-date]') {
+          return opts.bind === 'submitted' ? submitReleaseDate : null;
+        }
+        if (sel === '[data-submit-order]') {
+          return opts.bind === 'submitted' ? submitOrder : null;
+        }
+        if (sel === '[data-submit-writers]') {
+          return opts.bind === 'submitted' ? submitWriters : null;
+        }
+        if (sel === '[data-submit-deliver-date]') {
+          return opts.bind === 'submitted' ? submitDeliverDate : null;
         }
         if (sel === '[data-review-cover]') {
           return opts.reviewCover ? reviewCover : null;
@@ -681,6 +711,12 @@ function load(options) {
     attestStep,
     reviewStep,
     submitStores,
+    submitTitle,
+    submitReleaseDate,
+    submitOrder,
+    submitWriters,
+    submitDeliverDate,
+    submitDeliverDatePro,
     reviewCover,
     reviewAudioError,
     reviewAudioRepick,
@@ -4644,6 +4680,44 @@ async function run() {
   assert.strictEqual(submittedLive87.submitStores.textContent, 'All 87 stores');
   assert.ok(submittedLive87.submitStores.textContent.indexOf('55') === -1);
 
+  const submittedConfirm = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      release_date: '2026-09-18',
+      writers: [
+        { name: 'Ada Night', email: 'ada@example.com', share: 50 },
+        { first_name: 'Bea', last_name: 'Night', email: 'bea@example.com', share: 50 },
+      ],
+    },
+  });
+  assert.strictEqual(submittedConfirm.submitReleaseDate.textContent, 'Sep 18 2026');
+  assert.strictEqual(submittedConfirm.submitDeliverDate.textContent, 'Sep 18 2026');
+  assert.strictEqual(submittedConfirm.submitDeliverDatePro.textContent, 'Sep 18 2026');
+  assert.strictEqual(submittedConfirm.submitOrder.textContent, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.strictEqual(submittedConfirm.submitWriters.textContent, 'Ada Night and Bea Night get signing links once the scan clears.');
+  assert.ok(submittedConfirm.submitReleaseDate.textContent.indexOf('12 Sep') === -1);
+  assert.ok(submittedConfirm.submitWriters.textContent.indexOf('Hale') === -1);
+  assert.ok(submittedConfirm.submitWriters.textContent.indexOf('Novak') === -1);
+
+  const submittedSolo = load({
+    bind: 'submitted',
+    page: 'submitted.html',
+    draft: {
+      title: 'Night Drive',
+      release_date: '2026-09-18',
+      solo_owned_100: true,
+      legal_first: 'Ada',
+      legal_last: 'Night',
+    },
+  });
+  assert.strictEqual(submittedSolo.submitReleaseDate.textContent, 'Sep 18 2026');
+  assert.ok(submittedSolo.submitWriters.textContent.indexOf('Ada Night') !== -1);
+  assert.ok(submittedSolo.submitWriters.textContent.indexOf('Hale') === -1);
+  assert.strictEqual(submittedSolo.submitOrder.textContent, '—');
+
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   assert.ok(source.includes('Converting MP3 to WAV'));
@@ -4761,6 +4835,20 @@ async function run() {
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(/data-upload-cancel>Cancel</.test(attestHtml), 'Attest Cancel is a real button');
   assert.ok(splitSheetHtml.includes('store-client.js?v=20260912a2'), 'split-sheet.html cache-busts store-client.js at 20260912a2');
+  const submittedHtml = fs.readFileSync(path.join(__dirname, 'submitted.html'), 'utf8');
+  assert.ok(!submittedHtml.includes('store-client.js?v=20260912a2'), 'submitted.html must cache-bust past 20260912a2');
+  assert.ok(submittedHtml.includes('store-client.js?v=20260912a3'), 'submitted.html cache-busts store-client.js at 20260912a3');
+  assert.ok(submittedHtml.includes('data-submit-release-date'), 'confirm bar release date has a paint hook');
+  assert.ok(submittedHtml.includes('data-submit-deliver-date'), 'step-04 deliver line has a paint hook');
+  assert.ok(submittedHtml.includes('data-submit-order'), 'confirm bar order has a paint hook');
+  assert.ok(submittedHtml.includes('data-submit-writers'), 'step-02 writers have a paint hook');
+  assert.ok(!submittedHtml.includes('PG-2026-0314'), 'submitted.html must not keep mock order PG-2026-0314');
+  assert.ok(!submittedHtml.includes('12 Sep'), 'submitted.html must not keep hardcoded 12 Sep');
+  assert.ok(!submittedHtml.includes('M. Hale'), 'submitted.html must not keep mock writer M. Hale');
+  assert.ok(!submittedHtml.includes('I. Novak'), 'submitted.html must not keep mock writer I. Novak');
+  assert.ok(source.includes('function formatSubmittedDate'), 'fillSubmitted formats draft.release_date');
+  assert.ok(source.includes('data-submit-release-date'), 'fillSubmitted paints the confirm-bar date');
+  assert.ok(source.includes('data-submit-deliver-date'), 'fillSubmitted paints the step-04 deliver date');
   assert.ok(source.includes('heldMasterSize(heldArtworkFile)'), 'Review cover gate sees the held Upload cover');
   assert.ok(/artwork_name/.test(source.slice(source.indexOf('function firstSubmitHasCover'))), 'Review cover gate keeps artwork_name from Upload');
   assert.ok(source.includes('REVIEW_MISSING_AUDIO_COPY'), 'Review missing-audio early-return has named copy');
