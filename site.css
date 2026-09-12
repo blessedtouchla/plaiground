@@ -4564,6 +4564,7 @@ body.app.artists-page .page {
   --stage-magenta: #d03083;
   --stage-purple: #782fb1;
   --stage-gold: #f3cb47;
+  --stage-blue: #4d7cbe;
 }
 .sr-only {
   position: absolute;
@@ -5032,7 +5033,7 @@ button.stage-chip {
   background: none;
 }
 .upload-page .st.on b {
-  color: var(--stage-purple);
+  color: var(--stage-blue);
 }
 .upload-page a.st:hover,
 .upload-page .st[role="link"]:hover {
@@ -5110,7 +5111,7 @@ button.stage-chip {
   font-weight: 400;
 }
 .upload-page .upload-type-toggle a.on {
-  color: var(--stage-gold);
+  color: var(--stage-purple);
   background: none;
 }
 .upload-page .upload-type-line .hint {
@@ -5233,8 +5234,8 @@ button.stage-chip {
   margin: 0;
 }
 .upload-page .upload-type-toggle a.on {
-  background: var(--stage-gold);
-  color: #111;
+  background: var(--stage-purple);
+  color: #fff;
 }
 .upload-page .btn-purple {
   background: var(--stage-purple);
@@ -5254,32 +5255,19 @@ button.stage-chip {
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow: none;
 }
-.upload-page .stage-chip.chip-audio {
-  color: var(--stage-magenta);
-  border-color: var(--stage-magenta);
+.upload-page .stage-chip.chip-audio,
+.upload-page .stage-chip.chip-cover {
+  color: var(--stage-gold);
+  border-color: var(--stage-gold);
   box-shadow: none;
 }
 .upload-page .stage-chip.chip-audio:hover,
-.upload-page .stage-chip.chip-audio.is-on {
-  color: var(--stage-magenta);
-  border-color: var(--stage-magenta);
-  box-shadow: none;
-}
-.upload-page .stage-chip.chip-cover {
-  color: var(--muted-2);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: none;
-}
+.upload-page .stage-chip.chip-audio.is-on,
 .upload-page .stage-chip.chip-cover:hover,
 .upload-page .stage-chip.chip-cover.is-on {
-  color: var(--muted-2);
-  border-color: rgba(255, 255, 255, 0.34);
+  color: var(--stage-gold);
+  border-color: var(--stage-gold);
   box-shadow: none;
-}
-.upload-page .release-stage-hero [data-art-meta].is-error,
-.upload-page .hint.is-error,
-.upload-page #tg-status.upload-status-error {
-  color: var(--stage-magenta);
 }
 .upload-page .upload-audio-splat {
   background:
