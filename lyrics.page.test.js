@@ -75,7 +75,7 @@ function run() {
   assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ae1'), 'upload cache-busts site.css at 20260912ae1');
+  assert.ok(upload.includes('site.css?v=20260912ca2'), 'upload cache-busts site.css at 20260912ca2');
   assert.ok(!upload.includes('site.css?v=20260912ly8'), 'upload must cache-bust past 20260912ly8');
   assert.ok(!upload.includes('site.css?v=20260912tc1'), 'upload must cache-bust past 20260912tc1');
   assert.ok(/upload-stage-caption sr-only/.test(upload), 'sleeve helpers do not force a read');

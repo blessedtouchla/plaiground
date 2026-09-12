@@ -4697,8 +4697,10 @@ button.stage-chip {
 }
 .stage-chip.chip-audio { grid-area: chip-audio; justify-self: end; }
 .stage-chip.chip-cover { grid-area: chip-cover; justify-self: start; }
-.stage-chip.chip-credits { grid-area: chip-credits; justify-self: end; }
-.stage-chip.chip-send { grid-area: chip-send; justify-self: start; }
+.stage-chip.chip-credits,
+.stage-step.chip-credits { grid-area: chip-credits; justify-self: end; }
+.stage-chip.chip-send,
+.stage-step.chip-send { grid-area: chip-send; justify-self: start; }
 .stage-chip:hover {
   color: #fff;
   border-color: rgba(208, 48, 131, 0.45);
@@ -4967,10 +4969,16 @@ button.stage-chip {
     gap: 12px;
   }
   .stage-chip.chip-audio,
-  .stage-chip.chip-cover,
-  .stage-chip.chip-credits,
-  .stage-chip.chip-send {
+  .stage-chip.chip-cover {
     justify-self: stretch;
+  }
+  .stage-chip.chip-credits,
+  .stage-step.chip-credits {
+    justify-self: start;
+  }
+  .stage-chip.chip-send,
+  .stage-step.chip-send {
+    justify-self: end;
   }
   .release-stage-hero {
     padding: 4px 8px 0;
@@ -5432,5 +5440,82 @@ button.stage-chip {
 }
 .upload-page .prescreen .pill {
   background: #16161c;
+  color: var(--muted);
+}
+
+/* —— Upload leftover: tiny side Credits/Send steps + Artist card —— */
+.upload-page .stage-step.chip-credits,
+.upload-page .stage-step.chip-send {
+  display: inline;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.upload-page .stage-step.chip-credits:hover,
+.upload-page .stage-step.chip-send:hover {
+  color: var(--muted);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.upload-page .stage-step.chip-credits.is-on,
+.upload-page .stage-step.chip-send.is-on {
+  color: var(--muted-2);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+@media (max-width: 800px) {
+  .upload-page .stage-step.chip-credits,
+  .upload-page .stage-step.chip-send {
+    justify-self: start;
+    width: auto;
+    max-width: none;
+  }
+  .upload-page .stage-step.chip-send {
+    justify-self: end;
+  }
+}
+.upload-page [data-upload-artist] {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+.upload-page [data-upload-artist] h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.upload-page [data-upload-artist] > .hint,
+.upload-page [data-upload-artist] [data-artist-copy] {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+.upload-page [data-upload-artist] .field label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
 }

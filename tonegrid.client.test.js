@@ -4845,7 +4845,7 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba3'), 'upload.html must cache-bust past 20260912ba3');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba4'), 'upload.html must cache-bust past 20260912ba4');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba5'), 'upload.html must cache-bust past 20260912ba5');
-  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ae1'), 'upload.html cache-busts site.css at 20260912ae1');
+  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ca2'), 'upload.html cache-busts site.css at 20260912ca2');
   assert.strictEqual((uploadHtmlForBust.match(/href="site\.css\?v=/g) || []).length, 1, 'upload.html has one site.css link');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
