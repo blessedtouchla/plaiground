@@ -1702,8 +1702,12 @@ body.artist-editing { overflow: hidden; }
   border-bottom: 1px solid var(--line);
 }
 .flow-top .have-problem {
-  margin-left: auto;
-  flex-shrink: 0;
+  display: none !important;
+}
+.page > a.have-problem,
+.upload-page > a.have-problem,
+.center-page > a.have-problem {
+  margin-top: 18px;
 }
 .flow-top .who { flex-shrink: 0; }
 .stepper {
@@ -4317,7 +4321,9 @@ body.app.artists-page .page {
     padding: 14px 16px;
     flex-wrap: wrap;
   }
-  .flow-top .have-problem {
+  .page > a.have-problem,
+  .upload-page > a.have-problem,
+  .center-page > a.have-problem {
     font-size: 12px;
     padding: 8px 12px;
     min-height: 36px;

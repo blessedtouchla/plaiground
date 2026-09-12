@@ -156,6 +156,10 @@ function makeNode(attrs) {
 
 function matchSel(node, sel) {
   const raw = String(sel || '');
+  if (raw === 'main.upload-page') return node.tagName === 'MAIN' && node.classList.contains('upload-page');
+  if (raw === 'main.page') return node.tagName === 'MAIN' && node.classList.contains('page');
+  if (raw === 'main.center-page') return node.tagName === 'MAIN' && node.classList.contains('center-page');
+  if (raw === 'main') return node.tagName === 'MAIN';
   if (raw.charAt(0) === '.') return node.classList.contains(raw.slice(1));
   if (raw.indexOf('[data-have-problem]') !== -1) return node.getAttribute('data-have-problem') != null;
   if (raw.indexOf('[data-problem-') !== -1) {
@@ -174,6 +178,9 @@ function loadProblem(options) {
   const flowTop = makeNode({ className: 'flow-top' });
   const who = makeNode({ className: 'who', tagName: 'A' });
   flowTop.appendChild(who);
+  const flowPage = makeNode({ tagName: 'MAIN', className: 'page wrap-wide upload-page' });
+  const storeSubmit = makeNode({ tagName: 'A', className: 'btn btn-yellow btn-md', attributes: { 'data-store-submit': '1' }, textContent: 'Submit', href: 'submitted.html' });
+  flowPage.appendChild(storeSubmit);
   const form = makeNode({ tagName: 'FORM', attributes: { 'data-problem-form': '1' } });
   const field = makeNode({ tagName: 'TEXTAREA', attributes: { 'data-problem-text': '1' } });
   const submit = makeNode({ tagName: 'BUTTON', attributes: { 'data-problem-submit': '1' } });
@@ -185,6 +192,7 @@ function loadProblem(options) {
   const body = makeNode({ tagName: 'BODY', className: 'app' });
   body.appendChild(sideNav);
   body.appendChild(flowTop);
+  body.appendChild(flowPage);
   body.appendChild(form);
   body.appendChild(error);
   body.appendChild(thanks);
@@ -196,6 +204,8 @@ function loadProblem(options) {
     querySelector: function (sel) {
       if (sel === '.side-nav') return sideNav;
       if (sel === '.flow-top') return flowTop;
+      if (sel === 'main.upload-page' || sel === 'main.page') return flowPage;
+      if (sel === '[data-store-submit]') return storeSubmit;
       if (sel === '[data-problem-form]') return form;
       if (sel === '[data-problem-text]') return field;
       if (sel === '[data-problem-error]') return error;
@@ -239,6 +249,7 @@ function loadProblem(options) {
     api: context.PlaigroundProblem,
     sideNav: sideNav,
     flowTop: flowTop,
+    flowPage: flowPage,
     form: form,
     field: field,
     submit: submit,
@@ -285,6 +296,13 @@ async function run() {
   assert.ok(js.includes("THANKS = '" + THANKS + "'"), 'client thank-you copy is exact');
   assert.ok(js.includes("ENDPOINT = '/api/me/problem'"), 'form posts to the session problem route');
   assert.ok(!js.includes('header.nav'), 'do not inject into the public header');
+  assert.ok(!/insertBefore\(link, who\)/.test(js), 'Have a problem? is not inserted into flow-top next to the account chip');
+  assert.ok(js.includes('injectFlowFooter'), 'flow chrome relocates Have a problem? after Submit');
+  const uploadHtml = read('upload.html');
+  const reviewHtml = read('review.html');
+  const uploadTop = (uploadHtml.match(/<div class="flow-top">[\s\S]*?<\/div>/) || [])[0] || '';
+  assert.ok(!/Have a problem\?/.test(uploadTop), 'Upload header does not keep Have a problem?');
+  assert.ok(reviewHtml.indexOf('data-store-submit') < reviewHtml.indexOf('data-have-problem'), 'Review relocates Have a problem? after Submit');
 
   APP_PAGES.forEach(function (file) {
     const html = read(file);
@@ -302,15 +320,21 @@ async function run() {
   const signedOut = loadProblem({ signedIn: false });
   assert.strictEqual(signedOut.sideNav.querySelector('[data-have-problem]'), null, 'logged-out chrome does not inject the button');
   assert.strictEqual(signedOut.flowTop.querySelector('[data-have-problem]'), null, 'logged-out flow-top does not inject the button');
+  assert.strictEqual(signedOut.flowPage.querySelector('[data-have-problem]'), null, 'logged-out flow page does not inject the button');
 
   const signedIn = loadProblem({ signedIn: true, email: 'ada@example.com' });
   const sideBtn = signedIn.sideNav.querySelector('[data-have-problem]');
-  const flowBtn = signedIn.flowTop.querySelector('[data-have-problem]');
+  const flowBtn = signedIn.flowPage.querySelector('[data-have-problem]');
+  const headerBtn = signedIn.flowTop.querySelector('[data-have-problem]');
   assert.ok(sideBtn, 'signed-in side nav gets Have a problem?');
   assert.strictEqual(sideBtn.textContent, 'Have a problem?');
   assert.strictEqual(sideBtn.href, 'problem.html');
-  assert.ok(flowBtn, 'signed-in upload chrome gets Have a problem?');
+  assert.strictEqual(headerBtn, null, 'signed-in upload header does not keep Have a problem?');
+  assert.ok(flowBtn, 'signed-in upload chrome gets Have a problem? after Submit');
   assert.strictEqual(flowBtn.textContent, 'Have a problem?');
+  assert.strictEqual(flowBtn.href, 'problem.html');
+  assert.strictEqual(signedIn.flowPage.children[0].getAttribute('data-store-submit'), '1', 'Submit stays on the flow page');
+  assert.ok(signedIn.flowPage.children.indexOf(flowBtn) > signedIn.flowPage.children.indexOf(signedIn.flowPage.children[0]), 'Have a problem? is after Submit on the page');
   assert.strictEqual(signedIn.thanksCopy.textContent, THANKS);
 
   signedIn.field.value = 'Cover art will not save.';
