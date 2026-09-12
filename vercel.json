@@ -81,7 +81,16 @@
     { "source": "/blog/boosts", "destination": "/blog-boosts.html" },
     { "source": "/blog/sync", "destination": "/blog-sync.html" },
     { "source": "/blog/30-day-plan", "destination": "/blog-30-day-plan.html" },
-    { "source": "/blog/how-we-use-bots", "destination": "/blog-how-we-use-bots.html" }
+    { "source": "/blog/how-we-use-bots", "destination": "/blog-how-we-use-bots.html" },
+    { "source": "/blog/generation-is-cheap", "destination": "/blog-generation-is-cheap.html" },
+    { "source": "/blog/two-charts", "destination": "/blog-two-charts.html" },
+    { "source": "/blog/no-fakes", "destination": "/blog-no-fakes.html" },
+    { "source": "/blog/push-the-button", "destination": "/blog-push-the-button.html" },
+    { "source": "/blog/ai-label-required", "destination": "/blog-ai-label-required.html" },
+    { "source": "/blog/chart-eligibility", "destination": "/blog-chart-eligibility.html" },
+    { "source": "/blog/catalog-migration", "destination": "/blog-catalog-migration.html" },
+    { "source": "/blog/how-payouts-land", "destination": "/blog-how-payouts-land.html" },
+    { "source": "/blog/metadata", "destination": "/blog-metadata.html" }
   ],
   "headers": [
     {
