@@ -191,7 +191,7 @@ async function flush() {
 
 async function run() {
   const html = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
-  assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(html), 'Writers Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(html), 'Writers Cancel is a tiny icon with an accessible name');
   assert.ok(html.indexOf('Save and exit') === -1, 'Writers must not say Save and exit');
   assert.ok(html.indexOf('lib/upload-cancel-overview.js?v=20260910c1') !== -1, 'Writers Cancel clears the draft and goes to Overview');
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'split-sheet keeps the step-1 files through the page');

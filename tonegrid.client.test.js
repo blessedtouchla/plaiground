@@ -4844,13 +4844,14 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba2'), 'upload.html must cache-bust past 20260912ba2');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba3'), 'upload.html must cache-bust past 20260912ba3');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba4'), 'upload.html must cache-bust past 20260912ba4');
-  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ba5'), 'upload.html cache-busts site.css at 20260912ba5');
+  assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ba5'), 'upload.html must cache-bust past 20260912ba5');
+  assert.ok(uploadHtmlForBust.includes('site.css?v=20260912ae1'), 'upload.html cache-busts site.css at 20260912ae1');
   assert.strictEqual((uploadHtmlForBust.match(/href="site\.css\?v=/g) || []).length, 1, 'upload.html has one site.css link');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
   assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
-  assert.ok(/data-upload-cancel>Cancel</.test(attestHtml), 'Attest Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(attestHtml), 'Attest Cancel is a tiny icon with an accessible name');
   assert.ok(splitSheetHtml.includes('store-client.js?v=20260912a2'), 'split-sheet.html cache-busts store-client.js at 20260912a2');
   const submittedHtml = fs.readFileSync(path.join(__dirname, 'submitted.html'), 'utf8');
   assert.ok(!submittedHtml.includes('store-client.js?v=20260912a2'), 'submitted.html must cache-bust past 20260912a2');
@@ -4876,7 +4877,7 @@ async function run() {
   assert.ok(source.includes('tx.oncomplete = harvest'), 'restoreHeldAudio must not hang if get.onsuccess already fired');
   assert.ok(source.includes('delete next.saved_draft'), 'writeDraft must not keep a store draft');
   assert.ok(splitSheetHtml.indexOf('Save and exit') === -1, 'Writers must not say Save and exit');
-  assert.ok(/data-upload-cancel>Cancel</.test(splitSheetHtml), 'Writers Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(splitSheetHtml), 'Writers Cancel is a tiny icon with an accessible name');
   assert.ok(!source.includes('REVIEW_REATTACH_COPY'));
   assert.ok(!source.includes('Go back to Upload and re-attach your master'));
   assert.ok(!reviewHtml.includes('Re-attach master'), 'Review has no Re-attach master');
@@ -4979,7 +4980,7 @@ async function run() {
   assert.ok(source.includes('needsKnownHop && storeTracks.length'));
   assert.ok(source.includes('if (next.artwork_object_key && next.release_id)'), 'Retry hops cover from object_key without a Review file picker');
   assert.ok(source.includes("{ object_key: key }"), 'Retry hops audio from object_key without a Review file picker');
-  assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(reviewHtml), 'Submit review Cancel is a tiny icon with an accessible name');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review must not say Save and exit');
   assert.ok(reviewHtml.indexOf('id="tg-genre"') === -1, 'Review must not keep an editable genre picker');
   assert.ok(reviewHtml.indexOf('id="tg-language"') === -1, 'Review must not keep an editable language picker');

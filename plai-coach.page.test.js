@@ -119,9 +119,10 @@ function runStatic() {
   assert.ok(!/ToneGrid|Tonegrid|DistroKid|chart|stream/i.test(welcome[0]), 'welcome must not promise charts or name distributors');
   assert.ok(!/Capacitor|App Store|hop\/submit/i.test(welcome[0]), 'welcome must not invent hop or store work');
   assert.ok(index.includes('plai-welcome.js?v=20260912w1'), 'homepage cache-busts the welcome script at 20260912w1');
-  assert.ok(index.includes('site.css?v=20260912w2'), 'homepage cache-busts site.css at 20260912w2');
+  assert.ok(index.includes('site.css?v=20260912ae1'), 'homepage cache-busts site.css at 20260912ae1');
   assert.ok(index.includes('site.js?v=20260912w1'), 'homepage cache-busts site.js at 20260912w1');
   assert.ok(!index.includes('site.css?v=20260912w1'), 'homepage must cache-bust past 20260912w1');
+  assert.ok(!index.includes('site.css?v=20260912w2'), 'homepage must cache-bust past 20260912w2');
   const floatBlock = css.match(/\.plai-coach-float\s*\{[\s\S]*?\}/);
   assert.ok(floatBlock && /bottom:\s*92px/.test(floatBlock[0]), 'homepage float sits above the Talk/Text pair');
   assert.ok(css.includes('.plai-coach-float-close'), 'welcome close control is styled');
