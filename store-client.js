@@ -50,6 +50,23 @@
     return /^[a-z]{2}$/.test(raw) ? raw : '';
   }
 
+  function defaultCreditsLanguageIfEmpty() {
+    var language = $('tg-language');
+    if (!language) return '';
+    if (selectedInstrumental()) return '';
+    var draft = readDraft();
+    var held = String((draft && draft.language) || '').trim().toLowerCase();
+    if (held) return held;
+    if (catalogLanguageValue()) return catalogLanguageValue();
+    if (String(language.value || '').trim()) return String(language.value || '').trim();
+    var catalog = (typeof PlaigroundUploadCatalog !== 'undefined' && PlaigroundUploadCatalog) || null;
+    if (catalog && typeof catalog.setTypeaheadValue === 'function') {
+      return catalog.setTypeaheadValue(language, 'en') || 'en';
+    }
+    language.value = 'en';
+    return 'en';
+  }
+
   function rules() {
     return (typeof PlaigroundUploadRequired !== 'undefined' && PlaigroundUploadRequired) || null;
   }
@@ -5895,6 +5912,7 @@
       if (genre && draft.genre) catalog.setTypeaheadValue(genre, draft.genre);
       if (language && draft.language) catalog.setTypeaheadValue(language, draft.language);
     }
+    defaultCreditsLanguageIfEmpty();
   }
 
   function restoreUploadDraft(draft) {
@@ -6174,6 +6192,7 @@
       restoreHeldAudio();
       restoreUploadDraft(savedDraft);
     }
+    defaultCreditsLanguageIfEmpty();
     var instEl = $('tg-instrumental');
     if (instEl && savedDraft.instrumental === true) paintSwitch(instEl, true);
     var lyricsOpen = document.querySelector('[data-lyrics-open]');
