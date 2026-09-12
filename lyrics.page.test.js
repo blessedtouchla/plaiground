@@ -50,8 +50,11 @@ function run() {
 
   assert.ok(upload.includes('id="tg-lyrics-open"'), 'upload has a Lyrics control');
   assert.ok(upload.includes('data-lyrics-open'));
-  assert.ok(/id="tg-lyrics-open"[^>]*type="checkbox"/.test(upload), 'Add lyrics is a small checkbox');
-  assert.ok(upload.includes('Add lyrics'), 'Add lyrics label matches Instrumental checkbox language');
+  assert.ok(/id="tg-instrumental"[^>]*role="switch"/.test(upload), 'Instrumental is a soft switch');
+  assert.ok(/id="tg-lyrics-open"[^>]*role="switch"/.test(upload), 'Add lyrics is a soft switch');
+  assert.ok(upload.includes('toggle-line'), 'pair uses existing soft toggle language');
+  assert.ok(upload.includes('Add lyrics'), 'Add lyrics label stays');
+  assert.ok(upload.includes('Optional — skip if you don’t need them.'), 'one muted optional helper under the pair');
   assert.ok(upload.includes('<label for="tg-lyrics">Lyrics</label>'));
   assert.ok(upload.includes('<textarea id="tg-lyrics"'));
   assert.ok(upload.includes('data-lyrics-field'));
@@ -60,10 +63,15 @@ function run() {
   assert.ok(!upload.includes('Optional, helps sync licensing'), 'instrumental helper copy is gone');
   assert.ok(!/dashbox checkline/.test(upload), 'Instrumental is not a dashed frame');
   assert.ok(!/<button[^>]*class="dashbox"/.test(upload), 'Lyrics is not a dashed button');
+  const optChunk = upload.slice(upload.indexOf('upload-opt-toggles'), upload.indexOf('tg-lyrics-panel'));
+  assert.ok(!/\*/.test(optChunk), 'no required asterisks on the optional pair');
+  assert.ok(!/aria-checked="true"/.test(optChunk), 'both toggles default off');
+  assert.ok(!/<input[^>]*\schecked(?:\s|>)/.test(optChunk), 'neither switch ships a checked attribute');
+  assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ly1'), 'upload cache-busts site.css at 20260912ly1');
-  assert.ok(upload.includes('store-client.js?v=20260912ly1'), 'upload cache-busts store-client.js at 20260912ly1');
+  assert.ok(upload.includes('site.css?v=20260912ly2'), 'upload cache-busts site.css at 20260912ly2');
+  assert.ok(upload.includes('store-client.js?v=20260912ly2'), 'upload cache-busts store-client.js at 20260912ly2');
 
   assert.ok(song.includes('id="edit-lyrics"'));
   assert.ok(song.includes('<label for="edit-lyrics">Lyrics</label>'));
@@ -93,23 +101,16 @@ function run() {
     if (lyricsOpen && lyricsOpen.setAttribute) lyricsOpen.setAttribute('aria-expanded', on ? 'true' : 'false');
   }
   function openLyrics() {
-    if (!lyricsField || (instrumental && instrumental.checked)) return;
+    if (!lyricsField) return;
     setLyricsOpenUi(true);
     setHiddenEl(lyricsField, false);
     if (lyricsInput && typeof lyricsInput.focus === 'function') lyricsInput.focus();
   }
   function syncInstrumental() {
-    const on = Boolean(instrumental && instrumental.checked);
-    setHiddenEl(lyricsOpen, on);
-    if (on) {
-      setHiddenEl(lyricsField, true);
-      setLyricsOpenUi(false);
-    } else if (!lyricsOpen.checked) {
-      setHiddenEl(lyricsField, true);
-    }
+    if (!lyricsOpen.checked) setHiddenEl(lyricsField, true);
   }
   lyricsOpen.addEventListener('change', function () {
-    if ((instrumental && instrumental.checked) || !lyricsOpen.checked) {
+    if (!lyricsOpen.checked) {
       setLyricsOpenUi(false);
       setHiddenEl(lyricsField, true);
       return;
@@ -122,25 +123,25 @@ function run() {
   assert.strictEqual(lyricsField.hidden, true, 'textarea starts closed');
   lyricsOpen.checked = true;
   lyricsOpen.listeners.change();
-  assert.strictEqual(lyricsField.hidden, false, 'Add lyrics checkbox opens the card');
+  assert.strictEqual(lyricsField.hidden, false, 'Add lyrics toggle opens the card');
   assert.strictEqual(lyricsOpen.getAttribute('aria-expanded'), 'true');
   assert.strictEqual(lyricsInput.focused, true);
   lyricsInput.value = 'Verse one\nI pasted this';
   assert.strictEqual(lyricsInput.value, 'Verse one\nI pasted this', 'textarea accepts paste');
   lyricsOpen.checked = false;
   lyricsOpen.listeners.change();
-  assert.strictEqual(lyricsField.hidden, true, 'unchecked Add lyrics hides the card');
+  assert.strictEqual(lyricsField.hidden, true, 'Add lyrics off hides the card');
   assert.strictEqual(lyricsInput.value, 'Verse one\nI pasted this', 'hide does not clear the existing field');
 
   lyricsOpen.checked = true;
   lyricsOpen.listeners.change();
   instrumental.checked = true;
   instrumental.listeners.change();
-  assert.strictEqual(lyricsField.hidden, true, 'instrumental hides lyrics');
-  assert.strictEqual(lyricsOpen.hidden, true);
-  lyricsOpen.checked = true;
+  assert.strictEqual(lyricsOpen.hidden, false, 'Instrumental does not hide Add lyrics — both stay independent');
+  assert.strictEqual(lyricsField.hidden, false, 'Add lyrics on still shows the card when Instrumental is also on');
+  lyricsOpen.checked = false;
   lyricsOpen.listeners.change();
-  assert.strictEqual(lyricsField.hidden, true, 'instrumental click must not require or open lyrics');
+  assert.strictEqual(lyricsField.hidden, true, 'Add lyrics off hides the card even if Instrumental is on');
 
   console.log('lyrics.page.test.js ok');
 }

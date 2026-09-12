@@ -4586,24 +4586,21 @@ body.app.artists-page .page {
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: none;
 }
-.upload-page .upload-opt-checks {
+.upload-page .upload-opt-toggles {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 28px;
+  gap: 4px 28px;
   margin-top: 14px;
 }
-.upload-page .upload-opt-checks .checkline {
+.upload-page .upload-opt-toggles .toggle-line {
   margin: 0;
-  align-items: center;
+  min-height: 36px;
   color: var(--muted);
-  font-size: 14px;
-  cursor: pointer;
 }
-.upload-page .upload-opt-checks .checkline input {
-  margin-top: 0;
-  width: 15px;
-  height: 15px;
+.upload-page .upload-opt-hint {
+  flex: 1 1 100%;
+  margin: 2px 0 0;
 }
 .upload-page .upload-lyrics-card {
   margin: 14px 0 0;

@@ -4726,10 +4726,23 @@
     return document.querySelector('[data-lyrics-open-wrap]') || lyricsOpenControl();
   }
 
+  function paintSwitch(el, on) {
+    if (!el) return;
+    var next = Boolean(on);
+    if ('checked' in el) el.checked = next;
+    if (el.setAttribute) {
+      el.setAttribute('aria-checked', next ? 'true' : 'false');
+    }
+    var knob = el.nextElementSibling;
+    if (knob && knob.classList && knob.classList.contains && knob.classList.contains('toggle')) {
+      if (knob.classList.toggle) knob.classList.toggle('on', next);
+    }
+  }
+
   function setLyricsOpenUi(on) {
     var open = lyricsOpenControl();
     if (!open) return;
-    if ('checked' in open) open.checked = Boolean(on);
+    paintSwitch(open, on);
     if (open.setAttribute) open.setAttribute('aria-expanded', on ? 'true' : 'false');
   }
 
@@ -4739,7 +4752,6 @@
   }
 
   function openLyricsField() {
-    if (selectedInstrumental()) return false;
     var field = document.querySelector('[data-lyrics-field]');
     if (!field) return false;
     setLyricsOpenUi(true);
@@ -4750,21 +4762,14 @@
   }
 
   function syncLyricsField(instrumental) {
-    var on = Boolean(instrumental);
     var field = document.querySelector('[data-lyrics-field]');
     var wraps = qsAll('[data-track-lyrics-wrap]');
     var i;
-    setHiddenEl(lyricsOpenWrap(), on);
-    if (on) {
-      setHiddenEl(field, true);
-      setLyricsOpenUi(false);
-    } else if (lyricsOpenIsOn()) {
-      setHiddenEl(field, false);
-    } else {
-      setHiddenEl(field, true);
-    }
+    var instEl = $('tg-instrumental') || document.querySelector('[data-instrumental]');
+    paintSwitch(instEl, selectedInstrumental());
+    setHiddenEl(field, !lyricsOpenIsOn());
     for (i = 0; i < wraps.length; i += 1) {
-      setHiddenEl(wraps[i], on);
+      setHiddenEl(wraps[i], Boolean(instrumental));
     }
   }
 
@@ -6136,11 +6141,11 @@
       restoreUploadDraft(savedDraft);
     }
     var instEl = $('tg-instrumental');
-    if (instEl && savedDraft.instrumental === true) instEl.checked = true;
+    if (instEl && savedDraft.instrumental === true) paintSwitch(instEl, true);
     var lyricsOpen = document.querySelector('[data-lyrics-open]');
     if (lyricsOpen && lyricsOpen.addEventListener) {
       lyricsOpen.addEventListener('change', function () {
-        if (selectedInstrumental() || !lyricsOpen.checked) {
+        if (!lyricsOpen.checked) {
           setLyricsOpenUi(false);
           setHiddenEl(document.querySelector('[data-lyrics-field]'), true);
           return;

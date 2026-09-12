@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912ly1" />
+  <link rel="stylesheet" href="site.css?v=20260912ly2" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -106,15 +106,18 @@
               <button class="play" type="button" data-audio-play aria-label="Play">▶</button>
             </div>
             <p class="hint" data-audio-preview-hint hidden>Play this file here to confirm it is the right master before you continue. It stays on this device only.</p>
-            <div class="upload-opt-checks">
-              <label class="checkline" for="tg-instrumental">
-                <input id="tg-instrumental" name="release-instrumental" type="checkbox" />
+            <div class="upload-opt-toggles">
+              <label class="toggle-line" for="tg-instrumental">
+                <input id="tg-instrumental" class="toggle-input" name="release-instrumental" type="checkbox" role="switch" aria-checked="false" />
+                <span class="toggle" aria-hidden="true"></span>
                 <span>Instrumental</span>
               </label>
-              <label class="checkline" for="tg-lyrics-open" data-lyrics-open-wrap>
-                <input id="tg-lyrics-open" name="release-add-lyrics" type="checkbox" data-lyrics-open aria-expanded="false" aria-controls="tg-lyrics-panel" />
+              <label class="toggle-line" for="tg-lyrics-open" data-lyrics-open-wrap>
+                <input id="tg-lyrics-open" class="toggle-input" name="release-add-lyrics" type="checkbox" role="switch" aria-checked="false" data-lyrics-open aria-expanded="false" aria-controls="tg-lyrics-panel" />
+                <span class="toggle" aria-hidden="true"></span>
                 <span>Add lyrics</span>
               </label>
+              <p class="hint upload-opt-hint">Optional — skip if you don’t need them.</p>
             </div>
             <div class="flow-card field lyrics-field upload-lyrics-card" id="tg-lyrics-panel" data-lyrics-field hidden>
               <label for="tg-lyrics">Lyrics</label>
@@ -300,7 +303,7 @@
   <script src="lib/object-hop.js"></script>
   <script src="lib/upload-leave.js?v=20260908d1"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
-  <script src="store-client.js?v=20260912ly1" defer></script>
+  <script src="store-client.js?v=20260912ly2" defer></script>
   <script src="lib/upload-stage.js?v=20260912s5"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
