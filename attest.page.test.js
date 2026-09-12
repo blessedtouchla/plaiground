@@ -234,15 +234,15 @@ function run() {
   TAGS.forEach(function (label) {
     assert.ok(html.indexOf(label) !== -1, 'missing tag ' + label);
   });
-  assert.ok(/class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</.test(html), 'Attest Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(html), 'Attest Cancel is a tiny icon with an accessible name');
   assert.ok(html.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(html.indexOf('lib/upload-cancel-overview.js?v=20260910c1') !== -1, 'Attest Cancel clears the draft and goes to Overview');
   assert.ok(html.indexOf('data-attest-continue') !== -1);
-  assert.ok(html.indexOf('id="attest-solo"') !== -1);
-  assert.ok(html.indexOf('I own 100% / I attest') !== -1);
-  assert.ok(html.indexOf('Other writers on this song?') !== -1);
-  assert.ok(html.indexOf('I directed this recording') !== -1);
-  assert.ok(html.indexOf('data-credits-card') !== -1);
+  assert.ok(html.indexOf('data-made-how="ai_assisted"') !== -1);
+  assert.ok(html.indexOf('id="attest-rights"') !== -1);
+  assert.ok(html.indexOf('data-human-section') !== -1);
+  assert.ok(html.indexOf('Continue to writers and splits') !== -1);
+  assert.ok(html.indexOf('data-have-problem') !== -1);
   assert.ok(html.indexOf('0 selected') !== -1);
   assert.ok(html.indexOf('4 selected') === -1);
   assert.ok(!/class="tag on"/.test(html), 'chips must not be preselected in HTML');

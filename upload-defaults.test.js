@@ -1177,9 +1177,9 @@ function run() {
   const attestHtmlCancel = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitHtmlCancel = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');
   assert.ok(attestHtmlCancel.indexOf('Save and exit') === -1, 'Attest Cancel must not say Save and exit');
-  assert.ok(/data-upload-cancel>Cancel</.test(attestHtmlCancel), 'Attest Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(attestHtmlCancel), 'Attest Cancel is a tiny icon with an accessible name');
   assert.ok(splitHtmlCancel.indexOf('Save and exit') === -1, 'Writers Cancel must not say Save and exit');
-  assert.ok(/data-upload-cancel>Cancel</.test(splitHtmlCancel), 'Writers Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(splitHtmlCancel), 'Writers Cancel is a tiny icon with an accessible name');
   assert.ok(!/if \(typeaheadApplying\) return/.test(catalogSrc), 'fillUploadSelects must not skip bind while a pick is applying');
   const bindFn = tonegridSrc.slice(tonegridSrc.indexOf('function bindUploadCatalog'), tonegridSrc.indexOf('function restoreUploadDraft'));
   assert.ok(bindFn.indexOf('plan') === -1, 'genre/language bind is not plan-gated');
@@ -1221,7 +1221,7 @@ function run() {
   assert.ok(!/id="tg-language"/.test(reviewHtml), 'Review language is confirm-only, picked on Upload');
   assert.ok(/data-review-genre/.test(reviewHtml), 'Review shows the Upload genre');
   assert.ok(/data-review-language/.test(reviewHtml), 'Review shows the Upload language');
-  assert.ok(/data-upload-cancel>Cancel</.test(reviewHtml), 'Submit review Cancel is a real button');
+  assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(reviewHtml), 'Submit review Cancel is a tiny icon with an accessible name');
   assert.ok(reviewHtml.indexOf('Save and exit') === -1, 'Submit review Cancel must not say Save and exit');
   assert.ok(reviewHtml.indexOf('upload-catalog.js') !== -1, 'Submit review loads the Creator catalog lists');
   assert.ok(reviewHtml.indexOf('lib/audio-accept.js') !== -1, 'Submit review loads audio accept');

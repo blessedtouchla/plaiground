@@ -7,8 +7,8 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css?v=20260912ae1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -18,13 +18,7 @@
     <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
   </div>
   <main class="page wrap-wide upload-page">
-    <div class="head-row">
-      <div>
-        <p class="kicker">Submit a song</p>
-        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Review and pay</h1>
-      </div>
-      <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
-    </div>
+    <h1 class="upload-hero" data-upload-kicker>Submit a song</h1>
     <div class="upload-progress-row">
       <nav class="stepper" aria-label="Release progress">
         <a class="st" href="upload.html"><b>Upload</b></a>
@@ -32,7 +26,16 @@
         <a class="st upload-step-splits sr-only" href="split-sheet.html"><b>Splits</b></a>
         <a class="st on" href="review.html" aria-current="step"><b>Review</b></a>
       </nav>
+      <div class="upload-leave-actions">
+        <button type="button" class="btn btn-ghost btn-sm upload-leave-icon" data-upload-cancel aria-label="Cancel" title="Cancel">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.2 2.2l7.6 7.6M9.8 2.2l-7.6 7.6"/></svg>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm upload-leave-icon" data-upload-start-over aria-label="Start over" title="Start over">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9.6 6A3.6 3.6 0 1 1 8.4 3.1"/><path d="M8.1 1.6v2.2h2.2"/></svg>
+        </button>
+      </div>
     </div>
+    <p class="upload-page-label sr-only">Review</p>
     <div class="review-grid">
       <div>
         <section class="flow-card">
@@ -66,6 +69,7 @@
           <div class="field date-picker-field">
             <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Release date" aria-describedby="tg-release-date-hint" />
           </div>
+          <p class="hint upload-opt-hint">Optional — skip if you don’t need them</p>
           <label class="toggle-line" for="tg-preorder-on">
             <input id="tg-preorder-on" class="toggle-input" type="checkbox" role="switch" aria-checked="false" aria-controls="tg-preorder-panel" />
             <span class="toggle" aria-hidden="true"></span>
@@ -158,7 +162,7 @@
     </section>
     <div class="flow-actions">
       <a class="btn btn-ghost btn-md" href="split-sheet.html">Back</a>
-      <a class="btn btn-yellow btn-md" data-store-submit href="submitted.html">Submit</a>
+      <a class="btn btn-gold btn-md" data-store-submit href="submitted.html">Submit</a>
     </div>
     <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
     <p class="hint" id="tg-status" hidden style="margin-top:12px"></p>
@@ -181,6 +185,7 @@
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
+  <script src="lib/upload-leave.js?v=20260912ly5"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/solo-credits-stamp.js?v=20260905s1"></script>
   <script src="upload-catalog.js"></script>

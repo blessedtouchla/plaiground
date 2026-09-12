@@ -6,8 +6,8 @@
   <title>Attest rights – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css?v=20260912ae1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -17,6 +17,7 @@
     <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
   </div>
   <main class="page wrap-wide upload-page">
+    <h1 class="upload-hero" data-upload-kicker>Submit a song</h1>
     <div class="upload-progress-row">
       <nav class="stepper" aria-label="Release progress">
         <a class="st" href="upload.html"><b>Upload</b></a>
@@ -24,14 +25,16 @@
         <a class="st upload-step-splits sr-only" href="split-sheet.html"><b>Splits</b></a>
         <a class="st" href="review.html"><b>Review</b></a>
       </nav>
-    </div>
-    <div class="head-row">
-      <div>
-        <p class="kicker">Submit a song</p>
-        <h1 style="font-size:2.2rem;letter-spacing:-0.04em;font-weight:800">Attest rights</h1>
+      <div class="upload-leave-actions">
+        <button type="button" class="btn btn-ghost btn-sm upload-leave-icon" data-upload-cancel aria-label="Cancel" title="Cancel">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.2 2.2l7.6 7.6M9.8 2.2l-7.6 7.6"/></svg>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm upload-leave-icon" data-upload-start-over aria-label="Start over" title="Start over">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9.6 6A3.6 3.6 0 1 1 8.4 3.1"/><path d="M8.1 1.6v2.2h2.2"/></svg>
+        </button>
       </div>
-      <button type="button" class="btn btn-ghost btn-sm" data-upload-cancel>Cancel</button>
     </div>
+    <p class="upload-page-label sr-only">Attest</p>
 
     <section class="flow-card">
       <p class="kicker" style="color:var(--muted)">Required by most stores</p>
@@ -87,13 +90,14 @@
 
     <div class="flow-actions">
       <a class="btn btn-ghost btn-md" href="upload.html">Back</a>
-      <a class="btn btn-purple btn-md" data-attest-continue href="split-sheet.html">Continue to writers and splits</a>
+      <a class="btn btn-gold btn-md" data-attest-continue href="split-sheet.html">Continue to writers and splits</a>
     </div>
     <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
     <p class="hint" id="attest-status" hidden></p>
   </main>
   <script src="account.js?v=20260910live1"></script>
   <script src="lib/upload-cancel-overview.js?v=20260910c1"></script>
+  <script src="lib/upload-leave.js?v=20260912ly5"></script>
   <script src="lib/upload-required.js"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/release-credits.js?v=20260908d1"></script>
