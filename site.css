@@ -4870,7 +4870,7 @@ button.stage-chip {
   }
 }
 
-/* —— Upload header stage (progress pills + type line + tiny leave) —— */
+/* —— Upload header stage (quiet text steps + type line + tiny leave) —— */
 .upload-page .upload-progress-row {
   display: flex;
   align-items: flex-start;
@@ -4882,7 +4882,7 @@ button.stage-chip {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   margin: 0;
   grid-template-columns: none;
   min-width: 0;
@@ -4891,55 +4891,45 @@ button.stage-chip {
 .upload-page .st {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  padding: 6px 14px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   color: var(--muted);
   cursor: default;
-  font-family: "Space Grotesk", Inter, sans-serif;
+  font-family: inherit;
 }
-.upload-page .st::before,
-.upload-page .st::after {
+.upload-page .st::before {
   content: none;
+}
+.upload-page .st:not(:last-child)::after {
+  content: "·";
+  margin: 0 10px;
+  color: rgba(255, 255, 255, 0.28);
+  font-weight: 700;
+  letter-spacing: 0;
 }
 .upload-page .st b {
   display: inline;
-  font-family: "Space Grotesk", Inter, sans-serif;
-  font-size: 13px;
+  font-family: inherit;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 .upload-page .st.on {
-  border-color: transparent;
+  background: none;
 }
 .upload-page .st.on b {
-  color: inherit;
-}
-.upload-page .st:nth-child(1).on {
-  background: var(--purple);
-  color: #fff;
-}
-.upload-page .st:nth-child(2).on {
-  background: var(--magenta);
-  color: #fff;
-}
-.upload-page .st:nth-child(3).on {
-  background: var(--gold);
-  color: #111;
-}
-.upload-page .st:nth-child(4).on {
-  background: var(--green);
-  color: #111;
+  color: #e8e8ee;
 }
 .upload-page a.st:hover,
 .upload-page .st[role="link"]:hover {
   outline: none;
 }
 .upload-page a.st:hover b {
-  color: inherit;
+  color: #e8e8ee;
 }
 .upload-page .st span {
   display: none;
@@ -5039,4 +5029,22 @@ button.stage-chip {
     width: auto;
     padding-top: 2px;
   }
+}
+
+/* —— Upload sleeve helper quiet (chips + BUILDING YOUR RELEASE stay) —— */
+.upload-page .release-stage-drop,
+.upload-page .release-stage-audio .audio-drop {
+  color: rgba(255, 255, 255, 0.22);
+  font-size: 11px;
+  margin-top: 8px;
+}
+.upload-page .release-stage-drop span,
+.upload-page .release-stage-audio .audio-drop span {
+  display: none;
+}
+.upload-page .release-stage-hero [data-art-meta],
+.upload-page .release-stage-hero .release-stage-missing {
+  font-size: 11px;
+  opacity: 0.4;
+  max-width: 280px;
 }
