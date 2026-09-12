@@ -75,11 +75,11 @@ function run() {
   assert.ok(!/type="radio"/.test(optChunk), 'pair is not a pick-one radio');
   assert.ok(upload.includes('Type or paste lyrics'));
   assert.ok(upload.includes('.srt') || upload.includes('.lrc'), 'timed-file hint can stay as secondary');
-  assert.ok(upload.includes('site.css?v=20260912ca2'), 'upload cache-busts site.css at 20260912ca2');
+  assert.ok(upload.includes('site.css?v=20260912cr1'), 'upload cache-busts site.css at 20260912cr1');
   assert.ok(!upload.includes('site.css?v=20260912ly8'), 'upload must cache-bust past 20260912ly8');
   assert.ok(!upload.includes('site.css?v=20260912tc1'), 'upload must cache-bust past 20260912tc1');
   assert.ok(/upload-stage-caption sr-only/.test(upload), 'sleeve helpers do not force a read');
-  assert.ok(upload.includes('store-client.js?v=20260912tc3'), 'upload cache-busts store-client.js at 20260912tc3');
+  assert.ok(upload.includes('store-client.js?v=20260912cr1'), 'upload cache-busts store-client.js at 20260912cr1');
   assert.ok(!/<button[^>]*data-audio-play/.test(upload), 'single-upload chip has no extra play');
   assert.ok(upload.includes('data-audio-clear>Clear<'), 'attached audio Clear matches cover language');
   assert.ok(upload.includes('upload-audio-splat'), 'empty drop has a soft splat mark');

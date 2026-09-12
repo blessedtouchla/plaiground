@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912ca2" />
+  <link rel="stylesheet" href="site.css?v=20260912cr1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -145,7 +145,7 @@
     <section class="flow-card upload-credits-card" id="upload-credits" data-upload-artist data-upload-credits>
       <h3>Artist</h3>
       <p class="hint" data-artist-copy>Choose who this song is released under. Profiles hold photo, bio, and genres.</p>
-      <div class="field">
+      <div class="field" data-artist-mode-field hidden>
         <label for="tg-artist-mode" data-artist-mode-label>Artist for this song</label>
         <select id="tg-artist-mode" class="details-select" autocomplete="off">
           <option value="choose">Choose artist profile</option>
@@ -153,8 +153,8 @@
           <option value="link">Import an existing artist</option>
         </select>
       </div>
-      <div id="artist-choose-wrap" class="field" style="margin-top:14px">
-        <label for="tg-artist-select">Choose artist profile</label>
+      <div id="artist-choose-wrap" class="field">
+        <label for="tg-artist-select" class="sr-only">Artist</label>
         <select id="tg-artist-select" class="details-select" autocomplete="off">
           <option value="">Select an artist</option>
         </select>
@@ -294,7 +294,7 @@
   <script src="lib/upload-required.js"></script>
   <script src="lib/release-credits.js?v=20260908d1"></script>
   <script src="lib/upload-draft-files.js?v=20260912ly6"></script>
-  <script src="lib/upload-credits.js?v=20260908d1"></script>
+  <script src="lib/upload-credits.js?v=20260912cr1"></script>
   <script src="lib/artist-check.js"></script>
   <script src="lib/audio-accept.js?v=20260912tc3"></script>
   <script src="lib/upload-audio-bind.js?v=20260912tc3"></script>
@@ -306,7 +306,7 @@
   <script src="lib/object-hop.js"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>
-  <script src="store-client.js?v=20260912tc3" defer></script>
+  <script src="store-client.js?v=20260912cr1" defer></script>
   <script src="lib/upload-stage.js?v=20260912s7"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

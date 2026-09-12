@@ -5473,7 +5473,7 @@ button.stage-chip {
 }
 .upload-page .stage-step.chip-credits.is-on,
 .upload-page .stage-step.chip-send.is-on {
-  color: var(--muted-2);
+  color: var(--stage-blue);
   background: none;
   border: 0;
   box-shadow: none;
@@ -5513,6 +5513,38 @@ button.stage-chip {
   margin: 0 0 14px;
 }
 .upload-page [data-upload-artist] .field label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--muted);
+}
+
+/* —— Upload Credits Tesla cut (one picker + sentence-case + Logo Blue steps) —— */
+.upload-page [data-artist-mode-field] {
+  display: none !important;
+}
+.upload-page [data-upload-artist] #artist-choose-wrap {
+  margin-top: 0;
+}
+.upload-page .upload-credits-card h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.upload-page .upload-credits-card > .hint {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.upload-page .upload-credits-card .field label {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
