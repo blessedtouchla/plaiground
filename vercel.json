@@ -25,6 +25,18 @@
       "permanent": true
     },
     {
+      "source": "/login",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/login",
+      "permanent": true
+    },
+    {
+      "source": "/login/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/login",
+      "permanent": true
+    },
+    {
       "source": "/pricing.html",
       "destination": "/index.html#pricing",
       "permanent": true
@@ -101,6 +113,18 @@
     },
     {
       "source": "/store-client.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/membership.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/login.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
       ]
