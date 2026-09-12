@@ -5434,3 +5434,67 @@ button.stage-chip {
   background: #16161c;
   color: var(--muted);
 }
+
+/* —— Upload leftover: quiet Credits/Send chips + Artist card —— */
+.upload-page .stage-chip.chip-credits,
+.upload-page .stage-chip.chip-send {
+  min-height: 28px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.upload-page .stage-chip.chip-credits:hover,
+.upload-page .stage-chip.chip-send:hover {
+  color: var(--muted-2);
+  border-color: rgba(255, 255, 255, 0.28);
+  background: transparent;
+  box-shadow: none;
+}
+.upload-page .stage-chip.chip-credits.is-on {
+  color: var(--stage-blue);
+  border-color: var(--stage-blue);
+  background: transparent;
+  box-shadow: none;
+}
+.upload-page .stage-chip.chip-send.is-on {
+  color: var(--stage-gold);
+  border-color: var(--stage-gold);
+  background: transparent;
+  box-shadow: none;
+}
+.upload-page [data-upload-artist] {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+.upload-page [data-upload-artist] h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.upload-page [data-upload-artist] > .hint,
+.upload-page [data-upload-artist] [data-artist-copy] {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+.upload-page [data-upload-artist] .field label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--muted);
+}

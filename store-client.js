@@ -5647,8 +5647,8 @@
     if (titleLabel) titleLabel.textContent = album ? 'Album title' : 'Song title';
     if (artistCopy) {
       artistCopy.textContent = album
-        ? 'Choose who this album is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.'
-        : 'Choose who this song is released under. A new name is enough here — photo, bio, and genres live on Artist Profiles.';
+        ? 'Choose who this album is released under. Profiles hold photo, bio, and genres.'
+        : 'Choose who this song is released under. Profiles hold photo, bio, and genres.';
     }
     if (artistMode) artistMode.textContent = album ? 'Artist for this album' : 'Artist for this song';
     var titleInput = $('tg-title');
