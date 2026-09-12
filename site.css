@@ -5438,13 +5438,13 @@ button.stage-chip {
 /* —— Upload leftover: quiet Credits/Send chips + Artist card —— */
 .upload-page .stage-chip.chip-credits,
 .upload-page .stage-chip.chip-send {
-  min-height: 28px;
-  padding: 5px 12px;
+  min-height: 32px;
+  padding: 6px 12px;
   background: transparent;
   color: var(--muted);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: none;
@@ -5461,12 +5461,14 @@ button.stage-chip {
   border-color: var(--stage-blue);
   background: transparent;
   box-shadow: none;
+  font-weight: 700;
 }
 .upload-page .stage-chip.chip-send.is-on {
   color: var(--stage-gold);
   border-color: var(--stage-gold);
   background: transparent;
   box-shadow: none;
+  font-weight: 700;
 }
 .upload-page [data-upload-artist] {
   background: #0a0a0a;
