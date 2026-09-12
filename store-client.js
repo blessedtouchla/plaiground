@@ -4718,31 +4718,58 @@
     if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', Boolean(hidden));
   }
 
+  function lyricsOpenControl() {
+    return document.querySelector('[data-lyrics-open]');
+  }
+
+  function lyricsOpenWrap() {
+    return document.querySelector('[data-lyrics-open-wrap]') || lyricsOpenControl();
+  }
+
+  function paintSwitch(el, on) {
+    if (!el) return;
+    var next = Boolean(on);
+    if ('checked' in el) el.checked = next;
+    if (el.setAttribute) {
+      el.setAttribute('aria-checked', next ? 'true' : 'false');
+    }
+    var knob = el.nextElementSibling;
+    if (knob && knob.classList && knob.classList.contains && knob.classList.contains('toggle')) {
+      if (knob.classList.toggle) knob.classList.toggle('on', next);
+    }
+  }
+
+  function setLyricsOpenUi(on) {
+    var open = lyricsOpenControl();
+    if (!open) return;
+    paintSwitch(open, on);
+    if (open.setAttribute) open.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  function lyricsOpenIsOn() {
+    var open = lyricsOpenControl();
+    return Boolean(open && open.checked);
+  }
+
   function openLyricsField() {
-    if (selectedInstrumental()) return false;
     var field = document.querySelector('[data-lyrics-field]');
-    var open = document.querySelector('[data-lyrics-open]');
     if (!field) return false;
+    setLyricsOpenUi(true);
     setHiddenEl(field, false);
-    if (open && open.setAttribute) open.setAttribute('aria-expanded', 'true');
     var el = $('tg-lyrics');
     if (el && typeof el.focus === 'function') el.focus();
     return true;
   }
 
   function syncLyricsField(instrumental) {
-    var on = Boolean(instrumental);
-    var open = document.querySelector('[data-lyrics-open]');
     var field = document.querySelector('[data-lyrics-field]');
     var wraps = qsAll('[data-track-lyrics-wrap]');
     var i;
-    setHiddenEl(open, on);
-    if (on) {
-      setHiddenEl(field, true);
-      if (open && open.setAttribute) open.setAttribute('aria-expanded', 'false');
-    }
+    var instEl = $('tg-instrumental') || document.querySelector('[data-instrumental]');
+    paintSwitch(instEl, selectedInstrumental());
+    setHiddenEl(field, !lyricsOpenIsOn());
     for (i = 0; i < wraps.length; i += 1) {
-      setHiddenEl(wraps[i], on);
+      setHiddenEl(wraps[i], Boolean(instrumental));
     }
   }
 
@@ -5668,11 +5695,10 @@
       + '<textarea data-track-lyrics rows="4" placeholder="Type or paste lyrics" autocomplete="off"></textarea>'
       + '<p class="hint">Optional. Timed .srt or .lrc can be added later.</p></div>'
       + '<label class="dashbox audio-drop" data-audio-drop>Drop WAV, FLAC, or MP3 here'
-      + '<span>16-bit or higher · MP3 is converted to WAV before it goes to stores</span>'
-      + '<input type="file" accept="audio/*,.wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input /></label>'
+      + '<input type="file" accept=".wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg" hidden data-audio-input /></label>'
       + '<div class="audio-bar" data-audio-preview hidden><div>'
       + '<b data-audio-name>No file selected</b>'
-      + '<div style="color:var(--muted);font-size:12px" data-audio-meta>WAV, FLAC, or MP3 · 16-bit or higher</div></div>'
+      + '<div style="color:var(--muted);font-size:12px" data-audio-meta></div></div>'
       + '<audio data-audio-player controls preload="metadata"></audio>'
       + '<button class="play" type="button" data-audio-play aria-label="Play">▶</button></div>';
     list.appendChild(row);
@@ -6114,11 +6140,15 @@
       restoreUploadDraft(savedDraft);
     }
     var instEl = $('tg-instrumental');
-    if (instEl && savedDraft.instrumental === true) instEl.checked = true;
+    if (instEl && savedDraft.instrumental === true) paintSwitch(instEl, true);
     var lyricsOpen = document.querySelector('[data-lyrics-open]');
     if (lyricsOpen && lyricsOpen.addEventListener) {
-      lyricsOpen.addEventListener('click', function (event) {
-        event.preventDefault();
+      lyricsOpen.addEventListener('change', function () {
+        if (!lyricsOpen.checked) {
+          setLyricsOpenUi(false);
+          setHiddenEl(document.querySelector('[data-lyrics-field]'), true);
+          return;
+        }
         openLyricsField();
       });
     }

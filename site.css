@@ -4580,10 +4580,58 @@ body.app.artists-page .page {
   padding: 14px 18px;
 }
 .upload-page .upload-quiet-card,
-.upload-page .upload-credits-card {
+.upload-page .upload-credits-card,
+.upload-page .upload-lyrics-card {
   background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: none;
+}
+.upload-page .upload-opt-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 22px;
+  margin-top: 6px;
+}
+.upload-page .upload-opt-toggles .toggle-line {
+  margin: 0;
+  min-height: 28px;
+  color: var(--muted-2);
+}
+.upload-page .upload-opt-toggles .toggle-input {
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  clip: rect(0, 0, 0, 0);
+}
+.upload-page .upload-opt-toggles .toggle {
+  display: inline-block;
+}
+.upload-page .upload-opt-hint {
+  flex: 1 1 100%;
+  margin: 0;
+}
+.upload-page .upload-audio-splat {
+  display: block;
+  width: 26px;
+  height: 20px;
+  margin: 0 auto;
+  border-radius: 62% 38% 58% 42%;
+  background:
+    radial-gradient(circle at 32% 38%, rgba(208, 48, 131, 0.92) 0 42%, transparent 58%),
+    radial-gradient(circle at 72% 52%, rgba(120, 47, 177, 0.88) 0 40%, transparent 60%),
+    radial-gradient(circle at 50% 78%, rgba(208, 48, 131, 0.42) 0 36%, transparent 58%);
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+.upload-page .upload-lyrics-card {
+  margin: 8px 0 0;
+  width: 100%;
+}
+.upload-page .upload-lyrics-card[hidden] {
+  display: none !important;
 }
 .release-stage {
   margin: 10px 0 28px;
@@ -4756,7 +4804,7 @@ button.stage-chip {
   clip: rect(0, 0, 0, 0);
 }
 .release-sleeve-actions {
-  margin: 12px 0 0;
+  margin: 6px 0 0;
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -4771,7 +4819,7 @@ button.stage-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   min-width: 0;
 }
 .release-wave {
@@ -4786,20 +4834,59 @@ button.stage-chip {
 }
 .release-stage-missing {
   margin: 0;
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: none;
   text-align: center;
   max-width: 420px;
-  line-height: 1.45;
+  line-height: 1.4;
+  opacity: 1;
+}
+.upload-page [data-audio-preview-hint],
+.upload-page .upload-opt-hint,
+.upload-page [data-stage-send-hint] {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--muted-2);
+  opacity: 1;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+.release-stage-hero [data-art-meta].is-error {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 4px 0 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  color: var(--magenta);
+  font-size: 12px;
 }
 .release-stage-missing.is-ready {
   color: var(--stage-gold);
+}
+.release-stage-hero .release-stage-missing.sr-only,
+.release-stage-hero [data-art-meta].sr-only:not(.is-error) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .release-stage-hairline {
   display: block;
   width: min(320px, 78vw);
   height: 0;
-  margin: 16px auto 0;
+  margin: 8px auto 0;
   border: 0;
   border-top: 1px solid #f3cb47;
   opacity: 0.92;
@@ -4807,11 +4894,21 @@ button.stage-chip {
 .release-stage-audio {
   width: min(420px, 100%);
 }
+.release-stage-audio .audio-bar {
+  gap: 10px;
+  margin: 4px auto 0;
+  padding: 8px 12px;
+}
+.release-stage-audio [data-audio-clear] {
+  flex: 0 0 auto;
+  margin: 0;
+}
 .release-stage-audio .audio-drop,
 .release-stage-drop {
   display: block;
-  margin: 8px auto 0;
-  padding: 0;
+  margin: 4px auto 0;
+  padding: 8px 16px;
+  min-height: 40px;
   border: 0;
   background: none;
   box-shadow: none;
@@ -4823,18 +4920,22 @@ button.stage-chip {
   letter-spacing: 0;
   line-height: 1.45;
 }
-.release-stage-audio .audio-drop span,
-.release-stage-drop span {
+.release-stage-audio .audio-drop .upload-audio-splat,
+.release-stage-drop .upload-audio-splat {
   display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--muted);
+  margin: 0 auto;
 }
 .release-stage-audio .audio-drop.is-over,
 .release-stage-drop.is-over {
   border: 0;
   box-shadow: none;
   color: var(--stage-gold);
+}
+.release-stage-audio .audio-drop[hidden],
+.release-stage-drop[hidden],
+.release-stage-audio .audio-bar[hidden],
+.upload-page [data-audio-preview-hint][hidden] {
+  display: none !important;
 }
 .upload-page .upload-continue-row + [data-stage-send-hint] {
   margin-top: 10px;
