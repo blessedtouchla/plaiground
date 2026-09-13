@@ -2,9 +2,11 @@
   var MEMBERSHIP_KEY = 'plaigroundMembership';
   var SIGNED_IN_KEY = 'plaigroundSignedIn';
   var SIGNED_IN_AT_KEY = 'plaigroundSignedInAt';
+  var REMEMBER_KEY = 'plaigroundRemember';
   var SESSION_KEY = 'plaigroundStripeSession';
   var PENDING_KEY = 'plaigroundMembershipPending';
   var SESSION_TTL_MS = 30 * 60 * 1000;
+  var REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
   var VALID = { basic: true, creator: true, pro: true };
   var PAID = { creator: true, pro: true };
   var LOGIN = 'login.html';
@@ -86,26 +88,36 @@
     return normalizePlan(storeGet(MEMBERSHIP_KEY));
   }
 
-  function recordSignedIn() {
+  function wantsRemember() {
+    var value = String(storeGet(REMEMBER_KEY) || '').toLowerCase();
+    return value === '1' || value === 'true' || value === 'yes';
+  }
+
+  function recordSignedIn(options) {
     storeSet(SIGNED_IN_KEY, '1');
     storeSet(SIGNED_IN_AT_KEY, String(Date.now()));
+    if (options && Object.prototype.hasOwnProperty.call(options, 'remember')) {
+      storeSet(REMEMBER_KEY, options.remember ? '1' : '');
+    }
     return true;
   }
 
   function clearSignedIn() {
     storeSet(SIGNED_IN_KEY, '');
     storeSet(SIGNED_IN_AT_KEY, '');
+    storeSet(REMEMBER_KEY, '');
   }
 
   function signedInFresh() {
     var value = String(storeGet(SIGNED_IN_KEY) || '').toLowerCase();
     if (value !== '1' && value !== 'true' && value !== 'yes') return false;
     var at = Number(storeGet(SIGNED_IN_AT_KEY) || 0);
+    var ttl = wantsRemember() ? REMEMBER_TTL_MS : SESSION_TTL_MS;
     if (!at) {
       storeSet(SIGNED_IN_AT_KEY, String(Date.now()));
       return true;
     }
-    if (Date.now() - at > SESSION_TTL_MS) {
+    if (Date.now() - at > ttl) {
       if (hasSessionCookie()) {
         storeSet(SIGNED_IN_AT_KEY, String(Date.now()));
         return true;
@@ -467,6 +479,7 @@
     storeGet(MEMBERSHIP_KEY);
     storeGet(SIGNED_IN_KEY);
     storeGet(SIGNED_IN_AT_KEY);
+    storeGet(REMEMBER_KEY);
     storeGet(SESSION_KEY);
     storeGet(PENDING_KEY);
   }

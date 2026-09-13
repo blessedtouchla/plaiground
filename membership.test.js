@@ -544,6 +544,37 @@ function run() {
   assert.strictEqual(basicClick.localStorage.getItem('plaigroundSignedIn'), '1');
   assert.ok(Number(basicClick.localStorage.getItem('plaigroundSignedInAt')) > 0);
   assert.strictEqual(basicClick.api.hasMembership(), true);
+  assert.strictEqual(basicClick.localStorage.getItem('plaigroundRemember'), null, 'unchecked keep-me-signed-in stays short-lived');
+
+  const keepSigned = load({
+    require: true,
+    seedLocal: {
+      plaigroundSignedIn: '1',
+      plaigroundSignedInAt: String(Date.now() - (31 * 60 * 1000)),
+      plaigroundRemember: '1',
+      plaigroundMembership: 'basic',
+    },
+    accountResponses: [
+      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+    ],
+  });
+  assert.strictEqual(keepSigned.api.isSignedIn(), true, 'Keep me signed in stays past the 30-minute session window');
+  assert.strictEqual(keepSigned.api.hasMembership(), true);
+
+  const staleSession = load({
+    require: true,
+    seedLocal: {
+      plaigroundSignedIn: '1',
+      plaigroundSignedInAt: String(Date.now() - (31 * 60 * 1000)),
+      plaigroundMembership: 'basic',
+    },
+    accountResponses: [
+      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+      { ok: false, status: 401, data: { error: 'Sign in required.' } },
+    ],
+  });
+  assert.strictEqual(staleSession.api.isSignedIn(), false, 'unchecked keep-me-signed-in expires after 30 minutes without a cookie');
 
   const invented = load();
   invented.api.recordPaidMembership('enterprise', '');
