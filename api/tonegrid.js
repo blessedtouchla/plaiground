@@ -422,6 +422,71 @@ function preferFuegoLeftoverTrackId(tracks) {
   return preferLeftoverTrackId(tracks);
 }
 
+function isPreferredLeftoverTrackId(id) {
+  return PREFERRED_LEFTOVER_TRACK_IDS.some((want) => sameCatalogId(want, id));
+}
+
+function releaseTrackIdList(row) {
+  const tracks = row && Array.isArray(row.tracks) ? row.tracks : [];
+  const out = [];
+  const seen = {};
+  tracks.forEach((tr) => {
+    const tid = trackIdFromRow(tr);
+    if (!tid) return;
+    const key = tid.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push(tid);
+  });
+  return out;
+}
+
+function trackIdOnRelease(trackId, row) {
+  const want = String(trackId || '').trim();
+  if (!isUuid(want)) return '';
+  const ids = releaseTrackIdList(row);
+  for (let i = 0; i < ids.length; i += 1) {
+    if (sameCatalogId(ids[i], want)) return want;
+  }
+  return '';
+}
+
+function trustedBodyTrackId(bodyId, row) {
+  const id = String(bodyId || '').trim();
+  if (trackIdOnRelease(id, row)) return id;
+  if (isPreferredLeftoverTrackId(id) && !releaseTrackIdList(row).length) return id;
+  return '';
+}
+
+function resolveHopTrackId(body, row) {
+  const bodyId = trustedBodyTrackId(body && (body.track_id || body.trackId), row);
+  if (bodyId) return bodyId;
+  return preferLeftoverTrackId(row && row.tracks) || releaseTrackIdList(row)[0] || '';
+}
+
+function collectSubmitTrackIds(row, body) {
+  const ids = [];
+  const seen = {};
+  function add(id) {
+    const tid = String(id || '').trim();
+    if (!isUuid(tid)) return;
+    const key = tid.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    ids.push(tid);
+  }
+  releaseTrackIdList(row).forEach(add);
+  const bodyId = trustedBodyTrackId(body && (body.track_id || body.trackId), row);
+  if (bodyId) add(bodyId);
+  if (body && Array.isArray(body.track_ids)) {
+    body.track_ids.forEach((tid) => {
+      const trusted = trustedBodyTrackId(tid, row);
+      if (trusted) add(trusted);
+    });
+  }
+  return ids;
+}
+
 async function leftoverTracksForContinue(releaseId) {
   const loaded = await fetchStoreReleaseRaw(releaseId);
   let tracks = pickTracks(loaded.row);
@@ -1203,16 +1268,7 @@ async function hopSubmitAudio(scope, trackId, hopKey) {
 async function hopSubmitAssets(scope, releaseId, body, row) {
   const artKey = String((body && (body.artwork_object_key || body.artworkObjectKey)) || '').trim();
   const audioKey = String((body && (body.audio_object_key || body.audioObjectKey)) || '').trim();
-  let trackId = String((body && (body.track_id || body.trackId)) || '').trim();
-  if (!isUuid(trackId) && row && Array.isArray(row.tracks)) {
-    for (let i = 0; i < row.tracks.length; i += 1) {
-      const tid = String((row.tracks[i] && (row.tracks[i].uuid || row.tracks[i].id)) || '').trim();
-      if (isUuid(tid)) {
-        trackId = tid;
-        break;
-      }
-    }
-  }
+  let trackId = resolveHopTrackId(body, row);
   let audioOk = uploadRequired.releaseHasStoreAudio(row);
   let coverOk = uploadRequired.releaseHasStoreCover(row);
   if (artKey) {
@@ -2059,6 +2115,7 @@ async function createTrack(req, res) {
         sendJson(res, attached.status, attached.data);
         return;
       }
+      await accounts.updateCatalog(scope.userId, { trackId: continueTrackId });
       sendJson(res, 200, { uuid: continueTrackId, continued: true });
       return;
     }
@@ -3419,15 +3476,7 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   await persistReleaseMeta(scope.row, releaseId, null, undefined, '', '', storeCredits.storedCreditFields(hopCreditsEarly));
-  const earlyTrackIds = [];
-  (row.tracks || []).forEach((tr) => {
-    const tid = tr && (tr.uuid || tr.id);
-    if (tid) earlyTrackIds.push(String(tid));
-  });
-  if (body && body.track_id) earlyTrackIds.push(String(body.track_id));
-  if (body && Array.isArray(body.track_ids)) {
-    body.track_ids.forEach((tid) => earlyTrackIds.push(String(tid)));
-  }
+  const earlyTrackIds = collectSubmitTrackIds(row, body);
   if (!leftoverSend && songwriterEarly && !songwriterEarly.error) {
     const seenEarly = {};
     for (let i = 0; i < earlyTrackIds.length; i += 1) {
@@ -3511,15 +3560,7 @@ async function submitRelease(req, res, releaseId) {
     sendJson(res, credited.status, credited.data);
     return;
   }
-  const trackIds = [];
-  (row.tracks || []).forEach((tr) => {
-    const tid = tr && (tr.uuid || tr.id);
-    if (tid) trackIds.push(String(tid));
-  });
-  if (body && body.track_id) trackIds.push(String(body.track_id));
-  if (body && Array.isArray(body.track_ids)) {
-    body.track_ids.forEach((tid) => trackIds.push(String(tid)));
-  }
+  const trackIds = collectSubmitTrackIds(row, body);
   const seenTracks = {};
   const aiFields = storeAi.trackAiFields(body);
   for (let i = 0; i < trackIds.length; i += 1) {
@@ -3660,6 +3701,7 @@ async function releaseArtwork(req, res, releaseId) {
 
 async function trackOwned(scope, trackId) {
   if (idAllowed(scope.trackAllow, trackId)) return true;
+  if (isPreferredLeftoverTrackId(trackId)) return true;
   for (let i = 0; i < scope.releaseIds.length; i += 1) {
     const loaded = await fetchReleaseRow(scope.releaseIds[i]);
     const tracks = loaded.row && loaded.row.tracks ? loaded.row.tracks : [];

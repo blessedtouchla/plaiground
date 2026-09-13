@@ -1136,9 +1136,13 @@
     };
   }
 
+  function isTrackGoneError(text) {
+    return /track not found/i.test(String(text || ''));
+  }
+
   function isMissingTrackError(result) {
     var msg = String((result && result.data && (result.data.error || result.data.message)) || '');
-    return /at least one track|add (a |one )?track|no tracks/i.test(msg);
+    return /at least one track|add (a |one )?track|no tracks/i.test(msg) || isTrackGoneError(msg);
   }
 
   function recoverUploadMessage() {
@@ -1392,7 +1396,7 @@
     });
     if (!ids.length) return draft;
     var patch = {};
-    if (!draft.track_id) patch.track_id = ids[0];
+    if (!draft.track_id || !trackIdOnStore(draft.track_id, ordered)) patch.track_id = ids[0];
     if (draft.type !== 'album' && flagOn(draft.audio_uploaded)) patch.audio_uploaded = true;
     if (draft.type === 'album') {
       var stored = Array.isArray(draft.tracks) ? draft.tracks.slice() : [];
@@ -2199,6 +2203,16 @@
     return preferLeftoverTrack(tracks);
   }
 
+  function isPreferredLeftoverTrackId(id) {
+    var want = String(id || '').trim();
+    if (!want) return false;
+    var i;
+    for (i = 0; i < PREFERRED_LEFTOVER_TRACK_IDS.length; i += 1) {
+      if (sameUuid(PREFERRED_LEFTOVER_TRACK_IDS[i], want)) return true;
+    }
+    return false;
+  }
+
   function fallbackTracksForKnownTitle(draft) {
     if (sameSongText((draft && draft.title) || '', 'I Set the Tone')) {
       return [{ uuid: 'afce23fb-aa5f-42ac-94ae-2ce58bf48402', title: 'I Set the Tone', status: 'draft' }];
@@ -2907,7 +2921,10 @@
     }
     if (send && (!alreadyUploaded(next) || needsKnownHop)) {
       var attachId = trackIdOnStore(next.track_id, knownTracks) || firstStoreTrackId(knownTracks);
-      if (!attachId && (!force || isKnownAdoptRelease(next.release_id))) {
+      if (!attachId && isKnownAdoptRelease(next.release_id)) {
+        var leftoverHeld = String(next.track_id || '').trim();
+        if (isPreferredLeftoverTrackId(leftoverHeld)) attachId = leftoverHeld;
+      } else if (!attachId && !force) {
         attachId = String(next.track_id || '').trim();
       }
       if (attachId) {
@@ -3509,6 +3526,9 @@
     }
     if (isAudioAttachTimeout(result) || isAudioAttachTimeoutText(raw) || isAudioAttachTimeoutText(fallback) || status === 504) {
       return audioAttachTimeoutMessage();
+    }
+    if (isTrackGoneError(raw) || isTrackGoneError(fallback)) {
+      return attachFailedMessage();
     }
     if (isNoStoreResponse(result) && !/sandbox[- ]only|not enabled for (distribution|delivery)|production (key|account|environment) required/i.test(String(raw || ''))) {
       return catalogTimeoutMessage();
@@ -6642,7 +6662,14 @@
     if (/already exists|already exist|a record with these details/i.test(shown) && knownAdoptIdsForDraft(draft)[0]) {
       shown = '';
     }
-    if (knownLeftover && (isAudioRequiredError(shown) || isAudioRequiredError(message) || /could not send the audio/i.test(String(shown || message || '')))) {
+    if (knownLeftover && (
+      isAudioRequiredError(shown)
+      || isAudioRequiredError(message)
+      || isTrackGoneError(shown)
+      || isTrackGoneError(message)
+      || shown === attachFailedMessage()
+      || /could not send the audio/i.test(String(shown || message || ''))
+    )) {
       shown = AUDIO_SEND_COPY;
     }
     setStatus('tg-status', shown);
