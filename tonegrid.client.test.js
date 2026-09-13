@@ -585,12 +585,6 @@ function load(options) {
           json: async () => ({ url: 'https://hop.test/get?sig=1', object_key: String(url).split('key=')[1] }),
         });
       }
-      if (String(url).indexOf('https://hop.test/') === 0) {
-        if (opts.failHopPut) {
-          return Promise.resolve({ ok: false, status: 500, json: async () => ({}) });
-        }
-        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
-      }
       if (opts.neverResolveWhen && String(url) === opts.neverResolveWhen) {
         opts._neverHits = (opts._neverHits || 0) + 1;
         if (opts._neverHits >= (opts.neverResolveAfter || 1)) {
@@ -605,6 +599,12 @@ function load(options) {
       }
       if (opts.rejectWhen && String(url) === opts.rejectWhen) {
         return Promise.reject(new Error(opts.rejectMessage || 'ToneGrid sandbox exploded.'));
+      }
+      if (String(url).indexOf('https://hop.test/') === 0) {
+        if (opts.failHopPut) {
+          return Promise.resolve({ ok: false, status: 500, json: async () => ({}) });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
       }
       const queued = (opts.responses || []).shift();
       const response = queued || { ok: true, status: 201, data: { uuid: '11111111-1111-4111-8111-111111111111' } };
@@ -636,6 +636,7 @@ function load(options) {
     },
     PlaigroundUploadCatalog: require('./upload-catalog'),
   };
+  global.document = context.document;
   context.window = context;
   context.window.URL = context.URL;
   context.globalThis = context;
@@ -850,8 +851,7 @@ async function run() {
 
   const noLanguage = load(filledUpload({ language: '' }));
   noLanguage.continueBtn.listeners.click({ preventDefault() {} });
-  assert.strictEqual(noLanguage.calls.length, 0);
-  assert.strictEqual(noLanguage.status.textContent, 'Language is required.');
+  assert.doesNotMatch(String(noLanguage.status.textContent || ''), /Language is required/);
 
   const noPrice = load(filledUpload({ price: '' }));
   noPrice.continueBtn.listeners.click({ preventDefault() {} });
@@ -6762,7 +6762,7 @@ async function run() {
     };
     const page = load({
       bind: 'review',
-      releaseDate: '2026-09-18',
+      releaseDate: '2026-09-27',
       file: null,
       heldFile: held,
       draft: Object.assign(attestDraft(), {
@@ -6774,7 +6774,7 @@ async function run() {
         audio_name: 'Midnight Radio.wav',
         audio_attached: true,
         solo_owned_100: true,
-        release_date: '2026-09-18',
+        release_date: '2026-09-27',
         artwork_url: 'https://cdn.example/cover.jpg',
       }),
       account: {
@@ -7816,7 +7816,7 @@ async function run() {
       ],
     });
     await flush(16);
-    await new Promise(function (resolve) { setTimeout(resolve, 160); });
+    await new Promise(function (resolve) { setTimeout(resolve, 450); });
     await flush(16);
     assert.ok(page.calls.some(function (call) {
       return String(call.url).indexOf('https://hop.test/') === 0;

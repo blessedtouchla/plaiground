@@ -608,6 +608,15 @@
     if (!text && err) text = err.message || '';
     if (isAudioAttachTimeoutText(text)) return true;
     if (status === 504) return true;
+    return false;
+  }
+
+  function isHungAudioAttach(result, err) {
+    if (isAudioAttachTimeout(result, err)) return true;
+    var status = result && result.status;
+    var text = '';
+    if (result && result.data) text = result.data.error || result.data.message || '';
+    if (!text && err) text = err.message || '';
     var timedOut = Boolean((result && result.timedOut) || (err && err.timedOut));
     if (timedOut && (status === 0 || status == null) && (/could not reach the store/i.test(text) || !text)) {
       return true;
@@ -4096,7 +4105,7 @@
             },
           };
         }
-        if (isAudioAttachTimeout(result, err)) {
+        if (isHungAudioAttach(result, err)) {
           noteStoreFailure(result, err);
           return {
             failed: true,
