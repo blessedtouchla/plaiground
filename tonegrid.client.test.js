@@ -7883,12 +7883,13 @@ async function run() {
         },
         { ok: false, status: 404, data: { error: 'Track not found.' } },
         { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { uuid: leftoverTrack, title: 'I Set the Tone', audio_status: 'processing' } },
         { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
-    await flush(16);
-    await new Promise(function (resolve) { setTimeout(resolve, 80); });
-    await flush(16);
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
     assert.ok(!page.calls.some(function (call) {
       return String(call.url) === '/api/tonegrid/tracks/' + stale + '/audio';
     }), 'half-submit leftover must not POST audio to a stale track_id');
@@ -7952,9 +7953,9 @@ async function run() {
         { ok: false, status: 404, data: { error: 'Track not found.' } },
       ],
     });
-    await flush(16);
-    await new Promise(function (resolve) { setTimeout(resolve, 80); });
-    await flush(16);
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
     assert.ok(!/track not found/i.test(String(page.status.textContent || '')), 'raw Track not found must not surface');
     assert.match(String(page.status.textContent || ''), /could not send the audio/i);
     assert.ok(!/ToneGrid|DistroKid/i.test(String(page.status.textContent || '')));
