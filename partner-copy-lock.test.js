@@ -112,6 +112,8 @@ function run() {
   const timeoutSrc = fs.readFileSync(path.join(root, 'store-client.js'), 'utf8');
   assert.ok(timeoutSrc.includes("return 'We could not reach the store. Try again.';"));
   assert.ok(timeoutSrc.includes("We could not send the audio."));
+  assert.ok(timeoutSrc.includes("The audio upload timed out. Try again."));
+  assert.ok(timeoutSrc.includes("The store did not finish attaching the audio. Try again."));
   assert.ok(!timeoutSrc.includes("We could not send the audio. Retry."), 'audio send copy must not tell her Retry');
   assert.ok(timeoutSrc.includes('We could not create that artist. Try the name again.'));
   assert.ok(!timeoutSrc.includes('ToneGrid did not respond'));

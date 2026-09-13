@@ -642,6 +642,7 @@ function load(options) {
   context.window.location = context.location;
   if (opts.catalogTimeoutMs) context.PlaigroundCatalogTimeoutMs = opts.catalogTimeoutMs;
   if (opts.audioTimeoutMs) context.PlaigroundAudioTimeoutMs = opts.audioTimeoutMs;
+  if (opts.hopTimeoutMs) context.PlaigroundHopTimeoutMs = opts.hopTimeoutMs;
   vm.runInNewContext(audioAcceptCode, context);
   vm.runInNewContext(storePickCode, context);
   vm.runInNewContext(objectHopCode, context);
@@ -4288,7 +4289,8 @@ async function run() {
     await new Promise(function (resolve) { setTimeout(resolve, 120); });
     await flush();
     assert.strictEqual(page.convertCalls, 0, 'Retry path must not reconvert');
-    assert.ok(/could not reach the store/i.test(page.status.textContent));
+    assert.match(String(page.status.textContent || ''), /did not finish attaching the audio/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i, 'hung attach must not reuse the reach-the-store line');
     assert.ok(!/ToneGrid/i.test(page.status.textContent));
     assert.strictEqual(page.retryWrap.hidden, false);
     assert.strictEqual(page.loader.hidden, true, 'Working must not hang');
@@ -4824,7 +4826,9 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260911a2'), 'review.html must cache-bust past 20260911a2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260911a3'), 'review.html must cache-bust past 20260911a3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260912a1'), 'review.html must cache-bust past 20260912a1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260912a2'), 'review.html cache-busts store-client.js at 20260912a2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260912a2'), 'review.html must cache-bust past 20260912a2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260913b1'), 'review.html cache-busts store-client.js at 20260913b1');
+  assert.ok(reviewHtml.includes('lib/object-hop.js?v=20260913b1'), 'review.html cache-busts object-hop.js at 20260913b1');
   assert.ok(reviewHtml.includes('lib/store-pick.js?v=20260912a2'), 'review.html cache-busts store-pick.js at 20260912a2');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
@@ -5043,7 +5047,11 @@ async function run() {
   assert.ok(!/catalog-migrate|catalogMigrate/.test(source + uploadHtml));
   assert.ok(source.includes("return 'We could not reach the store. Try again.';"));
   assert.ok(source.includes("We could not send the audio."));
+  assert.ok(source.includes("The audio upload timed out. Try again."));
+  assert.ok(source.includes("The store did not finish attaching the audio. Try again."));
   assert.ok(!source.includes("We could not send the audio. Retry."), 'audio send copy must not tell her Retry');
+  assert.ok(!/Vercel Pro|maxDuration/.test(source), 'client must not require a Vercel Pro upgrade');
+  assert.ok(!/Magenta|Orange Upload|Green Upload/.test(source), 'must not invent Upload chrome');
   assert.ok(source.includes('function fileForTransitUpload'));
   const transitFn = source.match(/function fileForTransitUpload\(file\) \{[\s\S]*?\n  \}/);
   assert.ok(transitFn, 'fileForTransitUpload must stay a real function');
@@ -7756,6 +7764,108 @@ async function run() {
     assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
   }
 
+  async function reviewSubmitHopPutTimeoutShowsUploadCopy() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      file: null,
+      heldFile: held,
+      hopTimeoutMs: 40,
+      hangWhen: HOP_PUT,
+      hangCount: 4,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        audio_uploaded: true,
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+      ],
+    });
+    await flush(16);
+    await new Promise(function (resolve) { setTimeout(resolve, 160); });
+    await flush(16);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url).indexOf('https://hop.test/') === 0;
+    }), 'must attempt hop PUT');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
+    }), 'timed-out hop PUT must not POST submit');
+    assert.match(String(page.status.textContent || ''), /audio upload timed out/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i);
+    assert.ok(!/Retry/i.test(page.status.textContent), 'hop PUT timeout must not tell her Retry');
+    assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.notStrictEqual(page.location.href, 'submitted.html');
+  }
+
+  async function reviewSubmitAttach504ShowsAttachCopy() {
+    const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      file: wav,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+      }),
+      account: {
+        plan: 'creator',
+        tonegrid_artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        upload: { allowed: true, used: 0, limit: 8, plan: 'creator', album_allowed: true },
+      },
+      responses: [
+        { ok: true, status: 200, data: { uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', tracks: [{ uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }] } },
+        { ok: false, status: 504, timedOut: true, data: {} },
+        { ok: false, status: 504, timedOut: true, data: {} },
+      ],
+    });
+    await flush(20);
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'Submit must POST the hop key');
+    audio.forEach(function (call) { assertAudioKey(call, '504'); });
+    assert.ok(String(page.location.href).indexOf('submitted.html') === -1, 'attach 504 is not a fake success');
+    assert.match(String(page.status.textContent || ''), /did not finish attaching the audio/i);
+    assert.doesNotMatch(String(page.status.textContent || ''), /could not reach the store/i, '504 must not reuse the reach-the-store line');
+    assert.ok(!/ToneGrid|Vercel|Pro upgrade/i.test(String(page.status.textContent || '')));
+  }
+
   async function continueISetTheToneStaysLocal() {
     const page = load(filledUpload({
       title: 'I Set the Tone',
@@ -7998,6 +8108,8 @@ async function run() {
   await reviewSubmitFuegoEmptyAudioHopsHeldMp3NotWav();
   await reviewSubmitRainbowRoadEmptyAudioHopsHeldMp3NotWav();
   await reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy();
+  await reviewSubmitHopPutTimeoutShowsUploadCopy();
+  await reviewSubmitAttach504ShowsAttachCopy();
   await continueISetTheToneStaysLocal();
   await reviewSubmitNightDriveEmptyAudioDoesNotForceHop();
   await reviewSubmitFuegoEmptyAudioHopsHeldFile();

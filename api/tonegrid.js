@@ -110,6 +110,7 @@ const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_AUDIO_TRANSIT_BYTES = 512 * 1024 * 1024;
 const AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
 const AUDIO_SEND_COPY = 'We could not send the audio.';
+const AUDIO_ATTACH_TIMEOUT_COPY = 'The store did not finish attaching the audio. Try again.';
 const MAX_ARTWORK_BYTES = 15 * 1024 * 1024;
 const LIST_STATUSES = new Set(['draft', 'pending', 'approved', 'live', 'taken_down']);
 const STORE_FACING = new Set([
@@ -2356,6 +2357,12 @@ async function trackAudio(req, res, trackId) {
       timeoutMs: timeoutMs,
       idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(preparedHop.rawBody)),
     });
+    if (!hopResult.ok && (hopResult.timedOut || hopResult.status === 504)) {
+      sendJson(res, hopResult.status === 504 ? 504 : (hopResult.status || 502), {
+        error: AUDIO_ATTACH_TIMEOUT_COPY,
+      });
+      return;
+    }
     const hopPayload = hopResult.data && typeof hopResult.data === 'object'
       ? Object.assign({}, hopResult.data)
       : hopResult.data;
@@ -2479,6 +2486,12 @@ async function trackAudio(req, res, trackId) {
       ),
     });
     await audioChunks.drop(chunkMeta.uploadId);
+    if (!chunkHop.ok && (chunkHop.timedOut || chunkHop.status === 504)) {
+      sendJson(res, chunkHop.status === 504 ? 504 : (chunkHop.status || 502), {
+        error: AUDIO_ATTACH_TIMEOUT_COPY,
+      });
+      return;
+    }
     sendJson(res, chunkHop.status, chunkHop.data);
     return;
   }
@@ -2504,6 +2517,12 @@ async function trackAudio(req, res, trackId) {
     contentType: prepared.contentType || hopType || contentType,
     idempotencyKey: hopIdempotencyKey('audio', 'POST', '/tracks/' + id + '/audio', bodyFingerprint(prepared.rawBody || raw)),
   });
+  if (!result.ok && (result.timedOut || result.status === 504)) {
+    sendJson(res, result.status === 504 ? 504 : (result.status || 502), {
+      error: AUDIO_ATTACH_TIMEOUT_COPY,
+    });
+    return;
+  }
   const payload = result.data && typeof result.data === 'object' ? Object.assign({}, result.data) : result.data;
   if (result.ok && !uploadRequired.audioAttachAccepted(payload)) {
     sendJson(res, 400, { error: uploadRequired.AUDIO_REQUIRED });

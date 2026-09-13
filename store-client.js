@@ -301,6 +301,8 @@
 
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
   var AUDIO_SEND_COPY = 'We could not send the audio.';
+  var AUDIO_UPLOAD_TIMEOUT_COPY = 'The audio upload timed out. Try again.';
+  var AUDIO_ATTACH_TIMEOUT_COPY = 'The store did not finish attaching the audio. Try again.';
   var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
   var REVIEW_MISSING_AUDIO_COPY = 'Attach your master audio before submitting';
@@ -575,6 +577,44 @@
     return 'We could not reach the store. Try again.';
   }
 
+  function audioUploadTimeoutMessage() {
+    return AUDIO_UPLOAD_TIMEOUT_COPY;
+  }
+
+  function audioAttachTimeoutMessage() {
+    return AUDIO_ATTACH_TIMEOUT_COPY;
+  }
+
+  function isAudioUploadTimeoutText(text) {
+    return /audio upload timed out/i.test(String(text || ''));
+  }
+
+  function isAudioAttachTimeoutText(text) {
+    return /did not finish attaching the audio/i.test(String(text || ''));
+  }
+
+  function isAudioUploadTimeout(result, err) {
+    if (result && result.uploadTimedOut) return true;
+    var text = '';
+    if (result && result.data) text = result.data.error || result.data.message || '';
+    if (!text && err) text = err.message || '';
+    return isAudioUploadTimeoutText(text);
+  }
+
+  function isAudioAttachTimeout(result, err) {
+    var status = result && result.status;
+    var text = '';
+    if (result && result.data) text = result.data.error || result.data.message || '';
+    if (!text && err) text = err.message || '';
+    if (isAudioAttachTimeoutText(text)) return true;
+    if (status === 504) return true;
+    var timedOut = Boolean((result && result.timedOut) || (err && err.timedOut));
+    if (timedOut && (status === 0 || status == null) && (/could not reach the store/i.test(text) || !text)) {
+      return true;
+    }
+    return false;
+  }
+
   function rememberPickedOriginal(file) {
     if (!file || looksLikeWav(file)) return;
     heldPickedFile = file;
@@ -620,6 +660,10 @@
   }
 
   function isNoStoreResponse(result, err) {
+    if (isAudioUploadTimeout(result, err)) return false;
+    if (isAudioAttachTimeout(result, err) && !((result && result.status === 0) || (result == null && err && err.timedOut))) {
+      return false;
+    }
     if (err && (err.timedOut === true || /did not respond|could not reach|timed out/i.test(String(err.message || '')))) {
       return true;
     }
@@ -2277,6 +2321,9 @@
     var result = (audio && audio.result) || { ok: false, data: { error: AUDIO_SEND_COPY } };
     if (!result.data) result.data = {};
     var err = String(result.data.error || '');
+    if (isAudioUploadTimeoutText(err) || isAudioAttachTimeoutText(err)) {
+      return { failed: true, timedOut: true, result: result, draft: draft };
+    }
     if (!err || isAudioRequiredError(err)) result.data.error = AUDIO_SEND_COPY;
     return { failed: true, result: result, draft: draft };
   }
@@ -3448,6 +3495,12 @@
     if (fields && (!raw || /^validation failed\.?$/i.test(String(raw).trim()))) raw = fields;
     var status = result && result.status;
     noteStoreFailure(result);
+    if (isAudioUploadTimeout(result) || isAudioUploadTimeoutText(raw) || isAudioUploadTimeoutText(fallback)) {
+      return audioUploadTimeoutMessage();
+    }
+    if (isAudioAttachTimeout(result) || isAudioAttachTimeoutText(raw) || isAudioAttachTimeoutText(fallback) || status === 504) {
+      return audioAttachTimeoutMessage();
+    }
     if (isNoStoreResponse(result) && !/sandbox[- ]only|not enabled for (distribution|delivery)|production (key|account|environment) required/i.test(String(raw || ''))) {
       return catalogTimeoutMessage();
     }
@@ -4029,6 +4082,33 @@
           return { uploaded: true, result: result };
         }
         if (isUnavailable(result)) return { unavailable: true, result: result };
+        if (isAudioUploadTimeout(result, err)) {
+          noteStoreFailure(result, err);
+          return {
+            failed: true,
+            timedOut: true,
+            result: {
+              ok: false,
+              status: 0,
+              timedOut: true,
+              uploadTimedOut: true,
+              data: { error: audioUploadTimeoutMessage() },
+            },
+          };
+        }
+        if (isAudioAttachTimeout(result, err)) {
+          noteStoreFailure(result, err);
+          return {
+            failed: true,
+            timedOut: true,
+            result: {
+              ok: false,
+              status: (result && result.status) || 504,
+              timedOut: true,
+              data: { error: audioAttachTimeoutMessage() },
+            },
+          };
+        }
         if (isNoStoreResponse(result, err)) {
           noteStoreFailure(result || storeUnreachableResult(), err);
           return { failed: true, timedOut: true, result: storeUnreachableResult() };
