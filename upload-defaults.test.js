@@ -997,8 +997,9 @@ function run() {
   assert.ok(upload.indexOf('id="tg-subgenre"') === -1);
   assert.ok(upload.indexOf('name="release-subgenre"') === -1);
   assert.ok(upload.indexOf('capture=') === -1);
-  assert.ok(upload.indexOf('accept=".wav,.flac,.mp3,.mpeg,.mpga,audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/mpeg,audio/mp3,audio/x-mpeg,audio/x-mp3,audio/mpeg3,audio/mpg"') !== -1);
+  assert.ok(upload.indexOf('accept=".mp3,.wav,.flac"') !== -1);
   assert.ok(upload.indexOf('accept="audio/*') === -1, 'Upload Add audio must not use audio/* (Photo Library)');
+  assert.ok(!/id="tg-audio-file"[^>]*audio\//.test(upload), 'Upload Add audio is extension-only — no audio MIME');
   assert.ok(upload.indexOf('lib/audio-accept.js') !== -1);
   assert.ok(upload.indexOf('lib/store-pick.js') !== -1);
   assert.ok(upload.indexOf('Pre-select all stores') !== -1);

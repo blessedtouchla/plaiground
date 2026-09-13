@@ -79,7 +79,8 @@ function run() {
   assert.ok(!upload.includes('site.css?v=20260912ly8'), 'upload must cache-bust past 20260912ly8');
   assert.ok(!upload.includes('site.css?v=20260912tc1'), 'upload must cache-bust past 20260912tc1');
   assert.ok(/upload-stage-caption sr-only/.test(upload), 'sleeve helpers do not force a read');
-  assert.ok(upload.includes('store-client.js?v=20260912cr2'), 'upload cache-busts store-client.js at 20260912cr2');
+  assert.ok(upload.includes('store-client.js?v=20260913a1'), 'upload cache-busts store-client.js at 20260913a1');
+  assert.ok(!upload.includes('store-client.js?v=20260912cr2'), 'upload must cache-bust past 20260912cr2');
   assert.ok(!/<button[^>]*data-audio-play/.test(upload), 'single-upload chip has no extra play');
   assert.ok(upload.includes('data-audio-clear>Clear<'), 'attached audio Clear matches cover language');
   assert.ok(upload.includes('upload-audio-splat'), 'empty drop has a soft splat mark');
@@ -87,6 +88,7 @@ function run() {
   const audioTag = upload.match(/<input[^>]*id="tg-audio-file"[^>]*>/)[0];
   assert.ok(audioTag.includes('accept="'), 'Add audio has an accept list');
   assert.ok(!/accept="[^"]*audio\/\*/.test(audioTag), 'Add audio must not use audio/* (iOS Photo Library)');
+  assert.ok(!/accept="[^"]*audio\//.test(audioTag), 'Add audio must not use audio MIME (iOS Take Video)');
   assert.ok(!/accept="[^"]*\*\/\*/.test(audioTag), 'Add audio must not accept */*');
   assert.ok(!/accept="[^"]*image/.test(audioTag), 'Add audio must not accept image types');
   assert.ok(!/\bcapture\b/.test(audioTag), 'Add audio must not set capture');
@@ -103,6 +105,8 @@ function run() {
 
   assert.ok(!/accept="audio\/\*,\.wav/.test(tonegrid), 'album-track Add audio is file-only too');
   assert.ok(!tonegrid.includes("'audio/*,.wav"), 'store-client fallback accept no longer starts with audio/*');
+  assert.ok(tonegrid.includes('accept=".mp3,.wav,.flac"'), 'album-track Add audio is extension-only');
+  assert.ok(!/accept="[^"]*audio\//.test(tonegrid), 'album-track Add audio has no audio MIME');
   assert.ok(tonegrid.includes("lyrics: instrumental ? '' : (selectedLyrics() || draft.lyrics || '')"));
   assert.ok(tonegrid.includes('openLyricsField'));
   assert.ok(tonegrid.includes('data-track-lyrics'));
