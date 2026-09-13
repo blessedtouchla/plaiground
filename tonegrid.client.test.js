@@ -4827,7 +4827,8 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260911a3'), 'review.html must cache-bust past 20260911a3');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260912a1'), 'review.html must cache-bust past 20260912a1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260912a2'), 'review.html must cache-bust past 20260912a2');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260913b1'), 'review.html cache-busts store-client.js at 20260913b1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260913b1'), 'review.html must cache-bust past 20260913b1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260913c1'), 'review.html cache-busts store-client.js at 20260913c1');
   assert.ok(reviewHtml.includes('lib/object-hop.js?v=20260913b1'), 'review.html cache-busts object-hop.js at 20260913b1');
   assert.ok(reviewHtml.includes('lib/store-pick.js?v=20260912a2'), 'review.html cache-busts store-pick.js at 20260912a2');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
@@ -5049,6 +5050,8 @@ async function run() {
   assert.ok(source.includes("We could not send the audio."));
   assert.ok(source.includes("The audio upload timed out. Try again."));
   assert.ok(source.includes("The store did not finish attaching the audio. Try again."));
+  assert.ok(source.includes('function isTrackGoneError'));
+  assert.ok(source.includes('!trackIdOnStore(draft.track_id, ordered)'));
   assert.ok(!source.includes("We could not send the audio. Retry."), 'audio send copy must not tell her Retry');
   assert.ok(!/Vercel Pro|maxDuration/.test(source), 'client must not require a Vercel Pro upgrade');
   assert.ok(!/Magenta|Orange Upload|Green Upload/.test(source), 'must not invent Upload chrome');
@@ -7831,6 +7834,134 @@ async function run() {
     assert.notStrictEqual(page.location.href, 'submitted.html');
   }
 
+  async function reviewSubmitStaleTrackIdHopsLeftoverStoreTrack() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const stale = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-27',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: stale,
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        audio_uploaded: false,
+        solo_owned_100: true,
+        release_date: '2026-09-27',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+        { ok: false, status: 404, data: { error: 'Track not found.' } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    await flush(16);
+    await new Promise(function (resolve) { setTimeout(resolve, 80); });
+    await flush(16);
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/tracks/' + stale + '/audio';
+    }), 'half-submit leftover must not POST audio to a stale track_id');
+    const audio = page.calls.filter(function (call) { return isAudioAttach(call.url); });
+    assert.ok(audio.length, 'must hop audio onto the leftover store track');
+    assert.strictEqual(String(audio[0].url), '/api/tonegrid/tracks/' + leftoverTrack + '/audio');
+    assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
+    assert.ok(!/track not found/i.test(String(page.status.textContent || '')));
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + leftover + '/submit';
+    }), 'leftover submit must continue after dropping the stale track_id');
+  }
+
+  async function reviewSubmitTrackNotFoundRemapsCopy() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-27',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'VEXA',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        release_id: leftover,
+        track_id: leftoverTrack,
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        audio_uploaded: false,
+        solo_owned_100: true,
+        release_date: '2026-09-27',
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft', audio_url: null, s3: null }],
+          },
+        },
+        { ok: false, status: 404, data: { error: 'Track not found.' } },
+        { ok: false, status: 404, data: { error: 'Track not found.' } },
+      ],
+    });
+    await flush(16);
+    await new Promise(function (resolve) { setTimeout(resolve, 80); });
+    await flush(16);
+    assert.ok(!/track not found/i.test(String(page.status.textContent || '')), 'raw Track not found must not surface');
+    assert.match(String(page.status.textContent || ''), /could not send the audio/i);
+    assert.ok(!/ToneGrid|DistroKid/i.test(String(page.status.textContent || '')));
+    assert.notStrictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.notStrictEqual(page.location.href, 'submitted.html');
+  }
+
   async function reviewSubmitAttach504ShowsAttachCopy() {
     const wav = { name: 'night-drive.wav', type: 'audio/wav', size: 12 * 1024 * 1024 };
     const page = load({
@@ -8109,6 +8240,8 @@ async function run() {
   await reviewSubmitRainbowRoadEmptyAudioHopsHeldMp3NotWav();
   await reviewSubmitKnownLeftoverHopPutFailStaysAudioSendCopy();
   await reviewSubmitHopPutTimeoutShowsUploadCopy();
+  await reviewSubmitStaleTrackIdHopsLeftoverStoreTrack();
+  await reviewSubmitTrackNotFoundRemapsCopy();
   await reviewSubmitAttach504ShowsAttachCopy();
   await continueISetTheToneStaysLocal();
   await reviewSubmitNightDriveEmptyAudioDoesNotForceHop();
