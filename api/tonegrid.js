@@ -383,6 +383,29 @@ function knownAdoptIdForTitle(title) {
   return '';
 }
 
+function bodyMayAdoptKnown(known, body, scope, wantName) {
+  if (!known) return false;
+  if (!sameSongText(known.title, 'I Set the Tone')) return true;
+  const name = String(wantName || wantArtistNameOf(body) || '').trim();
+  if (!name) return true;
+  if (sameSongText(known.artist, name)) return true;
+  const accountName = String((scope && scope.row && scope.row.artist_name) || '').trim();
+  if (accountName && sameSongText(name, accountName)) return true;
+  return false;
+}
+
+function knownAdoptForBody(body, scope, wantName) {
+  const wantTitle = String((body && body.title) || '').trim();
+  if (!wantTitle) return null;
+  for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
+    const known = KNOWN_ADOPT_RELEASES[i];
+    if (!sameSongText(known.title, wantTitle)) continue;
+    if (!bodyMayAdoptKnown(known, body, scope, wantName)) continue;
+    return known;
+  }
+  return null;
+}
+
 function isFuegoGoddessTitle(title) {
   return sameSongText(title, 'FUEGO GODDESS');
 }
@@ -555,17 +578,18 @@ function knownLeftoverBelongsToScope(scope, row) {
   return false;
 }
 
-async function findKnownAdoptCollision(body, artistId, wantName) {
+async function findKnownAdoptCollision(body, artistId, wantName, scope) {
   const wantTitle = String((body && body.title) || '').trim();
   if (!wantTitle) return null;
   for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
     const known = KNOWN_ADOPT_RELEASES[i];
     if (!sameSongText(known.title, wantTitle)) continue;
+    if (!bodyMayAdoptKnown(known, body, scope, wantName)) continue;
     const id = known.id;
     if (isProtectedCatalogRelease(id)) continue;
     const loaded = await fetchStoreReleaseRaw(id);
     if (loaded.row && isBlockingStoreLeftover(loaded.row.status)) continue;
-    // Title-only. Numeric artist_id (196) and a different display name are fine.
+    // Leftover finishers may send the account artist while the store row is VEXA / numeric 196.
     return {
       id: id,
       status: normalizeReleaseStatus((loaded.row && loaded.row.status) || 'draft'),
@@ -736,7 +760,7 @@ async function findStoreCollision(body, artistId, options) {
   if (!wantTitle) return null;
   // Owned catalog ids stay visible: same-title leftovers must attach, not hide behind skipIds.
   const wantName = (options && options.wantName) || wantArtistNameOf(body);
-  const known = await findKnownAdoptCollision(body, artistId, wantName);
+  const known = await findKnownAdoptCollision(body, artistId, wantName, options && options.scope);
   if (known && known.id) return known;
   const searches = [{ status: 'draft' }, { status: 'rejected' }, {}];
   const seen = Object.create(null);
@@ -766,6 +790,10 @@ async function findStoreCollision(body, artistId, options) {
       if (artistMatchesCollision(detail, body, artistId, wantName)) return hit;
       if (!titleOnly) titleOnly = hit;
     }
+  }
+  if (titleOnly && isKnownAdoptRelease(titleOnly.id)) {
+    const known = knownAdoptRow(titleOnly.id);
+    if (known && !bodyMayAdoptKnown(known, body, options && options.scope, wantName)) return null;
   }
   return titleOnly;
 }
@@ -1953,14 +1981,16 @@ async function createRelease(req, res) {
     const wantTitle = String((body && body.title) || '').trim();
     if (!wantTitle) return false;
     const requireRow = !opts || opts.requireRow !== false;
+    const wantName = (opts && opts.wantName) || wantArtistNameOf(body);
     for (let i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
       const known = KNOWN_ADOPT_RELEASES[i];
       if (!sameSongText(known.title, wantTitle)) continue;
+      if (!bodyMayAdoptKnown(known, body, scope, wantName)) continue;
       if (isProtectedCatalogRelease(known.id)) continue;
       const loaded = await fetchStoreReleaseRaw(known.id);
       if (loaded.row && isBlockingStoreLeftover(loaded.row.status)) continue;
       if (requireRow && !loaded.row) continue;
-      // Title-only. Numeric artist_id 196 / display-name mismatch must still attach.
+      // Leftover finishers may send the account artist while the store row is VEXA / numeric 196.
       return continueStoreLeftover(known.id);
     }
     return false;
@@ -1971,7 +2001,7 @@ async function createRelease(req, res) {
   }
 
   async function continueOwnedLeftoverByTitle(wantName) {
-    const leftover = await findStoreCollision(body, artistId, { wantName: wantName });
+    const leftover = await findStoreCollision(body, artistId, { wantName: wantName, scope: scope });
     if (!leftover || !leftover.id) return false;
     if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) return false;
     if (isBlockingStoreLeftover(leftover.status)) return false;
@@ -2001,6 +2031,7 @@ async function createRelease(req, res) {
     if (await continueOwnedLeftoverByTitle(wantCollisionName)) return;
     const leftover = await findStoreCollision(body, artistId, {
       wantName: wantCollisionName,
+      scope: scope,
     });
     if (leftover && leftover.id) {
       if (isProtectedCatalogRelease(leftover.id, leftover.row && leftover.row.title)) {
@@ -2030,10 +2061,10 @@ async function createRelease(req, res) {
           }
         }
       }
-      const knownTitleId = knownAdoptIdForTitle((body && body.title) || '');
-      if (knownTitleId && await continueStoreLeftover(knownTitleId)) return;
-      if (knownTitleId) {
-        sendJson(res, 200, { uuid: knownTitleId, continued: true });
+      const knownTitle = knownAdoptForBody(body, scope, wantCollisionName);
+      if (knownTitle && await continueStoreLeftover(knownTitle.id)) return;
+      if (knownTitle) {
+        sendJson(res, 200, { uuid: knownTitle.id, continued: true });
         return;
       }
       sendJson(res, result.status || 409, { error: RECORD_EXISTS_COPY });
@@ -2041,10 +2072,10 @@ async function createRelease(req, res) {
     }
     if (await continueKnownAdoptByTitle({ requireRow: false })) return;
   }
-  const knownTitleId = knownAdoptIdForTitle((body && body.title) || '');
-  if (knownTitleId && isAlreadyExistsResult(result) && await continueStoreLeftover(knownTitleId)) return;
-  if (knownTitleId && isAlreadyExistsResult(result)) {
-    sendJson(res, 200, { uuid: knownTitleId, continued: true });
+  const knownTitle = knownAdoptForBody(body, scope, wantCollisionName);
+  if (knownTitle && isAlreadyExistsResult(result) && await continueStoreLeftover(knownTitle.id)) return;
+  if (knownTitle && isAlreadyExistsResult(result)) {
+    sendJson(res, 200, { uuid: knownTitle.id, continued: true });
     return;
   }
   sendJson(res, result.status, result.data);

@@ -2154,13 +2154,34 @@
     return false;
   }
 
+  function draftArtistName(draft) {
+    return String((draft && (draft.name || draft.artist || draft.artist_name)) || '').trim();
+  }
+
+  function accountArtistName() {
+    var me = accountRecord() || {};
+    return String(me.artist || me.artist_name || '').trim();
+  }
+
+  function draftMayAdoptKnown(draft, row) {
+    if (!row || !sameSongText(row.title, (draft && draft.title) || '')) return false;
+    // FUEGO / Rainbow Road stay title-only. A new I Set the Tone under a new
+    // artist must mint instead of attaching the VEXA leftover.
+    if (!sameSongText(row.title, 'I Set the Tone')) return true;
+    var name = draftArtistName(draft);
+    if (!name) return true;
+    if (sameSongText(row.artist, name)) return true;
+    var accountName = accountArtistName();
+    if (accountName && sameSongText(name, accountName)) return true;
+    return false;
+  }
+
   function knownAdoptIdsForDraft(draft) {
-    var want = String((draft && draft.title) || '').trim();
     var out = [];
     var i;
     for (i = 0; i < KNOWN_ADOPT_RELEASES.length; i += 1) {
       var row = KNOWN_ADOPT_RELEASES[i];
-      if (!sameSongText(row.title, want)) continue;
+      if (!draftMayAdoptKnown(draft, row)) continue;
       out.push(row.id);
     }
     return out;
@@ -2214,6 +2235,7 @@
   }
 
   function fallbackTracksForKnownTitle(draft) {
+    if (!knownAdoptIdsForDraft(draft)[0]) return [];
     if (sameSongText((draft && draft.title) || '', 'I Set the Tone')) {
       return [{ uuid: 'afce23fb-aa5f-42ac-94ae-2ce58bf48402', title: 'I Set the Tone', status: 'draft' }];
     }
@@ -6660,7 +6682,7 @@
       shown = attachFailedMessage();
     }
     if (/already exists|already exist|a record with these details/i.test(shown) && knownAdoptIdsForDraft(draft)[0]) {
-      shown = '';
+      shown = STEP_FAIL_COPY;
     }
     if (knownLeftover && (
       isAudioRequiredError(shown)
@@ -6672,9 +6694,10 @@
     )) {
       shown = AUDIO_SEND_COPY;
     }
+    if (!shown) shown = STEP_FAIL_COPY;
     setStatus('tg-status', shown);
     markStatusError(Boolean(shown));
-    showSubmitRetry(Boolean(shown) || Boolean(message));
+    showSubmitRetry(Boolean(shown));
     syncReviewAudioRepick();
   }
 
