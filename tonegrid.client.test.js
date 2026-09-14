@@ -354,9 +354,22 @@ function load(options) {
   stepper.contains = function () { return true; };
 
   const heldStore = { master: opts.heldFile || null, picked: opts.heldPicked || null, cover: opts.heldArtwork || opts.artwork || null };
+  const RealDate = Date;
+  // Keep Review Submit dates like 2026-09-20 outside the live 7-day lead window.
+  const frozenNow = RealDate.parse('2026-09-10T19:00:00.000Z');
+  function TestDate() {
+    if (!(this instanceof TestDate)) return RealDate();
+    if (arguments.length === 0) return new RealDate(frozenNow);
+    if (arguments.length === 1) return new RealDate(arguments[0]);
+    return new RealDate(arguments[0], arguments[1], arguments[2] || 1, arguments[3] || 0, arguments[4] || 0, arguments[5] || 0, arguments[6] || 0);
+  }
+  TestDate.now = function () { return frozenNow; };
+  TestDate.parse = RealDate.parse.bind(RealDate);
+  TestDate.UTC = RealDate.UTC.bind(RealDate);
   const context = {
     URLSearchParams,
     Promise,
+    Date: TestDate,
     setTimeout,
     clearTimeout,
     PLAIGROUND_HOLD_PERSIST_MS: opts.holdPersistMs || 0,
@@ -4782,7 +4795,8 @@ async function run() {
   assert.ok(source.includes('0767cb74-c5aa-4b18-8023-729fd4fb2808'));
   assert.ok(source.includes("title: 'I Set the Tone'"));
   assert.ok(source.includes('attachKnownLeftoverNow'));
-  assert.ok(/function knownAdoptIdsForDraft[\s\S]*?if \(!sameSongText\(row\.title, want\)\) continue;/.test(source), 'known adopt is title-only, no artist-name fingerprint');
+  assert.ok(source.includes('function draftMayAdoptKnown'), 'known leftover adopt is gated on leftover/account artist, not store artist_id');
+  assert.ok(source.includes('function knownAdoptIdsForDraft'), 'known leftover list still drives leftover attach');
   assert.ok(source.includes('1f346f71-a70d-4648-bb66-5c5aff5f5243'));
   assert.ok(source.includes('81e47b6f-6b13-44e6-a436-de81ffaa849f'));
   assert.ok(source.includes('afce23fb-aa5f-42ac-94ae-2ce58bf48402'));
@@ -4828,7 +4842,12 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260912a1'), 'review.html must cache-bust past 20260912a1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260912a2'), 'review.html must cache-bust past 20260912a2');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260913b1'), 'review.html must cache-bust past 20260913b1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260913c1'), 'review.html cache-busts store-client.js at 20260913c1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260913c1'), 'review.html must cache-bust past 20260913c1');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260914a1'), 'review.html must cache-bust past leftover-gate 20260914a1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260914a2'), 'review.html cache-busts store-client.js at 20260914a2');
+  const swSource = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+  assert.ok(swSource.includes('cached || new Response'), 'offline GET miss must return a Response, not undefined');
+  assert.ok(source.includes('typeof response.json !== \'function\''), 'parseJson must not throw on a non-Response');
   assert.ok(reviewHtml.includes('lib/object-hop.js?v=20260913b1'), 'review.html cache-busts object-hop.js at 20260913b1');
   assert.ok(reviewHtml.includes('lib/store-pick.js?v=20260912a2'), 'review.html cache-busts store-pick.js at 20260912a2');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
@@ -4954,6 +4973,7 @@ async function run() {
   assert.ok(!source.includes('function rosterStoreArtistId'), 'must not invent leftover UUID skip helpers');
   assert.ok(!source.includes('function liveReleaseArtistId'), 'must not invent a leftover UUID skip on POST /releases');
   assert.ok(source.includes("ARTIST_GONE_COPY = 'We could not create that artist. Try the name again.'"));
+  assert.ok(source.includes("ARTIST_EXISTS_COPY = 'This artist is already on the store.'"));
   const storeArtistFn = source.match(/function existingStoreArtistId\(draft\) \{[\s\S]*?\n  \}/);
   assert.ok(storeArtistFn, 'existingStoreArtistId must stay a real function');
   assert.ok(!storeArtistFn[0].includes('current.uuid'), 'existingStoreArtistId must never treat draft.uuid as a store artist');
@@ -4968,7 +4988,10 @@ async function run() {
   assert.ok(catalogArtistFn, 'ensureCatalogArtist must stay a real function');
   assert.ok(catalogArtistFn[0].includes('post(ARTISTS_URL'), 'ensureCatalogArtist POSTs /artists by stage name');
   assert.ok(catalogArtistFn[0].includes('name: name'), 'POST /artists sends the stage name');
-  assert.ok(!catalogArtistFn[0].includes('existingStoreArtistId'), 'first Submit must not skip mint on a draft uuid');
+  assert.ok(catalogArtistFn[0].includes('existingStoreArtistId'), 'Retry must reuse a roster store artist uuid');
+  assert.ok(!catalogArtistFn[0].includes('current.uuid'), 'first Submit must not skip mint on a draft uuid');
+  assert.ok(catalogArtistFn[0].includes('pickUuid(result.data)'), 'artists 409 with a uuid must adopt and continue');
+  assert.ok(catalogArtistFn[0].includes('ARTIST_EXISTS_COPY'), 'artists 409 without a uuid must show a clear artist-exists error');
   assert.ok(!catalogArtistFn[0].includes('GET') && !/artists\?/.test(catalogArtistFn[0]), 'must not invent a live-catalog-first GET /artists path');
   assert.ok(source.includes('function fieldErrorText'), 'Validation failed must surface store field errors');
   assert.ok(source.includes('validation failed'), 'createErrorMessage must unwrap ToneGrid Validation failed');
@@ -6681,6 +6704,309 @@ async function run() {
     assert.strictEqual(draftOf(page.localStorage).track_id, leftoverTrack);
   }
 
+  async function reviewSubmitVickiliciousISetTheToneMintsNewRelease() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const trackId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-25',
+      file: { name: 'i-set-the-tone.wav', type: 'audio/wav', size: 4096 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'I Set the Tone',
+        name: 'Vickilicious',
+        genre: 'Funk',
+        language: 'en',
+        artist_id: localId,
+        plaiground_artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-25',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Vickilicious',
+            source: 'created',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: trackId } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    const artistPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/artists'
+        && call.init
+        && String(call.init.method || 'POST').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(artistPosts.length, 1, 'new Vickilicious artist must POST create once');
+    assert.strictEqual(JSON.parse(artistPosts[0].init.body).name, 'Vickilicious');
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1, 'new I Set the Tone under Vickilicious must mint, not leftover-attach');
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist_id, liveId);
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).title, 'I Set the Tone');
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist, 'Vickilicious');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(leftover) !== -1;
+    }), 'must not attach leftover 0767cb74 for a new Vickilicious release');
+    assert.ok(!page.calls.some(function (call) {
+      return String(call.url).indexOf(leftoverTrack) !== -1;
+    }), 'must not hop leftover track afce23fb for a new Vickilicious release');
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/' + releaseId + '/submit';
+    }), 'new release must POST submit');
+    assert.strictEqual(draftOf(page.localStorage).release_id, releaseId);
+    assert.strictEqual(draftOf(page.localStorage).track_id, trackId);
+    assert.ok(!/already exists/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+    assert.notStrictEqual(page.retryWrap.hidden, false, 'successful new Submit must not leave Retry up');
+  }
+
+  async function reviewSubmitReusesRosterVickiliciousStoreId() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const trackId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-25',
+      file: { name: 'i-set-the-tone.wav', type: 'audio/wav', size: 4096 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'I Set the Tone',
+        name: 'Vickilicious',
+        genre: 'Funk',
+        language: 'en',
+        artist_id: localId,
+        plaiground_artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-25',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Vickilicious',
+            source: 'created',
+            tonegrid_artist_id: liveId,
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: trackId } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/artists'
+        && call.init
+        && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    }), 'roster store artist uuid must be reused, no second POST /artists');
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1);
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).release_id, releaseId);
+    assert.ok(!/already exists/i.test(page.status.textContent));
+    assert.ok(!/ToneGrid|DistroKid|InterSpace|slug/i.test(page.status.textContent));
+    assert.notStrictEqual(page.retryWrap.hidden, false);
+  }
+
+  async function reviewSubmitArtists409WithUuidContinues() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const liveId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const releaseId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const trackId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-25',
+      file: { name: 'i-set-the-tone.wav', type: 'audio/wav', size: 4096 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'I Set the Tone',
+        name: 'Vickilicious',
+        genre: 'Funk',
+        language: 'en',
+        artist_id: localId,
+        plaiground_artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-25',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Vickilicious',
+            source: 'created',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 409, data: { error: 'A record with these details already exists.', uuid: liveId } },
+        { ok: true, status: 201, data: { uuid: releaseId } },
+        { ok: true, status: 201, data: { track: { uuid: trackId } } },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: true, status: 200, data: { artwork_url: 'https://cdn.example/cover.jpg' } },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(24);
+    const artistPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/artists'
+        && call.init
+        && String(call.init.method || 'POST').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(artistPosts.length, 1, '409 adopt must not POST /artists again');
+    const createPosts = page.calls.filter(function (call) {
+      return call.url === '/api/tonegrid/releases' && call.init && String(call.init.method || 'GET').toUpperCase() === 'POST';
+    });
+    assert.strictEqual(createPosts.length, 1, 'artists 409 with uuid must continue into release create');
+    assert.strictEqual(JSON.parse(createPosts[0].init.body).artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).artist_id, liveId);
+    assert.strictEqual(draftOf(page.localStorage).release_id, releaseId);
+    assert.ok(!/already exists|Failed to convert|slug|ToneGrid/i.test(page.status.textContent));
+    assert.notStrictEqual(page.retryWrap.hidden, false, 'adopted 409 must finish Submit, not leave Retry');
+  }
+
+  async function reviewSubmitArtists409WithoutUuidShowsExistsCopy() {
+    const localId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-25',
+      file: { name: 'i-set-the-tone.wav', type: 'audio/wav', size: 4096 },
+      artwork: ART,
+      draft: Object.assign(attestDraft(), {
+        title: 'I Set the Tone',
+        name: 'Vickilicious',
+        genre: 'Funk',
+        language: 'en',
+        artist_id: localId,
+        plaiground_artist_id: localId,
+        solo_owned_100: true,
+        release_date: '2026-09-25',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        profile: {
+          artists: [{
+            id: localId,
+            name: 'Vickilicious',
+            source: 'created',
+          }],
+        },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        { ok: false, status: 409, data: { error: 'A record with these details already exists.' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.strictEqual(page.status.textContent, 'This artist is already on the store.');
+    assert.strictEqual(page.retryWrap.hidden, false, 'unmatched artists 409 must keep Retry with copy');
+    assert.ok(!/slug|ToneGrid|DistroKid|InterSpace|Failed to convert/i.test(page.status.textContent));
+    assert.ok(!page.calls.some(function (call) {
+      return call.url === '/api/tonegrid/releases';
+    }), 'unmatched artists 409 must not POST a release');
+    assert.ok(!draftOf(page.localStorage).release_id);
+  }
+
+  async function reviewSubmitLeftoverAlreadyExistsShowsStepFail() {
+    const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
+    const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
+    const held = {
+      __held: 1,
+      name: 'I Set the Tone.wav',
+      type: 'audio/wav',
+      size: 4096,
+      buffer: new Uint8Array(4096).buffer,
+    };
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-25',
+      file: null,
+      heldFile: held,
+      draft: Object.assign(attestDraft(), {
+        artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        name: 'Victoria PLAIGROUND',
+        title: 'I Set the Tone',
+        genre: 'Funk',
+        language: 'en',
+        audio_name: 'I Set the Tone.wav',
+        audio_attached: true,
+        solo_owned_100: true,
+        release_date: '2026-09-25',
+        dsps_all: true,
+      }),
+      account: {
+        plan: 'creator',
+        artist: 'Victoria PLAIGROUND',
+        tonegrid_artist_id: '04c74127-11a8-40cf-beec-d1ffa16abd70',
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: leftover,
+            title: 'I Set the Tone',
+            status: 'draft',
+            artist: 'VEXA',
+            tracks: [{ uuid: leftoverTrack, title: 'I Set the Tone', status: 'draft' }],
+          },
+        },
+        { ok: true, status: 200, data: { audio_status: 'processing' } },
+        { ok: false, status: 409, data: { error: 'A record with these details already exists.' } },
+      ],
+    });
+    await flush(8);
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(28);
+    assert.ok(!/already exists/i.test(page.status.textContent), 'must never surface already-exists after leftover attach');
+    assert.ok(String(page.status.textContent || '').trim(), 'Retry must never be silent');
+    assert.match(String(page.status.textContent || ''), /could not finish this step/i);
+    assert.strictEqual(page.retryWrap.hidden, false, 'failed leftover Submit must show Retry with copy');
+    assert.ok(!/ToneGrid|DistroKid|InterSpace/i.test(page.status.textContent));
+    assert.notStrictEqual(page.location.href, 'submitted.html');
+  }
+
   async function reviewLeaveAndReturnAttachesOwnedISetTheTone() {
     const leftover = '0767cb74-c5aa-4b18-8023-729fd4fb2808';
     const leftoverTrack = 'afce23fb-aa5f-42ac-94ae-2ce58bf48402';
@@ -8227,6 +8553,11 @@ async function run() {
   await reviewSubmitContinueFuegoLeftoverTracksInResponse();
   await reviewSubmitDifferentTitleDoesNotAttachFuego();
   await reviewSubmitAttachesISetTheToneLeftoverAndReusesTrack();
+  await reviewSubmitVickiliciousISetTheToneMintsNewRelease();
+  await reviewSubmitReusesRosterVickiliciousStoreId();
+  await reviewSubmitArtists409WithUuidContinues();
+  await reviewSubmitArtists409WithoutUuidShowsExistsCopy();
+  await reviewSubmitLeftoverAlreadyExistsShowsStepFail();
   await reviewLeaveAndReturnAttachesOwnedISetTheTone();
   await reviewSubmitAttachesAnyOwnedLeftoverByTitle();
   await reviewSubmit409AdoptsISetTheToneWithVexaArtist();
