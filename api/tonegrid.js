@@ -88,6 +88,7 @@ const {
   hopIdempotencyKey,
   idempotencyKey,
   ARTIST_GONE_COPY,
+  ARTIST_EXISTS_COPY,
   isArtistGoneError,
   isConfigured,
   isUuid,
@@ -903,8 +904,8 @@ async function attachTonegridArtist(row, plaigroundId, tonegridId) {
 // This mirrors findStoreCollision()'s self-heal for release-title collisions:
 // search the store's own /artists list and adopt the match instead of
 // relaying the raw "slug already taken" error.
-function isSlugTakenResult(result) {
-  if (!result || result.ok) return false;
+function artistCollisionMessage(result) {
+  if (!result) return '';
   const data = result.data || {};
   const bags = [data.errors, data.fields];
   const parts = [data.error, data.message];
@@ -918,12 +919,28 @@ function isSlugTakenResult(result) {
       else if (value && typeof value.message === 'string') parts.push(value.message);
     });
   });
-  const msg = parts.join(' ').toLowerCase();
+  return parts.join(' ').toLowerCase();
+}
+
+function isSlugTakenResult(result) {
+  if (!result || result.ok) return false;
+  const msg = artistCollisionMessage(result);
   if (!msg) return false;
   if (/slug/.test(msg) && /(already|taken|exist|in use|duplicate)/.test(msg)) return true;
   if (result.status === 409 && /slug/.test(msg)) return true;
   if (result.status === 422 && /slug/.test(msg) && /taken|already/.test(msg)) return true;
   return false;
+}
+
+function isArtistCollisionResult(result) {
+  if (isSlugTakenResult(result)) return true;
+  if (!result || result.ok) return false;
+  const msg = artistCollisionMessage(result);
+  if (!msg) return result.status === 409;
+  if (/already exists|already exist|a record with these details/.test(msg)) return true;
+  if ((result.status === 409 || result.status === 422) && /duplicate|unique|exists|taken/.test(msg)) return true;
+  if ((result.status === 409 || result.status === 422) && /name/.test(msg) && /taken|exist|duplicate/.test(msg)) return true;
+  return result.status === 409;
 }
 
 async function listStoreArtistPages(queryExtra) {
@@ -1417,7 +1434,7 @@ async function createArtist(req, res) {
     sendJson(res, result.status, result.data);
     return;
   }
-  if (isSlugTakenResult(result)) {
+  if (isArtistCollisionResult(result)) {
     const existing = await findExistingArtistBySlug(name, slug);
     if (existing && existing.id) {
       await accounts.updateCatalog(scope.userId, { artistId: existing.id, replaceArtistId: true });
@@ -1426,6 +1443,8 @@ async function createArtist(req, res) {
       sendJson(res, 200, { uuid: existing.id, continued: true });
       return;
     }
+    sendJson(res, result.status || 409, { error: ARTIST_EXISTS_COPY });
+    return;
   }
   sendJson(res, result.status, result.data);
 }

@@ -11,6 +11,8 @@ self.addEventListener('fetch', function (event) {
   var url = new URL(req.url);
   if (url.pathname.indexOf('/api/') === 0) return;
   event.respondWith(fetch(req).catch(function () {
-    return caches.match(req);
+    return caches.match(req).then(function (cached) {
+      return cached || new Response('', { status: 504, statusText: 'Offline' });
+    });
   }));
 });

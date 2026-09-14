@@ -373,6 +373,7 @@
 
   var STEP_FAIL_COPY = 'We could not finish this step.';
   var ARTIST_GONE_COPY = 'We could not create that artist. Try the name again.';
+  var ARTIST_EXISTS_COPY = 'This artist is already on the store.';
 
   function isArtistGoneError(text) {
     var raw = String(text || '').toLowerCase();
@@ -447,6 +448,8 @@
     if (isPlatformPayloadError(next, status)) return platformPayloadCopy();
     if (isSizeCapError(next)) return AUDIO_SIZE_COPY;
     if (isIdempotencyReuseError(next)) return STEP_FAIL_COPY;
+    if (/\bslug\b/i.test(next) && /taken|already|exist|duplicate/i.test(next)) return ARTIST_EXISTS_COPY;
+    if (/artist slug already taken/i.test(next)) return ARTIST_EXISTS_COPY;
     if (isArtistGoneError(next) || /\btenant\b/i.test(next)) {
       var named = readDraft();
       if (named && String(named.plaiground_artist_id || '').trim() && String(named.name || '').trim()) {
@@ -494,6 +497,13 @@
   }
 
   function parseJson(response) {
+    if (!response || typeof response.json !== 'function') {
+      return Promise.resolve({
+        ok: false,
+        status: 0,
+        data: { error: STEP_FAIL_COPY },
+      });
+    }
     return response.json().then(function (data) {
       var next = data || {};
       if (isPlatformPayloadError(next.error || next.message, response.status)) {
@@ -2682,6 +2692,17 @@
     return id;
   }
 
+  function isArtistStoreCollision(result, error) {
+    var code = result && result.data && result.data.code;
+    if (code === 'ARTIST_NAME_YELLOW' || code === 'ARTIST_NAME_RED') return false;
+    var status = Number(result && result.status) || 0;
+    var msg = String(error || (result && result.data && (result.data.error || result.data.message)) || '').toLowerCase();
+    if (/slug/.test(msg) && /taken|already|exist|duplicate/.test(msg)) return true;
+    if (/already exists|already exist|a record with these details/.test(msg)) return true;
+    if ((status === 409 || status === 422) && /duplicate|unique|exists|taken/.test(msg)) return true;
+    return status === 409 && !code;
+  }
+
   function existingStoreArtistId(draft) {
     var current = draft || {};
     if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
@@ -2704,6 +2725,11 @@
       var reusedTone = writeDraft({ artist_id: tonegridId, tonegrid_artist_id: tonegridId });
       return Promise.resolve({ ok: true, draft: reusedTone, reused: true });
     }
+    var stored = existingStoreArtistId(current);
+    if (stored) {
+      var reusedStored = writeDraft({ artist_id: stored, tonegrid_artist_id: stored });
+      return Promise.resolve({ ok: true, draft: reusedStored, reused: true });
+    }
     var name = String(current.name || '').trim();
     if (!name) {
       return Promise.resolve({
@@ -2720,7 +2746,27 @@
     }).then(function (result) {
       if (isUnavailable(result)) return { unavailable: true, result: result, draft: current };
       if (isPlanLimit(result)) return { limited: true, result: result, draft: current };
-      if (!result.ok) return { failed: true, result: result, draft: current };
+      if (!result.ok) {
+        var adopted = pickUuid(result.data);
+        if (adopted && !isLocalProfileArtistId(adopted, current)) {
+          var adoptedDraft = writeDraft({ artist_id: adopted, tonegrid_artist_id: adopted });
+          saveCatalog({ artist_id: adopted });
+          rememberRosterArtist({
+            id: current.plaiground_artist_id || name,
+            name: name,
+            tonegrid_artist_id: adopted,
+            source: 'created',
+          });
+          return { ok: true, draft: adoptedDraft, continued: true };
+        }
+        var failData = Object.assign({}, result.data || {});
+        var code = String(failData.code || '');
+        if (code !== 'ARTIST_NAME_YELLOW' && code !== 'ARTIST_NAME_RED') {
+          var rawErr = String(failData.error || failData.message || '');
+          if (isArtistStoreCollision(result, rawErr)) failData.error = ARTIST_EXISTS_COPY;
+        }
+        return { failed: true, result: Object.assign({}, result, { data: failData }), draft: current };
+      }
       var id = pickUuid(result.data);
       if (!id) {
         return {
@@ -4974,7 +5020,16 @@
     });
     rememberedArtists.forEach(function (extra) {
       if (!extra || !extra.name) return;
-      if (artists.some(function (row) { return row && (row.id === extra.id || row.name === extra.name); })) return;
+      var storeId = String(extra.tonegrid_artist_id || '').trim();
+      var hit = artists.find(function (row) {
+        return row && (row.id === extra.id || row.name === extra.name);
+      });
+      if (hit) {
+        if (isUuidValue(storeId) && !String(hit.tonegrid_artist_id || '').trim()) {
+          hit.tonegrid_artist_id = storeId;
+        }
+        return;
+      }
       artists.push(extra);
     });
     if (!artists.length && row.artist && !isLeftoverArtistName(row.artist)) {
@@ -6682,7 +6737,9 @@
       shown = attachFailedMessage();
     }
     if (/already exists|already exist|a record with these details/i.test(shown) && knownAdoptIdsForDraft(draft)[0]) {
-      shown = STEP_FAIL_COPY;
+      if (shown !== ARTIST_EXISTS_COPY && !/confirm this is a different artist/i.test(shown)) {
+        shown = STEP_FAIL_COPY;
+      }
     }
     if (knownLeftover && (
       isAudioRequiredError(shown)
