@@ -520,6 +520,7 @@ function run() {
   const apiFiles = fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).sort();
   assert.deepStrictEqual(apiFiles, [
     'auth.js',
+    'community.js',
     'create-checkout-session.js',
     'me.js',
     'plai-session.js',
@@ -710,39 +711,18 @@ async function persistAndImmediateSave() {
   assert.ok(rosterName && rosterName.textContent === 'Fuvtu', 'list keeps the artist name readable');
 
   const victoriaRoster = loadArtists();
+  const victoriaOwned = [
+    { id: 'a1', name: 'Herman Watson', source: 'created' },
+    { id: 'a2', name: 'Amplify', source: 'created' },
+    { id: 'a3', name: 'Vicki G', source: 'created' },
+    { id: 'a4', name: 'The kid', source: 'created' },
+    { id: 'a5', name: 'Vickilicious', source: 'created' },
+    { id: 'a6', name: 'VEXA', source: 'created' },
+  ];
   victoriaRoster.api.applyMe({
     artist: 'VEXA',
-    profile: {
-      artists: [
-        { id: 'a1', name: 'Herman Watson', source: 'created' },
-        { id: 'a2', name: 'Amplify', source: 'created' },
-        { id: 'a3', name: 'Vicki G', source: 'created' },
-        { id: 'a4', name: 'The kid', source: 'created' },
-        { id: 'a5', name: 'Vickilicious', source: 'created' },
-        { id: 'a6', name: 'VEXA', source: 'created' },
-      ],
-    },
+    profile: { artists: victoriaOwned },
   });
-  assert.deepStrictEqual(victoriaRoster.api.rosterFromMe({
-    artist: 'VEXA',
-    profile: {
-      artists: [
-        { id: 'a1', name: 'Herman Watson', source: 'created' },
-        { id: 'a2', name: 'Amplify', source: 'created' },
-        { id: 'a3', name: 'Vicki G', source: 'created' },
-        { id: 'a4', name: 'The kid', source: 'created' },
-        { id: 'a5', name: 'Vickilicious', source: 'created' },
-        { id: 'a6', name: 'VEXA', source: 'created' },
-      ],
-    },
-  }).map(function (row) { return row.name; }), [
-    'Herman Watson',
-    'Amplify',
-    'Vicki G',
-    'The kid',
-    'Vickilicious',
-    'VEXA',
-  ], 'Your Artists list is the same six names as the Submit picker');
   const victoriaNames = walk(victoriaRoster.nodes['[data-artist-list]'], [])
     .filter(function (node) { return node.className === 'artist-row-name'; })
     .map(function (node) { return node.textContent; });
@@ -753,7 +733,7 @@ async function persistAndImmediateSave() {
     'The kid',
     'Vickilicious',
     'VEXA',
-  ]);
+  ], 'Your Artists list is the same six names as the Submit picker');
   assert.ok(victoriaNames.indexOf('Vikilicious') === -1);
   assert.ok(victoriaNames.indexOf('Vikilicioux') === -1);
   afterReload.context.confirmResult = false;

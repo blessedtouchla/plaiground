@@ -5015,6 +5015,40 @@
     refreshArtistSelect();
   }
 
+  function adoptOwnedRosterArtist(artist) {
+    if (!artist || !artist.name || isLeftoverArtistName(artist.name)) return;
+    var me = accountRecord();
+    if (!me) return;
+    if (!me.profile) me.profile = {};
+    if (!Array.isArray(me.profile.artists)) me.profile.artists = [];
+    var id = String(artist.id || artist.artist_id || '').trim();
+    var nameKey = String(artist.name || '').trim().toLowerCase();
+    var hit = null;
+    me.profile.artists.forEach(function (row) {
+      if (!row) return;
+      if ((id && String(row.id || '') === id) || String(row.name || '').trim().toLowerCase() === nameKey) {
+        hit = row;
+      }
+    });
+    if (!hit) {
+      me.profile.artists.push({
+        id: id || artist.name,
+        name: artist.name,
+        source: artist.source || (artist.linked ? 'linked' : 'created'),
+        badge: artist.badge || 'PLAIGROUND',
+        tonegrid_artist_id: artist.tonegrid_artist_id || artist.tonegridId || '',
+      });
+    } else if (id && !String(hit.id || '').trim()) {
+      hit.id = id;
+    }
+    rememberRosterArtist({
+      id: id || artist.name,
+      name: artist.name,
+      source: artist.source || (artist.linked ? 'linked' : 'created'),
+      tonegrid_artist_id: artist.tonegrid_artist_id || artist.tonegridId || '',
+    });
+  }
+
   function rosterFromMe(me) {
     var row = me || accountRecord() || {};
     var api = rosterApi();
@@ -5620,13 +5654,15 @@
       return post('/api/me/artists', { action: 'link', url: url, name: linkName }).then(function (result) {
         if (!result.ok) return { error: (result.data && result.data.error) || 'Could not link artist.' };
         var created = (result.data && result.data.created) || {};
-        return {
+        var linked = {
           name: created.name || linkName,
           id: created.id || '',
           check: { level: 'green', skip: true, linked: true },
           confirmDifferent: false,
           linked: true,
         };
+        adoptOwnedRosterArtist(linked);
+        return linked;
       });
     }
 
@@ -5651,7 +5687,7 @@
       }
       if (!result.ok) return { error: (result.data && result.data.error) || 'Could not save artist.' };
       var created = (result.data && result.data.created) || {};
-      return {
+      var owned = {
         name: created.name || name,
         id: created.id || '',
         check: (result.data && result.data.check) || check,
@@ -5659,6 +5695,8 @@
         linked: false,
         skipTonegrid: check.level === 'red' || submitReview,
       };
+      adoptOwnedRosterArtist(owned);
+      return owned;
     });
   }
 
