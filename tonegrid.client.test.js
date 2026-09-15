@@ -13,6 +13,8 @@ const objectHopCode = fs.readFileSync(path.join(__dirname, 'lib', 'object-hop.js
 const coverUrlCode = fs.readFileSync(path.join(__dirname, 'lib', 'cover-url.js'), 'utf8');
 const coverPreviewCode = fs.readFileSync(path.join(__dirname, 'lib', 'cover-preview.js'), 'utf8');
 const artistCheckCode = fs.readFileSync(path.join(__dirname, 'lib', 'artist-check.js'), 'utf8');
+const artistRosterCode = fs.readFileSync(path.join(__dirname, 'lib', 'artist-roster.js'), 'utf8');
+const artistRosterHoldCode = fs.readFileSync(path.join(__dirname, 'lib', 'artist-roster-hold.js'), 'utf8');
 const AUDIO = { name: 'night-drive.wav', type: 'audio/wav', size: 2048 };
 const ART = { name: 'cover.jpg', type: 'image/jpeg', size: 1024 };
 const HOP_PUT = 'https://hop.test/put';
@@ -261,6 +263,9 @@ function load(options) {
   }
   if (opts.sessionDraft) {
     sessionStorage.setItem('plaiground.store.draft', JSON.stringify(opts.sessionDraft));
+  }
+  if (opts.heldRosterArtists) {
+    localStorage.setItem('plaiground.roster.artists', JSON.stringify(opts.heldRosterArtists));
   }
 
   const elements = {
@@ -688,8 +693,13 @@ function load(options) {
   if (!context.PlaigroundArtistCheck) {
     context.PlaigroundArtistCheck = require('./lib/artist-check');
   }
+  vm.runInNewContext(artistRosterCode, context);
+  if (!context.PlaigroundArtistRoster) {
+    context.PlaigroundArtistRoster = require('./lib/artist-roster');
+  }
   vm.runInNewContext(requiredCode, context);
   vm.runInNewContext(code, context);
+  vm.runInNewContext(artistRosterHoldCode, context);
   return {
     continueBtn,
     payBtn,
@@ -751,6 +761,7 @@ function load(options) {
     language,
     get convertCalls() { return convertCalls; },
     get lastStoreFailure() { return context.PlaigroundLastStoreFailure || null; },
+    get rosterHold() { return context.PlaigroundArtistRosterHold || null; },
     get heldPicked() { return heldStore.picked || null; },
     get heldMaster() { return heldStore.master || null; },
     get heldArtwork() { return heldStore.cover || null; },
@@ -4862,7 +4873,9 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912tc3'), 'upload.html must cache-bust past 20260912tc3');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912cr1'), 'upload.html must cache-bust past 20260912cr1');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912cr2'), 'upload.html must cache-bust past 20260912cr2');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260913a1'), 'upload.html cache-busts store-client.js at 20260913a1');
+  assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260913a1'), 'upload.html must cache-bust past 20260913a1');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260915r2'), 'upload.html cache-busts store-client.js at 20260915r2');
+  assert.ok(uploadHtmlForBust.includes('lib/artist-roster.js?v=20260915r2'), 'upload picker shares the Your Artists roster helper');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly7'), 'upload.html must cache-bust past 20260912ly7');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly8'), 'upload.html must cache-bust past 20260912ly8');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912sg4'), 'upload.html must cache-bust past 20260912sg4');
@@ -5227,6 +5240,8 @@ async function run() {
     assert.ok(names.indexOf('Fuvtu') !== -1, 'roster must list a real profile');
     assert.ok(names.indexOf('Night Drive') !== -1);
     assert.ok(names.indexOf('John ham') === -1, 'leftover John ham must not be a picker option');
+    assert.ok(names.indexOf('Create new artist profile') !== -1, 'Create new stays an action, not a profile');
+    assert.ok(names.indexOf('Import an existing artist') !== -1, 'Import stays an action, not a profile');
     page.artistSelect.value = 'art-1';
     page.artistSelect.selectedIndex = page.artistSelect.options.findIndex(function (opt) { return opt.value === 'art-1'; });
     if (page.artistSelect.listeners.change) page.artistSelect.listeners.change();
@@ -5235,6 +5250,59 @@ async function run() {
     page.continueBtn.listeners.click({ preventDefault() {} });
     await flush(8);
     assert.ok(page.status.textContent.indexOf('Choose an artist profile') === -1, 'Creator Continue must accept the stuck artist pick');
+  }
+
+  async function submitPickerMatchesYourArtists() {
+    const owned = [
+      { id: 'a1', name: 'Herman Watson', source: 'created' },
+      { id: 'a2', name: 'Amplify', source: 'created' },
+      { id: 'a3', name: 'Vicki G', source: 'created' },
+      { id: 'a4', name: 'The kid', source: 'created' },
+      { id: 'a5', name: 'Vickilicious', source: 'created' },
+      { id: 'a6', name: 'VEXA', source: 'created' },
+    ];
+    const page = load(filledUpload({
+      artistPicker: true,
+      heldRosterArtists: [
+        { id: 'orphan-1', name: 'Vikilicious' },
+        { id: 'orphan-2', name: 'Vikilicioux' },
+      ],
+      account: {
+        plan: 'creator',
+        artist: 'VEXA',
+        profile: { artists: owned },
+        upload: { allowed: true, album_allowed: true, plan: 'creator' },
+      },
+    }));
+    await flush();
+    if (page.rosterHold && page.rosterHold.paint) page.rosterHold.paint();
+    const profileNames = page.artistSelect.options.map(function (opt) { return opt.textContent; }).filter(function (name) {
+      return name && name !== 'Select an artist' && name !== 'Create new artist profile' && name !== 'Import an existing artist';
+    });
+    assert.deepStrictEqual(profileNames, [
+      'Herman Watson',
+      'Amplify',
+      'Vicki G',
+      'The kid',
+      'Vickilicious',
+      'VEXA',
+    ]);
+    assert.ok(profileNames.indexOf('Vikilicious') === -1, 'typo orphan Vikilicious is not a picker option');
+    assert.ok(profileNames.indexOf('Vikilicioux') === -1, 'typo orphan Vikilicioux is not a picker option');
+    assert.ok(profileNames.indexOf('Create new artist profile') === -1, 'Create new is an action, not a profile name');
+    const actions = page.artistSelect.options.map(function (opt) { return opt.textContent; });
+    assert.ok(actions.indexOf('Create new artist profile') !== -1, 'Create new stays');
+    assert.ok(actions.indexOf('Import an existing artist') !== -1, 'Import stays');
+    const storeSrc = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
+    assert.ok(!/artists\.push\(extra\)/.test(storeSrc), 'session-remembered store artists must not invent picker rows');
+    assert.ok(storeSrc.includes('PlaigroundArtistRoster'), 'Submit picker uses the shared Your Artists roster');
+    assert.ok(
+      /rememberedArtists\.forEach\(function \(extra\) \{[\s\S]*hit\.tonegrid_artist_id = storeId;/.test(storeSrc)
+      && !/artists\.push\(extra\)/.test(storeSrc),
+      'remembered store ids only copy onto an existing Your Artists row'
+    );
+    const holdSrc = fs.readFileSync(path.join(__dirname, 'lib', 'artist-roster-hold.js'), 'utf8');
+    assert.ok(!/opt\.textContent = row\.name/.test(holdSrc), 'localStorage hold must not invent picker rows');
   }
 
   async function creatorArtistUuidPickSticks() {
@@ -8583,6 +8651,7 @@ async function run() {
   await objectErrorNeverPaintsObjectObject();
   await continueReachesAttestWhenStoreStepOk();
   await rosterPickerListsRealArtists();
+  await submitPickerMatchesYourArtists();
   await creatorArtistUuidPickSticks();
   await basicArtistProfileAutoSelects();
   await createNewArtistPostsLiveNameOnlyAndStaysOnUpload();

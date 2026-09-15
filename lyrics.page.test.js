@@ -79,7 +79,9 @@ function run() {
   assert.ok(!upload.includes('site.css?v=20260912ly8'), 'upload must cache-bust past 20260912ly8');
   assert.ok(!upload.includes('site.css?v=20260912tc1'), 'upload must cache-bust past 20260912tc1');
   assert.ok(/upload-stage-caption sr-only/.test(upload), 'sleeve helpers do not force a read');
-  assert.ok(upload.includes('store-client.js?v=20260913a1'), 'upload cache-busts store-client.js at 20260913a1');
+  assert.ok(upload.includes('store-client.js?v=20260915r2'), 'upload cache-busts store-client.js at 20260915r2');
+  assert.ok(upload.includes('lib/artist-roster.js?v=20260915r2'), 'upload loads the shared Your Artists roster helper');
+  assert.ok(!upload.includes('store-client.js?v=20260913a1'), 'upload must cache-bust past 20260913a1');
   assert.ok(!upload.includes('store-client.js?v=20260912cr2'), 'upload must cache-bust past 20260912cr2');
   assert.ok(!/<button[^>]*data-audio-play/.test(upload), 'single-upload chip has no extra play');
   assert.ok(upload.includes('data-audio-clear>Clear<'), 'attached audio Clear matches cover language');

@@ -4971,7 +4971,13 @@
     return (typeof PlaigroundArtistCheck !== 'undefined' && PlaigroundArtistCheck) || null;
   }
 
+  function rosterApi() {
+    return (typeof PlaigroundArtistRoster !== 'undefined' && PlaigroundArtistRoster) || null;
+  }
+
   function isLeftoverArtistName(name) {
+    var api = rosterApi();
+    if (api && typeof api.isLeftoverArtistName === 'function') return api.isLeftoverArtistName(name);
     var next = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (!next) return false;
     if (
@@ -5009,39 +5015,76 @@
     refreshArtistSelect();
   }
 
+  function adoptOwnedRosterArtist(artist) {
+    if (!artist || !artist.name || isLeftoverArtistName(artist.name)) return;
+    var me = accountRecord();
+    if (!me) return;
+    if (!me.profile) me.profile = {};
+    if (!Array.isArray(me.profile.artists)) me.profile.artists = [];
+    var id = String(artist.id || artist.artist_id || '').trim();
+    var nameKey = String(artist.name || '').trim().toLowerCase();
+    var hit = null;
+    me.profile.artists.forEach(function (row) {
+      if (!row) return;
+      if ((id && String(row.id || '') === id) || String(row.name || '').trim().toLowerCase() === nameKey) {
+        hit = row;
+      }
+    });
+    if (!hit) {
+      me.profile.artists.push({
+        id: id || artist.name,
+        name: artist.name,
+        source: artist.source || (artist.linked ? 'linked' : 'created'),
+        badge: artist.badge || 'PLAIGROUND',
+        tonegrid_artist_id: artist.tonegrid_artist_id || artist.tonegridId || '',
+      });
+    } else if (id && !String(hit.id || '').trim()) {
+      hit.id = id;
+    }
+    rememberRosterArtist({
+      id: id || artist.name,
+      name: artist.name,
+      source: artist.source || (artist.linked ? 'linked' : 'created'),
+      tonegrid_artist_id: artist.tonegrid_artist_id || artist.tonegridId || '',
+    });
+  }
+
   function rosterFromMe(me) {
     var row = me || accountRecord() || {};
-    var artists = row.profile && Array.isArray(row.profile.artists) ? row.profile.artists.slice() : [];
-    artists = artists.filter(function (artist) {
-      return artist && artist.name && !isLeftoverArtistName(artist.name);
-    }).map(function (artist) {
-      var id = String((artist && (artist.id || artist.artist_id || artist.uuid || artist.tonegrid_artist_id)) || '').trim();
-      return Object.assign({}, artist, { id: id || artist.name });
-    });
+    var api = rosterApi();
+    var artists = api && typeof api.fromMe === 'function'
+      ? api.fromMe(row)
+      : (function () {
+        var raw = row.profile && Array.isArray(row.profile.artists) ? row.profile.artists.slice() : [];
+        var list = raw.filter(function (artist) {
+          return artist && artist.name && !isLeftoverArtistName(artist.name);
+        }).map(function (artist) {
+          var id = String((artist && (artist.id || artist.artist_id || artist.uuid || artist.tonegrid_artist_id)) || '').trim();
+          return Object.assign({}, artist, { id: id || artist.name });
+        });
+        if (list.length) return list;
+        if (row.artist && !isLeftoverArtistName(row.artist)) {
+          return [{
+            id: 'account',
+            name: row.artist,
+            source: 'created',
+            badge: 'PLAIGROUND',
+            tonegrid_artist_id: row.tonegrid_artist_id || '',
+            name_check: 'green',
+          }];
+        }
+        return [];
+      }());
     rememberedArtists.forEach(function (extra) {
       if (!extra || !extra.name) return;
       var storeId = String(extra.tonegrid_artist_id || '').trim();
       var hit = artists.find(function (row) {
         return row && (row.id === extra.id || row.name === extra.name);
       });
-      if (hit) {
-        if (isUuidValue(storeId) && !String(hit.tonegrid_artist_id || '').trim()) {
-          hit.tonegrid_artist_id = storeId;
-        }
-        return;
+      if (hit && isUuidValue(storeId) && !String(hit.tonegrid_artist_id || '').trim()) {
+        hit.tonegrid_artist_id = storeId;
       }
-      artists.push(extra);
     });
-    if (!artists.length && row.artist && !isLeftoverArtistName(row.artist)) {
-      artists.push({
-        id: 'account',
-        name: row.artist,
-        source: 'created',
-        badge: 'PLAIGROUND',
-        tonegrid_artist_id: row.tonegrid_artist_id || '',
-        name_check: 'green',
-      });
-    }
     return artists;
   }
 
@@ -5611,13 +5654,15 @@
       return post('/api/me/artists', { action: 'link', url: url, name: linkName }).then(function (result) {
         if (!result.ok) return { error: (result.data && result.data.error) || 'Could not link artist.' };
         var created = (result.data && result.data.created) || {};
-        return {
+        var linked = {
           name: created.name || linkName,
           id: created.id || '',
           check: { level: 'green', skip: true, linked: true },
           confirmDifferent: false,
           linked: true,
         };
+        adoptOwnedRosterArtist(linked);
+        return linked;
       });
     }
 
@@ -5642,7 +5687,7 @@
       }
       if (!result.ok) return { error: (result.data && result.data.error) || 'Could not save artist.' };
       var created = (result.data && result.data.created) || {};
-      return {
+      var owned = {
         name: created.name || name,
         id: created.id || '',
         check: (result.data && result.data.check) || check,
@@ -5650,6 +5695,8 @@
         linked: false,
         skipTonegrid: check.level === 'red' || submitReview,
       };
+      adoptOwnedRosterArtist(owned);
+      return owned;
     });
   }
 

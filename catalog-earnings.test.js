@@ -263,6 +263,7 @@ function run() {
     '[data-stat="live"]': makeEl({ textContent: '0' }),
     '[data-stat="review"]': makeEl({ textContent: '0' }),
     '[data-stat="draft"]': makeEl({ textContent: '0' }),
+    '[data-stat="rejected"]': makeEl({ textContent: '0' }),
     '[data-release-rows]': makeEl({}),
     '[data-release-empty]': makeEl({}),
     '[data-release-table]': makeEl({ hidden: true }),
@@ -448,6 +449,9 @@ function run() {
   assert.ok(findByText(catalogNodes['[data-release-rows]'], 'Rainbow Road'), 'live catalog stays in the main list');
   assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'Lightning'), 'Lightning is not left in the main list');
   assert.ok(!findByText(catalogNodes['[data-release-rows]'], 'GOLDEN ERA'), 'rejected rows leave the main list');
+  assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '5', 'TOTAL is live plus rejected, not live only');
+  assert.strictEqual(catalogNodes['[data-stat="live"]'].textContent, '1');
+  assert.strictEqual(catalogNodes['[data-stat="rejected"]'].textContent, '4');
   const resubmit = findByText(rejectedRows[0], 'Resubmit');
   assert.ok(resubmit, 'each rejected row has Resubmit');
   assert.strictEqual(resubmit.tagName, 'A');
@@ -463,8 +467,11 @@ function run() {
   assert.ok(read('releases.html').includes('<h3>Rejected</h3>'), 'Releases has a Rejected heading');
   assert.ok(read('releases.html').includes('data-rejected-section'), 'Rejected section is marked');
   assert.ok(read('releases.html').includes('data-rejected-rows'), 'Rejected rows host is marked');
-  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260910r3'), 'releases.html cache-busts release-status.js');
-  assert.ok(read('releases.html').includes('catalog.js?v=20260912a2'), 'releases.html cache-busts catalog.js');
+  assert.ok(read('releases.html').includes('lib/release-status.js?v=20260915r1'), 'releases.html cache-busts release-status.js');
+  assert.ok(read('releases.html').includes('catalog.js?v=20260915r1'), 'releases.html cache-busts catalog.js');
+  assert.ok(read('releases.html').includes('data-release-filter="rejected">Rejected</a>'), 'Rejected replaces Drafts on Releases');
+  assert.ok(!/data-release-filter="draft"/.test(read('releases.html')), 'Drafts tab is gone from Releases');
+  assert.ok(read('releases.html').includes('<span>Rejected</span>'), 'stats bar says Rejected');
   assert.ok(!/data-upload-save-draft|Save draft/.test(read('releases.html')), 'Save draft stays off Releases');
   assert.ok(!/DistroKid/i.test(read('releases.html')));
   assert.ok(read('catalog.js').includes("return 'upload.html'"), 'Resubmit stays on the new-release path');
@@ -535,6 +542,8 @@ function run() {
   assert.ok(sentBackRow, 'rejected Sent Back still lists in Rejected');
   assert.ok(findByText(sentBackRow, 'Sent Back'));
   assert.ok(findByText(sentBackRow, 'Rejected'));
+  assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '4', 'TOTAL includes rejected Sent Back');
+  assert.strictEqual(catalogNodes['[data-stat="rejected"]'].textContent, '1');
   assert.strictEqual(catalogNodes['[data-stat="live"]'].textContent, '1', 'delivered_at approved counts as live');
   assert.strictEqual(catalogNodes['[data-release-tiles]'].children[0].children[2].textContent, 'Live');
   assert.ok(String(catalogNodes['[data-release-tiles]'].children[0].children[2].className).indexOf('is-green') !== -1);
@@ -590,6 +599,18 @@ function run() {
   catalog.PlaigroundCatalog.render({ releases: [], total: 0, analytics: {} });
   assert.ok(catalogNodes['[data-release-empty-title]'].textContent.indexOf('No live releases') !== -1);
   assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, false);
+  catalog.PlaigroundCatalog.setFilter('rejected');
+  catalog.PlaigroundCatalog.render({
+    releases: [{ uuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Rainbow Road', type: 'single', status: 'live' }],
+    total: 1,
+    analytics: {},
+  });
+  assert.strictEqual(catalogNodes['[data-release-empty-title]'].textContent, 'No rejected releases.');
+  assert.ok(!/ToneGrid|DistroKid|InterSpace|hop/i.test(catalogNodes['[data-release-empty-body]'].textContent));
+  assert.strictEqual(catalogNodes['[data-release-empty]'].hidden, false);
+  assert.strictEqual(catalogNodes['[data-stat="total"]'].textContent, '1');
+  assert.strictEqual(catalogNodes['[data-stat="rejected"]'].textContent, '0');
+  catalog.PlaigroundCatalog.setFilter('all');
 
   const signedInEmpty = {
     '[data-stat="total"]': makeEl({ textContent: '0' }),
