@@ -144,10 +144,13 @@
   }
 
   function counts(releases) {
-    var out = { total: releases.length, live: 0, review: 0, draft: 0 };
-    releases.forEach(function (row) {
+    var parts = splitRejected(releases);
+    var out = { total: (releases || []).length, live: 0, review: 0, draft: 0, rejected: parts.rejected.length };
+    parts.main.forEach(function (row) {
       var group = statusGroup(row);
-      out[group] += 1;
+      if (group === 'live') out.live += 1;
+      else if (group === 'review') out.review += 1;
+      else if (group === 'draft') out.draft += 1;
     });
     return out;
   }
@@ -157,7 +160,7 @@
     setText('[data-stat="total"]', formatCount(stats.total));
     setText('[data-stat="live"]', formatCount(stats.live));
     setText('[data-stat="review"]', formatCount(stats.review));
-    setText('[data-stat="draft"]', formatCount(stats.draft));
+    setText('[data-stat="rejected"]', formatCount(stats.rejected));
   }
 
   function coverOf(row) {
@@ -561,7 +564,7 @@
       var status = new URLSearchParams(global.location.search).get('status');
       if (status === 'live') return 'live';
       if (status === 'pending' || status === 'review') return 'review';
-      if (status === 'draft' || status === 'drafts') return 'draft';
+      if (status === 'rejected') return 'rejected';
     } catch (err) {}
     return 'all';
   }
@@ -569,7 +572,13 @@
   function applyFilter(releases, filter) {
     var list = releases || [];
     if (!filter || filter === 'all') return list;
+    if (filter === 'rejected') {
+      return list.filter(function (row) {
+        return isReturnedRow(row);
+      });
+    }
     return list.filter(function (row) {
+      if (isReturnedRow(row)) return false;
       return statusGroup(row) === filter;
     });
   }
@@ -587,10 +596,10 @@
         body: 'Nothing is waiting for review in this catalog.',
       };
     }
-    if (filter === 'draft') {
+    if (filter === 'rejected') {
       return {
-        title: 'No drafts.',
-        body: 'Nothing is saved as a draft in this catalog.',
+        title: 'No rejected releases.',
+        body: 'Nothing in this catalog was sent back from review.',
       };
     }
     return {
@@ -625,23 +634,25 @@
     var parts = splitRejected(lastReleases);
     var main = parts.main;
     var rejected = parts.rejected;
-    lastTotal = (data && data.total) || main.length;
-    if (main.length > lastTotal) lastTotal = main.length;
+    lastTotal = lastReleases.length;
     if (!currentFilter) currentFilter = filterFromSearch();
-    var shown = applyFilter(main, currentFilter);
-    renderStats(main);
+    var showRejected = currentFilter === 'all' || currentFilter === 'rejected';
+    var shown = currentFilter === 'rejected' ? [] : applyFilter(main, currentFilter);
+    var rejectedShown = showRejected ? rejected : [];
+    renderStats(lastReleases);
     renderRows(shown, lastAnalytics);
-    renderRejectedRows(rejected);
+    renderRejectedRows(rejectedShown);
     renderOverviewTiles(main);
-    var empty = !shown.length;
-    var hideEmptyCard = !empty || (rejected.length > 0 && !main.length && (!currentFilter || currentFilter === 'all'));
-    setHidden('[data-release-empty]', hideEmptyCard);
-    setHidden('[data-release-table]', empty);
+    var empty = !shown.length && !rejectedShown.length;
+    setHidden('[data-release-empty]', !empty);
+    setHidden('[data-release-table]', !shown.length);
+    setHidden('[data-release-empty-action]', currentFilter !== 'all' || lastReleases.length > 0);
     var copy = emptyCopy(currentFilter);
     setText('[data-release-empty-title]', copy.title);
     setText('[data-release-empty-body]', copy.body);
     highlightFilters(currentFilter);
-    setText('[data-release-count]', empty ? '' : ('Showing ' + shown.length + ' of ' + lastTotal + ' releases'));
+    var shownCount = shown.length + rejectedShown.length;
+    setText('[data-release-count]', empty ? '' : ('Showing ' + shownCount + ' of ' + lastTotal + ' releases'));
     var editPanel = $('[data-release-edit]');
     if (editPanel) editPanel.hidden = true;
   }

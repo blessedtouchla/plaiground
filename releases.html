@@ -68,13 +68,13 @@
         <div><strong data-stat="total">0</strong><span>Total releases</span></div>
         <div><strong class="stat-g" data-stat="live">0</strong><span>Live</span></div>
         <div><strong class="stat-y" data-stat="review">0</strong><span>Pending</span></div>
-        <div><strong data-stat="draft">0</strong><span>Draft</span></div>
+        <div><strong data-stat="rejected">0</strong><span>Rejected</span></div>
       </div>
       <div class="tabs" data-release-filters>
         <a class="on" href="releases.html" data-release-filter="all">All</a>
         <a href="releases.html?status=live" data-release-filter="live">Live</a>
         <a href="releases.html?status=pending" data-release-filter="review">Pending</a>
-        <a href="releases.html?status=draft" data-release-filter="draft">Drafts</a>
+        <a href="releases.html?status=rejected" data-release-filter="rejected">Rejected</a>
       </div>
       <div class="release-table-wrap" data-release-table hidden>
         <table class="data">
@@ -141,7 +141,7 @@
       <div class="empty" data-release-empty>
         <h3 data-release-empty-title>Your first release goes here.</h3>
         <p data-release-empty-body>Nothing here yet. Submit a song and it will show in this catalog when the store has it.</p>
-        <p style="margin-top:16px"><a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload data-signed-in-upload>Submit your first song</a></p>
+        <p style="margin-top:16px" data-release-empty-action><a class="btn btn-ghost btn-sm" href="upload.html" data-first-upload data-signed-in-upload>Submit your first song</a></p>
       </div>
       <div class="page-foot">
         <span data-release-count></span>
@@ -152,7 +152,7 @@
     </div>
   </div>
   <script src="lib/cover-url.js"></script>
-  <script src="lib/release-status.js?v=20260910r3"></script>
+  <script src="lib/release-status.js?v=20260915r1"></script>
   <script src="lib/release-credits.js?v=20260910r1"></script>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js?v=20260910live1"></script>
@@ -160,7 +160,7 @@
   <script src="lib/store-pick.js?v=20260912a2"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js"></script>
-  <script src="catalog.js?v=20260912a2" defer></script>
+  <script src="catalog.js?v=20260915r1" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

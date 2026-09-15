@@ -572,7 +572,7 @@ function run() {
   assert.ok(siteCss.includes('table.data td.release-edit-col .btn') && siteCss.includes('min-height: 44px'), 'phone Edit column stays tappable');
   assert.ok(siteCss.includes('.release-table-wrap') && siteCss.includes('overflow-x: auto'), 'phone table can scroll without covering New release');
   assert.ok(/class="catalog-stats releases-stats"/.test(releases), 'Releases stats card is marked for phone centering');
-  assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / DRAFT card is centered on phone');
+  assert.ok(siteCss.includes('.releases-stats') && siteCss.includes('justify-items: center'), 'TOTAL / LIVE / PENDING / REJECTED card is centered on phone');
   assert.ok(siteCss.includes('.app .page .releases-stats'), 'phone Releases stats card uses the centered page rule');
   assert.ok(/\.releases-stats \{\s*[\s\S]*?grid-template-columns:\s*repeat\(4/.test(siteCss), 'phone stats stay one centered four-number card');
   assert.ok(/\.nav \.logo \{\s*position:\s*relative;\s*z-index:\s*2;/.test(siteCss), 'public wordmark sits above the centered nav so the click lands on the <a>');
