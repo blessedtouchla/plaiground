@@ -308,6 +308,7 @@ function loadArtists() {
   context.window = context;
   context.globalThis = context;
   vm.runInNewContext(read('lib/artist-check.js'), context);
+  vm.runInNewContext(read('lib/artist-roster.js'), context);
   vm.runInNewContext(read('lib/release-credits.js'), context);
   vm.runInNewContext(read('lib/store-pick.js'), context);
   vm.runInNewContext(read('lib/platform-links.js'), context);
@@ -467,6 +468,8 @@ function run() {
   assert.ok(listFn.indexOf("textContent = 'Edit'") < listFn.indexOf("textContent = 'Delete'"), 'Edit stays left of Delete');
   assert.ok(listFn.indexOf('actions.appendChild(edit)') < listFn.indexOf('actions.appendChild(del)'), 'Edit stays left of Delete in the actions row');
   assert.ok(html.includes('artists.js'));
+  assert.ok(html.includes('lib/artist-roster.js?v=20260915r2'), 'Your Artists shares the Submit picker roster helper');
+  assert.ok(html.includes('artists.js?v=20260915r2'), 'Artist Profiles cache-busts after the shared roster leftover');
   assert.ok(html.includes('This artist\'s songs'));
   assert.ok(html.includes('data-artist-song-list'));
   assert.ok(html.includes('lib/live-player.js'));
@@ -705,6 +708,54 @@ async function persistAndImmediateSave() {
   }).map(function (node) { return node.textContent; }), ['Edit', 'Delete'], 'list Edit stays left of Delete');
   const rosterName = rosterNodes.filter(function (node) { return node.className === 'artist-row-name'; })[0];
   assert.ok(rosterName && rosterName.textContent === 'Fuvtu', 'list keeps the artist name readable');
+
+  const victoriaRoster = loadArtists();
+  victoriaRoster.api.applyMe({
+    artist: 'VEXA',
+    profile: {
+      artists: [
+        { id: 'a1', name: 'Herman Watson', source: 'created' },
+        { id: 'a2', name: 'Amplify', source: 'created' },
+        { id: 'a3', name: 'Vicki G', source: 'created' },
+        { id: 'a4', name: 'The kid', source: 'created' },
+        { id: 'a5', name: 'Vickilicious', source: 'created' },
+        { id: 'a6', name: 'VEXA', source: 'created' },
+      ],
+    },
+  });
+  assert.deepStrictEqual(victoriaRoster.api.rosterFromMe({
+    artist: 'VEXA',
+    profile: {
+      artists: [
+        { id: 'a1', name: 'Herman Watson', source: 'created' },
+        { id: 'a2', name: 'Amplify', source: 'created' },
+        { id: 'a3', name: 'Vicki G', source: 'created' },
+        { id: 'a4', name: 'The kid', source: 'created' },
+        { id: 'a5', name: 'Vickilicious', source: 'created' },
+        { id: 'a6', name: 'VEXA', source: 'created' },
+      ],
+    },
+  }).map(function (row) { return row.name; }), [
+    'Herman Watson',
+    'Amplify',
+    'Vicki G',
+    'The kid',
+    'Vickilicious',
+    'VEXA',
+  ], 'Your Artists list is the same six names as the Submit picker');
+  const victoriaNames = walk(victoriaRoster.nodes['[data-artist-list]'], [])
+    .filter(function (node) { return node.className === 'artist-row-name'; })
+    .map(function (node) { return node.textContent; });
+  assert.deepStrictEqual(victoriaNames, [
+    'Herman Watson',
+    'Amplify',
+    'Vicki G',
+    'The kid',
+    'Vickilicious',
+    'VEXA',
+  ]);
+  assert.ok(victoriaNames.indexOf('Vikilicious') === -1);
+  assert.ok(victoriaNames.indexOf('Vikilicioux') === -1);
   afterReload.context.confirmResult = false;
   const cancelled = await afterReload.api.deleteArtist('artist-1');
   assert.ok(cancelled && cancelled.cancelled === true, 'Delete still confirms first');

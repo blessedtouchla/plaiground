@@ -84,7 +84,13 @@
     return '';
   }
 
+  function rosterApi() {
+    return (typeof PlaigroundArtistRoster !== 'undefined' && PlaigroundArtistRoster) || null;
+  }
+
   function isLeftoverArtistName(name) {
+    var api = rosterApi();
+    if (api && typeof api.isLeftoverArtistName === 'function') return api.isLeftoverArtistName(name);
     var next = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (!next) return false;
     if (
@@ -104,6 +110,8 @@
   }
 
   function rosterFromMe(me) {
+    var api = rosterApi();
+    if (api && typeof api.fromMe === 'function') return api.fromMe(me);
     var raw = me && me.profile && Array.isArray(me.profile.artists) ? me.profile.artists : [];
     var artists = raw.filter(function (artist) {
       return artist && artist.name && !isLeftoverArtistName(artist.name);
