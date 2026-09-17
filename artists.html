@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260917pl2" />
+  <link rel="stylesheet" href="site.css?v=20260917ar1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app artists-page">
@@ -47,16 +47,16 @@
       <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <div class="page">
-      <div class="head-row page-head">
-        <div>
-          <p class="kicker">Release names</p>
+      <div class="head-row page-head artists-head">
+        <div class="artists-title-row">
           <h1>Artist Profiles</h1>
-          <p class="hint">Create the artist once. Later songs pick that profile — no retype every submit.</p>
-          <p class="hint">After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.</p>
-          <p class="hint">Import or merge here, not on submit.</p>
+          <details class="artists-help">
+            <summary aria-label="About artist profiles">?</summary>
+            <p>Create the artist once. Later songs pick that profile. Import or merge here, not on submit.</p>
+          </details>
         </div>
         <span class="page-head-actions">
-          <button class="btn btn-purple btn-sm" type="button" data-artist-add>Add artist</button>
+          <button class="btn btn-gold btn-sm" type="button" data-artist-add>Add artist</button>
           <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import Artist</button>
         </span>
       </div>
@@ -125,14 +125,13 @@
         </p>
       </section>
 
-      <section class="panel">
+      <section class="panel artists-roster-panel">
         <h3>Your artists</h3>
-        <p class="hint">Click a profile to preview it. Edit is left of Delete.</p>
         <div class="artist-list" data-artist-list></div>
         <div data-artist-empty>
-          <p class="hint">No artist profiles yet. Create one or import an existing store page.</p>
+          <p class="hint">No artist profiles yet.</p>
           <p class="page-head-actions" style="margin-top:12px">
-            <button class="btn btn-purple btn-sm" type="button" data-artist-add>Add artist</button>
+            <button class="btn btn-gold btn-sm" type="button" data-artist-add>Add artist</button>
             <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import Artist</button>
           </p>
         </div>
@@ -147,6 +146,9 @@
           </span>
         </div>
         <p class="hint">How this artist appears.</p>
+        <p class="artist-preview-release">
+          <a href="upload.html" data-artist-preview-release data-new-release data-signed-in-upload>New release with…</a>
+        </p>
         <div class="rel artist-preview-hero" style="margin-bottom:20px">
           <div class="profile-photo is-sm" data-artist-preview-photo role="img" aria-label="Artist photo"></div>
           <div>
@@ -298,7 +300,7 @@
   <script src="lib/artist-roster.js?v=20260915r2"></script>
   <script src="lib/release-status.js?v=20260910r3"></script>
   <script src="lib/live-player.js"></script>
-  <script src="artists.js?v=20260915r2" defer></script>
+  <script src="artists.js?v=20260917ar1" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

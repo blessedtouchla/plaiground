@@ -193,6 +193,7 @@ function loadArtists() {
     '[data-artist-preview-platforms]': makeEl({}),
     '[data-artist-preview-platforms-empty]': makeEl({ hidden: true }),
     '[data-artist-preview-pending]': makeEl({ hidden: true }),
+    '[data-artist-preview-release]': makeEl({ tagName: 'A', attrs: { href: 'upload.html', 'data-new-release': '', 'data-signed-in-upload': '' } }),
     '[data-artist-edit-open]': editOpenBtn,
     '[data-artist-edit-done]': editDoneBtn,
     '[data-artist-mapping-plai]': mappingPlaiBtn,
@@ -358,14 +359,14 @@ function run() {
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]') && siteCss.includes('width: 100%'), 'phone Save is a full-width tappable control');
   assert.ok(/\.artist-edit-actions \{\s*[\s\S]*?z-index:\s*4100/.test(siteCss), 'Save artist sits above Talk/Text PLAI');
   assert.ok(siteCss.includes('body.app.artists-page .page'), 'Artist Profiles page clears the bottom for Save artist');
-  assert.ok(siteCss.includes('.artist-row-actions'), 'list row groups Edit and Delete');
-  assert.ok(siteCss.includes('.artist-row-name'), 'list name has its own readable type');
-  const nameTypeAt = siteCss.indexOf('.artist-row-name {');
+  assert.ok(siteCss.includes('.artist-card-menu'), 'list overflow groups Edit and Delete');
+  assert.ok(siteCss.includes('.artist-card-name'), 'list name has its own readable type');
+  const nameTypeAt = siteCss.indexOf('.artists-page .artist-card-name {');
   const nameType = siteCss.slice(nameTypeAt, siteCss.indexOf('}', nameTypeAt));
   assert.ok(nameType.includes('font-size: 15px'), 'list name stays readable');
   assert.ok(!/font-size:\s*(9|10|11)px/.test(nameType), 'do not shrink list names into unreadability');
-  assert.ok(/\.artist-row-wrap \{[\s\S]*?flex-wrap:\s*wrap/.test(siteCss), 'phone stacks name then Edit/Delete');
-  assert.ok(/\.artist-row-actions \{[\s\S]*?flex-wrap:\s*nowrap/.test(siteCss), 'Edit stays left of Delete on one actions row');
+  assert.ok(/\.artists-page \.artist-list \{[\s\S]*?grid-template-columns:\s*repeat\(2/.test(siteCss), 'phone roster is a card grid');
+  assert.ok(/\.artists-page \.artist-card-menu button \{[\s\S]*?min-height:\s*44px/.test(siteCss), 'overflow Edit/Delete stay phone-safe');
 
   const html = read('artists.html');
   ['Neon Sermon', 'Victoria Reyes', 'John Doe', 'Hi John', 'Neon Shadows'].forEach(function (needle) {
@@ -373,7 +374,7 @@ function run() {
   });
   assert.ok(html.includes('Artist Profiles'));
   assert.ok(html.includes('Your artists'));
-  assert.ok(html.includes('Edit is left of Delete'));
+  assert.ok(!html.includes('Edit is left of Delete'));
   assert.ok(html.includes('>Add artist<'));
   assert.ok(html.includes('>Import Artist<'));
   assert.ok(html.includes('>Artist mapping<'));
@@ -386,9 +387,10 @@ function run() {
   assert.ok(html.includes('lib/release-credits.js'), 'Artist Profiles uses the shared legal-name copy');
   assert.ok(/id="artist-create-legal-first"[^>]*autocomplete="new-password"/.test(html), 'Artist Profiles create first must not use account autocomplete');
   assert.ok(/id="artist-create-legal-last"[^>]*autocomplete="new-password"/.test(html), 'Artist Profiles create last must not use account autocomplete');
-  assert.ok(html.includes('Create the artist once. Later songs pick that profile — no retype every submit.'));
-  assert.ok(html.includes('After first live, the store page stays attached. No duplicate. Photo, bio, and genres stay editable.'));
+  assert.ok(html.includes('Create the artist once. Later songs pick that profile.'));
   assert.ok(html.includes('Import or merge here, not on submit.'));
+  assert.ok(html.includes('class="artists-help"'));
+  assert.ok(!html.includes('After first live, the store page stays attached.'));
   assert.ok(html.includes('data-artist-preview'));
   const previewChunk = html.slice(html.indexOf('data-artist-preview'), html.indexOf('class="artist-edit-screen"'));
   assert.ok(/data-artist-edit-open[\s\S]*data-artist-delete/.test(previewChunk), 'Preview Edit stays left of Delete');
@@ -462,15 +464,15 @@ function run() {
 
   const js = read('artists.js');
   const listFn = js.slice(js.indexOf('function renderList()'), js.indexOf('function setEditingScreen'));
-  assert.ok(listFn.includes('artist-row-actions'), 'list row keeps Edit and Delete in one actions group');
-  assert.ok(listFn.includes('artist-row-name'), 'list row names stay readable');
+  assert.ok(listFn.includes('artist-card-more'), 'list keeps Edit and Delete in overflow');
+  assert.ok(listFn.includes('artist-card-name'), 'list row names stay readable');
   assert.ok(!listFn.includes('PLAIGROUND'), 'list row must not render the leftover site chip');
   assert.ok(!/badge\.textContent = artist\.badge/.test(listFn), 'list row must not render a source chip');
   assert.ok(listFn.indexOf("textContent = 'Edit'") < listFn.indexOf("textContent = 'Delete'"), 'Edit stays left of Delete');
-  assert.ok(listFn.indexOf('actions.appendChild(edit)') < listFn.indexOf('actions.appendChild(del)'), 'Edit stays left of Delete in the actions row');
+  assert.ok(listFn.indexOf('menu.appendChild(edit)') < listFn.indexOf('menu.appendChild(del)'), 'Edit stays left of Delete in overflow');
   assert.ok(html.includes('artists.js'));
   assert.ok(html.includes('lib/artist-roster.js?v=20260915r2'), 'Your Artists shares the Submit picker roster helper');
-  assert.ok(html.includes('artists.js?v=20260915r2'), 'Artist Profiles cache-busts after the shared roster leftover');
+  assert.ok(html.includes('artists.js?v=20260917ar1'), 'Artist Profiles cache-busts after the roster wall');
   assert.ok(html.includes('This artist\'s songs'));
   assert.ok(html.includes('data-artist-song-list'));
   assert.ok(html.includes('lib/live-player.js'));
@@ -708,8 +710,11 @@ async function persistAndImmediateSave() {
   assert.deepStrictEqual(rosterNodes.filter(function (node) {
     return node.textContent === 'Edit' || node.textContent === 'Delete';
   }).map(function (node) { return node.textContent; }), ['Edit', 'Delete'], 'list Edit stays left of Delete');
-  const rosterName = rosterNodes.filter(function (node) { return node.className === 'artist-row-name'; })[0];
+  const rosterName = rosterNodes.filter(function (node) { return node.className === 'artist-card-name'; })[0];
   assert.ok(rosterName && rosterName.textContent === 'Fuvtu', 'list keeps the artist name readable');
+  assert.ok(rosterNodes.some(function (node) {
+    return node.textContent === 'New release with…' && node.getAttribute && node.getAttribute('href') === 'upload.html?artist=artist-1';
+  }), 'card starts upload with the existing artist pick');
 
   const victoriaRoster = loadArtists();
   const victoriaOwned = [
@@ -725,7 +730,7 @@ async function persistAndImmediateSave() {
     profile: { artists: victoriaOwned },
   });
   const victoriaNames = walk(victoriaRoster.nodes['[data-artist-list]'], [])
-    .filter(function (node) { return node.className === 'artist-row-name'; })
+    .filter(function (node) { return node.className === 'artist-card-name'; })
     .map(function (node) { return node.textContent; });
   assert.deepStrictEqual(victoriaNames, [
     'Herman Watson',

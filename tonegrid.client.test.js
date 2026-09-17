@@ -4928,7 +4928,7 @@ async function run() {
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912cr1'), 'upload.html must cache-bust past 20260912cr1');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260912cr2'), 'upload.html must cache-bust past 20260912cr2');
   assert.ok(!uploadHtmlForBust.includes('store-client.js?v=20260913a1'), 'upload.html must cache-bust past 20260913a1');
-  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260915r2'), 'upload.html cache-busts store-client.js at 20260915r2');
+  assert.ok(uploadHtmlForBust.includes('store-client.js?v=20260917ar1'), 'upload.html cache-busts store-client.js at 20260917ar1');
   assert.ok(uploadHtmlForBust.includes('lib/artist-roster.js?v=20260915r2'), 'upload picker shares the Your Artists roster helper');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly7'), 'upload.html must cache-bust past 20260912ly7');
   assert.ok(!uploadHtmlForBust.includes('site.css?v=20260912ly8'), 'upload.html must cache-bust past 20260912ly8');
