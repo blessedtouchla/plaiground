@@ -196,44 +196,79 @@
     return artist.source === 'created' || artist.source === 'linked';
   }
 
+  function artistInitials(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function uploadHrefForArtist(artist) {
+    var id = String((artist && (artist.id || artist.artist_id)) || '').trim();
+    if (!id) return 'upload.html';
+    return 'upload.html?artist=' + encodeURIComponent(id);
+  }
+
   function renderList() {
     var host = $('[data-artist-list]');
     if (!host) return;
     host.textContent = '';
     current.artists.forEach(function (artist) {
-      var wrap = document.createElement('div');
-      wrap.className = 'artist-row-wrap';
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'artist-row' + (current.selected && current.selected.id === artist.id ? ' is-on' : '');
-      btn.setAttribute('data-artist-id', artist.id);
+      var card = document.createElement('article');
+      card.className = 'artist-card' + (current.selected && current.selected.id === artist.id ? ' is-on' : '');
+      var hit = document.createElement('button');
+      hit.type = 'button';
+      hit.className = 'artist-card-hit';
+      hit.setAttribute('data-artist-id', artist.id);
+      hit.setAttribute('aria-label', artist.name || 'Artist');
+      var photo = document.createElement('div');
+      photo.className = 'artist-card-photo' + (artist.photo ? ' has-art' : '');
+      photo.setAttribute('aria-hidden', 'true');
+      if (artist.photo) {
+        photo.style.backgroundImage = 'url("' + String(artist.photo).replace(/"/g, '') + '")';
+      } else {
+        photo.textContent = artistInitials(artist.name);
+      }
       var title = document.createElement('strong');
-      title.className = 'artist-row-name';
+      title.className = 'artist-card-name';
       title.textContent = artist.name;
-      btn.appendChild(title);
+      hit.appendChild(photo);
+      hit.appendChild(title);
       if (artist.edit_status === 'pending') {
         var pending = document.createElement('span');
-        pending.className = 'plan-badge is-yellow';
+        pending.className = 'artist-card-pending';
         pending.textContent = 'Pending edit';
-        btn.appendChild(pending);
+        hit.appendChild(pending);
       }
-      var actions = document.createElement('div');
-      actions.className = 'artist-row-actions';
+      var release = document.createElement('a');
+      release.className = 'artist-card-release';
+      release.setAttribute('href', uploadHrefForArtist(artist));
+      release.setAttribute('data-new-release', '');
+      release.setAttribute('data-signed-in-upload', '');
+      release.textContent = 'New release with…';
+      var more = document.createElement('details');
+      more.className = 'artist-card-more';
+      var summary = document.createElement('summary');
+      summary.setAttribute('aria-label', 'More actions');
+      summary.textContent = '⋯';
+      var menu = document.createElement('div');
+      menu.className = 'artist-card-menu';
       var edit = document.createElement('button');
       edit.type = 'button';
-      edit.className = 'btn btn-ghost btn-sm';
       edit.setAttribute('data-artist-edit-open', artist.id);
       edit.textContent = 'Edit';
       var del = document.createElement('button');
       del.type = 'button';
-      del.className = 'btn btn-ghost btn-sm';
       del.setAttribute('data-artist-delete', artist.id);
       del.textContent = 'Delete';
-      actions.appendChild(edit);
-      actions.appendChild(del);
-      wrap.appendChild(btn);
-      wrap.appendChild(actions);
-      host.appendChild(wrap);
+      menu.appendChild(edit);
+      menu.appendChild(del);
+      more.appendChild(summary);
+      more.appendChild(menu);
+      card.appendChild(more);
+      card.appendChild(hit);
+      card.appendChild(release);
+      host.appendChild(card);
     });
     setHidden('[data-artist-empty]', current.artists.length > 0);
   }
@@ -312,6 +347,8 @@
     setText('[data-artist-preview-bio]', bio || 'No bio yet.');
     setPhoto('[data-artist-preview-photo]', artist.photo || '');
     setHidden('[data-artist-preview-pending]', artist.edit_status !== 'pending');
+    var release = $('[data-artist-preview-release]');
+    if (release && release.setAttribute) release.setAttribute('href', uploadHrefForArtist(artist));
     var genresHost = $('[data-artist-preview-genres]');
     if (genresHost) {
       genresHost.textContent = '';
@@ -1211,6 +1248,10 @@
     var list = $('[data-artist-list]');
     if (list) {
       list.addEventListener('click', function (event) {
+        var more = event.target && event.target.closest && event.target.closest('.artist-card-more');
+        if (more) return;
+        var release = event.target && event.target.closest && event.target.closest('[data-new-release]');
+        if (release) return;
         var btn = event.target && event.target.closest && event.target.closest('[data-artist-id]');
         if (!btn) return;
         var id = btn.getAttribute('data-artist-id');
@@ -1218,6 +1259,15 @@
         current.artists.forEach(function (row) { if (row.id === id) found = row; });
         selectArtist(found, 'preview');
       });
+      if (list.addEventListener) {
+        list.addEventListener('toggle', function (event) {
+          var open = event && event.target;
+          if (!open || !open.open || !open.classList || !open.classList.contains('artist-card-more')) return;
+          Array.prototype.forEach.call(list.querySelectorAll('details.artist-card-more'), function (row) {
+            if (row !== open) row.open = false;
+          });
+        }, true);
+      }
     }
     var genreSel = $('#artist-genre');
     if (genreSel) {
@@ -1438,6 +1488,8 @@
     catalogForArtist: catalogForArtist,
     renderSongs: renderSongs,
     selectArtist: selectArtist,
+    uploadHrefForArtist: uploadHrefForArtist,
+    artistInitials: artistInitials,
     createArtist: createArtist,
     linkArtist: linkArtist,
     saveArtist: saveArtist,

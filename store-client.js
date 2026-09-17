@@ -5450,6 +5450,24 @@
       return String((artist && (artist.id || artist.artist_id || artist.uuid || artist.tonegrid_artist_id || artist.name)) || '').trim();
     }
 
+    function queryPickedArtist() {
+      try {
+        return String(new URLSearchParams((typeof location !== 'undefined' && location.search) || '').get('artist') || '').trim();
+      } catch (err) {
+        return '';
+      }
+    }
+
+    function artistMatchesPick(artist, want) {
+      if (!artist || !want) return false;
+      var id = artistPickValue(artist);
+      return id === want
+        || String(artist.id || '') === want
+        || String(artist.artist_id || '') === want
+        || String(artist.plaiground_artist_id || '') === want
+        || String(artist.name || '') === want;
+    }
+
     function setSelectValue(sel, value) {
       sel.value = value;
       if (!sel.options) return;
@@ -5480,7 +5498,16 @@
         sel.appendChild(opt);
       });
       appendModeChoices(sel);
-      if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) {
+      var want = queryPickedArtist();
+      var matched = '';
+      if (want) {
+        artists.forEach(function (artist) {
+          if (!matched && artistMatchesPick(artist, want)) matched = artistPickValue(artist);
+        });
+      }
+      if (matched) {
+        setSelectValue(sel, matched);
+      } else if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) {
         setSelectValue(sel, current);
       } else if (artists.length === 1) {
         setSelectValue(sel, artistPickValue(artists[0]));
