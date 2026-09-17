@@ -552,7 +552,7 @@ function run() {
   assert.ok(/\.side-nav a \{[\s\S]*?color:\s*var\(--muted-2\)/.test(siteCss), 'other signed-in menu items stay the default row, not gold');
   assert.ok(/\.side-nav a\.nav-siqa(?:,[\s\S]*?\.side-nav a\.nav-siqa:hover)? \{[\s\S]*?color:\s*#F3CB47/.test(siteCss), 'signed-in SIQA Charts is gold text, not a gold button');
   assert.ok(!/\.side-nav a\.nav-siqa[\s\S]{0,120}background:\s*#f3cb47/i.test(siteCss), 'SIQA Charts must not reuse the New release gold pill');
-  assert.ok(siteCss.includes('/* —— Signed-in nav Tesla cut (Create / Money / Account, no Overview nest) —— */'), 'signed-in drawer Tesla cut is in site.css');
+  assert.ok(siteCss.includes('/* —— Signed-in nav Tesla cut (Create / Money / PLAI / Account, no Overview nest) —— */'), 'signed-in drawer Tesla cut is in site.css');
   assert.ok(/\.side-nav a\.side-action[\s\S]*?background:\s*#f3cb47/.test(siteCss), 'New release stays the gold CTA after the sectioned cut');
   assert.ok(/Signed-in nav Tesla cut[\s\S]*?\.side-nav a\.on \{[\s\S]*?background:\s*transparent/.test(siteCss), 'current-page active is a quiet purple outline, not a second gold/purple pill');
   assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
