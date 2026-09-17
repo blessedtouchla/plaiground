@@ -4408,6 +4408,57 @@ async function run() {
     assert.strictEqual(page.loader.hidden, true, 'timeout must hide the Working bar');
   }
 
+  async function reviewSubmitKeepsCenterLoaderDuringStoreSend() {
+    let releaseHold;
+    const holdSubmit = new Promise(function (resolve) { releaseHold = resolve; });
+    const page = load({
+      bind: 'review',
+      releaseDate: '2026-09-20',
+      holdWhen: '/submit',
+      holdFirst: holdSubmit,
+      draft: Object.assign(attestDraft(), {
+        artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        title: 'Night Drive',
+        name: 'Ada Night',
+        release_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        track_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        audio_name: 'night-drive.wav',
+        audio_uploaded: true,
+        audio_attached: true,
+        audio_converted: true,
+        solo_owned_100: true,
+        release_date: '2026-09-20',
+        artwork_url: 'https://cdn.example/cover.jpg',
+      }),
+      responses: [
+        {
+          ok: true,
+          status: 200,
+          data: {
+            uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            tracks: [storeAudioTrack('cccccccc-cccc-4ccc-8ccc-cccccccccccc')],
+          },
+        },
+        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
+      ],
+    });
+    page.payBtn.listeners.click({ preventDefault() {} });
+    await flush(16);
+    assert.ok(page.calls.some(function (call) {
+      return String(call.url) === '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit';
+    }), 'Submit must reach the existing store send');
+    assert.strictEqual(page.loader.hidden, false, 'center Working must stay up during submit-to-store');
+    assert.ok(!page.loader.classList.contains('is-hidden'), 'center Working must not take the hidden class');
+    assert.strictEqual(page.loaderStep.textContent, 'Submitting to the store');
+    assert.ok(/Submitting to the store/.test(page.status.textContent), 'bottom status stays the live store copy');
+    assert.ok(page.loader.classList.contains('is-wait'), 'submit-to-store keeps the same wait bar');
+    assert.ok(!/distributor|TuneCore|DistroKid|hop/i.test(page.loaderStep.textContent + page.status.textContent));
+    releaseHold();
+    await flush(16);
+    assert.strictEqual(page.loader.hidden, true, 'Working hides after submit finishes');
+    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+  }
+
   async function genuineMissingTitleArtistStillErrors() {
     const noTitle = load(filledUpload({ title: '' }));
     noTitle.continueBtn.listeners.click({ preventDefault() {} });
@@ -4603,6 +4654,7 @@ async function run() {
   await reviewSubmitDoesNotFalseCapHeldWav();
   await leftoverConvertedWavWithoutPickedSizeStillPosts();
   await reviewSubmitHangShowsNamelessRetry();
+  await reviewSubmitKeepsCenterLoaderDuringStoreSend();
   await reviewSubmitGetHangShowsNamelessRetry();
   await reviewRetryResendsHeldWavWithoutReconvert();
   await genuineMissingTitleArtistStillErrors();
@@ -4855,7 +4907,12 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260913b1'), 'review.html must cache-bust past 20260913b1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260913c1'), 'review.html must cache-bust past 20260913c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260914a1'), 'review.html must cache-bust past leftover-gate 20260914a1');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260914a2'), 'review.html cache-busts store-client.js at 20260914a2');
+  assert.ok(!reviewHtml.includes('store-client.js?v=20260914a2'), 'review.html must cache-bust past leftover-gate 20260914a2');
+  assert.ok(reviewHtml.includes('store-client.js?v=20260917a1'), 'review.html cache-busts store-client.js at 20260917a1');
+  assert.ok(source.includes('function showSubmitStoreLoader'), 'Review Submit keeps the center Working panel through submit-to-store');
+  assert.ok(source.includes("showSubmitStoreLoader('Submitting to the store…')"), 'center Working uses the live submit-to-store copy');
+  assert.ok(source.includes("showSubmitStoreLoader(solo ? 'Submitting to the store…' : 'Sending split sheet…')"), 'split-sheet phase stays the existing send copy');
+  assert.ok(!/hideUploadLoader\(\);\s*return finishSubmit/.test(source), 'must not blank the center Working panel before submit-to-store');
   const swSource = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
   assert.ok(swSource.includes('cached || new Response'), 'offline GET miss must return a Response, not undefined');
   assert.ok(source.includes('typeof response.json !== \'function\''), 'parseJson must not throw on a non-Response');
