@@ -5678,6 +5678,15 @@ main.submitted-page.center-page {
   color: var(--muted);
   font-size: 13px;
   font-weight: 500;
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 .submitted-page .submit-order summary::-webkit-details-marker,
 .submitted-page .submit-next summary::-webkit-details-marker { display: none; }
