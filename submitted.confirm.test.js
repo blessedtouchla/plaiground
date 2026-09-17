@@ -104,13 +104,15 @@ function run() {
   const html = read('submitted.html');
   const source = read('store-client.js');
 
-  assert.ok(html.includes('data-submit-release-date'), 'summary card marks the release date');
+  assert.ok(html.includes('data-submit-release-date'), 'Out highlight marks the release date');
   assert.ok(html.includes('data-submit-deliver-date'), 'live-on-stores beat marks the date');
   assert.ok(html.includes('data-submit-order'), 'order details mark the order');
   assert.ok(html.includes('data-submit-writers'), 'review/QC beat marks writers');
+  assert.ok(html.includes('data-submit-song'), 'visible title is the song name');
+  assert.ok(html.includes('data-review-cover'), 'cover hero uses the existing cover hook');
   assert.ok(html.includes('store-client.js?v=20260912a3'), 'submitted.html cache-busts store-client.js at 20260912a3');
   assert.ok(!html.includes('store-client.js?v=20260912a2'), 'submitted.html must cache-bust past 20260912a2');
-  assert.ok(html.includes('site.css?v=20260917s1'), 'submitted.html cache-busts the Submitted Tesla cut');
+  assert.ok(html.includes('site.css?v=20260917s4'), 'submitted.html cache-busts the Submitted Tesla energy pass');
   assert.ok(html.includes('Order details'), 'uuid sits behind Order details');
   assert.ok(html.includes('All stores in your plan'), 'stores fallback is non-numeric until the live catalog paints');
   assert.ok(!html.includes('plai-bubble.js'), 'floating PLAI chip stays off submitted.html');
