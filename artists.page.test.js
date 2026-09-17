@@ -413,7 +413,8 @@ function run() {
   assert.ok(/href="problem.html\?import=1"[^>]*>Troubleshoot</.test(html) || /href="problem.html\?import=1">Troubleshoot</.test(html), 'Import Troubleshoot opens Have a problem? prefilled');
   assert.ok(/data-artist-troubleshoot[^>]*>Troubleshoot</.test(html), 'Edit artist has bottom Troubleshoot');
   assert.ok(html.indexOf('data-artist-save') < html.indexOf('data-artist-troubleshoot'), 'artist Troubleshoot sits under Save artist');
-  assert.ok(!/data-plai-text/.test(html), 'artist Troubleshoot is not Text PLAI');
+  assert.ok(!/data-plai-text[^>]*>Troubleshoot</.test(html), 'artist Troubleshoot is not Text PLAI');
+  assert.ok(/data-plai-text[^>]*>Text to PLAI</.test(html), 'Artist Profiles nav still has Text to PLAI');
   assert.ok(!/<select[^>]*data-problem/.test(html), 'Artist Profiles does not add a type picker');
   assert.ok(html.includes('How this artist usually creates'));
   assert.ok(html.includes('AI musician type'));

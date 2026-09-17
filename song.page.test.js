@@ -2292,7 +2292,7 @@ function run() {
   assert.ok(/class="btn btn-ghost btn-sm" data-edit-troubleshoot/.test(html), 'Edit Troubleshoot stays secondary');
   assert.ok(/href="problem.html"/.test(html.match(/data-edit-troubleshoot[\s\S]*?<\/a>/)[0]), 'Edit Troubleshoot opens Have a problem?');
   assert.ok(html.indexOf('data-edit-actions') < html.indexOf('data-edit-troubleshoot'), 'Troubleshoot sits under the edit actions');
-  assert.ok(!/data-plai-text/.test(html), 'Edit Troubleshoot is not Text PLAI');
+  assert.ok(!/data-plai-text[^>]*>Troubleshoot</.test(html), 'Edit Troubleshoot is not Text PLAI');
   assert.ok(!/<select[^>]*data-problem/.test(html), 'Edit release does not add a type picker');
   const splitsField = html.match(/<div class="field" data-edit-splits>[\s\S]*?<\/div>/);
   assert.ok(splitsField, 'Splits field exists');

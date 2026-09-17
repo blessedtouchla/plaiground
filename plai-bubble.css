@@ -351,3 +351,12 @@
     overflow: auto;
   }
 }
+
+/* Signed-in chrome: no floating PLAI chip / pills. Talk/Text open from the nav. */
+body.app .plai-bubble-chip,
+body.app .plai-bubble-row,
+body:has(> .flow-top) .plai-bubble-chip,
+body:has(> .flow-top) .plai-bubble-row,
+body.app .plai-coach-float {
+  display: none !important;
+}

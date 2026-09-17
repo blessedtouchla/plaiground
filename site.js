@@ -106,7 +106,7 @@
 
     wireToggle(toggle, isOpen, setOpen);
     backdrop.addEventListener("click", function () { setOpen(false); });
-    side.querySelectorAll("a").forEach(function (link) {
+    side.querySelectorAll("a, [data-plai-talk], [data-plai-text]").forEach(function (link) {
       link.addEventListener("click", function () { setOpen(false); });
     });
   }

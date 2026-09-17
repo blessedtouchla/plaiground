@@ -99,7 +99,8 @@ function run() {
   assert.ok(!/Meet PLAI/i.test(faq), 'FAQ must not lead with Meet PLAI');
   assert.ok(!/<h1>What is PLAI\?<\/h1>/.test(faq), 'FAQ must not title What is PLAI');
   assert.ok(faq.indexOf('<h1>Frequently asked questions</h1>') !== -1, 'FAQ title is Frequently asked questions');
-  assert.ok(faq.indexOf('Frequently asked questions') < faq.indexOf('Talk to PLAI'), 'FAQ PLAI pointer stays after the questions');
+  const faqBody = faq.slice(faq.indexOf('<h1>Frequently asked questions</h1>'));
+  assert.ok(faqBody.indexOf('Talk to PLAI') !== -1, 'FAQ PLAI pointer stays after the questions');
   assert.ok(/buy a car at the click of a button/i.test(faq), 'FAQ lead starts with the car-click line');
   assert.ok(/distribution, publishing, and marketing as easy as a click of a button/i.test(faq), 'FAQ lead states the click-of-a-button goal');
   assert.ok(/We are new/i.test(faq), 'FAQ lead says we are new');
@@ -177,7 +178,7 @@ function run() {
     const page = read(file);
     assert.ok(!/This song is on the wrong artist page/i.test(page), file + ' must not add the leftover wrong-page button');
     assert.ok(!/Someone else.s song is on this page/i.test(page), file + ' must not add the leftover someone-else button');
-    assert.ok(!/data-plai-text/.test(page), file + ' must not get the FAQ Troubleshoot control');
+    assert.ok(!/data-plai-text[^>]*>Troubleshoot</.test(page), file + ' must not get the FAQ Troubleshoot control');
     assert.ok(!/<select[^>]*(problem-type|data-problem-type)/i.test(page), file + ' must not add a problem-type picker');
   });
   const plaiPointer = faq.indexOf('class="faq-plai"');
@@ -482,10 +483,13 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Money / Account');
+    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">PLAI<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Money / PLAI / Account');
     assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
     assert.ok(/<p class="side-label">Money<\/p>\s*<a(?: class="on")? href="boosts.html"[^>]*>Boosts<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(sideNav[0]), file + ' Money is Boosts, Publishing, Earnings, Analytics, Payouts');
+    assert.ok(/<p class="side-label">PLAI<\/p>\s*<button[^>]*data-plai-talk[^>]*>Talk to PLAI<\/button>\s*<button[^>]*data-plai-text[^>]*>Text to PLAI<\/button>/.test(sideNav[0]), file + ' PLAI is Talk to PLAI then Text to PLAI');
     assert.ok(/<p class="side-label">Account<\/p>\s*<a(?: class="on")? href="settings.html">Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' Account is Settings, How it works, FAQ');
+    assert.ok(!/>PLAY</.test(sideNav[0]), file + ' must not rename PLAI to PLAY in the menu');
+    assert.ok(!/elevenlabs/i.test(sideNav[0]), file + ' must not invent ElevenLabs');
     assert.ok(!/data-overview-menu/.test(sideNav[0]) && !/side-submenu/.test(sideNav[0]) && !/href="dashboard.html">Overview</.test(sideNav[0]), file + ' must not keep the Overview nest');
     assert.ok(!/side-submenu-toggle|side-submenu-chevron/.test(sideNav[0]), file + ' must not keep an Overview chevron');
     assert.ok(/href="boosts.html"[^>]*data-for-plans="creator pro"/.test(sideNav[0]), file + ' Boosts is Creator/Pro only as live');
