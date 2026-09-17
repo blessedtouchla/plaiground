@@ -13,7 +13,8 @@ function read(file) {
 function coachCss(src) {
   const start = src.indexOf('/* PLAI Coach:');
   assert.ok(start !== -1, 'coach layout CSS is marked as layout-only');
-  return src.slice(start);
+  const next = src.indexOf('/* ——', start + 1);
+  return next === -1 ? src.slice(start) : src.slice(start, next);
 }
 
 function mockRes() {
