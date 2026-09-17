@@ -5777,6 +5777,15 @@ main.submitted-page.center-page {
   border: 0;
   color: #fff;
 }
+.submitted-page #tg-status {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  margin: 18px auto 0;
+  max-width: 28rem;
+}
+.submitted-page #tg-status[hidden] { display: none; }
 @media (min-width: 800px) {
   .submitted-page .submit-cover { width: 360px; }
   .submitted-page .submit-hero h1,
