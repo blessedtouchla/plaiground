@@ -746,7 +746,8 @@ function run() {
   assert.ok(!read('settings.html').includes('data-account-pending'), 'Settings must not paint Releases pending');
   assert.ok(!read('settings.html').includes('data-account-artists'), 'Settings must not paint Artist profiles count');
   assert.ok(!read('settings.html').includes('data-next-up'), 'Settings must not get the Overview next-up card');
-  assert.ok(!read('settings.html').includes('data-plai-talk'), 'Settings must not get the Overview Talk CTA');
+  assert.ok(!read('settings.html').includes('class="dash-talk"'), 'Settings must not get the Overview Talk CTA');
+  assert.ok(/<nav class="side-nav">[\s\S]*data-plai-talk[\s\S]*Talk to PLAI/.test(read('settings.html')), 'Settings nav still has Talk to PLAI');
 
   const leftoverSigned = makeNode({ textContent: 'Split sheets signed' });
   leftoverSigned.querySelector = function () { return { textContent: 'Split sheets signed' }; };

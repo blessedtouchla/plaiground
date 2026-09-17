@@ -103,8 +103,8 @@ function run() {
   assert.ok(!JSON.stringify(leftoverRoster).includes('John ham'));
 
   const siteCss = read('site.css');
-  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in app pages keep the PLAI bubble in the viewport');
-  assert.ok(!/body\.app[^{]*\{[^}]*display:\s*none/.test(siteCss), 'signed-in pages must not hide PLAI');
+  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in app pages still mount PLAI for nav Talk/Text');
+  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'signed-in pages must not hide the PLAI panel');
   assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'public auth pages must not hide PLAI');
   assert.ok(siteCss.includes('body.auth-full .plai-bubble'));
 

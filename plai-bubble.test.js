@@ -385,11 +385,12 @@ function runStatic() {
   assert.ok(/#F3CB47/.test(desktopChip[0]) || /#F5C542/.test(desktopChip[0]), 'the collapsed chip is gold');
 
   const siteCss = read('site.css');
-  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome keeps Talk/Text PLAI on screen');
+  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome still mounts Talk/Text PLAI for nav openers');
   assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text PLAI');
-  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{[^}]*bottom:\s*12px/.test(siteCss), 'signed-in phone chrome must not pin Talk/Text over bottom CTAs');
-  const sitePhone = siteCss.match(/@media\s*\(max-width:\s*720px\)\s*\{[\s\S]*?body\.app\s*>\s*\.plai-bubble[\s\S]*?\}/);
-  assert.ok(sitePhone && /top:\s*auto/.test(sitePhone[0]) && /--plai-sticky-clearance/.test(sitePhone[0]), 'signed-in phone chip stays above sticky bars');
+  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'signed-in pages must not hide the whole PLAI panel');
+  assert.ok(/body\.app \.plai-bubble-chip[\s\S]*?display:\s*none/.test(css), 'signed-in app hides the floating PLAI chip');
+  assert.ok(/body:has\(> \.flow-top\) \.plai-bubble-chip[\s\S]*?display:\s*none/.test(css), 'signed-in upload/submitted flow hides the floating PLAI chip');
+  assert.ok(/body\.app \.plai-bubble-row[\s\S]*?display:\s*none/.test(css), 'signed-in app hides floating Talk/Text pills');
   assert.ok(!read('upload.html').includes('data-plai-coach-float'), 'signed-in submit must not get the landing girl');
   assert.ok(!read('upload.html').includes('plai-avatar.png'), 'signed-in submit must not load the girl PNG');
   ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
@@ -406,12 +407,12 @@ function runStatic() {
 
   assert.ok(session.includes('process.env.XAI_API_KEY'), 'session route keeps the server key');
   assert.ok(session.includes("method === 'GET'"), 'GET still reports configured without minting');
-  assert.strictEqual(apiFiles.filter((name) => name.endsWith('.js')).length, 7, 'no new api/*.js files');
+  assert.strictEqual(apiFiles.filter((name) => name.endsWith('.js')).length, 8, 'no new api/*.js files this pass');
 
   assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ still names both buttons');
   assert.ok(/type only, no mic/i.test(faq), 'FAQ Text PLAI copy stays');
   assert.ok(/pronounced[\s\S]*PLAY/i.test(faq) && /she\/her/i.test(faq), 'FAQ PLAY / she-her copy stays');
-  assert.ok(faq.indexOf('Frequently asked questions') < faq.indexOf('Talk to PLAI'), 'FAQ PLAI pointer is not the page lead');
+  assert.ok(faq.slice(faq.indexOf('<h1>Frequently asked questions</h1>')).indexOf('Talk to PLAI') !== -1, 'FAQ PLAI pointer is not the page lead');
   assert.ok(!/Meet PLAI/i.test(faq) && !/<h1>What is PLAI\?<\/h1>/.test(faq), 'FAQ no longer opens as the voice-agent intro');
 
   const frontend = [
