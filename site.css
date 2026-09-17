@@ -5552,6 +5552,185 @@ button.stage-chip {
   color: var(--muted);
 }
 
+/* —— Submitted Tesla cut (calm confirm + hidden order uuid) —— */
+.submitted-page .wrap {
+  max-width: 720px;
+}
+.submitted-page .submit-ok {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 18px;
+}
+.submitted-page .submit-ok i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  color: #111;
+  background: #6f9d78;
+}
+.submitted-page h1 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin: 0 0 12px;
+  max-width: 16ch;
+}
+.submitted-page .center-lead {
+  max-width: 36rem;
+  margin-bottom: 32px;
+}
+.submitted-page .submit-card {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin: 0 0 36px;
+  display: grid;
+  gap: 18px;
+}
+.submitted-page .submit-card small,
+.submitted-page .section-lbl {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.submitted-page .submit-card b {
+  display: block;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.submitted-page .submit-order {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 14px;
+}
+.submitted-page .submit-order[hidden] { display: none; }
+.submitted-page .submit-order summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.submitted-page .submit-order summary::-webkit-details-marker { display: none; }
+.submitted-page .submit-order summary:hover { color: #fff; }
+.submitted-page .submit-order[open] summary { color: #fff; }
+.submitted-page .submit-order-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  text-align: left;
+  font: inherit;
+}
+.submitted-page .submit-order-copy [data-submit-order] {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-all;
+}
+.submitted-page .submit-order-copy small {
+  flex-shrink: 0;
+  margin: 0;
+  color: var(--stage-gold);
+}
+.submitted-page .submit-next {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+.submitted-page .submit-next article {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 18px 18px 20px;
+}
+.submitted-page .submit-next .n {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--stage-purple);
+}
+.submitted-page .submit-next h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 8px 0 6px;
+  text-transform: none;
+}
+.submitted-page .submit-next p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+.submitted-page .submit-next-quiet:empty { display: none; }
+.submitted-page .submit-next-quiet {
+  margin-top: 8px;
+}
+.submitted-page .confirm-actions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-top: 32px;
+}
+.submitted-page .confirm-actions .btn {
+  width: 100%;
+}
+.submitted-page .submit-secondary {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+.submitted-page .submit-secondary:hover { color: #fff; }
+.submitted-page .have-problem {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  padding: 0;
+}
+.submitted-page .have-problem:hover {
+  background: none;
+  border: 0;
+  color: #fff;
+}
+@media (min-width: 800px) {
+  .submitted-page h1 { max-width: none; }
+  .submitted-page .submit-next {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .submitted-page .confirm-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+  .submitted-page .confirm-actions .btn { width: auto; }
+  .submitted-page .submit-secondary { text-align: left; }
+}
+
 /* —— Signed-in nav Tesla cut (Create / Money / Account, no Overview nest) —— */
 .side-nav {
   gap: 4px;
