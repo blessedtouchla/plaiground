@@ -104,12 +104,16 @@ function run() {
   const html = read('submitted.html');
   const source = read('store-client.js');
 
-  assert.ok(html.includes('data-submit-release-date'), 'confirm bar marks the release date');
-  assert.ok(html.includes('data-submit-deliver-date'), 'step-04 deliver line marks the date');
-  assert.ok(html.includes('data-submit-order'), 'confirm bar marks the order');
-  assert.ok(html.includes('data-submit-writers'), 'step-02 marks writers');
+  assert.ok(html.includes('data-submit-release-date'), 'summary card marks the release date');
+  assert.ok(html.includes('data-submit-deliver-date'), 'live-on-stores beat marks the date');
+  assert.ok(html.includes('data-submit-order'), 'order details mark the order');
+  assert.ok(html.includes('data-submit-writers'), 'review/QC beat marks writers');
   assert.ok(html.includes('store-client.js?v=20260912a3'), 'submitted.html cache-busts store-client.js at 20260912a3');
   assert.ok(!html.includes('store-client.js?v=20260912a2'), 'submitted.html must cache-bust past 20260912a2');
+  assert.ok(html.includes('site.css?v=20260917s1'), 'submitted.html cache-busts the Submitted Tesla cut');
+  assert.ok(html.includes('Order details'), 'uuid sits behind Order details');
+  assert.ok(html.includes('All stores in your plan'), 'stores fallback is non-numeric until the live catalog paints');
+  assert.ok(!html.includes('plai-bubble.js'), 'floating PLAI chip stays off submitted.html');
   assert.ok(!html.includes('PG-2026-0314'), 'must not keep mock order PG-2026-0314');
   assert.ok(!html.includes('12 Sep'), 'must not keep hardcoded 12 Sep');
   assert.ok(!html.includes('M. Hale'), 'must not keep mock writer M. Hale');
