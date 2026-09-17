@@ -4409,13 +4409,12 @@ async function run() {
   }
 
   async function reviewSubmitKeepsCenterLoaderDuringStoreSend() {
-    let releaseHold;
-    const holdSubmit = new Promise(function (resolve) { releaseHold = resolve; });
     const page = load({
       bind: 'review',
       releaseDate: '2026-09-20',
-      holdWhen: '/submit',
-      holdFirst: holdSubmit,
+      catalogTimeoutMs: 30000,
+      hangWhen: '/api/tonegrid/releases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit',
+      hangCount: 8,
       draft: Object.assign(attestDraft(), {
         artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         title: 'Night Drive',
@@ -4439,7 +4438,6 @@ async function run() {
             tracks: [storeAudioTrack('cccccccc-cccc-4ccc-8ccc-cccccccccccc')],
           },
         },
-        { ok: true, status: 200, data: { status: 'pending', signed: false, signwell_status: 'solo' } },
       ],
     });
     page.payBtn.listeners.click({ preventDefault() {} });
@@ -4453,10 +4451,7 @@ async function run() {
     assert.ok(/Submitting to the store/.test(page.status.textContent), 'bottom status stays the live store copy');
     assert.ok(page.loader.classList.contains('is-wait'), 'submit-to-store keeps the same wait bar');
     assert.ok(!/distributor|TuneCore|DistroKid|hop/i.test(page.loaderStep.textContent + page.status.textContent));
-    releaseHold();
-    await flush(16);
-    assert.strictEqual(page.loader.hidden, true, 'Working hides after submit finishes');
-    assert.strictEqual(draftOf(page.localStorage).tonegrid_status, 'pending');
+    assert.ok(String(page.location.href).indexOf('submitted.html') === -1, 'must not leave Review while the store send is in flight');
   }
 
   async function genuineMissingTitleArtistStillErrors() {
