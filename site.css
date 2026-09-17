@@ -5577,6 +5577,7 @@ main.submitted-page.center-page {
 .submitted-page .submit-hero {
   margin: 8px 0 18px;
 }
+.submitted-page .submit-copy { display: block; }
 .submitted-page .submit-cover {
   position: relative;
   width: min(78vw, 320px);
@@ -5595,7 +5596,7 @@ main.submitted-page.center-page {
   display: block;
   border: 0;
 }
-.submitted-page .submit-hero h1,
+.submitted-page .submit-copy h1,
 .submitted-page h1 {
   font-family: "Space Grotesk", Inter, sans-serif;
   font-weight: 700;
@@ -5795,10 +5796,70 @@ main.submitted-page.center-page {
   max-width: 28rem;
 }
 .submitted-page #tg-status[hidden] { display: none; }
-@media (min-width: 800px) {
-  .submitted-page .submit-cover { width: 360px; }
-  .submitted-page .submit-hero h1,
-  .submitted-page h1 { font-size: 1.7rem; }
+@media (min-width: 900px) {
+  body.submitted-page .flow-top {
+    padding: 22px clamp(32px, 5vw, 80px) 0;
+  }
+  main.submitted-page.center-page {
+    padding: 36px 0 120px;
+    text-align: left;
+  }
+  .submitted-page .wrap {
+    max-width: 1680px;
+    width: min(1680px, 100%);
+    display: grid;
+    grid-template-columns: minmax(400px, 560px) minmax(320px, 1fr);
+    column-gap: clamp(48px, 6vw, 96px);
+    align-items: start;
+    padding-left: clamp(32px, 5vw, 80px);
+    padding-right: clamp(32px, 5vw, 80px);
+  }
+  .submitted-page .submit-hero {
+    margin: 0;
+    position: sticky;
+    top: 36px;
+  }
+  .submitted-page .submit-cover {
+    width: 100%;
+    margin: 0;
+  }
+  .submitted-page .submit-copy {
+    text-align: left;
+    min-width: 0;
+    padding-top: 8px;
+  }
+  .submitted-page .submit-copy h1,
+  .submitted-page h1 {
+    font-size: clamp(2rem, 3vw, 3rem);
+    margin-top: 0;
+  }
+  .submitted-page .submit-confidence {
+    max-width: 28ch;
+    margin: 16px 0 56px;
+    font-size: 16px;
+  }
+  .submitted-page .submit-out { margin: 0 0 56px; }
+  .submitted-page .submit-out b {
+    font-size: clamp(2.4rem, 4vw, 3.5rem);
+  }
+  .submitted-page .submit-quiet {
+    max-width: 28rem;
+    margin: 0;
+  }
+  .submitted-page .confirm-actions {
+    max-width: none;
+    margin: 48px 0 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 22px;
+  }
+  .submitted-page .confirm-actions .btn { width: auto; min-width: 200px; }
+  .submitted-page .submit-secondary { text-align: left; }
+  .submitted-page .have-problem {
+    display: inline-block;
+    margin-top: 28px;
+  }
 }
 
 /* —— Signed-in nav Tesla cut (Create / Money / PLAI / Account, no Overview nest) —— */
