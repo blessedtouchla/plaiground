@@ -3973,6 +3973,12 @@
     if (loader.classList && loader.classList.add) loader.classList.add('is-hidden');
   }
 
+  function showSubmitStoreLoader(copy) {
+    var text = String(copy || 'Submitting to the store…');
+    setStatus('tg-status', text);
+    showUploadLoader(text.replace(/…$/, '').replace(/\.\.\.$/, ''));
+  }
+
   function sanitizeResultError(result) {
     if (result && (result.ok === false || (result.status && result.status >= 400))) {
       noteStoreFailure(result);
@@ -6818,16 +6824,17 @@
         id: draft.plaiground_artist_id,
         check: { level: 'red' },
       }).then(function () {
+        hideUploadLoader();
         if (trigger) trigger.removeAttribute('aria-busy');
         setStatus('tg-status', 'Held for review. This name was not sent to the store.');
         if (nextHref) go(nextHref);
       });
     }
     var solo = isSoloOwned(draft);
-    setStatus('tg-status', solo ? 'Submitting to the store…' : 'Sending split sheet…');
+    showSubmitStoreLoader(solo ? 'Submitting to the store…' : 'Sending split sheet…');
     var ready = solo ? Promise.resolve(draft) : refreshSignWellDraft(draft);
     return ready.then(function (next) {
-      setStatus('tg-status', 'Submitting to the store…');
+      showSubmitStoreLoader('Submitting to the store…');
       return submitRelease(next || draft, releaseDate).then(function (sent) {
         if (sent.unavailable) {
           hideUploadLoader();
@@ -7047,7 +7054,6 @@
                     failSubmit(createErrorMessage(hopped.result, 'Could not create the track.'), trigger);
                     return;
                   }
-                  hideUploadLoader();
                   return finishSubmit(hopped && hopped.draft ? hopped.draft : next, releaseDate, trigger, nextHref);
                 });
               });
@@ -7100,7 +7106,6 @@
                 failSubmit(createErrorMessage(next.result, 'Could not create the track.'), trigger);
                 return;
               }
-              hideUploadLoader();
               return finishSubmit(next && next.draft ? next.draft : (created.draft || nextDraft), releaseDate, trigger, nextHref);
             }).catch(function (err) {
               failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
