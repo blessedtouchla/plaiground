@@ -335,7 +335,8 @@ function run() {
     assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro/i.test(side[0]), file + ' artist menu must not gain the owner store dashboard row');
     assert.ok(!/>Dashboard<\/a>/.test(side[0]), file + ' artist menu must not gain the owner Dashboard row');
     assert.ok(side[0].includes('New release'), file + ' keeps New release for artists');
-    assert.ok(side[0].includes('Overview'), file + ' keeps Overview for artists');
+    assert.ok(side[0].includes('Create') && side[0].includes('Money') && side[0].includes('Account'), file + ' keeps the sectioned artist menu');
+    assert.ok(!/href="dashboard.html">Overview</.test(side[0]), file + ' must not keep the Overview nest');
   });
 
   const owner = loadMembership({
