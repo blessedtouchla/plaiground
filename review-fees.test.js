@@ -22,17 +22,21 @@ function run() {
     assert.ok(attest.indexOf(needle) === -1, 'attest.html still has ' + needle);
   });
 
-  assert.ok(review.indexOf('$0 · included in membership') !== -1);
-  assert.ok(review.indexOf('Total</span><strong class="total">$0.00</strong>') !== -1 || review.indexOf('$0.00') !== -1);
+  assert.ok(review.indexOf('$0.00') !== -1);
+  assert.ok(review.indexOf('Total') !== -1 && review.indexOf('strong class="total"') !== -1);
   assert.ok(review.indexOf('Nothing is charged on this screen') !== -1);
+  assert.ok(review.indexOf('Included in membership') !== -1);
   assert.ok(review.indexOf('data-review-upsell') !== -1);
   assert.ok(review.indexOf('checkout.js') === -1);
   assert.ok(review.indexOf('data-checkout-plan') === -1);
   assert.ok(review.indexOf('Pay and submit') === -1);
   assert.ok(review.indexOf('Charged now') === -1);
   assert.ok(review.indexOf('Every store costs the same one fee') === -1);
-  assert.ok(review.indexOf('Optional · $9.99') !== -1);
+  assert.ok(review.indexOf('Optional · $9.99') === -1);
+  assert.ok(review.indexOf('Pre-screen your audio') === -1);
+  assert.ok(review.indexOf('Run pre-screen') === -1);
   assert.ok(!/Due now[\s\S]*\$9\.99/.test(review));
+  assert.ok(!/Distribution\$0/.test(review));
 
   assert.ok(submitted.indexOf('164 of 163 stores') === -1);
   assert.ok(submitted.indexOf('data-submit-stores') !== -1);
@@ -45,9 +49,8 @@ function run() {
   assert.ok(submitted.indexOf('$0.00 · included in membership') !== -1);
   assert.ok(submitted.indexOf('Distribution is included. Nothing extra was charged on this release.') !== -1);
   assert.ok(submitted.indexOf('Publishing and distribution are included in membership. Nothing extra was charged on this release.') !== -1);
-  assert.ok(review.indexOf('Distribution is included') !== -1);
-  assert.ok(review.indexOf('data-for-plans="basic"') !== -1);
-  assert.ok(review.indexOf('data-for-plans="creator pro"') !== -1);
+  assert.ok(review.indexOf('Included in membership. Nothing is charged on this screen.') !== -1);
+  assert.strictEqual((review.match(/Included in membership/g) || []).length, 1, 'Due now says included in membership once');
   assert.ok(split.indexOf('$0 · included in membership') !== -1);
   assert.ok(split.indexOf('None taken by PLAIGROUND') !== -1);
   assert.ok(split.indexOf('data-for-plans="basic"') !== -1);
@@ -57,11 +60,11 @@ function run() {
   assert.ok(storeClientAt !== -1, 'review.html loads store-client.js');
   ['lib/cover-url.js', 'lib/cover-preview.js', 'lib/object-hop.js'].forEach(function (src) {
     assert.ok(
-      review.indexOf('src="' + src + '"') !== -1,
+      review.indexOf('src="' + src) !== -1,
       'review.html loads ' + src + ' so the cover thumbnail can resolve'
     );
     assert.ok(
-      review.indexOf('src="' + src + '"') < storeClientAt,
+      review.indexOf('src="' + src) < storeClientAt,
       src + ' must load before store-client.js'
     );
   });

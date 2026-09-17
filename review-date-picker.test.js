@@ -302,6 +302,10 @@ function run() {
   const storeClient = read('store-client.js');
   assert.ok(storeClient.includes('showPicker'), 'review date field must open the native picker on tap');
   assert.ok(!/persistReleaseDate\([^)]*snapIfEmpty:\s*true/.test(storeClient), 'picker tap must not snap a date');
+  assert.ok(review.includes('More schedule options'));
+  assert.ok(review.includes('<details class="review-more">'));
+  assert.ok(!/<details class="review-more" open/.test(review), 'More schedule options stays collapsed');
+  assert.ok(/<small>Out<\/small>/.test(review), 'street date is the Out highlight');
   assert.ok(review.includes('id="tg-preorder-on"'));
   assert.ok(review.includes('id="tg-time-on"'));
   assert.ok(review.includes('id="tg-preorder-date"'));

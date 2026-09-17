@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Review and pay – PLAIGROUND</title>
+  <title>Schedule and review – PLAIGROUND</title>
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912ae1" />
+  <link rel="stylesheet" href="site.css?v=20260917r2" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
-<body>
+<body class="review-page">
   <div class="flow-top">
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
   </div>
   <main class="page wrap-wide upload-page">
-    <h1 class="upload-hero" data-upload-kicker>Submit a song</h1>
+    <h1 class="review-kicker">Schedule and review</h1>
     <div class="upload-progress-row">
       <nav class="stepper" aria-label="Release progress">
         <a class="st" href="upload.html"><b>Upload</b></a>
@@ -36,132 +36,102 @@
       </div>
     </div>
     <p class="upload-page-label sr-only">Review</p>
-    <div class="review-grid">
-      <div>
-        <section class="flow-card">
-          <div class="rel">
-            <span class="thumb" data-review-cover style="width:56px;height:56px"></span>
-            <div>
-              <b data-review-title>SONG TITLE</b>
-              <div style="color:var(--muted);font-size:13px" data-review-meta>Artist name · Single · Electronic</div>
-              <div style="color:var(--muted);font-size:13px">Release date set at submit · Duration after upload · ISRC auto-assigned</div>
-              <p class="hint" data-review-audio-error hidden></p>
-            </div>
-          </div>
-          <div class="form-grid" style="margin-top:16px">
-            <div class="field">
-              <p class="hint" style="margin:0">Genre</p>
-              <b data-review-genre>—</b>
-            </div>
-            <div class="field" data-language-field>
-              <p class="hint" style="margin:0">Language</p>
-              <b data-review-language>—</b>
-            </div>
-          </div>
-        </section>
-        <section class="flow-card" data-review-lyrics hidden>
-          <h3>Lyrics</h3>
-          <pre class="lyrics-preview" data-review-lyrics-text></pre>
-        </section>
-        <section class="flow-card">
-          <h3>Release date</h3>
-          <p class="hint" id="tg-release-date-hint">Pick the day it goes live on the calendar. Stores need 7 days of lead time, so yesterday and anything sooner than 7 days from today stay locked.</p>
+    <figure class="review-hero">
+      <div class="thumb review-cover" data-review-cover aria-label="Cover art"></div>
+      <figcaption>
+        <p class="review-song" data-review-title>SONG TITLE</p>
+        <p class="review-meta" data-review-meta>Artist name · Single · Electronic</p>
+        <p class="sr-only">Genre <b data-review-genre>—</b></p>
+        <p class="sr-only" data-language-field>Language <b data-review-language>—</b></p>
+        <p class="hint" data-review-audio-error hidden></p>
+      </figcaption>
+    </figure>
+    <section class="flow-card" data-review-lyrics hidden>
+      <h3>Lyrics</h3>
+      <pre class="lyrics-preview" data-review-lyrics-text></pre>
+    </section>
+    <section class="review-schedule">
+      <p class="review-out">
+        <small>Out</small>
+        <span class="field date-picker-field">
+          <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Out date" aria-describedby="tg-release-date-hint" />
+        </span>
+      </p>
+      <p class="hint" id="tg-release-date-hint">Stores need 7 days of lead time.</p>
+      <details class="review-more">
+        <summary>More schedule options</summary>
+        <label class="toggle-line" for="tg-preorder-on">
+          <input id="tg-preorder-on" class="toggle-input" type="checkbox" role="switch" aria-checked="false" aria-controls="tg-preorder-panel" />
+          <span class="toggle" aria-hidden="true"></span>
+          <span>Select pre-order date</span>
+        </label>
+        <div id="tg-preorder-panel" class="release-extra is-hidden" hidden>
           <div class="field date-picker-field">
-            <input id="tg-release-date" class="date-picker" type="date" required autocomplete="off" aria-label="Release date" aria-describedby="tg-release-date-hint" />
+            <label for="tg-preorder-date">Pre-order date</label>
+            <input id="tg-preorder-date" class="date-picker" type="date" autocomplete="off" />
           </div>
-          <p class="hint upload-opt-hint">Optional — skip if you don’t need them</p>
-          <label class="toggle-line" for="tg-preorder-on">
-            <input id="tg-preorder-on" class="toggle-input" type="checkbox" role="switch" aria-checked="false" aria-controls="tg-preorder-panel" />
-            <span class="toggle" aria-hidden="true"></span>
-            <span>Select pre-order date</span>
-          </label>
-          <div id="tg-preorder-panel" class="release-extra is-hidden" hidden>
-            <div class="field date-picker-field">
-              <label for="tg-preorder-date">Pre-order date</label>
-              <input id="tg-preorder-date" class="date-picker" type="date" autocomplete="off" />
-            </div>
-          </div>
-          <label class="toggle-line" for="tg-time-on">
-            <input id="tg-time-on" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" aria-controls="tg-time-panel" />
-            <span class="toggle on" aria-hidden="true"></span>
-            <span>Define time and timezone</span>
-          </label>
-          <div id="tg-time-panel" class="release-extra">
-            <div class="release-time-row">
-              <div class="field">
-                <label for="tg-release-time">Time</label>
-                <input id="tg-release-time" class="date-picker" type="time" value="00:00" autocomplete="off" />
-              </div>
-              <div class="field">
-                <label for="tg-release-timezone">Timezone</label>
-                <select id="tg-release-timezone">
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">Eastern Time</option>
-                  <option value="America/Chicago">Central Time</option>
-                  <option value="America/Denver">Mountain Time</option>
-                  <option value="America/Los_Angeles">Pacific Time</option>
-                  <option value="America/Anchorage">Alaska Time</option>
-                  <option value="Pacific/Honolulu">Hawaii Time</option>
-                  <option value="Europe/London">London</option>
-                  <option value="Europe/Paris">Paris</option>
-                  <option value="Europe/Berlin">Berlin</option>
-                  <option value="Asia/Tokyo">Tokyo</option>
-                  <option value="Australia/Sydney">Sydney</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </section>
-        <section class="flow-card prescreen">
-          <div class="head-row">
-            <div>
-              <h3>Pre-screen your audio</h3>
-            </div>
-            <span class="pill">Optional · $9.99</span>
-          </div>
-          <button class="btn btn-ghost btn-sm" type="button">Run pre-screen, $9.99</button>
-        </section>
-      </div>
-      <aside class="flow-card due">
-        <h3>Due now</h3>
-        <p class="due-line" data-for-plans="creator pro" hidden><span>Publishing registration</span><span>$0 · included in membership</span></p>
-        <p class="due-line"><span>Distribution</span><span data-for-plans="basic">$0 · included</span><span data-for-plans="creator pro" hidden>$0 · included in membership</span></p>
-        <p style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px"><span>Total</span><strong class="total">$0.00</strong></p>
-        <p class="hint" data-for-plans="basic">Nothing is charged on this screen. Distribution is included. PLAIGROUND takes no commission.</p>
-        <p class="hint" data-for-plans="creator pro" hidden>Nothing is charged on this screen. Publishing and distribution are included in membership. PLAIGROUND takes no commission.</p>
-        <div class="flow-card" data-review-upsell hidden style="margin:12px 0 0">
-          <h3>One upgrade offer</h3>
-          <p class="hint">Basic already includes this release. Creator and Pro add more uploads and extras. Checkout is a separate step, not here.</p>
-          <p style="display:flex;gap:10px;flex-wrap:wrap">
-            <a class="btn btn-ghost btn-sm" href="creator.html">See Creator</a>
-            <a class="btn btn-ghost btn-sm" href="pro.html">See Pro</a>
-          </p>
         </div>
-      </aside>
-    </div>
-    <section class="flow-card">
-      <div class="head-row">
-        <div>
-          <h3>Choose where it goes</h3>
-          <p class="hint">Stores are included in membership. $0 per release. Customize only if you want to unlink stores.</p>
+        <label class="toggle-line" for="tg-time-on">
+          <input id="tg-time-on" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" aria-controls="tg-time-panel" />
+          <span class="toggle on" aria-hidden="true"></span>
+          <span>Define time and timezone</span>
+        </label>
+        <div id="tg-time-panel" class="release-extra">
+          <div class="release-time-row">
+            <div class="field">
+              <label for="tg-release-time">Time</label>
+              <input id="tg-release-time" class="date-picker" type="time" value="00:00" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="tg-release-timezone">Timezone</label>
+              <select id="tg-release-timezone">
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time</option>
+                <option value="America/Chicago">Central Time</option>
+                <option value="America/Denver">Mountain Time</option>
+                <option value="America/Los_Angeles">Pacific Time</option>
+                <option value="America/Anchorage">Alaska Time</option>
+                <option value="Pacific/Honolulu">Hawaii Time</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Europe/Berlin">Berlin</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="Australia/Sydney">Sydney</option>
+              </select>
+            </div>
+          </div>
         </div>
+      </details>
+    </section>
+    <aside class="review-due due">
+      <h3>Due now</h3>
+      <p class="review-total"><span>Total</span><strong class="total">$0.00</strong></p>
+      <p class="hint">Included in membership. Nothing is charged on this screen.</p>
+      <div class="review-upsell" data-review-upsell hidden>
+        <h3>One upgrade offer</h3>
+        <p class="hint">Basic already includes this release. Creator and Pro add more uploads and extras. Checkout is a separate step, not here.</p>
+        <p class="review-upsell-links">
+          <a class="btn btn-ghost btn-sm" href="creator.html">See Creator</a>
+          <a class="btn btn-ghost btn-sm" href="pro.html">See Pro</a>
+        </p>
       </div>
-      <div class="field" data-store-pick>
-        <label>Stores</label>
-        <div class="store-pick-bar">
-          <label class="toggle-line" for="review-store-all">
-            <input id="review-store-all" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" data-store-all />
-            <span class="toggle on" aria-hidden="true"></span>
-            <span>Pre-select all stores</span>
-          </label>
+    </aside>
+    <section class="review-stores">
+      <h3>Stores</h3>
+      <div class="field" data-store-pick data-store-copy="included">
+        <div class="review-store-bar">
+          <p class="hint" data-store-summary data-store-copy="included">All stores · included</p>
           <button class="btn btn-ghost btn-sm" type="button" data-store-customize>Customize</button>
         </div>
-        <p class="hint" data-store-summary>All stores will receive this release.</p>
+        <label class="sr-only" for="review-store-all">
+          <input id="review-store-all" class="toggle-input" type="checkbox" role="switch" checked aria-checked="true" data-store-all />
+          All stores
+        </label>
         <div class="store-pick is-hidden" data-store-list hidden></div>
       </div>
     </section>
-    <div class="flow-actions">
-      <a class="btn btn-ghost btn-md" href="split-sheet.html">Back</a>
+    <div class="flow-actions review-actions" data-plai-sticky>
+      <a class="review-back" href="split-sheet.html">Back</a>
       <a class="btn btn-gold btn-md" data-store-submit href="submitted.html">Submit</a>
     </div>
     <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
@@ -181,7 +151,7 @@
   <script src="lib/audio-accept.js"></script>
   <script src="lib/audio-convert.js"></script>
   <script src="lib/upload-required.js"></script>
-  <script src="lib/store-pick.js?v=20260912a2"></script>
+  <script src="lib/store-pick.js?v=20260917r2"></script>
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
   <script src="lib/object-hop.js?v=20260913b1"></script>
