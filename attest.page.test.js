@@ -23,7 +23,7 @@ function makeEl(attrs) {
     value: attrs.value || '',
     textContent: attrs.textContent || '',
     checked: Boolean(attrs.checked),
-    hidden: true,
+    hidden: attrs.hidden !== undefined ? Boolean(attrs.hidden) : true,
     className: attrs.className || '',
     attrs: Object.assign({}, attrs.attrs || {}),
     listeners: {},
@@ -119,6 +119,8 @@ function load(opts) {
   const directed = makeEl({ id: 'attest-directed' });
   const directedWrap = makeEl({ attrs: { 'data-directed-claim': '' }, hidden: true });
   const status = makeEl({ id: 'attest-status' });
+  const rightsNudge = makeEl({ attrs: { 'data-rights-nudge': '' }, hidden: false, textContent: 'Tick the box to continue.' });
+  const rightsOk = makeEl({ attrs: { 'data-rights-ok': '' }, hidden: true, textContent: 'Accepted' });
   const trigger = makeEl({ attrs: { href: 'split-sheet.html', 'data-attest-continue': '' }, textContent: 'Continue to the split sheet' });
   const localStorage = opts.localStorage || makeStorage();
   const sessionStorage = opts.sessionStorage || makeStorage();
@@ -163,6 +165,8 @@ function load(opts) {
       }
       if (sel === '[data-human-count]') return count;
       if (sel === '[data-attest-continue]') return trigger;
+      if (sel === '[data-rights-nudge]') return rightsNudge;
+      if (sel === '[data-rights-ok]') return rightsOk;
       if (sel === '[data-human-section]') return humanSection;
       if (sel === '[data-solo-writer]') return soloWriter;
       if (sel === '[data-other-writers]') return otherToggle;
@@ -200,6 +204,8 @@ function load(opts) {
     count,
     human,
     rights,
+    rightsNudge,
+    rightsOk,
     solo,
     soloCard,
     otherNo,
@@ -222,7 +228,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20260906c1') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20260917at1') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
   const attestSrc = fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8');
   assert.ok(/hold\.then\(goNext/.test(attestSrc), 'attest Continue awaits the IDB re-hold before leaving');
@@ -240,6 +246,9 @@ function run() {
   assert.ok(html.indexOf('data-attest-continue') !== -1);
   assert.ok(html.indexOf('data-made-how="ai_assisted"') !== -1);
   assert.ok(html.indexOf('id="attest-rights"') !== -1);
+  assert.ok(/<label class="checkline"[^>]*>[\s\S]*<span>[\s\S]*rights attestation[\s\S]*terms of service[\s\S]*<\/span>/.test(html), 'rights sentence wraps inline links');
+  assert.ok(html.indexOf('data-rights-nudge') !== -1);
+  assert.ok(html.indexOf('data-rights-ok') !== -1);
   assert.ok(html.indexOf('data-human-section') !== -1);
   assert.ok(html.indexOf('Continue to writers and splits') !== -1);
   assert.ok(html.indexOf('data-have-problem') !== -1);
@@ -251,6 +260,8 @@ function run() {
   assert.ok(page.ai.classList.contains('on'));
   assert.ok(!page.noAi.classList.contains('on'));
   assert.strictEqual(page.count.textContent, '0 selected');
+  assert.strictEqual(page.rightsNudge.hidden, false, 'unchecked shows the yellow nudge');
+  assert.strictEqual(page.rightsOk.hidden, true, 'unchecked hides Accepted');
   page.tags.forEach(function (tag) {
     assert.ok(!tag.classList.contains('on'), 'fresh page must not preselect ' + tag.textContent);
   });
@@ -280,6 +291,9 @@ function run() {
   assert.notStrictEqual(page.location.href, 'split-sheet.html');
 
   page.rights.checked = true;
+  if (page.rights.listeners.change) page.rights.listeners.change();
+  assert.strictEqual(page.rightsNudge.hidden, true, 'checked hides the yellow nudge');
+  assert.strictEqual(page.rightsOk.hidden, false, 'checked shows quiet Accepted');
   page.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(page.location.href, 'review.html');
   const noAiDraft = JSON.parse(page.localStorage.getItem('plaiground.store.draft'));
