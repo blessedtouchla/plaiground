@@ -4912,7 +4912,8 @@ async function run() {
   assert.ok(swSource.includes('cached || new Response'), 'offline GET miss must return a Response, not undefined');
   assert.ok(source.includes('typeof response.json !== \'function\''), 'parseJson must not throw on a non-Response');
   assert.ok(reviewHtml.includes('lib/object-hop.js?v=20260913b1'), 'review.html cache-busts object-hop.js at 20260913b1');
-  assert.ok(reviewHtml.includes('lib/store-pick.js?v=20260912a2'), 'review.html cache-busts store-pick.js at 20260912a2');
+  assert.ok(!reviewHtml.includes('lib/store-pick.js?v=20260912a2'), 'review.html must cache-bust store-pick.js past 20260912a2');
+  assert.ok(reviewHtml.includes('lib/store-pick.js?v=20260917r1'), 'review.html cache-busts store-pick.js at 20260917r1');
   const uploadHtmlForBust = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');
   const attestHtml = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   const splitSheetHtml = fs.readFileSync(path.join(__dirname, 'split-sheet.html'), 'utf8');

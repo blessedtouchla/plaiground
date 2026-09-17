@@ -1414,9 +1414,10 @@ function run() {
   assert.ok(!/\b164\b/.test(faq.replace(/facebook\.com\/profile\.php\?id=61593116849937/g, '')));
 
   const review = fs.readFileSync(path.join(__dirname, 'review.html'), 'utf8');
-  assert.ok(review.indexOf('Pre-select all stores') !== -1);
+  assert.ok(review.indexOf('Pre-select all stores') === -1);
   assert.ok(review.indexOf('data-store-customize') !== -1);
-  assert.ok(review.indexOf('All stores will receive this release.') !== -1);
+  assert.ok(review.indexOf('All stores · included') !== -1);
+  assert.ok(review.indexOf('All stores will receive this release.') === -1);
   assert.ok(!/\b55 stores\b/.test(review));
   assert.ok(!/\b150 stores\b/.test(review));
   assert.ok(review.indexOf('164 of 165 stores') === -1);

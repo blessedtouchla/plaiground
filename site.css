@@ -5905,3 +5905,238 @@ main.submitted-page.center-page {
   background: rgba(255, 255, 255, 0.04);
   color: #fff;
 }
+
+/* —— Review Tesla energy (schedule + review, no Pay) —— */
+body.review-page {
+  background: #000;
+}
+body.review-page .flow-top {
+  border-bottom: 0;
+}
+body.review-page main.page {
+  max-width: 520px;
+  padding-bottom: 120px;
+}
+.review-page .review-kicker {
+  margin: 0 0 10px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.review-page .review-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0 28px;
+}
+.review-page .review-cover,
+.review-page .thumb.review-cover {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #111;
+  overflow: hidden;
+}
+.review-page .review-cover img[data-cover-photo] {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.review-page .review-song {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.review-page .review-meta {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+.review-page .review-schedule {
+  margin: 0 0 32px;
+}
+.review-page .review-out small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.review-page .review-out .date-picker-field,
+.review-page .review-out .field.date-picker-field {
+  display: block;
+  max-width: none;
+  margin: 0;
+}
+.review-page .review-out .field input.date-picker,
+.review-page .review-out .field input[type="date"].date-picker {
+  width: 100%;
+  max-width: none;
+  min-height: 64px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(1.45rem, 5.4vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-align: center;
+  color: #fff;
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  accent-color: var(--muted);
+}
+.review-page .review-out .field input.date-picker:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.review-page .field input.date-picker,
+.review-page .field input[type="date"].date-picker,
+.review-page .field input[type="time"].date-picker,
+.review-page .field select {
+  border-color: rgba(255, 255, 255, 0.12);
+  accent-color: var(--muted);
+}
+.review-page .field input.date-picker:focus,
+.review-page .field input[type="time"].date-picker:focus,
+.review-page .field select:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.review-page .review-schedule > .hint {
+  margin: 10px 0 16px;
+}
+.review-page .review-more {
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+}
+.review-page .review-more summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.review-page .review-more summary::-webkit-details-marker { display: none; }
+.review-page .review-more summary:hover,
+.review-page .review-more[open] summary { color: #fff; }
+.review-page .review-more .toggle-line { margin-top: 14px; }
+.review-page .review-due {
+  margin: 0 0 28px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.review-page .review-due h3,
+.review-page .review-stores h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+}
+.review-page .review-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin: 0 0 8px;
+}
+.review-page .review-total span { color: var(--muted-2); }
+.review-page .review-due strong.total {
+  color: var(--stage-gold);
+  font-size: 1.35rem;
+}
+.review-page .review-due > .hint {
+  margin: 0;
+}
+.review-page .review-upsell {
+  margin-top: 16px;
+}
+.review-page .review-upsell[hidden],
+.review-page .review-upsell.is-hidden { display: none; }
+.review-page .review-upsell-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.review-page .review-stores {
+  margin: 0 0 24px;
+}
+.review-page .review-store-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.review-page .review-store-bar .hint {
+  margin: 0;
+  color: var(--muted-2);
+  font-size: 14px;
+}
+.review-page .review-store-bar [data-store-customize] {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--muted);
+  background: transparent;
+}
+.review-page .review-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 0;
+  padding: 14px 0 18px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000 28%);
+}
+.review-page .review-back {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 8px 0;
+}
+.review-page .review-back:hover { color: #fff; }
+.review-page .review-actions .btn-gold {
+  min-width: 148px;
+  background: var(--stage-gold);
+  color: #111;
+}
+.review-page .have-problem {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  padding: 0;
+  margin-top: 10px;
+}
+.review-page .have-problem:hover {
+  background: none;
+  border: 0;
+  color: #fff;
+}
+@media (max-width: 640px) {
+  .review-page .review-actions .btn-gold {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
