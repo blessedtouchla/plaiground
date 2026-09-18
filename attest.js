@@ -51,6 +51,8 @@
     var directed = document.getElementById('attest-directed');
     var directedWrap = document.querySelector('[data-directed-claim]');
     var status = document.getElementById('attest-status');
+    var rightsNudge = document.querySelector('[data-rights-nudge]');
+    var rightsOk = document.querySelector('[data-rights-ok]');
     var trigger = document.querySelector('[data-attest-continue]');
     if (!trigger) return null;
     if (root.PlaigroundReleaseCredits && typeof root.PlaigroundReleaseCredits.installUploadGate === 'function') {
@@ -211,6 +213,12 @@
       status.hidden = !text;
     }
 
+    function syncRightsStatus() {
+      var checked = Boolean(rights && rights.checked);
+      setHiddenEl(rightsNudge, checked);
+      setHiddenEl(rightsOk, !checked);
+    }
+
     function humanSavedThisSession() {
       try {
         return Boolean(root.sessionStorage && root.sessionStorage.getItem(HUMAN_SAVED_KEY));
@@ -291,6 +299,7 @@
     function refresh() {
       syncHumanSection();
       syncSolo();
+      syncRightsStatus();
       if (countEl) countEl.textContent = selectedElements().length + ' selected';
       if (trigger.classList) trigger.classList.toggle('is-incomplete', Boolean(pageError(collect())));
       writeDraft(collect());

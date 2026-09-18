@@ -4945,7 +4945,7 @@ async function run() {
   assert.strictEqual((uploadHtmlForBust.match(/href="site\.css\?v=/g) || []).length, 1, 'upload.html has one site.css link');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
-  assert.ok(attestHtml.includes('attest.js?v=20260906c1'), 'attest.html cache-busts attest.js at 20260906c1');
+  assert.ok(attestHtml.includes('attest.js?v=20260917at1'), 'attest.html cache-busts attest.js at 20260917at1');
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(attestHtml), 'Attest Cancel is a tiny icon with an accessible name');
   assert.ok(splitSheetHtml.includes('store-client.js?v=20260912a2'), 'split-sheet.html cache-busts store-client.js at 20260912a2');
