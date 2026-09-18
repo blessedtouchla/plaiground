@@ -8,8 +8,6 @@
   var inflight = Object.create(null);
   var ytPlayer = null;
   var pendingVideoId = "";
-  var skipBrowseHistory = false;
-
   var listEl = document.querySelector("[data-charts-list]");
   var searchEl = document.querySelector("[data-charts-search]");
   var playerEl = document.querySelector("[data-charts-player]");
@@ -321,9 +319,6 @@
     browseEl.removeAttribute("src");
     document.documentElement.classList.remove("is-charts-browse");
     if (playerEl) playerEl.classList.remove("is-browsing");
-    if (!skipBrowseHistory && history && typeof history.pushState === "function" && SHELL_PATH) {
-      history.pushState({ chartsShell: true }, "", SHELL_PATH);
-    }
   }
 
   function openBrowse(href) {
@@ -336,9 +331,6 @@
     browseEl.src = href;
     document.documentElement.classList.add("is-charts-browse");
     if (playerEl) playerEl.classList.add("is-browsing");
-    if (!skipBrowseHistory && history && typeof history.pushState === "function") {
-      history.pushState({ chartsBrowse: true, href: href }, "", href);
-    }
   }
 
   if (searchEl) {
@@ -398,16 +390,6 @@
     if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     openBrowse(href);
   }, true);
-
-  if (history && typeof history.pushState === "function") {
-    window.addEventListener("popstate", function (event) {
-      var state = event && event.state;
-      skipBrowseHistory = true;
-      if (state && state.chartsBrowse && state.href) openBrowse(state.href);
-      else closeBrowse();
-      skipBrowseHistory = false;
-    });
-  }
 
   if (listEl && DATA_URL) fetch(DATA_URL)
     .then(function (res) { return res.json(); })

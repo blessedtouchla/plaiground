@@ -128,7 +128,7 @@ function run() {
   assert.ok(js.includes('data-charts-src'), 'player reads the page’s own chart JSON');
   assert.ok(js.includes('if (isGenreChartHref(href) && !isSameChartPage(href)) return'), 'category pages navigate for real instead of the browse iframe');
   assert.ok(js.includes('openBrowse(href)'), 'other wannaplai pages open in the player shell');
-  assert.ok(js.includes('history.pushState'), 'browse updates the URL without remounting the embed');
+  assert.ok(!/history\.pushState/.test(js), 'browse does not rewrite the address bar to the iframe URL');
   assert.ok(js.includes('stopImmediatePropagation'), 'browse wins over the logo’s hard homepage jump');
 
   assert.strictEqual(chart.category, 'TOP 100 AI SONGS');
