@@ -82,14 +82,44 @@
       return Boolean(solo && !solo.checked);
     }
 
+    function artistLegalFromRoster(draft) {
+      draft = draft || readDraft();
+      var credits = root.PlaigroundReleaseCredits;
+      var me = root.PlaigroundMembership && typeof root.PlaigroundMembership.account === 'function'
+        ? root.PlaigroundMembership.account()
+        : null;
+      var list = me && me.profile && Array.isArray(me.profile.artists) ? me.profile.artists : [];
+      var want = String((draft && (draft.plaiground_artist_id || draft.artist_id)) || '').trim();
+      var name = String((draft && (draft.name || draft.artist)) || '').trim();
+      var found = null;
+      list.forEach(function (row) {
+        if (!row) return;
+        if ((want && (String(row.id || '') === want || String(row.artist_id || '') === want || String(row.plaiground_artist_id || '') === want))
+          || (name && String(row.name || '') === name)) {
+          found = row;
+        }
+      });
+      if (!found) return { first: '', last: '' };
+      if (credits && typeof credits.artistLegal === 'function') return credits.artistLegal(found);
+      return {
+        first: String((found.legal_first || '')).trim(),
+        last: String((found.legal_last || '')).trim(),
+      };
+    }
+
     function legalFromDraft(draft) {
       draft = draft || readDraft();
       var remembered = root.PlaigroundReleaseCredits && root.PlaigroundReleaseCredits.rememberedLegal
         ? root.PlaigroundReleaseCredits.rememberedLegal(root)
         : { first: '', last: '' };
+      var fromArtist = artistLegalFromRoster(draft);
       return {
-        first: String((writerFirst && writerFirst.value) || draft.legal_first || remembered.first || '').trim(),
-        last: String((writerLast && writerLast.value) || draft.legal_last || remembered.last || '').trim(),
+        first: writerFirst
+          ? String(writerFirst.value || '').trim()
+          : String((draft.legal_first || fromArtist.first || remembered.first || '')).trim(),
+        last: writerLast
+          ? String(writerLast.value || '').trim()
+          : String((draft.legal_last || fromArtist.last || remembered.last || '')).trim(),
       };
     }
 
@@ -270,8 +300,12 @@
         setOtherWriters(!soloOn);
       }
       if (otherCount && draft.other_writer_count) otherCount.value = String(draft.other_writer_count);
-      if (writerFirst && !writerFirst.value) writerFirst.value = String(draft.legal_first || '').trim();
-      if (writerLast && !writerLast.value) writerLast.value = String(draft.legal_last || '').trim();
+      if (writerFirst && !writerFirst.value) {
+        writerFirst.value = String(draft.legal_first || artistLegalFromRoster(draft).first || '').trim();
+      }
+      if (writerLast && !writerLast.value) {
+        writerLast.value = String(draft.legal_last || artistLegalFromRoster(draft).last || '').trim();
+      }
       if (performer && draft.credits && draft.credits.performer) performer.value = draft.credits.performer;
       if (writerCredit && draft.credits && draft.credits.writer) writerCredit.value = draft.credits.writer;
       if (producer && draft.credits && draft.credits.producer) producer.value = draft.credits.producer;
@@ -380,7 +414,7 @@
       if (root.PlaigroundReleaseCredits && root.PlaigroundReleaseCredits.writeLegalToArtist) {
         var draft = readDraft();
         root.PlaigroundReleaseCredits.writeLegalToArtist(
-          draft.artist_id,
+          draft.plaiground_artist_id || draft.artist_id,
           fields.legal_first,
           fields.legal_last,
           root
@@ -403,6 +437,12 @@
     applyDraft(readDraft());
     keepCarriedFiles();
     refresh();
+    if (root.PlaigroundMembership && typeof root.PlaigroundMembership.whenReady === 'function') {
+      root.PlaigroundMembership.whenReady().then(function () {
+        applyDraft(readDraft());
+        refresh();
+      });
+    }
     return {
       collect: collect,
       pageError: pageError,

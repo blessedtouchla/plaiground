@@ -101,9 +101,9 @@
   <script src="account.js?v=20260910live1"></script>
   <script src="lib/upload-cancel-overview.js?v=20260910c1"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
-  <script src="lib/upload-required.js"></script>
+  <script src="lib/upload-required.js?v=20260918vn1"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
-  <script src="lib/release-credits.js?v=20260908d1"></script>
+  <script src="lib/release-credits.js?v=20260918vn1"></script>
   <script src="https://static.signwell.com/assets/embedded.js"></script>
   <script>
     (function () {
@@ -250,7 +250,7 @@
           if (!payload.songTitle) return 'Song title is required.';
           for (var i = 0; i < payload.writers.length; i += 1) {
             var writer = payload.writers[i];
-            if (!writer.name) return 'Writer ' + (i + 1) + ' needs a name.';
+            if (!writer.first_name || !writer.last_name) return 'Writer ' + (i + 1) + ' needs a legal first and last name.';
             if (!writer.email) return 'Writer ' + (i + 1) + ' needs an email.';
           }
         }

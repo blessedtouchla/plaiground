@@ -51,14 +51,6 @@
         <p class="lead">Free forever. Upgrade when the royalties justify it.</p>
         <form id="signup-form">
           <div class="field">
-            <label for="first-name">First name</label>
-            <input id="first-name" name="first_name" type="text" placeholder="First name" autocomplete="given-name" required />
-          </div>
-          <div class="field">
-            <label for="last-name">Last name</label>
-            <input id="last-name" name="last_name" type="text" placeholder="Last name" autocomplete="family-name" required />
-          </div>
-          <div class="field">
             <label for="username">Username</label>
             <input id="username" name="username" type="text" placeholder="Optional community handle" autocomplete="nickname" />
             <p class="hint">Optional. Unique if you set one. Sign-in stays email.</p>
@@ -148,12 +140,8 @@
         var emailEl = document.getElementById('email');
         var usernameEl = document.getElementById('username');
         var passwordEl = document.getElementById('password');
-        var firstEl = document.getElementById('first-name');
-        var lastEl = document.getElementById('last-name');
         var email = emailEl ? String(emailEl.value || '').trim() : '';
         var username = usernameEl ? String(usernameEl.value || '').trim() : '';
-        var firstName = firstEl ? String(firstEl.value || '').trim() : '';
-        var lastName = lastEl ? String(lastEl.value || '').trim() : '';
         var password = passwordEl ? String(passwordEl.value || '') : '';
         var plan = chosenPlan();
         try {
@@ -164,17 +152,9 @@
         var body = {
           email: email,
           password: password,
-          legal_first: firstName,
-          legal_last: lastName,
-          first_name: firstName,
-          last_name: lastName,
         };
         if (username) body.username = username;
         if (plan) body.plan = plan;
-        if (!firstName || !lastName) {
-          setStatus('First and last name are required.');
-          return;
-        }
         if (password.length < 8) {
           setStatus('Password must be at least 8 characters.');
           return;
