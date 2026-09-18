@@ -114,6 +114,7 @@
   function setupPublicMenu() {
     var header = document.querySelector("header.nav");
     if (!header || document.body.classList.contains("app")) return;
+    header.classList.add("is-public-bar");
     var inner = header.querySelector(".nav-inner");
     var links = header.querySelector(".nav-links");
     var actions = header.querySelector(".nav-actions");
