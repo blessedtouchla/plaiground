@@ -129,10 +129,12 @@
     }
 
     var toggle = inner.querySelector(".menu-toggle");
+    drawer.id = drawer.id || "public-menu";
     if (!toggle) {
       toggle = makeToggle("public-menu-toggle");
-      toggle.setAttribute("aria-controls", "public-menu");
-      drawer.id = drawer.id || "public-menu";
+    }
+    if (!toggle.getAttribute("aria-controls")) {
+      toggle.setAttribute("aria-controls", drawer.id);
     }
     setupPublicHeaderLogin(header, inner, drawer, toggle);
 

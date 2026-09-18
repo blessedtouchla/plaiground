@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260912ae1" />
+  <link rel="stylesheet" href="site.css?v=20260918h1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
-<body>
+<body class="home-portal">
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="index.html" aria-label="PLAIGROUND">
@@ -28,8 +28,14 @@
         <a href="faq.html">FAQ</a>
         <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
       </nav>
+      <div class="public-header-tools">
+        <a class="login public-header-login" href="login.html">Log in</a>
+        <button type="button" class="menu-toggle public-menu-toggle" aria-expanded="false" aria-label="Open menu" aria-controls="public-menu">
+          <span class="menu-toggle-bars" aria-hidden="true"></span>
+          <span class="menu-toggle-text">Menu</span>
+        </button>
+      </div>
       <div class="nav-actions">
-        <a class="login" href="login.html">Log in</a>
         <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
       </div>
     </div>
@@ -38,12 +44,21 @@
   <main>
     <section class="hero">
       <div class="wrap">
+        <span class="hero-float-note" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h6V3h-8z"/></svg>
+        </span>
         <p class="eyebrow">WANNA PLAI?</p>
         <h1>Upload once.<br />Get paid <span class="accent">everywhere.</span></h1>
         <p class="sub">One Platform that handles it all: distribution, publishing, marketing, & more!</p>
         <div class="hero-ctas">
-          <a class="btn btn-purple btn-md" href="signup.html?plan=basic" data-plan="basic">Join for free</a>
+          <a class="btn btn-gold btn-md" href="signup.html?plan=basic" data-plan="basic">Enter the PLAIGROUND</a>
           <a class="btn btn-ghost btn-md" href="how-it-works.html">How it works</a>
+        </div>
+        <div class="hero-cover-tease" aria-hidden="true">
+          <div class="hero-cover">
+            <span class="hero-cover-front">P</span>
+            <span class="hero-cover-back"></span>
+          </div>
         </div>
         <div class="platforms" aria-label="Distributed to Spotify, Apple Music, and Amazon Music">
           <span aria-label="Spotify">
@@ -245,7 +260,7 @@
     </details>
   </div>
   <script src="membership.js"></script>
-  <script src="site.js?v=20260912w1"></script>
+  <script src="site.js?v=20260918h1"></script>
   <script src="plai-welcome.js?v=20260912w1"></script>
   <script src="plai-bubble.js" defer></script>
   <script src="checkout.js" defer></script>

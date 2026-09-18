@@ -6610,3 +6610,120 @@ body.attest-page .plai-bubble-row {
     padding: 13px 16px;
   }
 }
+
+/* —— Homepage Tesla energy (portal hero + pinned phone Login) —— */
+.home-portal .hero {
+  --stage-gold: #f3cb47;
+  --stage-purple: #782fb1;
+}
+.home-portal .hero::before {
+  inset: -18% 8% auto auto;
+  width: 760px;
+  height: 560px;
+  background: radial-gradient(circle at 55% 40%, rgba(120, 47, 177, 0.46) 0%, rgba(243, 203, 71, 0.16) 42%, transparent 70%);
+  animation: home-portal-glow 5.6s ease-in-out infinite;
+}
+.home-portal .hero-float-note {
+  position: absolute;
+  top: calc(var(--nav-h) + 28px);
+  right: max(18px, calc(50% - 340px));
+  color: #f3cb47;
+  opacity: 0.88;
+  filter: drop-shadow(0 0 12px rgba(243, 203, 71, 0.35));
+  animation: home-portal-note 6.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.home-portal .hero-ctas {
+  position: relative;
+  z-index: 3;
+}
+.home-portal .hero-ctas .btn-gold {
+  background: #f3cb47;
+  color: #111;
+  box-shadow: 0 8px 28px rgba(243, 203, 71, 0.4);
+}
+.home-portal .hero-ctas .btn-gold:hover {
+  background: #f6d45c;
+  box-shadow: 0 10px 32px rgba(243, 203, 71, 0.5);
+}
+.home-portal .hero-cover-tease {
+  display: flex;
+  justify-content: center;
+  margin: -8px auto 28px;
+  perspective: 640px;
+}
+.home-portal .hero-cover {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  transform-style: preserve-3d;
+  animation: home-portal-cover 7.2s ease-in-out infinite;
+}
+.home-portal .hero-cover-front,
+.home-portal .hero-cover-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.home-portal .hero-cover-front {
+  background: #111;
+  color: #f3cb47;
+  border: 1px solid rgba(120, 47, 177, 0.55);
+  box-shadow: 0 10px 24px rgba(120, 47, 177, 0.22);
+}
+.home-portal .hero-cover-back {
+  background: #782fb1;
+  color: #f3cb47;
+  transform: rotateY(180deg);
+}
+.home-portal .plai-coach-float {
+  z-index: 20;
+}
+.home-portal:has([data-plai-welcome-state="open"]) .plai-bubble-chip,
+.home-portal:has([data-plai-welcome-state="open"]) .plai-bubble-row {
+  display: none !important;
+}
+@keyframes home-portal-glow {
+  0%, 100% { opacity: 0.72; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes home-portal-note {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-10px, 14px, 0); }
+}
+@keyframes home-portal-cover {
+  0%, 78%, 100% { transform: rotateY(0deg); }
+  88% { transform: rotateY(180deg); }
+}
+@media (max-width: 640px) {
+  .home-portal .hero {
+    padding-bottom: 168px;
+  }
+  .home-portal .hero-float-note {
+    top: calc(var(--nav-h) + 16px);
+    right: 16px;
+  }
+  .home-portal .plai-coach-float {
+    right: 12px;
+    bottom: 12px;
+  }
+  .home-portal .plai-coach-float-pop {
+    width: min(280px, calc(100vw - 24px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-portal .hero::before,
+  .home-portal .hero-float-note,
+  .home-portal .hero-cover {
+    animation: none;
+  }
+}
