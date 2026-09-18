@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/plai-bubble.css" />
   <link rel="stylesheet" href="/charts.css" />
 </head>
-<body class="charts-page" data-charts-src="/data/siqa-country.json">
+<body class="charts-page" data-charts-src="/data/siqa-country.json" data-charts-path="/charts/country">
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="/index.html" aria-label="PLAIGROUND">
@@ -90,11 +90,16 @@
           <div class="charts-artist" data-charts-now-artist></div>
         </div>
       </div>
-      <iframe class="charts-frame" data-charts-frame id="charts-yt-player-country" title="Listen-only player" allow="autoplay; encrypted-media"></iframe>
       <div class="charts-controls">
         <button type="button" data-charts-prev>Prev</button>
+        <button type="button" data-charts-play aria-label="Pause">Pause</button>
         <button type="button" data-charts-next>Next</button>
       </div>
+      <div class="charts-dock-links">
+        <button type="button" class="charts-expand" data-charts-expand aria-expanded="false">Expand</button>
+        <a class="charts-back" data-charts-back href="/charts/country">Back to charts</a>
+      </div>
+      <iframe class="charts-frame" data-charts-frame id="charts-yt-player-country" title="Listen-only player" allow="autoplay; encrypted-media"></iframe>
     </div>
   </div>
 
@@ -158,7 +163,7 @@
   <script src="/membership.js"></script>
   <script src="/site.js"></script>
   <script src="/plai-bubble.js" defer></script>
-  <script src="/charts.js?v=20260918w2"></script>
+  <script src="/charts.js?v=20260918w9"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

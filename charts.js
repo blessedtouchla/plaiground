@@ -1,13 +1,13 @@
 (function () {
   var EMBED_ORIGIN = "https://www.wannaplai.com";
   var DATA_URL = (document.body && document.body.getAttribute("data-charts-src")) || "";
+  var SHELL_PATH = (document.body && document.body.getAttribute("data-charts-path")) || "";
   var tracks = [];
   var filtered = [];
   var currentIndex = -1;
   var inflight = Object.create(null);
   var ytPlayer = null;
   var pendingVideoId = "";
-
   var listEl = document.querySelector("[data-charts-list]");
   var searchEl = document.querySelector("[data-charts-search]");
   var playerEl = document.querySelector("[data-charts-player]");
@@ -17,6 +17,10 @@
   var nowCover = document.querySelector("[data-charts-now-cover]");
   var prevBtn = document.querySelector("[data-charts-prev]");
   var nextBtn = document.querySelector("[data-charts-next]");
+  var playBtn = document.querySelector("[data-charts-play]");
+  var expandBtn = document.querySelector("[data-charts-expand]");
+  var backBtn = document.querySelector("[data-charts-back]");
+  var browseEl = document.querySelector("[data-charts-browse]");
 
   function coverUrl(id) {
     if (!id) return "";
@@ -26,6 +30,24 @@
   function embedUrl(id) {
     return "https://www.youtube.com/embed/" + encodeURIComponent(id)
       + "?autoplay=1&modestbranding=1&rel=0&playsinline=1&enablejsapi=1&origin=https://www.wannaplai.com";
+  }
+
+  function setPlayingUi(playing) {
+    if (!playBtn) return;
+    playBtn.textContent = playing ? "Pause" : "Play";
+    playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
+    playBtn.classList.toggle("is-playing", !!playing);
+  }
+
+  function ytState() {
+    if (ytPlayer && typeof ytPlayer.getPlayerState === "function") {
+      return Number(ytPlayer.getPlayerState());
+    }
+    return -1;
+  }
+
+  function syncPlayButton() {
+    setPlayingUi(ytState() === 1);
   }
 
   function bindYouTubePlayer() {
@@ -45,12 +67,13 @@
           var target = event && event.target;
           if (pendingVideoId && target && typeof target.loadVideoById === "function") {
             target.loadVideoById(pendingVideoId);
-          } else if (target && typeof target.playVideo === "function") {
-            target.playVideo();
           }
+          syncPlayButton();
         },
         onStateChange: function (event) {
-          if (Number(event && event.data) !== 0) return;
+          var state = Number(event && event.data);
+          setPlayingUi(state === 1);
+          if (state !== 0) return;
           var data = event.target && typeof event.target.getVideoData === "function"
             ? event.target.getVideoData()
             : {};
@@ -63,9 +86,27 @@
     });
   }
 
+  function setFrameWaiting(waiting) {
+    if (!frameEl) return;
+    if (waiting) frameEl.setAttribute("data-charts-waiting", "");
+    else frameEl.removeAttribute("data-charts-waiting");
+  }
+
+  function stopEmbed() {
+    pendingVideoId = "";
+    setFrameWaiting(true);
+    setPlayingUi(false);
+    if (ytPlayer && typeof ytPlayer.stopVideo === "function") {
+      ytPlayer.stopVideo();
+      return;
+    }
+    if (frameEl) frameEl.removeAttribute("src");
+  }
+
   function loadEmbed(id) {
     if (!id) return;
     pendingVideoId = id;
+    setFrameWaiting(false);
     if (ytPlayer && typeof ytPlayer.loadVideoById === "function") {
       ytPlayer.loadVideoById(id);
       return;
@@ -155,7 +196,11 @@
       if (track.youtubeId) nowCover.src = coverUrl(track.youtubeId);
       else nowCover.removeAttribute("src");
     }
-    if (track.youtubeId) loadEmbed(track.youtubeId);
+    if (track.youtubeId) {
+      loadEmbed(track.youtubeId);
+      setPlayingUi(true);
+    } else stopEmbed();
+    liftPlai();
     if (prevBtn) prevBtn.disabled = currentIndex <= 0;
     if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= filtered.length - 1;
     renderList();
@@ -195,6 +240,8 @@
         updatePlayer(track);
       })
       .catch(function () {
+        if (filtered[currentIndex] !== track) return;
+        stopEmbed();
         if (nowArtist) nowArtist.textContent = "Could not load this title.";
       });
   }
@@ -208,21 +255,43 @@
     renderList();
   }
 
-  if (searchEl) {
-    searchEl.addEventListener("input", applySearch);
-  }
-  if (prevBtn) {
-    prevBtn.addEventListener("click", function () {
-      if (currentIndex > 0) playAt(currentIndex - 1);
-    });
-  }
-  if (nextBtn) {
-    nextBtn.addEventListener("click", function () {
-      if (currentIndex >= 0 && currentIndex < filtered.length - 1) playAt(currentIndex + 1);
-    });
+  function togglePlay() {
+    var playing = ytState() === 1 || (playBtn && playBtn.classList.contains("is-playing") && ytState() !== 2);
+    if (playing) {
+      if (ytPlayer && typeof ytPlayer.pauseVideo === "function") ytPlayer.pauseVideo();
+      setPlayingUi(false);
+      return;
+    }
+    if (ytPlayer && typeof ytPlayer.playVideo === "function") ytPlayer.playVideo();
+    setPlayingUi(true);
   }
 
-  var browseEl = document.querySelector("[data-charts-browse]");
+  function liftPlai() {
+    var bubble = document.querySelector(".plai-bubble");
+    if (!bubble || !bubble.style || typeof bubble.style.setProperty !== "function") return;
+    var height = 0;
+    if (playerEl && !playerEl.hidden && playerEl.getBoundingClientRect) {
+      height = Math.round(playerEl.getBoundingClientRect().height || 0);
+    }
+    bubble.style.setProperty("--plai-sticky-clearance", (height ? height + 12 : 0) + "px");
+  }
+
+  function setExpanded(open) {
+    if (!playerEl) return;
+    playerEl.classList.toggle("is-expanded", !!open);
+    document.documentElement.classList.toggle("is-charts-expanded", !!open);
+    if (expandBtn) {
+      expandBtn.textContent = open ? "Close" : "Expand";
+      expandBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    liftPlai();
+  }
+
+  function pathOf(href) {
+    var link = document.createElement("a");
+    link.href = href || "/";
+    return String(link.pathname || "").replace(/\/$/, "") || "/";
+  }
 
   function sameSiteHref(href) {
     if (!href) return "";
@@ -239,25 +308,76 @@
   }
 
   function isChartsHref(href) {
-    var link = document.createElement("a");
-    link.href = href;
-    var path = String(link.pathname || "").replace(/\/$/, "") || "/";
+    var path = pathOf(href);
     if (path === "/charts") return true;
     if (/^\/charts\/(top-100|rnb|country|gospel)$/.test(path)) return true;
     return /\/charts(-top-100|-rnb|-country|-gospel)?\.html$/.test(path);
   }
 
+  function isGenreChartHref(href) {
+    var path = pathOf(href);
+    return /^\/charts\/(top-100|rnb|country|gospel)$/.test(path)
+      || /\/charts-(top-100|-rnb|-country|-gospel)\.html$/.test(path);
+  }
+
+  function isSameChartPage(href) {
+    var here = pathOf(SHELL_PATH || document.baseURI || "/");
+    return pathOf(href) === here;
+  }
+
+  function closeBrowse() {
+    if (!browseEl) return;
+    browseEl.hidden = true;
+    browseEl.setAttribute("hidden", "");
+    browseEl.removeAttribute("src");
+    browseEl.style.display = "";
+    document.documentElement.classList.remove("is-charts-browse");
+    if (playerEl) playerEl.classList.remove("is-browsing");
+  }
+
   function openBrowse(href) {
     if (!browseEl) return;
-    if (isChartsHref(href)) {
-      browseEl.hidden = true;
-      browseEl.removeAttribute("src");
-      document.documentElement.classList.remove("is-charts-browse");
+    if (isSameChartPage(href)) {
+      closeBrowse();
       return;
     }
     browseEl.hidden = false;
+    browseEl.removeAttribute("hidden");
+    browseEl.style.display = "block";
     browseEl.src = href;
     document.documentElement.classList.add("is-charts-browse");
+    if (playerEl) playerEl.classList.add("is-browsing");
+  }
+
+  if (searchEl) {
+    searchEl.addEventListener("input", applySearch);
+  }
+  if (prevBtn) {
+    prevBtn.addEventListener("click", function () {
+      if (currentIndex > 0) playAt(currentIndex - 1);
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener("click", function () {
+      if (currentIndex >= 0 && currentIndex < filtered.length - 1) playAt(currentIndex + 1);
+    });
+  }
+  if (playBtn) {
+    playBtn.addEventListener("click", function () {
+      togglePlay();
+    });
+  }
+  if (expandBtn) {
+    expandBtn.addEventListener("click", function () {
+      setExpanded(!(playerEl && playerEl.classList.contains("is-expanded")));
+    });
+  }
+  if (backBtn) {
+    backBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      setExpanded(false);
+      closeBrowse();
+    });
   }
 
   document.addEventListener("click", function (event) {
@@ -274,8 +394,16 @@
     if (String(node.getAttribute("target") || "").toLowerCase() === "_blank") return;
     var href = sameSiteHref(node.getAttribute("href"));
     if (!href) return;
-    if (isChartsHref(href)) return;
+    if (isGenreChartHref(href) && !isSameChartPage(href)) return;
+    if (isChartsHref(href) && isSameChartPage(href)) {
+      event.preventDefault();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      closeBrowse();
+      return;
+    }
+    if (isGenreChartHref(href)) return;
     event.preventDefault();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     openBrowse(href);
   }, true);
 
@@ -316,6 +444,9 @@
     });
   }
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") setSheetOpen(false);
+    if (event.key === "Escape") {
+      setSheetOpen(false);
+      if (playerEl && playerEl.classList.contains("is-expanded")) setExpanded(false);
+    }
   });
 })();

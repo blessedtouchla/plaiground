@@ -240,7 +240,10 @@
       if (node.getAttribute && node.getAttribute('hidden') != null) continue;
       var rect = node.getBoundingClientRect ? node.getBoundingClientRect() : null;
       if (!rect || !rect.height) continue;
-      if (!viewH || rect.bottom >= viewH - 8) {
+      var stickyBar = (node.getAttribute && node.getAttribute('data-charts-player') != null)
+        || (node.classList && node.classList.contains('charts-player'))
+        || (node.getAttribute && node.getAttribute('data-plai-sticky') != null);
+      if (stickyBar || !viewH || rect.bottom >= viewH - 8) {
         height = Math.max(height, Math.round(rect.height));
       }
     }
