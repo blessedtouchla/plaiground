@@ -176,11 +176,18 @@
     return !!(api && typeof api.isSignedIn === "function" && api.isSignedIn());
   }
 
+  function rootPageHref(href, fallback) {
+    var raw = String(href || fallback || "").trim();
+    if (!raw) return fallback || "/";
+    if (raw.charAt(0) === "/" || /^(https?:|mailto:|tel:)/i.test(raw)) return raw;
+    return "/" + raw.replace(/^\.\//, "");
+  }
+
   function brandHomeHref(signedIn) {
-    if (!signedIn) return "index.html";
+    if (!signedIn) return "/index.html";
     var api = window.PlaigroundMembership;
-    if (api && typeof api.signedInHome === "function") return api.signedInHome();
-    return "dashboard.html";
+    if (api && typeof api.signedInHome === "function") return rootPageHref(api.signedInHome(), "/dashboard.html");
+    return "/dashboard.html";
   }
 
   function eachHeaderBrandLogo(fn) {
@@ -231,7 +238,7 @@
   function makePublicLogin() {
     var login = document.createElement("a");
     login.className = "login public-header-login";
-    login.href = "login.html";
+    login.href = "/login.html";
     login.textContent = "Log in";
     return login;
   }
@@ -246,6 +253,8 @@
     var login = existingPublicLogin(header);
     if (login) {
       login.classList.add("public-header-login");
+      login.setAttribute("href", "/login.html");
+      login.href = "/login.html";
     } else {
       login = makePublicLogin();
     }
@@ -367,7 +376,7 @@
     var blog = findNavBlog(links);
     if (!blog) {
       blog = document.createElement("a");
-      blog.href = "blog.html";
+      blog.href = "/blog.html";
       blog.textContent = "Blog";
     }
     if (isBlogPage()) blog.classList.add("active");
