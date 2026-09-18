@@ -3724,14 +3724,15 @@ body.app.artists-page .page {
 .thumb.lg { width: 56px; height: 56px; border-radius: 10px; }
 
 @media (max-width: 1180px) {
-  .nav-links,
+  /* Public destinations stay on the bar. Do not hide .nav-links or promote Menu. */
   .nav-actions { display: none; }
+  .public-menu-toggle { display: none; }
   .public-header-tools {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
   }
   .public-header-tools .login {
     display: inline-flex;
@@ -3741,97 +3742,18 @@ body.app.artists-page .page {
     font-size: 13px;
     font-weight: 600;
   }
-  .public-menu-toggle { display: inline-flex; }
-  .nav.nav-open .nav-drawer {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: var(--nav-h);
-    left: 0;
-    right: 0;
-    transform: none;
-    gap: 16px;
-    padding: 16px 24px 22px;
-    background: #0C0C12;
-    border-bottom: 1px solid var(--line);
-    z-index: 60;
-  }
-  .nav.nav-open .nav-links,
-  .nav.nav-open .nav-actions {
-    display: flex;
-    position: static;
-    transform: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
-    white-space: normal;
-  }
-  .nav.nav-open .nav-links a {
-    padding: 10px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 14px;
-  }
-  .nav.nav-open .nav-item.has-submenu {
-    display: block;
-    width: 100%;
-  }
-  .nav.nav-open .nav-item-row {
-    width: 100%;
-    border-bottom: 1px solid var(--line);
-  }
-  .nav.nav-open .nav-item-row > a {
-    flex: 1 1 auto;
-    border-bottom: none;
-    padding-right: 8px;
-  }
-  .nav.nav-open .nav-submenu-toggle {
-    width: 44px;
-    height: 44px;
-    margin-right: -8px;
-  }
-  .nav.nav-open .nav-submenu {
-    position: static;
-    transform: none;
-    left: auto;
-    top: auto;
-    display: none;
-    min-width: 0;
-    padding: 0 0 0 14px;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-  }
-  .nav.nav-open .nav-item.has-submenu.open .nav-submenu {
-    display: flex;
-    flex-direction: column;
-  }
-  .nav.nav-open .nav-actions .login,
-  .nav.nav-open .nav-actions .btn {
-    width: 100%;
-    text-align: center;
-    justify-content: center;
-  }
-  .public-nav-backdrop {
-    display: none;
-    position: fixed;
-    inset: var(--nav-h) 0 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 55;
-  }
-  .nav.nav-open .public-nav-backdrop { display: block; }
-  body.public-nav-open { overflow: hidden; }
 }
 
 @media (max-width: 980px) {
-  .nav-links,
+  /* Public destinations stay on the bar. Do not hide .nav-links or promote Menu. */
   .nav-actions { display: none; }
+  .public-menu-toggle { display: none; }
   .public-header-tools {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
   }
   .public-header-tools .login {
     display: inline-flex;
@@ -3841,84 +3763,6 @@ body.app.artists-page .page {
     font-size: 13px;
     font-weight: 600;
   }
-  .public-menu-toggle { display: inline-flex; }
-  .nav.nav-open .nav-drawer {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: var(--nav-h);
-    left: 0;
-    right: 0;
-    transform: none;
-    gap: 16px;
-    padding: 16px 24px 22px;
-    background: #0C0C12;
-    border-bottom: 1px solid var(--line);
-    z-index: 60;
-  }
-  .nav.nav-open .nav-links,
-  .nav.nav-open .nav-actions {
-    display: flex;
-    position: static;
-    transform: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
-  }
-  .nav.nav-open .nav-links a {
-    padding: 10px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .nav.nav-open .nav-item.has-submenu {
-    display: block;
-    width: 100%;
-  }
-  .nav.nav-open .nav-item-row {
-    width: 100%;
-    border-bottom: 1px solid var(--line);
-  }
-  .nav.nav-open .nav-item-row > a {
-    flex: 1 1 auto;
-    border-bottom: none;
-    padding-right: 8px;
-  }
-  .nav.nav-open .nav-submenu-toggle {
-    width: 44px;
-    height: 44px;
-    margin-right: -8px;
-  }
-  .nav.nav-open .nav-submenu {
-    position: static;
-    transform: none;
-    left: auto;
-    top: auto;
-    display: none;
-    min-width: 0;
-    padding: 0 0 0 14px;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-  }
-  .nav.nav-open .nav-item.has-submenu.open .nav-submenu {
-    display: flex;
-    flex-direction: column;
-  }
-  .nav.nav-open .nav-actions .login,
-  .nav.nav-open .nav-actions .btn {
-    width: 100%;
-    text-align: center;
-    justify-content: center;
-  }
-  .public-nav-backdrop {
-    display: none;
-    position: fixed;
-    inset: var(--nav-h) 0 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 55;
-  }
-  .nav.nav-open .public-nav-backdrop { display: block; }
-  body.public-nav-open { overflow: hidden; }
   .pub-call { flex-direction: column; align-items: flex-start; }
   .pub-call-actions { text-align: left; }
   .plans, .steps-grid, .cta-inner, .footer-grid, .pricing-head, .auth, .two-col, .review-grid, .form-grid, .art-row, .opt-grid, .workflow, .metric-row, .after, .pub-band, .writer-grid, .hero-split, .process-row, .exclude-grid, .how-cols, .boost-grid, .size-grid, .tease-grid, .pro-adds .row, .dash-preview, .about-grid, .contact-grid, .dash-top, .form-grid.three, .form-grid.four, .catalog-stats, .song-hero, .fees-grid, .entry-grid, .prefill, .carry, .pub-bar, .offer-grid, .boost-hub-grid, .boost-option-grid, .plan-picker, .confirm-bar, .next-4, .know, .signed-grid {
@@ -4230,7 +4074,7 @@ body.app.artists-page .page {
   }
 }
 
-/* Phone header: logo + Login above the Menu pill. Release Now stays in the drawer. */
+/* Phone header: logo + Log in. Public destinations stay visible; Menu stays demoted. */
 @media (max-width: 640px) {
   :root {
     --nav-h: 72px;
@@ -6789,12 +6633,17 @@ body.attest-page .plai-bubble-row {
 .nav.is-public-bar,
 header.nav {
   z-index: 50;
+  overflow: visible;
 }
 .nav .logo { order: 1; }
 .nav-links { order: 2; }
 .public-header-tools { order: 3; }
 .nav-actions { order: 4; }
 @media (max-width: 1180px) {
+  header.nav,
+  .nav.is-public-bar {
+    overflow: visible;
+  }
   .nav-links {
     display: flex !important;
     position: static;
@@ -6873,8 +6722,10 @@ header.nav {
   .nav {
     height: auto;
     min-height: 72px;
+    overflow: visible;
   }
   .nav-inner {
+    height: auto;
     flex-wrap: wrap;
     align-items: center;
     row-gap: 2px;
