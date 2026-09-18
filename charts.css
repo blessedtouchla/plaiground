@@ -14,6 +14,11 @@
   padding-bottom: 220px;
 }
 
+.charts-hub-page .charts-main,
+.charts-hub-page footer {
+  padding-bottom: 48px;
+}
+
 .charts-hero {
   padding: 48px 0 28px;
 }
@@ -184,6 +189,75 @@
   color: #F3CB47;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.charts-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.charts-cats a {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #C8C8D0;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.charts-cats a.is-current,
+.charts-cats a:hover,
+.charts-cats a:focus {
+  border-color: #F3CB47;
+  color: #F3CB47;
+  outline: none;
+}
+
+.charts-hub {
+  padding: 8px 0 40px;
+}
+
+.charts-hub-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .charts-hub-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.charts-hub-card {
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: #110e16;
+  padding: 20px 18px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.charts-hub-card:hover,
+.charts-hub-card:focus {
+  border-color: rgba(243, 203, 71, 0.45);
+  outline: none;
+}
+
+.charts-hub-name {
+  display: block;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.charts-hub-meta {
+  display: block;
+  color: #9A9AA8;
+  font-size: 13px;
 }
 
 .charts-tools {

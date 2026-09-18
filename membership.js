@@ -316,6 +316,9 @@
     var file = path.split('/').pop() || '';
     if (path === '/admin' || path === '/admin/') return '/admin';
     if (path === '/charts' || path === '/charts/') return '/charts';
+    if (/^\/charts\/(top-100|rnb|country|gospel)\/?$/.test(path)) {
+      return path.replace(/\/$/, '');
+    }
     if (!file || file === 'login.html') return '';
     var search = String((global.location && global.location.search) || '');
     var hash = String((global.location && global.location.hash) || '');

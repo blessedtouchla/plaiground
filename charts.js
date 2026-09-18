@@ -1,6 +1,6 @@
 (function () {
   var EMBED_ORIGIN = "https://www.wannaplai.com";
-  var DATA_URL = "data/siqa-chart.json";
+  var DATA_URL = (document.body && document.body.getAttribute("data-charts-src")) || "";
   var tracks = [];
   var filtered = [];
   var currentIndex = -1;
@@ -241,8 +241,10 @@
   function isChartsHref(href) {
     var link = document.createElement("a");
     link.href = href;
-    var path = String(link.pathname || "");
-    return path === "/charts" || /\/charts\.html$/.test(path);
+    var path = String(link.pathname || "").replace(/\/$/, "") || "/";
+    if (path === "/charts") return true;
+    if (/^\/charts\/(top-100|rnb|country|gospel)$/.test(path)) return true;
+    return /\/charts(-top-100|-rnb|-country|-gospel)?\.html$/.test(path);
   }
 
   function openBrowse(href) {
@@ -272,11 +274,12 @@
     if (String(node.getAttribute("target") || "").toLowerCase() === "_blank") return;
     var href = sameSiteHref(node.getAttribute("href"));
     if (!href) return;
+    if (isChartsHref(href)) return;
     event.preventDefault();
     openBrowse(href);
   }, true);
 
-  fetch(DATA_URL)
+  if (listEl && DATA_URL) fetch(DATA_URL)
     .then(function (res) { return res.json(); })
     .then(function (data) {
       tracks = ((data && data.tracks) || []).map(function (track) {
