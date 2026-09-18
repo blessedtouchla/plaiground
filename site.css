@@ -6732,12 +6732,13 @@ header.nav {
     padding-top: 8px;
     padding-bottom: 10px;
   }
-  .nav .logo { flex: 0 1 auto; }
+  .nav .logo { flex: 0 1 auto; order: 1; }
+  .public-header-tools { order: 2; margin-left: auto; }
+  .nav-links { order: 3; }
   .nav .logo img {
     height: 36px;
     max-width: 140px;
   }
-  .public-header-tools { margin-left: auto; }
   .public-header-tools .login {
     padding: 6px 12px;
     font-size: 12px;
