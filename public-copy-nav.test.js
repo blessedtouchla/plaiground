@@ -406,8 +406,9 @@ function run() {
   assert.ok(/@media \(max-width: 980px\)[\s\S]*\.side \{[\s\S]*transform: translateX\(-110%\)/i.test(css), 'mobile CSS must hide the stacked .side menu');
   assert.ok(/\.app\.nav-open \.side/i.test(css), 'open app drawer must show .side');
   assert.ok(/\.topbar \.menu-toggle \{ display: inline-flex; \}/i.test(css), 'mobile topbar shows the hamburger');
-  assert.ok(/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), 'legacy mobile hide rule stays in the file');
-  assert.ok(css.includes('/* —— Public nav Tesla cut (always-visible top links, pre-login only) —— */'), 'public Tesla bar cut overrides the hide-behind-Menu path');
+  assert.ok(!/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), '1180/980 no longer hide .nav-links behind Menu');
+  assert.ok(!/\.public-menu-toggle \{ display: inline-flex; \}/.test(css), 'public Menu is not promoted under 1180/980');
+  assert.ok(css.includes('/* —— Public nav Tesla cut (always-visible top links, pre-login only) —— */'), 'public Tesla bar cut keeps destinations on the bar');
   assert.ok(/Public nav Tesla cut[\s\S]*\.nav-links \{[\s\S]*display:\s*flex !important/.test(css), 'public Tesla bar keeps primary links visible on phone');
   assert.ok(/Public nav Tesla cut[\s\S]*\.public-menu-toggle \{ display: none !important; \}/.test(css), 'Menu pill is not the only way to see public links');
   assert.ok(css.includes('.public-header-tools'), 'public header keeps a Login cluster outside the drawer');
