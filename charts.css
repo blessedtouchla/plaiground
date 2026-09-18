@@ -11,7 +11,7 @@
 
 .charts-page .charts-main,
 .charts-page footer {
-  padding-bottom: 220px;
+  padding-bottom: 96px;
 }
 
 .charts-hub-page .charts-main,
@@ -397,39 +397,61 @@
 }
 
 .charts-player-inner {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px) auto;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px 14px;
   align-items: center;
-  padding: 12px 0;
+  padding: 8px 0;
+  min-height: 64px;
 }
 
 .charts-now {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 12px;
+  grid-template-columns: 48px 1fr;
+  gap: 10px;
   align-items: center;
   min-width: 0;
 }
 
 .charts-now img,
 .charts-now .charts-cover {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
 }
 
 .charts-frame {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 180px;
+  position: absolute;
+  width: 80px;
+  height: 45px;
+  left: 16px;
+  bottom: 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #000;
+  opacity: 0.02;
+  pointer-events: none;
+}
+
+.charts-frame[data-charts-waiting] {
+  opacity: 0;
+}
+
+.charts-player.is-expanded .charts-frame {
+  position: static;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  aspect-ratio: 16 / 9;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .charts-controls {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
 }
 
 .charts-controls button {
@@ -437,14 +459,58 @@
   background: #16121d;
   color: #fff;
   border-radius: 999px;
-  padding: 10px 14px;
-  font-size: 13px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 600;
+}
+
+.charts-controls button[data-charts-play] {
+  background: #F3CB47;
+  border-color: #F3CB47;
+  color: #08060C;
+  min-width: 68px;
 }
 
 .charts-controls button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.charts-dock-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.charts-expand,
+.charts-back {
+  border: 0;
+  background: transparent;
+  color: #F3CB47;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 0;
+}
+
+.charts-expand:hover,
+.charts-expand:focus,
+.charts-back:hover,
+.charts-back:focus {
+  color: #fff;
+  outline: none;
+}
+
+html:not(.is-charts-browse) .charts-back,
+html.is-charts-browse .charts-expand {
+  display: none;
+}
+
+body.charts-page:has(.charts-player:not([hidden])) .plai-bubble {
+  --plai-sticky-clearance: 72px;
 }
 
 .charts-page .nav-links a.nav-siqa,
@@ -455,7 +521,28 @@
 
 @media (max-width: 860px) {
   .charts-player-inner {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "now links"
+      "controls controls";
+  }
+
+  .charts-now { grid-area: now; }
+  .charts-dock-links { grid-area: links; }
+  .charts-controls {
+    grid-area: controls;
+    justify-content: flex-start;
+  }
+
+  .charts-player.is-expanded .charts-player-inner {
+    grid-template-areas:
+      "now links"
+      "controls controls"
+      "frame frame";
+  }
+
+  .charts-player.is-expanded .charts-frame {
+    grid-area: frame;
   }
 
   .charts-row {
@@ -488,7 +575,7 @@
   left: 0;
   right: 0;
   top: 0;
-  bottom: 88px;
+  bottom: 72px;
   width: 100%;
   border: 0;
   z-index: 45;
@@ -504,8 +591,12 @@ html.is-charts-browse body.charts-page {
   overflow: hidden;
 }
 
+html.is-charts-expanded .charts-browse {
+  bottom: min(52vh, 280px);
+}
+
 @media (max-width: 860px) {
   .charts-browse {
-    bottom: min(52vh, 420px);
+    bottom: 72px;
   }
 }

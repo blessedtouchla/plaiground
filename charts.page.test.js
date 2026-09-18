@@ -117,11 +117,18 @@ function run() {
   assert.ok(!js.includes('Hl5_Lc6b3AU'), 'Rubberz id is not hardcoded onto every #1 play');
   assert.ok(js.includes('playAt(index)'), 'row click plays that row index');
   assert.ok(js.includes('if (track.youtubeId) return Promise.resolve(track.youtubeId);'), 'resolveId uses the row’s own id');
+  assert.ok(js.includes('function stopEmbed'), 'player can stop a leftover embed');
+  assert.ok(!/else if \(target && typeof target\.playVideo === "function"\)/.test(js), 'onReady does not resume a stopped leftover video');
+  assert.ok(js.includes('else stopEmbed()'), 'a row with no id stops the previous video');
+  assert.ok(js.includes('data-charts-waiting'), 'waiting frame is marked so the last video is not shown');
+  assert.ok(/if \(filtered\[currentIndex\] !== track\) return;[\s\S]*Could not load this title/.test(js), 'a failed resolve does not overwrite a newer row');
   assert.ok(js.includes('/api/youtube'), 'browser calls our YouTube API');
   assert.ok(!/youtubei\/v1\/search/.test(js), 'browser must not call InnerTube');
   assert.ok(!/AIza/.test(js) && !/AIza/.test(html + top100Html), 'no YouTube API key in the frontend');
   assert.ok(js.includes('data-charts-src'), 'player reads the page’s own chart JSON');
-  assert.ok(js.includes('if (isChartsHref(href)) return'), 'category pages navigate for real instead of the browse iframe');
+  assert.ok(js.includes('if (isGenreChartHref(href) && !isSameChartPage(href)) return'), 'category pages navigate for real instead of the browse iframe');
+  assert.ok(js.includes('openBrowse(href)'), 'other wannaplai pages open in the player shell');
+  assert.ok(js.includes('history.pushState'), 'browse updates the URL without remounting the embed');
 
   assert.strictEqual(chart.category, 'TOP 100 AI SONGS');
   assert.strictEqual(rnb.week, 'September 15th, 2026');
@@ -156,6 +163,17 @@ function run() {
   assert.ok(js.includes('playAt(currentIndex + 1)'), 'ended songs advance to the next row');
   assert.ok(top100Html.includes('data-charts-browse'), 'browse iframe keeps the player open across the site');
   assert.ok(/class="charts-browse"/.test(css) || /html\.is-charts-browse/.test(css), 'browse iframe stays above the player bar');
+  assert.ok(playerHtml.includes('data-charts-play'), 'mini-player has play/pause');
+  assert.ok(playerHtml.includes('Back to charts'), 'mini-player has Back to charts');
+  assert.ok(playerHtml.includes('data-charts-expand'), 'mini-player can expand the embed');
+  assert.ok(/min-height:\s*64px/.test(css), 'mini-player stays a compact Tesla bar');
+  assert.ok(/html:not\(\.is-charts-browse\) \.charts-back/.test(css), 'Back to charts shows only while browsing');
+  assert.ok(/--plai-sticky-clearance/.test(read('plai-bubble.css')), 'PLAI parks above the mini-player');
+  [rnbHtml, countryHtml, gospelHtml].forEach(function (page) {
+    assert.ok(page.includes('data-charts-play') && page.includes('Back to charts'), 'genre pages share the mini-player');
+    assert.ok(/href="\/index\.html"/.test(page.match(/<a class="logo"[^>]*>/)[0]), 'genre logo still goes to the homepage');
+  });
+  assert.ok(/href="\/index\.html"/.test(top100Html.match(/<a class="logo"[^>]*>/)[0]), 'Top 100 logo still goes to the homepage');
   assert.ok(js.includes('https://www.youtube.com/embed/'), 'embed URL is youtube.com/embed/VIDEO_ID');
   assert.ok(js.includes('modestbranding=1'), 'embed uses modestbranding=1');
   assert.ok(js.includes('rel=0'), 'embed uses rel=0');
@@ -171,6 +189,9 @@ function run() {
   assert.ok(!/Open in YouTube|Watch on YouTube/i.test(top100Html + js), 'no owned Open/Watch on YouTube control');
   assert.ok(js.includes('document.createElement("button")'), 'chart rows are on-page buttons');
   assert.ok(/position:\s*fixed/.test(css) || /position:\s*sticky/.test(css), 'player bar stays on the page while scrolling');
+  assert.ok(/\.charts-frame\[data-charts-waiting\]/.test(css), 'waiting embed is hidden so the last video does not keep showing');
+  assert.ok(js.includes('function togglePlay'), 'mini-player can pause without killing the embed');
+  assert.ok(js.includes('closeBrowse'), 'Back to charts closes the browse shell');
 
   assert.ok(api.includes('youtubei/v1/search'), 'server POSTs InnerTube search');
   assert.ok(/clientName:\s*'WEB'/.test(api), 'InnerTube uses WEB client context');
