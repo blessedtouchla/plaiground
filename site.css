@@ -6390,6 +6390,9 @@ body.attest-page {
 body.attest-page .flow-top {
   border-bottom: 0;
 }
+body.attest-page .flow-top .logo img {
+  height: 22px;
+}
 body.attest-page main.page {
   max-width: 520px;
   padding-bottom: 168px;
@@ -6430,8 +6433,10 @@ body.attest-page .plai-bubble-row {
 .attest-page .attest-title-row {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 10px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 .attest-page .attest-title-row h3 {
   margin: 0;
@@ -6440,6 +6445,9 @@ body.attest-page .plai-bubble-row {
   position: relative;
   flex: 0 0 auto;
   margin-top: 2px;
+}
+.attest-page .attest-help[open] {
+  flex: 1 1 100%;
 }
 .attest-page .attest-help summary {
   list-style: none;
@@ -6462,16 +6470,13 @@ body.attest-page .plai-bubble-row {
   border-color: rgba(120, 47, 177, 0.55);
 }
 .attest-page .attest-help p {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 8px);
-  z-index: 4;
-  width: min(72vw, 280px);
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #111;
-  border: 1px solid var(--line);
+  position: static;
+  width: auto;
+  max-width: 36em;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
