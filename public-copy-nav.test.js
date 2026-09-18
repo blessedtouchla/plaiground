@@ -47,6 +47,11 @@ function run() {
   assert.ok(!/for AI music creators/i.test(index), 'homepage meta must not say for AI music creators');
   assert.ok(/for artists and all music/i.test(index), 'homepage meta must be all-music');
   assert.ok(!/Keep 100% of your royalties/i.test(index), 'do not invent keep-100% copy');
+  assert.ok(index.includes('class="public-header-tools"'), 'homepage HTML pins Login outside the drawer');
+  assert.ok(/class="public-header-tools"[\s\S]*href="login.html">Log in/.test(index), 'homepage phone Login is in the header cluster');
+  assert.ok(index.includes('public-menu-toggle'), 'homepage HTML has the public menu toggle');
+  assert.ok(/Enter the PLAIGROUND/.test(indexHero[0]), 'homepage gold CTA is Enter the PLAIGROUND');
+  assert.ok(!/<section class="hero"[\s\S]*Join for free/.test(index), 'hero does not keep a second Join for free primary');
 
   const how = read('how-it-works.html');
   const howAppCopy = read('how.html');
