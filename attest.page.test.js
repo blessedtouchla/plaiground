@@ -228,7 +228,9 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20260917at1') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20260918vn1') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
+  assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
   const attestSrc = fs.readFileSync(path.join(__dirname, 'attest.js'), 'utf8');
   assert.ok(/hold\.then\(goNext/.test(attestSrc), 'attest Continue awaits the IDB re-hold before leaving');
@@ -366,6 +368,21 @@ function run() {
   const featuredDraft = JSON.parse(featured.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(featuredDraft.solo_owned_100, false);
 
+  const missingWriter = load({
+    draft: { name: 'Fuvtu', legal_first: '', legal_last: '' },
+  });
+  missingWriter.writerFirst.value = '';
+  missingWriter.writerLast.value = '';
+  missingWriter.noAi.listeners.click({ preventDefault() {} });
+  missingWriter.rights.checked = true;
+  missingWriter.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(missingWriter.status.textContent, 'This song needs a songwriter legal first and last name.');
+  assert.notStrictEqual(missingWriter.location.href, 'review.html');
+  missingWriter.writerFirst.value = 'Ada';
+  missingWriter.writerLast.value = 'Night';
+  missingWriter.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(missingWriter.location.href, 'review.html');
+
   const leftoverEmpty = load({
     defaultOn: true,
     draft: { made_how: 'ai_assisted', human_elements: [] },
@@ -426,7 +443,15 @@ function run() {
     human_elements: ['Original lyrics'],
     human_contribution: '',
     rights_confirmed: true,
+    legal_first: 'Ada',
+    legal_last: 'Night',
   }).error);
+  assert.strictEqual(rules.validateAttestPage({
+    made_how: 'no_ai',
+    rights_confirmed: true,
+    legal_first: '',
+    legal_last: '',
+  }).error, 'This song needs a songwriter legal first and last name.');
 
   console.log('attest.page.test.js ok');
 }
