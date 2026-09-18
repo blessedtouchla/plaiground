@@ -200,6 +200,7 @@
       loadEmbed(track.youtubeId);
       setPlayingUi(true);
     } else stopEmbed();
+    liftPlai();
     if (prevBtn) prevBtn.disabled = currentIndex <= 0;
     if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= filtered.length - 1;
     renderList();
@@ -265,6 +266,16 @@
     setPlayingUi(true);
   }
 
+  function liftPlai() {
+    var bubble = document.querySelector(".plai-bubble");
+    if (!bubble || !bubble.style || typeof bubble.style.setProperty !== "function") return;
+    var height = 0;
+    if (playerEl && !playerEl.hidden && playerEl.getBoundingClientRect) {
+      height = Math.round(playerEl.getBoundingClientRect().height || 0);
+    }
+    bubble.style.setProperty("--plai-sticky-clearance", (height ? height + 12 : 0) + "px");
+  }
+
   function setExpanded(open) {
     if (!playerEl) return;
     playerEl.classList.toggle("is-expanded", !!open);
@@ -273,6 +284,7 @@
       expandBtn.textContent = open ? "Close" : "Expand";
       expandBtn.setAttribute("aria-expanded", open ? "true" : "false");
     }
+    liftPlai();
   }
 
   function pathOf(href) {
@@ -328,6 +340,8 @@
       return;
     }
     browseEl.hidden = false;
+    browseEl.removeAttribute("hidden");
+    browseEl.style.display = "block";
     browseEl.src = href;
     document.documentElement.classList.add("is-charts-browse");
     if (playerEl) playerEl.classList.add("is-browsing");

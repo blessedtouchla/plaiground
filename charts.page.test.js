@@ -164,7 +164,8 @@ function run() {
   assert.ok(js.includes('playAt(currentIndex + 1)'), 'ended songs advance to the next row');
   assert.ok(top100Html.includes('data-charts-browse'), 'browse iframe keeps the player open across the site');
   assert.ok(/class="charts-browse"/.test(css) || /html\.is-charts-browse/.test(css), 'browse iframe stays above the player bar');
-  assert.ok(/\.charts-browse \{[\s\S]*z-index:\s*60/.test(css), 'browse shell sits above the public nav so the destination page is actually visible');
+  assert.ok(/\.charts-browse \{[\s\S]*z-index:\s*65/.test(css), 'browse shell sits above the public nav so the destination page is actually visible');
+  assert.ok(/height:\s*calc\(100vh - 72px\)/.test(css), 'browse iframe has a real viewport height');
   assert.ok(playerHtml.includes('data-charts-play'), 'mini-player has play/pause');
   assert.ok(playerHtml.includes('Back to charts'), 'mini-player has Back to charts');
   assert.ok(playerHtml.includes('data-charts-expand'), 'mini-player can expand the embed');
@@ -195,6 +196,8 @@ function run() {
   assert.ok(/\.charts-frame\[data-charts-waiting\]/.test(css), 'waiting embed is hidden so the last video does not keep showing');
   assert.ok(js.includes('function togglePlay'), 'mini-player can pause without killing the embed');
   assert.ok(js.includes('closeBrowse'), 'Back to charts closes the browse shell');
+  assert.ok(js.includes('function liftPlai'), 'mini-player lifts the pre-login PLAI chip');
+  assert.ok(/padding-right:\s*88px/.test(css), 'mini-player leaves room so the PLAI chip does not cover Play/Back');
 
   assert.ok(api.includes('youtubei/v1/search'), 'server POSTs InnerTube search');
   assert.ok(/clientName:\s*'WEB'/.test(api), 'InnerTube uses WEB client context');

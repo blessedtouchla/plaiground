@@ -387,6 +387,7 @@
   right: 0;
   bottom: 0;
   z-index: 70;
+  padding-right: 88px;
   border-top: 1px solid rgba(243, 203, 71, 0.28);
   background: rgba(8, 6, 12, 0.96);
   backdrop-filter: blur(12px);
@@ -424,7 +425,7 @@
   position: absolute;
   width: 80px;
   height: 45px;
-  left: 16px;
+  right: 96px;
   bottom: 10px;
   border: 0;
   border-radius: 8px;
@@ -510,7 +511,7 @@ html.is-charts-browse .charts-expand {
 }
 
 body.charts-page:has(.charts-player:not([hidden])) .plai-bubble {
-  --plai-sticky-clearance: 72px;
+  --plai-sticky-clearance: 96px;
 }
 
 .charts-page .nav-links a.nav-siqa,
@@ -571,15 +572,17 @@ body.charts-page:has(.charts-player:not([hidden])) .plai-bubble {
 }
 
 .charts-browse {
+  display: block;
   position: fixed;
+  top: 0;
   left: 0;
   right: 0;
-  top: 0;
   bottom: 72px;
-  width: 100%;
+  width: 100vw;
+  height: calc(100vh - 72px);
   border: 0;
-  z-index: 60;
-  background: #08060C;
+  z-index: 65;
+  background: #0C0C12;
 }
 
 .charts-browse[hidden] {
