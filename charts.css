@@ -386,7 +386,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 50;
+  z-index: 70;
   border-top: 1px solid rgba(243, 203, 71, 0.28);
   background: rgba(8, 6, 12, 0.96);
   backdrop-filter: blur(12px);
@@ -578,7 +578,7 @@ body.charts-page:has(.charts-player:not([hidden])) .plai-bubble {
   bottom: 72px;
   width: 100%;
   border: 0;
-  z-index: 45;
+  z-index: 60;
   background: #08060C;
 }
 
@@ -589,6 +589,12 @@ body.charts-page:has(.charts-player:not([hidden])) .plai-bubble {
 html.is-charts-browse,
 html.is-charts-browse body.charts-page {
   overflow: hidden;
+}
+
+html.is-charts-browse body.charts-page > header.nav,
+html.is-charts-browse body.charts-page > .charts-main,
+html.is-charts-browse body.charts-page > footer {
+  visibility: hidden;
 }
 
 html.is-charts-expanded .charts-browse {

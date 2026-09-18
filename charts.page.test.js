@@ -129,6 +129,7 @@ function run() {
   assert.ok(js.includes('if (isGenreChartHref(href) && !isSameChartPage(href)) return'), 'category pages navigate for real instead of the browse iframe');
   assert.ok(js.includes('openBrowse(href)'), 'other wannaplai pages open in the player shell');
   assert.ok(js.includes('history.pushState'), 'browse updates the URL without remounting the embed');
+  assert.ok(js.includes('stopImmediatePropagation'), 'browse wins over the logo’s hard homepage jump');
 
   assert.strictEqual(chart.category, 'TOP 100 AI SONGS');
   assert.strictEqual(rnb.week, 'September 15th, 2026');
@@ -163,12 +164,14 @@ function run() {
   assert.ok(js.includes('playAt(currentIndex + 1)'), 'ended songs advance to the next row');
   assert.ok(top100Html.includes('data-charts-browse'), 'browse iframe keeps the player open across the site');
   assert.ok(/class="charts-browse"/.test(css) || /html\.is-charts-browse/.test(css), 'browse iframe stays above the player bar');
+  assert.ok(/\.charts-browse \{[\s\S]*z-index:\s*60/.test(css), 'browse shell sits above the public nav so the destination page is actually visible');
   assert.ok(playerHtml.includes('data-charts-play'), 'mini-player has play/pause');
   assert.ok(playerHtml.includes('Back to charts'), 'mini-player has Back to charts');
   assert.ok(playerHtml.includes('data-charts-expand'), 'mini-player can expand the embed');
   assert.ok(/min-height:\s*64px/.test(css), 'mini-player stays a compact Tesla bar');
   assert.ok(/html:not\(\.is-charts-browse\) \.charts-back/.test(css), 'Back to charts shows only while browsing');
   assert.ok(/--plai-sticky-clearance/.test(read('plai-bubble.css')), 'PLAI parks above the mini-player');
+  assert.ok(css.includes('body.charts-page:has(.charts-player:not([hidden])) .plai-bubble'), 'charts CSS also parks PLAI above the mini-player');
   [rnbHtml, countryHtml, gospelHtml].forEach(function (page) {
     assert.ok(page.includes('data-charts-play') && page.includes('Back to charts'), 'genre pages share the mini-player');
     assert.ok(/href="\/index\.html"/.test(page.match(/<a class="logo"[^>]*>/)[0]), 'genre logo still goes to the homepage');

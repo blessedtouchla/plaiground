@@ -198,8 +198,10 @@
       if (track.youtubeId) nowCover.src = coverUrl(track.youtubeId);
       else nowCover.removeAttribute("src");
     }
-    if (track.youtubeId) loadEmbed(track.youtubeId);
-    else stopEmbed();
+    if (track.youtubeId) {
+      loadEmbed(track.youtubeId);
+      setPlayingUi(true);
+    } else stopEmbed();
     if (prevBtn) prevBtn.disabled = currentIndex <= 0;
     if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= filtered.length - 1;
     renderList();
@@ -255,16 +257,14 @@
   }
 
   function togglePlay() {
-    if (!ytPlayer) return;
-    if (ytState() === 1 && typeof ytPlayer.pauseVideo === "function") {
-      ytPlayer.pauseVideo();
+    var playing = ytState() === 1 || (playBtn && playBtn.classList.contains("is-playing") && ytState() !== 2);
+    if (playing) {
+      if (ytPlayer && typeof ytPlayer.pauseVideo === "function") ytPlayer.pauseVideo();
       setPlayingUi(false);
       return;
     }
-    if (typeof ytPlayer.playVideo === "function") {
-      ytPlayer.playVideo();
-      setPlayingUi(true);
-    }
+    if (ytPlayer && typeof ytPlayer.playVideo === "function") ytPlayer.playVideo();
+    setPlayingUi(true);
   }
 
   function setExpanded(open) {
@@ -389,11 +389,13 @@
     if (isGenreChartHref(href) && !isSameChartPage(href)) return;
     if (isChartsHref(href) && isSameChartPage(href)) {
       event.preventDefault();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
       closeBrowse();
       return;
     }
     if (isGenreChartHref(href)) return;
     event.preventDefault();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     openBrowse(href);
   }, true);
 
