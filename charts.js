@@ -45,8 +45,6 @@
           var target = event && event.target;
           if (pendingVideoId && target && typeof target.loadVideoById === "function") {
             target.loadVideoById(pendingVideoId);
-          } else if (target && typeof target.playVideo === "function") {
-            target.playVideo();
           }
         },
         onStateChange: function (event) {
@@ -63,9 +61,26 @@
     });
   }
 
+  function setFrameWaiting(waiting) {
+    if (!frameEl) return;
+    if (waiting) frameEl.setAttribute("data-charts-waiting", "");
+    else frameEl.removeAttribute("data-charts-waiting");
+  }
+
+  function stopEmbed() {
+    pendingVideoId = "";
+    setFrameWaiting(true);
+    if (ytPlayer && typeof ytPlayer.stopVideo === "function") {
+      ytPlayer.stopVideo();
+      return;
+    }
+    if (frameEl) frameEl.removeAttribute("src");
+  }
+
   function loadEmbed(id) {
     if (!id) return;
     pendingVideoId = id;
+    setFrameWaiting(false);
     if (ytPlayer && typeof ytPlayer.loadVideoById === "function") {
       ytPlayer.loadVideoById(id);
       return;
@@ -156,6 +171,7 @@
       else nowCover.removeAttribute("src");
     }
     if (track.youtubeId) loadEmbed(track.youtubeId);
+    else stopEmbed();
     if (prevBtn) prevBtn.disabled = currentIndex <= 0;
     if (nextBtn) nextBtn.disabled = currentIndex < 0 || currentIndex >= filtered.length - 1;
     renderList();
@@ -195,6 +211,8 @@
         updatePlayer(track);
       })
       .catch(function () {
+        if (filtered[currentIndex] !== track) return;
+        stopEmbed();
         if (nowArtist) nowArtist.textContent = "Could not load this title.";
       });
   }

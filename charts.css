@@ -427,6 +427,10 @@
   background: #000;
 }
 
+.charts-frame[data-charts-waiting] {
+  opacity: 0;
+}
+
 .charts-controls {
   display: flex;
   gap: 8px;
