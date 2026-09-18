@@ -26,7 +26,7 @@ function run() {
   );
   assert.ok(html.includes('https://www.thesiqa.com/charts'), 'official charts URL is present');
   assert.ok(html.includes('Official charts:'), 'Official charts label is present');
-  assert.ok(html.includes('Week of August 25th, 2026'), 'week line is exact');
+  assert.ok(html.includes('Week of September 15th, 2026'), 'week line is exact');
   assert.ok(html.includes('Not affiliated · not a copy of SIQA'), 'disclaimer is exact');
   assert.ok(html.includes('assets/plaiground-logo.png'), 'uses the existing PLAIGROUND logo');
   assert.ok(!/collab/i.test(html) && !/PLAIGROUND × SIQA/.test(html), 'must not call this a collab');
@@ -40,12 +40,12 @@ function run() {
   assert.ok(visibleHero.includes('Ranked 50/50 streams + airplay vs social. Method is SIQA’s.'), 'ranking teaser is visible next to Top 100');
   assert.ok(visibleHero.includes('How it’s calculated'), 'exact button label How it’s calculated is visible');
   assert.ok(/<button[^>]*data-charts-calc-open[^>]*>How it’s calculated<\/button>/.test(visibleHero), 'How it’s calculated is an on-page button');
-  assert.ok(html.includes('week of Aug 25, 2026'), 'sheet names week of Aug 25, 2026');
+  assert.ok(html.includes('week of Sept 15, 2026'), 'sheet names week of Sept 15, 2026');
   assert.ok(html.includes('50% streams'), 'page source includes 50% streams');
   assert.ok(html.includes('emailplaiground@gmail.com'), 'page source includes emailplaiground@gmail.com');
   assert.ok(html.includes('thesiqa.com/charts-faq'), 'page source includes thesiqa.com/charts-faq');
   assert.ok(
-    html.includes('These are SIQA’s weekly Top 100 AI songs (week of Aug 25, 2026 until they update).'),
+    html.includes('These are SIQA’s weekly Top 100 AI songs (week of Sept 15, 2026 until they update).'),
     'sheet week line is locked'
   );
   assert.ok(
@@ -70,22 +70,34 @@ function run() {
   assert.ok(/#D03083/.test(css) && /#F3CB47/.test(css) && /#782FB1/.test(css), 'charts CSS uses brand pink, gold, purple');
   assert.ok(/#61B63A/.test(css) && /#F09416/.test(css) && /#08060C/.test(css), 'charts CSS uses brand green, orange, dark');
 
-  assert.strictEqual(chart.week, 'August 25th, 2026');
+  assert.strictEqual(chart.week, 'September 15th, 2026');
   assert.strictEqual(chart.official, 'https://www.thesiqa.com/charts');
   assert.strictEqual(chart.tracks.length, 100, 'Top 100 only');
   assert.strictEqual(chart.tracks[0].rank, 1);
-  assert.strictEqual(chart.tracks[0].title, 'RUBBERZ');
-  assert.strictEqual(chart.tracks[0].artist, 'Fenix Flexin');
-  assert.strictEqual(chart.tracks[0].youtubeId, 'Hl5_Lc6b3AU', 'rank 1 YouTube id is hardcoded');
+  assert.strictEqual(chart.tracks[0].title, 'Let Me Be');
+  assert.strictEqual(chart.tracks[0].artist, 'The Second Voice');
+  assert.strictEqual(chart.tracks[0].youtubeId, '1WwS3IcEzcA', 'rank 1 uses the Let Me Be official video');
+  assert.strictEqual(chart.tracks[1].rank, 2);
+  assert.strictEqual(chart.tracks[1].title, 'RUBBERZ');
+  assert.strictEqual(chart.tracks[1].artist, 'Fenix Flexin');
+  assert.strictEqual(chart.tracks[1].youtubeId, 'Hl5_Lc6b3AU', 'Rubberz keeps its own YouTube id');
+  assert.strictEqual(chart.tracks[7].title, 'LET ME BE');
+  assert.strictEqual(chart.tracks[7].artist, 'Jason Derulo, The Second Voice, Qing Madi');
+  assert.ok(!chart.tracks[7].youtubeId, 'the Derulo LET ME BE row does not reuse the #1 video id');
   assert.strictEqual(chart.tracks[99].rank, 100);
-  assert.strictEqual(chart.tracks[99].title, 'Iron Sharpens Iron');
+  assert.strictEqual(chart.tracks[99].title, 'Explícame');
+  assert.strictEqual(chart.tracks[99].artist, 'Lágrimas y Recuerdos Lounge');
   chart.tracks.forEach(function (track, i) {
     assert.strictEqual(track.rank, i + 1, 'ranks stay 1–100 in order');
     assert.ok(track.title && track.artist, 'track ' + track.rank + ' has title and artist');
-    if (track.rank !== 1) assert.ok(!track.youtubeId, 'only rank 1 ships a youtubeId');
+    if (track.rank > 2) assert.ok(!track.youtubeId, 'only known #1 and #2 rows ship a youtubeId');
   });
 
-  assert.ok(js.includes('Hl5_Lc6b3AU'), 'player hardcodes rank 1 id');
+  assert.ok(!js.includes('RANK_ONE_ID') && !js.includes('applyRankOne'), 'player does not force a rank-1 YouTube id');
+  assert.ok(!/Number\(track\.rank\)\s*===?\s*1/.test(js), 'player does not special-case rank 1 video id');
+  assert.ok(!js.includes('Hl5_Lc6b3AU'), 'Rubberz id is not hardcoded onto every #1 play');
+  assert.ok(js.includes('playAt(index)'), 'row click plays that row index');
+  assert.ok(js.includes('if (track.youtubeId) return Promise.resolve(track.youtubeId);'), 'resolveId uses the row’s own id');
   assert.ok(js.includes('/api/youtube'), 'browser calls our YouTube API');
   assert.ok(!/youtubei\/v1\/search/.test(js), 'browser must not call InnerTube');
   assert.ok(!/AIza/.test(js) && !/AIza/.test(html), 'no YouTube API key in the frontend');
