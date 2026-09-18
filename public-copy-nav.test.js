@@ -207,7 +207,7 @@ function run() {
   ];
   PUBLIC_PAGES.forEach(function (file) {
     const html = read(file);
-    assert.ok(/<a class="logo"[^>]*href="(?:index\.html|\/)"/.test(html), file + ' top-left wordmark must be a real public homepage link');
+    assert.ok(/<a class="logo"[^>]*href="(?:\/index\.html|index\.html|\/)"/.test(html), file + ' top-left wordmark must be a real public homepage link');
     assert.ok(html.includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' must rename Pricing to Plans and Pricing');
     assert.ok(html.includes('href="basic.html">Learn more: Basic</a>'), file + ' must list Learn more: Basic');
     assert.ok(html.includes('href="creator.html">Learn more: Creator</a>'), file + ' must list Learn more: Creator');
@@ -406,9 +406,12 @@ function run() {
   assert.ok(/@media \(max-width: 980px\)[\s\S]*\.side \{[\s\S]*transform: translateX\(-110%\)/i.test(css), 'mobile CSS must hide the stacked .side menu');
   assert.ok(/\.app\.nav-open \.side/i.test(css), 'open app drawer must show .side');
   assert.ok(/\.topbar \.menu-toggle \{ display: inline-flex; \}/i.test(css), 'mobile topbar shows the hamburger');
-  assert.ok(/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), 'public mobile bar hides the full menu and actions');
-  assert.ok(css.includes('.public-header-tools'), 'public header keeps a Login + Menu cluster outside the drawer');
-  assert.ok(/\.public-header-tools \{[\s\S]*flex-direction: column/i.test(css), 'phone stacks Login above the Menu pill');
+  assert.ok(/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), 'legacy mobile hide rule stays in the file');
+  assert.ok(css.includes('/* —— Public nav Tesla cut (always-visible top links, pre-login only) —— */'), 'public Tesla bar cut overrides the hide-behind-Menu path');
+  assert.ok(/Public nav Tesla cut[\s\S]*\.nav-links \{[\s\S]*display:\s*flex !important/.test(css), 'public Tesla bar keeps primary links visible on phone');
+  assert.ok(/Public nav Tesla cut[\s\S]*\.public-menu-toggle \{ display: none !important; \}/.test(css), 'Menu pill is not the only way to see public links');
+  assert.ok(css.includes('.public-header-tools'), 'public header keeps a Login cluster outside the drawer');
+  assert.ok(/Public nav Tesla cut[\s\S]*\.public-header-tools \{[\s\S]*flex-direction: row/.test(css), 'phone Log in stays on the top row');
   assert.ok(css.includes('.public-header-tools .login'), 'pinned Login keeps the existing pill look');
   assert.ok(css.includes('.nav-submenu'), 'public nav has a plans submenu');
   assert.ok(css.includes('.nav-submenu-toggle'), 'public nav has a chevron toggle');
@@ -421,7 +424,8 @@ function run() {
   assert.ok(js.includes('setupBrandLogos') && js.includes('goBrandHome'), 'site.js wires the top-left PLAIGROUND wordmark as a real home link');
   assert.ok(js.includes('brandHomeHref') && js.includes('dashboard.html') && js.includes('index.html'), 'wordmark goes to Overview when signed in and the public homepage when logged out');
   assert.ok(js.includes('return "/index.html"') || js.includes("return '/index.html'"), 'logged-out wordmark uses a root-absolute homepage so /charts/top-100 does not 404');
-  assert.ok(js.includes('setupPublicHeaderLogin') && js.includes('public-header-tools'), 'shared public nav pins Login above Menu');
+  assert.ok(js.includes('setupPublicHeaderLogin') && js.includes('public-header-tools'), 'shared public nav pins Login on the header');
+  assert.ok(js.includes('is-public-bar'), 'shared public nav marks the Tesla bar');
   assert.ok(js.includes('public-header-login'), 'shared public nav reuses one header Login');
   assert.ok(js.includes('href = "/login.html"') || js.includes('href="/login.html"'), 'pinned Login reuses the existing sign-in page at a root-absolute path');
   assert.ok(js.includes('isSignedIn'), 'pinned Login hides when already signed in');
@@ -480,7 +484,7 @@ function run() {
     const html = read(file);
     assert.ok(/<a class="logo"[^>]*href="dashboard\.html"/.test(html), file + ' signed-in wordmark must be a real Overview link');
     assert.ok(html.includes('class="side"') || html.includes("class='side'"), file + ' is missing the app menu');
-    assert.ok(html.includes('src="site.js"'), file + ' must load the hamburger script');
+    assert.ok(/src="site\.js(?:\?v=[^"]*)?"/.test(html), file + ' must load the hamburger script');
     assert.ok(html.includes('href="how.html">How it works</a>'), file + ' must list How it works in the signed-in menu');
     assert.ok(html.includes('href="splits.html">Split sheets</a>'), file + ' menu item must be Split sheets');
     assert.ok(html.includes('href="artists.html">Artist Profiles</a>'), file + ' must list Artist Profiles in the signed-in menu');
@@ -598,7 +602,7 @@ function run() {
   assert.ok(!/data-require-paid/i.test(howApp), 'signed-in How it works must not dump Basic to Pick a plan');
 
   const terms = read('terms.html');
-  assert.ok(terms.includes('src="site.js"'), 'terms.html has public nav chrome and needs the hamburger');
+  assert.ok(/src="site\.js(?:\?v=[^"]*)?"/.test(terms), 'terms.html has public nav chrome and needs the hamburger');
   assert.ok(terms.includes('href="index.html#pricing">Pricing</a>'), 'do not overwrite terms.html public copy');
   assert.ok(terms.includes('emailplaiground@gmail.com'), 'terms.html keeps the public contact email');
   assert.ok(terms.includes('mailto:emailplaiground@gmail.com'), 'terms.html contact is a mailto link');

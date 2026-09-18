@@ -6784,3 +6784,122 @@ body.attest-page .plai-bubble-row {
     animation: none;
   }
 }
+
+/* —— Public nav Tesla cut (always-visible top links, pre-login only) —— */
+.nav.is-public-bar,
+header.nav {
+  z-index: 50;
+}
+.nav .logo { order: 1; }
+.nav-links { order: 2; }
+.public-header-tools { order: 3; }
+.nav-actions { order: 4; }
+@media (max-width: 1180px) {
+  .nav-links {
+    display: flex !important;
+    position: static;
+    left: auto;
+    transform: none;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a {
+    flex: 0 0 auto;
+    padding: 0;
+    border-bottom: 0;
+    font-size: 13px;
+  }
+  .nav-actions { display: none !important; }
+  .public-menu-toggle { display: none !important; }
+  .public-header-tools {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-left: 0;
+  }
+  .nav-paid-long { display: none; }
+  .nav-paid-short { display: inline; }
+  .nav-submenu-toggle { display: none; }
+  .nav-submenu,
+  .nav.nav-open .nav-submenu,
+  .nav.nav-open .nav-item.has-submenu.open .nav-submenu { display: none !important; }
+  .nav-drawer,
+  .nav.nav-open .nav-drawer {
+    display: contents;
+    position: static;
+    transform: none;
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+  .nav.nav-open .nav-links {
+    display: flex !important;
+    flex-direction: row;
+    position: static;
+    transform: none;
+    align-items: center;
+    gap: 14px;
+    width: auto;
+    white-space: nowrap;
+  }
+  .nav.nav-open .nav-item.has-submenu {
+    display: flex;
+    width: auto;
+  }
+  .nav.nav-open .nav-item-row {
+    width: auto;
+    border-bottom: 0;
+  }
+  .public-nav-backdrop,
+  .nav.nav-open .public-nav-backdrop { display: none !important; }
+  body.public-nav-open { overflow: visible; }
+}
+@media (max-width: 720px) {
+  :root { --nav-h: 108px; }
+  .nav {
+    height: auto;
+    min-height: 72px;
+  }
+  .nav-inner {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 2px;
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+  .nav .logo { flex: 0 1 auto; }
+  .nav .logo img {
+    height: 36px;
+    max-width: 140px;
+  }
+  .public-header-tools { margin-left: auto; }
+  .public-header-tools .login {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .nav-links,
+  .nav.nav-open .nav-links {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    overflow: visible;
+    white-space: normal;
+    gap: 8px 14px;
+    padding: 4px 0 2px;
+  }
+  .nav-links a { font-size: 12px; }
+}
