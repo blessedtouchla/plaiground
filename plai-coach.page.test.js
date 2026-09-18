@@ -120,7 +120,7 @@ function runStatic() {
   assert.ok(!/ToneGrid|Tonegrid|DistroKid|chart|stream/i.test(welcome[0]), 'welcome must not promise charts or name distributors');
   assert.ok(!/Capacitor|App Store|hop\/submit/i.test(welcome[0]), 'welcome must not invent hop or store work');
   assert.ok(index.includes('plai-welcome.js?v=20260912w1'), 'homepage cache-busts the welcome script at 20260912w1');
-  assert.ok(index.includes('site.css?v=20260918h1'), 'homepage cache-busts site.css at 20260918h1');
+  assert.ok(index.includes('site.css?v=20260918h3'), 'homepage cache-busts site.css at 20260918h3');
   assert.ok(index.includes('site.js?v=20260918h1'), 'homepage cache-busts site.js at 20260918h1');
   assert.ok(!index.includes('site.css?v=20260912ae1'), 'ae1 stamp is retired after the homepage Tesla pass');
   assert.ok(!index.includes('site.css?v=20260912w1'), 'homepage must cache-bust past 20260912w1');
