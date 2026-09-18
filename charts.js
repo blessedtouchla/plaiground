@@ -1,7 +1,6 @@
 (function () {
-  var RANK_ONE_ID = "Hl5_Lc6b3AU";
   var EMBED_ORIGIN = "https://www.wannaplai.com";
-  var DATA_URL = "data/siqa-chart.json";
+  var DATA_URL = (document.body && document.body.getAttribute("data-charts-src")) || "";
   var tracks = [];
   var filtered = [];
   var currentIndex = -1;
@@ -81,12 +80,6 @@
 
   if (window.YT && typeof YT.Player === "function") {
     bindYouTubePlayer();
-  }
-
-  function applyRankOne(track) {
-    if (!track || Number(track.rank) !== 1) return track;
-    track.youtubeId = RANK_ONE_ID;
-    return track;
   }
 
   function filterTracks(query) {
@@ -169,11 +162,6 @@
   }
 
   function resolveId(track) {
-    applyRankOne(track);
-    if (Number(track.rank) === 1) {
-      track.youtubeId = RANK_ONE_ID;
-      return Promise.resolve(RANK_ONE_ID);
-    }
     if (track.youtubeId) return Promise.resolve(track.youtubeId);
     var key = String(track.rank) + ":" + track.title + ":" + track.artist;
     if (inflight[key]) return inflight[key];
@@ -201,8 +189,10 @@
     currentIndex = index;
     updatePlayer(track);
     resolveId(track)
-      .then(function () {
-        if (filtered[currentIndex] === track) updatePlayer(track);
+      .then(function (id) {
+        if (filtered[currentIndex] !== track) return;
+        if (id) track.youtubeId = id;
+        updatePlayer(track);
       })
       .catch(function () {
         if (nowArtist) nowArtist.textContent = "Could not load this title.";
@@ -251,8 +241,10 @@
   function isChartsHref(href) {
     var link = document.createElement("a");
     link.href = href;
-    var path = String(link.pathname || "");
-    return path === "/charts" || /\/charts\.html$/.test(path);
+    var path = String(link.pathname || "").replace(/\/$/, "") || "/";
+    if (path === "/charts") return true;
+    if (/^\/charts\/(top-100|rnb|country|gospel)$/.test(path)) return true;
+    return /\/charts(-top-100|-rnb|-country|-gospel)?\.html$/.test(path);
   }
 
   function openBrowse(href) {
@@ -282,20 +274,21 @@
     if (String(node.getAttribute("target") || "").toLowerCase() === "_blank") return;
     var href = sameSiteHref(node.getAttribute("href"));
     if (!href) return;
+    if (isChartsHref(href)) return;
     event.preventDefault();
     openBrowse(href);
   }, true);
 
-  fetch(DATA_URL)
+  if (listEl && DATA_URL) fetch(DATA_URL)
     .then(function (res) { return res.json(); })
     .then(function (data) {
       tracks = ((data && data.tracks) || []).map(function (track) {
-        return applyRankOne({
+        return {
           rank: Number(track.rank),
           title: track.title,
           artist: track.artist,
           youtubeId: track.youtubeId || "",
-        });
+        };
       });
       filtered = tracks.slice();
       renderList();
