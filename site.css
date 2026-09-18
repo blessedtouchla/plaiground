@@ -3745,7 +3745,7 @@ body.app.artists-page .page {
 }
 
 @media (max-width: 980px) {
-  /* Public destinations stay on the bar. Do not hide .nav-links or promote Menu. */
+  /* #305 production: public destinations stay on the bar. Do not hide .nav-links or promote Menu. */
   .nav-actions { display: none; }
   .public-menu-toggle { display: none; }
   .public-header-tools {
