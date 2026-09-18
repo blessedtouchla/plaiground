@@ -107,7 +107,8 @@
     { "source": "/blog/ai-persona", "destination": "/blog-ai-persona.html" },
     { "source": "/blog/luminate-label", "destination": "/blog-luminate-label.html" },
     { "source": "/blog/listed-not-paid", "destination": "/blog-listed-not-paid.html" },
-    { "source": "/blog/december-watermark", "destination": "/blog-december-watermark.html" }
+    { "source": "/blog/december-watermark", "destination": "/blog-december-watermark.html" },
+    { "source": "/blog/suno-spotify", "destination": "/blog-suno-spotify.html" }
   ],
   "headers": [
     {
