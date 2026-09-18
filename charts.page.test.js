@@ -212,6 +212,26 @@ function run() {
   assert.ok(/href="\/charts"/.test(last), 'SIQA Charts goes to /charts');
   assert.ok(/#F3CB47/.test(last), 'SIQA Charts is gold');
 
+  const chartPages = [
+    ['charts.html', html],
+    ['charts-top-100.html', top100Html],
+    ['charts-rnb.html', rnbHtml],
+    ['charts-country.html', countryHtml],
+    ['charts-gospel.html', gospelHtml],
+  ];
+  chartPages.forEach(function (pair) {
+    const file = pair[0];
+    const page = pair[1];
+    const header = page.match(/<header class="nav">[\s\S]*?<\/header>/);
+    assert.ok(header, file + ' keeps the public header');
+    assert.ok(/<a class="logo"[^>]*href="\/(?:index\.html)?"/.test(header[0]), file + ' logo is a root-absolute homepage link');
+    assert.ok(!/<a class="logo"[^>]*href="index\.html"/.test(header[0]), file + ' logo must not use a relative index.html');
+    assert.ok(/href="\/login\.html">Log in<\/a>/.test(header[0]), file + ' Log in is root-absolute');
+    assert.ok(/href="\/how-it-works\.html">How it works<\/a>/.test(header[0]), file + ' Menu How it works is root-absolute');
+    assert.ok(/href="\/index\.html#pricing">Plans and Pricing<\/a>/.test(header[0]), file + ' Menu Plans and Pricing is root-absolute');
+    assert.ok(/href="\/faq\.html">FAQ<\/a>/.test(header[0]), file + ' Menu FAQ is root-absolute');
+  });
+
   const dashNav = read('dashboard.html').match(/<nav class="side-nav"[^>]*>[\s\S]*?<\/nav>/);
   assert.ok(dashNav, 'dashboard keeps a signed-in side-nav');
   const dashLinks = dashNav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];

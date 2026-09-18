@@ -420,9 +420,10 @@ function run() {
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
   assert.ok(js.includes('setupBrandLogos') && js.includes('goBrandHome'), 'site.js wires the top-left PLAIGROUND wordmark as a real home link');
   assert.ok(js.includes('brandHomeHref') && js.includes('dashboard.html') && js.includes('index.html'), 'wordmark goes to Overview when signed in and the public homepage when logged out');
+  assert.ok(js.includes('return "/index.html"') || js.includes("return '/index.html'"), 'logged-out wordmark uses a root-absolute homepage so /charts/top-100 does not 404');
   assert.ok(js.includes('setupPublicHeaderLogin') && js.includes('public-header-tools'), 'shared public nav pins Login above Menu');
   assert.ok(js.includes('public-header-login'), 'shared public nav reuses one header Login');
-  assert.ok(js.includes('href = "login.html"') || js.includes('href="login.html"'), 'pinned Login reuses the existing sign-in page');
+  assert.ok(js.includes('href = "/login.html"') || js.includes('href="/login.html"'), 'pinned Login reuses the existing sign-in page at a root-absolute path');
   assert.ok(js.includes('isSignedIn'), 'pinned Login hides when already signed in');
   assert.ok(js.includes('document.body.classList.contains("app")'), 'signed-in app chrome does not get the public Login');
   assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav nests plan pages once');
@@ -642,7 +643,7 @@ function run() {
 
   const publicNav = runPublicNav({ signedIn: false, app: false });
   assert.ok(publicNav.tools, 'logged-out public header builds the Login + Menu cluster');
-  assert.strictEqual(publicNav.login.getAttribute('href'), 'login.html', 'pinned Login uses the existing sign-in page');
+  assert.ok(isLoginHref(publicNav.login.getAttribute('href')), 'pinned Login uses the existing sign-in page');
   assert.strictEqual(publicNav.login.hidden, false, 'logged-out public header shows Login');
   assert.ok(publicNav.toggle, 'Menu pill stays next to the pinned Login');
   assert.strictEqual(publicNav.tools.children[0], publicNav.login, 'Login is first in the header cluster');
@@ -656,12 +657,21 @@ function run() {
   assert.notStrictEqual(publicNav.location.href, 'how-it-works.html', 'logged-out wordmark must not refresh the current marketing page');
   assert.ok(isPublicHomeHref(publicNav.footerLogo.getAttribute('href')), 'footer wordmark stays a homepage link');
 
+  const chartsNav = runPublicNav({ signedIn: false, app: false, pathname: '/charts/top-100' });
+  assert.ok(String(chartsNav.logo.getAttribute('href')).charAt(0) === '/', 'nested /charts wordmark href is root-absolute');
+  assert.ok(isPublicHomeHref(chartsNav.logo.getAttribute('href')), 'nested /charts wordmark still goes to the public homepage');
+  fireClick(chartsNav.logo);
+  assert.ok(isPublicHomeHref(chartsNav.location.href), 'nested /charts wordmark click goes to the public homepage');
+  assert.ok(String(chartsNav.location.href).indexOf('/charts/') === -1, 'nested /charts wordmark must not resolve to /charts/index.html');
+  assert.ok(isLoginHref(chartsNav.login.getAttribute('href')), 'nested /charts Login still goes to sign-in');
+  assert.ok(String(chartsNav.login.getAttribute('href')).charAt(0) === '/', 'nested /charts Login href is root-absolute');
+
   const signedInPublic = runPublicNav({ signedIn: true, app: false });
   assert.strictEqual(signedInPublic.login.hidden, true, 'signed-in visitors do not get the public header Login');
   assert.ok(signedInPublic.toggle, 'signed-in public pages still keep Menu');
-  assert.strictEqual(signedInPublic.logo.getAttribute('href'), 'dashboard.html', 'signed-in public wordmark href is Overview');
+  assert.ok(isOverviewHref(signedInPublic.logo.getAttribute('href')), 'signed-in public wordmark href is Overview');
   fireClick(signedInPublic.logo);
-  assert.strictEqual(signedInPublic.location.href, 'dashboard.html', 'signed-in wordmark click goes to Overview, not a homepage refresh');
+  assert.ok(isOverviewHref(signedInPublic.location.href), 'signed-in wordmark click goes to Overview, not a homepage refresh');
   assert.ok(isPublicHomeHref(signedInPublic.footerLogo.getAttribute('href')), 'footer wordmark is not rewritten when signed in');
 
   const appNav = runPublicNav({ signedIn: true, app: true });
@@ -669,9 +679,9 @@ function run() {
   assert.ok(!appNav.login, 'signed-in Hi there / PG pages do not get a header Login');
   assert.ok(!appNav.toggle || !appNav.toggle.classList.contains('public-menu-toggle'), 'app Menu is not the public header cluster');
   assert.ok(appNav.logo, 'signed-in phone header keeps a PLAIGROUND wordmark');
-  assert.strictEqual(appNav.logo.getAttribute('href'), 'dashboard.html', 'signed-in phone wordmark href is Overview');
+  assert.ok(isOverviewHref(appNav.logo.getAttribute('href')), 'signed-in phone wordmark href is Overview');
   fireClick(appNav.logo);
-  assert.strictEqual(appNav.location.href, 'dashboard.html', 'signed-in phone wordmark click goes to Overview');
+  assert.ok(isOverviewHref(appNav.location.href), 'signed-in phone wordmark click goes to Overview');
   assert.notStrictEqual(appNav.location.href, 'settings.html', 'signed-in wordmark must not refresh the current app page');
 
   const contactSignedIn = runPublicAppChromeSwap({ signedIn: true });
@@ -724,6 +734,16 @@ function isPublicHomeHref(href) {
   const path = String(href || '').split('?')[0].split('#')[0];
   const file = path.split('/').pop();
   return file === 'index.html' || file === '' || path === '/';
+}
+
+function isOverviewHref(href) {
+  const path = String(href || '').split('?')[0].split('#')[0];
+  return path === 'dashboard.html' || path === '/dashboard.html';
+}
+
+function isLoginHref(href) {
+  const path = String(href || '').split('?')[0].split('#')[0];
+  return path === 'login.html' || path === '/login.html';
 }
 
 function fireClick(node) {
@@ -974,7 +994,7 @@ function runPublicNav(options) {
   const heroJoin = el('a', { class: 'btn btn-purple btn-md', href: 'signup.html?plan=basic' });
   heroJoin.setAttribute('data-plan', 'basic');
   heroJoin.textContent = 'Join for free';
-  const location = { href: 'how-it-works.html', pathname: '/how-it-works.html' };
+  const location = { href: 'how-it-works.html', pathname: options.pathname || '/how-it-works.html' };
   context.window.location = location;
   document.body = el('body', {}, [
     header,
