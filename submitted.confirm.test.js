@@ -112,7 +112,8 @@ function run() {
   assert.ok(html.includes('data-review-cover'), 'cover hero uses the existing cover hook');
   assert.ok(html.includes('store-client.js?v=20260912a3'), 'submitted.html cache-busts store-client.js at 20260912a3');
   assert.ok(!html.includes('store-client.js?v=20260912a2'), 'submitted.html must cache-bust past 20260912a2');
-  assert.ok(html.includes('site.css?v=20260917s4'), 'submitted.html cache-busts the Submitted Tesla energy pass');
+  assert.ok(html.includes('site.css?v=20260917s5'), 'submitted.html cache-busts the Submitted Tesla desktop canvas');
+  assert.ok(!html.includes('site.css?v=20260917s4'), 's4 stamp is retired after the desktop canvas widen');
   assert.ok(html.includes('Order details'), 'uuid sits behind Order details');
   assert.ok(html.includes('All stores in your plan'), 'stores fallback is non-numeric until the live catalog paints');
   assert.ok(!html.includes('plai-bubble.js'), 'floating PLAI chip stays off submitted.html');

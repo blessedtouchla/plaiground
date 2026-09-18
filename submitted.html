@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260917s4" />
+  <link rel="stylesheet" href="site.css?v=20260917s5" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
 <body class="submitted-page">
@@ -20,57 +20,57 @@
       <p hidden data-submit-title>Your song is in the queue.</p>
       <figure class="submit-hero">
         <div class="submit-cover" data-review-cover aria-label="Cover art"></div>
-        <figcaption>
-          <h1 data-submit-song>Your song</h1>
-        </figcaption>
       </figure>
-      <p class="submit-confidence">You're all set. We're sending it to stores.</p>
-      <p class="submit-out">
-        <small>Out</small>
-        <b data-submit-release-date>—</b>
-      </p>
-      <section class="submit-quiet" aria-label="Order details">
-        <p class="submit-included" data-for-plans="basic">Distribution is included. Nothing extra was charged on this release.</p>
-        <p class="submit-included" data-for-plans="creator pro" hidden>Publishing and distribution are included in membership. Nothing extra was charged on this release.</p>
-        <div class="submit-quiet-row">
-          <small>Total paid</small>
-          <span>$0.00 · included in membership</span>
+      <div class="submit-copy">
+        <h1 data-submit-song>Your song</h1>
+        <p class="submit-confidence">You're all set. We're sending it to stores.</p>
+        <p class="submit-out">
+          <small>Out</small>
+          <b data-submit-release-date>—</b>
+        </p>
+        <section class="submit-quiet" aria-label="Order details">
+          <p class="submit-included" data-for-plans="basic">Distribution is included. Nothing extra was charged on this release.</p>
+          <p class="submit-included" data-for-plans="creator pro" hidden>Publishing and distribution are included in membership. Nothing extra was charged on this release.</p>
+          <div class="submit-quiet-row">
+            <small>Total paid</small>
+            <span>$0.00 · included in membership</span>
+          </div>
+          <div class="submit-quiet-row">
+            <small>Stores</small>
+            <span data-submit-stores>All stores in your plan</span>
+          </div>
+          <details class="submit-order" data-submit-order-box hidden>
+            <summary>Order details</summary>
+            <button type="button" class="submit-order-copy" data-submit-order-copy>
+              <span data-submit-order>—</span>
+              <small data-submit-order-hint>Copy</small>
+            </button>
+          </details>
+          <details class="submit-next">
+            <summary>What happens next</summary>
+            <ol class="submit-dots">
+              <li>
+                <b>Content scan</b>
+              </li>
+              <li>
+                <b>Review and QC</b>
+                <p class="submit-next-quiet" data-submit-writers></p>
+              </li>
+              <li>
+                <b>Live on stores</b>
+                <p data-for-plans="basic">We deliver on <span data-submit-deliver-date>the release date you picked</span>. Nothing extra is charged for distribution.</p>
+                <p data-for-plans="creator pro" hidden>We deliver on <span data-submit-deliver-date>the release date you picked</span>. Publishing is filed within 10 business days.</p>
+              </li>
+            </ol>
+          </details>
+        </section>
+        <p class="hint" id="tg-status" hidden></p>
+        <div class="confirm-actions">
+          <a class="btn btn-gold btn-md" href="dashboard.html">Back to Overview</a>
+          <a class="submit-secondary" href="upload.html" data-new-release data-signed-in-upload>New release</a>
         </div>
-        <div class="submit-quiet-row">
-          <small>Stores</small>
-          <span data-submit-stores>All stores in your plan</span>
-        </div>
-        <details class="submit-order" data-submit-order-box hidden>
-          <summary>Order details</summary>
-          <button type="button" class="submit-order-copy" data-submit-order-copy>
-            <span data-submit-order>—</span>
-            <small data-submit-order-hint>Copy</small>
-          </button>
-        </details>
-        <details class="submit-next">
-          <summary>What happens next</summary>
-          <ol class="submit-dots">
-            <li>
-              <b>Content scan</b>
-            </li>
-            <li>
-              <b>Review and QC</b>
-              <p class="submit-next-quiet" data-submit-writers></p>
-            </li>
-            <li>
-              <b>Live on stores</b>
-              <p data-for-plans="basic">We deliver on <span data-submit-deliver-date>the release date you picked</span>. Nothing extra is charged for distribution.</p>
-              <p data-for-plans="creator pro" hidden>We deliver on <span data-submit-deliver-date>the release date you picked</span>. Publishing is filed within 10 business days.</p>
-            </li>
-          </ol>
-        </details>
-      </section>
-      <p class="hint" id="tg-status" hidden></p>
-      <div class="confirm-actions">
-        <a class="btn btn-gold btn-md" href="dashboard.html">Back to Overview</a>
-        <a class="submit-secondary" href="upload.html" data-new-release data-signed-in-upload>New release</a>
+        <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
       </div>
-      <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
     </div>
   </main>
   <script src="lib/upload-required.js"></script>
