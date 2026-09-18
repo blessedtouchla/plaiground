@@ -6634,19 +6634,23 @@ body.attest-page .plai-bubble-row {
   position: relative;
   width: min(720px, 92vw);
   overflow: hidden;
-  isolation: isolate;
   animation: home-logo-scale 6.4s ease-in-out infinite;
 }
 .home-portal .hero-logo-live-mark {
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 0 18px rgba(120, 47, 177, 0.28));
 }
 .home-portal .hero-logo-live-shimmer {
   position: absolute;
-  inset: 6% -18%;
+  inset: 0;
   color: #782fb1;
+  -webkit-mask-image: url("assets/plaiground-wordmark-live.png");
+  mask-image: url("assets/plaiground-wordmark-live.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   background: linear-gradient(
     105deg,
     transparent 28%,
