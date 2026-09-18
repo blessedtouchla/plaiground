@@ -196,6 +196,7 @@ function run() {
   assert.ok(/\.charts-frame\[data-charts-waiting\]/.test(css), 'waiting embed is hidden so the last video does not keep showing');
   assert.ok(js.includes('function togglePlay'), 'mini-player can pause without killing the embed');
   assert.ok(js.includes('closeBrowse'), 'Back to charts closes the browse shell');
+  assert.ok(js.includes('browseEl.style.display = ""'), 'closing browse clears the inline display so the chart list is visible again');
   assert.ok(js.includes('function liftPlai'), 'mini-player lifts the pre-login PLAI chip');
   assert.ok(/padding-right:\s*88px/.test(css), 'mini-player leaves room so the PLAI chip does not cover Play/Back');
 

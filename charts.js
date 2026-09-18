@@ -328,7 +328,9 @@
   function closeBrowse() {
     if (!browseEl) return;
     browseEl.hidden = true;
+    browseEl.setAttribute("hidden", "");
     browseEl.removeAttribute("src");
+    browseEl.style.display = "";
     document.documentElement.classList.remove("is-charts-browse");
     if (playerEl) playerEl.classList.remove("is-browsing");
   }
