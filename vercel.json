@@ -102,7 +102,12 @@
     { "source": "/blog/chart-eligibility", "destination": "/blog-chart-eligibility.html" },
     { "source": "/blog/catalog-migration", "destination": "/blog-catalog-migration.html" },
     { "source": "/blog/how-payouts-land", "destination": "/blog-how-payouts-land.html" },
-    { "source": "/blog/metadata", "destination": "/blog-metadata.html" }
+    { "source": "/blog/metadata", "destination": "/blog-metadata.html" },
+    { "source": "/blog/upload-flood", "destination": "/blog-upload-flood.html" },
+    { "source": "/blog/ai-persona", "destination": "/blog-ai-persona.html" },
+    { "source": "/blog/luminate-label", "destination": "/blog-luminate-label.html" },
+    { "source": "/blog/listed-not-paid", "destination": "/blog-listed-not-paid.html" },
+    { "source": "/blog/december-watermark", "destination": "/blog-december-watermark.html" }
   ],
   "headers": [
     {
