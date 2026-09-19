@@ -99,6 +99,7 @@ Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 - `POST /api/me/catalog` (`artist_id`, `release_id`, and/or `track_id`)
 - `POST /api/me/problem` (signed-in; `{ problem }` plus the session email; Resend to `emailplaiground@gmail.com`. Missing mail or a send failure returns `mail_sent: false` — the page does not fake success.)
 - `GET /api/admin/signups` (owner session only; signups, paid rows, store rows, once-per-user growth events)
+- `GET /api/admin/signups.csv` (same owner session + allowlist; `text/csv` of signup rows, newest first. Also `GET /api/me?action=admin-signups&format=csv`)
 
 Growth events (`user_events`, once per user): `signup` on account create, `first_upload` when the first release id is stored on our side (draft counts; not hop-to-store send), `first_store_live` when an already-polled store status becomes live (nothing is Live tonight — the hook still ships), `paid` on the existing Stripe webhook success writer (`checkout.session.completed` / `invoice.paid` / paid subscription update). Paid may wait if the live www webhook leftover (apex 308 / invalid signature) still blocks Stripe. Lifecycle mail A/B/C uses the existing Resend mailer (`CONFIRM_FROM`, default `PLAIGROUND <confirm@wannaplai.com>`). Mail C sends only when `first_store_live` actually records. Missing `RESEND_API_KEY` logs a skip. Meta pixel: `GET /api/auth/pixel` + `site.js` PageView on public pages and CompleteRegistration on signup success, only when `META_PIXEL_ID` is set. No Upload or Purchase pixel events.
 
