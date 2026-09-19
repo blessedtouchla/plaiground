@@ -270,6 +270,9 @@ function run() {
   assert.ok(!/Hi there/.test(adminHtml), 'owner desk does not greet as an artist');
   assert.ok(!/data-account-plan-title|data-account-who/.test(adminHtml));
   assert.ok(adminHtml.includes('<h3>Signups</h3>'));
+  assert.ok(adminHtml.includes('Export CSV'));
+  assert.ok(adminHtml.includes('data-signups-export'));
+  assert.ok(adminHtml.includes('href="/api/admin/signups.csv"'));
   assert.ok(adminHtml.includes('<h3>Events</h3>'));
   assert.ok(/<th>Email<\/th>\s*<th>Name<\/th>\s*<th>Plan<\/th>\s*<th>Status<\/th>\s*<th>Signed up<\/th>\s*<th>Stripe<\/th>/.test(adminHtml));
   assert.ok(!/Last login|Phone|IPI/i.test(adminHtml));
@@ -286,6 +289,8 @@ function run() {
 
   assert.ok(adminJs.includes('emailplaiground@gmail.com'));
   assert.ok(adminJs.includes('Could not load the desk.'));
+  assert.ok(adminJs.includes('/api/admin/signups.csv'));
+  assert.ok(adminJs.includes('exportSignups'));
   assert.ok(adminJs.includes('America/Los_Angeles'));
   assert.ok(adminJs.includes('formatSignedUpAt'));
   assert.ok(adminJs.includes('admin-signup-name'));
@@ -300,6 +305,7 @@ function run() {
   assert.ok(siteCss.includes('td.admin-signup-dup'));
   assert.ok(siteCss.includes('td.admin-lead'));
   assert.ok(siteCss.includes('body.app[data-owner-desk]'));
+  assert.ok(siteCss.includes('.admin-section-head'));
 
   const signedUpFn = adminJs.match(/function formatSignedUpAt[\s\S]*?return map\.month[\s\S]*?PT';\n  \}/);
   assert.ok(signedUpFn, 'formatSignedUpAt stays on the owner desk');
