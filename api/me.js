@@ -12,11 +12,13 @@
  *                       the JSON verb (update / delete / create).
  * POST /api/me/problem  session required; emails emailplaiground via Resend.
  * GET  /api/admin/signups  owner session only; signups, paid rows, store rows, growth events
+ * GET  /api/admin/signups.csv  same auth; signup rows as text/csv (also ?format=csv)
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
 const { listAdminOverview } = require('../lib/admin-overview');
+const { listSignupRows, signupRowsToCsv } = require('../lib/admin-signups');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
@@ -82,8 +84,22 @@ function artistVerb(body) {
 
 function isAdminSignups(req) {
   const path = pathnameOf(req);
-  if (path === '/api/admin/signups' || path === '/api/me/admin/signups') return true;
+  if (path === '/api/admin/signups' || path === '/api/admin/signups.csv' || path === '/api/me/admin/signups') return true;
   return queryValue(req, 'action') === 'admin-signups';
+}
+
+function wantsSignupCsv(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/signups.csv') return true;
+  return String(queryValue(req, 'format') || '').toLowerCase() === 'csv';
+}
+
+function sendSignupCsv(res, rows) {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="plaiground-signups.csv"');
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(signupRowsToCsv(rows));
 }
 
 function isProblem(req) {
@@ -120,6 +136,10 @@ async function adminSignups(req, res) {
       return;
     }
     attachSession(req, res, row.id);
+    if (wantsSignupCsv(req)) {
+      sendSignupCsv(res, await listSignupRows());
+      return;
+    }
     const overview = await listAdminOverview();
     sendJson(res, 200, overview);
   } catch (err) {

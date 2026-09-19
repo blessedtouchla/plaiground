@@ -297,6 +297,42 @@
     });
   }
 
+  function exportFilename(response) {
+    var header = response && response.headers && typeof response.headers.get === 'function'
+      ? String(response.headers.get('content-disposition') || '')
+      : '';
+    var match = /filename="([^"]+)"/i.exec(header);
+    return (match && match[1]) || 'plaiground-signups.csv';
+  }
+
+  function exportSignups(event) {
+    if (event) event.preventDefault();
+    var link = $('[data-signups-export]');
+    var href = (link && link.getAttribute('href')) || '/api/admin/signups.csv';
+    return global.fetch(href, {
+      credentials: 'same-origin',
+      headers: { Accept: 'text/csv' },
+    }).then(function (response) {
+      if (!response.ok) throw new Error('export failed');
+      return response.blob().then(function (blob) {
+        var url = global.URL.createObjectURL(blob);
+        var a = global.document.createElement('a');
+        a.href = url;
+        a.download = exportFilename(response);
+        global.document.body.appendChild(a);
+        a.click();
+        a.remove();
+        global.URL.revokeObjectURL(url);
+      });
+    }).catch(function () {
+      var statusEl = $('[data-admin-status]') || $('[data-signups-status]');
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Could not export CSV.';
+      }
+    });
+  }
+
   function boot() {
     var membership = global.PlaigroundMembership;
     var ready = membership && typeof membership.whenReady === 'function'
@@ -330,6 +366,11 @@
     }).catch(function () {
       global.location.replace(LOGIN);
     });
+    var exportLink = $('[data-signups-export]');
+    if (exportLink && !exportLink.getAttribute('data-bound')) {
+      exportLink.setAttribute('data-bound', '1');
+      exportLink.addEventListener('click', exportSignups);
+    }
   }
 
   if (global.document && global.document.readyState === 'loading') {
