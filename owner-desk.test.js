@@ -410,8 +410,8 @@ function run() {
     assert.strictEqual(ownerUpload.location.href, 'upload.html', 'owner can open New release after Dashboard');
 
     const artistBrand = runBrandNav({ email: 'victoriaimtanes@gmail.com' });
-    assert.strictEqual(artistBrand.logo.getAttribute('href'), 'dashboard.html', 'artist wordmark stays Overview');
-    assert.strictEqual(artistBrand.location.href, 'dashboard.html');
+    assert.strictEqual(artistBrand.logo.getAttribute('href'), '/dashboard.html', 'artist wordmark stays Overview');
+    assert.strictEqual(artistBrand.location.href, '/dashboard.html');
 
     const ownerBrand = runBrandNav({ email: 'emailplaiground@gmail.com' });
     assert.strictEqual(ownerBrand.logo.getAttribute('href'), '/admin', 'owner wordmark is the desk');
