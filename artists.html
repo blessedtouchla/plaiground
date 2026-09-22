@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260917ar1" />
+  <link rel="stylesheet" href="site.css?v=20260922ar2" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app artists-page">
@@ -60,6 +60,26 @@
           <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import Artist</button>
         </span>
       </div>
+      <details class="artists-act-edu">
+        <summary>Act, not just files</summary>
+        <div class="artists-act-edu-body">
+          <p>Streaming rewards people and acts — not raw files. Listeners follow a face, a voice, a story.</p>
+          <p>A consistent persona helps discovery: same visual language, a bio with a real human core — not “AI music by username.” Saves, repeats, clips, playlists all lean that way. Nothing here is a guaranteed placement or stream count.</p>
+          <p class="artists-act-edu-check-label">Checklist teaser</p>
+          <ul class="artists-act-edu-check">
+            <li>Locked look</li>
+            <li>First-person bio</li>
+            <li>Origin story</li>
+            <li>Consistent covers</li>
+            <li>Platform-native clips before dumping tracks</li>
+          </ul>
+          <p>Disclose <strong>Human</strong> · <strong>AI-assisted</strong> · <strong>Fully AI</strong> (and mix % when it helps). Honest labels. Human stays Human. No secret-human AI. No fake trauma bios.</p>
+          <p class="artists-act-edu-links">
+            <a href="ar.html">A&R · EPK included</a>
+            <a href="epk.html">What’s in an EPK</a>
+          </p>
+        </div>
+      </details>
       <p class="hint" data-artists-status hidden></p>
 
       <section class="panel" id="artist-create-panel" data-artist-create-panel hidden>
@@ -146,6 +166,7 @@
           </span>
         </div>
         <p class="hint">How this artist appears.</p>
+        <p class="artists-act-edu-lite">Act first — face, voice, story. Honest Human · AI-assisted · Fully AI. <a href="ar.html">A&R</a> · <a href="epk.html">EPK</a></p>
         <p class="artist-preview-release">
           <a href="upload.html" data-artist-preview-release data-new-release data-signed-in-upload>New release with…</a>
         </p>
@@ -221,6 +242,16 @@
           </div>
         </div>
         <div class="tags" data-artist-genre-picks></div>
+        <details class="artists-act-edu is-edit">
+          <summary>Why this profile matters</summary>
+          <div class="artists-act-edu-body">
+            <p>Listeners follow an act. Keep one look, a first-person bio with a real human core, and honest disclosure — Human · AI-assisted · Fully AI, plus mix % when it helps. No secret-human AI. No fake trauma bios.</p>
+            <p class="artists-act-edu-links">
+              <a href="ar.html">A&R · EPK included</a>
+              <a href="epk.html">What’s in an EPK</a>
+            </p>
+          </div>
+        </details>
         <div class="field" style="margin-top:18px">
           <label for="artist-bio">Bio</label>
           <textarea id="artist-bio" rows="4" placeholder="Optional bio"></textarea>
@@ -300,7 +331,7 @@
   <script src="lib/artist-roster.js?v=20260915r2"></script>
   <script src="lib/release-status.js?v=20260910r3"></script>
   <script src="lib/live-player.js"></script>
-  <script src="artists.js?v=20260917ar1" defer></script>
+  <script src="artists.js?v=20260922ar2" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

@@ -472,7 +472,7 @@ function run() {
   assert.ok(listFn.indexOf('menu.appendChild(edit)') < listFn.indexOf('menu.appendChild(del)'), 'Edit stays left of Delete in overflow');
   assert.ok(html.includes('artists.js'));
   assert.ok(html.includes('lib/artist-roster.js?v=20260915r2'), 'Your Artists shares the Submit picker roster helper');
-  assert.ok(html.includes('artists.js?v=20260917ar1'), 'Artist Profiles cache-busts after the roster wall');
+  assert.ok(html.includes('artists.js?v=20260922ar2'), 'Artist Profiles cache-busts after persona education');
   assert.ok(html.includes('This artist\'s songs'));
   assert.ok(html.includes('data-artist-song-list'));
   assert.ok(html.includes('lib/live-player.js'));
