@@ -118,7 +118,8 @@
     { "source": "/blog/plainow-is-live", "destination": "/blog-plainow-is-live.html" },
     { "source": "/blog/plai-plus-collab", "destination": "/blog-plai-plus-collab.html" },
     { "source": "/blog/human-not-ai", "destination": "/blog-human-not-ai.html" },
-    { "source": "/blog/replica-contracts", "destination": "/blog-replica-contracts.html" }
+    { "source": "/blog/replica-contracts", "destination": "/blog-replica-contracts.html" },
+    { "source": "/blog/nobody-marketed-it", "destination": "/blog-nobody-marketed-it.html" }
   ],
   "headers": [
     {
