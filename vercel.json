@@ -119,7 +119,9 @@
     { "source": "/blog/plai-plus-collab", "destination": "/blog-plai-plus-collab.html" },
     { "source": "/blog/human-not-ai", "destination": "/blog-human-not-ai.html" },
     { "source": "/blog/replica-contracts", "destination": "/blog-replica-contracts.html" },
-    { "source": "/blog/nobody-marketed-it", "destination": "/blog-nobody-marketed-it.html" }
+    { "source": "/blog/nobody-marketed-it", "destination": "/blog-nobody-marketed-it.html" },
+    { "source": "/blog/stores-treat-ai", "destination": "/blog-stores-treat-ai.html" },
+    { "source": "/blog/truth-for-artists", "destination": "/blog-truth-for-artists.html" }
   ],
   "headers": [
     {
