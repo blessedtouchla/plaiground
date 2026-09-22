@@ -116,7 +116,8 @@
     { "source": "/blog/suno-spotify", "destination": "/blog-suno-spotify.html" },
     { "source": "/blog/hear-the-chart", "destination": "/blog-hear-the-chart.html" },
     { "source": "/blog/plainow-is-live", "destination": "/blog-plainow-is-live.html" },
-    { "source": "/blog/plai-plus-collab", "destination": "/blog-plai-plus-collab.html" }
+    { "source": "/blog/plai-plus-collab", "destination": "/blog-plai-plus-collab.html" },
+    { "source": "/blog/human-not-ai", "destination": "/blog-human-not-ai.html" }
   ],
   "headers": [
     {
