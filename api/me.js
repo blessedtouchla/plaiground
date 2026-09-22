@@ -571,6 +571,8 @@ async function saveArtists(req, res) {
       ai_contributions: body.ai_contributions !== undefined ? body.ai_contributions : current.ai_contributions,
       ai_process_detail: body.ai_process_detail !== undefined ? body.ai_process_detail : current.ai_process_detail,
       ai_involvement_percent: body.ai_involvement_percent !== undefined ? body.ai_involvement_percent : current.ai_involvement_percent,
+      creation_class: body.creation_class !== undefined ? body.creation_class : current.creation_class,
+      ai_mix: body.ai_mix !== undefined ? body.ai_mix : current.ai_mix,
       change_request: body.change_request !== undefined ? body.change_request : current.change_request,
       legal_first: body.legal_first !== undefined ? body.legal_first : current.legal_first,
       legal_last: body.legal_last !== undefined ? body.legal_last : current.legal_last,

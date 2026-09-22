@@ -418,13 +418,13 @@ function run() {
   assert.ok(!/data-plai-text[^>]*>Troubleshoot</.test(html), 'artist Troubleshoot is not Text PLAI');
   assert.ok(/data-plai-text[^>]*>Text to PLAI</.test(html), 'Artist Profiles nav still has Text to PLAI');
   assert.ok(!/<select[^>]*data-problem/.test(html), 'Artist Profiles does not add a type picker');
-  assert.ok(html.includes('How this artist usually creates'));
-  assert.ok(html.includes('AI musician type'));
-  assert.ok(html.includes('Estimated AI involvement'));
-  assert.ok(html.includes('Self-declared. This is a profile average, not a verified score for every song.'));
+  assert.ok(html.includes('How to fill this out'));
+  assert.ok(html.includes('AI-infused'));
+  assert.ok(html.includes('Optional mix %'));
+  assert.ok(html.includes('Profile average. Not a verified score for every song.'));
   assert.ok(html.includes('data-human-contribution="lyrics"'));
   assert.ok(html.includes('data-ai-contribution="full_track_support"'));
-  assert.ok(html.includes('I write all lyrics and sing. AI builds the beat and helps with arrangement.'));
+  assert.ok(html.includes('Avatar / persona kit coming'));
   assert.ok(html.includes('class="app artists-page"'), 'Artist Profiles page can lift Save artist above Talk/Text');
   assert.ok(html.includes('href="artists.html">Artist Profiles</a>'));
   assert.ok(html.includes('href="settings.html">Settings</a>'));
@@ -472,7 +472,7 @@ function run() {
   assert.ok(listFn.indexOf('menu.appendChild(edit)') < listFn.indexOf('menu.appendChild(del)'), 'Edit stays left of Delete in overflow');
   assert.ok(html.includes('artists.js'));
   assert.ok(html.includes('lib/artist-roster.js?v=20260915r2'), 'Your Artists shares the Submit picker roster helper');
-  assert.ok(html.includes('artists.js?v=20260922ar2'), 'Artist Profiles cache-busts after persona education');
+  assert.ok(html.includes('artists.js?v=20260922ar3'), 'Artist Profiles cache-busts after fill-guide pass');
   assert.ok(html.includes('This artist\'s songs'));
   assert.ok(html.includes('data-artist-song-list'));
   assert.ok(html.includes('lib/live-player.js'));
@@ -508,6 +508,9 @@ function run() {
   assert.ok(!upload.includes('Estimated AI involvement'));
   assert.ok(!upload.includes('data-human-contribution'));
 
+  assert.ok(js.includes('creation_class'), 'save posts creation_class');
+  assert.ok(js.includes('ai_mix'), 'save posts ai_mix breakdown');
+  assert.ok(js.includes('readCreationClass') || js.includes('data-artist-class-pick'), 'class picker is wired');
   assert.ok(js.includes('ai_involvement_percent'));
   assert.ok(js.includes('human_contributions'));
   assert.ok(js.includes('/api/me/artists'));

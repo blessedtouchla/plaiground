@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260922ar2" />
+  <link rel="stylesheet" href="site.css?v=20260922ar3" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app artists-page">
@@ -73,7 +73,7 @@
             <li>Consistent covers</li>
             <li>Platform-native clips before dumping tracks</li>
           </ul>
-          <p>Disclose <strong>Human</strong> · <strong>AI-assisted</strong> · <strong>Fully AI</strong> (and mix % when it helps). Honest labels. Human stays Human. No secret-human AI. No fake trauma bios.</p>
+          <p>Disclose <strong>Human</strong> · <strong>AI-infused</strong> (AI-assisted) · <strong>Fully AI</strong> (and mix % when it helps). Honest labels. Human stays Human. No secret-human AI. No fake trauma bios.</p>
           <p class="artists-act-edu-links">
             <a href="ar.html">A&R · EPK included</a>
             <a href="epk.html">What’s in an EPK</a>
@@ -166,7 +166,7 @@
           </span>
         </div>
         <p class="hint">How this artist appears.</p>
-        <p class="artists-act-edu-lite">Act first — face, voice, story. Honest Human · AI-assisted · Fully AI. <a href="ar.html">A&R</a> · <a href="epk.html">EPK</a></p>
+        <p class="artists-act-edu-lite">Act first — face, voice, story. Honest Human · AI-infused · Fully AI. <a href="ar.html">A&R</a> · <a href="epk.html">EPK</a></p>
         <p class="artist-preview-release">
           <a href="upload.html" data-artist-preview-release data-new-release data-signed-in-upload>New release with…</a>
         </p>
@@ -209,12 +209,27 @@
         </span>
       </div>
         <p class="hint" data-artist-pending-note hidden>Edit submitted. Waiting on the store / the distributor.</p>
-        <div class="rel" style="margin-bottom:20px">
+        <details class="artists-fill-guide" open>
+          <summary>How to fill this out</summary>
+          <ol class="artists-fill-guide-list">
+            <li>Add a clear photo — same face you’ll use everywhere.</li>
+            <li>Write a short first-person bio with a real origin. Soft-stop fake trauma.</li>
+            <li>Pick <strong>Human</strong> or <strong>AI-infused</strong> honestly. Fully AI is available when the act is fully machine-led; release-level Fully AI still sits on upload.</li>
+            <li>If AI-infused, mark what you made vs what the tool made.</li>
+            <li>Keep one visual language across covers.</li>
+          </ol>
+          <p class="artists-act-edu-links">
+            <a href="ar.html">A&R · EPK included</a>
+            <a href="epk.html">What’s in an EPK</a>
+          </p>
+        </details>
+        <div class="rel artist-photo-block" style="margin-bottom:20px">
           <div class="profile-photo is-sm" data-artist-photo-edit role="img" aria-label="Artist photo preview"></div>
           <div>
             <button class="btn btn-ghost btn-sm" type="button" data-artist-photo-pick>Add photo</button>
             <input id="artist-photo" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden />
-            <p class="hint">JPG or PNG. Empty until you add one.</p>
+            <p class="hint">JPG or PNG. Same face you’ll use everywhere.</p>
+            <p class="artists-avatar-note">Avatar / persona kit coming — for now upload a photo and lock your look.</p>
           </div>
         </div>
         <div class="form-grid">
@@ -242,19 +257,78 @@
           </div>
         </div>
         <div class="tags" data-artist-genre-picks></div>
-        <details class="artists-act-edu is-edit">
-          <summary>Why this profile matters</summary>
-          <div class="artists-act-edu-body">
-            <p>Listeners follow an act. Keep one look, a first-person bio with a real human core, and honest disclosure — Human · AI-assisted · Fully AI, plus mix % when it helps. No secret-human AI. No fake trauma bios.</p>
-            <p class="artists-act-edu-links">
-              <a href="ar.html">A&R · EPK included</a>
-              <a href="epk.html">What’s in an EPK</a>
-            </p>
-          </div>
-        </details>
         <div class="field" style="margin-top:18px">
           <label for="artist-bio">Bio</label>
-          <textarea id="artist-bio" rows="4" placeholder="Optional bio"></textarea>
+          <textarea id="artist-bio" rows="4" placeholder="Short first-person bio with a real origin"></textarea>
+          <p class="hint">Honest origin. Soft-stop fake trauma bios.</p>
+        </div>
+        <div class="artist-create-block" data-artist-ai>
+          <h3>Class</h3>
+          <p class="hint">Human stays Human. AI-infused means AI-assisted / human-in-the-loop. Soft-stop secret-human AI. Fully AI is fine when the act is machine-led; upload still asks per release.</p>
+          <div class="artist-class-picks" role="radiogroup" aria-label="Artist class">
+            <label class="artist-class-pick"><input type="radio" name="artist-class" value="human" data-artist-class-pick /> <span>Human</span></label>
+            <label class="artist-class-pick"><input type="radio" name="artist-class" value="ai_infused" data-artist-class-pick /> <span>AI-infused</span></label>
+            <label class="artist-class-pick"><input type="radio" name="artist-class" value="fully_ai" data-artist-class-pick /> <span>Fully AI</span></label>
+          </div>
+          <div class="artist-ai-mix" data-artist-ai-mix hidden>
+            <p class="artists-act-edu-check-label">If AI-infused — what you made vs the tool</p>
+            <div class="artist-ai-mix-rows">
+              <div class="artist-ai-mix-row" data-ai-mix-row="lyrics">
+                <span class="artist-ai-mix-label">Lyrics</span>
+                <label><input type="radio" name="ai-mix-lyrics" value="human" data-ai-mix="lyrics" /> Human</label>
+                <label><input type="radio" name="ai-mix-lyrics" value="ai" data-ai-mix="lyrics" /> AI</label>
+                <label><input type="radio" name="ai-mix-lyrics" value="mixed" data-ai-mix="lyrics" /> Mixed</label>
+              </div>
+              <div class="artist-ai-mix-row" data-ai-mix-row="vocals">
+                <span class="artist-ai-mix-label">Vocals</span>
+                <label><input type="radio" name="ai-mix-vocals" value="human" data-ai-mix="vocals" /> Human</label>
+                <label><input type="radio" name="ai-mix-vocals" value="ai" data-ai-mix="vocals" /> AI</label>
+                <label><input type="radio" name="ai-mix-vocals" value="mixed" data-ai-mix="vocals" /> Mixed</label>
+              </div>
+              <div class="artist-ai-mix-row" data-ai-mix-row="instruments">
+                <span class="artist-ai-mix-label">Instruments</span>
+                <label><input type="radio" name="ai-mix-instruments" value="human" data-ai-mix="instruments" /> Human</label>
+                <label><input type="radio" name="ai-mix-instruments" value="ai" data-ai-mix="instruments" /> AI</label>
+                <label><input type="radio" name="ai-mix-instruments" value="mixed" data-ai-mix="instruments" /> Mixed</label>
+              </div>
+              <div class="artist-ai-mix-row" data-ai-mix-row="production_mix">
+                <span class="artist-ai-mix-label">Production / mix</span>
+                <label><input type="radio" name="ai-mix-production" value="human" data-ai-mix="production_mix" /> Human</label>
+                <label><input type="radio" name="ai-mix-production" value="ai" data-ai-mix="production_mix" /> AI</label>
+                <label><input type="radio" name="ai-mix-production" value="mixed" data-ai-mix="production_mix" /> Mixed</label>
+              </div>
+            </div>
+            <div class="field" style="margin-top:14px">
+              <label for="artist-ai-detail">Other</label>
+              <input id="artist-ai-detail" type="text" maxlength="500" placeholder="Short note — optional" autocomplete="off" />
+            </div>
+            <p class="hint" data-artist-ai-empty>Not set yet</p>
+            <p class="hint" data-artist-ai-summary hidden></p>
+            <div class="field" style="margin-top:12px">
+              <label for="artist-ai-percent">Optional mix % (0–100)</label>
+              <div class="artist-ai-meter">
+                <input id="artist-ai-range" type="range" min="0" max="100" step="1" value="0" />
+                <input id="artist-ai-percent" type="number" min="0" max="100" step="1" placeholder="Not set" />
+              </div>
+              <p class="hint" data-artist-ai-meter>Not set yet</p>
+              <p class="hint">Profile average. Not a verified score for every song. Soft-stop guaranteed streams.</p>
+            </div>
+          </div>
+          <!-- keep hidden contribution hooks for save mapping / tests -->
+          <div class="sr-only" aria-hidden="true">
+            <input type="checkbox" data-human-contribution="lyrics" tabindex="-1" />
+            <input type="checkbox" data-human-contribution="vocals_performance" tabindex="-1" />
+            <input type="checkbox" data-human-contribution="beats_production" tabindex="-1" />
+            <input type="checkbox" data-human-contribution="arrangement_mix" tabindex="-1" />
+            <input type="checkbox" data-human-contribution="melody_topline" tabindex="-1" />
+            <input type="checkbox" data-human-contribution="concept_direction" tabindex="-1" />
+            <input type="checkbox" data-ai-contribution="lyrics" tabindex="-1" />
+            <input type="checkbox" data-ai-contribution="vocals_performance" tabindex="-1" />
+            <input type="checkbox" data-ai-contribution="beats_production" tabindex="-1" />
+            <input type="checkbox" data-ai-contribution="arrangement_mix" tabindex="-1" />
+            <input type="checkbox" data-ai-contribution="melody_topline" tabindex="-1" />
+            <input type="checkbox" data-ai-contribution="full_track_support" tabindex="-1" />
+          </div>
         </div>
         <div class="field artist-platforms-field" style="margin-top:18px" data-artist-platforms-field>
           <label>Linked store pages</label>
@@ -264,47 +338,6 @@
           <p class="artist-platforms-add">
             <button class="btn btn-ghost btn-sm" type="button" data-artist-platform-add aria-label="Add another platform">+</button>
           </p>
-        </div>
-        <div class="artist-create-block" data-artist-ai>
-          <h3>How this artist usually creates</h3>
-          <p class="hint">AI musician type. Describe how this artist usually works. Checkboxes + meter show the balance. Helps fans, partners, and platforms understand the creative process.</p>
-          <p class="hint" data-artist-ai-empty>Not set yet</p>
-          <p class="hint" data-artist-ai-summary hidden></p>
-          <div class="artist-ai-cols">
-            <div>
-              <h4>Human</h4>
-              <label class="checkline"><input type="checkbox" data-human-contribution="lyrics" /> <span>Lyrics</span></label>
-              <label class="checkline"><input type="checkbox" data-human-contribution="vocals_performance" /> <span>Vocals / performance</span></label>
-              <label class="checkline"><input type="checkbox" data-human-contribution="melody_topline" /> <span>Melody / topline</span></label>
-              <label class="checkline"><input type="checkbox" data-human-contribution="beats_production" /> <span>Beats / production</span></label>
-              <label class="checkline"><input type="checkbox" data-human-contribution="arrangement_mix" /> <span>Arrangement / mix</span></label>
-              <label class="checkline"><input type="checkbox" data-human-contribution="concept_direction" /> <span>Concept / direction</span></label>
-            </div>
-            <div>
-              <h4>AI-assisted</h4>
-              <label class="checkline"><input type="checkbox" data-ai-contribution="lyrics" /> <span>Lyrics</span></label>
-              <label class="checkline"><input type="checkbox" data-ai-contribution="vocals_performance" /> <span>Vocals / performance</span></label>
-              <label class="checkline"><input type="checkbox" data-ai-contribution="melody_topline" /> <span>Melody / topline</span></label>
-              <label class="checkline"><input type="checkbox" data-ai-contribution="beats_production" /> <span>Beats / production</span></label>
-              <label class="checkline"><input type="checkbox" data-ai-contribution="arrangement_mix" /> <span>Arrangement / mix</span></label>
-              <label class="checkline"><input type="checkbox" data-ai-contribution="full_track_support" /> <span>Full-track support</span></label>
-            </div>
-          </div>
-          <div class="field" style="margin-top:16px">
-            <label for="artist-ai-detail">Optional detail</label>
-            <textarea id="artist-ai-detail" rows="3" maxlength="500" placeholder="I write all lyrics and sing. AI builds the beat and helps with arrangement."></textarea>
-          </div>
-          <div class="field" style="margin-top:16px">
-            <label for="artist-ai-percent">Estimated AI involvement 0–100</label>
-            <div class="artist-ai-meter">
-              <input id="artist-ai-range" type="range" min="0" max="100" step="1" value="0" />
-              <input id="artist-ai-percent" type="number" min="0" max="100" step="1" placeholder="Not set" />
-            </div>
-            <p class="hint" data-artist-ai-meter>Not set yet</p>
-            <p class="hint">Examples: 10% light ideas, 50% human core + major AI production, 90% mostly AI with human direction/edits.</p>
-            <p class="hint">Self-declared. This is a profile average, not a verified score for every song.</p>
-            <p class="hint">If AI involvement is very high, songs that need publishing still need meaningful human authorship. Distribution still allows Fully AI tracks.</p>
-          </div>
         </div>
         <div class="field" style="margin-top:18px" data-artist-change-wrap hidden>
           <label for="artist-change">Change request</label>
@@ -331,7 +364,7 @@
   <script src="lib/artist-roster.js?v=20260915r2"></script>
   <script src="lib/release-status.js?v=20260910r3"></script>
   <script src="lib/live-player.js"></script>
-  <script src="artists.js?v=20260922ar2" defer></script>
+  <script src="artists.js?v=20260922ar3" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

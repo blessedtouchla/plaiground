@@ -6398,6 +6398,120 @@ body.review-page main.page {
   color: #fff;
 }
 
+/* Artist Profiles — fill guide + Human / AI-infused class */
+.artists-page .artists-fill-guide {
+  margin: 0 0 20px;
+  max-width: 42rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.artists-page .artists-fill-guide summary {
+  list-style: none;
+  cursor: pointer;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f3cb47;
+  padding: 14px 0;
+}
+.artists-page .artists-fill-guide summary::-webkit-details-marker { display: none; }
+.artists-page .artists-fill-guide summary::after {
+  content: "+";
+  float: right;
+  color: #782fb1;
+  font-weight: 700;
+}
+.artists-page .artists-fill-guide[open] summary::after {
+  content: "–";
+}
+.artists-page .artists-fill-guide-list {
+  margin: 0 0 12px;
+  padding: 0 0 0 1.15rem;
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.artists-page .artists-fill-guide-list li {
+  margin: 0 0 8px;
+}
+.artists-page .artists-avatar-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  max-width: 28rem;
+}
+.artists-page .artist-photo-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.artists-page .artist-class-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+.artists-page .artist-class-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(120, 47, 177, 0.4);
+  border-radius: 999px;
+  color: var(--muted-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.artists-page .artist-class-pick:has(input:checked) {
+  border-color: #f3cb47;
+  color: #fff;
+}
+.artists-page .artist-class-pick input {
+  accent-color: #782fb1;
+}
+.artists-page .artist-ai-mix {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.artists-page .artist-ai-mix-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.artists-page .artist-ai-mix-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) repeat(3, auto);
+  gap: 8px 12px;
+  align-items: center;
+}
+.artists-page .artist-ai-mix-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e8ee;
+}
+.artists-page .artist-ai-mix-row label {
+  font-size: 12px;
+  color: var(--muted-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.artists-page .artist-ai-mix-row input {
+  accent-color: #782fb1;
+}
+@media (max-width: 640px) {
+  .artists-page .artist-ai-mix-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .artists-page .artist-ai-mix-label {
+    grid-column: 1 / -1;
+  }
+}
+
 /* —— Attest Tesla energy (rights confirmation + honest status + sticky dock) —— */
 body.attest-page {
   background: #000;
