@@ -6653,6 +6653,27 @@ body.attest-page .plai-bubble-row {
   width: min(680px, 100%);
   margin: 0 auto 22px;
 }
+.home-portal .home-trust-quote,
+.label-quote {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-style: normal;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: #f3cb47;
+  quotes: none;
+}
+.home-portal .home-trust-quote {
+  margin: 0 auto 14px;
+  max-width: 36rem;
+}
+.label-quote {
+  margin: 18px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid #782fb1;
+  max-width: 40rem;
+}
 .home-portal .home-trust-line {
   font-size: 15px;
   line-height: 1.4;
