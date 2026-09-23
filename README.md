@@ -30,6 +30,9 @@ TONEGRID_API_KEY=
 TONEGRID_BASE_URL=
 DATABASE_URL=
 SESSION_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=
 RESEND_API_KEY=
 CONFIRM_SECRET=
 SIGNUP_CONFIRM_SECRET=
@@ -79,10 +82,24 @@ Existing live prices only (do not create products or prices):
 
 Accounts need `DATABASE_URL` (Postgres / Neon) and `SESSION_SECRET` (HMAC cookie). If either is missing, `/api/auth/*` and `/api/me` return `503 { "error": "Accounts are not configured." }` and the signup/login UI says that — they do not claim an account was created. Set both on Vercel before treating preview signup as live.
 
+Google Sign-In (wannaplai.com only; additional path, email + confirm stays):
+
+- Vercel env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Optional `GOOGLE_REDIRECT_URI` if the callback is not `https://www.wannaplai.com/api/auth/google-callback`.
+- Both Client ID and Secret must be set. If either is missing, `GET /api/auth/google` returns `{ configured: false }` and the Continue with Google control stays hidden. Do not ship a clickable fake button.
+- Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client (Web):
+  - Authorized JavaScript origins: `https://www.wannaplai.com`, `https://wannaplai.com`
+  - Authorized redirect URIs: `https://www.wannaplai.com/api/auth/google-callback`
+  - Apex login already 308s to www, so the live callback is www. Add `http://localhost:<port>/api/auth/google-callback` only for local verification.
+- After Google succeeds, the same `plaiground_session` cookie is attached. Matching email (including Gmail dots / +tags) signs into the existing account — no duplicate row. New Google emails create a confirmed account.
+- No Apple Sign-In in this path. No PLAInow Google / shared SSO in this path.
+
 Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 
 - `GET /api/auth` (schema bootstrap)
 - `GET /api/auth/pixel` (`{ pixel_id }` from `META_PIXEL_ID` only; empty when unset — no fake pixel)
+- `GET /api/auth/google` (`{ configured }` when accounts + both Google env vars are set)
+- `GET /api/auth/google-start` (302 to Google; 503 when env is missing)
+- `GET /api/auth/google-callback` (code exchange, email-merge, same session cookie)
 - `POST /api/auth/signup` (pending user only; no session; tries confirm mail; records `signup` once)
 - `POST /api/auth/login` (confirmed users only)
 - `POST /api/auth/logout`

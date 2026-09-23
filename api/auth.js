@@ -3,6 +3,9 @@
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
  * GET  /api/auth/pixel     → { pixel_id } from META_PIXEL_ID only; empty when unset
+ * GET  /api/auth/google    → { configured } when accounts + GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set
+ * GET  /api/auth/google-start → 302 to Google; hidden in UI unless configured
+ * GET  /api/auth/google-callback → exchange code, merge-by-email, attach the same session
  * POST /api/auth/signup    pending user only; no session; tries confirm mail; records signup once
  * POST /api/auth/login     confirmed users only; remember=true → 30-day cookie
  * POST /api/auth/logout
@@ -17,7 +20,8 @@
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
-const { confirmEmail, createUser, deleteUser, findByEmail, findById, ensureReady, setPassword } = require('../lib/accounts');
+const { confirmEmail, createUser, deleteUser, findByEmail, findById, findOrCreateFromGoogle, ensureReady, setPassword } = require('../lib/accounts');
+const googleOauth = require('../lib/google-oauth');
 const profile = require('../lib/profile');
 const {
   attachSession,
@@ -583,6 +587,85 @@ async function confirm(req, res) {
   }
 }
 
+async function googleStatus(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  sendJson(res, 200, {
+    configured: isConfigured() && googleOauth.isGoogleConfigured(),
+  });
+}
+
+async function googleStart(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured() || !googleOauth.isGoogleConfigured()) {
+    sendJson(res, 503, { configured: false, error: 'Google sign-in is not configured.' });
+    return;
+  }
+  const url = googleOauth.startUrl(req, {
+    remember: googleOauth.wantsRemember(queryValue(req, 'remember')),
+    next: queryValue(req, 'next'),
+    plan: queryValue(req, 'plan'),
+  });
+  if (!url) {
+    sendJson(res, 503, { configured: false, error: 'Google sign-in is not configured.' });
+    return;
+  }
+  googleOauth.sendRedirect(res, url);
+}
+
+async function googleCallback(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (!isConfigured() || !googleOauth.isGoogleConfigured()) {
+    googleOauth.sendRedirect(res, googleOauth.loginErrorLocation());
+    return;
+  }
+  if (queryValue(req, 'error')) {
+    googleOauth.sendRedirect(res, googleOauth.loginErrorLocation());
+    return;
+  }
+  const state = googleOauth.verifyState(queryValue(req, 'state'));
+  if (!state) {
+    googleOauth.sendRedirect(res, googleOauth.loginErrorLocation());
+    return;
+  }
+  try {
+    await ensureReady();
+    const access = await googleOauth.exchangeCode(queryValue(req, 'code'), req);
+    const googleUser = access ? await googleOauth.fetchGoogleUser(access) : null;
+    if (!googleUser) {
+      googleOauth.sendRedirect(res, googleOauth.loginErrorLocation());
+      return;
+    }
+    const result = await findOrCreateFromGoogle({
+      email: googleUser.email,
+      artist: googleUser.artist,
+      plan: state.plan,
+    });
+    if (result.created) {
+      try {
+        await recordSignup(result.row);
+      } catch {
+        /* signup event must not fail Google create */
+      }
+    }
+    attachSession(req, res, result.row.id, { remember: state.remember });
+    googleOauth.sendRedirect(res, googleOauth.successLocation(state.next));
+  } catch {
+    googleOauth.sendRedirect(res, googleOauth.loginErrorLocation());
+  }
+}
+
 async function logout(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -599,6 +682,18 @@ async function logout(req, res) {
 
 module.exports = async function handler(req, res) {
   const action = authAction(req);
+  if (action === 'google') {
+    await googleStatus(req, res);
+    return;
+  }
+  if (action === 'google-start') {
+    await googleStart(req, res);
+    return;
+  }
+  if (action === 'google-callback') {
+    await googleCallback(req, res);
+    return;
+  }
   if (action === 'signup') {
     await signup(req, res);
     return;
