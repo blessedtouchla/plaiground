@@ -1762,6 +1762,19 @@ function bindTypeahead(select, items, getValue, getLabel) {
   if (existingList && existingList.parentNode && existingList.parentNode.removeChild) {
     existingList.parentNode.removeChild(existingList);
   }
+  var existingToggle = null;
+  if (field.children) {
+    var toggleIndex;
+    for (toggleIndex = 0; toggleIndex < field.children.length; toggleIndex += 1) {
+      if (field.children[toggleIndex] && String(field.children[toggleIndex].className || '').indexOf('typeahead-toggle') !== -1) {
+        existingToggle = field.children[toggleIndex];
+        break;
+      }
+    }
+  }
+  if (existingToggle && existingToggle.parentNode && existingToggle.parentNode.removeChild) {
+    existingToggle.parentNode.removeChild(existingToggle);
+  }
   if (select.removeAttribute) select.removeAttribute('data-typeahead');
   select.setAttribute('data-typeahead', 'on');
   field.classList.add('typeahead-field');
@@ -1795,11 +1808,58 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (label && input.id) label.setAttribute('for', input.id);
   }
 
+  // The painted chevron used to be a background on the input, so a tap on it
+  // was just another tap on the search field and always called openList().
+  // Keep the glyph on a real button over that padding so the tap has its own
+  // target. Inline styles so a stale stylesheet cannot drop a native button
+  // into the form flow. The input hit-zone below is the fallback for iOS
+  // Safari, which sometimes delivers that tap to the focused input anyway.
+  input.style.backgroundImage = 'none';
+  var toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'typeahead-toggle';
+  toggle.setAttribute('tabindex', '-1');
+  toggle.setAttribute('aria-label', 'Show options');
+  toggle.setAttribute('aria-expanded', 'false');
+  if (list.id) toggle.setAttribute('aria-controls', list.id);
+  toggle.setAttribute('style', [
+    'position:absolute',
+    'right:0',
+    'bottom:0',
+    'width:44px',
+    'height:48px',
+    'z-index:6',
+    'margin:0',
+    'padding:0',
+    'border:0',
+    'border-radius:0',
+    'box-shadow:none',
+    'color:transparent',
+    'cursor:pointer',
+    '-webkit-appearance:none',
+    'appearance:none',
+    'touch-action:manipulation',
+    '-webkit-tap-highlight-color:transparent',
+    'background-color:rgba(0,0,0,0.01)',
+    'background-repeat:no-repeat',
+    'background-position:center',
+    'background-size:12px 8px',
+  ].join(';'));
+  toggle.style.backgroundImage = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23C8C8D0' d='M1 1.2 6 6.2 11 1.2'/></svg>\")";
+  var glyph = document.createElement('span');
+  glyph.className = 'typeahead-chevron';
+  glyph.setAttribute('aria-hidden', 'true');
+  glyph.setAttribute('style', 'display:block;width:12px;height:8px;margin:18px auto 0;pointer-events:none;');
+  toggle.appendChild(glyph);
+
   field.insertBefore(input, select);
   field.appendChild(list);
+  field.appendChild(toggle);
 
   var picking = false;
   var holdBlur = false;
+  var chevronClosedAt = 0;
+  var toggleGesture = 0;
   var lastPoint = null;
   var touchStartPoint = null;
   var placeTimer = 0;
@@ -1967,6 +2027,23 @@ function bindTypeahead(select, items, getValue, getLabel) {
     list.style.overflowX = 'hidden';
   }
 
+  function syncToggle(open) {
+    if (!toggle) return;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Hide options' : 'Show options');
+    if (toggle.style) toggle.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  function placeToggle() {
+    if (!toggle || !toggle.style || !input || !input.offsetHeight) return;
+    var top = typeof input.offsetTop === 'number' ? input.offsetTop : 0;
+    toggle.style.top = top + 'px';
+    toggle.style.height = input.offsetHeight + 'px';
+    toggle.style.bottom = 'auto';
+    toggle.style.right = '0px';
+    toggle.style.width = '44px';
+  }
+
   function hideList() {
     list.classList.add('is-hidden');
     if (list.classList.remove) {
@@ -1982,6 +2059,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     list.style.width = '';
     if (field.classList && field.classList.remove) field.classList.remove('is-typeahead-open');
     input.setAttribute('aria-expanded', 'false');
+    syncToggle(false);
     unclaimTypeahead(selfApi);
   }
 
@@ -2216,6 +2294,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     list.classList.remove('is-hidden');
     if (field.classList && field.classList.add) field.classList.add('is-typeahead-open');
     input.setAttribute('aria-expanded', 'true');
+    syncToggle(true);
     placeList();
   }
 
@@ -2316,12 +2395,88 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
   }
 
+  var CHEVRON_HIT = 44;
+
+  function chevronCloseActive() {
+    return !!(chevronClosedAt && (Date.now() - chevronClosedAt) < 700);
+  }
+
+  function armChevronClose() {
+    chevronClosedAt = Date.now();
+  }
+
+  function clearChevronClose() {
+    chevronClosedAt = 0;
+  }
+
+  function listIsOpen() {
+    return !!(list && list.classList && !list.classList.contains('is-hidden'));
+  }
+
+  function swallowEvent(event) {
+    if (!event) return;
+    if (event.preventDefault) event.preventDefault();
+    if (event.stopPropagation) event.stopPropagation();
+  }
+
+  // Right-edge padding where the chevron is drawn. iOS Safari often hits the
+  // focused input instead of the button on top of it, so the input itself
+  // must treat that zone as the toggle.
+  function hitChevron(event) {
+    var point = eventPoint(event);
+    if (!point || !input || typeof input.getBoundingClientRect !== 'function') return false;
+    var rect = null;
+    try { rect = input.getBoundingClientRect(); } catch (err) { return false; }
+    if (!rect || typeof rect.right !== 'number') return false;
+    var top = typeof rect.top === 'number' ? rect.top : 0;
+    var bottom = typeof rect.bottom === 'number' ? rect.bottom : top + (rect.height || 0);
+    if (point.x < rect.right - CHEVRON_HIT || point.x > rect.right + 16) return false;
+    if (point.y < top - 10 || point.y > bottom + 10) return false;
+    return true;
+  }
+
+  function gestureStamp(event) {
+    if (event && typeof event.timeStamp === 'number' && event.timeStamp > 0) return event.timeStamp;
+    return Date.now();
+  }
+
+  // pointerdown and touchstart for one tap share a timeStamp. A second
+  // delivery in that window must not undo the toggle (Safari fires both, and
+  // sometimes also hits the input under the chevron button).
+  var lastToggleDownStamp = -1;
+  var lastCloseStamp = -1;
+  function isSameGesture(event, stamp) {
+    if (stamp < 0) return false;
+    return Math.abs(gestureStamp(event) - stamp) < 120;
+  }
+
+  function closeFromChevron(event) {
+    lastCloseStamp = gestureStamp(event);
+    armChevronClose();
+    hideList();
+    swallowEvent(event);
+  }
+
   input.addEventListener('input', function () {
     typedMatch(input.value);
     showMatches(input.value);
   });
-  input.addEventListener('pointerdown', function () {
+  input.addEventListener('pointerdown', function (event) {
     taDebug(taTag + ' EVENT pointerdown  ' + taSnap());
+    // Chevron tap while the menu is open collapses it. The same gesture then
+    // fires touchend/pointerup/click/focus, and each of those calls openList()
+    // — without the guard below, iOS Safari reopens the menu before the
+    // finger lifts, which looks like the chevron did nothing.
+    if (isSameGesture(event, lastCloseStamp) && (!listIsOpen() || hitChevron(event))) {
+      swallowEvent(event);
+      return;
+    }
+    if (listIsOpen() && hitChevron(event)) {
+      taDebug(taTag + ' chevron pointerdown CLOSE  ' + taSnap());
+      closeFromChevron(event);
+      return;
+    }
+    clearChevronClose();
     // pointerdown is the only tap event guaranteed to fire regardless of the
     // input's focus state. After a pick the input is left half-focused on iOS
     // (a long-press then shows Copy/Select-All), so focus/click/pointerup do
@@ -2332,10 +2487,67 @@ function bindTypeahead(select, items, getValue, getLabel) {
     openList({ quiet: true, via: 'pointerdown' });
   });
   ['touchend', 'focus', 'click', 'pointerup'].forEach(function (name) {
-    input.addEventListener(name, function () {
+    input.addEventListener(name, function (event) {
       taDebug(taTag + ' EVENT ' + name + '  ' + taSnap());
+      if (chevronCloseActive()) {
+        taDebug(taTag + ' EVENT ' + name + ' swallowed after chevron close');
+        swallowEvent(event);
+        return;
+      }
       openList({ via: name });
     });
+  });
+  function onToggleDown(event) {
+    var stamp = gestureStamp(event);
+    if (lastToggleDownStamp >= 0 && Math.abs(stamp - lastToggleDownStamp) < 120) {
+      swallowEvent(event);
+      return;
+    }
+    lastToggleDownStamp = stamp;
+    toggleGesture = 1;
+    taDebug(taTag + ' EVENT toggle down  ' + taSnap());
+    if (listIsOpen()) {
+      closeFromChevron(event);
+      return;
+    }
+    clearChevronClose();
+    swallowEvent(event);
+    clearPickLatch();
+    openList({ quiet: true, via: 'chevron' });
+  }
+  function onToggleUp(event) {
+    if (chevronCloseActive()) {
+      swallowEvent(event);
+      return;
+    }
+    if (toggleGesture) {
+      swallowEvent(event);
+      if (listIsOpen()) openList({ via: 'chevron' });
+      return;
+    }
+    swallowEvent(event);
+    if (listIsOpen()) {
+      closeFromChevron(event);
+      return;
+    }
+    clearPickLatch();
+    openList({ via: 'chevron' });
+  }
+  toggle.addEventListener('pointerdown', onToggleDown);
+  toggle.addEventListener('mousedown', function (event) {
+    if (event && event.preventDefault) event.preventDefault();
+  });
+  toggle.addEventListener('touchstart', function (event) {
+    if (event && event.preventDefault) event.preventDefault();
+    onToggleDown(event);
+  }, { passive: false });
+  toggle.addEventListener('pointerup', onToggleUp);
+  toggle.addEventListener('touchend', function (event) {
+    onToggleUp(event);
+  }, { passive: false });
+  toggle.addEventListener('click', function (event) {
+    onToggleUp(event);
+    toggleGesture = 0;
   });
   input.addEventListener('keydown', function (event) {
     var key = event && event.key;
@@ -2375,6 +2587,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     else finishBlur();
   });
   function onViewport() {
+    placeToggle();
     if (list.classList.contains('is-hidden')) return;
     placeList();
   }
@@ -2398,6 +2611,8 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }
   select._plaigroundSyncTypeahead = syncFromSelect;
   selfApi.release = hideList;
+  placeToggle();
+  if (win && win.setTimeout) win.setTimeout(placeToggle, 0);
   syncFromSelect();
 }
 
