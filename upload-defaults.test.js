@@ -56,11 +56,14 @@ function listButtons(list) {
 function pickFromList(list, label) {
   const btn = listButtons(list).find(function (node) { return node.textContent === label; });
   assert.ok(btn, label + ' must be in the open list');
-  const ev = { target: btn, preventDefault: function () {}, stopPropagation: function () {} };
+  const ev = { target: btn, preventDefault: function () {}, stopPropagation: function () {}, stopImmediatePropagation: function () {} };
   if (list.listeners && list.listeners.pointerdown) list.listeners.pointerdown(ev);
+  // A phone must not commit on pointerdown — that cancels scrolling — so the
+  // lift commits a stationary tap. Desktop still commits on pointerdown; the
+  // extra pointerup is a no-op once that pick is latched.
+  if (list.listeners && list.listeners.pointerup) list.listeners.pointerup(ev);
   else if (list.listeners && list.listeners.click) list.listeners.click(ev);
   else if (list.listeners && list.listeners.touchend) list.listeners.touchend(ev);
-  else if (list.listeners && list.listeners.pointerup) list.listeners.pointerup(ev);
   else if (btn.listeners && btn.listeners.pointerdown) btn.listeners.pointerdown(ev);
   return btn;
 }
@@ -931,6 +934,124 @@ function testTypeaheadRebindsIfInputMissing(catalog) {
   }
 }
 
+function testTypeaheadDragScrollsWithoutPicking(catalog) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
+    querySelector() { return { setAttribute() {} }; },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre-scroll-drag',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  const docListeners = {};
+  global.window = {
+    matchMedia(query) {
+      return { matches: String(query || '').indexOf('pointer: coarse') !== -1, media: query, addListener() {}, removeListener() {} };
+    },
+    setTimeout() { return 1; },
+    clearTimeout() {},
+    addEventListener() {},
+    innerWidth: 390,
+    innerHeight: 800,
+  };
+  global.document = {
+    documentElement: { classList: { add() {}, remove() {} } },
+    activeElement: null,
+    listeners: docListeners,
+    addEventListener(type, fn) { docListeners[type] = fn; },
+    createElement(tag) { return mockTypeaheadEl(tag); },
+  };
+  function pointEvent(x, y, target) {
+    let prevented = 0;
+    return {
+      target: target,
+      clientX: x,
+      clientY: y,
+      pointerType: 'touch',
+      timeStamp: 1000,
+      preventDefault() { prevented += 1; },
+      stopPropagation() {},
+      stopImmediatePropagation() {},
+      get prevented() { return prevented; },
+    };
+  }
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = field.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    const toggle = field.children.find(function (node) { return node.className === 'typeahead-toggle'; });
+    input.listeners.focus();
+    const buttons = listButtons(list);
+    assert.ok(buttons.length > 4, 'open genre list has rows to scroll through');
+    buttons.forEach(function (btn, i) {
+      btn.parentNode = list;
+      btn.getBoundingClientRect = function () {
+        return { left: 10, top: 200 + i * 44, right: 300, bottom: 244 + i * 44, width: 290, height: 44 };
+      };
+    });
+    const first = buttons[0];
+    const covered = pointEvent(40, 220, input);
+    if (docListeners.touchstart) docListeners.touchstart(covered);
+    assert.ok(covered.prevented > 0, 'a touch delivered to the field under the menu is still cancelled');
+    assert.strictEqual(select.value, '', 'that covered-field touch must not pick a genre');
+
+    const down = pointEvent(40, 220, first);
+    if (docListeners.touchstart) docListeners.touchstart(down);
+    if (docListeners.pointerdown) docListeners.pointerdown(down);
+    list.listeners.pointerdown(down);
+    assert.strictEqual(down.prevented, 0, 'a touch that starts on the genre list must not cancel scrolling');
+    assert.strictEqual(select.value, '', 'pressing a genre row must not pick before the finger moves');
+    assert.ok(!list.classList.contains('is-hidden'), 'the genre list stays open at the start of a drag');
+
+    const move = pointEvent(40, 40, first);
+    if (list.listeners.touchmove) list.listeners.touchmove(move);
+    if (list.listeners.pointermove) list.listeners.pointermove(move);
+    const up = pointEvent(40, 40, first);
+    if (docListeners.touchend) docListeners.touchend(up);
+    if (docListeners.pointerup) docListeners.pointerup(up);
+    if (list.listeners.pointerup) list.listeners.pointerup(up);
+    if (list.listeners.click) list.listeners.click(up);
+    if (list.listeners.touchend) list.listeners.touchend(up);
+    assert.strictEqual(select.value, '', 'dragging the genre list must not pick the row under the finger');
+    assert.ok(!list.classList.contains('is-hidden'), 'dragging the genre list must leave it open');
+
+    const tapDown = pointEvent(40, 220, first);
+    if (docListeners.pointerdown) docListeners.pointerdown(tapDown);
+    list.listeners.pointerdown(tapDown);
+    const tapUp = pointEvent(40, 220, first);
+    if (docListeners.pointerup) docListeners.pointerup(tapUp);
+    if (list.listeners.pointerup) list.listeners.pointerup(tapUp);
+    assert.strictEqual(select.value, first.textContent, 'a tap with no movement still picks the genre');
+    assert.ok(list.classList.contains('is-hidden'), 'a tap still closes the genre list');
+
+    input.listeners.focus();
+    assert.ok(!list.classList.contains('is-hidden'), 'genre list reopens after a tap');
+    toggle.listeners.pointerdown(pointEvent(290, 60, toggle));
+    assert.ok(list.classList.contains('is-hidden'), 'chevron still closes the genre list after a scroll gesture');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function testTypeaheadChevronClosesOpenList(catalog) {
   const field = {
     children: [],
@@ -1713,6 +1834,7 @@ function run() {
     testTypeaheadFilledFieldReopensOnRetap(catalog);
     testTypeaheadOpenDefersScroll(catalog);
     testTypeaheadOpenReclaimsFocus(catalog);
+    testTypeaheadDragScrollsWithoutPicking(catalog);
     testTypeaheadChevronClosesOpenList(catalog);
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesTypeahead(catalog);

@@ -745,7 +745,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 .typeahead-list button:hover,
 .typeahead-list button:focus { background: rgba(125, 60, 255, 0.22); }

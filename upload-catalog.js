@@ -1862,6 +1862,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
   var toggleGesture = 0;
   var lastPoint = null;
   var touchStartPoint = null;
+  var listGestureMoved = false;
   var placeTimer = 0;
   var win = typeof window !== 'undefined' ? window : null;
   var doc = typeof document !== 'undefined' ? document : null;
@@ -2189,6 +2190,23 @@ function bindTypeahead(select, items, getValue, getLabel) {
     return (dx * dx + dy * dy) > 144;
   }
 
+  function listScrollGesture(event) {
+    return !!(listGestureMoved || touchMoved(event));
+  }
+
+  function noteListScroll(event) {
+    if (touchMoved(event)) listGestureMoved = true;
+  }
+
+  function targetInList(event) {
+    var node = event && event.target;
+    while (node) {
+      if (node === list) return true;
+      node = node.parentNode;
+    }
+    return false;
+  }
+
   function holdTouchPick(event) {
     var point = rememberPoint(event);
     if (point) touchStartPoint = point;
@@ -2205,7 +2223,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
 
   function commitTouchEnd(event) {
     rememberPoint(event);
-    if (!touchMoved(event)) commitListEvent(event);
+    if (!listScrollGesture(event)) commitListEvent(event);
     holdBlur = false;
   }
 
@@ -2217,10 +2235,17 @@ function bindTypeahead(select, items, getValue, getLabel) {
     if (!list.classList || list.classList.contains('is-hidden')) return;
     var point = rememberPoint(event);
     if (point) touchStartPoint = point;
+    // A new finger-down starts a new gesture. Do this before any move so a
+    // drag can set listGestureMoved and a later tap can clear it.
+    if (event && (event.type === 'pointerdown' || event.type === 'touchstart')) listGestureMoved = false;
     if (point && pickFromClientPoint(point.x, point.y)) {
       holdBlur = true;
-      taDebug(taTag + ' onDocHold ' + (event && event.type) + ' over-option, holdBlur=1' + (isCoarsePointer() ? ' +preventDefault' : ''));
-      if (isCoarsePointer() && event) {
+      var onMenu = targetInList(event);
+      taDebug(taTag + ' onDocHold ' + (event && event.type) + ' over-option, holdBlur=1' + (isCoarsePointer() && !onMenu ? ' +preventDefault' : ''));
+      // preventDefault on touchstart cancels scrolling. Only do it when iOS
+      // hit-tests the field under the menu — a touch that starts on the menu
+      // itself has to keep the default action so the genre list can scroll.
+      if (isCoarsePointer() && event && !onMenu) {
         if (event.preventDefault) event.preventDefault();
         if (event.stopPropagation) event.stopPropagation();
         if (event.stopImmediatePropagation) event.stopImmediatePropagation();
@@ -2234,7 +2259,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
       return;
     }
     rememberPoint(event);
-    if (touchMoved(event)) {
+    if (listScrollGesture(event)) {
       holdBlur = false;
       return;
     }
@@ -2299,16 +2324,37 @@ function bindTypeahead(select, items, getValue, getLabel) {
   }
 
   if (list.addEventListener) {
-    list.addEventListener('click', commitListEvent);
-    list.addEventListener('pointerup', commitListEvent);
+    list.addEventListener('click', function (event) {
+      if (listScrollGesture(event)) return;
+      commitListEvent(event);
+    });
+    list.addEventListener('pointerup', function (event) {
+      if (listScrollGesture(event)) return;
+      commitListEvent(event);
+    });
     list.addEventListener('touchend', commitTouchEnd, { passive: false });
     list.addEventListener('touchcancel', cancelHoldTouch, { passive: true });
     list.addEventListener('pointercancel', cancelHoldTouch, { passive: true });
+    list.addEventListener('touchmove', noteListScroll, { passive: true });
+    list.addEventListener('pointermove', noteListScroll, { passive: true });
     list.addEventListener('mousedown', function (event) {
       if (event && event.preventDefault) event.preventDefault();
+      if (listScrollGesture(event)) return;
       commitListEvent(event);
     });
-    list.addEventListener('pointerdown', commitListEvent, true);
+    // Phone: pointerdown is the start of a scroll as often as a tap. Committing
+    // here closes the menu before the list can move. A stationary pointerup
+    // still picks. Mouse pointerdown still commits, which is what desktop tests
+    // and clicks rely on.
+    list.addEventListener('pointerdown', function (event) {
+      if (isCoarsePointer() || (event && event.pointerType === 'touch')) {
+        var point = rememberPoint(event);
+        if (point) touchStartPoint = point;
+        listGestureMoved = false;
+        return;
+      }
+      commitListEvent(event);
+    }, true);
   }
   list.addEventListener('wheel', function (event) {
     if (list.scrollHeight > list.clientHeight) event.stopPropagation();
