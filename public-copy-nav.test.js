@@ -193,6 +193,7 @@ function run() {
   const PUBLIC_PAGES = [
     'index.html',
     'how-it-works.html',
+    'transparency.html',
     'faq.html',
     'basic.html',
     'creator.html',
