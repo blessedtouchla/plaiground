@@ -931,6 +931,172 @@ function testTypeaheadRebindsIfInputMissing(catalog) {
   }
 }
 
+function testTypeaheadChevronClosesOpenList(catalog) {
+  const field = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
+    querySelector() { return { setAttribute() {} }; },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const select = {
+    parentNode: field,
+    id: 'tg-genre-chevron',
+    options: [{ value: '', textContent: 'Select genre' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const langField = {
+    children: [],
+    classList: { tokens: Object.create(null), add(name) { this.tokens[name] = true; }, remove(name) { delete this.tokens[name]; } },
+    querySelector() { return { setAttribute() {} }; },
+    insertBefore(node) { this.children.push(node); return node; },
+    appendChild(node) { this.children.push(node); return node; },
+  };
+  const langSelect = {
+    parentNode: langField,
+    id: 'tg-language-chevron',
+    options: [{ value: '', textContent: 'Select language' }],
+    selectedIndex: 0,
+    value: '',
+    tabIndex: 0,
+    classList: { add() {} },
+    attrs: {},
+    getAttribute(name) { return this.attrs[name] || null; },
+    setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const prevWindow = global.window;
+  const prevDocument = global.document;
+  global.window = {
+    setTimeout() { return 1; },
+    clearTimeout() {},
+    addEventListener() {},
+  };
+  global.document = {
+    documentElement: { classList: { add() {}, remove() {} } },
+    activeElement: null,
+    addEventListener() {},
+    createElement(tag) { return mockTypeaheadEl(tag); },
+  };
+  function tap(stamp, x, y) {
+    return {
+      timeStamp: stamp,
+      clientX: x,
+      clientY: y,
+      preventDefault() {},
+      stopPropagation() {},
+    };
+  }
+  function assertHidden(list, message) {
+    assert.ok(list.classList.contains('is-hidden'), message);
+  }
+  function assertOpen(list, message) {
+    assert.ok(!list.classList.contains('is-hidden'), message);
+  }
+  try {
+    catalog.bindTypeahead(select, catalog.GENRES, function (name) { return name; }, function (name) { return name; });
+    const input = field.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const list = field.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    const toggle = field.children.find(function (node) { return node.className === 'typeahead-toggle'; });
+    assert.ok(input && list && toggle, 'genre typeahead has input, list, and chevron button');
+    assert.strictEqual(toggle.type, 'button', 'chevron must not submit the upload form');
+    assert.strictEqual(input.style.backgroundImage, 'none', 'input must not paint a second chevron under the button');
+    input.getBoundingClientRect = function () {
+      return { left: 10, top: 40, right: 300, bottom: 90, width: 290, height: 50 };
+    };
+
+    input.listeners.focus();
+    assertOpen(list, 'focus opens the genre menu');
+    assert.strictEqual(toggle.getAttribute('aria-expanded'), 'true');
+    assert.strictEqual(toggle.getAttribute('aria-label'), 'Hide options');
+    assert.ok(list.children.some(function (node) { return /type to search/i.test(node.textContent); }), 'open menu still shows Type to search');
+
+    input.listeners.pointerdown(tap(1000, 40, 60));
+    assertOpen(list, 'tapping the search text while open leaves the menu open');
+    input.listeners.pointerdown(tap(1100, 250, 60));
+    assertOpen(list, 'a tap just left of the chevron zone is still a text tap');
+
+    input.listeners.pointerdown(tap(2000, 290, 60));
+    assertHidden(list, 'tapping the chevron zone while open closes the menu');
+    assert.strictEqual(input.getAttribute('aria-expanded'), 'false');
+    assert.strictEqual(toggle.getAttribute('aria-expanded'), 'false');
+    assert.strictEqual(toggle.getAttribute('aria-label'), 'Show options');
+    ['touchend', 'pointerup', 'click', 'focus'].forEach(function (name) {
+      input.listeners[name](tap(2000, 290, 60));
+      assertHidden(list, name + ' from the same chevron tap must not reopen the menu');
+    });
+    input.listeners.pointerdown(tap(2050, 290, 60));
+    assertHidden(list, 'a second pointerdown in the same chevron tap must not reopen');
+
+    input.listeners.pointerdown(tap(3000, 290, 60));
+    assertOpen(list, 'chevron tap while closed opens the menu');
+    input.listeners.touchend(tap(3000, 290, 60));
+    input.listeners.pointerup(tap(3000, 290, 60));
+    input.listeners.click(tap(3000, 290, 60));
+    assertOpen(list, 'trailing events after a chevron open keep the menu open');
+
+    toggle.listeners.pointerdown(tap(4000, 290, 60));
+    assertHidden(list, 'chevron button closes an open menu');
+    if (toggle.listeners.touchstart) toggle.listeners.touchstart(tap(4000, 290, 60));
+    toggle.listeners.pointerup(tap(4000, 290, 60));
+    toggle.listeners.touchend(tap(4000, 290, 60));
+    toggle.listeners.click(tap(4000, 290, 60));
+    assertHidden(list, 'button touchend/click after close must not reopen');
+
+    toggle.listeners.pointerdown(tap(5000, 290, 60));
+    assertOpen(list, 'chevron button opens a closed menu');
+    toggle.listeners.click(tap(5000, 290, 60));
+    assertOpen(list, 'button click after open must not immediately close');
+
+    input.value = 'hip';
+    input.listeners.input();
+    assert.ok(listButtons(list).some(function (btn) { return btn.textContent === 'Hip-Hop'; }), 'search still filters after the chevron is used');
+    pickFromList(list, 'Hip-Hop');
+    assert.strictEqual(select.value, 'Hip-Hop', 'picking a genre still commits');
+    assert.strictEqual(input.value, 'Hip-Hop', 'picking a genre still fills the field');
+    assertHidden(list, 'picking a genre still closes the menu');
+
+    input.listeners.focus();
+    assertOpen(list, 'filled genre field still reopens');
+    assert.strictEqual(input.value, 'Hip-Hop', 'reopen keeps the picked label');
+    toggle.listeners.pointerdown(tap(6000, 290, 60));
+    assertHidden(list, 'chevron closes a filled genre menu');
+    assert.strictEqual(select.value, 'Hip-Hop', 'chevron close keeps the picked genre');
+    assert.strictEqual(input.value, 'Hip-Hop', 'chevron close keeps the visible label');
+
+    catalog.bindTypeahead(langSelect, catalog.LANGUAGES, function (row) { return row.code; }, function (row) { return row.name; });
+    const langInput = langField.children.find(function (node) { return node.className === 'typeahead-input'; });
+    const langList = langField.children.find(function (node) { return String(node.className || '').indexOf('typeahead-list') !== -1; });
+    const langToggle = langField.children.find(function (node) { return node.className === 'typeahead-toggle'; });
+    assert.ok(langInput && langList && langToggle, 'language shares the chevron toggle');
+    langInput.listeners.focus();
+    assertOpen(langList, 'language menu opens');
+    langToggle.listeners.pointerdown(tap(7000, 290, 60));
+    assertHidden(langList, 'language chevron closes the menu');
+    langToggle.listeners.click(tap(7000, 290, 60));
+    assertHidden(langList, 'language chevron click does not reopen');
+    langInput.value = 'spa';
+    langInput.listeners.input();
+    assert.ok(listButtons(langList).some(function (btn) { return btn.textContent === 'Spanish'; }), 'language search still filters');
+  } finally {
+    if (prevWindow === undefined) delete global.window;
+    else global.window = prevWindow;
+    if (prevDocument === undefined) delete global.document;
+    else global.document = prevDocument;
+  }
+}
+
 function run() {
   WIZARD.forEach(function (file) {
     const html = fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -1547,6 +1713,7 @@ function run() {
     testTypeaheadFilledFieldReopensOnRetap(catalog);
     testTypeaheadOpenDefersScroll(catalog);
     testTypeaheadOpenReclaimsFocus(catalog);
+    testTypeaheadChevronClosesOpenList(catalog);
     testTypeaheadRebindsIfInputMissing(catalog);
     testBasicPhoneUsesTypeahead(catalog);
     testBasicTypeaheadFiltersAndEnglishFirst(catalog);
