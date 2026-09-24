@@ -56,8 +56,16 @@ function run() {
   const how = read('how-it-works.html');
   const howAppCopy = read('how.html');
   assert.ok(!/Built for AI-assisted creators/i.test(how), 'how-it-works must not lead as AI-only');
-  assert.ok(/For artists who’d rather be making the next one/i.test(how), 'how-it-works sub stays all-music');
-  ['how-it-works.html', 'how.html'].forEach(function (file) {
+  assert.ok(/<h1>Two tracks\.<\/h1>/.test(how), 'how-it-works is two tracks, not the whole company as three steps');
+  assert.ok(/id="distribute"/.test(how) && /\$2\.49 \/ song/.test(how), 'Distribute track is $2.49 per song');
+  assert.ok(/id="after-upload"/.test(how) && /Package the act\./.test(how), 'After upload track packages the act');
+  assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'Distribute steps stay Upload / Release / Get paid');
+  assert.ok(/Label clearly/.test(how) && /A&amp;R optional/.test(how), 'After upload names label, then optional A&R');
+  assert.ok(!/for life|forever/i.test(how), 'how-it-works does not say for life');
+  assert.ok(!/Three steps from/.test(how), 'how-it-works does not sell the company as only three steps');
+  assert.ok(!/one membership that gets the song into stores/i.test(how), 'how-it-works does not sell a membership hero');
+  assert.ok(!/data-checkout-plan/.test(how), 'how-it-works does not start the old plan checkout');
+  ['how.html'].forEach(function (file) {
     const html = read(file);
     const cols = html.match(/<article class="how-col">[\s\S]*?<\/article>/g) || [];
     const whoIdx = html.indexOf('class="how-who"');
@@ -210,9 +218,9 @@ function run() {
     const html = read(file);
     assert.ok(/<a class="logo"[^>]*href="(?:\/index\.html|index\.html|\/)"/.test(html), file + ' top-left wordmark must be a real public homepage link');
     assert.ok(html.includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' must rename Pricing to Plans and Pricing');
-    assert.ok(html.includes('href="basic.html">Learn more: Basic</a>'), file + ' must list Learn more: Basic');
-    assert.ok(html.includes('href="creator.html">Learn more: Creator</a>'), file + ' must list Learn more: Creator');
-    assert.ok(html.includes('href="pro.html">Learn more: Pro</a>'), file + ' must list Learn more: Pro');
+    assert.ok(!html.includes('Learn more: Basic'), file + ' does not list Basic as a plan hero');
+    assert.ok(!html.includes('Learn more: Creator'), file + ' does not list Creator as a plan hero');
+    assert.ok(!html.includes('Learn more: Pro'), file + ' does not list Pro as a plan hero');
     assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must feature FAQ on the public menu');
     assert.ok(html.includes('href="how-it-works.html">How it works</a>'), file + ' keeps How it works public');
     assert.ok(html.includes('href="login.html">Log in</a>'), file + ' keeps Log in');
@@ -227,8 +235,9 @@ function run() {
     assert.ok(nav[0].includes('How you get paid') || nav[0].includes('Royalties'), file + ' menu label is How you get paid or Royalties');
     assert.ok(nav[0].includes('href="faq.html">FAQ</a>'), file + ' keeps FAQ on the public menu');
     assert.ok(!/<details[\s\S]{0,500}href="royalties.html"/.test(nav[0]), file + ' must not nest How you get paid inside a Plans submenu');
-    const plansSub = nav[0].match(/id="public-plans-submenu"[\s\S]*?<\/div>/);
-    assert.ok(plansSub && !/royalties\.html/.test(plansSub[0]), file + ' How you get paid stays outside the Plans submenu');
+    assert.ok(!/public-plans-submenu/.test(nav[0]), file + ' Pricing is not a Basic / Creator / Pro submenu');
+    const productNav = nav[0].slice(nav[0].indexOf('data-nav-group="product"'), nav[0].indexOf('data-nav-group="after"'));
+    assert.ok(!/royalties\.html/.test(productNav), file + ' How you get paid stays outside Product');
     assert.ok(/data-nav-group="product"[\s\S]*data-nav-group="after"[\s\S]*data-nav-group="trust"[\s\S]*data-nav-group="listen"[\s\S]*data-nav-group="stories"/.test(nav[0]), file + ' public nav sections are Product, After upload, Trust, Listen, Stories');
     assert.ok(/data-nav-group="after"[\s\S]*href="[^"]*ar\.html"[^>]*>A&amp;R<\/a>[\s\S]*href="[^"]*epk\.html"[\s\S]*royalties\.html/.test(nav[0]), file + ' After upload is A&R, EPK, How you get paid');
     assert.ok(/data-nav-group="trust"[\s\S]*transparency\.html[\s\S]*faq\.html/.test(nav[0]), file + ' Trust is Transparency then FAQ');
@@ -236,9 +245,10 @@ function run() {
     assert.ok(/data-nav-group="stories"[\s\S]*href="[^"]*blog\.html"[^>]*>Blog<\/a>/.test(nav[0]), file + ' Stories is Blog');
     assert.ok(!/href="[^"]*video-collect\.html"/.test(nav[0]) && !/href="[^"]*sync\.html"/.test(nav[0]), file + ' public nav does not add Sync or Video Collect');
     assert.ok(nav[0].includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' Plans and Pricing must stay a real compare-page link');
-    assert.ok(nav[0].includes('href="basic.html">Learn more: Basic</a>'), file + ' header still lists Learn more: Basic for the shared menu to nest');
-    assert.ok(nav[0].includes('href="creator.html">Learn more: Creator</a>'), file + ' header still lists Learn more: Creator for the shared menu to nest');
-    assert.ok(nav[0].includes('href="pro.html">Learn more: Pro</a>'), file + ' header still lists Learn more: Pro for the shared menu to nest');
+    assert.ok(!nav[0].includes('Learn more: Basic') && !nav[0].includes('Learn more: Creator') && !nav[0].includes('Learn more: Pro'), file + ' Product nav does not nest Basic / Creator / Pro as plan heroes');
+    const header = html.match(/<header class="nav">[\s\S]*?<\/header>/);
+    assert.ok(header && /class="public-header-tools"[\s\S]*Log in/.test(header[0]), file + ' Log in stays a top header link');
+    assert.ok(header && !/<div class="nav-actions">[\s\S]*Log in/.test(header[0]), file + ' Log in is not a button in nav-actions');
     assert.ok(!/href="boost.html">Marketing Boost<\/a>/.test(nav[0]), file + ' must not put Marketing Boost in the public header');
     const navLinks = nav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
     const lastNav = navLinks[navLinks.length - 1] || '';
@@ -283,31 +293,29 @@ function run() {
   assert.ok(read('creator.html').includes('href="royalties.html">How you get paid</a>'), 'Creator Learn more links Get paid to the royalties page');
   assert.ok(read('basic.html').includes('href="royalties.html">How you get paid</a>'), 'Basic Learn more links the royalties page from the existing payout copy');
 
-  assert.ok(index.includes('class="plans"'), 'landing still has the 3 PLAN cards');
-  assert.ok(index.includes('plan-name">Basic</div>') && index.includes('plan-name">Creator</div>') && index.includes('plan-name">Pro</div>'), 'plan cards stay Basic / Creator / Pro');
-  assert.ok(index.includes('or $149/year'), 'Creator yearly checkout stays available');
-  assert.ok(index.includes('or $199/year'), 'Pro yearly displays $199');
-  assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly starts live $199 checkout');
-  assert.ok(/data-checkout-plan="creator"\s+data-checkout-interval="year"/.test(index), 'Creator yearly starts live $149 checkout');
-  assert.ok(/paid features unlocked/i.test(index), 'Creator card uses Basic + paid unlocks voice');
-  assert.ok(/Pro unlocks unlimited/i.test(index), 'pricing then says Pro unlocks unlimited');
+  assert.ok(index.includes('class="plans price-ladder"'), 'landing still has the public price ladder');
+  assert.ok(index.includes('plan-name">Free account</div>'), 'free account is the $0 card');
+  assert.ok(/class="distro-addon">Distribute: <strong>\$2\.49<\/strong> per song \(add-on after you create an account\)/.test(index), 'distribute is a short add-on line, not a plan card');
+  assert.ok(!/plan-name">Distribute</.test(index) && !/offer-distro/.test(index), 'distribute is not a peer pricing card');
+  assert.ok(index.includes('plan-name">A&amp;R Act Pack</div>') && index.includes('$149') && /one-time/i.test(index), 'A&R Act Pack is the locked $149 one-time card');
+  assert.ok(!/plan-name">(?:Basic|Creator|Pro)<\/div>/.test(index), 'Basic / Creator / Pro are not the pricing hero');
+  assert.ok(!/data-checkout-plan/.test(index), 'homepage does not start a Stripe checkout for the old plans');
+  assert.ok(!/for life|\/forever/i.test(index), 'homepage does not say for life');
+  assert.ok(!/One Platform that handles it all/i.test(index), 'homepage does not sell one platform for distribution, publishing, and marketing');
+  assert.ok(!/Don’t miss out on your publishing revenue/.test(index), 'homepage does not close on the publishing scare');
   assert.ok(!/The same product as Pro/i.test(index), 'Creator card must not say same as Pro');
-  assert.ok(index.includes('The same product as Creator, unlimited, plus catalog migration.'), 'Pro card may say same as Creator plus catalog migration');
   assert.ok(!/grow a release/i.test(index), 'do not sell Creator as a different product');
-  assert.ok(index.includes('landing-tease'), 'logged-out landing teases publishing / boosts / sync');
+  assert.ok(index.includes('class="after-stay"'), 'logged-out landing shows after upload');
   assert.ok(!/Starter[\s\S]*\$49/i.test(index), 'landing must not show Boost size cards');
 
   const creator = read('creator.html');
-  assert.ok(/Basic[\s\S]*paid features[\s\S]*unlocked/i.test(creator), 'Creator Learn more leads with Basic + paid unlocks');
-  assert.ok(creator.includes('8 distribution uploads a month'), 'Creator states the distribution cap');
-  assert.ok(creator.includes('8 publishing registrations a month'), 'Creator states the separate publishing cap');
-  assert.ok(/Pro unlocks unlimited/i.test(creator), 'Creator then says Pro unlocks unlimited');
-  assert.ok(creator.includes('or $149/year'), 'Creator yearly stays on its own line');
+  assert.ok(/superseded/i.test(creator), 'Creator Learn more is marked superseded');
+  assert.ok(creator.includes('href="index.html#pricing"'), 'Creator Learn more points at the new pricing story');
+  assert.ok(!/data-checkout-plan/.test(creator), 'Creator Learn more does not start the old checkout');
   assert.ok(!/The same product as/i.test(creator), 'Creator must not headline same product as Pro');
   assert.ok(!/same as Pro|same product as Pro|Creator is Pro|It is Pro|Same features as Pro|only difference from Pro|a month for Pro|Pro with a monthly cap|Pro with the monthly cap|Pro with 8|Same release tools as Pro/i.test(creator), 'Creator-facing same-as-Pro copy is banned');
   assert.ok(!/grow a release/i.test(creator), 'Creator Learn more must not sell a different product');
   assert.ok(!/What Creator does not include/i.test(creator), 'Creator must not list Pro-only extras');
-  assert.ok(creator.includes('data-checkout-plan="creator"') && creator.includes('data-checkout-interval="year"'), 'Creator yearly checkout stays');
 
   const CREATOR_FACING = [
     'creator.html',
@@ -336,20 +344,16 @@ function run() {
   assert.ok(/Same product as Creator, unlimited/i.test(read('account.js')), 'Pro Settings copy may say same as Creator');
 
   const pro = read('pro.html');
-  assert.ok(pro.includes('The same product as Creator'), 'Pro Learn more is the same product');
-  assert.ok(pro.includes('or $199/year'), 'Pro yearly displays $199');
-  assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(pro), 'Pro yearly starts live $199 checkout');
+  assert.ok(/superseded/i.test(pro), 'Pro Learn more is marked superseded');
+  assert.ok(pro.includes('href="index.html#pricing"'), 'Pro Learn more points at the new pricing story');
+  assert.ok(!/data-checkout-plan/.test(pro), 'Pro Learn more does not start the old checkout');
   assert.ok(!/Everything in Creator, plus publishing/i.test(pro), 'Pro must not sell extras Creator already has');
-  assert.ok(/catalog migration/i.test(pro), 'Pro Learn more unlocks catalog migration');
-  assert.ok(/moving an existing catalog onto PLAIGROUND/i.test(pro), 'Pro catalog migration stays a soft move-onto-PLAIGROUND line');
+  assert.ok(!/The same product as Creator/.test(pro), 'Pro page is not the membership hero');
   assert.ok(/Pro includes catalog migration\. Creator does not/i.test(read('faq.html')), 'FAQ plan-difference answer names Pro catalog migration and says Creator does not');
   assert.ok(!/instant DSP|take over|takeover|ToneGrid/i.test(pro), 'Pro must not invent DSP takeover or name ToneGrid');
   assert.ok(!/Migrate catalog|data-migrate|migrate-catalog/i.test(pro), 'Pro Learn more must not add a migrate UI');
 
   const PRO_COPY = [
-    'pro.html',
-    'index.html',
-    'how-it-works.html',
     'faq.html',
     'royalties.html',
     'settings.html',
@@ -368,18 +372,22 @@ function run() {
   assert.ok(!/catalog migration/i.test(read('lib/stripe-plans.js').match(/creator:\s*'[^']+'/)[0]), 'shared Creator plan detail must not include catalog migration');
   assert.ok(!/catalog migration/i.test(read('creator.html')), 'Creator Learn more must not claim catalog migration');
   assert.ok(!/catalog migration/i.test(read('basic.html')), 'Basic Learn more must not claim catalog migration');
-  const creatorCard = index.match(/plan-name">Creator[\s\S]*?<\/article>/);
-  const basicCard = index.match(/plan-name">Basic[\s\S]*?<\/article>/);
-  const proCard = index.match(/plan-name">Pro[\s\S]*?<\/article>/);
-  assert.ok(creatorCard && !/catalog migration/i.test(creatorCard[0]), 'Creator pricing card must not list catalog migration');
-  assert.ok(basicCard && !/catalog migration/i.test(basicCard[0]), 'Basic pricing card must not list catalog migration');
-  assert.ok(proCard && /catalog migration/i.test(proCard[0]), 'Pro pricing card lists catalog migration');
-  const howCreator = how.match(/plan-name">Creator[\s\S]*?<\/article>/);
-  const howBasic = how.match(/plan-name">Basic[\s\S]*?<\/article>/);
-  const howPro = how.match(/plan-name">Pro[\s\S]*?<\/article>/);
-  assert.ok(howCreator && !/catalog migration/i.test(howCreator[0]), 'How it works Creator card must not list catalog migration');
-  assert.ok(howBasic && !/catalog migration/i.test(howBasic[0]), 'How it works Basic card must not list catalog migration');
-  assert.ok(howPro && /catalog migration/i.test(howPro[0]), 'How it works Pro card lists catalog migration');
+  const freeCard = index.match(/plan-name">Free account[\s\S]*?<\/article>/);
+  const packCard = index.match(/plan-name">A&amp;R Act Pack[\s\S]*?<\/article>/);
+  assert.ok(freeCard && /\$0/.test(freeCard[0]) && !/catalog migration/i.test(freeCard[0]), 'free account card is $0 and does not sell catalog migration');
+  assert.ok(/class="distro-addon"[\s\S]*\$2\.49/.test(index) && !/data-checkout-plan/.test(index), 'distribute line shows $2.49 without a live checkout');
+  assert.ok(packCard && /\$149/.test(packCard[0]) && /one-time/i.test(packCard[0]) && !/draft/i.test(packCard[0]) && !/data-checkout-plan/.test(packCard[0]), 'Act Pack card is $149 one-time and does not charge');
+  assert.ok(/Persona kit/.test(packCard[0]) && /one update/i.test(packCard[0]) && /Release QC/.test(packCard[0]) && /Compliance routing/.test(packCard[0]) && /PLAI Research/.test(packCard[0]), 'Act Pack card lists the locked contents');
+  const priceSheet = index.match(/<section class="pricing"[\s\S]*?<\/section>/);
+  assert.ok(priceSheet && /\$0/.test(priceSheet[0]) && /\$2\.49/.test(priceSheet[0]) && /\$149/.test(priceSheet[0]) && /\$79/.test(priceSheet[0]) && /\$99/.test(priceSheet[0]) && /\$199/.test(priceSheet[0]), 'pricing lists every locked dollar');
+  assert.ok(/\$149 \+ \$2\.49 \(\$151\.49\)/.test(priceSheet[0]), 'bundle note shows Act Pack plus the first song');
+  assert.ok(/Distribution is not required to buy A&amp;R/.test(priceSheet[0]), 'A&R does not require Distro');
+  assert.ok(/No placement promise/.test(priceSheet[0]), 'Sync package makes no placement promise');
+  assert.ok(!/pricing on request/i.test(index), 'pricing does not say pricing on request');
+  assert.ok(!/data-checkout-plan/.test(priceSheet[0]), 'price sheet does not start checkout');
+  const indexHeader = index.match(/<header class="nav">[\s\S]*?<\/header>/);
+  assert.ok(indexHeader && !/Growth campaign|Sync package|href="[^"]*sync\.html"/.test(indexHeader[0]), 'Growth and Sync stay off the public header');
+  assert.ok(!/plan-name">(?:Basic|Creator|Pro)/.test(how), 'How it works does not restage Basic / Creator / Pro cards');
   const creatorEarn = read('earnings.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
   const creatorPay = read('payouts.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
   assert.ok(creatorEarn && !/catalog migration/i.test(creatorEarn[0]), 'Earnings Creator sidebar must not claim catalog migration');
@@ -439,11 +447,10 @@ function run() {
   assert.ok(js.includes('href = "/login.html"') || js.includes('href="/login.html"'), 'pinned Login reuses the existing sign-in page at a root-absolute path');
   assert.ok(js.includes('isSignedIn'), 'pinned Login hides when already signed in');
   assert.ok(js.includes('document.body.classList.contains("app")'), 'signed-in app chrome does not get the public Login');
-  assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav nests plan pages once');
-  assert.ok(js.includes('nav-submenu-toggle'), 'phone chevron expands Basic / Creator / Pro');
-  assert.ok(js.includes('Show Basic, Creator, and Pro'), 'chevron is labeled for the plan pages');
-  assert.ok(js.includes('chevron.type = "button"'), 'chevron must not be a link that blocks the compare page');
-  assert.ok(js.includes('submenu.appendChild(basic)') && js.includes('submenu.appendChild(creator)') && js.includes('submenu.appendChild(pro)'), 'submenu nests Basic, Creator, and Pro');
+  assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav still folds old plan heroes');
+  assert.ok(js.includes('foldPublicPlanHeroes'), 'Pricing link is not a Basic / Creator / Pro nest');
+  assert.ok(!js.includes('Show Basic, Creator, and Pro'), 'chevron is not labeled as three plan heroes');
+  assert.ok(!js.includes('submenu.appendChild(basic)') && !js.includes('submenu.appendChild(creator)') && !js.includes('submenu.appendChild(pro)'), 'submenu does not nest Basic, Creator, and Pro');
   assert.ok(!/boost\.html/.test(js), 'shared public nav must not nest Boost');
   assert.ok(js.includes('data-nav-group", "after"') || js.includes('After upload'), 'shared public nav builds After upload');
   assert.ok(!/submenu\.appendChild\([\s\S]{0,120}royalt/.test(js), 'plans submenu must not nest How you get paid');
@@ -503,8 +510,8 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">PLAI<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Money / PLAI / Account');
-    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
+    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Act<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">PLAI<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Act / Money / PLAI / Account');
+    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<p class="side-price">\$2\.49 a song<\/p>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
     assert.ok(/<p class="side-label">Money<\/p>\s*<a(?: class="on")? href="boosts.html"[^>]*>Boosts<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(sideNav[0]), file + ' Money is Boosts, Publishing, Earnings, Analytics, Payouts');
     assert.ok(/<p class="side-label">PLAI<\/p>\s*<button[^>]*data-plai-talk[^>]*>Talk to PLAI<\/button>\s*<button[^>]*data-plai-text[^>]*>Text to PLAI<\/button>/.test(sideNav[0]), file + ' PLAI is Talk to PLAI then Text to PLAI');
     assert.ok(/<p class="side-label">Account<\/p>\s*<a(?: class="on")? href="settings.html">Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' Account is Settings, How it works, FAQ');
@@ -531,7 +538,7 @@ function run() {
     assert.ok(!/>Blog</.test(sideNav[0]), file + ' must not invent Blog into the locked signed-in IA');
   });
   assert.ok(!index.includes('class="side-nav"'), 'homepage must not share the signed-in side-nav');
-  assert.ok(/href="boost.html">Marketing boosts<\/a>/.test(index), 'homepage marketing tease stays on the public Boost page');
+  assert.ok(!/href="boost.html">Marketing boosts<\/a>/.test(index), 'homepage does not lead with a marketing-boosts tease');
   assert.ok(!/<section class="landing-tease"[\s\S]*href="boosts.html"/.test(index), 'logged-out homepage must not send people into boosts.html');
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok((vercel.rewrites || []).some(function (row) {
