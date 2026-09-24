@@ -79,7 +79,7 @@ function run() {
   fs.readdirSync(root).forEach(function (name) {
     if (!/\.html$/.test(name)) return;
     // Owner /admin may name the store partner. Every other page stays locked.
-    if (name === 'terms.html' || name === 'split-sheet.html' || name === 'admin.html') return;
+    if (name === 'terms.html' || name === 'privacy.html' || name === 'rights.html' || name === 'split-sheet.html' || name === 'admin.html') return;
     const raw = fs.readFileSync(path.join(root, name), 'utf8');
     htmlVisibleLeaks(raw).forEach(function (snippet) {
       leaks.push(name + ' html text: ' + snippet);

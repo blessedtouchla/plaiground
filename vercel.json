@@ -55,6 +55,41 @@
       "source": "/plans",
       "destination": "/index.html#pricing",
       "permanent": true
+    },
+    {
+      "source": "/basic.html",
+      "destination": "/index.html#pricing",
+      "permanent": true
+    },
+    {
+      "source": "/creator.html",
+      "destination": "/index.html#pricing",
+      "permanent": true
+    },
+    {
+      "source": "/pro.html",
+      "destination": "/index.html#pricing",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/charts/top100",
+      "destination": "/charts/top-100",
+      "permanent": true
+    },
+    {
+      "source": "/platforms.html",
+      "destination": "/faq.html#faq-platforms",
+      "permanent": true
+    },
+    {
+      "source": "/platforms",
+      "destination": "/faq.html#faq-platforms",
+      "permanent": true
     }
   ],
   "rewrites": [

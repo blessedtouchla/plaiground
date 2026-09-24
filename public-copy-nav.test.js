@@ -89,10 +89,10 @@ function run() {
     assert.strictEqual((html.match(/<div class="n [pmg]">0[1-9]<\/div>/g) || []).length, 3, file + ' still has exactly three numbered step badges');
     assert.ok(html.includes('Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.'), file + ' Upload step copy stays');
     assert.ok(html.includes('We generate the split sheet, everyone signs, and we deliver on the date you choose.'), file + ' Release step body stays date-first');
-    assert.ok(html.includes('Distribution to 150 platforms'), file + ' Release bullet names 150 platforms');
+    assert.ok(html.includes('Distribution to 50+ platforms'), file + ' Release bullet names 50+ platforms');
     assert.ok(!/\b220\b/.test(html) && !/\b200\b/.test(html), file + ' must not invent a 220 / 200 store count');
     assert.ok(!/the stores we send to/i.test(html) && !/live store catalog/i.test(html), file + ' must not say stores we send to or live store catalog');
-    assert.ok(html.includes('Distribution to 150 platforms') || html.includes('Upload + distribution to 150 platforms'), file + ' names 150 platforms');
+    assert.ok(html.includes('Distribution to 50+ platforms') || html.includes('Upload + distribution to 50+ platforms'), file + ' names 50+ platforms');
     assert.ok(html.includes('Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked.'), file + ' keeps the later Creator/Pro lock');
     assert.ok(/Pro unlocks unlimited/i.test(html), file + ' Get paid then says Pro unlimited');
     assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(html), file + ' must not name a store partner');
@@ -149,13 +149,14 @@ function run() {
   const faqVisible = faq.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   assert.ok(!/ToneGrid|InterSpace|Flossy|DistroKid|\bFrank\b/i.test(faqVisible), 'FAQ must not name the store partner');
   assert.ok(!/\b15\s*%/.test(faqVisible), 'FAQ must not mention a 15% cut');
-  assert.ok(/\b150\b/.test(faqVisible), 'FAQ surrounding copy says 150');
+  assert.ok(!/\b150 platforms\b/.test(faqVisible), 'FAQ must not say 150 platforms');
+  assert.ok(/50\+ platforms/.test(faqVisible), 'FAQ says 50+ platforms');
   assert.ok(!/\b220\b/.test(faqVisible), 'FAQ must not say 220');
   assert.ok(!/live store catalog/i.test(faqVisible), 'FAQ must not say live store catalog');
   assert.ok(!/the stores we send to/i.test(faqVisible), 'FAQ must not say the stores we send to');
   assert.ok(!/keep 95|95%|5% cut/i.test(faqVisible), 'FAQ must not say a 95% keep or 5% cut');
-  assert.ok(/We deliver to 150 platforms/.test(faq), 'FAQ Where do you deliver says 150 platforms');
-  assert.ok(/distribution to 150 platforms/.test(faq), 'FAQ plan difference says 150 platforms');
+  assert.ok(/We deliver to 50\+ platforms/.test(faq), 'FAQ Where do you deliver says 50+ platforms');
+  assert.ok(/distribution to 50\+ platforms/.test(faq), 'FAQ plan difference says 50+ platforms');
   assert.ok(!/type="checkbox"|role="switch"|data-video-collect-toggle|video-collect-toggle/i.test(faq), 'FAQ must not ship a Video Collect toggle');
   assert.ok(!/statement line|already on|upload switch/i.test(faqVisible), 'FAQ must not invent statement-line names');
   assert.ok(/Platforms we distribute to/i.test(faq), 'FAQ has Platforms we distribute to');
@@ -630,7 +631,7 @@ function run() {
   assert.ok(!/West Hollywood/.test(terms), 'terms.html must not publish the apartment city');
   assert.ok(!/Mail:/.test(terms), 'terms.html must not keep a Mail: street line');
   assert.ok(/Los Angeles County/.test(terms), 'terms.html keeps Los Angeles County courts');
-  assert.ok(/California LLC/.test(terms), 'terms.html keeps California LLC');
+  assert.ok(/California limited liability company|California LLC/.test(terms), 'terms.html keeps the California LLC');
   const shippedHits = [];
   function scanShipped(rel) {
     const raw = read(rel);
