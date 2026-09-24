@@ -234,6 +234,89 @@ button { cursor: pointer; }
   }
 }
 .nav-item.has-submenu.open .nav-submenu { display: block; }
+.nav-group { position: relative; display: flex; align-items: center; }
+.nav-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nav-group-toggle:hover,
+.nav-group.open .nav-group-toggle,
+.nav-group:focus-within .nav-group-toggle { color: #fff; }
+.nav-group-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+}
+.nav-group-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.nav-group-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 220px;
+  padding: 8px 0;
+  background: #0C0C12;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  z-index: 80;
+}
+.nav-group-menu > a,
+.nav-group-menu .nav-item-row > a {
+  display: block;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.nav-group-menu .nav-item { display: block; }
+.nav-group-menu .nav-item-row { width: 100%; justify-content: space-between; padding-right: 8px; }
+.nav-group-menu .nav-submenu {
+  position: static;
+  left: auto;
+  transform: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.nav-group-menu .nav-submenu a { padding-left: 28px; }
+.nav-group-menu .nav-paid-long,
+.nav.nav-open .nav-paid-long { display: inline; }
+.nav-group-menu .nav-paid-short,
+.nav.nav-open .nav-paid-short { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .nav-group:hover > .nav-group-menu,
+  .nav-group:focus-within > .nav-group-menu { display: block; }
+}
+.nav-group.open > .nav-group-menu { display: block; }
 .nav-actions {
   display: flex;
   align-items: center;
@@ -540,7 +623,7 @@ button.plan-year:hover { color: #fff; }
 .cta-inner p { color: rgba(255, 255, 255, 0.88); font-size: 15px; margin-bottom: 20px; max-width: 460px; }
 
 footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
-.footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.footer-grid { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(6, minmax(0, 1fr)); gap: 28px 22px; margin-bottom: 48px; }
 .footer-brand .logo img { height: 56px; }
 .footer-brand p { color: var(--muted); font-size: 13px; max-width: 260px; margin: 14px 0 18px; }
 .socials { display: flex; gap: 10px; }
@@ -558,6 +641,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .footer-col h4 { font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 16px; }
 .footer-col a { display: block; color: var(--muted); font-size: 14px; margin-bottom: 10px; }
 .footer-col a:hover { color: #fff; }
+.footer-col h4 { font-family: "Space Grotesk", Inter, sans-serif; }
 .copy { font-size: 12px; color: #6E6E7A; }
 
 /* —— Auth —— */
@@ -3740,9 +3824,8 @@ body.app.artists-page .page {
 .thumb.lg { width: 56px; height: 56px; border-radius: 10px; }
 
 @media (max-width: 1180px) {
-  /* #305 production kick 4: public destinations stay on the bar. Do not hide .nav-links or promote Menu. */
+  /* Phone / tablet: destinations move into the Menu drawer. Log in stays on the bar. */
   .nav-actions { display: none; }
-  .public-menu-toggle { display: none; }
   .public-header-tools {
     display: flex;
     flex-direction: row;
@@ -3761,9 +3844,8 @@ body.app.artists-page .page {
 }
 
 @media (max-width: 980px) {
-  /* #305 production kick 4: public destinations stay on the bar. Do not hide .nav-links or promote Menu. */
+  /* Phone / tablet: destinations move into the Menu drawer. Log in stays on the bar. */
   .nav-actions { display: none; }
-  .public-menu-toggle { display: none; }
   .public-header-tools {
     display: flex;
     flex-direction: row;
@@ -4090,7 +4172,7 @@ body.app.artists-page .page {
   }
 }
 
-/* Phone header: logo + Log in. Public destinations stay visible; Menu stays demoted. */
+/* Phone header: logo + Log in + Menu. Destinations open in the drawer. */
 @media (max-width: 640px) {
   :root {
     --nav-h: 72px;
@@ -7012,7 +7094,7 @@ body.attest-page .plai-bubble-row {
   }
 }
 
-/* —— Public nav Tesla cut (always-visible top links, pre-login only) —— */
+/* —— Public nav sections (Product / After upload / Trust / Listen / Stories) —— */
 .nav.is-public-bar,
 header.nav {
   z-index: 50;
@@ -7027,115 +7109,118 @@ header.nav {
   .nav.is-public-bar {
     overflow: visible;
   }
-  .nav-links {
-    display: flex !important;
-    position: static;
-    left: auto;
-    transform: none;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 14px;
-    width: auto;
-    min-width: 0;
-    flex: 1 1 auto;
-    white-space: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .nav-links::-webkit-scrollbar { display: none; }
-  .nav-links a {
-    flex: 0 0 auto;
-    padding: 0;
-    border-bottom: 0;
-    font-size: 13px;
-  }
-  .nav-actions { display: none !important; }
-  .public-menu-toggle { display: none !important; }
+  .public-menu-toggle { display: inline-flex !important; }
   .public-header-tools {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
     gap: 10px;
-    margin-left: 0;
+    margin-left: auto;
   }
-  .nav-paid-long { display: none; }
-  .nav-paid-short { display: inline; }
-  .nav-submenu-toggle { display: none; }
-  .nav-submenu,
-  .nav.nav-open .nav-submenu,
-  .nav.nav-open .nav-item.has-submenu.open .nav-submenu { display: none !important; }
-  .nav-drawer,
+  .nav-links,
+  .nav-actions { display: none !important; }
+  .nav-drawer { display: contents; }
   .nav.nav-open .nav-drawer {
-    display: contents;
-    position: static;
-    transform: none;
-    padding: 0;
-    background: transparent;
-    border: 0;
+    display: block;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    overflow: auto;
+    padding: 8px 22px 36px;
+    background: #0c0c12;
+    border-top: 1px solid var(--line);
   }
   .nav.nav-open .nav-links {
     display: flex !important;
-    flex-direction: row;
     position: static;
+    left: auto;
     transform: none;
-    align-items: center;
-    gap: 14px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 18px;
     width: auto;
-    white-space: nowrap;
-  }
-  .nav.nav-open .nav-item.has-submenu {
-    display: flex;
-    width: auto;
-  }
-  .nav.nav-open .nav-item-row {
-    width: auto;
-    border-bottom: 0;
-  }
-  .public-nav-backdrop,
-  .nav.nav-open .public-nav-backdrop { display: none !important; }
-  body.public-nav-open { overflow: visible; }
-}
-@media (max-width: 720px) {
-  :root { --nav-h: 108px; }
-  .nav {
-    height: auto;
-    min-height: 72px;
+    min-width: 0;
+    white-space: normal;
     overflow: visible;
   }
-  .nav-inner {
-    height: auto;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 2px;
-    padding-top: 8px;
-    padding-bottom: 10px;
+  .nav.nav-open .nav-group,
+  .nav.nav-open .nav-group-link {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
   }
-  .nav .logo { flex: 0 1 auto; }
+  .nav.nav-open .nav-group-toggle,
+  .nav.nav-open .nav-group-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0 0 6px;
+    padding: 0;
+    overflow: visible;
+    clip: auto;
+    font-family: "Space Grotesk", Inter, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6e6e7a;
+    pointer-events: none;
+  }
+  .nav.nav-open .nav-group-toggle::after { display: none; }
+  .nav.nav-open .nav-group-menu,
+  .nav.nav-open .nav-group.open > .nav-group-menu,
+  .nav.nav-open .nav-group:hover > .nav-group-menu {
+    display: flex;
+    flex-direction: column;
+    position: static;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+  .nav.nav-open .nav-group-menu > a,
+  .nav.nav-open .nav-group-link > a,
+  .nav.nav-open .nav-links a {
+    padding: 10px 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .nav.nav-open .nav-submenu-toggle { display: none; }
+  .nav.nav-open .nav-item.has-submenu .nav-submenu { display: block; }
+  .nav.nav-open .nav-actions {
+    display: flex !important;
+    margin-top: 12px;
+    padding-top: 8px;
+  }
+  .nav.nav-open .nav-actions .btn { width: 100%; justify-content: center; }
+  .nav.nav-open .public-nav-backdrop { display: block; }
+  body.public-nav-open { overflow: hidden; }
+}
+@media (max-width: 720px) {
   .nav .logo img {
     height: 36px;
     max-width: 140px;
   }
-  .public-header-tools { margin-left: auto; }
   .public-header-tools .login {
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 600;
   }
-  .nav-links,
-  .nav.nav-open .nav-links {
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    overflow: visible;
-    white-space: normal;
-    gap: 8px 14px;
-    padding: 4px 0 2px;
-  }
-  .nav-links a { font-size: 12px; }
+}
+@media (max-width: 1100px) {
+  .footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .footer-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .footer-grid { grid-template-columns: 1fr; }
+  .footer-brand { grid-column: auto; }
 }
 
 /* —— PLAIGROUND A&R + EPK (Tesla-minimal, stage gold/purple) —— */
