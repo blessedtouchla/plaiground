@@ -58,7 +58,7 @@
       </div>
     </div>
   </header>
-  <aside class="side">
+  <aside class="side" hidden>
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <nav class="side-nav">
       <p class="side-label">Create</p>
@@ -93,7 +93,7 @@
     </div>
   </aside>
   <div class="app-main">
-    <div class="topbar">
+    <div class="topbar" hidden>
       <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
     </div>
     <main>
@@ -103,7 +103,7 @@
         <h1>Talk to a person.</h1>
         <p class="sub">Support is answered by the team that builds the product. One business day, usually much less.</p>
         <div class="contact-grid">
-          <form class="contact-card" action="contact.html" method="get">
+          <form class="contact-card" action="mailto:emailplaiground@gmail.com" method="post" enctype="text/plain">
             <h2 style="font-size:1.4rem;margin-bottom:18px">Send us a message</h2>
             <div class="field">
               <label for="name">Your name</label>
@@ -127,7 +127,7 @@
               <textarea id="message" name="message" rows="5" placeholder="How can we help?"></textarea>
             </div>
             <div class="hero-ctas" style="justify-content:flex-start;margin:0">
-              <button class="btn btn-purple btn-md" type="submit">Send message</button>
+              <button class="btn btn-purple btn-md" type="submit">Email this message</button>
               <span style="color:var(--muted);font-size:13px">We reply within one business day</span>
             </div>
           </form>
@@ -163,7 +163,6 @@
           <h4>Product</h4>
           <a href="how-it-works.html">How it works</a>
           <a href="index.html#pricing">Plans and Pricing</a>
-          <a href="boost.html">Marketing Boost</a>
         </div>
         <div class="footer-col">
           <h4>After upload</h4>

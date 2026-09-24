@@ -2131,6 +2131,8 @@ button.dashbox span {
 body.app .page-hero { padding-top: 36px; }
 body:not(.app) > .side,
 body:not(.app) > .app-main > .topbar { display: none; }
+.side[hidden],
+.topbar[hidden] { display: none !important; }
 .landing-tease {
   padding: 8px 0 72px;
 }
