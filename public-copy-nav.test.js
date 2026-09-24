@@ -630,7 +630,7 @@ function run() {
   assert.ok(!/West Hollywood/.test(terms), 'terms.html must not publish the apartment city');
   assert.ok(!/Mail:/.test(terms), 'terms.html must not keep a Mail: street line');
   assert.ok(/Los Angeles County/.test(terms), 'terms.html keeps Los Angeles County courts');
-  assert.ok(/California LLC/.test(terms), 'terms.html keeps California LLC');
+  assert.ok(/California limited liability company|California LLC/.test(terms), 'terms.html keeps the California LLC');
   const shippedHits = [];
   function scanShipped(rel) {
     const raw = read(rel);
