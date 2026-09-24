@@ -6304,6 +6304,214 @@ body.review-page main.page {
   }
 }
 
+/* Artist Profiles — Act, not just files (persona education) */
+.artists-page .artists-act-edu {
+  margin: 0 0 22px;
+  max-width: 40rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.artists-page .artists-act-edu.is-edit {
+  margin: 18px 0 0;
+  max-width: none;
+}
+.artists-page .artists-act-edu summary {
+  list-style: none;
+  cursor: pointer;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f3cb47;
+  padding: 14px 0;
+}
+.artists-page .artists-act-edu summary::-webkit-details-marker { display: none; }
+.artists-page .artists-act-edu summary::after {
+  content: "+";
+  float: right;
+  color: #782fb1;
+  font-weight: 700;
+}
+.artists-page .artists-act-edu[open] summary::after {
+  content: "–";
+}
+.artists-page .artists-act-edu-body {
+  padding: 0 0 16px;
+}
+.artists-page .artists-act-edu-body p {
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+.artists-page .artists-act-edu-check-label {
+  margin: 14px 0 8px !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted) !important;
+}
+.artists-page .artists-act-edu-check {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.artists-page .artists-act-edu-check li {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-2);
+  border: 1px solid rgba(120, 47, 177, 0.45);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+.artists-page .artists-act-edu-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  margin: 12px 0 0 !important;
+}
+.artists-page .artists-act-edu-links a {
+  color: #f3cb47;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.artists-page .artists-act-edu-links a:hover {
+  color: #fff;
+}
+.artists-page .artists-act-edu-lite {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.artists-page .artists-act-edu-lite a {
+  color: #f3cb47;
+  font-weight: 600;
+  text-decoration: none;
+}
+.artists-page .artists-act-edu-lite a:hover {
+  color: #fff;
+}
+
+/* Artist Profiles — fill guide + Human / AI-infused class */
+.artists-page .artists-fill-guide {
+  margin: 0 0 20px;
+  max-width: 42rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.artists-page .artists-fill-guide summary {
+  list-style: none;
+  cursor: pointer;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f3cb47;
+  padding: 14px 0;
+}
+.artists-page .artists-fill-guide summary::-webkit-details-marker { display: none; }
+.artists-page .artists-fill-guide summary::after {
+  content: "+";
+  float: right;
+  color: #782fb1;
+  font-weight: 700;
+}
+.artists-page .artists-fill-guide[open] summary::after {
+  content: "–";
+}
+.artists-page .artists-fill-guide-list {
+  margin: 0 0 12px;
+  padding: 0 0 0 1.15rem;
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.artists-page .artists-fill-guide-list li {
+  margin: 0 0 8px;
+}
+.artists-page .artists-avatar-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  max-width: 28rem;
+}
+.artists-page .artist-photo-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.artists-page .artist-class-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+.artists-page .artist-class-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(120, 47, 177, 0.4);
+  border-radius: 999px;
+  color: var(--muted-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.artists-page .artist-class-pick:has(input:checked) {
+  border-color: #f3cb47;
+  color: #fff;
+}
+.artists-page .artist-class-pick input {
+  accent-color: #782fb1;
+}
+.artists-page .artist-ai-mix {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.artists-page .artist-ai-mix-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.artists-page .artist-ai-mix-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) repeat(3, auto);
+  gap: 8px 12px;
+  align-items: center;
+}
+.artists-page .artist-ai-mix-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e8ee;
+}
+.artists-page .artist-ai-mix-row label {
+  font-size: 12px;
+  color: var(--muted-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.artists-page .artist-ai-mix-row input {
+  accent-color: #782fb1;
+}
+@media (max-width: 640px) {
+  .artists-page .artist-ai-mix-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .artists-page .artist-ai-mix-label {
+    grid-column: 1 / -1;
+  }
+}
+
 /* —— Attest Tesla energy (rights confirmation + honest status + sticky dock) —— */
 body.attest-page {
   background: #000;
@@ -6928,4 +7136,185 @@ header.nav {
     padding: 4px 0 2px;
   }
   .nav-links a { font-size: 12px; }
+}
+
+/* —— PLAIGROUND A&R + EPK (Tesla-minimal, stage gold/purple) —— */
+.acts-page {
+  --acts-gold: #f3cb47;
+  --acts-purple: #782fb1;
+}
+.acts-page .acts-eyebrow {
+  color: var(--acts-gold);
+}
+.acts-page .acts-accent {
+  color: var(--acts-gold);
+}
+.acts-page .acts-tagline {
+  max-width: 40rem;
+  color: #e8e8ee;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+.acts-page .acts-h2 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0 0 28px;
+  max-width: 36rem;
+}
+.acts-page .acts-quote {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-style: normal;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--acts-gold);
+  quotes: none;
+  margin: 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--acts-purple);
+}
+.acts-page .acts-quote-solo {
+  margin-top: 22px;
+  max-width: 36rem;
+}
+.acts-page .acts-wall {
+  padding: 0 0 48px;
+}
+.acts-page .acts-wall-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px 32px;
+  border-top: 1px solid var(--line);
+  padding-top: 28px;
+}
+.acts-page .acts-rails {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 56px;
+}
+.acts-page .acts-rail {
+  padding: 28px 32px 32px 0;
+}
+.acts-page .acts-rail + .acts-rail {
+  padding-left: 32px;
+  border-left: 1px solid var(--line);
+}
+.acts-page .acts-rail-head h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.acts-page .acts-rail-focus .acts-rail-head h3 {
+  color: var(--acts-gold);
+}
+.acts-page .acts-rail-head p {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+.acts-page .acts-rail-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.acts-page .acts-rail-list li {
+  color: var(--muted-2);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: 14px;
+  position: relative;
+}
+.acts-page .acts-rail-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--acts-purple);
+}
+.acts-page .acts-rail-list a {
+  color: var(--acts-gold);
+  font-weight: 600;
+}
+.acts-page .acts-rail-list a:hover {
+  color: #fff;
+}
+.acts-page .acts-feature-lines li::before {
+  color: var(--acts-purple);
+}
+.acts-page .acts-feature-lines strong {
+  color: #fff;
+  font-weight: 600;
+}
+.acts-page .acts-price {
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.acts-page .acts-stops {
+  padding: 8px 0 64px;
+}
+.acts-page .acts-stop-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-bottom: 22px;
+}
+.acts-page .acts-stop-list li {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1px solid rgba(120, 47, 177, 0.45);
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+.acts-page .acts-quiet-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 22px;
+}
+.acts-page .acts-quiet-links .learn {
+  margin: 0;
+  color: #e8e8ee;
+}
+.acts-page .acts-quiet-links .learn:hover {
+  color: var(--acts-gold);
+}
+.home-portal .home-acts-link {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3cb47;
+}
+.home-portal .home-acts-link:hover {
+  color: #fff;
+}
+@media (max-width: 800px) {
+  .acts-page .acts-wall-grid,
+  .acts-page .acts-rails {
+    grid-template-columns: 1fr;
+  }
+  .acts-page .acts-rail,
+  .acts-page .acts-rail + .acts-rail {
+    padding: 22px 0;
+    border-left: 0;
+  }
+  .acts-page .acts-rail + .acts-rail {
+    border-top: 1px solid var(--line);
+  }
 }

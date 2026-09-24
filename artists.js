@@ -441,6 +441,75 @@
     return out;
   }
 
+  var MIX_KEYS = ['lyrics', 'vocals', 'instruments', 'production_mix'];
+  var MIX_TO_CONTRIB = {
+    lyrics: 'lyrics',
+    vocals: 'vocals_performance',
+    instruments: 'beats_production',
+    production_mix: 'arrangement_mix',
+  };
+
+  function readCreationClass() {
+    var picked = document.querySelector('[data-artist-class-pick]:checked');
+    return picked ? String(picked.value || '') : '';
+  }
+
+  function setCreationClass(value) {
+    var want = String(value || '');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-class-pick]'), function (box) {
+      box.checked = box.value === want;
+    });
+    syncAiMixVisibility();
+  }
+
+  function readAiMix() {
+    var out = { lyrics: '', vocals: '', instruments: '', production_mix: '' };
+    MIX_KEYS.forEach(function (key) {
+      var picked = document.querySelector('[data-ai-mix="' + key + '"]:checked');
+      out[key] = picked ? String(picked.value || '') : '';
+    });
+    return out;
+  }
+
+  function setAiMix(mix) {
+    var data = mix || {};
+    MIX_KEYS.forEach(function (key) {
+      var want = String(data[key] || '');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ai-mix="' + key + '"]'), function (box) {
+        box.checked = box.value === want;
+      });
+    });
+  }
+
+  function contributionsFromUi() {
+    var klass = readCreationClass();
+    if (klass === 'human') return { human: [], ai: [] };
+    var mix = readAiMix();
+    var human = [];
+    var ai = [];
+    MIX_KEYS.forEach(function (key) {
+      var contrib = MIX_TO_CONTRIB[key];
+      var val = mix[key];
+      if (!contrib || !val) return;
+      if (val === 'human' || val === 'mixed') human.push(contrib);
+      if (val === 'ai' || val === 'mixed') ai.push(contrib);
+    });
+    if (klass === 'fully_ai' && ai.indexOf('full_track_support') === -1) ai.push('full_track_support');
+    return { human: human, ai: ai };
+  }
+
+  function syncContributionHooks() {
+    var mapped = contributionsFromUi();
+    setChecks('[data-human-contribution]', mapped.human);
+    setChecks('[data-ai-contribution]', mapped.ai);
+  }
+
+  function syncAiMixVisibility() {
+    var klass = readCreationClass();
+    var show = klass === 'ai_infused' || klass === 'fully_ai';
+    setHidden('[data-artist-ai-mix]', !show);
+  }
+
   function involvementValue() {
     var num = $('#artist-ai-percent');
     if (!num) return null;
@@ -457,10 +526,10 @@
     var label = $('[data-artist-ai-meter]');
     var summary = $('[data-artist-ai-summary]');
     var empty = $('[data-artist-ai-empty]');
-    var human = readChecks('data-human-contribution');
-    var ai = readChecks('data-ai-contribution');
+    var mix = readAiMix();
+    var hasMix = MIX_KEYS.some(function (key) { return mix[key]; });
     var detail = $('#artist-ai-detail') ? String($('#artist-ai-detail').value || '').trim() : '';
-    var has = pct != null || human.length || ai.length || Boolean(detail);
+    var has = pct != null || hasMix || Boolean(detail) || Boolean(readCreationClass());
     if (range && pct != null) range.value = String(pct);
     if (label) label.textContent = pct == null ? 'Not set yet' : ('AI involvement: ' + pct + '%');
     setHidden('[data-artist-ai-empty]', has);
@@ -469,8 +538,34 @@
   }
 
   function paintAiFields(artist) {
-    setChecks('[data-human-contribution]', artist.human_contributions || []);
-    setChecks('[data-ai-contribution]', artist.ai_contributions || []);
+    var klass = artist.creation_class || '';
+    if (!klass) {
+      var human = artist.human_contributions || [];
+      var ai = artist.ai_contributions || [];
+      var pct = artist.ai_involvement_percent;
+      if (ai.indexOf('full_track_support') !== -1 || (pct != null && pct >= 90 && !human.length)) klass = 'fully_ai';
+      else if (ai.length || (pct != null && pct > 0)) klass = 'ai_infused';
+      else if (human.length) klass = 'human';
+    }
+    setCreationClass(klass);
+    setAiMix(artist.ai_mix || {});
+    if (!(artist.ai_mix && MIX_KEYS.some(function (key) { return artist.ai_mix[key]; }))) {
+      var inferred = { lyrics: '', vocals: '', instruments: '', production_mix: '' };
+      var humanSet = {};
+      var aiSet = {};
+      (artist.human_contributions || []).forEach(function (k) { humanSet[k] = true; });
+      (artist.ai_contributions || []).forEach(function (k) { aiSet[k] = true; });
+      Object.keys(MIX_TO_CONTRIB).forEach(function (mixKey) {
+        var contrib = MIX_TO_CONTRIB[mixKey];
+        var h = humanSet[contrib];
+        var a = aiSet[contrib];
+        if (h && a) inferred[mixKey] = 'mixed';
+        else if (h) inferred[mixKey] = 'human';
+        else if (a) inferred[mixKey] = 'ai';
+      });
+      setAiMix(inferred);
+    }
+    syncContributionHooks();
     var detail = $('#artist-ai-detail');
     if (detail) detail.value = artist.ai_process_detail || '';
     var num = $('#artist-ai-percent');
@@ -1151,10 +1246,12 @@
       spotify_id: legacy.spotify_id,
       apple_id: legacy.apple_id,
       store_url: legacy.store_url,
-      human_contributions: readChecks('data-human-contribution'),
+      human_contributions: (function () { syncContributionHooks(); return readChecks('data-human-contribution'); }()),
       ai_contributions: readChecks('data-ai-contribution'),
       ai_process_detail: $('#artist-ai-detail') ? $('#artist-ai-detail').value : '',
       ai_involvement_percent: involvementValue(),
+      creation_class: readCreationClass(),
+      ai_mix: readAiMix(),
       change_request: $('#artist-change') ? $('#artist-change').value : '',
       legal_first: $('#artist-legal-first') ? $('#artist-legal-first').value : '',
       legal_last: $('#artist-legal-last') ? $('#artist-legal-last').value : '',
@@ -1385,6 +1482,21 @@
     }
     Array.prototype.forEach.call(document.querySelectorAll('[data-human-contribution], [data-ai-contribution]'), function (box) {
       box.addEventListener('change', function () {
+        paintAiMeter();
+        scheduleSave();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-artist-class-pick]'), function (box) {
+      box.addEventListener('change', function () {
+        syncAiMixVisibility();
+        syncContributionHooks();
+        paintAiMeter();
+        scheduleSave();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ai-mix]'), function (box) {
+      box.addEventListener('change', function () {
+        syncContributionHooks();
         paintAiMeter();
         scheduleSave();
       });
