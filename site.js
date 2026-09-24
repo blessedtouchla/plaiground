@@ -293,7 +293,7 @@
     item.classList.toggle("open", open);
     if (chevron) {
       chevron.setAttribute("aria-expanded", open ? "true" : "false");
-      chevron.setAttribute("aria-label", open ? "Hide Basic, Creator, and Pro" : "Show Basic, Creator, and Pro");
+      chevron.setAttribute("aria-label", open ? "Hide menu" : "Show menu");
     }
   }
 
@@ -532,8 +532,18 @@
     });
   }
 
+  function foldPublicPlanHeroes(links) {
+    if (!links || !links.querySelector) return;
+    var item = links.querySelector(".nav-item.has-submenu");
+    if (!item || !item.parentNode) return;
+    var pricing = item.querySelector('a[href*="#pricing"]') || item.querySelector("a");
+    if (pricing) item.parentNode.insertBefore(pricing, item);
+    item.parentNode.removeChild(item);
+  }
+
   function setupPublicNavSections(links) {
     if (!links) return;
+    foldPublicPlanHeroes(links);
     if (links.querySelector("[data-nav-group]")) {
       wirePublicNavGroups(links);
       return;
@@ -578,10 +588,7 @@
     var productMenu = product.querySelector(".nav-group-menu");
     productMenu.appendChild(how);
     productMenu.appendChild(plans);
-    productMenu.appendChild(basic);
-    productMenu.appendChild(creator);
-    productMenu.appendChild(pro);
-    setupPublicPlansMenu(productMenu);
+    foldPublicPlanHeroes(productMenu);
 
     var after = makeNavGroup("after", "After upload");
     var afterMenu = after.querySelector(".nav-group-menu");
@@ -674,9 +681,6 @@
 
     ensure("how", "how-it-works.html", "How it works");
     ensure("plans", "index.html#pricing", "Plans and Pricing");
-    ensure("basic", "basic.html", "Learn more: Basic");
-    ensure("creator", "creator.html", "Learn more: Creator");
-    ensure("pro", "pro.html", "Learn more: Pro");
     ensure("ar", "ar.html", "A&R");
     ensure("epk", "epk.html", "EPK");
     ensure("paid", "royalties.html", "How you get paid");
@@ -703,7 +707,7 @@
       return node;
     }
 
-    var productKeys = ["how", "plans", "basic", "creator", "pro"];
+    var productKeys = ["how", "plans"];
     if (found.boost) productKeys.push("boost");
     if (found.plai) productKeys.push("plai");
     var productCol = col("Product", productKeys);
@@ -722,6 +726,10 @@
     grid.appendChild(col("Company", ["about", "blog", "contact"]));
     grid.appendChild(col("Legal", ["terms", "rights", "privacy"]));
     grid.appendChild(col("Account", ["login", "signup"]));
+    ["basic", "creator", "pro"].forEach(function (key) {
+      var node = found[key];
+      if (node && node.parentNode) node.parentNode.removeChild(node);
+    });
   }
 
   function setupAppBlogLink(side) {
@@ -751,64 +759,7 @@
   }
 
   function setupPublicPlansMenu(links) {
-    if (!links) return;
-    var existing = links.querySelector(".nav-item.has-submenu");
-    if (existing) {
-      wirePlansSubmenu(existing);
-      return;
-    }
-
-    var pricing = null;
-    var basic = null;
-    var creator = null;
-    var pro = null;
-    Array.prototype.forEach.call(links.children, function (el) {
-      if (!el || el.tagName !== "A") return;
-      var href = el.getAttribute("href") || "";
-      var file = hrefFile(href);
-      var text = (el.textContent || "").replace(/\s+/g, " ").trim();
-      if (href.indexOf("#pricing") !== -1 && /plans and pricing|pricing/i.test(text)) {
-        pricing = el;
-      } else if (file === "basic.html") {
-        basic = el;
-      } else if (file === "creator.html") {
-        creator = el;
-      } else if (file === "pro.html") {
-        pro = el;
-      }
-    });
-    if (!pricing || !basic || !creator || !pro) return;
-
-    var item = document.createElement("div");
-    item.className = "nav-item has-submenu";
-    var row = document.createElement("div");
-    row.className = "nav-item-row";
-    var chevron = document.createElement("button");
-    chevron.type = "button";
-    chevron.className = "nav-submenu-toggle";
-    chevron.setAttribute("aria-expanded", "false");
-    chevron.setAttribute("aria-label", "Show Basic, Creator, and Pro");
-    chevron.innerHTML = '<span class="nav-submenu-chevron" aria-hidden="true"></span>';
-    var submenu = document.createElement("div");
-    submenu.className = "nav-submenu";
-    submenu.id = "public-plans-submenu";
-    chevron.setAttribute("aria-controls", "public-plans-submenu");
-
-    links.insertBefore(item, pricing);
-    row.appendChild(pricing);
-    row.appendChild(chevron);
-    item.appendChild(row);
-    submenu.appendChild(basic);
-    submenu.appendChild(creator);
-    submenu.appendChild(pro);
-    item.appendChild(submenu);
-
-    if (basic.classList.contains("active") || creator.classList.contains("active") || pro.classList.contains("active")) {
-      item.classList.add("is-current");
-      pricing.classList.add("active");
-    }
-
-    wirePlansSubmenu(item);
+    foldPublicPlanHeroes(links);
   }
 
   var PUBLIC_SOCIALS_HTML =

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260924w1" />
+  <link rel="stylesheet" href="site.css?v=20260924p1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body>
@@ -19,17 +19,7 @@
           <button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-product">Product</button>
           <div class="nav-group-menu" id="nav-group-product">
             <a href="how-it-works.html">How it works</a>
-            <div class="nav-item has-submenu">
-              <div class="nav-item-row">
-                <a href="index.html#pricing">Plans and Pricing</a>
-                <button type="button" class="nav-submenu-toggle" aria-expanded="false" aria-controls="public-plans-submenu" aria-label="Show Basic, Creator, and Pro"><span class="nav-submenu-chevron" aria-hidden="true"></span></button>
-              </div>
-              <div class="nav-submenu" id="public-plans-submenu">
-                <a href="basic.html">Learn more: Basic</a>
-                <a href="creator.html">Learn more: Creator</a>
-                <a href="pro.html">Learn more: Pro</a>
-              </div>
-            </div>
+            <a href="index.html#pricing">Plans and Pricing</a>
           </div>
         </div>
         <div class="nav-group" data-nav-group="after">
@@ -56,8 +46,14 @@
           <a href="blog.html">Blog</a>
         </div>
       </nav>
+      <div class="public-header-tools">
+        <a class="login public-header-login" href="login.html">Log in</a>
+        <button type="button" class="menu-toggle public-menu-toggle" aria-expanded="false" aria-label="Open menu" aria-controls="public-menu">
+          <span class="menu-toggle-bars" aria-hidden="true"></span>
+          <span class="menu-toggle-text">Menu</span>
+        </button>
+      </div>
       <div class="nav-actions">
-        <a class="login" href="login.html">Log in</a>
         <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
       </div>
     </div>
@@ -119,9 +115,6 @@
           <h4>Product</h4>
           <a href="how-it-works.html">How it works</a>
           <a href="index.html#pricing">Plans and Pricing</a>
-          <a href="basic.html">Learn more: Basic</a>
-          <a href="creator.html">Learn more: Creator</a>
-          <a href="pro.html">Learn more: Pro</a>
           <a href="boost.html">Marketing Boost</a>
         </div>
         <div class="footer-col">
@@ -159,7 +152,7 @@
   <script src="membership.js" data-require-publishing="true"></script>
   <script src="lib/release-status.js?v=20260910r3"></script>
   <script src="publishing-register.js"></script>
-  <script src="site.js?v=20260924w1"></script>
+  <script src="site.js?v=20260924p1"></script>
   <script>
     (function () {
       if (typeof PlaigroundPublishingRegister === 'undefined') return;

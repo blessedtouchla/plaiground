@@ -205,11 +205,11 @@ function run() {
   billingButton.listeners.click({ preventDefault() {} });
 
   const index = read('index.html');
-  assert.ok(index.includes('or $149/year'), 'public Creator yearly stays $149');
-  assert.ok(index.includes('or $199/year'), 'public Pro yearly displays $199');
-  assert.ok(index.includes('$14.99'), 'public Creator monthly price stays');
-  assert.ok(index.includes('$19.99'), 'public Pro monthly price stays');
-  assert.ok(/data-checkout-plan="pro"\s+data-checkout-interval="year"/.test(index), 'Pro yearly checkout is live at $199');
+  assert.ok(index.includes('$2.49'), 'public distribute price is $2.49 per song');
+  assert.ok(index.includes('$149'), 'public A&R Act Pack draft stays $149');
+  assert.ok(!index.includes('$14.99'), 'monthly Creator is not the public price');
+  assert.ok(!index.includes('$19.99'), 'monthly Pro is not the public price');
+  assert.ok(!/data-checkout-plan/.test(index), 'homepage does not start the old plan checkout');
 
   return new Promise(function (resolve, reject) {
     setTimeout(function () {

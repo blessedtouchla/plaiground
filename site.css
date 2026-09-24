@@ -7403,3 +7403,104 @@ header.nav {
     border-top: 1px solid var(--line);
   }
 }
+
+/* —— Public pricing story (free account + $2.49 + A&R Act Pack) —— */
+.story-tiles { padding: 56px 0 20px; }
+.story-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.story-tiles-grid article {
+  border: 1px solid rgba(120, 47, 177, 0.45);
+  border-radius: 16px;
+  padding: 22px 20px 20px;
+  background: rgba(120, 47, 177, 0.08);
+}
+.story-tiles-grid h2 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.story-tiles-grid p { color: var(--muted); font-size: 15px; line-height: 1.4; }
+.story-tiles-more { text-align: center; margin: 18px 0 0; }
+.distro-pipe .eyebrow,
+.distro-pipe h2,
+.after-stay .eyebrow,
+.after-stay h2 { text-align: center; }
+.distro-pipe h2,
+.after-stay h2 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  margin: 8px 0 28px;
+}
+.after-stay { padding: 64px 0; }
+.card.offer-distro { border-color: #f3cb47; }
+.card.offer-pack { border-color: #782fb1; }
+.card.offer-pack .price em {
+  color: #f3cb47;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.offer-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: -6px 0 18px;
+}
+.track { padding: 64px 0; border-top: 1px solid var(--line); }
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.track-grid article h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+.track-grid article p { color: var(--muted); font-size: 15px; line-height: 1.4; }
+.track-grid .n {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #782fb1;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.track-cta { margin-top: 28px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.track-cta .learn { margin-top: 0; }
+.acts-page .acts-price strong {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 3.2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #f3cb47;
+  line-height: 1;
+}
+.acts-page .acts-price em {
+  font-style: normal;
+  color: #f3cb47;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.acts-page .acts-draft { color: var(--muted); font-size: 14px; margin: 6px 0 18px; }
+@media (max-width: 900px) {
+  .story-tiles-grid,
+  .track-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .story-tiles-grid,
+  .track-grid { grid-template-columns: 1fr; }
+}

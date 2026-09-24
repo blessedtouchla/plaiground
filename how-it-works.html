@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260924w1" />
+  <link rel="stylesheet" href="site.css?v=20260924p1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body>
@@ -19,17 +19,7 @@
           <button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-product">Product</button>
           <div class="nav-group-menu" id="nav-group-product">
             <a class="active" href="how-it-works.html">How it works</a>
-            <div class="nav-item has-submenu">
-              <div class="nav-item-row">
-                <a href="index.html#pricing">Plans and Pricing</a>
-                <button type="button" class="nav-submenu-toggle" aria-expanded="false" aria-controls="public-plans-submenu" aria-label="Show Basic, Creator, and Pro"><span class="nav-submenu-chevron" aria-hidden="true"></span></button>
-              </div>
-              <div class="nav-submenu" id="public-plans-submenu">
-                <a href="basic.html">Learn more: Basic</a>
-                <a href="creator.html">Learn more: Creator</a>
-                <a href="pro.html">Learn more: Pro</a>
-              </div>
-            </div>
+            <a href="index.html#pricing">Plans and Pricing</a>
           </div>
         </div>
         <div class="nav-group" data-nav-group="after">
@@ -56,8 +46,14 @@
           <a href="blog.html">Blog</a>
         </div>
       </nav>
+      <div class="public-header-tools">
+        <a class="login public-header-login" href="login.html">Log in</a>
+        <button type="button" class="menu-toggle public-menu-toggle" aria-expanded="false" aria-label="Open menu" aria-controls="public-menu">
+          <span class="menu-toggle-bars" aria-hidden="true"></span>
+          <span class="menu-toggle-text">Menu</span>
+        </button>
+      </div>
       <div class="nav-actions">
-        <a class="login" href="login.html">Log in</a>
         <a class="btn btn-purple btn-sm" href="signup.html">Release Now</a>
       </div>
     </div>
@@ -66,116 +62,66 @@
   <main>
     <section class="page-hero left">
       <div class="wrap">
-        <p class="eyebrow magenta">How it works</p>
-        <h1>Three steps from<br />upload to paid.</h1>
-        <p class="sub">For artists who’d rather be making the next one than reading a distribution agreement.</p>
+        <p class="eyebrow">How it works</p>
+        <h1>Two tracks.</h1>
+        <p class="sub">Distribute a song, or stay for what happens after upload.</p>
       </div>
     </section>
 
-    <section class="how-who">
+    <section class="track" id="distribute">
       <div class="wrap">
-        <p class="eyebrow magenta">Who this is for</p>
-        <h2>One membership that gets the song into stores.</h2>
-        <p>Independent artists — human, AI-assisted, or full AI — who want publishing, boosts, and payouts in the same place. PLAIGROUND takes 0%. Membership is the only fee.</p>
-        <p class="how-who-note">And a cherry on top: make your Artist profile once so stores know who you are.</p>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrap how-cols">
-        <article class="how-col">
-          <div class="n p">01</div>
-          <h3>Upload</h3>
-          <p>Drop your finished track, cover art, and lyrics. Tell us what is human and what is AI-assisted.</p>
-          <ul>
-            <li>Upload finished track</li>
-            <li>Upload cover art</li>
-            <li>Upload lyrics</li>
-            <li>Declare human vs. AI-assisted portions</li>
-          </ul>
-        </article>
-        <article class="how-col">
-          <div class="n m">02</div>
-          <h3>Release</h3>
-          <p>We generate the split sheet, everyone signs, and we deliver on the date you choose.</p>
-          <ul>
-            <li>Split sheet generated and signed</li>
-            <li>Distribution to 150 platforms</li>
-            <li>Worldwide delivery on your date</li>
-          </ul>
-        </article>
-        <article class="how-col">
-          <div class="n g">03</div>
-          <h3>Get paid</h3>
-          <p>Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked. Then a monthly cap. Pro unlocks unlimited and catalog migration. <a href="royalties.html">How you get paid</a>.</p>
-          <ul>
-            <li>Royalties appear automatically</li>
-            <li>Earnings dashboard</li>
-            <li>Creator and Pro unlock publishing, Boost, and payouts</li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="pricing" id="pricing">
-      <div class="wrap">
-        <p class="eyebrow magenta">Which plan fits</p>
-        <div class="pricing-head">
-          <h2>Start free. Grow into the revenue you’re leaving behind.</h2>
-        </div>
-        <div class="plans">
-          <article class="card">
-            <div class="plan-name">Basic</div>
-            <div class="price"><strong>$0</strong><em>/forever</em></div>
-            <ul>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Free dashboard</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Upload + distribution to 150 platforms</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Available in 50+ countries</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Split sheets included</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> No publishing, Boost, or withdraw</li>
-            </ul>
-            <div class="card-cta">
-              <a class="btn btn-ghost btn-md btn-block" href="signup.html?plan=basic" data-plan="basic">Start Free</a>
-              <a class="learn" href="basic.html">Learn more</a>
-            </div>
+        <p class="eyebrow">Distribute</p>
+        <h2>$2.49 / song</h2>
+        <div class="how-cols">
+          <article class="how-col">
+            <div class="n p">01</div>
+            <h3>Upload</h3>
+            <p>Track, art, lyrics. Say what is human and what is AI.</p>
           </article>
-          <article class="card popular">
-            <span class="badge-pop">Most Popular</span>
-            <div class="plan-name">Creator</div>
-            <div class="price"><strong>$14.99</strong><em>/month</em></div>
-            <button type="button" class="plan-year" data-checkout-plan="creator" data-checkout-interval="year" aria-label="Start Creator yearly checkout">or $149/year</button>
-            <ul>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Basic with paid features unlocked</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> 8 distribution uploads a month</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> 8 publishing registrations a month</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Publishing, Marketing Boost, album</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Advanced analytics</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Retrieve / get paid</li>
-            </ul>
-            <div class="card-cta">
-              <button class="btn btn-purple btn-md btn-block" type="button" data-checkout-plan="creator" data-checkout-interval="month">Start Creator</button>
-              <a class="learn" href="creator.html">Learn more</a>
-            </div>
+          <article class="how-col">
+            <div class="n m">02</div>
+            <h3>Release</h3>
+            <p>Splits signed. Distribution to 150 platforms on your date.</p>
           </article>
-          <article class="card">
-            <div class="plan-name">Pro</div>
-            <div class="price"><strong>$19.99</strong><em>/month</em></div>
-            <button type="button" class="plan-year" data-checkout-plan="pro" data-checkout-interval="year" aria-label="Start Pro yearly checkout">or $199/year</button>
-            <ul>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Same product as Creator, unlimited</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited distribution uploads</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited publishing registrations</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Publishing, Marketing Boost, album</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Advanced analytics</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Retrieve / get paid</li>
-              <li><svg class="check green" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.2 6.2 11.4 13 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Catalog migration</li>
-            </ul>
-            <div class="card-cta">
-              <button class="btn btn-ghost btn-md btn-block" type="button" data-checkout-plan="pro" data-checkout-interval="month">Go Pro</button>
-              <a class="learn" href="pro.html">Learn more</a>
-            </div>
+          <article class="how-col">
+            <div class="n g">03</div>
+            <h3>Get paid</h3>
+            <p>Royalties land in the dashboard. <a href="royalties.html">How you get paid</a>.</p>
           </article>
         </div>
+      </div>
+    </section>
+
+    <section class="track track-after" id="after-upload">
+      <div class="wrap">
+        <p class="eyebrow">After upload</p>
+        <h2>Package the act.</h2>
+        <div class="track-grid">
+          <article>
+            <div class="n p">01</div>
+            <h3>Label clearly</h3>
+            <p>You declare. Human stays Human.</p>
+          </article>
+          <article>
+            <div class="n m">02</div>
+            <h3>EPK / persona</h3>
+            <p>Free template on every account. <a href="epk.html">EPK</a>.</p>
+          </article>
+          <article>
+            <div class="n g">03</div>
+            <h3>A&amp;R optional</h3>
+            <p>Act Pack, with or without Distro. <a href="ar.html">A&amp;R</a>.</p>
+          </article>
+          <article>
+            <div class="n p">04</div>
+            <h3>Beyond streams</h3>
+            <p><a href="royalties.html">How you get paid</a> past the listing.</p>
+          </article>
+        </div>
+        <p class="track-cta">
+          <a class="btn btn-purple btn-md" href="signup.html?plan=basic" data-plan="basic">Create free account</a>
+          <a class="learn" href="index.html#pricing">Pricing</a>
+        </p>
       </div>
     </section>
   </main>
@@ -195,9 +141,6 @@
           <h4>Product</h4>
           <a href="how-it-works.html">How it works</a>
           <a href="index.html#pricing">Plans and Pricing</a>
-          <a href="basic.html">Learn more: Basic</a>
-          <a href="creator.html">Learn more: Creator</a>
-          <a href="pro.html">Learn more: Pro</a>
           <a href="boost.html">Marketing Boost</a>
         </div>
         <div class="footer-col">
@@ -233,7 +176,7 @@
     </div>
   </footer>
   <script src="membership.js"></script>
-  <script src="site.js?v=20260924w1"></script>
+  <script src="site.js?v=20260924p1"></script>
   <script src="plai-bubble.js" defer></script>
   <script src="checkout.js" defer></script>
 </body>
