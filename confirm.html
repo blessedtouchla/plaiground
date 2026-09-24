@@ -7,22 +7,54 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260918n2" />
+  <link rel="stylesheet" href="site.css?v=20260924w1" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body>
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
-      <nav class="nav-links" aria-label="Primary">
-        <a href="how-it-works.html">How it works</a>
-        <a href="index.html#pricing">Plans and Pricing</a>
-        <a href="basic.html">Learn more: Basic</a>
-        <a href="creator.html">Learn more: Creator</a>
-        <a href="pro.html">Learn more: Pro</a>
-        <a class="nav-paid" href="royalties.html"><span class="nav-paid-long">How you get paid</span><span class="nav-paid-short">Royalties</span></a>
-        <a href="faq.html">FAQ</a>
-        <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
+      <nav class="nav-links" aria-label="Primary" data-nav-sections="1">
+        <div class="nav-group" data-nav-group="product">
+          <button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-product">Product</button>
+          <div class="nav-group-menu" id="nav-group-product">
+            <a href="how-it-works.html">How it works</a>
+            <div class="nav-item has-submenu">
+              <div class="nav-item-row">
+                <a href="index.html#pricing">Plans and Pricing</a>
+                <button type="button" class="nav-submenu-toggle" aria-expanded="false" aria-controls="public-plans-submenu" aria-label="Show Basic, Creator, and Pro"><span class="nav-submenu-chevron" aria-hidden="true"></span></button>
+              </div>
+              <div class="nav-submenu" id="public-plans-submenu">
+                <a href="basic.html">Learn more: Basic</a>
+                <a href="creator.html">Learn more: Creator</a>
+                <a href="pro.html">Learn more: Pro</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-group" data-nav-group="after">
+          <button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-after">After upload</button>
+          <div class="nav-group-menu" id="nav-group-after">
+            <a href="ar.html">A&amp;R</a>
+            <a href="epk.html">EPK</a>
+            <a class="nav-paid" href="royalties.html"><span class="nav-paid-long">How you get paid</span><span class="nav-paid-short">Royalties</span></a>
+          </div>
+        </div>
+        <div class="nav-group" data-nav-group="trust">
+          <button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-trust">Trust</button>
+          <div class="nav-group-menu" id="nav-group-trust">
+            <a href="transparency.html">Transparency</a>
+            <a href="faq.html">FAQ</a>
+          </div>
+        </div>
+        <div class="nav-group nav-group-link" data-nav-group="listen">
+          <span class="nav-group-label">Listen</span>
+          <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
+        </div>
+        <div class="nav-group nav-group-link" data-nav-group="stories">
+          <span class="nav-group-label">Stories</span>
+          <a href="blog.html">Blog</a>
+        </div>
       </nav>
       <div class="nav-actions">
         <a class="login" href="login.html">Log in</a>
@@ -67,13 +99,22 @@
           <a href="creator.html">Learn more: Creator</a>
           <a href="pro.html">Learn more: Pro</a>
           <a href="boost.html">Marketing Boost</a>
+        </div>
+        <div class="footer-col">
+          <h4>After upload</h4>
+          <a href="ar.html">A&amp;R</a>
+          <a href="epk.html">EPK</a>
           <a href="royalties.html">How you get paid</a>
-          <a href="faq.html">FAQ</a>
+        </div>
+        <div class="footer-col">
+          <h4>Trust</h4>
           <a href="transparency.html">Transparency</a>
+          <a href="faq.html">FAQ</a>
         </div>
         <div class="footer-col">
           <h4>Company</h4>
           <a href="about.html">About us</a>
+          <a href="blog.html">Blog</a>
           <a href="contact.html">Contact us</a>
         </div>
         <div class="footer-col">
@@ -92,7 +133,7 @@
     </div>
   </footer>
   <script src="membership.js"></script>
-  <script src="site.js?v=20260918n2"></script>
+  <script src="site.js?v=20260924w1"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {

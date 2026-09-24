@@ -234,11 +234,11 @@ function run() {
 
   const nav = html.match(/<nav class="nav-links"[^>]*>[\s\S]*?<\/nav>/);
   assert.ok(nav, 'charts page keeps the public nav');
-  const links = nav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
-  const last = links[links.length - 1] || '';
-  assert.ok(/SIQA Charts/.test(last), 'last public nav item is SIQA Charts');
-  assert.ok(/href="\/charts"/.test(last), 'SIQA Charts goes to /charts');
-  assert.ok(/#F3CB47/.test(last), 'SIQA Charts is gold');
+  const siqa = nav[0].match(/<a\b[^>]*class="[^"]*nav-siqa[^"]*"[^>]*>[\s\S]*?<\/a>/);
+  assert.ok(siqa && /SIQA Charts/.test(siqa[0]), 'Listen section keeps SIQA Charts');
+  assert.ok(siqa && /href="\/charts"/.test(siqa[0]), 'SIQA Charts goes to /charts');
+  assert.ok(siqa && /#F3CB47/.test(siqa[0]), 'SIQA Charts is gold');
+  assert.ok(/data-nav-group="listen"[\s\S]*SIQA Charts[\s\S]*data-nav-group="stories"/.test(nav[0]), 'SIQA Charts stays in Listen, before Stories');
 
   const chartPages = [
     ['charts.html', html],

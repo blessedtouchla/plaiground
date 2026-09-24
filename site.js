@@ -145,8 +145,10 @@
       header.appendChild(backdrop);
     }
 
+    setupPublicNavSections(links);
     setupPublicPlansMenu(links);
     setupPublicBlogLink(links);
+    setupPublicFooter();
 
     function isOpen() {
       return header.classList.contains("nav-open");
@@ -372,20 +374,354 @@
     return null;
   }
 
+  function publicPathBits() {
+    var path = "";
+    try { path = String((window.location && window.location.pathname) || ""); } catch (err) {}
+    return path.split("/").filter(Boolean);
+  }
+
+  function needsRootPublicHref() {
+    return publicPathBits().length > 1;
+  }
+
+  function rootifyPublicHref(href) {
+    var raw = String(href || "");
+    if (!raw || raw.charAt(0) === "/" || raw.charAt(0) === "#" || /^(https?:|mailto:|tel:)/i.test(raw)) return raw;
+    if (!needsRootPublicHref()) return raw;
+    return "/" + raw.replace(/^\.\//, "");
+  }
+
+  function ensureAnchorText(el, text) {
+    if (!el || !text) return;
+    if (el.children && el.children.length) return;
+    if (String(el.textContent || "").replace(/\s+/g, " ").trim()) return;
+    el.textContent = text;
+  }
+
+  function takeAnchor(map, key, href, text, className) {
+    var node = map[key];
+    if (!node) {
+      node = document.createElement("a");
+      node.setAttribute("href", href);
+      node.href = href;
+      node.textContent = text;
+      if (className) {
+        className.split(/\s+/).forEach(function (name) {
+          if (name) node.classList.add(name);
+        });
+      }
+      map[key] = node;
+    } else if (needsRootPublicHref()) {
+      var next = rootifyPublicHref(node.getAttribute("href") || href);
+      node.setAttribute("href", next);
+      node.href = next;
+    }
+    ensureAnchorText(node, text);
+    return node;
+  }
+
+  function publicNavKey(el) {
+    if (!el || el.tagName !== "A") return "";
+    var href = el.getAttribute("href") || "";
+    var file = hrefFile(href);
+    var text = linkText(el);
+    if (file === "how-it-works.html") return "how";
+    if (href.indexOf("#pricing") !== -1) return "plans";
+    if (file === "basic.html") return "basic";
+    if (file === "creator.html") return "creator";
+    if (file === "pro.html") return "pro";
+    if (file === "ar.html" || file === "ar") return "ar";
+    if (file === "epk.html" || file === "epk") return "epk";
+    if (file === "royalties.html" || /how you get paid|^royalties$/i.test(text)) return "paid";
+    if (file === "transparency.html") return "transparency";
+    if (file === "faq.html") return "faq";
+    if (el.classList && el.classList.contains("nav-siqa")) return "charts";
+    if (file === "charts" || file === "charts.html" || href === "/charts" || href === "/charts.html") return "charts";
+    if (isBlogHref(href) || text === "Blog") return "blog";
+    return "";
+  }
+
+  function markPublicCurrent(el, key) {
+    if (!el || !el.classList) return;
+    var file = hrefFile((window.location && window.location.pathname) || "");
+    var on = false;
+    if (key === "blog" && isBlogPage()) on = true;
+    if (key === "charts" && (file === "charts" || file.indexOf("charts") === 0)) on = true;
+    if (key === "how" && file === "how-it-works.html") on = true;
+    if (key === "faq" && file === "faq.html") on = true;
+    if (key === "paid" && file === "royalties.html") on = true;
+    if (key === "ar" && (file === "ar.html" || file === "ar")) on = true;
+    if (key === "epk" && (file === "epk.html" || file === "epk")) on = true;
+    if (key === "transparency" && file === "transparency.html") on = true;
+    if (key === "basic" && file === "basic.html") on = true;
+    if (key === "creator" && file === "creator.html") on = true;
+    if (key === "pro" && file === "pro.html") on = true;
+    if (on) el.classList.add("active");
+  }
+
+  function makeNavGroup(id, label) {
+    var group = document.createElement("div");
+    group.className = "nav-group";
+    group.setAttribute("data-nav-group", id);
+    var toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "nav-group-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-controls", "nav-group-" + id);
+    toggle.textContent = label;
+    var menu = document.createElement("div");
+    menu.className = "nav-group-menu";
+    menu.id = "nav-group-" + id;
+    group.appendChild(toggle);
+    group.appendChild(menu);
+    return group;
+  }
+
+  function makeNavLinkGroup(id, label, link) {
+    var group = document.createElement("div");
+    group.className = "nav-group nav-group-link";
+    group.setAttribute("data-nav-group", id);
+    var lab = document.createElement("span");
+    lab.className = "nav-group-label";
+    lab.textContent = label;
+    group.appendChild(lab);
+    if (link) group.appendChild(link);
+    return group;
+  }
+
+  function wireNavGroup(group) {
+    if (!group || group.getAttribute("data-group-wired") === "1") return;
+    var toggle = group.querySelector(".nav-group-toggle");
+    if (!toggle) return;
+    group.setAttribute("data-group-wired", "1");
+    toggle.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var open = !group.classList.contains("open");
+      var root = group.parentNode;
+      if (root && root.querySelectorAll) {
+        Array.prototype.forEach.call(root.querySelectorAll(".nav-group.open"), function (other) {
+          if (other === group) return;
+          other.classList.remove("open");
+          var otherToggle = other.querySelector(".nav-group-toggle");
+          if (otherToggle) otherToggle.setAttribute("aria-expanded", "false");
+        });
+      }
+      group.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  }
+
+  function wirePublicNavGroups(links) {
+    if (!links || !links.querySelectorAll) return;
+    Array.prototype.forEach.call(links.querySelectorAll(".nav-group"), function (group) {
+      wireNavGroup(group);
+    });
+    var host = document.body || document.documentElement;
+    if (!host || host.getAttribute("data-nav-groups-wired") === "1") return;
+    host.setAttribute("data-nav-groups-wired", "1");
+    document.addEventListener("click", function (event) {
+      var header = document.querySelector("header.nav");
+      if (!header || !header.querySelectorAll) return;
+      Array.prototype.forEach.call(header.querySelectorAll(".nav-group.open"), function (group) {
+        if (group.contains && group.contains(event.target)) return;
+        group.classList.remove("open");
+        var toggle = group.querySelector(".nav-group-toggle");
+        if (toggle) toggle.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
+
+  function setupPublicNavSections(links) {
+    if (!links) return;
+    if (links.querySelector("[data-nav-group]")) {
+      wirePublicNavGroups(links);
+      return;
+    }
+
+    var found = {};
+    Array.prototype.forEach.call(links.querySelectorAll("a"), function (anchor) {
+      var key = publicNavKey(anchor);
+      if (!key || found[key]) {
+        if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
+        return;
+      }
+      found[key] = anchor;
+      if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
+    });
+    var leftovers = [];
+    Array.prototype.forEach.call(links.children, function (child) { leftovers.push(child); });
+    leftovers.forEach(function (child) {
+      if (child.parentNode === links) links.removeChild(child);
+    });
+
+    var prefix = needsRootPublicHref() ? "/" : "";
+    var how = takeAnchor(found, "how", prefix + "how-it-works.html", "How it works");
+    var plans = takeAnchor(found, "plans", prefix + "index.html#pricing", "Plans and Pricing");
+    var basic = takeAnchor(found, "basic", prefix + "basic.html", "Learn more: Basic");
+    var creator = takeAnchor(found, "creator", prefix + "creator.html", "Learn more: Creator");
+    var pro = takeAnchor(found, "pro", prefix + "pro.html", "Learn more: Pro");
+    var ar = takeAnchor(found, "ar", prefix + "ar.html", "A&R");
+    var epk = takeAnchor(found, "epk", prefix + "epk.html", "EPK");
+    var paid = takeAnchor(found, "paid", prefix + "royalties.html", "How you get paid", "nav-paid");
+    var transparency = takeAnchor(found, "transparency", prefix + "transparency.html", "Transparency");
+    var faq = takeAnchor(found, "faq", prefix + "faq.html", "FAQ");
+    var charts = takeAnchor(found, "charts", "/charts", "SIQA Charts", "nav-siqa");
+    var blog = takeAnchor(found, "blog", prefix + "blog.html", "Blog");
+    if (charts && !charts.getAttribute("style")) charts.setAttribute("style", "color:#F3CB47");
+
+    ["how", "plans", "basic", "creator", "pro", "ar", "epk", "paid", "transparency", "faq", "charts", "blog"].forEach(function (key) {
+      markPublicCurrent(found[key], key);
+    });
+
+    var product = makeNavGroup("product", "Product");
+    var productMenu = product.querySelector(".nav-group-menu");
+    productMenu.appendChild(how);
+    productMenu.appendChild(plans);
+    productMenu.appendChild(basic);
+    productMenu.appendChild(creator);
+    productMenu.appendChild(pro);
+    setupPublicPlansMenu(productMenu);
+
+    var after = makeNavGroup("after", "After upload");
+    var afterMenu = after.querySelector(".nav-group-menu");
+    afterMenu.appendChild(ar);
+    afterMenu.appendChild(epk);
+    afterMenu.appendChild(paid);
+
+    var trust = makeNavGroup("trust", "Trust");
+    var trustMenu = trust.querySelector(".nav-group-menu");
+    trustMenu.appendChild(transparency);
+    trustMenu.appendChild(faq);
+
+    links.appendChild(product);
+    links.appendChild(after);
+    links.appendChild(trust);
+    links.appendChild(makeNavLinkGroup("listen", "Listen", charts));
+    links.appendChild(makeNavLinkGroup("stories", "Stories", blog));
+    links.setAttribute("data-nav-sections", "1");
+    wirePublicNavGroups(links);
+  }
+
   function setupPublicBlogLink(links) {
     if (!links) return;
+    setupPublicNavSections(links);
     var blog = findNavBlog(links);
-    if (!blog) {
-      blog = document.createElement("a");
-      blog.href = "/blog.html";
-      blog.textContent = "Blog";
+    if (blog && isBlogPage()) blog.classList.add("active");
+  }
+
+  function footerHrefKey(href) {
+    var raw = String(href || "");
+    var file = hrefFile(raw);
+    if (raw.indexOf("#pricing") !== -1) return "plans";
+    if (file === "how-it-works.html") return "how";
+    if (file === "basic.html") return "basic";
+    if (file === "creator.html") return "creator";
+    if (file === "pro.html") return "pro";
+    if (file === ("boost" + ".html")) return "boost";
+    if (file === "plai.html") return "plai";
+    if (file === "ar.html" || file === "ar") return "ar";
+    if (file === "epk.html" || file === "epk") return "epk";
+    if (file === ("royalties" + ".html")) return "paid";
+    if (file === "transparency.html") return "transparency";
+    if (file === "faq.html") return "faq";
+    if (file === "about.html") return "about";
+    if (file === "blog.html" || file === "blog") return "blog";
+    if (file === "contact.html") return "contact";
+    if (file === "terms.html") return "terms";
+    if (file === "rights.html") return "rights";
+    if (file === "privacy.html") return "privacy";
+    if (file === "login.html") return "login";
+    if (file === "signup.html") return "signup";
+    return "";
+  }
+
+  function setupPublicFooter() {
+    var footer = document.querySelector("footer");
+    if (!footer || !footer.querySelector) return;
+    var grid = footer.querySelector(".footer-grid");
+    if (!grid) return;
+    var headers = footer.querySelectorAll(".footer-col h4");
+    var i;
+    var hasProduct = false;
+    for (i = 0; i < headers.length; i += 1) {
+      var label = String(headers[i].textContent || "").replace(/\s+/g, " ").trim();
+      if (/after upload/i.test(label)) return;
+      if (/^product$/i.test(label)) hasProduct = true;
     }
-    if (isBlogPage()) blog.classList.add("active");
-    if (blog.parentNode) blog.parentNode.removeChild(blog);
-    if (links.firstElementChild) links.insertBefore(blog, links.firstElementChild);
-    else links.appendChild(blog);
-    var siqa = findNavSiqa(links);
-    if (siqa && links.lastElementChild !== siqa) links.appendChild(siqa);
+    if (!hasProduct) return;
+
+    var found = {};
+    var root = false;
+    Array.prototype.forEach.call(footer.querySelectorAll(".footer-col a"), function (anchor) {
+      var href = anchor.getAttribute("href") || "";
+      if (href.charAt(0) === "/") root = true;
+      var key = footerHrefKey(href);
+      if (!key || found[key]) return;
+      found[key] = anchor;
+    });
+
+    function ensure(key, href, text) {
+      if (found[key]) return found[key];
+      var anchor = document.createElement("a");
+      var next = root ? "/" + href.replace(/^\//, "") : href;
+      anchor.setAttribute("href", next);
+      anchor.href = next;
+      anchor.textContent = text;
+      found[key] = anchor;
+      return anchor;
+    }
+
+    ensure("how", "how-it-works.html", "How it works");
+    ensure("plans", "index.html#pricing", "Plans and Pricing");
+    ensure("basic", "basic.html", "Learn more: Basic");
+    ensure("creator", "creator.html", "Learn more: Creator");
+    ensure("pro", "pro.html", "Learn more: Pro");
+    ensure("ar", "ar.html", "A&R");
+    ensure("epk", "epk.html", "EPK");
+    ensure("paid", "royalties.html", "How you get paid");
+    ensure("transparency", "transparency.html", "Transparency");
+    ensure("faq", "faq.html", "FAQ");
+    ensure("about", "about.html", "About us");
+    ensure("blog", "blog.html", "Blog");
+    ensure("contact", "contact.html", "Contact us");
+    ensure("terms", "terms.html", "Terms of Service");
+    ensure("rights", "rights.html", "Rights Attestation");
+    ensure("privacy", "privacy.html", "Privacy");
+    ensure("login", "login.html", "Sign in");
+    ensure("signup", "signup.html", "Create account");
+
+    function col(title, keys) {
+      var node = document.createElement("div");
+      node.className = "footer-col";
+      var heading = document.createElement("h4");
+      heading.textContent = title;
+      node.appendChild(heading);
+      keys.forEach(function (key) {
+        if (found[key]) node.appendChild(found[key]);
+      });
+      return node;
+    }
+
+    var productKeys = ["how", "plans", "basic", "creator", "pro"];
+    if (found.boost) productKeys.push("boost");
+    if (found.plai) productKeys.push("plai");
+    var productCol = col("Product", productKeys);
+
+    var oldCols = [];
+    Array.prototype.forEach.call(grid.querySelectorAll(".footer-col"), function (node) { oldCols.push(node); });
+    oldCols.forEach(function (node) {
+      Array.prototype.forEach.call(node.querySelectorAll("a"), function (anchor) {
+        if (anchor.parentNode) productCol.appendChild(anchor);
+      });
+      if (node.parentNode) node.parentNode.removeChild(node);
+    });
+    grid.appendChild(productCol);
+    grid.appendChild(col("After upload", ["ar", "epk", "paid"]));
+    grid.appendChild(col("Trust", ["transparency", "faq"]));
+    grid.appendChild(col("Company", ["about", "blog", "contact"]));
+    grid.appendChild(col("Legal", ["terms", "rights", "privacy"]));
+    grid.appendChild(col("Account", ["login", "signup"]));
   }
 
   function setupAppBlogLink(side) {

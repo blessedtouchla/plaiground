@@ -227,7 +227,14 @@ function run() {
     assert.ok(nav[0].includes('How you get paid') || nav[0].includes('Royalties'), file + ' menu label is How you get paid or Royalties');
     assert.ok(nav[0].includes('href="faq.html">FAQ</a>'), file + ' keeps FAQ on the public menu');
     assert.ok(!/<details[\s\S]{0,500}href="royalties.html"/.test(nav[0]), file + ' must not nest How you get paid inside a Plans submenu');
-    assert.ok(!/class="[^"]*(sub-?menu|dropdown)[^"]*"[\s\S]{0,400}href="royalties.html"/.test(nav[0]), file + ' How you get paid stays outside any Plans dropdown');
+    const plansSub = nav[0].match(/id="public-plans-submenu"[\s\S]*?<\/div>/);
+    assert.ok(plansSub && !/royalties\.html/.test(plansSub[0]), file + ' How you get paid stays outside the Plans submenu');
+    assert.ok(/data-nav-group="product"[\s\S]*data-nav-group="after"[\s\S]*data-nav-group="trust"[\s\S]*data-nav-group="listen"[\s\S]*data-nav-group="stories"/.test(nav[0]), file + ' public nav sections are Product, After upload, Trust, Listen, Stories');
+    assert.ok(/data-nav-group="after"[\s\S]*href="[^"]*ar\.html"[^>]*>A&amp;R<\/a>[\s\S]*href="[^"]*epk\.html"[\s\S]*royalties\.html/.test(nav[0]), file + ' After upload is A&R, EPK, How you get paid');
+    assert.ok(/data-nav-group="trust"[\s\S]*transparency\.html[\s\S]*faq\.html/.test(nav[0]), file + ' Trust is Transparency then FAQ');
+    assert.ok(/data-nav-group="listen"[\s\S]*SIQA Charts/.test(nav[0]), file + ' Listen keeps SIQA Charts');
+    assert.ok(/data-nav-group="stories"[\s\S]*href="[^"]*blog\.html"[^>]*>Blog<\/a>/.test(nav[0]), file + ' Stories is Blog');
+    assert.ok(!/href="[^"]*video-collect\.html"/.test(nav[0]) && !/href="[^"]*sync\.html"/.test(nav[0]), file + ' public nav does not add Sync or Video Collect');
     assert.ok(nav[0].includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' Plans and Pricing must stay a real compare-page link');
     assert.ok(nav[0].includes('href="basic.html">Learn more: Basic</a>'), file + ' header still lists Learn more: Basic for the shared menu to nest');
     assert.ok(nav[0].includes('href="creator.html">Learn more: Creator</a>'), file + ' header still lists Learn more: Creator for the shared menu to nest');
@@ -235,9 +242,11 @@ function run() {
     assert.ok(!/href="boost.html">Marketing Boost<\/a>/.test(nav[0]), file + ' must not put Marketing Boost in the public header');
     const navLinks = nav[0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) || [];
     const lastNav = navLinks[navLinks.length - 1] || '';
-    assert.ok(/SIQA Charts/.test(lastNav), file + ' last public nav item is SIQA Charts');
-    assert.ok(/href="\/charts"/.test(lastNav), file + ' SIQA Charts goes to /charts');
-    assert.ok(/#F3CB47/.test(lastNav), file + ' SIQA Charts is gold');
+    assert.ok(/Blog/.test(lastNav), file + ' last public nav item is Blog under Stories');
+    const siqa = nav[0].match(/<a\b[^>]*class="[^"]*nav-siqa[^"]*"[^>]*>[\s\S]*?<\/a>/);
+    assert.ok(siqa && /SIQA Charts/.test(siqa[0]), file + ' SIQA Charts stays in the public nav');
+    assert.ok(siqa && /href="\/charts"/.test(siqa[0]), file + ' SIQA Charts goes to /charts');
+    assert.ok(siqa && /#F3CB47/.test(siqa[0]), file + ' SIQA Charts is gold');
   });
 
   const royalties = read('royalties.html');
@@ -407,19 +416,17 @@ function run() {
   assert.ok(/@media \(max-width: 980px\)[\s\S]*\.side \{[\s\S]*transform: translateX\(-110%\)/i.test(css), 'mobile CSS must hide the stacked .side menu');
   assert.ok(/\.app\.nav-open \.side/i.test(css), 'open app drawer must show .side');
   assert.ok(/\.topbar \.menu-toggle \{ display: inline-flex; \}/i.test(css), 'mobile topbar shows the hamburger');
-  assert.ok(!/\.nav-links,\s*\n\s*\.nav-actions \{ display: none; \}/i.test(css), '1180/980 no longer hide .nav-links behind Menu');
-  assert.ok(!/\.public-menu-toggle \{ display: inline-flex; \}/.test(css), 'public Menu is not promoted under 1180/980');
-  assert.ok(css.includes('/* —— Public nav Tesla cut (always-visible top links, pre-login only) —— */'), 'public Tesla bar cut keeps destinations on the bar');
-  assert.ok(/Public nav Tesla cut[\s\S]*\.nav-links \{[\s\S]*display:\s*flex !important/.test(css), 'public Tesla bar keeps primary links visible on phone');
-  assert.ok(/Public nav Tesla cut[\s\S]*\.public-menu-toggle \{ display: none !important; \}/.test(css), 'Menu pill is not the only way to see public links');
+  assert.ok(css.includes('/* —— Public nav sections (Product / After upload / Trust / Listen / Stories) —— */'), 'public nav sections cut is in site.css');
+  assert.ok(/Public nav sections[\s\S]*\.public-menu-toggle \{ display: inline-flex !important; \}/.test(css), 'phone Menu opens the sectioned drawer');
+  assert.ok(/Public nav sections[\s\S]*\.nav\.nav-open \.nav-group-label/.test(css), 'phone Menu shows section labels');
   assert.ok(css.includes('.public-header-tools'), 'public header keeps a Login cluster outside the drawer');
-  assert.ok(/Public nav Tesla cut[\s\S]*\.public-header-tools \{[\s\S]*flex-direction: row/.test(css), 'phone Log in stays on the top row');
+  assert.ok(/Public nav sections[\s\S]*\.public-header-tools \{[\s\S]*flex-direction: row/.test(css), 'phone Log in stays on the top row');
   assert.ok(css.includes('.public-header-tools .login'), 'pinned Login keeps the existing pill look');
   assert.ok(css.includes('.nav-submenu'), 'public nav has a plans submenu');
   assert.ok(css.includes('.nav-submenu-toggle'), 'public nav has a chevron toggle');
   assert.ok(css.includes('.nav-links > a[href="basic.html"]'), 'un-nested Learn more stays hidden until the shared menu nests it');
   assert.ok(/hover: hover[\s\S]*\.nav-item\.has-submenu:hover \.nav-submenu/i.test(css), 'desktop hover reveals the plan submenu');
-  assert.ok(/\.nav\.nav-open \.nav-item\.has-submenu\.open \.nav-submenu/i.test(css), 'phone open chevron reveals Basic / Creator / Pro');
+  assert.ok(/\.nav\.nav-open \.nav-item\.has-submenu \.nav-submenu \{ display: block; \}/.test(css), 'phone Menu shows Basic / Creator / Pro nested under Plans');
 
   const js = read('site.js');
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
@@ -438,7 +445,8 @@ function run() {
   assert.ok(js.includes('chevron.type = "button"'), 'chevron must not be a link that blocks the compare page');
   assert.ok(js.includes('submenu.appendChild(basic)') && js.includes('submenu.appendChild(creator)') && js.includes('submenu.appendChild(pro)'), 'submenu nests Basic, Creator, and Pro');
   assert.ok(!/boost\.html/.test(js), 'shared public nav must not nest Boost');
-  assert.ok(!/royalties\.html/.test(js), 'shared public nav must not nest How you get paid');
+  assert.ok(js.includes('data-nav-group", "after"') || js.includes('After upload'), 'shared public nav builds After upload');
+  assert.ok(!/submenu\.appendChild\([\s\S]{0,120}royalt/.test(js), 'plans submenu must not nest How you get paid');
   assert.ok(js.includes('setupPublicSocials'), 'site.js keeps footer socials from one shared block');
   assert.ok(js.includes('https://www.facebook.com/profile.php?id=61593116849937'), 'shared socials use the PLAIGROUND Facebook profile');
   assert.ok(js.includes('https://www.instagram.com/plaigroundmusic'), 'shared socials use the PLAIGROUND Instagram');
