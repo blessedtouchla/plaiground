@@ -296,7 +296,7 @@ function run() {
   assert.ok(index.includes('class="plans"'), 'landing still has the public price cards');
   assert.ok(index.includes('plan-name">Free account</div>'), 'free account is the $0 card');
   assert.ok(index.includes('plan-name">Distribute</div>') && index.includes('$2.49'), 'distribute is $2.49 per song');
-  assert.ok(index.includes('plan-name">A&amp;R Act Pack</div>') && index.includes('$149') && /draft/i.test(index), 'A&R Act Pack is the draft $149 card');
+  assert.ok(index.includes('plan-name">A&amp;R Act Pack</div>') && index.includes('$149') && /one-time/i.test(index), 'A&R Act Pack is the locked $149 one-time card');
   assert.ok(!/plan-name">(?:Basic|Creator|Pro)<\/div>/.test(index), 'Basic / Creator / Pro are not the pricing hero');
   assert.ok(!/data-checkout-plan/.test(index), 'homepage does not start a Stripe checkout for the old plans');
   assert.ok(!/for life|\/forever/i.test(index), 'homepage does not say for life');
@@ -376,7 +376,17 @@ function run() {
   const packCard = index.match(/plan-name">A&amp;R Act Pack[\s\S]*?<\/article>/);
   assert.ok(freeCard && /\$0/.test(freeCard[0]) && !/catalog migration/i.test(freeCard[0]), 'free account card is $0 and does not sell catalog migration');
   assert.ok(distroCard && /\$2\.49/.test(distroCard[0]) && !/data-checkout-plan/.test(distroCard[0]), 'distribute card shows $2.49 without a live checkout');
-  assert.ok(packCard && /\$149/.test(packCard[0]) && /draft/i.test(packCard[0]) && !/data-checkout-plan/.test(packCard[0]), 'Act Pack card is a labeled draft and does not charge');
+  assert.ok(packCard && /\$149/.test(packCard[0]) && /one-time/i.test(packCard[0]) && !/draft/i.test(packCard[0]) && !/data-checkout-plan/.test(packCard[0]), 'Act Pack card is $149 one-time and does not charge');
+  assert.ok(/Persona kit/.test(packCard[0]) && /one update/i.test(packCard[0]) && /Release QC/.test(packCard[0]) && /Compliance routing/.test(packCard[0]) && /PLAI Research/.test(packCard[0]), 'Act Pack card lists the locked contents');
+  const priceSheet = index.match(/<section class="pricing"[\s\S]*?<\/section>/);
+  assert.ok(priceSheet && /\$0/.test(priceSheet[0]) && /\$2\.49/.test(priceSheet[0]) && /\$149/.test(priceSheet[0]) && /\$79/.test(priceSheet[0]) && /\$99/.test(priceSheet[0]) && /\$199/.test(priceSheet[0]), 'pricing lists every locked dollar');
+  assert.ok(/\$149 \+ \$2\.49 \(\$151\.49\)/.test(priceSheet[0]), 'bundle note shows Act Pack plus the first song');
+  assert.ok(/Distribution is not required to buy A&amp;R/.test(priceSheet[0]), 'A&R does not require Distro');
+  assert.ok(/No placement promise/.test(priceSheet[0]), 'Sync package makes no placement promise');
+  assert.ok(!/pricing on request/i.test(index), 'pricing does not say pricing on request');
+  assert.ok(!/data-checkout-plan/.test(priceSheet[0]), 'price sheet does not start checkout');
+  const indexHeader = index.match(/<header class="nav">[\s\S]*?<\/header>/);
+  assert.ok(indexHeader && !/Growth campaign|Sync package|href="[^"]*sync\.html"/.test(indexHeader[0]), 'Growth and Sync stay off the public header');
   assert.ok(!/plan-name">(?:Basic|Creator|Pro)/.test(how), 'How it works does not restage Basic / Creator / Pro cards');
   const creatorEarn = read('earnings.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
   const creatorPay = read('payouts.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);

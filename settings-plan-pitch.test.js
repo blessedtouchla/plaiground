@@ -206,7 +206,8 @@ function run() {
 
   const index = read('index.html');
   assert.ok(index.includes('$2.49'), 'public distribute price is $2.49 per song');
-  assert.ok(index.includes('$149'), 'public A&R Act Pack draft stays $149');
+  assert.ok(index.includes('$149'), 'public A&R Act Pack stays $149');
+  assert.ok(index.includes('$79') && index.includes('$99') && index.includes('$199'), 'public add-on prices are $79, $99, and $199');
   assert.ok(!index.includes('$14.99'), 'monthly Creator is not the public price');
   assert.ok(!index.includes('$19.99'), 'monthly Pro is not the public price');
   assert.ok(!/data-checkout-plan/.test(index), 'homepage does not start the old plan checkout');
