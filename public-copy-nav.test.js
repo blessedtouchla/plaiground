@@ -293,9 +293,10 @@ function run() {
   assert.ok(read('creator.html').includes('href="royalties.html">How you get paid</a>'), 'Creator Learn more links Get paid to the royalties page');
   assert.ok(read('basic.html').includes('href="royalties.html">How you get paid</a>'), 'Basic Learn more links the royalties page from the existing payout copy');
 
-  assert.ok(index.includes('class="plans"'), 'landing still has the public price cards');
+  assert.ok(index.includes('class="plans price-ladder"'), 'landing still has the public price ladder');
   assert.ok(index.includes('plan-name">Free account</div>'), 'free account is the $0 card');
-  assert.ok(index.includes('plan-name">Distribute</div>') && index.includes('$2.49'), 'distribute is $2.49 per song');
+  assert.ok(/class="distro-addon">Distribute: <strong>\$2\.49<\/strong> per song \(add-on after you create an account\)/.test(index), 'distribute is a short add-on line, not a plan card');
+  assert.ok(!/plan-name">Distribute</.test(index) && !/offer-distro/.test(index), 'distribute is not a peer pricing card');
   assert.ok(index.includes('plan-name">A&amp;R Act Pack</div>') && index.includes('$149') && /one-time/i.test(index), 'A&R Act Pack is the locked $149 one-time card');
   assert.ok(!/plan-name">(?:Basic|Creator|Pro)<\/div>/.test(index), 'Basic / Creator / Pro are not the pricing hero');
   assert.ok(!/data-checkout-plan/.test(index), 'homepage does not start a Stripe checkout for the old plans');
@@ -372,10 +373,9 @@ function run() {
   assert.ok(!/catalog migration/i.test(read('creator.html')), 'Creator Learn more must not claim catalog migration');
   assert.ok(!/catalog migration/i.test(read('basic.html')), 'Basic Learn more must not claim catalog migration');
   const freeCard = index.match(/plan-name">Free account[\s\S]*?<\/article>/);
-  const distroCard = index.match(/plan-name">Distribute[\s\S]*?<\/article>/);
   const packCard = index.match(/plan-name">A&amp;R Act Pack[\s\S]*?<\/article>/);
   assert.ok(freeCard && /\$0/.test(freeCard[0]) && !/catalog migration/i.test(freeCard[0]), 'free account card is $0 and does not sell catalog migration');
-  assert.ok(distroCard && /\$2\.49/.test(distroCard[0]) && !/data-checkout-plan/.test(distroCard[0]), 'distribute card shows $2.49 without a live checkout');
+  assert.ok(/class="distro-addon"[\s\S]*\$2\.49/.test(index) && !/data-checkout-plan/.test(index), 'distribute line shows $2.49 without a live checkout');
   assert.ok(packCard && /\$149/.test(packCard[0]) && /one-time/i.test(packCard[0]) && !/draft/i.test(packCard[0]) && !/data-checkout-plan/.test(packCard[0]), 'Act Pack card is $149 one-time and does not charge');
   assert.ok(/Persona kit/.test(packCard[0]) && /one update/i.test(packCard[0]) && /Release QC/.test(packCard[0]) && /Compliance routing/.test(packCard[0]) && /PLAI Research/.test(packCard[0]), 'Act Pack card lists the locked contents');
   const priceSheet = index.match(/<section class="pricing"[\s\S]*?<\/section>/);
@@ -510,8 +510,8 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">PLAI<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Money / PLAI / Account');
-    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
+    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Act<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">PLAI<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Act / Money / PLAI / Account');
+    assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<p class="side-price">\$2\.49 a song<\/p>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
     assert.ok(/<p class="side-label">Money<\/p>\s*<a(?: class="on")? href="boosts.html"[^>]*>Boosts<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(sideNav[0]), file + ' Money is Boosts, Publishing, Earnings, Analytics, Payouts');
     assert.ok(/<p class="side-label">PLAI<\/p>\s*<button[^>]*data-plai-talk[^>]*>Talk to PLAI<\/button>\s*<button[^>]*data-plai-text[^>]*>Text to PLAI<\/button>/.test(sideNav[0]), file + ' PLAI is Talk to PLAI then Text to PLAI');
     assert.ok(/<p class="side-label">Account<\/p>\s*<a(?: class="on")? href="settings.html">Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' Account is Settings, How it works, FAQ');

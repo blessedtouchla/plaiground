@@ -5822,6 +5822,15 @@ main.submitted-page.center-page {
   margin-top: 0;
   padding-top: 0;
 }
+.side-nav .side-price {
+  margin: 0 0 4px;
+  padding: 0 14px 6px;
+  color: #f3cb47;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
 .side-nav a {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   min-height: 44px;
@@ -6766,6 +6775,7 @@ body.attest-page .plai-bubble-row {
   --stage-gold: #f3cb47;
   --stage-purple: #782fb1;
   padding-top: calc(var(--nav-h) + 48px);
+  padding-bottom: 16px;
 }
 .home-portal .hero::before {
   inset: -8% 12% auto auto;
@@ -6848,8 +6858,8 @@ body.attest-page .plai-bubble-row {
 .home-portal .hero-siqa-proof {
   display: block;
   width: min(420px, 100%);
-  margin: 0 auto 28px;
-  padding: 12px 0 14px;
+  margin: 0 auto 16px;
+  padding: 10px 0 10px;
   border-top: 1px solid rgba(243, 203, 71, 0.22);
   border-bottom: 1px solid rgba(243, 203, 71, 0.22);
   color: #e8e8ee;
@@ -6902,7 +6912,7 @@ body.attest-page .plai-bubble-row {
 }
 @media (max-width: 640px) {
   .home-portal .hero {
-    padding-bottom: 168px;
+    padding-bottom: 12px;
   }
   .home-portal .hero-logo-live {
     margin-bottom: 20px;
@@ -7405,7 +7415,7 @@ header.nav {
 }
 
 /* —— Public pricing story (free account + $2.49 + A&R Act Pack) —— */
-.story-tiles { padding: 56px 0 20px; }
+.story-tiles { padding: 8px 0 20px; }
 .story-tiles-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -7439,7 +7449,21 @@ header.nav {
   margin: 8px 0 28px;
 }
 .after-stay { padding: 64px 0; }
-.card.offer-distro { border-color: #f3cb47; }
+.pricing .plans.price-ladder {
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
+}
+.distro-addon {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.distro-addon strong {
+  color: #f3cb47;
+  font-weight: 700;
+}
 .card.offer-pack { border-color: #782fb1; }
 .card.offer-pack .price em {
   color: #f3cb47;
