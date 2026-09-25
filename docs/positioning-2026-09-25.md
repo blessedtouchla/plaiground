@@ -1,26 +1,26 @@
 # PLAIGROUND positioning — 25 Sep 2026
 
-PLAIGROUND leads with AI-powered marketing and artist growth. Distribution is a supporting capability, not the headline.
+PLAIGROUND is an AI-powered music business for independent artists. Every artist gets an AI team. Distribution is one small part of it.
 
 ## Tagline
 
-AI-powered marketing for the act.
+AI-powered music business for independent artists.
 
 ## Instagram bio — @plaigroundmusic
 
 150 characters maximum. No per-song price. No distribution framing.
 
-**Proposed (102 characters)**
+**Proposed (115 characters)**
 
-AI-powered marketing for the act. A&R, press kits, and research on where the sound fits. wannaplai.com
+AI-powered music business for independent artists. A&R, press kits, pitching, and release management. wannaplai.com
 
-**Alternate 1 (93 characters)**
+**Alternate 1 (100 characters)**
 
-PLAIGROUND markets the act. A&R, an EPK, campaign help, and research on where the sound fits.
+An AI team for independent artists. A&R, press kits, pitching, and release management. wannaplai.com
 
-**Alternate 2 (105 characters)**
+**Alternate 2 (90 characters)**
 
-AI assistance for artist growth. Act packs, press kits, and a read on where the sound fits. wannaplai.com
+AI-powered music business. A&R, press kits, and pitching, checked by people. wannaplai.com
 
 ## What changed
 
@@ -28,13 +28,17 @@ Dollars did not change: Free account $0, A&R Act Pack $149, EPK only $79, Growth
 
 ### Homepage
 
-- Hero headline is “AI-powered marketing for the act.” The subhead names A&R, an EPK, and research on where the sound fits, then store delivery as a second sentence.
+- Hero headline is “AI-powered music business for independent artists.”
+- Subline: “A&R, press kits, pitching, and release management, run by AI and checked by people. Distribution when you're ready.”
+- Six tiles sit under the hero: AI A&R, AI press kit (EPK), AI daily manager (Coming soon), Automated submissions (Coming soon), Sync pitching, Distribution ($2.49 a song).
+- AI A&R links to /ar. The EPK tile links to /epk. “Coming soon” is a single `coming-soon` class.
+- Trust line: “Honest labels. Every track is marked AI, human, or hybrid.”
 - CTAs stay Enter the PLAIGROUND and How it works.
-- The growth cards (A&R, EPK, How you get paid) sit above the store section.
 - The store section is “We also get the release on the stores.” It is not a price headline. Store logos sit there, not in the hero.
 - Pricing is titled “Growth services first.” The Act Pack card leads. The $2.49 line is a footnote under the price sheet.
 - The closing band is “Package the act.” It does not quote the per-song price.
 - Footer brand line matches the tagline.
+- Copy does not say “placements,” “the only platform,” “nobody else,” or “for life.” Sync is “sync pitching.”
 
 ### How it works
 
@@ -60,7 +64,8 @@ Dollars did not change: Free account $0, A&R Act Pack $149, EPK only $79, Growth
 ### Meta, Open Graph, and Twitter
 
 - Every public page has a meta description plus Open Graph and Twitter title and description.
-- Homepage, How it works, FAQ, A&R, and EPK descriptions lead with marketing the act.
+- Homepage title, description, Open Graph, and Twitter tags use the new headline and subline.
+- How it works, FAQ, A&R, and EPK descriptions use the same line.
 - Terms meta no longer includes $2.49. Terms, Privacy, and Rights body copy was not edited.
 
 ### Left alone
