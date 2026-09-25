@@ -10,17 +10,17 @@ AI-powered music business for independent artists.
 
 150 characters maximum. No per-song price. No distribution framing.
 
-**Proposed (115 characters)**
+**Proposed (109 characters)**
 
-AI-powered music business for independent artists. A&R, press kits, pitching, and release management. wannaplai.com
+AI-powered music business for independent artists. A&R, press kits, pitching, and distribution. wannaplai.com
 
-**Alternate 1 (100 characters)**
+**Alternate 1 (94 characters)**
 
-An AI team for independent artists. A&R, press kits, pitching, and release management. wannaplai.com
+An AI team for independent artists. A&R, press kits, pitching, and distribution. wannaplai.com
 
-**Alternate 2 (90 characters)**
+**Alternate 2 (95 characters)**
 
-AI-powered music business. A&R, press kits, and pitching, checked by people. wannaplai.com
+A&R, press kits, pitching, and distribution, powered by AI and checked by people. wannaplai.com
 
 ## What changed
 
@@ -29,7 +29,7 @@ Dollars did not change: Free account $0, A&R Act Pack $149, EPK only $79, Growth
 ### Homepage
 
 - Hero headline is “AI-powered music business for independent artists.”
-- Subline: “A&R, press kits, pitching, and release management, run by AI and checked by people. Distribution when you're ready.”
+- Subline: “A&R, press kits, pitching, and distribution, powered by AI and checked by people.” Distribution sits with the rest of the work. It is not a later step.
 - Six tiles sit under the hero: AI A&R, AI press kit (EPK), AI daily manager (Coming soon), Automated submissions (Coming soon), Sync pitching, Distribution ($2.49 a song).
 - AI A&R links to /ar. The EPK tile links to /epk. “Coming soon” is a single `coming-soon` class.
 - Trust line: “Honest labels. Every track is marked AI, human, or hybrid.”
@@ -43,7 +43,7 @@ Dollars did not change: Free account $0, A&R Act Pack $149, EPK only $79, Growth
 ### How it works
 
 - H1 is “Market the act.”
-- Package the act comes first. Store delivery is the later section, with no $2.49 in the lead.
+- Package the act comes first. The store section is on the page and is not the headline. It does not say $2.49.
 
 ### FAQ
 
