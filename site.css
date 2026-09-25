@@ -449,6 +449,7 @@ button { cursor: pointer; }
   color: #8A8A96;
 }
 .platforms svg { opacity: 0.9; display: block; }
+.distro-pipe .platforms { margin-top: 28px; }
 
 .steps { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 48px 0; }
 .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -7478,10 +7479,10 @@ header.nav {
   justify-content: center;
 }
 .distro-addon {
-  margin: 0;
+  margin: 18px 0 8px;
   text-align: center;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
 }
 .distro-addon strong {
