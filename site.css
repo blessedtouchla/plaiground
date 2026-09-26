@@ -349,6 +349,7 @@ button { cursor: pointer; }
 .nav-actions .login:hover,
 .public-header-tools .login:hover { color: #fff; border-color: #fff; }
 .public-header-tools .login[hidden] { display: none; }
+html[data-signed-in="1"] header.nav a.login { display: none !important; }
 .menu-toggle {
   display: none;
   align-items: center;
