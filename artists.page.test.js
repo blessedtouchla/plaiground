@@ -531,6 +531,7 @@ function run() {
     'me.js',
     'plai-session.js',
     'signwell.js',
+    'song-helper.js',
     'tonegrid.js',
     'youtube.js',
   ]);

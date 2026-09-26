@@ -5,7 +5,7 @@ The PLAI voice bubble mints an xAI ephemeral token via `api/plai-session.js`.
 Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js` (`mode=subscription`, monthly or yearly). Settings → Manage plan redirects to `plan-confirm.html`. Submit there updates the subscription (`action=switch`). Preview (`action=preview`) does not charge. Settings → Manage billing opens the Stripe Customer Billing Portal (`action=portal`) to update the card. No Stripe customer means no card on file — the site does not invent a portal. The signed Stripe webhook lives in that same file at `/api/stripe/webhook` (Hobby rewrite — not a seventh function). Stripe does not follow redirects, so POST is accepted on both `https://wannaplai.com/api/stripe/webhook` and `https://www.wannaplai.com/api/stripe/webhook`. Other apex pages may still 308 to www.
 Artist and release calls go to ToneGrid via the server-only handler in `api/tonegrid.js`.
 
-Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
+Vercel Hobby allows at most 12 Serverless Functions. This repo has 9, in `api/`:
 
 - `auth.js` — signup, login, logout, schema bootstrap, confirm mail
 - `me.js` — session user + catalog ids
@@ -13,8 +13,11 @@ Vercel Hobby allows at most 12 Serverless Functions. This repo has 6, in `api/`:
 - `create-checkout-session.js` — Checkout, Manage-plan switch, Manage-billing portal, `/api/stripe/webhook`
 - `plai-session.js`
 - `signwell.js`
+- `community.js`
+- `youtube.js` — server-side YouTube search
+- `song-helper.js` — PLAIGROUND Song Helper. `XAI_API_KEY` stays on the server. `XAI_MODEL` defaults to `grok-4.20-0309-non-reasoning`. With no key, the route returns a labeled sample draft.
 
-`vercel.json` rewrites keep the public URLs (`/api/auth/signup`, `/api/me/catalog`, `/api/me/problem`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files.
+`vercel.json` rewrites keep the public URLs (`/song-helper`, `/api/auth/signup`, `/api/me/catalog`, `/api/me/problem`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files beyond the nine above.
 
 Environment variables (set on the host; never commit values):
 
@@ -22,6 +25,7 @@ Environment variables (set on the host; never commit values):
 SIGNWELL_API_KEY=
 SIGNWELL_TEMPLATE_ID=
 XAI_API_KEY=
+XAI_MODEL=grok-4.20-0309-non-reasoning
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PUBLISHABLE_KEY=
