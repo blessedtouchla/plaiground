@@ -1,0 +1,129 @@
+/* Cover art step. Reuses Song Helper layout. */
+
+body.cover-art-page .ca-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+body.cover-art-page .ca-swatch {
+  width: 64px;
+  height: 40px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  padding: 3px;
+  display: flex;
+  overflow: hidden;
+  background: #111;
+}
+
+body.cover-art-page .ca-swatch span {
+  flex: 1;
+}
+
+body.cover-art-page .ca-swatch.on {
+  border-color: var(--gold);
+}
+
+body.cover-art-page .ca-swatch-custom {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+}
+
+body.cover-art-page .ca-color {
+  width: 72px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+body.cover-art-page .ca-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+body.cover-art-page .ca-option {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  background: #111;
+}
+
+body.cover-art-page .ca-option.on {
+  border-color: var(--gold);
+}
+
+body.cover-art-page .ca-option canvas,
+body.cover-art-page .ca-option img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+body.cover-art-page .ca-stage {
+  width: min(100%, 420px);
+  margin: 0 auto 8px;
+}
+
+body.cover-art-page .ca-stage canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  background: #111;
+}
+
+body.cover-art-page .ca-check {
+  margin: 16px 0 8px;
+  padding-left: 1.1rem;
+  color: var(--muted-2);
+  line-height: 1.45;
+}
+
+body.cover-art-page .ca-check li + li {
+  margin-top: 4px;
+}
+
+body.cover-art-page .ca-chip.off,
+body.song-helper-page .ca-chip.off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+body.cover-art-page .ca-prefill {
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+body.cover-art-page .ca-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+body.cover-art-page .ca-photo img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #111;
+}
+
+@media (max-width: 640px) {
+  body.cover-art-page .ca-grid {
+    gap: 8px;
+  }
+}

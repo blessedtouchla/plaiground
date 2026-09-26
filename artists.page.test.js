@@ -527,10 +527,12 @@ function run() {
   assert.deepStrictEqual(apiFiles, [
     'auth.js',
     'community.js',
+    'cover-art.js',
     'create-checkout-session.js',
     'me.js',
     'plai-session.js',
     'signwell.js',
+    'song-helper.js',
     'tonegrid.js',
     'youtube.js',
   ]);
