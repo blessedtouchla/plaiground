@@ -169,6 +169,14 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Those answers did not come through. Try again.' });
     return;
   }
+  if (core.containsParodyAsk(interview)) {
+    sendJson(res, 400, { ok: false, error: 'Write an original line. Song Helper does not parody existing songs or write to the tune of a real one.' });
+    return;
+  }
+  if (interview.shape.comedy && core.publicFigureName(interview.who)) {
+    sendJson(res, 400, { ok: false, error: 'Roasts stay about people you know. Leave public figures and celebrities out of the song.' });
+    return;
+  }
   if (!limiter.allow(clientIp(req))) {
     sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
     return;

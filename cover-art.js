@@ -104,6 +104,10 @@
     if (saved.title && !$('ca-title').value) $('ca-title').value = saved.title;
     if (saved.artistName && !$('ca-artist').value) $('ca-artist').value = saved.artistName;
     if (saved.genre && !$('ca-genre').value) $('ca-genre').value = saved.genre;
+    if (!picks.look && /^(photo|painted|illustrated|collage|minimal)$/.test(saved.coverLook || '')) {
+      picks.look = saved.coverLook;
+      setPressed('look', picks.look);
+    }
     imagery = core.extractImagery({
       lines: saved.lyrics || [],
       words: saved.words || {},
@@ -563,6 +567,11 @@
     if (!group || !value) return;
     picks[group] = value;
     setPressed(group, value);
+    if (group === 'look') {
+      var savedLook = readSession();
+      savedLook.coverLook = value;
+      try { sessionStorage.setItem(song.SESSION_KEY, JSON.stringify(savedLook)); } catch (err) {}
+    }
     if (group === 'palette') $('ca-custom-wrap').hidden = value !== 'custom';
     if (group === 'font' || group === 'position') paintPreview();
     showError('');

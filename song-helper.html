@@ -117,6 +117,25 @@
           </label>
         </section>
 
+        <section data-step="genre" hidden>
+          <div class="sh-chips" id="sh-genres" role="group" aria-label="Genre"></div>
+          <div id="sh-comedy" hidden>
+            <div class="sh-group">
+              <h3>Comedy type</h3>
+              <div class="sh-chips" id="sh-comedy-types" role="group" aria-label="Comedy type"></div>
+            </div>
+            <div class="sh-group">
+              <h3>Musical style</h3>
+              <div class="sh-chips" id="sh-comedy-music" role="group" aria-label="Comedy musical style"></div>
+            </div>
+            <div class="sh-rules" id="sh-comedy-rules">
+              <p>Original songs only. No parody of existing songs or melodies, and no “to the tune of” a real song.</p>
+              <p>Roasts stay good-natured. No slurs, hate, or sexual content about real people, and no targeting of public figures or celebrities by name.</p>
+              <p>Explicit language only if you chose explicit.</p>
+            </div>
+          </div>
+        </section>
+
         <section data-step="happened" hidden>
           <label class="sh-field">
             <span>One sentence</span>
@@ -146,38 +165,19 @@
         </section>
 
         <section data-step="words" hidden>
-          <div class="sh-words">
-            <label class="sh-field"><span>A place</span><input class="sh-input" id="sh-place" data-word="place" maxlength="160" autocomplete="off" placeholder="the kitchen at 2am" /><em class="sh-hint">A short phrase or a full line, not just one word.</em></label>
-            <label class="sh-field"><span>Something in the room</span><input class="sh-input" id="sh-room" data-word="room" maxlength="160" autocomplete="off" placeholder="your hoodie on the chair" /></label>
-            <label class="sh-field"><span>A color</span><input class="sh-input" id="sh-color" data-word="color" maxlength="160" autocomplete="off" placeholder="faded red" /></label>
-            <label class="sh-field"><span>A smell</span><input class="sh-input" id="sh-smell" data-word="smell" maxlength="160" autocomplete="off" placeholder="cold coffee" /></label>
-            <label class="sh-field"><span>A sound</span><input class="sh-input" id="sh-sound" data-word="sound" maxlength="160" autocomplete="off" placeholder="the fridge humming" /></label>
-            <label class="sh-field"><span>A time of day</span><input class="sh-input" id="sh-time" data-word="time" maxlength="160" autocomplete="off" placeholder="just after midnight" /></label>
-            <label class="sh-field"><span>Something that person always says</span><input class="sh-input" id="sh-says" data-word="says" maxlength="160" autocomplete="off" placeholder="we’ll figure it out" /></label>
+          <div class="sh-words" id="sh-words"></div>
+          <div class="sh-side-actions">
+            <button type="button" class="btn btn-ghost btn-md" id="sh-surprise">Surprise me</button>
+          </div>
+          <p class="sh-hint" id="sh-surprise-note">New prompts from this genre. You still type the answers.</p>
+          <div class="sh-rules" id="sh-words-comedy" hidden>
+            <p>Original songs only. No parody of existing songs or melodies, and no “to the tune of” a real song.</p>
+            <p>Roasts stay good-natured. No slurs, hate, or sexual content about real people, and no targeting of public figures or celebrities by name.</p>
+            <p>Explicit language only if you chose explicit.</p>
           </div>
         </section>
 
         <section data-step="shape" hidden>
-          <div class="sh-group">
-            <h3>Genre</h3>
-            <div class="sh-chips" role="group" aria-label="Genre">
-              <button type="button" class="sh-chip" data-group="genre" data-value="R&amp;B" aria-pressed="false">R&amp;B</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Pop" aria-pressed="false">Pop</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Hip-hop" aria-pressed="false">Hip-hop</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Latin" aria-pressed="false">Latin</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Country" aria-pressed="false">Country</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Afrobeats" aria-pressed="false">Afrobeats</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Indie" aria-pressed="false">Indie</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Rock" aria-pressed="false">Rock</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Gospel" aria-pressed="false">Gospel</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="Corridos" aria-pressed="false">Corridos</button>
-              <button type="button" class="sh-chip" data-group="genre" data-value="custom" aria-pressed="false">something else</button>
-            </div>
-            <label class="sh-field" id="sh-genre-custom" hidden>
-              <span>Your genre</span>
-              <input class="sh-input" id="sh-genre-input" maxlength="40" autocomplete="off" placeholder="neo soul" />
-            </label>
-          </div>
           <div class="sh-group">
             <h3>Language</h3>
             <div class="sh-chips" role="group" aria-label="Language">
@@ -231,6 +231,8 @@
               <button type="button" class="sh-chip" data-group="styleGenre" data-value="Afrobeats" aria-pressed="false">Afrobeats</button>
               <button type="button" class="sh-chip" data-group="styleGenre" data-value="Indie" aria-pressed="false">Indie</button>
               <button type="button" class="sh-chip" data-group="styleGenre" data-value="Gospel" aria-pressed="false">Gospel</button>
+              <button type="button" class="sh-chip" data-group="styleGenre" data-value="Rock" aria-pressed="false">Rock</button>
+              <button type="button" class="sh-chip" data-group="styleGenre" data-value="Lo-fi" aria-pressed="false">Lo-fi</button>
             </div>
             <label class="sh-field">
               <span>Or type a genre</span>
@@ -389,6 +391,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
   <script src="song-helper.js"></script>
   <script src="site.js?v=20260924p3"></script>

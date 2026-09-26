@@ -4,6 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const core = require('./lib/song-helper');
+const packs = require('./lib/song-packs');
 const handler = require('./api/song-helper');
 
 function read(file) {
@@ -226,6 +227,52 @@ async function runApi() {
     assert.ok(!preview.body.includes('XAI_API_KEY'));
     assert.strictEqual(preview.json.draft.hooks[0].text, fixture().line);
 
+    const parody = await post(fixture({
+      line: 'Please sing this to the tune of some famous chorus tonight.',
+    }), '203.0.113.70');
+    assert.strictEqual(parody.statusCode, 400);
+    assert.strictEqual(fetchCalls, 0);
+    assert.ok(/original/i.test(parody.json.error));
+
+    const celeb = await post(fixture({
+      who: 'Drake',
+      shape: {
+        genre: 'Comedy',
+        pack: 'comedy',
+        comedy: true,
+        comedyType: 'roast',
+        comedyMusic: 'rap',
+        language: 'english',
+        explicit: 'clean',
+        length: 'full',
+      },
+    }), '203.0.113.71');
+    assert.strictEqual(celeb.statusCode, 400);
+    assert.ok(/public figures/i.test(celeb.json.error));
+
+    const comedy = await post(fixture({
+      who: 'the crumb',
+      shape: {
+        genre: 'Comedy, tiny disaster, power ballad',
+        pack: 'comedy',
+        comedy: true,
+        comedyType: 'tiny',
+        comedyMusic: 'ballad',
+        language: 'english',
+        explicit: 'clean',
+        length: 'short',
+      },
+      words: { tiny: 'the last slice of pizza', habit: 'talks to the fridge' },
+    }), '203.0.113.72');
+    assert.strictEqual(comedy.statusCode, 200);
+    assert.strictEqual(comedy.json.preview, true);
+    assert.strictEqual(comedy.json.notice, core.PREVIEW_NOTICE);
+    assert.strictEqual(comedy.json.attribution, '');
+    const comedyText = JSON.stringify(comedy.json.draft);
+    assert.ok(/pizza|crumb|drumroll|sticky note/i.test(comedyText));
+    assert.ok(!/Written with Grok/.test(comedyText));
+    assert.strictEqual(fetchCalls, 0);
+
     const honeyIp = '203.0.113.21';
     for (let i = 0; i < core.RATE_MAX; i += 1) handler._limiter.allow(honeyIp);
     const honey = await post(Object.assign(fixture(), { company_website: 'https://spam.test' }), honeyIp);
@@ -303,6 +350,100 @@ async function runApi() {
   }
 }
 
+function runPacks() {
+  const genres = packs.list().filter(function (pack) { return pack.id !== 'comedy'; });
+  assert.ok(genres.length >= 8 && genres.length <= 10);
+  assert.ok(packs.get('comedy'));
+  const names = ['taylor swift', 'drake', 'beyonce', 'beyoncé', 'the weeknd', 'bad bunny', 'rihanna', 'kendrick lamar', 'billie eilish', 'weeknd'];
+  genres.concat([packs.get('comedy')]).forEach(function (pack) {
+    assert.ok(pack.prompts.length >= 6 && pack.prompts.length <= 8, pack.id + ' prompt count');
+    assert.ok(packs.LOOKS.indexOf(pack.coverLook) >= 0, pack.id + ' look');
+    const style = packs.styleFor(pack.id, pack.id === 'comedy' ? 'ballad' : '');
+    assert.ok(packs.ERAS.indexOf(style.era) >= 0, pack.id + ' era');
+    assert.ok(packs.ENERGIES.indexOf(style.energy) >= 0, pack.id + ' energy');
+    assert.ok(style.instruments.length >= 1 && style.instruments.length <= 3);
+    style.instruments.forEach(function (item) {
+      assert.ok(packs.INSTRUMENTS.indexOf(item) >= 0, item);
+    });
+    const keys = {};
+    pack.prompts.forEach(function (prompt) {
+      assert.ok(!keys[prompt.key], 'duplicate key ' + prompt.key);
+      keys[prompt.key] = true;
+      assert.ok(prompt.variants && prompt.variants.length >= 2, pack.id + ' ' + prompt.key);
+    });
+    const first = packs.promptsFor(pack.id, 0).map(function (item) { return item.label; }).join('|');
+    const second = packs.promptsFor(pack.id, 1).map(function (item) { return item.label; }).join('|');
+    assert.notStrictEqual(first, second, pack.id + ' surprise labels');
+    const blob = JSON.stringify(pack).toLowerCase();
+    names.forEach(function (name) {
+      assert.ok(blob.indexOf(name) < 0, pack.id + ' names ' + name);
+    });
+    assert.ok(!/to the tune of/i.test(blob));
+  });
+  assert.strictEqual(packs.coverLookFor('comedy'), 'illustrated');
+  assert.strictEqual(packs.coverLookFor('country'), 'photo');
+  assert.strictEqual(packs.coverLookFor('lofi'), 'minimal');
+  assert.strictEqual(packs.coverLookFor('hiphop'), 'collage');
+  assert.strictEqual(packs.matchGenre('R&B'), 'rnb');
+  assert.strictEqual(packs.matchGenre('Corridos'), 'latin');
+  assert.ok(packs.genreLabel('comedy', 'country', 'roast').length <= 40);
+  assert.ok(/country comedy/i.test(packs.genreLabel('comedy', 'country', 'roast')));
+
+  const joke = core.buildSampleDraft(fixture({
+    who: 'the crumb',
+    shape: {
+      genre: 'Comedy, tiny disaster, power ballad',
+      pack: 'comedy',
+      comedy: true,
+      comedyType: 'tiny',
+      comedyMusic: 'ballad',
+      language: 'english',
+      explicit: 'clean',
+      length: 'short',
+    },
+    words: {
+      habit: 'talks to the fridge',
+      tiny: 'the last slice of pizza',
+    },
+  }));
+  const jokeText = allLines(joke).map(function (line) { return line.text; }).join('\n');
+  assert.ok(/pizza|crumb|drumroll|sticky note/i.test(jokeText));
+  assert.ok(/very serious song/i.test(joke.title));
+  assert.strictEqual(joke.hooks[0].text, fixture().line);
+  assert.ok(/pizza|crumb|drumroll/i.test(joke.hooks[1].text));
+  assert.ok(allLines(joke).some(function (line) {
+    return line.text === 'the last slice of pizza' && line.source === 'user';
+  }));
+  assert.ok(!/written with grok/i.test(jokeText));
+
+  assert.ok(/do not parody/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/to the tune of/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/public figures/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/good-natured/i.test(core.SYSTEM_PROMPT));
+
+  const bad = core.normalizeInterview(fixture({
+    line: 'Please sing this to the tune of some famous chorus tonight.',
+    happened: 'A parody of my week that ran too long.',
+  }));
+  assert.strictEqual(core.containsParodyAsk(bad), true);
+  const payload = core.interviewPrompt(bad);
+  assert.ok(!/to the tune of/i.test(payload));
+  assert.ok(!/parody of/i.test(payload));
+  assert.strictEqual(core.publicFigureName('Drake'), true);
+  assert.strictEqual(core.publicFigureName('M'), false);
+  assert.strictEqual(core.publicFigureName('best friend'), false);
+
+  const hip = core.buildSampleDraft(fixture({
+    words: Object.assign({}, fixture().words, { cameup: 'the second-floor apartment' }),
+    shape: { genre: 'Hip-hop', pack: 'hiphop', language: 'english', explicit: 'clean', length: 'full' },
+  }));
+  assert.ok(allLines(hip).some(function (line) {
+    return line.text === 'the second-floor apartment' && line.source === 'user';
+  }));
+  assert.strictEqual(packs.styleFor('rnb').genre, 'R&B');
+  assert.deepStrictEqual(packs.styleFor('rnb').instruments, ['electric piano', 'bass']);
+}
+
 function runPage() {
   const html = read('song-helper.html');
   const js = read('song-helper.js');
@@ -328,6 +469,22 @@ function runPage() {
   assert.ok(!/hit song|guaranteed/i.test(html + js));
   assert.ok(!html.includes('XAI_API_KEY') && !js.includes('XAI_API_KEY'));
   assert.ok(!html.includes('api.x.ai') && !js.includes('api.x.ai'));
+  assert.ok(html.indexOf('data-step="genre"') < html.indexOf('data-step="happened"'));
+  assert.ok(html.indexOf('data-step="happened"') < html.indexOf('data-step="words"'));
+  const shape = html.match(/data-step="shape"[\s\S]*?<\/section>/)[0];
+  assert.ok(!shape.includes('data-group="genre"'));
+  assert.ok(html.includes('Surprise me'));
+  assert.ok(html.includes('No parody of existing songs'));
+  assert.ok(html.includes('public figures or celebrities'));
+  assert.ok(html.includes('id="sh-comedy"'));
+  assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
+  assert.ok(js.includes('surpriseWords'));
+  assert.ok(js.includes('publicFigureName'));
+  assert.ok(js.includes('coverLook'));
+  const coverHtml = read('cover-art.html');
+  const coverJs = read('cover-art.js');
+  assert.ok(coverHtml.indexOf('lib/song-packs.js') < coverHtml.indexOf('lib/song-helper.js'));
+  assert.ok(coverJs.includes('coverLook'));
   assert.ok(js.includes('core.PREVIEW_NOTICE'));
   assert.ok(js.includes('banner.hidden = !preview'));
   assert.ok(api.includes('XAI_API_KEY'));
@@ -345,6 +502,7 @@ function runPage() {
 
 async function run() {
   runCore();
+  runPacks();
   await runApi();
   runPage();
   console.log('song-helper.test.js ok');

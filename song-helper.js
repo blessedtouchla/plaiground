@@ -2,15 +2,19 @@
   var core = window.SongHelperCore;
   if (!core) return;
 
-  var STEPS = ['mood', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
+  var packs = window.SongPacks;
+  if (!packs) return;
+
+  var STEPS = ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
   var COPY = {
     mood: ['What is the mood?', 'Tap the feeling that fits. If none of them do, write your own.'],
+    genre: ['What kind of song is this?', 'Pick a genre. The picture questions will match it. Comedy is its own lane.'],
     happened: ['What happened, in one sentence?', 'Keep it concrete. This sentence can go in the song as you wrote it.'],
     who: ['Who is this song for or about?', 'A nickname is fine.'],
     why: ['What did they do, or what changed?', 'One sentence. Your words, not a polished line.'],
     line: ['If they were standing in front of you right now, what would you say?', 'A full sentence. This is the hook seed, and we keep it word for word.'],
     words: ['Give me the pictures.', 'Short phrases or full lines work better than single words. They show up in the draft exactly as you write them.'],
-    shape: ['What shape is the song?', 'Genre, language, and how long you want the draft.'],
+    shape: ['What shape is the song?', 'Language, clean or explicit, and how long you want the draft.'],
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
     style: ['Describe the sound.', 'This becomes a style prompt you can paste into Suno. We describe the sound instead of naming artists.'],
     record: ['Your authorship record.', 'What you wrote, and what was drafted around it. Download it or print it.'],
@@ -18,6 +22,7 @@
   };
   var NEXT_LABEL = {
     mood: 'Next',
+    genre: 'Next',
     happened: 'Next',
     who: 'Next',
     why: 'Next',
@@ -28,12 +33,13 @@
     style: 'Authorship record',
     record: 'Next steps',
   };
-  var GENRES = ['R&B', 'Pop', 'Hip-hop', 'Latin', 'Country', 'Afrobeats', 'Indie', 'Rock', 'Gospel', 'Corridos'];
 
   var step = 0;
   var picks = {
     mood: '',
-    genre: '',
+    pack: '',
+    comedyType: '',
+    comedyMusic: '',
     language: 'english',
     explicit: 'clean',
     length: 'full',
@@ -43,6 +49,9 @@
     texture: '',
   };
   var instruments = [];
+  var wordValues = {};
+  var promptRoll = {};
+  var styleTouched = false;
   var draft = null;
   var preview = true;
   var draftKey = '';
@@ -89,15 +98,20 @@
   }
 
   function genreValue() {
-    if (picks.genre === 'custom') return $('sh-genre-input').value.trim();
-    return picks.genre;
+    return packs.genreLabel(picks.pack, picks.comedyMusic, picks.comedyType) || '';
+  }
+
+  function rememberWords() {
+    document.querySelectorAll('#sh-words [data-word]').forEach(function (el) {
+      wordValues[el.getAttribute('data-word')] = el.value;
+    });
   }
 
   function words() {
+    rememberWords();
     var out = {};
-    core.WORD_KEYS.forEach(function (key) {
-      var el = document.querySelector('[data-word="' + key + '"]');
-      out[key] = el ? el.value.trim() : '';
+    packs.promptsFor(picks.pack || 'generic', 0).forEach(function (prompt) {
+      out[prompt.key] = String(wordValues[prompt.key] || '').trim();
     });
     return out;
   }
@@ -112,6 +126,10 @@
       words: words(),
       shape: {
         genre: genreValue(),
+        pack: picks.pack,
+        comedy: picks.pack === 'comedy',
+        comedyType: picks.comedyType,
+        comedyMusic: picks.comedyMusic,
         language: picks.language,
         explicit: picks.explicit,
         length: picks.length,
@@ -130,8 +148,15 @@
   function filledWords() {
     var count = 0;
     var bank = words();
-    core.WORD_KEYS.forEach(function (key) { if (bank[key]) count += 1; });
+    Object.keys(bank).forEach(function (key) { if (bank[key]) count += 1; });
     return count;
+  }
+
+  function parodyMessage(text) {
+    if (/to the tune of|parody of/i.test(text || '')) {
+      return 'Write an original line. This page does not parody existing songs or write to the tune of a real one.';
+    }
+    return '';
   }
 
   function validate(id) {
@@ -139,15 +164,42 @@
       if (!picks.mood) return 'Pick a mood, or write your own.';
       if (picks.mood === 'custom' && !moodValue()) return 'Tell me the mood in a few words.';
     }
-    if (id === 'happened' && $('sh-happened').value.trim().length < 8) return 'Give me one sentence. Even a short one.';
-    if (id === 'who' && !$('sh-who').value.trim()) return 'A nickname is enough.';
-    if (id === 'why' && $('sh-why').value.trim().length < 8) return 'One sentence about what they did, or what changed.';
+    if (id === 'genre') {
+      if (!picks.pack) return 'Pick a genre.';
+      if (picks.pack === 'comedy' && !picks.comedyType) return 'Pick a comedy type.';
+      if (picks.pack === 'comedy' && !picks.comedyMusic) return 'Pick a musical style for the comedy song.';
+    }
+    if (id === 'happened') {
+      if ($('sh-happened').value.trim().length < 8) return 'Give me one sentence. Even a short one.';
+      var happenedJoke = parodyMessage($('sh-happened').value);
+      if (happenedJoke) return happenedJoke;
+    }
+    if (id === 'who') {
+      if (!$('sh-who').value.trim()) return 'A nickname is enough.';
+      if (picks.pack === 'comedy' && core.publicFigureName($('sh-who').value)) {
+        return 'Roasts stay about people you know. Leave public figures and celebrities out.';
+      }
+    }
+    if (id === 'why') {
+      if ($('sh-why').value.trim().length < 8) return 'One sentence about what they did, or what changed.';
+      var whyJoke = parodyMessage($('sh-why').value);
+      if (whyJoke) return whyJoke;
+    }
     if (id === 'line') {
       var line = $('sh-line').value.trim();
       if (line.length < 12 || line.indexOf(' ') === -1) return 'Write a full sentence. That line stays yours, word for word.';
+      var lineJoke = parodyMessage(line);
+      if (lineJoke) return lineJoke;
     }
-    if (id === 'words' && filledWords() < 1) return 'Add at least one picture. A short phrase is perfect.';
-    if (id === 'shape' && !genreValue()) return 'Pick a genre, or type one.';
+    if (id === 'words') {
+      if (filledWords() < 1) return 'Add at least one picture. A short phrase is perfect.';
+      var bank = words();
+      var wordJoke = '';
+      Object.keys(bank).forEach(function (key) {
+        if (!wordJoke) wordJoke = parodyMessage(bank[key]);
+      });
+      if (wordJoke) return wordJoke;
+    }
     return '';
   }
 
@@ -182,6 +234,16 @@
     });
     qEl.textContent = COPY[id][0];
     helpEl.textContent = COPY[id][1];
+    if (id === 'who' && picks.pack === 'comedy') {
+      helpEl.textContent = 'A nickname for someone you know, a pet, or the snack. Public figures stay out of it.';
+    }
+    if (id === 'line' && picks.pack === 'comedy') {
+      helpEl.textContent = 'A full sentence, as silly as you want. It stays word for word. Original lines only.';
+    }
+    if (id === 'words') {
+      var pack = packs.get(picks.pack);
+      if (pack && pack.wordHelp) helpEl.textContent = pack.wordHelp;
+    }
     helpEl.hidden = id === 'record';
     shell.classList.toggle('is-compact', step > 0);
     backBtn.hidden = step === 0;
@@ -190,8 +252,10 @@
     restartBtn.hidden = id !== 'next';
     renderDots();
     showError('');
+    if (id === 'genre') $('sh-comedy').hidden = picks.pack !== 'comedy';
+    if (id === 'words') renderWords();
     if (id === 'style') {
-      if (!styleGenreInput.value && genreValue() && picks.genre !== 'custom') styleGenreInput.value = genreValue();
+      applyStyleDefaults();
       renderStyle();
     }
     if (id === 'record') renderRecord();
@@ -336,6 +400,98 @@
     }
   }
 
+  function renderWords() {
+    var host = $('sh-words');
+    if (!host) return;
+    rememberWords();
+    host.textContent = '';
+    var rollBase = 0;
+    packs.promptsFor(picks.pack || 'generic', rollBase).forEach(function (base) {
+      var roll = promptRoll[base.key] || 0;
+      var prompt = packs.promptsFor(picks.pack || 'generic', roll).filter(function (item) {
+        return item.key === base.key;
+      })[0] || base;
+      var label = document.createElement('label');
+      label.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = prompt.label;
+      var input = document.createElement('input');
+      input.className = 'sh-input';
+      input.setAttribute('data-word', prompt.key);
+      input.maxLength = 160;
+      input.autocomplete = 'off';
+      input.placeholder = prompt.placeholder || '';
+      input.value = wordValues[prompt.key] || '';
+      label.appendChild(span);
+      label.appendChild(input);
+      if (prompt.hint) {
+        var hint = document.createElement('em');
+        hint.className = 'sh-hint';
+        hint.textContent = prompt.hint;
+        label.appendChild(hint);
+      }
+      host.appendChild(label);
+    });
+    var comedyNote = $('sh-words-comedy');
+    if (comedyNote) comedyNote.hidden = picks.pack !== 'comedy';
+  }
+
+  function surpriseWords() {
+    packs.promptsFor(picks.pack || 'generic', 0).forEach(function (prompt) {
+      var variants = (packs.get(picks.pack || 'generic') || packs.GENERIC).prompts.filter(function (item) {
+        return item.key === prompt.key;
+      })[0];
+      var len = variants && variants.variants ? variants.variants.length : 1;
+      var current = promptRoll[prompt.key] || 0;
+      if (len < 2) return;
+      var jump = 1 + Math.floor(Math.random() * (len - 1));
+      promptRoll[prompt.key] = (current + jump) % len;
+    });
+    renderWords();
+  }
+
+  function setInstruments(list) {
+    instruments = list.slice(0, 3);
+    document.querySelectorAll('[data-group="instrument"]').forEach(function (btn) {
+      var on = instruments.indexOf(btn.getAttribute('data-value')) >= 0;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function selectStyleGenre(value) {
+    styleGenreInput.value = value || '';
+    var matched = '';
+    document.querySelectorAll('[data-group="styleGenre"]').forEach(function (btn) {
+      if (matched) return;
+      if ((btn.getAttribute('data-value') || '').toLowerCase() === String(value || '').toLowerCase()) {
+        matched = btn.getAttribute('data-value');
+      }
+    });
+    setPressed('styleGenre', matched);
+  }
+
+  function applyStyleDefaults() {
+    if (styleTouched) return;
+    var style = packs.styleFor(picks.pack, picks.comedyMusic);
+    if (!style || !style.genre) return;
+    picks.era = '';
+    picks.energy = '';
+    setPressed('era', '');
+    setPressed('energy', '');
+    setInstruments([]);
+    if (style.era) {
+      picks.era = style.era;
+      setPressed('era', style.era);
+    }
+    if (style.energy) {
+      picks.energy = style.energy;
+      setPressed('energy', style.energy);
+    }
+    if (style.instruments && style.instruments.length) setInstruments(style.instruments);
+    selectStyleGenre(style.genre);
+  }
+
   function styleGenre() {
     var typed = styleGenreInput.value.trim();
     if (typed) return typed;
@@ -392,6 +548,11 @@
         line: data.line,
         words: data.words,
         genre: data.shape.genre || prev.genre || '',
+        pack: picks.pack || prev.pack || '',
+        comedy: picks.pack === 'comedy',
+        comedyType: picks.comedyType || '',
+        comedyMusic: picks.comedyMusic || '',
+        coverLook: packs.coverLookFor(picks.pack) || prev.coverLook || '',
         title: title || prev.title || '',
         artistName: artistName || prev.artistName || '',
         lyrics: draft ? compactLyrics(draft) : (prev.lyrics || []),
@@ -443,6 +604,7 @@
     var group = chip.getAttribute('data-group');
     var value = chip.getAttribute('data-value');
     if (group === 'instrument') {
+      styleTouched = true;
       var index = instruments.indexOf(value);
       if (index >= 0) instruments.splice(index, 1);
       else if (instruments.length >= 3) {
@@ -456,24 +618,32 @@
       return;
     }
     if (group === 'styleGenre') {
+      styleTouched = true;
       styleGenreInput.value = value;
       setPressed(group, value);
       renderStyle();
       showError('');
       return;
     }
+    if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture' || group === 'pack' || group === 'comedyMusic') {
+      if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture') styleTouched = true;
+    }
     picks[group] = value;
     setPressed(group, value);
     if (group === 'mood') $('sh-mood-custom').hidden = value !== 'custom';
-    if (group === 'genre') $('sh-genre-custom').hidden = value !== 'custom';
+    if (group === 'pack') {
+      $('sh-comedy').hidden = value !== 'comedy';
+      renderWords();
+    }
     if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture') renderStyle();
     showError('');
   });
 
-  ['sh-style-genre', 'sh-feeling', 'sh-genre-input', 'sh-mood-input'].forEach(function (id) {
+  ['sh-style-genre', 'sh-feeling', 'sh-mood-input'].forEach(function (id) {
     var el = $(id);
     if (!el) return;
     el.addEventListener('input', function () {
+      if (id === 'sh-style-genre' || id === 'sh-feeling') styleTouched = true;
       if (STEPS[step] === 'style') renderStyle();
     });
   });
@@ -545,27 +715,20 @@
 
   var profileArtists = [];
 
-  function genreChipValue(name) {
-    var want = String(name || '').trim().toLowerCase();
-    if (!want) return '';
-    var found = '';
-    document.querySelectorAll('[data-group="genre"]').forEach(function (btn) {
-      if (found) return;
-      var value = btn.getAttribute('data-value') || '';
-      if (value.toLowerCase() === want) found = value;
-    });
-    return found;
+  function packForProfile(name) {
+    return packs.matchGenre(name) || '';
   }
 
   function applyArtistRow(row) {
     if (!row) return;
     if (!$('sh-artist').value.trim()) $('sh-artist').value = row.name || '';
-    var genre = genreChipValue((row.genres || [])[0]);
-    if (genre && !picks.genre) {
-      picks.genre = genre;
-      setPressed('genre', genre);
+    var packId = packForProfile((row.genres || [])[0]);
+    if (packId && !picks.pack) {
+      picks.pack = packId;
+      setPressed('pack', packId);
+      $('sh-comedy').hidden = packId !== 'comedy';
     }
-    var note = (row.genres && row.genres[0]) ? ('Genre on file: ' + row.genres[0] + '. You can change it when you pick the song shape.') : 'No genre is stored on this profile yet.';
+    var note = (row.genres && row.genres[0]) ? ('Genre on file: ' + row.genres[0] + '. You can change it when you pick the genre.') : 'No genre is stored on this profile yet.';
     if (row.photo) note += ' A profile photo is on file. It shows on the cover step and is not sent to the image model.';
     note += ' Brand colors and a logo are not stored on artist profiles yet.';
     $('sh-profile-note').textContent = note;
@@ -598,10 +761,11 @@
       var row = profileArtists[Number($('sh-artist-pick').value)] || null;
       if (!row) return;
       $('sh-artist').value = row.name || '';
-      var genre = genreChipValue((row.genres || [])[0]);
-      if (genre) {
-        picks.genre = genre;
-        setPressed('genre', genre);
+      var packId = packForProfile((row.genres || [])[0]);
+      if (packId) {
+        picks.pack = packId;
+        setPressed('pack', packId);
+        $('sh-comedy').hidden = packId !== 'comedy';
       }
       applyArtistRow(row);
     });
@@ -617,6 +781,32 @@
     fillArtistPick();
     applyArtistRow(profileArtists[0]);
   }).catch(function () {});
+
+  function renderChoiceChips(host, group, items) {
+    if (!host) return;
+    host.textContent = '';
+    items.forEach(function (item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sh-chip';
+      btn.setAttribute('data-group', group);
+      btn.setAttribute('data-value', item.id);
+      btn.setAttribute('aria-pressed', 'false');
+      btn.textContent = item.label;
+      host.appendChild(btn);
+    });
+  }
+
+  renderChoiceChips($('sh-genres'), 'pack', packs.list().map(function (pack) {
+    return { id: pack.id, label: pack.name };
+  }));
+  renderChoiceChips($('sh-comedy-types'), 'comedyType', packs.COMEDY_TYPES.map(function (item) {
+    return { id: item.id, label: item.label };
+  }));
+  renderChoiceChips($('sh-comedy-music'), 'comedyMusic', packs.COMEDY_MUSIC.map(function (item) {
+    return { id: item.id, label: item.label };
+  }));
+  if ($('sh-surprise')) $('sh-surprise').addEventListener('click', surpriseWords);
 
   showStep();
 }());

@@ -193,6 +193,22 @@ body.song-helper-page .plai-bubble {
 
 .sh-words .sh-field { margin-top: 18px; }
 
+.sh-rules {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(243, 203, 71, 0.45);
+  border-radius: 16px;
+  background: rgba(243, 203, 71, 0.08);
+}
+
+.sh-rules p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sh-rules p:last-child { margin-bottom: 0; }
+
 .sh-group {
   margin-top: 18px;
 }
