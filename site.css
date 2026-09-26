@@ -449,6 +449,7 @@ button { cursor: pointer; }
   color: #8A8A96;
 }
 .platforms svg { opacity: 0.9; display: block; }
+.distro-pipe .platforms { margin-top: 28px; }
 
 .steps { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 48px 0; }
 .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -6934,6 +6935,59 @@ body.attest-page .plai-bubble-row {
   0%, 100% { opacity: 0.28; transform: scale(0.82); }
   40% { opacity: 1; transform: scale(1.16); }
 }
+.team-offer { padding: 8px 0 36px; }
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.team-tile {
+  display: block;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 16px 16px;
+  color: inherit;
+  text-decoration: none;
+}
+a.team-tile:hover { border-color: #782fb1; }
+.team-tile h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  line-height: 1.35;
+}
+.team-tile p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.coming-soon {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border: 1px solid rgba(243, 203, 71, 0.45);
+  border-radius: 999px;
+  color: #f3cb47;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+.team-trust {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+@media (max-width: 980px) {
+  .team-grid { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 640px) {
   .home-portal .hero {
     padding-bottom: 12px;
@@ -6952,6 +7006,7 @@ body.attest-page .plai-bubble-row {
   .home-portal .hero h1 {
     font-size: 2.15rem;
   }
+  .team-grid { grid-template-columns: 1fr; }
   .home-portal .plai-coach-float {
     right: 12px;
     bottom: 12px;
@@ -7478,10 +7533,10 @@ header.nav {
   justify-content: center;
 }
 .distro-addon {
-  margin: 0;
+  margin: 18px 0 8px;
   text-align: center;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
 }
 .distro-addon strong {

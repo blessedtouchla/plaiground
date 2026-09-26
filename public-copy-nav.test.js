@@ -56,8 +56,9 @@ function run() {
   const how = read('how-it-works.html');
   const howAppCopy = read('how.html');
   assert.ok(!/Built for AI-assisted creators/i.test(how), 'how-it-works must not lead as AI-only');
-  assert.ok(/<h1>Two tracks\.<\/h1>/.test(how), 'how-it-works is two tracks, not the whole company as three steps');
-  assert.ok(/id="distribute"/.test(how) && /\$2\.49 \/ song/.test(how), 'Distribute track is $2.49 per song');
+  assert.ok(/<h1>Market the act\.<\/h1>/.test(how), 'how-it-works leads with marketing the act');
+  assert.ok(/id="distribute"/.test(how) && /We also get the release on the stores\./.test(how), 'store delivery stays a supporting line');
+  assert.ok(!/\$2\.49/.test(how), 'how-it-works does not lead with the per-song price');
   assert.ok(/id="after-upload"/.test(how) && /Package the act\./.test(how), 'After upload track packages the act');
   assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'Distribute steps stay Upload / Release / Get paid');
   assert.ok(/Label clearly/.test(how) && /A&amp;R optional/.test(how), 'After upload names label, then optional A&R');
@@ -115,7 +116,8 @@ function run() {
   const faqBody = faq.slice(faq.indexOf('<h1>Frequently asked questions</h1>'));
   assert.ok(faqBody.indexOf('Talk to PLAI') !== -1, 'FAQ PLAI pointer stays after the questions');
   assert.ok(/buy a car at the click of a button/i.test(faq), 'FAQ lead starts with the car-click line');
-  assert.ok(/distribution, publishing, and marketing as easy as a click of a button/i.test(faq), 'FAQ lead states the click-of-a-button goal');
+  assert.ok(/marketing the act[\s\S]{0,160}as easy as a click of a button/i.test(faq), 'FAQ lead states the click-of-a-button goal for marketing the act');
+  assert.ok(/We also get the song on the stores/i.test(faq), 'FAQ lead keeps store delivery as a supporting line');
   assert.ok(/We are new/i.test(faq), 'FAQ lead says we are new');
   assert.ok(/Please send any and all feedback/i.test(faq), 'FAQ lead asks for feedback');
   assert.ok(faq.includes('mailto:emailplaiground@gmail.com'), 'FAQ lead keeps the public feedback mailto');
