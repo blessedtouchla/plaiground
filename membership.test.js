@@ -73,12 +73,19 @@ function load(options) {
       });
     };
   }
+  const rootAttrs = Object.create(null);
+  const root = {
+    setAttribute(name, value) { rootAttrs[name] = String(value); },
+    getAttribute(name) { return Object.prototype.hasOwnProperty.call(rootAttrs, name) ? rootAttrs[name] : null; },
+    removeAttribute(name) { delete rootAttrs[name]; },
+  };
   const context = {
     URLSearchParams,
     localStorage: localStorage,
     sessionStorage: sessionStorage,
     fetch: fetchImpl,
     document: {
+      documentElement: root,
       get cookie() {
         return cookie;
       },
@@ -106,7 +113,7 @@ function load(options) {
   context.globalThis = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'lib/release-credits.js'), 'utf8'), context);
   vm.runInNewContext(code, context);
-  return { api: context.PlaigroundMembership, credits: context.PlaigroundReleaseCredits, localStorage, sessionStorage, location, clicks, fetches };
+  return { api: context.PlaigroundMembership, credits: context.PlaigroundReleaseCredits, localStorage, sessionStorage, location, clicks, fetches, root };
 }
 
 function clickEvent(sel, href) {
@@ -917,7 +924,37 @@ function continueMembershipSyncTests() {
   });
 }
 
-Promise.resolve(run()).catch((err) => {
+function runBlogHeaderPaint() {
+  const signed = load({
+    seedLocal: { plaigroundSignedIn: '1', plaigroundSignedInAt: String(Date.now()) },
+    pathname: '/blog.html',
+    href: 'blog.html',
+    accountResponses: [{ ok: false, status: 401, data: {} }],
+  });
+  assert.strictEqual(signed.root.getAttribute('data-signed-in'), '1', 'blog paints signed-in from the session flag');
+  assert.strictEqual(signed.location.href, 'blog.html', 'a signed-in blog visit stays on the blog');
+  const guest = load({
+    pathname: '/blog-truth-for-artists.html',
+    href: 'blog-truth-for-artists.html',
+    accountResponses: [{ ok: false, status: 401, data: {} }],
+  });
+  assert.strictEqual(guest.root.getAttribute('data-signed-in'), null, 'logged-out blog does not paint signed-in');
+  const hinted = load({
+    cookie: 'plaiground_signed=1',
+    pathname: '/about.html',
+    href: 'about.html',
+    accountResponses: [{ ok: false, status: 401, data: {} }],
+  });
+  assert.strictEqual(hinted.root.getAttribute('data-signed-in'), '1', 'hint cookie paints signed-in on public pages');
+  return signed.api.whenReady().then(function () {
+    assert.strictEqual(signed.root.getAttribute('data-signed-in'), '1', 'fresh local session stays signed in after a 401');
+    return guest.api.whenReady();
+  }).then(function () {
+    assert.strictEqual(guest.root.getAttribute('data-signed-in'), null, 'logged-out blog stays logged out after /api/me');
+  });
+}
+
+Promise.resolve(runBlogHeaderPaint()).then(run).catch((err) => {
   console.error(err);
   process.exit(1);
 });

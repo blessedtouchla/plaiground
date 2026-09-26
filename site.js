@@ -274,6 +274,10 @@
       var signedIn = isSignedInPublic();
       login.hidden = !!signedIn;
       tools.classList.toggle("is-signed-in", signedIn);
+      var root = document.documentElement;
+      if (!root || typeof root.setAttribute !== "function") return;
+      if (signedIn) root.setAttribute("data-signed-in", "1");
+      else if (typeof root.removeAttribute === "function") root.removeAttribute("data-signed-in");
     }
     syncSignedIn();
     var api = window.PlaigroundMembership;

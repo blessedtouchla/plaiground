@@ -568,6 +568,42 @@ function run() {
   assert.ok(read('contact.html').includes('data-account-who>Hi there'), 'Contact keeps the signed-in Hi there header');
   assert.ok(read('contact.html').includes('src="membership.js"') && read('contact.html').includes('src="account.js"'), 'Contact reads the live session for signed-in chrome');
   assert.ok(!/data-require-membership|data-require-paid/i.test(read('contact.html')), 'Contact must not dump signed-in users to login');
+  assert.ok(read('site.css').includes('html[data-signed-in="1"] header.nav a.login'), 'signed-in public header hides Log in before paint');
+  assert.ok(read('header-session.js').includes('plaigroundSignedIn') && read('header-session.js').includes('plaiground_signed'), 'early header paint reads the same session flag and hint cookie');
+  fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); }).forEach(function (file) {
+    const html = read(file);
+    if (!/<header class="nav"/.test(html)) return;
+    const head = html.slice(0, html.search(/<\/head>/i));
+    assert.ok(/header-session\.js/.test(head), file + ' paints the signed-in header before the body');
+    assert.ok(/membership\.js/.test(html), file + ' loads membership.js so Log in follows the session');
+    assert.ok(!/data-require-membership/.test(html), file + ' must not send a signed-in reader to login');
+  });
+  (function paintHeaderSession() {
+    const vm = require('vm');
+    function boot(items, cookie) {
+      const attrs = Object.create(null);
+      const root = {
+        setAttribute(name, value) { attrs[name] = String(value); },
+        getAttribute(name) { return Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null; },
+      };
+      const context = {
+        document: { documentElement: root, cookie: cookie || '' },
+        localStorage: { getItem(key) { return Object.prototype.hasOwnProperty.call(items, key) ? items[key] : null; } },
+        sessionStorage: { getItem() { return null; } },
+        Date: Date,
+      };
+      context.window = context;
+      vm.runInNewContext(read('header-session.js'), context);
+      return root;
+    }
+    assert.strictEqual(boot({ plaigroundSignedIn: '1', plaigroundSignedInAt: String(Date.now()) }, '').getAttribute('data-signed-in'), '1', 'fresh session paints signed-in');
+    assert.strictEqual(boot({}, '').getAttribute('data-signed-in'), null, 'logged-out paint leaves Log in visible');
+    assert.strictEqual(boot({}, 'plaiground_signed=1').getAttribute('data-signed-in'), '1', 'hint cookie paints signed-in across hosts');
+    assert.strictEqual(boot({
+      plaigroundSignedIn: '1',
+      plaigroundSignedInAt: String(Date.now() - (31 * 60 * 1000)),
+    }, '').getAttribute('data-signed-in'), null, 'expired session does not paint signed-in');
+  })();
 
   const pubRegNav = read('publishing-register.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
   assert.ok(pubRegNav && /class="on" href="publishing-register.html" data-publishing-register/.test(pubRegNav[0]), 'Publishing is current on the register page');
