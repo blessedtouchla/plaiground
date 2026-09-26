@@ -102,6 +102,74 @@ function runCore() {
   assert.strictEqual(images.length, 4);
   assert.ok(images.every(function (image) { return image.colors[0] === '#071820' && image.look === 'minimal'; }));
   assert.ok(!JSON.stringify(images).includes('b64'));
+
+  const lyric = 'I still set a place for you like you are coming home.';
+  const chips = core.extractImagery({
+    mood: 'heartbroken',
+    words: {
+      place: 'the kitchen at 2am',
+      room: 'a chipped mug',
+      color: 'faded red',
+      time: 'just after midnight',
+    },
+    lines: [
+      { text: 'the kitchen at 2am', yours: true },
+      { text: 'a chipped mug', yours: true },
+      { text: lyric, yours: true },
+      { text: 'Neon rain on the highway after the storm', yours: false },
+    ],
+  });
+  assert.ok(chips.length > 2);
+  assert.ok(chips.every(function (chip) { return chip.label !== lyric; }));
+  assert.ok(chips[0].yours);
+  const kitchenAt = chips.findIndex(function (chip) { return /kitchen/i.test(chip.label); });
+  const highwayAt = chips.findIndex(function (chip) { return /highway/i.test(chip.label); });
+  assert.ok(kitchenAt >= 0 && highwayAt > kitchenAt, 'your imagery stays ahead of drafted imagery');
+  assert.strictEqual(chips[kitchenAt].yours, true);
+  assert.strictEqual(chips[highwayAt].yours, false);
+
+  const fromLyrics = core.suggestFromSong({
+    mood: 'heartbroken',
+    words: { place: 'the kitchen at 2am', room: 'a chipped mug' },
+    lyrics: [
+      { text: 'the kitchen at 2am', yours: true },
+      { text: 'a chipped mug', yours: true },
+      { text: lyric, yours: true },
+    ],
+  });
+  assert.ok(fromLyrics.idea.includes('kitchen'));
+  assert.ok(!fromLyrics.idea.includes('coming home'));
+
+  const visual = core.buildImagePrompt({
+    look: 'painted',
+    palette: 'night',
+    chips: ['the kitchen at 2am', 'a chipped mug'],
+    idea: lyric + '\nNeon rain on the highway\nThe third line of a verse\nAnd a fourth line',
+  });
+  assert.ok(visual.prompt.includes('the kitchen at 2am'));
+  assert.ok(visual.prompt.includes('a chipped mug'));
+  assert.ok(!visual.prompt.includes('coming home'));
+  assert.ok(visual.prompt.includes('Do not render any lyrics'));
+
+  const hint = song.profileForCover({
+    artist: 'Fallback Name',
+    profile: {
+      artists: [{ id: 'a1', name: 'Mara Vee', genres: ['R&B'], photo: 'data:image/png;base64,aaaa' }],
+    },
+  });
+  assert.strictEqual(hint.name, 'Mara Vee');
+  assert.deepStrictEqual(hint.genres, ['R&B']);
+  assert.ok(hint.photo.indexOf('data:image/png') === 0);
+  assert.strictEqual(hint.brandColors, null);
+  assert.strictEqual(hint.logo, null);
+  const fallback = song.profileForCover({
+    artist: 'Mara Vee',
+    profile: { photo: 'https://example.com/logo.png', genres: ['Pop'], artists: [] },
+  });
+  assert.strictEqual(fallback.name, 'Mara Vee');
+  assert.strictEqual(fallback.photo, '');
+  assert.strictEqual(fallback.logo, null);
+  assert.strictEqual(song.profileForCover(null), null);
 }
 
 async function runApi() {
@@ -237,7 +305,14 @@ function runPage() {
   assert.ok(js.includes('core.PLACEHOLDER_NOTICE'));
   assert.ok(js.includes('banner.hidden = !preview'));
   assert.ok(js.includes('imageSmoothingQuality = \'high\''));
-  assert.ok(js.includes('core.EXPORT_PX'));
+  assert.ok(html.includes('id="ca-chips"'));
+  assert.ok(html.includes('id="ca-prefill"'));
+  assert.ok(html.includes('not sent to the image model'));
+  assert.ok(js.includes('chips: keptChips()'));
+  assert.ok(!/lyrics\s*:/.test(js.slice(js.indexOf('JSON.stringify'))));
+  assert.ok(read('lib/song-helper.js').includes('HOOK(profile)'));
+  assert.ok(read('song-helper.js').includes('compactLyrics'));
+  assert.ok(read('song-helper.html').includes('id="sh-profile"'));
   assert.ok(api.includes('XAI_API_KEY'));
   assert.ok(api.includes('XAI_IMAGE_MODEL'));
   assert.ok(api.includes('https://api.x.ai/v1/images/generations'));

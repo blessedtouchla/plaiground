@@ -365,10 +365,23 @@
     }
   }
 
+  function compactLyrics(source) {
+    var lines = [];
+    ((source && source.sections) || []).forEach(function (section) {
+      (section.lines || []).forEach(function (line) {
+        var text = String((line && line.text) || '').trim();
+        if (!text) return;
+        lines.push({ text: text.slice(0, 280), yours: line.source === 'user' });
+      });
+    });
+    return lines.slice(0, 80);
+  }
+
   function persistSession() {
     var data = interview();
     var title = (titleEl && titleEl.value.trim()) || (draft && draft.title) || '';
-    if (!data.mood && !data.line && !title) return;
+    var artistName = $('sh-artist') ? $('sh-artist').value.trim() : '';
+    if (!data.mood && !data.line && !title && !artistName) return;
     var prev = readSession();
     try {
       sessionStorage.setItem(core.SESSION_KEY, JSON.stringify({
@@ -378,8 +391,10 @@
         why: data.why,
         line: data.line,
         words: data.words,
-        genre: data.shape.genre,
+        genre: data.shape.genre || prev.genre || '',
         title: title || prev.title || '',
+        artistName: artistName || prev.artistName || '',
+        lyrics: draft ? compactLyrics(draft) : (prev.lyrics || []),
         cover: prev.cover || null,
       }));
     } catch (err) {}
@@ -527,6 +542,81 @@
     renderRecord();
     window.print();
   });
+
+  var profileArtists = [];
+
+  function genreChipValue(name) {
+    var want = String(name || '').trim().toLowerCase();
+    if (!want) return '';
+    var found = '';
+    document.querySelectorAll('[data-group="genre"]').forEach(function (btn) {
+      if (found) return;
+      var value = btn.getAttribute('data-value') || '';
+      if (value.toLowerCase() === want) found = value;
+    });
+    return found;
+  }
+
+  function applyArtistRow(row) {
+    if (!row) return;
+    if (!$('sh-artist').value.trim()) $('sh-artist').value = row.name || '';
+    var genre = genreChipValue((row.genres || [])[0]);
+    if (genre && !picks.genre) {
+      picks.genre = genre;
+      setPressed('genre', genre);
+    }
+    var note = (row.genres && row.genres[0]) ? ('Genre on file: ' + row.genres[0] + '. You can change it when you pick the song shape.') : 'No genre is stored on this profile yet.';
+    if (row.photo) note += ' A profile photo is on file. It shows on the cover step and is not sent to the image model.';
+    note += ' Brand colors and a logo are not stored on artist profiles yet.';
+    $('sh-profile-note').textContent = note;
+    $('sh-profile').hidden = false;
+    persistSession();
+  }
+
+  function fillArtistPick() {
+    var wrap = $('sh-artist-pick-wrap');
+    var select = $('sh-artist-pick');
+    if (profileArtists.length < 2) {
+      wrap.hidden = true;
+      return;
+    }
+    select.textContent = '';
+    profileArtists.forEach(function (row, index) {
+      var option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = row.name;
+      select.appendChild(option);
+    });
+    wrap.hidden = false;
+  }
+
+  if ($('sh-artist')) {
+    $('sh-artist').addEventListener('input', persistSession);
+  }
+  if ($('sh-artist-pick')) {
+    $('sh-artist-pick').addEventListener('change', function () {
+      var row = profileArtists[Number($('sh-artist-pick').value)] || null;
+      if (!row) return;
+      $('sh-artist').value = row.name || '';
+      var genre = genreChipValue((row.genres || [])[0]);
+      if (genre) {
+        picks.genre = genre;
+        setPressed('genre', genre);
+      }
+      applyArtistRow(row);
+    });
+  }
+
+  fetch('/api/me', { credentials: 'same-origin' }).then(function (res) {
+    if (!res.ok) return null;
+    return res.json();
+  }).then(function (me) {
+    var hint = core.profileForCover(me);
+    if (!hint) return;
+    profileArtists = hint.artists || [];
+    fillArtistPick();
+    applyArtistRow(profileArtists[0]);
+  }).catch(function () {});
 
   showStep();
 }());

@@ -94,8 +94,32 @@ body.cover-art-page .ca-check li + li {
   margin-top: 4px;
 }
 
-body.cover-art-page #ca-size {
-  width: 100%;
+body.cover-art-page .ca-chip.off,
+body.song-helper-page .ca-chip.off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+body.cover-art-page .ca-prefill {
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+body.cover-art-page .ca-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+body.cover-art-page .ca-photo img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #111;
 }
 
 @media (max-width: 640px) {

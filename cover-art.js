@@ -7,7 +7,7 @@
   var COPY = {
     identity: ['Who is releasing this?', 'Artist name and song title. If you just used Song Helper, the title may already be here.'],
     look: ['What should it look like?', 'Pick a look and a color feel. The picture will not contain words.'],
-    idea: ['What is in the picture?', 'A sentence is enough. Suggest from my song uses the mood, place, object, color, and time you already gave.'],
+    idea: ['What is in the picture?', 'Your lyric pictures are chips. Keep the ones you want, then suggest a prompt. The full lyric stays off the cover.'],
     options: ['Pick a cover.', 'Tap the one that feels like the song. You can ask for another set.'],
     overlay: ['Put your name on it.', 'The letters are drawn here, not inside the picture. Then download a square 3000×3000 JPG.'],
   };
@@ -34,6 +34,9 @@
   var upscaleNote = '';
   var busy = false;
   var sessionId = '';
+  var imagery = [];
+  var ideaAuto = true;
+  var profileArtists = [];
 
   var shell = document.getElementById('ca-shell');
   var form = document.getElementById('ca-form');
@@ -99,9 +102,58 @@
   function prefill() {
     var saved = readSession();
     if (saved.title && !$('ca-title').value) $('ca-title').value = saved.title;
-    if (saved.genre && !picks.look) {
-      /* genre is kept for the idea suggestion, not as a look */
+    if (saved.artistName && !$('ca-artist').value) $('ca-artist').value = saved.artistName;
+    if (saved.genre && !$('ca-genre').value) $('ca-genre').value = saved.genre;
+    imagery = core.extractImagery({
+      lines: saved.lyrics || [],
+      words: saved.words || {},
+      mood: saved.mood,
+    });
+  }
+
+  function keptChips() {
+    return imagery.filter(function (chip) { return chip.on !== false; });
+  }
+
+  function renderPrefill() {
+    var name = $('ca-artist').value.trim();
+    var genre = $('ca-genre').value.trim();
+    var line = name ? ('Artist: ' + name) : '';
+    if (genre) line += (line ? ' · ' : '') + genre;
+    var el = $('ca-prefill');
+    el.hidden = !line;
+    el.textContent = line;
+  }
+
+  function renderChips() {
+    var host = $('ca-chips');
+    var wrap = $('ca-imagery');
+    host.textContent = '';
+    if (!imagery.length) {
+      wrap.hidden = true;
+      return;
     }
+    wrap.hidden = false;
+    imagery.forEach(function (chip) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip ca-chip' + (chip.on === false ? ' off' : ' on');
+      button.setAttribute('data-group', 'imagery');
+      button.setAttribute('data-id', chip.id);
+      button.setAttribute('aria-pressed', chip.on === false ? 'false' : 'true');
+      button.textContent = chip.label;
+      host.appendChild(button);
+    });
+  }
+
+  function fillIdeaFromChips() {
+    if (!ideaAuto && $('ca-idea').value.trim()) return;
+    var built = core.suggestFromImagery(keptChips());
+    if (!built.idea) return;
+    $('ca-idea').value = built.idea;
+    ideaAuto = true;
+    stripEl.hidden = !built.note;
+    stripEl.textContent = built.note || '';
   }
 
   function setPressed(group, value) {
@@ -150,6 +202,11 @@
     nextBtn.textContent = NEXT_LABEL[id] || 'Next';
     renderDots();
     showError('');
+    if (id === 'idea') {
+      renderPrefill();
+      renderChips();
+      if (!$('ca-idea').value.trim()) fillIdeaFromChips();
+    }
     if (id === 'overlay') {
       $('ca-overlay-artist').value = $('ca-artist').value.trim();
       $('ca-overlay-title').value = $('ca-title').value.trim();
@@ -280,6 +337,7 @@
           customColor: $('ca-custom').value,
           idea: $('ca-idea').value.trim(),
           count: Number(picks.count) || 3,
+          chips: keptChips().map(function (chip) { return chip.label; }),
           session_id: ensureSessionId(),
           company_website: $('ca-honey').value,
         }),
@@ -464,19 +522,22 @@
   }
 
   function suggest() {
-    var saved = readSession();
-    var words = saved.words || {};
-    var built = core.suggestFromSong({
-      mood: saved.mood,
-      place: words.place,
-      room: words.room,
-      color: words.color,
-      time: words.time,
-    });
+    var built = core.suggestFromImagery(keptChips());
     if (!built.idea) {
-      showError(saved.mood ? built.note || 'That suggestion did not stick. Write the idea in your own words.' : 'Use Song Helper first, or write the idea yourself.');
+      var saved = readSession();
+      built = core.suggestFromSong({
+        mood: saved.mood,
+        place: saved.words && saved.words.place,
+        room: saved.words && saved.words.room,
+        color: saved.words && saved.words.color,
+        time: saved.words && saved.words.time,
+      });
+    }
+    if (!built.idea) {
+      showError('Use Song Helper first, or write the idea yourself.');
       return;
     }
+    ideaAuto = true;
     $('ca-idea').value = built.idea;
     stripEl.hidden = !built.note;
     stripEl.textContent = built.note || '';
@@ -489,6 +550,16 @@
     if (!chip || chip.tagName === 'INPUT') return;
     var group = chip.getAttribute('data-group');
     var value = chip.getAttribute('data-value');
+    if (group === 'imagery') {
+      var id = chip.getAttribute('data-id');
+      imagery.forEach(function (item) {
+        if (item.id === id) item.on = item.on === false;
+      });
+      renderChips();
+      fillIdeaFromChips();
+      showError('');
+      return;
+    }
     if (!group || !value) return;
     picks[group] = value;
     setPressed(group, value);
@@ -508,6 +579,7 @@
   $('ca-text-color').addEventListener('input', paintPreview);
   $('ca-size').addEventListener('input', paintPreview);
   $('ca-idea').addEventListener('input', function () {
+    ideaAuto = false;
     var guarded = core.guardCoverText($('ca-idea').value);
     stripEl.hidden = !guarded.note;
     stripEl.textContent = guarded.note || '';
@@ -533,6 +605,68 @@
       if (!nextBtn.hidden) nextBtn.click();
     }
   });
+
+  function applyProfile(me) {
+    var hint = song.profileForCover(me);
+    if (!hint) return;
+    profileArtists = hint.artists || [];
+    var saved = readSession();
+    if (!$('ca-artist').value.trim()) $('ca-artist').value = saved.artistName || hint.name || '';
+    if (!$('ca-genre').value.trim()) $('ca-genre').value = saved.genre || ((hint.genres || [])[0] || '');
+    var note = $('ca-profile-note');
+    note.hidden = false;
+    var genreLine = (hint.genres && hint.genres[0]) ? ('Genre on file: ' + hint.genres[0] + '. ') : '';
+    note.textContent = 'Artist name from your profile. You can edit it. ' + genreLine + 'Brand colors and a logo are not stored on artist profiles yet.';
+    if (hint.photo) {
+      $('ca-photo').src = hint.photo;
+      $('ca-photo-wrap').hidden = false;
+    }
+    var pickWrap = $('ca-artist-pick-wrap');
+    var select = $('ca-artist-pick');
+    if (profileArtists.length > 1) {
+      select.textContent = '';
+      profileArtists.forEach(function (row, index) {
+        var option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = row.name;
+        select.appendChild(option);
+      });
+      pickWrap.hidden = false;
+    }
+    renderPrefill();
+  }
+
+  if ($('ca-photo-remove')) {
+    $('ca-photo-remove').addEventListener('click', function () {
+      $('ca-photo').removeAttribute('src');
+      $('ca-photo-wrap').hidden = true;
+    });
+  }
+  if ($('ca-artist-pick')) {
+    $('ca-artist-pick').addEventListener('change', function () {
+      var row = profileArtists[Number($('ca-artist-pick').value)];
+      if (!row) return;
+      $('ca-artist').value = row.name || '';
+      if ((row.genres || [])[0]) $('ca-genre').value = row.genres[0];
+      if (row.photo) {
+        $('ca-photo').src = row.photo;
+        $('ca-photo-wrap').hidden = false;
+      } else {
+        $('ca-photo-wrap').hidden = true;
+      }
+      renderPrefill();
+    });
+  }
+  $('ca-artist').addEventListener('input', renderPrefill);
+  $('ca-genre').addEventListener('input', function () {
+    renderPrefill();
+    if (ideaAuto) fillIdeaFromChips();
+  });
+
+  fetch('/api/me', { credentials: 'same-origin' }).then(function (res) {
+    if (!res.ok) return null;
+    return res.json();
+  }).then(applyProfile).catch(function () {});
 
   rightsEl.textContent = core.IMAGE_RIGHTS;
   prefill();

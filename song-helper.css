@@ -70,6 +70,14 @@ body.song-helper-page .plai-bubble {
   margin-bottom: 18px;
 }
 
+.sh-profile {
+  margin: 0 0 16px;
+  padding: 14px 14px 6px;
+  border: 1px solid rgba(243, 203, 71, 0.35);
+  border-radius: 16px;
+  max-width: 36rem;
+}
+
 .sh-dots {
   display: flex;
   flex-wrap: wrap;

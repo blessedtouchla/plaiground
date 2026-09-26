@@ -94,6 +94,20 @@
             <span>Artist name</span>
             <input class="sh-input" id="ca-artist" maxlength="80" autocomplete="name" placeholder="Your artist name" />
           </label>
+          <label class="sh-field" id="ca-artist-pick-wrap" hidden>
+            <span>Which artist profile</span>
+            <select class="sh-input" id="ca-artist-pick"></select>
+          </label>
+          <label class="sh-field">
+            <span>Genre</span>
+            <input class="sh-input" id="ca-genre" maxlength="40" autocomplete="off" placeholder="From your profile, if you have one" />
+          </label>
+          <p class="sh-note" id="ca-profile-note" hidden></p>
+          <div class="ca-photo" id="ca-photo-wrap" hidden>
+            <img id="ca-photo" alt="Profile photo on file" />
+            <button type="button" class="btn btn-ghost btn-md" id="ca-photo-remove">Remove photo</button>
+            <p class="sh-help">This photo is on your artist profile. It is not sent to the image model, and it is not printed on the cover.</p>
+          </div>
           <label class="sh-field">
             <span>Song title</span>
             <input class="sh-input" id="ca-title" maxlength="80" autocomplete="off" placeholder="Song title" />
@@ -124,6 +138,12 @@
         </section>
 
         <section data-step="idea" hidden>
+          <p class="ca-prefill" id="ca-prefill" hidden></p>
+          <div id="ca-imagery" hidden>
+            <p class="sh-label">From your lyrics</p>
+            <p class="sh-help">Your own lines come first. Tap a chip to leave it out. Only these pictures go to the image. The lyrics are not printed on the cover, and the full lyric is not sent.</p>
+            <div class="sh-chips" id="ca-chips"></div>
+          </div>
           <label class="sh-field">
             <span>Image idea</span>
             <textarea class="sh-area" id="ca-idea" maxlength="600" rows="4" placeholder="A kitchen light left on at blue hour, a chipped mug in the frame."></textarea>

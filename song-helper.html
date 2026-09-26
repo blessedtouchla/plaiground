@@ -79,6 +79,18 @@
       <p class="sh-intro">Tell me the song in your own words. I’ll draft lyrics around them, then a style prompt you can take to Suno.</p>
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
+      <div class="sh-profile" id="sh-profile" hidden>
+        <p class="sh-label">From your artist profile</p>
+        <label class="sh-field" id="sh-artist-pick-wrap" hidden>
+          <span>Which artist</span>
+          <select class="sh-input" id="sh-artist-pick"></select>
+        </label>
+        <label class="sh-field">
+          <span>Artist name</span>
+          <input class="sh-input" id="sh-artist" maxlength="80" autocomplete="name" />
+        </label>
+        <p class="sh-note" id="sh-profile-note"></p>
+      </div>
       <div class="sh-dots" id="sh-dots" role="navigation" aria-label="Progress"></div>
       <h2 class="sh-q" id="sh-q">What is the mood?</h2>
       <p class="sh-help" id="sh-help">Tap the feeling that fits. If none of them do, write your own.</p>
