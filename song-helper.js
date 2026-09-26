@@ -195,6 +195,7 @@
       renderStyle();
     }
     if (id === 'record') renderRecord();
+    else persistSession();
     var focus = document.querySelector('[data-step="' + id + '"] textarea, [data-step="' + id + '"] input.sh-input');
     if (focus && step > 0 && id !== 'draft' && id !== 'style' && id !== 'record' && id !== 'next') {
       try { focus.focus(); } catch (err) {}
@@ -356,6 +357,34 @@
     promptEl.dataset.prompt = built.prompt || '';
   }
 
+  function readSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem(core.SESSION_KEY) || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function persistSession() {
+    var data = interview();
+    var title = (titleEl && titleEl.value.trim()) || (draft && draft.title) || '';
+    if (!data.mood && !data.line && !title) return;
+    var prev = readSession();
+    try {
+      sessionStorage.setItem(core.SESSION_KEY, JSON.stringify({
+        mood: data.mood,
+        happened: data.happened,
+        who: data.who,
+        why: data.why,
+        line: data.line,
+        words: data.words,
+        genre: data.shape.genre,
+        title: title || prev.title || '',
+        cover: prev.cover || null,
+      }));
+    } catch (err) {}
+  }
+
   function renderRecord() {
     if (!draft) {
       recordEl.textContent = 'Write the draft first, then this record can list your lines.';
@@ -363,11 +392,14 @@
     }
     draft.title = titleEl.value.trim() || draft.title;
     var date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    var saved = readSession();
     recordEl.textContent = core.formatAuthorship(draft, {
       preview: preview,
       date: date,
       interview: interview(),
+      cover: saved.cover || null,
     });
+    persistSession();
   }
 
   function downloadRecord() {
@@ -451,6 +483,7 @@
     if (step < STEPS.length - 1) go(step + 1, false);
   });
   restartBtn.addEventListener('click', function () {
+    try { sessionStorage.removeItem(core.SESSION_KEY); } catch (err) {}
     window.location.reload();
   });
   $('sh-regen').addEventListener('click', function () {

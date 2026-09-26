@@ -165,6 +165,14 @@ function runCore() {
   assert.ok(record.includes('Sample line, not written by AI'));
   assert.ok(record.includes(interview.line));
   assert.ok(!record.includes('Written with Grok'));
+  const withCover = core.formatAuthorship(draft, {
+    preview: true,
+    date: 'September 26, 2026',
+    cover: { line: 'Cover image: placeholder art, not AI-generated.' },
+  });
+  assert.ok(withCover.includes('Cover image: placeholder art, not AI-generated.'));
+  assert.ok(withCover.includes(core.COVER_IMAGE_RIGHTS));
+  assert.ok(!withCover.includes('Written with Grok'));
   assert.strictEqual(core.describeLine({ source: 'generated', text: 'x', original: 'x' }, false), 'Written with Grok');
 
   const repaired = core.draftFromModelJson(JSON.stringify({
@@ -311,6 +319,8 @@ function runPage() {
   assert.ok(html.includes('href="/ar"'));
   assert.ok(html.includes('href="/epk"'));
   assert.ok(html.includes('href="how-it-works.html#distribute"'));
+  assert.ok(html.includes('href="/cover-art"'));
+  assert.ok(html.includes('Make your cover'));
   assert.ok(html.includes('noindex'));
   assert.ok(!nav.includes('song-helper'));
   assert.ok(!/Grok/.test(html), 'Grok stays off the page chrome');

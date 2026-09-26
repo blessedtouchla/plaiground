@@ -123,6 +123,8 @@
     { "source": "/epk", "destination": "/epk.html" },
     { "source": "/song-helper", "destination": "/song-helper.html" },
     { "source": "/song-helper/", "destination": "/song-helper.html" },
+    { "source": "/cover-art", "destination": "/cover-art.html" },
+    { "source": "/cover-art/", "destination": "/cover-art.html" },
     { "source": "/blog", "destination": "/blog.html" },
     { "source": "/blog/welcome", "destination": "/blog-welcome.html" },
     { "source": "/blog/first-release", "destination": "/blog-first-release.html" },

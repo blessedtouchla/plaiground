@@ -375,7 +375,7 @@ body.song-helper-page .plai-bubble {
 }
 
 @media (min-width: 800px) {
-  .sh-next-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .sh-next-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 640px) {
