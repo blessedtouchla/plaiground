@@ -430,6 +430,17 @@
   }
 
   async function loadDraft(force) {
+    if (force) {
+      try {
+        var held = readSession();
+        if (held && held.source === 'battle') {
+          delete held.source;
+          delete held.battleDraft;
+          delete held.battlePreview;
+          sessionStorage.setItem(core.SESSION_KEY, JSON.stringify(held));
+        }
+      } catch (err) {}
+    }
     var key = interviewKey();
     if (!force && draft && draftKey === key) {
       renderDraft();
@@ -602,7 +613,7 @@
     if (!data.mood && !data.line && !title && !artistName) return;
     var prev = readSession();
     try {
-      sessionStorage.setItem(core.SESSION_KEY, JSON.stringify({
+      var payload = {
         mood: data.mood,
         happened: data.happened,
         who: data.who,
@@ -619,7 +630,13 @@
         artistName: artistName || prev.artistName || '',
         lyrics: draft ? compactLyrics(draft) : (prev.lyrics || []),
         cover: prev.cover || null,
-      }));
+      };
+      if (prev.source === 'battle' && prev.battleDraft) {
+        payload.source = 'battle';
+        payload.battleDraft = prev.battleDraft;
+        payload.battlePreview = Boolean(prev.battlePreview);
+      }
+      sessionStorage.setItem(core.SESSION_KEY, JSON.stringify(payload));
     } catch (err) {}
   }
 
@@ -858,5 +875,43 @@
   }));
   if ($('sh-surprise')) $('sh-surprise').addEventListener('click', surpriseWords);
 
-  showStep();
+  function battleSavedDraft() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('from') !== 'battle') return null;
+    } catch (err) {
+      return null;
+    }
+    var saved = readSession();
+    if (!saved || saved.source !== 'battle' || !saved.battleDraft || !saved.battleDraft.sections || !saved.battleDraft.sections.length) return null;
+    return saved;
+  }
+
+  function openBattleDraft(saved) {
+    picks.mood = 'custom';
+    if ($('sh-mood-custom')) $('sh-mood-custom').hidden = false;
+    if ($('sh-mood-input')) $('sh-mood-input').value = String(saved.mood || '').slice(0, 40);
+    if ($('sh-happened')) $('sh-happened').value = String(saved.happened || '').slice(0, 280);
+    if ($('sh-who')) $('sh-who').value = String(saved.who || '').slice(0, 80);
+    if ($('sh-why')) $('sh-why').value = String(saved.why || '').slice(0, 280);
+    if ($('sh-line')) $('sh-line').value = String(saved.line || '').slice(0, 280);
+    if (saved.pack) {
+      picks.pack = saved.pack;
+      setPressed('pack', saved.pack);
+      if ($('sh-comedy')) $('sh-comedy').hidden = saved.pack !== 'comedy';
+    }
+    if (saved.artistName && $('sh-artist') && !$('sh-artist').value.trim()) $('sh-artist').value = saved.artistName;
+    wordValues.cameup = String(saved.happened || saved.title || 'the battle').slice(0, 160);
+    draft = saved.battleDraft;
+    preview = Boolean(saved.battlePreview);
+    if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;
+    draftKey = interviewKey();
+    step = STEPS.indexOf('draft');
+    showStep();
+    renderDraft();
+  }
+
+  var battleSaved = battleSavedDraft();
+  if (battleSaved) openBattleDraft(battleSaved);
+  else showStep();
 }());
