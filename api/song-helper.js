@@ -86,25 +86,17 @@ function honeypotFilled(body) {
   return Boolean(String((body && body.company_website) || '').trim());
 }
 
-async function callGrok(interview) {
-  var key = String(process.env.XAI_API_KEY || '').trim();
-  if (!key) {
-    return {
-      preview: true,
-      source: 'sample',
-      notice: core.PREVIEW_NOTICE,
-      attribution: '',
-      draft: core.buildSampleDraft(interview),
-    };
-  }
+async function requestModel(interview, stronger) {
   var model = String(process.env.XAI_MODEL || core.DEFAULT_MODEL).trim() || core.DEFAULT_MODEL;
+  var userContent = core.interviewPrompt(interview);
+  if (stronger) userContent += '\n' + core.RETRY_INSTRUCTION;
   var payload = {
     model: model,
     temperature: 0.8,
     max_tokens: 1400,
     messages: [
       { role: 'system', content: core.SYSTEM_PROMPT },
-      { role: 'user', content: core.interviewPrompt(interview) },
+      { role: 'user', content: userContent },
     ],
   };
   if (!/non-reasoning/i.test(model)) payload.reasoning_effort = 'none';
@@ -114,7 +106,7 @@ async function callGrok(interview) {
     var response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer ' + key,
+        Authorization: 'Bearer ' + keyFromEnv(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
@@ -126,18 +118,45 @@ async function callGrok(interview) {
       failure.status = response.status;
       throw failure;
     }
-    var content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-    return {
-      preview: false,
-      source: 'grok',
-      model: model,
-      notice: '',
-      attribution: core.GROK_ATTRIBUTION,
-      draft: core.draftFromModelJson(content, interview),
-    };
+    return data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+function keyFromEnv() {
+  return String(process.env.XAI_API_KEY || '').trim();
+}
+
+async function callGrok(interview) {
+  if (!keyFromEnv()) {
+    return {
+      preview: true,
+      source: 'sample',
+      notice: core.PREVIEW_NOTICE,
+      attribution: '',
+      draft: core.buildSampleDraft(interview),
+    };
+  }
+  var content = await requestModel(interview, false);
+  var draft = core.draftFromModelJson(content, interview);
+  if (core.draftNeedsRetry(draft, interview)) {
+    try {
+      var second = await requestModel(interview, true);
+      draft = core.draftFromModelJson(second, interview);
+    } catch (err) {
+      // The first draft stays. repairLyricShape below cleans a failed retry.
+    }
+    if (core.draftNeedsRetry(draft, interview)) draft = core.repairLyricShape(draft, interview);
+  }
+  return {
+    preview: false,
+    source: 'grok',
+    model: String(process.env.XAI_MODEL || core.DEFAULT_MODEL).trim() || core.DEFAULT_MODEL,
+    notice: '',
+    attribution: core.GROK_ATTRIBUTION,
+    draft: draft,
+  };
 }
 
 async function handler(req, res) {

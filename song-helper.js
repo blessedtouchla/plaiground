@@ -13,7 +13,7 @@
     who: ['Who is this song for or about?', 'A nickname is fine.'],
     why: ['What did they do, or what changed?', 'One sentence. Your words, not a polished line.'],
     line: ['If they were standing in front of you right now, what would you say?', 'A full sentence. This is the hook seed, and we keep it word for word.'],
-    words: ['Give me the pictures.', 'Short phrases or full lines work better than single words. They show up in the draft exactly as you write them.'],
+    words: ['Give me the pictures.', 'Short phrases or full lines. I weave them into the song and keep your words.'],
     shape: ['What shape is the song?', 'Language, clean or explicit, and how long you want the draft.'],
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
     style: ['Describe the sound.', 'This becomes a style prompt you can paste into Suno. We describe the sound instead of naming artists.'],
@@ -327,6 +327,12 @@
     });
   }
 
+  function holdsUserWords(line) {
+    if (!line) return false;
+    if (line.source === 'user') return true;
+    return Boolean(core.lineHoldsUserWords && core.lineHoldsUserWords(line.text, interview()));
+  }
+
   function renderDraft() {
     if (!draft) return;
     titleEl.value = draft.title || '';
@@ -343,14 +349,14 @@
       lyricEl.appendChild(label);
       visible.forEach(function (line) {
         var box = document.createElement('textarea');
-        box.className = 'sh-line' + (line.source === 'user' ? ' is-user' : '');
+        box.className = 'sh-line' + (holdsUserWords(line) ? ' is-user' : '');
         box.rows = 1;
         box.value = line.text;
         box.setAttribute('aria-label', section.label + ' line');
         box.addEventListener('input', function () {
           line.text = box.value;
           line.edited = box.value.trim() !== String(line.original || '').trim();
-          if (line.source === 'user') box.classList.add('is-user');
+          box.classList.toggle('is-user', holdsUserWords(line));
           fit(box);
           renderSuno();
         });
