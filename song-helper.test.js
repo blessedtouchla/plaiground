@@ -54,6 +54,10 @@ function allLines(draft) {
   return lines;
 }
 
+function lineHasPhrase(line, phrase) {
+  return String(line || '').toLowerCase().indexOf(String(phrase || '').toLowerCase()) >= 0;
+}
+
 function mockRes() {
   return {
     statusCode: 0,
@@ -92,8 +96,12 @@ function runCore() {
   assert.ok(/character for character/i.test(core.SYSTEM_PROMPT));
   assert.ok(/word-bank answers are ingredients/i.test(core.SYSTEM_PROMPT));
   assert.ok(/at least two distinct lines/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/natural casing/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/every verse needs at least four lyric lines/i.test(core.SYSTEM_PROMPT));
   assert.ok(/mixes Spanish and English/i.test(core.SYSTEM_PROMPT));
   assert.ok(/do not stack/i.test(core.RETRY_INSTRUCTION));
+  assert.ok(/natural casing|lowercase a common word/i.test(core.RETRY_INSTRUCTION));
+  assert.ok(/at least four lyric lines/i.test(core.RETRY_INSTRUCTION));
   assert.ok(/JSON only/i.test(core.SYSTEM_PROMPT));
   assert.ok(/do not add attribution/i.test(core.SYSTEM_PROMPT));
   assert.ok(!/please (add|include|insert).{0,80}grok/i.test(core.SYSTEM_PROMPT));
@@ -106,9 +114,14 @@ function runCore() {
     assert.ok(hit.every(function (line) { return line.source === 'user'; }), 'user line not marked: ' + text);
   });
   wordBank(interview).forEach(function (text) {
-    const hit = lines.filter(function (line) { return line.text.indexOf(text) >= 0; });
+    const hit = lines.filter(function (line) { return lineHasPhrase(line.text, text); });
     assert.ok(hit.length, 'word bank not woven: ' + text);
-    assert.ok(hit.every(function (line) { return line.text !== text && line.source === 'user'; }), 'word bank dumped as its own line: ' + text);
+    assert.ok(hit.every(function (line) {
+      return line.text.toLowerCase() !== text.toLowerCase() && line.source === 'user';
+    }), 'word bank dumped as its own line: ' + text);
+  });
+  draft.sections.filter(function (section) { return /^verse\b/i.test(section.label); }).forEach(function (section) {
+    assert.ok(section.lines.length >= 4, 'verse needs four lines');
   });
   assert.strictEqual(core.draftNeedsRetry(draft, interview), false);
 
@@ -136,7 +149,9 @@ function runCore() {
     assert.ok(allLines(short).some(function (line) { return line.text === text && line.source === 'user'; }));
   });
   wordBank(interview).forEach(function (text) {
-    assert.ok(allLines(short).some(function (line) { return line.text.indexOf(text) >= 0 && line.text !== text; }));
+    assert.ok(allLines(short).some(function (line) {
+      return lineHasPhrase(line.text, text) && line.text.toLowerCase() !== text.toLowerCase();
+    }), 'short weave missing ' + text);
   });
 
   const again = core.buildSampleDraft(fixture({ variant: 1 }));
@@ -525,9 +540,10 @@ async function runApi() {
       ],
       sections: [
         { label: 'Verse', lines: [
-          { text: 'I woke up on a Saturday with both of us still talking.', source: 'generated' },
-          { text: 'Garlic asada at 8:30, and the kitchen smelled like home.', source: 'generated' },
+          { text: 'I woke up on a Saturday', source: 'user' },
+          { text: 'Both of us still talking over Garlic asada at 8:30.', source: 'generated' },
           { text: 'Tesla x with the wings parked under a West hollywood moon.', source: 'generated' },
+          { text: 'Gracias por tu luz, mi amor.', source: 'user' },
         ]},
         { label: 'Pre-Chorus', lines: [
           { text: 'Me quedé despierto contigo.', source: 'user' },
@@ -536,6 +552,17 @@ async function runApi() {
         { label: 'Chorus', lines: [
           { text: 'Gracias por tu luz, mi amor.', source: 'user', role: 'hook' },
           { text: 'He made me watermelon Juice and the light stayed on.', source: 'generated' },
+          { text: 'Gracias por tu luz, mi amor.', source: 'user', role: 'hook' },
+        ]},
+        { label: 'Verse 2', lines: [
+          { text: 'The same Saturday keeps Both of the glasses on the counter.', source: 'generated' },
+          { text: 'The hallway light stayed warm.', source: 'generated' },
+          { text: 'We left the song half finished.', source: 'generated' },
+          { text: 'Saturday can hold the rest.', source: 'generated' },
+        ]},
+        { label: 'Chorus', lines: [
+          { text: 'Gracias por tu luz, mi amor.', source: 'user', role: 'hook' },
+          { text: 'West hollywood can wait until the song is done.', source: 'generated' },
           { text: 'Gracias por tu luz, mi amor.', source: 'user', role: 'hook' },
         ]},
       ],
@@ -559,9 +586,29 @@ async function runApi() {
     assert.ok(/weave every word-bank/i.test(attempts[1].messages[0].content));
     const retryLines = allLines(retried.json.draft);
     assert.ok(retryLines.some(function (line) {
-      return line.text.indexOf('Garlic asada') >= 0 && line.text !== 'Garlic asada' && line.source === 'user';
+      return line.text === 'Both of us still talking over garlic asada at 8:30.' && line.source === 'user';
     }));
+    assert.ok(retryLines.some(function (line) {
+      return line.text === 'Tesla X with the wings parked under a West Hollywood moon.' && line.source === 'user';
+    }));
+    assert.ok(retryLines.some(function (line) {
+      return line.text === 'The same Saturday keeps both of the glasses on the counter.' && line.source === 'user';
+    }));
+    assert.ok(retryLines.some(function (line) {
+      return line.text === 'West Hollywood can wait until the song is done.' && line.source === 'user';
+    }));
+    assert.ok(retryLines.some(function (line) {
+      return line.text === 'He made me watermelon juice and the light stayed on.' && line.source === 'user';
+    }));
+    assert.ok(retryLines.some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+    assert.ok(retryLines.some(function (line) { return line.text === 'I woke up on a Saturday'; }));
+    assert.ok(!retryLines.some(function (line) { return /West hollywood|Tesla x|Garlic asada|keeps Both/.test(line.text); }));
     assert.ok(!retryLines.some(function (line) { return line.text === 'Both' || line.text === '8:30' || line.text === 'Tango'; }));
+    retried.json.draft.sections.filter(function (section) {
+      return /^verse\b/i.test(section.label);
+    }).forEach(function (section) {
+      assert.ok(section.lines.length >= 4, 'retried verse needs four lines');
+    });
     retried.json.draft.sections.filter(function (section) {
       return /^chorus\b/i.test(section.label);
     }).forEach(function (section) {
@@ -575,9 +622,16 @@ async function runApi() {
     const retrySuno = core.formatSunoLyrics(retried.json.draft);
     assert.ok(!/you wrote this/i.test(retrySuno));
     assert.ok(retrySuno.includes('Gracias por tu luz, mi amor.'));
-    assert.ok(retrySuno.includes('Garlic asada'));
-    assert.ok(retrySuno.includes('West hollywood'));
+    assert.ok(retrySuno.includes('Both of us still talking over garlic asada at 8:30.'));
+    assert.ok(retrySuno.includes('Tesla X with the wings parked under a West Hollywood moon.'));
+    assert.ok(retrySuno.includes('The same Saturday keeps both of the glasses on the counter.'));
+    assert.ok(retrySuno.includes('West Hollywood can wait until the song is done.'));
     assert.ok(retrySuno.includes('Pepsi tonight?'));
+    assert.ok(retrySuno.includes('Me quedé despierto contigo.'));
+    assert.ok(!/West hollywood|Tesla x|Garlic asada/.test(retrySuno));
+    retrySuno.split('\n\n').filter(function (block) { return /^\[Verse\b/.test(block); }).forEach(function (block) {
+      assert.ok(block.split('\n').length >= 5, 'copied verse needs four lyric lines');
+    });
   } finally {
     global.fetch = originalFetch;
     if (previousKey === undefined) delete process.env.XAI_API_KEY;
@@ -649,7 +703,7 @@ function runPacks() {
   assert.strictEqual(joke.hooks[0].text, fixture().line);
   assert.ok(/pizza|crumb|drumroll/i.test(joke.hooks[1].text));
   assert.ok(allLines(joke).some(function (line) {
-    return line.text.indexOf('the last slice of pizza') >= 0 && line.text !== 'the last slice of pizza' && line.source === 'user';
+    return lineHasPhrase(line.text, 'the last slice of pizza') && line.text.toLowerCase() !== 'the last slice of pizza' && line.source === 'user';
   }));
   assert.ok(!/written with grok/i.test(jokeText));
 
@@ -675,7 +729,7 @@ function runPacks() {
     shape: { genre: 'Hip-hop', pack: 'hiphop', language: 'english', explicit: 'clean', length: 'full' },
   }));
   assert.ok(allLines(hip).some(function (line) {
-    return line.text.indexOf('the second-floor apartment') >= 0 && line.text !== 'the second-floor apartment' && line.source === 'user';
+    return lineHasPhrase(line.text, 'the second-floor apartment') && line.text.toLowerCase() !== 'the second-floor apartment' && line.source === 'user';
   }));
 
   const mixedWords = {
@@ -700,8 +754,11 @@ function runPacks() {
   Object.keys(mixed.words).forEach(function (key) {
     const bit = mixed.words[key];
     assert.ok(allLines(mixedDraft).some(function (line) {
-      return line.text.indexOf(bit) >= 0 && line.text !== bit && line.source === 'user';
+      return lineHasPhrase(line.text, bit) && line.text.toLowerCase() !== bit.toLowerCase() && line.source === 'user';
     }), 'missing weave for ' + bit);
+  });
+  mixedDraft.sections.filter(function (section) { return /^verse\b/i.test(section.label); }).forEach(function (section) {
+    assert.ok(section.lines.length >= 4, 'sample verse needs four lines');
   });
   assert.ok(allLines(mixedDraft).some(function (line) { return line.text === 'I woke up on a Saturday'; }));
   assert.ok(allLines(mixedDraft).some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
@@ -716,8 +773,10 @@ function runPacks() {
   const mixedSuno = core.formatSunoLyrics(mixedDraft);
   assert.ok(!/you wrote this/i.test(mixedSuno));
   assert.ok(mixedSuno.includes('Gracias por tu luz, mi amor.'));
-  assert.ok(mixedSuno.includes('Garlic asada'));
-  assert.ok(mixedSuno.includes('West hollywood'));
+  assert.ok(mixedSuno.includes('West Hollywood'));
+  assert.ok(mixedSuno.includes('Tesla X'));
+  assert.ok(!mixedSuno.includes('West hollywood'));
+  assert.ok(!/Tesla x\b/.test(mixedSuno));
 
   const dumped = core.draftFromModelJson(JSON.stringify({
     title: 'Luz',
@@ -747,13 +806,58 @@ function runPacks() {
   const fixed = core.repairLyricShape(dumped, mixed);
   assert.strictEqual(core.draftNeedsRetry(fixed, mixed), false);
   assert.ok(allLines(fixed).some(function (line) {
-    return line.text.indexOf('Garlic asada') >= 0 && line.text !== 'Garlic asada' && core.lineHoldsUserWords(line.text, mixed);
+    return lineHasPhrase(line.text, 'Garlic asada') && line.text.toLowerCase() !== 'garlic asada' && core.lineHoldsUserWords(line.text, mixed);
   }));
+  assert.ok(allLines(fixed).some(function (line) { return line.text.indexOf('West Hollywood') >= 0; }));
+  assert.ok(allLines(fixed).some(function (line) { return line.text.indexOf('Tesla X') >= 0; }));
+  assert.ok(!allLines(fixed).some(function (line) { return /West hollywood|Tesla x\b/.test(line.text); }));
+  fixed.sections.filter(function (section) { return /^verse\b/i.test(section.label); }).forEach(function (section) {
+    assert.ok(section.lines.length >= 4, 'repaired verse needs four lines');
+  });
   fixed.sections.filter(function (section) { return /^chorus\b/i.test(section.label); }).forEach(function (section) {
     const seen = {};
     section.lines.forEach(function (line) { seen[line.text.trim().toLowerCase()] = true; });
     assert.ok(Object.keys(seen).length >= 2);
   });
+  const thin = core.draftFromModelJson(JSON.stringify({
+    title: 'Luz',
+    hooks: [
+      { id: 'a', text: 'Gracias por tu luz, mi amor.', source: 'user' },
+      { id: 'b', text: 'Quédate, the night is still warm.', source: 'generated' },
+    ],
+    sections: [
+      { label: 'Verse', lines: [
+        { text: 'I woke up on a Saturday', source: 'user' },
+        { text: 'Both of us still talking over Garlic asada at 8:30.', source: 'generated' },
+        { text: 'Tesla x with the wings parked under a West hollywood moon.', source: 'generated' },
+        { text: 'Gracias por tu luz, mi amor.', source: 'user' },
+      ]},
+      { label: 'Chorus', lines: [
+        { text: 'Gracias por tu luz, mi amor.', source: 'user', role: 'hook' },
+        { text: 'Leave the light on, mi amor.', source: 'generated' },
+      ]},
+      { label: 'Verse 2', lines: [
+        { text: 'The same Saturday keeps Both of the glasses on the counter.', source: 'generated' },
+      ]},
+    ],
+  }), mixed);
+  assert.strictEqual(core.draftNeedsRetry(thin, mixed), true);
+  assert.strictEqual(thin.sections.filter(function (section) { return section.label === 'Verse 2'; })[0].lines.length, 1);
+  assert.ok(allLines(thin).some(function (line) {
+    return line.text === 'Both of us still talking over garlic asada at 8:30.';
+  }));
+  assert.ok(allLines(thin).some(function (line) {
+    return line.text === 'Tesla X with the wings parked under a West Hollywood moon.';
+  }));
+  assert.ok(allLines(thin).some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+  const thickened = core.repairLyricShape(thin, mixed);
+  assert.strictEqual(core.draftNeedsRetry(thickened, mixed), false);
+  thickened.sections.filter(function (section) { return /^verse\b/i.test(section.label); }).forEach(function (section) {
+    assert.ok(section.lines.length >= 4, 'padded verse needs four lines');
+  });
+  assert.ok(allLines(thickened).some(function (line) {
+    return line.text === 'The same Saturday keeps both of the glasses on the counter.' && line.source === 'user';
+  }));
   assert.strictEqual(packs.styleFor('rnb').genre, 'R&B');
   assert.deepStrictEqual(packs.styleFor('rnb').instruments, ['electric piano', 'bass']);
 }
