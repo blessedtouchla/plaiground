@@ -333,11 +333,15 @@
     renderHooks();
     lyricEl.textContent = '';
     draft.sections.forEach(function (section) {
+      var visible = section.lines.filter(function (line) {
+        return !(core.isGrokCreditLine && core.isGrokCreditLine(line.text));
+      });
+      if (!visible.length) return;
       var label = document.createElement('p');
       label.className = 'sh-section-label';
       label.textContent = section.label;
       lyricEl.appendChild(label);
-      section.lines.forEach(function (line) {
+      visible.forEach(function (line) {
         var box = document.createElement('textarea');
         box.className = 'sh-line' + (line.source === 'user' ? ' is-user' : '');
         box.rows = 1;
@@ -348,6 +352,7 @@
           line.edited = box.value.trim() !== String(line.original || '').trim();
           if (line.source === 'user') box.classList.add('is-user');
           fit(box);
+          renderSuno();
         });
         lyricEl.appendChild(box);
         fit(box);
@@ -356,7 +361,58 @@
     banner.hidden = !preview;
     banner.textContent = preview ? core.PREVIEW_NOTICE : '';
     attr.hidden = preview;
-    attr.textContent = preview ? '' : core.GROK_ATTRIBUTION;
+    attr.textContent = preview ? '' : (core.PAGE_CREDIT || '');
+    renderSuno();
+  }
+
+  function renderSuno() {
+    var card = $('sh-suno-card');
+    var area = $('sh-suno');
+    var warn = $('sh-suno-warn');
+    if (!card || !area) return;
+    if (!draft) {
+      card.hidden = true;
+      area.value = '';
+      if (warn) warn.hidden = true;
+      return;
+    }
+    var text = core.formatSunoLyrics(draft);
+    area.value = text;
+    card.hidden = !text;
+    if (!warn) return;
+    var limit = core.SUNO_CHAR_LIMIT || 3000;
+    if (text.length > limit) {
+      warn.hidden = false;
+      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. Suno works best under about ' + limit.toLocaleString('en-US') + '.';
+    } else {
+      warn.hidden = true;
+      warn.textContent = '';
+    }
+  }
+
+  function copyPlain(text, button) {
+    function done() {
+      var previous = button.textContent;
+      button.textContent = 'Copied';
+      setTimeout(function () { button.textContent = previous; }, 1400);
+    }
+    function fallbackCopy() {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'absolute';
+      area.style.left = '-9999px';
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy'); } catch (err) {}
+      area.remove();
+      done();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(fallbackCopy);
+      return;
+    }
+    fallbackCopy();
   }
 
   function setBusy(on, label) {
@@ -683,29 +739,17 @@
       showError('Add a few sound choices first.');
       return;
     }
-    var button = $('sh-copy');
-    function done() {
-      var previous = button.textContent;
-      button.textContent = 'Copied';
-      setTimeout(function () { button.textContent = previous; }, 1400);
-    }
-    function fallbackCopy() {
-      var area = document.createElement('textarea');
-      area.value = text;
-      area.setAttribute('readonly', '');
-      area.style.position = 'absolute';
-      area.style.left = '-9999px';
-      document.body.appendChild(area);
-      area.select();
-      try { document.execCommand('copy'); } catch (err) {}
-      area.remove();
-      done();
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(fallbackCopy);
+    copyPlain(text, $('sh-copy'));
+  });
+  $('sh-suno-copy').addEventListener('click', function () {
+    renderSuno();
+    var text = ($('sh-suno') && $('sh-suno').value) || '';
+    if (!text) {
+      showError('Write the draft first.');
       return;
     }
-    fallbackCopy();
+    showError('');
+    copyPlain(text, $('sh-suno-copy'));
   });
   $('sh-download').addEventListener('click', downloadRecord);
   $('sh-print').addEventListener('click', function () {

@@ -204,7 +204,6 @@
 
         <section data-step="draft" hidden>
           <p class="sh-banner" id="sh-banner" hidden></p>
-          <p class="sh-attr" id="sh-attr" hidden></p>
           <p class="sh-legend"><span class="sh-you">your words</span> are underlined. The other lines are the draft around them. Change any line.</p>
           <div id="sh-hooks"></div>
           <label class="sh-field">
@@ -212,6 +211,15 @@
             <input class="sh-title" id="sh-title" maxlength="80" autocomplete="off" />
           </label>
           <div id="sh-lyric"></div>
+          <p class="sh-attr" id="sh-attr" hidden></p>
+          <div class="sh-suno" id="sh-suno-card" hidden>
+            <label class="sh-field" for="sh-suno">
+              <span>Lyrics for Suno</span>
+            </label>
+            <textarea id="sh-suno" class="sh-suno-text" readonly rows="14" aria-label="Lyrics for Suno"></textarea>
+            <p class="sh-suno-warn" id="sh-suno-warn" hidden></p>
+            <button type="button" class="btn btn-purple btn-md sh-suno-copy no-print" id="sh-suno-copy">Copy for Suno</button>
+          </div>
           <p class="sh-loading" id="sh-loading" hidden>Drafting around your words…</p>
           <p class="sh-error" id="sh-error" role="alert" hidden></p>
           <div class="sh-side-actions no-print">
