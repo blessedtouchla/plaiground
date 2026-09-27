@@ -526,6 +526,7 @@ function run() {
   const apiFiles = fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).sort();
   assert.deepStrictEqual(apiFiles, [
     'auth.js',
+    'battle.js',
     'community.js',
     'cover-art.js',
     'create-checkout-session.js',
