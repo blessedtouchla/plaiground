@@ -145,7 +145,8 @@ body.song-helper-page .plai-bubble {
 .sh-input:focus,
 .sh-area:focus,
 .sh-line:focus,
-.sh-title:focus {
+.sh-title:focus,
+.sh-suno-text:focus {
   outline: 2px solid var(--purple-bright);
   outline-offset: 2px;
 }
@@ -253,7 +254,7 @@ body.song-helper-page .plai-bubble {
 .sh-attr {
   color: var(--muted-2);
   font-size: 14px;
-  margin-bottom: 12px;
+  margin: 14px 0 0;
 }
 
 .sh-legend {
@@ -327,6 +328,46 @@ body.song-helper-page .plai-bubble {
   text-decoration-color: #f3cb47;
   text-decoration-thickness: 2px;
   text-underline-offset: 5px;
+}
+
+.sh-suno {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: #0c0c10;
+}
+
+.sh-suno .sh-field {
+  margin-top: 0;
+}
+
+.sh-suno-text {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 14px;
+}
+
+.sh-suno-warn {
+  margin-top: 10px;
+  color: #f3cb47;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.sh-suno-copy {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 48px;
 }
 
 .sh-loading {
@@ -419,5 +460,7 @@ body.song-helper-page .plai-bubble {
   body.song-helper-page .no-print { display: none !important; }
   body.song-helper-page .sh { padding: 0; }
   body.song-helper-page .sh-record,
-  body.song-helper-page .sh-prompt { color: #111; background: #fff; border-color: #ccc; }
+  body.song-helper-page .sh-prompt,
+  body.song-helper-page .sh-suno,
+  body.song-helper-page .sh-suno-text { color: #111; background: #fff; border-color: #ccc; }
 }
