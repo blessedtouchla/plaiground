@@ -70,6 +70,7 @@
       });
     }
     setupAppBlogLink(side);
+    ensureSignedInRoadmap(side);
 
     var toggle = topbar.querySelector(".menu-toggle");
     if (!toggle) {
@@ -438,7 +439,53 @@
     if (el.classList && el.classList.contains("nav-siqa")) return "charts";
     if (file === "charts" || file === "charts.html" || href === "/charts" || href === "/charts.html") return "charts";
     if (isBlogHref(href) || text === "Blog") return "blog";
+    if (file === "destination" || file === "destination.html" || href === "/destination" || href === "/destination/" || text === "Roadmap") return "roadmap";
     return "";
+  }
+
+  function isRoadmapHref(href) {
+    var raw = String(href || "");
+    var file = hrefFile(raw);
+    return file === "destination" || file === "destination.html" || raw === "/destination" || raw === "/destination/";
+  }
+
+  function navGroupOf(anchor) {
+    var node = anchor;
+    while (node && node !== document.body) {
+      if (node.classList && node.classList.contains("nav-group")) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  function makeRoadmapGroup(link) {
+    var group = document.createElement("div");
+    group.className = "nav-group nav-group-link";
+    group.setAttribute("data-nav-group", "roadmap");
+    if (link) group.appendChild(link);
+    return group;
+  }
+
+  function ensurePublicRoadmap(links) {
+    if (!links || !links.querySelectorAll) return;
+    var existing = null;
+    Array.prototype.forEach.call(links.querySelectorAll("a"), function (anchor) {
+      if (existing) return;
+      if (isRoadmapHref(anchor.getAttribute("href") || "") || linkText(anchor) === "Roadmap") existing = anchor;
+    });
+    var node;
+    if (existing) {
+      node = navGroupOf(existing) || existing;
+      markPublicCurrent(existing, "roadmap");
+    } else {
+      var link = document.createElement("a");
+      link.setAttribute("href", "/destination");
+      link.href = "/destination";
+      link.textContent = "Roadmap";
+      markPublicCurrent(link, "roadmap");
+      node = makeRoadmapGroup(link);
+    }
+    if (links.firstElementChild !== node) links.insertBefore(node, links.firstElementChild);
   }
 
   function markPublicCurrent(el, key) {
@@ -456,6 +503,7 @@
     if (key === "basic" && file === "basic.html") on = true;
     if (key === "creator" && file === "creator.html") on = true;
     if (key === "pro" && file === "pro.html") on = true;
+    if (key === "roadmap" && (file === "destination" || file === "destination.html")) on = true;
     if (on) el.classList.add("active");
   }
 
@@ -545,6 +593,7 @@
     if (!links) return;
     foldPublicPlanHeroes(links);
     if (links.querySelector("[data-nav-group]")) {
+      ensurePublicRoadmap(links);
       wirePublicNavGroups(links);
       return;
     }
@@ -578,9 +627,10 @@
     var faq = takeAnchor(found, "faq", prefix + "faq.html", "FAQ");
     var charts = takeAnchor(found, "charts", "/charts", "SIQA Charts", "nav-siqa");
     var blog = takeAnchor(found, "blog", prefix + "blog.html", "Blog");
+    var roadmap = takeAnchor(found, "roadmap", "/destination", "Roadmap");
     if (charts && !charts.getAttribute("style")) charts.setAttribute("style", "color:#F3CB47");
 
-    ["how", "plans", "basic", "creator", "pro", "ar", "epk", "paid", "transparency", "faq", "charts", "blog"].forEach(function (key) {
+    ["how", "plans", "basic", "creator", "pro", "ar", "epk", "paid", "transparency", "faq", "charts", "blog", "roadmap"].forEach(function (key) {
       markPublicCurrent(found[key], key);
     });
 
@@ -601,6 +651,7 @@
     trustMenu.appendChild(transparency);
     trustMenu.appendChild(faq);
 
+    links.appendChild(makeRoadmapGroup(roadmap));
     links.appendChild(product);
     links.appendChild(after);
     links.appendChild(trust);
@@ -730,6 +781,33 @@
       var node = found[key];
       if (node && node.parentNode) node.parentNode.removeChild(node);
     });
+  }
+
+  function ensureSignedInRoadmap(side) {
+    if (!side || !side.querySelector) return;
+    var nav = side.querySelector(".side-nav");
+    if (!nav) return;
+    var labels = nav.querySelectorAll(".side-label");
+    var shared = false;
+    var i;
+    for (i = 0; i < labels.length; i += 1) {
+      if (String(labels[i].textContent || "").replace(/\s+/g, " ").trim() === "Create") shared = true;
+    }
+    if (!shared) return;
+    var existing = null;
+    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (anchor) {
+      if (existing) return;
+      if (isRoadmapHref(anchor.getAttribute("href") || "") || linkText(anchor) === "Roadmap") existing = anchor;
+    });
+    if (!existing) {
+      existing = document.createElement("a");
+      existing.setAttribute("href", "/destination");
+      existing.href = "/destination";
+      existing.textContent = "Roadmap";
+    }
+    if (nav.firstElementChild !== existing) nav.insertBefore(existing, nav.firstElementChild);
+    var file = hrefFile((window.location && window.location.pathname) || "");
+    if (file === "destination" || file === "destination.html") existing.classList.add("on");
   }
 
   function setupAppBlogLink(side) {
