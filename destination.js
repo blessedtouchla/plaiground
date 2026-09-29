@@ -468,6 +468,20 @@
       2: ['Where do you want to go?', 'Pick one goal. The note is optional.']
     };
 
+    function applyPickedSong() {
+      var stage = '';
+      try {
+        if (root.ArtistProfiles && typeof root.ArtistProfiles.pickedStage === 'function') {
+          stage = root.ArtistProfiles.pickedStage();
+        }
+      } catch (err) {
+        return;
+      }
+      if (!stage) return;
+      var button = app.querySelector('[data-group="song"][data-value="' + stage + '"]');
+      if (button) choose(button);
+    }
+
     function selected(group) {
       var on = app.querySelector('[data-group="' + group + '"].on');
       return on ? on.getAttribute('data-value') : '';
@@ -886,6 +900,7 @@
 
     state.song = selected('song');
     state.goal = selected('goal');
+    if (!state.song) applyPickedSong();
     showStep();
   }
 

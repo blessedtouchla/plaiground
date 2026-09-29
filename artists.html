@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260922ar3" />
+  <link rel="stylesheet" href="artist-profiles.css?v=20260929a2" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app artists-page">
@@ -65,6 +66,24 @@
           <button class="btn btn-ghost btn-sm" type="button" data-artist-import>Import Artist</button>
         </span>
       </div>
+      <section class="panel plai-about" id="plai-about" aria-labelledby="plai-about-title">
+        <h2 id="plai-about-title">Tell Plai about you</h2>
+        <p class="hint plai-lead">Optional. Saved on this device. Nothing is sent yet.</p>
+        <p class="plai-q">How many artist profiles do you run?</p>
+        <div class="plai-count" role="group" aria-label="How many artist profiles do you run?">
+          <button type="button" data-plai-count="1" aria-pressed="false">1</button>
+          <button type="button" data-plai-count="2-5" aria-pressed="false">2 to 5</button>
+          <button type="button" data-plai-count="6+" aria-pressed="false">6+</button>
+          <button type="button" data-plai-count="label" aria-pressed="false">Label or manager</button>
+        </div>
+        <div id="plai-about-artists"></div>
+        <button type="button" class="btn btn-ghost btn-sm plai-about-add" id="plai-about-add">Add artist</button>
+        <div class="field">
+          <label for="plai-about-note">Note</label>
+          <textarea id="plai-about-note" maxlength="240" rows="3" placeholder="Anything else Plai should know"></textarea>
+        </div>
+        <p class="hint" id="plai-about-status"></p>
+      </section>
       <details class="artists-act-edu">
         <summary>Act, not just files</summary>
         <div class="artists-act-edu-body">
@@ -370,6 +389,7 @@
   <script src="lib/release-status.js?v=20260910r3"></script>
   <script src="lib/live-player.js"></script>
   <script src="artists.js?v=20260922ar3" defer></script>
+  <script src="artist-profiles.js?v=20260929a2"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

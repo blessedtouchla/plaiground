@@ -1,0 +1,154 @@
+/* Tell Plai about you. Scoped to the signed-in Artist Profiles page. */
+
+.plai-about h2 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px;
+}
+
+.plai-about .plai-lead {
+  margin-top: 0;
+}
+
+.plai-q {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  margin: 22px 0 10px;
+}
+
+.plai-count {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.plai-count button,
+.plai-chip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  color: #fff;
+  border-radius: 14px;
+}
+
+.plai-count button {
+  min-height: 64px;
+  padding: 12px 10px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.plai-count button.is-on,
+.plai-chip.is-on,
+.plai-chip.is-primary {
+  border-color: #f3cb47;
+}
+
+.plai-count button.is-on,
+.plai-chip.is-primary {
+  background: rgba(243, 203, 71, 0.16);
+  box-shadow: inset 0 0 0 1px #f3cb47;
+}
+
+.plai-chip.is-on {
+  background: rgba(243, 203, 71, 0.08);
+}
+
+.plai-chip:disabled {
+  opacity: 0.35;
+}
+
+.plai-artist {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 18px 0;
+}
+
+.plai-artist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.plai-artist-head h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.plai-label {
+  margin: 14px 0 8px;
+  color: var(--muted-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.plai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plai-chip {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.plai-about .field input,
+.plai-about .field textarea {
+  font-size: 16px;
+}
+
+.plai-about .field input.is-bad {
+  border-color: #ff3c8e;
+}
+
+.plai-links {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.plai-link-hint {
+  color: #ffb4d2;
+}
+
+.plai-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.plai-pick input {
+  margin-top: 3px;
+}
+
+.plai-about-add {
+  margin: 4px 0 18px;
+}
+
+@media (min-width: 800px) {
+  .plai-count {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .plai-links {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+  }
+}
