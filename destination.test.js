@@ -80,6 +80,14 @@ function runRoutes() {
   assert.deepStrictEqual(core.headsUp(['persona'], 'out', 'fanbase'), []);
 
   assert.strictEqual(core.headline('made', 'money'), "For Make money, starting from a made song, here's your route.");
+  assert.strictEqual(core.audienceLine({}), '');
+  assert.strictEqual(core.audienceLine({ artistCount: 'nope', genres: ['Invented'] }), '');
+  assert.strictEqual(core.audienceLine({ artistCount: '1' }), 'Plai built this for your 1 artist.');
+  assert.strictEqual(core.audienceLine({ artistCount: '2-5', genres: ['Hip-Hop'] }), 'Plai built this for your 2 to 5 artists in Hip-Hop.');
+  assert.strictEqual(core.audienceLine({ artistCount: '6+', genres: ['Hip-Hop', 'R&B/Soul'] }), 'Plai built this for your 6+ artists in Hip-Hop and R&B/Soul.');
+  assert.strictEqual(core.audienceLine({ artistCount: 'label', genres: ['Electronic'], genreOther: 'shoegaze' }), 'Plai built this for your label or manager in Electronic and shoegaze.');
+  assert.strictEqual(core.audienceLine({ genres: ['Pop', 'Rock', 'Jazz'] }), 'Plai built this for Pop, Rock, and Jazz.');
+  assert.ok(!core.audienceLine({ artistCount: '2-5', genres: ['Hip-Hop'] }).includes('3 artists'));
   assert.strictEqual(core.packageTotal(false), 'Free to start');
   assert.strictEqual(core.packageTotal(true), 'By application');
 
@@ -235,6 +243,9 @@ function runPage() {
   assert.ok(html.includes('id="dest-drawer"'));
   assert.ok(html.includes('id="dest-edit"'));
   assert.ok(html.includes('id="dest-about"'));
+  assert.ok(html.includes('id="dest-for"'));
+  assert.ok(html.includes('id="dest-drawer-for"'));
+  assert.ok(js.includes('audienceLine'));
   assert.ok(html.includes('How many artists?'));
   assert.ok(html.includes('data-count="1"'));
   assert.ok(html.includes('data-count="2-5"'));

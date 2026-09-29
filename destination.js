@@ -340,6 +340,27 @@
     return 'For ' + goalRow.label + ', starting from ' + songRow.from + ", here's your route.";
   }
 
+  function joinNames(names) {
+    if (!names.length) return '';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names[0] + ' and ' + names[1];
+    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+  }
+
+  function audienceLine(plan) {
+    plan = plan || {};
+    var count = '';
+    if (plan.artistCount === '1') count = '1 artist';
+    else if (plan.artistCount === '2-5') count = '2 to 5 artists';
+    else if (plan.artistCount === '6+') count = '6+ artists';
+    else if (plan.artistCount === 'label') count = 'label or manager';
+    var genres = joinNames(packGenres(plan.genres, plan.genreOther));
+    if (count && genres) return 'Plai built this for your ' + count + ' in ' + genres + '.';
+    if (count) return 'Plai built this for your ' + count + '.';
+    if (genres) return 'Plai built this for ' + genres + '.';
+    return '';
+  }
+
   function explain(id, goal) {
     var stop = STOPS[id];
     if (!stop) return null;
@@ -475,6 +496,8 @@
     var drawerStatus = doc.getElementById('dest-drawer-status');
     var drawerWhat = doc.getElementById('dest-drawer-what');
     var drawerWhy = doc.getElementById('dest-drawer-why');
+    var drawerFor = doc.getElementById('dest-drawer-for');
+    var routeFor = doc.getElementById('dest-for');
     var drawerGet = doc.getElementById('dest-drawer-get');
     var drawerWho = doc.getElementById('dest-drawer-who');
     var drawerFace = doc.getElementById('dest-drawer-face');
@@ -659,6 +682,11 @@
         edit.textContent = state.editing ? 'Done editing' : 'Edit route';
       }
       var plan = currentPlan();
+      var forLine = audienceLine(plan);
+      if (routeFor) {
+        routeFor.textContent = forLine;
+        routeFor.hidden = !forLine;
+      }
       if (go) go.setAttribute('href', signupHref(plan));
       save(plan);
 
@@ -809,6 +837,11 @@
       if (drawerWhy) drawerWhy.textContent = info.why;
       if (drawerGet) drawerGet.textContent = info.get;
       if (drawerWho) drawerWho.textContent = info.who;
+      if (drawerFor) {
+        var forLine = audienceLine(currentPlan());
+        drawerFor.textContent = forLine;
+        drawerFor.hidden = !forLine;
+      }
       if (drawerFace) {
         drawerFace.textContent = '';
         drawerFace.appendChild(avatarNode(info.face));
@@ -985,6 +1018,7 @@
     applyKit: applyKit,
     headsUp: headsUp,
     headline: headline,
+    audienceLine: audienceLine,
     explain: explain,
     isRecommended: isRecommended,
     packageTotal: packageTotal,

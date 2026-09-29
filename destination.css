@@ -66,6 +66,15 @@ body.destination-page .plai-coach-float {
   margin: 0 0 28px;
 }
 
+.dest-for,
+.dest-drawer-for {
+  color: #f3cb47;
+  font-size: 16px;
+  line-height: 1.45;
+  max-width: 36rem;
+  margin: 0 0 22px;
+}
+
 .dest-choices {
   display: grid;
   grid-template-columns: 1fr;
