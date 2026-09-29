@@ -218,7 +218,8 @@ function runPage() {
   const footer = html.match(/<footer[\s\S]*?<\/footer>/)[0];
   const added = html + '\n' + css + '\n' + js;
 
-  assert.ok(html.includes('name="robots" content="noindex, nofollow"'));
+  assert.ok(!/name="robots"/i.test(html), 'destination has no robots meta');
+  assert.ok(!/noindex|nofollow/i.test(html), 'destination is indexable');
   assert.ok(html.includes("Where's your song?"));
   assert.ok(html.includes('Where do you want to go?'));
   assert.ok(html.includes('Just an idea'));
@@ -269,7 +270,9 @@ function runPage() {
   assert.ok(!/PLAIGROUND Autopilot/.test(added));
   assert.ok(!/\$/.test(added), 'no dollar amounts');
   assert.ok(!/\bAI music\b/i.test(html));
-  assert.ok(!/destination\.html|\/destination/.test(nav + footer), 'this page does not link itself from nav or footer');
+  assert.ok(/data-nav-group="roadmap"[\s\S]*href="\/destination">Roadmap<\/a>/.test(nav), 'Roadmap is the public nav link to /destination');
+  assert.ok(nav.indexOf('data-nav-group="roadmap"') < nav.indexOf('data-nav-group="product"'), 'Roadmap is the first public nav item');
+  assert.ok(!/href="\/destination"/.test(footer), 'footer does not grow a destination link');
   assert.ok(html.includes('id="dest-go"'));
   assert.ok(html.includes('signup.html?plan=basic'));
   assert.ok(html.includes('avatar-scout'));
@@ -279,25 +282,39 @@ function runPage() {
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/destination' && row.destination === '/destination.html';
   }));
-  assert.ok((vercel.headers || []).some(function (row) {
-    return row.source === '/destination' && (row.headers || []).some(function (header) {
-      return header.key === 'X-Robots-Tag' && /noindex/.test(header.value) && /nofollow/.test(header.value);
-    });
-  }));
+  ['/destination', '/destination/', '/destination.html'].forEach(function (source) {
+    assert.ok(!(vercel.headers || []).some(function (row) {
+      return row.source === source && (row.headers || []).some(function (header) {
+        return header.key === 'X-Robots-Tag' && /noindex|nofollow/i.test(header.value);
+      });
+    }), source + ' must not send a noindex robots header');
+  });
 
   fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); }).forEach(function (file) {
-    if (file === 'destination.html') return;
     const page = read(file);
-    assert.ok(!page.includes('href="/destination"') && !page.includes('destination.html'), file + ' must not link the destination page');
+    const pageNav = page.match(/<nav class="nav-links"[\s\S]*?<\/nav>/);
+    if (pageNav) {
+      assert.ok(/href="\/destination">Roadmap<\/a>/.test(pageNav[0]), file + ' public nav links Roadmap to /destination');
+    }
+    const sideNav = page.match(/<nav class="side-nav"[\s\S]*?<\/nav>/);
+    if (sideNav && /class="side-label">Create</.test(sideNav[0])) {
+      assert.ok(/<nav class="side-nav"[^>]*>\s*<a href="\/destination">Roadmap<\/a>/.test(sideNav[0]), file + ' signed-in nav leads with Roadmap');
+    }
   });
   fs.readdirSync(__dirname).forEach(function (name) {
     if (!/sitemap/i.test(name)) return;
-    assert.ok(!read(name).includes('destination'), name + ' must not list the destination page');
+    const sitemap = read(name);
+    assert.ok(/\/destination\b/.test(sitemap), name + ' lists /destination');
   });
+  if (fs.existsSync(path.join(__dirname, 'robots.txt'))) {
+    const robots = read('robots.txt');
+    assert.ok(!/Disallow:\s*\/destination\b/i.test(robots), 'robots.txt must not block /destination');
+  }
 
-  ['index.html', 'terms.html', 'privacy.html', 'rights.html'].forEach(function (file) {
-    assert.ok(!read(file).includes('destination.html') && !read(file).includes('/destination'), file + ' stays clear');
-  });
+  const home = read('index.html');
+  const hero = home.match(/<section class="hero"[\s\S]*?<\/section>/)[0];
+  assert.ok(/class="btn btn-gold btn-md" href="\/destination">Build your roadmap</.test(hero), 'homepage primary CTA builds a roadmap');
+  assert.ok(/class="btn btn-ghost btn-md" href="signup\.html\?plan=basic" data-plan="basic">Put my team to work</.test(hero), 'signup CTA stays secondary');
 }
 
 runRoutes();
