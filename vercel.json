@@ -121,6 +121,7 @@
     { "source": "/charts", "destination": "/charts.html" },
     { "source": "/ar", "destination": "/ar.html" },
     { "source": "/epk", "destination": "/epk.html" },
+    { "source": "/already-released", "destination": "/already-released.html" },
     { "source": "/song-helper", "destination": "/song-helper.html" },
     { "source": "/song-helper/", "destination": "/song-helper.html" },
     { "source": "/cover-art", "destination": "/cover-art.html" },

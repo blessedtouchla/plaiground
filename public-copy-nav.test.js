@@ -50,7 +50,7 @@ function run() {
   assert.ok(index.includes('class="public-header-tools"'), 'homepage HTML pins Login outside the drawer');
   assert.ok(/class="public-header-tools"[\s\S]*href="login.html">Log in/.test(index), 'homepage phone Login is in the header cluster');
   assert.ok(index.includes('public-menu-toggle'), 'homepage HTML has the public menu toggle');
-  assert.ok(/Enter the PLAIGROUND/.test(indexHero[0]), 'homepage gold CTA is Enter the PLAIGROUND');
+  assert.ok(/Put my team to work/.test(indexHero[0]), 'homepage gold CTA is Put my team to work');
   assert.ok(!/<section class="hero"[\s\S]*Join for free/.test(index), 'hero does not keep a second Join for free primary');
 
   const how = read('how-it-works.html');

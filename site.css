@@ -6985,6 +6985,57 @@ a.team-tile:hover { border-color: #782fb1; }
   font-size: 14px;
   text-align: center;
 }
+.home-portal .hero-released {
+  margin: -4px auto 18px;
+  max-width: 36rem;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.home-portal .hero-released a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-portal .hero-released a:hover { color: #f3cb47; }
+#your-team { scroll-margin-top: calc(var(--nav-h) + 12px); }
+.team-offer .eyebrow { text-align: center; }
+.team-offer .team-staff {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.staff-card { text-align: left; }
+.staff-card h2 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.staff-card .coming-soon { margin-left: 0; }
+.staff-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(243, 203, 71, 0.5);
+  background: rgba(120, 47, 177, 0.28);
+  color: #f3cb47;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.staff-card .coming-soon { margin-top: 6px; }
+@media (max-width: 1100px) {
+  .team-offer .team-staff { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .team-offer .team-staff { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  .team-offer .team-staff { grid-template-columns: 1fr; }
+}
 @media (max-width: 980px) {
   .team-grid { grid-template-columns: 1fr 1fr; }
 }

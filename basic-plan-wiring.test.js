@@ -12,7 +12,7 @@ function run() {
   const index = read('index.html');
   assert.ok(index.indexOf('href="signup.html?plan=basic"') !== -1);
   assert.ok(index.indexOf('data-plan="basic"') !== -1);
-  assert.ok(index.indexOf('Enter the PLAIGROUND') !== -1);
+  assert.ok(index.indexOf('Put my team to work') !== -1);
   assert.ok(index.indexOf('$0') !== -1);
   assert.ok(index.indexOf('$2.49') !== -1);
   assert.ok(!/for life|for the life of the account/i.test(index));
