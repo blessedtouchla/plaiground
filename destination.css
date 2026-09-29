@@ -66,6 +66,15 @@ body.destination-page .plai-coach-float {
   margin: 0 0 28px;
 }
 
+.dest-for,
+.dest-drawer-for {
+  color: #f3cb47;
+  font-size: 16px;
+  line-height: 1.45;
+  max-width: 36rem;
+  margin: 0 0 22px;
+}
+
 .dest-choices {
   display: grid;
   grid-template-columns: 1fr;
@@ -116,6 +125,7 @@ body.destination-page .plai-coach-float {
 }
 
 .dest-choice:focus-visible,
+.dest-chip:focus-visible,
 .dest-kit:focus-visible,
 .dest-stop-open:focus-visible,
 .dest-stop-remove:focus-visible,
@@ -126,8 +136,77 @@ body.destination-page .plai-coach-float {
   outline-offset: 3px;
 }
 
+.dest-mini {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dest-mini-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dest-mini-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.dest-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dest-chip,
+.dest-chip-other {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  font-family: Inter, sans-serif;
+}
+
+.dest-chip {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.dest-chip.on {
+  border-color: #f3cb47;
+  color: #f3cb47;
+  background: rgba(243, 203, 71, 0.06);
+}
+
+.dest-chip-other {
+  width: 7.5rem;
+  max-width: 100%;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 16px;
+}
+
+.dest-chip-other::placeholder {
+  color: var(--muted);
+}
+
+.dest-chip-other:focus {
+  outline: none;
+  border-color: #f3cb47;
+}
+
 .dest-about {
-  margin-top: 28px;
+  margin-top: 22px;
 }
 
 .dest-about label {

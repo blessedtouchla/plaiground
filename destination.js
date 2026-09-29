@@ -7,6 +7,8 @@
   var root = typeof window !== 'undefined' ? window : globalThis;
   var STORAGE_KEY = 'plaigroundDestinationPlan';
   var NOTE_LIMIT = 240;
+  var GENRES = ['Hip-Hop', 'R&B/Soul', 'Pop', 'Rock', 'Country', 'Electronic', 'Latin', 'Gospel', 'Jazz', 'Afrobeats', 'Alternative', 'Dance'];
+  var COUNTS = { '1': true, '2-5': true, '6+': true, label: true };
 
   var SONGS = {
     idea: { id: 'idea', label: 'Just an idea', from: 'an idea' },
@@ -338,6 +340,27 @@
     return 'For ' + goalRow.label + ', starting from ' + songRow.from + ", here's your route.";
   }
 
+  function joinNames(names) {
+    if (!names.length) return '';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names[0] + ' and ' + names[1];
+    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+  }
+
+  function audienceLine(plan) {
+    plan = plan || {};
+    var count = '';
+    if (plan.artistCount === '1') count = '1 artist';
+    else if (plan.artistCount === '2-5') count = '2 to 5 artists';
+    else if (plan.artistCount === '6+') count = '6+ artists';
+    else if (plan.artistCount === 'label') count = 'label or manager';
+    var genres = joinNames(packGenres(plan.genres, plan.genreOther));
+    if (count && genres) return 'Plai built this for your ' + count + ' in ' + genres + '.';
+    if (count) return 'Plai built this for your ' + count + '.';
+    if (genres) return 'Plai built this for ' + genres + '.';
+    return '';
+  }
+
   function explain(id, goal) {
     var stop = STOPS[id];
     if (!stop) return null;
@@ -365,6 +388,16 @@
     return String(note || '').replace(/\s+/g, ' ').trim().slice(0, NOTE_LIMIT);
   }
 
+  function packGenres(list, other) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (name) {
+      if (GENRES.indexOf(name) !== -1 && out.indexOf(name) === -1) out.push(name);
+    });
+    var extra = String(other || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (extra && out.indexOf(extra) === -1) out.push(extra);
+    return out;
+  }
+
   function signupHref(plan) {
     var params = new URLSearchParams();
     params.set('plan', 'basic');
@@ -374,6 +407,9 @@
     var note = clipNote(plan.note);
     if (note) params.set('note', note);
     if (plan.kit) params.set('kit', plan.kit);
+    if (COUNTS[plan.artistCount]) params.set('artistCount', plan.artistCount);
+    var genres = packGenres(plan.genres, plan.genreOther);
+    if (genres.length) params.set('genres', genres.join(','));
     return 'signup.html?' + params.toString();
   }
 
@@ -384,7 +420,9 @@
       note: clipNote(plan.note),
       stops: (plan.stops || []).slice(),
       kit: plan.kit || '',
-      managed: !!plan.managed
+      managed: !!plan.managed,
+      artistCount: COUNTS[plan.artistCount] ? plan.artistCount : '',
+      genres: packGenres(plan.genres, plan.genreOther)
     };
   }
 
@@ -429,6 +467,9 @@
       song: '',
       goal: '',
       note: '',
+      artistCount: '',
+      genres: [],
+      genreOther: '',
       kit: '',
       managed: false,
       routeSong: '',
@@ -455,6 +496,8 @@
     var drawerStatus = doc.getElementById('dest-drawer-status');
     var drawerWhat = doc.getElementById('dest-drawer-what');
     var drawerWhy = doc.getElementById('dest-drawer-why');
+    var drawerFor = doc.getElementById('dest-drawer-for');
+    var routeFor = doc.getElementById('dest-for');
     var drawerGet = doc.getElementById('dest-drawer-get');
     var drawerWho = doc.getElementById('dest-drawer-who');
     var drawerFace = doc.getElementById('dest-drawer-face');
@@ -468,6 +511,20 @@
       2: ['Where do you want to go?', 'Pick one goal. The note is optional.']
     };
 
+    function applyPickedSong() {
+      var stage = '';
+      try {
+        if (root.ArtistProfiles && typeof root.ArtistProfiles.pickedStage === 'function') {
+          stage = root.ArtistProfiles.pickedStage();
+        }
+      } catch (err) {
+        return;
+      }
+      if (!stage) return;
+      var button = app.querySelector('[data-group="song"][data-value="' + stage + '"]');
+      if (button) choose(button);
+    }
+
     function selected(group) {
       var on = app.querySelector('[data-group="' + group + '"].on');
       return on ? on.getAttribute('data-value') : '';
@@ -476,6 +533,28 @@
     function readNote() {
       if (!about) return;
       state.note = String(about.value || '').slice(0, NOTE_LIMIT);
+    }
+
+    function readMini() {
+      readNote();
+      var other = doc.getElementById('dest-genre-other');
+      if (other) state.genreOther = String(other.value || '');
+    }
+
+    function paintCount() {
+      app.querySelectorAll('[data-count]').forEach(function (el) {
+        var on = el.getAttribute('data-count') === state.artistCount;
+        el.classList.toggle('on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    function paintGenres() {
+      app.querySelectorAll('[data-genre]').forEach(function (el) {
+        var on = state.genres.indexOf(el.getAttribute('data-genre')) !== -1;
+        el.classList.toggle('on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
     }
 
     function canContinue() {
@@ -491,7 +570,10 @@
         note: state.note,
         stops: state.stopIds.slice(),
         kit: state.kit,
-        managed: state.managed
+        managed: state.managed,
+        artistCount: state.artistCount,
+        genres: state.genres.slice(),
+        genreOther: state.genreOther
       };
     }
 
@@ -581,7 +663,7 @@
     }
 
     function renderRoute() {
-      readNote();
+      readMini();
       if (title) title.textContent = headline(state.routeSong, state.routeGoal);
       if (help) help.textContent = 'One package for this goal.';
       if (total) total.textContent = packageTotal(state.managed);
@@ -600,6 +682,11 @@
         edit.textContent = state.editing ? 'Done editing' : 'Edit route';
       }
       var plan = currentPlan();
+      var forLine = audienceLine(plan);
+      if (routeFor) {
+        routeFor.textContent = forLine;
+        routeFor.hidden = !forLine;
+      }
       if (go) go.setAttribute('href', signupHref(plan));
       save(plan);
 
@@ -750,6 +837,11 @@
       if (drawerWhy) drawerWhy.textContent = info.why;
       if (drawerGet) drawerGet.textContent = info.get;
       if (drawerWho) drawerWho.textContent = info.who;
+      if (drawerFor) {
+        var forLine = audienceLine(currentPlan());
+        drawerFor.textContent = forLine;
+        drawerFor.hidden = !forLine;
+      }
       if (drawerFace) {
         drawerFace.textContent = '';
         drawerFace.appendChild(avatarNode(info.face));
@@ -794,7 +886,7 @@
     }
 
     function startRoute() {
-      readNote();
+      readMini();
       state.editing = false;
       state.kit = '';
       state.managed = false;
@@ -804,6 +896,22 @@
     }
 
     app.addEventListener('click', function (event) {
+      var countChip = event.target.closest('[data-count]');
+      if (countChip && app.contains(countChip)) {
+        var nextCount = countChip.getAttribute('data-count');
+        state.artistCount = state.artistCount === nextCount ? '' : nextCount;
+        paintCount();
+        return;
+      }
+      var genreChip = event.target.closest('[data-genre]');
+      if (genreChip && app.contains(genreChip)) {
+        var name = genreChip.getAttribute('data-genre');
+        var index = state.genres.indexOf(name);
+        if (index === -1) state.genres.push(name);
+        else state.genres.splice(index, 1);
+        paintGenres();
+        return;
+      }
       var choice = event.target.closest('[data-group]');
       if (choice && app.contains(choice)) {
         choose(choice);
@@ -835,7 +943,7 @@
     if (next) {
       next.addEventListener('click', function () {
         if (!canContinue()) return;
-        readNote();
+        readMini();
         if (state.step === 2) startRoute();
         if (state.step < 3) state.step += 1;
         showStep();
@@ -862,13 +970,20 @@
     }
     if (about) {
       about.addEventListener('input', function () {
-        readNote();
+        readMini();
+        if (state.step === 3) save(currentPlan());
+      });
+    }
+    var genreOther = doc.getElementById('dest-genre-other');
+    if (genreOther) {
+      genreOther.addEventListener('input', function () {
+        readMini();
         if (state.step === 3) save(currentPlan());
       });
     }
     if (go) {
       go.addEventListener('click', function () {
-        readNote();
+        readMini();
         if (state.routeSong && state.routeGoal) save(currentPlan());
       });
     }
@@ -886,6 +1001,7 @@
 
     state.song = selected('song');
     state.goal = selected('goal');
+    if (!state.song) applyPickedSong();
     showStep();
   }
 
@@ -902,6 +1018,7 @@
     applyKit: applyKit,
     headsUp: headsUp,
     headline: headline,
+    audienceLine: audienceLine,
     explain: explain,
     isRecommended: isRecommended,
     packageTotal: packageTotal,
