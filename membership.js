@@ -183,8 +183,19 @@
     return false;
   }
 
+  function paintSignedInHint() {
+    var doc = global.document;
+    var root = doc && doc.documentElement;
+    if (!root || typeof root.setAttribute !== 'function') return;
+    try {
+      if (isSignedIn()) root.setAttribute('data-signed-in', '1');
+      else if (typeof root.removeAttribute === 'function') root.removeAttribute('data-signed-in');
+    } catch (err) {}
+  }
+
   function settleAccount(result) {
     accountSettled = true;
+    paintSignedInHint();
     if (typeof resolveAccountReady === 'function') {
       resolveAccountReady(result);
       resolveAccountReady = null;
@@ -731,6 +742,7 @@
   migrateSessionKeys();
   rememberQueryPlan();
   hydrateSignedInFromCookie();
+  paintSignedInHint();
   bindPlanClicks();
   bindAccountClicks();
   probeAccount();
