@@ -1,0 +1,313 @@
+/* Hidden career route. Scoped so the rest of the site stays put. */
+
+body.destination-page {
+  background: #000;
+}
+
+body.destination-page [hidden] {
+  display: none !important;
+}
+
+body.destination-page .plai-bubble {
+  display: none;
+}
+
+.dest {
+  padding: calc(var(--nav-h) + 28px) 0 88px;
+}
+
+.dest-shell {
+  max-width: 1080px;
+}
+
+.dest-kicker {
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.dest-tagline {
+  color: var(--muted-2);
+  font-size: 16px;
+  line-height: 1.45;
+  max-width: 40rem;
+  margin-bottom: 22px;
+}
+
+.dest-step-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.dest h1 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.dest-help {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.45;
+  max-width: 38rem;
+  margin-bottom: 22px;
+}
+
+.dest-choices {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.dest-choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.dest-choice span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.dest-choice:hover {
+  border-color: rgba(243, 203, 71, 0.45);
+}
+
+.dest-choice.on {
+  border-color: #f3cb47;
+  box-shadow: inset 0 0 0 1px #f3cb47;
+  background: rgba(243, 203, 71, 0.06);
+}
+
+.dest-group {
+  border: 0;
+  margin: 0 0 26px;
+  padding: 0;
+  min-width: 0;
+}
+
+.dest-group legend {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+.dest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.dest-note {
+  color: var(--muted-2);
+  font-size: 15px;
+  line-height: 1.45;
+  max-width: 40rem;
+  margin-bottom: 18px;
+}
+
+.dest-map {
+  position: relative;
+  margin: 8px 0 28px;
+}
+
+.dest-road {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dest-road-glow,
+.dest-road-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dest-road-glow {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 16;
+}
+
+.dest-road-line {
+  stroke: #f3cb47;
+  stroke-width: 3;
+}
+
+.dest-map[data-shape="streams"] .dest-road-line { stroke: #f3cb47; }
+.dest-map[data-shape="sync"] .dest-road-line { stroke: #ff3c8e; }
+.dest-map[data-shape="press"] .dest-road-line { stroke: #8a4dff; }
+.dest-map[data-shape="playlists"] .dest-road-line { stroke: #f5c542; }
+.dest-map[data-shape="profit"] .dest-road-line { stroke: #3fe07a; }
+.dest-map[data-shape="fanbase"] .dest-road-line { stroke: #4d7cbe; }
+
+.dest-road-line.is-flow {
+  animation: dest-flow 12s linear infinite;
+}
+
+@keyframes dest-flow {
+  to { stroke-dashoffset: -240; }
+}
+
+.dest-stops {
+  list-style: none;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.dest-stop {
+  position: relative;
+  width: calc(100% - 34px);
+  margin-left: 34px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+}
+
+.dest-stop.is-focus {
+  border-color: rgba(243, 203, 71, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(243, 203, 71, 0.35);
+}
+
+.dest-stop.is-soon {
+  background: #101014;
+}
+
+.dest-pin {
+  position: absolute;
+  left: -34px;
+  top: 18px;
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  background: #111;
+  border: 2px solid #f3cb47;
+  color: #f3cb47;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.dest-map[data-shape="sync"] .dest-pin { border-color: #ff3c8e; color: #ff3c8e; }
+.dest-map[data-shape="press"] .dest-pin { border-color: #8a4dff; color: #c4b5fd; }
+.dest-map[data-shape="profit"] .dest-pin { border-color: #3fe07a; color: #3fe07a; }
+.dest-map[data-shape="fanbase"] .dest-pin { border-color: #4d7cbe; color: #9ec0ea; }
+
+.dest-stop h2 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.dest-stop p {
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.dest-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dest-link:hover { text-decoration: underline; }
+
+.dest-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.dest-go {
+  min-height: 56px;
+  padding: 16px 32px;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.dest-end-note {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 36rem;
+  margin: 0;
+}
+
+@media (min-width: 720px) {
+  .dest-choices.dest-choices-wide {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 900px) {
+  .dest-stops { gap: 22px; }
+  .dest-stop {
+    width: calc(50% - 54px);
+    margin-left: 0;
+  }
+  .dest-stop:nth-child(odd) { margin-right: auto; }
+  .dest-stop:nth-child(even) { margin-left: auto; }
+  .dest-stop:nth-child(odd) .dest-pin {
+    left: auto;
+    right: -40px;
+    top: 22px;
+  }
+  .dest-stop:nth-child(even) .dest-pin {
+    left: -40px;
+    right: auto;
+    top: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dest-road-line.is-flow { animation: none; }
+}
