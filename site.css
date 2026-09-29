@@ -6998,35 +6998,70 @@ a.team-tile:hover { border-color: #782fb1; }
   text-underline-offset: 3px;
 }
 .home-portal .hero-released a:hover { color: #f3cb47; }
-#your-team { scroll-margin-top: calc(var(--nav-h) + 12px); }
-.team-offer .eyebrow { text-align: center; }
+#meet-your-team { scroll-margin-top: calc(var(--nav-h) + 12px); }
+.team-section-title {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-align: center;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  margin: 8px 0 22px;
+}
 .team-offer .team-staff {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
 }
-.staff-card { text-align: left; }
-.staff-card h2 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+.staff-card {
+  text-align: left;
+  padding: 18px 16px 20px;
 }
-.staff-card .coming-soon { margin-left: 0; }
-.staff-mark {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+.staff-avatar {
+  display: block;
+  width: 76px;
+  height: 76px;
   margin-bottom: 14px;
-  border-radius: 50%;
-  border: 1px solid rgba(243, 203, 71, 0.5);
-  background: rgba(120, 47, 177, 0.28);
-  color: #f3cb47;
-  font-family: "Space Grotesk", Inter, sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
 }
-.staff-card .coming-soon { margin-top: 6px; }
+.staff-card h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.staff-card .staff-role {
+  margin: 0 0 10px;
+  color: #f3cb47;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.staff-card .coming-soon,
+.team-tag {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 2px 7px;
+  border: 1px solid rgba(243, 203, 71, 0.45);
+  border-radius: 999px;
+  color: #f3cb47;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  white-space: normal;
+  max-width: 100%;
+}
+.staff-card p:last-child {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+a.staff-card:focus-visible {
+  outline: 2px solid #f3cb47;
+  outline-offset: 3px;
+}
 @media (max-width: 1100px) {
   .team-offer .team-staff { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
