@@ -94,6 +94,35 @@
           <button type="button" class="dest-choice" data-group="goal" data-value="fanbase" aria-pressed="false">Build a fanbase<span>A name people can find and follow.</span></button>
           <button type="button" class="dest-choice" data-group="goal" data-value="release" aria-pressed="false">Just release it right<span>A clean release.</span></button>
         </div>
+        <div class="dest-mini" id="dest-mini">
+          <div class="dest-mini-line">
+            <span class="dest-mini-label" id="dest-count-label">How many artists?</span>
+            <div class="dest-chips" role="group" aria-labelledby="dest-count-label">
+              <button type="button" class="dest-chip" data-count="1" aria-pressed="false">1</button>
+              <button type="button" class="dest-chip" data-count="2-5" aria-pressed="false">2 to 5</button>
+              <button type="button" class="dest-chip" data-count="6+" aria-pressed="false">6+</button>
+              <button type="button" class="dest-chip" data-count="label" aria-pressed="false">Label/manager</button>
+            </div>
+          </div>
+          <div class="dest-mini-line">
+            <span class="dest-mini-label" id="dest-genre-label">Genres</span>
+            <div class="dest-chips" role="group" aria-labelledby="dest-genre-label">
+              <button type="button" class="dest-chip" data-genre="Hip-Hop" aria-pressed="false">Hip-Hop</button>
+              <button type="button" class="dest-chip" data-genre="R&amp;B/Soul" aria-pressed="false">R&amp;B/Soul</button>
+              <button type="button" class="dest-chip" data-genre="Pop" aria-pressed="false">Pop</button>
+              <button type="button" class="dest-chip" data-genre="Rock" aria-pressed="false">Rock</button>
+              <button type="button" class="dest-chip" data-genre="Country" aria-pressed="false">Country</button>
+              <button type="button" class="dest-chip" data-genre="Electronic" aria-pressed="false">Electronic</button>
+              <button type="button" class="dest-chip" data-genre="Latin" aria-pressed="false">Latin</button>
+              <button type="button" class="dest-chip" data-genre="Gospel" aria-pressed="false">Gospel</button>
+              <button type="button" class="dest-chip" data-genre="Jazz" aria-pressed="false">Jazz</button>
+              <button type="button" class="dest-chip" data-genre="Afrobeats" aria-pressed="false">Afrobeats</button>
+              <button type="button" class="dest-chip" data-genre="Alternative" aria-pressed="false">Alternative</button>
+              <button type="button" class="dest-chip" data-genre="Dance" aria-pressed="false">Dance</button>
+              <input id="dest-genre-other" class="dest-chip-other" type="text" maxlength="80" placeholder="Other" aria-label="Other genre" />
+            </div>
+          </div>
+        </div>
         <div class="dest-about">
           <label for="dest-about">Tell Plai about you: genre, city, followers...</label>
           <textarea id="dest-about" maxlength="240" rows="3" placeholder="Optional"></textarea>
@@ -318,7 +347,7 @@
   </footer>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
-  <script src="artist-profiles.js?v=20260929a2"></script>
-  <script src="destination.js?v=20260929r2"></script>
+  <script src="artist-profiles.js?v=20260929a3"></script>
+  <script src="destination.js?v=20260929r3"></script>
 </body>
 </html>

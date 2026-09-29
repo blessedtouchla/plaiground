@@ -33,6 +33,16 @@ function runModel() {
   assert.strictEqual(seeded.note, '  rap in LA  '.slice(0, 240));
   assert.strictEqual(seeded.count, '');
 
+  const fromRoute = core.normalize(core.seedFromPlan({
+    artistCount: '6+',
+    genres: ['Electronic', 'Hip-Hop', 'shoegaze']
+  }));
+  assert.strictEqual(fromRoute.count, '6+');
+  assert.strictEqual(fromRoute.artists[0].genre, 'Electronic');
+  assert.deepStrictEqual(fromRoute.artists[0].genres, ['Hip-Hop']);
+  assert.strictEqual(fromRoute.artists[0].genreOther, 'shoegaze');
+  assert.strictEqual(core.normalize(core.seedFromPlan({ artistCount: 'lots' })).count, '');
+
   const long = core.normalize(core.seedFromPlan({ song: 'nope', note: 'x'.repeat(300) }));
   assert.strictEqual(long.note.length, 240);
   assert.strictEqual(long.artists[0].stage, '');
@@ -54,6 +64,50 @@ function runModel() {
   assert.strictEqual(again.record.artists[0].name, 'North');
   assert.strictEqual(again.record.artists[0].stage, 'idea');
   assert.strictEqual(again.record.note, 'kept');
+  assert.strictEqual(again.record.count, '2-5');
+
+  const blank = memoryStore();
+  blank.setItem('plaigroundDestinationPlan', JSON.stringify({
+    artistCount: 'label',
+    genres: ['Jazz', 'Gospel', 'lo-fi']
+  }));
+  const onlyArtists = core.loadRecord(blank);
+  assert.strictEqual(onlyArtists.persist, true);
+  assert.strictEqual(onlyArtists.record.count, 'label');
+  assert.strictEqual(onlyArtists.record.artists[0].genre, 'Jazz');
+  assert.deepStrictEqual(onlyArtists.record.artists[0].genres, ['Gospel']);
+  assert.strictEqual(onlyArtists.record.artists[0].genreOther, 'lo-fi');
+
+  const partial = memoryStore();
+  partial.setItem('plaigroundDestinationPlan', JSON.stringify({
+    artistCount: '1',
+    genres: ['Pop', 'Dance']
+  }));
+  partial.setItem(core.STORAGE_KEY, JSON.stringify({
+    count: '',
+    note: 'mine',
+    artists: [{ id: 'keep', name: 'Ada', genre: 'Rock', genres: ['Country'], genreOther: '', stage: 'made', picked: true }]
+  }));
+  const keptGenre = core.loadRecord(partial);
+  assert.strictEqual(keptGenre.persist, true);
+  assert.strictEqual(keptGenre.record.count, '1');
+  assert.strictEqual(keptGenre.record.artists[0].genre, 'Rock');
+  assert.deepStrictEqual(keptGenre.record.artists[0].genres, ['Country']);
+  assert.strictEqual(keptGenre.record.note, 'mine');
+
+  const filled = memoryStore();
+  filled.setItem('plaigroundDestinationPlan', JSON.stringify({
+    artistCount: '2-5',
+    genres: ['Afrobeats']
+  }));
+  filled.setItem(core.STORAGE_KEY, JSON.stringify({
+    count: '6+',
+    artists: [{ id: 'keep', name: 'Bee', genre: 'Pop', picked: true }]
+  }));
+  const untouched = core.loadRecord(filled);
+  assert.strictEqual(untouched.persist, false);
+  assert.strictEqual(untouched.record.count, '6+');
+  assert.strictEqual(untouched.record.artists[0].genre, 'Pop');
 
   assert.strictEqual(core.pickedStage({
     artists: [

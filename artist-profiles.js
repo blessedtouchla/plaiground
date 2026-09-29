@@ -102,17 +102,69 @@
     };
   }
 
+  function genresFromPlan(list) {
+    var known = [];
+    var other = '';
+    (Array.isArray(list) ? list : []).forEach(function (name) {
+      var text = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      if (GENRES.indexOf(text) !== -1) {
+        if (known.indexOf(text) === -1) known.push(text);
+      } else if (!other) {
+        other = clip(text, 80).trim();
+      }
+    });
+    return {
+      genre: known[0] || '',
+      genres: known.slice(1),
+      genreOther: other
+    };
+  }
+
+  function genresEmpty(artist) {
+    return !artist.genre && (!artist.genres || !artist.genres.length) && !artist.genreOther;
+  }
+
+  function fillEmptyFromPlan(record, plan) {
+    plan = plan || {};
+    var changed = false;
+    if (!record.count && COUNTS[plan.artistCount]) {
+      record.count = plan.artistCount;
+      changed = true;
+    }
+    var mapped = genresFromPlan(plan.genres);
+    var first = record.artists[0];
+    var hasGenres = mapped.genre || mapped.genres.length || mapped.genreOther;
+    if (first && genresEmpty(first) && hasGenres) {
+      first.genre = mapped.genre;
+      first.genres = mapped.genres.slice();
+      first.genreOther = mapped.genreOther;
+      changed = true;
+    }
+    return { record: normalize(record), changed: changed };
+  }
+
   function seedFromPlan(plan) {
     plan = plan || {};
+    var mapped = genresFromPlan(plan.genres);
     return {
-      count: '',
+      count: COUNTS[plan.artistCount] ? plan.artistCount : '',
       note: clip(plan.note, NOTE_LIMIT),
       artists: [emptyArtist({
         id: 'from-route',
         stage: STAGES[plan.song] ? plan.song : '',
+        genre: mapped.genre,
+        genres: mapped.genres,
+        genreOther: mapped.genreOther,
         picked: true
       })]
     };
+  }
+
+  function planHasSeed(plan) {
+    if (!plan) return false;
+    if (plan.song || plan.note || COUNTS[plan.artistCount]) return true;
+    return Array.isArray(plan.genres) && plan.genres.length > 0;
   }
 
   function readJson(store, key) {
@@ -128,9 +180,12 @@
 
   function loadRecord(store) {
     var saved = readJson(store, STORAGE_KEY);
-    if (saved) return { record: normalize(saved), persist: false };
     var plan = readJson(store, DESTINATION_KEY);
-    if (plan && (plan.song || plan.note)) return { record: normalize(seedFromPlan(plan)), persist: true };
+    if (saved) {
+      var filled = fillEmptyFromPlan(normalize(saved), plan);
+      return { record: filled.record, persist: filled.changed };
+    }
+    if (planHasSeed(plan)) return { record: normalize(seedFromPlan(plan)), persist: true };
     return { record: normalize({ artists: [] }), persist: false };
   }
 

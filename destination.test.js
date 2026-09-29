@@ -143,6 +143,26 @@ function runRoutes() {
   assert.strictEqual(params.get('stops'), 'check,sync');
   assert.strictEqual(params.get('note'), 'rap in LA');
   assert.strictEqual(params.get('kit'), null);
+  assert.strictEqual(params.get('artistCount'), null);
+  assert.strictEqual(params.get('genres'), null);
+
+  const withArtists = new URLSearchParams(core.signupHref({
+    song: 'made',
+    goal: 'money',
+    stops: ['check'],
+    artistCount: '2-5',
+    genres: ['Hip-Hop', 'Electronic'],
+    genreOther: 'alt, folk'
+  }).split('?')[1]);
+  assert.strictEqual(withArtists.get('artistCount'), '2-5');
+  assert.strictEqual(withArtists.get('genres'), 'Hip-Hop,Electronic,alt folk');
+  assert.strictEqual(new URLSearchParams(core.signupHref({
+    song: 'idea',
+    goal: 'release',
+    stops: [],
+    artistCount: 'nope',
+    genres: ['Invented']
+  }).split('?')[1]).get('artistCount'), null);
 
   const longNote = 'a'.repeat(300);
   const capped = new URLSearchParams(core.signupHref({
@@ -163,6 +183,18 @@ function runRoutes() {
   assert.strictEqual(stored.kit, 'record');
   assert.strictEqual(stored.note, 'city');
   assert.strictEqual(stored.managed, false);
+  assert.strictEqual(stored.artistCount, '');
+  assert.deepStrictEqual(stored.genres, []);
+  const withCount = core.planRecord({
+    song: 'made',
+    goal: 'fanbase',
+    stops: ['persona'],
+    artistCount: 'label',
+    genres: ['Pop', 'Pop'],
+    genreOther: '  bedroom pop  '
+  });
+  assert.strictEqual(withCount.artistCount, 'label');
+  assert.deepStrictEqual(withCount.genres, ['Pop', 'bedroom pop']);
 
   const pathD = core.roadPath([{ x: 10, y: 10 }, { x: 80, y: 120 }, { x: 20, y: 240 }], 'route', false);
   assert.ok(pathD.indexOf('C ') !== -1);
@@ -203,6 +235,17 @@ function runPage() {
   assert.ok(html.includes('id="dest-drawer"'));
   assert.ok(html.includes('id="dest-edit"'));
   assert.ok(html.includes('id="dest-about"'));
+  assert.ok(html.includes('How many artists?'));
+  assert.ok(html.includes('data-count="1"'));
+  assert.ok(html.includes('data-count="2-5"'));
+  assert.ok(html.includes('data-count="6+"'));
+  assert.ok(html.includes('data-count="label"'));
+  assert.ok(html.includes('Label/manager'));
+  assert.ok(html.includes('id="dest-genre-other"'));
+  assert.ok(html.includes('data-genre="Hip-Hop"'));
+  assert.ok(html.includes('data-genre="R&amp;B/Soul"'));
+  assert.ok(js.includes("params.set('artistCount'"));
+  assert.ok(js.includes("params.set('genres'"));
   assert.ok(js.includes('Recommended for your goal'));
   assert.ok(js.includes('plaigroundDestinationPlan'));
   assert.ok(js.includes("params.set('song'"));

@@ -7,6 +7,8 @@
   var root = typeof window !== 'undefined' ? window : globalThis;
   var STORAGE_KEY = 'plaigroundDestinationPlan';
   var NOTE_LIMIT = 240;
+  var GENRES = ['Hip-Hop', 'R&B/Soul', 'Pop', 'Rock', 'Country', 'Electronic', 'Latin', 'Gospel', 'Jazz', 'Afrobeats', 'Alternative', 'Dance'];
+  var COUNTS = { '1': true, '2-5': true, '6+': true, label: true };
 
   var SONGS = {
     idea: { id: 'idea', label: 'Just an idea', from: 'an idea' },
@@ -365,6 +367,16 @@
     return String(note || '').replace(/\s+/g, ' ').trim().slice(0, NOTE_LIMIT);
   }
 
+  function packGenres(list, other) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (name) {
+      if (GENRES.indexOf(name) !== -1 && out.indexOf(name) === -1) out.push(name);
+    });
+    var extra = String(other || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (extra && out.indexOf(extra) === -1) out.push(extra);
+    return out;
+  }
+
   function signupHref(plan) {
     var params = new URLSearchParams();
     params.set('plan', 'basic');
@@ -374,6 +386,9 @@
     var note = clipNote(plan.note);
     if (note) params.set('note', note);
     if (plan.kit) params.set('kit', plan.kit);
+    if (COUNTS[plan.artistCount]) params.set('artistCount', plan.artistCount);
+    var genres = packGenres(plan.genres, plan.genreOther);
+    if (genres.length) params.set('genres', genres.join(','));
     return 'signup.html?' + params.toString();
   }
 
@@ -384,7 +399,9 @@
       note: clipNote(plan.note),
       stops: (plan.stops || []).slice(),
       kit: plan.kit || '',
-      managed: !!plan.managed
+      managed: !!plan.managed,
+      artistCount: COUNTS[plan.artistCount] ? plan.artistCount : '',
+      genres: packGenres(plan.genres, plan.genreOther)
     };
   }
 
@@ -429,6 +446,9 @@
       song: '',
       goal: '',
       note: '',
+      artistCount: '',
+      genres: [],
+      genreOther: '',
       kit: '',
       managed: false,
       routeSong: '',
@@ -492,6 +512,28 @@
       state.note = String(about.value || '').slice(0, NOTE_LIMIT);
     }
 
+    function readMini() {
+      readNote();
+      var other = doc.getElementById('dest-genre-other');
+      if (other) state.genreOther = String(other.value || '');
+    }
+
+    function paintCount() {
+      app.querySelectorAll('[data-count]').forEach(function (el) {
+        var on = el.getAttribute('data-count') === state.artistCount;
+        el.classList.toggle('on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    function paintGenres() {
+      app.querySelectorAll('[data-genre]').forEach(function (el) {
+        var on = state.genres.indexOf(el.getAttribute('data-genre')) !== -1;
+        el.classList.toggle('on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
     function canContinue() {
       if (state.step === 1) return !!state.song;
       if (state.step === 2) return !!state.goal;
@@ -505,7 +547,10 @@
         note: state.note,
         stops: state.stopIds.slice(),
         kit: state.kit,
-        managed: state.managed
+        managed: state.managed,
+        artistCount: state.artistCount,
+        genres: state.genres.slice(),
+        genreOther: state.genreOther
       };
     }
 
@@ -595,7 +640,7 @@
     }
 
     function renderRoute() {
-      readNote();
+      readMini();
       if (title) title.textContent = headline(state.routeSong, state.routeGoal);
       if (help) help.textContent = 'One package for this goal.';
       if (total) total.textContent = packageTotal(state.managed);
@@ -808,7 +853,7 @@
     }
 
     function startRoute() {
-      readNote();
+      readMini();
       state.editing = false;
       state.kit = '';
       state.managed = false;
@@ -818,6 +863,22 @@
     }
 
     app.addEventListener('click', function (event) {
+      var countChip = event.target.closest('[data-count]');
+      if (countChip && app.contains(countChip)) {
+        var nextCount = countChip.getAttribute('data-count');
+        state.artistCount = state.artistCount === nextCount ? '' : nextCount;
+        paintCount();
+        return;
+      }
+      var genreChip = event.target.closest('[data-genre]');
+      if (genreChip && app.contains(genreChip)) {
+        var name = genreChip.getAttribute('data-genre');
+        var index = state.genres.indexOf(name);
+        if (index === -1) state.genres.push(name);
+        else state.genres.splice(index, 1);
+        paintGenres();
+        return;
+      }
       var choice = event.target.closest('[data-group]');
       if (choice && app.contains(choice)) {
         choose(choice);
@@ -849,7 +910,7 @@
     if (next) {
       next.addEventListener('click', function () {
         if (!canContinue()) return;
-        readNote();
+        readMini();
         if (state.step === 2) startRoute();
         if (state.step < 3) state.step += 1;
         showStep();
@@ -876,13 +937,20 @@
     }
     if (about) {
       about.addEventListener('input', function () {
-        readNote();
+        readMini();
+        if (state.step === 3) save(currentPlan());
+      });
+    }
+    var genreOther = doc.getElementById('dest-genre-other');
+    if (genreOther) {
+      genreOther.addEventListener('input', function () {
+        readMini();
         if (state.step === 3) save(currentPlan());
       });
     }
     if (go) {
       go.addEventListener('click', function () {
-        readNote();
+        readMini();
         if (state.routeSong && state.routeGoal) save(currentPlan());
       });
     }
