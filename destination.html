@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Where are you headed? - PLAIGROUND</title>
-  <meta name="description" content="Pick a destination for your music career, then see the route the team can run today. AI handles the business side. People check the work." />
+  <title>Build your route - PLAIGROUND</title>
+  <meta name="description" content="Pick where your song is and where you want to go. See one route. Your work is checked by people." />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="canonical" href="https://www.wannaplai.com/destination" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.wannaplai.com/destination" />
-  <meta property="og:title" content="Where are you headed? - PLAIGROUND" />
-  <meta property="og:description" content="Pick a destination for your music career, then see the route the team can run today." />
+  <meta property="og:title" content="Build your route - PLAIGROUND" />
+  <meta property="og:description" content="Pick where your song is and where you want to go. See one route. Your work is checked by people." />
   <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Where are you headed? - PLAIGROUND" />
-  <meta name="twitter:description" content="Pick a destination for your music career, then see the route the team can run today." />
+  <meta name="twitter:title" content="Build your route - PLAIGROUND" />
+  <meta name="twitter:description" content="Pick where your song is and where you want to go. See one route. Your work is checked by people." />
   <meta name="twitter:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -75,46 +75,55 @@
   <main class="dest" id="dest-app">
     <div class="wrap dest-shell">
       <p class="dest-kicker">WANNA PLAI?</p>
-      <p class="dest-tagline">A GPS for your music career. Autopilot covers the business side. People check the work.</p>
+      <p class="dest-tagline">One route for your music. The AI team runs the business side. Your work is checked by people.</p>
       <p class="dest-step-label" id="dest-step-label">Step 1 of 3</p>
-      <h1 id="dest-title">Where are you headed?</h1>
-      <p class="dest-help" id="dest-help">Pick one destination for your own music.</p>
+      <h1 id="dest-title">Where's your song?</h1>
+      <p class="dest-help" id="dest-help">Pick one. This is the start of the route.</p>
 
       <section id="dest-step-1">
-        <div class="dest-choices dest-choices-wide" role="group" aria-label="Destination">
-          <button type="button" class="dest-choice" data-group="destination" data-value="streams" aria-pressed="false">More streams<span>Listeners for your music.</span></button>
-          <button type="button" class="dest-choice" data-group="destination" data-value="profit" aria-pressed="false">Profit/income<span>Royalties and publishing.</span></button>
-          <button type="button" class="dest-choice" data-group="destination" data-value="sync" aria-pressed="false">Sync placements<span>TV, film, games, and ads.</span></button>
-          <button type="button" class="dest-choice" data-group="destination" data-value="press" aria-pressed="false">Press &amp; buzz<span>A press kit for the act.</span></button>
-          <button type="button" class="dest-choice" data-group="destination" data-value="playlists" aria-pressed="false">Playlist placements<span>Who should hear the song.</span></button>
-          <button type="button" class="dest-choice" data-group="destination" data-value="fanbase" aria-pressed="false">Grow my fanbase<span>A page people can find.</span></button>
+        <div class="dest-choices" role="group" aria-label="Where's your song?">
+          <button type="button" class="dest-choice" data-group="song" data-value="idea" aria-pressed="false">Just an idea<span>The song is not recorded yet.</span></button>
+          <button type="button" class="dest-choice" data-group="song" data-value="made" aria-pressed="false">It's made<span>You have the song.</span></button>
+          <button type="button" class="dest-choice" data-group="song" data-value="out" aria-pressed="false">It's out<span>People can already hear it.</span></button>
         </div>
       </section>
 
       <section id="dest-step-2" hidden>
-        <fieldset class="dest-group">
-          <legend>Current level</legend>
-          <div class="dest-choices" role="group" aria-label="Current level">
-            <button type="button" class="dest-choice" data-group="level" data-value="starting" aria-pressed="false">Just starting<span>No release out yet.</span></button>
-            <button type="button" class="dest-choice" data-group="level" data-value="releases" aria-pressed="false">Have some releases out<span>Music is already on the stores.</span></button>
-            <button type="button" class="dest-choice" data-group="level" data-value="momentum" aria-pressed="false">Building momentum<span>The act already has a lane.</span></button>
-          </div>
-        </fieldset>
-        <fieldset class="dest-group">
-          <legend>Pace</legend>
-          <div class="dest-choices dest-choices-wide" role="group" aria-label="Pace">
-            <button type="button" class="dest-choice" data-group="pace" data-value="steady" aria-pressed="false">Steady<span>Supporting work stays in front.</span></button>
-            <button type="button" class="dest-choice" data-group="pace" data-value="fast" aria-pressed="false">Fast<span>The destination stop moves up.</span></button>
-          </div>
-        </fieldset>
+        <div class="dest-choices" role="group" aria-label="Where do you want to go?">
+          <button type="button" class="dest-choice" data-group="goal" data-value="money" aria-pressed="false">Make money<span>Royalties, publishing, and licenses.</span></button>
+          <button type="button" class="dest-choice" data-group="goal" data-value="fanbase" aria-pressed="false">Build a fanbase<span>A name people can find and follow.</span></button>
+          <button type="button" class="dest-choice" data-group="goal" data-value="release" aria-pressed="false">Just release it right<span>A clean release.</span></button>
+        </div>
+        <div class="dest-about">
+          <label for="dest-about">Tell Plai about you: genre, city, followers...</label>
+          <textarea id="dest-about" maxlength="240" rows="3" placeholder="Optional"></textarea>
+          <p>Saved with your route. Nothing is sent yet.</p>
+        </div>
       </section>
 
       <section id="dest-step-3" hidden>
-        <p class="dest-note" id="dest-note"></p>
-        <div class="dest-map" id="dest-map" data-shape="streams"></div>
+        <div class="dest-kits" role="group" aria-label="Suggested routes">
+          <button type="button" class="dest-kit" data-kit="release" aria-pressed="false">Release Kit<span>Song is made</span></button>
+          <button type="button" class="dest-kit" data-kit="record" aria-pressed="false">Break Your Record<span>Song is out</span></button>
+          <button type="button" class="dest-kit" data-kit="management" aria-pressed="false">Management<span>By application</span></button>
+        </div>
+        <div class="dest-package" id="dest-package">
+          <p class="dest-package-label">One package</p>
+          <p class="dest-package-total" id="dest-total">Free to start</p>
+          <p class="dest-package-note" id="dest-package-note" hidden>The HW team runs this route.</p>
+        </div>
+        <p class="dest-trust">People check the work.</p>
+        <div class="dest-map" id="dest-map" data-shape="route"></div>
+        <div class="dest-headsup" id="dest-heads" hidden></div>
+        <button type="button" class="btn btn-ghost btn-md dest-edit" id="dest-edit" aria-pressed="false" aria-controls="dest-extras">Edit route</button>
+        <div class="dest-extras" id="dest-extras" hidden>
+          <h2>Add to your route</h2>
+          <p class="dest-extras-lead">These stay off the route until you add them.</p>
+          <div id="dest-extra-list"></div>
+        </div>
         <div class="dest-end">
           <a class="btn btn-gold dest-go" id="dest-go" href="signup.html?plan=basic">Activate Autopilot</a>
-          <p class="dest-end-note">This opens the free account. Destination, level, and pace come along so the plan can be saved later.</p>
+          <p class="dest-end-note">This opens the free account. Your route comes along so the plan can be saved later.</p>
           <button type="button" class="btn btn-ghost btn-md" id="dest-back-3">Back</button>
         </div>
       </section>
@@ -122,6 +131,139 @@
       <div class="dest-actions" id="dest-actions">
         <button type="button" class="btn btn-ghost btn-md" id="dest-back" hidden>Back</button>
         <button type="button" class="btn btn-purple btn-md" id="dest-next" disabled>Continue</button>
+      </div>
+    </div>
+
+    <div id="dest-avatars" hidden>
+      <div id="avatar-scout"><svg class="staff-avatar" viewBox="0 0 96 96" aria-hidden="true" focusable="false">
+              <circle cx="48" cy="48" r="46" fill="#120a18"/>
+              <circle cx="48" cy="48" r="45.2" fill="none" stroke="#f3cb47" stroke-width="1.8"/>
+              <path d="M16 88c5-16 16-26 32-26s27 10 32 26v8H16z" fill="#3a2468"/>
+              <path d="M48 64v12" stroke="#f3cb47" stroke-width="2.2" stroke-linecap="round"/>
+              <circle cx="48" cy="46" r="19" fill="#f0c9a0"/>
+              <path d="M31 44c1-13 8-20 17-20s16 7 17 20c-3-6-9-10-17-10s-14 4-17 10z" fill="#1a1228"/>
+              <path d="M16 50c1-22 15-34 32-34s31 12 32 34" fill="none" stroke="#1a1228" stroke-width="6.5" stroke-linecap="round"/>
+              <rect x="6" y="40" width="16" height="26" rx="6" fill="#1a1228"/>
+              <rect x="74" y="40" width="16" height="26" rx="6" fill="#1a1228"/>
+              <circle cx="14" cy="53" r="5" fill="#f3cb47"/>
+              <circle cx="82" cy="53" r="5" fill="#f3cb47"/>
+              <circle cx="14" cy="53" r="2" fill="#1a1228"/>
+              <circle cx="82" cy="53" r="2" fill="#1a1228"/>
+              <path d="M38 48c2.2 2.4 6.2 2.4 8.2 0" fill="none" stroke="#6b4028" stroke-width="2" stroke-linecap="round"/>
+              <path d="M52 48c2.2 2.4 6.2 2.4 8.2 0" fill="none" stroke="#6b4028" stroke-width="2" stroke-linecap="round"/>
+              <path d="M39 46h5.5" stroke="#f3cb47" stroke-width="2" stroke-linecap="round"/>
+              <path d="M53 46h5.5" stroke="#f3cb47" stroke-width="2" stroke-linecap="round"/>
+              <path d="M41 57c2.6 2.8 11.4 2.8 14 0" fill="none" stroke="#8a5340" stroke-width="1.8" stroke-linecap="round"/>
+            </svg></div>
+      <div id="avatar-scoop"><svg class="staff-avatar" viewBox="0 0 96 96" aria-hidden="true" focusable="false">
+              <circle cx="48" cy="48" r="46" fill="#160a14"/>
+              <circle cx="48" cy="48" r="45.2" fill="none" stroke="#f3cb47" stroke-width="1.8"/>
+              <path d="M8 96 L24 58 L48 78 L72 56 L90 96 Z" fill="#ff3c8e"/>
+              <path d="M24 58 L48 78 L32 96 L10 96 Z" fill="#d12270"/>
+              <path d="M38 70 L48 84 L58 68 L48 76 Z" fill="#1a0c14"/>
+              <path d="M34 42 C26 24 36 10 50 12 C64 14 70 28 66 44 C62 58 54 66 44 62 C34 58 30 50 34 42Z" fill="#161018"/>
+              <path d="M26 40 L16 78 L30 68 L34 46 Z" fill="#161018"/>
+              <path d="M60 34 L72 62 L60 54 Z" fill="#161018"/>
+              <ellipse cx="46" cy="40" rx="13" ry="17" fill="#f6d7c4"/>
+              <path d="M32 34 L48 16 L62 28 L52 38 L42 28 L33 42 Z" fill="#161018"/>
+              <ellipse cx="62" cy="46" rx="4" ry="5.5" fill="none" stroke="#f3cb47" stroke-width="2"/>
+              <path d="M37 40 q3.4-3.2 6.8 0 q-3.4 1.6-6.8 0z" fill="#f3cb47"/>
+              <path d="M49 36 q3.4-3.2 6.8 0 q-3.4 1.6-6.8 0z" fill="#f3cb47"/>
+              <path d="M49 31 q4.2-3 8.4 1" fill="none" stroke="#161018" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M40 52 q5 2.4 10-3" fill="none" stroke="#b56a58" stroke-width="1.8" stroke-linecap="round"/>
+              <rect x="72" y="66" width="4.5" height="16" rx="2" fill="#f3cb47"/>
+              <circle cx="74.2" cy="58" r="8.5" fill="#f3cb47"/>
+              <circle cx="74.2" cy="58" r="3.4" fill="#2a1020"/>
+            </svg></div>
+      <div id="avatar-pitch"><svg class="staff-avatar" viewBox="0 0 96 96" aria-hidden="true" focusable="false">
+              <circle cx="48" cy="48" r="46" fill="#0e1020"/>
+              <circle cx="48" cy="48" r="45.2" fill="none" stroke="#f3cb47" stroke-width="1.8"/>
+              <path d="M8 58h16" stroke="#7d3cff" stroke-width="3.2" stroke-linecap="round"/>
+              <path d="M10 66h11" stroke="#f3cb47" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M38 96 L46 54 L60 52 L70 96 Z" fill="#24143a"/>
+              <path d="M48 68 L66 58 L62 96 L44 96 Z" fill="#f3cb47"/>
+              <path d="M40 26 C40 14 52 10 60 18 C70 28 64 46 54 52 C44 56 34 44 40 26Z" fill="#efe8ff"/>
+              <path d="M36 28 C54 6 78 4 92 18 C72 14 56 22 48 32 C44 20 38 18 36 28Z" fill="#7d3cff"/>
+              <path d="M58 18 L86 6 L68 24 Z" fill="#ff3c8e"/>
+              <path d="M44 34 l8-2" stroke="#1a1028" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M44 32.2 l6-1.5" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M54 32 l7-2" stroke="#1a1028" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M54 30.2 l5-1.4" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M48 44 h6" stroke="#7d3cff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 80 L84 56 L42 90 Z" fill="#f3cb47"/>
+              <path d="M18 80 L50 70 L42 90 Z" fill="#d7a62e"/>
+              <path d="M42 90 L58 64" stroke="#7d3cff" stroke-width="1.8" stroke-linecap="round"/>
+            </svg></div>
+      <div id="avatar-buzz"><svg class="staff-avatar" viewBox="0 0 96 96" aria-hidden="true" focusable="false">
+              <circle cx="48" cy="48" r="46" fill="#1a0a12"/>
+              <circle cx="48" cy="48" r="45.2" fill="none" stroke="#f3cb47" stroke-width="1.8"/>
+              <polygon points="46,4 38,24 54,24" fill="#7d3cff"/>
+              <polygon points="18,14 34,28 24,38" fill="#ff3c8e"/>
+              <polygon points="78,12 66,34 58,24" fill="#7d3cff"/>
+              <polygon points="6,32 24,36 14,48" fill="#8a4dff"/>
+              <polygon points="90,30 76,40 86,52" fill="#ff3c8e"/>
+              <path d="M8 96c6-20 16-28 30-28 8 0 14 4 18 12 6-8 14-12 26-10 2 8 6 18 8 26H8z" fill="#ff3c8e"/>
+              <circle cx="40" cy="52" r="21" fill="#ffd24a"/>
+              <polygon points="40,26 32,44 48,44" fill="#7d3cff"/>
+              <polygon points="24,38 36,50 26,54" fill="#5b22b8"/>
+              <polygon points="56,34 58,50 46,44" fill="#ff3c8e"/>
+              <ellipse cx="33" cy="52" rx="5.2" ry="6.2" fill="#fff8e4"/>
+              <ellipse cx="48" cy="52" rx="5.2" ry="6.2" fill="#fff8e4"/>
+              <circle cx="34" cy="53" r="2.5" fill="#1a1020"/>
+              <circle cx="49" cy="53" r="2.5" fill="#1a1020"/>
+              <circle cx="25" cy="60" r="3" fill="#ff7aa8"/>
+              <circle cx="55" cy="60" r="3" fill="#ff7aa8"/>
+              <path d="M29 62c2 9 18 9 20 0-3 3-17 3-20 0z" fill="#1a1020"/>
+              <path d="M31 63c1.6 3.4 15 3.4 16.5 0" fill="#fff"/>
+              <rect x="64" y="60" width="8" height="10" rx="2" fill="#f3cb47"/>
+              <path d="M70 56 L92 44 L92 86 L70 74 Z" fill="#f3cb47"/>
+              <path d="M80 52 L92 44 L92 86 L80 76 Z" fill="#e2b42e"/>
+              <path d="M88 48 q6 10 0 20" fill="none" stroke="#ff3c8e" stroke-width="2" stroke-linecap="round"/>
+            </svg></div>
+      <div id="avatar-drop"><svg class="staff-avatar" viewBox="0 0 96 96" aria-hidden="true" focusable="false">
+              <circle cx="48" cy="48" r="46" fill="#101014"/>
+              <circle cx="48" cy="48" r="45.2" fill="none" stroke="#f3cb47" stroke-width="1.8"/>
+              <path d="M14 96c3-16 12-26 24-26 8 0 14 5 18 12 6-8 14-10 24-6 3 6 8 14 10 20H14z" fill="#1c1c24"/>
+              <circle cx="72" cy="66" r="20" fill="#121216" stroke="#f3cb47" stroke-width="2.6"/>
+              <circle cx="72" cy="66" r="13" fill="none" stroke="#f3cb47" stroke-width="1.4"/>
+              <circle cx="72" cy="66" r="7.5" fill="none" stroke="rgba(243,203,71,0.8)" stroke-width="1.2"/>
+              <circle cx="72" cy="66" r="4.6" fill="#f3cb47"/>
+              <circle cx="72" cy="66" r="1.6" fill="#101014"/>
+              <circle cx="36" cy="50" r="17" fill="#c98658"/>
+              <path d="M18 46c2-16 12-24 22-24 10 0 18 7 20 18" fill="#7d3cff"/>
+              <path d="M10 42h44a3.5 3.5 0 0 1 0 7H14a4 4 0 0 1-4-3.5z" fill="#6428d6"/>
+              <circle cx="36" cy="26" r="2.2" fill="#f3cb47"/>
+              <rect x="20" y="48" width="14" height="9" rx="2" fill="#121216" stroke="#f3cb47" stroke-width="1.6"/>
+              <rect x="36" y="48" width="14" height="9" rx="2" fill="#121216" stroke="#f3cb47" stroke-width="1.6"/>
+              <path d="M34 52h4" stroke="#f3cb47" stroke-width="2"/>
+              <path d="M26 64 q6 3.2 11-1" fill="none" stroke="#6a3a28" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M26 76 q9 7 16-1" fill="none" stroke="#f3cb47" stroke-width="2.1" stroke-linecap="round"/>
+            </svg></div>
+      <div id="avatar-plai">
+        <span class="plai-coach-avatar">
+          <img src="assets/plai-avatar.png" alt="" onerror="this.hidden=true" />
+          <span>PLAI</span>
+        </span>
+      </div>
+      <div id="avatar-hw"><span class="dest-hw">HW</span></div>
+    </div>
+
+    <div class="dest-drawer" id="dest-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dest-drawer-title">
+      <div class="dest-drawer-backdrop" id="dest-drawer-backdrop"></div>
+      <div class="dest-drawer-panel">
+        <button type="button" class="dest-drawer-close" id="dest-drawer-close">Close</button>
+        <div id="dest-drawer-face"></div>
+        <h2 id="dest-drawer-title"></h2>
+        <p class="dest-badge" id="dest-drawer-status"></p>
+        <h3>What it is</h3>
+        <p id="dest-drawer-what"></p>
+        <h3>Why it matters</h3>
+        <p id="dest-drawer-why"></p>
+        <h3>What you get</h3>
+        <p id="dest-drawer-get"></p>
+        <h3>Who does it</h3>
+        <p id="dest-drawer-who"></p>
+        <p class="dest-drawer-link" id="dest-drawer-link" hidden></p>
       </div>
     </div>
   </main>
@@ -176,6 +318,6 @@
   </footer>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
-  <script src="destination.js?v=20260929d4"></script>
+  <script src="destination.js?v=20260929r1"></script>
 </body>
 </html>
