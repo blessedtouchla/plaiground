@@ -310,7 +310,52 @@ body.destination-page .plai-coach-float {
 
 .dest-map {
   position: relative;
+  margin: 0;
+}
+
+.dest-route-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
   margin: 28px 0 8px;
+}
+
+.dest-save-signup {
+  display: inline-block;
+  color: #120a18;
+  background: #f3cb47;
+  font-weight: 800;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 12px 16px;
+  line-height: 1.35;
+}
+
+.dest-save-login {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+
+.dest-save-login a {
+  color: #f3cb47;
+}
+
+.dest-saved {
+  color: #f3cb47;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (min-width: 860px) {
+  .dest-route-row:has(.dest-save:not([hidden])),
+  .dest-route-row:has(.dest-saved:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) 220px;
+  }
 }
 
 .dest-road {

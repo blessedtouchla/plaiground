@@ -157,6 +157,7 @@
     </div>
   </footer>
   <script src="membership.js?v=20260912k1"></script>
+  <script src="roadmap-account.js?v=20260930r1"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -235,12 +236,21 @@
           if (window.PlaigroundMembership) {
             window.PlaigroundMembership.recordSignedIn({ remember: remember });
             if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
-            window.location.href = window.PlaigroundMembership.afterLoginHome
-              ? window.PlaigroundMembership.afterLoginHome(result.data && result.data.email ? result.data.email : email)
-              : window.PlaigroundMembership.signedInHome(result.data && result.data.email ? result.data.email : email);
-            return;
           }
-          window.location.href = 'dashboard.html';
+          function goHome() {
+            if (window.PlaigroundMembership && window.PlaigroundMembership.afterLoginHome) {
+              window.location.href = window.PlaigroundMembership.afterLoginHome(result.data && result.data.email ? result.data.email : email);
+              return;
+            }
+            window.location.href = window.PlaigroundMembership && window.PlaigroundMembership.signedInHome
+              ? window.PlaigroundMembership.signedInHome(result.data && result.data.email ? result.data.email : email)
+              : 'dashboard.html';
+          }
+          var claim = window.PlaigroundRoadmapAccount && window.PlaigroundRoadmapAccount.claimLocal
+            ? window.PlaigroundRoadmapAccount.claimLocal()
+            : Promise.resolve();
+          claim.then(goHome, goHome);
+          return;
         }).catch(function () {
           if (button) {
             button.disabled = false;

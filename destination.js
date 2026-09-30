@@ -505,6 +505,9 @@
     var drawerClose = doc.getElementById('dest-drawer-close');
     var lastFocus = null;
     var drawTimer = 0;
+    var authKnown = false;
+    var signedIn = false;
+    var accountTimer = 0;
 
     var copy = {
       1: ["Where's your song?", 'Pick one. This is the start of the route.'],
@@ -577,12 +580,103 @@
       };
     }
 
-    function save(plan) {
+    function save(plan, immediate) {
       var record = planRecord(plan);
       try {
         root.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
       } catch (err) {}
+      persistAccount(record, !!immediate);
       return record;
+    }
+
+    function accountApi() {
+      return root.PlaigroundRoadmapAccount || null;
+    }
+
+    function persistAccount(record, immediate) {
+      var account = accountApi();
+      if (!account || typeof account.savePlan !== 'function' || !signedIn) return;
+      if (root.clearTimeout) root.clearTimeout(accountTimer);
+      if (immediate) {
+        account.savePlan(record, { immediate: true });
+        return;
+      }
+      accountTimer = root.setTimeout(function () {
+        account.savePlan(record, { immediate: true });
+      }, 600);
+    }
+
+    function paintAccount(plan) {
+      var box = doc.getElementById('dest-save');
+      var savedNote = doc.getElementById('dest-saved');
+      var signup = doc.getElementById('dest-save-signup');
+      var login = doc.getElementById('dest-save-login');
+      var endNote = doc.querySelector('.dest-end-note');
+      var href = signupHref(plan || currentPlan());
+      if (signup) signup.setAttribute('href', href);
+      if (login) login.setAttribute('href', 'login.html');
+      var showPrompt = authKnown && !signedIn && state.step === 3;
+      var showSaved = authKnown && signedIn && state.step === 3;
+      if (box) box.hidden = !showPrompt;
+      if (savedNote) savedNote.hidden = !showSaved;
+      if (go) go.setAttribute('href', showSaved ? '/my-roadmap' : href);
+      if (endNote && state.step === 3 && authKnown) {
+        endNote.textContent = signedIn
+          ? 'Saved to your account. You can open it any time.'
+          : 'This opens the free account. Your route comes along so the plan can be saved later.';
+      }
+    }
+
+    function localPlan() {
+      try {
+        var raw = root.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        if (!parsed || !parsed.song || !parsed.goal) return null;
+        return parsed;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function markGroup(group, value) {
+      app.querySelectorAll('[data-group="' + group + '"]').forEach(function (el) {
+        var on = el.getAttribute('data-value') === value;
+        el.classList.toggle('on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    function applySavedPlan(plan) {
+      if (!plan || !plan.song || !plan.goal) return;
+      var genres = [];
+      var other = plan.genreOther || '';
+      (plan.genres || []).forEach(function (name) {
+        if (GENRES.indexOf(name) !== -1) {
+          if (genres.indexOf(name) === -1) genres.push(name);
+        } else if (!other) other = name;
+      });
+      state.song = plan.song;
+      state.goal = plan.goal;
+      state.note = plan.note || '';
+      state.artistCount = plan.artistCount || '';
+      state.genres = genres;
+      state.genreOther = other;
+      state.kit = plan.kit || '';
+      state.managed = !!plan.managed;
+      state.routeSong = plan.song;
+      state.routeGoal = plan.goal;
+      state.stopIds = (plan.stops || []).filter(function (id) { return !!STOPS[id]; });
+      state.editing = false;
+      state.step = 3;
+      if (about) about.value = state.note;
+      var otherInput = doc.getElementById('dest-genre-other');
+      if (otherInput) otherInput.value = other;
+      markGroup('song', state.song);
+      markGroup('goal', state.goal);
+      paintCount();
+      paintGenres();
+      showStep();
     }
 
     function avatarNode(face) {
@@ -689,6 +783,7 @@
       }
       if (go) go.setAttribute('href', signupHref(plan));
       save(plan);
+      paintAccount(plan);
 
       var notes = headsUp(state.stopIds, state.routeSong, state.routeGoal);
       if (heads) {
@@ -984,7 +1079,7 @@
     if (go) {
       go.addEventListener('click', function () {
         readMini();
-        if (state.routeSong && state.routeGoal) save(currentPlan());
+        if (state.routeSong && state.routeGoal) save(currentPlan(), true);
       });
     }
     if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
@@ -1002,7 +1097,35 @@
     state.song = selected('song');
     state.goal = selected('goal');
     if (!state.song) applyPickedSong();
-    showStep();
+    var existingPlan = localPlan();
+    if (existingPlan) applySavedPlan(existingPlan);
+    else showStep();
+    var membership = root.PlaigroundMembership;
+    var ready = membership && typeof membership.whenReady === 'function'
+      ? membership.whenReady()
+      : Promise.resolve(null);
+    ready.then(function (result) {
+      authKnown = true;
+      signedIn = !!(result && result.ok);
+      if (signedIn && localPlan()) persistAccount(planRecord(localPlan()), true);
+      if (signedIn && !localPlan()) {
+        var account = accountApi();
+        if (account && typeof account.loadPlan === 'function') {
+          account.loadPlan().then(function (saved) {
+            if (saved && saved.plan && !localPlan()) applySavedPlan(saved.plan);
+            else paintAccount(currentPlan());
+          }).catch(function () {
+            paintAccount(currentPlan());
+          });
+          return;
+        }
+      }
+      paintAccount(currentPlan());
+    }).catch(function () {
+      authKnown = true;
+      signedIn = false;
+      paintAccount(currentPlan());
+    });
   }
 
   return {

@@ -151,6 +151,7 @@
     </div>
   </footer>
   <script src="membership.js"></script>
+  <script src="roadmap-account.js?v=20260930r1"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -259,10 +260,18 @@
           if (window.PlaigroundMembership) {
             window.PlaigroundMembership.recordSignedIn();
             if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
-            window.location.replace(window.PlaigroundMembership.signedInHome(result.data && result.data.email));
-            return;
           }
-          window.location.replace('dashboard.html');
+          function goHome() {
+            if (window.PlaigroundMembership && window.PlaigroundMembership.signedInHome) {
+              window.location.replace(window.PlaigroundMembership.signedInHome(result.data && result.data.email));
+              return;
+            }
+            window.location.replace('dashboard.html');
+          }
+          var claim = window.PlaigroundRoadmapAccount && window.PlaigroundRoadmapAccount.claimLocal
+            ? window.PlaigroundRoadmapAccount.claimLocal()
+            : Promise.resolve();
+          claim.then(goHome, goHome);
         }).catch(function () {
           showError('Could not use the sign-in link.');
         });

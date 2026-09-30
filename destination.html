@@ -145,7 +145,14 @@
           <p class="dest-package-note" id="dest-package-note" hidden>The HW team runs this route.</p>
         </div>
         <p class="dest-trust">People check the work.</p>
-        <div class="dest-map" id="dest-map" data-shape="route"></div>
+        <div class="dest-route-row">
+          <div class="dest-map" id="dest-map" data-shape="route"></div>
+          <aside class="dest-save" id="dest-save" hidden>
+            <a class="dest-save-signup" id="dest-save-signup" href="signup.html?plan=basic">Sign up free to save your roadmap</a>
+            <p class="dest-save-login">Already have an account? <a id="dest-save-login" href="login.html">Sign in</a></p>
+          </aside>
+          <p class="dest-saved" id="dest-saved" hidden>Saved to your account.</p>
+        </div>
         <div class="dest-headsup" id="dest-heads" hidden></div>
         <button type="button" class="btn btn-ghost btn-md dest-edit" id="dest-edit" aria-pressed="false" aria-controls="dest-extras">Edit route</button>
         <div class="dest-extras" id="dest-extras" hidden>
@@ -352,6 +359,7 @@
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
   <script src="artist-profiles.js?v=20260929a3"></script>
-  <script src="destination.js?v=20260929r4"></script>
+  <script src="roadmap-account.js?v=20260930r1"></script>
+  <script src="destination.js?v=20260930r1"></script>
 </body>
 </html>
