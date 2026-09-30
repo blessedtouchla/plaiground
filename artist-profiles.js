@@ -236,6 +236,8 @@
         });
       });
       status.textContent = bad ? 'Saved on this device. Use a full link, starting with https://.' : 'Saved on this device.';
+      var account = root.PlaigroundRoadmapAccount;
+      if (account && typeof account.saveProfiles === 'function') account.saveProfiles(record);
     }
 
     function findArtist(id) {
@@ -542,6 +544,18 @@
     paintCounts();
     renderArtists();
     if (loaded.persist) save();
+    var account = root.PlaigroundRoadmapAccount;
+    if (account && store && !store.getItem(STORAGE_KEY) && typeof account.loadProfiles === 'function') {
+      account.loadProfiles().then(function (remote) {
+        if (!remote || !remote.profiles || (store && store.getItem(STORAGE_KEY))) return;
+        if (account.profilesWorthSaving && !account.profilesWorthSaving(remote.profiles)) return;
+        record = remote.profiles;
+        if (note) note.value = record.note || '';
+        paintCounts();
+        renderArtists();
+        try { store.setItem(STORAGE_KEY, JSON.stringify(record)); } catch (err) {}
+      }).catch(function () {});
+    }
   }
 
   return {

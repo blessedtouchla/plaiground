@@ -275,6 +275,13 @@ function runPage() {
   assert.ok(!/href="\/destination"/.test(footer), 'footer does not grow a destination link');
   assert.ok(html.includes('id="dest-go"'));
   assert.ok(html.includes('signup.html?plan=basic'));
+  assert.ok(html.includes('id="dest-save"'));
+  assert.ok(html.includes('Sign up free to save your roadmap'));
+  assert.ok(html.includes('Already have an account? <a id="dest-save-login" href="login.html">Sign in</a>'));
+  assert.ok(html.includes('id="dest-saved"'));
+  assert.ok(js.includes('persistAccount'));
+  assert.ok(js.includes('applySavedPlan'));
+  assert.ok(js.includes('/my-roadmap'));
   assert.ok(html.includes('avatar-scout'));
   assert.ok(html.includes('avatar-plai'));
   assert.ok(html.includes('assets/plai-avatar.png'));

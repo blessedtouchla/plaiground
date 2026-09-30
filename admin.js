@@ -271,6 +271,97 @@
     });
   }
 
+  var roadmapRows = [];
+
+  function joinList(list) {
+    var items = (Array.isArray(list) ? list : []).map(function (item) {
+      return String(item == null ? '' : item).trim();
+    }).filter(Boolean);
+    return items.length ? items.join(', ') : '—';
+  }
+
+  function renderRoadmaps(rows) {
+    roadmapRows = Array.isArray(rows) ? rows : [];
+    var detail = $('[data-roadmap-detail]');
+    if (detail) detail.hidden = true;
+    fillTable('[data-roadmaps-table]', '[data-roadmaps-empty]', '[data-roadmaps-body]', roadmapRows, function (row) {
+      var names = row.profile_names && row.profile_names.length ? row.profile_names.join(', ') : '';
+      var profiles = names || (row.profiles ? 'Saved' : '—');
+      return '<tr>'
+        + cell('Email', escapeHtml(dash(row.email)), 'admin-lead')
+        + cell('Goal', escapeHtml(dash(row.goal)))
+        + cell('Stage', escapeHtml(dash(row.stage)))
+        + cell('Stops', escapeHtml(joinList(row.stops)))
+        + cell('Artist count', escapeHtml(dash(row.artist_count)))
+        + cell('Genres', escapeHtml(joinList(row.genres)))
+        + cell('Saved', escapeHtml(formatSignedUpAt(row.saved_at || row.profile_saved_at)))
+        + cell('Profiles', escapeHtml(profiles))
+        + cell('View', '<button type="button" class="btn btn-ghost btn-sm" data-roadmap-open="' + escapeHtml(row.user_id) + '">View</button>')
+        + '</tr>';
+    });
+  }
+
+  function profileMarkup(record) {
+    var artists = record && Array.isArray(record.artists) ? record.artists : [];
+    if (!record) return '<p>No artist profiles saved.</p>';
+    var cards = artists.map(function (artist) {
+      var genres = [];
+      if (artist.genre) genres.push(artist.genre);
+      (artist.genres || []).forEach(function (name) { genres.push(name); });
+      if (artist.genreOther) genres.push(artist.genreOther);
+      var links = artist.links || {};
+      var linkText = ['spotify', 'instagram', 'tiktok', 'youtube'].map(function (key) {
+        return links[key] ? key + ' ' + links[key] : '';
+      }).filter(Boolean).join(' · ');
+      return '<li><strong>' + escapeHtml(dash(artist.name || 'Artist')) + '</strong>'
+        + '<div>' + escapeHtml([genres.join(', '), artist.city, artist.stage, artist.madeBy].filter(Boolean).join(' · ')) + '</div>'
+        + (linkText ? '<div>' + escapeHtml(linkText) + '</div>' : '')
+        + '</li>';
+    }).join('');
+    var note = record.note ? '<p>' + escapeHtml(record.note) + '</p>' : '';
+    return note + '<ul>' + cards + '</ul>';
+  }
+
+  function openRoadmap(userId) {
+    var row = null;
+    roadmapRows.forEach(function (item) {
+      if (!row && String(item.user_id) === String(userId)) row = item;
+    });
+    var detail = $('[data-roadmap-detail]');
+    var body = $('[data-roadmap-detail-body]');
+    var table = $('[data-roadmaps-table]');
+    var empty = $('[data-roadmaps-empty]');
+    if (!detail || !body || !row) return;
+    if (table) table.hidden = true;
+    if (empty) empty.hidden = true;
+    detail.hidden = false;
+    var stops = (row.stops || []).map(function (title) {
+      return '<li>' + escapeHtml(title) + '</li>';
+    }).join('');
+    var history = (row.history || []).map(function (item) {
+      var summary = item.summary || {};
+      var bits = [summary.goal, summary.stage, (summary.stops || []).join(', ')].filter(Boolean).join(' · ');
+      return '<li>' + escapeHtml(formatSignedUpAt(item.saved_at)) + (bits ? ' · ' + escapeHtml(bits) : '') + '</li>';
+    }).join('');
+    var profileHistory = (row.profile_history || []).map(function (item) {
+      return '<li>' + escapeHtml(formatSignedUpAt(item.saved_at)) + '</li>';
+    }).join('');
+    body.innerHTML = '<h3>' + escapeHtml(dash(row.email)) + '</h3>'
+      + '<p>' + escapeHtml([row.goal, row.stage, row.artist_count].filter(Boolean).join(' · ')) + '</p>'
+      + (row.genres && row.genres.length ? '<p>' + escapeHtml(row.genres.join(', ')) + '</p>' : '')
+      + (row.note ? '<p>' + escapeHtml(row.note) + '</p>' : '')
+      + (stops ? '<h3>Stops</h3><ol>' + stops + '</ol>' : '<p>No roadmap stops saved.</p>')
+      + '<h3>Plan history</h3>' + (history ? '<ol>' + history + '</ol>' : '<p>No earlier versions.</p>')
+      + '<h3>Artist profiles</h3>' + profileMarkup(row.profiles)
+      + '<h3>Profile history</h3>' + (profileHistory ? '<ol>' + profileHistory + '</ol>' : '<p>No earlier versions.</p>');
+  }
+
+  function closeRoadmap() {
+    var detail = $('[data-roadmap-detail]');
+    if (detail) detail.hidden = true;
+    renderRoadmaps(roadmapRows);
+  }
+
   function render(data) {
     var status = $('[data-admin-status]') || $('[data-signups-status]');
     if (status) status.hidden = true;
@@ -284,8 +375,8 @@
     renderRoyalties(data && data.store_royalties);
   }
 
-  function loadList() {
-    return global.fetch('/api/admin/signups', {
+  function loadJson(url) {
+    return global.fetch(url, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     }).then(function (response) {
@@ -293,6 +384,54 @@
         return { ok: response.ok, status: response.status, data: data || {} };
       }).catch(function () {
         return { ok: false, status: response.status, data: {} };
+      });
+    }).catch(function () {
+      return { ok: false, status: 0, data: {} };
+    });
+  }
+
+  function showStatus(text) {
+    var statusEl = $('[data-admin-status]') || $('[data-signups-status]');
+    if (!statusEl) return;
+    if (!text) {
+      statusEl.hidden = true;
+      return;
+    }
+    statusEl.hidden = false;
+    statusEl.textContent = text;
+  }
+
+  function loadList() {
+    return loadJson('/api/admin/signups');
+  }
+
+  function loadSignupsFirst() {
+    return loadJson('/api/admin/signups?part=signups').then(function (list) {
+      if (!list || list.status === 401) {
+        global.location.replace(LOGIN);
+        return;
+      }
+      if (list.status === 403) {
+        global.location.replace(DENY);
+        return;
+      }
+      if (!list.ok) {
+        showStatus('Could not load the desk.');
+        return;
+      }
+      showStatus('');
+      renderSignups(list.data && list.data.signups);
+      loadJson('/api/admin/roadmaps').then(function (saved) {
+        if (saved && saved.ok) renderRoadmaps(saved.data && saved.data.roadmaps);
+      });
+      return loadList().then(function (full) {
+        if (!full || !full.ok) {
+          showStatus('Signups are loaded. The rest of the desk did not load.');
+          return;
+        }
+        if (!full.data.signups || !full.data.signups.length) full.data.signups = list.data.signups;
+        showStatus('');
+        render(full.data);
       });
     });
   }
@@ -338,7 +477,13 @@
     var ready = membership && typeof membership.whenReady === 'function'
       ? membership.whenReady()
       : Promise.resolve(null);
-    ready.then(function (result) {
+    var timed = new Promise(function (resolve) {
+      global.setTimeout(function () {
+        resolve({ ok: true, timedOut: true, data: (membership && membership.account && membership.account()) || {} });
+      }, 8000);
+    });
+    Promise.race([ready, timed]).then(function (result) {
+      if (result && result.timedOut) return loadSignupsFirst();
       if (!result || !result.ok) {
         global.location.replace(LOGIN);
         return null;
@@ -348,21 +493,7 @@
         global.location.replace(DENY);
         return null;
       }
-      return loadList().then(function (list) {
-        if (!list || list.status === 401) {
-          global.location.replace(LOGIN);
-          return;
-        }
-        if (!list.ok) {
-          var statusEl = $('[data-admin-status]') || $('[data-signups-status]');
-          if (statusEl) {
-            statusEl.hidden = false;
-            statusEl.textContent = 'Could not load the desk.';
-          }
-          return;
-        }
-        render(list.data);
-      });
+      return loadSignupsFirst();
     }).catch(function () {
       global.location.replace(LOGIN);
     });
@@ -370,6 +501,18 @@
     if (exportLink && !exportLink.getAttribute('data-bound')) {
       exportLink.setAttribute('data-bound', '1');
       exportLink.addEventListener('click', exportSignups);
+    }
+    if (global.document && !global.document.documentElement.getAttribute('data-roadmap-bound')) {
+      global.document.documentElement.setAttribute('data-roadmap-bound', '1');
+      global.document.addEventListener('click', function (event) {
+        var open = event.target && event.target.closest ? event.target.closest('[data-roadmap-open]') : null;
+        if (open) {
+          openRoadmap(open.getAttribute('data-roadmap-open'));
+          return;
+        }
+        var back = event.target && event.target.closest ? event.target.closest('[data-roadmap-back]') : null;
+        if (back) closeRoadmap();
+      });
     }
   }
 

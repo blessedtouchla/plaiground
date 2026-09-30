@@ -19,6 +19,7 @@
 
 const { listAdminOverview } = require('../lib/admin-overview');
 const { listSignupRows, signupRowsToCsv } = require('../lib/admin-signups');
+const roadmap = require('../lib/roadmap');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
@@ -59,7 +60,16 @@ function isArtists(req) {
   return queryValue(req, 'action') === 'artists' || queryValue(req, 'resource') === 'artists';
 }
 
-const ROUTE_ACTIONS = { artists: true, catalog: true, profile: true, problem: true, 'admin-signups': true };
+const ROUTE_ACTIONS = {
+  artists: true,
+  catalog: true,
+  profile: true,
+  problem: true,
+  'admin-signups': true,
+  roadmap: true,
+  'artist-profiles': true,
+  'admin-roadmaps': true,
+};
 
 function artistVerb(body) {
   const explicit = String((body && body.artist_action) || '').trim().toLowerCase();
@@ -102,6 +112,28 @@ function sendSignupCsv(res, rows) {
   res.end(signupRowsToCsv(rows));
 }
 
+function isRoadmap(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/roadmap') return true;
+  return queryValue(req, 'action') === 'roadmap';
+}
+
+function isArtistProfileSaves(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/artist-profiles') return true;
+  return queryValue(req, 'action') === 'artist-profiles';
+}
+
+function isAdminRoadmaps(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/roadmaps') return true;
+  return queryValue(req, 'action') === 'admin-roadmaps';
+}
+
+function wantsSignupPart(req) {
+  return String(queryValue(req, 'part') || '').toLowerCase() === 'signups';
+}
+
 function isProblem(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/problem') return true;
@@ -140,8 +172,97 @@ async function adminSignups(req, res) {
       sendSignupCsv(res, await listSignupRows());
       return;
     }
+    if (wantsSignupPart(req)) {
+      sendJson(res, 200, { signups: await listSignupRows() });
+      return;
+    }
     const overview = await listAdminOverview();
     sendJson(res, 200, overview);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+function savedPayload(result, key) {
+  const payload = { ok: true, created: Boolean(result && result.created), saved_at: (result && result.saved_at) || '' };
+  payload[key] = result ? result[key] : null;
+  payload.history = (result && result.history) || [];
+  return payload;
+}
+
+async function ownSaved(req, res, read, save, key) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+  try {
+    if (req.method === 'GET') {
+      sendJson(res, 200, await read(row.id));
+      return;
+    }
+    const body = await readBody(req);
+    if (bodyHasPassword(body)) {
+      sendJson(res, 400, { error: 'Password is not accepted here.' });
+      return;
+    }
+    const input = body && (body[key] || (key === 'plan' ? body.roadmap : body.record));
+    const saved = await save(row.id, input);
+    sendJson(res, 200, savedPayload(saved, key));
+  } catch (err) {
+    if (err && err.code === 'VALIDATION') {
+      sendJson(res, 400, { error: err.message });
+      return;
+    }
+    if (err && err.code === 'TOO_LARGE') {
+      sendJson(res, 413, { error: err.message });
+      return;
+    }
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function adminRoadmaps(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (rejectUnconfirmed(res, row)) return;
+    if (!hasStaffProOverride(row.email)) {
+      sendJson(res, 403, { error: 'Not allowed.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    const rows = await roadmap.listAdminRoadmaps();
+    sendJson(res, 200, { roadmaps: rows });
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       notConfigured(res);
@@ -672,6 +793,18 @@ async function reportProblem(req, res) {
 module.exports = async function handler(req, res) {
   if (isAdminSignups(req)) {
     await adminSignups(req, res);
+    return;
+  }
+  if (isAdminRoadmaps(req)) {
+    await adminRoadmaps(req, res);
+    return;
+  }
+  if (isRoadmap(req)) {
+    await ownSaved(req, res, roadmap.readOwnPlan, roadmap.saveOwnPlan, 'plan');
+    return;
+  }
+  if (isArtistProfileSaves(req)) {
+    await ownSaved(req, res, roadmap.readOwnProfiles, roadmap.saveOwnProfiles, 'profiles');
     return;
   }
   if (isProblem(req)) {

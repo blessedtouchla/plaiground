@@ -806,8 +806,25 @@
       existing.textContent = "Roadmap";
     }
     if (nav.firstElementChild !== existing) nav.insertBefore(existing, nav.firstElementChild);
+    var mine = null;
+    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (anchor) {
+      if (mine) return;
+      var href = anchor.getAttribute("href") || "";
+      if (href === "/my-roadmap" || href === "/my-roadmap/" || href === "my-roadmap.html" || linkText(anchor) === "My roadmap") mine = anchor;
+    });
+    if (!mine) {
+      mine = document.createElement("a");
+      mine.setAttribute("href", "/my-roadmap");
+      mine.textContent = "My roadmap";
+    }
+    if (existing.nextSibling !== mine) {
+      if (mine.parentNode) mine.parentNode.removeChild(mine);
+      if (existing.nextSibling) nav.insertBefore(mine, existing.nextSibling);
+      else nav.appendChild(mine);
+    }
     var file = hrefFile((window.location && window.location.pathname) || "");
     if (file === "destination" || file === "destination.html") existing.classList.add("on");
+    if (file === "my-roadmap" || file === "my-roadmap.html") mine.classList.add("on");
   }
 
   function setupAppBlogLink(side) {

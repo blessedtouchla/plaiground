@@ -17,6 +17,7 @@
     <nav class="side-nav">
       <a class="on" href="/admin">Admin</a>
       <a href="#signups">Signups</a>
+      <a href="#roadmaps">Roadmaps</a>
       <a href="#events">Events</a>
       <a href="#paid">Paid</a>
       <a href="#subs">Subs</a>
@@ -67,6 +68,37 @@
             </thead>
             <tbody data-signups-body></tbody>
           </table>
+        </div>
+      </div>
+      </section>
+
+      <section class="admin-section" id="roadmaps">
+      <div class="panel">
+        <div class="admin-section-head">
+          <h3>Roadmaps</h3>
+        </div>
+        <p class="hint" data-roadmaps-empty hidden>No saved roadmaps yet.</p>
+        <div class="admin-table-wrap" data-roadmaps-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Goal</th>
+                <th>Stage</th>
+                <th>Stops</th>
+                <th>Artist count</th>
+                <th>Genres</th>
+                <th>Saved</th>
+                <th>Profiles</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody data-roadmaps-body></tbody>
+          </table>
+        </div>
+        <div data-roadmap-detail hidden>
+          <p><button type="button" class="btn btn-ghost btn-sm" data-roadmap-back>Back to the list</button></p>
+          <div data-roadmap-detail-body></div>
         </div>
       </div>
       </section>

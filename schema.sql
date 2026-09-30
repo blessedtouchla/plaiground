@@ -82,3 +82,26 @@ CREATE TABLE IF NOT EXISTS community_posts (
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT community_posts_made_check CHECK (made IN ('full_ai', 'ai_assisted', 'no_ai'))
 );
+
+-- One row per save. Edits append history; they do not overwrite older plans.
+CREATE TABLE IF NOT EXISTS roadmap_plans (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  plan jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS roadmap_plans_user_created_idx
+  ON roadmap_plans (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS artist_profile_saves (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  profiles jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS artist_profile_saves_user_created_idx
+  ON artist_profile_saves (user_id, created_at DESC);
