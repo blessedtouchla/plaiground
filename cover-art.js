@@ -27,7 +27,7 @@
   };
 
   var step = 0;
-  var picks = { look: '', palette: 'night', count: '3', font: 'grotesk', position: 'center' };
+  var picks = { look: '', theme: '', palette: 'night', count: '3', font: 'grotesk', position: 'center' };
   var images = [];
   var selected = 0;
   var preview = true;
@@ -259,7 +259,8 @@
     ctx.fillStyle = colors[0];
     ctx.fillRect(0, 0, size, size);
     var look = spec.look || 'photo';
-    var n = look === 'minimal' ? 2 : 6;
+    var theme = spec.theme || '';
+    var n = theme === 'psychedelic' ? 10 : (look === 'minimal' ? 2 : 6);
     for (var i = 0; i < n; i += 1) {
       ctx.save();
       ctx.globalAlpha = look === 'painted' ? 0.55 : 0.9;
@@ -283,6 +284,15 @@
         ctx.fillRect(0, 0, size, size);
       }
       ctx.restore();
+    }
+    if (theme === 'comic') {
+      ctx.strokeStyle = colors[1] || '#fff';
+      ctx.lineWidth = Math.max(6, size * 0.012);
+      ctx.strokeRect(size * 0.08, size * 0.08, size * 0.84, size * 0.84);
+    }
+    if (theme === 'noir') {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0, 0, size, size);
     }
   }
 
@@ -337,6 +347,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           look: picks.look,
+          theme: picks.theme || '',
           palette: picks.palette,
           customColor: $('ca-custom').value,
           idea: $('ca-idea').value.trim(),
@@ -564,7 +575,8 @@
       showError('');
       return;
     }
-    if (!group || !value) return;
+    if (!group || (value == null)) return;
+    if (!value && group !== 'theme') return;
     picks[group] = value;
     setPressed(group, value);
     if (group === 'look') {

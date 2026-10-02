@@ -82,6 +82,89 @@
       <p class="sh-intro">Tell me the song in your own words. I’ll draft lyrics around them, then a style prompt you can take to Suno.</p>
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
+      <div class="sh-modes" id="sh-modes" role="group" aria-label="Modes"></div>
+      <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
+      <div class="sh-craft" id="sh-craft">
+        <h2 class="sh-craft-title">Craft</h2>
+        <p class="sh-help">These dials sit on every mode. Rabbit hole is on, so the first questions are concrete.</p>
+        <div class="sh-group">
+          <h3>Vocabulary</h3>
+          <div class="sh-chips" role="group" aria-label="Vocabulary">
+            <button type="button" class="sh-chip on" data-craft="vocabulary" data-value="plain">Everyday</button>
+            <button type="button" class="sh-chip" data-craft="vocabulary" data-value="vivid">Vivid</button>
+            <button type="button" class="sh-chip" data-craft="vocabulary" data-value="spare">Spare</button>
+          </div>
+        </div>
+        <div class="sh-group">
+          <h3>Imagery</h3>
+          <div class="sh-chips" role="group" aria-label="Imagery">
+            <button type="button" class="sh-chip on" data-craft="imagery" data-value="concrete">Concrete</button>
+            <button type="button" class="sh-chip" data-craft="imagery" data-value="dreamy">Dreamy</button>
+          </div>
+        </div>
+        <div class="sh-group">
+          <h3>Rhyme style</h3>
+          <div class="sh-chips" role="group" aria-label="Rhyme style">
+            <button type="button" class="sh-chip on" data-craft="rhyme" data-value="slant">Slant</button>
+            <button type="button" class="sh-chip" data-craft="rhyme" data-value="perfect">Perfect</button>
+            <button type="button" class="sh-chip" data-craft="rhyme" data-value="free">Free</button>
+          </div>
+        </div>
+        <div class="sh-group">
+          <h3>Era slang</h3>
+          <div class="sh-chips" role="group" aria-label="Era slang">
+            <button type="button" class="sh-chip" data-craft="eraSlang" data-value="70s">70s</button>
+            <button type="button" class="sh-chip" data-craft="eraSlang" data-value="90s">90s</button>
+            <button type="button" class="sh-chip on" data-craft="eraSlang" data-value="now">Now</button>
+          </div>
+        </div>
+        <div class="sh-group">
+          <h3>Wordplay</h3>
+          <div class="sh-chips" role="group" aria-label="Wordplay">
+            <button type="button" class="sh-chip on" data-craft="wordplay" data-value="light">Light</button>
+            <button type="button" class="sh-chip" data-craft="wordplay" data-value="medium">Medium</button>
+            <button type="button" class="sh-chip" data-craft="wordplay" data-value="heavy">Heavy</button>
+          </div>
+        </div>
+        <label class="sh-field">
+          <span>Region</span>
+          <select class="sh-input" id="sh-region" aria-describedby="sh-region-note"></select>
+        </label>
+        <p class="sh-help" id="sh-region-note">Bars mode uses this list for current regional slang. Tap a word to see the meaning and the source.</p>
+        <div class="sh-slang" id="sh-slang"></div>
+        <label class="sh-check">
+          <input type="checkbox" id="sh-rabbit" checked />
+          Rabbit hole. Ask for a place, an object, and something someone said before drafting.
+        </label>
+        <p class="sh-help" id="sh-concrete">Concrete-detail rule: the song has to stand on something you can point at.</p>
+        <div class="sh-group">
+          <h3>Structure</h3>
+          <div class="sh-side-actions">
+            <button type="button" class="btn btn-ghost btn-md" data-structure="verse">Add a verse</button>
+            <button type="button" class="btn btn-ghost btn-md" data-structure="hook">Add a hook</button>
+            <button type="button" class="btn btn-ghost btn-md" data-structure="bridge">Add a bridge</button>
+          </div>
+        </div>
+        <div id="sh-log" class="sh-log"></div>
+        <div class="sh-team">
+          <button type="button" class="btn btn-ghost btn-md" id="sh-scout">Ask Scout</button>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-scoop">Ask Scoop</button>
+        </div>
+        <div id="sh-team-out" class="sh-team-out" hidden></div>
+        <div id="sh-turnstile" hidden></div>
+        <p class="sh-spark-link"><a href="/spark">What’s hot</a> is a separate spark page. It is not in the public menu.</p>
+      </div>
+      <div id="sh-v2" hidden>
+        <p class="sh-help" id="sh-v2-blurb"></p>
+        <div id="sh-v2-fields"></div>
+        <div id="sh-v2-extra"></div>
+        <p class="sh-banner" id="sh-v2-banner" hidden></p>
+        <div id="sh-v2-out"></div>
+        <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
+        <div class="sh-actions no-print">
+          <button type="button" class="btn btn-purple btn-md" id="sh-v2-go">Make the draft</button>
+        </div>
+      </div>
       <div class="sh-profile" id="sh-profile" hidden>
         <p class="sh-label">From your artist profile</p>
         <label class="sh-field" id="sh-artist-pick-wrap" hidden>
@@ -404,7 +487,10 @@
   </footer>
   <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
+  <script src="lib/song-modes.js"></script>
+  <script src="lib/slang.js"></script>
   <script src="song-helper.js"></script>
+  <script src="song-helper-v2.js"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

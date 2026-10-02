@@ -1,0 +1,303 @@
+{
+  "imported_from": "slang-log.csv",
+  "count": 19,
+  "entries": [
+    {
+      "word": "fries",
+      "meaning": "Wrap it up / get to the point; short for 'just put the fries in the bag'",
+      "example": "Bro been talking ten minutes, fries.",
+      "region_tag": "national/online",
+      "region_detail": "Gen Alpha usage; origin a 2022 Facebook meme",
+      "sources": [
+        "https://www.usatoday.com/story/life/health-wellness/2026/09/30/gen-alpha-slang-words-explained-huzz-unc-fries-and-larping/91989583007/"
+      ],
+      "first_seen": "2026-09-30",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Often with 🍟✌️ emoji. Only one solid source so far; re-check UD/KYM.",
+      "profanity": false
+    },
+    {
+      "word": "quiet on the creek",
+      "meaning": "Keep it to yourself / lay low; also 'calm down, stop being loud'",
+      "example": "I got a new situationship but I'm quiet on the creek about it.",
+      "region_tag": "South Florida",
+      "region_detail": "Miami (from Saucy Santana, Love & Hip Hop: Miami); spread to Chicago per r/Chiraqology thread",
+      "sources": [
+        "https://www.vice.com/en/article/the-7-gen-alpha-slang-terms-adults-are-googling-most-in-2026/",
+        "https://www.urbandictionary.com/define.php?term=Quiet%20on%20the%20Creek&defid=18718523"
+      ],
+      "first_seen": "2026-07-13",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "Two meanings in use (keep quiet vs. tell someone to hush). Vice 2026-09-28; UD entries from 2026-07-13.",
+      "profanity": false
+    },
+    {
+      "word": "fairs",
+      "meaning": "Fair enough; accepting someone's point, often with the 👌 hand",
+      "example": "You can't come 'cause you broke? Fairs.",
+      "region_tag": "UK/London",
+      "region_detail": "UK slang origin (KYM region: United Kingdom); went viral in US mid-2026",
+      "sources": [
+        "https://knowyourmeme.com/memes/fairs",
+        "https://www.usatoday.com/story/life/health-wellness/2026/09/30/gen-alpha-slang-words-explained-huzz-unc-fries-and-larping/91989583007/"
+      ],
+      "first_seen": "2026-06",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "Origin UK, now national/online in US kids' speech.",
+      "profanity": false
+    },
+    {
+      "word": "polyester",
+      "meaning": "Cheap, fake, low-quality thing that tries to look high-end",
+      "example": "That chain is polyester, he got it off a cart.",
+      "region_tag": "national/online",
+      "region_detail": "TikTok, from backlash to 'Polyester Edits'",
+      "sources": [
+        "https://knowyourmeme.com/memes/polyester-slang",
+        "https://www.urbandictionary.com/define.php?term=Polyester&defid=18735805"
+      ],
+      "first_seen": "2026-09-03",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "KYM + UD agree on meaning.",
+      "profanity": false
+    },
+    {
+      "word": "slop grenade",
+      "meaning": "A big AI-generated doc, deck, or code someone dumps on you to deal with",
+      "example": "He dropped a 40-page slop grenade in the group chat and dipped.",
+      "region_tag": "national/online",
+      "region_detail": "Office/tech talk",
+      "sources": [
+        "https://www.urbandictionary.com/define.php?term=Slop%20Grenade&defid=18744416"
+      ],
+      "first_seen": "2026-09-28",
+      "logged_on": "2026-10-02",
+      "confidence": "low",
+      "notes": "UD Word of the Day only; no second source yet. Watch.",
+      "profanity": false
+    },
+    {
+      "word": "relax, pal",
+      "meaning": "Smug brush-off when someone asks you a hard question",
+      "example": "Ask him where the money went and he hit you with 'relax, pal.'",
+      "region_tag": "Midwest",
+      "region_detail": "Madison, WI (UW-Madison student on WISN 12 News clip); not one of our city buckets",
+      "sources": [
+        "https://knowyourmeme.com/memes/relax-pal"
+      ],
+      "first_seen": "2026-09-30",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Catchphrase from a news clip about a hazing case, not organic street slang. Short shelf life likely.",
+      "profanity": false
+    },
+    {
+      "word": "crodie",
+      "meaning": "Close friend; same as brodie",
+      "example": "Yeah crodie, let's run that game tonight.",
+      "region_tag": "Toronto",
+      "region_detail": "Toronto; UD credits Rexdale",
+      "sources": [
+        "https://thegreenline.to/stories/2026-toronto-slang/",
+        "https://www.urbandictionary.com/define.php?term=Crodie&defid=18429072"
+      ],
+      "first_seen": "2025-02-11",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "Green Line (2026-09-26) uses it in an example; UD says Rexdale origin; Wiktionary: synonym of brodie.",
+      "profanity": false
+    },
+    {
+      "word": "run that",
+      "meaning": "Let's do it / go ahead with it",
+      "example": "Food spot after the game? Run that.",
+      "region_tag": "Toronto",
+      "region_detail": "Toronto (The Green Line says it's not Toronto-only but is common there)",
+      "sources": [
+        "https://thegreenline.to/stories/2026-toronto-slang/"
+      ],
+      "first_seen": "2026-09-26",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Also heard elsewhere; regional tag is soft.",
+      "profanity": false
+    },
+    {
+      "word": "croski",
+      "meaning": "Trusted close friend; a 'broski'",
+      "example": "Me and my croski been tight since Year 7.",
+      "region_tag": "UK/London",
+      "region_detail": "Wiktionary tags Multicultural London English; UD says Toronto",
+      "sources": [
+        "https://en.wiktionary.org/wiki/croski",
+        "https://www.urbandictionary.com/define.php?term=croski&defid=18445427"
+      ],
+      "first_seen": "2025-03-05",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Region sources disagree (London vs Toronto). Same family as crodie. Wiktionary added it 2026-08-01.",
+      "profanity": false
+    },
+    {
+      "word": "dat bih gah",
+      "meaning": "'That thing is good' ('gas' = good), said like the viral kid",
+      "example": "Tried that new wing spot. Dat bih gah.",
+      "region_tag": "national/online",
+      "region_detail": "Viral TikTok/X video, late May 2026; KYM region United States",
+      "sources": [
+        "https://knowyourmeme.com/memes/dat-bih-gah",
+        "https://www.urbandictionary.com/define.php?term=Dat%20bih%20gah&defid=18709315"
+      ],
+      "first_seen": "2026-05",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "Comes from 'that bitch gas'. Profanity, so filter by app content rating.",
+      "profanity": true
+    },
+    {
+      "word": "larping",
+      "meaning": "Pretending / posing / being inauthentic (figurative extension of live-action role-play)",
+      "example": "He's not a finance guy, he's just larping LinkedIn with a rented suit.",
+      "region_tag": "national/online",
+      "region_detail": "Online youth / Gen Alpha–Z comment culture",
+      "sources": [
+        "https://www.usatoday.com/story/life/health-wellness/2026/09/30/gen-alpha-slang-words-explained-huzz-unc-fries-and-larping/91989583007/",
+        "https://www.merriam-webster.com/slang/larp"
+      ],
+      "first_seen": "2020",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "Coinage older; strong Sep 2026 news spike (USA Today, Vice, MW, Euronews). Also 'larp'.",
+      "profanity": false
+    },
+    {
+      "word": "scuba",
+      "meaning": "Nose-pinch + hand-wave dance/reaction for something foul, or as a celebration dance; tied to Scuba Juke (It Stank)",
+      "example": "He walked in smelling like smoke and the whole group hit the scuba.",
+      "region_tag": "Midwest",
+      "region_detail": "Chicago origin (Desean Hawk Logan-Russell / h5wk); national via TikTok/NFL; some early clips tagged #dmvtiktok",
+      "sources": [
+        "https://knowyourmeme.com/memes/scuba-dance",
+        "https://www.vice.com/en/article/the-7-gen-alpha-slang-terms-adults-are-googling-most-in-2026/"
+      ],
+      "first_seen": "2025-10-05",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "KYM + Vice; googling spike Aug–Sep 2026 — allowed as spiking.",
+      "profanity": false
+    },
+    {
+      "word": "that's so AI",
+      "meaning": "Put-down for something that feels fake cheap copied exaggerated or hard to believe (not literally AI-made)",
+      "example": "That bootleg phone case? That's so AI.",
+      "region_tag": "UK/London",
+      "region_detail": "UK parent/kids reporting (MadeForMums); anecdotal",
+      "sources": [
+        "https://www.madeformums.com/news/family-news/thats-so-ai-the-new-gen-alpha-slang-term-you-need-to-know/"
+      ],
+      "first_seen": "2026-09-28",
+      "logged_on": "2026-10-02",
+      "confidence": "low",
+      "notes": "Single primary source; also heard as 'that's AI'. Confidence discount.",
+      "profanity": false
+    },
+    {
+      "word": "choppelganger",
+      "meaning": "Someone who looks like you (or a known person) but worse / 'chopped' (uglier off-brand lookalike); chopped + doppelganger",
+      "example": "That's not him, that's his choppelganger from the food court.",
+      "region_tag": "national/online",
+      "region_detail": "US internet (X → TikTok)",
+      "sources": [
+        "https://knowyourmeme.com/memes/choppelganger",
+        "https://en.wiktionary.org/wiki/choppelganger"
+      ],
+      "first_seen": "2025-05-20",
+      "logged_on": "2026-10-02",
+      "confidence": "high",
+      "notes": "KYM + Wiktionary + UD + explainers. First seen >90d; still circulating.",
+      "profanity": false
+    },
+    {
+      "word": "aura farming",
+      "meaning": "Doing things on purpose to look cool / collect aura (often called out as try-hard)",
+      "example": "Sunglasses indoors at brunch is pure aura farming.",
+      "region_tag": "national/online",
+      "region_detail": "Anime/TikTok; Pacu Jalur boat-kid clip often cited mid-2025",
+      "sources": [
+        "https://www.merriam-webster.com/slang/aura-farming",
+        "https://www.brewtifulliving.com/culture/internet-slang-dictionary-2026"
+      ],
+      "first_seen": "2024-09",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "MW + Brewtiful + Euronews. Older coinage; Sep 2026 search spike.",
+      "profanity": false
+    },
+    {
+      "word": "Galantir",
+      "meaning": "A group (often women) who dig through someone's digital footprint to vet them",
+      "example": "Before the date she assembled Galantir and found his old forum posts.",
+      "region_tag": "national/online",
+      "region_detail": "Online dating / internet culture",
+      "sources": [
+        "https://www.urbandictionary.com/define.php?term=Galantir&defid=18742500"
+      ],
+      "first_seen": "2026-09-22",
+      "logged_on": "2026-10-02",
+      "confidence": "low",
+      "notes": "UD Word of the Day only; no second source. Watch.",
+      "profanity": false
+    },
+    {
+      "word": "chopped",
+      "meaning": "Unattractive / undesirable (people or things)",
+      "example": "That fit is chopped, change before we go out.",
+      "region_tag": "East Coast",
+      "region_detail": "MW credits AAVE; some commentators specify NYC/NJ; now national youth speech",
+      "sources": [
+        "https://www.merriam-webster.com/slang/chopped"
+      ],
+      "first_seen": "2025-08",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Not brand-new; youth spike ~2025. Soft region conflict (origin vs national). Pairs with choppelganger.",
+      "profanity": false
+    },
+    {
+      "word": "el cinco",
+      "meaning": "PlayStation 5 (Spanish 'el cinco' = the five); joke memes about robbers grabbing it",
+      "example": "They can take the TV, just don't let them leave with el cinco.",
+      "region_tag": "national/online",
+      "region_detail": "US TikTok/IG (KYM region: United States)",
+      "sources": [
+        "https://knowyourmeme.com/memes/el-cinco-the-5",
+        "https://www.urbandictionary.com/define.php?term=El%20Cinco&defid=18596948"
+      ],
+      "first_seen": "2026-01-11",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Also 'the 5'. First seen Jan 2026; inventory keep.",
+      "profanity": false
+    },
+    {
+      "word": "Claudish",
+      "meaning": "Dense compressed technical English associated with Claude / coding agents (gated on, load-bearing, blast radius)",
+      "example": "His Slack update was so Claudish nobody outside eng could parse it.",
+      "region_tag": "national/online",
+      "region_detail": "Tech / AI-agent users",
+      "sources": [
+        "https://uwaterloo.ca/news/media/q-and-experts-what-claudish",
+        "https://www.youtube.com/shorts/TmFBva2fDfQ"
+      ],
+      "first_seen": "2026-09",
+      "logged_on": "2026-10-02",
+      "confidence": "medium",
+      "notes": "Waterloo + Etymology Nerd (2026-09-19). Weak for street Bars; tech-adjacent watch.",
+      "profanity": false
+    }
+  ]
+}
