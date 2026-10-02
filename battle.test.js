@@ -391,7 +391,7 @@ function runPage() {
 
   assert.ok(html.includes('Trade verses'));
   assert.ok(html.includes('You must be 18+ to use this page.'));
-  assert.ok(html.includes('noindex'));
+  assert.ok(!html.includes('noindex'));
   assert.ok(html.includes('name="company_website"'));
   assert.ok(html.includes('Friendly cypher'));
   assert.ok(html.includes('Competitive'));
@@ -431,7 +431,7 @@ function runPage() {
   assert.ok(js.includes('core.PREVIEW_NOTICE') || js.includes('data.notice'));
   assert.ok(!/battle/i.test(nav), 'the battle page nav does not link to itself');
   assert.ok(!/battle/i.test(footer));
-  assert.ok(!index.includes('/battle'));
+  assert.ok(index.includes('href="/battle">Battle</a>'));
   assert.ok(!index.includes('battle.html'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/battle' && row.destination === '/battle.html';
@@ -444,7 +444,7 @@ function runPage() {
   assert.ok(api.includes('normalizeBattle'));
 
   fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); }).forEach(function (file) {
-    if (file === 'battle.html') return;
+    if (file === 'battle.html' || file === 'index.html') return;
     const page = read(file);
     assert.ok(!page.includes('href="/battle"') && !page.includes('href="/battle/') && !page.includes('battle.html'), file + ' must not link the battle page');
   });

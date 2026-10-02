@@ -6935,6 +6935,24 @@ body.attest-page .plai-bubble-row {
   0%, 100% { opacity: 0.28; transform: scale(0.82); }
   40% { opacity: 1; transform: scale(1.16); }
 }
+.whats-new { padding: 4px 0 28px; }
+.whats-new-lead {
+  text-align: center;
+  color: var(--muted-2);
+  max-width: 36rem;
+  margin: 0 auto 18px;
+  line-height: 1.45;
+}
+.whats-new-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .whats-new-actions { flex-direction: column; align-items: center; }
+  .whats-new-actions .btn { width: 100%; max-width: 280px; }
+}
 .team-offer { padding: 8px 0 36px; }
 .team-grid {
   display: grid;

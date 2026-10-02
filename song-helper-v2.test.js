@@ -315,10 +315,11 @@ function runPages() {
   assert.ok(!sparkNav.includes('/spark'));
   assert.ok(!/Grok/.test(html + sparkHtml + js + read('spark.js')));
   assert.ok(!html.includes('href="/battle"') && !sparkHtml.includes('battle.html'));
-  assert.ok(!index.includes('/spark') && !index.includes('spark.html'));
-  assert.ok(!index.includes('song-helper'));
+  assert.ok(index.includes('href="/spark">What\'s hot</a>'));
+  assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
+  assert.ok(!index.includes('spark.html'));
   assert.ok(coverHtml.includes('Psychedelic') && coverHtml.includes('Comic book'));
-  assert.ok(sparkHtml.includes('noindex'));
+  assert.ok(!sparkHtml.includes('noindex'));
   assert.ok(sparkHtml.includes('Sample'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/spark' && row.destination === '/spark.html';
