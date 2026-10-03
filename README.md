@@ -5,7 +5,7 @@ The PLAI voice bubble mints an xAI ephemeral token via `api/plai-session.js`.
 Creator and Pro Checkout Sessions are created via `api/create-checkout-session.js` (`mode=subscription`, monthly or yearly). Settings → Manage plan redirects to `plan-confirm.html`. Submit there updates the subscription (`action=switch`). Preview (`action=preview`) does not charge. Settings → Manage billing opens the Stripe Customer Billing Portal (`action=portal`) to update the card. No Stripe customer means no card on file — the site does not invent a portal. The signed Stripe webhook lives in that same file at `/api/stripe/webhook` (Hobby rewrite — not a seventh function). Stripe does not follow redirects, so POST is accepted on both `https://wannaplai.com/api/stripe/webhook` and `https://www.wannaplai.com/api/stripe/webhook`. Other apex pages may still 308 to www.
 Artist and release calls go to ToneGrid via the server-only handler in `api/tonegrid.js`.
 
-Vercel Hobby allows at most 12 Serverless Functions. This repo has 10, in `api/`:
+Vercel Hobby allows at most 12 Serverless Functions. This repo has 11, in `api/`:
 
 - `auth.js` — signup, login, logout, schema bootstrap, confirm mail
 - `me.js` — session user + catalog ids
@@ -15,10 +15,44 @@ Vercel Hobby allows at most 12 Serverless Functions. This repo has 10, in `api/`
 - `signwell.js`
 - `community.js`
 - `youtube.js` — server-side YouTube search
-- `song-helper.js` — PLAIGROUND Song Helper. `XAI_API_KEY` stays on the server. `XAI_MODEL` defaults to `grok-4.20-0309-non-reasoning`. With no key, the route returns a labeled sample draft.
+- `song-helper.js` — PLAIGROUND Song Helper. `XAI_API_KEY` stays on the server. `XAI_MODEL` defaults to `grok-4.20-0309-non-reasoning`. With no key, the route returns a labeled sample draft. The same function also serves `/api/slang`, `/api/slang/refresh`, and `/api/spark` (Hobby rewrites — not extra functions).
 - `cover-art.js` — PLAIGROUND Song Helper cover art. Same `XAI_API_KEY`. `XAI_IMAGE_MODEL` defaults to `grok-imagine-image-2.0`. With no key, the route returns placeholder art for the browser to draw.
+- `battle.js` — verse battle. Same `XAI_API_KEY`. With no key, the route returns a labeled sample verse.
 
-`vercel.json` rewrites keep the public URLs (`/song-helper`, `/cover-art`, `/api/auth/signup`, `/api/me/catalog`, `/api/me/problem`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files beyond the ten above.
+`vercel.json` rewrites keep the public URLs (`/song-helper`, `/cover-art`, `/battle`, `/spark`, `/api/slang`, `/api/slang/refresh`, `/api/spark`, `/api/auth/signup`, `/api/me/catalog`, `/api/me/problem`, `/api/signwell/:id`, `/api/tonegrid/releases/:id/submit`, `/api/tonegrid/tracks/:id/audio`, `/api/stripe/webhook`, and the rest). No extra Serverless Function files beyond the eleven above.
+
+## Plug in your keys
+
+Song Helper v2 runs in demo mode until you add keys on the host (Vercel → Project → Settings → Environment Variables). Demo mode still renders every screen. Samples are labeled. They are not AI.
+
+Do this once:
+
+1. Open the Vercel project for wannaplai.com. Settings → Environment Variables. Add each name below. Leave the value empty until you have it. Redeploy after you save.
+2. Add `XAI_API_KEY`. Song Helper, Cover Art, Scout, and Scoop start calling Grok. The key stays on the server. Optional: `XAI_MODEL` (default `grok-4.20-0309-non-reasoning`) and `XAI_IMAGE_MODEL` (default `grok-imagine-image-2.0`).
+3. Add `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` together (Cloudflare Turnstile). The person check runs only when the xAI key is also set. Demo mode skips it. The site key is the only one the browser sees.
+4. Optional: `SONG_HELPER_DAILY_LIMIT` (default `40`). One bucket per signed-in user when the session cookie verifies, otherwise per IP. `SONG_HELPER_DISABLED=1` is the kill switch. The pages still open and say the switch is on. Admin shows the same instruction. It does not flip the switch.
+5. Optional, later: `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` for a Reddit script app (client credentials). `POST /api/slang/refresh` then returns candidate words from r/slang, r/SlangOfTheDay, r/Chiraqology, and `REDDIT_CITY_SUBS` (comma-separated, optional). Optional `REDDIT_USER_AGENT`. With no Reddit keys the route says Reddit is not configured. Candidates are not written into the slang list.
+6. Optional: `SPARK_FEEDS`, a comma-separated list of https RSS URLs. What’s hot uses those titles and drops tragedies. With no feed, the page shows labeled samples and does not invent a source.
+7. To refresh the slang list from a CSV: `node scripts/import-slang.js path/to/slang-log.csv`. That rewrites `data/slang.json`. Commit the JSON when you want the site to use it.
+
+Names, exactly:
+
+```
+XAI_API_KEY=
+XAI_MODEL=grok-4.20-0309-non-reasoning
+XAI_IMAGE_MODEL=grok-imagine-image-2.0
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+SONG_HELPER_DAILY_LIMIT=40
+SONG_HELPER_DISABLED=
+REDDIT_CLIENT_ID=
+REDDIT_CLIENT_SECRET=
+REDDIT_USER_AGENT=
+REDDIT_CITY_SUBS=
+SPARK_FEEDS=
+```
+
+`XAI_API_KEY`, `TURNSTILE_SECRET_KEY`, `REDDIT_CLIENT_SECRET`, and the rest of the secrets stay server-only. Do not put them in frontend files.
 
 Environment variables (set on the host; never commit values):
 

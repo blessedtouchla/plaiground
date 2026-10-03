@@ -880,7 +880,7 @@ function runPage() {
   assert.ok(html.includes('href="how-it-works.html#distribute"'));
   assert.ok(html.includes('href="/cover-art"'));
   assert.ok(html.includes('Make your cover'));
-  assert.ok(html.includes('noindex'));
+  assert.ok(!html.includes('noindex'));
   assert.ok(!nav.includes('song-helper'));
   assert.ok(!/Grok/.test(html), 'Grok stays off the page chrome');
   assert.ok(!/Powered by Grok/i.test(html + js));
@@ -923,7 +923,8 @@ function runPage() {
   assert.ok(api.includes('https://api.x.ai/v1/chat/completions'));
   assert.ok(api.includes('Cloudflare Turnstile'));
   assert.ok(/in-memory/i.test(api));
-  assert.ok(!index.includes('song-helper'));
+  assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
+  assert.ok(index.includes('id="whats-new"'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/song-helper' && row.destination === '/song-helper.html';
   }));

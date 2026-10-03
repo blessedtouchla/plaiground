@@ -292,7 +292,7 @@ function runPage() {
   assert.ok(html.includes('No prices'));
   assert.ok(html.includes('No store logos'));
   assert.ok(html.includes('3000×3000'));
-  assert.ok(html.includes('noindex'));
+  assert.ok(!html.includes('noindex'));
   assert.ok(!nav.includes('cover-art'));
   assert.ok(!nav.includes('song-helper'));
   assert.ok(!songNav.includes('cover-art'));
@@ -319,8 +319,8 @@ function runPage() {
   assert.ok(api.includes('Cloudflare Turnstile'));
   assert.ok(/in-memory/i.test(api));
   assert.ok(api.includes('resolution: \'2k\''));
-  assert.ok(!index.includes('cover-art'));
-  assert.ok(!index.includes('song-helper'));
+  assert.ok(index.includes('href="/cover-art">Cover Art</a>'));
+  assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/cover-art' && row.destination === '/cover-art.html';
   }));

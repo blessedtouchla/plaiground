@@ -10,13 +10,20 @@
  * If XAI_API_KEY is missing, this returns a labeled sample draft. That sample is not
  * AI output and must not be shown as Grok.
  *
- * TODO(launch): Add Cloudflare Turnstile and check the token here before calling xAI.
- * The in-memory limiter below is prototype-grade only. It lives on one serverless
+ * Cloudflare Turnstile is checked in lib/song-guard.js before a live xAI call.
+ * Demo mode skips it. The in-memory limiter below is prototype-grade only. It lives on one serverless
  * instance, resets on cold start, and is not shared across instances or regions.
  * On Vercel, x-forwarded-for is set by the platform. Do not treat this as abuse-proof.
  */
 
 const core = require('../lib/song-helper');
+const xai = require('../lib/xai-client');
+const guard = require('../lib/song-guard');
+const modes = require('../lib/song-modes');
+const slang = require('../lib/slang');
+const reddit = require('../lib/reddit-slang');
+const spark = require('../lib/spark');
+const sparkFeed = require('../lib/spark-feed');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -100,28 +107,14 @@ async function requestModel(interview, stronger) {
     ],
   };
   if (!/non-reasoning/i.test(model)) payload.reasoning_effort = 'none';
-  var controller = typeof AbortController === 'function' ? new AbortController() : null;
-  var timer = controller ? setTimeout(function () { controller.abort(); }, 20000) : null;
-  try {
-    var response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + keyFromEnv(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller ? controller.signal : undefined,
-    });
-    var data = await response.json().catch(function () { return {}; });
-    if (!response.ok) {
-      var failure = new Error('xai');
-      failure.status = response.status;
-      throw failure;
-    }
-    return data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  } finally {
-    if (timer) clearTimeout(timer);
+  var response = await xai.postJson('https://api.x.ai/v1/chat/completions', keyFromEnv(), payload, 20000);
+  var data = await response.json().catch(function () { return {}; });
+  if (!response.ok) {
+    var failure = new Error('xai');
+    failure.status = response.status;
+    throw failure;
   }
+  return data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
 }
 
 function keyFromEnv() {
@@ -159,7 +152,211 @@ async function callGrok(interview) {
   };
 }
 
+function requestAction(req) {
+  var query = req && req.query;
+  if (query && query.action) return String(query.action);
+  var url = String((req && req.url) || '');
+  var mark = url.indexOf('?');
+  if (mark === -1) return '';
+  return new URLSearchParams(url.slice(mark + 1)).get('action') || '';
+}
+
+async function sparkPayload() {
+  var live = await sparkFeed.load();
+  if (live && live.items && live.items.length) {
+    return {
+      ok: true,
+      demo: false,
+      notice: '',
+      lanes: spark.LANES,
+      daily: live.daily,
+      items: live.items,
+    };
+  }
+  var pack = spark.pack();
+  if (live && live.failed) {
+    pack.notice = 'The live feed did not load. These are samples. ' + spark.SAMPLE_LABEL;
+  }
+  return pack;
+}
+
+async function roleReply(req, res, role, body) {
+  var input = modes.normalizeInput(body || {});
+  var blocked = await guard.enforce(req, guard.clientIp(req), body, {
+    text: [input.place, input.object, input.quote, input.name, input.lines].join('\n'),
+  });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
+    return;
+  }
+  if (!limiter.allow(guard.clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
+  }
+  if (!xai.configured()) {
+    sendJson(res, 200, role === 'scoop' ? modes.scoopSample(input) : modes.scoutSample(input));
+    return;
+  }
+  var system = role === 'scoop'
+    ? 'You are Scoop at PLAIGROUND. Draft a short bio and a one-sheet from only the facts given. Do not invent awards, follower counts, press quotes, or dollar amounts. Plain sentences.'
+    : 'You are Scout at PLAIGROUND. Give short notes: what is working, what to fix, and who the song is for. Do not name real artists. Do not promise a result. Plain sentences.';
+  try {
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: modes.userPrompt(input) },
+      ],
+      max_tokens: 700,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      preview: false,
+      source: 'grok',
+      notice: '',
+      role: role,
+      text: String(chat.content || '').slice(0, 4000),
+    });
+  } catch (err) {
+    var busy = err && err.status === 429;
+    sendJson(res, busy ? 429 : 502, {
+      ok: false,
+      error: busy ? 'The writer is busy. Try again in a moment.' : 'That note did not come back. Try again in a moment.',
+    });
+  }
+}
+
+async function handleMode(req, res, body) {
+  var input = modes.normalizeInput(body);
+  if (input.mode === 'battle') {
+    sendJson(res, 200, { ok: true, redirect: '/battle' });
+    return;
+  }
+  var missing = modes.concreteError(input);
+  if (missing) {
+    sendJson(res, 400, { ok: false, error: missing });
+    return;
+  }
+  if (input.mode === 'parody') {
+    var critique = modes.parodyCritique(input);
+    if (!critique.ok) {
+      sendJson(res, 400, { ok: false, error: critique.blocks[0], critique: critique });
+      return;
+    }
+  }
+  if (input.mode === 'public-domain') {
+    var pd = modes.pdCheck(input);
+    if (!pd.ok) {
+      sendJson(res, 400, { ok: false, error: pd.error });
+      return;
+    }
+  }
+  if (input.mode === 'superhero' && modes.heroBlocked(input.name)) {
+    sendJson(res, 400, { ok: false, error: 'Use yourself, not a trademarked hero.' });
+    return;
+  }
+  var blocked = await guard.enforce(req, guard.clientIp(req), body, {
+    text: JSON.stringify(input),
+  });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
+    return;
+  }
+  if (!limiter.allow(guard.clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
+  }
+  if (!xai.configured()) {
+    var sample = modes.buildSample(input);
+    sendJson(res, sample.ok ? 200 : 400, sample);
+    return;
+  }
+  try {
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      messages: [
+        { role: 'system', content: modes.systemPrompt(input) },
+        { role: 'user', content: modes.userPrompt(input) },
+      ],
+    });
+    var draft = modes.draftFromModel(chat.content, input);
+    if (!draft) {
+      var fallback = modes.buildSample(input);
+      sendJson(res, fallback.ok ? 200 : 400, fallback);
+      return;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      preview: false,
+      source: 'grok',
+      notice: '',
+      attribution: core.GROK_ATTRIBUTION,
+      mode: input.mode,
+      draft: draft,
+    });
+  } catch (err) {
+    var busy = err && err.status === 429;
+    sendJson(res, busy ? 429 : 502, {
+      ok: false,
+      error: busy
+        ? 'The writer is busy. Try again in a moment.'
+        : 'The draft did not come back. Try again in a moment.',
+    });
+  }
+}
+
+async function handleAction(req, res, action, givenBody) {
+  if (action === 'status') {
+    sendJson(res, 200, guard.status());
+    return;
+  }
+  if (action === 'slang') {
+    var region = '';
+    if (req.query && req.query.region) region = String(req.query.region);
+    var url = String(req.url || '');
+    var mark = url.indexOf('?');
+    if (!region && mark !== -1) region = new URLSearchParams(url.slice(mark + 1)).get('region') || '';
+    var rows = slang.suggest(null, region, { profanity: true });
+    sendJson(res, 200, {
+      ok: true,
+      count: rows.length,
+      regions: slang.regions(null),
+      entries: rows,
+    });
+    return;
+  }
+  if (action === 'slang-refresh') {
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { ok: false, error: 'Use POST.' });
+      return;
+    }
+    var refreshed = await reddit.refresh();
+    sendJson(res, refreshed.ok ? 200 : (refreshed.configured ? 502 : 200), refreshed);
+    return;
+  }
+  if (action === 'spark') {
+    sendJson(res, 200, await sparkPayload());
+    return;
+  }
+  if (action === 'scout' || action === 'scoop') {
+    var body = givenBody;
+    if (!body) body = await readBody(req);
+    if (honeypotFilled(body)) {
+      sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
+      return;
+    }
+    await roleReply(req, res, action, body || {});
+    return;
+  }
+  sendJson(res, 404, { ok: false, error: 'That action is not on this page.' });
+}
+
 async function handler(req, res) {
+  var action = requestAction(req);
+  if (action) {
+    await handleAction(req, res, action);
+    return;
+  }
   if (req.method !== 'POST') {
     sendJson(res, 405, { ok: false, error: 'Use POST.' });
     return;
@@ -175,6 +372,14 @@ async function handler(req, res) {
   }
   if (honeypotFilled(body)) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
+    return;
+  }
+  if (body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+    await handleAction(req, res, String(body.action), body);
+    return;
+  }
+  if (body.mode && body.mode !== 'write') {
+    await handleMode(req, res, body);
     return;
   }
   var interview;
@@ -194,6 +399,13 @@ async function handler(req, res) {
   }
   if (interview.shape.comedy && core.publicFigureName(interview.who)) {
     sendJson(res, 400, { ok: false, error: 'Roasts stay about people you know. Leave public figures and celebrities out of the song.' });
+    return;
+  }
+  var blocked = await guard.enforce(req, clientIp(req), body, {
+    text: [interview.mood, interview.happened, interview.who, interview.why, interview.line].join('\n'),
+  });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
     return;
   }
   if (!limiter.allow(clientIp(req))) {

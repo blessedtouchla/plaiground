@@ -10,8 +10,8 @@
  * If XAI_API_KEY is missing, this returns a labeled sample verse. That sample is not
  * AI output and must not be shown as Grok.
  *
- * TODO(launch): Add Cloudflare Turnstile and check the token here before calling xAI.
- * The in-memory limiter below is prototype-grade only. It lives on one serverless
+ * Cloudflare Turnstile is checked in lib/song-guard.js before a live xAI call.
+ * Demo mode skips it. The in-memory limiter below is prototype-grade only. It lives on one serverless
  * instance, resets on cold start, and is not shared across instances or regions.
  * On Vercel, x-forwarded-for is set by the platform. Do not treat this as abuse-proof.
  * Stronger abuse filtering is still needed before this page is linked in public.
@@ -19,6 +19,8 @@
 
 const core = require('../lib/battle');
 const song = require('../lib/song-helper');
+const xai = require('../lib/xai-client');
+const guard = require('../lib/song-guard');
 
 const limiter = song.createLimiter({
   max: core.RATE_MAX,
@@ -106,28 +108,14 @@ async function requestModel(setup, stronger) {
     ],
   };
   if (!/non-reasoning/i.test(model)) payload.reasoning_effort = 'none';
-  var controller = typeof AbortController === 'function' ? new AbortController() : null;
-  var timer = controller ? setTimeout(function () { controller.abort(); }, 20000) : null;
-  try {
-    var response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + keyFromEnv(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller ? controller.signal : undefined,
-    });
-    var data = await response.json().catch(function () { return {}; });
-    if (!response.ok) {
-      var failure = new Error('xai');
-      failure.status = response.status;
-      throw failure;
-    }
-    return data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  } finally {
-    if (timer) clearTimeout(timer);
+  var response = await xai.postJson('https://api.x.ai/v1/chat/completions', keyFromEnv(), payload, 20000);
+  var data = await response.json().catch(function () { return {}; });
+  if (!response.ok) {
+    var failure = new Error('xai');
+    failure.status = response.status;
+    throw failure;
   }
+  return data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
 }
 
 async function callModel(setup) {
@@ -196,6 +184,11 @@ async function handler(req, res) {
   var guarded = core.guardSetup(setup);
   if (guarded) {
     sendJson(res, 400, { ok: false, error: core.MESSAGES[guarded] || core.MESSAGES.blocked });
+    return;
+  }
+  var blocked = await guard.enforce(req, clientIp(req), body, { skipFilter: true });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
     return;
   }
   if (!limiter.allow(clientIp(req))) {

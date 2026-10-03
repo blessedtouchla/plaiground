@@ -362,6 +362,7 @@
         });
         lyricEl.appendChild(box);
         fit(box);
+        if (window.SongModes) mountLineTools(lyricEl, box, line);
       });
     });
     banner.hidden = !preview;
@@ -369,6 +370,54 @@
     attr.hidden = preview;
     attr.textContent = preview ? '' : (core.PAGE_CREDIT || '');
     renderSuno();
+  }
+
+  function mountLineTools(parent, box, line) {
+    var tools = document.createElement('div');
+    tools.className = 'sh-line-tools';
+    var ruler = document.createElement('p');
+    ruler.className = 'sh-ruler';
+    function paint() {
+      var measure = window.SongModes.lineRuler(box.value);
+      var hits = window.SongModes.clicheHits(box.value);
+      var bits = [measure.count + ' syllables', measure.pattern, measure.note];
+      if (hits.length && !line.locked) bits.push('Cliché: ' + hits[0]);
+      if (line.locked) bits.push('Locked');
+      if (line.vote === 1) bits.push('Kept');
+      if (line.vote === -1) bits.push('Dropped');
+      ruler.textContent = bits.join(' · ');
+    }
+    function vote(value) {
+      line.vote = line.vote === value ? 0 : value;
+      paint();
+      if (window.SongHelperPage && window.SongHelperPage.remember) window.SongHelperPage.remember();
+    }
+    var up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'sh-mini';
+    up.textContent = 'Thumbs up';
+    up.addEventListener('click', function () { vote(1); });
+    var down = document.createElement('button');
+    down.type = 'button';
+    down.className = 'sh-mini';
+    down.textContent = 'Thumbs down';
+    down.addEventListener('click', function () { vote(-1); });
+    var lock = document.createElement('button');
+    lock.type = 'button';
+    lock.className = 'sh-mini';
+    lock.textContent = line.locked ? 'Unlock line' : 'Lock line';
+    lock.addEventListener('click', function () {
+      line.locked = !line.locked;
+      lock.textContent = line.locked ? 'Unlock line' : 'Lock line';
+      paint();
+    });
+    box.addEventListener('input', paint);
+    tools.appendChild(ruler);
+    tools.appendChild(up);
+    tools.appendChild(down);
+    tools.appendChild(lock);
+    parent.appendChild(tools);
+    paint();
   }
 
   function renderSuno() {
@@ -771,6 +820,22 @@
       showError('Write the draft first.');
       return;
     }
+    if (window.SongModes && window.SongModes.sunoPrecheck) {
+      var clicheLines = draft ? window.SongModes.allLines(draft).filter(function (row) {
+        return window.SongModes.clicheHits(row.text).length;
+      }) : [];
+      var clichesLocked = clicheLines.length > 0 && clicheLines.every(function (row) { return row.locked; });
+      var check = window.SongModes.sunoPrecheck(text, { allowCliches: clichesLocked });
+      if (!check.ok) {
+        var sunoWarn = $('sh-suno-warn');
+        if (sunoWarn) {
+          sunoWarn.hidden = false;
+          sunoWarn.textContent = check.blocked[0];
+        }
+        return;
+      }
+      if (check.warnings.length && !window.confirm(check.warnings[0] + ' Copy anyway?')) return;
+    }
     showError('');
     copyPlain(text, $('sh-suno-copy'));
   });
@@ -910,6 +975,48 @@
     showStep();
     renderDraft();
   }
+
+  function addStructure(kind) {
+    if (!draft) {
+      draft = { title: (titleEl && titleEl.value) || 'Untitled', hooks: [], sections: [] };
+    }
+    var label = kind === 'hook' ? 'Hook' : (kind === 'bridge' ? 'Bridge' : 'Verse');
+    draft.sections.push({
+      label: label,
+      lines: [{ text: '', source: 'user', role: kind === 'hook' ? 'hook' : '', locked: false, vote: 0 }],
+    });
+    if (step < STEPS.indexOf('draft')) {
+      step = STEPS.indexOf('draft');
+      showStep();
+    }
+    renderDraft();
+  }
+
+  function rememberDraft() {
+    if (!window.SongModes || !draft) return;
+    var lines = window.SongModes.allLines(draft);
+    var entry = {
+      at: new Date().toISOString(),
+      mode: 'write',
+      title: (titleEl && titleEl.value) || draft.title || '',
+      yours: window.SongModes.yoursPercent(lines),
+      votes: lines.map(function (row) { return { text: row.text, vote: row.vote || 0, locked: !!row.locked }; }),
+    };
+    try {
+      var key = 'plaiground.songHelper.log';
+      var log = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!Array.isArray(log)) log = [];
+      log.unshift(entry);
+      localStorage.setItem(key, JSON.stringify(log.slice(0, 30)));
+    } catch (err) {}
+    if (window.SongHelperV2 && window.SongHelperV2.paintLog) window.SongHelperV2.paintLog();
+  }
+
+  window.SongHelperPage = {
+    addStructure: addStructure,
+    remember: rememberDraft,
+    draft: function () { return draft; },
+  };
 
   var battleSaved = battleSavedDraft();
   if (battleSaved) openBattleDraft(battleSaved);

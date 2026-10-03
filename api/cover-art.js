@@ -16,8 +16,8 @@
  * If XAI_API_KEY is missing, this returns seeds for placeholder art drawn in the browser.
  * That art is not AI output.
  *
- * TODO(launch): Add Cloudflare Turnstile and check the token here before calling xAI.
- * The in-memory IP limiter and the per-session image cap live on one serverless
+ * Cloudflare Turnstile is checked in lib/song-guard.js before a live xAI call.
+ * Demo mode skips it. The in-memory IP limiter and the per-session image cap live on one serverless
  * instance, reset on cold start, and are not shared across instances or regions.
  * A client can mint a new session id. Do not treat this as abuse-proof.
  * On Vercel, x-forwarded-for is set by the platform.
@@ -25,6 +25,8 @@
 
 const core = require('../lib/cover-art');
 const song = require('../lib/song-helper');
+const xai = require('../lib/xai-client');
+const guard = require('../lib/song-guard');
 
 const limiter = song.createLimiter({
   max: core.RATE_MAX,
@@ -141,19 +143,8 @@ async function callImages(spec, count) {
     quality: 'low',
     response_format: 'b64_json',
   };
-  var controller = typeof AbortController === 'function' ? new AbortController() : null;
-  var timer = controller ? setTimeout(function () { controller.abort(); }, 50000) : null;
-  try {
-    var response = await fetch('https://api.x.ai/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + key,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller ? controller.signal : undefined,
-    });
-    var data = await response.json().catch(function () { return {}; });
+  var response = await xai.postJson('https://api.x.ai/v1/images/generations', key, payload, 50000);
+  var data = await response.json().catch(function () { return {}; });
     if (!response.ok) {
       var failure = new Error('xai');
       failure.status = response.status;
@@ -184,9 +175,6 @@ async function callImages(spec, count) {
       upscaleNote: core.UPSCALE_NOTE,
       images: images,
     };
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }
 
 async function handler(req, res) {
@@ -212,6 +200,11 @@ async function handler(req, res) {
     spec = core.normalizeRequest(body);
   } catch (err) {
     sendJson(res, 400, { ok: false, error: validationMessage(err && err.code), note: (err && err.note) || '' });
+    return;
+  }
+  var blocked = await guard.enforce(req, clientIp(req), body, { skipFilter: true });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
     return;
   }
   if (!limiter.allow(clientIp(req))) {
