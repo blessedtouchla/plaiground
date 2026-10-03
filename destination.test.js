@@ -277,8 +277,31 @@ function runPage() {
   assert.ok(html.includes('signup.html?plan=basic'));
   assert.ok(html.includes('id="dest-save"'));
   assert.ok(html.includes('Sign up free to save your roadmap'));
-  assert.ok(html.includes('Already have an account? <a id="dest-save-login" href="login.html">Sign in</a>'));
+  assert.ok(html.includes('Already have an account? <a id="dest-save-login" href="/login">Sign in</a>'));
   assert.ok(html.includes('id="dest-saved"'));
+  assert.ok(/<script src="membership\.js"><\/script>/.test(html), 'Edit route reads the live session');
+  assert.ok(!/script src="membership\.js"[^>]*data-require-membership/.test(html), 'guests can still build a route without a login bounce');
+  assert.ok(html.indexOf('src="membership.js"') < html.indexOf('src="destination.js'), 'session probe is ready before the route mounts');
+  assert.ok(html.includes('src="account.js"'));
+  assert.ok(html.includes('<aside class="side" hidden>'));
+  assert.ok(html.includes('<div class="topbar" hidden>'));
+  assert.ok(js.includes('signedInFromProbe'));
+  assert.ok(js.includes('planForEdit'));
+  assert.ok(js.includes('editRequested'));
+  assert.strictEqual(core.signedInFromProbe({ ok: true }, false), true);
+  assert.strictEqual(core.signedInFromProbe(null, true), true, 'a session cookie still counts when /api/me has not answered');
+  assert.strictEqual(core.signedInFromProbe(null, false), false, 'missing membership must not be treated as a session');
+  assert.strictEqual(core.signedInFromProbe({ ok: false, status: 401 }, false), false);
+  const savedPlan = { song: 'made', goal: 'money', stops: ['check'] };
+  const staleLocal = { song: 'idea', goal: 'release', stops: ['helper'] };
+  assert.strictEqual(core.planForEdit({ plan: savedPlan }, staleLocal), savedPlan, 'Edit opens the account roadmap, not a stale local draft');
+  assert.strictEqual(core.planForEdit(null, staleLocal), staleLocal);
+  assert.strictEqual(core.planForEdit({ plan: null }, null), null);
+  assert.strictEqual(core.editRequested('?edit=1'), true);
+  assert.strictEqual(core.editRequested('edit=1'), true);
+  assert.strictEqual(core.editRequested(''), false);
+  assert.ok(js.includes("go.setAttribute('href', showSaved ? '/my-roadmap' : href)"));
+  assert.ok(!/<a[^>]+href="https?:\/\/(?:www\.)?wannaplai\.com\/destination/.test(html), 'Edit stays on the current host');
   assert.ok(js.includes('persistAccount'));
   assert.ok(js.includes('applySavedPlan'));
   assert.ok(js.includes('/my-roadmap'));
@@ -289,6 +312,20 @@ function runPage() {
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/destination' && row.destination === '/destination.html';
   }));
+  function apexTo(source, destination) {
+    assert.ok((vercel.redirects || []).some(function (row) {
+      return row.source === source
+        && row.destination === destination
+        && row.permanent === true
+        && (row.has || []).some(function (rule) {
+          return rule.type === 'host' && rule.value === 'wannaplai.com';
+        });
+    }), source + ' on the apex must land on www so the session cookie stays with the edit page');
+  }
+  apexTo('/destination', 'https://www.wannaplai.com/destination');
+  apexTo('/destination/', 'https://www.wannaplai.com/destination');
+  apexTo('/my-roadmap', 'https://www.wannaplai.com/my-roadmap');
+  apexTo('/my-roadmap/', 'https://www.wannaplai.com/my-roadmap');
   ['/destination', '/destination/', '/destination.html'].forEach(function (source) {
     assert.ok(!(vercel.headers || []).some(function (row) {
       return row.source === source && (row.headers || []).some(function (header) {

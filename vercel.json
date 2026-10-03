@@ -37,6 +37,30 @@
       "permanent": true
     },
     {
+      "source": "/destination",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/destination",
+      "permanent": true
+    },
+    {
+      "source": "/destination/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/destination",
+      "permanent": true
+    },
+    {
+      "source": "/my-roadmap",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/my-roadmap",
+      "permanent": true
+    },
+    {
+      "source": "/my-roadmap/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/my-roadmap",
+      "permanent": true
+    },
+    {
       "source": "/pricing.html",
       "destination": "/index.html#pricing",
       "permanent": true

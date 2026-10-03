@@ -17,6 +17,10 @@ body.destination-page .plai-coach-float {
   padding: calc(var(--nav-h) + 36px) 0 96px;
 }
 
+body.destination-page.app .dest {
+  padding-top: 28px;
+}
+
 .dest-shell {
   max-width: 1040px;
 }
