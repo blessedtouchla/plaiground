@@ -194,6 +194,16 @@
     });
   }
 
+  function shouldClaimOnPath(path) {
+    var value = String(path || '');
+    if (/\/(confirm|confirmed|login|magic)(?:\.html)?$/.test(value)) return false;
+    // Edit loads the account plan itself. Claiming localStorage here would
+    // post a stale draft over the saved roadmap before that read finishes.
+    if (/\/destination(?:\.html)?\/?$/.test(value)) return false;
+    if (/\/my-roadmap(?:\.html)?\/?$/.test(value)) return false;
+    return true;
+  }
+
   function boot() {
     captureQueryPlan();
     var path = '';
@@ -202,7 +212,7 @@
     } catch (err) {
       path = '';
     }
-    if (/\/(confirm|confirmed|login|magic)(?:\.html)?$/.test(path)) return;
+    if (!shouldClaimOnPath(path)) return;
     if (hasSession()) claimLocal();
   }
 
@@ -210,6 +220,7 @@
     PLAN_KEY: PLAN_KEY,
     PROFILE_KEY: PROFILE_KEY,
     boot: boot,
+    shouldClaimOnPath: shouldClaimOnPath,
     captureQueryPlan: captureQueryPlan,
     claimLocal: claimLocal,
     hasSession: hasSession,

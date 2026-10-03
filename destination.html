@@ -73,7 +73,45 @@
       </div>
     </div>
   </header>
-
+  <aside class="side" hidden>
+    <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+    <nav class="side-nav">
+      <a href="/destination">Roadmap</a>
+      <a href="/my-roadmap">My roadmap</a>
+      <p class="side-label">Create</p>
+      <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
+      <a href="releases.html">Releases</a>
+      <a href="artists.html">Artist Profiles</a>
+      <a href="splits.html">Split sheets</a>
+      <p class="side-label">Act</p>
+      <a href="ar.html">A&amp;R</a>
+      <a href="epk.html">EPK</a>
+      <a href="profile.html">Persona</a>
+      <p class="side-label">Money</p>
+      <a href="boosts.html" data-for-plans="creator pro" hidden>Boosts</a>
+      <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
+      <a href="earnings.html">Earnings</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="payouts.html">Payouts</a>
+      <p class="side-label">PLAI</p>
+      <button type="button" class="side-plai" data-plai-talk aria-label="Talk to PLAI, pronounced PLAY">Talk to PLAI</button>
+      <button type="button" class="side-plai" data-plai-text aria-label="Text to PLAI, text only, microphone stays off">Text to PLAI</button>
+      <p class="side-label">Account</p>
+      <a href="settings.html">Settings</a>
+      <a href="how.html">How it works</a>
+      <a href="faq.html">FAQ</a>
+      <a class="side-problem" href="problem.html" data-have-problem>Have a problem?</a>
+      <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
+    </nav>
+    <div class="pro-card">
+      <h4 data-account-plan-title>Your plan</h4>
+      <p>Upload a finished track, attest rights, sign the split sheet, then review and deliver.</p>
+    </div>
+  </aside>
+  <div class="app-main">
+    <div class="topbar" hidden>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
+    </div>
   <main class="dest" id="dest-app">
     <div class="wrap dest-shell">
       <p class="dest-kicker">WANNA PLAI?</p>
@@ -148,8 +186,8 @@
         <div class="dest-route-row">
           <div class="dest-map" id="dest-map" data-shape="route"></div>
           <aside class="dest-save" id="dest-save" hidden>
-            <a class="dest-save-signup" id="dest-save-signup" href="signup.html?plan=basic">Sign up free to save your roadmap</a>
-            <p class="dest-save-login">Already have an account? <a id="dest-save-login" href="login.html">Sign in</a></p>
+            <a class="dest-save-signup" id="dest-save-signup" href="/signup.html?plan=basic">Sign up free to save your roadmap</a>
+            <p class="dest-save-login">Already have an account? <a id="dest-save-login" href="/login">Sign in</a></p>
           </aside>
           <p class="dest-saved" id="dest-saved" hidden>Saved to your account.</p>
         </div>
@@ -161,7 +199,7 @@
           <div id="dest-extra-list"></div>
         </div>
         <div class="dest-end">
-          <a class="btn btn-gold dest-go" id="dest-go" href="signup.html?plan=basic">Activate Autopilot</a>
+          <a class="btn btn-gold dest-go" id="dest-go" href="/signup.html?plan=basic">Activate Autopilot</a>
           <p class="dest-end-note">This opens the free account. Your route comes along so the plan can be saved later.</p>
           <button type="button" class="btn btn-ghost btn-md" id="dest-back-3">Back</button>
         </div>
@@ -307,6 +345,7 @@
       </div>
     </div>
   </main>
+  </div>
 
   <footer>
     <div class="wrap">
@@ -356,10 +395,12 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
   <script src="artist-profiles.js?v=20260929a3"></script>
-  <script src="roadmap-account.js?v=20260930r1"></script>
-  <script src="destination.js?v=20260930r1"></script>
+  <script src="roadmap-account.js?v=20261003edit"></script>
+  <script src="destination.js?v=20261003edit"></script>
 </body>
 </html>

@@ -410,7 +410,29 @@
     if (COUNTS[plan.artistCount]) params.set('artistCount', plan.artistCount);
     var genres = packGenres(plan.genres, plan.genreOther);
     if (genres.length) params.set('genres', genres.join(','));
-    return 'signup.html?' + params.toString();
+    return '/signup.html?' + params.toString();
+  }
+
+  function signedInFromProbe(result, hinted) {
+    if (result && result.ok) return true;
+    return !!hinted;
+  }
+
+  function planForEdit(serverRecord, localRecord) {
+    var serverPlan = serverRecord && serverRecord.plan;
+    if (serverPlan && serverPlan.song && serverPlan.goal) return serverPlan;
+    if (localRecord && localRecord.song && localRecord.goal) return localRecord;
+    return null;
+  }
+
+  function editRequested(search) {
+    var raw = String(search || '');
+    if (raw.charAt(0) === '?') raw = raw.slice(1);
+    try {
+      return new URLSearchParams(raw).get('edit') === '1';
+    } catch (err) {
+      return false;
+    }
   }
 
   function planRecord(plan) {
@@ -614,7 +636,7 @@
       var endNote = doc.querySelector('.dest-end-note');
       var href = signupHref(plan || currentPlan());
       if (signup) signup.setAttribute('href', href);
-      if (login) login.setAttribute('href', 'login.html');
+      if (login) login.setAttribute('href', '/login');
       var showPrompt = authKnown && !signedIn && state.step === 3;
       var showSaved = authKnown && signedIn && state.step === 3;
       if (box) box.hidden = !showPrompt;
@@ -647,7 +669,31 @@
       });
     }
 
-    function applySavedPlan(plan) {
+    function editMode() {
+      try {
+        return editRequested(root.location && root.location.search);
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function sessionHint() {
+      var account = accountApi();
+      if (account && typeof account.hasSession === 'function') {
+        try {
+          if (account.hasSession()) return true;
+        } catch (err) {}
+      }
+      var membership = root.PlaigroundMembership;
+      if (membership && typeof membership.isSignedIn === 'function') {
+        try {
+          return !!membership.isSignedIn();
+        } catch (err2) {}
+      }
+      return false;
+    }
+
+    function applySavedPlan(plan, options) {
       if (!plan || !plan.song || !plan.goal) return;
       var genres = [];
       var other = plan.genreOther || '';
@@ -667,7 +713,7 @@
       state.routeSong = plan.song;
       state.routeGoal = plan.goal;
       state.stopIds = (plan.stops || []).filter(function (id) { return !!STOPS[id]; });
-      state.editing = false;
+      state.editing = !!(options && options.editing);
       state.step = 3;
       if (about) about.value = state.note;
       var otherInput = doc.getElementById('dest-genre-other');
@@ -1098,7 +1144,7 @@
     state.goal = selected('goal');
     if (!state.song) applyPickedSong();
     var existingPlan = localPlan();
-    if (existingPlan) applySavedPlan(existingPlan);
+    if (existingPlan) applySavedPlan(existingPlan, { editing: editMode() });
     else showStep();
     var membership = root.PlaigroundMembership;
     var ready = membership && typeof membership.whenReady === 'function'
@@ -1106,21 +1152,40 @@
       : Promise.resolve(null);
     ready.then(function (result) {
       authKnown = true;
-      signedIn = !!(result && result.ok);
-      if (signedIn && localPlan()) persistAccount(planRecord(localPlan()), true);
-      if (signedIn && !localPlan()) {
-        var account = accountApi();
-        if (account && typeof account.loadPlan === 'function') {
-          account.loadPlan().then(function (saved) {
-            if (saved && saved.plan && !localPlan()) applySavedPlan(saved.plan);
-            else paintAccount(currentPlan());
-          }).catch(function () {
-            paintAccount(currentPlan());
-          });
+      signedIn = signedInFromProbe(result, sessionHint());
+      var account = accountApi();
+      function showSignedOut() {
+        signedIn = false;
+        paintAccount(currentPlan());
+      }
+      function showPlan(plan, persistLocal) {
+        var editing = state.editing || editMode();
+        if (persistLocal && plan) persistAccount(planRecord(plan), true);
+        if (plan) applySavedPlan(plan, { editing: editing });
+        else paintAccount(currentPlan());
+      }
+      if (!signedIn) {
+        paintAccount(currentPlan());
+        return;
+      }
+      if (!account || typeof account.loadPlan !== 'function') {
+        showPlan(localPlan(), true);
+        return;
+      }
+      account.loadPlan().then(function (saved) {
+        if (!(result && result.ok) && !(saved && saved.plan)) {
+          showSignedOut();
           return;
         }
-      }
-      paintAccount(currentPlan());
+        var next = planForEdit(saved, localPlan());
+        showPlan(next, !(saved && saved.plan));
+      }).catch(function () {
+        if (result && result.ok) {
+          showPlan(localPlan(), true);
+          return;
+        }
+        showSignedOut();
+      });
     }).catch(function () {
       authKnown = true;
       signedIn = false;
@@ -1146,6 +1211,9 @@
     isRecommended: isRecommended,
     packageTotal: packageTotal,
     signupHref: signupHref,
+    signedInFromProbe: signedInFromProbe,
+    planForEdit: planForEdit,
+    editRequested: editRequested,
     planRecord: planRecord,
     roadPath: roadPath,
     mount: mount
