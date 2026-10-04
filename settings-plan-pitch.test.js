@@ -22,10 +22,7 @@ function run() {
   assert.ok(read('account.js').includes('data-plan-option'), 'Manage plan focuses a plan option');
   assert.ok(!/location\.(href|replace).*create-checkout-session/.test(read('account.js')), 'Manage plan click must not open Checkout');
   assert.ok(settings.indexOf('data-checkout-switch') === -1, 'Settings picker must not charge on first tap');
-  assert.ok(settings.includes('plan-confirm.html?plan=creator&amp;interval=year'), 'yearly redirects to the confirm page');
-  assert.ok(settings.includes('plan-confirm.html?plan=creator&amp;interval=month'), 'monthly redirects to the confirm page');
-  assert.ok(settings.includes('plan-confirm.html?plan=pro&amp;interval=month'), 'Pro monthly redirects to the confirm page');
-  assert.ok(settings.includes('plan-confirm.html?plan=pro&amp;interval=year'), 'Pro yearly redirects to the confirm page');
+  assert.ok(!/plan-confirm\.html\?plan=/.test(settings), 'Settings does not offer a monthly plan switch');
   assert.ok(settings.includes('checkout.js'), 'Settings reuses checkout.js');
 
   const confirm = read('plan-confirm.html');
@@ -34,20 +31,10 @@ function run() {
   assert.ok(confirm.includes('data-checkout-status'), 'Stripe errors stay on the confirm page');
   assert.ok(!/data-require-membership|data-require-paid/i.test(confirm), 'confirm page must not dump to login');
   assert.ok(confirm.includes('checkout.js'), 'confirm page reuses checkout.js');
-  assert.ok(settings.includes('Creator · $14.99/month'), 'locked Creator monthly');
-  assert.ok(settings.includes('Creator · $12.42/month billed yearly'), 'locked Creator yearly as monthly');
-  assert.ok(settings.includes('Pro · $19.99/month'), 'locked Pro monthly');
-  assert.ok(settings.includes('Pro · $16.58/month billed yearly'), 'Pro yearly $199 displays as $16.58/month billed yearly');
-  assert.ok(!/Pro \$149\/year/.test(settings), 'Settings must not say Pro $149/year');
-  assert.ok(!/\$19\.99\/month or \$149\/year/.test(settings), 'Settings must not keep the yearly dollar on the plan pitch');
-  assert.ok(!/\$19\.99\/month or \$199\/year/.test(settings), 'Settings must not keep the yearly dollar on the plan pitch');
-  assert.ok(settings.indexOf('data-checkout-plan="basic"') === -1, 'Basic is not a paid switch target');
-  assert.ok(settings.includes('difference now'), 'Settings says upgrades pay the difference now');
-  assert.ok(settings.includes('new price next period'), 'Settings says the new price is next period');
-  assert.ok(settings.includes('no refund'), 'Settings keeps downgrade no-refund copy');
-  assert.ok(settings.includes('does not start a second plan'), 'Settings says the switch updates one subscription');
-  assert.ok(settings.includes('offer-grid plan-picker'), 'Manage plan uses offer cards, not a raw stack of ghost links');
-  assert.ok(settings.includes('btn btn-purple btn-md btn-block'), 'Manage plan monthly CTAs match Plans / Boosts');
+  assert.ok(settings.includes('Free account'), 'Settings says the account is free');
+  assert.ok(settings.includes('There is no monthly subscription to switch.'), 'Settings does not sell a plan switch');
+  assert.ok(!/\$14\.99/.test(settings) && !/\$19\.99/.test(settings) && !/\$16\.58/.test(settings), 'Settings does not list old plan prices');
+  assert.ok(settings.indexOf('data-checkout-plan="basic"') === -1, 'Settings does not start a paid plan switch');
   assert.ok(settings.includes('id="manage-billing"'), 'Settings exposes Manage billing');
   assert.ok(settings.includes('data-manage-billing'), 'Manage billing has an Update card control');
   assert.ok(settings.includes('data-change-password'), 'Settings Change password opens a signed-in form');
@@ -55,8 +42,8 @@ function run() {
   assert.ok(settings.includes('Type DELETE to confirm.'), 'Delete account is not a one-click accident');
   assert.ok(settings.includes('Card numbers stay on Stripe'), 'Manage billing does not collect card numbers on this site');
   assert.ok(settings.includes('href="#manage-billing"'), 'failed-pay copy points at Manage billing');
-  assert.ok(!/same as Pro|same product as Pro|same-as-Pro/i.test(settings), 'Creator copy must not say same-as-Pro');
-  assert.ok(settings.includes('Same as Creator, unlimited'), 'Pro may say same as Creator, unlimited');
+  assert.ok(!/same as Pro|same product as Pro|same-as-Pro/i.test(settings), 'Settings must not say same-as-Pro');
+  assert.ok(!/\b(Basic|Creator|Pro)\b/.test(settings), 'Settings does not name Basic, Creator, or Pro');
   assert.ok(read('dashboard.html').includes('settings.html#manage-billing'), 'dashboard failed-pay banner points at Manage billing');
   assert.ok(!read('dashboard.html').includes('data-plan-renews'), 'Overview must not show a plan renewal line');
   assert.ok(!read('dashboard.html').includes('Plan renews'), 'Overview must not keep a Plan renews row');
@@ -82,8 +69,8 @@ function run() {
 
   const settingsPitch = read('settings.html');
   assert.ok(!/\$19\.99\/month or \$149\/year/.test(settingsPitch), 'settings.html still has the old month-or-year pitch');
-  assert.ok(settingsPitch.includes('$16.58/month billed yearly'), 'settings.html is missing the yearly-as-monthly pitch');
-  assert.ok(read('dashboard.html').includes('$16.58/month billed yearly'), 'dashboard keeps Pro yearly-as-monthly on the Pro-only line');
+  assert.ok(!settingsPitch.includes('$16.58/month billed yearly'), 'settings.html does not keep the old yearly plan price');
+  assert.ok(!read('dashboard.html').includes('$16.58/month billed yearly'), 'dashboard does not keep the old yearly plan price');
 
   ['releases.html', 'splits.html', 'splits-empty.html', 'library.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
     const html = read(file);
@@ -145,7 +132,7 @@ function run() {
   assert.strictEqual(toggle.getAttribute('aria-expanded'), 'true');
   assert.strictEqual(panel.scrolled, true, 'Manage plan scrolls to the plan options');
   assert.strictEqual(firstOption.focused, true, 'Manage plan focuses a plan option');
-  assert.ok(settings.includes('href="plan-confirm.html?plan=pro&amp;interval=month"'), 'plan options still go to plan-confirm');
+  assert.ok(!settings.includes('href="plan-confirm.html?plan=pro&amp;interval=month"'), 'Settings does not link a Pro confirm');
 
   const billingButton = {
     attrs: {},

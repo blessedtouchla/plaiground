@@ -106,14 +106,10 @@
     <aside class="review-due due">
       <h3>Due now</h3>
       <p class="review-total"><span>Total</span><strong class="total">$0.00</strong></p>
-      <p class="hint">Included in membership. Nothing is charged on this screen.</p>
+      <p class="hint">Nothing is charged on this screen.</p>
       <div class="review-upsell" data-review-upsell hidden>
-        <h3>One upgrade offer</h3>
-        <p class="hint">Basic already includes this release. Creator and Pro add more uploads and extras. Checkout is a separate step, not here.</p>
-        <p class="review-upsell-links">
-          <a class="btn btn-ghost btn-sm" href="creator.html">See Creator</a>
-          <a class="btn btn-ghost btn-sm" href="pro.html">See Pro</a>
-        </p>
+        <h3>Optional extras</h3>
+        <p class="hint">The account is free. Any extra fee for this release is shown before you pay. Checkout is a separate step, not here.</p>
       </div>
     </aside>
     <section class="review-stores">
@@ -166,16 +162,8 @@
       function showBasicUpsell() {
         var el = document.querySelector('[data-review-upsell]');
         if (!el) return;
-        var plan = '';
-        if (window.PlaigroundMembership && typeof window.PlaigroundMembership.currentPlan === 'function') {
-          plan = String(window.PlaigroundMembership.currentPlan() || '').toLowerCase();
-        }
-        var paid = window.PlaigroundMembership && typeof window.PlaigroundMembership.hasPaidAccess === 'function'
-          ? window.PlaigroundMembership.hasPaidAccess()
-          : (plan === 'creator' || plan === 'pro');
-        var show = plan === 'basic' && !paid;
-        el.hidden = !show;
-        if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
+        el.hidden = true;
+        if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', true);
       }
       function applyCopy() {
         if (window.PlaigroundMembership && typeof window.PlaigroundMembership.applyPlanCopy === 'function') {

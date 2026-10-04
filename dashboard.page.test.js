@@ -119,9 +119,9 @@ function run() {
   assert.ok(dash.includes('is-strip'), 'Overview tiles are a short recent strip');
   assert.ok(!dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'Overview must not keep the MSP unlock clone');
   assert.ok(!dash.includes('data-msp-section'), 'Overview must not keep the MSP earnings board');
-  assert.ok(dash.includes('data-dash-shortcuts'), 'Creator/Pro Boost and Publishing shortcuts are missing');
-  assert.ok(/data-for-plans="creator pro"[\s\S]*Boosts/.test(dash), 'Boost shortcut is Creator/Pro only');
-  assert.ok(/data-for-plans="creator pro"[\s\S]*Publishing/.test(dash), 'Publishing shortcut is Creator/Pro only');
+  assert.ok(dash.includes('data-dash-shortcuts'), 'Boost and Publishing shortcuts are missing');
+  assert.ok(/data-dash-shortcuts[\s\S]*Boosts/.test(dash) && !/data-dash-shortcuts[^>]*data-for-plans/.test(dash), 'Boost shortcut is open to every signed-in artist');
+  assert.ok(/data-dash-shortcuts[\s\S]*Publishing/.test(dash), 'Publishing shortcut is open to every signed-in artist');
   assert.ok(dash.includes('data-plai-talk') && dash.includes('Talk to PLAI'), 'Overview Talk to PLAI CTA is missing');
   assert.ok(dash.includes('data-split-sheets'), 'Overview Split sheets section is missing');
   assert.ok(dash.includes('data-split-sheets-rows'), 'Overview latest split rows are missing');
@@ -323,10 +323,10 @@ function run() {
   assert.strictEqual(named['[data-account-pending]'].textContent, '0');
   assert.strictEqual(named['[data-account-artists]'].textContent, '0');
   assert.strictEqual(named['[data-next-up-title]'].textContent, 'Submit your first song');
-  assert.strictEqual(named['[data-account-plan-title]'].textContent, 'On Creator');
-  assert.strictEqual(named['[data-account-plan-price]'].textContent, 'Creator · $14.99/month');
-  assert.strictEqual(named['[data-account-plan-year]'].textContent, 'or $149/year');
-  assert.strictEqual(named['[data-account-plan-year]'].hidden, false);
+  assert.strictEqual(named['[data-account-plan-title]'].textContent, 'Your account');
+  assert.strictEqual(named['[data-account-plan-price]'].textContent, 'Free');
+  assert.strictEqual(named['[data-account-plan-year]'].textContent, '');
+  assert.strictEqual(named['[data-account-plan-year]'].hidden, true);
 
   const creator = fillAccount({ artist: 'Fuvtu', plan: 'creator', email: 'victoriaimtanes@gmail.com' });
   assert.strictEqual(creator['[data-account-who]'].textContent, 'Hi Fuvtu!');

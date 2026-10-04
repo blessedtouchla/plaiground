@@ -1276,8 +1276,8 @@ function run() {
   assert.ok(upload.indexOf('membership.js') !== -1);
   assert.ok(upload.indexOf('data-require-membership="true"') !== -1);
   assert.ok(upload.indexOf('id="tg-upgrade"') !== -1);
-  assert.ok(upload.indexOf('href="creator.html"') !== -1);
-  assert.ok(upload.indexOf('href="pro.html"') !== -1);
+  assert.ok(upload.indexOf('href="creator.html"') === -1, 'upload does not link a Creator upgrade');
+  assert.ok(upload.indexOf('href="pro.html"') === -1, 'upload does not link a Pro upgrade');
 
   assert.ok(upload.indexOf('upload-catalog.js') !== -1);
   assert.ok(upload.indexOf('bindTypeahead') !== -1 || fs.readFileSync(path.join(__dirname, 'upload-catalog.js'), 'utf8').indexOf('bindTypeahead') !== -1);

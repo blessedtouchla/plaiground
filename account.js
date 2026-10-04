@@ -69,47 +69,33 @@
     return '';
   }
 
+  var FREE_ACCOUNT_DETAIL = 'One free account for everyone. There is no monthly plan. Artists keep 100% of their royalties.';
   var PLAN_PITCH = {
-    creator: 'Creator · $14.99/month or $12.42/month billed yearly',
-    pro: 'Pro · $19.99/month or $16.58/month billed yearly',
-    basic: 'Basic · $0 forever',
+    creator: 'Free account',
+    pro: 'Free account',
+    basic: 'Free account',
   };
   var PLAN_DETAIL = {
-    creator: 'Creator is Basic with the paid features unlocked. 8 distribution uploads and 8 publishing registrations this UTC month, counted separately. Pro unlocks unlimited.',
-    pro: 'Same product as Creator, unlimited, plus catalog migration. Unlimited distribution uploads and publishing registrations.',
-    basic: 'One release for the life of the account. Canceling a paid plan drops you here.',
+    creator: FREE_ACCOUNT_DETAIL,
+    pro: FREE_ACCOUNT_DETAIL,
+    basic: FREE_ACCOUNT_DETAIL,
   };
 
   function planLabel(plan) {
     var next = String(plan || '').trim().toLowerCase();
-    if (next === 'pro') return 'PRO';
-    if (next === 'creator') return 'CREATOR';
-    if (next === 'basic') return 'BASIC';
-    return '—';
+    if (!next) return '—';
+    return 'FREE';
   }
 
-  function planPitch(plan, interval) {
-    var next = String(plan || '').trim().toLowerCase();
-    var billed = String(interval || '').trim().toLowerCase();
-    if (next === 'creator' && billed === 'month') return 'Creator · $14.99/month';
-    if (next === 'creator' && billed === 'year') return 'Creator · $12.42/month billed yearly';
-    if (next === 'pro' && billed === 'month') return 'Pro · $19.99/month';
-    if (next === 'pro' && billed === 'year') return 'Pro · $16.58/month billed yearly';
-    return PLAN_PITCH[next] || 'Your plan';
+  function planPitch() {
+    return 'Free account';
   }
 
-  function sidebarPrice(plan) {
-    var next = String(plan || '').trim().toLowerCase();
-    if (next === 'creator') return 'Creator · $14.99/month';
-    if (next === 'pro') return 'Pro · $19.99/month';
-    if (next === 'basic') return 'Basic · $0 forever';
-    return 'Your plan';
+  function sidebarPrice() {
+    return 'Free';
   }
 
-  function sidebarYear(plan) {
-    var next = String(plan || '').trim().toLowerCase();
-    if (next === 'creator') return 'or $149/year';
-    if (next === 'pro') return 'or $199/year';
+  function sidebarYear() {
     return '';
   }
 
@@ -297,23 +283,22 @@
         return;
       }
       var label = planLabel(me.plan);
-      el.textContent = label === '—' ? 'Your plan' : 'On ' + label.charAt(0) + label.slice(1).toLowerCase();
+      el.textContent = 'Your account';
     });
     var warning = String(me.status || '').toLowerCase() === 'warning';
     var hold = String(me.status || '').toLowerCase() === 'hold';
     $all('[data-billing-warning]').forEach(function (el) { el.hidden = !warning; });
     $all('[data-billing-hold]').forEach(function (el) { el.hidden = !hold; });
     $all('[data-payout-withdraw]').forEach(function (el) {
-      var plan = String(me.plan || '').toLowerCase();
-      var canWithdraw = plan === 'creator' || plan === 'pro';
-      el.hidden = !canWithdraw;
-      if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !canWithdraw);
+      el.hidden = false;
+      if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', false);
       var blocked = warning || hold;
-      el.disabled = !canWithdraw || blocked;
-      if (!canWithdraw) return;
+      el.disabled = blocked;
       if (blocked) {
         el.setAttribute('aria-disabled', 'true');
-        el.textContent = 'Payouts paused — update card';
+        el.textContent = 'Payouts paused. Update the card';
+      } else {
+        el.removeAttribute('aria-disabled');
       }
     });
     var ids = Array.isArray(me.tonegrid_release_ids) ? me.tonegrid_release_ids.filter(Boolean) : [];
@@ -1308,8 +1293,8 @@
     var submit = document.querySelector('[data-plan-confirm-submit]');
     var status = document.querySelector('[data-checkout-status]');
     if (plan !== 'creator' && plan !== 'pro') {
-      setText(title, 'Choose a paid plan');
-      setText(change, 'Basic is not a paid switch target. Pick Creator or Pro from Settings.');
+      setText(title, 'The account is free');
+      setText(change, 'There is no monthly plan to switch. The account is free.');
       if (submit) submit.hidden = true;
       return;
     }

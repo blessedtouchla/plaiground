@@ -64,20 +64,20 @@ function run() {
   assert.ok(tonegrid.indexOf('Creating release…') !== -1);
   assert.ok(tonegrid.indexOf('Song title is required.') !== -1);
   assert.ok(tonegrid.indexOf('PLAN_LIMIT') !== -1);
-  assert.ok(tonegrid.indexOf('Upgrade to Creator or Pro') !== -1);
+  assert.ok(tonegrid.indexOf('This account has reached the releases currently allowed.') !== -1);
   assert.ok(tonegrid.indexOf('mergeCatalogIds') !== -1);
   assert.ok(tonegrid.indexOf('showLimitPanel') !== -1);
 
   const upload = read('upload.html');
   assert.ok(upload.indexOf('id="tg-upgrade"') !== -1);
   assert.ok(upload.indexOf('id="tg-limit"') !== -1);
-  assert.ok(upload.indexOf('href="creator.html"') !== -1);
-  assert.ok(upload.indexOf('href="pro.html"') !== -1);
-  assert.ok(upload.indexOf('Upgrade to Creator') !== -1);
+  assert.ok(upload.indexOf('This account has reached the releases currently allowed.') !== -1);
+  assert.ok(upload.indexOf('Upgrade to Creator') === -1);
+  assert.ok(upload.indexOf('Upgrade to Pro') === -1);
 
   const plans = read('lib/plans.js');
-  assert.ok(plans.indexOf('Basic includes one release. Upgrade to Creator or Pro to upload more.') !== -1);
-  assert.ok(plans.indexOf('Creator includes 8 releases per month. Upgrade to Pro to upload more.') !== -1);
+  assert.ok(plans.indexOf('This account has reached the releases currently allowed.') !== -1);
+  assert.ok(plans.indexOf('A multi-track album is not available on this account yet.') !== -1);
   assert.ok(plans.indexOf('CREATOR_MONTHLY = 8') !== -1);
 
   ['membership.js', 'store-client.js', 'checkout.js', 'signup.html', 'login.html', 'confirm.html', 'confirmed.html', 'index.html', 'basic.html'].forEach(function (file) {

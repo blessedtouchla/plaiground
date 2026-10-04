@@ -75,9 +75,9 @@ function run() {
     assert.ok(whoIdx !== -1 && stepsIdx !== -1 && whoIdx < stepsIdx, file + ' keeps who-this-is-for above the three steps');
     assert.ok(html.includes('Who this is for'), file + ' names who this is for');
     assert.ok(/Independent artists/i.test(html) && /human, AI-assisted, or full AI/i.test(html), file + ' is for human, AI-assisted, or full AI artists');
-    assert.ok(/one membership that gets the song into stores/i.test(html), file + ' states the membership need');
+    assert.ok(/one free account that gets the song into stores/i.test(html), file + ' states the free account');
     assert.ok(/publishing, boosts, and payouts/i.test(html), file + ' names publishing, boosts, and payouts');
-    assert.ok(/PLAIGROUND takes 0%/i.test(html) && /Membership is the only fee/i.test(html), file + ' states 0% take and membership-only fee');
+    assert.ok(/PLAIGROUND takes 0%/i.test(html) && /Artists keep 100% of their royalties/i.test(html), file + ' states 0% take and artists keep their royalties');
     assert.ok(html.includes('Three steps from') && html.includes('upload to paid.'), file + ' restores Three steps from upload to paid');
     assert.ok(!html.includes('Four steps from') && !html.includes('Five steps from'), file + ' must not keep four or five steps');
     assert.ok(html.includes('<h3>Upload</h3>') && html.includes('<h3>Release</h3>') && html.includes('<h3>Get paid</h3>'), file + ' steps stay Upload / Release / Get paid');
@@ -94,8 +94,8 @@ function run() {
     assert.ok(!/\b220\b/.test(html) && !/\b200\b/.test(html), file + ' must not invent a 220 / 200 store count');
     assert.ok(!/the stores we send to/i.test(html) && !/live store catalog/i.test(html), file + ' must not say stores we send to or live store catalog');
     assert.ok(html.includes('Distribution to 50+ platforms') || html.includes('Upload + distribution to 50+ platforms'), file + ' names 50+ platforms');
-    assert.ok(html.includes('Royalties hit your dashboard automatically. Creator is Basic with publishing, Boost, analytics, and retrieve / get paid unlocked.'), file + ' keeps the later Creator/Pro lock');
-    assert.ok(/Pro unlocks unlimited/i.test(html), file + ' Get paid then says Pro unlimited');
+    assert.ok(html.includes('Royalties hit your dashboard automatically. Every artist can see earnings and withdraw them.'), file + ' Get paid is open to every artist');
+    assert.ok(/Publishing, Boosts, and payouts are open to every artist/i.test(html), file + ' Get paid does not gate on a plan');
     assert.ok(!/ToneGrid|InterSpace|DistroKid|\bFrank\b/i.test(html), file + ' must not name a store partner');
   });
   assert.ok(!/human authorship is required/i.test(how), 'do not require human authorship');
@@ -121,8 +121,8 @@ function run() {
   assert.ok(/We are new/i.test(faq), 'FAQ lead says we are new');
   assert.ok(/Please send any and all feedback/i.test(faq), 'FAQ lead asks for feedback');
   assert.ok(faq.includes('mailto:emailplaiground@gmail.com'), 'FAQ lead keeps the public feedback mailto');
-  assert.ok(/What do I get on Pro\?/i.test(faq), 'FAQ answers What do I get on Pro');
-  assert.ok(/same as Creator, with no monthly cap/i.test(faq), 'Pro FAQ answer may say same as Creator with no cap');
+  assert.ok(/What do I get with a free account\?/i.test(faq), 'FAQ answers what a free account includes');
+  assert.ok(/There is no monthly plan to upgrade/i.test(faq), 'FAQ says there is no monthly plan to upgrade');
   assert.ok(/What is publishing\?/i.test(faq), 'FAQ answers What is publishing');
   assert.ok(/collected by societies, not stores/i.test(faq), 'publishing answer says societies collect');
   assert.ok(/What are Boosts\?/i.test(faq), 'FAQ answers What are Boosts');
@@ -130,7 +130,7 @@ function run() {
   assert.ok(/Chart Push/i.test(faq) && /Streaming Push/i.test(faq) && /Social Push/i.test(faq) && /Video Collect/i.test(faq), 'Boosts name the four live package titles');
   assert.ok(/What is MSP\?/i.test(faq), 'FAQ answers What is MSP');
   assert.ok(/Multiple Streams of Revenue/i.test(faq), 'MSP is Multiple Streams of Revenue');
-  assert.ok(/How do I get into my Pro or Creator account\?/i.test(faq), 'FAQ answers signed-in access');
+  assert.ok(/How do I get into my account\?/i.test(faq), 'FAQ answers signed-in access');
   assert.ok(/The left menu is the product/i.test(faq), 'signed-in access names the left menu');
   assert.ok(/Take a song down from the release page with Remove/i.test(faq), 'takedown is Remove on the release page');
   assert.ok(/Draft, pending, and processing releases are removed from PLAIGROUND/i.test(faq), 'not-live Remove deletes locally');
@@ -181,7 +181,7 @@ function run() {
   assert.ok(/Instagram\/Facebook \(Meta Rights Manager\)/.test(faq) && /TikTok native-video ID/.test(faq), 'Video Collect family is locked');
   assert.ok(/Separate from YouTube Music, Instagram stickers, and TikTok Sounds/.test(faq), 'Video Collect is separate from Sounds and stickers');
   assert.ok(/The product name is Video Collect/.test(faq), 'product name is Video Collect');
-  assert.ok(/Creator and Pro only\. Not Basic\. Publishing not required/.test(faq), 'Video Collect plan lock');
+  assert.ok(/Every artist can use it\. Publishing not required/.test(faq), 'Video Collect is open to every artist');
   assert.ok(/Opt-in per song\. Original audio only/.test(faq), 'Video Collect is opt-in original audio');
   assert.ok(/Covers, samples, and already-claimed conflicts get a review/.test(faq), 'conflicts get a review');
   assert.ok(/PLAIGROUND takes 0%\./.test(faq) && /You get 100% of the payout/.test(faq), 'Video Collect is 0% / 100%');
@@ -266,26 +266,24 @@ function run() {
   assert.ok(royalties.includes('WANNA PLAI?'), 'royalties page keeps the WANNA PLAI? landing look');
   assert.ok(/PLAIGROUND takes no commission/i.test(royalties), 'royalties page states no commission');
   assert.ok(/0% cut of royalties/i.test(royalties), 'royalties page states a 0% cut');
-  assert.ok(/only PLAIGROUND fee is membership/i.test(royalties), 'royalties page says membership is the only PLAIGROUND fee');
-  assert.ok(royalties.includes('Basic is free, 1 song') || /Basic is free/i.test(royalties), 'royalties page states Basic is free, 1 song');
-  assert.ok(royalties.includes('$14.99/mo or $149/yr'), 'royalties page states Creator membership');
-  assert.ok(royalties.includes('$19.99/mo or $199/yr'), 'royalties page states Pro membership');
-  assert.ok(/Creator is Basic with the paid features unlocked/i.test(royalties), 'royalties page uses Creator 1-2-3 voice');
-  assert.ok(/Pro unlocks unlimited/i.test(royalties), 'royalties page then says Pro unlocks unlimited');
+  assert.ok(/The account is free/i.test(royalties), 'royalties page says the account is free');
+  assert.ok(/There is no monthly subscription/i.test(royalties), 'royalties page says there is no monthly subscription');
+  assert.ok(!/\$14\.99/.test(royalties) && !/\$19\.99/.test(royalties), 'royalties page does not sell old membership prices');
+  assert.ok(/One free account for everyone/i.test(royalties), 'royalties page states one free account');
   assert.ok(!/Creator and Pro are the same product/i.test(royalties), 'royalties page must not use same-product Creator framing');
-  assert.ok(/8 distribution uploads/i.test(royalties) && /8 publishing registrations/i.test(royalties), 'royalties page states the Creator caps');
+  assert.ok(!/8 distribution uploads/i.test(royalties) && !/8 publishing registrations/i.test(royalties), 'royalties page does not keep the old caps');
   assert.ok(/Publishing registration is separate from distribution/i.test(royalties), 'publishing stays separate from distribution');
-  assert.ok(/not included on Basic/i.test(royalties), 'do not say publishing is included on Basic');
+  assert.ok(/Every artist can register/i.test(royalties), 'publishing is open to every artist');
   assert.ok(/Stores \(Spotify, Apple/i.test(royalties), 'royalties page says stores take their usual cut');
   assert.ok(!/\d+\s*%\s*(of (streams|revenue)|DSP|Spotify|Apple)/i.test(royalties), 'do not invent DSP percentages');
   assert.ok(/Royalties pass through after the stores pay/i.test(royalties), 'no invented ToneGrid take: royalties pass through after stores pay');
   assert.ok(!/ToneGrid (takes|take|fee|commission|cut)/i.test(royalties), 'do not invent a ToneGrid take rate');
   assert.ok(/Money shows as \$0 until a release is actually live/i.test(royalties), 'money stays $0 until a live release reports');
   assert.ok(/Payouts only after real royalties arrive/i.test(royalties), 'payouts wait for real royalties');
-  assert.ok(/Basic can see totals but cannot withdraw/i.test(royalties), 'Basic can see totals and cannot withdraw');
-  assert.ok(/Creator and Pro can retrieve payouts/i.test(royalties), 'Creator and Pro can retrieve payouts');
-  assert.ok(!/\$199 per work/i.test(royalties) || royalties.includes('no $199 per work'), 'do not sell a $199 per-work fee');
-  assert.ok(royalties.includes('no $199 per work') && royalties.includes('no $49 per release'), 'page denies per-work and per-release PLAIGROUND fees');
+  assert.ok(/Every artist can see totals and withdraw them/i.test(royalties), 'every artist can see totals and withdraw');
+  assert.ok(/Payouts are quarterly, with a \$10 minimum/i.test(royalties), 'royalties page keeps the quarterly $10 minimum');
+  assert.ok(/shown before you pay/i.test(royalties), 'optional prices are shown before you pay');
+  assert.ok(!/\$14\.99/.test(royalties) && !/\$19\.99/.test(royalties), 'royalties page does not restate old plan prices');
   assert.ok(!/Keep 100% of your royalties/i.test(royalties), 'do not invent keep-100% copy');
 
   const faqPaid = read('faq.html');
@@ -343,8 +341,8 @@ function run() {
     assert.ok(!/Creator and Pro are the same product/i.test(text), file + ' must not use same-product Creator framing');
   });
   assert.ok(!/Same product as Pro/i.test(read('lib/stripe-plans.js')), 'checkout plan detail must not say same product as Pro');
-  assert.ok(/Creator is Basic with the paid features unlocked/i.test(read('account.js')), 'Settings JS uses Creator 1-2-3 voice');
-  assert.ok(/Same product as Creator, unlimited/i.test(read('account.js')), 'Pro Settings copy may say same as Creator');
+  assert.ok(/One free account for everyone/i.test(read('account.js')), 'Settings JS says one free account');
+  assert.ok(/function planPitch\(\) \{\s*return 'Free account';/.test(read('account.js')), 'Settings pitch is the free account');
 
   const pro = read('pro.html');
   assert.ok(/superseded/i.test(pro), 'Pro Learn more is marked superseded');
@@ -352,24 +350,13 @@ function run() {
   assert.ok(!/data-checkout-plan/.test(pro), 'Pro Learn more does not start the old checkout');
   assert.ok(!/Everything in Creator, plus publishing/i.test(pro), 'Pro must not sell extras Creator already has');
   assert.ok(!/The same product as Creator/.test(pro), 'Pro page is not the membership hero');
-  assert.ok(/Pro includes catalog migration\. Creator does not/i.test(read('faq.html')), 'FAQ plan-difference answer names Pro catalog migration and says Creator does not');
+  assert.ok(/There is no migrate button/i.test(read('faq.html')), 'FAQ still says there is no migrate button');
   assert.ok(!/instant DSP|take over|takeover|ToneGrid/i.test(pro), 'Pro must not invent DSP takeover or name ToneGrid');
   assert.ok(!/Migrate catalog|data-migrate|migrate-catalog/i.test(pro), 'Pro Learn more must not add a migrate UI');
 
-  const PRO_COPY = [
-    'faq.html',
-    'royalties.html',
-    'settings.html',
-    'plan-confirm.html',
-    'earnings.html',
-    'payouts.html',
-    'account.js',
-    'lib/stripe-plans.js',
-  ];
-  PRO_COPY.forEach(function (file) {
-    assert.ok(/catalog migration/i.test(read(file)), file + ' must name catalog migration on a Pro surface');
+  ['faq.html', 'royalties.html', 'settings.html', 'plan-confirm.html', 'earnings.html', 'payouts.html', 'account.js'].forEach(function (file) {
+    assert.ok(!/\b(Basic|Creator|Pro)\b/.test(read(file)), file + ' does not sell Basic, Creator, or Pro');
   });
-  assert.ok(/plus catalog migration/i.test(read('account.js')), 'Pro Settings detail includes catalog migration');
   assert.ok(/plus catalog migration/i.test(read('lib/stripe-plans.js')), 'shared Pro plan detail includes catalog migration');
   assert.ok(!/catalog migration/i.test(read('account.js').match(/creator:\s*'[^']+'/)[0]), 'Creator Settings detail must not include catalog migration');
   assert.ok(!/catalog migration/i.test(read('lib/stripe-plans.js').match(/creator:\s*'[^']+'/)[0]), 'shared Creator plan detail must not include catalog migration');
@@ -391,10 +378,10 @@ function run() {
   const indexHeader = index.match(/<header class="nav">[\s\S]*?<\/header>/);
   assert.ok(indexHeader && !/Growth campaign|Sync package|href="[^"]*sync\.html"/.test(indexHeader[0]), 'Growth and Sync stay off the public header');
   assert.ok(!/plan-name">(?:Basic|Creator|Pro)/.test(how), 'How it works does not restage Basic / Creator / Pro cards');
-  const creatorEarn = read('earnings.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
-  const creatorPay = read('payouts.html').match(/data-for-plans="creator"[\s\S]*?<\/p>/);
-  assert.ok(creatorEarn && !/catalog migration/i.test(creatorEarn[0]), 'Earnings Creator sidebar must not claim catalog migration');
-  assert.ok(creatorPay && !/catalog migration/i.test(creatorPay[0]), 'Payouts Creator sidebar must not claim catalog migration');
+  assert.ok(!/data-for-plans="creator"/.test(read('earnings.html')), 'Earnings does not keep a Creator sidebar');
+  assert.ok(!/data-for-plans="creator"/.test(read('payouts.html')), 'Payouts does not keep a Creator sidebar');
+  assert.ok(/Every artist can see earnings and withdraw them/i.test(read('earnings.html')), 'Earnings is open to every artist');
+  assert.ok(/Every artist can see earnings and withdraw them/i.test(read('payouts.html')), 'Payouts is open to every artist');
   ['dashboard.html', 'site.js', 'creator.html', 'basic.html', 'terms.html', 'split-sheet.html'].forEach(function (file) {
     const text = read(file);
     assert.ok(!/Migrate catalog|data-migrate|migrate-catalog/i.test(text), file + ' must not add a migrate UI');
@@ -410,7 +397,7 @@ function run() {
   assert.ok(!/class="size-grid"/i.test(boost), 'logged-out Boost page must not show the 3 Boost size cards');
   assert.ok(/Starter[\s\S]*\$49/i.test(boost) === false, 'Starter $49 is not a public buy option');
   assert.ok(/publishing/i.test(boost) && /marketing boosts/i.test(boost) && /sync/i.test(boost), 'logged-out Boost page teases publishing, boosts, sync');
-  assert.ok(/Creator and Pro can add a Boost/i.test(boost), 'Boost lock is Creator + Pro');
+  assert.ok(/Every signed-in artist can add a Boost/i.test(boost), 'Boosts are open to every signed-in artist');
   assert.ok(!/class="plans"/i.test(boost), 'boost.html must not become membership plan cards');
 
   const boosts = read('boosts.html');
@@ -420,8 +407,8 @@ function run() {
   assert.ok(/data-require-membership="true"/i.test(boosts), 'boosts.html stays a signed-in page');
   assert.ok(boosts.includes('data-boost-hub'), 'boosts.html is the four-card Boost hub');
   assert.ok(/Chart Push/.test(boosts) && /Streaming Push/.test(boosts) && /Social Push/.test(boosts) && /Video Collect/.test(boosts), 'hub lists the four live package titles');
-  assert.ok(/Boosts are locked on Basic/i.test(boosts), 'Basic sees a Boost lock, not a plan pitch');
-  assert.ok(/Creator and Pro can add a Boost/i.test(boosts), 'Boost lock is Creator + Pro');
+  assert.ok(/Boosts are open to every artist/i.test(boosts), 'Boosts are open to every artist');
+  assert.ok(/Every signed-in artist can add a Boost/i.test(boosts), 'Boost lock is not a plan gate');
 
   const css = read('site.css');
   assert.ok(/@media \(max-width: 980px\)[\s\S]*\.side \{[\s\S]*transform: translateX\(-110%\)/i.test(css), 'mobile CSS must hide the stacked .side menu');
@@ -522,8 +509,8 @@ function run() {
     assert.ok(!/elevenlabs/i.test(sideNav[0]), file + ' must not invent ElevenLabs');
     assert.ok(!/data-overview-menu/.test(sideNav[0]) && !/side-submenu/.test(sideNav[0]) && !/href="dashboard.html">Overview</.test(sideNav[0]), file + ' must not keep the Overview nest');
     assert.ok(!/side-submenu-toggle|side-submenu-chevron/.test(sideNav[0]), file + ' must not keep an Overview chevron');
-    assert.ok(/href="boosts.html"[^>]*data-for-plans="creator pro"/.test(sideNav[0]), file + ' Boosts is Creator/Pro only as live');
-    assert.ok(/data-publishing-register[^>]*data-for-plans="creator pro"/.test(sideNav[0]) || /data-for-plans="creator pro"[^>]*data-publishing-register/.test(sideNav[0]), file + ' Publishing is Creator/Pro only as live');
+    assert.ok(!/href="boosts.html"[^>]*data-for-plans/.test(sideNav[0]), file + ' Boosts is not plan-gated');
+    assert.ok(!/data-publishing-register[^>]*data-for-plans/.test(sideNav[0]) && !/data-for-plans[^>]*data-publishing-register/.test(sideNav[0]), file + ' Publishing is not plan-gated');
     assert.ok(!/href="song\.html"[^>]*>New release<\/a>/.test(sideNav[0]), file + ' New release must not go to song.html');
     assert.ok(!/href="splits.html">Splits<\/a>/.test(html), file + ' must not keep the old Splits menu label');
     assert.ok(sideNav, file + ' must keep the signed-in side nav');

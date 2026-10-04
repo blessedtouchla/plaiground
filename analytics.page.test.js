@@ -125,7 +125,8 @@ function run() {
   });
   assert.ok(html.indexOf('data-require-membership="true"') !== -1);
   assert.ok(html.indexOf('data-require-paid') === -1, 'analytics must not bounce Basic to Pick a plan');
-  assert.ok(html.indexOf('Locked on Basic') !== -1);
+  assert.ok(html.indexOf('Waiting on stores') !== -1);
+  assert.ok(html.indexOf('Locked on Basic') === -1);
   assert.ok(html.indexOf('metric-row') !== -1);
   assert.ok(html.indexOf('data-analytics-dsps') !== -1);
   assert.ok(html.indexOf('data-analytics-territories') !== -1);

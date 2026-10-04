@@ -26,8 +26,8 @@
       <a href="epk.html">EPK</a>
       <a href="profile.html">Persona</a>
       <p class="side-label">Money</p>
-      <a href="boosts.html" data-for-plans="creator pro" hidden>Boosts</a>
-      <a href="publishing-register.html" data-publishing-register data-for-plans="creator pro" hidden>Publishing</a>
+      <a href="boosts.html">Boosts</a>
+      <a href="publishing-register.html" data-publishing-register>Publishing</a>
       <a href="earnings.html">Earnings</a>
       <a href="analytics.html">Analytics</a>
       <a href="payouts.html">Payouts</a>
@@ -42,9 +42,9 @@
       <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
     </nav>
     <div class="pro-card">
-      <h4 class="stat-g" data-account-plan-title>Your plan</h4>
+      <h4 class="stat-g" data-account-plan-title>Free account</h4>
       <p>Free account. Distribute is $2.49 a song. After upload is included.</p>
-      <p style="margin-top:8px" data-account-plan-pitch>Your plan</p>
+      <p style="margin-top:8px" data-account-plan-pitch>Free account</p>
     </div>
   </aside>
   <div class="app-main">
@@ -76,50 +76,24 @@
       </div>
       <div class="draft-banner" data-billing-warning hidden>
         <strong>Payment warning</strong>
-        <p>We could not charge your card. You stay on Creator/Pro until the renewal date. Payouts are paused until you <a href="#manage-billing">update the card</a>. Paid features stay on.</p>
+        <p>We could not charge your card. Payouts are paused until you <a href="#manage-billing">update the card</a>.</p>
       </div>
       <div class="draft-banner" data-billing-hold hidden>
         <strong>Account on hold</strong>
-        <p>The renewal payment did not go through. Paid features are locked. A later successful payment restores the plan. <a href="#manage-billing">Update the card</a>.</p>
+        <p>The renewal payment did not go through. Payouts stay paused until a later successful payment. <a href="#manage-billing">Update the card</a>.</p>
       </div>
       <div class="panel">
-        <h3>Plan</h3>
+        <h3>Account</h3>
         <div class="head-row">
           <div>
-            <p style="font-weight:800;font-size:1.15rem;margin:4px 0 8px" data-account-plan-pitch>Your plan</p>
+            <p style="font-weight:800;font-size:1.15rem;margin:4px 0 8px" data-account-plan-pitch>Free account</p>
             <p class="plan-renews" data-plan-renews hidden></p>
-            <p style="color:var(--muted);font-size:14px;max-width:560px" data-account-plan-detail>Creator is Basic with the paid features unlocked. Then a monthly cap. Pro unlocks unlimited and catalog migration.</p>
+            <p style="color:var(--muted);font-size:14px;max-width:560px" data-account-plan-detail>One free account for everyone. There is no monthly plan. Artists keep 100% of their royalties.</p>
           </div>
-          <button class="btn btn-ghost btn-sm" type="button" data-manage-plan-toggle aria-expanded="false">Manage plan</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-manage-plan-toggle aria-expanded="false">Account details</button>
         </div>
         <div class="plan-switch" data-manage-plan hidden>
-          <p class="plan-switch-copy">Switch Creator or Pro, monthly or yearly. Each option opens a confirmation page. Upgrades pay the difference now, then the new price next period, on the same billing date. Downgrades take effect now with no refund. Submit updates your existing subscription — it does not start a second plan. Basic is not a paid switch — cancel still drops you there.</p>
-          <div class="offer-grid plan-picker">
-            <article class="offer">
-              <h3>Creator <span class="current-badge">Current</span></h3>
-              <div class="price">$14.99/month</div>
-              <p>Creator is Basic with the paid features unlocked. Then a monthly cap.</p>
-              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=creator&interval=month" data-plan-option="creator:month">Creator · $14.99/month</a>
-            </article>
-            <article class="offer">
-              <h3>Creator <span class="current-badge">Current</span></h3>
-              <div class="price">$12.42/month</div>
-              <p>Billed yearly ($149). Same Creator features. Then a monthly cap.</p>
-              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=creator&interval=year" data-plan-option="creator:year">Creator · $12.42/month billed yearly</a>
-            </article>
-            <article class="offer magenta">
-              <h3>Pro <span class="current-badge">Current</span></h3>
-              <div class="price">$19.99/month</div>
-              <p>Same as Creator, unlimited, plus catalog migration.</p>
-              <a class="btn btn-purple btn-md btn-block" href="plan-confirm.html?plan=pro&interval=month" data-plan-option="pro:month">Pro · $19.99/month</a>
-            </article>
-            <article class="offer magenta">
-              <h3>Pro <span class="current-badge">Current</span></h3>
-              <div class="price">$16.58/month</div>
-              <p>Billed yearly ($199). Same as Creator, unlimited.</p>
-              <a class="btn btn-ghost btn-md btn-block" href="plan-confirm.html?plan=pro&interval=year" data-plan-option="pro:year">Pro · $16.58/month billed yearly</a>
-            </article>
-          </div>
+          <p class="plan-switch-copy">There is no monthly subscription to switch. The account is free. Optional AI tools use a small monthly credit allowance, and you can add credits when you need them. A finished product is a one-time fee, shown before you pay. Card updates stay under Manage billing.</p>
         </div>
       </div>
       <div class="panel" id="manage-billing">

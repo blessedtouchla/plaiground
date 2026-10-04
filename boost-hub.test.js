@@ -78,7 +78,7 @@ function run() {
   assert.ok(/Get paid when someone uses your song in a video\.\s*YouTube, Instagram, Facebook, TikTok\.\s*We take 0%\.\s*You get 100% of the payout\./.test(stripTags(cards[3])));
 
   cards.forEach(function (card, i) {
-    assert.strictEqual(lastLine(card), 'Creator and Pro only.', 'hub card ' + (i + 1) + ' last line must be exactly Creator and Pro only.');
+    assert.strictEqual(lastLine(card), 'Open to every artist.', 'hub card ' + (i + 1) + ' last line must be exactly Open to every artist.');
     assert.ok(/Not for sale/.test(card), 'hub card ' + titles[i] + ' keeps Not for sale');
     assert.ok(/Learn more/.test(card), 'hub card ' + titles[i] + ' shows a Learn more CTA');
     assert.ok(/boost-hub-chevron/.test(card), 'hub card ' + titles[i] + ' shows a chevron');
@@ -119,7 +119,7 @@ function run() {
 
   const videoArticle = video.match(/<article class="boost-explainer"[\s\S]*?<\/article>/)[0];
   assert.ok(/Get paid when someone uses your song in a video\. YouTube, Instagram, Facebook, TikTok\. We take 0%\. You get 100% of the payout\./.test(stripTags(videoArticle)));
-  assert.strictEqual(lastLine(videoArticle), 'Creator and Pro only.');
+  assert.strictEqual(lastLine(videoArticle), 'Open to every artist.');
 
   Object.keys(pages).forEach(function (file) {
     const html = pages[file];
@@ -136,7 +136,7 @@ function run() {
 
   [chart, streaming, social, video].forEach(function (html) {
     optionCards(html).concat(html.match(/<article class="boost-explainer"[\s\S]*?<\/article>/g) || []).forEach(function (card) {
-      assert.strictEqual(lastLine(card), 'Creator and Pro only.');
+      assert.strictEqual(lastLine(card), 'Open to every artist.');
     });
   });
 

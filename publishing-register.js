@@ -160,7 +160,7 @@
 
   var SUBMIT_KEY = 'plaiground.publishing.submit';
   var DEFAULT_STATUS = 'Pending at BMI';
-  var DEFAULT_PAID = '$0.00 · included in membership';
+  var DEFAULT_PAID = '$0.00 · included';
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   function pad2(n) {

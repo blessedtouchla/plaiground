@@ -115,7 +115,7 @@ function run() {
   assert.ok(html.includes('site.css?v=20260917s5'), 'submitted.html cache-busts the Submitted Tesla desktop canvas');
   assert.ok(!html.includes('site.css?v=20260917s4'), 's4 stamp is retired after the desktop canvas widen');
   assert.ok(html.includes('Order details'), 'uuid sits behind Order details');
-  assert.ok(html.includes('All stores in your plan'), 'stores fallback is non-numeric until the live catalog paints');
+  assert.ok(html.includes('All stores on this release'), 'stores fallback is non-numeric until the live catalog paints');
   assert.ok(!html.includes('plai-bubble.js'), 'floating PLAI chip stays off submitted.html');
   assert.ok(!html.includes('PG-2026-0314'), 'must not keep mock order PG-2026-0314');
   assert.ok(!html.includes('12 Sep'), 'must not keep hardcoded 12 Sep');
