@@ -16,8 +16,8 @@ function run() {
   assert.ok(html.includes('data-work-date'));
   assert.ok(html.includes('data-work-ai'));
   assert.ok(html.includes('data-work-writers'));
-  assert.ok(html.includes('data-require-publishing="true"'), 'Basic still cannot open publishing');
-  assert.ok(html.includes('8 publishing registrations this month'));
+  assert.ok(html.includes('data-require-membership="true"'), 'publishing register stays signed in');
+  assert.ok(html.includes('Publishing registration is open on every account.'));
   assert.ok(html.includes('data-publishing-submit'), 'submit carries the picked release');
   assert.ok(!/ToneGrid|Tonegrid/.test(html.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
 
@@ -29,7 +29,7 @@ function run() {
   assert.ok(confirmHtml.includes('data-confirm-filed'));
   assert.ok(confirmHtml.includes('data-confirm-paid'));
   assert.ok(confirmHtml.includes('data-confirm-song'));
-  assert.ok(confirmHtml.includes('data-require-publishing="true"'), 'Basic still cannot open publishing confirm');
+  assert.ok(confirmHtml.includes('data-require-membership="true"'), 'publishing confirm stays signed in');
   assert.ok(!/ToneGrid|Tonegrid/.test(confirmHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
 
   assert.ok(publishing.isDummyTitle('Your release'));
@@ -191,14 +191,14 @@ function run() {
       artist: 'mexeu mexeu',
       filed: '2026-08-25',
       status: 'Pending at BMI',
-      paid: '$0.00 · included in membership',
+      paid: '$0.00 · included',
     },
   });
   assert.strictEqual(filedView.title, 'mexeu');
   assert.strictEqual(filedView.artist, 'mexeu mexeu');
   assert.strictEqual(filedView.filed, '25 Aug 2026');
   assert.strictEqual(filedView.status, 'Pending at BMI');
-  assert.strictEqual(filedView.paid, '$0.00 · included in membership');
+  assert.strictEqual(filedView.paid, '$0.00 · included');
   assert.strictEqual(filedView.headline, 'mexeu is filed for publishing.');
   assert.strictEqual(filedView.songHref, 'song.html?id=' + mexeuId);
   assert.ok(!/Neon Sermon/.test(filedView.headline));
@@ -218,7 +218,7 @@ function run() {
       artist: 'Victoria Reyes',
       filed: '2026-08-14',
       status: 'Pending at BMI',
-      paid: '$0.00 · included in membership',
+      paid: '$0.00 · included',
     },
   });
   assert.strictEqual(dummyView.title, '');
@@ -245,7 +245,7 @@ function run() {
       artist: 'mexeu mexeu',
       filed: '2026-08-25',
       status: 'Pending at BMI',
-      paid: '$0.00 · included in membership',
+      paid: '$0.00 · included',
     },
   });
   assert.ok(painted);
@@ -253,7 +253,7 @@ function run() {
   assert.strictEqual(confirmNodes['[data-confirm-artist]'].textContent, 'mexeu mexeu');
   assert.strictEqual(confirmNodes['[data-confirm-status]'].textContent, 'Pending at BMI');
   assert.strictEqual(confirmNodes['[data-confirm-filed]'].textContent, '25 Aug 2026');
-  assert.strictEqual(confirmNodes['[data-confirm-paid]'].textContent, '$0.00 · included in membership');
+  assert.strictEqual(confirmNodes['[data-confirm-paid]'].textContent, '$0.00 · included');
   assert.strictEqual(confirmNodes['[data-confirm-song]'].href, 'song.html?id=' + mexeuId);
 
   const submitBtn = {
@@ -286,7 +286,7 @@ function run() {
   assert.ok(saved.title !== 'Neon Sermon');
   assert.strictEqual(saved.filed, '2026-08-25');
   assert.strictEqual(saved.status, 'Pending at BMI');
-  assert.strictEqual(saved.paid, '$0.00 · included in membership');
+  assert.strictEqual(saved.paid, '$0.00 · included');
 
   console.log('publishing-register.page.test.js ok');
 }

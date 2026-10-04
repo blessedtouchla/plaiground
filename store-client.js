@@ -3508,10 +3508,8 @@
   }
 
   function planLimitMessage(plan, kind) {
-    if (kind === 'album') return 'Albums are on Creator and Pro. Upgrade to upload a multi-track release.';
-    return plan === 'creator'
-      ? 'Creator includes 8 releases per month. Upgrade to Pro to upload more.'
-      : 'Basic includes one release. Upgrade to Creator or Pro to upload more.';
+    if (kind === 'album') return 'A multi-track album is not available on this account yet.';
+    return 'This account has reached the releases currently allowed.';
   }
 
   function albumAllowedFor(me) {
@@ -3541,7 +3539,7 @@
     return 'month';
   }
 
-  var PRO_ALBUM_UPGRADE_COPY = 'Albums with 9 or more tracks are on Pro. Pro is $5 extra on monthly (Creator $14.99 → Pro $19.99). You pay the same-interval difference on your existing Stripe subscription — not a new $19.99 and not a second Checkout. Confirm the real amount due, then Submit.';
+  var PRO_ALBUM_UPGRADE_COPY = 'A longer album may need an extra one-time fee. The amount is shown before you pay. Nothing is charged until you submit.';
 
   function showCreatorAlbumUpgrade(me) {
     var interval = billingIntervalOf(me);
@@ -5387,8 +5385,8 @@
   function showLimitPanel(show, kind) {
     var el = $('tg-limit');
     var copy = $('tg-limit-copy');
-    if (copy && kind === 'album') copy.textContent = 'Albums are on Creator and Pro.';
-    else if (copy && show) copy.textContent = 'This is a new song. Basic includes one release.';
+    if (copy && kind === 'album') copy.textContent = 'A multi-track album is not available on this account yet.';
+    else if (copy && show) copy.textContent = 'This account has reached the releases currently allowed.';
     if (el) el.hidden = !show;
   }
 
@@ -6304,9 +6302,9 @@
       var shown = sanitizePartnerCopy(shownError || '');
       setStatus('tg-status', shown || '');
       markStatusError(Boolean(shown));
-      showLimitPanel(upgrade === true, /Albums are on Creator/.test(message || '') ? 'album' : '');
+      showLimitPanel(upgrade === true, /multi-track album/.test(message || '') ? 'album' : '');
       showUpgrade(upgrade === true);
-      var retryable = !upgrade && Boolean(shown) && !/is required|must be|Upgrade to|Albums are on|Pick how many/i.test(shown);
+      var retryable = !upgrade && Boolean(shown) && !/is required|must be|currently allowed|multi-track album|Pick how many/i.test(shown);
       showUploadRetry(retryable);
     }
 
@@ -7098,7 +7096,7 @@
             return;
           }
           if (ready.limited) {
-            failSubmit(createErrorMessage(ready.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), trigger);
+            failSubmit(createErrorMessage(ready.result, 'This account has reached the releases currently allowed.'), trigger);
             showUpgrade(true);
             return;
           }
@@ -7118,7 +7116,7 @@
               return;
             }
             if (created.limited) {
-              failSubmit(createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'), trigger);
+              failSubmit(createErrorMessage(created.result, 'This account has reached the releases currently allowed.'), trigger);
               showUpgrade(true);
               return;
             }
@@ -7481,7 +7479,7 @@
         hideUploadLoader();
         if (ready.unavailable) setStatus('tg-status', 'Catalog sync is not configured yet.');
         else if (ready.limited) {
-          setStatus('tg-status', createErrorMessage(ready.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+          setStatus('tg-status', createErrorMessage(ready.result, 'This account has reached the releases currently allowed.'));
           showUpgrade(true);
         } else {
           setStatus('tg-status', createErrorMessage(ready.result, 'Could not create release.'));
@@ -7495,7 +7493,7 @@
         return;
       }
       if (created.limited) {
-        setStatus('tg-status', createErrorMessage(created.result, 'Basic includes one release. Upgrade to Creator or Pro to upload more.'));
+        setStatus('tg-status', createErrorMessage(created.result, 'This account has reached the releases currently allowed.'));
         showUpgrade(true);
         return;
       }

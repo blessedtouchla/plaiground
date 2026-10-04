@@ -42,7 +42,7 @@
         <a class="on" href="upload.html" data-type="single">Single</a>
         <a href="upload.html?type=album" data-type="album">Album</a>
       </div>
-      <p class="hint" data-album-hint hidden>An album is one store release with multiple tracks under the same artist. Creator and Pro only.</p>
+      <p class="hint" data-album-hint hidden>An album is one store release with multiple tracks under the same artist. Open to every artist.</p>
     </section>
 
     <section class="flow-card upload-quiet-card" data-album-count hidden>
@@ -54,9 +54,9 @@
       </div>
       <p style="margin-top:16px"><button class="btn btn-purple btn-sm" type="button" data-album-count-go>Set track count</button></p>
       <div class="upload-limit" data-album-pro-upgrade hidden>
-        <p>Albums with 9 or more tracks are on Pro. Pro is $5 extra on monthly (Creator $14.99 → Pro $19.99). Yearly Creator upgrades to yearly Pro and you pay the same-interval difference — Confirm shows the real amount due. Charge only after Submit. This updates your existing Stripe subscription.</p>
+        <p>A longer album may need an extra one-time fee. The amount is shown before you pay. Nothing is charged until you submit.</p>
         <p class="hero-ctas" style="margin:12px 0 0">
-          <a class="btn btn-purple btn-sm" data-album-pro-confirm href="plan-confirm.html?plan=pro&interval=month">Confirm Pro upgrade</a>
+          <a class="btn btn-purple btn-sm" data-album-pro-confirm href="plan-confirm.html?plan=pro&interval=month">Review the charge</a>
         </p>
       </div>
     </section>
@@ -271,13 +271,9 @@
         <button type="button" class="btn btn-purple btn-sm" data-upload-retry>Retry</button>
       </p>
       <div class="upload-limit" id="tg-limit" hidden>
-        <p id="tg-limit-copy">This is a new song. Basic includes one release.</p>
-        <p class="hero-ctas" style="margin:0">
-          <a class="btn btn-purple btn-sm" href="creator.html">Upgrade to Creator</a>
-          <a class="btn btn-ghost btn-sm" href="pro.html">Upgrade to Pro</a>
-        </p>
+        <p id="tg-limit-copy">This account has reached the releases currently allowed.</p>
       </div>
-      <p class="hint" id="tg-upgrade" hidden>Need more uploads? Upgrade to <a href="creator.html">Creator</a> or <a href="pro.html">Pro</a>.</p>
+      <p class="hint" id="tg-upgrade" hidden>This account has reached the releases currently allowed.</p>
     </section>
     <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
   </main>

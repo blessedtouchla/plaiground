@@ -1106,7 +1106,7 @@ async function run() {
   }));
   await flush();
   assert.strictEqual(leftoverEmptyDraft.limit.hidden, false, 'Basic at lifetime limit sees PLAN_LIMIT on upload load');
-  assert.strictEqual(leftoverEmptyDraft.status.textContent, 'Basic includes one release. Upgrade to Creator or Pro to upload more.');
+  assert.strictEqual(leftoverEmptyDraft.status.textContent, 'This account has reached the releases currently allowed.');
   leftoverEmptyDraft.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   const leftoverTonegrid = leftoverEmptyDraft.calls.filter(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; });
@@ -1167,7 +1167,7 @@ async function run() {
   secondSong.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
   assert.ok(!secondSong.calls.some(function (call) { return String(call.url).indexOf('/api/tonegrid/') === 0; }));
-  assert.strictEqual(secondSong.status.textContent, 'Creator includes 8 releases per month. Upgrade to Pro to upload more.');
+  assert.strictEqual(secondSong.status.textContent, 'This account has reached the releases currently allowed.');
   assert.ok(secondSong.status.classList.contains('upload-status-error'));
   assert.strictEqual(secondSong.limit.hidden, false);
   assert.strictEqual(secondSong.upgrade.hidden, false);
@@ -1853,7 +1853,7 @@ async function run() {
   await flush();
   assert.strictEqual(basicAlbum.limit.hidden, false);
   assert.strictEqual(basicAlbum.upgrade.hidden, false);
-  assert.ok(/Albums are on Creator and Pro/.test(basicAlbum.status.textContent));
+  assert.ok(/multi-track album is not available/.test(basicAlbum.status.textContent));
   assert.ok(String(basicAlbum.location.href).indexOf('login.html') === -1);
   basicAlbum.continueBtn.listeners.click({ preventDefault() {} });
   await flush();
@@ -2018,8 +2018,8 @@ async function run() {
     page.albumCountGo.listeners.click({ preventDefault() {} });
     await flush();
     assert.strictEqual(page.liveRows.length, 0, 'Creator cannot start a 9-track album');
-    assert.ok(/Pro is \$5 extra/i.test(page.status.textContent));
-    assert.ok(/14\.99/.test(page.status.textContent) && /19\.99/.test(page.status.textContent));
+    assert.ok(/extra one-time fee/i.test(page.status.textContent));
+    assert.ok(!/14\.99|19\.99/.test(page.status.textContent), 'album note does not restate old membership prices');
     assert.ok(page.albumProConfirm.getAttribute('href').indexOf('plan-confirm.html?plan=pro') !== -1);
     assert.ok(!/data-checkout-plan/.test(page.albumProConfirm.getAttribute('href') || ''));
     assert.strictEqual(page.albumTracksPanel.hidden, true);
@@ -2074,7 +2074,7 @@ async function run() {
     page.albumCountGo.listeners.click({ preventDefault() {} });
     await flush();
     assert.strictEqual(page.liveRows.length, 0);
-    assert.ok(/Albums are on Creator and Pro/.test(page.status.textContent));
+    assert.ok(/multi-track album is not available/.test(page.status.textContent));
   }
 
   async function draftTrackIdNoFileStillSubmits() {

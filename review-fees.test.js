@@ -25,7 +25,8 @@ function run() {
   assert.ok(review.indexOf('$0.00') !== -1);
   assert.ok(review.indexOf('Total') !== -1 && review.indexOf('strong class="total"') !== -1);
   assert.ok(review.indexOf('Nothing is charged on this screen') !== -1);
-  assert.ok(review.indexOf('Included in membership') !== -1);
+  assert.ok(review.indexOf('Nothing is charged on this screen.') !== -1);
+  assert.ok(review.indexOf('Included in membership') === -1);
   assert.ok(review.indexOf('data-review-upsell') !== -1);
   assert.ok(review.indexOf('checkout.js') === -1);
   assert.ok(review.indexOf('data-checkout-plan') === -1);
@@ -46,14 +47,15 @@ function run() {
   assert.ok(submitted.indexOf('12 Sep') === -1);
   assert.ok(submitted.indexOf('M. Hale') === -1);
   assert.ok(submitted.indexOf('I. Novak') === -1);
-  assert.ok(submitted.indexOf('$0.00 · included in membership') !== -1);
+  assert.ok(submitted.indexOf('$0.00 · included') !== -1);
+  assert.ok(submitted.indexOf('included in membership') === -1);
   assert.ok(submitted.indexOf('Distribution is included. Nothing extra was charged on this release.') !== -1);
-  assert.ok(submitted.indexOf('Publishing and distribution are included in membership. Nothing extra was charged on this release.') !== -1);
-  assert.ok(review.indexOf('Included in membership. Nothing is charged on this screen.') !== -1);
-  assert.strictEqual((review.match(/Included in membership/g) || []).length, 1, 'Due now says included in membership once');
-  assert.ok(split.indexOf('$0 · included in membership') !== -1);
+  assert.ok(review.indexOf('Nothing is charged on this screen.') !== -1);
+  assert.ok(review.indexOf('Included in membership') === -1);
+  assert.ok(split.indexOf('$0 · included') !== -1);
+  assert.ok(split.indexOf('included in membership') === -1);
   assert.ok(split.indexOf('None taken by PLAIGROUND') !== -1);
-  assert.ok(split.indexOf('data-for-plans="basic"') !== -1);
+  assert.ok(split.indexOf('Publishing registration') !== -1);
 
   assert.ok(review.indexOf('data-review-cover') !== -1, 'review.html thumbnail has a cover hook');
   const storeClientAt = review.search(/src="store-client\.js(\?v=[^"]+)?"/);
@@ -90,11 +92,11 @@ function run() {
     return upsell.hidden;
   }
 
-  assert.strictEqual(bind('basic', false), false, 'Basic should see the one upsell');
-  upsell.hidden = true;
-  assert.strictEqual(bind('creator', true), true, 'Creator should skip checkout and hide the upsell');
-  upsell.hidden = true;
-  assert.strictEqual(bind('pro', true), true, 'Pro should skip checkout and hide the upsell');
+  assert.strictEqual(bind('basic', false), true, 'no plan upsell on review');
+  upsell.hidden = false;
+  assert.strictEqual(bind('creator', true), true, 'no plan upsell on review');
+  upsell.hidden = false;
+  assert.strictEqual(bind('pro', true), true, 'no plan upsell on review');
 
   function planNode(plans, hidden) {
     return {
