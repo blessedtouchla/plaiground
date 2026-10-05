@@ -13,6 +13,12 @@
     region: '',
   };
   var mode = 'write';
+  var kind = 'love';
+  var part = 'song';
+  var questions = window.SongQuestions;
+  var live = null;
+  var regionTags = [];
+  var addingPart = false;
   var slangRows = [];
   var showProfanity = false;
   var chosenSlang = '';
@@ -67,6 +73,9 @@
     rememberAsk();
     return {
       mode: mode,
+      kind: kind,
+      part: part,
+      live: liveAnswers(),
       mood: readMood(),
       sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
       sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, 280) : '',
@@ -81,7 +90,7 @@
       originalTitle: fieldValue('originalTitle'),
       comment: fieldValue('comment'),
       name: fieldValue('name'),
-      lines: fieldValue('lines'),
+      lines: fieldValue('lines') || pastedOrDraft(),
       year: fieldValue('year'),
       kind: fieldValue('kind') || 'composition',
       work: fieldValue('work'),
@@ -117,10 +126,25 @@
     };
   }
 
-  function paintModes() {
-    var host = $('sh-modes');
+  function modeLane(item) {
+    if (!item) return '';
+    if (item.lane) return item.lane;
+    if (item.id === 'flip' || item.id === 'funkify' || item.id === 'review') return 'remix';
+    if (item.id === 'parody' || item.id === 'cover' || item.id === 'public-domain') return 'source';
+    if (item.id === 'hook' || item.id === 'bars') return 'part';
+    if (item.id === 'write' || item.id === 'funny' || item.id === 'madlibs' || item.id === 'superhero' || item.id === 'poem' || item.id === 'battle') return 'create';
+    return '';
+  }
+
+  function paintModeRow(host, lane) {
+    if (!host) return;
     host.textContent = '';
     modes.MODES.forEach(function (item) {
+      var itemLane = modeLane(item);
+      var show = itemLane === lane || (lane === 'remix' && item.id === 'superhero');
+      if (lane === 'create' && itemLane !== 'create') show = false;
+      if (!show) return;
+      if (lane === 'remix') return;
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'sh-chip' + (item.id === mode ? ' on' : '');
@@ -131,15 +155,27 @@
     });
   }
 
+  function paintModes() {
+    paintModeRow($('sh-modes'), 'create');
+    paintModeRow($('sh-source-modes'), 'source');
+    paintKinds();
+    paintParts();
+    paintLive();
+  }
+
   function setMode(id) {
     if (id === 'battle') {
-      window.location.href = '/battle';
+      var battleUrl = '/battle';
+      if (craft.region || chosenSlang) {
+        battleUrl += '?region=' + encodeURIComponent(craft.region || '') + '&slang=' + encodeURIComponent(chosenSlang || '');
+      }
+      window.location.href = battleUrl;
       return;
     }
     mode = id;
     parodyAck = false;
     undoStack = [];
-    lastDraft = null;
+    if (id !== 'superhero' && id !== 'flip' && id !== 'funkify') lastDraft = null;
     var info = modes.modeById(id);
     var shell = document.getElementById('sh-shell');
     if (shell) shell.classList.toggle('is-v2', id !== 'write');
@@ -149,9 +185,10 @@
     $('sh-v2-out').textContent = '';
     $('sh-v2-extra').textContent = '';
     $('sh-v2-error').hidden = true;
+    if (live && live.mode !== id) resetLive();
     paintModes();
     paintFields();
-    if (id === 'bars') paintSlang();
+    paintSlang();
     var go = $('sh-v2-go');
     go.hidden = pageStatus.disabled;
     go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
@@ -197,7 +234,7 @@
   function paintFields() {
     var host = $('sh-v2-fields');
     host.textContent = '';
-    var rabbit = craft.rabbit && mode !== 'review' && mode !== 'cover' && mode !== 'public-domain' && mode !== 'hook';
+    var rabbit = craft.rabbit && mode !== 'review' && mode !== 'cover' && mode !== 'public-domain' && mode !== 'hook' && mode !== 'madlibs';
     if (rabbit) {
       addField(host, { id: 'place', label: 'A real place', placeholder: 'the kitchen at 2am' });
       addField(host, { id: 'object', label: 'An object you can touch', placeholder: 'a chipped mug' });
@@ -316,7 +353,7 @@
     if (!craft.region) {
       var note = document.createElement('p');
       note.className = 'sh-help';
-      note.textContent = 'Pick a region to see words from the slang list.';
+      note.textContent = 'Region is optional. Pick one if you want slang and everyday terms from that place.';
       host.appendChild(note);
       return;
     }
@@ -358,22 +395,307 @@
   }
 
   function fillRegions(tags) {
-    var select = $('sh-region');
-    if (!select) return;
-    var current = select.value;
-    select.textContent = '';
-    var any = document.createElement('option');
-    any.value = '';
-    any.textContent = 'Any region';
-    select.appendChild(any);
-    tags.forEach(function (tag) {
-      var option = document.createElement('option');
-      option.value = tag;
-      option.textContent = tag;
-      select.appendChild(option);
+    if (tags) regionTags = tags;
+    var host = $('sh-region');
+    if (!host) return;
+    host.textContent = '';
+    function chip(value, label) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (craft.region === value ? ' on' : '');
+      button.textContent = label;
+      button.setAttribute('aria-pressed', craft.region === value ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        craft.region = value;
+        chosenSlang = '';
+        fillRegions();
+        paintSlang();
+      });
+      host.appendChild(button);
+    }
+    chip('', 'No region');
+    regionTags.forEach(function (tag) { chip(tag, tag); });
+  }
+
+  function ideaTopic() {
+    var own = $('sh-own-idea');
+    var text = own ? String(own.value || '').trim() : '';
+    if (text) return text.slice(0, 120);
+    if (sparkSeed && sparkSeed.angle) return String(sparkSeed.angle).slice(0, 120);
+    return '';
+  }
+
+  function liveAnswers() {
+    if (!questions || !live) return [];
+    return questions.savedTexts(live).map(function (row) {
+      return { id: row.id, ask: row.ask, text: row.text };
     });
-    select.value = current || '';
-    craft.region = select.value;
+  }
+
+  function resetLive() {
+    if (!questions) return;
+    live = questions.open({
+      kind: kind,
+      mode: mode,
+      mood: readMood(),
+      topic: ideaTopic(),
+      part: part,
+    });
+  }
+
+  function touchLive() {
+    if (!questions) return;
+    if (!live || live.kind !== kind || live.mode !== mode || live.part !== part) {
+      resetLive();
+      return;
+    }
+    questions.sync(live, { mood: readMood(), topic: ideaTopic() });
+  }
+
+  function paintKinds() {
+    var host = $('sh-kinds');
+    if (!host || !questions) return;
+    host.textContent = '';
+    questions.KINDS.forEach(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (item.id === kind ? ' on' : '');
+      button.textContent = item.label;
+      button.setAttribute('aria-pressed', item.id === kind ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        kind = item.id;
+        resetLive();
+        paintKinds();
+        paintLive();
+      });
+      host.appendChild(button);
+    });
+  }
+
+  function paintParts() {
+    var host = $('sh-parts');
+    if (!host || !questions) return;
+    host.textContent = '';
+    questions.PARTS.forEach(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (item.id === part ? ' on' : '');
+      button.textContent = item.label;
+      button.setAttribute('aria-pressed', item.id === part ? 'true' : 'false');
+      button.addEventListener('click', function () { setPart(item.id); });
+      host.appendChild(button);
+    });
+  }
+
+  function setPart(id) {
+    part = id || 'song';
+    addingPart = part !== 'song';
+    resetLive();
+    paintParts();
+    paintLive();
+  }
+
+  function paintOwn() {
+    var host = $('sh-own');
+    if (!host || !questions) return;
+    host.textContent = '';
+    var idea = document.createElement('label');
+    idea.className = 'sh-field';
+    var ideaSpan = document.createElement('span');
+    ideaSpan.textContent = 'Your idea';
+    var area = document.createElement('textarea');
+    area.className = 'sh-area';
+    area.id = 'sh-own-idea';
+    area.maxLength = 280;
+    area.placeholder = 'One sentence. A hot topic can fill this in.';
+    area.addEventListener('input', function () {
+      touchLive();
+      paintLive();
+    });
+    idea.appendChild(ideaSpan);
+    idea.appendChild(area);
+    host.appendChild(idea);
+    questions.TOPIC_FOLLOWUPS.forEach(function (item) {
+      var label = document.createElement('label');
+      label.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = item.ask;
+      var input = document.createElement('textarea');
+      input.className = 'sh-area';
+      input.rows = 2;
+      input.maxLength = 280;
+      input.placeholder = item.hint || '';
+      input.setAttribute('data-spark-ask', item.id);
+      label.appendChild(span);
+      label.appendChild(input);
+      host.appendChild(label);
+    });
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    note.textContent = 'These questions are optional. The more you put in, the more human the draft feels. How do you feel about this, any personal experience, and what the song should hold onto can stay in the lyric. Start writing when you want.';
+    host.appendChild(note);
+  }
+
+  function syncLiveFields() {
+    if (!live) return;
+    var saved = liveAnswers();
+    function put(id, text) {
+      var el = $(id);
+      if (!el || !text) return;
+      if (!String(el.value || '').trim()) el.value = text;
+    }
+    saved.forEach(function (row) {
+      if (row.id === 'who' || row.id === 'call') put('sh-who', row.text);
+      if (row.id === 'moment' || row.id === 'happened' || row.id === 'story') put('sh-happened', row.text);
+      if (row.id === 'changed' || row.id === 'why') put('sh-why', row.text);
+      if (row.id === 'unsaid' || row.id === 'line' || row.id === 'keep-line') put('sh-line', row.text);
+    });
+  }
+
+  function paintLive() {
+    var ask = $('sh-live-ask');
+    var hint = $('sh-live-hint');
+    var done = $('sh-live-done');
+    var answer = $('sh-live-answer');
+    if (!ask || !questions) return;
+    touchLive();
+    if (answer && document.activeElement !== answer) {
+      /* keep what they are typing */
+    }
+    var card = questions.view(live);
+    if (card.done) {
+      ask.textContent = addingPart
+        ? 'Those part answers can be added to the draft.'
+        : 'You can stop here. Anything you answered can go in the draft.';
+      if (hint) hint.textContent = 'Skip was always allowed. Ask another stays on each step if you go back by changing the kind or the part.';
+      if (done) {
+        done.hidden = false;
+        done.textContent = '';
+        var line = document.createElement('span');
+        line.textContent = 'Those answers can go into the draft. You can keep going, or skip the rest.';
+        done.appendChild(line);
+        if (addingPart && part !== 'song') {
+          var add = document.createElement('button');
+          add.type = 'button';
+          add.className = 'btn btn-purple btn-md';
+          add.textContent = part === 'bars' ? 'Add these bars' : ('Add this ' + part);
+          add.addEventListener('click', appendLivePart);
+          done.appendChild(document.createTextNode(' '));
+          done.appendChild(add);
+        }
+      }
+      syncLiveFields();
+      return;
+    }
+    if (done) done.hidden = true;
+    ask.textContent = card.ask;
+    if (hint) hint.textContent = card.hint || '';
+  }
+
+  function readLiveDraft() {
+    var answer = $('sh-live-answer');
+    if (live && answer) live.draft = String(answer.value || '');
+  }
+
+  function clearLiveDraft() {
+    var answer = $('sh-live-answer');
+    if (answer) answer.value = '';
+    if (live) live.draft = '';
+  }
+
+  function onLiveNext() {
+    readLiveDraft();
+    if (questions && live) questions.next(live);
+    clearLiveDraft();
+    paintLive();
+    syncLiveFields();
+  }
+
+  function onLiveSkip() {
+    if (questions && live) questions.skip(live);
+    clearLiveDraft();
+    paintLive();
+  }
+
+  function onLiveAnother() {
+    readLiveDraft();
+    if (questions && live) questions.askAnother(live);
+    clearLiveDraft();
+    paintLive();
+    syncLiveFields();
+  }
+
+  function onLiveOwn() {
+    var box = $('sh-live-custom');
+    if (box) box.hidden = false;
+    var own = $('sh-live-own');
+    if (own) {
+      try { own.focus(); } catch (err) {}
+    }
+  }
+
+  function onLiveOwnGo() {
+    var own = $('sh-live-own');
+    var text = own ? String(own.value || '').trim() : '';
+    if (!text || !questions || !live) return;
+    questions.ownQuestion(live, text);
+    if (own) own.value = '';
+    clearLiveDraft();
+    paintLive();
+  }
+
+  function appendLivePart() {
+    var saved = liveAnswers();
+    var byId = {};
+    saved.forEach(function (row) {
+      if (row.text && !byId[row.id]) byId[row.id] = row.text;
+    });
+    if (part === 'bars') {
+      var rows = [byId.about, byId.proof].filter(Boolean).map(function (text) {
+        return { text: text, source: 'user' };
+      });
+      if (!rows.length) {
+        showSectionError('Answer a bars question first. They are optional until you add the part.');
+        return;
+      }
+      var barsSection = { label: 'Bars', lines: rows };
+      if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.appendSection) {
+        window.SongHelperPage.appendSection(barsSection);
+      } else if (lastDraft) {
+        lastDraft.sections = (lastDraft.sections || []).concat([barsSection]);
+        renderResult({ preview: lastMeta.preview, notice: lastMeta.notice, draft: lastDraft });
+      }
+      showSectionError('');
+      syncStructure();
+      return;
+    }
+    var built = modes.sectionFromAnswers(part, {
+      who: byId.who || '',
+      happened: byId.happened || byId.moment || '',
+      why: byId.why || byId.changed || '',
+      line: byId.line || byId.unsaid || '',
+      turn: byId.turn || '',
+    });
+    if (!built.ok) {
+      showSectionError(built.error);
+      return;
+    }
+    showSectionError('');
+    if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.appendSection && window.SongHelperPage.appendSection(built.section)) {
+      syncStructure();
+      return;
+    }
+    if (lastDraft) {
+      lastDraft.sections = (lastDraft.sections || []).concat([built.section]);
+      renderResult({
+        preview: lastMeta.preview,
+        notice: lastMeta.notice || (lastMeta.preview ? modes.DEMO_NOTICE : ''),
+        draft: lastDraft,
+      });
+      syncStructure();
+      return;
+    }
+    showSectionError('Write a draft first. Then this part can be added.');
   }
 
   function showError(message) {
@@ -946,16 +1268,32 @@
       craft.rabbit = rabbit.checked;
       paintFields();
     });
-    var region = $('sh-region');
-    if (region) region.addEventListener('change', function () {
-      craft.region = region.value;
-      chosenSlang = '';
-      paintSlang();
+    var heroRemix = $('sh-remix-hero');
+    if (heroRemix) heroRemix.addEventListener('click', function () {
+      setMode('superhero');
+      var panel = $('sh-v2');
+      if (panel && panel.scrollIntoView) {
+        try { panel.scrollIntoView({ block: 'start' }); } catch (err) {}
+      }
     });
     document.querySelectorAll('[data-structure]').forEach(function (button) {
       button.addEventListener('click', function () {
-        openSectionAsk(button.getAttribute('data-structure'));
+        setPart(button.getAttribute('data-structure'));
+        var liveEl = $('sh-live');
+        if (liveEl && liveEl.scrollIntoView) {
+          try { liveEl.scrollIntoView({ block: 'start' }); } catch (err) {}
+        }
       });
+    });
+    if ($('sh-live-next')) $('sh-live-next').addEventListener('click', onLiveNext);
+    if ($('sh-live-skip')) $('sh-live-skip').addEventListener('click', onLiveSkip);
+    if ($('sh-live-another')) $('sh-live-another').addEventListener('click', onLiveAnother);
+    if ($('sh-live-write')) $('sh-live-write').addEventListener('click', onLiveOwn);
+    if ($('sh-live-own-go')) $('sh-live-own-go').addEventListener('click', onLiveOwnGo);
+    var feeling = $('sh-feeling');
+    if (feeling) feeling.addEventListener('click', function () {
+      touchLive();
+      paintLive();
     });
     document.querySelectorAll('[data-transform]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -1045,10 +1383,21 @@
   }
 
   function hasDraft() {
-    if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.hasDraft) {
-      return window.SongHelperPage.hasDraft();
-    }
-    return draftHasContent(activeDraft());
+    if (window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft()) return true;
+    return draftHasContent(lastDraft);
+  }
+
+  function partPresent(draft) {
+    var found = { verse: false, hook: false, bars: false, bridge: false };
+    if (!draft || !draft.sections) return found;
+    draft.sections.forEach(function (section) {
+      var label = String(section.label || '').toLowerCase();
+      if (label.indexOf('verse') !== -1) found.verse = true;
+      if (label.indexOf('hook') !== -1 || label.indexOf('chorus') !== -1) found.hook = true;
+      if (label.indexOf('bar') !== -1) found.bars = true;
+      if (label.indexOf('bridge') !== -1) found.bridge = true;
+    });
+    return found;
   }
 
   function syncStructure() {
@@ -1056,7 +1405,10 @@
     if (!panel) return;
     var ready = hasDraft();
     panel.hidden = !ready;
+    var present = partPresent(anyDraft());
     document.querySelectorAll('[data-structure]').forEach(function (button) {
+      var name = button.getAttribute('data-structure');
+      button.hidden = Boolean(ready && present[name]);
       button.disabled = !ready;
     });
     if (!ready) {
@@ -1207,14 +1559,32 @@
     return value.slice(0, 280);
   }
 
+  function pastedOrDraft() {
+    var pasted = $('sh-transform-lines');
+    var extra = pasted ? String(pasted.value || '').trim() : '';
+    if (extra) return extra.slice(0, 4000);
+    if (mode !== 'flip' && mode !== 'funkify' && mode !== 'superhero') return '';
+    var draft = anyDraft();
+    if (!draft || !modes.allLines) return '';
+    return modes.allLines(draft).map(function (row) { return row.text; }).join('\n').slice(0, 4000);
+  }
+
+  function anyDraft() {
+    if (window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft()) {
+      return window.SongHelperPage.draft();
+    }
+    return lastDraft;
+  }
+
   function rememberAsk() {
-    var host = $('sh-spark');
-    if (host) {
+    ['sh-spark', 'sh-own'].forEach(function (id) {
+      var host = $(id);
+      if (!host) return;
       ['feel', 'story', 'keep'].forEach(function (key) {
         var el = host.querySelector('[data-spark-ask="' + key + '"]');
         if (el) sparkAsk[key] = askValue(el);
       });
-    }
+    });
     if (sparkSeed) {
       sparkSeed.feel = sparkAsk.feel;
       sparkSeed.story = sparkAsk.story;
@@ -1251,6 +1621,10 @@
       story: sparkAsk.story,
       keep: sparkAsk.keep,
     };
+    var ownIdea = $('sh-own-idea');
+    if (ownIdea && !String(ownIdea.value || '').trim()) ownIdea.value = sparkSeed.angle;
+    touchLive();
+    paintLive();
     if (item.daily) sparkDailyOpen = true;
     if (item.topic) sparkTopic = item.topic;
     if (item.headline) sparkHeadline = item.headline;
@@ -1587,6 +1961,7 @@
     spark: function () { return sparkSeed; },
   };
   bindCraft();
+  paintOwn();
   paintModes();
   paintLog();
   applySparkPrompt();

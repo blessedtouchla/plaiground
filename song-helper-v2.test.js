@@ -12,6 +12,7 @@ const guard = require('./lib/song-guard');
 const cover = require('./lib/cover-art');
 const importer = require('./scripts/import-slang');
 const handler = require('./api/song-helper');
+const questions = require('./lib/song-questions');
 
 function read(file) {
   return fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -633,7 +634,20 @@ function runPages() {
   assert.ok(js.includes('applyTransform'));
   assert.ok(js.includes('data-transform'));
   assert.ok(html.includes('id="sh-mode-note"'));
-  assert.ok(html.includes('work both ways'));
+  assert.ok(html.includes('Region is optional'));
+  assert.ok(html.includes('id="sh-kinds"'));
+  assert.ok(html.includes('id="sh-live"'));
+  assert.ok(html.includes('Ask another question'));
+  assert.ok(html.includes('Write my own question'));
+  assert.ok(html.includes('id="sh-live-skip"'));
+  assert.ok(js.includes('No region'));
+  assert.ok(html.includes('id="sh-parts"'));
+  assert.ok(html.includes('data-structure="bars"'));
+  assert.ok(read('lib/song-questions.js').includes('Who is this love song for?'));
+  assert.ok(html.indexOf('id="sh-idea"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-kind"'));
+  assert.ok(html.indexOf('id="sh-kind"') < html.indexOf('id="sh-live"'));
+  assert.ok(html.indexOf('id="sh-live"') < html.indexOf('id="sh-craft"'));
   assert.ok(html.includes('data-transform="flip"'));
   assert.ok(html.includes('data-transform="funkify"'));
   assert.ok(html.includes('id="sh-transform-lines"'));
@@ -690,8 +704,62 @@ function runPages() {
   assert.strictEqual(fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).length, 11);
 }
 
+function runQuestions() {
+  assert.ok(questions.KINDS.some(function (row) { return row.id === 'love' && row.label === 'Love'; }));
+  assert.ok(questions.KINDS.some(function (row) { return row.label === 'Grateful / healing'; }));
+  assert.ok(questions.KINDS.some(function (row) { return row.label === 'Mindset / cause / news'; }));
+  assert.ok(!modes.MODES.some(function (row) { return row.id === 'love' || row.id === 'heartbreak'; }));
+  const write = questions.open({ kind: 'love', mode: 'write', mood: 'hyped', topic: '' });
+  const funny = questions.open({ kind: 'love', mode: 'funny', mood: 'hyped', topic: '' });
+  const sadFunny = questions.open({ kind: 'love', mode: 'funny', mood: 'heartbroken', topic: '' });
+  assert.notStrictEqual(questions.view(write).ask, questions.view(funny).ask);
+  assert.notStrictEqual(questions.view(funny).ask, questions.view(sadFunny).ask);
+  assert.ok(/love song for/i.test(questions.view(write).ask));
+  const themed = questions.open({ kind: 'love', mode: 'write', topic: 'the late bus' });
+  assert.ok(questions.view(themed).ask.indexOf('the late bus') !== -1);
+  const swap = questions.open({ kind: 'love', mode: 'write' });
+  const first = questions.view(swap).ask;
+  questions.askAnother(swap);
+  assert.notStrictEqual(questions.view(swap).ask, first);
+  assert.strictEqual(questions.view(swap).depth, 0);
+  const follow = questions.open({ kind: 'love', mode: 'write' });
+  follow.draft = 'Maya';
+  questions.askAnother(follow);
+  assert.ok(questions.view(follow).ask.indexOf('Maya') !== -1);
+  assert.strictEqual(questions.view(follow).depth, 0);
+  const skipped = questions.open({ kind: 'heartbreak', mode: 'write' });
+  questions.skip(skipped);
+  assert.strictEqual(questions.view(skipped).depth, 1);
+  const custom = questions.open({ kind: 'hype', mode: 'poem' });
+  questions.ownQuestion(custom, 'What color was the room?');
+  assert.strictEqual(questions.view(custom).ask, 'What color was the room?');
+  const loveBlanks = questions.madlibs('love').map(function (row) { return row.id; }).join(',');
+  const hypeBlanks = questions.madlibs('hype').map(function (row) { return row.id; }).join(',');
+  const pettyBlanks = questions.madlibs('petty').map(function (row) { return row.id; }).join(',');
+  assert.notStrictEqual(loveBlanks, hypeBlanks);
+  assert.notStrictEqual(loveBlanks, pettyBlanks);
+  assert.ok(questions.PARTS.some(function (row) { return row.id === 'song' && row.label === 'Whole song'; }));
+  assert.ok(questions.TOPIC_FOLLOWUPS.some(function (row) { return row.ask === 'How do you feel about this?'; }));
+  const packed = modes.buildSample({
+    mode: 'madlibs',
+    kind: 'love',
+    mood: 'in love',
+    live: [
+      { id: 'call', text: 'honey' },
+      { id: 'place', text: 'the kitchen at 2am' },
+      { id: 'object', text: 'a chipped mug' },
+    ],
+    craft: { rabbit: true },
+  });
+  assert.strictEqual(packed.ok, true);
+  const packedText = modes.allLines(packed.draft).map(function (row) { return row.text; }).join('\n');
+  assert.ok(packedText.indexOf('honey') !== -1);
+  assert.ok(packedText.indexOf('a chipped mug') !== -1);
+}
+
 async function run() {
   runModes();
+  runQuestions();
   runSlang();
   runSpark();
   await runApi();

@@ -13,6 +13,8 @@
     beat: '',
     energy: '',
     instruments: [],
+    region: '',
+    slang: '',
     verses: [],
     variant: 0,
     busy: false,
@@ -24,6 +26,20 @@
 
   var form = document.getElementById('bt-form');
   if (!form) return;
+
+  try {
+    var params = new URLSearchParams(window.location.search);
+    state.region = params.get('region') || '';
+    state.slang = params.get('slang') || '';
+  } catch (err) {}
+  if (state.region || state.slang) {
+    var regionNote = document.createElement('p');
+    regionNote.className = 'sh-help';
+    regionNote.textContent = state.region
+      ? ('Region is optional. This battle can use everyday words from ' + state.region + (state.slang ? (': ' + state.slang) : '') + '.')
+      : ('Region is optional. This battle can use this word: ' + state.slang + '.');
+    form.insertBefore(regionNote, form.firstChild);
+  }
 
   function $(id) { return document.getElementById(id); }
 
@@ -222,6 +238,8 @@
       beat: state.beat,
       energy: state.energy,
       instruments: state.instruments,
+      region: state.region || '',
+      slang: state.slang || '',
       variant: state.variant,
       transcript: transcript.map(function (verse) {
         return { role: verse.role, text: verse.text, preview: Boolean(verse.preview) };

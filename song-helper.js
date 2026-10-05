@@ -8,7 +8,7 @@
   var STEPS = ['genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
   var COPY = {
     mood: ['What is the mood?', 'Tap the feeling that fits. If none of them do, write your own.'],
-    genre: ['What kind of song is this?', 'Pick a genre. The picture questions will match it. Comedy is its own lane.'],
+    genre: ['What sound should it wear?', 'Hip-hop, country, R&B, and the rest. Love, heartbreak, and the other kinds are already chosen above. Comedy is its own lane.'],
     happened: ['What happened, in one sentence?', 'Keep it concrete. This sentence can go in the song as you wrote it.'],
     who: ['Who is this song for or about?', 'A nickname is fine.'],
     why: ['What did they do, or what changed?', 'One sentence. Your words, not a polished line.'],
