@@ -533,13 +533,35 @@ body.song-helper-page .plai-bubble {
   margin: 12px 0 0;
 }
 
-.sh-shell.is-v2 #sh-dots,
-.sh-shell.is-v2 #sh-q,
-.sh-shell.is-v2 #sh-help,
-.sh-shell.is-v2 #sh-form > section,
-.sh-shell.is-v2 #sh-form > .sh-form-error,
-.sh-shell.is-v2 #sh-form > .sh-actions {
+.sh-shell.is-v2 #sh-write {
   display: none !important;
+}
+
+.sh-path {
+  color: var(--muted);
+  margin: 0 0 16px;
+  line-height: 1.45;
+}
+
+.sh-subhead {
+  font-size: 1rem;
+  margin: 14px 0 8px;
+}
+
+.sh-spark-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.spark-card.is-picked {
+  border-color: rgba(243, 203, 71, 0.45);
+}
+
+.sh-side-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .spark-list {

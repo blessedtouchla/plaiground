@@ -100,6 +100,16 @@ function runCore() {
   assert.strictEqual(core.isPlaceholderLyric(interview.line), false);
   assert.ok(/hook sentence/i.test(core.missingAnswers({})));
   assert.strictEqual(core.missingAnswers(interview), '');
+  const sparkedInterview = core.normalizeInterview(Object.assign({}, interview, {
+    sparkTitle: 'The group chat went quiet',
+    sparkAngle: 'Write it from the person who muted the chat.',
+  }));
+  assert.strictEqual(sparkedInterview.sparkAngle, 'Write it from the person who muted the chat.');
+  const sparkedDraft = core.buildSampleDraft(sparkedInterview);
+  assert.ok(allLines(sparkedDraft).some(function (line) {
+    return line.text.indexOf('muted the chat') !== -1 && line.source === 'user';
+  }));
+  assert.ok(core.interviewPrompt(sparkedInterview).includes('muted the chat'));
   const echoed = core.draftFromModelJson(JSON.stringify({
     title: 'Echo',
     hooks: [

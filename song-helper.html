@@ -81,11 +81,39 @@
       <p class="sh-intro">Tell me the song in your own words. I’ll draft lyrics around them, then a style prompt you can take to Suno.</p>
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
-      <div class="sh-modes" id="sh-modes" role="group" aria-label="Modes"></div>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
+      <p class="sh-path">Idea, then the feeling, then the craft, then the first draft. A verse, a hook, or a bridge waits until that draft is on the page.</p>
+      <section class="sh-craft" id="sh-idea">
+        <h2 class="sh-craft-title">Start with an idea</h2>
+        <p class="sh-help">Look through What’s hot, or pick a mode. You can skip this and tell the story yourself. The helper is optional. The song stays yours.</p>
+        <div id="sh-spark"></div>
+        <p class="sh-note" id="sh-spark-picked" hidden></p>
+        <h3 class="sh-subhead">Mode</h3>
+        <div class="sh-modes" id="sh-modes" role="group" aria-label="Modes"></div>
+        <p class="sh-spark-link"><a href="/spark">Open the full What’s hot page</a></p>
+      </section>
+      <section class="sh-craft" id="sh-feeling">
+        <h2 class="sh-craft-title">How does it feel?</h2>
+        <p class="sh-help">Tap the feeling that fits. If none of them do, write your own. This comes before the craft dials.</p>
+        <div class="sh-chips" role="group" aria-label="Mood">
+          <button type="button" class="sh-chip" data-group="mood" data-value="heartbroken" aria-pressed="false">heartbroken</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="hyped" aria-pressed="false">hyped</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="grateful" aria-pressed="false">grateful</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="petty" aria-pressed="false">petty</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="in love" aria-pressed="false">in love</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="nostalgic" aria-pressed="false">nostalgic</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="healing" aria-pressed="false">healing</button>
+          <button type="button" class="sh-chip" data-group="mood" data-value="custom" aria-pressed="false">something else</button>
+        </div>
+        <label class="sh-field" id="sh-mood-custom" hidden>
+          <span>Your mood</span>
+          <input class="sh-input" id="sh-mood-input" maxlength="40" autocomplete="off" placeholder="a few words" />
+        </label>
+        <p class="sh-form-error" id="sh-mood-error" role="alert" hidden></p>
+      </section>
       <div class="sh-craft" id="sh-craft">
         <h2 class="sh-craft-title">Craft</h2>
-        <p class="sh-help">These dials sit on every mode. Rabbit hole is on, so the first questions are concrete.</p>
+        <p class="sh-help">Set these after the idea and the feeling. They shape the draft. They do not write a verse, a hook, or a bridge by themselves.</p>
         <div class="sh-group">
           <h3>Vocabulary</h3>
           <div class="sh-chips" role="group" aria-label="Vocabulary">
@@ -136,14 +164,6 @@
           Rabbit hole. Ask for a place, an object, and something someone said before drafting.
         </label>
         <p class="sh-help" id="sh-concrete">Concrete-detail rule: the song has to stand on something you can point at.</p>
-        <div class="sh-group">
-          <h3>Structure</h3>
-          <div class="sh-side-actions">
-            <button type="button" class="btn btn-ghost btn-md" data-structure="verse">Add a verse</button>
-            <button type="button" class="btn btn-ghost btn-md" data-structure="hook">Add a hook</button>
-            <button type="button" class="btn btn-ghost btn-md" data-structure="bridge">Add a bridge</button>
-          </div>
-        </div>
         <div id="sh-log" class="sh-log"></div>
         <div class="sh-team">
           <button type="button" class="btn btn-ghost btn-md" id="sh-scout">Ask Scout</button>
@@ -151,18 +171,6 @@
         </div>
         <div id="sh-team-out" class="sh-team-out" hidden></div>
         <div id="sh-turnstile" hidden></div>
-        <p class="sh-spark-link"><a href="/spark">What’s hot</a> is the spark page for song ideas.</p>
-      </div>
-      <div id="sh-v2" hidden>
-        <p class="sh-help" id="sh-v2-blurb"></p>
-        <div id="sh-v2-fields"></div>
-        <div id="sh-v2-extra"></div>
-        <p class="sh-banner" id="sh-v2-banner" hidden></p>
-        <div id="sh-v2-out"></div>
-        <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
-        <div class="sh-actions no-print">
-          <button type="button" class="btn btn-purple btn-md" id="sh-v2-go">Make the draft</button>
-        </div>
       </div>
       <div class="sh-profile" id="sh-profile" hidden>
         <p class="sh-label">From your artist profile</p>
@@ -176,33 +184,30 @@
         </label>
         <p class="sh-note" id="sh-profile-note"></p>
       </div>
+      <div id="sh-v2" hidden>
+        <h2 class="sh-craft-title">Questions, then the first draft</h2>
+        <p class="sh-help" id="sh-v2-blurb"></p>
+        <div id="sh-v2-fields"></div>
+        <div id="sh-v2-extra"></div>
+        <p class="sh-banner" id="sh-v2-banner" hidden></p>
+        <div id="sh-v2-out"></div>
+        <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
+        <div class="sh-actions no-print">
+          <button type="button" class="btn btn-purple btn-md" id="sh-v2-go">Make the draft</button>
+        </div>
+      </div>
+      <div id="sh-write">
+      <h2 class="sh-craft-title">Questions, then the first draft</h2>
       <div class="sh-dots" id="sh-dots" role="navigation" aria-label="Progress"></div>
-      <h2 class="sh-q" id="sh-q">What is the mood?</h2>
-      <p class="sh-help" id="sh-help">Tap the feeling that fits. If none of them do, write your own.</p>
+      <h2 class="sh-q" id="sh-q">What kind of song is this?</h2>
+      <p class="sh-help" id="sh-help">Pick a genre. The picture questions will match it. Comedy is its own lane.</p>
 
       <form id="sh-form" action="/song-helper" method="post" novalidate>
         <div class="sh-hp" aria-hidden="true">
           <label>Company website <input type="text" id="sh-honey" name="company_website" tabindex="-1" autocomplete="off" /></label>
         </div>
 
-        <section data-step="mood">
-          <div class="sh-chips" role="group" aria-label="Mood">
-            <button type="button" class="sh-chip" data-group="mood" data-value="heartbroken" aria-pressed="false">heartbroken</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="hyped" aria-pressed="false">hyped</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="grateful" aria-pressed="false">grateful</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="petty" aria-pressed="false">petty</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="in love" aria-pressed="false">in love</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="nostalgic" aria-pressed="false">nostalgic</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="healing" aria-pressed="false">healing</button>
-            <button type="button" class="sh-chip" data-group="mood" data-value="custom" aria-pressed="false">something else</button>
-          </div>
-          <label class="sh-field" id="sh-mood-custom" hidden>
-            <span>Your mood</span>
-            <input class="sh-input" id="sh-mood-input" maxlength="40" autocomplete="off" placeholder="a few words" />
-          </label>
-        </section>
-
-        <section data-step="genre" hidden>
+        <section data-step="genre">
           <div class="sh-chips" id="sh-genres" role="group" aria-label="Genre"></div>
           <div id="sh-comedy" hidden>
             <div class="sh-group">
@@ -433,6 +438,18 @@
           <button type="button" class="btn btn-ghost btn-md" id="sh-restart" hidden>Start over</button>
         </div>
       </form>
+      </div>
+      <section class="sh-craft" id="sh-expand" hidden>
+        <h2 class="sh-craft-title">Add a verse, a hook, or a bridge</h2>
+        <p class="sh-help">The draft is on the page. Answer a few short questions first. The new section is written from those answers, not from the craft dials alone.</p>
+        <div class="sh-side-actions">
+          <button type="button" class="btn btn-ghost btn-md" data-structure="verse">Add a verse</button>
+          <button type="button" class="btn btn-ghost btn-md" data-structure="hook">Add a hook</button>
+          <button type="button" class="btn btn-ghost btn-md" data-structure="bridge">Add a bridge</button>
+        </div>
+        <div id="sh-section-ask" hidden></div>
+        <p class="sh-form-error" id="sh-section-error" role="alert" hidden></p>
+      </section>
     </div>
   </main>
 
@@ -488,6 +505,7 @@
   <script src="lib/song-helper.js"></script>
   <script src="lib/song-modes.js"></script>
   <script src="lib/slang.js"></script>
+  <script src="lib/spark.js"></script>
   <script src="song-helper.js"></script>
   <script src="song-helper-v2.js"></script>
   <script src="site.js?v=20260924p3"></script>

@@ -183,6 +183,54 @@ function runModes() {
 
   const homage = modes.buildSample(concrete({ mode: 'homage', name: 'Mina' }));
   assert.ok(homage.draft.notes.some(function (note) { return /not affiliated/i.test(note); }));
+
+  const sparked = modes.normalizeInput({
+    mode: 'flip',
+    place: 'the kitchen at 2am',
+    object: 'a chipped mug',
+    sparkTitle: 'The group chat went quiet',
+    sparkAngle: 'Write it from the person who muted the chat.',
+    mood: 'nostalgic',
+  });
+  assert.strictEqual(sparked.quote, 'Write it from the person who muted the chat.');
+  assert.strictEqual(sparked.mood, 'nostalgic');
+  assert.ok(modes.userPrompt(sparked).includes('muted the chat'));
+  const sparkedDraft = modes.buildSample(sparked);
+  assert.strictEqual(sparkedDraft.ok, true);
+  assert.ok(modes.allLines(sparkedDraft.draft).some(function (line) {
+    return line.source === 'user' && line.text.indexOf('muted the chat') !== -1;
+  }));
+
+  const emptySection = modes.sectionFromAnswers('verse', { who: '', happened: '', why: '' });
+  assert.strictEqual(emptySection.ok, false);
+  assert.ok(/placeholder/i.test(emptySection.error));
+  const fakeSection = modes.sectionFromAnswers('hook', {
+    line: 'The hook sentence, what happened, and why',
+    happened: 'You left the hoodie on the chair.',
+    why: 'You stopped answering when I asked you to stay.',
+  });
+  assert.strictEqual(fakeSection.ok, false);
+  const verse = modes.sectionFromAnswers('verse', {
+    who: 'M',
+    happened: 'You left the hoodie on the chair.',
+    why: 'The room still smells like rain.',
+  });
+  assert.strictEqual(verse.ok, true);
+  assert.strictEqual(verse.section.label, 'Verse');
+  assert.deepStrictEqual(verse.section.lines.map(function (row) { return row.text; }), [
+    'M',
+    'You left the hoodie on the chair.',
+    'The room still smells like rain.',
+  ]);
+  assert.ok(verse.section.lines.every(function (row) { return row.source === 'user'; }));
+  const bridge = modes.sectionFromAnswers('bridge', {
+    turn: 'The light in the kitchen goes out.',
+    who: 'M',
+    why: 'The song needs the quiet after the fight.',
+  });
+  assert.strictEqual(bridge.ok, true);
+  assert.strictEqual(bridge.section.label, 'Bridge');
+  assert.ok(!/placeholder|craft dial/i.test(JSON.stringify(bridge.section)));
 }
 
 function runSlang() {
@@ -449,9 +497,31 @@ function runPages() {
   assert.ok(js.includes('hookError'));
   assert.ok(js.includes("mode === 'hook'"));
   assert.ok(js.includes('Write the hook'));
-  assert.ok(read('song-helper.js').includes("setMode('hook')"));
   assert.ok(read('song-helper.js').includes('isPlaceholderLyric'));
   assert.ok(html.includes('href="/spark"'));
+  assert.ok(html.indexOf('id="sh-idea"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-craft"'));
+  assert.ok(html.indexOf('id="sh-craft"') < html.indexOf('id="sh-v2"'));
+  assert.ok(html.indexOf('id="sh-v2"') < html.indexOf('id="sh-write"'));
+  assert.ok(html.indexOf('id="sh-write"') < html.indexOf('id="sh-expand"'));
+  assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('data-step="genre"'));
+  const craftBlock = html.slice(html.indexOf('id="sh-craft"'), html.indexOf('id="sh-v2"'));
+  assert.ok(!craftBlock.includes('data-structure='));
+  assert.ok(/id="sh-expand"[^>]*hidden/.test(html));
+  assert.ok(html.includes('data-structure="verse"'));
+  assert.ok(html.includes('data-structure="hook"'));
+  assert.ok(html.includes('data-structure="bridge"'));
+  assert.ok(html.includes('lib/spark.js'));
+  assert.ok(html.indexOf('lib/spark.js') < html.indexOf('song-helper-v2.js'));
+  assert.ok(js.includes('sectionFromAnswers'));
+  assert.ok(js.includes('Flip the angle'));
+  assert.ok(js.includes('Trending') && js.includes('Mindset') && js.includes("label: 'News'"));
+  assert.ok(js.includes('Use this spark'));
+  assert.ok(!js.includes("text: ''"));
+  assert.ok(read('song-helper.js').includes("var STEPS = ['genre'"));
+  assert.ok(!read('song-helper.js').includes("setMode('hook')"));
+  assert.ok(read('lib/song-modes.js').includes('sectionFromAnswers'));
+  assert.ok(!/—/.test(html.slice(html.indexOf('id="sh-idea"'), html.indexOf('id="sh-expand"'))));
   assert.ok(!nav.includes('/spark'));
   assert.ok(!nav.includes('song-helper'));
   assert.ok(!sparkNav.includes('/spark'));

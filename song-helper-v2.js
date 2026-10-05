@@ -18,7 +18,20 @@
   var chosenSlang = '';
   var openTip = '';
   var lastDraft = null;
+  var lastMeta = { preview: true, notice: '' };
   var parodyAck = false;
+  var sparkPack = null;
+  var sparkGroup = 'trending';
+  var sparkNews = '';
+  var sparkSeed = null;
+  var seededAngle = '';
+  var sectionKind = '';
+  var SPARK_GROUPS = [
+    { id: 'trending', label: 'Trending', lanes: ['trending'] },
+    { id: 'news', label: 'News', lanes: ['news-world', 'news-music', 'news-movies', 'news-regional'] },
+    { id: 'causes', label: 'Causes', lanes: ['causes'] },
+    { id: 'mindset', label: 'Mindset', lanes: ['mindset'] },
+  ];
   var undoStack = [];
   var pageStatus = { demo: true, disabled: false, turnstile: false };
   var turnstileToken = '';
@@ -35,9 +48,23 @@
     return value;
   }
 
+  function readMood() {
+    var pressed = document.querySelector('#sh-feeling .sh-chip.on[data-group="mood"]');
+    if (!pressed) return '';
+    var value = pressed.getAttribute('data-value') || '';
+    if (value === 'custom') {
+      var input = $('sh-mood-input');
+      return input ? String(input.value || '').trim().slice(0, 40) : '';
+    }
+    return String(value).slice(0, 40);
+  }
+
   function payload() {
     return {
       mode: mode,
+      mood: readMood(),
+      sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
+      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, 280) : '',
       place: fieldValue('place'),
       object: fieldValue('object'),
       quote: fieldValue('quote'),
@@ -104,6 +131,7 @@
     mode = id;
     parodyAck = false;
     undoStack = [];
+    lastDraft = null;
     var info = modes.modeById(id);
     var shell = document.getElementById('sh-shell');
     if (shell) shell.classList.toggle('is-v2', id !== 'write');
@@ -119,6 +147,8 @@
     var go = $('sh-v2-go');
     go.hidden = pageStatus.disabled;
     go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : 'Make the draft'));
+    seedFields();
+    syncStructure();
   }
 
   function addField(host, spec) {
@@ -258,6 +288,7 @@
         if (title && !title.value) title.value = found.title;
       });
     }
+    seedFields();
   }
 
   function paintSlang() {
@@ -346,6 +377,10 @@
     var banner = $('sh-v2-banner');
     out.textContent = '';
     extra.textContent = '';
+    lastMeta = {
+      preview: Boolean(data.preview),
+      notice: data.notice || (data.preview ? modes.DEMO_NOTICE : ''),
+    };
     banner.hidden = !data.preview;
     banner.textContent = data.preview ? (data.notice || modes.DEMO_NOTICE) : '';
     if (data.critique) {
@@ -379,7 +414,10 @@
       }
     }
     var draft = data.draft;
-    if (!draft) return;
+    if (!draft) {
+      syncStructure();
+      return;
+    }
     if (modes.isPlaceholderLyric) {
       draft.sections = (draft.sections || []).map(function (part) {
         return {
@@ -391,6 +429,7 @@
       }).filter(function (part) { return part.lines.length; });
       if (mode === 'hook' && !modes.allLines(draft).length) {
         showError('The hook did not come back. Try again in a moment.');
+        syncStructure();
         return;
       }
     }
@@ -436,6 +475,7 @@
       remember(draft, data);
       renderSuno(out, draft);
     }
+    syncStructure();
   }
 
   function renderLine(parent, part, row, index) {
@@ -739,24 +779,7 @@
     });
     document.querySelectorAll('[data-structure]').forEach(function (button) {
       button.addEventListener('click', function () {
-        var kind = button.getAttribute('data-structure');
-        if (kind === 'hook' && mode !== 'write' && mode !== 'hook' && !lastDraft) {
-          setMode('hook');
-          return;
-        }
-        if (mode !== 'write' && lastDraft) {
-          var label = kind === 'hook' ? 'Hook' : (kind === 'bridge' ? 'Bridge' : 'Verse');
-          lastDraft.sections = lastDraft.sections || [];
-          lastDraft.sections.push({
-            label: label,
-            lines: [{ text: '', source: 'user', locked: false, vote: 0 }],
-          });
-          renderResult({ preview: true, notice: modes.DEMO_NOTICE, draft: lastDraft, critique: null });
-          return;
-        }
-        if (window.SongHelperPage && window.SongHelperPage.addStructure) {
-          window.SongHelperPage.addStructure(kind);
-        }
+        openSectionAsk(button.getAttribute('data-structure'));
       });
     });
     $('sh-v2-go').addEventListener('click', generate);
@@ -823,6 +846,348 @@
     } catch (err2) {}
   }
 
+  function draftHasContent(value) {
+    if (!value || !value.sections) return false;
+    return value.sections.some(function (part) {
+      return (part.lines || []).some(function (row) {
+        var text = String(row && row.text || '').trim();
+        return text && !modes.isPlaceholderLyric(text);
+      });
+    });
+  }
+
+  function activeDraft() {
+    if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.draft) {
+      return window.SongHelperPage.draft();
+    }
+    return lastDraft;
+  }
+
+  function hasDraft() {
+    if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.hasDraft) {
+      return window.SongHelperPage.hasDraft();
+    }
+    return draftHasContent(activeDraft());
+  }
+
+  function syncStructure() {
+    var panel = $('sh-expand');
+    if (!panel) return;
+    var ready = hasDraft();
+    panel.hidden = !ready;
+    document.querySelectorAll('[data-structure]').forEach(function (button) {
+      button.disabled = !ready;
+    });
+    if (!ready) {
+      var ask = $('sh-section-ask');
+      if (ask) {
+        ask.hidden = true;
+        ask.textContent = '';
+      }
+      showSectionError('');
+    }
+  }
+
+  function showSectionError(message) {
+    var el = $('sh-section-error');
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.textContent = message;
+  }
+
+  function openSectionAsk(kind) {
+    if (!modes.SECTION_FIELDS[kind]) return;
+    if (!hasDraft()) {
+      showSectionError('Write a draft first. A verse, a hook, or a bridge adds to a song that is already on the page.');
+      return;
+    }
+    sectionKind = kind;
+    showSectionError('');
+    var host = $('sh-section-ask');
+    host.hidden = false;
+    host.textContent = '';
+    var intro = document.createElement('p');
+    intro.className = 'sh-help';
+    intro.textContent = kind === 'hook'
+      ? 'Three answers first. The hook is written from those words.'
+      : (kind === 'bridge'
+        ? 'Say what turns, who sees it, and why. Then the bridge is written from those answers.'
+        : 'Say who, what happened, and why. Then the verse is written from those answers.');
+    host.appendChild(intro);
+    modes.SECTION_FIELDS[kind].forEach(function (field) {
+      addField(host, {
+        id: field.id,
+        label: field.label,
+        kind: 'area',
+        placeholder: field.placeholder,
+      });
+    });
+    var go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'btn btn-purple btn-md';
+    go.textContent = kind === 'hook' ? 'Write this hook' : (kind === 'bridge' ? 'Write this bridge' : 'Write this verse');
+    go.addEventListener('click', writeSection);
+    host.appendChild(go);
+    document.querySelectorAll('[data-structure]').forEach(function (button) {
+      button.classList.toggle('on', button.getAttribute('data-structure') === kind);
+    });
+    try { host.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+    var first = host.querySelector('textarea, input');
+    if (first) {
+      try { first.focus(); } catch (err2) {}
+    }
+  }
+
+  function sectionAnswers() {
+    var spec = modes.SECTION_FIELDS[sectionKind] || [];
+    var host = $('sh-section-ask');
+    var out = {};
+    spec.forEach(function (field) {
+      var el = host.querySelector('[data-field="' + field.id + '"]');
+      var value = el ? String(el.value || '').trim() : '';
+      var hint = el ? String(el.getAttribute('placeholder') || '').trim() : '';
+      if (hint && value.toLowerCase() === hint.toLowerCase()) value = '';
+      if (modes.isPlaceholderLyric(value)) value = '';
+      out[field.id] = value;
+    });
+    return out;
+  }
+
+  function writeSection() {
+    var built = modes.sectionFromAnswers(sectionKind, sectionAnswers());
+    if (!built.ok) {
+      showSectionError(built.error);
+      return;
+    }
+    showSectionError('');
+    if (mode === 'write') {
+      if (!window.SongHelperPage || !window.SongHelperPage.appendSection || !window.SongHelperPage.appendSection(built.section)) {
+        showSectionError('Write a draft first. A verse, a hook, or a bridge adds to a song that is already on the page.');
+        return;
+      }
+    } else if (lastDraft) {
+      lastDraft.sections = (lastDraft.sections || []).concat([built.section]);
+      renderResult({
+        preview: lastMeta.preview,
+        notice: lastMeta.notice || (lastMeta.preview ? modes.DEMO_NOTICE : ''),
+        draft: lastDraft,
+      });
+    } else {
+      showSectionError('Write a draft first. A verse, a hook, or a bridge adds to a song that is already on the page.');
+      return;
+    }
+    var host = $('sh-section-ask');
+    host.hidden = true;
+    host.textContent = '';
+  }
+
+  function seedFields() {
+    if (!sparkSeed || !sparkSeed.angle) return;
+    var happenedValue = sparkSeed.angle.slice(0, 280);
+    var quoteValue = sparkSeed.angle.slice(0, 160);
+    function fill(el, next) {
+      if (!el) return;
+      var current = String(el.value || '').trim();
+      if (!current || current === seededAngle || current === seededAngle.slice(0, next.length)) el.value = next;
+    }
+    fill($('sh-happened'), happenedValue);
+    fill(document.querySelector('#sh-v2-fields [data-field="quote"]'), quoteValue);
+    fill(document.querySelector('#sh-v2-fields [data-field="happened"]'), happenedValue);
+    seededAngle = happenedValue;
+  }
+
+  function paintSparkNote() {
+    var note = $('sh-spark-picked');
+    if (!note) return;
+    if (!sparkSeed || !sparkSeed.angle) {
+      note.hidden = true;
+      note.textContent = '';
+      return;
+    }
+    note.hidden = false;
+    var title = sparkSeed.title ? (': ' + sparkSeed.title) : '';
+    note.textContent = 'Using this spark' + title + '. That angle is waiting in the draft questions. You can still change it.';
+  }
+
+  function sparkText(item) {
+    return [(item && item.title) || '', (item && item.detail) || '', (item && item.flip) || ''].join(' ');
+  }
+
+  function chooseSpark(item, which) {
+    if (!item) return;
+    var spark = window.SparkCore;
+    var angle = which === 'flip'
+      ? (item.flip || item.detail || item.title || '')
+      : (item.detail || item.title || '');
+    angle = String(angle || '').replace(/\s+/g, ' ').trim();
+    if (!angle) return;
+    if (spark && spark.tragedy(sparkText(item) + ' ' + angle)) return;
+    sparkSeed = {
+      id: item.id || '',
+      title: String(item.title || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+      angle: angle.slice(0, 280),
+      lane: item.lane || '',
+      sourceLabel: item.sourceLabel || '',
+      sourceUrl: item.sourceUrl || '',
+    };
+    seedFields();
+    paintSparkNote();
+    if (sparkPack) paintSpark(sparkPack);
+  }
+
+  function sparkCard(item) {
+    var spark = window.SparkCore;
+    var article = document.createElement('article');
+    article.className = 'spark-card' + (sparkSeed && sparkSeed.id && sparkSeed.id === item.id ? ' is-picked' : '');
+    var title = document.createElement('h3');
+    title.textContent = item.title || 'Spark';
+    var detail = document.createElement('p');
+    detail.textContent = item.detail || '';
+    var source = document.createElement('p');
+    source.className = 'spark-source';
+    if (item.sourceUrl) {
+      var link = document.createElement('a');
+      link.href = item.sourceUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = item.sourceLabel || item.sourceUrl;
+      source.appendChild(link);
+    } else {
+      source.textContent = item.sourceLabel || (spark ? spark.SAMPLE_LABEL : 'Sample. No live source is connected.');
+    }
+    article.appendChild(title);
+    if (detail.textContent) article.appendChild(detail);
+    article.appendChild(source);
+    addSparkLine(article, 'Flip the angle', item.flip);
+    addSparkLine(article, 'Answer song', item.answer);
+    if (item.cause) addSparkLine(article, 'Cause drop', item.cause);
+    if (item.dailyNote) {
+      var daily = document.createElement('p');
+      daily.className = 'spark-source';
+      daily.textContent = item.dailyNote;
+      article.appendChild(daily);
+    }
+    var actions = document.createElement('div');
+    actions.className = 'sh-spark-actions';
+    actions.appendChild(sparkButton('Use this spark', function () { chooseSpark(item, 'spark'); }));
+    if (item.flip) actions.appendChild(sparkButton('Flip the angle', function () { chooseSpark(item, 'flip'); }));
+    article.appendChild(actions);
+    return article;
+  }
+
+  function addSparkLine(parent, label, text) {
+    if (!text) return;
+    var p = document.createElement('p');
+    var strong = document.createElement('strong');
+    strong.textContent = label + ': ';
+    p.appendChild(strong);
+    p.appendChild(document.createTextNode(text));
+    parent.appendChild(p);
+  }
+
+  function sparkButton(label, onClick) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-ghost btn-md';
+    button.textContent = label;
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function sparkChip(label, on, onClick) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'sh-chip' + (on ? ' on' : '');
+    button.textContent = label;
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function paintSpark(pack) {
+    if (pack) sparkPack = pack;
+    var host = $('sh-spark');
+    var spark = window.SparkCore;
+    if (!host || !spark || !sparkPack) return;
+    host.textContent = '';
+    var banner = document.createElement('p');
+    banner.className = 'sh-banner';
+    banner.textContent = sparkPack.notice || spark.SAMPLE_LABEL;
+    host.appendChild(banner);
+    if (sparkPack.daily && !spark.tragedy(sparkText(sparkPack.daily))) {
+      var dailyLabel = document.createElement('h3');
+      dailyLabel.className = 'sh-subhead';
+      dailyLabel.textContent = 'Daily spark';
+      host.appendChild(dailyLabel);
+      host.appendChild(sparkCard(sparkPack.daily));
+    }
+    var groups = document.createElement('div');
+    groups.className = 'sh-modes';
+    groups.setAttribute('role', 'group');
+    groups.setAttribute('aria-label', "What's hot");
+    SPARK_GROUPS.forEach(function (group) {
+      groups.appendChild(sparkChip(group.label, group.id === sparkGroup, function () {
+        sparkGroup = group.id;
+        sparkNews = '';
+        paintSpark();
+      }));
+    });
+    host.appendChild(groups);
+    if (sparkGroup === 'news') {
+      var desks = document.createElement('div');
+      desks.className = 'sh-modes';
+      desks.setAttribute('role', 'group');
+      desks.setAttribute('aria-label', 'News desks');
+      desks.appendChild(sparkChip('All news', !sparkNews, function () {
+        sparkNews = '';
+        paintSpark();
+      }));
+      spark.LANES.filter(function (lane) { return lane.id.indexOf('news-') === 0; }).forEach(function (lane) {
+        desks.appendChild(sparkChip(lane.label.replace(/^News · /, ''), sparkNews === lane.id, function () {
+          sparkNews = lane.id;
+          paintSpark();
+        }));
+      });
+      host.appendChild(desks);
+    }
+    var group = SPARK_GROUPS.filter(function (row) { return row.id === sparkGroup; })[0];
+    var lanes = group ? group.lanes.slice() : [];
+    if (sparkNews) lanes = [sparkNews];
+    var list = document.createElement('div');
+    list.className = 'spark-list';
+    var items = (sparkPack.items || []).filter(function (item) {
+      if (!item || spark.tragedy(sparkText(item))) return false;
+      return lanes.indexOf(item.lane) !== -1;
+    });
+    if (!items.length) {
+      var empty = document.createElement('p');
+      empty.className = 'sh-help';
+      empty.textContent = 'Nothing in this lane right now.';
+      list.appendChild(empty);
+    } else {
+      items.forEach(function (item) { list.appendChild(sparkCard(item)); });
+    }
+    host.appendChild(list);
+  }
+
+  async function loadSpark() {
+    var spark = window.SparkCore;
+    var pack = spark ? spark.pack() : null;
+    try {
+      var response = await fetch('/api/spark');
+      if (response.ok) {
+        var data = await response.json();
+        if (data && data.items) pack = data;
+      }
+    } catch (err) {}
+    if (pack) paintSpark(pack);
+  }
+
   function applySparkPrompt() {
     var raw = '';
     try { raw = sessionStorage.getItem('plaiground.sparkPrompt') || ''; } catch (err) { return; }
@@ -830,23 +1195,30 @@
     var prompt = null;
     try { prompt = JSON.parse(raw); } catch (err) { return; }
     try { sessionStorage.removeItem('plaiground.sparkPrompt'); } catch (err) {}
-    var line = String((prompt && (prompt.flip || prompt.answer || prompt.title)) || '').trim();
-    var happened = $('sh-happened');
-    if (happened && !happened.value && line) happened.value = line.slice(0, 280);
-    var banner = $('sh-demo');
-    if (!banner || !banner.parentNode || !line) return;
-    var note = document.createElement('p');
-    note.className = 'sh-note';
-    note.id = 'sh-spark-note';
-    note.textContent = 'From What\'s hot' + (prompt.title ? (': ' + prompt.title) : '') + '. That line is waiting in the concrete sentence.';
-    banner.parentNode.insertBefore(note, banner.nextSibling);
+    if (!prompt) return;
+    chooseSpark({
+      id: prompt.id || 'from-spark-page',
+      title: prompt.title || '',
+      detail: prompt.answer || prompt.flip || prompt.title || '',
+      flip: prompt.flip || '',
+      lane: prompt.lane || '',
+      sourceLabel: prompt.sourceLabel || '',
+      sourceUrl: prompt.sourceUrl || '',
+    }, prompt.flip ? 'flip' : 'spark');
   }
 
-  window.SongHelperV2 = { paintLog: paintLog, setMode: setMode };
+  window.SongHelperV2 = {
+    paintLog: paintLog,
+    setMode: setMode,
+    syncStructure: syncStructure,
+    spark: function () { return sparkSeed; },
+  };
   bindCraft();
   paintModes();
   paintLog();
   applySparkPrompt();
+  syncStructure();
   loadStatus();
   loadSlang();
+  loadSpark();
 }());

@@ -5,7 +5,7 @@
   var packs = window.SongPacks;
   if (!packs) return;
 
-  var STEPS = ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
+  var STEPS = ['genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
   var COPY = {
     mood: ['What is the mood?', 'Tap the feeling that fits. If none of them do, write your own.'],
     genre: ['What kind of song is this?', 'Pick a genre. The picture questions will match it. Comedy is its own lane.'],
@@ -92,6 +92,18 @@
     formError.textContent = message;
   }
 
+  function showMoodError(message) {
+    var el = $('sh-mood-error');
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.textContent = message;
+  }
+
   function readAnswer(id) {
     var el = $(id);
     if (!el) return '';
@@ -126,9 +138,17 @@
     return out;
   }
 
+  function sparkSeed() {
+    if (!window.SongHelperV2 || !window.SongHelperV2.spark) return null;
+    return window.SongHelperV2.spark() || null;
+  }
+
   function interview() {
+    var spark = sparkSeed();
     return {
       mood: moodValue(),
+      sparkTitle: spark && spark.title ? String(spark.title).slice(0, 80) : '',
+      sparkAngle: spark && spark.angle ? String(spark.angle).slice(0, 280) : '',
       happened: readAnswer('sh-happened'),
       who: $('sh-who').value.trim(),
       why: readAnswer('sh-why'),
@@ -288,6 +308,17 @@
   function go(index, skipValidate) {
     if (busy) return;
     if (!skipValidate && index > step) {
+      var moodProblem = validate('mood');
+      if (moodProblem) {
+        showError(moodProblem);
+        showMoodError(moodProblem);
+        var feeling = document.getElementById('sh-feeling');
+        if (feeling && feeling.scrollIntoView) {
+          try { feeling.scrollIntoView({ block: 'center' }); } catch (err) {}
+        }
+        return;
+      }
+      showMoodError('');
       var problem = validate(STEPS[step]);
       if (problem) {
         showError(problem);
@@ -392,6 +423,7 @@
     attr.hidden = preview;
     attr.textContent = preview ? '' : (core.PAGE_CREDIT || '');
     renderSuno();
+    if (window.SongHelperV2 && window.SongHelperV2.syncStructure) window.SongHelperV2.syncStructure();
   }
 
   function mountLineTools(parent, box, line) {
@@ -523,8 +555,11 @@
     if (block) {
       draftError.hidden = false;
       draftError.textContent = block;
+      var moodProblem = validate('mood');
+      if (moodProblem) showMoodError(moodProblem);
       return;
     }
+    showMoodError('');
     draftError.hidden = true;
     setBusy(true, force ? 'Writing another pass…' : 'Drafting around your words…');
     try {
@@ -788,7 +823,10 @@
     }
     picks[group] = value;
     setPressed(group, value);
-    if (group === 'mood') $('sh-mood-custom').hidden = value !== 'custom';
+    if (group === 'mood') {
+      $('sh-mood-custom').hidden = value !== 'custom';
+      showMoodError('');
+    }
     if (group === 'pack') {
       $('sh-comedy').hidden = value !== 'comedy';
       renderWords();
@@ -802,6 +840,7 @@
     if (!el) return;
     el.addEventListener('input', function () {
       if (id === 'sh-style-genre' || id === 'sh-feeling') styleTouched = true;
+      if (id === 'sh-mood-input') showMoodError('');
       if (STEPS[step] === 'style') renderStyle();
     });
   });
@@ -1006,28 +1045,50 @@
     renderDraft();
   }
 
-  function addStructure(kind) {
-    if (kind === 'hook' && validate('line')) {
-      if (window.SongHelperV2 && window.SongHelperV2.setMode) {
-        window.SongHelperV2.setMode('hook');
-        return;
-      }
-      showError('Answer the hook questions before adding a hook.');
-      return;
-    }
-    if (!draft) {
-      draft = { title: (titleEl && titleEl.value) || 'Untitled', hooks: [], sections: [] };
-    }
-    var label = kind === 'hook' ? 'Hook' : (kind === 'bridge' ? 'Bridge' : 'Verse');
-    draft.sections.push({
-      label: label,
-      lines: [{ text: '', source: 'user', role: kind === 'hook' ? 'hook' : '', locked: false, vote: 0 }],
+  function draftHasContent(value) {
+    if (!value || !value.sections) return false;
+    return value.sections.some(function (section) {
+      return (section.lines || []).some(function (line) {
+        var text = String(line && line.text || '').trim();
+        if (!text) return false;
+        if (core.isPlaceholderLyric && core.isPlaceholderLyric(text)) return false;
+        if (core.isGrokCreditLine && core.isGrokCreditLine(text)) return false;
+        return true;
+      });
     });
-    if (step < STEPS.indexOf('draft')) {
-      step = STEPS.indexOf('draft');
+  }
+
+  function appendSection(part) {
+    if (!draftHasContent(draft) || !part || !part.lines) return false;
+    var lines = part.lines.filter(function (row) {
+      var text = String(row && row.text || '').trim();
+      if (!text) return false;
+      if (core.isPlaceholderLyric && core.isPlaceholderLyric(text)) return false;
+      return true;
+    });
+    if (!lines.length) return false;
+    draft.sections.push({
+      label: part.label || 'Verse',
+      lines: lines.map(function (row) {
+        var text = String(row.text).trim();
+        return {
+          text: text,
+          source: 'user',
+          role: /hook/i.test(part.label || '') ? 'hook' : '',
+          locked: false,
+          vote: 0,
+          original: text,
+          edited: false,
+        };
+      }),
+    });
+    var draftStep = STEPS.indexOf('draft');
+    if (draftStep >= 0 && step !== draftStep) {
+      step = draftStep;
       showStep();
     }
     renderDraft();
+    return true;
   }
 
   function rememberDraft() {
@@ -1051,10 +1112,24 @@
   }
 
   window.SongHelperPage = {
-    addStructure: addStructure,
+    appendSection: appendSection,
     remember: rememberDraft,
     draft: function () { return draft; },
+    hasDraft: function () { return draftHasContent(draft); },
   };
+
+  var feeling = document.getElementById('sh-feeling');
+  if (feeling) {
+    feeling.addEventListener('click', function (event) {
+      var chip = event.target.closest ? event.target.closest('.sh-chip') : null;
+      if (!chip || chip.getAttribute('data-group') !== 'mood') return;
+      picks.mood = chip.getAttribute('data-value');
+      setPressed('mood', picks.mood);
+      if ($('sh-mood-custom')) $('sh-mood-custom').hidden = picks.mood !== 'custom';
+      showMoodError('');
+      showError('');
+    });
+  }
 
   var battleSaved = battleSavedDraft();
   if (battleSaved) openBattleDraft(battleSaved);
