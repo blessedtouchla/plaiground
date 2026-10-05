@@ -316,6 +316,9 @@
     var file = path.split('/').pop() || '';
     if (path === '/admin' || path === '/admin/') return '/admin';
     if (path === '/charts' || path === '/charts/') return '/charts';
+    if (path === '/my-lyrics' || path === '/my-lyrics/') return '/my-lyrics';
+    if (path === '/song-helper' || path === '/song-helper/') return '/song-helper';
+    if (path === '/battle' || path === '/battle/') return '/battle';
     if (/^\/charts\/(top-100|rnb|country|gospel)\/?$/.test(path)) {
       return path.replace(/\/$/, '');
     }

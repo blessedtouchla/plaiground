@@ -20,6 +20,7 @@
 const { listAdminOverview } = require('../lib/admin-overview');
 const { listSignupRows, signupRowsToCsv } = require('../lib/admin-signups');
 const roadmap = require('../lib/roadmap');
+const lyrics = require('../lib/lyrics');
 const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
@@ -67,6 +68,7 @@ const ROUTE_ACTIONS = {
   problem: true,
   'admin-signups': true,
   roadmap: true,
+  lyrics: true,
   'artist-profiles': true,
   'admin-roadmaps': true,
 };
@@ -110,6 +112,12 @@ function sendSignupCsv(res, rows) {
   res.setHeader('Content-Disposition', 'attachment; filename="plaiground-signups.csv"');
   res.setHeader('Cache-Control', 'no-store');
   res.end(signupRowsToCsv(rows));
+}
+
+function isLyrics(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/lyrics') return true;
+  return queryValue(req, 'action') === 'lyrics';
 }
 
 function isRoadmap(req) {
@@ -216,6 +224,44 @@ async function ownSaved(req, res, read, save, key) {
     const input = body && (body[key] || (key === 'plan' ? body.roadmap : body.record));
     const saved = await save(row.id, input);
     sendJson(res, 200, savedPayload(saved, key));
+  } catch (err) {
+    if (err && err.code === 'VALIDATION') {
+      sendJson(res, 400, { error: err.message });
+      return;
+    }
+    if (err && err.code === 'TOO_LARGE') {
+      sendJson(res, 413, { error: err.message });
+      return;
+    }
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function ownLyrics(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+  try {
+    if (req.method === 'GET') {
+      sendJson(res, 200, await lyrics.listOwn(row.id));
+      return;
+    }
+    const body = await readBody(req);
+    if (bodyHasPassword(body)) {
+      sendJson(res, 400, { error: 'Password is not accepted here.' });
+      return;
+    }
+    const saved = await lyrics.saveOwn(row.id, body && (body.song || body));
+    sendJson(res, 200, saved);
   } catch (err) {
     if (err && err.code === 'VALIDATION') {
       sendJson(res, 400, { error: err.message });
@@ -797,6 +843,10 @@ module.exports = async function handler(req, res) {
   }
   if (isAdminRoadmaps(req)) {
     await adminRoadmaps(req, res);
+    return;
+  }
+  if (isLyrics(req)) {
+    await ownLyrics(req, res);
     return;
   }
   if (isRoadmap(req)) {

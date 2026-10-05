@@ -105,3 +105,15 @@ CREATE TABLE IF NOT EXISTS artist_profile_saves (
 
 CREATE INDEX IF NOT EXISTS artist_profile_saves_user_created_idx
   ON artist_profile_saves (user_id, created_at DESC);
+
+-- One row per save. A new save appends. It does not overwrite older songs.
+CREATE TABLE IF NOT EXISTS saved_lyrics (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  song jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS saved_lyrics_user_created_idx
+  ON saved_lyrics (user_id, created_at DESC);

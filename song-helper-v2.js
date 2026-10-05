@@ -146,7 +146,7 @@
     if (id === 'bars') paintSlang();
     var go = $('sh-v2-go');
     go.hidden = pageStatus.disabled;
-    go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : 'Make the draft'));
+    go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
     seedFields();
     syncStructure();
   }
@@ -201,6 +201,14 @@
       addField(host, { id: 'why', label: 'Why it matters', kind: 'area', placeholder: 'One sentence about what changed.' });
     }
     if (mode === 'flip') addField(host, { id: 'genre', label: 'Flip it toward', placeholder: 'country' });
+    if (mode === 'flip' || mode === 'funkify') {
+      addField(host, {
+        id: 'lines',
+        label: 'Lyrics you already have, if you want to transform them',
+        kind: 'area',
+        placeholder: 'Paste a verse to reshape it. Leave this blank to draft from your answers.',
+      });
+    }
     if (mode === 'funny') {
       addField(host, {
         id: 'meter',
@@ -648,6 +656,24 @@
     });
   }
 
+  function lyricsFromDraft(draft) {
+    if (!draft || !draft.sections) return '';
+    return draft.sections.map(function (part) {
+      return (part.lines || []).map(function (row) {
+        return String(row && row.text || '').trim();
+      }).filter(function (text) {
+        return text && !modes.isPlaceholderLyric(text);
+      }).join('\n');
+    }).filter(Boolean).join('\n');
+  }
+
+  function showTransformError(message) {
+    var el = $('sh-transform-error');
+    if (!el) return;
+    el.hidden = !message;
+    el.textContent = message || '';
+  }
+
   async function generate() {
     showError('');
     if (pageStatus.disabled) {
@@ -655,12 +681,18 @@
       return;
     }
     var body = payload();
+    var prepared = modes.normalizeInput(body);
     if (mode === 'hook') {
-      var hookProblem = modes.hookError(modes.normalizeInput(body));
+      var hookProblem = modes.hookError(prepared);
       if (hookProblem) {
         showError(hookProblem);
         return;
       }
+    }
+    var problem = modes.concreteError(prepared);
+    if (problem) {
+      showError(problem);
+      return;
     }
     if (mode === 'public-domain') {
       var picked = fieldValue('work');
@@ -754,6 +786,138 @@
     });
   }
 
+  async function applyTransform(which) {
+    showTransformError('');
+    if (pageStatus.disabled) {
+      showTransformError('Song Helper is turned off right now.');
+      return;
+    }
+    var pasted = $('sh-transform-lines') ? String($('sh-transform-lines').value || '').trim() : '';
+    var lines = pasted || lyricsFromDraft(activeDraft());
+    if (!lines) {
+      showTransformError('Paste lyrics, or finish a draft first. You can also pick Flip it or Funkify at the start and fill the feeling and the questions.');
+      return;
+    }
+    var genre = $('sh-transform-genre') ? String($('sh-transform-genre').value || '').trim() : '';
+    if (which === 'flip' && !genre) {
+      showTransformError('Name the genre to flip toward.');
+      return;
+    }
+    mode = which;
+    var shell = document.getElementById('sh-shell');
+    if (shell) shell.classList.add('is-v2');
+    if ($('sh-v2')) $('sh-v2').hidden = false;
+    paintModes();
+    var body = payload();
+    body.mode = which;
+    body.lines = lines;
+    if (genre) body.genre = genre;
+    var problem = modes.concreteError(modes.normalizeInput(body));
+    if (problem) {
+      showTransformError(problem);
+      return;
+    }
+    showError('');
+    try {
+      var response = await fetch('/api/song-helper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await response.json().catch(function () { return null; });
+      if (!data) throw new Error('offline');
+      if (!response.ok || data.ok === false) {
+        showTransformError(data.error || 'That draft did not come through.');
+        return;
+      }
+      renderResult(data);
+    } catch (err) {
+      var local = modes.buildSample(body);
+      if (!local.ok) {
+        showTransformError(local.error || 'That draft did not come through.');
+        return;
+      }
+      local.notice = modes.DEMO_NOTICE;
+      renderResult(local);
+    }
+  }
+
+  function songRecord() {
+    var draft = activeDraft();
+    if (!draftHasContent(draft)) return null;
+    var titleEl = document.getElementById('sh-title');
+    var blocks = [];
+    (draft.sections || []).forEach(function (part) {
+      var rows = (part.lines || []).map(function (row) {
+        return String(row && row.text || '').trim();
+      }).filter(function (text) {
+        return text && !modes.isPlaceholderLyric(text);
+      });
+      if (!rows.length) return;
+      blocks.push('[' + (part.label || 'Verse') + ']\n' + rows.join('\n'));
+    });
+    if (!blocks.length) return null;
+    return {
+      title: titleEl && titleEl.value ? String(titleEl.value).trim().slice(0, 80) : String(draft.title || '').slice(0, 80),
+      text: blocks.join('\n\n'),
+      mode: mode || 'write',
+      mood: readMood(),
+      sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
+      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, 280) : '',
+    };
+  }
+
+  function showSaveError(message) {
+    var el = $('sh-save-error');
+    if (!el) return;
+    el.hidden = !message;
+    el.textContent = message || '';
+  }
+
+  function showSaveGate(message) {
+    var gate = $('sh-save-gate');
+    if (gate) gate.hidden = false;
+    if (message) showSaveError(message);
+  }
+
+  async function saveSong() {
+    showSaveError('');
+    var gate = $('sh-save-gate');
+    if (gate) gate.hidden = true;
+    var record = songRecord();
+    if (!record) {
+      showSaveError('Write a draft before you save.');
+      return;
+    }
+    if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.hold(record);
+    try {
+      var session = await fetch('/api/me', { credentials: 'same-origin' });
+      if (session.status === 401) {
+        showSaveGate('');
+        return;
+      }
+      if (session.status !== 200) {
+        showSaveGate('The account save did not go through. Your lyrics stay on this device.');
+        return;
+      }
+      var saveRes = await fetch('/api/me/lyrics', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song: record }),
+      });
+      var data = await saveRes.json().catch(function () { return {}; });
+      if (saveRes.ok && data && data.song && data.song.id) {
+        if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
+        window.location.href = '/my-lyrics?id=' + encodeURIComponent(data.song.id);
+        return;
+      }
+      showSaveGate('The account save did not go through. Your lyrics stay on this device.');
+    } catch (err) {
+      showSaveGate('The account save did not go through. Your lyrics stay on this device.');
+    }
+  }
+
   function bindCraft() {
     document.querySelectorAll('[data-craft]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -782,7 +946,13 @@
         openSectionAsk(button.getAttribute('data-structure'));
       });
     });
+    document.querySelectorAll('[data-transform]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        applyTransform(button.getAttribute('data-transform'));
+      });
+    });
     $('sh-v2-go').addEventListener('click', generate);
+    if ($('sh-save-song')) $('sh-save-song').addEventListener('click', saveSong);
     $('sh-scout').addEventListener('click', function () { askRole('scout'); });
     $('sh-scoop').addEventListener('click', function () { askRole('scoop'); });
   }

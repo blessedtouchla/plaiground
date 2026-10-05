@@ -48,6 +48,7 @@ function concrete(extra) {
     object: 'a chipped mug',
     quote: 'we will figure it out',
     genre: 'country',
+    mood: 'nostalgic',
     craft: { rabbit: true, rhyme: 'slant' },
   }, extra || {});
 }
@@ -59,6 +60,10 @@ function runModes() {
   });
   assert.strictEqual(modes.modeById('hook').label, 'Hook');
   assert.strictEqual(modes.modeById('flip').label, 'Flip it');
+  assert.strictEqual(modes.modeById('flip').transform, true);
+  assert.strictEqual(modes.modeById('funkify').transform, true);
+  assert.ok(!modes.modeById('write').transform);
+  assert.ok(!modes.modeById('hook').transform);
   assert.ok(modes.FUNNY_METERS.some(function (row) { return row.label === 'Savage'; }));
   assert.ok(modes.BAR_STYLES.some(function (row) { return row.id === 'drill'; }));
   assert.ok(modes.POEM_FORMS.some(function (row) { return row.id === 'fortune'; }));
@@ -74,9 +79,61 @@ function runModes() {
   }));
   assert.strictEqual(modes.yoursPercent(modes.allLines(flip.draft)) > 0, true);
 
-  const thin = modes.buildSample(concrete({ place: '', object: '', quote: '' }));
+  const thin = modes.buildSample(concrete({ place: '', object: '', quote: '', mood: '' }));
   assert.strictEqual(thin.ok, false);
-  assert.ok(/Rabbit hole/i.test(thin.error));
+  assert.ok(/will not invent/i.test(thin.error));
+  assert.ok(/Paste lyrics/i.test(thin.error));
+  const funnyThin = modes.buildSample(concrete({ mode: 'funny', place: '', object: '', quote: '' }));
+  assert.strictEqual(funnyThin.ok, false);
+  assert.ok(/Rabbit hole/i.test(funnyThin.error));
+  const noMood = modes.buildSample(concrete({ mood: '' }));
+  assert.strictEqual(noMood.ok, false);
+  assert.ok(/feeling/i.test(noMood.error));
+  const pasted = modes.buildSample({
+    mode: 'funkify',
+    lines: 'I left the mug in the sink\nYou said we will figure it out',
+    place: '',
+    object: '',
+    quote: '',
+    mood: '',
+    craft: { rabbit: true },
+  });
+  assert.strictEqual(pasted.ok, true);
+  assert.ok(modes.allLines(pasted.draft).some(function (row) {
+    return row.source === 'user' && row.text.indexOf('mug in the sink') !== -1;
+  }));
+  const flipPaste = modes.buildSample({
+    mode: 'flip',
+    lines: 'I left the mug in the sink',
+    genre: '',
+    craft: { rabbit: false },
+  });
+  assert.strictEqual(flipPaste.ok, false);
+  assert.ok(/genre/i.test(flipPaste.error));
+  const flipKept = modes.buildSample({
+    mode: 'flip',
+    lines: 'I left the mug in the sink',
+    genre: 'country',
+    craft: { rabbit: false },
+  });
+  assert.strictEqual(flipKept.ok, true);
+  assert.ok(/country/i.test(JSON.stringify(flipKept.draft)));
+  assert.ok(modes.systemPrompt(modes.normalizeInput(concrete())).toLowerCase().indexOf('first-draft') !== -1);
+  assert.ok(/do not invent/i.test(modes.systemPrompt(modes.normalizeInput(concrete()))));
+  const transformedPrompt = modes.systemPrompt(modes.normalizeInput({
+    mode: 'funkify',
+    lines: 'I left the mug in the sink',
+  }));
+  assert.ok(/lyrics the writer already pasted/i.test(transformedPrompt));
+  const keptNorm = modes.normalizeInput({ mode: 'flip', lines: 'Line one\nLine two', genre: 'soul', mood: 'hyped', place: 'kitchen', object: 'mug', quote: 'stay' });
+  assert.ok(keptNorm.lines.indexOf('\n') !== -1);
+  assert.ok(modes.userPrompt(keptNorm).indexOf('Line one') !== -1);
+  const modelKept = modes.draftFromModel(JSON.stringify({
+    title: 'Moved',
+    sections: [{ label: 'Verse', lines: ['A new pocket line.'] }],
+  }), keptNorm);
+  assert.ok(JSON.stringify(modelKept).indexOf('Line one') !== -1);
+  assert.ok(JSON.stringify(modelKept).indexOf('Line two') !== -1);
 
   const hookAnswers = {
     mode: 'hook',
@@ -514,6 +571,21 @@ function runPages() {
   assert.ok(html.includes('lib/spark.js'));
   assert.ok(html.indexOf('lib/spark.js') < html.indexOf('song-helper-v2.js'));
   assert.ok(js.includes('sectionFromAnswers'));
+  assert.ok(js.includes('applyTransform'));
+  assert.ok(js.includes('data-transform'));
+  assert.ok(html.includes('id="sh-mode-note"'));
+  assert.ok(html.includes('work both ways'));
+  assert.ok(html.includes('data-transform="flip"'));
+  assert.ok(html.includes('data-transform="funkify"'));
+  assert.ok(html.includes('id="sh-transform-lines"'));
+  assert.ok(html.includes('id="sh-save-song"'));
+  assert.ok(html.indexOf('id="sh-expand"') < html.indexOf('id="sh-save-song"'));
+  assert.ok(html.includes('Your lyrics stay on this device'));
+  assert.ok(html.includes('login.html?next=/my-lyrics'));
+  assert.ok(html.includes('signup.html?next=/my-lyrics'));
+  assert.ok(js.includes('PlaigroundLyricsAccount'));
+  assert.ok(read('membership.js').includes("path === '/my-lyrics'"));
+  assert.ok(html.indexOf('id="sh-expand"') < html.indexOf('data-transform="flip"'));
   assert.ok(js.includes('Flip the angle'));
   assert.ok(js.includes('Trending') && js.includes('Mindset') && js.includes("label: 'News'"));
   assert.ok(js.includes('Use this spark'));

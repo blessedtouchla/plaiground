@@ -61,6 +61,42 @@
       "permanent": true
     },
     {
+      "source": "/song-helper",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/song-helper",
+      "permanent": true
+    },
+    {
+      "source": "/song-helper/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/song-helper",
+      "permanent": true
+    },
+    {
+      "source": "/battle",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/battle",
+      "permanent": true
+    },
+    {
+      "source": "/battle/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/battle",
+      "permanent": true
+    },
+    {
+      "source": "/my-lyrics",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/my-lyrics",
+      "permanent": true
+    },
+    {
+      "source": "/my-lyrics/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/my-lyrics",
+      "permanent": true
+    },
+    {
       "source": "/pricing.html",
       "destination": "/index.html#pricing",
       "permanent": true
@@ -126,9 +162,12 @@
     { "source": "/api/admin/signups", "destination": "/api/me?action=admin-signups" },
     { "source": "/api/admin/roadmaps", "destination": "/api/me?action=admin-roadmaps" },
     { "source": "/api/me/roadmap", "destination": "/api/me?action=roadmap" },
+    { "source": "/api/me/lyrics", "destination": "/api/me?action=lyrics" },
     { "source": "/api/me/artist-profiles", "destination": "/api/me?action=artist-profiles" },
     { "source": "/my-roadmap", "destination": "/my-roadmap.html" },
     { "source": "/my-roadmap/", "destination": "/my-roadmap.html" },
+    { "source": "/my-lyrics", "destination": "/my-lyrics.html" },
+    { "source": "/my-lyrics/", "destination": "/my-lyrics.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/signups", "destination": "/admin.html" },
     { "source": "/login", "destination": "/login.html" },

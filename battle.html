@@ -79,7 +79,7 @@
     <div class="wrap sh-shell" id="bt-shell">
       <p class="sh-kicker">Writing room</p>
       <h1>Trade verses</h1>
-      <p class="sh-intro">You drop a verse. The reply comes back as the next verse only, on your last bars. When you want the song, copy the lyrics into Suno.</p>
+      <p class="sh-intro">You drop a verse. The reply comes back as the next verse only. It answers you with its own pictures, not a copy of your lines. When you want the song, copy the lyrics into Suno.</p>
       <p class="sh-honest">Replies are AI-assisted when a writer is connected. If that connection is off, you get a labeled sample verse.</p>
       <p class="sh-age">You must be 18+ to use this page.</p>
 
@@ -89,6 +89,14 @@
         </div>
 
         <section id="bt-setup">
+          <div class="sh-group">
+            <h3>Your voice</h3>
+            <p class="sh-hint">Boy or girl, so the vocal and the reply match you.</p>
+            <div class="sh-chips" role="group" aria-label="Your voice">
+              <button type="button" class="sh-chip" data-group="voice" data-value="girl" aria-pressed="false">Girl</button>
+              <button type="button" class="sh-chip" data-group="voice" data-value="boy" aria-pressed="false">Boy</button>
+            </div>
+          </div>
           <div class="sh-group">
             <h3>Rounds</h3>
             <div class="sh-chips" role="group" aria-label="Rounds">
@@ -120,6 +128,43 @@
             <span>A name the reply can use</span>
             <input class="sh-input" id="bt-name" maxlength="40" autocomplete="off" placeholder="Optional. A nickname is enough." />
           </label>
+          <div class="sh-actions">
+            <button type="button" class="btn btn-ghost btn-md" id="bt-more" aria-expanded="false" aria-controls="bt-more-panel">Shape the beat</button>
+          </div>
+          <div id="bt-more-panel" hidden>
+            <p class="sh-hint">Optional. The beat stays with the vibe until you open this and pick.</p>
+            <div class="sh-group">
+              <h3>Beat feel</h3>
+              <div class="sh-chips" role="group" aria-label="Beat feel">
+                <button type="button" class="sh-chip" data-group="beat" data-value="boom-bap" aria-pressed="false">Boom bap</button>
+                <button type="button" class="sh-chip" data-group="beat" data-value="trap" aria-pressed="false">Trap</button>
+                <button type="button" class="sh-chip" data-group="beat" data-value="drill" aria-pressed="false">Drill</button>
+                <button type="button" class="sh-chip" data-group="beat" data-value="soul" aria-pressed="false">Soul</button>
+                <button type="button" class="sh-chip" data-group="beat" data-value="sparse" aria-pressed="false">Sparse</button>
+              </div>
+            </div>
+            <div class="sh-group">
+              <h3>Energy</h3>
+              <div class="sh-chips" role="group" aria-label="Energy">
+                <button type="button" class="sh-chip" data-group="energy" data-value="low" aria-pressed="false">Low</button>
+                <button type="button" class="sh-chip" data-group="energy" data-value="medium" aria-pressed="false">Medium</button>
+                <button type="button" class="sh-chip" data-group="energy" data-value="high" aria-pressed="false">High</button>
+              </div>
+            </div>
+            <div class="sh-group">
+              <h3>Instruments</h3>
+              <p class="sh-hint">Pick up to three.</p>
+              <div class="sh-chips" role="group" aria-label="Instruments">
+                <button type="button" class="sh-chip" data-group="instrument" data-value="piano" aria-pressed="false">Piano</button>
+                <button type="button" class="sh-chip" data-group="instrument" data-value="808s" aria-pressed="false">808s</button>
+                <button type="button" class="sh-chip" data-group="instrument" data-value="guitar" aria-pressed="false">Guitar</button>
+                <button type="button" class="sh-chip" data-group="instrument" data-value="bass" aria-pressed="false">Bass</button>
+                <button type="button" class="sh-chip" data-group="instrument" data-value="drums" aria-pressed="false">Drums</button>
+                <button type="button" class="sh-chip" data-group="instrument" data-value="synth" aria-pressed="false">Synth</button>
+              </div>
+            </div>
+          </div>
+          <p class="sh-error" id="bt-setup-error" role="alert" hidden></p>
           <div class="sh-rules">
             <p>No slurs, hate, threats, or sexual content about a real person.</p>
             <p>Clean roast stays PG-13.</p>
@@ -139,7 +184,7 @@
             <span>Your verse</span>
             <textarea class="sh-area" id="bt-verse" maxlength="1600" rows="8" placeholder="Write your verse. You can edit it before you send."></textarea>
           </label>
-          <p class="sh-hint" id="bt-hint">The reply aims for about the same number of lines, between 4 and 16. It answers your last bars and does not write your next verse.</p>
+          <p class="sh-hint" id="bt-hint">The reply aims for about the same number of lines, between 4 and 16. It answers your point with its own pictures. It does not copy your sentences.</p>
           <p class="sh-error" id="bt-error" role="alert" hidden></p>
           <div class="sh-actions no-print">
             <button type="button" class="btn btn-purple btn-md" id="bt-open" hidden>Get an opening verse</button>

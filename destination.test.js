@@ -326,6 +326,12 @@ function runPage() {
   apexTo('/destination/', 'https://www.wannaplai.com/destination');
   apexTo('/my-roadmap', 'https://www.wannaplai.com/my-roadmap');
   apexTo('/my-roadmap/', 'https://www.wannaplai.com/my-roadmap');
+  apexTo('/song-helper', 'https://www.wannaplai.com/song-helper');
+  apexTo('/song-helper/', 'https://www.wannaplai.com/song-helper');
+  apexTo('/battle', 'https://www.wannaplai.com/battle');
+  apexTo('/battle/', 'https://www.wannaplai.com/battle');
+  apexTo('/my-lyrics', 'https://www.wannaplai.com/my-lyrics');
+  apexTo('/my-lyrics/', 'https://www.wannaplai.com/my-lyrics');
   ['/destination', '/destination/', '/destination.html'].forEach(function (source) {
     assert.ok(!(vercel.headers || []).some(function (row) {
       return row.source === source && (row.headers || []).some(function (header) {

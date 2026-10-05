@@ -82,7 +82,7 @@
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Idea, then the feeling, then the craft, then the first draft. A verse, a hook, or a bridge waits until that draft is on the page.</p>
+      <p class="sh-path">Idea, then the feeling, then the craft, then the first draft. Flip it and Funkify can be that first draft, or a change you make after the lyrics exist. A verse, a hook, or a bridge waits until a draft is on the page.</p>
       <section class="sh-craft" id="sh-idea">
         <h2 class="sh-craft-title">Start with an idea</h2>
         <p class="sh-help">Look through What’s hot, or pick a mode. You can skip this and tell the story yourself. The helper is optional. The song stays yours.</p>
@@ -90,6 +90,7 @@
         <p class="sh-note" id="sh-spark-picked" hidden></p>
         <h3 class="sh-subhead">Mode</h3>
         <div class="sh-modes" id="sh-modes" role="group" aria-label="Modes"></div>
+        <p class="sh-help" id="sh-mode-note">Flip it and Funkify work both ways. Pick one up front so the first draft already has that vibe, after the feeling and the questions are filled. Or leave them and apply them later to a draft or to lyrics you paste.</p>
         <p class="sh-spark-link"><a href="/spark">Open the full What’s hot page</a></p>
       </section>
       <section class="sh-craft" id="sh-feeling">
@@ -449,6 +450,32 @@
         </div>
         <div id="sh-section-ask" hidden></div>
         <p class="sh-form-error" id="sh-section-error" role="alert" hidden></p>
+        <h3 class="sh-subhead">Flip it or Funkify these lyrics</h3>
+        <p class="sh-help">This uses the draft on the page, or different lines you paste here. You can also pick Flip it or Funkify at the start, before any draft.</p>
+        <label class="sh-field">
+          <span>Paste different lyrics, if you want</span>
+          <textarea class="sh-area" id="sh-transform-lines" rows="5" placeholder="Leave this blank to use the draft above."></textarea>
+        </label>
+        <label class="sh-field">
+          <span>Flip toward</span>
+          <input class="sh-input" id="sh-transform-genre" maxlength="40" autocomplete="off" placeholder="country, soul, a quiet room" />
+        </label>
+        <div class="sh-side-actions">
+          <button type="button" class="btn btn-ghost btn-md" data-transform="flip">Flip these lyrics</button>
+          <button type="button" class="btn btn-ghost btn-md" data-transform="funkify">Funkify these lyrics</button>
+        </div>
+        <p class="sh-form-error" id="sh-transform-error" role="alert" hidden></p>
+        <div class="sh-actions" id="sh-save-row">
+          <button type="button" class="btn btn-purple btn-md" id="sh-save-song">Save your song</button>
+        </div>
+        <p class="sh-form-error" id="sh-save-error" role="alert" hidden></p>
+        <div id="sh-save-gate" hidden>
+          <p>Create an account or sign in to keep this song. Your lyrics stay on this device until you do.</p>
+          <p>
+            <a class="btn btn-purple btn-md" href="signup.html?next=/my-lyrics">Create an account</a>
+            <a class="btn btn-ghost btn-md" href="login.html?next=/my-lyrics">Sign in</a>
+          </p>
+        </div>
       </section>
     </div>
   </main>
@@ -507,6 +534,7 @@
   <script src="lib/slang.js"></script>
   <script src="lib/spark.js"></script>
   <script src="song-helper.js"></script>
+  <script src="lyrics-account.js?v=20261005ly1"></script>
   <script src="song-helper-v2.js"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>

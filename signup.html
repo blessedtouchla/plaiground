@@ -173,6 +173,7 @@
   </footer>
   <script src="membership.js"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
+  <script src="lyrics-account.js?v=20261005ly1"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -257,6 +258,10 @@
             setStatus(copy);
             var dest = (result.data && result.data.login) || 'login.html';
             var qs = ['existing=1'];
+            if (window.PlaigroundLyricsAccount && window.PlaigroundLyricsAccount.pendingHome && window.PlaigroundLyricsAccount.pendingHome()) {
+              dest = 'login.html';
+              qs.push('next=' + encodeURIComponent('/my-lyrics'));
+            }
             if (email) qs.push('email=' + encodeURIComponent(email));
             window.setTimeout(function () {
               window.location.href = dest + (dest.indexOf('?') === -1 ? '?' : '&') + qs.join('&');

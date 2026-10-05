@@ -212,6 +212,66 @@ function runBattleRules() {
   assert.strictEqual(cleaned.lines.length, 4);
   assert.ok(!/human:/i.test(cleaned.text));
   assert.ok(!/next verse too/i.test(cleaned.text));
+
+  assert.ok(/new imagery/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/concrete/i.test(core.SYSTEM_PROMPT));
+  assert.ok(!/flip their words/i.test(core.SYSTEM_PROMPT));
+  assert.ok(/girl/i.test(core.SYSTEM_PROMPT));
+  const mirrored = [
+    'you might embrace my words and call them wise',
+    'but as a viki bot youre trained to twist what youre programmed to spew',
+    'just be honest you cant fight with truth',
+    'so spew your doubts but theyre all blind',
+    'cause i drop facts that outshine your eyes',
+    'your hood looks all good',
+  ].join('\n');
+  const mirroredHuman = [
+    'you might deny my words and call them lies',
+    'but as an ai bot youre trained to say what youre programmed to do',
+    'just be honest you cant fight with you',
+    'so spew your hate but theyre all lies',
+    'cause I got facts behind my eyes',
+    'my hood is all good',
+  ].join('\n');
+  const echo = core.verseFromModel(mirrored, 6, mirroredHuman, { vibe: 'competitive', name: 'Viki', voice: 'girl' });
+  assert.strictEqual(echo.ok, false);
+  assert.strictEqual(echo.code, 'echo');
+  const gendered = core.verseFromModel([
+    'the fanboys in the room still clap for a mirror',
+    'I brought a bus stop and a cracked watch',
+    'a paper cup on the gate at closing',
+    'that is the bar, with a late bus outside',
+  ].join('\n'), 4, 'I said my own line about the weather tonight friend', { voice: 'girl', vibe: 'friendly', name: 'Viki' });
+  assert.strictEqual(gendered.ok, false);
+  assert.strictEqual(gendered.code, 'voice');
+  const girlStyle = core.buildStylePrompt('competitive', { voice: 'girl' });
+  assert.ok(/lead vocal is a girl/i.test(girlStyle.prompt));
+  assert.ok(!/lead vocal is a boy/i.test(girlStyle.prompt));
+  const plainStyle = core.buildStylePrompt('competitive');
+  assert.ok(!/lead vocal/i.test(plainStyle.prompt));
+  const shaped = core.buildStylePrompt('friendly', {
+    voice: 'boy',
+    beat: 'trap',
+    energy: 'high',
+    instruments: ['piano', '808s', 'guitar', 'bass'],
+  });
+  assert.ok(/lead vocal is a boy/i.test(shaped.prompt));
+  assert.ok(/trap drums/i.test(shaped.prompt));
+  assert.ok(/high energy/i.test(shaped.prompt));
+  assert.ok(/piano/.test(shaped.prompt));
+  assert.ok(/808s/.test(shaped.prompt));
+  assert.ok(/guitar/.test(shaped.prompt));
+  assert.ok(!/bass/.test(shaped.prompt));
+  const withVoice = core.normalizeBattle(turn({ voice: 'girl' }));
+  assert.strictEqual(withVoice.voice, 'girl');
+  const prompt = core.battlePrompt(withVoice);
+  assert.ok(/girl/i.test(prompt));
+  assert.ok(/do not reuse/i.test(prompt));
+  assert.ok(!/flip their words/i.test(prompt));
+  const sample = core.buildSampleVerse(turn({ voice: 'girl' }), 'The hoodie stayed on the chair after midnight.', 4, 0);
+  const sampleCheck = core.verseFromModel(sample, 4, 'The hoodie stayed on the chair after midnight.', { vibe: 'friendly', name: 'Sam', voice: 'girl' });
+  assert.strictEqual(sampleCheck.ok, true);
+  assert.ok(!/fanboy/i.test(sample));
 }
 
 async function runApi() {
@@ -400,6 +460,15 @@ function runPage() {
   assert.ok(html.includes('data-value="3"'));
   assert.ok(html.includes('data-value="4"'));
   assert.ok(html.includes('Who starts'));
+  assert.ok(html.includes('>Girl<'));
+  assert.ok(html.includes('>Boy<'));
+  assert.ok(html.includes('id="bt-more"'));
+  assert.ok(html.includes('id="bt-more-panel" hidden'));
+  assert.ok(html.includes('Shape the beat'));
+  const voiceChunk = html.slice(html.indexOf('Your voice'), html.indexOf('<h3>Rounds</h3>'));
+  assert.ok(!/class="sh-chip on"/.test(voiceChunk));
+  assert.ok(js.includes('Pick boy or girl so the vocal is not guessed.'));
+  assert.ok(js.includes('state.voice'));
   assert.ok(html.includes('>Human<'));
   assert.ok(html.includes('>AI<'));
   assert.ok(html.includes('id="bt-undo"'));

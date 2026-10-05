@@ -9,6 +9,10 @@
     topic: '',
     starter: 'human',
     name: '',
+    voice: '',
+    beat: '',
+    energy: '',
+    instruments: [],
     verses: [],
     variant: 0,
     busy: false,
@@ -25,6 +29,18 @@
 
   function showError(message) {
     var el = $('bt-error');
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.textContent = message;
+  }
+
+  function showSetupError(message) {
+    var el = $('bt-setup-error');
     if (!el) return;
     if (!message) {
       el.hidden = true;
@@ -54,6 +70,14 @@
     state.starter = chipValue('starter', 'human');
     state.topic = $('bt-topic').value.trim();
     state.name = $('bt-name').value.trim();
+    state.voice = chipValue('voice', '');
+    state.beat = chipValue('beat', '');
+    state.energy = chipValue('energy', '');
+    state.instruments = [];
+    document.querySelectorAll('[data-group="instrument"].on').forEach(function (btn) {
+      if (state.instruments.length >= 3) return;
+      state.instruments.push(btn.getAttribute('data-value'));
+    });
   }
 
   function lastVerse() {
@@ -131,7 +155,12 @@
       warn.hidden = true;
       warn.textContent = '';
     }
-    var style = core.buildStylePrompt(state.vibe);
+    var style = core.buildStylePrompt(state.vibe, {
+      voice: state.voice,
+      beat: state.beat,
+      energy: state.energy,
+      instruments: state.instruments,
+    });
     $('bt-style').value = style.prompt;
     $('bt-style-note').hidden = !style.note;
     $('bt-style-note').textContent = style.note || '';
@@ -189,6 +218,10 @@
       topic: state.topic,
       starter: state.starter,
       name: state.name,
+      voice: state.voice,
+      beat: state.beat,
+      energy: state.energy,
+      instruments: state.instruments,
       variant: state.variant,
       transcript: transcript.map(function (verse) {
         return { role: verse.role, text: verse.text, preview: Boolean(verse.preview) };
@@ -297,12 +330,35 @@
     if (!chip || state.started) return;
     var group = chip.getAttribute('data-group');
     if (!group) return;
+    showSetupError('');
+    if (group === 'instrument') {
+      var turningOn = !chip.classList.contains('on');
+      if (turningOn && document.querySelectorAll('[data-group="instrument"].on').length >= 3) return;
+      chip.classList.toggle('on', turningOn);
+      chip.setAttribute('aria-pressed', turningOn ? 'true' : 'false');
+      return;
+    }
     setPressed(group, chip.getAttribute('data-value'));
   });
+
+  if ($('bt-more')) {
+    $('bt-more').addEventListener('click', function () {
+      var panel = $('bt-more-panel');
+      if (!panel) return;
+      var open = panel.hidden;
+      panel.hidden = !open;
+      $('bt-more').setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
 
   $('bt-start').addEventListener('click', function () {
     if (state.busy) return;
     readSetup();
+    if (state.voice !== 'girl' && state.voice !== 'boy') {
+      showSetupError('Pick boy or girl so the vocal is not guessed.');
+      return;
+    }
+    showSetupError('');
     state.started = true;
     state.verses = [];
     state.variant = 0;
