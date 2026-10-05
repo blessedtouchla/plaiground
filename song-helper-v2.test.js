@@ -257,6 +257,43 @@ function runModes() {
   assert.ok(modes.allLines(sparkedDraft.draft).some(function (line) {
     return line.source === 'user' && line.text.indexOf('muted the chat') !== -1;
   }));
+  const withStory = modes.normalizeInput({
+    mode: 'flip',
+    mood: 'nostalgic',
+    place: 'the kitchen at 2am',
+    object: 'a chipped mug',
+    quote: 'leave the light on',
+    sparkFeel: 'I feel late to my own street.',
+    sparkStory: 'I got there and the gate was already down.',
+    sparkKeep: 'Keep the sound of the lock.',
+  });
+  assert.strictEqual(withStory.sparkStory, 'I got there and the gate was already down.');
+  assert.ok(modes.userPrompt(withStory).includes('gate was already down'));
+  const storyDraft = modes.buildSample(withStory);
+  assert.strictEqual(storyDraft.ok, true);
+  ['late to my own street', 'gate was already down', 'sound of the lock'].forEach(function (bit) {
+    assert.ok(modes.allLines(storyDraft.draft).some(function (line) {
+      return line.source === 'user' && line.text.indexOf(bit) !== -1;
+    }), bit);
+  });
+  const skipped = modes.buildSample({
+    mode: 'flip',
+    mood: 'nostalgic',
+    place: 'the kitchen at 2am',
+    object: 'a chipped mug',
+    quote: 'leave the light on',
+    sparkFeel: '',
+    sparkStory: '',
+    sparkKeep: '',
+  });
+  assert.ok(!modes.allLines(skipped.draft).some(function (line) {
+    return /how do you feel|personal experience|hold onto/i.test(line.text);
+  }));
+  const modelStory = modes.draftFromModel(JSON.stringify({
+    title: 'Kept',
+    sections: [{ label: 'Verse', lines: ['A generated line.'] }],
+  }), withStory);
+  assert.ok(JSON.stringify(modelStory).indexOf('gate was already down') !== -1);
 
   const emptySection = modes.sectionFromAnswers('verse', { who: '', happened: '', why: '' });
   assert.strictEqual(emptySection.ok, false);
@@ -322,6 +359,28 @@ function runSpark() {
   assert.ok(pack.daily.dailyNote);
   assert.ok(spark.LANES.some(function (lane) { return lane.id === 'news-world'; }));
   assert.ok(spark.LANES.some(function (lane) { return lane.id === 'causes'; }));
+  assert.ok(spark.GROUPS.some(function (group) { return group.id === 'news' && group.label === 'News'; }));
+  ['trending', 'news-world', 'news-music', 'news-movies', 'news-regional', 'causes', 'mindset'].forEach(function (lane) {
+    const topics = spark.topicsFor(pack.items, [lane]);
+    assert.ok(topics.length >= 2, lane + ' topics');
+    topics.forEach(function (topic) {
+      const heads = spark.headlinesFor(pack.items, [lane], topic.label);
+      assert.ok(heads.length >= 2, topic.label);
+      heads.forEach(function (head) {
+        const ideas = spark.sparksFor(pack.items, [lane], topic.label, head.label);
+        assert.ok(ideas.length >= 1);
+        ideas.forEach(function (idea) {
+          assert.ok(idea.flip && idea.answer);
+          assert.notStrictEqual(idea.headline, idea.title);
+          assert.ok(idea.headline.split(/\s+/).length <= 7);
+        });
+      });
+    });
+  });
+  assert.strictEqual(spark.sparksFor(pack.items, ['news-world'], 'Shop hours', '').length, 0);
+  assert.ok(/optional/i.test(spark.ASK.optional));
+  assert.ok(/more human the draft feels/i.test(spark.ASK.optional));
+  assert.ok(/personal experience/i.test(spark.ASK.story));
   assert.strictEqual(spark.tragedy('A shooting downtown'), true);
   const xml = '<rss><channel><title>Feed</title><item><title>Library hours</title></item><item><title>A shooting downtown</title></item></channel></rss>';
   const titles = sparkFeed.titlesFromXml(xml);
@@ -589,6 +648,19 @@ function runPages() {
   assert.ok(js.includes('Flip the angle'));
   assert.ok(js.includes('Trending') && js.includes('Mindset') && js.includes("label: 'News'"));
   assert.ok(js.includes('Use this spark'));
+  assert.ok(js.includes('Start writing'));
+  assert.ok(js.includes('These questions are optional'));
+  assert.ok(js.includes('the more human the draft feels'));
+  assert.ok(js.includes('How do you feel about this'));
+  assert.ok(js.includes('personal experience'));
+  assert.ok(js.includes('spark.topicsFor'));
+  assert.ok(js.includes('spark.sparksFor'));
+  assert.ok(read('spark.js').includes('Use this spark'));
+  assert.ok(read('spark.js').includes('spark.headlinesFor'));
+  assert.ok(read('spark.js').includes('Start writing'));
+  assert.ok(html.includes('the more human the draft feels'));
+  assert.ok(sparkHtml.includes('the more human the draft feels'));
+  assert.ok(!/—/.test(read('lib/spark.js') + read('spark.js')));
   assert.ok(!js.includes("text: ''"));
   assert.ok(read('song-helper.js').includes("var STEPS = ['genre'"));
   assert.ok(!read('song-helper.js').includes("setMode('hook')"));

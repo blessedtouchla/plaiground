@@ -569,6 +569,51 @@ body.song-helper-page .plai-bubble {
   gap: 12px;
 }
 
+.spark-lanes > .sh-modes {
+  flex: 1 1 100%;
+}
+
+.spark-headlines {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.spark-headline {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.spark-headline.on {
+  background: var(--purple);
+  border-color: var(--purple);
+}
+
+.spark-ask {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 4px 0 16px;
+}
+
+.spark-ask .sh-area {
+  min-height: 72px;
+}
+
+.spark-ask .sh-help {
+  margin-top: 0;
+}
+
 .spark-card h3 {
   margin: 0 0 6px;
   font-size: 1.15rem;

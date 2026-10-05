@@ -110,6 +110,25 @@ function runCore() {
     return line.text.indexOf('muted the chat') !== -1 && line.source === 'user';
   }));
   assert.ok(core.interviewPrompt(sparkedInterview).includes('muted the chat'));
+  const withStory = core.normalizeInterview(Object.assign({}, interview, {
+    sparkTitle: 'The group chat went quiet',
+    sparkAngle: 'Write it from the person who muted the chat.',
+    sparkFeel: 'I feel left in the thread.',
+    sparkStory: 'I watched the typing bubble and did not answer.',
+    sparkKeep: '',
+  }));
+  const storyDraft = core.buildSampleDraft(withStory);
+  assert.ok(allLines(storyDraft).some(function (line) {
+    return line.source === 'user' && line.text.indexOf('typing bubble') !== -1;
+  }));
+  assert.ok(allLines(storyDraft).some(function (line) {
+    return line.source === 'user' && line.text.indexOf('left in the thread') !== -1;
+  }));
+  assert.ok(!allLines(storyDraft).some(function (line) {
+    return /how do you feel|personal experience/i.test(line.text);
+  }));
+  assert.ok(core.interviewPrompt(withStory).includes('typing bubble'));
+  assert.ok(core.interviewPrompt(withStory).includes('If sparkFeel'));
   const echoed = core.draftFromModelJson(JSON.stringify({
     title: 'Echo',
     hooks: [
