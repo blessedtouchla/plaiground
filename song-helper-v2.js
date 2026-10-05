@@ -28,7 +28,11 @@
 
   function fieldValue(id) {
     var el = document.querySelector('#sh-v2-fields [data-field="' + id + '"]');
-    return el ? String(el.value || '').trim() : '';
+    if (!el) return '';
+    var value = String(el.value || '').trim();
+    var hint = String(el.getAttribute('placeholder') || '').trim();
+    if (hint && value.toLowerCase() === hint.toLowerCase()) return '';
+    return value;
   }
 
   function payload() {
@@ -60,6 +64,9 @@
       spirit: fieldValue('spirit'),
       artNote: fieldValue('artNote'),
       verb: fieldValue('verb'),
+      line: fieldValue('line'),
+      happened: fieldValue('happened'),
+      why: fieldValue('why'),
       parodyAck: parodyAck,
       craft: {
         vocabulary: craft.vocabulary,
@@ -111,7 +118,7 @@
     if (id === 'bars') paintSlang();
     var go = $('sh-v2-go');
     go.hidden = pageStatus.disabled;
-    go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : 'Make the draft');
+    go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : 'Make the draft'));
   }
 
   function addField(host, spec) {
@@ -152,11 +159,16 @@
   function paintFields() {
     var host = $('sh-v2-fields');
     host.textContent = '';
-    var rabbit = craft.rabbit && mode !== 'review' && mode !== 'cover' && mode !== 'public-domain';
+    var rabbit = craft.rabbit && mode !== 'review' && mode !== 'cover' && mode !== 'public-domain' && mode !== 'hook';
     if (rabbit) {
       addField(host, { id: 'place', label: 'A real place', placeholder: 'the kitchen at 2am' });
       addField(host, { id: 'object', label: 'An object you can touch', placeholder: 'a chipped mug' });
       addField(host, { id: 'quote', label: 'Something someone said', placeholder: 'we will figure it out' });
+    }
+    if (mode === 'hook') {
+      addField(host, { id: 'line', label: 'The hook sentence', kind: 'area', placeholder: 'A full sentence you would actually sing.' });
+      addField(host, { id: 'happened', label: 'What happened', kind: 'area', placeholder: 'One concrete sentence about what happened.' });
+      addField(host, { id: 'why', label: 'Why it matters', kind: 'area', placeholder: 'One sentence about what changed.' });
     }
     if (mode === 'flip') addField(host, { id: 'genre', label: 'Flip it toward', placeholder: 'country' });
     if (mode === 'funny') {
@@ -368,6 +380,20 @@
     }
     var draft = data.draft;
     if (!draft) return;
+    if (modes.isPlaceholderLyric) {
+      draft.sections = (draft.sections || []).map(function (part) {
+        return {
+          label: part.label,
+          lines: (part.lines || []).filter(function (row) {
+            return row && row.text && !modes.isPlaceholderLyric(row.text);
+          }),
+        };
+      }).filter(function (part) { return part.lines.length; });
+      if (mode === 'hook' && !modes.allLines(draft).length) {
+        showError('The hook did not come back. Try again in a moment.');
+        return;
+      }
+    }
     lastDraft = draft;
     if (draft.steps) {
       var list = document.createElement('ol');
@@ -589,6 +615,13 @@
       return;
     }
     var body = payload();
+    if (mode === 'hook') {
+      var hookProblem = modes.hookError(modes.normalizeInput(body));
+      if (hookProblem) {
+        showError(hookProblem);
+        return;
+      }
+    }
     if (mode === 'public-domain') {
       var picked = fieldValue('work');
       if (picked && !body.title) body.work = picked;
@@ -613,6 +646,10 @@
       }
       renderResult(data);
     } catch (err) {
+      if (mode === 'hook') {
+        showError('The hook did not come back. Try again in a moment.');
+        return;
+      }
       var local = modes.buildSample(body);
       if (!local.ok) {
         showError(local.error || 'That draft did not come through.');
@@ -703,6 +740,10 @@
     document.querySelectorAll('[data-structure]').forEach(function (button) {
       button.addEventListener('click', function () {
         var kind = button.getAttribute('data-structure');
+        if (kind === 'hook' && mode !== 'write' && mode !== 'hook' && !lastDraft) {
+          setMode('hook');
+          return;
+        }
         if (mode !== 'write' && lastDraft) {
           var label = kind === 'hook' ? 'Hook' : (kind === 'bridge' ? 'Bridge' : 'Verse');
           lastDraft.sections = lastDraft.sections || [];
@@ -801,7 +842,7 @@
     banner.parentNode.insertBefore(note, banner.nextSibling);
   }
 
-  window.SongHelperV2 = { paintLog: paintLog };
+  window.SongHelperV2 = { paintLog: paintLog, setMode: setMode };
   bindCraft();
   paintModes();
   paintLog();

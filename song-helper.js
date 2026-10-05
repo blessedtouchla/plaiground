@@ -92,6 +92,16 @@
     formError.textContent = message;
   }
 
+  function readAnswer(id) {
+    var el = $(id);
+    if (!el) return '';
+    var value = String(el.value || '').trim();
+    var hint = String(el.getAttribute('placeholder') || '').trim();
+    if (hint && value.toLowerCase() === hint.toLowerCase()) return '';
+    if (core.isPlaceholderLyric && core.isPlaceholderLyric(value)) return '';
+    return value;
+  }
+
   function moodValue() {
     if (picks.mood === 'custom') return $('sh-mood-input').value.trim();
     return picks.mood;
@@ -119,10 +129,10 @@
   function interview() {
     return {
       mood: moodValue(),
-      happened: $('sh-happened').value.trim(),
+      happened: readAnswer('sh-happened'),
       who: $('sh-who').value.trim(),
-      why: $('sh-why').value.trim(),
-      line: $('sh-line').value.trim(),
+      why: readAnswer('sh-why'),
+      line: readAnswer('sh-line'),
       words: words(),
       shape: {
         genre: genreValue(),
@@ -170,8 +180,11 @@
       if (picks.pack === 'comedy' && !picks.comedyMusic) return 'Pick a musical style for the comedy song.';
     }
     if (id === 'happened') {
-      if ($('sh-happened').value.trim().length < 8) return 'Give me one sentence. Even a short one.';
-      var happenedJoke = parodyMessage($('sh-happened').value);
+      if (core.isPlaceholderLyric && core.isPlaceholderLyric($('sh-happened').value)) {
+        return 'That line is a placeholder. Say what happened in your own words.';
+      }
+      if (readAnswer('sh-happened').length < 8) return 'Give me one sentence. Even a short one.';
+      var happenedJoke = parodyMessage(readAnswer('sh-happened'));
       if (happenedJoke) return happenedJoke;
     }
     if (id === 'who') {
@@ -181,12 +194,18 @@
       }
     }
     if (id === 'why') {
-      if ($('sh-why').value.trim().length < 8) return 'One sentence about what they did, or what changed.';
-      var whyJoke = parodyMessage($('sh-why').value);
+      if (core.isPlaceholderLyric && core.isPlaceholderLyric($('sh-why').value)) {
+        return 'That line is a placeholder. Say what changed in your own words.';
+      }
+      if (readAnswer('sh-why').length < 8) return 'One sentence about what they did, or what changed.';
+      var whyJoke = parodyMessage(readAnswer('sh-why'));
       if (whyJoke) return whyJoke;
     }
     if (id === 'line') {
-      var line = $('sh-line').value.trim();
+      if (core.isPlaceholderLyric && core.isPlaceholderLyric($('sh-line').value)) {
+        return 'That line is a placeholder. Write the hook in your own words.';
+      }
+      var line = readAnswer('sh-line');
       if (line.length < 12 || line.indexOf(' ') === -1) return 'Write a full sentence. That line stays yours, word for word.';
       var lineJoke = parodyMessage(line);
       if (lineJoke) return lineJoke;
@@ -313,6 +332,7 @@
   function renderHooks() {
     hooksEl.textContent = '';
     draft.hooks.forEach(function (hook) {
+      if (core.isPlaceholderLyric && core.isPlaceholderLyric(hook.text)) return;
       var btn = document.createElement('button');
       btn.type = 'button';
       var chosen = selectedHook();
@@ -340,7 +360,9 @@
     lyricEl.textContent = '';
     draft.sections.forEach(function (section) {
       var visible = section.lines.filter(function (line) {
-        return !(core.isGrokCreditLine && core.isGrokCreditLine(line.text));
+        if (core.isGrokCreditLine && core.isGrokCreditLine(line.text)) return false;
+        if (core.isPlaceholderLyric && core.isPlaceholderLyric(line.text)) return false;
+        return true;
       });
       if (!visible.length) return;
       var label = document.createElement('p');
@@ -493,6 +515,14 @@
     var key = interviewKey();
     if (!force && draft && draftKey === key) {
       renderDraft();
+      return;
+    }
+    var block = ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words'].reduce(function (msg, id) {
+      return msg || validate(id);
+    }, '');
+    if (block) {
+      draftError.hidden = false;
+      draftError.textContent = block;
       return;
     }
     draftError.hidden = true;
@@ -977,6 +1007,14 @@
   }
 
   function addStructure(kind) {
+    if (kind === 'hook' && validate('line')) {
+      if (window.SongHelperV2 && window.SongHelperV2.setMode) {
+        window.SongHelperV2.setMode('hook');
+        return;
+      }
+      showError('Answer the hook questions before adding a hook.');
+      return;
+    }
     if (!draft) {
       draft = { title: (titleEl && titleEl.value) || 'Untitled', hooks: [], sections: [] };
     }

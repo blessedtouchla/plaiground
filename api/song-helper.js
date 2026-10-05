@@ -281,6 +281,13 @@ async function handleMode(req, res, body) {
     });
     var draft = modes.draftFromModel(chat.content, input);
     if (!draft) {
+      if (input.mode === 'hook') {
+        sendJson(res, 502, {
+          ok: false,
+          error: 'The hook did not come back. Try again in a moment.',
+        });
+        return;
+      }
       var fallback = modes.buildSample(input);
       sendJson(res, fallback.ok ? 200 : 400, fallback);
       return;
@@ -391,6 +398,11 @@ async function handler(req, res) {
       return;
     }
     sendJson(res, 400, { ok: false, error: 'Those answers did not come through. Try again.' });
+    return;
+  }
+  var gap = core.missingAnswers(interview);
+  if (gap) {
+    sendJson(res, 400, { ok: false, error: gap });
     return;
   }
   if (core.containsParodyAsk(interview)) {

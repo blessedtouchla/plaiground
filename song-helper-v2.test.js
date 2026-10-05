@@ -54,9 +54,10 @@ function concrete(extra) {
 
 function runModes() {
   const ids = modes.MODES.map(function (mode) { return mode.id; });
-  ['write', 'flip', 'funkify', 'funny', 'madlibs', 'review', 'parody', 'public-domain', 'cover', 'homage', 'superhero', 'bars', 'poem', 'battle'].forEach(function (id) {
+  ['write', 'hook', 'flip', 'funkify', 'funny', 'madlibs', 'review', 'parody', 'public-domain', 'cover', 'homage', 'superhero', 'bars', 'poem', 'battle'].forEach(function (id) {
     assert.ok(ids.indexOf(id) !== -1, id);
   });
+  assert.strictEqual(modes.modeById('hook').label, 'Hook');
   assert.strictEqual(modes.modeById('flip').label, 'Flip it');
   assert.ok(modes.FUNNY_METERS.some(function (row) { return row.label === 'Savage'; }));
   assert.ok(modes.BAR_STYLES.some(function (row) { return row.id === 'drill'; }));
@@ -76,6 +77,50 @@ function runModes() {
   const thin = modes.buildSample(concrete({ place: '', object: '', quote: '' }));
   assert.strictEqual(thin.ok, false);
   assert.ok(/Rabbit hole/i.test(thin.error));
+
+  const hookAnswers = {
+    mode: 'hook',
+    line: 'I still set a place for you at the table.',
+    happened: 'You left the hoodie on the chair.',
+    why: 'You stopped answering when I asked you to stay.',
+  };
+  const hookMissing = modes.buildSample({ mode: 'hook', line: '', happened: '', why: '' });
+  assert.strictEqual(hookMissing.ok, false);
+  assert.ok(/hook sentence/i.test(hookMissing.error));
+  const hookFake = modes.buildSample({
+    mode: 'hook',
+    line: 'The hook sentence, what happened, and why',
+    happened: 'The heart keeps beating even when the answers stay unseen',
+    why: 'Because the night was long enough already.',
+  });
+  assert.strictEqual(hookFake.ok, false);
+  assert.ok(/placeholder/i.test(hookFake.error));
+  const hookSample = modes.buildSample(hookAnswers);
+  assert.strictEqual(hookSample.ok, true);
+  assert.strictEqual(hookSample.preview, true);
+  const hookLines = modes.allLines(hookSample.draft).map(function (row) { return row.text; });
+  assert.deepStrictEqual(hookLines, [hookAnswers.line, hookAnswers.happened, hookAnswers.why]);
+  assert.ok(modes.allLines(hookSample.draft).every(function (row) { return row.source === 'user'; }));
+  assert.ok(!/answers stay unseen|The hook sentence, what happened, and why/i.test(JSON.stringify(hookSample)));
+  const cleaned = modes.draftFromModel(JSON.stringify({
+    title: 'Echo',
+    sections: [{
+      label: 'Chorus',
+      lines: [
+        'The hook sentence, what happened, and why',
+        'The heart keeps beating even when the answers stay unseen',
+        'A generated line that can stay.',
+      ],
+    }],
+  }), modes.normalizeInput(hookAnswers));
+  const cleanedText = JSON.stringify(cleaned);
+  assert.ok(cleanedText.includes(hookAnswers.line));
+  assert.ok(cleanedText.includes(hookAnswers.happened));
+  assert.ok(cleanedText.includes(hookAnswers.why));
+  assert.ok(cleanedText.includes('A generated line that can stay.'));
+  assert.ok(!/answers stay unseen/i.test(cleanedText));
+  assert.ok(!/The hook sentence, what happened, and why/.test(cleanedText));
+  assert.strictEqual(modes.draftFromModel('not json', modes.normalizeInput(hookAnswers)), null);
 
   const parody = modes.buildSample(concrete({
     mode: 'parody',
@@ -202,6 +247,25 @@ async function runApi() {
     return Promise.reject(new Error('fetch should not run'));
   };
   try {
+    const hookGap = await post({ mode: 'hook' }, '203.0.113.90');
+    assert.strictEqual(hookGap.statusCode, 400);
+    assert.ok(/hook sentence/i.test(hookGap.json.error));
+    assert.ok(!hookGap.json.draft);
+    assert.strictEqual(fetches, 0);
+
+    const hookDemo = await post({
+      mode: 'hook',
+      line: 'I still set a place for you at the table.',
+      happened: 'You left the hoodie on the chair.',
+      why: 'You stopped answering when I asked you to stay.',
+    }, '203.0.113.91');
+    assert.strictEqual(hookDemo.statusCode, 200);
+    assert.strictEqual(hookDemo.json.preview, true);
+    assert.strictEqual(hookDemo.json.source, 'sample');
+    assert.ok(JSON.stringify(hookDemo.json.draft).includes('I still set a place for you at the table.'));
+    assert.ok(!/answers stay unseen|The hook sentence, what happened, and why/i.test(hookDemo.body));
+    assert.strictEqual(fetches, 0);
+
     const demo = await post(concrete(), '203.0.113.80');
     assert.strictEqual(demo.statusCode, 200);
     assert.strictEqual(demo.json.preview, true);
@@ -243,12 +307,84 @@ async function runApi() {
     delete process.env.SONG_HELPER_DISABLED;
 
     process.env.XAI_API_KEY = 'test-key-not-real';
+    const hookBody = {
+      mode: 'hook',
+      line: 'I still set a place for you at the table.',
+      happened: 'You left the hoodie on the chair.',
+      why: 'You stopped answering when I asked you to stay.',
+    };
+    global.fetch = function () {
+      fetches += 1;
+      return Promise.reject(new Error('xai down'));
+    };
+    const hookDown = await post(hookBody, '203.0.113.92');
+    assert.strictEqual(hookDown.statusCode, 502);
+    assert.ok(/did not come back/i.test(hookDown.json.error));
+    assert.ok(!hookDown.json.draft);
+    assert.ok(!/answers stay unseen|The hook sentence, what happened, and why/i.test(hookDown.body));
+
+    global.fetch = function () {
+      fetches += 1;
+      return Promise.resolve({
+        ok: true,
+        json: async function () {
+          return { choices: [{ message: { content: 'not json at all' } }] };
+        },
+      });
+    };
+    const hookBad = await post(hookBody, '203.0.113.93');
+    assert.strictEqual(hookBad.statusCode, 502);
+    assert.ok(!hookBad.json.draft);
+    assert.ok(!/answers stay unseen/i.test(hookBad.body));
+
+    global.fetch = function () {
+      fetches += 1;
+      return Promise.resolve({
+        ok: true,
+        json: async function () {
+          return {
+            choices: [{
+              message: {
+                content: JSON.stringify({
+                  title: 'From her answers',
+                  sections: [{
+                    label: 'Chorus',
+                    lines: [
+                      'The hook sentence, what happened, and why',
+                      'The heart keeps beating even when the answers stay unseen',
+                    ],
+                  }],
+                }),
+              },
+            }],
+          };
+        },
+      });
+    };
+    const hookLive = await post(hookBody, '203.0.113.94');
+    assert.strictEqual(hookLive.statusCode, 200);
+    assert.strictEqual(hookLive.json.preview, false);
+    assert.strictEqual(hookLive.json.source, 'grok');
+    const liveHook = JSON.stringify(hookLive.json.draft);
+    assert.ok(liveHook.includes(hookBody.line));
+    assert.ok(liveHook.includes(hookBody.happened));
+    assert.ok(liveHook.includes(hookBody.why));
+    assert.ok(!/answers stay unseen/i.test(liveHook));
+    assert.ok(!/The hook sentence, what happened, and why/.test(liveHook));
+    delete process.env.XAI_API_KEY;
+    global.fetch = function () {
+      fetches += 1;
+      return Promise.reject(new Error('fetch should not run'));
+    };
+
+    process.env.XAI_API_KEY = 'test-key-not-real';
     process.env.TURNSTILE_SITE_KEY = 'site-test';
     process.env.TURNSTILE_SECRET_KEY = 'secret-test';
+    const fetchesBeforeCaptcha = fetches;
     const captcha = await post(concrete(), '203.0.113.82');
     assert.strictEqual(captcha.statusCode, 400);
     assert.ok(/person/i.test(captcha.json.error));
-    assert.strictEqual(fetches, 0);
+    assert.strictEqual(fetches, fetchesBeforeCaptcha);
     delete process.env.XAI_API_KEY;
     delete process.env.TURNSTILE_SITE_KEY;
     delete process.env.TURNSTILE_SECRET_KEY;
@@ -309,6 +445,12 @@ function runPages() {
   assert.ok(html.includes('Rabbit hole'));
   assert.ok(html.includes('Thumbs') === false);
   assert.ok(js.includes('Thumbs up') && js.includes('Thumbs down'));
+  assert.ok(js.includes("id: 'line'"));
+  assert.ok(js.includes('hookError'));
+  assert.ok(js.includes("mode === 'hook'"));
+  assert.ok(js.includes('Write the hook'));
+  assert.ok(read('song-helper.js').includes("setMode('hook')"));
+  assert.ok(read('song-helper.js').includes('isPlaceholderLyric'));
   assert.ok(html.includes('href="/spark"'));
   assert.ok(!nav.includes('/spark'));
   assert.ok(!nav.includes('song-helper'));

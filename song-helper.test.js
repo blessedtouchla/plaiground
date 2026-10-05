@@ -94,6 +94,32 @@ function runCore() {
   assert.ok(/never reproduce/i.test(core.SYSTEM_PROMPT));
   assert.ok(/never imitate a real artist/i.test(core.SYSTEM_PROMPT));
   assert.ok(/character for character/i.test(core.SYSTEM_PROMPT));
+  assert.ok(!/the hook sentence, what happened, and why are full lines/i.test(core.SYSTEM_PROMPT));
+  assert.strictEqual(core.isPlaceholderLyric('The hook sentence, what happened, and why'), true);
+  assert.strictEqual(core.isPlaceholderLyric('The heart keeps beating even when the answers stay unseen'), true);
+  assert.strictEqual(core.isPlaceholderLyric(interview.line), false);
+  assert.ok(/hook sentence/i.test(core.missingAnswers({})));
+  assert.strictEqual(core.missingAnswers(interview), '');
+  const echoed = core.draftFromModelJson(JSON.stringify({
+    title: 'Echo',
+    hooks: [
+      { id: 'a', text: 'The hook sentence, what happened, and why', source: 'generated' },
+      { id: 'b', text: 'A second original hook for the chorus.', source: 'generated' },
+    ],
+    sections: [{
+      label: 'Chorus',
+      lines: [
+        { text: 'The hook sentence, what happened, and why', source: 'generated' },
+        { text: 'The heart keeps beating even when the answers stay unseen', source: 'generated' },
+      ],
+    }],
+  }), interview);
+  const echoedText = JSON.stringify(echoed);
+  assert.ok(echoedText.includes(interview.line));
+  assert.ok(echoedText.includes(interview.happened));
+  assert.ok(echoedText.includes(interview.why));
+  assert.ok(!/answers stay unseen/i.test(echoedText));
+  assert.ok(!/The hook sentence, what happened, and why/.test(echoedText));
   assert.ok(/word-bank answers are ingredients/i.test(core.SYSTEM_PROMPT));
   assert.ok(/at least two distinct lines/i.test(core.SYSTEM_PROMPT));
   assert.ok(/natural casing/i.test(core.SYSTEM_PROMPT));
@@ -377,6 +403,23 @@ async function runApi() {
     assert.strictEqual(fetchCalls, 0);
     assert.ok(!preview.body.includes('XAI_API_KEY'));
     assert.strictEqual(preview.json.draft.hooks[0].text, fixture().line);
+
+    const empty = await post({}, '203.0.113.26');
+    assert.strictEqual(empty.statusCode, 400);
+    assert.ok(/hook sentence/i.test(empty.json.error));
+    assert.ok(!empty.json.draft);
+    assert.strictEqual(fetchCalls, 0);
+    assert.ok(!/answers stay unseen/i.test(empty.body));
+    assert.ok(!/The hook sentence, what happened, and why/.test(empty.body));
+
+    const planted = await post(fixture({
+      line: 'The hook sentence, what happened, and why',
+      happened: 'The heart keeps beating even when the answers stay unseen',
+    }), '203.0.113.27');
+    assert.strictEqual(planted.statusCode, 400);
+    assert.ok(/placeholder/i.test(planted.json.error));
+    assert.ok(!planted.json.draft);
+    assert.strictEqual(fetchCalls, 0);
 
     const parody = await post(fixture({
       line: 'Please sing this to the tune of some famous chorus tonight.',
