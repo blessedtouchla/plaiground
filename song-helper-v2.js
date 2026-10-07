@@ -13,7 +13,7 @@
     region: '',
   };
   var mode = 'write';
-  var kind = 'love';
+  var kind = '';
   var part = 'song';
   var questions = window.SongQuestions;
   var live = null;
@@ -48,6 +48,17 @@
   var sparkSeed = null;
   var seededAngle = '';
   var ideaLane = '';
+  var branch = '';
+  var KIND_MOOD = {
+    love: 'in love',
+    heartbreak: 'heartbroken',
+    hype: 'hyped',
+    petty: 'petty',
+    grateful: 'grateful',
+    nostalgic: 'nostalgic',
+    angry: 'angry',
+    mindset: 'mindset'
+  };
   var sectionKind = '';
   var SPARK_GROUPS = (window.SparkCore && window.SparkCore.GROUPS) || [
     { id: 'trending', label: 'Trending', lanes: ['trending'] },
@@ -72,6 +83,10 @@
   }
 
   function readMood() {
+    if (window.SongHelperPage && window.SongHelperPage.mood) {
+      var fromPage = window.SongHelperPage.mood();
+      if (fromPage) return String(fromPage).slice(0, 40);
+    }
     var pressed = document.querySelector('#sh-feeling .sh-chip.on[data-group="mood"]');
     if (!pressed) return '';
     var value = pressed.getAttribute('data-value') || '';
@@ -305,6 +320,7 @@
           var panel = $('sh-v2');
           if (panel) panel.hidden = true;
           paintModes();
+          paintBranch();
           return;
         }
         setMode(item.id);
@@ -364,6 +380,8 @@
     seedFields();
     syncStructure();
     paintGo();
+    paintSourceNotes();
+    paintBranch();
   }
 
   function paintGo() {
@@ -417,7 +435,42 @@
   function paintFields() {
     var host = $('sh-v2-fields');
     host.textContent = '';
-    var rabbit = craft.rabbit && mode !== 'review' && mode !== 'cover' && mode !== 'public-domain' && mode !== 'hook' && mode !== 'madlibs';
+    var sourceMode = mode === 'parody' || mode === 'cover' || mode === 'public-domain';
+    if (mode === 'parody' || mode === 'cover') {
+      addField(host, {
+        id: 'originalTitle',
+        label: mode === 'cover' ? 'Song you want to cover' : 'Original title',
+        placeholder: 'The real song title'
+      });
+    }
+    if (mode === 'parody') {
+      addField(host, { id: 'title', label: 'Your title (not a look-alike)' });
+      addField(host, { id: 'comment', label: 'What are you saying about the original?', kind: 'area' });
+      addField(host, { id: 'artNote', label: 'Cover idea, if you have one', placeholder: 'A different picture. Not their art.' });
+    }
+    if (mode === 'public-domain') {
+      addField(host, {
+        id: 'work',
+        label: 'Source title',
+        kind: 'select',
+        options: [{ id: '', label: 'Pick a source, or type one below' }].concat(modes.PD_WORKS.map(function (work) {
+          return { id: work.title, label: work.title + ' (' + work.year + ')' };
+        })),
+      });
+      addField(host, { id: 'title', label: 'Or type a source title' });
+      addField(host, { id: 'year', label: 'Year' });
+      addField(host, {
+        id: 'kind',
+        label: 'Composition or recording',
+        kind: 'select',
+        value: 'composition',
+        options: [
+          { id: 'composition', label: 'Composition (1930 and earlier)' },
+          { id: 'recording', label: 'Recording (through 1925)' },
+        ],
+      });
+    }
+    var rabbit = !sourceMode && craft.rabbit && mode !== 'review' && mode !== 'hook' && mode !== 'madlibs';
     if (rabbit) {
       addField(host, { id: 'place', label: 'A real place', placeholder: 'the kitchen at 2am' });
       addField(host, { id: 'object', label: 'An object you can touch', placeholder: 'a chipped mug' });
@@ -448,34 +501,6 @@
     }
     if (mode === 'madlibs') addField(host, { id: 'verb', label: 'A verb', placeholder: 'wait' });
     if (mode === 'review') addField(host, { id: 'lines', label: 'Your lines', kind: 'area', placeholder: 'One line per row' });
-    if (mode === 'parody') {
-      addField(host, { id: 'originalTitle', label: 'Original title' });
-      addField(host, { id: 'title', label: 'Your title (not a look-alike)' });
-      addField(host, { id: 'comment', label: 'What are you saying about the original?', kind: 'area' });
-      addField(host, { id: 'artNote', label: 'Cover idea, if you have one', placeholder: 'A different picture. Not their art.' });
-    }
-    if (mode === 'public-domain') {
-      addField(host, {
-        id: 'work',
-        label: 'Source title',
-        kind: 'select',
-        options: [{ id: '', label: 'Pick a source, or type one below' }].concat(modes.PD_WORKS.map(function (work) {
-          return { id: work.title, label: work.title + ' (' + work.year + ')' };
-        })),
-      });
-      addField(host, { id: 'title', label: 'Or type a source title' });
-      addField(host, { id: 'year', label: 'Year' });
-      addField(host, {
-        id: 'kind',
-        label: 'Composition or recording',
-        kind: 'select',
-        value: 'composition',
-        options: [
-          { id: 'composition', label: 'Composition (1930 and earlier)' },
-          { id: 'recording', label: 'Recording (through 1925)' },
-        ],
-      });
-    }
     if (mode === 'homage' || mode === 'superhero') addField(host, { id: 'name', label: mode === 'superhero' ? 'Your name, as the hero' : 'Who the tribute is for' });
     if (mode === 'bars') {
       addField(host, { id: 'barStyle', label: 'Style', kind: 'select', value: 'east', options: modes.BAR_STYLES });
@@ -657,9 +682,13 @@
       button.setAttribute('aria-pressed', kind && item.id === kind ? 'true' : 'false');
       button.addEventListener('click', function () {
         kind = kind === item.id ? '' : item.id;
+        if (window.SongHelperPage && window.SongHelperPage.setMood) {
+          window.SongHelperPage.setMood(kind ? (KIND_MOOD[kind] || kind) : '');
+        }
         resetLive();
         paintKinds();
         paintLive();
+        paintBranch();
       });
       host.appendChild(button);
     });
@@ -2055,6 +2084,92 @@
     }
   }
 
+  function showEl(id, on) {
+    var el = $(id);
+    if (el) el.hidden = !on;
+  }
+
+  function sourceModeOn() {
+    return mode === 'parody' || mode === 'cover' || mode === 'public-domain';
+  }
+
+  function paintSourceNotes() {
+    var host = $('sh-source-notes');
+    if (!host || !modes) return;
+    host.textContent = '';
+    if (branch !== 'source' || !sourceModeOn()) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    var lines = [];
+    if (mode === 'parody') lines = [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE];
+    else if (mode === 'cover') lines = ['Name the song first. This page does not sell a license.', modes.MECHANICAL_STEPS[0]];
+    else if (mode === 'public-domain') lines = [modes.PD_NOTE];
+    lines.forEach(function (text) {
+      if (!text) return;
+      var p = document.createElement('p');
+      p.className = 'sh-help';
+      p.textContent = text;
+      host.appendChild(p);
+    });
+  }
+
+  function paintBranch() {
+    if (window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft() && !branch) {
+      branch = 'scratch';
+      if (!ideaLane) ideaLane = 'own';
+      if (!kind) {
+        kind = 'love';
+        if (window.SongHelperPage.setMood && window.SongHelperPage.mood && !window.SongHelperPage.mood()) {
+          window.SongHelperPage.setMood(KIND_MOOD.love);
+        }
+      }
+    }
+    var scratch = branch === 'scratch';
+    var source = branch === 'source';
+    showEl('sh-idea', scratch);
+    showEl('sh-source', source);
+    var ideaReady = scratch && (ideaLane === 'ideas' || ideaLane === 'own');
+    showEl('sh-feeling', ideaReady);
+    var feelReady = ideaReady && !!kind;
+    var questionModes = { write: 1, funny: 1, madlibs: 1, superhero: 1, poem: 1, hook: 1, bars: 1, battle: 1 };
+    showEl('sh-live', feelReady && (!mode || questionModes[mode]));
+    showEl('sh-craft', feelReady);
+    showEl('sh-part-pick', feelReady);
+    var writeSurface = feelReady && (!mode || mode === 'write');
+    var v2On = (source && sourceModeOn()) || (feelReady && !!mode && mode !== 'write' && mode !== 'battle');
+    var shell = document.getElementById('sh-shell');
+    if (shell) shell.classList.toggle('is-v2', v2On);
+    showEl('sh-write', writeSurface);
+    var panel = $('sh-v2');
+    if (panel) panel.hidden = !v2On;
+    var scratchBtn = $('sh-choice-scratch');
+    var sourceBtn = $('sh-choice-source');
+    if (scratchBtn) {
+      scratchBtn.classList.toggle('on', scratch);
+      scratchBtn.setAttribute('aria-pressed', scratch ? 'true' : 'false');
+    }
+    if (sourceBtn) {
+      sourceBtn.classList.toggle('on', source);
+      sourceBtn.setAttribute('aria-pressed', source ? 'true' : 'false');
+    }
+    paintIdeaLane();
+    paintSourceNotes();
+  }
+
+  function setBranch(next) {
+    if (next !== 'scratch' && next !== 'source') return;
+    if (branch === next) return;
+    branch = next;
+    if (next === 'scratch' && sourceModeOn()) {
+      mode = 'write';
+      paintModes();
+      paintFields();
+    }
+    paintBranch();
+  }
+
   function setIdeaLane(next) {
     if (next !== 'ideas' && next !== 'own') return;
     if (next === ideaLane) return;
@@ -2065,6 +2180,7 @@
     if (sparkPack) paintSpark(sparkPack);
     touchLive();
     paintLive();
+    paintBranch();
   }
 
   function paintSparkNote() {
@@ -2141,6 +2257,7 @@
     angle = String(angle || '').replace(/\s+/g, ' ').trim();
     if (!angle) return;
     if (spark && spark.tragedy(sparkText(item) + ' ' + angle)) return;
+    branch = 'scratch';
     if (ideaLane !== 'ideas') {
       ideaLane = 'ideas';
       paintIdeaLane();
@@ -2173,6 +2290,7 @@
     seedFields();
     paintSparkNote();
     if (sparkPack) paintSpark(sparkPack);
+    paintBranch();
     var ask = document.getElementById('sh-spark-ask');
     if (ask) {
       try { ask.scrollIntoView({ block: 'nearest' }); } catch (err) {}
@@ -2552,6 +2670,11 @@
   var ownBtn = $('sh-choice-own');
   if (ideasBtn) ideasBtn.addEventListener('click', function () { setIdeaLane('ideas'); });
   if (ownBtn) ownBtn.addEventListener('click', function () { setIdeaLane('own'); });
+  var scratchBtn = $('sh-choice-scratch');
+  var sourceBtn = $('sh-choice-source');
+  if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
+  if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
+  paintBranch();
   loadStatus();
   loadSlang();
   loadSpark();

@@ -1689,6 +1689,13 @@
     refreshAnswers: paintAnswers,
     draft: function () { return draft; },
     hasDraft: function () { return draftHasContent(draft); },
+    setMood: function (value) {
+      picks.mood = value || '';
+      setPressed('mood', picks.mood);
+      if ($('sh-mood-custom')) $('sh-mood-custom').hidden = picks.mood !== 'custom';
+      showMoodError('');
+    },
+    mood: function () { return picks.mood; },
   };
 
   var feeling = document.getElementById('sh-feeling');
