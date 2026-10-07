@@ -126,6 +126,22 @@
         release: 'A proper release includes how you get paid.'
       }
     },
+    copyright: {
+      id: 'copyright',
+      title: 'Copyright & publishing',
+      face: 'plai',
+      status: 'live',
+      href: '/copyright',
+      link: 'Copyright & publishing',
+      what: 'For this song: which parts a person made, then the publishing steps.',
+      get: 'A note saved on this release. People check the work.',
+      who: 'You answer for this song. People check the work.',
+      why: {
+        money: 'The parts a person made are what can earn.',
+        fanbase: 'A clear note helps when you share the song.',
+        release: 'Sort copyright and publishing out before the song goes out.'
+      }
+    },
     publishing: {
       id: 'publishing',
       title: 'Publishing and splits',
@@ -241,25 +257,26 @@
   };
 
   var STOP_ORDER = [
-    'helper', 'check', 'cover', 'persona', 'distro', 'publishing', 'royalties',
+    'helper', 'check', 'copyright', 'cover', 'persona', 'distro', 'publishing', 'royalties',
     'sync', 'pitch', 'marketing', 'multiverse', 'billboard', 'shows'
   ];
 
   var RECOMMENDED = {
-    'idea|money': ['helper', 'check', 'persona', 'publishing', 'royalties', 'sync'],
+    'idea|money': ['helper', 'check', 'copyright', 'persona', 'publishing', 'royalties', 'sync'],
     'idea|fanbase': ['helper', 'cover', 'persona', 'check', 'distro', 'pitch'],
-    'idea|release': ['helper', 'check', 'cover', 'persona', 'distro', 'publishing'],
-    'made|money': ['check', 'persona', 'distro', 'publishing', 'royalties', 'sync'],
-    'made|fanbase': ['cover', 'persona', 'check', 'distro', 'pitch', 'marketing'],
-    'made|release': ['persona', 'check', 'cover', 'distro'],
-    'out|money': ['publishing', 'royalties', 'sync', 'check'],
-    'out|fanbase': ['persona', 'pitch', 'marketing', 'check'],
-    'out|release': ['check', 'publishing', 'royalties']
+    'idea|release': ['helper', 'check', 'copyright', 'cover', 'persona', 'distro', 'publishing'],
+    'made|money': ['check', 'copyright', 'persona', 'distro', 'publishing', 'royalties', 'sync'],
+    'made|fanbase': ['cover', 'persona', 'check', 'copyright', 'distro', 'pitch', 'marketing'],
+    'made|release': ['persona', 'check', 'copyright', 'cover', 'distro'],
+    'out|money': ['publishing', 'royalties', 'sync', 'check', 'copyright'],
+    'out|fanbase': ['persona', 'pitch', 'marketing', 'check', 'copyright'],
+    'out|release': ['check', 'copyright', 'publishing', 'royalties']
   };
 
   var SECTIONS = [
     { id: 'make', label: 'Make it', stops: ['helper', 'cover', 'multiverse'] },
     { id: 'ready', label: 'Get ready', stops: ['check'] },
+    { id: 'protect', label: 'Protect it', stops: ['copyright'] },
     { id: 'put', label: 'Put it out', stops: ['distro', 'persona'] },
     { id: 'heard', label: 'Get heard', stops: ['pitch', 'marketing', 'billboard'] },
     { id: 'paid', label: 'Get paid', stops: ['royalties', 'publishing', 'sync'] },
@@ -272,14 +289,14 @@
       label: 'Release Kit',
       song: 'made',
       goal: 'release',
-      stops: ['persona', 'check', 'cover', 'distro']
+      stops: ['persona', 'check', 'copyright', 'cover', 'distro']
     },
     record: {
       id: 'record',
       label: 'Break Your Record',
       song: 'out',
       goal: 'fanbase',
-      stops: ['marketing', 'pitch', 'sync', 'billboard']
+      stops: ['marketing', 'pitch', 'copyright', 'sync', 'billboard']
     },
     management: {
       id: 'management',
