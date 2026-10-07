@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Your route - PLAIGROUND</title>
-  <meta name="description" content="Three quick taps. Then your roadmap." />
+  <meta name="description" content="Two quick taps. Then your roadmap." />
   <link rel="canonical" href="https://www.wannaplai.com/guide" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260924p3" />
-  <link rel="stylesheet" href="guide.css?v=20261007guide" />
+  <link rel="stylesheet" href="guide.css?v=20261007g2" />
   <script>
     try {
       var saved = localStorage.getItem('plaigroundGuide');
@@ -28,23 +28,13 @@
       <a class="guide-skip" href="/destination" data-guide-skip>Skip</a>
     </header>
     <div class="guide-progress">
-      <div class="guide-progress-track" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-label="Guide progress" data-guide-bar>
+      <div class="guide-progress-track" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-label="Guide progress" data-guide-bar>
         <div class="guide-progress-fill" data-guide-fill></div>
       </div>
       <span class="guide-burst" data-guide-burst aria-hidden="true"></span>
     </div>
 
     <section class="guide-screen" data-guide-screen="1">
-      <h1 tabindex="-1">Who are you?</h1>
-      <div class="guide-choices">
-        <button type="button" data-guide-choice="role" data-value="artist">Artist</button>
-        <button type="button" data-guide-choice="role" data-value="producer">Producer</button>
-        <button type="button" data-guide-choice="role" data-value="songwriter">Songwriter</button>
-        <button type="button" data-guide-choice="role" data-value="manager">Manager</button>
-      </div>
-    </section>
-
-    <section class="guide-screen" data-guide-screen="2" hidden>
       <h1 tabindex="-1">Where's your song?</h1>
       <div class="guide-choices">
         <button type="button" data-guide-choice="song" data-value="idea">Just an idea</button>
@@ -53,7 +43,7 @@
       </div>
     </section>
 
-    <section class="guide-screen" data-guide-screen="3" hidden>
+    <section class="guide-screen" data-guide-screen="2" hidden>
       <h1 tabindex="-1">What do you want?</h1>
       <div class="guide-choices">
         <button type="button" data-guide-choice="want" data-value="release">Get it out there</button>
@@ -63,7 +53,7 @@
       </div>
     </section>
 
-    <section class="guide-screen" data-guide-screen="4" hidden>
+    <section class="guide-screen" data-guide-screen="3" hidden>
       <h1 tabindex="-1">Your route</h1>
       <div class="guide-map" data-guide-map>
         <div class="guide-rail" aria-hidden="true"><span data-guide-rail></span></div>
@@ -71,14 +61,14 @@
       </div>
     </section>
 
-    <section class="guide-screen guide-screen-cta" data-guide-screen="5" hidden>
+    <section class="guide-screen guide-screen-cta" data-guide-screen="4" hidden>
       <a class="guide-cta" data-guide-cta href="/destination">Tap your first stop</a>
     </section>
   </main>
-  <script src="destination.js?v=20261007guide"></script>
-  <script src="lib/guide.js?v=20261007guide"></script>
+  <script src="destination.js?v=20261007g2"></script>
+  <script src="lib/guide.js?v=20261007g2"></script>
   <script src="membership.js"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
-  <script src="guide.js?v=20261007guide"></script>
+  <script src="guide.js?v=20261007g2"></script>
 </body>
 </html>

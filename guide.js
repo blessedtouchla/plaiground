@@ -9,7 +9,8 @@
   }
 
   var root = document.querySelector('[data-guide]');
-  var answers = { role: '', song: '', want: '' };
+  var answers = { song: '', want: '' };
+  var steps = 4;
   var route = null;
   var token = 0;
   var bar = root.querySelector('[data-guide-bar]');
@@ -24,7 +25,7 @@
   }
 
   function paintProgress(step) {
-    var pct = Math.max(1, Math.min(5, step)) / 5 * 100;
+    var pct = Math.max(1, Math.min(steps, step)) / steps * 100;
     if (fill) fill.style.width = pct + '%';
     if (bar) bar.setAttribute('aria-valuenow', String(step));
     if (burst) {
@@ -40,10 +41,10 @@
   function showScreen(step) {
     root.querySelectorAll('[data-guide-screen]').forEach(function (section) {
       var n = Number(section.getAttribute('data-guide-screen'));
-      var on = n === step || (step === 5 && n === 4);
+      var on = n === step || (step === 4 && n === 3);
       section.hidden = !on;
     });
-    var heading = root.querySelector('[data-guide-screen="' + (step === 5 ? 4 : step) + '"] h1');
+    var heading = root.querySelector('[data-guide-screen="' + (step === 4 ? 3 : step) + '"] h1');
     if (heading && heading.focus) heading.focus();
   }
 
@@ -91,7 +92,7 @@
   function lightStops(run) {
     var nodes = stopsBox ? stopsBox.querySelectorAll('.guide-stop') : [];
     if (!nodes.length) {
-      show(5);
+      show(4);
       return;
     }
     if (rail) rail.classList.add('is-draw');
@@ -101,7 +102,7 @@
         if (index === 0) node.classList.add('is-first');
       });
       window.setTimeout(function () {
-        if (run === token) show(5);
+        if (run === token) show(4);
       }, 350);
       return;
     }
@@ -111,7 +112,7 @@
         node.classList.add('is-on');
         if (index === nodes.length - 1) {
           window.setTimeout(function () {
-            if (run === token) show(5);
+            if (run === token) show(4);
           }, 650);
         }
       }, 260 * index + 180);
@@ -123,7 +124,7 @@
     var run = token;
     paintProgress(step);
     showScreen(step);
-    if (step === 4) {
+    if (step === 3) {
       route = guide.routeFor(answers);
       if (cta) cta.setAttribute('href', route.firstHref || '/destination');
       persist(route);
@@ -131,7 +132,7 @@
       renderStops(false);
       lightStops(run);
     }
-    if (step === 5 && stopsBox) {
+    if (step === 4 && stopsBox) {
       var first = stopsBox.querySelector('.guide-stop');
       if (first) first.classList.add('is-first');
     }
@@ -143,7 +144,7 @@
       var key = choice.getAttribute('data-guide-choice');
       answers[key] = choice.getAttribute('data-value');
       choice.classList.add('is-pick');
-      var next = key === 'role' ? 2 : key === 'song' ? 3 : 4;
+      var next = key === 'song' ? 2 : 3;
       window.setTimeout(function () { show(next); }, reduceMotion() ? 0 : 160);
       return;
     }
