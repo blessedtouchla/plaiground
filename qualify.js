@@ -6,7 +6,7 @@
   if (!api || !view) return;
 
   var answers = {};
-  var index = 0;
+  var index = -1;
 
   function esc(value) {
     return String(value || '')
@@ -16,18 +16,48 @@
       .replace(/"/g, '&quot;');
   }
 
+  function paint(html) {
+    view.innerHTML = html;
+    var heading = view.querySelector('h1');
+    if (heading && heading.focus) heading.focus();
+  }
+
+  function forList(items, withStatus) {
+    var html = '<ol class="qualify-for">';
+    items.forEach(function (item, at) {
+      html += '<li><strong>' + (at + 1) + '. ' + esc(item.title) + '</strong>';
+      if (item.detail) html += '<span>' + esc(item.detail) + '</span>';
+      if (withStatus) {
+        var ready = item.status === 'Ready';
+        html += '<b class="qualify-status' + (ready ? ' is-ready' : '') + '">' + esc(item.status) + '</b>';
+      }
+      html += '</li>';
+    });
+    html += '</ol>';
+    return html;
+  }
+
   function render() {
-    var total = api.QUESTIONS.length + 1;
-    var now = Math.min(total, index + 1);
+    var total = api.QUESTIONS.length + 2;
+    var now = index < 0 ? 1 : Math.min(total, index + 2);
     if (bar) {
       bar.setAttribute('aria-valuemax', String(total));
       bar.setAttribute('aria-valuenow', String(now));
     }
     if (fill) fill.style.width = ((now / total) * 100) + '%';
+    if (index < 0) {
+      var intro = '<h1 tabindex="-1">' + esc(api.INTRO.title) + '</h1>';
+      intro += '<p class="qualify-lead">' + esc(api.INTRO.lead) + '</p>';
+      intro += forList(api.FOR, false);
+      intro += '<button type="button" class="guide-cta" data-qualify-start>Start the check</button>';
+      paint(intro);
+      return;
+    }
     if (index >= api.QUESTIONS.length) {
       var card = api.result(answers);
       var html = '<h1 tabindex="-1">' + esc(card.title) + '</h1>';
       html += '<p class="qualify-lead">' + esc(card.lead) + '</p>';
+      html += forList(card.gates, true);
       html += '<p class="qualify-lead">' + esc(card.truth) + '</p>';
       html += '<p class="qualify-lead">' + esc(card.clear) + '</p>';
       html += '<ul class="qualify-steps">';
@@ -37,32 +67,36 @@
       html += '</ul>';
       html += '<a class="guide-cta" href="' + esc(card.href) + '">' + esc(card.cta) + '</a>';
       html += '<button type="button" class="qualify-back" data-qualify-back>Back</button>';
-      view.innerHTML = html;
+      paint(html);
       return;
     }
     var step = api.QUESTIONS[index];
-    var html = '<h1 tabindex="-1">' + esc(step.ask) + '</h1><div class="guide-choices">';
+    var ask = '<h1 tabindex="-1">' + esc(step.ask) + '</h1><div class="guide-choices">';
     step.options.forEach(function (option) {
-      html += '<button type="button" data-qualify-pick="' + esc(option.id) + '">' + esc(option.label) + '</button>';
+      ask += '<button type="button" data-qualify-pick="' + esc(option.id) + '">' + esc(option.label) + '</button>';
     });
-    html += '</div>';
-    if (index > 0) html += '<button type="button" class="qualify-back" data-qualify-back>Back</button>';
-    view.innerHTML = html;
-    var heading = view.querySelector('h1');
-    if (heading && heading.focus) heading.focus();
+    ask += '</div>';
+    ask += '<button type="button" class="qualify-back" data-qualify-back>Back</button>';
+    paint(ask);
   }
 
   view.addEventListener('click', function (event) {
+    var start = event.target.closest('[data-qualify-start]');
     var pick = event.target.closest('[data-qualify-pick]');
     var back = event.target.closest('[data-qualify-back]');
-    if (pick) {
+    if (start) {
+      index = 0;
+      render();
+      return;
+    }
+    if (pick && index >= 0 && index < api.QUESTIONS.length) {
       answers[api.QUESTIONS[index].id] = pick.getAttribute('data-qualify-pick');
       index += 1;
       render();
       return;
     }
     if (back) {
-      index = Math.max(0, index - 1);
+      index = Math.max(-1, index - 1);
       render();
     }
   });
