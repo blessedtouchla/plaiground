@@ -385,10 +385,71 @@
 
   function setPressed(group, value) {
     document.querySelectorAll('[data-group="' + group + '"]').forEach(function (btn) {
-      var on = btn.getAttribute('data-value') === value;
+      var on = !!value && btn.getAttribute('data-value') === value;
       btn.classList.toggle('on', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+  }
+
+  var moreOpen = {};
+  var MORE_LIMIT = 4;
+
+  function foldOptions(host) {
+    if (!host || !host.children) return;
+    var key = host.id || host.getAttribute('aria-label') || '';
+    if (!key) return;
+    var old = host.querySelector(':scope > button.sh-more');
+    if (old) old.parentNode.removeChild(old);
+    var chips = [];
+    for (var i = 0; i < host.children.length; i++) {
+      var el = host.children[i];
+      if (!el.classList || el.classList.contains('sh-more')) continue;
+      if (el.classList.contains('sh-chip') || el.classList.contains('spark-headline')) chips.push(el);
+    }
+    if (chips.length <= MORE_LIMIT) {
+      chips.forEach(function (el) { el.hidden = false; });
+      return;
+    }
+    var open = !!moreOpen[key];
+    chips.forEach(function (el, index) {
+      if (index >= MORE_LIMIT && el.classList.contains('on')) open = true;
+    });
+    chips.forEach(function (el, index) {
+      var hide = !open && index >= MORE_LIMIT;
+      el.hidden = hide;
+      var tip = el.nextElementSibling;
+      if (tip && tip.classList && tip.classList.contains('sh-tip')) {
+        if (hide) {
+          tip.setAttribute('data-fold-hidden', tip.hidden ? '1' : '0');
+          tip.hidden = true;
+        } else if (tip.hasAttribute('data-fold-hidden')) {
+          tip.hidden = tip.getAttribute('data-fold-hidden') === '1';
+          tip.removeAttribute('data-fold-hidden');
+        }
+      }
+    });
+    if (open) {
+      moreOpen[key] = true;
+      return;
+    }
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sh-chip sh-more';
+    btn.textContent = 'More';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      moreOpen[key] = true;
+      foldOptions(host);
+    });
+    host.appendChild(btn);
+  }
+
+  function foldAllOptionLists() {
+    var root = document.getElementById('sh-shell');
+    if (!root) return;
+    root.querySelectorAll('.sh-chips, .sh-modes, .spark-headlines').forEach(foldOptions);
   }
 
   function renderDots() {
@@ -641,10 +702,15 @@
         button.className = 'sh-chip';
         button.textContent = option.label;
         button.addEventListener('click', function () {
+          var turningOff = button.classList.contains('on');
           feedbackOn = {};
-          feedbackOn[option.id] = true;
           feedbackNote = '';
-          applyFeedback([option.id]);
+          if (!turningOff) feedbackOn[option.id] = true;
+          box.querySelectorAll('.sh-chip').forEach(function (chip) {
+            var on = !turningOff && chip === button;
+            chip.classList.toggle('on', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
         });
         box.appendChild(button);
       });
@@ -702,6 +768,7 @@
     hint.className = 'sh-help';
     hint.id = 'sh-feedback-hint';
     host.appendChild(hint);
+    foldOptions(chips);
   }
 
   function mountLineTools(parent, box, line) {
@@ -1081,8 +1148,28 @@
     var chip = event.target.closest ? event.target.closest('.sh-chip') : null;
     if (!chip) return;
     var group = chip.getAttribute('data-group');
-    if (!group) return;
+    if (!group || chip.classList.contains('sh-more')) return;
     var value = chip.getAttribute('data-value');
+    if (group !== 'instrument' && chip.classList.contains('on')) {
+      picks[group] = '';
+      setPressed(group, '');
+      if (group === 'styleGenre' && styleGenreInput) styleGenreInput.value = '';
+      if (group === 'mood') {
+        var moodBox = $('sh-mood-custom');
+        if (moodBox) moodBox.hidden = true;
+        showMoodError('');
+      }
+      if (group === 'pack') {
+        var comedyBox = $('sh-comedy');
+        if (comedyBox) comedyBox.hidden = true;
+      }
+      if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture' || group === 'styleGenre') {
+        styleTouched = true;
+        renderStyle();
+      }
+      showError('');
+      return;
+    }
     if (group === 'instrument') {
       styleTouched = true;
       var index = instruments.indexOf(value);
@@ -1608,7 +1695,15 @@
   if (feeling) {
     feeling.addEventListener('click', function (event) {
       var chip = event.target.closest ? event.target.closest('.sh-chip') : null;
-      if (!chip || chip.getAttribute('data-group') !== 'mood') return;
+      if (!chip || chip.classList.contains('sh-more') || chip.getAttribute('data-group') !== 'mood') return;
+      if (chip.classList.contains('on')) {
+        picks.mood = '';
+        setPressed('mood', '');
+        if ($('sh-mood-custom')) $('sh-mood-custom').hidden = true;
+        showMoodError('');
+        showError('');
+        return;
+      }
       picks.mood = chip.getAttribute('data-value');
       setPressed('mood', picks.mood);
       if ($('sh-mood-custom')) $('sh-mood-custom').hidden = picks.mood !== 'custom';
@@ -1620,4 +1715,6 @@
   var battleSaved = battleSavedDraft();
   if (battleSaved) openBattleDraft(battleSaved);
   else showStep();
+  foldAllOptionLists();
+  window.SongHelperChips = { fold: foldOptions, foldAll: foldAllOptionLists };
 }());

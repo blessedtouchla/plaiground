@@ -47,6 +47,7 @@
   var sparkAsk = { feel: '', story: '', keep: '' };
   var sparkSeed = null;
   var seededAngle = '';
+  var ideaLane = '';
   var sectionKind = '';
   var SPARK_GROUPS = (window.SparkCore && window.SparkCore.GROUPS) || [
     { id: 'trending', label: 'Trending', lanes: ['trending'] },
@@ -289,10 +290,25 @@
       if (lane === 'remix') return;
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'sh-chip' + (item.id === mode ? ' on' : '');
+      button.className = 'sh-chip' + (mode && item.id === mode ? ' on' : '');
       button.textContent = item.label;
-      button.setAttribute('aria-pressed', item.id === mode ? 'true' : 'false');
-      button.addEventListener('click', function () { setMode(item.id); });
+      button.setAttribute('aria-pressed', mode && item.id === mode ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        if (item.id === 'battle') {
+          setMode(item.id);
+          return;
+        }
+        if (item.id === mode) {
+          mode = '';
+          var shell = document.getElementById('sh-shell');
+          if (shell) shell.classList.remove('is-v2');
+          var panel = $('sh-v2');
+          if (panel) panel.hidden = true;
+          paintModes();
+          return;
+        }
+        setMode(item.id);
+      });
       host.appendChild(button);
     });
   }
@@ -303,6 +319,7 @@
     paintKinds();
     paintParts();
     paintLive();
+    if (window.SongHelperChips) window.SongHelperChips.foldAll();
   }
 
   function setMode(id) {
@@ -551,13 +568,19 @@
       }
       tip.hidden = openTip !== row.word;
       button.addEventListener('click', function () {
-        chosenSlang = row.word;
-        openTip = openTip === row.word ? '' : row.word;
+        if (chosenSlang === row.word) {
+          chosenSlang = '';
+          openTip = '';
+        } else {
+          chosenSlang = row.word;
+          openTip = row.word;
+        }
         paintSlang();
       });
       host.appendChild(button);
       host.appendChild(tip);
     });
+    if (window.SongHelperChips) window.SongHelperChips.fold(host);
   }
 
   function fillRegions(tags) {
@@ -572,7 +595,8 @@
       button.textContent = label;
       button.setAttribute('aria-pressed', craft.region === value ? 'true' : 'false');
       button.addEventListener('click', function () {
-        craft.region = value;
+        if (value && craft.region === value) craft.region = '';
+        else craft.region = value;
         chosenSlang = '';
         fillRegions();
         paintSlang();
@@ -583,6 +607,7 @@
     }
     chip('', 'No region');
     regionTags.forEach(function (tag) { chip(tag, tag); });
+    if (window.SongHelperChips) window.SongHelperChips.fold(host);
   }
 
   function ideaTopic() {
@@ -627,17 +652,18 @@
     questions.KINDS.forEach(function (item) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'sh-chip' + (item.id === kind ? ' on' : '');
+      button.className = 'sh-chip' + (kind && item.id === kind ? ' on' : '');
       button.textContent = item.label;
-      button.setAttribute('aria-pressed', item.id === kind ? 'true' : 'false');
+      button.setAttribute('aria-pressed', kind && item.id === kind ? 'true' : 'false');
       button.addEventListener('click', function () {
-        kind = item.id;
+        kind = kind === item.id ? '' : item.id;
         resetLive();
         paintKinds();
         paintLive();
       });
       host.appendChild(button);
     });
+    if (window.SongHelperChips) window.SongHelperChips.fold(host);
   }
 
   function paintParts() {
@@ -647,17 +673,19 @@
     questions.PARTS.forEach(function (item) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'sh-chip' + (item.id === part ? ' on' : '');
+      button.className = 'sh-chip' + (part && item.id === part ? ' on' : '');
       button.textContent = item.label;
-      button.setAttribute('aria-pressed', item.id === part ? 'true' : 'false');
-      button.addEventListener('click', function () { setPart(item.id); });
+      button.setAttribute('aria-pressed', part && item.id === part ? 'true' : 'false');
+      button.addEventListener('click', function () { setPart(item.id, true); });
       host.appendChild(button);
     });
+    if (window.SongHelperChips) window.SongHelperChips.fold(host);
   }
 
-  function setPart(id) {
-    part = id || 'song';
-    addingPart = part !== 'song';
+  function setPart(id, toggle) {
+    if (toggle && part === id) part = '';
+    else part = id || 'song';
+    addingPart = !!part && part !== 'song';
     resetLive();
     paintParts();
     paintLive();
@@ -675,8 +703,12 @@
     area.className = 'sh-area';
     area.id = 'sh-own-idea';
     area.maxLength = 280;
-    area.placeholder = 'One sentence. A hot topic can fill this in.';
+    area.placeholder = 'One sentence about the song.';
     area.addEventListener('input', function () {
+      if (String(area.value || '').trim() && (sparkSeed || sparkTopic || sparkHeadline)) {
+        clearSparkChoice();
+        if (sparkPack) paintSpark(sparkPack);
+      }
       touchLive();
       paintLive();
     });
@@ -1080,10 +1112,15 @@
         button.className = 'sh-chip';
         button.textContent = option.label;
         button.addEventListener('click', function () {
+          var turningOff = button.classList.contains('on');
           feedbackOn = {};
-          feedbackOn[option.id] = true;
           feedbackNote = '';
-          applyV2Feedback([option.id]);
+          if (!turningOff) feedbackOn[option.id] = true;
+          box.querySelectorAll('.sh-chip').forEach(function (chip) {
+            var on = !turningOff && chip === button;
+            chip.classList.toggle('on', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
         });
         box.appendChild(button);
       });
@@ -1140,6 +1177,7 @@
     hint.className = 'sh-help';
     hint.id = 'sh-v2-feedback-hint';
     host.appendChild(hint);
+    if (window.SongHelperChips) window.SongHelperChips.fold(chips);
   }
 
   function renderLine(parent, part, row, index) {
@@ -1687,9 +1725,11 @@
     document.querySelectorAll('[data-craft]').forEach(function (button) {
       button.addEventListener('click', function () {
         var key = button.getAttribute('data-craft');
-        craft[key] = button.getAttribute('data-value');
+        var value = button.getAttribute('data-value');
+        var already = button.classList.contains('on');
+        craft[key] = already ? '' : value;
         document.querySelectorAll('[data-craft="' + key + '"]').forEach(function (peer) {
-          var on = peer === button;
+          var on = !already && peer === button;
           peer.classList.toggle('on', on);
           peer.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
@@ -1978,6 +2018,55 @@
     seededAngle = happenedValue;
   }
 
+  function clearSparkChoice() {
+    sparkTopic = '';
+    sparkHeadline = '';
+    sparkSeed = null;
+    sparkAsk = { feel: '', story: '', keep: '' };
+    sparkDailyOpen = false;
+    seededAngle = '';
+    paintSparkNote();
+  }
+
+  function clearOwnIdea() {
+    var own = $('sh-own-idea');
+    if (own) own.value = '';
+    var host = $('sh-own');
+    if (!host) return;
+    host.querySelectorAll('[data-spark-ask]').forEach(function (el) { el.value = ''; });
+  }
+
+  function paintIdeaLane() {
+    var ideas = $('sh-ideas-panel');
+    var own = $('sh-own-panel');
+    var ideasBtn = $('sh-choice-ideas');
+    var ownBtn = $('sh-choice-own');
+    if (ideas) ideas.hidden = ideaLane !== 'ideas';
+    if (own) own.hidden = ideaLane !== 'own';
+    if (ideasBtn) {
+      var ideasOn = ideaLane === 'ideas';
+      ideasBtn.classList.toggle('on', ideasOn);
+      ideasBtn.setAttribute('aria-pressed', ideasOn ? 'true' : 'false');
+    }
+    if (ownBtn) {
+      var ownOn = ideaLane === 'own';
+      ownBtn.classList.toggle('on', ownOn);
+      ownBtn.setAttribute('aria-pressed', ownOn ? 'true' : 'false');
+    }
+  }
+
+  function setIdeaLane(next) {
+    if (next !== 'ideas' && next !== 'own') return;
+    if (next === ideaLane) return;
+    ideaLane = next;
+    if (next === 'own') clearSparkChoice();
+    if (next === 'ideas') clearOwnIdea();
+    paintIdeaLane();
+    if (sparkPack) paintSpark(sparkPack);
+    touchLive();
+    paintLive();
+  }
+
   function paintSparkNote() {
     var note = $('sh-spark-picked');
     if (!note) return;
@@ -2039,6 +2128,12 @@
   function chooseSpark(item, which) {
     if (!item) return;
     rememberAsk();
+    var whichId = which === 'flip' ? 'flip' : 'spark';
+    if (sparkSeed && sparkSeed.id && sparkSeed.id === item.id && sparkSeed.which === whichId) {
+      clearSparkChoice();
+      if (sparkPack) paintSpark(sparkPack);
+      return;
+    }
     var spark = window.SparkCore;
     var angle = which === 'flip'
       ? (item.flip || item.detail || item.title || '')
@@ -2046,6 +2141,11 @@
     angle = String(angle || '').replace(/\s+/g, ' ').trim();
     if (!angle) return;
     if (spark && spark.tragedy(sparkText(item) + ' ' + angle)) return;
+    if (ideaLane !== 'ideas') {
+      ideaLane = 'ideas';
+      paintIdeaLane();
+    }
+    clearOwnIdea();
     var same = sparkSeed && sparkSeed.id && sparkSeed.id === item.id;
     if (!same) sparkAsk = { feel: '', story: '', keep: '' };
     if (item.feel != null) sparkAsk.feel = String(item.feel).slice(0, 280);
@@ -2060,13 +2160,11 @@
       headline: item.headline || '',
       sourceLabel: item.sourceLabel || '',
       sourceUrl: item.sourceUrl || '',
-      which: which === 'flip' ? 'flip' : 'spark',
+      which: whichId,
       feel: sparkAsk.feel,
       story: sparkAsk.story,
       keep: sparkAsk.keep,
     };
-    var ownIdea = $('sh-own-idea');
-    if (ownIdea && !String(ownIdea.value || '').trim()) ownIdea.value = sparkSeed.angle;
     touchLive();
     paintLive();
     if (item.daily) sparkDailyOpen = true;
@@ -2201,6 +2299,16 @@
       dailyBtn.textContent = sparkPack.daily.headline || sparkPack.daily.title || 'Daily spark';
       dailyBtn.addEventListener('click', function () {
         rememberAsk();
+        var dailyId = sparkPack.daily && sparkPack.daily.id;
+        var picked = sparkSeed && dailyId && sparkSeed.id === dailyId;
+        if (picked) {
+          sparkSeed = null;
+          sparkAsk = { feel: '', story: '', keep: '' };
+          sparkDailyOpen = false;
+          paintSparkNote();
+          paintSpark();
+          return;
+        }
         sparkDailyOpen = !sparkDailyOpen;
         paintSpark();
       });
@@ -2214,10 +2322,10 @@
     SPARK_GROUPS.forEach(function (group) {
       groups.appendChild(sparkChip(group.label, group.id === sparkGroup, function () {
         rememberAsk();
-        sparkGroup = group.id;
+        if (sparkGroup === group.id) sparkGroup = '';
+        else sparkGroup = group.id;
         sparkNews = '';
-        sparkTopic = '';
-        sparkHeadline = '';
+        clearSparkChoice();
         paintSpark();
       }));
     });
@@ -2229,17 +2337,17 @@
       desks.setAttribute('aria-label', 'News desks');
       desks.appendChild(sparkChip('All news', !sparkNews, function () {
         rememberAsk();
+        if (!sparkNews) return;
         sparkNews = '';
-        sparkTopic = '';
-        sparkHeadline = '';
+        clearSparkChoice();
         paintSpark();
       }));
       spark.LANES.filter(function (lane) { return lane.id.indexOf('news-') === 0; }).forEach(function (lane) {
         desks.appendChild(sparkChip(lane.label.replace(/^News · /, ''), sparkNews === lane.id, function () {
           rememberAsk();
-          sparkNews = lane.id;
-          sparkTopic = '';
-          sparkHeadline = '';
+          if (sparkNews === lane.id) sparkNews = '';
+          else sparkNews = lane.id;
+          clearSparkChoice();
           paintSpark();
         }));
       });
@@ -2262,8 +2370,24 @@
       topics.forEach(function (topic) {
         topicRow.appendChild(sparkChip(topic.label, sparkTopic === topic.label, function () {
           rememberAsk();
-          sparkTopic = topic.label;
-          sparkHeadline = '';
+          if (sparkTopic === topic.label) {
+            var was = topic.label;
+            sparkTopic = '';
+            sparkHeadline = '';
+            if (sparkSeed && sparkSeed.topic === was) {
+              sparkSeed = null;
+              sparkAsk = { feel: '', story: '', keep: '' };
+              paintSparkNote();
+            }
+          } else {
+            sparkTopic = topic.label;
+            sparkHeadline = '';
+            if (sparkSeed && sparkSeed.topic && sparkSeed.topic !== topic.label) {
+              sparkSeed = null;
+              paintSparkNote();
+            }
+            clearOwnIdea();
+          }
           paintSpark();
         }));
       });
@@ -2291,7 +2415,18 @@
         button.textContent = row.label;
         button.addEventListener('click', function () {
           rememberAsk();
-          sparkHeadline = row.label;
+          if (sparkHeadline === row.label) {
+            var wasHead = row.label;
+            sparkHeadline = '';
+            if (sparkSeed && sparkSeed.headline === wasHead) {
+              sparkSeed = null;
+              sparkAsk = { feel: '', story: '', keep: '' };
+              paintSparkNote();
+            }
+          } else {
+            sparkHeadline = row.label;
+            clearOwnIdea();
+          }
           paintSpark();
         });
         headRow.appendChild(button);
@@ -2312,6 +2447,7 @@
       }
     }
     if (sparkSeed && sparkSeed.angle) host.appendChild(sparkAskPanel(spark));
+    if (window.SongHelperChips) window.SongHelperChips.foldAll();
   }
 
   function sparkAskPanel(spark) {
@@ -2411,6 +2547,11 @@
   paintLog();
   applySparkPrompt();
   syncStructure();
+  paintIdeaLane();
+  var ideasBtn = $('sh-choice-ideas');
+  var ownBtn = $('sh-choice-own');
+  if (ideasBtn) ideasBtn.addEventListener('click', function () { setIdeaLane('ideas'); });
+  if (ownBtn) ownBtn.addEventListener('click', function () { setIdeaLane('own'); });
   loadStatus();
   loadSlang();
   loadSpark();

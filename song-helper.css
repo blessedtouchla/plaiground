@@ -141,6 +141,43 @@ body.song-helper-page .plai-bubble {
   box-shadow: 0 8px 24px rgba(125, 60, 255, 0.28);
 }
 
+.sh-more {
+  background: transparent;
+  border-style: dashed;
+}
+
+.sh-idea-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.sh-choice {
+  width: 100%;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #111;
+  color: #fff;
+  padding: 18px 16px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  min-height: 56px;
+}
+
+.sh-choice.on {
+  background: var(--purple);
+  border-color: var(--purple);
+  box-shadow: 0 8px 24px rgba(125, 60, 255, 0.28);
+}
+
+.sh-choice:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 .sh-chip:focus-visible,
 .sh-input:focus,
 .sh-area:focus,
