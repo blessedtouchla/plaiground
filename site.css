@@ -7770,3 +7770,61 @@ header.nav {
   padding-left: 1.2rem;
 }
 .roadmap-stops li { margin: 6px 0; }
+
+/* Signed-in menu refresh. Roadmap stays first. What's new stays. */
+.side.side-fresh {
+  background: #0e0e14;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px 14px 24px;
+}
+.side.side-fresh .logo img {
+  height: 40px;
+  margin: 0 0 16px;
+}
+.side.side-fresh .side-nav {
+  gap: 2px;
+}
+.side.side-fresh .side-nav a {
+  border-radius: 12px;
+  min-height: 42px;
+  color: #d5d5de;
+}
+.side.side-fresh .side-nav a.side-roadmap,
+.side.side-fresh .side-nav a.side-roadmap.on,
+.side.side-fresh .side-nav a.side-roadmap:hover,
+.side.side-fresh .side-nav a.side-roadmap.on:hover {
+  min-height: 54px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(243, 203, 71, 0.12);
+  color: #fff;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow: inset 0 0 0 1px rgba(243, 203, 71, 0.55);
+}
+.side.side-fresh .side-nav a.side-roadmap::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f3cb47;
+  box-shadow: 0 0 0 4px rgba(243, 203, 71, 0.2);
+  flex: 0 0 auto;
+}
+.side.side-fresh .side-nav .side-label {
+  margin-top: 16px;
+  letter-spacing: 0.12em;
+  color: #8d8d99;
+}
+.side.side-fresh .side-nav [data-whats-new="label"] {
+  color: #f3cb47;
+}
+.side.side-fresh .pro-card {
+  margin-top: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}

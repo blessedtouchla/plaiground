@@ -154,6 +154,7 @@
     </div>
   </footer>
   <script src="membership.js"></script>
+  <script src="lib/guide.js?v=20261007guide"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
@@ -228,7 +229,11 @@
             if (window.PlaigroundMembership) {
               window.PlaigroundMembership.recordSignedIn();
               if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
-              window.location.href = window.PlaigroundMembership.signedInHome(result.data && result.data.email);
+              var account = result.data && result.data.email;
+              var home = window.PlaigroundMembership.signedInHome(account);
+              window.location.href = window.PlaigroundGuide && window.PlaigroundGuide.hrefAfterAuth
+                ? window.PlaigroundGuide.hrefAfterAuth(home, account)
+                : home;
               return;
             }
             window.location.href = 'dashboard.html';

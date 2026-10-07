@@ -203,6 +203,8 @@
     { "source": "/api/spark", "destination": "/api/song-helper?action=spark" },
     { "source": "/destination", "destination": "/destination.html" },
     { "source": "/destination/", "destination": "/destination.html" },
+    { "source": "/guide", "destination": "/guide.html" },
+    { "source": "/guide/", "destination": "/guide.html" },
     { "source": "/blog", "destination": "/blog.html" },
     { "source": "/blog/welcome", "destination": "/blog-welcome.html" },
     { "source": "/blog/first-release", "destination": "/blog-first-release.html" },

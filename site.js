@@ -72,6 +72,8 @@
     setupAppBlogLink(side);
     ensureSignedInRoadmap(side);
     ensureWhatsNewSide(side);
+    markRoadmapLink(side.querySelector(".side-nav"));
+    side.classList.add("side-fresh");
 
     var toggle = topbar.querySelector(".menu-toggle");
     if (!toggle) {
@@ -856,6 +858,14 @@
     ["basic", "creator", "pro"].forEach(function (key) {
       var node = found[key];
       if (node && node.parentNode) node.parentNode.removeChild(node);
+    });
+  }
+
+  function markRoadmapLink(nav) {
+    if (!nav || !nav.querySelectorAll) return;
+    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (anchor) {
+      var href = anchor.getAttribute("href") || "";
+      if (isRoadmapHref(href) || linkText(anchor) === "Roadmap") anchor.classList.add("side-roadmap");
     });
   }
 
