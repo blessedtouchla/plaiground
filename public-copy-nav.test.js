@@ -123,7 +123,10 @@ function run() {
   assert.ok(/Please send any and all feedback/i.test(faq), 'FAQ lead asks for feedback');
   assert.ok(faq.includes('mailto:emailplaiground@gmail.com'), 'FAQ lead keeps the public feedback mailto');
   assert.ok(/What do I get with a free account\?/i.test(faq), 'FAQ answers what a free account includes');
-  assert.ok(/There is no monthly plan to upgrade/i.test(faq), 'FAQ says there is no monthly plan to upgrade');
+  assert.ok(/does not upgrade into a paid tier/i.test(faq), 'FAQ says the free account does not upgrade into a paid tier');
+  assert.ok(/Coming soon \/ join waitlist/i.test(faq), 'FAQ labels management plans as coming soon');
+  assert.ok(/\$59/.test(faq) && /\$179/.test(faq) && /\$449/.test(faq) && /\$299/.test(faq), 'FAQ lists the new plan and package prices');
+  assert.ok(/fee on the placement, not a royalty cut/i.test(faq), 'FAQ says the sync percent is a placement fee');
   assert.ok(/What is publishing\?/i.test(faq), 'FAQ answers What is publishing');
   assert.ok(/collected by societies, not stores/i.test(faq), 'publishing answer says societies collect');
   assert.ok(/What are Boosts\?/i.test(faq), 'FAQ answers What are Boosts');
@@ -370,7 +373,11 @@ function run() {
   assert.ok(packCard && /\$149/.test(packCard[0]) && /one-time/i.test(packCard[0]) && !/draft/i.test(packCard[0]) && !/data-checkout-plan/.test(packCard[0]), 'Act Pack card is $149 one-time and does not charge');
   assert.ok(/Persona kit/.test(packCard[0]) && /one update/i.test(packCard[0]) && /Release QC/.test(packCard[0]) && /Compliance routing/.test(packCard[0]) && /Plai Research/.test(packCard[0]), 'Act Pack card lists the locked contents');
   const priceSheet = index.match(/<section class="pricing"[\s\S]*?<\/section>/);
-  assert.ok(priceSheet && /\$0/.test(priceSheet[0]) && /\$2\.49/.test(priceSheet[0]) && /\$149/.test(priceSheet[0]) && /\$79/.test(priceSheet[0]) && /\$99/.test(priceSheet[0]) && /\$199/.test(priceSheet[0]), 'pricing lists every locked dollar');
+  assert.ok(priceSheet && /\$0/.test(priceSheet[0]) && /\$2\.49/.test(priceSheet[0]) && /\$149/.test(priceSheet[0]) && /\$299/.test(priceSheet[0]) && /\$199/.test(priceSheet[0]) && /\$99/.test(priceSheet[0]) && /\$59\/mo/.test(priceSheet[0]) && /\$179\/mo/.test(priceSheet[0]) && /\$449\/mo/.test(priceSheet[0]) && /\$29\/mo/.test(priceSheet[0]) && /\$19\/mo/.test(priceSheet[0]) && /\$75\/hr/.test(priceSheet[0]) && /Cost \+ 15-20%/.test(priceSheet[0]), 'pricing lists the approved catalog');
+  assert.ok(priceSheet && !/\$79/.test(priceSheet[0]) && !/Growth campaign|Sync package/.test(priceSheet[0]), 'old EPK, Growth campaign, and Sync package prices are gone');
+  assert.ok(/Coming soon \/ join waitlist/.test(priceSheet[0]), 'monthly plans are labeled coming soon');
+  assert.ok(/fee on the placement, not a royalty cut/.test(priceSheet[0]), 'sync percent is a placement fee');
+  assert.ok(/Unchanged/.test(priceSheet[0]), 'unchanged prices are flagged');
   assert.ok(/\$149 \+ \$2\.49 \(\$151\.49\)/.test(priceSheet[0]), 'bundle note shows Act Pack plus the first song');
   assert.ok(/Distribution is not required to buy A&amp;R/.test(priceSheet[0]), 'A&R does not require Distro');
   assert.ok(/No placement promise/.test(priceSheet[0]), 'Sync package makes no placement promise');

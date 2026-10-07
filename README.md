@@ -110,7 +110,24 @@ Stripe Dashboard (you add this; the repo has no webhook secret):
 3. Events: `checkout.session.completed`, `invoice.paid`, `invoice.upcoming`, `invoice.payment_failed`, `payment_intent.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`
 4. Put the signing secret in Vercel as `STRIPE_WEBHOOK_SECRET`
 
-Existing live prices only (do not create products or prices):
+Existing live prices are the old membership checkout only. Do not invent new price IDs, and do not point the public catalog at these four:
+
+Public catalog still needed in Stripe (IDs not assigned; do not charge until they exist):
+
+- Persona package, one-time, 29900 cents
+- Content engine, one-time, 19900 cents
+- Release package, one-time, 14900 cents
+- Fan growth setup, one-time, 9900 cents
+- Starter, month, 5900 cents
+- Grow, month, 17900 cents
+- Full management, month, 44900 cents
+- Sync, month, 2900 cents
+- Brand protection, month, 1900 cents
+- Coaching is hourly at $75, not a Stripe subscription
+- Sync's alternate 20% is a fee on the placement deal, not a Stripe price and not a royalty cut
+- Playlist pitching and creator campaigns are cost plus 15-20%, quoted per job, not a fixed price ID
+
+Old membership prices already in Stripe (do not send the new catalog here):
 
 - Creator month `$14.99` `price_1U6kDm47ejpgV1ChUQ7V937J` (`prod_V6yAuvAiyZV8Jn`)
 - Creator year `$149` `price_1U7nE647ejpgV1ChOARh5tC3` (`prod_V83KtcIQcKaCn4`) — do not send new checkouts to old `price_1U6kE547ejpgV1Chb6vtfjju`

@@ -24,7 +24,9 @@ A&R, press kits, pitching, and distribution, powered by AI and checked by people
 
 ## What changed
 
-Dollars did not change: Free account $0, A&R Act Pack $149, EPK only $79, Growth campaign add-on $99, Sync package add-on $199 (no placement promise), distribution $2.49 per song, one time.
+On 25 Sep 2026 the dollars on the site were: Free account $0, A&R Act Pack $149, EPK only $79, Growth campaign add-on $99, Sync package add-on $199 (no placement promise), distribution $2.49 per song, one time.
+
+On 7 Oct 2026 Victoria approved a new public catalog. That list replaces the sentence above. Persona package $299 (starter EPK folded in; no checkout depended on the old $79). Content engine $199. Release package $149. Fan growth setup $99. Starter $59/mo, Grow $179/mo (replaces the old $99 Growth campaign), Full management $449/mo. Sync add-on $29/mo or 20% of the placement deal (replaces the old $199 sync package; the 20% is a placement fee, not a royalty cut). Brand protection $19/mo. Coaching $75/hr. Playlist pitching and creator campaigns at cost plus 15-20%. Distribute $2.49 per song and the A&R Act Pack $149 stay unchanged. Monthly plans and add-ons are Coming soon / join waitlist until a service backend exists.
 
 ### Homepage
 

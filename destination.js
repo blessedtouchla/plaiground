@@ -260,9 +260,9 @@
       face: 'plai',
       status: 'live',
       href: '/#pricing',
-      link: 'Sync package',
-      what: 'Packages for film, TV, games, and ads. No placement promise.',
-      get: 'A sync package. No placement promise. People check the work.',
+      link: 'Sync add-on',
+      what: 'A sync add-on for film, TV, games, and ads. The price is on Plans and Pricing. No placement promise.',
+      get: 'The sync add-on. No placement promise. People check the work.',
       who: 'The AI team builds the package. People check the work.',
       why: {
         money: 'A license is another way the song can earn.',
