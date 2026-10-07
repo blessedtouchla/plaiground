@@ -83,6 +83,7 @@
     download.className = 'btn btn-purple btn-md';
     download.textContent = 'Download PDF';
     download.addEventListener('click', function () {
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'claim_pdf_downloaded', payload: {} });
       var bytes = api.pdfBytes(shown);
       var blob = new Blob([bytes], { type: 'application/pdf' });
       var url = URL.createObjectURL(blob);

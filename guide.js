@@ -278,6 +278,7 @@
       event.preventDefault();
       token += 1;
       guide.mark('skipped', answers);
+      saveGuide('skipped');
       window.location.href = '/destination';
     }
   });
@@ -288,8 +289,30 @@
       if (!route) route = guide.routeFor(answers);
       persist(route);
       guide.mark('completed', answers);
+      saveGuide('completed');
       cta.setAttribute('href', (core && core.stopHref ? core.stopHref(shownFirstId()) : route.firstHref) || '/destination');
     });
+  }
+
+  function saveGuide(status) {
+    var built = guide.routeFor(answers);
+    var roleEl = document.getElementById('guide-role');
+    var payload = {
+      status: status,
+      song: answers.song || '',
+      wants: (answers.wants || []).slice(),
+      route: (built && built.stops) || [],
+      pace: answers.pace || '',
+      role: roleEl ? String(roleEl.value || '') : ''
+    };
+    if (window.PlaigroundEvents && window.PlaigroundEvents.saveGuide) {
+      window.PlaigroundEvents.saveGuide(payload);
+    } else {
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push(Object.assign({ kind: 'guide' }, payload));
+    }
+    if (status === 'completed') {
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'route_map_built', payload: {} });
+    }
   }
 
   show(1);

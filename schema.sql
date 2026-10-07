@@ -117,3 +117,27 @@ CREATE TABLE IF NOT EXISTS saved_lyrics (
 
 CREATE INDEX IF NOT EXISTS saved_lyrics_user_created_idx
   ON saved_lyrics (user_id, created_at DESC);
+
+-- Every product usage occurrence. Rollups keep count, first_at, and last_at.
+CREATE TABLE IF NOT EXISTS product_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  event_name text NOT NULL,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS product_events_user_created_idx
+  ON product_events (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS product_events_name_created_idx
+  ON product_events (event_name, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS product_event_rollups (
+  user_id uuid NOT NULL,
+  event_name text NOT NULL,
+  event_count integer NOT NULL DEFAULT 0,
+  first_at timestamptz NOT NULL,
+  last_at timestamptz NOT NULL,
+  PRIMARY KEY (user_id, event_name)
+);

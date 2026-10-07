@@ -399,6 +399,7 @@
       }
       images = data.images || [];
       selected = 0;
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'cover_art_generated', payload: {} });
       preview = Boolean(data.preview);
       upscaleNote = data.upscaleNote || '';
       banner.hidden = !preview;

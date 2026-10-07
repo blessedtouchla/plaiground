@@ -411,6 +411,18 @@
       }
       markHumanSaved();
       writeDraft(fields);
+      var lane = fields.made_how === 'no_ai' ? 'human' : (fields.made_how ? 'ai' : '');
+      if (lane) {
+        var releaseId = '';
+        try {
+          var held = readDraft();
+          releaseId = held && (held.release_id || held.id) ? String(held.release_id || held.id) : '';
+        } catch (errLane) {}
+        (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({
+          name: 'copyright_choice',
+          payload: { lane: lane, release_id: releaseId }
+        });
+      }
       if (root.PlaigroundReleaseCredits && root.PlaigroundReleaseCredits.writeLegalToArtist) {
         var draft = readDraft();
         root.PlaigroundReleaseCredits.writeLegalToArtist(

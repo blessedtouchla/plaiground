@@ -164,6 +164,18 @@
     });
   }
 
+  function renderProductEvents(rows) {
+    fillTable('[data-product-events-table]', '[data-product-events-empty]', '[data-product-events-body]', rows, function (row) {
+      return '<tr>'
+        + cell('Event', escapeHtml(dash(row.label || row.event)), 'admin-lead')
+        + cell('Count', escapeHtml(String(row.count == null ? 0 : row.count)))
+        + cell('Unique users', escapeHtml(String(row.unique_users == null ? 0 : row.unique_users)))
+        + cell('Did it in first 7 days', escapeHtml(String(row.cohort_did_in_7d == null ? 0 : row.cohort_did_in_7d)))
+        + cell('Retained at day 30', escapeHtml(String(row.cohort_retained_30 == null ? 0 : row.cohort_retained_30)))
+        + '</tr>';
+    });
+  }
+
   function renderEvents(events) {
     fillTable('[data-events-table]', '[data-events-empty]', '[data-events-body]', events, function (row) {
       return '<tr>'
@@ -367,6 +379,7 @@
     if (status) status.hidden = true;
     renderSignups(data && data.signups);
     renderEvents(data && data.events);
+    renderProductEvents(data && data.product_events);
     renderCheckouts(data && data.checkouts);
     renderSubs(data && data.subscriptions);
     renderMoney(data && data.money);

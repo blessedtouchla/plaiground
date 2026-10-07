@@ -46,8 +46,15 @@
     if (summary) summary.textContent = bits.join(' · ');
     if (stops) {
       var list = Array.isArray(plan.stops) ? plan.stops : [];
-      stops.innerHTML = list.map(function (title) {
-        return '<li>' + escapeHtml(title) + '</li>';
+      var ids = Array.isArray(data.stopIds) ? data.stopIds : [];
+      stops.innerHTML = list.map(function (title, index) {
+        var id = ids[index] || '';
+        var done = false;
+        try { done = id && localStorage.getItem('plaiground.routeDone.' + id) === '1'; } catch (err) {}
+        var action = '';
+        if (id && done) action = ' <span>Done</span>';
+        else if (id) action = ' <button type="button" data-route-stop="' + escapeHtml(id) + '">Mark done</button>';
+        return '<li>' + escapeHtml(title) + action + '</li>';
       }).join('');
     }
     if (meta) {
@@ -86,7 +93,8 @@
       }
       render({
         saved_at: result.data.saved_at,
-        plan: result.data.summary || null
+        plan: result.data.summary || null,
+        stopIds: (result.data.plan && result.data.plan.stops) || []
       });
     }).catch(function () {
       var status = $('[data-roadmap-status]');
@@ -122,12 +130,34 @@
     };
   }
 
+  function bindStops() {
+    var list = $('[data-roadmap-stops]');
+    if (!list || list.getAttribute('data-route-bound') === '1') return;
+    list.setAttribute('data-route-bound', '1');
+    list.addEventListener('click', function (event) {
+      var button = event.target && event.target.closest ? event.target.closest('[data-route-stop]') : null;
+      if (!button) return;
+      var id = button.getAttribute('data-route-stop') || '';
+      if (!id) return;
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({
+        name: 'route_stop_completed',
+        payload: { stop_id: id }
+      });
+      try { localStorage.setItem('plaiground.routeDone.' + id, '1'); } catch (err) {}
+      var mark = document.createElement('span');
+      mark.textContent = 'Done';
+      if (button.replaceWith) button.replaceWith(mark);
+      else if (button.parentNode) button.parentNode.replaceChild(mark, button);
+    });
+  }
+
   function boot() {
     var membership = global.PlaigroundMembership;
     var ready = membership && typeof membership.whenReady === 'function'
       ? membership.whenReady()
       : Promise.resolve(null);
     ready.then(function () {
+      bindStops();
       load();
     });
   }

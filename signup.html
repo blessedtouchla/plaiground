@@ -112,6 +112,18 @@
             </select>
           </div>
           <div class="field">
+            <label for="role">I'm a...</label>
+            <select id="role" name="role">
+              <option value="" selected>Skip for now</option>
+              <option value="artist">Artist</option>
+              <option value="producer">Producer</option>
+              <option value="songwriter">Songwriter</option>
+              <option value="team">Team or label</option>
+              <option value="manager">Manager</option>
+            </select>
+            <p class="hint">Optional. Artists first. Skip this if you want.</p>
+          </div>
+          <div class="field">
             <label for="country">Country</label>
             <input id="country" name="country" type="text" value="United States" />
           </div>
@@ -216,6 +228,16 @@
         };
         if (username) body.username = username;
         if (plan) body.plan = plan;
+        var roleEl = document.getElementById('role');
+        var role = roleEl ? String(roleEl.value || '').trim() : '';
+        if (role) body.role = role;
+        try {
+          if (window.PlaigroundEvents && window.PlaigroundEvents.readAttribution) {
+            body.attribution = window.PlaigroundEvents.readAttribution();
+          } else {
+            body.attribution = JSON.parse(localStorage.getItem('plaiground.attribution') || 'null');
+          }
+        } catch (errAttr) {}
         if (password.length < 8) {
           setStatus('Password must be at least 8 characters.');
           return;

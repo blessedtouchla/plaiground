@@ -7,6 +7,7 @@
 
   var answers = {};
   var index = 0;
+  var started = false;
 
   function esc(value) {
     return String(value || '')
@@ -38,6 +39,10 @@
   }
 
   function render() {
+    if (!started) {
+      started = true;
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'qualify_started', payload: {} });
+    }
     var total = api.QUESTIONS.length + 1;
     var now = Math.min(total, index + 1);
     if (bar) {
@@ -47,6 +52,7 @@
     if (fill) fill.style.width = ((now / total) * 100) + '%';
     if (index >= api.QUESTIONS.length) {
       var card = api.result(answers);
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'qualify_completed', payload: { tier: card && card.id } });
       var html = '<h1 tabindex="-1">' + esc(card.title) + '</h1>';
       html += '<p class="qualify-lead">' + esc(card.lead) + '</p>';
       html += forList(card.gates, true);

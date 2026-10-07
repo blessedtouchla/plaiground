@@ -97,6 +97,7 @@
     </section>
   </main>
 
+  <script src="/product-events.js?v=20261007ev1"></script>
   <script src="account.js?v=20260910live1"></script>
   <script src="lib/upload-cancel-overview.js?v=20260910c1"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
@@ -346,10 +347,18 @@
               return gate;
             }
             if (gate.data.signed) {
+              var alreadySigned = false;
+              try {
+                var prior = readDraft();
+                alreadySigned = Boolean(prior && prior.signwell_signed);
+              } catch (errSigned) {}
               persistSheet(documentId, {
                 signwell_signed: true,
                 signwell_status: gate.data.status || 'Completed',
               });
+              if (!alreadySigned) {
+                (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'split_sheet_signed', payload: {} });
+              }
               showStatus('ok', 'Split sheet signed.');
             } else {
               persistSheet(documentId, {
@@ -431,6 +440,13 @@
               signwell_signed: Boolean(data.signed),
               signwell_status: data.signed ? (data.status || 'Completed') : 'awaiting_signature',
             });
+            (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'split_sheet_created', payload: {} });
+            if (emailLinkOnly || data.mode === 'email') {
+              (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'split_sheet_sent', payload: {} });
+            }
+            if (data.signed) {
+              (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'split_sheet_signed', payload: {} });
+            }
           }
 
           if (emailLinkOnly || data.mode === 'email') {

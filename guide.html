@@ -41,6 +41,17 @@
         <button type="button" data-guide-choice="song" data-value="made">Made it</button>
         <button type="button" data-guide-choice="song" data-value="out">It's out</button>
       </div>
+      <label class="guide-role" for="guide-role">I'm a...
+        <select id="guide-role">
+          <option value="">Skip for now</option>
+          <option value="artist">Artist</option>
+          <option value="producer">Producer</option>
+          <option value="songwriter">Songwriter</option>
+          <option value="team">Team or label</option>
+          <option value="manager">Manager</option>
+        </select>
+      </label>
+      <p class="guide-role-note">Optional. Artists first. Skip this if you want.</p>
     </section>
 
     <section class="guide-screen" data-guide-screen="2" hidden>
@@ -65,6 +76,7 @@
       <a class="guide-cta" data-guide-cta href="/destination">Tap your first stop</a>
     </section>
   </main>
+  <script src="/product-events.js?v=20261007ev1"></script>
   <script src="destination.js?v=20261007sec"></script>
   <script src="lib/guide.js?v=20261007pace"></script>
   <script src="membership.js"></script>

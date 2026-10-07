@@ -47,6 +47,10 @@
     }
     if (fill) fill.style.width = ((now / total) * 100) + '%';
     if (last) {
+      if (!render.tracked) {
+        render.tracked = true;
+        (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'contract_created', payload: {} });
+      }
       var draft = fullDraft();
       view.innerHTML = '<h1 tabindex="-1">Your draft</h1>'
         + '<textarea class="contract-draft" readonly data-contract-draft>' + esc(draft) + '</textarea>'
@@ -55,6 +59,7 @@
         + '<p class="contract-pay">' + esc(api.PAY_LINE) + '</p>';
       return;
     }
+    render.tracked = false;
     var step = list[index];
     var html = '<h1 tabindex="-1">' + esc(step.ask) + '</h1>';
     if (step.kind === 'type') {

@@ -3,6 +3,11 @@
   var slangCore = window.SlangCore;
   if (!modes || !document.getElementById('sh-modes')) return;
 
+  if (!window.__plaiHelperSession) {
+    window.__plaiHelperSession = 1;
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_started', payload: {} });
+  }
+
   var craft = {
     vocabulary: 'plain',
     imagery: 'concrete',
@@ -1022,6 +1027,7 @@
       }
     }
     lastDraft = draft;
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_draft', payload: {} });
     if (window.PlaigroundClaim) window.PlaigroundClaim.noteGeneration(draft);
     if (draft.steps) {
       var list = document.createElement('ol');
@@ -1345,6 +1351,7 @@
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(area.value).then(function () {
           button.textContent = 'Copied';
+          (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_lyrics_copied', payload: {} });
         }).catch(function () {
           area.focus();
           area.select();
@@ -1719,6 +1726,7 @@
         if (gate) gate.hidden = false;
         return;
       }
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'claim_created', payload: {} });
       window.location.href = '/claim?id=' + encodeURIComponent(record.id);
     });
   }
@@ -1752,6 +1760,7 @@
       var data = await saveRes.json().catch(function () { return {}; });
       if (saveRes.ok && data && data.song && data.song.id) {
         if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
+        (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_saved', payload: {} });
         window.location.href = '/my-lyrics?id=' + encodeURIComponent(data.song.id);
         return;
       }

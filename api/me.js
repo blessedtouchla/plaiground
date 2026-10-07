@@ -13,6 +13,10 @@
  * POST /api/me/problem  session required; emails emailplaiground via Resend.
  * GET  /api/admin/signups  owner session only; signups, paid rows, store rows, growth events
  * GET  /api/admin/signups.csv  same auth; signup rows as text/csv (also ?format=csv)
+ * POST /api/me/events     session required; one product usage event, no lyrics
+ * POST /api/me/guide      session required; save guide answers and optional role
+ * GET  /api/admin/events  owner session only; counts, unique users, day-30 cohort
+ * GET  /api/admin/events.csv  same auth; that table as text/csv
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -21,7 +25,8 @@ const { listAdminOverview } = require('../lib/admin-overview');
 const { listSignupRows, signupRowsToCsv } = require('../lib/admin-signups');
 const roadmap = require('../lib/roadmap');
 const lyrics = require('../lib/lyrics');
-const { findById, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
+const { findById, listUsers, mergeFacts, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
+const productEvents = require('../lib/product-events');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
@@ -71,6 +76,9 @@ const ROUTE_ACTIONS = {
   lyrics: true,
   'artist-profiles': true,
   'admin-roadmaps': true,
+  events: true,
+  guide: true,
+  'admin-events': true,
 };
 
 function artistVerb(body) {
@@ -140,6 +148,30 @@ function isAdminRoadmaps(req) {
 
 function wantsSignupPart(req) {
   return String(queryValue(req, 'part') || '').toLowerCase() === 'signups';
+}
+
+function isEvents(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/events') return true;
+  return queryValue(req, 'action') === 'events';
+}
+
+function isGuide(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/guide') return true;
+  return queryValue(req, 'action') === 'guide';
+}
+
+function isAdminEvents(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/events' || path === '/api/admin/events.csv') return true;
+  return queryValue(req, 'action') === 'admin-events';
+}
+
+function wantsEventsCsv(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/events.csv') return true;
+  return String(queryValue(req, 'format') || '').toLowerCase() === 'csv';
 }
 
 function isProblem(req) {
@@ -836,6 +868,136 @@ async function reportProblem(req, res) {
   sendJson(res, 200, { ok: true, mail_sent: true });
 }
 
+async function recordProductEvent(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (bodyHasPassword(body)) {
+    sendJson(res, 400, { error: 'Password is not accepted here.' });
+    return;
+  }
+  try {
+    const result = await productEvents.recordEvent(
+      row.id,
+      body && body.name,
+      body,
+      productEvents.eventTime(body && body.at)
+    );
+    if (!result.recorded && result.reason === 'bad_event') {
+      sendJson(res, 400, { error: 'Unknown event.' });
+      return;
+    }
+    sendJson(res, 200, { ok: true, recorded: Boolean(result.recorded), reason: result.reason || '' });
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Could not record that.' });
+  }
+}
+
+async function saveGuideAnswers(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (bodyHasPassword(body)) {
+    sendJson(res, 400, { error: 'Password is not accepted here.' });
+    return;
+  }
+  const guide = productEvents.normalizeGuide(body);
+  if (!guide) {
+    sendJson(res, 400, { error: 'Guide answers are missing.' });
+    return;
+  }
+  const role = productEvents.normalizeRole(body && body.role);
+  try {
+    const saved = await mergeFacts(row.id, { guide: guide, role: role });
+    sendJson(res, 200, {
+      ok: true,
+      guide: saved && saved.profile ? saved.profile.guide : guide,
+      role: saved && saved.profile ? saved.profile.role || '' : role,
+    });
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Could not save the guide.' });
+  }
+}
+
+async function adminEvents(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (rejectUnconfirmed(res, row)) return;
+    if (!hasStaffProOverride(row.email)) {
+      sendJson(res, 403, { error: 'Not allowed.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    const rows = await productEvents.summarize(await listUsers());
+    if (wantsEventsCsv(req)) {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="plaiground-events.csv"');
+      res.setHeader('Cache-Control', 'no-store');
+      res.end(productEvents.eventsToCsv(rows));
+      return;
+    }
+    sendJson(res, 200, { product_events: rows });
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (isAdminSignups(req)) {
     await adminSignups(req, res);
@@ -843,6 +1005,18 @@ module.exports = async function handler(req, res) {
   }
   if (isAdminRoadmaps(req)) {
     await adminRoadmaps(req, res);
+    return;
+  }
+  if (isAdminEvents(req)) {
+    await adminEvents(req, res);
+    return;
+  }
+  if (isEvents(req)) {
+    await recordProductEvent(req, res);
+    return;
+  }
+  if (isGuide(req)) {
+    await saveGuideAnswers(req, res);
     return;
   }
   if (isLyrics(req)) {

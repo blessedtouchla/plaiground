@@ -927,6 +927,9 @@
       }
       draft = data.draft;
       preview = Boolean(data.preview);
+      if (!document.getElementById('sh-modes')) {
+        (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_draft', payload: {} });
+      }
       if (window.PlaigroundClaim) window.PlaigroundClaim.noteGeneration(draft);
       if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;
       draftKey = key;
@@ -1374,6 +1377,7 @@
       return;
     }
     copyPlain(text, $('sh-copy'));
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_style_copied', payload: {} });
   });
   $('sh-suno-copy').addEventListener('click', function () {
     renderSuno();
@@ -1400,6 +1404,7 @@
     }
     showError('');
     copyPlain(text, $('sh-suno-copy'));
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_lyrics_copied', payload: {} });
   });
   function claimPairs() {
     var data = interview();
@@ -1481,6 +1486,7 @@
         showClaimGate(record.id);
         return;
       }
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'claim_created', payload: {} });
       window.location.href = '/claim?id=' + encodeURIComponent(record.id);
     });
   }
@@ -1738,6 +1744,11 @@
       showMoodError('');
       showError('');
     });
+  }
+
+  if (!document.getElementById('sh-modes') && !window.__plaiHelperSession) {
+    window.__plaiHelperSession = 1;
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_started', payload: {} });
   }
 
   var battleSaved = battleSavedDraft();

@@ -1243,6 +1243,7 @@
       if (remove && app.contains(remove)) {
         var removeId = remove.getAttribute('data-remove');
         state.stopIds = state.stopIds.filter(function (id) { return id !== removeId; });
+        (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({ name: 'route_map_edited', payload: {} });
         renderRoute();
         return;
       }
@@ -1250,6 +1251,7 @@
       if (add && app.contains(add)) {
         var addId = add.getAttribute('data-add');
         if (STOPS[addId] && state.stopIds.indexOf(addId) === -1) state.stopIds.push(addId);
+        (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({ name: 'route_map_edited', payload: {} });
         renderRoute();
         return;
       }
@@ -1261,8 +1263,12 @@
       next.addEventListener('click', function () {
         if (!canContinue()) return;
         readMini();
+        var building = state.step === 2;
         if (state.step === 2) startRoute();
         if (state.step < 3) state.step += 1;
+        if (building && state.step === 3) {
+          (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({ name: 'route_map_built', payload: {} });
+        }
         showStep();
       });
     }

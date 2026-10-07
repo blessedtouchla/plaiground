@@ -33,6 +33,10 @@
       return;
     }
     try { window.sessionStorage.setItem(api.TEXT_KEY, textBox.value); } catch (err) {}
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({
+      name: action === 'fix' ? 'contract_fixed' : 'contract_reviewed',
+      payload: {}
+    });
     var html = '';
     if (data.notice) html += '<p>' + esc(data.notice) + '</p>';
     if (data.attribution) html += '<p>' + esc(data.attribution) + '</p>';

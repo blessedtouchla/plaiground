@@ -109,6 +109,12 @@
       var picked = lane.getAttribute('data-lane');
       if (record.lane !== picked) record.parts = api.blank().parts;
       record.lane = picked;
+      if (picked === 'human' || picked === 'ai') {
+        (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({
+          name: 'copyright_choice',
+          payload: { lane: picked }
+        });
+      }
       persist();
       index = 1;
       render();
