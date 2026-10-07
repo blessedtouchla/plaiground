@@ -17,7 +17,6 @@
   var fill = root.querySelector('[data-guide-fill]');
   var burst = root.querySelector('[data-guide-burst]');
   var stopsBox = root.querySelector('[data-guide-stops]');
-  var rail = root.querySelector('.guide-rail');
   var cta = root.querySelector('[data-guide-cta]');
 
   function reduceMotion() {
@@ -70,37 +69,74 @@
     return record;
   }
 
+  function shownFirstId() {
+    if (!core || !core.sectionsFor || !route) return route && route.firstStop;
+    var groups = core.sectionsFor(route.stops);
+    var openId = core.openSectionId(route.song, route.goal, route.stops);
+    var openGroup = null;
+    groups.forEach(function (section) {
+      if (section.id === openId) openGroup = section;
+    });
+    if (openGroup && openGroup.stops.length) return openGroup.stops[0];
+    if (groups.length && groups[0].stops.length) return groups[0].stops[0];
+    return route.firstStop;
+  }
+
   function renderStops(lit) {
-    if (!stopsBox || !route) return;
+    if (!stopsBox || !route || !core || !core.sectionsFor) return;
     stopsBox.textContent = '';
-    route.stops.forEach(function (id, index) {
-      var info = core && core.explain ? core.explain(id, route.goal) : null;
-      var li = document.createElement('li');
-      li.className = 'guide-stop' + (lit ? ' is-on' : '');
-      if (lit && index === 0) li.classList.add('is-first');
-      var pin = document.createElement('span');
-      pin.className = 'guide-pin';
-      pin.textContent = String(index + 1);
-      var name = document.createElement('b');
-      name.textContent = info && info.title ? info.title : id;
-      li.appendChild(pin);
-      li.appendChild(name);
-      stopsBox.appendChild(li);
+    var groups = core.sectionsFor(route.stops);
+    var openId = core.openSectionId(route.song, route.goal, route.stops);
+    var firstId = shownFirstId();
+    var number = 1;
+    groups.forEach(function (section) {
+      var open = section.id === openId;
+      var block = document.createElement('section');
+      block.className = 'guide-fold' + (open ? ' is-open' : '');
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'guide-fold-toggle';
+      toggle.setAttribute('data-guide-fold', section.id);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var name = document.createElement('span');
+      name.textContent = section.label;
+      var chevron = document.createElement('span');
+      chevron.className = 'guide-fold-chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      toggle.appendChild(name);
+      toggle.appendChild(chevron);
+      var list = document.createElement('ol');
+      list.hidden = !open;
+      section.stops.forEach(function (id) {
+        var info = core.explain ? core.explain(id, route.goal) : null;
+        var li = document.createElement('li');
+        li.className = 'guide-stop' + (lit || open ? ' is-on' : '');
+        if (id === firstId) li.classList.add('is-first');
+        var pin = document.createElement('span');
+        pin.className = 'guide-pin';
+        pin.textContent = String(number);
+        number += 1;
+        var label = document.createElement('b');
+        label.textContent = info && info.title ? info.title : id;
+        li.appendChild(pin);
+        li.appendChild(label);
+        list.appendChild(li);
+      });
+      block.appendChild(toggle);
+      block.appendChild(list);
+      stopsBox.appendChild(block);
     });
   }
 
   function lightStops(run) {
-    var nodes = stopsBox ? stopsBox.querySelectorAll('.guide-stop') : [];
+    var nodes = stopsBox ? stopsBox.querySelectorAll('.guide-fold.is-open .guide-stop') : [];
     if (!nodes.length) {
       show(4);
       return;
     }
-    if (rail) rail.classList.add('is-draw');
+    nodes.forEach(function (node) { node.classList.remove('is-on'); });
     if (reduceMotion()) {
-      nodes.forEach(function (node, index) {
-        node.classList.add('is-on');
-        if (index === 0) node.classList.add('is-first');
-      });
+      nodes.forEach(function (node) { node.classList.add('is-on'); });
       window.setTimeout(function () {
         if (run === token) show(4);
       }, 350);
@@ -126,19 +162,32 @@
     showScreen(step);
     if (step === 3) {
       route = guide.routeFor(answers);
-      if (cta) cta.setAttribute('href', route.firstHref || '/destination');
+      if (cta && core && core.stopHref) cta.setAttribute('href', core.stopHref(shownFirstId()) || '/destination');
+      else if (cta) cta.setAttribute('href', route.firstHref || '/destination');
       persist(route);
-      if (rail) rail.classList.remove('is-draw');
       renderStops(false);
       lightStops(run);
     }
     if (step === 4 && stopsBox) {
-      var first = stopsBox.querySelector('.guide-stop');
+      var first = stopsBox.querySelector('.guide-fold.is-open .guide-stop');
       if (first) first.classList.add('is-first');
     }
   }
 
   root.addEventListener('click', function (event) {
+    var fold = event.target.closest('[data-guide-fold]');
+    if (fold && root.contains(fold)) {
+      var block = fold.parentNode;
+      var list = block ? block.querySelector('ol') : null;
+      var open = fold.getAttribute('aria-expanded') === 'true';
+      fold.setAttribute('aria-expanded', open ? 'false' : 'true');
+      if (block) block.classList.toggle('is-open', !open);
+      if (list) list.hidden = open;
+      if (!open && list) {
+        list.querySelectorAll('.guide-stop').forEach(function (node) { node.classList.add('is-on'); });
+      }
+      return;
+    }
     var choice = event.target.closest('[data-guide-choice]');
     if (choice && root.contains(choice)) {
       var key = choice.getAttribute('data-guide-choice');
@@ -163,7 +212,7 @@
       if (!route) route = guide.routeFor(answers);
       persist(route);
       guide.mark('completed', answers);
-      cta.setAttribute('href', route.firstHref || '/destination');
+      cta.setAttribute('href', (core && core.stopHref ? core.stopHref(shownFirstId()) : route.firstHref) || '/destination');
     });
   }
 
