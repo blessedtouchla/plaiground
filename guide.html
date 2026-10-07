@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Your route - PLAIGROUND</title>
-  <meta name="description" content="Two quick taps. Then your roadmap." />
+  <meta name="description" content="A couple of taps. Then your roadmap." />
   <link rel="canonical" href="https://www.wannaplai.com/guide" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260924p3" />
-  <link rel="stylesheet" href="guide.css?v=20261007sec" />
+  <link rel="stylesheet" href="guide.css?v=20261007pace" />
   <script>
     try {
       var saved = localStorage.getItem('plaigroundGuide');
@@ -46,11 +46,12 @@
     <section class="guide-screen" data-guide-screen="2" hidden>
       <h1 tabindex="-1">What do you want?</h1>
       <div class="guide-choices">
-        <button type="button" data-guide-choice="want" data-value="release">Get it out there</button>
-        <button type="button" data-guide-choice="want" data-value="heard">Get it heard</button>
-        <button type="button" data-guide-choice="want" data-value="paid">Get paid</button>
-        <button type="button" data-guide-choice="want" data-value="team">Get a team</button>
+        <button type="button" data-guide-choice="want" data-value="release" aria-pressed="false">Get it out there</button>
+        <button type="button" data-guide-choice="want" data-value="heard" aria-pressed="false">Get it heard</button>
+        <button type="button" data-guide-choice="want" data-value="paid" aria-pressed="false">Get paid</button>
+        <button type="button" data-guide-choice="want" data-value="team" aria-pressed="false">Get a team</button>
       </div>
+      <button type="button" class="guide-cta" data-guide-next disabled>Next</button>
     </section>
 
     <section class="guide-screen" data-guide-screen="3" hidden>
@@ -61,13 +62,17 @@
     </section>
 
     <section class="guide-screen guide-screen-cta" data-guide-screen="4" hidden>
+      <div class="guide-pace" data-guide-pace>
+        <button type="button" data-pace="fast" aria-pressed="false">Go faster</button>
+        <button type="button" data-pace="cheap" aria-pressed="false">Keep it cheap</button>
+      </div>
       <a class="guide-cta" data-guide-cta href="/destination">Tap your first stop</a>
     </section>
   </main>
   <script src="destination.js?v=20261007sec"></script>
-  <script src="lib/guide.js?v=20261007g2"></script>
+  <script src="lib/guide.js?v=20261007pace"></script>
   <script src="membership.js"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
-  <script src="guide.js?v=20261007sec"></script>
+  <script src="guide.js?v=20261007pace"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@
   }
 
   var root = document.querySelector('[data-guide]');
-  var answers = { song: '', want: '' };
+  var answers = { song: '', want: '', wants: [], pace: '' };
   var steps = 4;
   var route = null;
   var token = 0;
@@ -18,6 +18,8 @@
   var burst = root.querySelector('[data-guide-burst]');
   var stopsBox = root.querySelector('[data-guide-stops]');
   var cta = root.querySelector('[data-guide-cta]');
+  var nextBtn = root.querySelector('[data-guide-next]');
+  var paceBox = root.querySelector('[data-guide-pace]');
 
   function reduceMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -70,6 +72,7 @@
   }
 
   function shownFirstId() {
+    if (route && route.pace === 'cheap') return route.stops[0];
     if (!core || !core.sectionsFor || !route) return route && route.firstStop;
     var groups = core.sectionsFor(route.stops);
     var openId = core.openSectionId(route.song, route.goal, route.stops);
@@ -82,9 +85,48 @@
     return route.firstStop;
   }
 
+  function stopNode(id, number, lit, firstId) {
+    var info = core.explain ? core.explain(id, route.goal) : null;
+    var li = document.createElement('li');
+    li.className = 'guide-stop' + (lit ? ' is-on' : '');
+    if (id === firstId) li.classList.add('is-first');
+    var pin = document.createElement('span');
+    pin.className = 'guide-pin';
+    pin.textContent = String(number);
+    var label = document.createElement('b');
+    label.textContent = info && info.title ? info.title : id;
+    if (route.pace === 'cheap' && guide.priceLabel) {
+      var price = guide.priceLabel(id);
+      if (price) {
+        var note = document.createElement('small');
+        note.className = 'guide-stop-price';
+        note.textContent = price;
+        label.appendChild(note);
+      }
+    }
+    li.appendChild(pin);
+    li.appendChild(label);
+    return li;
+  }
+
+  function renderFlat(lit) {
+    var list = document.createElement('ol');
+    list.className = 'guide-flat';
+    route.stops.forEach(function (id, index) {
+      var li = stopNode(id, index + 1, lit, route.stops[0]);
+      if (!lit) li.classList.remove('is-on');
+      list.appendChild(li);
+    });
+    stopsBox.appendChild(list);
+  }
+
   function renderStops(lit) {
     if (!stopsBox || !route || !core || !core.sectionsFor) return;
     stopsBox.textContent = '';
+    if (route.pace === 'cheap') {
+      renderFlat(lit);
+      return;
+    }
     var groups = core.sectionsFor(route.stops);
     var openId = core.openSectionId(route.song, route.goal, route.stops);
     var firstId = shownFirstId();
@@ -108,18 +150,9 @@
       var list = document.createElement('ol');
       list.hidden = !open;
       section.stops.forEach(function (id) {
-        var info = core.explain ? core.explain(id, route.goal) : null;
-        var li = document.createElement('li');
-        li.className = 'guide-stop' + (lit || open ? ' is-on' : '');
-        if (id === firstId) li.classList.add('is-first');
-        var pin = document.createElement('span');
-        pin.className = 'guide-pin';
-        pin.textContent = String(number);
+        var li = stopNode(id, number, lit || open, firstId);
+        if (!(lit || open)) li.classList.remove('is-on');
         number += 1;
-        var label = document.createElement('b');
-        label.textContent = info && info.title ? info.title : id;
-        li.appendChild(pin);
-        li.appendChild(label);
         list.appendChild(li);
       });
       block.appendChild(toggle);
@@ -161,17 +194,34 @@
     paintProgress(step);
     showScreen(step);
     if (step === 3) {
-      route = guide.routeFor(answers);
-      if (cta && core && core.stopHref) cta.setAttribute('href', core.stopHref(shownFirstId()) || '/destination');
-      else if (cta) cta.setAttribute('href', route.firstHref || '/destination');
-      persist(route);
-      renderStops(false);
+      answers.pace = '';
+      paintPace();
+      applyRoute(false);
       lightStops(run);
     }
     if (step === 4 && stopsBox) {
-      var first = stopsBox.querySelector('.guide-fold.is-open .guide-stop');
+      var first = stopsBox.querySelector('.guide-fold.is-open .guide-stop, .guide-flat .guide-stop');
       if (first) first.classList.add('is-first');
     }
+  }
+
+  function paintPace() {
+    if (!paceBox) return;
+    paceBox.querySelectorAll('[data-pace]').forEach(function (button) {
+      var on = button.getAttribute('data-pace') === answers.pace;
+      button.classList.toggle('is-pick', on);
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function applyRoute(lit) {
+    route = guide.routeFor(answers);
+    var href = '/destination';
+    if (core && core.stopHref) href = core.stopHref(shownFirstId()) || href;
+    else if (route.firstHref) href = route.firstHref;
+    if (cta) cta.setAttribute('href', href);
+    persist(route);
+    renderStops(!!lit);
   }
 
   root.addEventListener('click', function (event) {
@@ -188,13 +238,39 @@
       }
       return;
     }
+    var paceBtn = event.target.closest('[data-pace]');
+    if (paceBtn && root.contains(paceBtn)) {
+      var pace = paceBtn.getAttribute('data-pace');
+      answers.pace = answers.pace === pace ? '' : pace;
+      paintPace();
+      applyRoute(true);
+      return;
+    }
+    var nextWant = event.target.closest('[data-guide-next]');
+    if (nextWant && root.contains(nextWant)) {
+      if (nextWant.disabled || !answers.wants.length) return;
+      answers.want = answers.wants[0];
+      show(3);
+      return;
+    }
     var choice = event.target.closest('[data-guide-choice]');
     if (choice && root.contains(choice)) {
       var key = choice.getAttribute('data-guide-choice');
-      answers[key] = choice.getAttribute('data-value');
+      var value = choice.getAttribute('data-value');
+      if (key === 'want') {
+        var at = answers.wants.indexOf(value);
+        if (at === -1) answers.wants.push(value);
+        else answers.wants.splice(at, 1);
+        var on = at === -1;
+        choice.classList.toggle('is-pick', on);
+        choice.setAttribute('aria-pressed', on ? 'true' : 'false');
+        answers.want = answers.wants[0] || '';
+        if (nextBtn) nextBtn.disabled = answers.wants.length === 0;
+        return;
+      }
+      answers[key] = value;
       choice.classList.add('is-pick');
-      var next = key === 'song' ? 2 : 3;
-      window.setTimeout(function () { show(next); }, reduceMotion() ? 0 : 160);
+      window.setTimeout(function () { show(2); }, reduceMotion() ? 0 : 160);
       return;
     }
     var skip = event.target.closest('[data-guide-skip]');
