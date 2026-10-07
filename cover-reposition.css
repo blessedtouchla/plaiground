@@ -110,3 +110,58 @@
   user-select: none;
   -webkit-user-select: none;
 }
+
+.cover-make[hidden] { display: none !important; }
+.cover-make {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.cover-make-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.72);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.cover-make-panel {
+  position: relative;
+  z-index: 1;
+  width: min(960px, 100%);
+  height: min(860px, calc(100% - 8px));
+  background: #0c0c10;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+.cover-make-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cover-make-bar h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+.cover-make-panel iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: #000;
+}
+body.cover-make-open { overflow: hidden; }

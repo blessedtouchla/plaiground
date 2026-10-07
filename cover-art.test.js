@@ -65,6 +65,22 @@ function runCore() {
   assert.ok(clean.prompt.includes('#120818'));
   assert.ok(!clean.stripped);
 
+  const sea = core.buildImagePrompt({
+    look: 'minimal',
+    palette: 'sea',
+    idea: 'A quiet harbor at blue hour.',
+  });
+  assert.ok(sea.prompt.includes('#071820'));
+  assert.ok(sea.prompt.includes('#1F6F8B'));
+  assert.ok(sea.prompt.includes('#D7F3F0'));
+  const custom = core.buildImagePrompt({
+    look: 'minimal',
+    palette: 'custom',
+    customColor: '#E36A8C',
+    idea: 'A quiet harbor at blue hour.',
+  });
+  assert.ok(custom.prompt.includes('#E36A8C'));
+
   const named = core.guardCoverText('a neon room in the style of Drake, with a Nike logo');
   assert.strictEqual(named.rejected, false);
   assert.strictEqual(named.stripped, true);
@@ -305,6 +321,20 @@ function runPage() {
   assert.ok(js.includes('core.PLACEHOLDER_NOTICE'));
   assert.ok(js.includes('banner.hidden = !preview'));
   assert.ok(js.includes('imageSmoothingQuality = \'high\''));
+  const css = read('cover-art.css');
+  ['#120818', '#7D3CFF', '#F3CB47', '#2A1208', '#E07A3D', '#071820', '#1F6F8B', '#D7F3F0', '#2A1020', '#E36A8C', '#F6D5C4', '#0A0A0A', '#F4F4F4'].forEach(function (hex) {
+    assert.ok(css.includes(hex), 'swatch stylesheet paints ' + hex);
+    assert.ok(html.includes(hex), 'swatch button paints ' + hex);
+  });
+  assert.ok(css.includes('-webkit-appearance: none'));
+  assert.ok(css.includes('.ca-swatch.on'));
+  assert.ok(html.includes('id="ca-palette-note"'));
+  assert.ok(html.includes('id="ca-use"'));
+  assert.ok(js.includes('palette: picks.palette'));
+  assert.ok(js.includes('core.colorsFor'));
+  assert.ok(js.includes('applyPalette'));
+  assert.ok(js.includes('plaiground-cover-pick'));
+  assert.ok(js.includes('embed=1'));
   assert.ok(html.includes('id="ca-chips"'));
   assert.ok(html.includes('id="ca-prefill"'));
   assert.ok(html.includes('not sent to the image model'));

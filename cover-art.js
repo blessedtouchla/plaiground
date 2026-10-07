@@ -28,6 +28,9 @@
 
   var step = 0;
   var picks = { look: '', theme: '', palette: 'night', count: '3', font: 'grotesk', position: 'center' };
+  var embed = /(?:\?|&)embed=1(?:&|$)/.test(String((window.location && window.location.search) || ''));
+  if (embed && document.documentElement) document.documentElement.classList.add('ca-embed');
+  var PALETTE_NAMES = { night: 'Night', dusk: 'Dusk', sea: 'Sea', blush: 'Blush', ink: 'Ink', custom: 'Custom' };
   var images = [];
   var selected = 0;
   var preview = true;
@@ -158,6 +161,27 @@
     ideaAuto = true;
     stripEl.hidden = !built.note;
     stripEl.textContent = built.note || '';
+  }
+
+  function renderPaletteNote() {
+    var el = $('ca-palette-note');
+    if (!el || !core.colorsFor) return;
+    var custom = $('ca-custom');
+    var colors = core.colorsFor({
+      palette: picks.palette,
+      customColor: custom ? custom.value : ''
+    });
+    el.textContent = (PALETTE_NAMES[picks.palette] || 'Color') + ' · ' + colors.join(' ');
+    el.setAttribute('data-palette', picks.palette);
+  }
+
+  function applyPalette(value) {
+    if (!value) return;
+    picks.palette = value;
+    setPressed('palette', value);
+    var wrap = $('ca-custom-wrap');
+    if (wrap) wrap.hidden = value !== 'custom';
+    renderPaletteNote();
   }
 
   function setPressed(group, value) {
@@ -329,6 +353,7 @@
     loadingEl.hidden = !on;
     nextBtn.disabled = on;
     $('ca-regen').disabled = on;
+    if ($('ca-use')) $('ca-use').disabled = on;
   }
 
   async function loadCovers() {
@@ -350,6 +375,7 @@
           theme: picks.theme || '',
           palette: picks.palette,
           customColor: $('ca-custom').value,
+          colors: core.colorsFor({ palette: picks.palette, customColor: $('ca-custom').value }),
           idea: $('ca-idea').value.trim(),
           count: Number(picks.count) || 3,
           chips: keptChips().map(function (chip) { return chip.label; }),
@@ -584,7 +610,11 @@
       savedLook.coverLook = value;
       try { sessionStorage.setItem(song.SESSION_KEY, JSON.stringify(savedLook)); } catch (err) {}
     }
-    if (group === 'palette') $('ca-custom-wrap').hidden = value !== 'custom';
+    if (group === 'palette') {
+      applyPalette(value);
+      showError('');
+      return;
+    }
     if (group === 'font' || group === 'position') paintPreview();
     showError('');
   });
@@ -612,6 +642,44 @@
   $('ca-export').addEventListener('click', function () {
     exportCover();
   });
+
+  function blobFromSource(source) {
+    if (source && source.b64) {
+      var binary = atob(source.b64);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return Promise.resolve(new Blob([bytes], { type: 'image/jpeg' }));
+    }
+    var canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 1200;
+    drawPlaceholder(canvas.getContext('2d'), source || {}, 1200);
+    return new Promise(function (resolve) {
+      canvas.toBlob(function (blob) { resolve(blob); }, 'image/jpeg', 0.92);
+    });
+  }
+
+  function useSelectedCover() {
+    var source = currentSource();
+    if (!source || !window.parent || window.parent === window) return;
+    blobFromSource(source).then(function (blob) {
+      if (!blob || !blob.arrayBuffer) {
+        showError('That cover did not come through. Try another option.');
+        return null;
+      }
+      return blob.arrayBuffer();
+    }).then(function (buffer) {
+      if (!buffer) return;
+      window.parent.postMessage({
+        type: 'plaiground-cover-pick',
+        name: 'plaiground-cover.jpg',
+        mime: 'image/jpeg',
+        buffer: buffer
+      }, window.location.origin);
+    }).catch(function () {
+      showError('That cover did not come through. Try another option.');
+    });
+  }
   backBtn.addEventListener('click', function () {
     if (step > 0) go(step - 1, true);
   });
@@ -690,6 +758,29 @@
   }).then(applyProfile).catch(function () {});
 
   rightsEl.textContent = core.IMAGE_RIGHTS;
+  document.querySelectorAll('button.ca-swatch').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyPalette(btn.getAttribute('data-value') || '');
+    });
+  });
+  if ($('ca-custom')) {
+    $('ca-custom').addEventListener('input', function () {
+      if (picks.palette !== 'custom') applyPalette('custom');
+      else renderPaletteNote();
+    });
+  }
+  if (embed && $('ca-use')) $('ca-use').hidden = false;
+  if ($('ca-use')) $('ca-use').addEventListener('click', useSelectedCover);
+  window.addEventListener('message', function (event) {
+    if (!embed || event.origin !== window.location.origin) return;
+    var data = event.data || {};
+    if (data.type !== 'plaiground-cover-prefill') return;
+    if (data.title && !$('ca-title').value) $('ca-title').value = String(data.title);
+    if (data.artist && !$('ca-artist').value) $('ca-artist').value = String(data.artist);
+    if (data.title && !$('ca-overlay-title').value) $('ca-overlay-title').value = String(data.title);
+    if (data.artist && !$('ca-overlay-artist').value) $('ca-overlay-artist').value = String(data.artist);
+  });
+  renderPaletteNote();
   prefill();
   showStep();
 })();
