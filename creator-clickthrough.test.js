@@ -103,22 +103,22 @@ function run() {
   assert.ok(!JSON.stringify(leftoverRoster).includes('John ham'));
 
   const siteCss = read('site.css');
-  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in app pages still mount PLAI for nav Talk/Text');
-  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'signed-in pages must not hide the PLAI panel');
-  assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'public auth pages must not hide PLAI');
+  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in app pages still mount Plai for nav Talk/Text');
+  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'signed-in pages must not hide the Plai panel');
+  assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'public auth pages must not hide Plai');
   assert.ok(siteCss.includes('body.auth-full .plai-bubble'));
 
   const bubbleJs = read('plai-bubble.js');
-  assert.ok(bubbleJs.includes("text: 'Talk to PLAI'"));
-  assert.ok(bubbleJs.includes("text: 'Text PLAI'"));
+  assert.ok(bubbleJs.includes("text: 'Talk to Plai'"));
+  assert.ok(bubbleJs.includes("text: 'Text Plai'"));
   assert.ok(bubbleJs.includes("AGENT_ID = 'agent_BDVzp3Ar3ABtyov5'"));
   assert.ok(!bubbleJs.includes('XAI_API_KEY'));
   assert.ok(!/elevenlabs/i.test(bubbleJs));
 
   ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html', 'upload.html', 'settings.html'].forEach(function (file) {
     const html = read(file);
-    assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
-    assert.ok(html.includes('plai-bubble.css'), file + ' must style Talk/Text PLAI');
+    assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text Plai');
+    assert.ok(html.includes('plai-bubble.css'), file + ' must style Talk/Text Plai');
   });
 
   const boostsHtml = read('boosts.html');

@@ -1397,7 +1397,7 @@ var typeaheadApplying = false;
 var activeTypeahead = null;
 
 // ---------------------------------------------------------------------------
-// TEMP DEBUG — Genre/Language re-tap investigation. Remove once resolved.
+// TEMP DEBUG. Genre/Language re-tap investigation. Remove once resolved.
 // Enable with ?debug=1 in the URL, or localStorage['plai-ta-debug'] = '1'.
 // Renders a fixed overlay at the top of the page and logs the last 15 events.
 // ---------------------------------------------------------------------------
@@ -1871,7 +1871,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     release: function () {},
   };
 
-  // TEMP DEBUG helpers — see TA_DEBUG block above. Remove with the rest.
+  // TEMP DEBUG helpers. See TA_DEBUG block above. Remove with the rest.
   var taTag = String((select && select.id) || 'ta').replace(/-type$/, '');
   function taSnap() {
     var self = activeTypeahead === selfApi ? 'self' : (activeTypeahead ? 'OTHER' : 'null');
@@ -1940,7 +1940,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     var typed = String(query || '').trim().toLowerCase();
     var labelLow = String(pick.label || '').toLowerCase();
     // Write the hidden select only. Do not rewrite the visible field while
-    // typing — genre labels are the values, so "pop" would jump to "Pop"
+    // typing. Genre labels are the values, so "pop" would jump to "Pop"
     // and iOS Safari fights the keyboard. ISO codes like "en" must not jump the input
     // to "English" while the user is still typing.
     if (typed && typed === labelLow) {
@@ -2243,7 +2243,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
       var onMenu = targetInList(event);
       taDebug(taTag + ' onDocHold ' + (event && event.type) + ' over-option, holdBlur=1' + (isCoarsePointer() && !onMenu ? ' +preventDefault' : ''));
       // preventDefault on touchstart cancels scrolling. Only do it when iOS
-      // hit-tests the field under the menu — a touch that starts on the menu
+      // hit-tests the field under the menu. A touch that starts on the menu
       // itself has to keep the default action so the genre list can scroll.
       if (isCoarsePointer() && event && !onMenu) {
         if (event.preventDefault) event.preventDefault();
@@ -2376,7 +2376,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     var quiet = opts === true || (opts && opts.quiet);
     var via = (opts && opts.via) || (opts === true ? 'quiet' : 'evt');
     // A tap that lands here with the list closed and nothing else claiming the
-    // typeahead is a genuine new gesture — drop any latch left by a prior pick
+    // typeahead is a genuine new gesture. Drop any latch left by a prior pick
     // so a filled field can reopen on iOS Safari.
     if ((!list.classList || list.classList.contains('is-hidden')) && !activeTypeahead) {
       clearPickLatch();
@@ -2387,8 +2387,8 @@ function bindTypeahead(select, items, getValue, getLabel) {
     }
     // A (re)open always shows every option, not a filter narrowed to whatever
     // was previously picked. input.value keeps the picked label untouched here
-    // — blur still needs it to re-commit if the user taps away without picking
-    // again — but the dropdown itself starts from a blank query on every open.
+    //. Blur still needs it to re-commit if the user taps away without picking
+    // again. But the dropdown itself starts from a blank query on every open.
     // Typing still filters live via the 'input' listener below, which passes
     // the real, current input.value on every keystroke.
     showMatches('');
@@ -2406,19 +2406,19 @@ function bindTypeahead(select, items, getValue, getLabel) {
       return;
     }
     if (opened) taDebug(taTag + ' openList(' + via + ') full DONE, list open  ' + taSnap());
-    // Claim focus explicitly, SYNCHRONOUSLY, right here — no setTimeout. No tap
-    // handler here calls input.focus() — a real <input> normally does not need
+    // Claim focus explicitly, SYNCHRONOUSLY, right here. No setTimeout. No tap
+    // handler here calls input.focus(). A real <input> normally does not need
     // one, since a tap's own default action grants focus. But showMatches()
     // just did a chunk of synchronous DOM work (rebuilding the option list)
     // inside the same gesture, which can make iOS silently drop that default
     // focus grant. Backstopping it is correct (see #209), but iOS Safari only
     // *raises the keyboard* for a .focus() call made synchronously inside a
-    // trusted user gesture — a setTimeout(0)-deferred call (what #209 shipped)
+    // trusted user gesture. A setTimeout(0)-deferred call (what #209 shipped)
     // still moves document.activeElement and shows the focus ring, but the
     // keyboard silently never appears. touchend/click/pointerup/focus are all
     // trusted gesture handlers and this line runs synchronously within them,
     // so it stays gesture-trusted. Only keepInputVisible()'s scrollBy() needs
-    // to be deferred — that's the actual thing #165 found unsafe mid-gesture,
+    // to be deferred. That's the actual thing #165 found unsafe mid-gesture,
     // not focus itself. quiet (pointerdown, still mid-gesture) intentionally
     // gets neither the focus grab nor the scroll here; the very next
     // touchend/pointerup on the same tap does both, post-gesture.
@@ -2511,7 +2511,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     taDebug(taTag + ' EVENT pointerdown  ' + taSnap());
     // Chevron tap while the menu is open collapses it. The same gesture then
     // fires touchend/pointerup/click/focus, and each of those calls openList()
-    // — without the guard below, iOS Safari reopens the menu before the
+    //. Without the guard below, iOS Safari reopens the menu before the
     // finger lifts, which looks like the chevron did nothing.
     if (isSameGesture(event, lastCloseStamp) && (!listIsOpen() || hitChevron(event))) {
       swallowEvent(event);
@@ -2526,7 +2526,7 @@ function bindTypeahead(select, items, getValue, getLabel) {
     // pointerdown is the only tap event guaranteed to fire regardless of the
     // input's focus state. After a pick the input is left half-focused on iOS
     // (a long-press then shows Copy/Select-All), so focus/click/pointerup do
-    // NOT reliably fire on the re-tap — pointerdown is what actually reopens a
+    // NOT reliably fire on the re-tap. Pointerdown is what actually reopens a
     // filled field. Open it "quiet" (no scroll) so the tap still raises the
     // keyboard; the trailing touchend/focus does the scroll afterwards.
     clearPickLatch();
@@ -2702,7 +2702,7 @@ function canonicalCatalogValue(select, raw) {
   return pick ? pick.value : null;
 }
 
-// TEMP STOPGAP — Genre ships as a plain native <select> (same as Download
+// TEMP STOPGAP. Genre ships as a plain native <select> (same as Download
 // price) while the typeahead re-tap bug is fixed separately: on iOS users
 // cannot change the pre-filled Genre through the typeahead overlay. Marked in
 // the HTML with data-native-picker on the <select>. To revert, drop that

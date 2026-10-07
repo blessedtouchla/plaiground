@@ -128,7 +128,7 @@ function run() {
     forbidden.forEach(function (needle) {
       assert.strictEqual(html.indexOf(needle), -1, file + ' still has ' + needle);
     });
-    assert.ok(html.indexOf('plai-bubble.js') !== -1, file + ' dropped PLAI');
+    assert.ok(html.indexOf('plai-bubble.js') !== -1, file + ' dropped Plai');
     assert.ok(!html.includes(['t', 'g', 'k', '_'].join('')), file + ' has a key prefix');
   });
 

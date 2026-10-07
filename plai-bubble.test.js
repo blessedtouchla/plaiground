@@ -312,8 +312,8 @@ function runStatic() {
   const faq = read('faq.html');
   const apiFiles = fs.readdirSync(path.join(__dirname, 'api'));
 
-  assert.ok(js.includes("text: 'Talk to PLAI'"), 'Talk to PLAI button stays');
-  assert.ok(js.includes("text: 'Text PLAI'"), 'Text PLAI button stays');
+  assert.ok(js.includes("text: 'Talk to Plai'"), 'Talk to Plai button stays');
+  assert.ok(js.includes("text: 'Text Plai'"), 'Text Plai button stays');
   assert.ok(js.includes("'data-mode': 'talk'") && js.includes("'data-mode': 'text'"), 'pills are tagged by mode');
   assert.ok(js.includes('is-talk') && js.includes('is-text'), 'two distinct pills');
   assert.ok(js.includes("openMode(mode === 'talk')"), 'Talk label is the only path that turns the mic on');
@@ -322,16 +322,16 @@ function runStatic() {
 
   const talkDecl = sliceBetween(js, "talkPill = el('button'", 'textPill = el(');
   assert.ok(talkDecl.includes("'data-mode': 'talk'"), 'Talk markup is data-mode=talk');
-  assert.ok(talkDecl.includes("text: 'Talk to PLAI'"), 'Talk label stays on the talk pill');
+  assert.ok(talkDecl.includes("text: 'Talk to Plai'"), 'Talk label stays on the talk pill');
   assert.ok(talkDecl.includes('is-talk'), 'Talk chrome stays on the talk pill');
 
   const textDecl = sliceBetween(js, "textPill = el('button'", 'panel.id');
   assert.ok(textDecl.includes("'data-mode': 'text'"), 'Text markup is data-mode=text');
-  assert.ok(textDecl.includes("text: 'Text PLAI'"), 'Text label stays on the text pill');
+  assert.ok(textDecl.includes("text: 'Text Plai'"), 'Text label stays on the text pill');
   assert.ok(textDecl.includes('is-text'), 'Text chrome stays on the text pill');
 
   const playDelta = sliceBetween(js, 'function playDelta', 'function sendAppend');
-  assert.ok(playDelta.includes('!wantMic'), 'Text PLAI must not play voice audio');
+  assert.ok(playDelta.includes('!wantMic'), 'Text Plai must not play voice audio');
 
   const handleAudio = sliceBetween(js, "event.type === 'response.output_audio.delta'", "event.type === 'response.done'");
   assert.ok(handleAudio.includes('if (!wantMic) return'), 'Talking chrome is voice-only');
@@ -339,29 +339,29 @@ function runStatic() {
   const startTalk = sliceBetween(js, 'async function startTalk', 'function isLive');
   assert.ok(startTalk.includes('if (wantMic)'), 'startTalk only captures when Talk was chosen');
   assert.ok(startTalk.includes('stopCapture()'), 'Text path stops/skips the mic');
-  assert.ok(startTalk.includes('Allow the microphone to Talk to PLAI.'), 'Talk does not fake a Text PLAI header if the mic is denied');
-  assert.ok(!startTalk.includes("setState('text')") || startTalk.indexOf('if (wantMic)') < startTalk.indexOf("setState(restoring"), 'Talk start does not open as Text PLAI');
+  assert.ok(startTalk.includes('Allow the microphone to Talk to Plai.'), 'Talk does not fake a Text Plai header if the mic is denied');
+  assert.ok(!startTalk.includes("setState('text')") || startTalk.indexOf('if (wantMic)') < startTalk.indexOf("setState(restoring"), 'Talk start does not open as Text Plai');
 
   assert.ok(js.includes("AGENT_ID = 'agent_BDVzp3Ar3ABtyov5'"), 'keeps the Voice Agent Builder agent');
   assert.ok(js.includes('/api/plai-session'), 'reuses the existing session route');
-  assert.ok(/PLAI:\s*'PLAY'/.test(js) && /Plai:\s*'PLAY'/.test(js) && /plai:\s*'PLAY'/.test(js), 'spoken PLAI / Plai / plai is PLAY');
-  assert.ok(/"I'm PLAI":\s*"I'm PLAY"/.test(js), 'spoken I\'m PLAI is I\'m PLAY');
+  assert.ok(/Plai:\s*'PLAY'/.test(js) && /Plai:\s*'PLAY'/.test(js) && /plai:\s*'PLAY'/.test(js), 'spoken Plai / Plai / plai is PLAY');
+  assert.ok(/"I'm Plai":\s*"I'm PLAY"/.test(js), 'spoken I\'m Plai is I\'m PLAY');
   assert.ok(!/session\.instructions|instructions:/.test(js), 'frontend must not set Voice Agent instructions');
   const sessionUpdate = sliceBetween(js, 'function configureSession', 'function seedHistory');
   assert.ok(!/buy a car at the click of a button/i.test(sessionUpdate), 'voice session must not dump the FAQ intro');
-  assert.ok(!/Meet PLAI/i.test(sessionUpdate), 'voice session must not dump the Meet PLAI FAQ lead');
+  assert.ok(!/Meet Plai/i.test(sessionUpdate), 'voice session must not dump the Meet Plai FAQ lead');
   assert.ok(!/session\.instructions|instructions:/.test(sessionUpdate), 'configureSession must not set Voice Agent instructions');
-  assert.ok(js.includes('sounds like PLAY'), 'visible name stays PLAI with PLAY hint');
+  assert.ok(js.includes('sounds like PLAY'), 'visible name stays Plai with PLAY hint');
   assert.ok(!js.includes('XAI_API_KEY'), 'frontend must not contain XAI_API_KEY');
   assert.ok(!js.includes('ELEVEN') && !/elevenlabs/i.test(js), 'no ElevenLabs');
   assert.ok(!js.includes('tgk_'), 'do not invent a ToneGrid key');
   assert.ok(js.indexOf('getUserMedia') === js.lastIndexOf('getUserMedia'), 'getUserMedia lives in one place');
   assert.ok(js.indexOf('async function startCapture') < js.indexOf('getUserMedia'), 'mic is only requested inside startCapture');
 
-  assert.ok(css.includes('.plai-bubble-pill.is-text'), 'Text PLAI has its own chrome');
+  assert.ok(css.includes('.plai-bubble-pill.is-text'), 'Text Plai has its own chrome');
   assert.ok(css.includes('.plai-bubble-hint'), 'PLAY pronunciation hint is styled');
-  assert.ok(css.includes('.plai-bubble-chip'), 'collapsed chrome uses a PLAI chip');
-  assert.ok(js.includes("text: 'PLAI'") && js.includes('plai-bubble-chip'), 'chip label stays PLAI');
+  assert.ok(css.includes('.plai-bubble-chip'), 'collapsed chrome uses a Plai chip');
+  assert.ok(js.includes("text: 'Plai'") && js.includes('plai-bubble-chip'), 'chip label stays Plai');
   assert.ok(!/plai-bubble-chip[\s\S]{0,400}PLAY/.test(js), 'do not rename the chip PLAY');
   assert.ok(!/plai-avatar\.png/.test(js) && !/plai-avatar\.png/.test(css), 'do not put the girl PNG on the signed-in bubble');
   assert.ok(js.includes("PHONE_MQ = '(max-width: 720px)'"), 'phone layout matches the 720px breakpoint');
@@ -373,7 +373,7 @@ function runStatic() {
   assert.ok(phoneCss, 'phone chrome lives in a 720px query');
   assert.ok(!/\.plai-bubble\s*\{[\s\S]*?top:\s*92px/.test(phoneCss[0]), 'phone chip stays bottom-right, not top-right');
   assert.ok(!/\.plai-bubble\s*\{[\s\S]*?bottom:\s*auto/.test(phoneCss[0]), 'phone chip is not pulled off the bottom');
-  assert.ok(/\.plai-bubble-chip\s*\{[\s\S]*?display:\s*inline-flex/.test(css), 'the gold PLAI chip is the default control');
+  assert.ok(/\.plai-bubble-chip\s*\{[\s\S]*?display:\s*inline-flex/.test(css), 'the gold Plai chip is the default control');
   assert.ok(/\.plai-bubble-row\s*\{[\s\S]*?display:\s*none/.test(css), 'Talk/Text stay hidden until the chip opens');
   assert.ok(/\.plai-bubble\.is-menu-open \.plai-bubble-row/.test(css), 'open chip reveals Talk/Text as a menu');
   assert.ok(!/bottom:\s*1?2px/.test(phoneCss[0]), 'phone Talk/Text must not sit on Submit');
@@ -381,39 +381,39 @@ function runStatic() {
   const desktopBubble = css.match(/\.plai-bubble\s*\{[\s\S]*?\}/);
   assert.ok(desktopBubble && /max\(24px/.test(desktopBubble[0]) && /right:\s*24px/.test(desktopBubble[0]), 'marketing pages keep a 24px bottom safe zone');
   const desktopChip = css.match(/\.plai-bubble-chip\s*\{[\s\S]*?\}/);
-  assert.ok(desktopChip && /display:\s*inline-flex/.test(desktopChip[0]), 'desktop starts as one gold PLAI chip');
+  assert.ok(desktopChip && /display:\s*inline-flex/.test(desktopChip[0]), 'desktop starts as one gold Plai chip');
   assert.ok(/#F3CB47/.test(desktopChip[0]) || /#F5C542/.test(desktopChip[0]), 'the collapsed chip is gold');
 
   const siteCss = read('site.css');
-  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome still mounts Talk/Text PLAI for nav openers');
-  assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text PLAI');
-  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'signed-in pages must not hide the whole PLAI panel');
-  assert.ok(/body\.app \.plai-bubble-chip[\s\S]*?display:\s*none/.test(css), 'signed-in app hides the floating PLAI chip');
-  assert.ok(/body:has\(> \.flow-top\) \.plai-bubble-chip[\s\S]*?display:\s*none/.test(css), 'signed-in upload/submitted flow hides the floating PLAI chip');
+  assert.ok(siteCss.includes('body.app > .plai-bubble'), 'signed-in chrome still mounts Talk/Text Plai for nav openers');
+  assert.ok(!/body\.auth-full \.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'login/signup must not hide Talk/Text Plai');
+  assert.ok(!/body\.app\s*>\s*\.plai-bubble\s*\{\s*display:\s*none/.test(siteCss), 'signed-in pages must not hide the whole Plai panel');
+  assert.ok(/body\.app \.plai-bubble-chip[\s\S]*?display:\s*none/.test(css), 'signed-in app hides the floating Plai chip');
+  assert.ok(/body:has\(> \.flow-top\) \.plai-bubble-chip[\s\S]*?display:\s*none/.test(css), 'signed-in upload/submitted flow hides the floating Plai chip');
   assert.ok(/body\.app \.plai-bubble-row[\s\S]*?display:\s*none/.test(css), 'signed-in app hides floating Talk/Text pills');
   assert.ok(!read('upload.html').includes('data-plai-coach-float'), 'signed-in submit must not get the landing girl');
   assert.ok(!read('upload.html').includes('plai-avatar.png'), 'signed-in submit must not load the girl PNG');
   ['dashboard.html', 'faq.html', 'earnings.html', 'boosts.html', 'chart-push.html', 'streaming-push.html', 'social-push.html', 'video-collect.html'].forEach(function (file) {
     const html = read(file);
-    assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text PLAI');
+    assert.ok(html.includes('plai-bubble.js'), file + ' must load Talk/Text Plai');
   });
-  assert.ok(read('dashboard.html').includes('data-plai-talk'), 'Overview has a Talk to PLAI CTA');
-  assert.ok(/data-plai-talk[^>]*>Talk to PLAI</.test(read('dashboard.html')), 'Overview Talk CTA is written PLAI');
+  assert.ok(read('dashboard.html').includes('data-plai-talk'), 'Overview has a Talk to Plai CTA');
+  assert.ok(/data-plai-talk[^>]*>Talk to Plai</.test(read('dashboard.html')), 'Overview Talk CTA is written Plai');
   assert.ok(read('plai-bubble.js').includes('data-plai-talk'), 'Talk CTA opens the existing voice agent');
-  assert.ok(read('plai-bubble.js').includes('data-plai-text'), 'Troubleshoot opens the existing Text PLAI');
+  assert.ok(read('plai-bubble.js').includes('data-plai-text'), 'Troubleshoot opens the existing Text Plai');
   assert.ok(/data-plai-text[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot is written Troubleshoot');
-  assert.ok(!/data-plai-talk[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot must not open Talk to PLAI');
+  assert.ok(!/data-plai-talk[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot must not open Talk to Plai');
   assert.ok(!read('dashboard.html').includes('XAI_API_KEY'), 'Overview must not leak XAI_API_KEY');
 
   assert.ok(session.includes('process.env.XAI_API_KEY'), 'session route keeps the server key');
   assert.ok(session.includes("method === 'GET'"), 'GET still reports configured without minting');
   assert.strictEqual(apiFiles.filter((name) => name.endsWith('.js')).length, 11, 'api function count includes song-helper, cover-art, and battle');
 
-  assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ still names both buttons');
-  assert.ok(/type only, no mic/i.test(faq), 'FAQ Text PLAI copy stays');
+  assert.ok(faq.includes('Talk to Plai') && faq.includes('Text Plai'), 'FAQ still names both buttons');
+  assert.ok(/type only, no mic/i.test(faq), 'FAQ Text Plai copy stays');
   assert.ok(/pronounced[\s\S]*PLAY/i.test(faq) && /she\/her/i.test(faq), 'FAQ PLAY / she-her copy stays');
-  assert.ok(faq.slice(faq.indexOf('<h1>Frequently asked questions</h1>')).indexOf('Talk to PLAI') !== -1, 'FAQ PLAI pointer is not the page lead');
-  assert.ok(!/Meet PLAI/i.test(faq) && !/<h1>What is PLAI\?<\/h1>/.test(faq), 'FAQ no longer opens as the voice-agent intro');
+  assert.ok(faq.slice(faq.indexOf('<h1>Frequently asked questions</h1>')).indexOf('Talk to Plai') !== -1, 'FAQ Plai pointer is not the page lead');
+  assert.ok(!/Meet Plai/i.test(faq) && !/<h1>What is Plai\?<\/h1>/.test(faq), 'FAQ no longer opens as the voice-agent intro');
 
   const frontend = [
     'plai-bubble.js',
@@ -439,14 +439,14 @@ function runClicks() {
     const text = textUi.pill('text');
     const talk = textUi.pill('talk');
     assert.ok(text && talk, 'both pills mount');
-    assert.strictEqual(text.querySelector('.plai-bubble-label').textContent, 'Text PLAI');
-    assert.strictEqual(talk.querySelector('.plai-bubble-label').textContent, 'Talk to PLAI');
+    assert.strictEqual(text.querySelector('.plai-bubble-label').textContent, 'Text Plai');
+    assert.strictEqual(talk.querySelector('.plai-bubble-label').textContent, 'Talk to Plai');
     text.click();
     return wait(40);
   }).then(function () {
-    assert.strictEqual(textUi.getUserMediaCalls.length, 0, 'Text PLAI must not activate the mic');
-    assert.ok(/Text PLAI/.test(textUi.statusText()), 'Text PLAI keeps the type-only header');
-    assert.ok(/Mic is off/.test(textUi.statusText()), 'Text PLAI says the mic stays off');
+    assert.strictEqual(textUi.getUserMediaCalls.length, 0, 'Text Plai must not activate the mic');
+    assert.ok(/Text Plai/.test(textUi.statusText()), 'Text Plai keeps the type-only header');
+    assert.ok(/Mic is off/.test(textUi.statusText()), 'Text Plai says the mic stays off');
     assert.strictEqual(textUi.pill('text').getAttribute('aria-expanded'), 'true');
     assert.strictEqual(textUi.pill('talk').getAttribute('aria-expanded'), 'false');
 
@@ -455,16 +455,16 @@ function runClicks() {
       voice.pill('talk').click();
       return wait(40);
     }).then(function () {
-      assert.ok(voice.getUserMediaCalls.length >= 1, 'Talk to PLAI activates the mic');
-      assert.ok(!/Mic is off/.test(voice.statusText()), 'Talk to PLAI does not open the Text PLAI header');
+      assert.ok(voice.getUserMediaCalls.length >= 1, 'Talk to Plai activates the mic');
+      assert.ok(!/Mic is off/.test(voice.statusText()), 'Talk to Plai does not open the Text Plai header');
 
       const denied = loadWidget({ denyMic: true });
       return wait(20).then(function () {
         denied.pill('talk').click();
         return wait(40);
       }).then(function () {
-        assert.ok(/microphone/i.test(denied.statusText()), 'denied mic stays a Talk error, not Text PLAI');
-        assert.ok(!/Mic is off/.test(denied.statusText()), 'denied Talk does not masquerade as Text PLAI');
+        assert.ok(/microphone/i.test(denied.statusText()), 'denied mic stays a Talk error, not Text Plai');
+        assert.ok(!/Mic is off/.test(denied.statusText()), 'denied Talk does not masquerade as Text Plai');
       });
     });
   });
@@ -478,10 +478,10 @@ function runPhoneChrome() {
     assert.ok(root && chip, 'desktop still mounts the bubble and chip node');
     assert.ok(!root.classList.contains('is-phone'), 'desktop is not the phone breakpoint');
     assert.ok(!root.classList.contains('is-menu-open'), 'desktop starts as one collapsed chip');
-    assert.strictEqual(chip.querySelector('.plai-bubble-label').textContent, 'PLAI');
+    assert.strictEqual(chip.querySelector('.plai-bubble-label').textContent, 'Plai');
     assert.ok(desktop.pill('talk') && desktop.pill('text'), 'desktop keeps the Talk + Text pair');
-    assert.strictEqual(desktop.pill('talk').querySelector('.plai-bubble-label').textContent, 'Talk to PLAI');
-    assert.strictEqual(desktop.pill('text').querySelector('.plai-bubble-label').textContent, 'Text PLAI');
+    assert.strictEqual(desktop.pill('talk').querySelector('.plai-bubble-label').textContent, 'Talk to Plai');
+    assert.strictEqual(desktop.pill('text').querySelector('.plai-bubble-label').textContent, 'Text Plai');
     chip.click();
     assert.ok(root.classList.contains('is-menu-open'), 'tapping the desktop chip opens Talk / Text');
     chip.click();
@@ -493,7 +493,7 @@ function runPhoneChrome() {
       const phoneChip = phone.chip();
       assert.ok(phoneRoot.classList.contains('is-phone'), 'phone marks the collapsed chrome');
       assert.ok(!phoneRoot.classList.contains('is-menu-open'), 'phone chip starts closed');
-      assert.strictEqual(phoneChip.querySelector('.plai-bubble-label').textContent, 'PLAI');
+      assert.strictEqual(phoneChip.querySelector('.plai-bubble-label').textContent, 'Plai');
       assert.notStrictEqual(phoneChip.querySelector('.plai-bubble-label').textContent, 'PLAY');
       assert.ok(phone.pill('talk') && phone.pill('text'), 'Talk and Text still exist on phone');
       phoneChip.click();
@@ -501,8 +501,8 @@ function runPhoneChrome() {
       assert.strictEqual(phoneChip.getAttribute('aria-expanded'), 'true');
       phone.pill('text').click();
       return wait(40).then(function () {
-        assert.strictEqual(phone.getUserMediaCalls.length, 0, 'phone Text PLAI still does not use the mic');
-        assert.ok(/Text PLAI/.test(phone.statusText()), 'phone Text PLAI still opens type-only');
+        assert.strictEqual(phone.getUserMediaCalls.length, 0, 'phone Text Plai still does not use the mic');
+        assert.ok(/Text Plai/.test(phone.statusText()), 'phone Text Plai still opens type-only');
         phoneChip.click();
         assert.ok(!phoneRoot.classList.contains('is-menu-open'), 'tapping the chip again closes the menu');
 
@@ -511,8 +511,8 @@ function runPhoneChrome() {
           voice.chip().click();
           voice.pill('talk').click();
           return wait(40).then(function () {
-            assert.ok(voice.getUserMediaCalls.length >= 1, 'phone Talk to PLAI still activates the mic');
-            assert.ok(!/Mic is off/.test(voice.statusText()), 'phone Talk does not open as Text PLAI');
+            assert.ok(voice.getUserMediaCalls.length >= 1, 'phone Talk to Plai still activates the mic');
+            assert.ok(!/Mic is off/.test(voice.statusText()), 'phone Talk does not open as Text Plai');
           });
         });
       });
@@ -525,13 +525,13 @@ function runPageTalk() {
   return wait(20).then(function () {
     const cta = makeNode('button');
     cta.setAttribute('data-plai-talk', '');
-    cta.textContent = 'Talk to PLAI';
+    cta.textContent = 'Talk to Plai';
     ui.document.body.appendChild(cta);
     const ev = { type: 'click', target: cta, currentTarget: cta, preventDefault: function () {} };
     (ui.document.listeners.click || []).forEach(function (fn) { fn(ev); });
     return wait(40).then(function () {
-      assert.ok(ui.getUserMediaCalls.length >= 1, 'Overview Talk to PLAI CTA activates the mic');
-      assert.ok(!/Mic is off/.test(ui.statusText()), 'Overview Talk CTA is not Text PLAI');
+      assert.ok(ui.getUserMediaCalls.length >= 1, 'Overview Talk to Plai CTA activates the mic');
+      assert.ok(!/Mic is off/.test(ui.statusText()), 'Overview Talk CTA is not Text Plai');
     });
   });
 }
@@ -547,7 +547,7 @@ function runPageText() {
     (ui.document.listeners.click || []).forEach(function (fn) { fn(ev); });
     return wait(40).then(function () {
       assert.strictEqual(ui.getUserMediaCalls.length, 0, 'FAQ Troubleshoot must not activate the mic');
-      assert.ok(/Text PLAI/.test(ui.statusText()), 'FAQ Troubleshoot opens Text PLAI');
+      assert.ok(/Text Plai/.test(ui.statusText()), 'FAQ Troubleshoot opens Text Plai');
       assert.ok(/Mic is off/.test(ui.statusText()), 'FAQ Troubleshoot stays type only');
       assert.strictEqual(ui.pill('text').getAttribute('aria-expanded'), 'true');
       assert.strictEqual(ui.pill('talk').getAttribute('aria-expanded'), 'false');

@@ -312,7 +312,7 @@ function run() {
   const formatSignedUpAt = new Function(signedUpFn[0] + '; return formatSignedUpAt;')();
   const pt = formatSignedUpAt('2026-08-27T00:16:00.000Z');
   assert.ok(/Aug 26, 2026 5:16 PM PT/.test(pt), 'signed_up_at renders date and time PT, got ' + pt);
-  assert.strictEqual(formatSignedUpAt(''), '—');
+  assert.strictEqual(formatSignedUpAt(''), '-');
 
   assert.ok(membership.includes("OWNER_HOME = '/admin'"));
   assert.ok(membership.includes('signedInHome'));
@@ -341,7 +341,7 @@ function run() {
     assert.ok(!/ToneGrid dashboard|app\.tonegrid\.pro/i.test(side[0]), file + ' artist menu must not gain the owner store dashboard row');
     assert.ok(!/>Dashboard<\/a>/.test(side[0]), file + ' artist menu must not gain the owner Dashboard row');
     assert.ok(side[0].includes('New release'), file + ' keeps New release for artists');
-    assert.ok(side[0].includes('Create') && side[0].includes('Money') && side[0].includes('PLAI') && side[0].includes('Account'), file + ' keeps the sectioned artist menu');
+    assert.ok(side[0].includes('Create') && side[0].includes('Money') && side[0].includes('Plai') && side[0].includes('Account'), file + ' keeps the sectioned artist menu');
     assert.ok(!/href="dashboard.html">Overview</.test(side[0]), file + ' must not keep the Overview nest');
   });
 

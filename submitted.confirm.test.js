@@ -43,8 +43,8 @@ function makeEl(text) {
 
 function loadSubmitted(draft) {
   const submitTitle = makeEl('Your song is in the queue.');
-  const submitReleaseDate = makeEl('—');
-  const submitOrder = makeEl('—');
+  const submitReleaseDate = makeEl('-');
+  const submitOrder = makeEl('-');
   const submitWriters = makeEl('Co-writers get signing links once the scan clears.');
   const submitDeliverDate = makeEl('the release date you picked');
   const submitDeliverDatePro = makeEl('the release date you picked');
@@ -116,7 +116,7 @@ function run() {
   assert.ok(!html.includes('site.css?v=20260917s4'), 's4 stamp is retired after the desktop canvas widen');
   assert.ok(html.includes('Order details'), 'uuid sits behind Order details');
   assert.ok(html.includes('All stores on this release'), 'stores fallback is non-numeric until the live catalog paints');
-  assert.ok(!html.includes('plai-bubble.js'), 'floating PLAI chip stays off submitted.html');
+  assert.ok(!html.includes('plai-bubble.js'), 'floating Plai chip stays off submitted.html');
   assert.ok(!html.includes('PG-2026-0314'), 'must not keep mock order PG-2026-0314');
   assert.ok(!html.includes('12 Sep'), 'must not keep hardcoded 12 Sep');
   assert.ok(!html.includes('M. Hale'), 'must not keep mock writer M. Hale');
@@ -153,7 +153,7 @@ function run() {
   assert.strictEqual(solo.submitDeliverDate.textContent, 'Sep 18 2026');
   assert.ok(solo.submitWriters.textContent.indexOf('Ada Night') !== -1);
   assert.ok(solo.submitWriters.textContent.indexOf('Hale') === -1);
-  assert.strictEqual(solo.submitOrder.textContent, '—');
+  assert.strictEqual(solo.submitOrder.textContent, '-');
 
   console.log('submitted.confirm.test.js ok');
 }

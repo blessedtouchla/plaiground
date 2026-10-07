@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="You're all set on PLAIGROUND. Free to join. Artists keep 100% of royalties. Pay per tool or release." />
+  <meta property="og:title" content="You're all set – PLAIGROUND" />
+  <meta property="og:description" content="You're all set on PLAIGROUND. Free to join. Artists keep 100% of royalties. Pay per tool or release." />
+  <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="You're all set – PLAIGROUND" />
+  <meta name="twitter:description" content="You're all set on PLAIGROUND. Free to join. Artists keep 100% of royalties. Pay per tool or release." />
+  <meta name="twitter:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <title>You're all set – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,7 +34,7 @@
         <p class="submit-confidence">You're all set. We're sending it to stores.</p>
         <p class="submit-out">
           <small>Out</small>
-          <b data-submit-release-date>—</b>
+          <b data-submit-release-date>-</b>
         </p>
         <section class="submit-quiet" aria-label="Order details">
           <p class="submit-included">Distribution is included. Nothing extra was charged on this release.</p>
@@ -41,7 +49,7 @@
           <details class="submit-order" data-submit-order-box hidden>
             <summary>Order details</summary>
             <button type="button" class="submit-order-copy" data-submit-order-copy>
-              <span data-submit-order>—</span>
+              <span data-submit-order>-</span>
               <small data-submit-order-hint>Copy</small>
             </button>
           </details>
@@ -106,7 +114,7 @@
       }
       function usable() {
         var value = orderId();
-        return Boolean(value) && value !== '—';
+        return Boolean(value) && value !== '-';
       }
       function syncBox() {
         if (box) box.hidden = !usable();

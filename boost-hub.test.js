@@ -96,7 +96,7 @@ function run() {
   assert.ok(!BUY.test(hub), 'hub must not be a live buy');
   assert.ok(!/\$203|\$227/.test(hub), 'old package prices must not sit on the hub as checkout');
   assert.ok(!TOGGLE.test(hub), 'hub must not ship a Video Collect toggle');
-  assert.ok(!TOGGLE.test(video), 'Video Collect is explainer only — no toggle');
+  assert.ok(!TOGGLE.test(video), 'Video Collect is explainer only. No toggle');
   assert.ok(!fs.existsSync(path.join(__dirname, 'video-collect.js')), 'do not ship a Video Collect toggle script');
   assert.ok(!/video-collect\.js/.test(video), 'Video Collect page must not load a toggle script');
 

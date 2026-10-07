@@ -34,12 +34,12 @@
       id: 'helper',
       title: 'Song Helper',
       face: 'plai',
-      status: 'soon',
-      href: '',
-      link: '',
-      what: 'Help for the idea stage: write, Flip it, Funkify it, Make it funny, Mad Libs, and Battle. Coming soon, until the writer connection is wired.',
-      get: 'A draft you can shape, once this is live. People check the work.',
-      who: 'PLAI on the AI team. People check the work.',
+      status: 'live',
+      href: '/song-helper',
+      link: 'Song Helper',
+      what: 'Help for the idea stage: write, Flip it, Funkify it, Make it funny, Mad Libs, and Battle.',
+      get: 'A draft you can shape. People check the work.',
+      who: 'Plai on the AI team. People check the work.',
       why: {
         money: 'A finished song is what can earn.',
         fanbase: 'Fans show up for a song they can hear.',
@@ -50,11 +50,11 @@
       id: 'cover',
       title: 'Cover Art',
       face: 'plai',
-      status: 'soon',
-      href: '',
-      link: '',
+      status: 'live',
+      href: '/cover-art',
+      link: 'Cover Art',
       what: 'Cover art with themes, made for this song.',
-      get: 'Artwork for the release, once this is live. People check the work.',
+      get: 'Artwork for the release. People check the work.',
       who: 'The AI team drafts it. People check the work.',
       why: {
         money: 'The cover is what a buyer sees first.',
@@ -124,6 +124,38 @@
         money: 'This is how money from the stores reaches you.',
         fanbase: 'When fans play the song, this is where that money shows up.',
         release: 'A proper release includes how you get paid.'
+      }
+    },
+    guide: {
+      id: 'guide',
+      title: 'Guide',
+      face: 'plai',
+      status: 'live',
+      href: '/guide',
+      link: 'Guide',
+      what: 'A short first visit: who you are, and what you want from the song.',
+      get: 'Answers saved for this account. People check the work.',
+      who: 'You answer. People check the work.',
+      why: {
+        money: 'The guide points the money steps at the song you have.',
+        fanbase: 'The guide points the fan steps at the song you have.',
+        release: 'The guide points the release steps at the song you have.'
+      }
+    },
+    claim: {
+      id: 'claim',
+      title: 'Claim my human parts',
+      face: 'plai',
+      status: 'live',
+      href: '/claim',
+      link: 'Claim my human parts',
+      what: 'Name the parts a person wrote, sang, or played.',
+      get: 'A note of the human parts, and a page you can download. People check the work.',
+      who: 'You answer for this song. People check the work.',
+      why: {
+        money: 'The human parts are what can be registered and licensed.',
+        fanbase: 'A clear claim helps when you share the song.',
+        release: 'Sort the human parts before the song goes out.'
       }
     },
     qualify: {
@@ -228,9 +260,9 @@
       face: 'plai',
       status: 'live',
       href: '/#pricing',
-      link: 'Sync package',
-      what: 'Packages for film, TV, games, and ads. No placement promise.',
-      get: 'A sync package. No placement promise. People check the work.',
+      link: 'Sync add-on',
+      what: 'A sync add-on for film, TV, games, and ads. The price is on Plans and Pricing. No placement promise.',
+      get: 'The sync add-on. No placement promise. People check the work.',
       who: 'The AI team builds the package. People check the work.',
       why: {
         money: 'A license is another way the song can earn.',
@@ -322,9 +354,9 @@
   };
 
   var SECTIONS = [
-    { id: 'make', label: 'Make it', stops: ['helper', 'cover', 'multiverse'] },
-    { id: 'ready', label: 'Get ready', stops: ['check'] },
-    { id: 'protect', label: 'Protect it', stops: ['copyright', 'contracts', 'qualify'] },
+    { id: 'make', label: 'Make it', stops: ['guide', 'helper', 'cover', 'multiverse'] },
+    { id: 'ready', label: 'Get ready', stops: ['check', 'makehuman'] },
+    { id: 'protect', label: 'Protect it', stops: ['copyright', 'contracts', 'qualify', 'claim'] },
     { id: 'put', label: 'Put it out', stops: ['distro', 'persona'] },
     { id: 'heard', label: 'Get heard', stops: ['pitch', 'marketing', 'billboard'] },
     { id: 'paid', label: 'Get paid', stops: ['royalties', 'publishing', 'sync'] },
@@ -359,6 +391,23 @@
     SECTIONS.forEach(function (section) {
       var stops = section.stops.filter(function (id) { return on[id] && STOPS[id]; });
       if (stops.length) out.push({ id: section.id, label: section.label, stops: stops });
+    });
+    return out;
+  }
+
+  function slottedIds(stopIds) {
+    var on = {};
+    (stopIds || []).forEach(function (id) { on[id] = true; });
+    var present = {};
+    sectionsFor(stopIds).forEach(function (section) { present[section.id] = true; });
+    if (present.make) on.guide = true;
+    if (present.ready) on.makehuman = true;
+    if (present.protect) on.claim = true;
+    var out = [];
+    SECTIONS.forEach(function (section) {
+      section.stops.forEach(function (id) {
+        if (on[id] && STOPS[id]) out.push(id);
+      });
     });
     return out;
   }
@@ -925,7 +974,7 @@
       var numbers = {};
       var count = 1;
       if (mode === 'route') {
-        sectionsFor(state.stopIds).forEach(function (section) {
+        sectionsFor(ids).forEach(function (section) {
           section.stops.forEach(function (id) {
             numbers[id] = count;
             count += 1;
@@ -962,7 +1011,7 @@
             var body = doc.createElement('div');
             body.className = 'dest-stop-body';
             body.appendChild(stopButton(id, state.routeGoal, state.kit));
-            if (state.editing) {
+            if (state.editing && state.stopIds.indexOf(id) !== -1) {
               var remove = doc.createElement('button');
               remove.type = 'button';
               remove.className = 'dest-stop-remove';
@@ -1055,7 +1104,7 @@
         svg.appendChild(line);
         var groups = doc.createElement('div');
         groups.className = 'dest-sections';
-        appendFolds(groups, state.stopIds, 'route');
+        appendFolds(groups, slottedIds(state.stopIds), 'route');
         map.appendChild(svg);
         map.appendChild(groups);
         drawRoad(false);
@@ -1065,7 +1114,13 @@
       if (extraList) {
         extraList.textContent = '';
         if (state.editing) {
-          var spare = STOP_ORDER.filter(function (id) { return state.stopIds.indexOf(id) === -1; });
+          var visible = {};
+          slottedIds(state.stopIds).forEach(function (id) { visible[id] = true; });
+          var catalog = STOP_ORDER.slice();
+          ['guide', 'claim', 'makehuman'].forEach(function (id) {
+            if (catalog.indexOf(id) === -1) catalog.push(id);
+          });
+          var spare = catalog.filter(function (id) { return !visible[id]; });
           if (!spare.length) {
             var empty = doc.createElement('p');
             empty.className = 'dest-extras-lead';
@@ -1243,6 +1298,7 @@
       if (remove && app.contains(remove)) {
         var removeId = remove.getAttribute('data-remove');
         state.stopIds = state.stopIds.filter(function (id) { return id !== removeId; });
+        (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({ name: 'route_map_edited', payload: {} });
         renderRoute();
         return;
       }
@@ -1250,6 +1306,7 @@
       if (add && app.contains(add)) {
         var addId = add.getAttribute('data-add');
         if (STOPS[addId] && state.stopIds.indexOf(addId) === -1) state.stopIds.push(addId);
+        (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({ name: 'route_map_edited', payload: {} });
         renderRoute();
         return;
       }
@@ -1261,8 +1318,12 @@
       next.addEventListener('click', function () {
         if (!canContinue()) return;
         readMini();
+        var building = state.step === 2;
         if (state.step === 2) startRoute();
         if (state.step < 3) state.step += 1;
+        if (building && state.step === 3) {
+          (root.PlaigroundEventQueue = root.PlaigroundEventQueue || []).push({ name: 'route_map_built', payload: {} });
+        }
         showStep();
       });
     }

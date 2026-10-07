@@ -34,7 +34,7 @@
   }
 
   var AUDIO_SIZE_COPY = 'Audio must be 200 MB or smaller.';
-  var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
+  var AUDIO_REQUIRED_COPY = 'Audio required. Upload your master before sending';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
   var DEFAULT_CATALOG_TIMEOUT_MS = 30000;
   var AUDIO_POST_TIMEOUT_MS = 90000;
@@ -936,7 +936,7 @@
       bar.appendChild(fill);
       share.appendChild(bar);
       var money = document.createElement('td');
-      money.textContent = row.revenue_usd == null ? '—' : formatMoney(row.revenue_usd);
+      money.textContent = row.revenue_usd == null ? '-' : formatMoney(row.revenue_usd);
       tr.appendChild(name);
       tr.appendChild(count);
       tr.appendChild(share);
@@ -1905,7 +1905,7 @@
     var existingDate = toIsoDate(release.release_date || draft.release_date);
     if (dateEl) {
       dateEl.type = 'date';
-      // Do not set min to the 7-day lock — iOS clears any tap below min.
+      // Do not set min to the 7-day lock. IOS clears any tap below min.
       if (existingDate && existingDate < todayLocal()) dateEl.min = existingDate;
       else {
         dateEl.min = '';

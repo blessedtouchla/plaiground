@@ -24,7 +24,7 @@
   }
 
   function formatMoney(value) {
-    if (value == null || value === '') return '—';
+    if (value == null || value === '') return '-';
     var n = toNumber(value);
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -102,7 +102,7 @@
     var top = summary.top_release;
     if (top && (top.title || toNumber(top.streams))) {
       setHidden('[data-metric-top-release]', false);
-      setText('[data-metric="top-release"]', top.title || '—');
+      setText('[data-metric="top-release"]', top.title || '-');
       setText('[data-metric-top-release-note]', formatCount(top.streams) + ' streams');
     } else {
       setHidden('[data-metric-top-release]', true);
@@ -138,7 +138,7 @@
       var wrap = document.createElement('div');
       wrap.className = 'bar-row';
       var name = document.createElement('span');
-      name.textContent = row[nameKey] || '—';
+      name.textContent = row[nameKey] || '-';
       var bar = document.createElement('div');
       bar.className = 'bar';
       var fill = document.createElement('i');
@@ -170,7 +170,7 @@
       var line = document.createElement('div');
       line.className = 'loc';
       var name = document.createElement('span');
-      name.textContent = row.country_name || row.territory || '—';
+      name.textContent = row.country_name || row.territory || '-';
       var count = document.createElement('span');
       count.textContent = formatCount(row.streams);
       line.appendChild(name);

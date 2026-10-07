@@ -14,7 +14,7 @@
  * Demo mode skips it. The in-memory limiter below is prototype-grade only. It lives on one serverless
  * instance, resets on cold start, and is not shared across instances or regions.
  * On Vercel, x-forwarded-for is set by the platform. Do not treat this as abuse-proof.
- * Stronger abuse filtering is still needed before this page is linked in public.
+ * The shared guard filters the prompt, limits each IP and each signed-in user, and caps anonymous use per day.
  */
 
 const core = require('../lib/battle');
@@ -186,7 +186,9 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: core.MESSAGES[guarded] || core.MESSAGES.blocked });
     return;
   }
-  var blocked = await guard.enforce(req, clientIp(req), body, { skipFilter: true });
+  var promptBits = [setup.topic, setup.name, setup.slang];
+  (setup.transcript || []).forEach(function (verse) { promptBits.push(verse && verse.text); });
+  var blocked = await guard.enforce(req, clientIp(req), body, { text: promptBits.join('\n') });
   if (blocked) {
     sendJson(res, blocked.status, blocked.body);
     return;

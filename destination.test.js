@@ -108,9 +108,11 @@ function runRoutes() {
     assert.ok(!blob.includes('\u2014'), id);
   });
 
-  assert.strictEqual(core.STOPS.helper.status, 'soon');
-  assert.ok(core.STOPS.helper.what.includes('until the writer connection is wired'));
-  assert.strictEqual(core.STOPS.cover.status, 'soon');
+  assert.strictEqual(core.STOPS.helper.status, 'live');
+  assert.strictEqual(core.STOPS.helper.href, '/song-helper');
+  assert.ok(!core.STOPS.helper.what.includes('until the writer connection is wired'));
+  assert.strictEqual(core.STOPS.cover.status, 'live');
+  assert.strictEqual(core.STOPS.cover.href, '/cover-art');
   assert.ok(/themes/i.test(core.STOPS.cover.what));
   assert.strictEqual(core.STOPS.check.href, '/ar');
   assert.strictEqual(core.STOPS.persona.href, '/epk');
@@ -207,7 +209,9 @@ function runRoutes() {
   assert.strictEqual(placed.copyright, 'protect');
   assert.strictEqual(placed.contracts, 'protect');
   assert.strictEqual(placed.qualify, 'protect');
-  assert.ok(!placed.makehuman);
+  assert.strictEqual(placed.claim, 'protect');
+  assert.strictEqual(placed.guide, 'make');
+  assert.strictEqual(placed.makehuman, 'ready');
   assert.strictEqual(placed.distro, 'put');
   assert.strictEqual(placed.persona, 'put');
   assert.strictEqual(placed.pitch, 'heard');
@@ -401,8 +405,9 @@ function runPage() {
 
   const home = read('index.html');
   const hero = home.match(/<section class="hero"[\s\S]*?<\/section>/)[0];
-  assert.ok(/class="btn btn-gold btn-md" href="\/destination">Build your roadmap</.test(hero), 'homepage primary CTA builds a roadmap');
-  assert.ok(/class="btn btn-ghost btn-md" href="signup\.html\?plan=basic" data-plan="basic">Put my team to work</.test(hero), 'signup CTA stays secondary');
+  assert.ok(/class="btn btn-gold btn-md" href="signup\.html">Join free</.test(hero), 'homepage primary CTA is Join free');
+  assert.ok(/href="\/destination">Build your roadmap</.test(hero), 'roadmap stays a secondary link');
+  assert.ok(!/class="btn btn-gold[^"]*" href="\/destination"/.test(hero), 'roadmap is not a second gold primary');
 }
 
 runRoutes();

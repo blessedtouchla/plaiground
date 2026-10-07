@@ -31,12 +31,14 @@ function mockRes() {
   };
 }
 
-async function post(body, ip, url) {
+async function post(body, ip, url, extraHeaders) {
   const res = mockRes();
+  const headers = { 'x-forwarded-for': ip || '198.51.100.8' };
+  if (extraHeaders) Object.assign(headers, extraHeaders);
   await handler({
     method: 'POST',
     url: url || '/api/song-helper',
-    headers: { 'x-forwarded-for': ip || '198.51.100.8' },
+    headers: headers,
     body: body,
   }, res);
   return res;
@@ -395,6 +397,9 @@ async function runApi() {
     site: process.env.TURNSTILE_SITE_KEY,
     secret: process.env.TURNSTILE_SECRET_KEY,
     limit: process.env.SONG_HELPER_DAILY_LIMIT,
+    anon: process.env.SONG_HELPER_ANON_DAILY_LIMIT,
+    hourly: process.env.SONG_HELPER_HOURLY_LIMIT,
+    session: process.env.SESSION_SECRET,
     redditId: process.env.REDDIT_CLIENT_ID,
     redditSecret: process.env.REDDIT_CLIENT_SECRET,
   };
@@ -405,6 +410,7 @@ async function runApi() {
   delete process.env.REDDIT_CLIENT_ID;
   delete process.env.REDDIT_CLIENT_SECRET;
   guard.dailyLimiter.reset();
+  guard.hourlyLimiter.reset();
   const originalFetch = global.fetch;
   let fetches = 0;
   global.fetch = function () {
@@ -568,6 +574,44 @@ async function runApi() {
     assert.strictEqual(slur.statusCode, 400);
     assert.ok(/slurs/i.test(slur.json.error));
 
+    delete process.env.SONG_HELPER_DAILY_LIMIT;
+    process.env.SONG_HELPER_ANON_DAILY_LIMIT = '2';
+    guard.dailyLimiter.reset();
+    guard.hourlyLimiter.reset();
+    const anonOne = await post(concrete(), '203.0.113.85');
+    const anonTwo = await post(concrete(), '203.0.113.85');
+    const anonThree = await post(concrete(), '203.0.113.85');
+    assert.strictEqual(anonOne.statusCode, 200);
+    assert.strictEqual(anonTwo.statusCode, 200);
+    assert.strictEqual(anonThree.statusCode, 429);
+    assert.ok(/daily limit/i.test(anonThree.json.error));
+    assert.ok(/visitor/i.test(anonThree.json.error));
+
+    const auth = require('./lib/auth');
+    const previousSecret = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = 'limit-test-secret';
+    process.env.SONG_HELPER_HOURLY_LIMIT = '2';
+    process.env.SONG_HELPER_ANON_DAILY_LIMIT = '40';
+    guard.dailyLimiter.reset();
+    guard.hourlyLimiter.reset();
+    const cookieA = auth.COOKIE + '=' + auth.signSession('user-a');
+    const cookieB = auth.COOKIE + '=' + auth.signSession('user-b');
+    const userOne = await post(concrete(), '203.0.113.86', '', { cookie: cookieA });
+    const userTwo = await post(concrete(), '203.0.113.86', '', { cookie: cookieA });
+    const userThree = await post(concrete(), '203.0.113.86', '', { cookie: cookieA });
+    assert.strictEqual(userOne.statusCode, 200);
+    assert.strictEqual(userTwo.statusCode, 200);
+    assert.strictEqual(userThree.statusCode, 429);
+    const otherUserSameIp = await post(concrete(), '203.0.113.86', '', { cookie: cookieB });
+    assert.strictEqual(otherUserSameIp.statusCode, 429);
+    assert.ok(/connection/i.test(otherUserSameIp.json.error));
+    const otherUserFreshIp = await post(concrete(), '203.0.113.87', '', { cookie: cookieB });
+    assert.strictEqual(otherUserFreshIp.statusCode, 200);
+    if (previousSecret === undefined) delete process.env.SESSION_SECRET;
+    else process.env.SESSION_SECRET = previousSecret;
+    delete process.env.SONG_HELPER_HOURLY_LIMIT;
+    delete process.env.SONG_HELPER_ANON_DAILY_LIMIT;
+
     const theme = cover.buildImagePrompt({ look: 'painted', palette: 'night', idea: 'a quiet room', theme: 'psychedelic' });
     assert.ok(/psychedelic/i.test(theme.prompt));
     assert.ok(/No text, no letters/.test(theme.prompt));
@@ -576,6 +620,13 @@ async function runApi() {
   } finally {
     global.fetch = originalFetch;
     guard.dailyLimiter.reset();
+    guard.hourlyLimiter.reset();
+    if (previous.anon === undefined) delete process.env.SONG_HELPER_ANON_DAILY_LIMIT;
+    else process.env.SONG_HELPER_ANON_DAILY_LIMIT = previous.anon;
+    if (previous.hourly === undefined) delete process.env.SONG_HELPER_HOURLY_LIMIT;
+    else process.env.SONG_HELPER_HOURLY_LIMIT = previous.hourly;
+    if (previous.session === undefined) delete process.env.SESSION_SECRET;
+    else process.env.SESSION_SECRET = previous.session;
     ['XAI_API_KEY', 'SONG_HELPER_DISABLED', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'SONG_HELPER_DAILY_LIMIT', 'REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'].forEach(function (name) {
       if (previous[name === 'XAI_API_KEY' ? 'key' : name] === undefined && name === 'XAI_API_KEY') {
         delete process.env.XAI_API_KEY;

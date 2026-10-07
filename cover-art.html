@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PLAIGROUND Song Helper</title>
-  <meta name="description" content="Make a square release cover with PLAIGROUND Song Helper. Your name and title are added after, not inside the picture." />
+  <title>Cover Art | PLAIGROUND</title>
+  <meta name="description" content="Make a square release cover. PLAIGROUND Song Helper can pass a title in. Your name and title are added after, not inside the picture." />
   <link rel="canonical" href="https://www.wannaplai.com/cover-art" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.wannaplai.com/cover-art" />
-  <meta property="og:title" content="PLAIGROUND Song Helper" />
+  <meta property="og:title" content="Cover Art | PLAIGROUND" />
   <meta property="og:description" content="A square cover for the release. Your name and title go on after." />
   <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="PLAIGROUND Song Helper" />
+  <meta name="twitter:title" content="Cover Art | PLAIGROUND" />
   <meta name="twitter:description" content="A square cover for the release. Your name and title go on after." />
   <meta name="twitter:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700;800;900&family=Libre+Baskerville:wght@700&family=Oswald:wght@500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260924p3" />
+  <link rel="stylesheet" href="site.css?v=20261007polish" />
   <link rel="stylesheet" href="song-helper.css" />
   <link rel="stylesheet" href="cover-art.css?v=20261007swatch" />
   <script>if(/(?:\?|&)embed=1(?:&|$)/.test(location.search))document.documentElement.classList.add('ca-embed');</script>
@@ -79,7 +79,7 @@
   <main class="sh">
     <div class="wrap sh-shell" id="ca-shell">
       <p class="sh-kicker">Cover art</p>
-      <h1>PLAIGROUND Song Helper</h1>
+      <h1>Cover Art</h1>
       <p class="sh-intro">Let’s make a square cover. The picture stays free of lettering. Your name and title go on after, so you can still edit them.</p>
       <p class="sh-honest">Covers are AI-assisted when a writer is connected. In preview you get placeholder art, labeled as such.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
@@ -239,6 +239,7 @@
           </div>
         </section>
 
+        <div id="ca-turnstile" hidden></div>
         <p class="sh-form-error" id="ca-form-error" role="alert" hidden></p>
         <div class="sh-actions no-print">
           <button type="button" class="btn btn-ghost btn-md" id="ca-back" hidden>Back</button>
@@ -252,8 +253,8 @@
     <div class="wrap">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
-          <p>AI-powered music business for independent artists.</p>
+          <a class="logo" href="index.html" aria-label="PLAIGROUND"><img loading="lazy" decoding="async" src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+          <p>For every artist. Human first. AI is optional.</p>
           <div class="socials">
             <a href="https://www.facebook.com/profile.php?id=61593116849937" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg></a>
             <a href="https://www.instagram.com/plaigroundmusic" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-5 3.2A3.8 3.8 0 1 1 8.2 12 3.8 3.8 0 0 1 12 8.2zm0 2A1.8 1.8 0 1 0 13.8 12 1.8 1.8 0 0 0 12 10.2zM17.2 6.6a.9.9 0 1 1-.9.9.9.9 0 0 1 .9-.9z"/></svg></a>
@@ -299,6 +300,7 @@
   <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
   <script src="lib/cover-art.js"></script>
+  <script src="/product-events.js?v=20261007ev1"></script>
   <script src="cover-art.js"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>

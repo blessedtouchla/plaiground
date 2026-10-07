@@ -202,7 +202,12 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: validationMessage(err && err.code), note: (err && err.note) || '' });
     return;
   }
-  var blocked = await guard.enforce(req, clientIp(req), body, { skipFilter: true });
+  var promptText = [
+    body.idea,
+    body.theme,
+    Array.isArray(body.chips) ? body.chips.join('\n') : ''
+  ].join('\n');
+  var blocked = await guard.enforce(req, clientIp(req), body, { text: promptText });
   if (blocked) {
     sendJson(res, blocked.status, blocked.body);
     return;

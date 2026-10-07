@@ -1,4 +1,4 @@
-/* Floating PLAI voice bubble. Positioned fixed — does not shift .wrap. */
+/* Floating PLAI voice bubble. Positioned fixed. Does not shift .wrap. */
 
 .plai-bubble {
   --plai-sticky-clearance: 0px;

@@ -47,6 +47,7 @@ const { pathnameOf, queryValue } = require('../lib/route');
 const { readBody, sendJson } = require('../lib/tonegrid');
 const { pixelId } = require('../lib/growth-pixel');
 const { recordSignup } = require('../lib/growth-events');
+const { normalizeAttribution, normalizeRole } = require('../lib/product-events');
 
 function authAction(req) {
   const path = pathnameOf(req);
@@ -131,7 +132,9 @@ async function signup(req, res) {
   }
 
   try {
-    const row = await createUser({ email, password, artist, plan, username });
+    const attribution = normalizeAttribution(body && body.attribution);
+    const role = normalizeRole(body && (body.role || body.i_am));
+    const row = await createUser({ email, password, artist, plan, username, attribution, role });
     try {
       await recordSignup(row);
     } catch {

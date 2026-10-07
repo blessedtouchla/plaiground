@@ -307,7 +307,7 @@ function runCore() {
     ],
     sections: [
       {
-        label: 'Verse — Written with Grok',
+        label: 'Verse. Written with Grok',
         lines: [
           { text: 'A real opening line.', source: 'generated' },
           { text: 'Written with Grok', source: 'generated' },
@@ -348,7 +348,7 @@ function runCore() {
 
   const marked = core.formatSunoLyrics({
     sections: [{
-      label: 'Chorus — Written with Grok',
+      label: 'Chorus. Written with Grok',
       lines: [
         { text: '<u>your words</u>' },
         { text: 'Hook A' },

@@ -301,12 +301,12 @@
     state = next;
     if (talkBtn) talkBtn.classList.toggle('is-on', wantMic && (next === 'listening' || next === 'talking'));
     var copy = {
-      idle: 'Type or talk. PLAI is pronounced PLAY.',
+      idle: 'Type or talk. Plai is pronounced PLAY.',
       listening: 'Listening. Speak or type.',
-      talking: 'PLAI is answering.',
+      talking: 'Plai is answering.',
       text: 'Mic is off. Type a message.',
       error: message || 'Could not connect. Try again.',
-      'not-configured': 'PLAI is not live on this site yet.',
+      'not-configured': 'Plai is not live on this site yet.',
     };
     setStatus(copy[next] || copy.idle);
     setComposerEnabled(configured && next !== 'not-configured');
@@ -443,7 +443,7 @@
       } catch (e) {
         micOn = false;
         if (gen !== talkGen) return;
-        setLive('error', 'Allow the microphone to talk to PLAI.');
+        setLive('error', 'Allow the microphone to talk to Plai.');
         return;
       }
     } else {
@@ -462,7 +462,7 @@
     } catch (e) {
       if (gen !== talkGen) return;
       stopCapture();
-      setLive('error', 'Could not reach the PLAI session route.');
+      setLive('error', 'Could not reach the Plai session route.');
       return;
     }
     if (gen !== talkGen) return;

@@ -43,7 +43,7 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font-family: inherit; }
 button { cursor: pointer; }
 
-/* Patrick DESKTOP · 1680 WIDE — centered canvas, side inset at every width. */
+/* Patrick DESKTOP · 1680 WIDE. Centered canvas, side inset at every width. */
 .wrap,
 .wrap-wide,
 .cta-band,
@@ -58,7 +58,7 @@ button { cursor: pointer; }
   min-width: 0;
 }
 
-/* —— Buttons —— */
+/* -- Buttons -- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -118,7 +118,7 @@ button { cursor: pointer; }
   box-shadow: none;
 }
 
-/* —— Public nav —— */
+/* -- Public nav -- */
 .nav {
   position: fixed;
   top: 0;
@@ -378,7 +378,7 @@ button { cursor: pointer; }
 .public-nav-backdrop,
 .app-nav-backdrop { display: none; }
 
-/* —— Marketing hero / steps / pricing / footer —— */
+/* -- Marketing hero / steps / pricing / footer -- */
 .hero {
   position: relative;
   isolation: isolate;
@@ -645,7 +645,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .footer-col h4 { font-family: "Space Grotesk", Inter, sans-serif; }
 .copy { font-size: 12px; color: #6E6E7A; }
 
-/* —— Auth —— */
+/* -- Auth -- */
 .auth {
   min-height: 100vh;
   padding-top: var(--nav-h);
@@ -867,7 +867,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
 .switch { text-align: center; margin-top: 18px; font-size: 14px; color: var(--muted); }
 .switch a { color: var(--magenta); font-weight: 600; }
 
-/* —— Legal —— */
+/* -- Legal -- */
 .legal { padding: calc(var(--nav-h) + 64px) 0 80px; }
 .legal h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 12px; }
 .legal .meta { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
@@ -994,7 +994,7 @@ footer { padding: 64px 0 28px; border-top: 1px solid var(--line); }
   .legal-toc ol { columns: 1; }
 }
 
-/* —— App shell —— */
+/* -- App shell -- */
 .app { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
 html[data-auth-gate="pending"] body.app .side,
 html[data-auth-gate="pending"] body.app .topbar,
@@ -1802,7 +1802,7 @@ body.artist-editing { overflow: hidden; }
   pointer-events: none;
 }
 
-/* —— Upload flow —— */
+/* -- Upload flow -- */
 .flow-top {
   display: flex;
   justify-content: space-between;
@@ -2076,7 +2076,7 @@ button.dashbox span {
   margin: 16px 0;
 }
 
-/* —— Marketing extras —— */
+/* -- Marketing extras -- */
 .page-hero { padding: calc(var(--nav-h) + 72px) 0 48px; }
 .page-hero.left { text-align: left; }
 .page-hero h1 {
@@ -4535,7 +4535,7 @@ body.app.artists-page .page {
   }
 }
 
-/* —— Upload release stage (center sleeve, side chips) —— */
+/* -- Upload release stage (center sleeve, side chips) -- */
 .upload-page {
   --stage-magenta: #d03083;
   --stage-purple: #782fb1;
@@ -4956,7 +4956,7 @@ button.stage-chip {
   }
 }
 
-/* —— Upload header stage (quiet text steps + type line + tiny leave) —— */
+/* -- Upload header stage (quiet text steps + type line + tiny leave) -- */
 .upload-page .upload-hero {
   margin: 0 0 16px;
   font-family: "Space Grotesk", Inter, sans-serif;
@@ -5111,7 +5111,7 @@ button.stage-chip {
   }
 }
 
-/* —— Upload Tesla cut (one progress line + tiny leave icons) —— */
+/* -- Upload Tesla cut (one progress line + tiny leave icons) -- */
 .upload-page .upload-page-label {
   position: absolute;
   width: 1px;
@@ -5178,7 +5178,7 @@ button.stage-chip {
   clip: rect(0, 0, 0, 0);
 }
 
-/* —— Upload brand accents (Tesla leftover: sparse purple/gold) —— */
+/* -- Upload brand accents (Tesla leftover: sparse purple/gold) -- */
 .upload-page .st.upload-step-splits {
   position: absolute;
   width: 1px;
@@ -5283,7 +5283,7 @@ button.stage-chip {
   box-shadow: 0 0 0 1px rgba(120, 47, 177, 0.45), 0 0 36px rgba(120, 47, 177, 0.28);
 }
 
-/* —— Upload sleeve helper quiet (chips + BUILDING YOUR RELEASE stay) —— */
+/* -- Upload sleeve helper quiet (chips + BUILDING YOUR RELEASE stay) -- */
 .upload-page .release-stage-drop,
 .upload-page .release-stage-audio .audio-drop {
   color: rgba(255, 255, 255, 0.22);
@@ -5301,7 +5301,7 @@ button.stage-chip {
   max-width: 280px;
 }
 
-/* —— Site Tesla pass (flow + rest-of-site visual system) —— */
+/* -- Site Tesla pass (flow + rest-of-site visual system) -- */
 .upload-page .st b {
   font-family: "Space Grotesk", Inter, sans-serif;
 }
@@ -5410,7 +5410,7 @@ button.stage-chip {
   color: var(--muted);
 }
 
-/* —— Upload leftover: tiny side Credits/Send steps + Artist card —— */
+/* -- Upload leftover: tiny side Credits/Send steps + Artist card -- */
 .upload-page .stage-step.chip-credits,
 .upload-page .stage-step.chip-send {
   display: inline;
@@ -5487,7 +5487,7 @@ button.stage-chip {
   color: var(--muted);
 }
 
-/* —— Upload Credits Tesla cut (one picker + sentence-case + Logo Blue steps) —— */
+/* -- Upload Credits Tesla cut (one picker + sentence-case + Logo Blue steps) -- */
 .upload-page [data-artist-mode-field] {
   display: none !important;
 }
@@ -5519,7 +5519,7 @@ button.stage-chip {
   color: var(--muted);
 }
 
-/* —— Submitted Tesla energy (cover hero + one date + collapsed next) —— */
+/* -- Submitted Tesla energy (cover hero + one date + collapsed next) -- */
 body.submitted-page {
   background: #000;
 }
@@ -5829,7 +5829,7 @@ main.submitted-page.center-page {
   }
 }
 
-/* —— Signed-in nav Tesla cut (Create / Money / PLAI / Account, no Overview nest) —— */
+/* -- Signed-in nav Tesla cut (Create / Money / PLAI / Account, no Overview nest) -- */
 .side-nav {
   gap: 4px;
 }
@@ -5943,7 +5943,7 @@ main.submitted-page.center-page {
   color: #fff;
 }
 
-/* —— Review Tesla energy (schedule + review, no Pay) —— */
+/* -- Review Tesla energy (schedule + review, no Pay) -- */
 body.review-page {
   background: #000;
 }
@@ -6179,7 +6179,7 @@ body.review-page main.page {
   }
 }
 
-/* —— Artist Profiles Tesla energy (roster wall + overflow + collapsed lecture) —— */
+/* -- Artist Profiles Tesla energy (roster wall + overflow + collapsed lecture) -- */
 .artists-page .artists-head {
   align-items: flex-start;
   gap: 16px;
@@ -6420,7 +6420,7 @@ body.review-page main.page {
   }
 }
 
-/* Artist Profiles — Act, not just files (persona education) */
+/* Artist Profiles. Act, not just files (persona education) */
 .artists-page .artists-act-edu {
   margin: 0 0 22px;
   max-width: 40rem;
@@ -6514,7 +6514,7 @@ body.review-page main.page {
   color: #fff;
 }
 
-/* Artist Profiles — fill guide + Human / AI-infused class */
+/* Artist Profiles. Fill guide + Human / AI-infused class */
 .artists-page .artists-fill-guide {
   margin: 0 0 20px;
   max-width: 42rem;
@@ -6628,7 +6628,7 @@ body.review-page main.page {
   }
 }
 
-/* —— Attest Tesla energy (rights confirmation + honest status + sticky dock) —— */
+/* -- Attest Tesla energy (rights confirmation + honest status + sticky dock) -- */
 body.attest-page {
   background: #000;
 }
@@ -6795,7 +6795,7 @@ body.attest-page .plai-bubble-row {
   }
 }
 
-/* —— Homepage Tesla energy (living wordmark + SIQA proof + pinned phone Login) —— */
+/* -- Homepage Tesla energy (living wordmark + SIQA proof + pinned phone Login) -- */
 .home-portal .hero {
   --stage-gold: #f3cb47;
   --stage-purple: #782fb1;
@@ -7136,7 +7136,7 @@ a.staff-card:focus-visible {
   }
 }
 
-/* —— Labeling transparency (homepage strip + /transparency.html) —— */
+/* -- Labeling transparency (homepage strip + /transparency.html) -- */
 .home-portal .hero .sub {
   margin-bottom: 16px;
 }
@@ -7295,7 +7295,7 @@ a.staff-card:focus-visible {
   }
 }
 
-/* —— Public nav sections (Product / After upload / Trust / Listen / Stories) —— */
+/* -- Public nav sections (Product / After upload / Trust / Listen / Stories) -- */
 .nav.is-public-bar,
 header.nav {
   z-index: 50;
@@ -7424,7 +7424,7 @@ header.nav {
   .footer-brand { grid-column: auto; }
 }
 
-/* —— PLAIGROUND A&R + EPK (Tesla-minimal, stage gold/purple) —— */
+/* -- PLAIGROUND A&R + EPK (Tesla-minimal, stage gold/purple) -- */
 .acts-page {
   --acts-gold: #f3cb47;
   --acts-purple: #782fb1;
@@ -7605,7 +7605,7 @@ header.nav {
   }
 }
 
-/* —— Public pricing story (free account + $2.49 + A&R Act Pack) —— */
+/* -- Public pricing story (free account + $2.49 + A&R Act Pack) -- */
 .story-tiles { padding: 8px 0 20px; }
 .story-tiles-grid {
   display: grid;
@@ -7827,4 +7827,144 @@ header.nav {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
+}
+
+/* Homepage 5-second read and tap targets */
+.home-portal .hero .sub {
+  max-width: 680px;
+  margin-bottom: 14px;
+  color: #e4e4ec;
+}
+.home-portal .hero-why {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  max-width: 680px;
+  margin: 0 auto 16px;
+}
+.home-portal .hero-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 8px;
+  max-width: 760px;
+}
+.home-portal .hero-tools a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #f3cb47;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-portal .hero-tools a:hover { color: #ffe58a; }
+.home-portal .hero-secondary {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: -6px auto 16px;
+}
+.home-portal .hero-secondary a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.menu-toggle,
+.public-header-tools .login,
+.btn,
+.auth-toggle a,
+.checkline {
+  min-height: 44px;
+}
+.menu-toggle { min-width: 44px; }
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.checkline input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+.side-nav a,
+.nav-group-menu a,
+.nav-group-toggle {
+  min-height: 44px;
+}
+.contracts-feature {
+  margin: 0 auto 28px;
+  max-width: 760px;
+  padding: 22px 18px 18px;
+  text-align: center;
+  background: rgba(125, 60, 255, 0.08);
+  border: 1px solid rgba(125, 60, 255, 0.45);
+  border-radius: 16px;
+}
+.contracts-feature-kicker {
+  margin: 0 0 6px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a6ff;
+}
+.contracts-feature-title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.contracts-feature-lead {
+  margin: 0 auto 16px;
+  max-width: 36rem;
+  color: var(--muted-2);
+  line-height: 1.45;
+}
+.contracts-feature-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.contracts-feature-links .btn { min-height: 44px; }
+@media (max-width: 640px) {
+  .contracts-feature-links { flex-direction: column; align-items: center; }
+  .contracts-feature-links .btn { width: 100%; max-width: 280px; }
+}
+body.auth-full .contracts-feature { text-align: left; }
+body.auth-full .contracts-feature-links { justify-content: flex-start; }
+.team-lead,
+.how-bots {
+  margin: -8px auto 18px;
+  max-width: 36rem;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.45;
+  text-align: center;
+}
+.helpers-title {
+  margin: 4px 0 16px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+.how-bots { margin: 0 auto 14px; }
+.hero .eyebrow,
+.page-hero .eyebrow {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 14px;
 }

@@ -13,7 +13,7 @@ function read(file) {
 function coachCss(src) {
   const start = src.indexOf('/* PLAI Coach:');
   assert.ok(start !== -1, 'coach layout CSS is marked as layout-only');
-  const next = src.indexOf('/* ——', start + 1);
+  const next = src.indexOf('/* --', start + 1);
   return next === -1 ? src.slice(start) : src.slice(start, next);
 }
 
@@ -84,15 +84,15 @@ function runStatic() {
   const bubbleJs = read('plai-bubble.js');
   const bubbleCss = read('plai-bubble.css');
 
-  assert.ok(page.includes('class="plai-coach-identity"'), 'coach page has the PLAI identity');
-  assert.ok(/<h1>\s*PLAI\s*<\/h1>/.test(page), 'written name is PLAI');
+  assert.ok(page.includes('class="plai-coach-identity"'), 'coach page has the Plai identity');
+  assert.ok(/<h1>\s*Plai\s*<\/h1>/.test(page), 'written name is Plai');
   assert.ok(!/<h1>\s*PLAY\s*<\/h1>/.test(page), 'do not rename her PLAY on the page');
   assert.ok(page.includes('Your Release Coach'), 'subtitle is Your Release Coach');
   assert.ok(page.includes('class="card plai-coach-chat"'), 'chat shell reuses the site card');
   assert.ok(page.includes('data-plai-coach-talk'), 'coach page has a Talk control');
   assert.ok(page.includes('data-plai-coach-form'), 'coach page has the text form');
   assert.ok(page.includes('src="plai-coach.js"'), 'coach page loads the coach session client');
-  assert.ok(page.includes('plai-bubble.js'), 'Talk/Text PLAI still load on the coach page');
+  assert.ok(page.includes('plai-bubble.js'), 'Talk/Text Plai still load on the coach page');
   assert.ok(page.includes('class="card plai-coach-plan"'), 'Action Plan reuses the site card');
   assert.ok(page.includes('id="plai-action-plan-title">Action Plan</h2>'), 'Action Plan is labeled');
   const plan = page.match(/class="card plai-coach-plan"[\s\S]*?<\/section>/)[0];
@@ -100,15 +100,15 @@ function runStatic() {
 
   assert.ok(page.includes('header class="nav"'), 'logged-out chrome uses the public header');
   assert.ok(page.includes('class="side"'), 'signed-in chrome-swap keeps the app sidebar');
-  assert.ok(!/href="plai.html">PLAI<\/a>/.test(page.match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'do not add PLAI Coach to the signed-in product menu');
+  assert.ok(!/href="plai.html">Plai<\/a>/.test(page.match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'do not add Plai Coach to the signed-in product menu');
   assert.ok(!/buy a car at the click of a button/i.test(page), 'coach page must not dump the FAQ car-click essay');
-  assert.ok(!/Hey\. I'm PLAI/i.test(page), 'do not paste a first chat bubble');
+  assert.ok(!/Hey\. I'm Plai/i.test(page), 'do not paste a first chat bubble');
   assert.ok(!/Real AI coming soon/i.test(page) && !/function sendMessage/.test(page), 'do not ship a fake sendMessage AI');
   assert.ok(!/<style[\s>]/.test(page), 'do not paste standalone inline page styles');
 
   const welcome = index.match(/data-plai-coach-float[\s\S]*?<\/div>\s*<script src="membership\.js">/);
-  assert.ok(index.includes('data-plai-coach-float'), 'homepage has the circular PLAI float');
-  assert.ok(welcome, 'homepage welcome is the existing PLAI girl card');
+  assert.ok(index.includes('data-plai-coach-float'), 'homepage has the circular Plai float');
+  assert.ok(welcome, 'homepage welcome is the existing Plai girl card');
   assert.ok(/Is it your first time here\?/.test(welcome[0]), 'homepage welcome copy is locked');
   assert.ok(/Feel free to click Talk/.test(welcome[0]) && /or Text to ask/.test(welcome[0]), 'welcome points at Talk and Text');
   assert.ok(/uploading your first song/.test(welcome[0]), 'welcome mentions uploading a first song');
@@ -120,7 +120,7 @@ function runStatic() {
   assert.ok(!/ToneGrid|Tonegrid|DistroKid|chart|stream/i.test(welcome[0]), 'welcome must not promise charts or name distributors');
   assert.ok(!/Capacitor|App Store|hop\/submit/i.test(welcome[0]), 'welcome must not invent hop or store work');
   assert.ok(index.includes('plai-welcome.js?v=20260912w1'), 'homepage cache-busts the welcome script at 20260912w1');
-  assert.ok(index.includes('site.css?v=20260924p3'), 'homepage cache-busts site.css at 20260924p3');
+  assert.ok(index.includes('site.css?v=20261007polish'), 'homepage cache-busts site.css at 20261007polish');
   assert.ok(index.includes('site.js?v=20260924p3'), 'homepage cache-busts site.js at 20260924p3');
   assert.ok(!index.includes('site.css?v=20260918n1'), 'n1 stamp is retired after the visible-bar fix');
   assert.ok(!index.includes('site.css?v=20260912ae1'), 'ae1 stamp is retired after the homepage Tesla pass');
@@ -139,7 +139,7 @@ function runStatic() {
   });
 
   assert.ok(bubbleJs.includes("AGENT_ID = 'agent_BDVzp3Ar3ABtyov5'"), 'Talk/Text stay on the existing voice agent');
-  assert.ok(bubbleJs.includes("text: 'Talk to PLAI'") && bubbleJs.includes("text: 'Text PLAI'"), 'Talk/Text labels stay');
+  assert.ok(bubbleJs.includes("text: 'Talk to Plai'") && bubbleJs.includes("text: 'Text Plai'"), 'Talk/Text labels stay');
   assert.ok(!bubbleJs.includes('agent_9BWdEFlNcpLwxoQR'), 'Talk/Text must not switch to the coach agent');
   assert.ok(session.includes("COACH_AGENT_ID = 'agent_9BWdEFlNcpLwxoQR'"), 'coach agent id lives on the server');
   assert.ok(session.includes("body.agent === 'coach'"), 'coach mint is selected from the POST body');
@@ -148,11 +148,11 @@ function runStatic() {
   assert.ok(!coachJs.includes('agent_9BWdEFlNcpLwxoQR'), 'frontend must not hardcode the coach agent id');
   assert.ok(!coachJs.includes('XAI_API_KEY') && !page.includes('XAI_API_KEY'), 'coach frontend must not leak XAI_API_KEY');
   assert.ok(!/session\.instructions|instructions:/.test(coachJs), 'coach client must not set Voice Agent instructions');
-  assert.ok(/PLAI:\s*'PLAY'/.test(coachJs), 'spoken PLAI is PLAY');
+  assert.ok(/Plai:\s*'PLAY'/.test(coachJs), 'spoken Plai is PLAY');
   assert.ok(bubbleCss.includes('.plai-bubble-pill.is-text'), 'Talk/Text chrome file was not replaced');
 
   assert.ok(page.includes('assets/plai-avatar.png') && index.includes('assets/plai-avatar.png'), 'avatar slot points at plai-avatar.png');
-  assert.ok(!/linear-gradient/.test(coach), 'do not add a second gradient system for PLAI');
+  assert.ok(!/linear-gradient/.test(coach), 'do not add a second gradient system for Plai');
   assert.ok(!/#d03083|#782fb1|#f3cb47|#0a0a0f|#12121a|#1e1e2e/.test(coach), 'do not paste her standalone palette');
 
   ['plai.html', 'index.html', 'plai-coach.js', 'plai-bubble.js', 'plai-bubble.css', 'site.js', 'plai-welcome.js'].forEach(function (file) {
@@ -263,7 +263,7 @@ function loadWelcome(opts) {
 function runWelcome() {
   const first = loadWelcome();
   assert.strictEqual(first.root.hidden, false, 'fresh first visit shows the welcome');
-  assert.strictEqual(first.details.open, true, 'fresh first visit pops the PLAI card');
+  assert.strictEqual(first.details.open, true, 'fresh first visit pops the Plai card');
   assert.strictEqual(first.root.attrs['data-plai-welcome-state'], 'open');
 
   first.closeBtn.click();

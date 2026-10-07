@@ -117,12 +117,12 @@ function run() {
   assert.ok(!/data-latest-link/.test(dash), 'Overview must not rewrite a latest-song link');
   assert.ok(dash.includes('data-release-tiles'), 'release cover tiles are missing');
   assert.ok(dash.includes('is-strip'), 'Overview tiles are a short recent strip');
-  assert.ok(!dash.includes('Unlock MSP — Multiple Streams of Revenue'), 'Overview must not keep the MSP unlock clone');
+  assert.ok(!dash.includes('Unlock MSP. Multiple Streams of Revenue'), 'Overview must not keep the MSP unlock clone');
   assert.ok(!dash.includes('data-msp-section'), 'Overview must not keep the MSP earnings board');
   assert.ok(dash.includes('data-dash-shortcuts'), 'Boost and Publishing shortcuts are missing');
   assert.ok(/data-dash-shortcuts[\s\S]*Boosts/.test(dash) && !/data-dash-shortcuts[^>]*data-for-plans/.test(dash), 'Boost shortcut is open to every signed-in artist');
   assert.ok(/data-dash-shortcuts[\s\S]*Publishing/.test(dash), 'Publishing shortcut is open to every signed-in artist');
-  assert.ok(dash.includes('data-plai-talk') && dash.includes('Talk to PLAI'), 'Overview Talk to PLAI CTA is missing');
+  assert.ok(dash.includes('data-plai-talk') && dash.includes('Talk to Plai'), 'Overview Talk to Plai CTA is missing');
   assert.ok(dash.includes('data-split-sheets'), 'Overview Split sheets section is missing');
   assert.ok(dash.includes('data-split-sheets-rows'), 'Overview latest split rows are missing');
   assert.ok(/href="splits.html"[^>]*>Split sheets</.test(dash) || /data-split-sheets-all/.test(dash), 'Overview Split sheets button is missing');
@@ -131,7 +131,7 @@ function run() {
   assert.ok(dash.indexOf('data-split-sheets') < dash.indexOf('data-dash-shortcuts'), 'Split sheets stays on Overview, not under Boosts');
   assert.ok(!/data-for-plans="[^"]*"[^>]*>Split sheets</.test(dash), 'Split sheets is not plan-gated on Overview');
   assert.ok(!/P-L-A-I/.test(dash), 'Overview must not spell P-L-A-I');
-  assert.ok(!/>PLAY</.test(dash), 'Overview must not rename PLAI to PLAY in UI copy');
+  assert.ok(!/>PLAY</.test(dash), 'Overview must not rename Plai to PLAY in UI copy');
   assert.ok(dash.includes('Releases pending'), 'Your account card is missing Releases pending');
   assert.ok(dash.includes('data-account-pending>0'), 'pending empty default is 0');
   assert.ok(dash.includes('Artist profiles'), 'Your account card is missing Artist profiles');
@@ -747,7 +747,7 @@ function run() {
   assert.ok(!read('settings.html').includes('data-account-artists'), 'Settings must not paint Artist profiles count');
   assert.ok(!read('settings.html').includes('data-next-up'), 'Settings must not get the Overview next-up card');
   assert.ok(!read('settings.html').includes('class="dash-talk"'), 'Settings must not get the Overview Talk CTA');
-  assert.ok(/<nav class="side-nav">[\s\S]*data-plai-talk[\s\S]*Talk to PLAI/.test(read('settings.html')), 'Settings nav still has Talk to PLAI');
+  assert.ok(/<nav class="side-nav">[\s\S]*data-plai-talk[\s\S]*Talk to Plai/.test(read('settings.html')), 'Settings nav still has Talk to Plai');
 
   const leftoverSigned = makeNode({ textContent: 'Split sheets signed' });
   leftoverSigned.querySelector = function () { return { textContent: 'Split sheets signed' }; };

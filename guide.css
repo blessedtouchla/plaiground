@@ -356,6 +356,28 @@ body.guide-page [hidden] { display: none !important; }
   }
 }
 
+.guide-role {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  font-weight: 650;
+}
+
+.guide-role select {
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.guide-role-note {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guide-progress-fill,
   .guide-rail span,

@@ -18,7 +18,7 @@
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
     style: ['Describe the sound.', 'This becomes a style prompt you can copy. We describe the sound instead of naming artists.'],
     record: ['Your authorship record.', 'What you wrote, and what was drafted around it. Download it or print it.'],
-    next: ['When you want a team on it.', 'Song Helper is a free way to start. PLAIGROUND is the AI-powered music business around the song.'],
+    next: ['When you want a team on it.', 'Song Helper is a free way to start. PLAIGROUND is distribution and artist tools around the song. Human first. AI when you want it.'],
   };
   var NEXT_LABEL = {
     mood: 'Next',
@@ -927,6 +927,9 @@
       }
       draft = data.draft;
       preview = Boolean(data.preview);
+      if (!document.getElementById('sh-modes')) {
+        (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_draft', payload: {} });
+      }
       if (window.PlaigroundClaim) window.PlaigroundClaim.noteGeneration(draft);
       if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;
       draftKey = key;
@@ -1374,6 +1377,7 @@
       return;
     }
     copyPlain(text, $('sh-copy'));
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_style_copied', payload: {} });
   });
   $('sh-suno-copy').addEventListener('click', function () {
     renderSuno();
@@ -1400,6 +1404,7 @@
     }
     showError('');
     copyPlain(text, $('sh-suno-copy'));
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_lyrics_copied', payload: {} });
   });
   function claimPairs() {
     var data = interview();
@@ -1481,6 +1486,7 @@
         showClaimGate(record.id);
         return;
       }
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'claim_created', payload: {} });
       window.location.href = '/claim?id=' + encodeURIComponent(record.id);
     });
   }
@@ -1738,6 +1744,11 @@
       showMoodError('');
       showError('');
     });
+  }
+
+  if (!document.getElementById('sh-modes') && !window.__plaiHelperSession) {
+    window.__plaiHelperSession = 1;
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_started', payload: {} });
   }
 
   var battleSaved = battleSavedDraft();

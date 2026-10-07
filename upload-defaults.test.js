@@ -58,7 +58,7 @@ function pickFromList(list, label) {
   assert.ok(btn, label + ' must be in the open list');
   const ev = { target: btn, preventDefault: function () {}, stopPropagation: function () {}, stopImmediatePropagation: function () {} };
   if (list.listeners && list.listeners.pointerdown) list.listeners.pointerdown(ev);
-  // A phone must not commit on pointerdown — that cancels scrolling — so the
+  // A phone must not commit on pointerdown. That cancels scrolling. So the
   // lift commits a stationary tap. Desktop still commits on pointerdown; the
   // extra pointerup is a no-op once that pick is latched.
   if (list.listeners && list.listeners.pointerup) list.listeners.pointerup(ev);
@@ -241,7 +241,7 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
   };
   // Only run the immediate (0ms) work like the deferred blur. Leave longer
   // timers (the 450ms picking fallback) pending so the re-tap has to clear the
-  // latch itself — that is the fast "no wait, wrong one" re-tap iOS Safari hit.
+  // latch itself. That is the fast "no wait, wrong one" re-tap iOS Safari hit.
   function flushImmediate() {
     for (let i = timers.length - 1; i >= 0; i -= 1) {
       if (timers[i].ms === 0) {
@@ -268,14 +268,14 @@ function testTypeaheadFilledFieldReopensOnRetap(catalog) {
     assert.strictEqual(select.value, 'Pop', 'first pick commits');
     assert.strictEqual(input.value, 'Pop', 'first pick shows the label');
     assert.ok(list.classList.contains('is-hidden'), 'pick closes the list');
-    // Deferred blur (setTimeout 0) and any settle timers now run — as on device.
+    // Deferred blur (setTimeout 0) and any settle timers now run. As on device.
     flushImmediate();
 
-    // Re-tap the field WITHOUT clearing input.value — this is the path that was
+    // Re-tap the field WITHOUT clearing input.value. This is the path that was
     // dead on iOS Safari: the picked label is still shown, pickOption just ran,
     // and the input is left half-focused so focus/click/pointerup do not fire.
     // pointerdown (which always fires) must both clear the settle latch AND
-    // reopen the list — "quiet" so it doesn't schedule a scroll and lose the
+    // reopen the list. "quiet" so it doesn't schedule a scroll and lose the
     // keyboard.
     input.listeners.pointerdown();
     assert.ok(!list.classList.contains('is-hidden'), 're-tap pointerdown alone must reopen the list on a filled field');
@@ -487,7 +487,7 @@ function testTypeaheadOpenReclaimsFocus(catalog) {
       return { top: 430, bottom: 474, left: 16, right: 300, width: 284, height: 44 };
     };
 
-    // Featured Artist (or whatever the user was in before) is still focused —
+    // Featured Artist (or whatever the user was in before) is still focused -
     // this reopen is the tap-triggered path, not a genuine native focus event,
     // so iOS's own default focus grant may never have landed on this input.
     assert.strictEqual(doc.activeElement, unrelatedField, 'starts with an unrelated field focused, like the device report');
@@ -499,13 +499,13 @@ function testTypeaheadOpenReclaimsFocus(catalog) {
     // silently never raised the keyboard). touchend is itself a trusted
     // gesture, so the reclaim must happen synchronously, in this same call.
     assert.strictEqual(doc.activeElement, input, 'touchend must reclaim focus SYNCHRONOUSLY so iOS treats it as gesture-trusted and raises the keyboard');
-    // The scroll is the part #165 actually found unsafe mid-gesture — that
+    // The scroll is the part #165 actually found unsafe mid-gesture. That
     // half of the fix stays deferred.
     assert.strictEqual(global.window.scrolled, 0, 'the scroll-into-view must still be deferred, unlike focus');
     runTimers();
     assert.ok(global.window.scrolled !== 0, 'the deferred scroll still runs once the gesture settles');
 
-    // pointerdown (quiet, still mid-gesture) must NOT grab focus — same
+    // pointerdown (quiet, still mid-gesture) must NOT grab focus. Same
     // reasoning as it never scrolls: even a synchronous focus call this early
     // risks disturbing iOS's own gesture recognition before it resolves the
     // tap. The very next touchend/pointerup on the same tap does the reclaim.
@@ -1286,7 +1286,7 @@ function run() {
   assert.ok(upload.indexOf('capture=') === -1);
   assert.ok(upload.indexOf('accept=".mp3,.wav,.flac"') !== -1);
   assert.ok(upload.indexOf('accept="audio/*') === -1, 'Upload Add audio must not use audio/* (Photo Library)');
-  assert.ok(!/id="tg-audio-file"[^>]*audio\//.test(upload), 'Upload Add audio is extension-only — no audio MIME');
+  assert.ok(!/id="tg-audio-file"[^>]*audio\//.test(upload), 'Upload Add audio is extension-only. No audio MIME');
   assert.ok(upload.indexOf('lib/audio-accept.js') !== -1);
   assert.ok(upload.indexOf('lib/store-pick.js') !== -1);
   assert.ok(upload.indexOf('Pre-select all stores') !== -1);
@@ -1478,8 +1478,8 @@ function run() {
   assert.ok(/select\.is-typeahead-source[\s\S]*?width:\s*0/.test(css));
   assert.ok(/select\.details-select\.is-typeahead-source/.test(css));
   assert.ok(/select\.is-typeahead-source[\s\S]*?pointer-events:\s*none/.test(css));
-  assert.ok(/\.typeahead-field\.is-typeahead-open\s*\{[^}]*z-index:\s*4100/.test(css), 'open typeahead must sit above the PLAI bubble');
-  assert.ok(/\.typeahead-list\s*\{[\s\S]*?z-index:\s*4200/.test(css), 'typeahead list must sit above the PLAI bubble');
+  assert.ok(/\.typeahead-field\.is-typeahead-open\s*\{[^}]*z-index:\s*4100/.test(css), 'open typeahead must sit above the Plai bubble');
+  assert.ok(/\.typeahead-list\s*\{[\s\S]*?z-index:\s*4200/.test(css), 'typeahead list must sit above the Plai bubble');
   assert.ok(css.indexOf('::-webkit-datetime-edit') !== -1, 'picked calendar date must keep visible text');
   assert.ok(catalog.LANGUAGES.filter(function (row) { return row.name === 'Akan'; }).length === 1);
   assert.ok(catalog.LANGUAGES.some(function (row) { return row.code === 'tw' && row.name === 'Twi'; }));

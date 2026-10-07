@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin on PLAIGROUND. Free to join. Artists keep 100% of royalties. Pay per tool or release." />
+  <meta property="og:title" content="Admin – PLAIGROUND" />
+  <meta property="og:description" content="Admin on PLAIGROUND. Free to join. Artists keep 100% of royalties. Pay per tool or release." />
+  <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Admin – PLAIGROUND" />
+  <meta name="twitter:description" content="Admin on PLAIGROUND. Free to join. Artists keep 100% of royalties. Pay per tool or release." />
+  <meta name="twitter:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <title>Admin – PLAIGROUND</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,6 +27,7 @@
       <a href="#signups">Signups</a>
       <a href="#roadmaps">Roadmaps</a>
       <a href="#events">Events</a>
+      <a href="#product-events">Product events</a>
       <a href="#paid">Paid</a>
       <a href="#subs">Subs</a>
       <a href="#money">Money</a>
@@ -121,6 +130,31 @@
               </tr>
             </thead>
             <tbody data-events-body></tbody>
+          </table>
+        </div>
+      </div>
+      </section>
+
+      <section class="admin-section" id="product-events">
+      <div class="panel">
+        <div class="admin-section-head">
+          <h3>Product events</h3>
+          <a class="btn btn-ghost btn-sm" href="/api/admin/events.csv" data-events-export>Export CSV</a>
+        </div>
+        <p class="hint">Counts are every time someone did the thing. Day 30 retention is people who came back or released again. Only accounts at least 30 days old are in that count.</p>
+        <p class="hint" data-product-events-empty hidden>No product events yet.</p>
+        <div class="admin-table-wrap" data-product-events-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Count</th>
+                <th>Unique users</th>
+                <th>Did it in first 7 days</th>
+                <th>Retained at day 30</th>
+              </tr>
+            </thead>
+            <tbody data-product-events-body></tbody>
           </table>
         </div>
       </div>

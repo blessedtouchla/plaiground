@@ -69,7 +69,7 @@
     return '';
   }
 
-  var FREE_ACCOUNT_DETAIL = 'One free account for everyone. There is no monthly plan. Artists keep 100% of their royalties.';
+  var FREE_ACCOUNT_DETAIL = 'One free account for everyone. There is no monthly plan. Artists keep 100% of their royalties. Management plans are Coming soon / join waitlist.';
   var PLAN_PITCH = {
     creator: 'Free account',
     pro: 'Free account',
@@ -83,7 +83,7 @@
 
   function planLabel(plan) {
     var next = String(plan || '').trim().toLowerCase();
-    if (!next) return '—';
+    if (!next) return '-';
     return 'FREE';
   }
 
@@ -718,7 +718,7 @@
       name.textContent = work.title || 'Untitled';
       title.appendChild(name);
       var writer = document.createElement('td');
-      writer.textContent = work.writer || '—';
+      writer.textContent = work.writer || '-';
       var status = document.createElement('td');
       status.textContent = work.status_copy || work.status_label || 'no';
       tr.appendChild(title);
@@ -1294,7 +1294,7 @@
     var status = document.querySelector('[data-checkout-status]');
     if (plan !== 'creator' && plan !== 'pro') {
       setText(title, 'The account is free');
-      setText(change, 'There is no monthly plan to switch. The account is free.');
+      setText(change, 'There is no monthly plan to switch. The account is free. Management plans are Coming soon / join waitlist and are not for sale here.');
       if (submit) submit.hidden = true;
       return;
     }

@@ -127,8 +127,8 @@
       logEl.appendChild(el('p', {
         className: 'plai-bubble-empty',
         text: wantMic
-          ? 'Talk to PLAI. Her name sounds like PLAY.'
-          : 'Text PLAI. Type only — the mic stays off.',
+          ? 'Talk to Plai. Her name sounds like PLAY.'
+          : 'Text Plai. Type only. The mic stays off.',
       }));
       return;
     }
@@ -303,15 +303,15 @@
     root.dataset.state = next;
     root.classList.toggle('is-closed', !open);
     var copy = {
-      idle: { title: 'Ready', body: 'Talk to PLAI uses the mic. Text PLAI never turns the mic on.' },
-      reconnecting: { title: 'Still here', body: 'PLAI is reconnecting…' },
-      listening: { title: 'Listening', body: 'Speak or type. PLAI is on the line. Her name sounds like PLAY.' },
-      talking: { title: 'Talking', body: 'PLAI is answering. Pronounced PLAY.' },
-      text: { title: 'Text PLAI', body: 'Mic is off. Type a message. PLAI is pronounced PLAY.' },
+      idle: { title: 'Ready', body: 'Talk to Plai uses the mic. Text Plai never turns the mic on.' },
+      reconnecting: { title: 'Still here', body: 'Plai is reconnecting…' },
+      listening: { title: 'Listening', body: 'Speak or type. Plai is on the line. Her name sounds like PLAY.' },
+      talking: { title: 'Talking', body: 'Plai is answering. Pronounced PLAY.' },
+      text: { title: 'Text Plai', body: 'Mic is off. Type a message. Plai is pronounced PLAY.' },
       error: { title: 'Could not connect', body: message || 'Try again in a moment.' },
       'not-configured': {
         title: 'Coming soon',
-        body: 'PLAI is not live on this site yet.',
+        body: 'Plai is not live on this site yet.',
       },
     };
     var row = copy[next] || copy.idle;
@@ -522,8 +522,8 @@
   function configureSession() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     // Audio + VAD + official TTS replace. Never set instructions (keeps Voice Agent Builder persona).
-    // replace: spoken audio says PLAY; transcript the user sees stays PLAI.
-    // Matching is case-insensitive. We still list PLAI / Plai / plai plus common misspellings.
+    // replace: spoken audio says PLAY; transcript the user sees stays Plai.
+    // Matching is case-insensitive. We still list Plai / Plai / plai plus common misspellings.
     // Do not put the FAQ intro or a long voice-agent hello in this session.
     // https://docs.x.ai/developers/model-capabilities/audio/voice-agent#pronunciation-replacements
     ws.send(JSON.stringify({
@@ -536,11 +536,11 @@
         },
         resumption: { enabled: true },
         replace: {
-          PLAI: 'PLAY',
+          Plai: 'PLAY',
           Plai: 'PLAY',
           plai: 'PLAY',
-          "I'm PLAI": "I'm PLAY",
-          'I am PLAI': 'I am PLAY',
+          "I'm Plai": "I'm PLAY",
+          'I am Plai': 'I am PLAY',
           'P.L.A.I.': 'PLAY',
           PLAIE: 'PLAY',
           Plei: 'PLAY',
@@ -567,7 +567,7 @@
     }
     seededHistory = true;
     var lines = turns.map(function (row) {
-      return (row.role === 'user' ? 'User: ' : 'PLAI: ') + row.text;
+      return (row.role === 'user' ? 'User: ' : 'Plai: ') + row.text;
     }).join('\n');
     ws.send(JSON.stringify({
       type: 'conversation.item.create',
@@ -760,7 +760,7 @@
       } catch (e) {
         micOn = false;
         if (gen !== talkGen) return;
-        setState('error', 'Allow the microphone to Talk to PLAI.');
+        setState('error', 'Allow the microphone to Talk to Plai.');
         return;
       }
     } else {
@@ -775,7 +775,7 @@
     } catch (e) {
       if (gen !== talkGen) return;
       stopCapture();
-      setState('error', 'Could not reach the PLAI session route.');
+      setState('error', 'Could not reach the Plai session route.');
       return;
     }
     if (gen !== talkGen) return;
@@ -864,7 +864,7 @@
             if (state !== 'talking') setState('listening');
           }).catch(function () {
             micOn = false;
-            setState('error', 'Allow the microphone to Talk to PLAI.');
+            setState('error', 'Allow the microphone to Talk to Plai.');
           });
         } else if (state !== 'talking') {
           setState('listening');
@@ -896,9 +896,9 @@
       className: 'plai-bubble is-closed',
       'data-state': 'idle',
     });
-    var xPanel = el('button', { className: 'plai-bubble-x', type: 'button', 'aria-label': 'Dismiss PLAI' });
+    var xPanel = el('button', { className: 'plai-bubble-x', type: 'button', 'aria-label': 'Dismiss Plai' });
     xPanel.textContent = '×';
-    var xPill = el('button', { className: 'plai-bubble-x', type: 'button', 'aria-label': 'Dismiss PLAI' });
+    var xPill = el('button', { className: 'plai-bubble-x', type: 'button', 'aria-label': 'Dismiss Plai' });
     xPill.textContent = '×';
     statusEl = el('p', { className: 'plai-bubble-status' });
     endBtn = el('button', { className: 'plai-bubble-end', type: 'button', text: 'End' });
@@ -915,8 +915,8 @@
       maxlength: '400',
       autocomplete: 'off',
       enterkeyhint: 'send',
-      'aria-label': 'Message PLAI',
-      placeholder: 'Type to PLAI…',
+      'aria-label': 'Message Plai',
+      placeholder: 'Type to Plai…',
     });
     sendBtn = el('button', {
       className: 'plai-bubble-send',
@@ -927,7 +927,7 @@
     panel = el('div', { className: 'plai-bubble-panel' }, [
       el('div', { className: 'plai-bubble-head' }, [
         el('div', { className: 'plai-bubble-brand' }, [
-          el('div', { className: 'plai-bubble-title', text: 'PLAI' }),
+          el('div', { className: 'plai-bubble-title', text: 'Plai' }),
           el('p', { className: 'plai-bubble-hint', text: 'sounds like PLAY' }),
         ]),
         xPanel,
@@ -943,11 +943,11 @@
       'data-mode': 'talk',
       'aria-expanded': 'false',
       'aria-controls': 'plai-bubble-panel',
-      'aria-label': 'Talk to PLAI, pronounced PLAY',
-      title: 'Talk to PLAI — pronounced PLAY',
+      'aria-label': 'Talk to Plai, pronounced PLAY',
+      title: 'Talk to Plai. Pronounced PLAY',
     }, [
       el('span', { className: 'plai-bubble-dot', 'aria-hidden': 'true' }),
-      el('span', { className: 'plai-bubble-label', text: 'Talk to PLAI' }),
+      el('span', { className: 'plai-bubble-label', text: 'Talk to Plai' }),
     ]);
     textPill = el('button', {
       className: 'plai-bubble-pill is-text',
@@ -955,20 +955,20 @@
       'data-mode': 'text',
       'aria-expanded': 'false',
       'aria-controls': 'plai-bubble-panel',
-      'aria-label': 'Text PLAI, text only, microphone stays off',
-      title: 'Text PLAI — type only, no microphone',
+      'aria-label': 'Text Plai, text only, microphone stays off',
+      title: 'Text Plai. Type only, no microphone',
     }, [
-      el('span', { className: 'plai-bubble-label', text: 'Text PLAI' }),
+      el('span', { className: 'plai-bubble-label', text: 'Text Plai' }),
     ]);
     chipBtn = el('button', {
       className: 'plai-bubble-chip',
       type: 'button',
       'aria-expanded': 'false',
       'aria-controls': 'plai-bubble-menu',
-      'aria-label': 'PLAI, Talk or Text',
-      title: 'PLAI — Talk or Text',
+      'aria-label': 'Plai, Talk or Text',
+      title: 'Plai. Talk or Text',
     }, [
-      el('span', { className: 'plai-bubble-label', text: 'PLAI' }),
+      el('span', { className: 'plai-bubble-label', text: 'Plai' }),
     ]);
     panel.id = 'plai-bubble-panel';
     root.appendChild(el('div', { className: 'plai-bubble-shell' }, [
@@ -987,7 +987,7 @@
     });
     function onPillClick(event) {
       var mode = event.currentTarget.getAttribute('data-mode');
-      // Talk to PLAI = mic + speaker. Text PLAI = type only — never flip these.
+      // Talk to Plai = mic + speaker. Text Plai = type only. Never flip these.
       openMode(mode === 'talk');
     }
     talkPill.addEventListener('click', onPillClick);

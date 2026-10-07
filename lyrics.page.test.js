@@ -55,7 +55,7 @@ function run() {
   assert.ok(upload.includes('toggle-line'), 'pair uses existing soft toggle language');
   assert.ok(upload.includes('Add lyrics'), 'Add lyrics label stays');
   assert.ok(upload.includes('>Optional<'), 'one short Optional helper under the pair');
-  assert.ok(!upload.includes('Optional — skip if you don’t need them.'), 'long Optional helper is gone');
+  assert.ok(!upload.includes('Optional. Skip if you don’t need them.'), 'long Optional helper is gone');
   assert.ok(!upload.includes('Play this file here to confirm it is the right master'), 'confirm-master lecture is gone');
   assert.ok(!upload.includes('stays on this device only'), 'device-only lecture is gone');
   assert.ok(upload.includes('data-audio-preview-hint hidden>Preview<'), 'attached audio hint is Preview');
@@ -167,7 +167,7 @@ function run() {
   lyricsOpen.listeners.change();
   instrumental.checked = true;
   instrumental.listeners.change();
-  assert.strictEqual(lyricsOpen.hidden, false, 'Instrumental does not hide Add lyrics — both stay independent');
+  assert.strictEqual(lyricsOpen.hidden, false, 'Instrumental does not hide Add lyrics. Both stay independent');
   assert.strictEqual(lyricsField.hidden, false, 'Add lyrics on still shows the card when Instrumental is also on');
   lyricsOpen.checked = false;
   lyricsOpen.listeners.change();

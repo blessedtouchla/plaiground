@@ -37,7 +37,7 @@
  * GET  /api/tonegrid/analytics
  * GET  /api/tonegrid/royalties
  *
- * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid — PUT
+ * ToneGrid itself (api-docs + sandbox probe): PATCH /releases/:uuid. PUT
  * 404s "Endpoint not found." DELETE /releases/:uuid soft-deletes a draft or rejected
  * release. Never 200-removed while the store still has the row. Live / pending /
  * processing stay takedown/cancel (never fake-delete). Never drop a live store
@@ -1275,7 +1275,7 @@ async function hopSubmitAudio(scope, trackId, hopKey) {
       return { ok: true, skipped: true, already: true, data: existing.data };
     }
   } catch (err) {
-    /* GET miss must not skip the hop — first land still needs the master posted. */
+    /* GET miss must not skip the hop. First land still needs the master posted. */
   }
   try {
     const hopped = await loadHoppedObject(scope, key, 'audio');
