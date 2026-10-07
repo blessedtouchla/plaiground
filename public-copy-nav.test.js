@@ -442,8 +442,10 @@ function run() {
   assert.ok(js.includes('ensureWhatsNewPublic') && js.includes('ensureWhatsNewSide'), 'What\'s new is added to the public nav and the signed-in menu');
   assert.ok(js.includes('href: "/song-helper"') && js.includes('href: "/cover-art"') && js.includes('href: "/spark"') && js.includes('href: "/battle"'), 'What\'s new reuses Song Helper, Cover Art, What\'s hot, and Battle');
   assert.ok(js.includes('href: "/copyright"') && js.includes('href: "/qualify"') && js.includes('href: "/claim"') && js.includes('href: "/make-human"') && js.includes('href: "/destination"') && js.includes('href: "/guide"'), 'What\'s new also lists the rest of the new tools');
-  assert.ok(!js.includes('href: "/contracts"'), 'Contracts is not listed twice inside What\'s new');
-  assert.ok(js.includes('ensureContractsPublic') && js.includes('link.href = "/contracts"'), 'Contracts stays one nav item of its own');
+  assert.ok(js.includes('href: "/contracts"'), 'What\'s new leads with the contracts hub');
+  assert.ok(js.includes('href: "/contracts/review"') && js.includes('href: "/contracts/fix"') && js.includes('href: "/contracts/create"'), 'Contracts submenu lists Review, Fix, and Create mine');
+  assert.ok(js.includes('Human library') && js.includes('AI library'), 'Contracts submenu lists the Human and AI library');
+  assert.ok(js.includes('ensureContractsPublic') && js.includes('makeNavGroup("contracts"') && js.includes('link.href = "/contracts"'), 'Contracts is a top-level menu with its hub link');
   const login = read('login.html');
   assert.ok(login.includes('id="whats-new"'), 'login page shows the What\'s new section');
   assert.ok(login.includes('href="/song-helper">Song Helper</a>') && login.includes('href="/cover-art">Cover Art</a>') && login.includes('href="/spark">What\'s hot</a>') && login.includes('href="/battle">Battle</a>') && login.includes('href="/contracts">Contracts</a>'), 'login page reuses the homepage feature buttons');

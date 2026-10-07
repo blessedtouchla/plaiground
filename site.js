@@ -593,7 +593,16 @@
     item.parentNode.removeChild(item);
   }
 
+  var CONTRACT_MENU = [
+    { href: "/contracts/review", label: "Review mine" },
+    { href: "/contracts/fix", label: "Fix mine" },
+    { href: "/contracts/create", label: "Create mine" },
+    { href: "/contracts?lane=human", label: "Human library" },
+    { href: "/contracts?lane=ai", label: "AI library" }
+  ];
+
   var WHATS_NEW_LINKS = [
+    { href: "/contracts", label: "Contracts" },
     { href: "/song-helper", label: "Song Helper" },
     { href: "/cover-art", label: "Cover Art" },
     { href: "/copyright", label: "Copyright & publishing" },
@@ -672,47 +681,88 @@
     });
   }
 
-  function ensureContractsPublic(links) {
-    if (!links || !links.querySelector || links.querySelector('[data-nav-group="contracts"]')) return;
+  function contractAnchor(href, label, currentClass) {
+    var link = document.createElement("a");
+    link.setAttribute("href", href);
+    link.href = href;
+    link.textContent = label;
+    var on = String(href || "").indexOf("/contracts") === 0 ? contractPathOn(href) : (whatsNewCurrent(href) || contractPathOn(href));
+    if (on) link.classList.add(currentClass || "active");
+    return link;
+  }
+
+  function contractPathOn(href) {
+    var path = String((window.location && window.location.pathname) || "");
+    var search = String((window.location && window.location.search) || "");
+    var target = String(href || "");
+    var targetPath = target.split("?")[0];
+    var targetQuery = target.indexOf("?") === -1 ? "" : target.slice(target.indexOf("?"));
+    if (targetQuery) return (path === targetPath || path === targetPath + "/") && search.indexOf(targetQuery.slice(1)) !== -1;
+    if (targetPath === "/contracts") return (path === "/contracts" || path === "/contracts/") && search.indexOf("lane=") === -1;
+    return path === targetPath || path === targetPath + "/";
+  }
+
+  function fillContractMenu(parent, currentClass) {
     var link = document.createElement("a");
     link.setAttribute("href", "/contracts");
     link.href = "/contracts";
-    link.textContent = "Contracts";
-    if (whatsNewCurrent("/contracts")) link.classList.add("active");
-    var group = document.createElement("div");
-    group.className = "nav-group nav-group-link";
-    group.setAttribute("data-nav-group", "contracts");
-    group.appendChild(link);
+    link.textContent = "Contracts hub";
+    if (contractPathOn("/contracts") && String((window.location && window.location.search) || "").indexOf("lane=") === -1) {
+      link.classList.add(currentClass || "active");
+    }
+    parent.appendChild(link);
+    CONTRACT_MENU.forEach(function (item) {
+      parent.appendChild(contractAnchor(item.href, item.label, currentClass));
+    });
+  }
+
+  function ensureContractsPublic(links) {
+    if (!links || !links.querySelector || links.querySelector('[data-nav-group="contracts"]')) return;
+    var group = makeNavGroup("contracts", "Contracts");
+    fillContractMenu(group.querySelector(".nav-group-menu"), "active");
     var whats = links.querySelector('[data-nav-group="whats-new"]');
     var roadmap = links.querySelector('[data-nav-group="roadmap"]');
-    var after = whats || roadmap;
-    if (after && after.nextSibling) links.insertBefore(group, after.nextSibling);
-    else if (after && after.parentNode) after.parentNode.appendChild(group);
-    else links.appendChild(group);
+    if (whats) links.insertBefore(group, whats);
+    else if (roadmap && roadmap.nextSibling) links.insertBefore(group, roadmap.nextSibling);
+    else if (roadmap && roadmap.parentNode) roadmap.parentNode.appendChild(group);
+    else links.insertBefore(group, links.firstChild);
   }
 
   function ensureContractsSide(side) {
     if (!side || !side.querySelector) return;
     var nav = side.querySelector(".side-nav");
     if (!nav || nav.querySelector("[data-contracts-link]")) return;
-    var anchor = document.createElement("a");
-    anchor.setAttribute("href", "/contracts");
-    anchor.setAttribute("data-contracts-link", "1");
-    anchor.textContent = "Contracts";
-    if (whatsNewCurrent("/contracts")) anchor.classList.add("on");
-    var label = nav.querySelector('[data-whats-new="label"]');
-    if (label) {
-      nav.insertBefore(anchor, label);
+    var label = document.createElement("p");
+    label.className = "side-label";
+    label.setAttribute("data-contracts-link", "label");
+    label.textContent = "Contracts";
+    var nodes = [label];
+    var hub = contractAnchor("/contracts", "Contracts hub", "on");
+    hub.setAttribute("data-contracts-link", "hub");
+    if (contractPathOn("/contracts") && String((window.location && window.location.search) || "").indexOf("lane=") === -1) hub.classList.add("on");
+    nodes.push(hub);
+    CONTRACT_MENU.forEach(function (item) {
+      var anchor = contractAnchor(item.href, item.label, "on");
+      anchor.setAttribute("data-contracts-link", item.href);
+      nodes.push(anchor);
+    });
+    var before = nav.querySelector('[data-whats-new="label"]');
+    if (!before) {
+      var after = null;
+      Array.prototype.forEach.call(nav.querySelectorAll("a"), function (link) {
+        var href = link.getAttribute("href") || "";
+        if (href === "/destination" || href === "destination.html" || linkText(link) === "Roadmap") after = link;
+      });
+      before = after ? after.nextSibling : nav.firstChild;
+      nodes.forEach(function (node) {
+        if (before) nav.insertBefore(node, before);
+        else nav.appendChild(node);
+      });
       return;
     }
-    var after = null;
-    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (link) {
-      var href = link.getAttribute("href") || "";
-      if (href === "/destination" || href === "destination.html" || linkText(link) === "Roadmap") after = link;
+    nodes.forEach(function (node) {
+      nav.insertBefore(node, before);
     });
-    if (after && after.nextSibling) nav.insertBefore(anchor, after.nextSibling);
-    else if (after) nav.appendChild(anchor);
-    else nav.insertBefore(anchor, nav.firstChild);
   }
 
   function setupPublicNavSections(links) {
@@ -850,8 +900,35 @@
       anchor.textContent = text;
       product.appendChild(anchor);
     }
-    WHATS_NEW_LINKS.forEach(function (item) { add(item.href, item.label); });
-    add("/contracts", "Contracts");
+    WHATS_NEW_LINKS.forEach(function (item) {
+      if (item.href === "/contracts") return;
+      add(item.href, item.label);
+    });
+    ensureContractsFooter();
+  }
+
+  function ensureContractsFooter() {
+    var footer = document.querySelector("footer");
+    if (!footer || !footer.querySelector) return;
+    var grid = footer.querySelector(".footer-grid");
+    if (!grid || grid.querySelector("[data-footer-contracts]")) return;
+    var col = document.createElement("div");
+    col.className = "footer-col";
+    col.setAttribute("data-footer-contracts", "1");
+    var heading = document.createElement("h4");
+    heading.textContent = "Contracts";
+    col.appendChild(heading);
+    fillContractMenu(col, "active");
+    var product = null;
+    var cols = grid.querySelectorAll(".footer-col");
+    var i;
+    for (i = 0; i < cols.length; i += 1) {
+      var h = cols[i].querySelector("h4");
+      var name = h ? String(h.textContent || "").replace(/\s+/g, " ").trim() : "";
+      if (/^product$/i.test(name)) product = cols[i];
+    }
+    if (product) grid.insertBefore(col, product);
+    else grid.appendChild(col);
   }
 
   function setupPublicFooter() {

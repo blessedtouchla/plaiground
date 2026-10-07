@@ -3,6 +3,10 @@
   var box = document.querySelector('[data-contract-library]');
   if (!api || !box) return;
   var lane = 'all';
+  try {
+    var asked = new URLSearchParams(window.location.search).get('lane');
+    if (asked === 'human' || asked === 'ai') lane = asked;
+  } catch (err) {}
 
   function esc(value) {
     return String(value || '')
@@ -28,6 +32,9 @@
   }
 
   document.querySelectorAll('[data-contract-filter]').forEach(function (button) {
+    var on = (button.getAttribute('data-contract-filter') || 'all') === lane;
+    button.classList.toggle('is-on', on);
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
     button.addEventListener('click', function () {
       lane = button.getAttribute('data-contract-filter') || 'all';
       document.querySelectorAll('[data-contract-filter]').forEach(function (other) {

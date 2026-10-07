@@ -7903,3 +7903,44 @@ header.nav {
 .nav-group-toggle {
   min-height: 44px;
 }
+.contracts-feature {
+  margin: 0 auto 28px;
+  max-width: 760px;
+  padding: 22px 18px 18px;
+  text-align: center;
+  background: rgba(125, 60, 255, 0.08);
+  border: 1px solid rgba(125, 60, 255, 0.45);
+  border-radius: 16px;
+}
+.contracts-feature-kicker {
+  margin: 0 0 6px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a6ff;
+}
+.contracts-feature-title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.contracts-feature-lead {
+  margin: 0 auto 16px;
+  max-width: 36rem;
+  color: var(--muted-2);
+  line-height: 1.45;
+}
+.contracts-feature-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.contracts-feature-links .btn { min-height: 44px; }
+@media (max-width: 640px) {
+  .contracts-feature-links { flex-direction: column; align-items: center; }
+  .contracts-feature-links .btn { width: 100%; max-width: 280px; }
+}
+body.auth-full .contracts-feature { text-align: left; }
+body.auth-full .contracts-feature-links { justify-content: flex-start; }
