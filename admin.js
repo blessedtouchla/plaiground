@@ -33,7 +33,7 @@
     if (next === 'basic') return 'Basic';
     if (next === 'creator') return 'Creator';
     if (next === 'pro') return 'Pro';
-    return next || '—';
+    return next || '-';
   }
 
   function stripeLabel(value) {
@@ -43,7 +43,7 @@
   }
 
   function formatDate(value) {
-    if (!value) return '—';
+    if (!value) return '-';
     var d = new Date(value);
     if (Number.isNaN(d.getTime())) {
       var raw = String(value);
@@ -53,7 +53,7 @@
   }
 
   function formatSignedUpAt(value) {
-    if (!value) return '—';
+    if (!value) return '-';
     var d = new Date(value);
     if (Number.isNaN(d.getTime())) return String(value);
     var parts = new Intl.DateTimeFormat('en-US', {
@@ -78,9 +78,9 @@
   }
 
   function formatMoney(cents, currency) {
-    if (cents == null || cents === '') return '—';
+    if (cents == null || cents === '') return '-';
     var n = Number(cents);
-    if (!isFinite(n)) return '—';
+    if (!isFinite(n)) return '-';
     var code = String(currency || 'usd').toUpperCase();
     try {
       return (n / 100).toLocaleString('en-US', { style: 'currency', currency: code });
@@ -90,9 +90,9 @@
   }
 
   function formatUsd(value) {
-    if (value == null || value === '') return '—';
+    if (value == null || value === '') return '-';
     var n = Number(value);
-    if (!isFinite(n)) return '—';
+    if (!isFinite(n)) return '-';
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
@@ -101,12 +101,12 @@
     if (next === 'charge') return 'Charge';
     if (next === 'refund') return 'Refund';
     if (next === 'payout') return 'Payout';
-    return next || '—';
+    return next || '-';
   }
 
   function dash(value) {
     var next = String(value == null ? '' : value).trim();
-    return next || '—';
+    return next || '-';
   }
 
   function escapeHtml(value) {
@@ -144,8 +144,8 @@
       var first = bits[0] || '';
       var last = bits.slice(1).join(' ');
       var nameLine = (first || last)
-        ? ('First ' + (first || '—') + ' · Last ' + (last || '—'))
-        : 'First — · Last —';
+        ? ('First ' + (first || '-') + ' · Last ' + (last || '-'))
+        : 'First. · Last -';
       var when = formatSignedUpAt(row && row.signed_up_at);
       return '<tr>'
         + cell('Email',
@@ -271,7 +271,7 @@
 
   function renderRoyalties(rows) {
     fillTable('[data-royalties-table]', '[data-royalties-empty]', '[data-royalties-body]', rows, function (row) {
-      var streams = row.streams == null || row.streams === '' ? '—' : String(row.streams);
+      var streams = row.streams == null || row.streams === '' ? '-' : String(row.streams);
       return '<tr>'
         + cell('Period', escapeHtml(dash(row.period)), 'admin-lead')
         + cell('Store', escapeHtml(dash(row.destination)))
@@ -289,7 +289,7 @@
     var items = (Array.isArray(list) ? list : []).map(function (item) {
       return String(item == null ? '' : item).trim();
     }).filter(Boolean);
-    return items.length ? items.join(', ') : '—';
+    return items.length ? items.join(', ') : '-';
   }
 
   function renderRoadmaps(rows) {
@@ -298,7 +298,7 @@
     if (detail) detail.hidden = true;
     fillTable('[data-roadmaps-table]', '[data-roadmaps-empty]', '[data-roadmaps-body]', roadmapRows, function (row) {
       var names = row.profile_names && row.profile_names.length ? row.profile_names.join(', ') : '';
-      var profiles = names || (row.profiles ? 'Saved' : '—');
+      var profiles = names || (row.profiles ? 'Saved' : '-');
       return '<tr>'
         + cell('Email', escapeHtml(dash(row.email)), 'admin-lead')
         + cell('Goal', escapeHtml(dash(row.goal)))

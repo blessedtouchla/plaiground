@@ -303,12 +303,12 @@
   var AUDIO_SEND_COPY = 'We could not send the audio.';
   var AUDIO_UPLOAD_TIMEOUT_COPY = 'The audio upload timed out. Try again.';
   var AUDIO_ATTACH_TIMEOUT_COPY = 'The store did not finish attaching the audio. Try again.';
-  var AUDIO_REQUIRED_COPY = 'Audio required — upload your master before sending';
+  var AUDIO_REQUIRED_COPY = 'Audio required. Upload your master before sending';
   var COVER_REQUIRED_COPY = 'Cover art is required.';
   var REVIEW_MISSING_AUDIO_COPY = 'Attach your master audio before submitting';
   var LEAVE_UPLOAD_COPY = 'Saving your upload…';
-  var HOLD_KEEP_PHONE_COPY = 'Could not keep your master on this phone — re-pick the .wav and try Continue again';
-  var HOLD_KEEP_DESKTOP_COPY = 'Could not keep your master on this computer — re-pick the .wav and try Continue again';
+  var HOLD_KEEP_PHONE_COPY = 'Could not keep your master on this phone. Re-pick the .wav and try Continue again';
+  var HOLD_KEEP_DESKTOP_COPY = 'Could not keep your master on this computer. Re-pick the .wav and try Continue again';
   var HOLD_PERSIST_MS = 12000;
 
   function missingAudioResult(draft) {
@@ -837,7 +837,7 @@
     if (!dateEl) return '';
     dateEl.type = 'date';
     dateEl.required = true;
-    // Do not set min to the 7-day lock — iOS clears any tap below min.
+    // Do not set min to the 7-day lock. IOS clears any tap below min.
     dateEl.min = '';
     if (dateEl.setAttribute) {
       dateEl.setAttribute('type', 'date');
@@ -7286,7 +7286,7 @@
     }
     var genreEl = document.querySelector('[data-review-genre]');
     var languageEl = document.querySelector('[data-review-language]');
-    if (genreEl) genreEl.textContent = String(draft.genre || '').trim() || '—';
+    if (genreEl) genreEl.textContent = String(draft.genre || '').trim() || '-';
     if (languageEl) {
       var langCode = reviewInstrumental() ? '' : String(draft.language || '').trim();
       var langLabel = langCode;
@@ -7301,7 +7301,7 @@
           }
         }
       }
-      languageEl.textContent = langLabel || '—';
+      languageEl.textContent = langLabel || '-';
     }
     var audioNote = document.querySelector('[data-review-audio-error]');
     if (audioNote) {

@@ -211,8 +211,8 @@ function load(options) {
   const submitDeliverDate = makeEl({ attrs: { 'data-submit-deliver-date': '' } });
   const submitDeliverDatePro = makeEl({ attrs: { 'data-submit-deliver-date': '' } });
   submitTitle.textContent = 'Your song is in the queue.';
-  submitReleaseDate.textContent = '—';
-  submitOrder.textContent = '—';
+  submitReleaseDate.textContent = '-';
+  submitOrder.textContent = '-';
   submitWriters.textContent = 'Co-writers get signing links once the scan clears.';
   submitDeliverDate.textContent = 'the release date you picked';
   submitDeliverDatePro.textContent = 'the release date you picked';
@@ -866,7 +866,7 @@ async function run() {
   const noAudio = load(filledUpload({ file: null }));
   noAudio.continueBtn.listeners.click({ preventDefault() {} });
   assert.strictEqual(noAudio.calls.length, 0);
-  assert.strictEqual(noAudio.status.textContent, 'Audio required — upload your master before sending');
+  assert.strictEqual(noAudio.status.textContent, 'Audio required. Upload your master before sending');
 
   const noGenre = load(filledUpload({ genre: '' }));
   noGenre.continueBtn.listeners.click({ preventDefault() {} });
@@ -2943,7 +2943,7 @@ async function run() {
     });
     page.payBtn.listeners.click({ preventDefault() {} });
     await flush(16);
-    assert.ok(!/Audio required — upload your master before sending/.test(page.status.textContent), page.status.textContent);
+    assert.ok(!/Audio required. Upload your master before sending/.test(page.status.textContent), page.status.textContent);
     assert.ok(
       /We could not send the audio|Could not attach the audio/i.test(page.status.textContent),
       page.status.textContent || 'held File + store audio-required must use send-fail copy'
@@ -4790,7 +4790,7 @@ async function run() {
   assert.strictEqual(submittedSolo.submitReleaseDate.textContent, 'Sep 18 2026');
   assert.ok(submittedSolo.submitWriters.textContent.indexOf('Ada Night') !== -1);
   assert.ok(submittedSolo.submitWriters.textContent.indexOf('Hale') === -1);
-  assert.strictEqual(submittedSolo.submitOrder.textContent, '—');
+  assert.strictEqual(submittedSolo.submitOrder.textContent, '-');
 
   const source = fs.readFileSync(path.join(__dirname, 'store-client.js'), 'utf8');
   const uploadHtml = fs.readFileSync(path.join(__dirname, 'upload.html'), 'utf8');

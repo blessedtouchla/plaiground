@@ -136,7 +136,7 @@ function loadArtists() {
   const previewPanel = makeEl({ hidden: true });
   const editOpenBtn = makeEl({ attrs: { 'data-artist-edit-open': '' } });
   const editDoneBtn = makeEl({ attrs: { 'data-artist-edit-done': '' } });
-  const mappingPlaiBtn = makeEl({ attrs: { 'data-artist-mapping-plai': '' }, textContent: 'Text PLAI' });
+  const mappingPlaiBtn = makeEl({ attrs: { 'data-artist-mapping-plai': '' }, textContent: 'Text Plai' });
   const textPill = makeEl({ className: 'plai-bubble-pill is-text' });
   textPill.clickCalls = 0;
   textPill.click = function () { textPill.clickCalls += 1; };
@@ -357,7 +357,7 @@ function run() {
   assert.ok(siteCss.includes('[data-artist-edit] .artist-edit-head') && siteCss.includes('flex-direction: column'), 'phone title/badge stack instead of overlapping');
   assert.ok(/\.artist-edit-actions \{\s*flex-direction:\s*column/.test(siteCss), 'phone Delete/Save stack full width');
   assert.ok(siteCss.includes('.artist-edit-actions [data-artist-save]') && siteCss.includes('width: 100%'), 'phone Save is a full-width tappable control');
-  assert.ok(/\.artist-edit-actions \{\s*[\s\S]*?z-index:\s*4100/.test(siteCss), 'Save artist sits above Talk/Text PLAI');
+  assert.ok(/\.artist-edit-actions \{\s*[\s\S]*?z-index:\s*4100/.test(siteCss), 'Save artist sits above Talk/Text Plai');
   assert.ok(siteCss.includes('body.app.artists-page .page'), 'Artist Profiles page clears the bottom for Save artist');
   assert.ok(siteCss.includes('.artist-card-menu'), 'list overflow groups Edit and Delete');
   assert.ok(siteCss.includes('.artist-card-name'), 'list name has its own readable type');
@@ -415,8 +415,8 @@ function run() {
   assert.ok(/href="problem.html\?import=1"[^>]*>Troubleshoot</.test(html) || /href="problem.html\?import=1">Troubleshoot</.test(html), 'Import Troubleshoot opens Have a problem? prefilled');
   assert.ok(/data-artist-troubleshoot[^>]*>Troubleshoot</.test(html), 'Edit artist has bottom Troubleshoot');
   assert.ok(html.indexOf('data-artist-save') < html.indexOf('data-artist-troubleshoot'), 'artist Troubleshoot sits under Save artist');
-  assert.ok(!/data-plai-text[^>]*>Troubleshoot</.test(html), 'artist Troubleshoot is not Text PLAI');
-  assert.ok(/data-plai-text[^>]*>Text to PLAI</.test(html), 'Artist Profiles nav still has Text to PLAI');
+  assert.ok(!/data-plai-text[^>]*>Troubleshoot</.test(html), 'artist Troubleshoot is not Text Plai');
+  assert.ok(/data-plai-text[^>]*>Text to Plai</.test(html), 'Artist Profiles nav still has Text to Plai');
   assert.ok(!/<select[^>]*data-problem/.test(html), 'Artist Profiles does not add a type picker');
   assert.ok(html.includes('How to fill this out'));
   assert.ok(html.includes('AI-infused'));
@@ -580,7 +580,7 @@ function run() {
   assert.ok(/open\.spotify\.com\/artist/.test(hintUrl.placeholder), 'placeholder follows the picked store');
   assert.ok(/open\.spotify\.com\/artist/.test(hintCopy.textContent), 'hint follows the picked store');
   assert.strictEqual(page.api.openMappingPlai(), true);
-  assert.strictEqual(page.textPill.clickCalls, 1, 'Artist mapping opens Text PLAI');
+  assert.strictEqual(page.textPill.clickCalls, 1, 'Artist mapping opens Text Plai');
   assert.strictEqual(page.talkPill.clickCalls, 0, 'Artist mapping must not open Talk / the mic');
   assert.ok(/Do not log into any store account/.test(page.plaiInput.value));
   assert.ok(/Do not ask for a password/.test(page.plaiInput.value));

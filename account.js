@@ -83,7 +83,7 @@
 
   function planLabel(plan) {
     var next = String(plan || '').trim().toLowerCase();
-    if (!next) return '—';
+    if (!next) return '-';
     return 'FREE';
   }
 
@@ -718,7 +718,7 @@
       name.textContent = work.title || 'Untitled';
       title.appendChild(name);
       var writer = document.createElement('td');
-      writer.textContent = work.writer || '—';
+      writer.textContent = work.writer || '-';
       var status = document.createElement('td');
       status.textContent = work.status_copy || work.status_label || 'no';
       tr.appendChild(title);

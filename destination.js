@@ -39,7 +39,7 @@
       link: 'Song Helper',
       what: 'Help for the idea stage: write, Flip it, Funkify it, Make it funny, Mad Libs, and Battle.',
       get: 'A draft you can shape. People check the work.',
-      who: 'PLAI on the AI team. People check the work.',
+      who: 'Plai on the AI team. People check the work.',
       why: {
         money: 'A finished song is what can earn.',
         fanbase: 'Fans show up for a song they can hear.',

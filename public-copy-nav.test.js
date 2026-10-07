@@ -42,11 +42,11 @@ function run() {
   assert.ok(indexNav && !/Have a problem\?/.test(indexNav[0]), 'public landing nav must not add Have a problem?');
   assert.ok(!/Have a problem\?/.test(indexHero[0]), 'public landing hero must not add Have a problem?');
   assert.ok(!index.includes('data-have-problem'), 'public landing must not ship the signed-in problem control');
-  assert.ok(index.includes('WANNA PLAI?'), 'homepage eyebrow must restore WANNA PLAI?');
+  assert.ok(index.includes('Wanna plai?'), 'homepage eyebrow is the Wanna plai? call');
   assert.ok(!/Built for any AI music creator/i.test(index), 'homepage must not use the AI-only eyebrow');
   assert.ok(!/for AI music creators/i.test(index), 'homepage meta must not say for AI music creators');
   assert.ok(/for artists and all music/i.test(index), 'homepage meta must be all-music');
-  assert.ok(!/Keep 100% of your royalties/i.test(index), 'do not invent keep-100% copy');
+  assert.ok(/Keep 100% of your royalties/i.test(index), 'homepage promises artists keep 100% of royalties');
   assert.ok(index.includes('class="public-header-tools"'), 'homepage HTML pins Login outside the drawer');
   assert.ok(/class="public-header-tools"[\s\S]*href="login.html">Log in/.test(index), 'homepage phone Login is in the header cluster');
   assert.ok(index.includes('public-menu-toggle'), 'homepage HTML has the public menu toggle');
@@ -115,7 +115,7 @@ function run() {
   assert.ok(!/<h1>What is PLAI\?<\/h1>/.test(faq), 'FAQ must not title What is PLAI');
   assert.ok(faq.indexOf('<h1>Frequently asked questions</h1>') !== -1, 'FAQ title is Frequently asked questions');
   const faqBody = faq.slice(faq.indexOf('<h1>Frequently asked questions</h1>'));
-  assert.ok(faqBody.indexOf('Talk to PLAI') !== -1, 'FAQ PLAI pointer stays after the questions');
+  assert.ok(faqBody.indexOf('Talk to Plai') !== -1, 'FAQ Plai pointer stays after the questions');
   assert.ok(/buy a car at the click of a button/i.test(faq), 'FAQ lead starts with the car-click line');
   assert.ok(/marketing the act[\s\S]{0,160}as easy as a click of a button/i.test(faq), 'FAQ lead states the click-of-a-button goal for marketing the act');
   assert.ok(/We also get the song on the stores/i.test(faq), 'FAQ lead keeps store delivery as a supporting line');
@@ -138,16 +138,16 @@ function run() {
   assert.ok(!/If the release is pending or processing, we ask stores/i.test(faq), 'not-live Remove must not ask stores');
   assert.ok(!/request from the stores/i.test(faq), 'not-live copy must not say request from the stores');
   assert.ok(!/take a song down from Settings/i.test(faq), 'takedown must not say Settings');
-  assert.ok(/pronounced[\s\S]*PLAY/i.test(faq), 'FAQ says PLAI is pronounced PLAY');
-  assert.ok(/she\/her/i.test(faq), 'FAQ says PLAI uses she/her');
-  assert.ok(faq.includes('Talk to PLAI') && faq.includes('Text PLAI'), 'FAQ points to Talk and Text PLAI');
-  assert.ok(/type only, no mic/i.test(faq), 'FAQ says Text PLAI is type only');
+  assert.ok(/pronounced[\s\S]*PLAY/i.test(faq), 'FAQ says Plai is pronounced PLAY');
+  assert.ok(/she\/her/i.test(faq), 'FAQ says Plai uses she/her');
+  assert.ok(faq.includes('Talk to Plai') && faq.includes('Text Plai'), 'FAQ points to Talk and Text Plai');
+  assert.ok(/type only, no mic/i.test(faq), 'FAQ says Text Plai is type only');
   assert.ok(/My song is on the wrong artist page/i.test(faq), 'FAQ covers a song on the wrong artist page');
   assert.ok(/Someone else.s song is on this page/i.test(faq), 'FAQ covers someone else\'s song on this page');
   assert.ok(/Artist mapping looks wrong/i.test(faq), 'FAQ covers artist mapping');
   assert.ok(/We can fix this by hand/i.test(faq) && /We can fix artist mapping by hand/i.test(faq), 'FAQ says these artist-page issues are fixed by hand');
   assert.ok(/href="problem.html">Have a problem\?<\/a>/.test(faq), 'FAQ sends those issues through Have a problem?');
-  assert.ok(/data-plai-text[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot opens Text PLAI');
+  assert.ok(/data-plai-text[^>]*>Troubleshoot</.test(faq), 'FAQ Troubleshoot opens Text Plai');
   assert.ok(!/data-problem-form/.test(faq), 'FAQ must not invent a second problem form');
   const faqVisible = faq.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   assert.ok(!/ToneGrid|InterSpace|Flossy|DistroKid|\bFrank\b/i.test(faqVisible), 'FAQ must not name the store partner');
@@ -200,7 +200,7 @@ function run() {
   });
   const plaiPointer = faq.indexOf('class="faq-plai"');
   const stuckAt = faq.indexOf('Still stuck on something?');
-  assert.ok(plaiPointer !== -1 && stuckAt !== -1 && plaiPointer < stuckAt, 'short PLAI pointer sits near Still stuck, not the lead');
+  assert.ok(plaiPointer !== -1 && stuckAt !== -1 && plaiPointer < stuckAt, 'short Plai pointer sits near Still stuck, not the lead');
 
   const PUBLIC_PAGES = [
     'index.html',
@@ -264,7 +264,7 @@ function run() {
   });
 
   const royalties = read('royalties.html');
-  assert.ok(royalties.includes('WANNA PLAI?'), 'royalties page keeps the WANNA PLAI? landing look');
+  assert.ok(royalties.includes('Wanna plai?'), 'royalties page keeps the Wanna plai? call');
   assert.ok(/PLAIGROUND takes no commission/i.test(royalties), 'royalties page states no commission');
   assert.ok(/0% cut of royalties/i.test(royalties), 'royalties page states a 0% cut');
   assert.ok(/The account is free/i.test(royalties), 'royalties page says the account is free');
@@ -368,7 +368,7 @@ function run() {
   assert.ok(freeCard && /\$0/.test(freeCard[0]) && !/catalog migration/i.test(freeCard[0]), 'free account card is $0 and does not sell catalog migration');
   assert.ok(/class="distro-addon"[\s\S]*\$2\.49/.test(index) && !/data-checkout-plan/.test(index), 'distribute line shows $2.49 without a live checkout');
   assert.ok(packCard && /\$149/.test(packCard[0]) && /one-time/i.test(packCard[0]) && !/draft/i.test(packCard[0]) && !/data-checkout-plan/.test(packCard[0]), 'Act Pack card is $149 one-time and does not charge');
-  assert.ok(/Persona kit/.test(packCard[0]) && /one update/i.test(packCard[0]) && /Release QC/.test(packCard[0]) && /Compliance routing/.test(packCard[0]) && /PLAI Research/.test(packCard[0]), 'Act Pack card lists the locked contents');
+  assert.ok(/Persona kit/.test(packCard[0]) && /one update/i.test(packCard[0]) && /Release QC/.test(packCard[0]) && /Compliance routing/.test(packCard[0]) && /Plai Research/.test(packCard[0]), 'Act Pack card lists the locked contents');
   const priceSheet = index.match(/<section class="pricing"[\s\S]*?<\/section>/);
   assert.ok(priceSheet && /\$0/.test(priceSheet[0]) && /\$2\.49/.test(priceSheet[0]) && /\$149/.test(priceSheet[0]) && /\$79/.test(priceSheet[0]) && /\$99/.test(priceSheet[0]) && /\$199/.test(priceSheet[0]), 'pricing lists every locked dollar');
   assert.ok(/\$149 \+ \$2\.49 \(\$151\.49\)/.test(priceSheet[0]), 'bundle note shows Act Pack plus the first song');
@@ -415,7 +415,7 @@ function run() {
   assert.ok(/@media \(max-width: 980px\)[\s\S]*\.side \{[\s\S]*transform: translateX\(-110%\)/i.test(css), 'mobile CSS must hide the stacked .side menu');
   assert.ok(/\.app\.nav-open \.side/i.test(css), 'open app drawer must show .side');
   assert.ok(/\.topbar \.menu-toggle \{ display: inline-flex; \}/i.test(css), 'mobile topbar shows the hamburger');
-  assert.ok(css.includes('/* —— Public nav sections (Product / After upload / Trust / Listen / Stories) —— */'), 'public nav sections cut is in site.css');
+  assert.ok(css.includes('/* -- Public nav sections (Product / After upload / Trust / Listen / Stories) -- */'), 'public nav sections cut is in site.css');
   assert.ok(/Public nav sections[\s\S]*\.public-menu-toggle \{ display: inline-flex !important; \}/.test(css), 'phone Menu opens the sectioned drawer');
   assert.ok(/Public nav sections[\s\S]*\.nav\.nav-open \.nav-group-label/.test(css), 'phone Menu shows section labels');
   assert.ok(css.includes('.public-header-tools'), 'public header keeps a Login cluster outside the drawer');
@@ -512,12 +512,12 @@ function run() {
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
     assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
-    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Act<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">PLAI<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Act / Money / PLAI / Account');
+    assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Act<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">Plai<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Act / Money / Plai / Account');
     assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<p class="side-price">\$2\.49 a song<\/p>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
     assert.ok(/<p class="side-label">Money<\/p>\s*<a(?: class="on")? href="boosts.html"[^>]*>Boosts<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(sideNav[0]), file + ' Money is Boosts, Publishing, Earnings, Analytics, Payouts');
-    assert.ok(/<p class="side-label">PLAI<\/p>\s*<button[^>]*data-plai-talk[^>]*>Talk to PLAI<\/button>\s*<button[^>]*data-plai-text[^>]*>Text to PLAI<\/button>/.test(sideNav[0]), file + ' PLAI is Talk to PLAI then Text to PLAI');
+    assert.ok(/<p class="side-label">Plai<\/p>\s*<button[^>]*data-plai-talk[^>]*>Talk to Plai<\/button>\s*<button[^>]*data-plai-text[^>]*>Text to Plai<\/button>/.test(sideNav[0]), file + ' Plai is Talk to Plai then Text to Plai');
     assert.ok(/<p class="side-label">Account<\/p>\s*<a(?: class="on")? href="settings.html">Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' Account is Settings, How it works, FAQ');
-    assert.ok(!/>PLAY</.test(sideNav[0]), file + ' must not rename PLAI to PLAY in the menu');
+    assert.ok(!/>PLAY</.test(sideNav[0]), file + ' must not rename Plai to PLAY in the menu');
     assert.ok(!/elevenlabs/i.test(sideNav[0]), file + ' must not invent ElevenLabs');
     assert.ok(!/data-overview-menu/.test(sideNav[0]) && !/side-submenu/.test(sideNav[0]) && !/href="dashboard.html">Overview</.test(sideNav[0]), file + ' must not keep the Overview nest');
     assert.ok(!/side-submenu-toggle|side-submenu-chevron/.test(sideNav[0]), file + ' must not keep an Overview chevron');
@@ -581,7 +581,7 @@ function run() {
   assert.ok(/\.side-nav a \{[\s\S]*?color:\s*var\(--muted-2\)/.test(siteCss), 'other signed-in menu items stay the default row, not gold');
   assert.ok(/\.side-nav a\.nav-siqa(?:,[\s\S]*?\.side-nav a\.nav-siqa:hover)? \{[\s\S]*?color:\s*#F3CB47/.test(siteCss), 'signed-in SIQA Charts is gold text, not a gold button');
   assert.ok(!/\.side-nav a\.nav-siqa[\s\S]{0,120}background:\s*#f3cb47/i.test(siteCss), 'SIQA Charts must not reuse the New release gold pill');
-  assert.ok(siteCss.includes('/* —— Signed-in nav Tesla cut (Create / Money / PLAI / Account, no Overview nest) —— */'), 'signed-in drawer Tesla cut is in site.css');
+  assert.ok(siteCss.includes('/* -- Signed-in nav Tesla cut (Create / Money / PLAI / Account, no Overview nest) -- */'), 'signed-in drawer Tesla cut is in site.css');
   assert.ok(/\.side-nav a\.side-action[\s\S]*?background:\s*#f3cb47/.test(siteCss), 'New release stays the gold CTA after the sectioned cut');
   assert.ok(/Signed-in nav Tesla cut[\s\S]*?\.side-nav a\.on \{[\s\S]*?background:\s*transparent/.test(siteCss), 'current-page active is a quiet purple outline, not a second gold/purple pill');
   assert.ok(/class="page-head-actions releases-head-actions"/.test(releases), 'Releases actions use a real wrap so they cannot overlap');
@@ -612,7 +612,7 @@ function run() {
   assert.ok(!dash.includes('class="workflow"'), 'Overview must not keep the 4-step block in the page body');
   assert.ok(dash.indexOf('Overview') < dash.indexOf('How a submission works'), 'Overview How it works link stays at the bottom');
   assert.ok(dash.indexOf('data-next-up') < dash.indexOf('How a submission works'), 'next-up sits above How it works');
-  assert.ok(dash.indexOf('Talk to PLAI') < dash.indexOf('How a submission works'), 'Talk to PLAI sits above How it works');
+  assert.ok(dash.indexOf('Talk to Plai') < dash.indexOf('How a submission works'), 'Talk to Plai sits above How it works');
   assert.ok(!dash.includes('data-msp-section'), 'Overview must not keep an MSP earnings board');
   assert.ok(howApp.includes('<h3>Upload</h3>') && howApp.includes('<h3>Release</h3>') && howApp.includes('<h3>Get paid</h3>'), 'signed-in How it works is Upload / Release / Get paid');
   assert.ok(!howApp.includes('01 Artist profile') && !howApp.includes('Attest rights') && !howApp.includes('Review &amp; pay'), 'signed-in How it works drops the extra numbered steps');

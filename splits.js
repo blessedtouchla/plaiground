@@ -44,7 +44,7 @@
       wrap.appendChild(name);
       title.appendChild(wrap);
       var writer = document.createElement('td');
-      writer.textContent = work.writer || '—';
+      writer.textContent = work.writer || '-';
       var status = document.createElement('td');
       status.textContent = work.status_copy || work.status_label || 'no';
       tr.appendChild(title);

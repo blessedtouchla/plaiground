@@ -171,8 +171,8 @@ function run() {
   assert.ok(playerHtml.includes('data-charts-expand'), 'mini-player can expand the embed');
   assert.ok(/min-height:\s*64px/.test(css), 'mini-player stays a compact Tesla bar');
   assert.ok(/html:not\(\.is-charts-browse\) \.charts-back/.test(css), 'Back to charts shows only while browsing');
-  assert.ok(/--plai-sticky-clearance/.test(read('plai-bubble.css')), 'PLAI parks above the mini-player');
-  assert.ok(css.includes('body.charts-page:has(.charts-player:not([hidden])) .plai-bubble'), 'charts CSS also parks PLAI above the mini-player');
+  assert.ok(/--plai-sticky-clearance/.test(read('plai-bubble.css')), 'Plai parks above the mini-player');
+  assert.ok(css.includes('body.charts-page:has(.charts-player:not([hidden])) .plai-bubble'), 'charts CSS also parks Plai above the mini-player');
   [rnbHtml, countryHtml, gospelHtml].forEach(function (page) {
     assert.ok(page.includes('data-charts-play') && page.includes('Back to charts'), 'genre pages share the mini-player');
     assert.ok(/href="\/index\.html"/.test(page.match(/<a class="logo"[^>]*>/)[0]), 'genre logo still goes to the homepage');
@@ -197,8 +197,8 @@ function run() {
   assert.ok(js.includes('function togglePlay'), 'mini-player can pause without killing the embed');
   assert.ok(js.includes('closeBrowse'), 'Back to charts closes the browse shell');
   assert.ok(js.includes('browseEl.style.display = ""'), 'closing browse clears the inline display so the chart list is visible again');
-  assert.ok(js.includes('function liftPlai'), 'mini-player lifts the pre-login PLAI chip');
-  assert.ok(/padding-right:\s*88px/.test(css), 'mini-player leaves room so the PLAI chip does not cover Play/Back');
+  assert.ok(js.includes('function liftPlai'), 'mini-player lifts the pre-login Plai chip');
+  assert.ok(/padding-right:\s*88px/.test(css), 'mini-player leaves room so the Plai chip does not cover Play/Back');
 
   assert.ok(api.includes('youtubei/v1/search'), 'server POSTs InnerTube search');
   assert.ok(/clientName:\s*'WEB'/.test(api), 'InnerTube uses WEB client context');
@@ -219,8 +219,8 @@ function run() {
     });
     assert.ok(rule, 'vercel.json rewrites ' + pair[0] + ' to ' + pair[1]);
   });
-  assert.ok(read('plai-bubble.js').includes('data-charts-player'), 'PLAI measures the sticky charts player');
-  assert.ok(read('plai-bubble.css').includes('--plai-sticky-clearance'), 'PLAI parks above the sticky charts player');
+  assert.ok(read('plai-bubble.js').includes('data-charts-player'), 'Plai measures the sticky charts player');
+  assert.ok(read('plai-bubble.css').includes('--plai-sticky-clearance'), 'Plai parks above the sticky charts player');
   const loginRewrite = (vercel.rewrites || []).find(function (rule) {
     return rule.source === '/login' && rule.destination === '/login.html';
   });

@@ -268,7 +268,7 @@ async function run() {
   assert.ok(!/data-account-save[^>]*disabled/.test(html), 'Save changes is not disabled in markup');
   assert.ok(/data-account-photo-pick>Change photo<\/button>/.test(html), 'Change photo stays on Account Settings');
   const siteCss = read('site.css');
-  assert.ok(/\.confirm-actions\s*\{[\s\S]*?z-index:\s*4100/.test(siteCss), 'Settings Save sits above Talk/Text PLAI');
+  assert.ok(/\.confirm-actions\s*\{[\s\S]*?z-index:\s*4100/.test(siteCss), 'Settings Save sits above Talk/Text Plai');
   assert.ok(/body\.app\.settings-page \.page/.test(siteCss), 'Settings page clears the bottom for Save');
   assert.ok(/body\.app\.artists-page \.page/.test(siteCss), 'Artist Profiles page clears the bottom for Save artist');
   assert.ok(!/tonegrid|distrokid|cdbaby/i.test(html), 'no distributor name in Settings copy');

@@ -57,12 +57,12 @@
     var bits = draft && Array.isArray(draft.human_elements)
       ? draft.human_elements.map(trim).filter(Boolean)
       : [];
-    if (how === 'no_ai') return 'No AI — from your attestation';
-    if (how === 'fully_ai' || how === 'full_ai') return 'Fully AI — from your attestation';
+    if (how === 'no_ai') return 'No AI. From your attestation';
+    if (how === 'fully_ai' || how === 'full_ai') return 'Fully AI. From your attestation';
     if (how === 'ai_assisted') {
       return bits.length
         ? ('AI-assisted · ' + bits.join(', '))
-        : 'AI-assisted — from your attestation';
+        : 'AI-assisted. From your attestation';
     }
     return bits.length ? bits.join(', ') : 'From your attestation';
   }
