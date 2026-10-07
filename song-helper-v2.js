@@ -24,6 +24,10 @@
   var chosenSlang = '';
   var openTip = '';
   var goLabel = 'Make the draft';
+  var lyricsReady = false;
+  var styleShown = false;
+  var v2StyleOpen = false;
+  var v2StyleBag = null;
   var followOpen = false;
   var followSkipped = false;
   var followExtra = { place: '', object: '', quote: '' };
@@ -327,15 +331,35 @@
     paintModes();
     paintFields();
     paintSlang();
-    var go = $('sh-v2-go');
-    go.hidden = pageStatus.disabled;
     goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
-    go.textContent = goLabel;
+    lyricsReady = false;
+    styleShown = false;
+    v2StyleOpen = false;
+    v2StyleBag = null;
+    var styleHost = $('sh-v2-style');
+    if (styleHost) {
+      styleHost.hidden = true;
+      styleHost.textContent = '';
+    }
     followOpen = false;
     hideV2Follow();
     paintV2Answers();
     seedFields();
     syncStructure();
+    paintGo();
+  }
+
+  function paintGo() {
+    var go = $('sh-v2-go');
+    if (!go) return;
+    if (pageStatus.disabled || styleShown) {
+      go.hidden = true;
+      return;
+    }
+    go.hidden = false;
+    if (v2StyleOpen) go.textContent = 'Skip these';
+    else if (lyricsReady) go.textContent = 'Make my Suno style prompt';
+    else go.textContent = goLabel;
   }
 
   function addField(host, spec) {
@@ -857,6 +881,14 @@
     var out = $('sh-v2-out');
     var extra = $('sh-v2-extra');
     var banner = $('sh-v2-banner');
+    lyricsReady = false;
+    styleShown = false;
+    v2StyleOpen = false;
+    var styleHost = $('sh-v2-style');
+    if (styleHost) {
+      styleHost.hidden = true;
+      styleHost.textContent = '';
+    }
     out.textContent = '';
     extra.textContent = '';
     lastMeta = {
@@ -956,9 +988,58 @@
       out.appendChild(meter);
       remember(draft, data);
       renderSuno(out, draft);
+      lyricsReady = true;
     }
     paintV2Feedback();
     syncStructure();
+    paintGo();
+  }
+
+  function collectV2Style() {
+    return {
+      genre: fieldValue('genre') || '',
+      mood: readMood() || '',
+      region: craft.region || '',
+      energy: '',
+      tempo: '',
+      vocal: '',
+      texture: '',
+      instruments: [],
+      era: ''
+    };
+  }
+
+  function showV2StylePrompt(bag) {
+    if (!window.SunoStyle) return;
+    v2StyleBag = bag;
+    v2StyleOpen = false;
+    styleShown = true;
+    var host = $('sh-v2-style');
+    window.SunoStyle.renderPrompt(host, window.SunoStyle.prompt(bag, function (text) {
+      return window.SongHelperCore && window.SongHelperCore.stripArtistNames ? window.SongHelperCore.stripArtistNames(text) : text;
+    }), function (id) {
+      showV2StylePrompt(window.SunoStyle.tweak(v2StyleBag, id));
+    });
+    paintGo();
+    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
+  }
+
+  function startV2Style() {
+    if (!window.SunoStyle) return;
+    var bag = v2StyleBag || collectV2Style();
+    var asks = window.SunoStyle.missing(bag);
+    if (asks.length) {
+      v2StyleBag = bag;
+      v2StyleOpen = true;
+      window.SunoStyle.renderAsk($('sh-v2-style'), asks, function (chosen) {
+        v2StyleOpen = false;
+        showV2StylePrompt(window.SunoStyle.applyAnswers(bag, chosen));
+      });
+      paintGo();
+      try { $('sh-v2-style').scrollIntoView({ block: 'center' }); } catch (err) {}
+      return;
+    }
+    showV2StylePrompt(bag);
   }
 
   function compactV2(source) {
@@ -1565,7 +1646,18 @@
         applyTransform(button.getAttribute('data-transform'));
       });
     });
-    $('sh-v2-go').addEventListener('click', generate);
+    $('sh-v2-go').addEventListener('click', function () {
+      if (v2StyleOpen) {
+        v2StyleOpen = false;
+        showV2StylePrompt(v2StyleBag || collectV2Style());
+        return;
+      }
+      if (lyricsReady) {
+        startV2Style();
+        return;
+      }
+      generate();
+    });
     if ($('sh-save-song')) $('sh-save-song').addEventListener('click', saveSong);
     $('sh-scout').addEventListener('click', function () { askRole('scout'); });
     $('sh-scoop').addEventListener('click', function () { askRole('scoop'); });

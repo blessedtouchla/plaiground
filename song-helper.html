@@ -235,6 +235,7 @@
         <div id="sh-v2-answers" class="sh-answers"></div>
         <div id="sh-v2-follow" class="sh-follow" hidden></div>
         <div id="sh-v2-out"></div>
+        <div id="sh-v2-style" class="sh-suno-style no-print" hidden></div>
         <div id="sh-v2-feedback" class="sh-feedback no-print" hidden></div>
         <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
         <div class="sh-actions no-print">
@@ -356,6 +357,7 @@
             <textarea id="sh-suno" class="sh-suno-text" readonly rows="14" aria-label="Lyrics for Suno"></textarea>
             <p class="sh-suno-warn" id="sh-suno-warn" hidden></p>
             <button type="button" class="btn btn-purple btn-md sh-suno-copy no-print" id="sh-suno-copy">Copy for Suno</button>
+            <div id="sh-suno-style" class="sh-suno-style no-print" hidden></div>
           </div>
           <p class="sh-loading" id="sh-loading" hidden>Drafting around your words…</p>
           <p class="sh-error" id="sh-error" role="alert" hidden></p>
@@ -440,7 +442,7 @@
           </div>
           <label class="sh-field">
             <span>One feeling word</span>
-            <input class="sh-input" id="sh-feeling" maxlength="40" autocomplete="off" placeholder="intimate" />
+            <input class="sh-input" id="sh-style-feel" maxlength="40" autocomplete="off" placeholder="intimate" />
           </label>
           <p class="sh-note" id="sh-artist-note" hidden>We describe the sound instead of naming artists.</p>
           <div class="sh-prompt" id="sh-prompt" aria-live="polite"></div>
@@ -582,6 +584,7 @@
   <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
   <script src="lib/song-pass.js"></script>
+  <script src="lib/suno-style.js"></script>
   <script src="lib/song-modes.js"></script>
   <script src="lib/slang.js"></script>
   <script src="lib/spark.js"></script>

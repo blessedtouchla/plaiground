@@ -29,7 +29,7 @@
     line: 'Next',
     words: 'Next',
     shape: 'Write the draft',
-    draft: 'Build the style prompt',
+    draft: 'Make my Suno style prompt',
     style: 'Authorship record',
     record: 'Next steps',
   };
@@ -42,6 +42,10 @@
   var pendingPrevious = '';
   var feedbackOn = {};
   var feedbackNote = '';
+  var styleOpen = false;
+  var styleDone = false;
+  var styleJumped = false;
+  var styleBag = null;
   var picks = {
     mood: '',
     pack: '',
@@ -85,7 +89,7 @@
   var artistNote = document.getElementById('sh-artist-note');
   var recordEl = document.getElementById('sh-record');
   var styleGenreInput = document.getElementById('sh-style-genre');
-  var feelingInput = document.getElementById('sh-feeling');
+  var feelingInput = document.getElementById('sh-style-feel');
 
   function $(id) { return document.getElementById(id); }
 
@@ -425,6 +429,10 @@
     backBtn.hidden = step === 0;
     nextBtn.hidden = id === 'next';
     nextBtn.textContent = NEXT_LABEL[id] || 'Next';
+    if (id === 'draft') {
+      if (styleOpen) nextBtn.textContent = 'Skip these';
+      else if (styleDone) nextBtn.textContent = 'Authorship record';
+    }
     restartBtn.hidden = id !== 'next';
     renderDots();
     showError('');
@@ -476,7 +484,10 @@
         try { card.scrollIntoView({ block: 'start' }); } catch (err) {}
       }
     } else {
-      window.scrollTo(0, 0);
+      var anchor = document.getElementById('sh-q');
+      if (anchor && anchor.scrollIntoView) {
+        try { anchor.scrollIntoView({ block: 'start' }); } catch (err2) {}
+      }
     }
   }
 
@@ -936,8 +947,13 @@
     selectStyleGenre(style.genre);
   }
 
+  function readControl(el) {
+    if (!el || typeof el.value !== 'string') return '';
+    return el.value.trim();
+  }
+
   function styleGenre() {
-    var typed = styleGenreInput.value.trim();
+    var typed = readControl(styleGenreInput);
     if (typed) return typed;
     return genreValue();
   }
@@ -950,7 +966,7 @@
       voice: picks.voice,
       texture: picks.texture,
       instruments: instruments,
-      feeling: feelingInput.value.trim(),
+      feeling: readControl(feelingInput),
     });
     promptEl.textContent = built.prompt || 'Add a genre or a feeling and the prompt will show up here.';
     artistNote.hidden = !built.artistNamesStripped;
@@ -1093,11 +1109,11 @@
     showError('');
   });
 
-  ['sh-style-genre', 'sh-feeling', 'sh-mood-input'].forEach(function (id) {
+  ['sh-style-genre', 'sh-style-feel', 'sh-mood-input'].forEach(function (id) {
     var el = $(id);
     if (!el) return;
     el.addEventListener('input', function () {
-      if (id === 'sh-style-genre' || id === 'sh-feeling') styleTouched = true;
+      if (id === 'sh-style-genre' || id === 'sh-style-feel') styleTouched = true;
       if (id === 'sh-mood-input') showMoodError('');
       if (STEPS[step] === 'style') renderStyle();
     });
@@ -1116,16 +1132,109 @@
     }
   });
 
+  function styleStrip(text) {
+    if (core.stripArtistNames) return core.stripArtistNames(text);
+    return text;
+  }
+
+  function collectStyle() {
+    var base = packs.styleFor(picks.pack, picks.comedyMusic) || {};
+    var snap = window.SongHelperV2 && window.SongHelperV2.snapshot ? window.SongHelperV2.snapshot() : {};
+    var energy = picks.energy || base.energy || '';
+    return {
+      genre: genreValue() || base.genre || '',
+      mood: moodValue() || readControl(feelingInput),
+      region: snap.region || '',
+      energy: energy,
+      tempo: '',
+      vocal: picks.voice || '',
+      texture: picks.texture || '',
+      instruments: instruments.length ? instruments.slice() : (base.instruments || []).slice(),
+      era: picks.era || base.era || ''
+    };
+  }
+
+  function showStylePrompt(bag) {
+    if (!window.SunoStyle) return;
+    styleBag = bag;
+    styleOpen = false;
+    styleDone = true;
+    var host = $('sh-suno-style');
+    window.SunoStyle.renderPrompt(host, window.SunoStyle.prompt(styleBag, styleStrip), function (id) {
+      styleBag = window.SunoStyle.tweak(styleBag, id);
+      if (styleBag.vocal) picks.voice = styleBag.vocal;
+      if (styleBag.energy) picks.energy = styleBag.energy;
+      if (styleBag.texture) picks.texture = styleBag.texture;
+      if (styleBag.instruments) instruments = styleBag.instruments.slice();
+      showStylePrompt(styleBag);
+    });
+    nextBtn.textContent = 'Authorship record';
+    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
+  }
+
+  function showStyleAsk(asks) {
+    if (!window.SunoStyle) return;
+    styleOpen = true;
+    window.SunoStyle.renderAsk($('sh-suno-style'), asks, function (chosen) {
+      var bag = window.SunoStyle.applyAnswers(collectStyle(), chosen);
+      if (chosen.vocal) picks.voice = chosen.vocal;
+      if (chosen.genre) styleBag = bag;
+      if (bag.energy) picks.energy = bag.energy;
+      showStylePrompt(bag);
+    });
+    nextBtn.textContent = 'Skip these';
+    try { $('sh-suno-style').scrollIntoView({ block: 'center' }); } catch (err) {}
+  }
+
+  function startStyle() {
+    var bag = styleBag || collectStyle();
+    var asks = window.SunoStyle ? window.SunoStyle.missing(bag) : [];
+    if (asks.length) {
+      showStyleAsk(asks);
+      return;
+    }
+    showStylePrompt(bag);
+  }
+
   backBtn.addEventListener('click', function () {
+    if (styleOpen && STEPS[step] === 'draft') {
+      styleOpen = false;
+      var host = $('sh-suno-style');
+      if (host) {
+        host.hidden = true;
+        host.textContent = '';
+      }
+      nextBtn.textContent = NEXT_LABEL.draft;
+      return;
+    }
     if (followOpen) {
       followOpen = false;
       hideFollow();
       nextBtn.textContent = NEXT_LABEL.shape || 'Write the draft';
       return;
     }
+    if (styleJumped && STEPS[step] === 'record') {
+      styleJumped = false;
+      go(STEPS.indexOf('draft'), true);
+      return;
+    }
     if (step > 0) go(step - 1, true);
   });
   nextBtn.addEventListener('click', function () {
+    if (STEPS[step] === 'draft') {
+      if (styleOpen) {
+        styleOpen = false;
+        showStylePrompt(styleBag || collectStyle());
+        return;
+      }
+      if (!styleDone) {
+        startStyle();
+        return;
+      }
+      styleJumped = true;
+      go(STEPS.indexOf('record'), true);
+      return;
+    }
     if (followOpen) {
       followOpen = false;
       followSkipped = true;
