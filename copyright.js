@@ -77,6 +77,14 @@
       }
       html += '<button type="button" class="guide-cta" data-next>Next</button>';
       html += '<button type="button" class="protect-back" data-back>Back</button>';
+    } else if (screen.kind === 'paths') {
+      html += '<p class="protect-lead">A human re-record protects the new recording. The song itself needs human authorship.</p>';
+      html += '<div class="guide-choices">';
+      (screen.links || []).forEach(function (link) {
+        html += '<a class="guide-choice-link" href="' + esc(link.href) + '">' + esc(link.label) + '</a>';
+      });
+      html += '</div>';
+      html += '<button type="button" class="protect-back" data-back>Back</button>';
     } else if (screen.kind === 'benefits') {
       html += '<ul class="protect-benefits">';
       api.BENEFITS.forEach(function (item) {
