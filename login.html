@@ -253,7 +253,7 @@
           function goHome() {
             var account = result.data && result.data.email ? result.data.email : email;
             if (window.PlaigroundLyricsAccount && window.PlaigroundLyricsAccount.pendingHome && window.PlaigroundLyricsAccount.pendingHome()) {
-              window.location.href = '/my-lyrics';
+              window.location.href = window.PlaigroundLyricsAccount.pendingHome();
               return;
             }
             var home = 'dashboard.html';

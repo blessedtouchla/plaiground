@@ -30,14 +30,16 @@
     var store = storage();
     if (!store || !song || !String(song.text || '').trim()) return false;
     try {
-      store.setItem(PENDING_KEY, JSON.stringify({
+      var pending = {
         title: String(song.title || '').slice(0, 80),
         text: String(song.text || '').slice(0, 12000),
         mode: String(song.mode || '').slice(0, 40),
         mood: String(song.mood || '').slice(0, 40),
         sparkTitle: String(song.sparkTitle || '').slice(0, 80),
         sparkAngle: String(song.sparkAngle || '').slice(0, 280),
-      }));
+      };
+      if (song.claim && typeof song.claim === 'object') pending.claim = song.claim;
+      store.setItem(PENDING_KEY, JSON.stringify(pending));
       return true;
     } catch (err) {
       return false;
@@ -51,7 +53,12 @@
   }
 
   function pendingHome() {
-    return readPending() ? '/my-lyrics' : '';
+    var pending = readPending();
+    if (!pending) return '';
+    if (pending.claim && pending.claim.id) {
+      return '/claim?id=' + encodeURIComponent(pending.claim.id);
+    }
+    return '/my-lyrics';
   }
 
   function claim() {
@@ -79,7 +86,7 @@
       var href = link.getAttribute('href') || '';
       if (href.indexOf('login') === -1 || href.indexOf('next=') !== -1) return;
       var join = href.indexOf('?') === -1 ? '?' : '&';
-      link.setAttribute('href', href + join + 'next=' + encodeURIComponent('/my-lyrics'));
+      link.setAttribute('href', href + join + 'next=' + encodeURIComponent(pendingHome() || '/my-lyrics'));
     });
   }
 

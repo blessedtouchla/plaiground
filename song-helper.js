@@ -561,6 +561,8 @@
       label.textContent = section.label;
       lyricEl.appendChild(label);
       visible.forEach(function (line) {
+        if (line.original == null) line.original = line.text;
+        if (line.logged == null) line.logged = String(line.text || '').trim();
         var box = document.createElement('textarea');
         box.className = 'sh-line' + (holdsUserWords(line) ? ' is-user' : '');
         box.rows = 1;
@@ -572,6 +574,16 @@
           box.classList.toggle('is-user', holdsUserWords(line));
           fit(box);
           renderSuno();
+        });
+        box.addEventListener('blur', function () {
+          var before = String(line.logged || '');
+          var after = String(box.value || '').trim();
+          line.text = box.value;
+          line.edited = after !== String(line.original || '').trim();
+          if (before !== after && window.PlaigroundClaim) {
+            window.PlaigroundClaim.noteEdit({ section: section.label, before: before, after: after });
+          }
+          line.logged = after;
         });
         lyricEl.appendChild(box);
         fit(box);
@@ -842,6 +854,7 @@
       }
       draft = data.draft;
       preview = Boolean(data.preview);
+      if (window.PlaigroundClaim) window.PlaigroundClaim.noteGeneration(draft);
       if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;
       draftKey = key;
       pendingRevision = '';
@@ -1295,6 +1308,91 @@
     showError('');
     copyPlain(text, $('sh-suno-copy'));
   });
+  function claimPairs() {
+    var data = interview();
+    var answers = [
+      { label: 'What happened', value: data.happened },
+      { label: 'Who', value: data.who },
+      { label: 'Why it mattered', value: data.why },
+      { label: 'The line', value: data.line },
+      { label: 'Where you were', value: data.followPlace },
+      { label: 'Something you can point at', value: data.followObject },
+    ];
+    wordRows().forEach(function (row) { answers.push({ label: row.label, value: row.text }); });
+    var choices = [
+      { label: 'Mood', value: data.mood },
+      { label: 'Genre', value: data.shape && data.shape.genre },
+      { label: 'Language', value: data.shape && data.shape.language },
+      { label: 'Clean or explicit', value: data.shape && data.shape.explicit },
+      { label: 'Length', value: data.shape && data.shape.length },
+    ];
+    if (styleBag) {
+      choices.push({ label: 'Vocal', value: styleBag.vocal });
+      choices.push({ label: 'Tempo', value: styleBag.tempo });
+      choices.push({ label: 'Energy', value: styleBag.energy });
+    }
+    var feedback = chosenChips();
+    if (feedback.length) choices.push({ label: 'Feedback', value: feedback.join(', ') });
+    return { answers: answers, choices: choices };
+  }
+
+  function stylePromptValue() {
+    var box = document.querySelector('#sh-suno-style .sh-style-box');
+    return box ? String(box.value || '').trim() : '';
+  }
+
+  function showClaimGate(id) {
+    var gate = $('sh-claim-gate');
+    var next = '/claim?id=' + encodeURIComponent(id);
+    var signup = $('sh-claim-signup');
+    var login = $('sh-claim-login');
+    if (signup) signup.setAttribute('href', 'signup.html?next=' + encodeURIComponent(next));
+    if (login) login.setAttribute('href', 'login.html?next=' + encodeURIComponent(next));
+    if (gate) gate.hidden = false;
+  }
+
+  function claimHumanParts() {
+    var error = $('sh-claim-error');
+    var gate = $('sh-claim-gate');
+    if (gate) gate.hidden = true;
+    if (!draft || !draftHasContent(draft)) {
+      if (error) {
+        error.hidden = false;
+        error.textContent = 'Write the draft first, then this record can list your lines.';
+      }
+      return;
+    }
+    if (error) error.hidden = true;
+    draft.title = titleEl.value.trim() || draft.title;
+    var pairs = claimPairs();
+    var record = window.PlaigroundClaim.build({
+      title: draft.title,
+      answers: pairs.answers,
+      choices: pairs.choices,
+      lines: window.PlaigroundClaim.linesFromDraft(draft),
+      stylePrompt: stylePromptValue(),
+    });
+    var button = $('sh-claim');
+    if (button) button.disabled = true;
+    window.PlaigroundClaim.submit(record).then(function (result) {
+      if (button) button.disabled = false;
+      if (result && result.needsAuth) {
+        showClaimGate(record.id);
+        return;
+      }
+      if (!result || !result.ok) {
+        if (error) {
+          error.hidden = false;
+          error.textContent = (result && result.error) || 'The account save did not go through. Your record stays on this device.';
+        }
+        showClaimGate(record.id);
+        return;
+      }
+      window.location.href = '/claim?id=' + encodeURIComponent(record.id);
+    });
+  }
+
+  if ($('sh-claim')) $('sh-claim').addEventListener('click', claimHumanParts);
   $('sh-download').addEventListener('click', downloadRecord);
   $('sh-print').addEventListener('click', function () {
     renderRecord();

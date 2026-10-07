@@ -881,6 +881,8 @@
     var out = $('sh-v2-out');
     var extra = $('sh-v2-extra');
     var banner = $('sh-v2-banner');
+    var claimPanel = $('sh-v2-claim');
+    if (claimPanel) claimPanel.hidden = true;
     lyricsReady = false;
     styleShown = false;
     v2StyleOpen = false;
@@ -948,6 +950,7 @@
       }
     }
     lastDraft = draft;
+    if (window.PlaigroundClaim) window.PlaigroundClaim.noteGeneration(draft);
     if (draft.steps) {
       var list = document.createElement('ol');
       list.className = 'sh-steps';
@@ -982,13 +985,10 @@
     if (draft.edits) renderEdits(out, draft.edits);
     var lines = modes.allLines(draft);
     if (lines.length) {
-      var meter = document.createElement('p');
-      meter.className = 'sh-note';
-      meter.textContent = modes.yoursPercent(lines) + '% yours. Human-written lines over all lines in this draft.';
-      out.appendChild(meter);
       remember(draft, data);
       renderSuno(out, draft);
       lyricsReady = true;
+      if (claimPanel) claimPanel.hidden = false;
     }
     paintV2Feedback();
     syncStructure();
@@ -1146,11 +1146,24 @@
     var box = document.createElement('textarea');
     box.className = 'sh-line' + (row.source === 'user' ? ' is-user' : '');
     box.rows = 2;
+    if (row.original == null) row.original = row.text;
+    if (row.logged == null) row.logged = String(row.text || '').trim();
     box.value = row.text;
     box.addEventListener('input', function () {
       row.text = box.value;
-      row.source = 'user';
+      row.edited = String(box.value || '').trim() !== String(row.original || '').trim();
+      box.classList.toggle('is-user', row.source === 'user' || row.edited);
       paint();
+    });
+    box.addEventListener('blur', function () {
+      var before = String(row.logged || '');
+      var after = String(box.value || '').trim();
+      row.text = box.value;
+      row.edited = after !== String(row.original || '').trim();
+      if (before !== after && window.PlaigroundClaim) {
+        window.PlaigroundClaim.noteEdit({ section: part.label, before: before, after: after });
+      }
+      row.logged = after;
     });
     parent.appendChild(box);
     var tools = document.createElement('div');
@@ -1272,7 +1285,7 @@
       at: new Date().toISOString(),
       mode: mode,
       title: draft.title || '',
-      yours: modes.yoursPercent(lines),
+      saved: true,
       preview: Boolean(data.preview),
       votes: lines.map(function (row) { return { text: row.text, vote: row.vote || 0, locked: !!row.locked }; }),
     };
@@ -1298,7 +1311,7 @@
     if (!log.length) {
       var empty = document.createElement('p');
       empty.className = 'sh-help';
-      empty.textContent = 'Dated drafts land here, with a % yours meter. Nothing is stored on a server.';
+      empty.textContent = 'Dated drafts stay on this device until you claim them.';
       host.appendChild(empty);
       return;
     }
@@ -1306,7 +1319,7 @@
       var p = document.createElement('p');
       p.className = 'sh-help';
       var when = String(entry.at || '').slice(0, 10);
-      p.textContent = when + ' · ' + (entry.mode || 'write') + ' · ' + (entry.title || 'Untitled') + ' · ' + (entry.yours || 0) + '% yours'
+      p.textContent = when + ' · ' + (entry.mode || 'write') + ' · ' + (entry.title || 'Untitled')
         + (entry.preview ? ' · demo sample' : '');
       host.appendChild(p);
     });
@@ -1559,6 +1572,79 @@
     if (message) showSaveError(message);
   }
 
+  function v2StylePrompt() {
+    var box = document.querySelector('#sh-v2-style .sh-style-box');
+    return box ? String(box.value || '').trim() : '';
+  }
+
+  function claimHumanParts() {
+    var error = $('sh-v2-claim-error');
+    var gate = $('sh-v2-claim-gate');
+    if (gate) gate.hidden = true;
+    var draft = activeDraft();
+    if (!draftHasContent(draft) || !window.PlaigroundClaim) {
+      if (error) {
+        error.hidden = false;
+        error.textContent = 'Write the draft first, then this record can list your lines.';
+      }
+      return;
+    }
+    if (error) error.hidden = true;
+    var bag = v2Bag();
+    var answers = [
+      { label: 'Topic', value: bag.topic },
+      { label: 'What happened', value: bag.happened },
+      { label: 'Who', value: bag.who },
+      { label: 'Why it mattered', value: bag.why },
+      { label: 'The line', value: bag.line },
+      { label: 'Where you were', value: bag.place },
+      { label: 'Something you can point at', value: bag.object },
+      { label: 'What someone said', value: bag.quote },
+    ];
+    (bag.live || []).forEach(function (row) {
+      if (row && (row.ask || row.label)) answers.push({ label: row.ask || row.label, value: row.text || row.value || '' });
+    });
+    var choices = [
+      { label: 'Mode', value: bag.mode },
+      { label: 'Mood', value: bag.mood },
+      { label: 'Genre', value: bag.genre },
+      { label: 'Region', value: bag.region },
+    ];
+    var feedback = Object.keys(feedbackOn).filter(function (id) { return feedbackOn[id]; });
+    if (feedback.length) choices.push({ label: 'Feedback', value: feedback.join(', ') });
+    var titleEl = document.getElementById('sh-title');
+    var record = window.PlaigroundClaim.build({
+      title: (titleEl && titleEl.value && titleEl.value.trim()) || draft.title || '',
+      answers: answers,
+      choices: choices,
+      lines: window.PlaigroundClaim.linesFromDraft(draft),
+      stylePrompt: v2StylePrompt(),
+    });
+    var button = $('sh-v2-claim-go');
+    if (button) button.disabled = true;
+    window.PlaigroundClaim.submit(record).then(function (result) {
+      if (button) button.disabled = false;
+      if (result && result.needsAuth) {
+        var next = '/claim?id=' + encodeURIComponent(record.id);
+        var signup = $('sh-v2-claim-signup');
+        var login = $('sh-v2-claim-login');
+        if (signup) signup.setAttribute('href', 'signup.html?next=' + encodeURIComponent(next));
+        if (login) login.setAttribute('href', 'login.html?next=' + encodeURIComponent(next));
+        if (gate) gate.hidden = false;
+        return;
+      }
+      if (!result || !result.ok) {
+        if (error) {
+          error.hidden = false;
+          error.textContent = (result && result.error) || 'The account save did not go through. Your record stays on this device.';
+        }
+        if (gate) gate.hidden = false;
+        return;
+      }
+      window.location.href = '/claim?id=' + encodeURIComponent(record.id);
+    });
+  }
+
   async function saveSong() {
     showSaveError('');
     var gate = $('sh-save-gate');
@@ -1659,6 +1745,7 @@
       generate();
     });
     if ($('sh-save-song')) $('sh-save-song').addEventListener('click', saveSong);
+    if ($('sh-v2-claim-go')) $('sh-v2-claim-go').addEventListener('click', claimHumanParts);
     $('sh-scout').addEventListener('click', function () { askRole('scout'); });
     $('sh-scoop').addEventListener('click', function () { askRole('scoop'); });
   }

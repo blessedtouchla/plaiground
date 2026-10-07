@@ -236,6 +236,19 @@
         <div id="sh-v2-follow" class="sh-follow" hidden></div>
         <div id="sh-v2-out"></div>
         <div id="sh-v2-style" class="sh-suno-style no-print" hidden></div>
+        <div id="sh-v2-claim" class="no-print" hidden>
+          <p class="sh-help">A record of your creative process that helps show your human contributions.</p>
+          <p class="sh-help">This is not a copyright registration or guarantee. General info, not legal advice.</p>
+          <button type="button" class="btn btn-purple btn-md" id="sh-v2-claim-go">Claim my human parts</button>
+          <p class="sh-form-error" id="sh-v2-claim-error" role="alert" hidden></p>
+          <div id="sh-v2-claim-gate" hidden>
+            <p>Sign in to save this record on your account.</p>
+            <p>
+              <a class="btn btn-purple btn-md" id="sh-v2-claim-signup" href="signup.html?next=%2Fclaim">Create an account</a>
+              <a class="btn btn-ghost btn-md" id="sh-v2-claim-login" href="login.html?next=%2Fclaim">Sign in</a>
+            </p>
+          </div>
+        </div>
         <div id="sh-v2-feedback" class="sh-feedback no-print" hidden></div>
         <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
         <div class="sh-actions no-print">
@@ -452,8 +465,20 @@
         </section>
 
         <section data-step="record" hidden>
-          <p class="sh-help" id="sh-rights">Only human-written lines are protected by copyright, so keeping your own words helps you register the song.</p>
-          <pre class="sh-record" id="sh-record"></pre>
+          <p class="sh-help" id="sh-rights">A record of your creative process that helps show your human contributions.</p>
+          <p class="sh-help">This is not a copyright registration or guarantee. General info, not legal advice.</p>
+          <div class="sh-side-actions no-print">
+            <button type="button" class="btn btn-purple btn-md" id="sh-claim">Claim my human parts</button>
+          </div>
+          <p class="sh-form-error" id="sh-claim-error" role="alert" hidden></p>
+          <div id="sh-claim-gate" hidden>
+            <p>Sign in to save this record on your account.</p>
+            <p>
+              <a class="btn btn-purple btn-md" id="sh-claim-signup" href="signup.html?next=%2Fclaim">Create an account</a>
+              <a class="btn btn-ghost btn-md" id="sh-claim-login" href="login.html?next=%2Fclaim">Sign in</a>
+            </p>
+          </div>
+          <pre class="sh-record" id="sh-record" hidden></pre>
           <div class="sh-side-actions no-print">
             <button type="button" class="btn btn-ghost btn-md" id="sh-download">Download .txt</button>
             <button type="button" class="btn btn-ghost btn-md" id="sh-print">Print</button>
@@ -583,6 +608,7 @@
   </footer>
   <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
+  <script src="lib/claim-record.js"></script>
   <script src="lib/song-pass.js"></script>
   <script src="lib/suno-style.js"></script>
   <script src="lib/song-modes.js"></script>

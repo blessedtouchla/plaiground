@@ -1,0 +1,58 @@
+.claim-page .claim-card {
+  margin-top: 18px;
+}
+
+.claim-page h1 {
+  font-size: 32px;
+  line-height: 1.1;
+  margin: 0 0 8px;
+}
+
+.claim-page .claim-lead,
+.claim-page .claim-note {
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+
+.claim-page .claim-meta {
+  margin: 18px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.claim-page .claim-meta p {
+  margin: 0;
+}
+
+.claim-page .claim-block {
+  margin-top: 22px;
+}
+
+.claim-page .claim-block h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.claim-page .claim-row,
+.claim-page .claim-line {
+  margin: 0 0 10px;
+}
+
+.claim-page .claim-tag {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.claim-page .claim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.claim-page .claim-edit {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+}

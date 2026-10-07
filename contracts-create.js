@@ -8,7 +8,21 @@
   var params = new URLSearchParams(window.location.search);
   var preset = api.typeById(params.get('type') || '');
   var answers = { type: preset ? preset.id : '' };
+  var declare = params.get('declare') === '1';
+  var recordId = params.get('record') || '';
+  if (params.get('you')) answers.you = params.get('you').slice(0, 80);
+  if (params.get('work')) answers.work = params.get('work').slice(0, 80);
   var index = 0;
+
+  function fullDraft() {
+    var draft = api.buildDraft(answers);
+    if (!declare || !window.PlaigroundClaim) return draft;
+    return window.PlaigroundClaim.declarationText({
+      you: answers.you,
+      work: answers.work,
+      record: recordId,
+    }) + '\n\n' + draft;
+  }
 
   function questions() {
     return api.questionsFor(answers.type, !preset);
@@ -33,7 +47,7 @@
     }
     if (fill) fill.style.width = ((now / total) * 100) + '%';
     if (last) {
-      var draft = api.buildDraft(answers);
+      var draft = fullDraft();
       view.innerHTML = '<h1 tabindex="-1">Your draft</h1>'
         + '<textarea class="contract-draft" readonly data-contract-draft>' + esc(draft) + '</textarea>'
         + '<div class="contract-actions"><button type="button" class="guide-cta" data-contract-copy>Copy</button>'
@@ -92,7 +106,7 @@
       render();
       return;
     }
-    var draft = api.buildDraft(answers);
+    var draft = fullDraft();
     if (copy && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(draft).then(function () { copy.textContent = 'Copied'; }).catch(function () {});
     }

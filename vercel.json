@@ -97,6 +97,18 @@
       "permanent": true
     },
     {
+      "source": "/claim",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/claim",
+      "permanent": true
+    },
+    {
+      "source": "/claim/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/claim",
+      "permanent": true
+    },
+    {
       "source": "/pricing.html",
       "destination": "/index.html#pricing",
       "permanent": true
@@ -168,6 +180,8 @@
     { "source": "/my-roadmap/", "destination": "/my-roadmap.html" },
     { "source": "/my-lyrics", "destination": "/my-lyrics.html" },
     { "source": "/my-lyrics/", "destination": "/my-lyrics.html" },
+    { "source": "/claim", "destination": "/claim.html" },
+    { "source": "/claim/", "destination": "/claim.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/signups", "destination": "/admin.html" },
     { "source": "/login", "destination": "/login.html" },

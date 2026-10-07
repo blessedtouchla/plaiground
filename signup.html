@@ -260,7 +260,7 @@
             var qs = ['existing=1'];
             if (window.PlaigroundLyricsAccount && window.PlaigroundLyricsAccount.pendingHome && window.PlaigroundLyricsAccount.pendingHome()) {
               dest = 'login.html';
-              qs.push('next=' + encodeURIComponent('/my-lyrics'));
+              qs.push('next=' + encodeURIComponent(window.PlaigroundLyricsAccount.pendingHome()));
             }
             if (email) qs.push('email=' + encodeURIComponent(email));
             window.setTimeout(function () {
