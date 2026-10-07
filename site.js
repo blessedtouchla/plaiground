@@ -596,6 +596,12 @@
   var WHATS_NEW_LINKS = [
     { href: "/song-helper", label: "Song Helper" },
     { href: "/cover-art", label: "Cover Art" },
+    { href: "/copyright", label: "Copyright & publishing" },
+    { href: "/qualify", label: "Qualify my song" },
+    { href: "/claim", label: "Claim my human parts" },
+    { href: "/make-human", label: "Make it human" },
+    { href: "/destination", label: "Route map" },
+    { href: "/guide", label: "Guide" },
     { href: "/spark", label: "What's hot" },
     { href: "/battle", label: "Battle" }
   ];
@@ -818,6 +824,36 @@
     return "";
   }
 
+  function ensureFooterTools() {
+    var footer = document.querySelector("footer");
+    if (!footer || !footer.querySelector) return;
+    var cols = footer.querySelectorAll(".footer-col");
+    var product = null;
+    var i;
+    for (i = 0; i < cols.length; i += 1) {
+      var heading = cols[i].querySelector("h4");
+      var label = heading ? String(heading.textContent || "").replace(/\s+/g, " ").trim() : "";
+      if (/^product$/i.test(label)) product = cols[i];
+    }
+    if (!product || product.getAttribute("data-footer-tools") === "1") return;
+    product.setAttribute("data-footer-tools", "1");
+    function add(href, text) {
+      var links = product.querySelectorAll("a");
+      var n;
+      for (n = 0; n < links.length; n += 1) {
+        var current = links[n].getAttribute("href") || "";
+        if (current === href || current === href.replace(/^\//, "") || current === href.slice(1) + ".html") return;
+      }
+      var anchor = document.createElement("a");
+      anchor.setAttribute("href", href);
+      anchor.href = href;
+      anchor.textContent = text;
+      product.appendChild(anchor);
+    }
+    WHATS_NEW_LINKS.forEach(function (item) { add(item.href, item.label); });
+    add("/contracts", "Contracts");
+  }
+
   function setupPublicFooter() {
     var footer = document.querySelector("footer");
     if (!footer || !footer.querySelector) return;
@@ -828,7 +864,10 @@
     var hasProduct = false;
     for (i = 0; i < headers.length; i += 1) {
       var label = String(headers[i].textContent || "").replace(/\s+/g, " ").trim();
-      if (/after upload/i.test(label)) return;
+      if (/after upload/i.test(label)) {
+        ensureFooterTools();
+        return;
+      }
       if (/^product$/i.test(label)) hasProduct = true;
     }
     if (!hasProduct) return;
@@ -905,6 +944,7 @@
       var node = found[key];
       if (node && node.parentNode) node.parentNode.removeChild(node);
     });
+    ensureFooterTools();
   }
 
   function markRoadmapLink(nav) {

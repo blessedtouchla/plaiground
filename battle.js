@@ -23,6 +23,7 @@
     started: false,
   };
   var generation = 0;
+  var turnstileToken = '';
 
   var form = document.getElementById('bt-form');
   if (!form) return;
@@ -245,6 +246,7 @@
         return { role: verse.role, text: verse.text, preview: Boolean(verse.preview) };
       }),
       company_website: $('bt-honey').value,
+      turnstile_token: turnstileToken,
     };
   }
 
@@ -437,5 +439,34 @@
     window.location.href = '/cover-art';
   });
 
+  function mountTurnstile() {
+    var host = document.getElementById('bt-turnstile');
+    if (!host) return;
+    fetch('/api/song-helper?action=status').then(function (response) {
+      if (!response.ok) throw new Error('status');
+      return response.json();
+    }).then(function (pageStatus) {
+      if (!pageStatus || !pageStatus.turnstile || !pageStatus.turnstileSiteKey) {
+        host.hidden = true;
+        return;
+      }
+      host.hidden = false;
+      var script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      script.async = true;
+      script.onload = function () {
+        if (!window.turnstile) return;
+        window.turnstile.render(host, {
+          sitekey: pageStatus.turnstileSiteKey,
+          callback: function (token) { turnstileToken = token; },
+        });
+      };
+      document.head.appendChild(script);
+    }).catch(function () {
+      host.hidden = true;
+    });
+  }
+
   render();
+  mountTurnstile();
 }());

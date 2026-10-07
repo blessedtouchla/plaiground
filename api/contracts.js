@@ -97,6 +97,8 @@ async function gate(req, body, text) {
   var ip = guard.clientIp(req);
   var captcha = await guard.verifyTurnstile(body && body.turnstile_token, ip);
   if (!captcha.ok) return { status: 400, body: { ok: false, error: captcha.error } };
+  var shared = guard.charge(req, ip);
+  if (shared) return shared;
   if (!daily.allow(guard.actorKey(req, ip))) {
     return { status: 429, body: { ok: false, error: 'That is the daily limit for this connection. It resets tomorrow.' } };
   }

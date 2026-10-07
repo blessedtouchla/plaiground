@@ -60,6 +60,7 @@
   var rightsEl = document.getElementById('ca-rights');
   var upscaleEl = document.getElementById('ca-upscale');
   var checkNote = document.getElementById('ca-check-note');
+  var turnstileToken = '';
 
   function $(id) { return document.getElementById(id); }
 
@@ -380,6 +381,7 @@
         chips: keptChips().map(function (chip) { return chip.label; }),
         session_id: ensureSessionId(),
         company_website: $('ca-honey').value,
+        turnstile_token: turnstileToken,
       };
       if (picks.palette) {
         body.palette = picks.palette;
@@ -790,7 +792,36 @@
     if (data.title && !$('ca-overlay-title').value) $('ca-overlay-title').value = String(data.title);
     if (data.artist && !$('ca-overlay-artist').value) $('ca-overlay-artist').value = String(data.artist);
   });
+  function mountTurnstile() {
+    var host = $('ca-turnstile');
+    if (!host) return;
+    fetch('/api/song-helper?action=status').then(function (response) {
+      if (!response.ok) throw new Error('status');
+      return response.json();
+    }).then(function (pageStatus) {
+      if (!pageStatus || !pageStatus.turnstile || !pageStatus.turnstileSiteKey) {
+        host.hidden = true;
+        return;
+      }
+      host.hidden = false;
+      var script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      script.async = true;
+      script.onload = function () {
+        if (!window.turnstile) return;
+        window.turnstile.render(host, {
+          sitekey: pageStatus.turnstileSiteKey,
+          callback: function (token) { turnstileToken = token; },
+        });
+      };
+      document.head.appendChild(script);
+    }).catch(function () {
+      host.hidden = true;
+    });
+  }
+
   renderPaletteNote();
   prefill();
   showStep();
+  mountTurnstile();
 })();

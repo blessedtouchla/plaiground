@@ -441,6 +441,7 @@ function run() {
   assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav still folds old plan heroes');
   assert.ok(js.includes('ensureWhatsNewPublic') && js.includes('ensureWhatsNewSide'), 'What\'s new is added to the public nav and the signed-in menu');
   assert.ok(js.includes('href: "/song-helper"') && js.includes('href: "/cover-art"') && js.includes('href: "/spark"') && js.includes('href: "/battle"'), 'What\'s new reuses Song Helper, Cover Art, What\'s hot, and Battle');
+  assert.ok(js.includes('href: "/copyright"') && js.includes('href: "/qualify"') && js.includes('href: "/claim"') && js.includes('href: "/make-human"') && js.includes('href: "/destination"') && js.includes('href: "/guide"'), 'What\'s new also lists the rest of the new tools');
   assert.ok(!js.includes('href: "/contracts"'), 'Contracts is not listed twice inside What\'s new');
   assert.ok(js.includes('ensureContractsPublic') && js.includes('link.href = "/contracts"'), 'Contracts stays one nav item of its own');
   const login = read('login.html');

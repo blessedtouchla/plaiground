@@ -200,8 +200,13 @@ function runCore() {
 async function runApi() {
   const previousKey = process.env.XAI_API_KEY;
   const previousModel = process.env.XAI_IMAGE_MODEL;
+  const previousAnon = process.env.SONG_HELPER_ANON_DAILY_LIMIT;
+  const guard = require('./lib/song-guard');
   delete process.env.XAI_API_KEY;
   delete process.env.XAI_IMAGE_MODEL;
+  process.env.SONG_HELPER_ANON_DAILY_LIMIT = '40';
+  guard.dailyLimiter.reset();
+  guard.hourlyLimiter.reset();
   const originalFetch = global.fetch;
   let fetched = false;
   global.fetch = function () {
@@ -290,10 +295,14 @@ async function runApi() {
     assert.ok(!live.body.includes('test-image-key'));
   } finally {
     global.fetch = originalFetch;
+    guard.dailyLimiter.reset();
+    guard.hourlyLimiter.reset();
     if (previousKey === undefined) delete process.env.XAI_API_KEY;
     else process.env.XAI_API_KEY = previousKey;
     if (previousModel === undefined) delete process.env.XAI_IMAGE_MODEL;
     else process.env.XAI_IMAGE_MODEL = previousModel;
+    if (previousAnon === undefined) delete process.env.SONG_HELPER_ANON_DAILY_LIMIT;
+    else process.env.SONG_HELPER_ANON_DAILY_LIMIT = previousAnon;
   }
 }
 
