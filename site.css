@@ -6953,6 +6953,14 @@ body.attest-page .plai-bubble-row {
   .whats-new-actions { flex-direction: column; align-items: center; }
   .whats-new-actions .btn { width: 100%; max-width: 280px; }
 }
+body.auth-full .auth-whats-new { margin-top: 4px; }
+body.auth-full .auth-whats-new .team-section-title,
+body.auth-full .auth-whats-new .whats-new-lead { text-align: left; }
+body.auth-full .auth-whats-new .whats-new-lead {
+  margin: 0 0 14px;
+  max-width: 28rem;
+}
+body.auth-full .auth-whats-new .whats-new-actions { justify-content: flex-start; }
 .team-offer { padding: 8px 0 36px; }
 .team-grid {
   display: grid;

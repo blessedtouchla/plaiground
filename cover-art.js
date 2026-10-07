@@ -27,7 +27,7 @@
   };
 
   var step = 0;
-  var picks = { look: '', theme: '', palette: 'night', count: '3', font: 'grotesk', position: 'center' };
+  var picks = { look: '', theme: '', palette: '', count: '3', font: 'grotesk', position: 'center' };
   var embed = /(?:\?|&)embed=1(?:&|$)/.test(String((window.location && window.location.search) || ''));
   if (embed && document.documentElement) document.documentElement.classList.add('ca-embed');
   var PALETTE_NAMES = { night: 'Night', dusk: 'Dusk', sea: 'Sea', blush: 'Blush', ink: 'Ink', custom: 'Custom' };
@@ -166,21 +166,26 @@
   function renderPaletteNote() {
     var el = $('ca-palette-note');
     if (!el || !core.colorsFor) return;
+    if (!picks.palette) {
+      el.textContent = 'No color selected.';
+      el.setAttribute('data-palette', '');
+      return;
+    }
     var custom = $('ca-custom');
     var colors = core.colorsFor({
       palette: picks.palette,
       customColor: custom ? custom.value : ''
     });
-    el.textContent = (PALETTE_NAMES[picks.palette] || 'Color') + ' · ' + colors.join(' ');
+    el.textContent = (PALETTE_NAMES[picks.palette] || 'Color') + '. ' + colors.join(', ');
     el.setAttribute('data-palette', picks.palette);
   }
 
   function applyPalette(value) {
     if (!value) return;
-    picks.palette = value;
-    setPressed('palette', value);
+    picks.palette = picks.palette === value ? '' : value;
+    setPressed('palette', picks.palette);
     var wrap = $('ca-custom-wrap');
-    if (wrap) wrap.hidden = value !== 'custom';
+    if (wrap) wrap.hidden = picks.palette !== 'custom';
     renderPaletteNote();
   }
 
@@ -277,7 +282,7 @@
   }
 
   function drawPlaceholder(ctx, spec, size) {
-    var colors = spec.colors || ['#120818', '#7D3CFF', '#F3CB47'];
+    var colors = (spec.colors && spec.colors.length) ? spec.colors : ['#2A2A2E', '#8A8A96', '#E4E4EA'];
     var rand = rng(spec.seed || 1);
     ctx.clearRect(0, 0, size, size);
     ctx.fillStyle = colors[0];
@@ -367,21 +372,24 @@
       return;
     }
     try {
+      var body = {
+        look: picks.look,
+        theme: picks.theme || '',
+        idea: $('ca-idea').value.trim(),
+        count: Number(picks.count) || 3,
+        chips: keptChips().map(function (chip) { return chip.label; }),
+        session_id: ensureSessionId(),
+        company_website: $('ca-honey').value,
+      };
+      if (picks.palette) {
+        body.palette = picks.palette;
+        body.customColor = picks.palette === 'custom' ? $('ca-custom').value : '';
+        body.colors = core.colorsFor({ palette: picks.palette, customColor: body.customColor });
+      }
       var response = await fetch('/api/cover-art', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          look: picks.look,
-          theme: picks.theme || '',
-          palette: picks.palette,
-          customColor: $('ca-custom').value,
-          colors: core.colorsFor({ palette: picks.palette, customColor: $('ca-custom').value }),
-          idea: $('ca-idea').value.trim(),
-          count: Number(picks.count) || 3,
-          chips: keptChips().map(function (chip) { return chip.label; }),
-          session_id: ensureSessionId(),
-          company_website: $('ca-honey').value,
-        }),
+        body: JSON.stringify(body),
       });
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.ok) {
@@ -759,7 +767,8 @@
 
   rightsEl.textContent = core.IMAGE_RIGHTS;
   document.querySelectorAll('button.ca-swatch').forEach(function (btn) {
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', function (event) {
+      if (event && event.stopPropagation) event.stopPropagation();
       applyPalette(btn.getAttribute('data-value') || '');
     });
   });

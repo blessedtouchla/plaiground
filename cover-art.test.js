@@ -65,6 +65,15 @@ function runCore() {
   assert.ok(clean.prompt.includes('#120818'));
   assert.ok(!clean.stripped);
 
+  const open = core.buildImagePrompt({
+    look: 'painted',
+    idea: 'A kitchen light left on at blue hour.',
+  });
+  assert.ok(!/Colors:/.test(open.prompt));
+  assert.ok(!open.prompt.includes('#120818'));
+  assert.deepStrictEqual(core.colorsFor({}), []);
+  assert.deepStrictEqual(core.colorsFor({ palette: '' }), []);
+
   const sea = core.buildImagePrompt({
     look: 'minimal',
     palette: 'sea',
@@ -330,7 +339,10 @@ function runPage() {
   assert.ok(css.includes('.ca-swatch.on'));
   assert.ok(html.includes('id="ca-palette-note"'));
   assert.ok(html.includes('id="ca-use"'));
-  assert.ok(js.includes('palette: picks.palette'));
+  assert.ok(js.includes('body.palette = picks.palette'));
+  assert.ok(js.includes('if (picks.palette)'));
+  assert.ok(!html.includes('ca-swatch on'));
+  assert.ok(html.includes('No color selected.'));
   assert.ok(js.includes('core.colorsFor'));
   assert.ok(js.includes('applyPalette'));
   assert.ok(js.includes('plaiground-cover-pick'));

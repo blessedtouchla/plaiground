@@ -71,6 +71,7 @@
     }
     setupAppBlogLink(side);
     ensureSignedInRoadmap(side);
+    ensureWhatsNewSide(side);
 
     var toggle = topbar.querySelector(".menu-toggle");
     if (!toggle) {
@@ -589,11 +590,85 @@
     item.parentNode.removeChild(item);
   }
 
+  var WHATS_NEW_LINKS = [
+    { href: "/song-helper", label: "Song Helper" },
+    { href: "/cover-art", label: "Cover Art" },
+    { href: "/spark", label: "What's hot" },
+    { href: "/battle", label: "Battle" }
+  ];
+
+  function whatsNewCurrent(href) {
+    var file = hrefFile((window.location && window.location.pathname) || "");
+    var target = String(href || "").replace(/^\//, "");
+    return file === target || file === target + ".html";
+  }
+
+  function ensureWhatsNewPublic(links) {
+    if (!links || !links.querySelector) return;
+    if (!links.querySelector('[data-nav-group="whats-new"]')) {
+      var group = makeNavGroup("whats-new", "What's new");
+      var menu = group.querySelector(".nav-group-menu");
+      WHATS_NEW_LINKS.forEach(function (item) {
+        var anchor = document.createElement("a");
+        anchor.setAttribute("href", item.href);
+        anchor.href = item.href;
+        anchor.textContent = item.label;
+        if (whatsNewCurrent(item.href)) anchor.classList.add("active");
+        menu.appendChild(anchor);
+      });
+      var roadmap = links.querySelector('[data-nav-group="roadmap"]');
+      if (roadmap && roadmap.nextSibling) links.insertBefore(group, roadmap.nextSibling);
+      else if (roadmap && roadmap.parentNode) roadmap.parentNode.appendChild(group);
+      else links.insertBefore(group, links.firstChild);
+    }
+    var lone = links.querySelector('[data-nav-group="song-helper"]');
+    if (lone && lone.parentNode) lone.parentNode.removeChild(lone);
+  }
+
+  function ensureWhatsNewSide(side) {
+    if (!side || !side.querySelector) return;
+    var nav = side.querySelector(".side-nav");
+    if (!nav || nav.querySelector("[data-whats-new]")) return;
+    var label = document.createElement("p");
+    label.className = "side-label";
+    label.setAttribute("data-whats-new", "label");
+    label.textContent = "What's new";
+    var nodes = [label];
+    WHATS_NEW_LINKS.forEach(function (item) {
+      var anchor = document.createElement("a");
+      anchor.setAttribute("href", item.href);
+      anchor.setAttribute("data-whats-new", item.href);
+      anchor.textContent = item.label;
+      if (whatsNewCurrent(item.href)) anchor.classList.add("on");
+      nodes.push(anchor);
+    });
+    var after = null;
+    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (anchor) {
+      if (after) return;
+      var href = anchor.getAttribute("href") || "";
+      var text = linkText(anchor);
+      if (href === "/my-roadmap" || href === "my-roadmap.html" || text === "My roadmap") after = anchor;
+    });
+    if (!after) {
+      Array.prototype.forEach.call(nav.querySelectorAll("a"), function (anchor) {
+        if (after) return;
+        var href = anchor.getAttribute("href") || "";
+        if (href === "/destination" || href === "destination.html" || linkText(anchor) === "Roadmap") after = anchor;
+      });
+    }
+    var ref = after ? after.nextSibling : nav.firstChild;
+    nodes.forEach(function (node) {
+      if (ref) nav.insertBefore(node, ref);
+      else nav.appendChild(node);
+    });
+  }
+
   function setupPublicNavSections(links) {
     if (!links) return;
     foldPublicPlanHeroes(links);
     if (links.querySelector("[data-nav-group]")) {
       ensurePublicRoadmap(links);
+      ensureWhatsNewPublic(links);
       wirePublicNavGroups(links);
       return;
     }
@@ -652,6 +727,7 @@
     trustMenu.appendChild(faq);
 
     links.appendChild(makeRoadmapGroup(roadmap));
+    ensureWhatsNewPublic(links);
     links.appendChild(product);
     links.appendChild(after);
     links.appendChild(trust);
