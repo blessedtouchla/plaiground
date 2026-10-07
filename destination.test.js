@@ -401,8 +401,9 @@ function runPage() {
 
   const home = read('index.html');
   const hero = home.match(/<section class="hero"[\s\S]*?<\/section>/)[0];
-  assert.ok(/class="btn btn-gold btn-md" href="\/destination">Build your roadmap</.test(hero), 'homepage primary CTA builds a roadmap');
-  assert.ok(/class="btn btn-ghost btn-md" href="signup\.html\?plan=basic" data-plan="basic">Put my team to work</.test(hero), 'signup CTA stays secondary');
+  assert.ok(/class="btn btn-gold btn-md" href="signup\.html">Join free</.test(hero), 'homepage primary CTA is Join free');
+  assert.ok(/href="\/destination">Build your roadmap</.test(hero), 'roadmap stays a secondary link');
+  assert.ok(!/class="btn btn-gold[^"]*" href="\/destination"/.test(hero), 'roadmap is not a second gold primary');
 }
 
 runRoutes();

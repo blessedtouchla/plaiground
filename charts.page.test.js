@@ -28,7 +28,7 @@ function run() {
   assert.ok(html.includes('Hear the chart.'), 'headline starts Hear the chart.');
   assert.ok(html.includes('Don’t search it.'), 'headline ends Don’t search it.');
   assert.ok(
-    html.includes('SIQA ranks the week. We added play so you can tap a song and listen — instead of hunting every title on YouTube.'),
+    html.includes('SIQA ranks the week. We added play so you can tap a song and listen, instead of hunting every title on YouTube.'),
     'lead copy is exact'
   );
   assert.ok(html.includes('https://www.thesiqa.com/charts'), 'official charts URL is present');

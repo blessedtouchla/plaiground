@@ -7828,3 +7828,78 @@ header.nav {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
 }
+
+/* Homepage 5-second read and tap targets */
+.home-portal .hero .sub {
+  max-width: 680px;
+  margin-bottom: 14px;
+  color: #e4e4ec;
+}
+.home-portal .hero-why {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  max-width: 680px;
+  margin: 0 auto 16px;
+}
+.home-portal .hero-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 8px;
+  max-width: 760px;
+}
+.home-portal .hero-tools a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #f3cb47;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-portal .hero-tools a:hover { color: #ffe58a; }
+.home-portal .hero-secondary {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: -6px auto 16px;
+}
+.home-portal .hero-secondary a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.menu-toggle,
+.public-header-tools .login,
+.btn,
+.auth-toggle a,
+.checkline {
+  min-height: 44px;
+}
+.menu-toggle { min-width: 44px; }
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.checkline input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+.side-nav a,
+.nav-group-menu a,
+.nav-group-toggle {
+  min-height: 44px;
+}
