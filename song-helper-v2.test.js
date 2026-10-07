@@ -701,7 +701,7 @@ function runPages() {
   ['XAI_API_KEY', 'XAI_MODEL', 'XAI_IMAGE_MODEL', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'SONG_HELPER_DAILY_LIMIT', 'SONG_HELPER_DISABLED', 'REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET', 'REDDIT_USER_AGENT', 'REDDIT_CITY_SUBS', 'SPARK_FEEDS'].forEach(function (name) {
     assert.ok(readme.includes(name), name);
   });
-  assert.strictEqual(fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).length, 11);
+  assert.strictEqual(fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).length, 12);
 }
 
 function runQuestions() {

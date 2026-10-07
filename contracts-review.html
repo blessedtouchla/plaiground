@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Review mine - PLAIGROUND</title>
+  <meta name="description" content="Paste a contract and get a plain read." />
+  <link rel="canonical" href="https://www.wannaplai.com/contracts/review" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css?v=20260924p3" />
+  <link rel="stylesheet" href="guide.css?v=20261007pace" />
+  <link rel="stylesheet" href="contracts.css?v=20261007biz" />
+</head>
+<body class="guide-page contract-page">
+  <main class="guide">
+    <header class="guide-top">
+      <a href="/contracts"><img class="guide-mark" src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <a class="guide-skip" href="/contracts">Back</a>
+    </header>
+    <h1>Review mine</h1>
+    <p class="contract-note">General info, not legal advice. Have a lawyer review before signing anything big.</p>
+    <p class="contract-pay">Pay per use. Victoria will set the amount.</p>
+    <p data-contract-demo hidden></p>
+    <label class="contract-file">Upload a text file<input type="file" accept=".txt,.md,.text,text/plain" data-contract-file /></label>
+    <textarea class="contract-box" data-contract-text placeholder="Paste the contract here"></textarea>
+    <label class="contract-honeypot">Company website<input type="text" name="company_website" tabindex="-1" autocomplete="off" data-contract-honey /></label>
+    <div data-contract-turnstile></div>
+    <button type="button" class="guide-cta" data-contract-go>Read it</button>
+    <div class="contract-results" data-contract-results></div>
+    <p class="contract-note">General info, not legal advice. Have a lawyer review before signing anything big.</p>
+  </main>
+  <script src="lib/contracts.js?v=20261007biz"></script>
+  <script src="contracts-ai.js?v=20261007biz"></script>
+</body>
+</html>

@@ -72,6 +72,7 @@
     setupAppBlogLink(side);
     ensureSignedInRoadmap(side);
     ensureWhatsNewSide(side);
+    ensureContractsSide(side);
     markRoadmapLink(side.querySelector(".side-nav"));
     side.classList.add("side-fresh");
 
@@ -596,7 +597,8 @@
     { href: "/song-helper", label: "Song Helper" },
     { href: "/cover-art", label: "Cover Art" },
     { href: "/spark", label: "What's hot" },
-    { href: "/battle", label: "Battle" }
+    { href: "/battle", label: "Battle" },
+    { href: "/contracts", label: "Contracts" }
   ];
 
   function whatsNewCurrent(href) {
@@ -665,12 +667,56 @@
     });
   }
 
+  function ensureContractsPublic(links) {
+    if (!links || !links.querySelector || links.querySelector('[data-nav-group="contracts"]')) return;
+    var link = document.createElement("a");
+    link.setAttribute("href", "/contracts");
+    link.href = "/contracts";
+    link.textContent = "Contracts";
+    if (whatsNewCurrent("/contracts")) link.classList.add("active");
+    var group = document.createElement("div");
+    group.className = "nav-group nav-group-link";
+    group.setAttribute("data-nav-group", "contracts");
+    group.appendChild(link);
+    var whats = links.querySelector('[data-nav-group="whats-new"]');
+    var roadmap = links.querySelector('[data-nav-group="roadmap"]');
+    var after = whats || roadmap;
+    if (after && after.nextSibling) links.insertBefore(group, after.nextSibling);
+    else if (after && after.parentNode) after.parentNode.appendChild(group);
+    else links.appendChild(group);
+  }
+
+  function ensureContractsSide(side) {
+    if (!side || !side.querySelector) return;
+    var nav = side.querySelector(".side-nav");
+    if (!nav || nav.querySelector("[data-contracts-link]")) return;
+    var anchor = document.createElement("a");
+    anchor.setAttribute("href", "/contracts");
+    anchor.setAttribute("data-contracts-link", "1");
+    anchor.textContent = "Contracts";
+    if (whatsNewCurrent("/contracts")) anchor.classList.add("on");
+    var label = nav.querySelector('[data-whats-new="label"]');
+    if (label) {
+      nav.insertBefore(anchor, label);
+      return;
+    }
+    var after = null;
+    Array.prototype.forEach.call(nav.querySelectorAll("a"), function (link) {
+      var href = link.getAttribute("href") || "";
+      if (href === "/destination" || href === "destination.html" || linkText(link) === "Roadmap") after = link;
+    });
+    if (after && after.nextSibling) nav.insertBefore(anchor, after.nextSibling);
+    else if (after) nav.appendChild(anchor);
+    else nav.insertBefore(anchor, nav.firstChild);
+  }
+
   function setupPublicNavSections(links) {
     if (!links) return;
     foldPublicPlanHeroes(links);
     if (links.querySelector("[data-nav-group]")) {
       ensurePublicRoadmap(links);
       ensureWhatsNewPublic(links);
+      ensureContractsPublic(links);
       wirePublicNavGroups(links);
       return;
     }
@@ -730,6 +776,7 @@
 
     links.appendChild(makeRoadmapGroup(roadmap));
     ensureWhatsNewPublic(links);
+    ensureContractsPublic(links);
     links.appendChild(product);
     links.appendChild(after);
     links.appendChild(trust);
