@@ -13,6 +13,29 @@
       "permanent": true
     },
     {
+      "source": "/for-david-fv",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/for-david-fv/",
+      "permanent": true
+    },
+    {
+      "source": "/for-david-fv/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/for-david-fv/",
+      "permanent": true
+    },
+    {
+      "source": "/for-david-fv/:path*",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/for-david-fv/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/for-david-fv",
+      "destination": "/for-david-fv/",
+      "permanent": true
+    },
+    {
       "source": "/admin",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/admin",
@@ -297,6 +320,12 @@
       "source": "/login.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/for-david-fv/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
       ]
     }
   ]
