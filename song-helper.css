@@ -631,6 +631,77 @@ body.song-helper-page .plai-bubble {
   .sh-modes .sh-chip { flex: 1 1 calc(50% - 8px); }
 }
 
+.sh-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.sh-answers-title {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: #f3cb47;
+}
+
+.sh-answer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sh-answer b {
+  font-size: 0.82rem;
+  color: #f3cb47;
+}
+
+.sh-answer span {
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+
+.sh-follow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.sh-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.sh-feedback .sh-chips,
+.sh-clarify {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sh-feedback .sh-chip,
+.sh-clarify .sh-chip {
+  min-height: 44px;
+}
+
+.sh-feedback .sh-area {
+  min-height: 72px;
+}
+
 @media print {
   body.song-helper-page { background: #fff; color: #111; }
   body.song-helper-page .nav,

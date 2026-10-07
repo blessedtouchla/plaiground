@@ -232,7 +232,10 @@
         <div id="sh-v2-fields"></div>
         <div id="sh-v2-extra"></div>
         <p class="sh-banner" id="sh-v2-banner" hidden></p>
+        <div id="sh-v2-answers" class="sh-answers"></div>
+        <div id="sh-v2-follow" class="sh-follow" hidden></div>
         <div id="sh-v2-out"></div>
+        <div id="sh-v2-feedback" class="sh-feedback no-print" hidden></div>
         <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
         <div class="sh-actions no-print">
           <button type="button" class="btn btn-purple btn-md" id="sh-v2-go">Make the draft</button>
@@ -310,6 +313,8 @@
         </section>
 
         <section data-step="shape" hidden>
+          <div id="sh-answers" class="sh-answers"></div>
+          <div id="sh-follow" class="sh-follow" hidden></div>
           <div class="sh-group">
             <h3>Language</h3>
             <div class="sh-chips" role="group" aria-label="Language">
@@ -354,6 +359,7 @@
           </div>
           <p class="sh-loading" id="sh-loading" hidden>Drafting around your words…</p>
           <p class="sh-error" id="sh-error" role="alert" hidden></p>
+          <div id="sh-feedback" class="sh-feedback no-print" hidden></div>
           <div class="sh-side-actions no-print">
             <button type="button" class="btn btn-ghost btn-md" id="sh-regen">Regenerate</button>
           </div>
@@ -575,6 +581,7 @@
   </footer>
   <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
+  <script src="lib/song-pass.js"></script>
   <script src="lib/song-modes.js"></script>
   <script src="lib/slang.js"></script>
   <script src="lib/spark.js"></script>

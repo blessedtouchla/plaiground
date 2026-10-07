@@ -414,7 +414,7 @@ async function handler(req, res) {
     return;
   }
   var blocked = await guard.enforce(req, clientIp(req), body, {
-    text: [interview.mood, interview.happened, interview.who, interview.why, interview.line, interview.sparkFeel, interview.sparkStory, interview.sparkKeep].join('\n'),
+    text: [interview.mood, interview.happened, interview.who, interview.why, interview.line, interview.sparkFeel, interview.sparkStory, interview.sparkKeep, interview.revision, interview.followPlace, interview.followObject].join('\n'),
   });
   if (blocked) {
     sendJson(res, blocked.status, blocked.body);

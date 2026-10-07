@@ -35,6 +35,13 @@
   };
 
   var step = 0;
+  var followOpen = false;
+  var followSkipped = false;
+  var followExtra = { place: '', object: '', quote: '' };
+  var pendingRevision = '';
+  var pendingPrevious = '';
+  var feedbackOn = {};
+  var feedbackNote = '';
   var picks = {
     mood: '',
     pack: '',
@@ -168,8 +175,135 @@
         length: picks.length,
       },
       variant: variant,
+      followPlace: followExtra.place || '',
+      followObject: followExtra.object || '',
+      revision: pendingRevision || '',
+      previous: pendingPrevious || '',
       company_website: $('sh-honey').value,
     };
+  }
+
+  function wordRows() {
+    var bank = words();
+    return packs.promptsFor(picks.pack || 'generic', 0).map(function (prompt) {
+      return { label: prompt.label, text: bank[prompt.key] || '' };
+    }).filter(function (row) { return row.text; });
+  }
+
+  function answerBag() {
+    var snap = window.SongHelperV2 && window.SongHelperV2.snapshot ? window.SongHelperV2.snapshot() : {};
+    var spark = sparkSeed();
+    return {
+      topic: String((snap.topic || (spark && spark.angle) || '')).trim(),
+      happened: readAnswer('sh-happened'),
+      who: $('sh-who').value.trim(),
+      why: readAnswer('sh-why'),
+      line: readAnswer('sh-line'),
+      mood: moodValue(),
+      genre: genreValue(),
+      mode: snap.modeLabel || '',
+      place: followExtra.place || snap.place || '',
+      object: followExtra.object || snap.object || '',
+      quote: followExtra.quote || snap.quote || '',
+      region: snap.region || '',
+      language: picks.language,
+      explicit: picks.explicit,
+      length: picks.length,
+      rhyme: snap.rhyme || '',
+      vocabulary: snap.vocabulary || '',
+      words: wordRows(),
+      live: snap.live || [],
+    };
+  }
+
+  function editAnswer(id) {
+    var steps = { genre: 'genre', happened: 'happened', who: 'who', why: 'why', line: 'line', words: 'words' };
+    if (steps[id]) {
+      go(STEPS.indexOf(steps[id]), true);
+      return;
+    }
+    var scroll = { mood: 'sh-feeling', idea: 'sh-own', live: 'sh-live', filters: 'sh-craft', place: 'sh-craft', object: 'sh-craft', quote: 'sh-craft', mode: 'sh-modes' };
+    var el = document.getElementById(scroll[id] || '');
+    if (el && el.scrollIntoView) {
+      try { el.scrollIntoView({ block: 'center' }); } catch (err) {}
+    }
+  }
+
+  function paintCard(host, rows) {
+    if (!host || !window.SongPass) return;
+    host.textContent = '';
+    if (!rows.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    var title = document.createElement('p');
+    title.className = 'sh-answers-title';
+    title.textContent = 'Your answers';
+    host.appendChild(title);
+    rows.forEach(function (row) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-answer';
+      var label = document.createElement('b');
+      label.textContent = row.label;
+      var value = document.createElement('span');
+      value.textContent = row.value;
+      button.appendChild(label);
+      button.appendChild(value);
+      button.addEventListener('click', function () { editAnswer(row.id); });
+      host.appendChild(button);
+    });
+  }
+
+  function paintAnswers() {
+    if (!window.SongPass) return;
+    paintCard($('sh-answers'), window.SongPass.summary(answerBag()));
+  }
+
+  function hideFollow() {
+    var host = $('sh-follow');
+    if (!host) return;
+    host.hidden = true;
+    host.textContent = '';
+  }
+
+  function showFollow(asks) {
+    var host = $('sh-follow');
+    if (!host) return;
+    followOpen = true;
+    host.hidden = false;
+    host.textContent = '';
+    asks.forEach(function (ask) {
+      var label = document.createElement('label');
+      label.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = ask.ask;
+      var input = document.createElement('input');
+      input.className = 'sh-input';
+      input.maxLength = 120;
+      input.placeholder = ask.placeholder || '';
+      input.setAttribute('data-follow', ask.id);
+      label.appendChild(span);
+      label.appendChild(input);
+      host.appendChild(label);
+    });
+    var use = document.createElement('button');
+    use.type = 'button';
+    use.className = 'btn btn-purple btn-md';
+    use.textContent = 'Use these';
+    use.addEventListener('click', function () {
+      host.querySelectorAll('[data-follow]').forEach(function (input) {
+        followExtra[input.getAttribute('data-follow')] = String(input.value || '').trim();
+      });
+      followOpen = false;
+      followSkipped = true;
+      hideFollow();
+      go(STEPS.indexOf('draft'), false);
+    });
+    host.appendChild(use);
+    nextBtn.textContent = 'Skip these';
+    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
   }
 
   function interviewKey() {
@@ -302,6 +436,11 @@
     }
     if (id === 'record') renderRecord();
     else persistSession();
+    if (id === 'shape') paintAnswers();
+    else {
+      followOpen = false;
+      hideFollow();
+    }
     var focus = document.querySelector('[data-step="' + id + '"] textarea, [data-step="' + id + '"] input.sh-input');
     if (focus && step > 0 && id !== 'draft' && id !== 'style' && id !== 'record' && id !== 'next') {
       try { focus.focus(); } catch (err) {}
@@ -331,7 +470,14 @@
     step = index;
     showStep();
     if (STEPS[step] === 'draft') loadDraft(false);
-    window.scrollTo(0, 0);
+    if (STEPS[step] === 'shape') {
+      var card = $('sh-answers');
+      if (card && card.scrollIntoView) {
+        try { card.scrollIntoView({ block: 'start' }); } catch (err) {}
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
   }
 
   function fit(el) {
@@ -426,7 +572,113 @@
     attr.hidden = preview;
     attr.textContent = preview ? '' : (core.PAGE_CREDIT || '');
     renderSuno();
+    paintFeedback();
     if (window.SongHelperV2 && window.SongHelperV2.syncStructure) window.SongHelperV2.syncStructure();
+  }
+
+  function compactDraft(source) {
+    if (!source || !source.sections) return '';
+    return source.sections.map(function (section) {
+      var lines = (section.lines || []).map(function (row) {
+        return String(row && row.text || '').trim();
+      }).filter(Boolean);
+      if (!lines.length) return '';
+      return (section.label || 'Verse') + '\n' + lines.join('\n');
+    }).filter(Boolean).join('\n\n').slice(0, 1600);
+  }
+
+  function chosenChips() {
+    return Object.keys(feedbackOn).filter(function (id) { return feedbackOn[id]; });
+  }
+
+  function applyFeedback(chosen) {
+    if (!window.SongPass) return;
+    var plan = window.SongPass.feedbackPlan({
+      chips: chosen || chosenChips(),
+      note: chosen ? '' : feedbackNote,
+    });
+    var hint = $('sh-feedback-hint');
+    var box = $('sh-clarify');
+    if (plan.empty) {
+      if (hint) hint.textContent = 'Tap what should change.';
+      return;
+    }
+    if (!plan.clear) {
+      if (hint) hint.textContent = '';
+      if (!box) return;
+      box.hidden = false;
+      box.textContent = '';
+      var ask = document.createElement('p');
+      ask.className = 'sh-help';
+      ask.textContent = plan.ask;
+      box.appendChild(ask);
+      plan.options.forEach(function (option) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'sh-chip';
+        button.textContent = option.label;
+        button.addEventListener('click', function () {
+          feedbackOn = {};
+          feedbackOn[option.id] = true;
+          feedbackNote = '';
+          applyFeedback([option.id]);
+        });
+        box.appendChild(button);
+      });
+      return;
+    }
+    pendingRevision = plan.instruction;
+    pendingPrevious = compactDraft(draft);
+    variant += 1;
+    loadDraft(true);
+  }
+
+  function paintFeedback() {
+    var host = $('sh-feedback');
+    if (!host || !window.SongPass || !draft) return;
+    host.hidden = false;
+    host.textContent = '';
+    var title = document.createElement('p');
+    title.className = 'sh-answers-title';
+    title.textContent = 'What should change?';
+    host.appendChild(title);
+    var chips = document.createElement('div');
+    chips.className = 'sh-chips';
+    window.SongPass.CHIPS.forEach(function (chip) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (feedbackOn[chip.id] ? ' on' : '');
+      button.textContent = chip.label;
+      button.setAttribute('aria-pressed', feedbackOn[chip.id] ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        feedbackOn[chip.id] = !feedbackOn[chip.id];
+        paintFeedback();
+      });
+      chips.appendChild(button);
+    });
+    host.appendChild(chips);
+    var note = document.createElement('textarea');
+    note.className = 'sh-area';
+    note.maxLength = 240;
+    note.placeholder = 'Or say it in a few words';
+    note.value = feedbackNote;
+    note.addEventListener('input', function () { feedbackNote = note.value; });
+    host.appendChild(note);
+    var clarify = document.createElement('div');
+    clarify.className = 'sh-clarify';
+    clarify.id = 'sh-clarify';
+    clarify.hidden = true;
+    host.appendChild(clarify);
+    var apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'btn btn-purple btn-md';
+    apply.textContent = 'Apply';
+    apply.addEventListener('click', function () { applyFeedback(); });
+    host.appendChild(apply);
+    var hint = document.createElement('p');
+    hint.className = 'sh-help';
+    hint.id = 'sh-feedback-hint';
+    host.appendChild(hint);
   }
 
   function mountLineTools(parent, box, line) {
@@ -581,6 +833,8 @@
       preview = Boolean(data.preview);
       if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;
       draftKey = key;
+      pendingRevision = '';
+      pendingPrevious = '';
       renderDraft();
     } catch (err) {
       draftError.hidden = false;
@@ -798,6 +1052,7 @@
     var chip = event.target.closest ? event.target.closest('.sh-chip') : null;
     if (!chip) return;
     var group = chip.getAttribute('data-group');
+    if (!group) return;
     var value = chip.getAttribute('data-value');
     if (group === 'instrument') {
       styleTouched = true;
@@ -862,9 +1117,29 @@
   });
 
   backBtn.addEventListener('click', function () {
+    if (followOpen) {
+      followOpen = false;
+      hideFollow();
+      nextBtn.textContent = NEXT_LABEL.shape || 'Write the draft';
+      return;
+    }
     if (step > 0) go(step - 1, true);
   });
   nextBtn.addEventListener('click', function () {
+    if (followOpen) {
+      followOpen = false;
+      followSkipped = true;
+      hideFollow();
+      go(STEPS.indexOf('draft'), false);
+      return;
+    }
+    if (STEPS[step] === 'shape' && window.SongPass && !followSkipped) {
+      var asks = window.SongPass.followups(answerBag());
+      if (asks.length) {
+        showFollow(asks);
+        return;
+      }
+    }
     if (step < STEPS.length - 1) go(step + 1, false);
   });
   restartBtn.addEventListener('click', function () {
@@ -1117,6 +1392,7 @@
   window.SongHelperPage = {
     appendSection: appendSection,
     remember: rememberDraft,
+    refreshAnswers: paintAnswers,
     draft: function () { return draft; },
     hasDraft: function () { return draftHasContent(draft); },
   };

@@ -23,6 +23,14 @@
   var showProfanity = false;
   var chosenSlang = '';
   var openTip = '';
+  var goLabel = 'Make the draft';
+  var followOpen = false;
+  var followSkipped = false;
+  var followExtra = { place: '', object: '', quote: '' };
+  var pendingRevision = '';
+  var pendingPrevious = '';
+  var feedbackOn = {};
+  var feedbackNote = '';
   var lastDraft = null;
   var lastMeta = { preview: true, notice: '' };
   var parodyAck = false;
@@ -82,9 +90,9 @@
       sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, 280) : '',
       sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, 280) : '',
       sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, 280) : '',
-      place: fieldValue('place'),
-      object: fieldValue('object'),
-      quote: fieldValue('quote'),
+      place: fieldValue('place') || followExtra.place,
+      object: fieldValue('object') || followExtra.object,
+      quote: fieldValue('quote') || followExtra.quote,
       genre: fieldValue('genre'),
       title: fieldValue('title'),
       originalTitle: fieldValue('originalTitle'),
@@ -123,7 +131,137 @@
       },
       turnstile_token: turnstileToken,
       company_website: ($('sh-honey') && $('sh-honey').value) || '',
+      revision: pendingRevision || '',
+      previous: pendingPrevious || '',
     };
+  }
+
+  function snapshot() {
+    var info = modes.modeById(mode) || {};
+    var regionBtn = document.querySelector('#sh-region .sh-chip.on');
+    return {
+      mode: mode,
+      modeLabel: info.label || '',
+      topic: ideaTopic(),
+      place: fieldValue('place') || followExtra.place || '',
+      object: fieldValue('object') || followExtra.object || '',
+      quote: fieldValue('quote') || followExtra.quote || '',
+      region: regionBtn && craft.region ? regionBtn.textContent : '',
+      rhyme: craft.rhyme,
+      vocabulary: craft.vocabulary,
+      live: liveAnswers(),
+    };
+  }
+
+  function v2Bag() {
+    var snap = snapshot();
+    return {
+      topic: snap.topic,
+      happened: fieldValue('happened') || snap.topic,
+      who: fieldValue('name'),
+      why: fieldValue('why'),
+      line: fieldValue('line'),
+      mood: readMood(),
+      genre: fieldValue('genre'),
+      mode: snap.modeLabel,
+      place: snap.place,
+      object: snap.object,
+      quote: snap.quote,
+      region: snap.region,
+      rhyme: snap.rhyme,
+      vocabulary: snap.vocabulary,
+      live: snap.live,
+    };
+  }
+
+  function paintV2Answers() {
+    var host = $('sh-v2-answers');
+    if (!host || !window.SongPass || mode === 'write') return;
+    host.textContent = '';
+    var rows = window.SongPass.summary(v2Bag());
+    if (!rows.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    var title = document.createElement('p');
+    title.className = 'sh-answers-title';
+    title.textContent = 'Your answers';
+    host.appendChild(title);
+    rows.forEach(function (row) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-answer';
+      var label = document.createElement('b');
+      label.textContent = row.label;
+      var value = document.createElement('span');
+      value.textContent = row.value;
+      button.appendChild(label);
+      button.appendChild(value);
+      button.addEventListener('click', function () {
+        var field = document.querySelector('#sh-v2-fields [data-field="' + row.id + '"]');
+        var target = field || document.getElementById(row.id === 'idea' ? 'sh-own-idea' : (row.id === 'mood' ? 'sh-feeling' : 'sh-region'));
+        if (target && target.focus) {
+          try { target.focus(); } catch (err) {}
+        }
+        if (target && target.scrollIntoView) {
+          try { target.scrollIntoView({ block: 'center' }); } catch (err2) {}
+        }
+      });
+      host.appendChild(button);
+    });
+  }
+
+  function hideV2Follow() {
+    var host = $('sh-v2-follow');
+    if (!host) return;
+    host.hidden = true;
+    host.textContent = '';
+  }
+
+  function showV2Follow(asks) {
+    var host = $('sh-v2-follow');
+    var go = $('sh-v2-go');
+    if (!host) return;
+    followOpen = true;
+    host.hidden = false;
+    host.textContent = '';
+    asks.forEach(function (ask) {
+      var label = document.createElement('label');
+      label.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = ask.ask;
+      var input = document.createElement('input');
+      input.className = 'sh-input';
+      input.maxLength = 120;
+      input.placeholder = ask.placeholder || '';
+      input.setAttribute('data-follow', ask.id);
+      label.appendChild(span);
+      label.appendChild(input);
+      host.appendChild(label);
+    });
+    var use = document.createElement('button');
+    use.type = 'button';
+    use.className = 'btn btn-purple btn-md';
+    use.textContent = 'Use these';
+    use.addEventListener('click', function () {
+      host.querySelectorAll('[data-follow]').forEach(function (input) {
+        var key = input.getAttribute('data-follow');
+        var text = String(input.value || '').trim();
+        followExtra[key] = text;
+        var field = document.querySelector('#sh-v2-fields [data-field="' + key + '"]');
+        if (field && text) field.value = text;
+      });
+      followOpen = false;
+      followSkipped = true;
+      hideV2Follow();
+      if (go) go.textContent = goLabel;
+      paintV2Answers();
+      generate();
+    });
+    host.appendChild(use);
+    if (go) go.textContent = 'Skip these';
+    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
   }
 
   function modeLane(item) {
@@ -191,7 +329,11 @@
     paintSlang();
     var go = $('sh-v2-go');
     go.hidden = pageStatus.disabled;
-    go.textContent = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
+    goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
+    go.textContent = goLabel;
+    followOpen = false;
+    hideV2Follow();
+    paintV2Answers();
     seedFields();
     syncStructure();
   }
@@ -410,6 +552,8 @@
         chosenSlang = '';
         fillRegions();
         paintSlang();
+        paintV2Answers();
+        if (window.SongHelperPage && window.SongHelperPage.refreshAnswers) window.SongHelperPage.refreshAnswers();
       });
       host.appendChild(button);
     }
@@ -813,7 +957,108 @@
       remember(draft, data);
       renderSuno(out, draft);
     }
+    paintV2Feedback();
     syncStructure();
+  }
+
+  function compactV2(source) {
+    if (!source || !source.sections) return '';
+    return source.sections.map(function (section) {
+      var lines = (section.lines || []).map(function (row) {
+        return String(row && row.text || '').trim();
+      }).filter(Boolean);
+      if (!lines.length) return '';
+      return (section.label || 'Verse') + '\n' + lines.join('\n');
+    }).filter(Boolean).join('\n\n').slice(0, 1600);
+  }
+
+  function applyV2Feedback(chosen) {
+    if (!window.SongPass) return;
+    var plan = window.SongPass.feedbackPlan({
+      chips: chosen || Object.keys(feedbackOn).filter(function (id) { return feedbackOn[id]; }),
+      note: chosen ? '' : feedbackNote,
+    });
+    var hint = $('sh-v2-feedback-hint');
+    var box = $('sh-v2-clarify');
+    if (plan.empty) {
+      if (hint) hint.textContent = 'Tap what should change.';
+      return;
+    }
+    if (!plan.clear) {
+      if (hint) hint.textContent = '';
+      if (!box) return;
+      box.hidden = false;
+      box.textContent = '';
+      var ask = document.createElement('p');
+      ask.className = 'sh-help';
+      ask.textContent = plan.ask;
+      box.appendChild(ask);
+      plan.options.forEach(function (option) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'sh-chip';
+        button.textContent = option.label;
+        button.addEventListener('click', function () {
+          feedbackOn = {};
+          feedbackOn[option.id] = true;
+          feedbackNote = '';
+          applyV2Feedback([option.id]);
+        });
+        box.appendChild(button);
+      });
+      return;
+    }
+    pendingRevision = plan.instruction;
+    pendingPrevious = compactV2(lastDraft);
+    generate();
+  }
+
+  function paintV2Feedback() {
+    var host = $('sh-v2-feedback');
+    if (!host || !window.SongPass || !lastDraft || mode === 'write') return;
+    host.hidden = false;
+    host.textContent = '';
+    var title = document.createElement('p');
+    title.className = 'sh-answers-title';
+    title.textContent = 'What should change?';
+    host.appendChild(title);
+    var chips = document.createElement('div');
+    chips.className = 'sh-chips';
+    window.SongPass.CHIPS.forEach(function (chip) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (feedbackOn[chip.id] ? ' on' : '');
+      button.textContent = chip.label;
+      button.setAttribute('aria-pressed', feedbackOn[chip.id] ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        feedbackOn[chip.id] = !feedbackOn[chip.id];
+        paintV2Feedback();
+      });
+      chips.appendChild(button);
+    });
+    host.appendChild(chips);
+    var note = document.createElement('textarea');
+    note.className = 'sh-area';
+    note.maxLength = 240;
+    note.placeholder = 'Or say it in a few words';
+    note.value = feedbackNote;
+    note.addEventListener('input', function () { feedbackNote = note.value; });
+    host.appendChild(note);
+    var clarify = document.createElement('div');
+    clarify.className = 'sh-clarify';
+    clarify.id = 'sh-v2-clarify';
+    clarify.hidden = true;
+    host.appendChild(clarify);
+    var apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'btn btn-purple btn-md';
+    apply.textContent = 'Apply';
+    apply.addEventListener('click', function () { applyV2Feedback(); });
+    host.appendChild(apply);
+    var hint = document.createElement('p');
+    hint.className = 'sh-help';
+    hint.id = 'sh-v2-feedback-hint';
+    host.appendChild(hint);
   }
 
   function renderLine(parent, part, row, index) {
@@ -1006,6 +1251,14 @@
 
   async function generate() {
     showError('');
+    var skipping = followOpen;
+    if (followOpen) {
+      followOpen = false;
+      followSkipped = true;
+      hideV2Follow();
+      var skipGo = $('sh-v2-go');
+      if (skipGo) skipGo.textContent = goLabel;
+    }
     if (pageStatus.disabled) {
       showError('Song Helper is turned off right now.');
       return;
@@ -1023,6 +1276,14 @@
     if (problem) {
       showError(problem);
       return;
+    }
+    var quiet = { cover: true, review: true, parody: true, 'public-domain': true };
+    if (!skipping && !followSkipped && window.SongPass && !quiet[mode]) {
+      var asks = window.SongPass.followups(v2Bag());
+      if (asks.length) {
+        showV2Follow(asks);
+        return;
+      }
     }
     if (mode === 'public-domain') {
       var picked = fieldValue('work');
@@ -1047,6 +1308,8 @@
         return;
       }
       renderResult(data);
+      pendingRevision = '';
+      pendingPrevious = '';
     } catch (err) {
       if (mode === 'hook') {
         showError('The hook did not come back. Try again in a moment.');
@@ -1059,6 +1322,8 @@
       }
       local.notice = modes.DEMO_NOTICE;
       renderResult(local);
+      pendingRevision = '';
+      pendingPrevious = '';
     } finally {
       go.disabled = false;
     }
@@ -1959,6 +2224,7 @@
     setMode: setMode,
     syncStructure: syncStructure,
     spark: function () { return sparkSeed; },
+    snapshot: snapshot,
   };
   bindCraft();
   paintOwn();
