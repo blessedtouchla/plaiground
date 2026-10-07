@@ -476,10 +476,12 @@ function runPage() {
   assert.ok(html.includes('id="bt-regen"'));
   assert.ok(html.includes('>Regenerate<'));
   assert.ok(html.includes('id="bt-verse"'));
-  assert.ok(html.includes('Copy for Suno'));
+  assert.ok(html.includes('Copy lyrics'));
+  assert.ok(!html.includes('Copy for Suno'));
   assert.ok(html.includes('id="bt-intro"'));
   assert.ok(html.includes('id="bt-outro"'));
-  assert.ok(html.includes('Style prompt for Suno'));
+  assert.ok(html.includes('Style prompt'));
+  assert.ok(!html.includes('Style prompt for Suno'));
   assert.ok(html.includes(core.CREDIT_NOTE));
   assert.ok(html.includes('href="/song-helper?from=battle"'));
   assert.ok(html.includes('href="/cover-art"'));

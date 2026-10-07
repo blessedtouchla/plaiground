@@ -979,7 +979,8 @@ function runPage() {
   assert.ok(js.includes('banner.hidden = !preview'));
   assert.ok(html.includes('id="sh-suno"'));
   assert.ok(html.includes('id="sh-suno" class="sh-suno-text" readonly'));
-  assert.ok(html.includes('Copy for Suno'));
+  assert.ok(html.includes('Copy lyrics'));
+  assert.ok(!html.includes('Copy for Suno'));
   assert.ok(html.includes('id="sh-suno-warn"'));
   assert.ok(html.indexOf('id="sh-lyric"') < html.indexOf('id="sh-attr"'));
   assert.ok(html.indexOf('id="sh-attr"') < html.indexOf('id="sh-suno"'));

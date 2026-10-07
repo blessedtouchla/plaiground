@@ -358,7 +358,7 @@
     }
     go.hidden = false;
     if (v2StyleOpen) go.textContent = 'Skip these';
-    else if (lyricsReady) go.textContent = 'Make my Suno style prompt';
+    else if (lyricsReady) go.textContent = 'Make my style prompt';
     else go.textContent = goLabel;
   }
 
@@ -1239,7 +1239,7 @@
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn btn-purple btn-md';
-    button.textContent = 'Copy for Suno';
+    button.textContent = 'Copy lyrics';
     button.addEventListener('click', function () {
       var clichesLocked = modes.allLines(draft).filter(function (row) {
         return modes.clicheHits(row.text).length;

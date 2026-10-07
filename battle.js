@@ -166,7 +166,7 @@
     var warn = $('bt-suno-warn');
     if (text.length > limit) {
       warn.hidden = false;
-      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. Suno works best under about ' + limit.toLocaleString('en-US') + '.';
+      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. The lyric box works best under about ' + limit.toLocaleString('en-US') + '.';
     } else {
       warn.hidden = true;
       warn.textContent = '';

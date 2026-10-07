@@ -16,7 +16,7 @@
     words: ['Give me the pictures.', 'Short phrases or full lines. I weave them into the song and keep your words.'],
     shape: ['What shape is the song?', 'Language, clean or explicit, and how long you want the draft.'],
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
-    style: ['Describe the sound.', 'This becomes a style prompt you can paste into Suno. We describe the sound instead of naming artists.'],
+    style: ['Describe the sound.', 'This becomes a style prompt you can copy. We describe the sound instead of naming artists.'],
     record: ['Your authorship record.', 'What you wrote, and what was drafted around it. Download it or print it.'],
     next: ['When you want a team on it.', 'Song Helper is a free way to start. PLAIGROUND is the AI-powered music business around the song.'],
   };
@@ -29,7 +29,7 @@
     line: 'Next',
     words: 'Next',
     shape: 'Write the draft',
-    draft: 'Make my Suno style prompt',
+    draft: 'Make my style prompt',
     style: 'Authorship record',
     record: 'Next steps',
   };
@@ -758,7 +758,7 @@
     var limit = core.SUNO_CHAR_LIMIT || 3000;
     if (text.length > limit) {
       warn.hidden = false;
-      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. Suno works best under about ' + limit.toLocaleString('en-US') + '.';
+      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. The lyric box works best under about ' + limit.toLocaleString('en-US') + '.';
     } else {
       warn.hidden = true;
       warn.textContent = '';
