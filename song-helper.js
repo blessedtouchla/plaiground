@@ -131,7 +131,9 @@
   }
 
   function genreValue() {
-    return packs.genreLabel(picks.pack, picks.comedyMusic, picks.comedyType) || '';
+    var label = packs.genreLabel(picks.pack, picks.comedyMusic, picks.comedyType) || '';
+    if (picks.genre2 && picks.genre2 !== label) label = label ? (label + ', ' + picks.genre2) : picks.genre2;
+    return label;
   }
 
   function rememberWords() {
@@ -168,6 +170,8 @@
       why: readAnswer('sh-why'),
       line: readAnswer('sh-line'),
       words: words(),
+      title: ($('sh-working-title') && $('sh-working-title').value.trim()) || '',
+      north: window.SongFlowPage ? window.SongFlowPage.north() : null,
       shape: {
         genre: genreValue(),
         pack: picks.pack,
@@ -226,7 +230,7 @@
       go(STEPS.indexOf(steps[id]), true);
       return;
     }
-    var scroll = { mood: 'sh-feeling', idea: 'sh-own', live: 'sh-live', filters: 'sh-craft', place: 'sh-craft', object: 'sh-craft', quote: 'sh-craft', mode: 'sh-modes' };
+    var scroll = { mood: 'sh-feeling', idea: 'sh-own', live: 'sh-purpose', filters: 'sh-cast', place: 'sh-purpose', object: 'sh-purpose', quote: 'sh-purpose', mode: 'sh-modes', for: 'sh-purpose', aim: 'sh-purpose', wisdom: 'sh-purpose', never: 'sh-purpose', scared: 'sh-purpose', nobody: 'sh-purpose' };
     var el = document.getElementById(scroll[id] || '');
     if (el && el.scrollIntoView) {
       try { el.scrollIntoView({ block: 'center' }); } catch (err) {}
@@ -262,7 +266,8 @@
 
   function paintAnswers() {
     if (!window.SongPass) return;
-    paintCard($('sh-answers'), window.SongPass.summary(answerBag()));
+    var rows = window.SongFlowPage && window.SongFlowPage.cardRows ? window.SongFlowPage.cardRows() : [];
+    paintCard($('sh-answers'), rows.concat(window.SongPass.summary(answerBag())));
   }
 
   function hideFollow() {
@@ -894,7 +899,8 @@
       renderDraft();
       return;
     }
-    var block = ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words'].reduce(function (msg, id) {
+    var flowReady = window.SongFlowPage && window.SongFlowPage.ready && window.SongFlowPage.ready();
+    var block = (flowReady ? ['mood'] : ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words']).reduce(function (msg, id) {
       return msg || validate(id);
     }, '');
     if (block) {
@@ -1696,6 +1702,21 @@
       showMoodError('');
     },
     mood: function () { return picks.mood; },
+    setPack: function (id) {
+      picks.pack = id || '';
+      picks.comedyType = '';
+      picks.comedyMusic = '';
+    },
+    setShapeBits: function (bits) {
+      var next = bits || {};
+      if (next.language) picks.language = next.language;
+      if (next.explicit) picks.explicit = next.explicit;
+      if (next.genre2) picks.genre2 = next.genre2;
+      else picks.genre2 = '';
+    },
+    openDraft: function () {
+      go(STEPS.indexOf('draft'), true);
+    },
   };
 
   var feeling = document.getElementById('sh-feeling');

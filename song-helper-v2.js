@@ -14,6 +14,7 @@
   };
   var mode = 'write';
   var kind = '';
+  var kinds = [];
   var part = 'song';
   var questions = window.SongQuestions;
   var live = null;
@@ -42,6 +43,7 @@
   var sparkGroup = 'trending';
   var sparkNews = '';
   var sparkTopic = '';
+  var sparkTopics = [];
   var sparkHeadline = '';
   var sparkDailyOpen = false;
   var sparkAsk = { feel: '', story: '', keep: '' };
@@ -99,6 +101,8 @@
 
   function payload() {
     rememberAsk();
+    var star = window.SongFlowPage && window.SongFlowPage.north ? window.SongFlowPage.north() : null;
+    var sense = star && star.sensory ? star.sensory : {};
     return {
       mode: mode,
       kind: kind,
@@ -110,11 +114,12 @@
       sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, 280) : '',
       sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, 280) : '',
       sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, 280) : '',
-      place: fieldValue('place') || followExtra.place,
-      object: fieldValue('object') || followExtra.object,
-      quote: fieldValue('quote') || followExtra.quote,
+      place: fieldValue('place') || followExtra.place || sense.place || '',
+      object: fieldValue('object') || followExtra.object || sense.object || '',
+      quote: fieldValue('quote') || followExtra.quote || sense.quote || '',
       genre: fieldValue('genre'),
-      title: fieldValue('title'),
+      title: (($('sh-working-title') && $('sh-working-title').value) || fieldValue('title') || '').slice(0, 80),
+      north: window.SongFlowPage ? window.SongFlowPage.north() : null,
       originalTitle: fieldValue('originalTitle'),
       comment: fieldValue('comment'),
       name: fieldValue('name'),
@@ -633,6 +638,7 @@
     chip('', 'No region');
     regionTags.forEach(function (tag) { chip(tag, tag); });
     if (window.SongHelperChips) window.SongHelperChips.fold(host);
+    if (window.SongFlowPage && window.SongFlowPage.paintCast) window.SongFlowPage.paintCast();
   }
 
   function ideaTopic() {
@@ -677,14 +683,19 @@
     questions.KINDS.forEach(function (item) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'sh-chip' + (kind && item.id === kind ? ' on' : '');
+      var on = kinds.indexOf(item.id) !== -1;
+      button.className = 'sh-chip' + (on ? ' on' : '');
       button.textContent = item.label;
-      button.setAttribute('aria-pressed', kind && item.id === kind ? 'true' : 'false');
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
       button.addEventListener('click', function () {
-        kind = kind === item.id ? '' : item.id;
+        var at = kinds.indexOf(item.id);
+        if (at >= 0) kinds.splice(at, 1);
+        else if (kinds.length < 2) kinds.push(item.id);
+        kind = kinds[0] || '';
         if (window.SongHelperPage && window.SongHelperPage.setMood) {
           window.SongHelperPage.setMood(kind ? (KIND_MOOD[kind] || kind) : '');
         }
+        if (window.SongFlowPage) window.SongFlowPage.setKinds(kinds);
         resetLive();
         paintKinds();
         paintLive();
@@ -2072,6 +2083,8 @@
     var ownBtn = $('sh-choice-own');
     if (ideas) ideas.hidden = ideaLane !== 'ideas';
     if (own) own.hidden = ideaLane !== 'own';
+    var titleField = $('sh-title-field');
+    if (titleField) titleField.hidden = ideaLane !== 'ideas' && ideaLane !== 'own';
     if (ideasBtn) {
       var ideasOn = ideaLane === 'ideas';
       ideasBtn.classList.toggle('on', ideasOn);
@@ -2121,6 +2134,7 @@
       if (!ideaLane) ideaLane = 'own';
       if (!kind) {
         kind = 'love';
+        kinds = ['love'];
         if (window.SongHelperPage.setMood && window.SongHelperPage.mood && !window.SongHelperPage.mood()) {
           window.SongHelperPage.setMood(KIND_MOOD.love);
         }
@@ -2133,11 +2147,17 @@
     var ideaReady = scratch && (ideaLane === 'ideas' || ideaLane === 'own');
     showEl('sh-feeling', ideaReady);
     var feelReady = ideaReady && !!kind;
-    var questionModes = { write: 1, funny: 1, madlibs: 1, superhero: 1, poem: 1, hook: 1, bars: 1, battle: 1 };
-    showEl('sh-live', feelReady && (!mode || questionModes[mode]));
-    showEl('sh-craft', feelReady);
-    showEl('sh-part-pick', feelReady);
-    var writeSurface = feelReady && (!mode || mode === 'write');
+    var pageFlow = window.SongFlowPage;
+    var talk = pageFlow ? pageFlow.talk() : '';
+    var draftReady = feelReady && pageFlow && pageFlow.ready();
+    var drafted = window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft();
+    showEl('sh-talk', feelReady);
+    showEl('sh-purpose', feelReady && (talk === 'form' || talk === 'plai'));
+    showEl('sh-cast', !!draftReady);
+    showEl('sh-live', false);
+    showEl('sh-craft', !!drafted);
+    showEl('sh-part-pick', false);
+    var writeSurface = feelReady && (!mode || mode === 'write') && (!!draftReady && pageFlow && pageFlow.opened() || drafted);
     var v2On = (source && sourceModeOn()) || (feelReady && !!mode && mode !== 'write' && mode !== 'battle');
     var shell = document.getElementById('sh-shell');
     if (shell) shell.classList.toggle('is-v2', v2On);
@@ -2486,21 +2506,25 @@
       host.appendChild(emptyTopics);
     } else {
       topics.forEach(function (topic) {
-        topicRow.appendChild(sparkChip(topic.label, sparkTopic === topic.label, function () {
+        var topicOn = sparkTopics.indexOf(topic.label) !== -1 || sparkTopic === topic.label;
+        topicRow.appendChild(sparkChip(topic.label, topicOn, function () {
           rememberAsk();
-          if (sparkTopic === topic.label) {
+          var at = sparkTopics.indexOf(topic.label);
+          if (at >= 0 || sparkTopic === topic.label) {
+            if (at >= 0) sparkTopics.splice(at, 1);
             var was = topic.label;
-            sparkTopic = '';
+            if (sparkTopic === topic.label) sparkTopic = sparkTopics[0] || '';
             sparkHeadline = '';
             if (sparkSeed && sparkSeed.topic === was) {
               sparkSeed = null;
               sparkAsk = { feel: '', story: '', keep: '' };
               paintSparkNote();
             }
-          } else {
+          } else if (sparkTopics.length < 2) {
+            sparkTopics.push(topic.label);
             sparkTopic = topic.label;
             sparkHeadline = '';
-            if (sparkSeed && sparkSeed.topic && sparkSeed.topic !== topic.label) {
+            if (sparkSeed && sparkSeed.topic && sparkTopics.indexOf(sparkSeed.topic) === -1) {
               sparkSeed = null;
               paintSparkNote();
             }
@@ -2658,6 +2682,15 @@
     syncStructure: syncStructure,
     spark: function () { return sparkSeed; },
     snapshot: snapshot,
+    repaint: paintBranch,
+    kinds: function () { return kinds.slice(); },
+    setRegion: function (value) {
+      craft.region = value || '';
+      chosenSlang = '';
+      fillRegions();
+      paintSlang();
+    },
+    region: function () { return craft.region || ''; },
   };
   bindCraft();
   paintOwn();

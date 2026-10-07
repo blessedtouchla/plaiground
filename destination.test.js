@@ -37,9 +37,9 @@ function runRoutes() {
   assert.notStrictEqual(core.recommendedIds('idea', 'money').join(), core.recommendedIds('made', 'money').join());
   assert.notStrictEqual(core.recommendedIds('made', 'money').join(), core.recommendedIds('out', 'money').join());
 
-  assert.deepStrictEqual(core.recommendedIds('made', 'release'), ['persona', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'cover', 'distro']);
-  assert.deepStrictEqual(core.recommendedIds('idea', 'money'), ['helper', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'persona', 'publishing', 'royalties', 'sync']);
-  assert.deepStrictEqual(core.recommendedIds('out', 'fanbase'), ['persona', 'pitch', 'marketing', 'check', 'copyright', 'contracts', 'qualify', 'makehuman']);
+  assert.deepStrictEqual(core.recommendedIds('made', 'release'), ['persona', 'check', 'cover', 'distro']);
+  assert.deepStrictEqual(core.recommendedIds('idea', 'money'), ['helper', 'check', 'copyright', 'contracts', 'qualify', 'persona', 'publishing', 'royalties', 'sync']);
+  assert.deepStrictEqual(core.recommendedIds('out', 'fanbase'), ['persona', 'pitch', 'marketing', 'check', 'copyright', 'contracts', 'qualify']);
 
   goals.forEach(function (goal) {
     assert.ok(core.recommendedIds('idea', goal).includes('helper'), goal);
@@ -52,14 +52,14 @@ function runRoutes() {
   assert.ok(!core.recommendedIds('idea', 'money').includes('distro'));
 
   const release = core.applyKit('release', 'idea', 'money');
-  assert.deepStrictEqual(release.stops, ['persona', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'cover', 'distro']);
+  assert.deepStrictEqual(release.stops, ['persona', 'check', 'cover', 'distro']);
   assert.strictEqual(release.song, 'made');
   assert.strictEqual(release.goal, 'release');
   assert.strictEqual(release.total, 'Free to start');
   assert.strictEqual(release.managed, false);
 
   const record = core.applyKit('record', 'made', 'release');
-  assert.deepStrictEqual(record.stops, ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'makehuman', 'sync', 'billboard']);
+  assert.deepStrictEqual(record.stops, ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'sync', 'billboard']);
   assert.strictEqual(record.song, 'out');
   assert.ok(core.headsUp(record.stops, record.song, record.goal).indexOf('Sync pitching needs splits registered first.') !== -1);
 
@@ -187,7 +187,7 @@ function runRoutes() {
   recordPlan.note = 'city';
   const stored = core.planRecord(recordPlan);
   assert.strictEqual(core.STORAGE_KEY, 'plaigroundDestinationPlan');
-  assert.deepStrictEqual(stored.stops, ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'makehuman', 'sync', 'billboard']);
+  assert.deepStrictEqual(stored.stops, ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'sync', 'billboard']);
   assert.deepStrictEqual(core.SECTIONS.map(function (section) { return section.label; }), [
     'Make it', 'Get ready', 'Protect it', 'Put it out', 'Get heard', 'Get paid', 'Run it'
   ]);
@@ -207,7 +207,7 @@ function runRoutes() {
   assert.strictEqual(placed.copyright, 'protect');
   assert.strictEqual(placed.contracts, 'protect');
   assert.strictEqual(placed.qualify, 'protect');
-  assert.strictEqual(placed.makehuman, 'protect');
+  assert.ok(!placed.makehuman);
   assert.strictEqual(placed.distro, 'put');
   assert.strictEqual(placed.persona, 'put');
   assert.strictEqual(placed.pitch, 'heard');
@@ -218,7 +218,7 @@ function runRoutes() {
   assert.strictEqual(placed.sync, 'paid');
   assert.strictEqual(placed.shows, 'run');
   const ideaRoute = core.sectionsFor(core.recommendedIds('idea', 'release'));
-  assert.deepStrictEqual(ideaRoute.map(function (section) { return section.id; }), ['make', 'ready', 'protect', 'put', 'paid']);
+  assert.deepStrictEqual(ideaRoute.map(function (section) { return section.id; }), ['make', 'ready', 'put', 'paid']);
   assert.deepStrictEqual(ideaRoute[0].stops, ['helper', 'cover']);
   assert.strictEqual(core.openSectionId('idea', 'release', core.recommendedIds('idea', 'release')), 'make');
   assert.strictEqual(core.openSectionId('made', 'release', core.KITS.release.stops), 'ready');

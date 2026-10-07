@@ -6,7 +6,7 @@
   if (!api || !view) return;
 
   var answers = {};
-  var index = -1;
+  var index = 0;
 
   function esc(value) {
     return String(value || '')
@@ -38,21 +38,13 @@
   }
 
   function render() {
-    var total = api.QUESTIONS.length + 2;
-    var now = index < 0 ? 1 : Math.min(total, index + 2);
+    var total = api.QUESTIONS.length + 1;
+    var now = Math.min(total, index + 1);
     if (bar) {
       bar.setAttribute('aria-valuemax', String(total));
       bar.setAttribute('aria-valuenow', String(now));
     }
     if (fill) fill.style.width = ((now / total) * 100) + '%';
-    if (index < 0) {
-      var intro = '<h1 tabindex="-1">' + esc(api.INTRO.title) + '</h1>';
-      intro += '<p class="qualify-lead">' + esc(api.INTRO.lead) + '</p>';
-      intro += forList(api.FOR, false);
-      intro += '<button type="button" class="guide-cta" data-qualify-start>Start the check</button>';
-      paint(intro);
-      return;
-    }
     if (index >= api.QUESTIONS.length) {
       var card = api.result(answers);
       var html = '<h1 tabindex="-1">' + esc(card.title) + '</h1>';
@@ -81,14 +73,8 @@
   }
 
   view.addEventListener('click', function (event) {
-    var start = event.target.closest('[data-qualify-start]');
     var pick = event.target.closest('[data-qualify-pick]');
     var back = event.target.closest('[data-qualify-back]');
-    if (start) {
-      index = 0;
-      render();
-      return;
-    }
     if (pick && index >= 0 && index < api.QUESTIONS.length) {
       answers[api.QUESTIONS[index].id] = pick.getAttribute('data-qualify-pick');
       index += 1;
@@ -96,7 +82,7 @@
       return;
     }
     if (back) {
-      index = Math.max(-1, index - 1);
+      index = Math.max(0, index - 1);
       render();
     }
   });

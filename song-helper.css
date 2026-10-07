@@ -761,6 +761,31 @@ body.song-helper-page .plai-bubble {
   min-height: 44px;
 }
 
+.sh-plai-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.sh-plai-turn {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sh-plai-turn.is-user {
+  background: rgba(125, 60, 255, 0.28);
+}
+
+.sh-plai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 @media print {
   body.song-helper-page { background: #fff; color: #111; }
   body.song-helper-page .nav,

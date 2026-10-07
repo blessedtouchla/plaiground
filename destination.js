@@ -305,26 +305,26 @@
   };
 
   var STOP_ORDER = [
-    'helper', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'cover', 'persona', 'distro', 'publishing', 'royalties',
+    'helper', 'check', 'copyright', 'contracts', 'qualify', 'cover', 'persona', 'distro', 'publishing', 'royalties',
     'sync', 'pitch', 'marketing', 'multiverse', 'billboard', 'shows'
   ];
 
   var RECOMMENDED = {
-    'idea|money': ['helper', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'persona', 'publishing', 'royalties', 'sync'],
+    'idea|money': ['helper', 'check', 'copyright', 'contracts', 'qualify', 'persona', 'publishing', 'royalties', 'sync'],
     'idea|fanbase': ['helper', 'cover', 'persona', 'check', 'distro', 'pitch'],
-    'idea|release': ['helper', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'cover', 'persona', 'distro', 'publishing'],
-    'made|money': ['check', 'copyright', 'contracts', 'qualify', 'makehuman', 'persona', 'distro', 'publishing', 'royalties', 'sync'],
-    'made|fanbase': ['cover', 'persona', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'distro', 'pitch', 'marketing'],
-    'made|release': ['persona', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'cover', 'distro'],
-    'out|money': ['publishing', 'royalties', 'sync', 'check', 'copyright', 'contracts', 'qualify', 'makehuman'],
-    'out|fanbase': ['persona', 'pitch', 'marketing', 'check', 'copyright', 'contracts', 'qualify', 'makehuman'],
-    'out|release': ['check', 'copyright', 'contracts', 'qualify', 'makehuman', 'publishing', 'royalties']
+    'idea|release': ['helper', 'check', 'cover', 'persona', 'distro', 'publishing'],
+    'made|money': ['check', 'copyright', 'contracts', 'qualify', 'persona', 'distro', 'publishing', 'royalties', 'sync'],
+    'made|fanbase': ['cover', 'persona', 'check', 'copyright', 'contracts', 'qualify', 'distro', 'pitch', 'marketing'],
+    'made|release': ['persona', 'check', 'cover', 'distro'],
+    'out|money': ['publishing', 'royalties', 'sync', 'check', 'copyright', 'contracts', 'qualify'],
+    'out|fanbase': ['persona', 'pitch', 'marketing', 'check', 'copyright', 'contracts', 'qualify'],
+    'out|release': ['check', 'publishing', 'royalties']
   };
 
   var SECTIONS = [
     { id: 'make', label: 'Make it', stops: ['helper', 'cover', 'multiverse'] },
     { id: 'ready', label: 'Get ready', stops: ['check'] },
-    { id: 'protect', label: 'Protect it', stops: ['copyright', 'contracts', 'qualify', 'makehuman'] },
+    { id: 'protect', label: 'Protect it', stops: ['copyright', 'contracts', 'qualify'] },
     { id: 'put', label: 'Put it out', stops: ['distro', 'persona'] },
     { id: 'heard', label: 'Get heard', stops: ['pitch', 'marketing', 'billboard'] },
     { id: 'paid', label: 'Get paid', stops: ['royalties', 'publishing', 'sync'] },
@@ -337,14 +337,14 @@
       label: 'Release Kit',
       song: 'made',
       goal: 'release',
-      stops: ['persona', 'check', 'copyright', 'contracts', 'qualify', 'makehuman', 'cover', 'distro']
+      stops: ['persona', 'check', 'cover', 'distro']
     },
     record: {
       id: 'record',
       label: 'Break Your Record',
       song: 'out',
       goal: 'fanbase',
-      stops: ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'makehuman', 'sync', 'billboard']
+      stops: ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'sync', 'billboard']
     },
     management: {
       id: 'management',

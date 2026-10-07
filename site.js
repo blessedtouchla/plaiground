@@ -597,8 +597,7 @@
     { href: "/song-helper", label: "Song Helper" },
     { href: "/cover-art", label: "Cover Art" },
     { href: "/spark", label: "What's hot" },
-    { href: "/battle", label: "Battle" },
-    { href: "/contracts", label: "Contracts" }
+    { href: "/battle", label: "Battle" }
   ];
 
   function whatsNewCurrent(href) {
