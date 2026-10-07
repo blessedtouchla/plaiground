@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260912cr2" />
+  <link rel="stylesheet" href="cover-reposition.css?v=20261007crop1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -70,6 +71,16 @@
           <div class="release-sleeve is-empty" id="upload-cover" data-release-sleeve data-stage-drop>
             <div class="release-sleeve-disc" aria-hidden="true"></div>
             <div class="art release-sleeve-face" role="button" tabindex="0" aria-label="Add cover art" data-art-box data-stage-pick="cover"></div>
+          </div>
+          <div class="cover-reposition" data-cover-reposition hidden>
+            <div class="cover-reposition-row">
+              <p class="cover-reposition-hint" id="cover-reposition-hint">Drag to reposition</p>
+              <button type="button" class="cover-reposition-reset" data-cover-reset>Reset</button>
+            </div>
+            <label class="cover-reposition-zoom">
+              <span class="sr-only">Zoom</span>
+              <input type="range" data-cover-zoom min="1" max="4" step="0.01" value="1" aria-label="Zoom" />
+            </label>
           </div>
           <p class="release-sleeve-actions">
             <button class="btn btn-ghost btn-sm" type="button" data-art-clear hidden>Clear</button>
@@ -298,6 +309,7 @@
   <script src="lib/store-pick.js?v=20260912a2"></script>
   <script src="lib/cover-url.js"></script>
   <script src="lib/cover-preview.js"></script>
+  <script src="lib/cover-reposition.js?v=20261007crop1"></script>
   <script src="lib/cover-bind.js"></script>
   <script src="lib/object-hop.js?v=20260913b1"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
