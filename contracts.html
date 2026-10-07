@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contracts - PLAIGROUND</title>
+  <meta name="description" content="Read a contract, mark it up, or start a fair draft." />
+  <link rel="canonical" href="https://www.wannaplai.com/contracts" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css?v=20260924p3" />
+  <link rel="stylesheet" href="guide.css?v=20261007pace" />
+  <link rel="stylesheet" href="contracts.css?v=20261007biz" />
+</head>
+<body class="guide-page contract-page">
+  <main class="guide">
+    <header class="guide-top">
+      <a href="/destination"><img class="guide-mark" src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <a class="guide-skip" href="/destination">Roadmap</a>
+    </header>
+    <h1>Contracts</h1>
+    <p class="contract-note">General info, not legal advice. Have a lawyer review before signing anything big.</p>
+    <nav class="contract-paths" aria-label="Contract paths">
+      <a href="/contracts/review">Review mine</a>
+      <a href="/contracts/fix">Fix mine</a>
+      <a href="/contracts/create">Create mine</a>
+    </nav>
+    <p class="contract-pay">Pay per use. Victoria will set the amount.</p>
+    <h2>Contracts in the biz</h2>
+    <div class="contract-filters" role="tablist" aria-label="Filter contracts">
+      <button type="button" data-contract-filter="all" class="is-on" aria-pressed="true">All</button>
+      <button type="button" data-contract-filter="human" aria-pressed="false">Human</button>
+      <button type="button" data-contract-filter="ai" aria-pressed="false">AI</button>
+    </div>
+    <div class="contract-library" data-contract-library></div>
+    <p class="contract-note">General info, not legal advice. Have a lawyer review before signing anything big.</p>
+  </main>
+  <script src="lib/contracts.js?v=20261007biz"></script>
+  <script src="contracts-hub.js?v=20261007biz"></script>
+</body>
+</html>

@@ -78,33 +78,54 @@
     <div class="wrap sh-shell" id="sh-shell">
       <p class="sh-kicker">Free co-writer</p>
       <h1>PLAIGROUND Song Helper</h1>
-      <p class="sh-intro">Tell me the song in your own words. I’ll draft lyrics around them, then a style prompt you can take to Suno.</p>
+      <p class="sh-intro">Tell me the song in your own words. I’ll draft lyrics around them, then a style prompt you can copy.</p>
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Start with the idea, then how it feels, then the kind of song and the mode. Questions follow what you just said. Craft and region come after. Region is optional. A part is the section you are writing: verse, hook, bars, bridge, or the whole song. Flip it, Funkify, and Superhero remix wait until a draft is on the page.</p>
-      <section class="sh-craft" id="sh-idea">
-        <h2 class="sh-craft-title">Start with an idea</h2>
-        <p class="sh-help">Look through What’s hot, or add your own idea. Choose a category, then a topic, then a headline. The song idea opens after the headline. Questions are optional. The more you put in, the more human the draft feels. You can skip this and tell the story yourself. The helper is optional. The song stays yours.</p>
-        <div id="sh-spark"></div>
-        <p class="sh-note" id="sh-spark-picked" hidden></p>
-        <h3 class="sh-subhead">Or add my own idea</h3>
-        <p class="sh-help">A blank box is enough. A hot topic can fill it in. These questions are optional. The more you put in, the more human the draft feels.</p>
-        <div id="sh-own"></div>
-        <p class="sh-spark-link"><a href="/spark">Open the full What’s hot page</a></p>
+      <p class="sh-path">Create from scratch, or start from a real song. Then a title, a feeling, and the point of the song. The draft comes after.</p>
+      <section class="sh-craft" id="sh-start">
+        <h2 class="sh-craft-title">How do you want to start?</h2>
+        <p class="sh-help">Pick one. You can switch anytime.</p>
+        <div class="sh-idea-choices" role="group" aria-label="Where the song starts">
+          <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false">Create from scratch</button>
+          <button type="button" class="sh-choice" id="sh-choice-source" aria-pressed="false">From a real song</button>
+        </div>
       </section>
-      <section class="sh-craft" id="sh-feeling">
-        <h2 class="sh-craft-title">How does it feel?</h2>
-        <p class="sh-help">Tap the feeling that fits. If none of them do, write your own. This comes before the craft dials.</p>
-        <div class="sh-chips" role="group" aria-label="Mood">
-          <button type="button" class="sh-chip" data-group="mood" data-value="heartbroken" aria-pressed="false">heartbroken</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="hyped" aria-pressed="false">hyped</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="grateful" aria-pressed="false">grateful</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="petty" aria-pressed="false">petty</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="in love" aria-pressed="false">in love</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="nostalgic" aria-pressed="false">nostalgic</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="healing" aria-pressed="false">healing</button>
-          <button type="button" class="sh-chip" data-group="mood" data-value="custom" aria-pressed="false">something else</button>
+      <section class="sh-craft" id="sh-source" hidden>
+        <h2 class="sh-craft-title">From a real song</h2>
+        <p class="sh-help">Pick the path. Name the song first. Only that path stays on the page.</p>
+        <div class="sh-modes" id="sh-source-modes" role="group" aria-label="From a real song"></div>
+      </section>
+      <section class="sh-craft" id="sh-idea" hidden>
+        <h2 class="sh-craft-title">Start with an idea</h2>
+        <p class="sh-help">Pick one. You can switch anytime.</p>
+        <div class="sh-idea-choices" role="group" aria-label="How to start">
+          <button type="button" class="sh-choice" id="sh-choice-ideas" aria-pressed="false">Give me ideas</button>
+          <button type="button" class="sh-choice" id="sh-choice-own" aria-pressed="false">I have my own idea</button>
+        </div>
+        <div id="sh-ideas-panel" hidden>
+          <p class="sh-help">Daily spark and topics. Tap a chip again to clear it.</p>
+          <div id="sh-spark"></div>
+          <p class="sh-note" id="sh-spark-picked" hidden></p>
+          <p class="sh-spark-link"><a href="/spark">Open the full What’s hot page</a></p>
+        </div>
+        <div id="sh-own-panel" hidden>
+          <p class="sh-help">A blank box is enough. These questions are optional. The more you put in, the more human the draft feels.</p>
+          <div id="sh-own"></div>
+        </div>
+        <label class="sh-field" id="sh-title-field" hidden>
+          <span>Working title</span>
+          <input class="sh-input" id="sh-working-title" maxlength="80" autocomplete="off" placeholder="A few words for the song" />
+        </label>
+      </section>
+      <section class="sh-craft" id="sh-feeling" hidden>
+        <h2 class="sh-craft-title">How it feels</h2>
+        <p class="sh-help">Pick a feeling. A second one can tint it. Heartbreak, grateful, and hype still ask different questions later.</p>
+        <div id="sh-kind">
+          <div class="sh-modes" id="sh-kinds" role="group" aria-label="Kind of song"></div>
+          <h3 class="sh-subhead">How you write</h3>
+          <div class="sh-modes" id="sh-modes" role="group" aria-label="Create modes"></div>
+          <p class="sh-help" id="sh-mode-note">Write, Funny, Mad Libs, Superhero, Poem, and Battle are how you write. They are not another feeling. Flip it and Funkify wait until a draft is on the page.</p>
         </div>
         <label class="sh-field" id="sh-mood-custom" hidden>
           <span>Your mood</span>
@@ -112,21 +133,31 @@
         </label>
         <p class="sh-form-error" id="sh-mood-error" role="alert" hidden></p>
       </section>
-      <section class="sh-craft" id="sh-kind">
-        <h2 class="sh-craft-title">Kind of song, and how you write</h2>
-        <p class="sh-help">Love, heartbreak, hype, and the rest are the kind of song. They are not writing modes. Write, Funny, Mad Libs, Superhero, Poem, and Battle are how you write. A sad feeling with Funny comes out sarcastic. The feeling stays. The mode colors it.</p>
-        <h3 class="sh-subhead">Kind of song</h3>
-        <div class="sh-modes" id="sh-kinds" role="group" aria-label="Kind of song"></div>
-        <h3 class="sh-subhead">Create mode</h3>
-        <div class="sh-modes" id="sh-modes" role="group" aria-label="Create modes"></div>
-        <p class="sh-help" id="sh-mode-note">These modes write the first draft. Flip it, Funkify, and a Superhero remix wait until lyrics are on the page. Parody, a legal cover, and a public-domain remix start from a source song. They stay off this row.</p>
-        <h3 class="sh-subhead">From a real song</h3>
-        <p class="sh-help">Pick the source song first, then the questions. Paste a title or the lyric you are working from.</p>
-        <div class="sh-modes" id="sh-source-modes" role="group" aria-label="From a real song"></div>
+      <section class="sh-craft" id="sh-talk" hidden>
+        <h2 class="sh-craft-title">How should we ask?</h2>
+        <p class="sh-help">Same questions either way. Form is one box at a time. Plai talks it through, and you can type or speak.</p>
+        <div class="sh-idea-choices" role="group" aria-label="Interview style">
+          <button type="button" class="sh-choice" id="sh-talk-form" aria-pressed="false">Ask me in a form</button>
+          <button type="button" class="sh-choice" id="sh-talk-plai" aria-pressed="false">Talk it through with Plai</button>
+        </div>
       </section>
-      <section class="sh-craft" id="sh-live">
+      <section class="sh-craft" id="sh-purpose" hidden>
+        <h2 class="sh-craft-title">The point of the song</h2>
+        <p class="sh-help" id="sh-purpose-help">Purpose first, then a personal reveal, then the details you can point at.</p>
+        <div id="sh-flow-host"></div>
+        <p class="sh-form-error" id="sh-flow-error" role="alert" hidden></p>
+      </section>
+      <section class="sh-craft" id="sh-cast" hidden>
+        <h2 class="sh-craft-title">Language, region, and genre</h2>
+        <p class="sh-help">Language and clean or explicit change the words. Region and genre are optional.</p>
+        <div id="sh-cast-host"></div>
+        <div class="sh-side-actions">
+          <button type="button" class="btn btn-purple btn-md" id="sh-cast-draft">Write the draft</button>
+        </div>
+      </section>
+      <section class="sh-craft" id="sh-live" hidden>
         <h2 class="sh-craft-title">Questions</h2>
-        <p class="sh-help" id="sh-live-note">Optional. The more you answer, the more human the draft feels. The next question follows what you just said, and it changes with the topic and the mode. Funny asks something different than Write.</p>
+        <p class="sh-help" id="sh-live-note">Optional. These follow the kind you picked. Heartbreak, grateful, and hype do not share a question. The more you put in, the more human the draft feels.</p>
         <p class="sh-q" id="sh-live-ask"></p>
         <p class="sh-help" id="sh-live-hint"></p>
         <label class="sh-field" id="sh-live-answer-wrap">
@@ -148,7 +179,7 @@
         </div>
         <p class="sh-note" id="sh-live-done" hidden>Those answers can go into the draft. You can keep going, or skip the rest.</p>
       </section>
-      <div class="sh-craft" id="sh-craft">
+      <div class="sh-craft" id="sh-craft" hidden>
         <h2 class="sh-craft-title">Craft</h2>
         <p class="sh-help">Set these after the idea and the feeling. They shape the draft. They do not write a verse, a hook, or a bridge by themselves.</p>
         <div class="sh-group">
@@ -209,7 +240,7 @@
         <div id="sh-team-out" class="sh-team-out" hidden></div>
         <div id="sh-turnstile" hidden></div>
       </div>
-      <section class="sh-craft" id="sh-part-pick">
+      <section class="sh-craft" id="sh-part-pick" hidden>
         <h2 class="sh-craft-title">What part are you writing?</h2>
         <p class="sh-help">Verse, hook, bars, bridge, or the whole song. A part is the section, not a mode. Whole song uses the kind-of-song questions. A single part asks about that section. After a draft, you can add any part that is still missing.</p>
         <div class="sh-modes" id="sh-parts" role="group" aria-label="Song part"></div>
@@ -230,15 +261,33 @@
         <h2 class="sh-craft-title">Questions, then the first draft</h2>
         <p class="sh-help" id="sh-v2-blurb"></p>
         <div id="sh-v2-fields"></div>
+        <div id="sh-source-notes" hidden></div>
         <div id="sh-v2-extra"></div>
         <p class="sh-banner" id="sh-v2-banner" hidden></p>
+        <div id="sh-v2-answers" class="sh-answers"></div>
+        <div id="sh-v2-follow" class="sh-follow" hidden></div>
         <div id="sh-v2-out"></div>
+        <div id="sh-v2-style" class="sh-suno-style no-print" hidden></div>
+        <div id="sh-v2-claim" class="no-print" hidden>
+          <p class="sh-help">A record of your creative process that helps show your human contributions.</p>
+          <p class="sh-help">This is not a copyright registration or guarantee. General info, not legal advice.</p>
+          <button type="button" class="btn btn-purple btn-md" id="sh-v2-claim-go">Claim my human parts</button>
+          <p class="sh-form-error" id="sh-v2-claim-error" role="alert" hidden></p>
+          <div id="sh-v2-claim-gate" hidden>
+            <p>Sign in to save this record on your account.</p>
+            <p>
+              <a class="btn btn-purple btn-md" id="sh-v2-claim-signup" href="signup.html?next=%2Fclaim">Create an account</a>
+              <a class="btn btn-ghost btn-md" id="sh-v2-claim-login" href="login.html?next=%2Fclaim">Sign in</a>
+            </p>
+          </div>
+        </div>
+        <div id="sh-v2-feedback" class="sh-feedback no-print" hidden></div>
         <p class="sh-form-error" id="sh-v2-error" role="alert" hidden></p>
         <div class="sh-actions no-print">
           <button type="button" class="btn btn-purple btn-md" id="sh-v2-go">Make the draft</button>
         </div>
       </div>
-      <div id="sh-write">
+      <div id="sh-write" hidden>
       <h2 class="sh-craft-title">Questions, then the first draft</h2>
       <div class="sh-dots" id="sh-dots" role="navigation" aria-label="Progress"></div>
       <h2 class="sh-q" id="sh-q">What sound should it wear?</h2>
@@ -310,6 +359,8 @@
         </section>
 
         <section data-step="shape" hidden>
+          <div id="sh-answers" class="sh-answers"></div>
+          <div id="sh-follow" class="sh-follow" hidden></div>
           <div class="sh-group">
             <h3>Language</h3>
             <div class="sh-chips" role="group" aria-label="Language">
@@ -346,14 +397,16 @@
           <p class="sh-attr" id="sh-attr" hidden></p>
           <div class="sh-suno" id="sh-suno-card" hidden>
             <label class="sh-field" for="sh-suno">
-              <span>Lyrics for Suno</span>
+              <span>Lyrics</span>
             </label>
-            <textarea id="sh-suno" class="sh-suno-text" readonly rows="14" aria-label="Lyrics for Suno"></textarea>
+            <textarea id="sh-suno" class="sh-suno-text" readonly rows="14" aria-label="Lyrics"></textarea>
             <p class="sh-suno-warn" id="sh-suno-warn" hidden></p>
-            <button type="button" class="btn btn-purple btn-md sh-suno-copy no-print" id="sh-suno-copy">Copy for Suno</button>
+            <button type="button" class="btn btn-purple btn-md sh-suno-copy no-print" id="sh-suno-copy">Copy lyrics</button>
+            <div id="sh-suno-style" class="sh-suno-style no-print" hidden></div>
           </div>
           <p class="sh-loading" id="sh-loading" hidden>Drafting around your words…</p>
           <p class="sh-error" id="sh-error" role="alert" hidden></p>
+          <div id="sh-feedback" class="sh-feedback no-print" hidden></div>
           <div class="sh-side-actions no-print">
             <button type="button" class="btn btn-ghost btn-md" id="sh-regen">Regenerate</button>
           </div>
@@ -434,7 +487,7 @@
           </div>
           <label class="sh-field">
             <span>One feeling word</span>
-            <input class="sh-input" id="sh-feeling" maxlength="40" autocomplete="off" placeholder="intimate" />
+            <input class="sh-input" id="sh-style-feel" maxlength="40" autocomplete="off" placeholder="intimate" />
           </label>
           <p class="sh-note" id="sh-artist-note" hidden>We describe the sound instead of naming artists.</p>
           <div class="sh-prompt" id="sh-prompt" aria-live="polite"></div>
@@ -444,8 +497,20 @@
         </section>
 
         <section data-step="record" hidden>
-          <p class="sh-help" id="sh-rights">Only human-written lines are protected by copyright, so keeping your own words helps you register the song.</p>
-          <pre class="sh-record" id="sh-record"></pre>
+          <p class="sh-help" id="sh-rights">A record of your creative process that helps show your human contributions.</p>
+          <p class="sh-help">This is not a copyright registration or guarantee. General info, not legal advice.</p>
+          <div class="sh-side-actions no-print">
+            <button type="button" class="btn btn-purple btn-md" id="sh-claim">Claim my human parts</button>
+          </div>
+          <p class="sh-form-error" id="sh-claim-error" role="alert" hidden></p>
+          <div id="sh-claim-gate" hidden>
+            <p>Sign in to save this record on your account.</p>
+            <p>
+              <a class="btn btn-purple btn-md" id="sh-claim-signup" href="signup.html?next=%2Fclaim">Create an account</a>
+              <a class="btn btn-ghost btn-md" id="sh-claim-login" href="login.html?next=%2Fclaim">Sign in</a>
+            </p>
+          </div>
+          <pre class="sh-record" id="sh-record" hidden></pre>
           <div class="sh-side-actions no-print">
             <button type="button" class="btn btn-ghost btn-md" id="sh-download">Download .txt</button>
             <button type="button" class="btn btn-ghost btn-md" id="sh-print">Print</button>
@@ -573,8 +638,12 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
+  <script src="lib/song-flow.js"></script>
   <script src="lib/song-packs.js"></script>
   <script src="lib/song-helper.js"></script>
+  <script src="lib/claim-record.js"></script>
+  <script src="lib/song-pass.js"></script>
+  <script src="lib/suno-style.js"></script>
   <script src="lib/song-modes.js"></script>
   <script src="lib/slang.js"></script>
   <script src="lib/spark.js"></script>
@@ -582,6 +651,7 @@
   <script src="song-helper.js"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
   <script src="song-helper-v2.js"></script>
+  <script src="song-flow-page.js"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

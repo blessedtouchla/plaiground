@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your route - PLAIGROUND</title>
+  <meta name="description" content="A couple of taps. Then your roadmap." />
+  <link rel="canonical" href="https://www.wannaplai.com/guide" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css?v=20260924p3" />
+  <link rel="stylesheet" href="guide.css?v=20261007pace" />
+  <script>
+    try {
+      var saved = localStorage.getItem('plaigroundGuide');
+      var flag = saved ? JSON.parse(saved) : null;
+      if (flag && (flag.status === 'completed' || flag.status === 'skipped')) {
+        location.replace('/destination');
+      }
+    } catch (err) {}
+  </script>
+</head>
+<body class="guide-page">
+  <main class="guide" data-guide>
+    <header class="guide-top">
+      <img class="guide-mark" src="assets/plaiground-logo.png" alt="PLAIGROUND" />
+      <a class="guide-skip" href="/destination" data-guide-skip>Skip</a>
+    </header>
+    <div class="guide-progress">
+      <div class="guide-progress-track" role="progressbar" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-label="Guide progress" data-guide-bar>
+        <div class="guide-progress-fill" data-guide-fill></div>
+      </div>
+      <span class="guide-burst" data-guide-burst aria-hidden="true"></span>
+    </div>
+
+    <section class="guide-screen" data-guide-screen="1">
+      <h1 tabindex="-1">Where's your song?</h1>
+      <div class="guide-choices">
+        <button type="button" data-guide-choice="song" data-value="idea">Just an idea</button>
+        <button type="button" data-guide-choice="song" data-value="made">Made it</button>
+        <button type="button" data-guide-choice="song" data-value="out">It's out</button>
+      </div>
+    </section>
+
+    <section class="guide-screen" data-guide-screen="2" hidden>
+      <h1 tabindex="-1">What do you want?</h1>
+      <div class="guide-choices">
+        <button type="button" data-guide-choice="want" data-value="release" aria-pressed="false">Get it out there</button>
+        <button type="button" data-guide-choice="want" data-value="heard" aria-pressed="false">Get it heard</button>
+        <button type="button" data-guide-choice="want" data-value="paid" aria-pressed="false">Get paid</button>
+        <button type="button" data-guide-choice="want" data-value="team" aria-pressed="false">Get a team</button>
+      </div>
+      <button type="button" class="guide-cta" data-guide-next disabled>Next</button>
+    </section>
+
+    <section class="guide-screen" data-guide-screen="3" hidden>
+      <h1 tabindex="-1">Your route</h1>
+      <div class="guide-map" data-guide-map>
+        <div data-guide-stops></div>
+      </div>
+    </section>
+
+    <section class="guide-screen guide-screen-cta" data-guide-screen="4" hidden>
+      <a class="guide-cta" data-guide-cta href="/destination">Tap your first stop</a>
+    </section>
+  </main>
+  <script src="destination.js?v=20261007sec"></script>
+  <script src="lib/guide.js?v=20261007pace"></script>
+  <script src="membership.js"></script>
+  <script src="roadmap-account.js?v=20260930r1"></script>
+  <script src="guide.js?v=20261007pace"></script>
+</body>
+</html>

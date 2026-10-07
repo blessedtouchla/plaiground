@@ -38,8 +38,8 @@ function runRoutes() {
   assert.notStrictEqual(core.recommendedIds('made', 'money').join(), core.recommendedIds('out', 'money').join());
 
   assert.deepStrictEqual(core.recommendedIds('made', 'release'), ['persona', 'check', 'cover', 'distro']);
-  assert.deepStrictEqual(core.recommendedIds('idea', 'money'), ['helper', 'check', 'persona', 'publishing', 'royalties', 'sync']);
-  assert.deepStrictEqual(core.recommendedIds('out', 'fanbase'), ['persona', 'pitch', 'marketing', 'check']);
+  assert.deepStrictEqual(core.recommendedIds('idea', 'money'), ['helper', 'check', 'copyright', 'contracts', 'qualify', 'persona', 'publishing', 'royalties', 'sync']);
+  assert.deepStrictEqual(core.recommendedIds('out', 'fanbase'), ['persona', 'pitch', 'marketing', 'check', 'copyright', 'contracts', 'qualify']);
 
   goals.forEach(function (goal) {
     assert.ok(core.recommendedIds('idea', goal).includes('helper'), goal);
@@ -59,7 +59,7 @@ function runRoutes() {
   assert.strictEqual(release.managed, false);
 
   const record = core.applyKit('record', 'made', 'release');
-  assert.deepStrictEqual(record.stops, ['marketing', 'pitch', 'sync', 'billboard']);
+  assert.deepStrictEqual(record.stops, ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'sync', 'billboard']);
   assert.strictEqual(record.song, 'out');
   assert.ok(core.headsUp(record.stops, record.song, record.goal).indexOf('Sync pitching needs splits registered first.') !== -1);
 
@@ -187,7 +187,43 @@ function runRoutes() {
   recordPlan.note = 'city';
   const stored = core.planRecord(recordPlan);
   assert.strictEqual(core.STORAGE_KEY, 'plaigroundDestinationPlan');
-  assert.deepStrictEqual(stored.stops, ['marketing', 'pitch', 'sync', 'billboard']);
+  assert.deepStrictEqual(stored.stops, ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'sync', 'billboard']);
+  assert.deepStrictEqual(core.SECTIONS.map(function (section) { return section.label; }), [
+    'Make it', 'Get ready', 'Protect it', 'Put it out', 'Get heard', 'Get paid', 'Run it'
+  ]);
+  const placed = {};
+  core.SECTIONS.forEach(function (section) {
+    section.stops.forEach(function (id) {
+      assert.ok(core.STOPS[id], id);
+      assert.ok(!placed[id], id + ' is in one section');
+      placed[id] = section.id;
+    });
+  });
+  core.STOP_ORDER.forEach(function (id) {
+    assert.ok(placed[id], id + ' has a section');
+  });
+  assert.deepStrictEqual(placed.helper && placed.cover, 'make');
+  assert.strictEqual(placed.check, 'ready');
+  assert.strictEqual(placed.copyright, 'protect');
+  assert.strictEqual(placed.contracts, 'protect');
+  assert.strictEqual(placed.qualify, 'protect');
+  assert.ok(!placed.makehuman);
+  assert.strictEqual(placed.distro, 'put');
+  assert.strictEqual(placed.persona, 'put');
+  assert.strictEqual(placed.pitch, 'heard');
+  assert.strictEqual(placed.marketing, 'heard');
+  assert.strictEqual(placed.billboard, 'heard');
+  assert.strictEqual(placed.royalties, 'paid');
+  assert.strictEqual(placed.publishing, 'paid');
+  assert.strictEqual(placed.sync, 'paid');
+  assert.strictEqual(placed.shows, 'run');
+  const ideaRoute = core.sectionsFor(core.recommendedIds('idea', 'release'));
+  assert.deepStrictEqual(ideaRoute.map(function (section) { return section.id; }), ['make', 'ready', 'put', 'paid']);
+  assert.deepStrictEqual(ideaRoute[0].stops, ['helper', 'cover']);
+  assert.strictEqual(core.openSectionId('idea', 'release', core.recommendedIds('idea', 'release')), 'make');
+  assert.strictEqual(core.openSectionId('made', 'release', core.KITS.release.stops), 'ready');
+  assert.strictEqual(core.openSectionId('out', 'fanbase', core.KITS.record.stops), 'heard');
+  assert.strictEqual(core.openSectionId('out', 'money', core.recommendedIds('out', 'money')), 'paid');
   assert.strictEqual(stored.kit, 'record');
   assert.strictEqual(stored.note, 'city');
   assert.strictEqual(stored.managed, false);
@@ -213,6 +249,8 @@ function runPage() {
   const html = read('destination.html');
   const css = read('destination.css');
   const js = read('destination.js');
+  assert.ok(js.includes('data-section-toggle'));
+  assert.ok(js.includes('sectionsFor'));
   const vercel = JSON.parse(read('vercel.json'));
   const nav = html.match(/<nav class="nav-links"[\s\S]*?<\/nav>/)[0];
   const footer = html.match(/<footer[\s\S]*?<\/footer>/)[0];

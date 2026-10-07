@@ -8,30 +8,81 @@ body.cover-art-page .ca-swatches {
 }
 
 body.cover-art-page .ca-swatch {
-  width: 64px;
-  height: 40px;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  padding: 3px;
-  display: flex;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 108px;
+  height: 64px;
+  border-radius: 14px;
+  border: 3px solid transparent;
+  padding: 0;
+  display: block;
   overflow: hidden;
   background: #111;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 body.cover-art-page .ca-swatch span {
-  flex: 1;
+  display: none;
+  pointer-events: none;
+}
+
+body.cover-art-page .ca-swatch[data-value="night"] {
+  background: linear-gradient(90deg, #120818 0 34%, #7D3CFF 34% 67%, #F3CB47 67% 100%);
+}
+
+body.cover-art-page .ca-swatch[data-value="dusk"] {
+  background: linear-gradient(90deg, #2A1208 0 34%, #E07A3D 34% 67%, #F3CB47 67% 100%);
+}
+
+body.cover-art-page .ca-swatch[data-value="sea"] {
+  background: linear-gradient(90deg, #071820 0 34%, #1F6F8B 34% 67%, #D7F3F0 67% 100%);
+}
+
+body.cover-art-page .ca-swatch[data-value="blush"] {
+  background: linear-gradient(90deg, #2A1020 0 34%, #E36A8C 34% 67%, #F6D5C4 67% 100%);
+}
+
+body.cover-art-page .ca-swatch[data-value="ink"] {
+  background: linear-gradient(90deg, #0A0A0A 0 34%, #F4F4F4 34% 67%, #7D3CFF 67% 100%);
 }
 
 body.cover-art-page .ca-swatch.on {
-  border-color: var(--gold);
+  border-color: #F3CB47;
+  outline: 3px solid #F3CB47;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(243, 203, 71, 0.35);
 }
 
 body.cover-art-page .ca-swatch-custom {
+  background: #1a1a1a;
   color: #fff;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
-  align-items: center;
-  justify-content: center;
+  line-height: 58px;
+  text-align: center;
+}
+
+body.cover-art-page .ca-palette-note {
+  margin: 10px 0 0;
+  color: #F3CB47;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+html.ca-embed body.cover-art-page header.nav,
+html.ca-embed body.cover-art-page footer,
+html.ca-embed .plai-bubble {
+  display: none !important;
+}
+
+html.ca-embed body.cover-art-page {
+  background: #0c0c10;
+}
+
+html.ca-embed body.cover-art-page main.sh {
+  padding-top: 12px;
 }
 
 body.cover-art-page .ca-color {

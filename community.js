@@ -27,7 +27,8 @@
       if (row.platform) {
         var s = document.createElement('p');
         s.className = 'hint';
-        s.textContent = 'Platform: ' + row.platform;
+        var platformName = { suno: 'An AI song app', udio: 'An AI song app', app: 'An AI song app', other: 'Other', none: 'None' };
+        s.textContent = 'Platform: ' + (platformName[row.platform] || 'Other');
         card.appendChild(s);
       }
       feed.appendChild(card);

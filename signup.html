@@ -104,9 +104,9 @@
           <div class="field">
             <label for="make">How do you make music?</label>
             <select id="make" name="make">
-              <option selected>Suno</option>
-              <option>Udio</option>
-              <option>Other AI tool</option>
+              <option selected>An AI song app</option>
+              <option>Other</option>
+              <option>None</option>
               <option>Human-only</option>
               <option>Mixed / several tools</option>
             </select>
@@ -260,7 +260,7 @@
             var qs = ['existing=1'];
             if (window.PlaigroundLyricsAccount && window.PlaigroundLyricsAccount.pendingHome && window.PlaigroundLyricsAccount.pendingHome()) {
               dest = 'login.html';
-              qs.push('next=' + encodeURIComponent('/my-lyrics'));
+              qs.push('next=' + encodeURIComponent(window.PlaigroundLyricsAccount.pendingHome()));
             }
             if (email) qs.push('email=' + encodeURIComponent(email));
             window.setTimeout(function () {

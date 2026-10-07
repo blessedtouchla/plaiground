@@ -16,7 +16,7 @@
     words: ['Give me the pictures.', 'Short phrases or full lines. I weave them into the song and keep your words.'],
     shape: ['What shape is the song?', 'Language, clean or explicit, and how long you want the draft.'],
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
-    style: ['Describe the sound.', 'This becomes a style prompt you can paste into Suno. We describe the sound instead of naming artists.'],
+    style: ['Describe the sound.', 'This becomes a style prompt you can copy. We describe the sound instead of naming artists.'],
     record: ['Your authorship record.', 'What you wrote, and what was drafted around it. Download it or print it.'],
     next: ['When you want a team on it.', 'Song Helper is a free way to start. PLAIGROUND is the AI-powered music business around the song.'],
   };
@@ -29,12 +29,23 @@
     line: 'Next',
     words: 'Next',
     shape: 'Write the draft',
-    draft: 'Build the style prompt',
+    draft: 'Make my style prompt',
     style: 'Authorship record',
     record: 'Next steps',
   };
 
   var step = 0;
+  var followOpen = false;
+  var followSkipped = false;
+  var followExtra = { place: '', object: '', quote: '' };
+  var pendingRevision = '';
+  var pendingPrevious = '';
+  var feedbackOn = {};
+  var feedbackNote = '';
+  var styleOpen = false;
+  var styleDone = false;
+  var styleJumped = false;
+  var styleBag = null;
   var picks = {
     mood: '',
     pack: '',
@@ -78,7 +89,7 @@
   var artistNote = document.getElementById('sh-artist-note');
   var recordEl = document.getElementById('sh-record');
   var styleGenreInput = document.getElementById('sh-style-genre');
-  var feelingInput = document.getElementById('sh-feeling');
+  var feelingInput = document.getElementById('sh-style-feel');
 
   function $(id) { return document.getElementById(id); }
 
@@ -120,7 +131,9 @@
   }
 
   function genreValue() {
-    return packs.genreLabel(picks.pack, picks.comedyMusic, picks.comedyType) || '';
+    var label = packs.genreLabel(picks.pack, picks.comedyMusic, picks.comedyType) || '';
+    if (picks.genre2 && picks.genre2 !== label) label = label ? (label + ', ' + picks.genre2) : picks.genre2;
+    return label;
   }
 
   function rememberWords() {
@@ -157,6 +170,8 @@
       why: readAnswer('sh-why'),
       line: readAnswer('sh-line'),
       words: words(),
+      title: ($('sh-working-title') && $('sh-working-title').value.trim()) || '',
+      north: window.SongFlowPage ? window.SongFlowPage.north() : null,
       shape: {
         genre: genreValue(),
         pack: picks.pack,
@@ -168,8 +183,136 @@
         length: picks.length,
       },
       variant: variant,
+      followPlace: followExtra.place || '',
+      followObject: followExtra.object || '',
+      revision: pendingRevision || '',
+      previous: pendingPrevious || '',
       company_website: $('sh-honey').value,
     };
+  }
+
+  function wordRows() {
+    var bank = words();
+    return packs.promptsFor(picks.pack || 'generic', 0).map(function (prompt) {
+      return { label: prompt.label, text: bank[prompt.key] || '' };
+    }).filter(function (row) { return row.text; });
+  }
+
+  function answerBag() {
+    var snap = window.SongHelperV2 && window.SongHelperV2.snapshot ? window.SongHelperV2.snapshot() : {};
+    var spark = sparkSeed();
+    return {
+      topic: String((snap.topic || (spark && spark.angle) || '')).trim(),
+      happened: readAnswer('sh-happened'),
+      who: $('sh-who').value.trim(),
+      why: readAnswer('sh-why'),
+      line: readAnswer('sh-line'),
+      mood: moodValue(),
+      genre: genreValue(),
+      mode: snap.modeLabel || '',
+      place: followExtra.place || snap.place || '',
+      object: followExtra.object || snap.object || '',
+      quote: followExtra.quote || snap.quote || '',
+      region: snap.region || '',
+      language: picks.language,
+      explicit: picks.explicit,
+      length: picks.length,
+      rhyme: snap.rhyme || '',
+      vocabulary: snap.vocabulary || '',
+      words: wordRows(),
+      live: snap.live || [],
+    };
+  }
+
+  function editAnswer(id) {
+    var steps = { genre: 'genre', happened: 'happened', who: 'who', why: 'why', line: 'line', words: 'words' };
+    if (steps[id]) {
+      go(STEPS.indexOf(steps[id]), true);
+      return;
+    }
+    var scroll = { mood: 'sh-feeling', idea: 'sh-own', live: 'sh-purpose', filters: 'sh-cast', place: 'sh-purpose', object: 'sh-purpose', quote: 'sh-purpose', mode: 'sh-modes', for: 'sh-purpose', aim: 'sh-purpose', wisdom: 'sh-purpose', never: 'sh-purpose', scared: 'sh-purpose', nobody: 'sh-purpose' };
+    var el = document.getElementById(scroll[id] || '');
+    if (el && el.scrollIntoView) {
+      try { el.scrollIntoView({ block: 'center' }); } catch (err) {}
+    }
+  }
+
+  function paintCard(host, rows) {
+    if (!host || !window.SongPass) return;
+    host.textContent = '';
+    if (!rows.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    var title = document.createElement('p');
+    title.className = 'sh-answers-title';
+    title.textContent = 'Your answers';
+    host.appendChild(title);
+    rows.forEach(function (row) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-answer';
+      var label = document.createElement('b');
+      label.textContent = row.label;
+      var value = document.createElement('span');
+      value.textContent = row.value;
+      button.appendChild(label);
+      button.appendChild(value);
+      button.addEventListener('click', function () { editAnswer(row.id); });
+      host.appendChild(button);
+    });
+  }
+
+  function paintAnswers() {
+    if (!window.SongPass) return;
+    var rows = window.SongFlowPage && window.SongFlowPage.cardRows ? window.SongFlowPage.cardRows() : [];
+    paintCard($('sh-answers'), rows.concat(window.SongPass.summary(answerBag())));
+  }
+
+  function hideFollow() {
+    var host = $('sh-follow');
+    if (!host) return;
+    host.hidden = true;
+    host.textContent = '';
+  }
+
+  function showFollow(asks) {
+    var host = $('sh-follow');
+    if (!host) return;
+    followOpen = true;
+    host.hidden = false;
+    host.textContent = '';
+    asks.forEach(function (ask) {
+      var label = document.createElement('label');
+      label.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = ask.ask;
+      var input = document.createElement('input');
+      input.className = 'sh-input';
+      input.maxLength = 120;
+      input.placeholder = ask.placeholder || '';
+      input.setAttribute('data-follow', ask.id);
+      label.appendChild(span);
+      label.appendChild(input);
+      host.appendChild(label);
+    });
+    var use = document.createElement('button');
+    use.type = 'button';
+    use.className = 'btn btn-purple btn-md';
+    use.textContent = 'Use these';
+    use.addEventListener('click', function () {
+      host.querySelectorAll('[data-follow]').forEach(function (input) {
+        followExtra[input.getAttribute('data-follow')] = String(input.value || '').trim();
+      });
+      followOpen = false;
+      followSkipped = true;
+      hideFollow();
+      go(STEPS.indexOf('draft'), false);
+    });
+    host.appendChild(use);
+    nextBtn.textContent = 'Skip these';
+    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
   }
 
   function interviewKey() {
@@ -247,10 +390,71 @@
 
   function setPressed(group, value) {
     document.querySelectorAll('[data-group="' + group + '"]').forEach(function (btn) {
-      var on = btn.getAttribute('data-value') === value;
+      var on = !!value && btn.getAttribute('data-value') === value;
       btn.classList.toggle('on', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+  }
+
+  var moreOpen = {};
+  var MORE_LIMIT = 4;
+
+  function foldOptions(host) {
+    if (!host || !host.children) return;
+    var key = host.id || host.getAttribute('aria-label') || '';
+    if (!key) return;
+    var old = host.querySelector(':scope > button.sh-more');
+    if (old) old.parentNode.removeChild(old);
+    var chips = [];
+    for (var i = 0; i < host.children.length; i++) {
+      var el = host.children[i];
+      if (!el.classList || el.classList.contains('sh-more')) continue;
+      if (el.classList.contains('sh-chip') || el.classList.contains('spark-headline')) chips.push(el);
+    }
+    if (chips.length <= MORE_LIMIT) {
+      chips.forEach(function (el) { el.hidden = false; });
+      return;
+    }
+    var open = !!moreOpen[key];
+    chips.forEach(function (el, index) {
+      if (index >= MORE_LIMIT && el.classList.contains('on')) open = true;
+    });
+    chips.forEach(function (el, index) {
+      var hide = !open && index >= MORE_LIMIT;
+      el.hidden = hide;
+      var tip = el.nextElementSibling;
+      if (tip && tip.classList && tip.classList.contains('sh-tip')) {
+        if (hide) {
+          tip.setAttribute('data-fold-hidden', tip.hidden ? '1' : '0');
+          tip.hidden = true;
+        } else if (tip.hasAttribute('data-fold-hidden')) {
+          tip.hidden = tip.getAttribute('data-fold-hidden') === '1';
+          tip.removeAttribute('data-fold-hidden');
+        }
+      }
+    });
+    if (open) {
+      moreOpen[key] = true;
+      return;
+    }
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sh-chip sh-more';
+    btn.textContent = 'More';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      moreOpen[key] = true;
+      foldOptions(host);
+    });
+    host.appendChild(btn);
+  }
+
+  function foldAllOptionLists() {
+    var root = document.getElementById('sh-shell');
+    if (!root) return;
+    root.querySelectorAll('.sh-chips, .sh-modes, .spark-headlines').forEach(foldOptions);
   }
 
   function renderDots() {
@@ -291,6 +495,10 @@
     backBtn.hidden = step === 0;
     nextBtn.hidden = id === 'next';
     nextBtn.textContent = NEXT_LABEL[id] || 'Next';
+    if (id === 'draft') {
+      if (styleOpen) nextBtn.textContent = 'Skip these';
+      else if (styleDone) nextBtn.textContent = 'Authorship record';
+    }
     restartBtn.hidden = id !== 'next';
     renderDots();
     showError('');
@@ -302,6 +510,11 @@
     }
     if (id === 'record') renderRecord();
     else persistSession();
+    if (id === 'shape') paintAnswers();
+    else {
+      followOpen = false;
+      hideFollow();
+    }
     var focus = document.querySelector('[data-step="' + id + '"] textarea, [data-step="' + id + '"] input.sh-input');
     if (focus && step > 0 && id !== 'draft' && id !== 'style' && id !== 'record' && id !== 'next') {
       try { focus.focus(); } catch (err) {}
@@ -331,7 +544,17 @@
     step = index;
     showStep();
     if (STEPS[step] === 'draft') loadDraft(false);
-    window.scrollTo(0, 0);
+    if (STEPS[step] === 'shape') {
+      var card = $('sh-answers');
+      if (card && card.scrollIntoView) {
+        try { card.scrollIntoView({ block: 'start' }); } catch (err) {}
+      }
+    } else {
+      var anchor = document.getElementById('sh-q');
+      if (anchor && anchor.scrollIntoView) {
+        try { anchor.scrollIntoView({ block: 'start' }); } catch (err2) {}
+      }
+    }
   }
 
   function fit(el) {
@@ -404,6 +627,8 @@
       label.textContent = section.label;
       lyricEl.appendChild(label);
       visible.forEach(function (line) {
+        if (line.original == null) line.original = line.text;
+        if (line.logged == null) line.logged = String(line.text || '').trim();
         var box = document.createElement('textarea');
         box.className = 'sh-line' + (holdsUserWords(line) ? ' is-user' : '');
         box.rows = 1;
@@ -416,6 +641,16 @@
           fit(box);
           renderSuno();
         });
+        box.addEventListener('blur', function () {
+          var before = String(line.logged || '');
+          var after = String(box.value || '').trim();
+          line.text = box.value;
+          line.edited = after !== String(line.original || '').trim();
+          if (before !== after && window.PlaigroundClaim) {
+            window.PlaigroundClaim.noteEdit({ section: section.label, before: before, after: after });
+          }
+          line.logged = after;
+        });
         lyricEl.appendChild(box);
         fit(box);
         if (window.SongModes) mountLineTools(lyricEl, box, line);
@@ -426,7 +661,119 @@
     attr.hidden = preview;
     attr.textContent = preview ? '' : (core.PAGE_CREDIT || '');
     renderSuno();
+    paintFeedback();
     if (window.SongHelperV2 && window.SongHelperV2.syncStructure) window.SongHelperV2.syncStructure();
+  }
+
+  function compactDraft(source) {
+    if (!source || !source.sections) return '';
+    return source.sections.map(function (section) {
+      var lines = (section.lines || []).map(function (row) {
+        return String(row && row.text || '').trim();
+      }).filter(Boolean);
+      if (!lines.length) return '';
+      return (section.label || 'Verse') + '\n' + lines.join('\n');
+    }).filter(Boolean).join('\n\n').slice(0, 1600);
+  }
+
+  function chosenChips() {
+    return Object.keys(feedbackOn).filter(function (id) { return feedbackOn[id]; });
+  }
+
+  function applyFeedback(chosen) {
+    if (!window.SongPass) return;
+    var plan = window.SongPass.feedbackPlan({
+      chips: chosen || chosenChips(),
+      note: chosen ? '' : feedbackNote,
+    });
+    var hint = $('sh-feedback-hint');
+    var box = $('sh-clarify');
+    if (plan.empty) {
+      if (hint) hint.textContent = 'Tap what should change.';
+      return;
+    }
+    if (!plan.clear) {
+      if (hint) hint.textContent = '';
+      if (!box) return;
+      box.hidden = false;
+      box.textContent = '';
+      var ask = document.createElement('p');
+      ask.className = 'sh-help';
+      ask.textContent = plan.ask;
+      box.appendChild(ask);
+      plan.options.forEach(function (option) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'sh-chip';
+        button.textContent = option.label;
+        button.addEventListener('click', function () {
+          var turningOff = button.classList.contains('on');
+          feedbackOn = {};
+          feedbackNote = '';
+          if (!turningOff) feedbackOn[option.id] = true;
+          box.querySelectorAll('.sh-chip').forEach(function (chip) {
+            var on = !turningOff && chip === button;
+            chip.classList.toggle('on', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+        });
+        box.appendChild(button);
+      });
+      return;
+    }
+    pendingRevision = plan.instruction;
+    pendingPrevious = compactDraft(draft);
+    variant += 1;
+    loadDraft(true);
+  }
+
+  function paintFeedback() {
+    var host = $('sh-feedback');
+    if (!host || !window.SongPass || !draft) return;
+    host.hidden = false;
+    host.textContent = '';
+    var title = document.createElement('p');
+    title.className = 'sh-answers-title';
+    title.textContent = 'What should change?';
+    host.appendChild(title);
+    var chips = document.createElement('div');
+    chips.className = 'sh-chips';
+    window.SongPass.CHIPS.forEach(function (chip) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (feedbackOn[chip.id] ? ' on' : '');
+      button.textContent = chip.label;
+      button.setAttribute('aria-pressed', feedbackOn[chip.id] ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        feedbackOn[chip.id] = !feedbackOn[chip.id];
+        paintFeedback();
+      });
+      chips.appendChild(button);
+    });
+    host.appendChild(chips);
+    var note = document.createElement('textarea');
+    note.className = 'sh-area';
+    note.maxLength = 240;
+    note.placeholder = 'Or say it in a few words';
+    note.value = feedbackNote;
+    note.addEventListener('input', function () { feedbackNote = note.value; });
+    host.appendChild(note);
+    var clarify = document.createElement('div');
+    clarify.className = 'sh-clarify';
+    clarify.id = 'sh-clarify';
+    clarify.hidden = true;
+    host.appendChild(clarify);
+    var apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'btn btn-purple btn-md';
+    apply.textContent = 'Apply';
+    apply.addEventListener('click', function () { applyFeedback(); });
+    host.appendChild(apply);
+    var hint = document.createElement('p');
+    hint.className = 'sh-help';
+    hint.id = 'sh-feedback-hint';
+    host.appendChild(hint);
+    foldOptions(chips);
   }
 
   function mountLineTools(parent, box, line) {
@@ -495,7 +842,7 @@
     var limit = core.SUNO_CHAR_LIMIT || 3000;
     if (text.length > limit) {
       warn.hidden = false;
-      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. Suno works best under about ' + limit.toLocaleString('en-US') + '.';
+      warn.textContent = 'This is ' + text.length.toLocaleString('en-US') + ' characters. The lyric box works best under about ' + limit.toLocaleString('en-US') + '.';
     } else {
       warn.hidden = true;
       warn.textContent = '';
@@ -552,7 +899,8 @@
       renderDraft();
       return;
     }
-    var block = ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words'].reduce(function (msg, id) {
+    var flowReady = window.SongFlowPage && window.SongFlowPage.ready && window.SongFlowPage.ready();
+    var block = (flowReady ? ['mood'] : ['mood', 'genre', 'happened', 'who', 'why', 'line', 'words']).reduce(function (msg, id) {
       return msg || validate(id);
     }, '');
     if (block) {
@@ -579,8 +927,11 @@
       }
       draft = data.draft;
       preview = Boolean(data.preview);
+      if (window.PlaigroundClaim) window.PlaigroundClaim.noteGeneration(draft);
       if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;
       draftKey = key;
+      pendingRevision = '';
+      pendingPrevious = '';
       renderDraft();
     } catch (err) {
       draftError.hidden = false;
@@ -682,8 +1033,13 @@
     selectStyleGenre(style.genre);
   }
 
+  function readControl(el) {
+    if (!el || typeof el.value !== 'string') return '';
+    return el.value.trim();
+  }
+
   function styleGenre() {
-    var typed = styleGenreInput.value.trim();
+    var typed = readControl(styleGenreInput);
     if (typed) return typed;
     return genreValue();
   }
@@ -696,7 +1052,7 @@
       voice: picks.voice,
       texture: picks.texture,
       instruments: instruments,
-      feeling: feelingInput.value.trim(),
+      feeling: readControl(feelingInput),
     });
     promptEl.textContent = built.prompt || 'Add a genre or a feeling and the prompt will show up here.';
     artistNote.hidden = !built.artistNamesStripped;
@@ -798,7 +1154,28 @@
     var chip = event.target.closest ? event.target.closest('.sh-chip') : null;
     if (!chip) return;
     var group = chip.getAttribute('data-group');
+    if (!group || chip.classList.contains('sh-more')) return;
     var value = chip.getAttribute('data-value');
+    if (group !== 'instrument' && chip.classList.contains('on')) {
+      picks[group] = '';
+      setPressed(group, '');
+      if (group === 'styleGenre' && styleGenreInput) styleGenreInput.value = '';
+      if (group === 'mood') {
+        var moodBox = $('sh-mood-custom');
+        if (moodBox) moodBox.hidden = true;
+        showMoodError('');
+      }
+      if (group === 'pack') {
+        var comedyBox = $('sh-comedy');
+        if (comedyBox) comedyBox.hidden = true;
+      }
+      if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture' || group === 'styleGenre') {
+        styleTouched = true;
+        renderStyle();
+      }
+      showError('');
+      return;
+    }
     if (group === 'instrument') {
       styleTouched = true;
       var index = instruments.indexOf(value);
@@ -838,11 +1215,11 @@
     showError('');
   });
 
-  ['sh-style-genre', 'sh-feeling', 'sh-mood-input'].forEach(function (id) {
+  ['sh-style-genre', 'sh-style-feel', 'sh-mood-input'].forEach(function (id) {
     var el = $(id);
     if (!el) return;
     el.addEventListener('input', function () {
-      if (id === 'sh-style-genre' || id === 'sh-feeling') styleTouched = true;
+      if (id === 'sh-style-genre' || id === 'sh-style-feel') styleTouched = true;
       if (id === 'sh-mood-input') showMoodError('');
       if (STEPS[step] === 'style') renderStyle();
     });
@@ -861,10 +1238,123 @@
     }
   });
 
+  function styleStrip(text) {
+    if (core.stripArtistNames) return core.stripArtistNames(text);
+    return text;
+  }
+
+  function collectStyle() {
+    var base = packs.styleFor(picks.pack, picks.comedyMusic) || {};
+    var snap = window.SongHelperV2 && window.SongHelperV2.snapshot ? window.SongHelperV2.snapshot() : {};
+    var energy = picks.energy || base.energy || '';
+    return {
+      genre: genreValue() || base.genre || '',
+      mood: moodValue() || readControl(feelingInput),
+      region: snap.region || '',
+      energy: energy,
+      tempo: '',
+      vocal: picks.voice || '',
+      texture: picks.texture || '',
+      instruments: instruments.length ? instruments.slice() : (base.instruments || []).slice(),
+      era: picks.era || base.era || ''
+    };
+  }
+
+  function showStylePrompt(bag) {
+    if (!window.SunoStyle) return;
+    styleBag = bag;
+    styleOpen = false;
+    styleDone = true;
+    var host = $('sh-suno-style');
+    window.SunoStyle.renderPrompt(host, window.SunoStyle.prompt(styleBag, styleStrip), function (id) {
+      styleBag = window.SunoStyle.tweak(styleBag, id);
+      if (styleBag.vocal) picks.voice = styleBag.vocal;
+      if (styleBag.energy) picks.energy = styleBag.energy;
+      if (styleBag.texture) picks.texture = styleBag.texture;
+      if (styleBag.instruments) instruments = styleBag.instruments.slice();
+      showStylePrompt(styleBag);
+    });
+    nextBtn.textContent = 'Authorship record';
+    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
+  }
+
+  function showStyleAsk(asks) {
+    if (!window.SunoStyle) return;
+    styleOpen = true;
+    window.SunoStyle.renderAsk($('sh-suno-style'), asks, function (chosen) {
+      var bag = window.SunoStyle.applyAnswers(collectStyle(), chosen);
+      if (chosen.vocal) picks.voice = chosen.vocal;
+      if (chosen.genre) styleBag = bag;
+      if (bag.energy) picks.energy = bag.energy;
+      showStylePrompt(bag);
+    });
+    nextBtn.textContent = 'Skip these';
+    try { $('sh-suno-style').scrollIntoView({ block: 'center' }); } catch (err) {}
+  }
+
+  function startStyle() {
+    var bag = styleBag || collectStyle();
+    var asks = window.SunoStyle ? window.SunoStyle.missing(bag) : [];
+    if (asks.length) {
+      showStyleAsk(asks);
+      return;
+    }
+    showStylePrompt(bag);
+  }
+
   backBtn.addEventListener('click', function () {
+    if (styleOpen && STEPS[step] === 'draft') {
+      styleOpen = false;
+      var host = $('sh-suno-style');
+      if (host) {
+        host.hidden = true;
+        host.textContent = '';
+      }
+      nextBtn.textContent = NEXT_LABEL.draft;
+      return;
+    }
+    if (followOpen) {
+      followOpen = false;
+      hideFollow();
+      nextBtn.textContent = NEXT_LABEL.shape || 'Write the draft';
+      return;
+    }
+    if (styleJumped && STEPS[step] === 'record') {
+      styleJumped = false;
+      go(STEPS.indexOf('draft'), true);
+      return;
+    }
     if (step > 0) go(step - 1, true);
   });
   nextBtn.addEventListener('click', function () {
+    if (STEPS[step] === 'draft') {
+      if (styleOpen) {
+        styleOpen = false;
+        showStylePrompt(styleBag || collectStyle());
+        return;
+      }
+      if (!styleDone) {
+        startStyle();
+        return;
+      }
+      styleJumped = true;
+      go(STEPS.indexOf('record'), true);
+      return;
+    }
+    if (followOpen) {
+      followOpen = false;
+      followSkipped = true;
+      hideFollow();
+      go(STEPS.indexOf('draft'), false);
+      return;
+    }
+    if (STEPS[step] === 'shape' && window.SongPass && !followSkipped) {
+      var asks = window.SongPass.followups(answerBag());
+      if (asks.length) {
+        showFollow(asks);
+        return;
+      }
+    }
     if (step < STEPS.length - 1) go(step + 1, false);
   });
   restartBtn.addEventListener('click', function () {
@@ -911,6 +1401,91 @@
     showError('');
     copyPlain(text, $('sh-suno-copy'));
   });
+  function claimPairs() {
+    var data = interview();
+    var answers = [
+      { label: 'What happened', value: data.happened },
+      { label: 'Who', value: data.who },
+      { label: 'Why it mattered', value: data.why },
+      { label: 'The line', value: data.line },
+      { label: 'Where you were', value: data.followPlace },
+      { label: 'Something you can point at', value: data.followObject },
+    ];
+    wordRows().forEach(function (row) { answers.push({ label: row.label, value: row.text }); });
+    var choices = [
+      { label: 'Mood', value: data.mood },
+      { label: 'Genre', value: data.shape && data.shape.genre },
+      { label: 'Language', value: data.shape && data.shape.language },
+      { label: 'Clean or explicit', value: data.shape && data.shape.explicit },
+      { label: 'Length', value: data.shape && data.shape.length },
+    ];
+    if (styleBag) {
+      choices.push({ label: 'Vocal', value: styleBag.vocal });
+      choices.push({ label: 'Tempo', value: styleBag.tempo });
+      choices.push({ label: 'Energy', value: styleBag.energy });
+    }
+    var feedback = chosenChips();
+    if (feedback.length) choices.push({ label: 'Feedback', value: feedback.join(', ') });
+    return { answers: answers, choices: choices };
+  }
+
+  function stylePromptValue() {
+    var box = document.querySelector('#sh-suno-style .sh-style-box');
+    return box ? String(box.value || '').trim() : '';
+  }
+
+  function showClaimGate(id) {
+    var gate = $('sh-claim-gate');
+    var next = '/claim?id=' + encodeURIComponent(id);
+    var signup = $('sh-claim-signup');
+    var login = $('sh-claim-login');
+    if (signup) signup.setAttribute('href', 'signup.html?next=' + encodeURIComponent(next));
+    if (login) login.setAttribute('href', 'login.html?next=' + encodeURIComponent(next));
+    if (gate) gate.hidden = false;
+  }
+
+  function claimHumanParts() {
+    var error = $('sh-claim-error');
+    var gate = $('sh-claim-gate');
+    if (gate) gate.hidden = true;
+    if (!draft || !draftHasContent(draft)) {
+      if (error) {
+        error.hidden = false;
+        error.textContent = 'Write the draft first, then this record can list your lines.';
+      }
+      return;
+    }
+    if (error) error.hidden = true;
+    draft.title = titleEl.value.trim() || draft.title;
+    var pairs = claimPairs();
+    var record = window.PlaigroundClaim.build({
+      title: draft.title,
+      answers: pairs.answers,
+      choices: pairs.choices,
+      lines: window.PlaigroundClaim.linesFromDraft(draft),
+      stylePrompt: stylePromptValue(),
+    });
+    var button = $('sh-claim');
+    if (button) button.disabled = true;
+    window.PlaigroundClaim.submit(record).then(function (result) {
+      if (button) button.disabled = false;
+      if (result && result.needsAuth) {
+        showClaimGate(record.id);
+        return;
+      }
+      if (!result || !result.ok) {
+        if (error) {
+          error.hidden = false;
+          error.textContent = (result && result.error) || 'The account save did not go through. Your record stays on this device.';
+        }
+        showClaimGate(record.id);
+        return;
+      }
+      window.location.href = '/claim?id=' + encodeURIComponent(record.id);
+    });
+  }
+
+  if ($('sh-claim')) $('sh-claim').addEventListener('click', claimHumanParts);
   $('sh-download').addEventListener('click', downloadRecord);
   $('sh-print').addEventListener('click', function () {
     renderRecord();
@@ -1117,15 +1692,46 @@
   window.SongHelperPage = {
     appendSection: appendSection,
     remember: rememberDraft,
+    refreshAnswers: paintAnswers,
     draft: function () { return draft; },
     hasDraft: function () { return draftHasContent(draft); },
+    setMood: function (value) {
+      picks.mood = value || '';
+      setPressed('mood', picks.mood);
+      if ($('sh-mood-custom')) $('sh-mood-custom').hidden = picks.mood !== 'custom';
+      showMoodError('');
+    },
+    mood: function () { return picks.mood; },
+    setPack: function (id) {
+      picks.pack = id || '';
+      picks.comedyType = '';
+      picks.comedyMusic = '';
+    },
+    setShapeBits: function (bits) {
+      var next = bits || {};
+      if (next.language) picks.language = next.language;
+      if (next.explicit) picks.explicit = next.explicit;
+      if (next.genre2) picks.genre2 = next.genre2;
+      else picks.genre2 = '';
+    },
+    openDraft: function () {
+      go(STEPS.indexOf('draft'), true);
+    },
   };
 
   var feeling = document.getElementById('sh-feeling');
   if (feeling) {
     feeling.addEventListener('click', function (event) {
       var chip = event.target.closest ? event.target.closest('.sh-chip') : null;
-      if (!chip || chip.getAttribute('data-group') !== 'mood') return;
+      if (!chip || chip.classList.contains('sh-more') || chip.getAttribute('data-group') !== 'mood') return;
+      if (chip.classList.contains('on')) {
+        picks.mood = '';
+        setPressed('mood', '');
+        if ($('sh-mood-custom')) $('sh-mood-custom').hidden = true;
+        showMoodError('');
+        showError('');
+        return;
+      }
       picks.mood = chip.getAttribute('data-value');
       setPressed('mood', picks.mood);
       if ($('sh-mood-custom')) $('sh-mood-custom').hidden = picks.mood !== 'custom';
@@ -1137,4 +1743,6 @@
   var battleSaved = battleSavedDraft();
   if (battleSaved) openBattleDraft(battleSaved);
   else showStep();
+  foldAllOptionLists();
+  window.SongHelperChips = { fold: foldOptions, foldAll: foldAllOptionLists };
 }());

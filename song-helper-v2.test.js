@@ -672,7 +672,33 @@ function runPages() {
   assert.ok(read('spark.js').includes('Use this spark'));
   assert.ok(read('spark.js').includes('spark.headlinesFor'));
   assert.ok(read('spark.js').includes('Start writing'));
+  assert.ok(html.includes('Give me ideas'));
+  assert.ok(html.includes('I have my own idea'));
   assert.ok(html.includes('the more human the draft feels'));
+  assert.ok(html.includes('id="sh-choice-ideas"'));
+  assert.ok(html.includes('id="sh-choice-own"'));
+  assert.ok(html.includes('Create from scratch'));
+  assert.ok(html.includes('From a real song'));
+  assert.ok(html.includes('id="sh-choice-scratch"'));
+  assert.ok(html.includes('id="sh-choice-source"'));
+  assert.ok(html.includes('id="sh-source"'));
+  assert.ok(html.includes('How you write'));
+  assert.ok(html.includes('How it feels'));
+  assert.ok(!html.includes('data-group="mood"'));
+  assert.ok(!html.includes('How does it feel?'));
+  assert.ok(js.includes('setBranch'));
+  assert.ok(js.includes('KIND_MOOD'));
+  assert.ok(js.includes("heartbreak: 'heartbroken'"));
+  assert.ok(js.includes('Song you want to cover'));
+  assert.ok(js.includes('FAIR_USE_NOTE'));
+  assert.ok(html.includes('id="sh-ideas-panel"'));
+  assert.ok(html.includes('id="sh-own-panel"'));
+  assert.ok(js.includes('setIdeaLane'));
+  assert.ok(js.includes('clearOwnIdea'));
+  assert.ok(js.includes('clearSparkChoice'));
+  assert.ok(js.includes('sparkTopic === topic.label'));
+  assert.ok(read('song-helper.js').includes("textContent = 'More'"));
+  assert.ok(read('song-helper.js').includes('classList.contains(\'on\')'));
   assert.ok(sparkHtml.includes('the more human the draft feels'));
   assert.ok(!/—/.test(read('lib/spark.js') + read('spark.js')));
   assert.ok(!js.includes("text: ''"));
@@ -701,7 +727,7 @@ function runPages() {
   ['XAI_API_KEY', 'XAI_MODEL', 'XAI_IMAGE_MODEL', 'TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY', 'SONG_HELPER_DAILY_LIMIT', 'SONG_HELPER_DISABLED', 'REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET', 'REDDIT_USER_AGENT', 'REDDIT_CITY_SUBS', 'SPARK_FEEDS'].forEach(function (name) {
     assert.ok(readme.includes(name), name);
   });
-  assert.strictEqual(fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).length, 11);
+  assert.strictEqual(fs.readdirSync(path.join(__dirname, 'api')).filter(function (name) { return name.endsWith('.js'); }).length, 12);
 }
 
 function runQuestions() {

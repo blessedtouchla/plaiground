@@ -438,6 +438,14 @@ function run() {
   assert.ok(js.includes('isSignedIn'), 'pinned Login hides when already signed in');
   assert.ok(js.includes('document.body.classList.contains("app")'), 'signed-in app chrome does not get the public Login');
   assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav still folds old plan heroes');
+  assert.ok(js.includes('ensureWhatsNewPublic') && js.includes('ensureWhatsNewSide'), 'What\'s new is added to the public nav and the signed-in menu');
+  assert.ok(js.includes('href: "/song-helper"') && js.includes('href: "/cover-art"') && js.includes('href: "/spark"') && js.includes('href: "/battle"'), 'What\'s new reuses Song Helper, Cover Art, What\'s hot, and Battle');
+  assert.ok(!js.includes('href: "/contracts"'), 'Contracts is not listed twice inside What\'s new');
+  assert.ok(js.includes('ensureContractsPublic') && js.includes('link.href = "/contracts"'), 'Contracts stays one nav item of its own');
+  const login = read('login.html');
+  assert.ok(login.includes('id="whats-new"'), 'login page shows the What\'s new section');
+  assert.ok(login.includes('href="/song-helper">Song Helper</a>') && login.includes('href="/cover-art">Cover Art</a>') && login.includes('href="/spark">What\'s hot</a>') && login.includes('href="/battle">Battle</a>') && login.includes('href="/contracts">Contracts</a>'), 'login page reuses the homepage feature buttons');
+  assert.ok(!/—/.test(login.slice(login.indexOf('id="whats-new"'), login.indexOf('auth-panel'))), 'login What\'s new copy stays free of em dashes');
   assert.ok(js.includes('foldPublicPlanHeroes'), 'Pricing link is not a Basic / Creator / Pro nest');
   assert.ok(!js.includes('Show Basic, Creator, and Pro'), 'chevron is not labeled as three plan heroes');
   assert.ok(!js.includes('submenu.appendChild(basic)') && !js.includes('submenu.appendChild(creator)') && !js.includes('submenu.appendChild(pro)'), 'submenu does not nest Basic, Creator, and Pro');

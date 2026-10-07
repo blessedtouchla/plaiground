@@ -1,0 +1,222 @@
+.contract-page .guide {
+  width: min(640px, 100%);
+}
+
+.contract-page h1 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(2rem, 9vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  margin: 8px 0 12px;
+}
+
+.contract-page > .guide > h2,
+.contract-page h2 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+}
+
+.contract-note,
+.protect-note {
+  margin: 0;
+  color: #b7b7c2;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contract-paths,
+.contract-library,
+.contract-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contract-paths a,
+.contract-choice {
+  display: flex;
+  align-items: center;
+  min-height: 84px;
+  padding: 14px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  color: #fff;
+  text-decoration: none;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(1.35rem, 5vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.contract-paths a:active,
+.contract-choice:active {
+  background: #f3cb47;
+  color: #14120a;
+}
+
+.contract-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.contract-filters button {
+  appearance: none;
+  flex: 1;
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.contract-filters button.is-on {
+  background: #f3cb47;
+  color: #14120a;
+}
+
+.contract-card {
+  padding: 16px 16px 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(243, 203, 71, 0.35);
+}
+
+.contract-card h2 {
+  margin: 0 0 8px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.35rem;
+}
+
+.contract-tag {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(243, 203, 71, 0.16);
+  color: #f3cb47;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.contract-card p {
+  margin: 0 0 8px;
+  color: #ececf2;
+  line-height: 1.4;
+}
+
+.contract-card a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  margin-top: 8px;
+  border-radius: 16px;
+  background: #f3cb47;
+  color: #14120a;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+input.contract-box {
+  min-height: 72px;
+}
+
+.contract-box,
+.contract-draft {
+  width: 100%;
+  min-height: 180px;
+  padding: 14px;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: 16px/1.45 Inter, sans-serif;
+  resize: vertical;
+}
+
+.contract-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.contract-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.contract-pay {
+  margin: 0;
+  color: #f3cb47;
+  font-weight: 700;
+}
+
+.contract-block h2 {
+  margin: 18px 0 8px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.4rem;
+}
+
+.contract-block li {
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  list-style: none;
+}
+
+.contract-block ul {
+  margin: 0;
+  padding: 0;
+}
+
+.protect-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #c8c8d0;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.contract-honeypot {
+  position: absolute;
+  left: -9999px;
+  height: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.contract-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+button.guide-cta {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+}

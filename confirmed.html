@@ -135,6 +135,7 @@
     </div>
   </footer>
   <script src="membership.js"></script>
+  <script src="lib/guide.js?v=20261007guide"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
   <script src="site.js?v=20260924p3"></script>
@@ -237,7 +238,15 @@
         var claim = window.PlaigroundRoadmapAccount && window.PlaigroundRoadmapAccount.claimLocal
           ? window.PlaigroundRoadmapAccount.claimLocal()
           : Promise.resolve();
-        claim.then(function () { showConfirmed(email); }, function () { showConfirmed(email); });
+        function enterGuide() {
+          var guide = window.PlaigroundGuide;
+          if (guide && typeof guide.hrefAfterAuth === 'function' && !guide.isDone()) {
+            window.location.replace(guide.hrefAfterAuth('dashboard.html', email));
+            return;
+          }
+          showConfirmed(email);
+        }
+        claim.then(enterGuide, enterGuide);
       }).catch(function () {
         showError('Could not confirm this email.');
       });

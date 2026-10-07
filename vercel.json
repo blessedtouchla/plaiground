@@ -97,6 +97,18 @@
       "permanent": true
     },
     {
+      "source": "/claim",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/claim",
+      "permanent": true
+    },
+    {
+      "source": "/claim/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/claim",
+      "permanent": true
+    },
+    {
       "source": "/pricing.html",
       "destination": "/index.html#pricing",
       "permanent": true
@@ -168,6 +180,8 @@
     { "source": "/my-roadmap/", "destination": "/my-roadmap.html" },
     { "source": "/my-lyrics", "destination": "/my-lyrics.html" },
     { "source": "/my-lyrics/", "destination": "/my-lyrics.html" },
+    { "source": "/claim", "destination": "/claim.html" },
+    { "source": "/claim/", "destination": "/claim.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/signups", "destination": "/admin.html" },
     { "source": "/login", "destination": "/login.html" },
@@ -203,6 +217,22 @@
     { "source": "/api/spark", "destination": "/api/song-helper?action=spark" },
     { "source": "/destination", "destination": "/destination.html" },
     { "source": "/destination/", "destination": "/destination.html" },
+    { "source": "/contracts/create", "destination": "/contracts-create.html" },
+    { "source": "/contracts/create/", "destination": "/contracts-create.html" },
+    { "source": "/contracts/fix", "destination": "/contracts-fix.html" },
+    { "source": "/contracts/fix/", "destination": "/contracts-fix.html" },
+    { "source": "/contracts/review", "destination": "/contracts-review.html" },
+    { "source": "/contracts/review/", "destination": "/contracts-review.html" },
+    { "source": "/contracts", "destination": "/contracts.html" },
+    { "source": "/contracts/", "destination": "/contracts.html" },
+    { "source": "/copyright", "destination": "/copyright.html" },
+    { "source": "/copyright/", "destination": "/copyright.html" },
+    { "source": "/qualify", "destination": "/qualify.html" },
+    { "source": "/qualify/", "destination": "/qualify.html" },
+    { "source": "/make-human", "destination": "/make-human.html" },
+    { "source": "/make-human/", "destination": "/make-human.html" },
+    { "source": "/guide", "destination": "/guide.html" },
+    { "source": "/guide/", "destination": "/guide.html" },
     { "source": "/blog", "destination": "/blog.html" },
     { "source": "/blog/welcome", "destination": "/blog-welcome.html" },
     { "source": "/blog/first-release", "destination": "/blog-first-release.html" },

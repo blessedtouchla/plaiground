@@ -126,6 +126,70 @@
         release: 'A proper release includes how you get paid.'
       }
     },
+    qualify: {
+      id: 'qualify',
+      title: 'Qualify my song',
+      face: 'plai',
+      status: 'live',
+      href: '/qualify',
+      link: 'Qualify my song',
+      what: 'A short check for the AI lane: what a person wrote, and what was generated.',
+      get: 'One of three reads, and the next step. People check the work.',
+      who: 'You answer for this song. People check the work.',
+      why: {
+        money: 'Human authorship is what can be registered and licensed.',
+        fanbase: 'A clear read helps when the song is already getting plays.',
+        release: 'Know the gap before the song goes out.'
+      }
+    },
+    makehuman: {
+      id: 'makehuman',
+      title: 'Make it human',
+      face: 'plai',
+      status: 'live',
+      href: '/make-human',
+      link: 'Make it human',
+      what: 'Human re-sing, a new human master, or a sync-ready package.',
+      get: 'A record labels, supervisors and distributors can clear. People do this work.',
+      who: 'People sing, play, and write. People check the work.',
+      why: {
+        money: 'A human recording and a human composition are what can earn.',
+        fanbase: 'Listeners can meet a voice a person sang.',
+        release: 'Sort the human pass before the song goes out.'
+      }
+    },
+    contracts: {
+      id: 'contracts',
+      title: 'Contracts',
+      face: 'plai',
+      status: 'live',
+      href: '/contracts',
+      link: 'Contracts',
+      what: 'Read a contract, mark it up, or start a fair draft.',
+      get: 'A plain read or a draft you can copy. People check the work.',
+      who: 'You bring the contract. People check the work.',
+      why: {
+        money: 'A clear contract is how the money stays yours.',
+        fanbase: 'A clear contract keeps the song yours when you share it.',
+        release: 'Sort the paper before the song goes out.'
+      }
+    },
+    copyright: {
+      id: 'copyright',
+      title: 'Copyright & publishing',
+      face: 'plai',
+      status: 'live',
+      href: '/copyright',
+      link: 'Copyright & publishing',
+      what: 'For this song: which parts a person made, then the publishing steps.',
+      get: 'A note saved on this release. People check the work.',
+      who: 'You answer for this song. People check the work.',
+      why: {
+        money: 'The parts a person made are what can earn.',
+        fanbase: 'A clear note helps when you share the song.',
+        release: 'Sort copyright and publishing out before the song goes out.'
+      }
+    },
     publishing: {
       id: 'publishing',
       title: 'Publishing and splits',
@@ -241,21 +305,31 @@
   };
 
   var STOP_ORDER = [
-    'helper', 'check', 'cover', 'persona', 'distro', 'publishing', 'royalties',
+    'helper', 'check', 'copyright', 'contracts', 'qualify', 'cover', 'persona', 'distro', 'publishing', 'royalties',
     'sync', 'pitch', 'marketing', 'multiverse', 'billboard', 'shows'
   ];
 
   var RECOMMENDED = {
-    'idea|money': ['helper', 'check', 'persona', 'publishing', 'royalties', 'sync'],
+    'idea|money': ['helper', 'check', 'copyright', 'contracts', 'qualify', 'persona', 'publishing', 'royalties', 'sync'],
     'idea|fanbase': ['helper', 'cover', 'persona', 'check', 'distro', 'pitch'],
     'idea|release': ['helper', 'check', 'cover', 'persona', 'distro', 'publishing'],
-    'made|money': ['check', 'persona', 'distro', 'publishing', 'royalties', 'sync'],
-    'made|fanbase': ['cover', 'persona', 'check', 'distro', 'pitch', 'marketing'],
+    'made|money': ['check', 'copyright', 'contracts', 'qualify', 'persona', 'distro', 'publishing', 'royalties', 'sync'],
+    'made|fanbase': ['cover', 'persona', 'check', 'copyright', 'contracts', 'qualify', 'distro', 'pitch', 'marketing'],
     'made|release': ['persona', 'check', 'cover', 'distro'],
-    'out|money': ['publishing', 'royalties', 'sync', 'check'],
-    'out|fanbase': ['persona', 'pitch', 'marketing', 'check'],
+    'out|money': ['publishing', 'royalties', 'sync', 'check', 'copyright', 'contracts', 'qualify'],
+    'out|fanbase': ['persona', 'pitch', 'marketing', 'check', 'copyright', 'contracts', 'qualify'],
     'out|release': ['check', 'publishing', 'royalties']
   };
+
+  var SECTIONS = [
+    { id: 'make', label: 'Make it', stops: ['helper', 'cover', 'multiverse'] },
+    { id: 'ready', label: 'Get ready', stops: ['check'] },
+    { id: 'protect', label: 'Protect it', stops: ['copyright', 'contracts', 'qualify'] },
+    { id: 'put', label: 'Put it out', stops: ['distro', 'persona'] },
+    { id: 'heard', label: 'Get heard', stops: ['pitch', 'marketing', 'billboard'] },
+    { id: 'paid', label: 'Get paid', stops: ['royalties', 'publishing', 'sync'] },
+    { id: 'run', label: 'Run it', stops: ['shows'] }
+  ];
 
   var KITS = {
     release: {
@@ -270,13 +344,37 @@
       label: 'Break Your Record',
       song: 'out',
       goal: 'fanbase',
-      stops: ['marketing', 'pitch', 'sync', 'billboard']
+      stops: ['marketing', 'pitch', 'copyright', 'contracts', 'qualify', 'sync', 'billboard']
     },
     management: {
       id: 'management',
       label: 'Management'
     }
   };
+
+  function sectionsFor(stopIds) {
+    var on = {};
+    (stopIds || []).forEach(function (id) { on[id] = true; });
+    var out = [];
+    SECTIONS.forEach(function (section) {
+      var stops = section.stops.filter(function (id) { return on[id] && STOPS[id]; });
+      if (stops.length) out.push({ id: section.id, label: section.label, stops: stops });
+    });
+    return out;
+  }
+
+  function openSectionId(song, goal, stopIds) {
+    var groups = sectionsFor(stopIds);
+    var ids = groups.map(function (section) { return section.id; });
+    var prefer = song === 'made' ? 'ready' : song === 'out' ? 'heard' : 'make';
+    if (song === 'out' && goal === 'money') prefer = 'paid';
+    if (song === 'out' && goal === 'release') prefer = 'put';
+    if (ids.indexOf(prefer) !== -1) return prefer;
+    if (goal === 'money' && ids.indexOf('paid') !== -1) return 'paid';
+    if (goal === 'fanbase' && ids.indexOf('heard') !== -1) return 'heard';
+    if (goal === 'release' && ids.indexOf('put') !== -1) return 'put';
+    return ids[0] || prefer;
+  }
 
   function recommendedIds(song, goal) {
     var list = RECOMMENDED[song + '|' + goal];
@@ -497,7 +595,8 @@
       routeSong: '',
       routeGoal: '',
       stopIds: [],
-      editing: false
+      editing: false,
+      openSections: null
     };
     var title = doc.getElementById('dest-title');
     var help = doc.getElementById('dest-help');
@@ -714,6 +813,7 @@
       state.routeGoal = plan.goal;
       state.stopIds = (plan.stops || []).filter(function (id) { return !!STOPS[id]; });
       state.editing = !!(options && options.editing);
+      state.openSections = null;
       state.step = 3;
       if (about) about.value = state.note;
       var otherInput = doc.getElementById('dest-genre-other');
@@ -802,8 +902,107 @@
       if (next) next.disabled = !canContinue();
     }
 
+    function sectionIsOpen(id) {
+      if (state.openSections) return !!state.openSections[id];
+      return id === openSectionId(state.routeSong, state.routeGoal, state.stopIds);
+    }
+
+    function toggleSection(id) {
+      var groups = sectionsFor(state.stopIds);
+      if (!state.openSections) {
+        state.openSections = {};
+        var current = openSectionId(state.routeSong, state.routeGoal, state.stopIds);
+        groups.forEach(function (section) {
+          state.openSections[section.id] = section.id === current;
+        });
+      }
+      state.openSections[id] = !state.openSections[id];
+      renderRoute();
+    }
+
+    function appendFolds(parent, ids, mode) {
+      var groups = sectionsFor(ids);
+      var numbers = {};
+      var count = 1;
+      if (mode === 'route') {
+        sectionsFor(state.stopIds).forEach(function (section) {
+          section.stops.forEach(function (id) {
+            numbers[id] = count;
+            count += 1;
+          });
+        });
+      }
+      groups.forEach(function (section) {
+        var open = sectionIsOpen(section.id);
+        var block = doc.createElement('section');
+        block.className = 'dest-fold' + (open ? ' is-open' : '');
+        var toggle = doc.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'dest-fold-toggle';
+        toggle.setAttribute('data-section-toggle', section.id);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var name = doc.createElement('span');
+        name.textContent = section.label;
+        var chevron = doc.createElement('span');
+        chevron.className = 'dest-fold-chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        toggle.appendChild(name);
+        toggle.appendChild(chevron);
+        var panel = doc.createElement(mode === 'route' ? 'ol' : 'div');
+        panel.className = mode === 'route' ? 'dest-stops' : 'dest-fold-extras';
+        panel.hidden = !open;
+        section.stops.forEach(function (id) {
+          if (!STOPS[id]) return;
+          if (mode === 'route') {
+            var li = doc.createElement('li');
+            li.className = 'dest-stop';
+            var pin = doc.createElement('span');
+            pin.className = 'dest-pin';
+            pin.textContent = String(numbers[id] || '');
+            var body = doc.createElement('div');
+            body.className = 'dest-stop-body';
+            body.appendChild(stopButton(id, state.routeGoal, state.kit));
+            if (state.editing) {
+              var remove = doc.createElement('button');
+              remove.type = 'button';
+              remove.className = 'dest-stop-remove';
+              remove.setAttribute('data-remove', id);
+              remove.textContent = 'Remove';
+              body.appendChild(remove);
+            }
+            li.appendChild(pin);
+            li.appendChild(body);
+            panel.appendChild(li);
+            return;
+          }
+          var row = doc.createElement('div');
+          row.className = 'dest-extra';
+          row.appendChild(stopButton(id, state.routeGoal, state.kit));
+          var add = doc.createElement('button');
+          add.type = 'button';
+          add.className = 'dest-stop-add';
+          add.setAttribute('data-add', id);
+          add.textContent = 'Add';
+          row.appendChild(add);
+          panel.appendChild(row);
+        });
+        block.appendChild(toggle);
+        block.appendChild(panel);
+        parent.appendChild(block);
+      });
+    }
+
     function renderRoute() {
       readMini();
+      if (state.openSections) {
+        var stillOpen = sectionsFor(state.stopIds).some(function (section) {
+          return state.openSections[section.id];
+        });
+        var explicitlyClosed = sectionsFor(state.stopIds).every(function (section) {
+          return state.openSections[section.id] === false;
+        });
+        if (!stillOpen && !explicitlyClosed) state.openSections = null;
+      }
       if (title) title.textContent = headline(state.routeSong, state.routeGoal);
       if (help) help.textContent = 'One package for this goal.';
       if (total) total.textContent = packageTotal(state.managed);
@@ -854,32 +1053,11 @@
         line.setAttribute('class', 'dest-road-line');
         svg.appendChild(glow);
         svg.appendChild(line);
-        var list = doc.createElement('ol');
-        list.className = 'dest-stops';
-        state.stopIds.forEach(function (id, index) {
-          if (!STOPS[id]) return;
-          var li = doc.createElement('li');
-          li.className = 'dest-stop';
-          var pin = doc.createElement('span');
-          pin.className = 'dest-pin';
-          pin.textContent = String(index + 1);
-          var body = doc.createElement('div');
-          body.className = 'dest-stop-body';
-          body.appendChild(stopButton(id, state.routeGoal, state.kit));
-          if (state.editing) {
-            var remove = doc.createElement('button');
-            remove.type = 'button';
-            remove.className = 'dest-stop-remove';
-            remove.setAttribute('data-remove', id);
-            remove.textContent = 'Remove';
-            body.appendChild(remove);
-          }
-          li.appendChild(pin);
-          li.appendChild(body);
-          list.appendChild(li);
-        });
+        var groups = doc.createElement('div');
+        groups.className = 'dest-sections';
+        appendFolds(groups, state.stopIds, 'route');
         map.appendChild(svg);
-        map.appendChild(list);
+        map.appendChild(groups);
         drawRoad(false);
       }
 
@@ -894,18 +1072,7 @@
             empty.textContent = 'Every stop is already on your route.';
             extraList.appendChild(empty);
           }
-          spare.forEach(function (id) {
-            var row = doc.createElement('div');
-            row.className = 'dest-extra';
-            row.appendChild(stopButton(id, state.routeGoal, state.kit));
-            var add = doc.createElement('button');
-            add.type = 'button';
-            add.className = 'dest-stop-add';
-            add.setAttribute('data-add', id);
-            add.textContent = 'Add';
-            row.appendChild(add);
-            extraList.appendChild(row);
-          });
+          appendFolds(extraList, spare, 'extra');
         }
       }
     }
@@ -926,7 +1093,10 @@
       var box = map.getBoundingClientRect();
       var points = [];
       map.querySelectorAll('.dest-pin').forEach(function (pin) {
+        var fold = pin.closest ? pin.closest('.dest-fold') : null;
+        if (fold && !fold.classList.contains('is-open')) return;
         var rect = pin.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
         points.push({
           x: rect.left - box.left + rect.width / 2,
           y: rect.top - box.top + rect.height / 2
@@ -1034,6 +1204,7 @@
       state.routeSong = state.song;
       state.routeGoal = state.goal;
       state.stopIds = recommendedIds(state.song, state.goal);
+      state.openSections = null;
     }
 
     app.addEventListener('click', function (event) {
@@ -1056,6 +1227,11 @@
       var choice = event.target.closest('[data-group]');
       if (choice && app.contains(choice)) {
         choose(choice);
+        return;
+      }
+      var sectionToggle = event.target.closest('[data-section-toggle]');
+      if (sectionToggle && app.contains(sectionToggle)) {
+        toggleSection(sectionToggle.getAttribute('data-section-toggle'));
         return;
       }
       var kit = event.target.closest('[data-kit]');
@@ -1202,6 +1378,9 @@
     STOPS: STOPS,
     STOP_ORDER: STOP_ORDER,
     KITS: KITS,
+    SECTIONS: SECTIONS,
+    sectionsFor: sectionsFor,
+    openSectionId: openSectionId,
     recommendedIds: recommendedIds,
     applyKit: applyKit,
     headsUp: headsUp,

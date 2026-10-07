@@ -1,0 +1,126 @@
+.qualify-lead {
+  margin: 0 0 14px;
+  color: #ececf2;
+  font-size: 1.12rem;
+  line-height: 1.45;
+}
+
+.qualify-for {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.qualify-for li {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(243, 203, 71, 0.4);
+}
+
+.qualify-for strong {
+  display: block;
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.qualify-for span {
+  display: block;
+  margin-top: 4px;
+  color: #c8c8d0;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.qualify-status {
+  display: block;
+  margin-top: 8px;
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.qualify-status.is-ready {
+  color: #f3cb47;
+}
+
+.qualify-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.qualify-steps li {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(243, 203, 71, 0.4);
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.qualify-note {
+  margin: auto 0 0;
+  color: #b7b7c2;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.qualify-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #c8c8d0;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.human-tier {
+  margin: 0 0 14px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(243, 203, 71, 0.4);
+}
+
+.human-tier h2 {
+  margin: 0 0 8px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.45rem;
+}
+
+.human-tier p,
+.human-story {
+  margin: 0 0 10px;
+  color: #ececf2;
+  line-height: 1.45;
+}
+
+.human-price {
+  margin: 0;
+  color: #f3cb47;
+  font-weight: 700;
+}
+
+.guide-page h1 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(2rem, 9vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  margin: 8px 0 14px;
+}

@@ -77,6 +77,17 @@
     <section class="auth-hero">
       <h1>Upload once. Get paid everywhere.</h1>
       <p>Distribution to 50+ platforms. You keep the store royalties. PLAIGROUND does not take a cut of them.</p>
+      <div class="whats-new auth-whats-new" id="whats-new" aria-label="What's new">
+        <h2 class="team-section-title">What's new</h2>
+        <p class="whats-new-lead">Write a song, make the cover, see what's hot, trade verses, or read a contract. If the live writer is not connected, the page says so and shows a sample.</p>
+        <div class="whats-new-actions">
+          <a class="btn btn-gold btn-md" href="/song-helper">Song Helper</a>
+          <a class="btn btn-ghost btn-md" href="/cover-art">Cover Art</a>
+          <a class="btn btn-ghost btn-md" href="/spark">What's hot</a>
+          <a class="btn btn-ghost btn-md" href="/battle">Battle</a>
+          <a class="btn btn-ghost btn-md" href="/contracts">Contracts</a>
+        </div>
+      </div>
     </section>
     <section class="auth-panel">
       <div class="auth-card">
@@ -157,6 +168,7 @@
     </div>
   </footer>
   <script src="membership.js?v=20260912k1"></script>
+  <script src="lib/guide.js?v=20261007guide"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
   <script src="site.js?v=20260924p3"></script>
@@ -239,17 +251,22 @@
             if (result.data.plan) window.PlaigroundMembership.recordPlan(result.data.plan);
           }
           function goHome() {
+            var account = result.data && result.data.email ? result.data.email : email;
             if (window.PlaigroundLyricsAccount && window.PlaigroundLyricsAccount.pendingHome && window.PlaigroundLyricsAccount.pendingHome()) {
-              window.location.href = '/my-lyrics';
+              window.location.href = window.PlaigroundLyricsAccount.pendingHome();
               return;
             }
+            var home = 'dashboard.html';
             if (window.PlaigroundMembership && window.PlaigroundMembership.afterLoginHome) {
-              window.location.href = window.PlaigroundMembership.afterLoginHome(result.data && result.data.email ? result.data.email : email);
+              home = window.PlaigroundMembership.afterLoginHome(account);
+            } else if (window.PlaigroundMembership && window.PlaigroundMembership.signedInHome) {
+              home = window.PlaigroundMembership.signedInHome(account);
+            }
+            if (window.PlaigroundGuide && window.PlaigroundGuide.hrefAfterAuth) {
+              window.location.href = window.PlaigroundGuide.hrefAfterAuth(home, account);
               return;
             }
-            window.location.href = window.PlaigroundMembership && window.PlaigroundMembership.signedInHome
-              ? window.PlaigroundMembership.signedInHome(result.data && result.data.email ? result.data.email : email)
-              : 'dashboard.html';
+            window.location.href = home;
           }
           var claim = window.PlaigroundRoadmapAccount && window.PlaigroundRoadmapAccount.claimLocal
             ? window.PlaigroundRoadmapAccount.claimLocal()
