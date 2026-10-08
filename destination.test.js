@@ -279,7 +279,8 @@ function runPage() {
   assert.ok(html.includes('Free to start'));
   assert.ok(html.includes('By application'));
   assert.ok(html.includes('Activate Autopilot'));
-  assert.strictEqual((html.match(/Autopilot/g) || []).length, 1);
+  assert.strictEqual((html.match(/Autopilot/g) || []).length, 2);
+  assert.ok(html.includes('Autopilot for your music career.'));
   assert.ok(!/Autopilot/.test(css + js));
   assert.ok(html.includes('People check the work'));
   assert.ok(/checked by people/i.test(html));

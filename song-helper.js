@@ -18,7 +18,7 @@
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
     style: ['Describe the sound.', 'This becomes a style prompt you can copy. We describe the sound instead of naming artists.'],
     record: ['Your authorship record.', 'What you wrote, and what was drafted around it. Download it or print it.'],
-    next: ['When you want a team on it.', 'Song Helper is a free way to start. PLAIGROUND is distribution and artist tools around the song. Human first. AI when you want it.'],
+    next: ['When you want a team on it.', 'Song Helper is a free way to start. PLAIGROUND is distribution and artist tools around the song. Autopilot for your music career.'],
   };
   var NEXT_LABEL = {
     mood: 'Next',
