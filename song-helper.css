@@ -748,7 +748,8 @@ body.song-helper-page .plai-bubble {
 
 .sh-style-box {
   width: 100%;
-  min-height: 72px;
+  max-width: 100%;
+  min-height: 168px;
   resize: vertical;
   background: #111;
   border: 1px solid rgba(255, 255, 255, 0.14);

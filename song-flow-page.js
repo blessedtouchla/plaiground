@@ -753,6 +753,32 @@
       render();
     },
     paintCast: function () { paintCast(); },
+    flowState: function () {
+      syncTitle();
+      syncKinds();
+      var sensory = {};
+      Object.keys(state.sensory || {}).forEach(function (key) {
+        sensory[key] = state.sensory[key];
+      });
+      var reveals = state.reveals || {};
+      return {
+        forId: state.forId,
+        forText: state.forText,
+        aims: (state.aims || []).slice(),
+        aimOther: state.aimOther || '',
+        opener: state.opener || '',
+        wisdom: state.wisdom || '',
+        keep: state.keep || '',
+        reveals: {
+          never: reveals.never || '',
+          scared: reveals.scared || '',
+          nobody: reveals.nobody || ''
+        },
+        sensory: sensory,
+        kinds: (state.kinds || []).slice(),
+        genres: (state.genres || []).slice()
+      };
+    },
   };
 
   var formBtn = $('sh-talk-form');

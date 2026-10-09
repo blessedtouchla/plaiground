@@ -66,6 +66,18 @@
     angry: 'angry',
     mindset: 'mindset'
   };
+  var GENRE_LABELS = {
+    hiphop: 'Hip-hop',
+    rnb: 'R&B',
+    country: 'Country',
+    pop: 'Pop',
+    latin: 'Latin',
+    rock: 'Rock',
+    gospel: 'Gospel',
+    lofi: 'Lo-fi',
+    afrobeats: 'Afrobeats',
+    indie: 'Indie'
+  };
   var sectionKind = '';
   var SPARK_GROUPS = (window.SparkCore && window.SparkCore.GROUPS) || [
     { id: 'trending', label: 'Trending', lanes: ['trending'] },
@@ -1074,8 +1086,13 @@
   }
 
   function collectV2Style() {
+    var page = window.SongFlowPage;
+    var raw = page && page.flowState ? page.flowState() : null;
+    var ids = raw && window.SongFlow && window.SongFlow.styleIds ? window.SongFlow.styleIds(raw) : null;
+    var genre = fieldValue('genre') || '';
+    if (!genre && raw && raw.genres && raw.genres[0]) genre = GENRE_LABELS[raw.genres[0]] || '';
     return {
-      genre: fieldValue('genre') || '',
+      genre: genre,
       mood: readMood() || '',
       region: craft.region || '',
       energy: '',
@@ -1083,7 +1100,8 @@
       vocal: '',
       texture: '',
       instruments: [],
-      era: ''
+      era: '',
+      flow: ids
     };
   }
 
