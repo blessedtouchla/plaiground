@@ -100,12 +100,12 @@ function run() {
   assert.ok(!fs.existsSync(path.join(__dirname, 'video-collect.js')), 'do not ship a Video Collect toggle script');
   assert.ok(!/video-collect\.js/.test(video), 'Video Collect page must not load a toggle script');
 
-  const after = index.match(/<section class="after-stay"[\s\S]*?<\/section>/);
-  assert.ok(after, 'homepage after-upload cards stay');
-  assert.ok(/href="ar\.html"/.test(after[0]) && /href="epk\.html"/.test(after[0]) && /href="royalties\.html"/.test(after[0]), 'after upload is A&R, EPK, How you get paid');
+  const after = index.match(/<section class="playground"[\s\S]*?<\/section>/);
+  assert.ok(after, 'homepage playground stays');
+  assert.ok(/href="\/ar"/.test(after[0]) && /href="\/epk"/.test(after[0]) && /href="royalties\.html"/.test(after[0]), 'playground is A&R, EPK, and earnings');
   assert.ok(!/href="boosts.html"/.test(after[0]), 'logged-out homepage must not open the signed-in Boosts shell');
   assert.ok(!/href="video-collect\.html"/.test(after[0]));
-  assert.ok(!/href="boost\.html"/.test(after[0]), 'after upload does not lead with marketing boosts');
+  assert.ok(!/href="boost\.html"/.test(after[0]), 'playground does not lead with marketing boosts');
 
   const chartOpts = optionCards(chart);
   assert.deepStrictEqual(chartOpts.map(function (card) {

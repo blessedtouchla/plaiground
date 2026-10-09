@@ -1003,7 +1003,7 @@ function runPage() {
   assert.ok(api.includes('Cloudflare Turnstile'));
   assert.ok(/in-memory/i.test(api));
   assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
-  assert.ok(index.includes('id="whats-new"'));
+  assert.ok(index.includes('id="playground"'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/song-helper' && row.destination === '/song-helper.html';
   }));

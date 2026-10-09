@@ -39,7 +39,7 @@
       link: 'Song Helper',
       what: 'Help for the idea stage: write, Flip it, Funkify it, Make it funny, Mad Libs, and Battle.',
       get: 'A draft you can shape. People check the work.',
-      who: 'Plai on the AI team. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'A finished song is what can earn.',
         fanbase: 'Fans show up for a song they can hear.',
@@ -55,7 +55,7 @@
       link: 'Cover Art',
       what: 'Cover art with themes, made for this song.',
       get: 'Artwork for the release. People check the work.',
-      who: 'The AI team drafts it. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'The cover is what a buyer sees first.',
         fanbase: 'A cover gives the song a face people remember.',
@@ -69,9 +69,9 @@
       status: 'live',
       href: '/ar',
       link: 'Song check',
-      what: 'Scout listens and tells you what is working, what to fix, and who it is for.',
+      what: 'Plai listens and tells you what is working, what to fix, and who it is for.',
       get: 'Honest notes on your song. People check the work.',
-      who: 'Scout on the AI team. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'A clearer song is easier to sell and to license.',
         fanbase: 'You learn who the song is for before you ask anyone to follow.',
@@ -87,7 +87,7 @@
       link: 'EPK',
       what: 'A persona, a short bio, and a press kit for the act.',
       get: 'A page a blog, venue, or curator can read. People check the work.',
-      who: 'Scoop on the AI team. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'Partners need a name and a story before they pay.',
         fanbase: 'A bio gives fans a place to land.',
@@ -103,7 +103,7 @@
       link: 'Distribution',
       what: 'The release goes to the major stores.',
       get: 'Your song on the stores. People check the work.',
-      who: 'Drop on the AI team. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'Store royalties start after the song is on the stores.',
         fanbase: 'Fans look for the song where they already listen.',
@@ -119,7 +119,7 @@
       link: 'How you get paid',
       what: 'Store royalties land in the dashboard. PLAIGROUND does not take a cut of them.',
       get: 'A clear picture of payment. People check the work.',
-      who: 'The AI team keeps the books in view. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'This is how money from the stores reaches you.',
         fanbase: 'When fans play the song, this is where that money shows up.',
@@ -231,7 +231,7 @@
       link: 'Publishing',
       what: 'Register the composition and the splits, under a separate publishing agreement.',
       get: 'Credit and shares on file. People check the work.',
-      who: 'The AI team drafts the paperwork. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'Splits decide who gets paid when the song earns.',
         fanbase: 'Credit stays clear as more people share the song.',
@@ -247,7 +247,7 @@
       link: '',
       what: 'Pitches to playlists and blogs. No placement promise.',
       get: 'A pitch you can send, once this is live. No placement promise.',
-      who: 'Pitch on the AI team. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'A playlist or a blog can send people who stream the song.',
         fanbase: 'New listeners often meet a song on a playlist or a blog.',
@@ -263,7 +263,7 @@
       link: 'Sync add-on',
       what: 'A sync add-on for film, TV, games, and ads. The price is on Plans and Pricing. No placement promise.',
       get: 'The sync add-on. No placement promise. People check the work.',
-      who: 'The AI team builds the package. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'A license is another way the song can earn.',
         fanbase: 'A film or a show can introduce the song to a new room.',
@@ -279,7 +279,7 @@
       link: '',
       what: 'A simple plan for posts around the release.',
       get: 'A written plan, once this is live. People check the work.',
-      who: 'Buzz on the AI team. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'The plan points attention at the song that can earn.',
         fanbase: 'Posts give fans a reason to come back.',
@@ -295,7 +295,7 @@
       link: '',
       what: 'One song flipped into several genres, released as one project.',
       get: 'Several versions in one project, once this is live. People check the work.',
-      who: 'The AI team drafts the versions. People check the work.',
+      who: 'Plai, with people checking the work.',
       why: {
         money: 'More versions give the song more ways to earn.',
         fanbase: 'Different rooms can meet the same song.',
