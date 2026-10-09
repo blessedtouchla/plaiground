@@ -6,6 +6,8 @@
   var opened = false;
   var recog = null;
   var pinned = '';
+  var focusNext = false;
+  var focusIndex = 0;
   var GENRES = [
     { id: 'hiphop', label: 'Hip-hop' },
     { id: 'rnb', label: 'R&B' },
@@ -56,13 +58,13 @@
     return button;
   }
 
-  function field(label, value, onInput, placeholder) {
+  function field(label, value, onInput, placeholder, short) {
     var wrap = document.createElement('label');
     wrap.className = 'sh-field';
     var span = document.createElement('span');
     span.textContent = label;
     var input = document.createElement('textarea');
-    input.className = 'sh-area';
+    input.className = 'sh-area' + (short ? ' sh-area-short' : '');
     input.maxLength = 280;
     input.placeholder = placeholder || 'Your words.';
     input.value = value || '';
@@ -72,33 +74,171 @@
     return wrap;
   }
 
-  function saveText(step, value) {
-    var text = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 280);
-    if (step.id === 'for') state.forText = text;
-    else if (step.id === 'aim') state.aimOther = text.slice(0, 80);
-    else if (step.id === 'wisdom') state.wisdom = text;
-    else if (state.reveals[step.id] != null) state.reveals[step.id] = text;
-    else state.sensory[step.id] = text;
-    var skipAt = state.skipped.indexOf(step.id);
-    if (text && skipAt >= 0) state.skipped.splice(skipAt, 1);
+  function tidy(value, max) {
+    return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max || 280);
+  }
+
+  function starterFinished(text, starters) {
+    var value = tidy(text);
+    var list = starters || [];
+    for (var i = 0; i < list.length; i += 1) {
+      var prefix = String(list[i] || '').replace(/\.\.\.$/, '').trim();
+      if (prefix && value.indexOf(prefix) === 0 && value.length > prefix.length) return true;
+    }
+    return false;
+  }
+
+  function saveNote(ask, answer) {
+    var question = tidy(ask, 220);
+    var text = tidy(answer);
+    if (!question || !text) return;
+    if (!Array.isArray(state.notes)) state.notes = [];
+    for (var i = 0; i < state.notes.length; i += 1) {
+      if (state.notes[i].ask === question && state.notes[i].text === text) return;
+    }
+    state.notes.push({ ask: question, text: text });
   }
 
   function rememberTurn(ask, answer) {
-    state.turns.push({ who: 'plai', text: ask });
-    if (answer) state.turns.push({ who: 'you', text: answer });
+    var question = tidy(ask, 220);
+    if (!question) return;
+    var text = tidy(answer);
+    var last = state.turns[state.turns.length - 1];
+    var prev = state.turns[state.turns.length - 2];
+    if (prev && prev.who === 'plai' && prev.text === question && last && last.who === 'you' && last.text === text) return;
+    state.turns.push({ who: 'plai', text: question });
+    if (text) state.turns.push({ who: 'you', text: text });
+  }
+
+  function clearSkip(step) {
+    var skipAt = state.skipped.indexOf(step.id);
+    if (skipAt >= 0) state.skipped.splice(skipAt, 1);
+  }
+
+  function setStory(step, value) {
+    var text = tidy(value, step.id === 'aim' ? 80 : 280);
+    if (step.id === 'for') state.forText = text;
+    else if (step.id === 'aim') state.aimOther = text;
+    else if (step.id === 'open') state.opener = text;
+    else if (step.id === 'wisdom') state.wisdom = text;
+    else if (step.id === 'keep') state.keep = text;
+    else if (step.id === 'reveal' && state.revealId) {
+      state.reveals[state.revealId] = text;
+      flow.REVEALS.forEach(function (item) {
+        if (item.id !== state.revealId) state.reveals[item.id] = '';
+      });
+    }
+    if (text) clearSkip(step);
+  }
+
+  function sceneTarget(step) {
+    var boxes = step.boxes || [];
+    for (var i = 0; i < boxes.length; i += 1) {
+      if (!state.sensory[boxes[i].id]) return boxes[i];
+    }
+    return boxes[0] || null;
+  }
+
+  function applyStarter(step, starter) {
+    if (step.id === 'scene') {
+      var boxes = step.boxes || [];
+      var picked = 0;
+      for (var b = 0; b < boxes.length; b += 1) {
+        if (!state.sensory[boxes[b].id]) { picked = b; break; }
+      }
+      if (boxes[picked]) state.sensory[boxes[picked].id] = starter;
+      focusIndex = picked;
+    } else if (step.id === 'reveal') {
+      if (!state.revealId) state.revealId = 'never';
+      state.reveals[state.revealId] = starter;
+      flow.REVEALS.forEach(function (item) {
+        if (item.id !== state.revealId) state.reveals[item.id] = '';
+      });
+      focusIndex = 0;
+    } else {
+      setStory(step, starter);
+      focusIndex = 0;
+    }
+    clearSkip(step);
+    focusNext = true;
+    render();
+  }
+
+  function storyText(step) {
+    if (!step) return '';
+    if (step.id === 'for') return state.forText || '';
+    if (step.id === 'open') return state.opener || '';
+    if (step.id === 'wisdom') return state.wisdom || '';
+    if (step.id === 'keep') return state.keep || '';
+    if (step.id === 'reveal') return (state.revealId && state.reveals[state.revealId]) || '';
+    if (step.id === 'scene') {
+      var bits = [];
+      (step.boxes || []).forEach(function (box) {
+        if (state.sensory[box.id]) bits.push(state.sensory[box.id]);
+      });
+      return bits.join(' ');
+    }
+    return '';
   }
 
   function currentAnswer(step) {
     if (!step) return '';
     if (step.id === 'for') return [flow.forLabel(state.forId), state.forText].filter(Boolean).join('. ');
     if (step.id === 'aim') return flow.aimLine(state);
-    if (step.id === 'wisdom') return state.wisdom;
-    if (state.reveals[step.id] != null) return state.reveals[step.id];
-    return state.sensory[step.id] || '';
+    return storyText(step);
+  }
+
+  function followAsk(step) {
+    return (step && step.follows && step.follows[0]) || '';
+  }
+
+  function followText(step) {
+    if (!step || state.followSkip[step.id]) return '';
+    return tidy(state.followByStep[step.id] || '');
+  }
+
+  function recordStory(step, answer) {
+    if (step.id === 'scene') {
+      (step.boxes || []).forEach(function (box) {
+        var text = tidy(state.sensory[box.id] || '');
+        if (!text) return;
+        saveNote(box.ask, text);
+        if (state.talk === 'plai' || starterFinished(text, step.starters)) rememberTurn(box.ask, text);
+      });
+      return;
+    }
+    if (step.id === 'reveal') {
+      var chosen = null;
+      flow.REVEALS.forEach(function (item) {
+        if (item.id === state.revealId) chosen = item;
+      });
+      var told = tidy(state.reveals[state.revealId] || '');
+      if (chosen && told) {
+        saveNote(chosen.ask, told);
+        if (state.talk === 'plai' || starterFinished(told, step.starters)) rememberTurn(chosen.ask, told);
+      }
+      return;
+    }
+    if (step.id === 'for') {
+      var who = flow.forLabel(state.forId);
+      if (who && state.talk === 'plai') rememberTurn(step.ask, who);
+      if (who) saveNote(step.ask, who);
+      if (state.forText) {
+        saveNote(step.storyAsk || step.ask, state.forText);
+        if (state.talk === 'plai' || starterFinished(state.forText, step.starters)) rememberTurn(step.storyAsk || step.ask, state.forText);
+      }
+      return;
+    }
+    if (!answer) return;
+    var question = step.ask;
+    saveNote(question, answer);
+    if (state.talk === 'plai' || starterFinished(answer, step.starters)) rememberTurn(question, answer);
   }
 
   function accept(step) {
     var answer = currentAnswer(step);
+    var extraAsk = followAsk(step);
+    var extra = followText(step);
     if (step.id === 'for' && !state.forId) {
       showFlowError('Pick who this song is for.');
       return;
@@ -107,12 +247,16 @@
       showFlowError('Pick at least one aim.');
       return;
     }
-    if (step.optional && !answer) {
+    if (step.optional && !answer && !extra) {
       skip(step);
       return;
     }
     pinned = '';
-    if (state.talk === 'plai' && answer) rememberTurn(step.ask, answer);
+    if (answer) recordStory(step, answer);
+    if (extra && extraAsk) {
+      saveNote(extraAsk, extra);
+      rememberTurn(extraAsk, extra);
+    }
     showFlowError('');
     render();
     refresh();
@@ -126,6 +270,61 @@
     showFlowError('');
     render();
     refresh();
+  }
+
+  function paintStarters(host, step) {
+    var starters = step.starters || [];
+    if (!starters.length) return;
+    if (step.id === 'for' && !state.forId) return;
+    if (step.id === 'reveal' && !state.revealId) return;
+    var row = document.createElement('div');
+    row.className = 'sh-starters';
+    starters.forEach(function (starter) {
+      var button = chip(starter, false, function () { applyStarter(step, starter); });
+      button.classList.add('sh-starter');
+      button.setAttribute('aria-pressed', 'false');
+      row.appendChild(button);
+    });
+    host.appendChild(row);
+  }
+
+  function revealFollow(step) {
+    var block = document.querySelector('.sh-flow-follow');
+    if (!block || !step) return;
+    block.hidden = !storyText(step);
+  }
+
+  function canFollow(step) {
+    if (!step || step.kind === 'aim') return false;
+    if (step.id === 'for') return !!state.forId;
+    if (step.id === 'reveal') return !!state.revealId;
+    return true;
+  }
+
+  function paintFollow(host, step) {
+    var ask = followAsk(step);
+    if (!ask || state.followSkip[step.id] || !canFollow(step)) return;
+    var block = document.createElement('div');
+    block.className = 'sh-flow-follow';
+    block.hidden = !storyText(step);
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    note.textContent = 'One more, if you want. Skip it and we will keep going.';
+    block.appendChild(note);
+    block.appendChild(field(ask, state.followByStep[step.id] || '', function (value) {
+      state.followByStep[step.id] = tidy(value);
+    }, 'Optional.', true));
+    var pass = document.createElement('button');
+    pass.type = 'button';
+    pass.className = 'btn btn-ghost btn-md';
+    pass.textContent = 'Skip';
+    pass.addEventListener('click', function () {
+      state.followSkip[step.id] = true;
+      state.followByStep[step.id] = '';
+      render();
+    });
+    block.appendChild(pass);
+    host.appendChild(block);
   }
 
   function paintChoices(host, step) {
@@ -151,6 +350,20 @@
           repaint();
         }));
       });
+    } else if (step.kind === 'reveal') {
+      flow.REVEALS.forEach(function (option) {
+        row.appendChild(chip(option.label, state.revealId === option.id, function () {
+          state.revealId = state.revealId === option.id ? '' : option.id;
+          if (state.revealId) {
+            flow.REVEALS.forEach(function (item) {
+              if (item.id !== state.revealId) state.reveals[item.id] = '';
+            });
+            clearSkip(step);
+          }
+          render();
+          refresh();
+        }));
+      });
     }
     host.appendChild(row);
     if (window.SongHelperChips) window.SongHelperChips.fold(row);
@@ -161,21 +374,66 @@
     ask.className = 'sh-q';
     ask.textContent = step.ask;
     host.appendChild(ask);
-    if (step.kind === 'for' || step.kind === 'aim') paintChoices(host, step);
-    if (step.kind === 'for') {
-      host.appendChild(field('Say a little more, if you want', state.forText, function (value) {
-        state.forText = String(value || '').trim().slice(0, 160);
-      }, 'A name, or who you mean'));
+    if (step.recommended) {
+      var rec = document.createElement('p');
+      rec.className = 'sh-help';
+      rec.textContent = step.id === 'reveal'
+        ? 'Recommended for a confess song.'
+        : 'Recommended. Skip it if you want.';
+      host.appendChild(rec);
+    }
+    if (step.kind === 'for' || step.kind === 'aim' || step.kind === 'reveal') paintChoices(host, step);
+    if (step.kind === 'for' && state.forId) {
+      var storyAsk = document.createElement('p');
+      storyAsk.className = 'sh-scene-ask';
+      storyAsk.textContent = step.storyAsk || 'Tell me a moment.';
+      host.appendChild(storyAsk);
+      host.appendChild(field('Your answer', state.forText, function (value) {
+        state.forText = tidy(value, 280);
+        if (state.forText) clearSkip(step);
+        revealFollow(step);
+      }, 'A moment is enough.'));
+      paintStarters(host, step);
     } else if (step.kind === 'aim' && state.aims.indexOf('other') !== -1) {
       host.appendChild(field('Other', state.aimOther, function (value) {
-        state.aimOther = String(value || '').trim().slice(0, 80);
+        state.aimOther = tidy(value, 80);
       }, 'What else should the song do?'));
-    } else if (step.kind === 'text') {
-      var current = step.id === 'wisdom' ? state.wisdom : (state.reveals[step.id] != null ? state.reveals[step.id] : (state.sensory[step.id] || ''));
+    } else if (step.kind === 'scene') {
+      (step.boxes || []).forEach(function (box) {
+        var label = document.createElement('p');
+        label.className = 'sh-scene-ask';
+        label.textContent = box.ask;
+        host.appendChild(label);
+        host.appendChild(field('Your answer', state.sensory[box.id] || '', function (value) {
+          state.sensory[box.id] = tidy(value);
+          if (state.sensory[box.id]) clearSkip(step);
+          revealFollow(step);
+        }, 'Optional. A short scene is enough.', true));
+      });
+      paintStarters(host, step);
+    } else if (step.kind === 'reveal' && state.revealId) {
+      var chosen = null;
+      flow.REVEALS.forEach(function (item) {
+        if (item.id === state.revealId) chosen = item;
+      });
+      var deepAsk = document.createElement('p');
+      deepAsk.className = 'sh-scene-ask';
+      deepAsk.textContent = chosen ? chosen.ask : 'Tell me the one you picked.';
+      host.appendChild(deepAsk);
+      host.appendChild(field('Your answer', state.reveals[state.revealId] || '', function (value) {
+        setStory(step, value);
+        revealFollow(step);
+      }, 'Optional. Skip if you want.', true));
+      paintStarters(host, step);
+    } else if (step.kind === 'story') {
+      var current = step.id === 'open' ? state.opener : (step.id === 'keep' ? state.keep : state.wisdom);
       host.appendChild(field('Your answer', current, function (value) {
-        saveText(step, value);
+        setStory(step, value);
+        revealFollow(step);
       }, 'Optional. Skip if you want.'));
+      paintStarters(host, step);
     }
+    paintFollow(host, step);
     var actions = document.createElement('div');
     actions.className = 'sh-plai-actions';
     var next = document.createElement('button');
@@ -193,14 +451,31 @@
       actions.appendChild(pass);
     }
     if (state.talk === 'plai') actions.appendChild(micButton(step));
-    var write = document.createElement('button');
-    write.type = 'button';
-    write.className = 'btn btn-ghost btn-md';
-    write.id = 'sh-flow-write';
-    write.textContent = 'Write it now';
-    write.addEventListener('click', writeNow);
-    actions.appendChild(write);
     host.appendChild(actions);
+  }
+
+  function paintEnough(host, label, purple) {
+    var enough = document.createElement('button');
+    enough.type = 'button';
+    enough.className = 'btn btn-md sh-enough' + (purple ? ' btn-purple' : ' btn-ghost');
+    enough.id = 'sh-flow-write';
+    enough.textContent = label;
+    enough.addEventListener('click', writeNow);
+    host.appendChild(enough);
+  }
+
+  function stepIndex(step) {
+    var list = flow.steps(state);
+    for (var i = 0; i < list.length; i += 1) {
+      if (list[i].id === step.id) return i;
+    }
+    return 0;
+  }
+
+  function heardTarget(step) {
+    if (followAsk(step) && storyText(step) && !state.followSkip[step.id]) return 'follow';
+    if (step.id === 'scene') return 'scene';
+    return 'story';
   }
 
   function micButton(step) {
@@ -227,9 +502,13 @@
       recog.onresult = function (event) {
         var said = '';
         for (var i = 0; i < event.results.length; i += 1) said += event.results[i][0].transcript;
-        if (step.kind === 'for') state.forText = String(said || '').trim().slice(0, 160);
-        else if (step.kind === 'aim') state.aimOther = String(said || '').trim().slice(0, 80);
-        else saveText(step, said);
+        var target = heardTarget(step);
+        if (target === 'follow') state.followByStep[step.id] = tidy(said);
+        else if (target === 'scene') {
+          var box = sceneTarget(step);
+          if (box) state.sensory[box.id] = tidy(said);
+        } else if (step.kind === 'aim') state.aimOther = tidy(said, 80);
+        else setStory(step, said);
         recog = null;
         render();
       };
@@ -242,7 +521,7 @@
         recog = null;
         button.textContent = 'Talk';
       };
-        button.textContent = 'Listening...';
+      button.textContent = 'Listening...';
       try { recog.start(); } catch (err) {
         showFlowError('Voice did not come through. You can type it.');
       }
@@ -271,7 +550,6 @@
     syncKinds();
     host.textContent = '';
     if (state.talk !== 'form' && state.talk !== 'plai') return;
-    if (state.talk === 'plai') renderLog(host);
     var list = flow.steps(state);
     var step = null;
     if (pinned) {
@@ -282,19 +560,27 @@
     if (!step) step = flow.nextStep(state);
     if (step) pinned = step.id;
     if (!step) {
+      paintEnough(host, 'Write my song', true);
       var done = document.createElement('p');
       done.className = 'sh-help';
       done.textContent = 'That is enough to write from. You can still change an answer above.';
       host.appendChild(done);
-      var write = document.createElement('button');
-      write.type = 'button';
-      write.className = 'btn btn-purple btn-md';
-      write.textContent = 'Write it now';
-      write.addEventListener('click', writeNow);
-      host.appendChild(write);
+      if (state.talk === 'plai') renderLog(host);
       return;
     }
+    if (stepIndex(step) >= 2) paintEnough(host, "That's enough, write my song", false);
+    if (state.talk === 'plai') renderLog(host);
     paintStep(host, step);
+    if (focusNext) {
+      focusNext = false;
+      var areas = host.querySelectorAll('textarea');
+      var box = areas[focusIndex] || areas[0];
+      if (box) {
+        try { box.focus(); } catch (err) {}
+        var spot = box.value.length;
+        try { box.setSelectionRange(spot, spot); } catch (err2) {}
+      }
+    }
   }
 
   function paintCast() {
@@ -375,17 +661,39 @@
       el.value = text;
     }
     var sensory = star.sensory || {};
-    put('sh-happened', sensory.moment || sensory.place || star.forText || star.aimLabels.join(', '));
+    put('sh-happened', star.opener || sensory.moment || sensory.place || star.forText || star.aimLabels.join(', '));
     put('sh-who', sensory.who || star.forText || star.forLabel);
-    put('sh-why', star.wisdom || star.reveals.scared || star.reveals.never || star.aimLabels.join(', '));
-    var hook = star.wisdom || star.reveals.nobody || '';
+    put('sh-why', star.wisdomLine || star.wisdom || star.reveals.scared || star.reveals.never || star.aimLabels.join(', '));
+    var hook = star.keep || star.wisdomLine || star.wisdom || star.reveals.nobody || '';
     if (!hook && star.aimLabels[0]) hook = 'I want this song to ' + star.aimLabels[0].toLowerCase() + '.';
     put('sh-line', hook || star.forText);
+  }
+
+  function currentStep() {
+    var list = flow.steps(state);
+    for (var i = 0; i < list.length; i += 1) {
+      if (list[i].id === pinned) return list[i];
+    }
+    return flow.nextStep(state);
+  }
+
+  function flushCurrent() {
+    var step = currentStep();
+    if (!step) return;
+    var answer = currentAnswer(step);
+    if (answer) recordStory(step, answer);
+    var extraAsk = followAsk(step);
+    var extra = followText(step);
+    if (extra && extraAsk) {
+      saveNote(extraAsk, extra);
+      rememberTurn(extraAsk, extra);
+    }
   }
 
   function writeNow() {
     syncTitle();
     syncKinds();
+    flushCurrent();
     if (!flow.readyForDraft(state)) {
       showFlowError('Pick who this song is for, or what you aim to do. Then I can write.');
       return;
@@ -429,6 +737,10 @@
   state.explicit = 'clean';
   state.genres = [];
   state.turns = [];
+  state.notes = [];
+  state.followByStep = {};
+  state.followSkip = {};
+  state.revealId = '';
 
   window.SongFlowPage = {
     talk: function () { return state.talk; },

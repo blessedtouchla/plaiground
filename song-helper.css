@@ -786,6 +786,49 @@ body.song-helper-page .plai-bubble {
   margin-top: 8px;
 }
 
+.sh-area-short {
+  min-height: 72px;
+}
+
+.sh-scene-ask {
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  margin: 14px 0 0;
+}
+
+.sh-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sh-starters .sh-chip {
+  width: 100%;
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.35;
+  border-radius: 16px;
+}
+
+.sh-flow-follow {
+  margin-top: 12px;
+  padding-top: 4px;
+}
+
+.sh-enough {
+  position: sticky;
+  top: calc(var(--nav-h) + 8px);
+  z-index: 5;
+  width: 100%;
+  margin: 0 0 12px;
+  white-space: normal;
+  text-align: center;
+  background: #000;
+}
+
 @media print {
   body.song-helper-page { background: #fff; color: #111; }
   body.song-helper-page .nav,
