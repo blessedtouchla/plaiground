@@ -694,7 +694,16 @@ function runPages() {
   assert.ok(js.includes('No region'));
   assert.ok(html.includes('id="sh-parts"'));
   assert.ok(html.includes('data-structure="bars"'));
-  assert.ok(read('lib/song-questions.js').includes('Who is this love song for?'));
+  const questionBank = read('lib/song-questions.js');
+  const kindSteps = questionBank.slice(questionBank.indexOf('var KIND_STEPS'), questionBank.indexOf('var OWN_IDEA'));
+  assert.strictEqual((kindSteps.match(/variant\(/g) || []).length, 64);
+  assert.ok(kindSteps.includes('Tell me about the person this love song is for.'));
+  assert.ok(!kindSteps.includes('Who is this love song for?'));
+  assert.ok(kindSteps.includes('Tell me about a good day with them, before it broke.'));
+  assert.ok(kindSteps.includes('Tell me about the person who believed in you first.'));
+  assert.ok(kindSteps.includes('Walk me through what they did, step by step.'));
+  assert.ok(kindSteps.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(kindSteps));
   assert.ok(html.indexOf('id="sh-idea"') < html.indexOf('id="sh-feeling"'));
   assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-kind"'));
   assert.ok(html.indexOf('id="sh-kind"') < html.indexOf('id="sh-live"'));
@@ -791,7 +800,7 @@ function runQuestions() {
   const sadFunny = questions.open({ kind: 'love', mode: 'funny', mood: 'heartbroken', topic: '' });
   assert.notStrictEqual(questions.view(write).ask, questions.view(funny).ask);
   assert.notStrictEqual(questions.view(funny).ask, questions.view(sadFunny).ask);
-  assert.ok(/love song for/i.test(questions.view(write).ask));
+  assert.ok(/tell me about the person this love song is for/i.test(questions.view(write).ask));
   const themed = questions.open({ kind: 'love', mode: 'write', topic: 'the late bus' });
   assert.ok(questions.view(themed).ask.indexOf('the late bus') !== -1);
   const swap = questions.open({ kind: 'love', mode: 'write' });

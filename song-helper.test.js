@@ -943,6 +943,12 @@ function runPage() {
   const nav = html.match(/<nav class="nav-links"[\s\S]*?<\/nav>/)[0];
 
   assert.ok(html.includes('PLAIGROUND Song Helper'));
+  assert.ok(html.includes('Talk it through with Plai'));
+  assert.ok(html.includes('Tell me your stories. Your own words become the lyrics, and every answer is saved as your record of writing it.'));
+  assert.ok(read('song-flow-page.js').includes("That's enough, write my song"));
+  assert.ok(read('song-flow-page.js').includes('Talk'));
+  assert.ok(read('lib/song-flow.js').includes('Do not add a story they did not tell.'));
+  assert.ok(!/\bSuno\b/.test(html.match(/id="sh-purpose"[\s\S]*?<\/section>/)[0]));
   assert.ok(html.includes('You must be 18+ to use the Song Helper.'));
   assert.ok(html.includes('your words'));
   assert.ok(html.includes('Drafts are AI-assisted.'));

@@ -230,7 +230,7 @@
       go(STEPS.indexOf(steps[id]), true);
       return;
     }
-    var scroll = { mood: 'sh-feeling', idea: 'sh-own', live: 'sh-purpose', filters: 'sh-cast', place: 'sh-purpose', object: 'sh-purpose', quote: 'sh-purpose', mode: 'sh-modes', for: 'sh-purpose', aim: 'sh-purpose', wisdom: 'sh-purpose', never: 'sh-purpose', scared: 'sh-purpose', nobody: 'sh-purpose' };
+    var scroll = { mood: 'sh-feeling', idea: 'sh-own', live: 'sh-purpose', filters: 'sh-cast', place: 'sh-purpose', object: 'sh-purpose', quote: 'sh-purpose', mode: 'sh-modes', for: 'sh-purpose', aim: 'sh-purpose', wisdom: 'sh-purpose', never: 'sh-purpose', scared: 'sh-purpose', nobody: 'sh-purpose', open: 'sh-purpose', scene: 'sh-purpose', reveal: 'sh-purpose', keep: 'sh-purpose' };
     var el = document.getElementById(scroll[id] || '');
     if (el && el.scrollIntoView) {
       try { el.scrollIntoView({ block: 'center' }); } catch (err) {}
