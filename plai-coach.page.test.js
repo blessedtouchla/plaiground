@@ -105,6 +105,10 @@ function runStatic() {
   assert.ok(!/Hey\. I'm Plai/i.test(page), 'do not paste a first chat bubble');
   assert.ok(read('plai-coach.js').includes("Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out."), 'coach chat greeting is the release coach line');
   assert.ok(!/I help people release the music they made with AI tools/.test(read('plai-coach.js')), 'coach chat does not ship the old AI-tools greeting');
+  assert.ok(coachJs.includes('OLD_COACH_GREETING'), 'coach chat rewrites the old voice-agent hello');
+  assert.ok(coachJs.includes('isOldHelloStream'), 'coach chat hides the old hello while it streams');
+  const coachRender = coachJs.slice(coachJs.indexOf('function renderLog'), coachJs.indexOf('function sameLine'));
+  assert.ok(coachRender.includes('isOldHelloStream'), 'coach renderLog skips the streaming old hello');
   assert.ok(!/Real AI coming soon/i.test(page) && !/function sendMessage/.test(page), 'do not ship a fake sendMessage AI');
   assert.ok(!/<style[\s>]/.test(page), 'do not paste standalone inline page styles');
 

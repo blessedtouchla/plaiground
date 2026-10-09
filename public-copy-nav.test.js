@@ -318,6 +318,8 @@ function run() {
   assert.ok(playGrid && /href="\/epk"/.test(playGrid[0]) && /href="\/ar"/.test(playGrid[0]) && /href="royalties\.html"/.test(playGrid[0]), 'playground keeps EPK, A&R, and earnings');
   assert.ok(playGrid && /<h3>Check and file<\/h3>/.test(playGrid[0]) && /class="play-go">Is my song ready\?</.test(playGrid[0]) && /href="\/qualify"/.test(playGrid[0]), 'Check and file opens the qualify check');
   assert.ok(playGrid && /<h3>My roadmap<\/h3>/.test(playGrid[0]) && /href="\/destination"/.test(playGrid[0]), 'My roadmap sits in the grid');
+  assert.ok(playGrid && /is-roadmap[\s\S]*play-band-make[\s\S]*play-band-protect[\s\S]*play-band-out/.test(playGrid[0]), 'grid order is roadmap, Make it, Protect it, Put it out');
+  assert.ok(playGrid && /data-id="human"[\s\S]*<h3>Make it human<\/h3>/.test(playGrid[0]), 'Make it human fills the third Make it tile');
   assert.ok(playGrid && !/<h3>Qualify my song<\/h3>|<h3>Protect it<\/h3>/.test(playGrid[0]), 'Qualify and Protect are not separate grid cards');
   assert.ok(playGrid && !/\/guide|\/spark|\/battle/.test(playGrid[0]), 'Guide, What\'s hot, and Battle stay out of the grid');
   assert.ok(read('qualify.html').includes('<title>Qualify my song - PLAIGROUND</title>'), 'Qualify page title stays');

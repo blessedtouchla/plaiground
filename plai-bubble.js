@@ -17,6 +17,7 @@
   var MAX_TEXT = 400;
   var COACH_GREETING = "Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out.";
   var OLD_COACH_GREETING = /^hey,\s*i['’]m pla[iy]\b[\s\S]*music they made with ai tools/i;
+  var OLD_HELLO = "hey i'm plai i help people release the music they made with ai tools";
   var RESUME_TTL_MS = 30 * 60 * 1000;
   var SEED_PREFIX = 'We were already talking on this site.';
 
@@ -87,10 +88,12 @@
       var role = row && row.role === 'user' ? 'user' : 'plai';
       return {
         role: role,
-        text: String(row && row.text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT),
+        text: coachGreeting(String(row && row.text || '')).slice(0, MAX_TEXT),
         streaming: false,
       };
-    }).filter(function (row) { return row.text; });
+    }).filter(function (row) {
+      return row.text && !(row.role === 'plai' && isOldHelloStream(row.text));
+    });
   }
 
   function persistState() {
@@ -122,23 +125,48 @@
     return row && row.role === role && String(row.text || '').trim() === String(text || '').trim();
   }
 
+  function helloKey(text) {
+    return String(text || '')
+      .replace(/\u2019/g, "'")
+      .replace(/\bplay\b/gi, 'plai')
+      .toLowerCase()
+      .replace(/[^a-z0-9']+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isOldHelloStream(text) {
+    var clean = helloKey(text);
+    if (!clean) return false;
+    if (OLD_COACH_GREETING.test(clean)) return true;
+    return OLD_HELLO.indexOf(clean) === 0 || clean.indexOf(OLD_HELLO) === 0;
+  }
+
   function coachGreeting(text) {
     var clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (OLD_COACH_GREETING.test(clean)) return COACH_GREETING;
     return clean;
   }
 
+  function visibleTranscript() {
+    return transcript.filter(function (row) {
+      return !(row.role === 'plai' && isOldHelloStream(row.text));
+    });
+  }
+
   function renderLog() {
     if (!logEl) return;
     logEl.innerHTML = '';
-    if (!transcript.length) {
+    var rows = visibleTranscript();
+    var onlyGreeting = rows.length === 1 && rows[0].role === 'plai' && rows[0].text === COACH_GREETING;
+    if (!rows.length || onlyGreeting) {
       logEl.appendChild(el('p', {
         className: 'plai-bubble-empty',
         text: COACH_GREETING,
       }));
       return;
     }
-    transcript.forEach(function (row) {
+    rows.forEach(function (row) {
       logEl.appendChild(el('div', {
         className: 'plai-bubble-msg is-' + row.role + (row.streaming ? ' is-streaming' : ''),
         text: row.text,
@@ -151,7 +179,8 @@
     var clean = coachGreeting(text).slice(0, MAX_TEXT);
     if (!clean) return;
     var last = transcript[transcript.length - 1];
-    if (sameLine(last, role, clean)) {
+    if (last && last.role === role && (sameLine(last, role, clean) || (last.streaming && isOldHelloStream(last.text)))) {
+      last.text = clean;
       last.streaming = false;
       renderLog();
       persistState();
