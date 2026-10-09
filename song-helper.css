@@ -229,6 +229,12 @@ body.song-helper-page .plai-bubble {
   font-weight: 500;
 }
 
+#sh-own .sh-count,
+#sh-own .sh-count-warn {
+  display: block;
+  max-width: 100%;
+}
+
 .sh-count {
   display: block;
   margin: 6px 0 0;

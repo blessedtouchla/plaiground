@@ -406,9 +406,19 @@ function runCore() {
   assert.strictEqual(limiter.allow('10.0.0.2', 1002), true);
   assert.strictEqual(limiter.allow('10.0.0.1', 2500), true);
 
+  const shortLabels = core.normalizeInterview({
+    mood: 'x'.repeat(41),
+    title: 't'.repeat(120),
+    words: {},
+    shape: { genre: 'g'.repeat(60) },
+  });
+  assert.strictEqual(shortLabels.mood.length, 40);
+  assert.strictEqual(shortLabels.title.length, 80);
+  assert.strictEqual(shortLabels.shape.genre.length, 40);
+  assert.ok(shortLabels.idea.indexOf('t'.repeat(80)) !== -1);
   assert.throws(function () {
-    core.normalizeInterview({ mood: 'x'.repeat(41), words: {}, shape: {} });
-  }, function (err) { return err.code === 'long'; });
+    core.normalizeInterview({ idea: 'i'.repeat(core.STORY_MAX + 1), words: {}, shape: {} });
+  }, function (err) { return err && err.code === 'long' && /Your idea/.test(err.message) && /3000/.test(err.message); });
 }
 
 async function runApi() {
@@ -544,6 +554,74 @@ async function runApi() {
     assert.strictEqual(styleLong.statusCode, 400);
     assert.ok(/Style prompt/.test(styleLong.json.error));
     assert.ok(/3000/.test(styleLong.json.error));
+
+    const idea = ('A kitchen light and a long drive home. ').repeat(60).trim();
+    assert.ok(idea.length > 1500 && idea.length <= core.STORY_MAX);
+    const ownDraft = await post(Object.assign(fixture(), {
+      idea: idea,
+      title: 'Porch light ' + 'x'.repeat(100),
+      mood: 'm'.repeat(80),
+      sparkFeel: 'Mad and tender.',
+      sparkStory: 'I stood in the doorway.',
+      sparkKeep: 'The porch light.',
+      shape: Object.assign({}, fixture().shape, { genre: 'Hip-hop, Afrobeats, late night soul' }),
+    }), '203.0.113.28');
+    assert.strictEqual(ownDraft.statusCode, 200, ownDraft.json && ownDraft.json.error);
+    assert.ok(JSON.stringify(ownDraft.json.draft).indexOf('kitchen light') !== -1);
+    const ownNorm = core.normalizeInterview(Object.assign(fixture(), {
+      idea: 'A short idea.',
+      title: 'Porch light stays on for the long drive home and the rest of this title that does not fit',
+      mood: 'm'.repeat(80),
+      shape: Object.assign({}, fixture().shape, { genre: 'g'.repeat(80) }),
+    }));
+    assert.ok(ownNorm.title.length <= 80);
+    assert.ok(ownNorm.mood.length <= 40);
+    assert.ok(ownNorm.shape.genre.length <= 40);
+    assert.ok(ownNorm.idea.indexOf('Porch light stays on') !== -1);
+    assert.ok(ownNorm.sparkAngle.indexOf('Porch light stays on') !== -1);
+
+    const chunk = 'word '.repeat(600).trim();
+    assert.ok(chunk.length <= core.STORY_MAX && chunk.length > 2500);
+    const notes = [];
+    for (let n = 0; n < 24; n += 1) notes.push({ ask: 'Follow up ' + n, text: chunk });
+    const sensory = {};
+    for (let s = 0; s < 30; s += 1) sensory['scene' + s] = chunk;
+    const wide = await post(Object.assign(fixture(), {
+      happened: chunk,
+      who: chunk,
+      why: chunk,
+      idea: idea,
+      stylePrompt: chunk,
+      sparkFeel: 'Mad and tender.',
+      sparkStory: 'I stood in the doorway.',
+      sparkKeep: 'The porch light.',
+      title: 'x'.repeat(200),
+      mood: 'm'.repeat(90),
+      north: {
+        forId: 'someone',
+        opener: chunk,
+        forText: chunk,
+        wisdom: chunk,
+        keep: 'I still set a place for you like you are coming home.',
+        notes: notes,
+        sensory: sensory,
+      },
+      shape: Object.assign({}, fixture().shape, { genre: 'Hip-hop, Afrobeats' }),
+    }), '203.0.113.29');
+    assert.strictEqual(wide.statusCode, 200, wide.json && wide.json.error);
+    assert.ok(core.BODY_MAX >= 480000);
+    const fatBody = JSON.stringify(Object.assign(fixture(), { happened: 'h'.repeat(180000) }));
+    assert.ok(fatBody.length > 160000 && fatBody.length < core.BODY_MAX);
+    const fat = mockRes();
+    await handler({
+      method: 'POST',
+      headers: { 'x-forwarded-for': '203.0.113.31' },
+      body: fatBody,
+    }, fat);
+    assert.notStrictEqual(fat.statusCode, 413);
+    assert.strictEqual(fat.statusCode, 400);
+    assert.ok(/What happened/.test(fat.json.error));
+    assert.ok(/3000/.test(fat.json.error));
 
     const huge = mockRes();
     await handler({
@@ -1011,9 +1089,17 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261009story2'));
+  assert.ok(html.includes('song-helper.js?v=20261009idea'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261009idea'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261009idea'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
-  assert.ok(html.includes('song-helper.css?v=20261009story'));
+  assert.ok(html.includes('song-helper.css?v=20261009idea'));
+  const v2 = read('song-helper-v2.js');
+  assert.ok(v2.includes('function ownIdea'));
+  assert.ok(v2.includes("input.id = 'sh-own-' + item.id"));
+  assert.ok(v2.includes('armStory(area)'));
+  assert.ok(v2.includes('armStory(input)'));
+  assert.ok(v2.includes('How do you feel about this?') || read('lib/song-questions.js').includes('How do you feel about this?'));
   assert.ok(html.includes('id="sh-who"'));
   assert.ok(!/id="sh-who"[^>]*maxlength/.test(html));
   assert.ok(js.includes('plaiground.songHelper.story'));

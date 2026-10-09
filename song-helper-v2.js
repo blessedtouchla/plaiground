@@ -140,28 +140,46 @@
     return String(value).slice(0, 40);
   }
 
-  function payload() {
+  function ownIdea() {
     rememberAsk();
+    var ideaEl = $('sh-own-idea');
+    return {
+      idea: askValue(ideaEl).slice(0, storyMax()),
+      feel: String(sparkAsk.feel || '').slice(0, storyMax()),
+      story: String(sparkAsk.story || '').slice(0, storyMax()),
+      keep: String(sparkAsk.keep || '').slice(0, storyMax()),
+    };
+  }
+
+  function payload() {
+    var own = ownIdea();
     var star = window.SongFlowPage && window.SongFlowPage.north ? window.SongFlowPage.north() : null;
     var sense = star && star.sensory ? star.sensory : {};
+    var titleRaw = (($('sh-working-title') && $('sh-working-title').value) || fieldValue('title') || '').trim();
+    var idea = own.idea || '';
+    if (titleRaw.length > 80 && idea.indexOf(titleRaw) === -1) {
+      var joined = idea ? (idea + ' ' + titleRaw) : titleRaw;
+      if (joined.length <= storyMax()) idea = joined;
+    }
     return {
       mode: mode,
       kind: kind,
       part: part,
       live: liveAnswers(),
       mood: readMood(),
+      idea: idea.slice(0, storyMax()),
       sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
-      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, storyMax()) : '',
-      sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, storyMax()) : '',
-      sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, storyMax()) : '',
-      sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, storyMax()) : '',
+      sparkAngle: (sparkSeed && sparkSeed.angle ? String(sparkSeed.angle) : idea).slice(0, storyMax()),
+      sparkFeel: (sparkSeed && sparkSeed.feel ? String(sparkSeed.feel) : own.feel).slice(0, storyMax()),
+      sparkStory: (sparkSeed && sparkSeed.story ? String(sparkSeed.story) : own.story).slice(0, storyMax()),
+      sparkKeep: (sparkSeed && sparkSeed.keep ? String(sparkSeed.keep) : own.keep).slice(0, storyMax()),
       place: fieldValue('place') || followExtra.place || sense.place || '',
       object: fieldValue('object') || followExtra.object || sense.object || '',
       quote: fieldValue('quote') || followExtra.quote || sense.quote || '',
       followQuote: fieldValue('quote') || followExtra.quote || sense.quote || '',
       stylePrompt: currentStyleText(),
       genre: fieldValue('genre'),
-      title: (($('sh-working-title') && $('sh-working-title').value) || fieldValue('title') || '').slice(0, 80),
+      title: titleRaw.slice(0, 80),
       north: window.SongFlowPage ? window.SongFlowPage.north() : null,
       originalTitle: fieldValue('originalTitle'),
       comment: fieldValue('comment'),
@@ -795,6 +813,7 @@
         clearSparkChoice();
         if (sparkPack) paintSpark(sparkPack);
       }
+      persistOwn();
       touchLive();
       paintLive();
     });
@@ -809,14 +828,17 @@
       span.textContent = item.ask;
       var input = document.createElement('textarea');
       input.className = 'sh-area';
-      input.rows = 2;
+      input.id = 'sh-own-' + item.id;
+      input.rows = 3;
       input.placeholder = item.hint || '';
       input.setAttribute('data-spark-ask', item.id);
+      input.addEventListener('input', persistOwn);
       label.appendChild(span);
       label.appendChild(input);
       armStory(input);
       host.appendChild(label);
     });
+    restoreOwn();
     var note = document.createElement('p');
     note.className = 'sh-help';
     note.textContent = 'These questions are optional. The more you put in, the more human the draft feels. How do you feel about this, any personal experience, and what the song should hold onto can stay in the lyric. Start writing when you want.';
@@ -1766,16 +1788,17 @@
       blocks.push('[' + (part.label || 'Verse') + ']\n' + rows.join('\n'));
     });
     if (!blocks.length) return null;
+    var own = ownIdea();
     return {
       title: titleEl && titleEl.value ? String(titleEl.value).trim().slice(0, 80) : String(draft.title || '').slice(0, 80),
       text: blocks.join('\n\n'),
       mode: mode || 'write',
       mood: readMood(),
       sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
-      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, storyMax()) : '',
-      sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, storyMax()) : '',
-      sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, storyMax()) : '',
-      sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, storyMax()) : '',
+      sparkAngle: (sparkSeed && sparkSeed.angle ? String(sparkSeed.angle) : own.idea).slice(0, storyMax()),
+      sparkFeel: (sparkSeed && sparkSeed.feel ? String(sparkSeed.feel) : own.feel).slice(0, storyMax()),
+      sparkStory: (sparkSeed && sparkSeed.story ? String(sparkSeed.story) : own.story).slice(0, storyMax()),
+      sparkKeep: (sparkSeed && sparkSeed.keep ? String(sparkSeed.keep) : own.keep).slice(0, storyMax()),
     };
   }
 
@@ -2407,7 +2430,8 @@
   }
 
   function rememberAsk() {
-    ['sh-spark', 'sh-own'].forEach(function (id) {
+    var hosts = ideaLane === 'own' ? ['sh-own'] : (ideaLane === 'ideas' ? ['sh-spark'] : ['sh-spark', 'sh-own']);
+    hosts.forEach(function (id) {
       var host = $(id);
       if (!host) return;
       ['feel', 'story', 'keep'].forEach(function (key) {
@@ -2420,6 +2444,33 @@
       sparkSeed.story = sparkAsk.story;
       sparkSeed.keep = sparkAsk.keep;
     }
+  }
+
+  function persistOwn() {
+    try {
+      var prev = JSON.parse(localStorage.getItem('plaiground.songHelper.story') || '{}') || {};
+      prev.own = ownIdea();
+      localStorage.setItem('plaiground.songHelper.story', JSON.stringify(prev));
+    } catch (err) {}
+  }
+
+  function restoreOwn() {
+    var saved = {};
+    try {
+      saved = (JSON.parse(localStorage.getItem('plaiground.songHelper.story') || '{}') || {}).own || {};
+    } catch (err) {
+      saved = {};
+    }
+    function put(id, text) {
+      var el = $(id);
+      if (!el || String(el.value || '').trim() || !text) return;
+      el.value = String(text);
+      paintStory(el);
+    }
+    put('sh-own-idea', saved.idea);
+    put('sh-own-feel', saved.feel);
+    put('sh-own-story', saved.story);
+    put('sh-own-keep', saved.keep);
   }
 
   function chooseSpark(item, which) {
@@ -2842,6 +2893,7 @@
     setMode: setMode,
     syncStructure: syncStructure,
     spark: function () { return sparkSeed; },
+    ownIdea: ownIdea,
     snapshot: snapshot,
     repaint: paintBranch,
     kinds: function () { return kinds.slice(); },

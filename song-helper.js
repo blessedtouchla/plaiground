@@ -228,21 +228,34 @@
     return window.SongHelperV2.spark() || null;
   }
 
+  function ownIdea() {
+    if (!window.SongHelperV2 || !window.SongHelperV2.ownIdea) return { idea: '', feel: '', story: '', keep: '' };
+    return window.SongHelperV2.ownIdea() || { idea: '', feel: '', story: '', keep: '' };
+  }
+
   function interview() {
     var spark = sparkSeed();
+    var own = ownIdea();
+    var titleRaw = ($('sh-working-title') && $('sh-working-title').value.trim()) || '';
+    var idea = own.idea || '';
+    if (titleRaw.length > 80 && idea.indexOf(titleRaw) === -1) {
+      var joined = idea ? (idea + ' ' + titleRaw) : titleRaw;
+      if (joined.length <= storyMax()) idea = joined;
+    }
     return {
       mood: moodValue(),
+      idea: idea.slice(0, storyMax()),
       sparkTitle: spark && spark.title ? String(spark.title).slice(0, 80) : '',
-      sparkAngle: spark && spark.angle ? String(spark.angle).slice(0, storyMax()) : '',
-      sparkFeel: spark && spark.feel ? String(spark.feel).slice(0, storyMax()) : '',
-      sparkStory: spark && spark.story ? String(spark.story).slice(0, storyMax()) : '',
-      sparkKeep: spark && spark.keep ? String(spark.keep).slice(0, storyMax()) : '',
+      sparkAngle: (spark && spark.angle ? String(spark.angle) : idea).slice(0, storyMax()),
+      sparkFeel: (spark && spark.feel ? String(spark.feel) : (own.feel || '')).slice(0, storyMax()),
+      sparkStory: (spark && spark.story ? String(spark.story) : (own.story || '')).slice(0, storyMax()),
+      sparkKeep: (spark && spark.keep ? String(spark.keep) : (own.keep || '')).slice(0, storyMax()),
       happened: readAnswer('sh-happened'),
       who: $('sh-who').value.trim(),
       why: readAnswer('sh-why'),
       line: readAnswer('sh-line'),
       words: words(),
-      title: ($('sh-working-title') && $('sh-working-title').value.trim()) || '',
+      title: titleRaw.slice(0, 80),
       north: window.SongFlowPage ? window.SongFlowPage.north() : null,
       shape: {
         genre: genreValue(),
