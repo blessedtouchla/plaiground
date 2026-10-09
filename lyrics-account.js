@@ -36,7 +36,7 @@
         mode: String(song.mode || '').slice(0, 40),
         mood: String(song.mood || '').slice(0, 40),
         sparkTitle: String(song.sparkTitle || '').slice(0, 80),
-        sparkAngle: String(song.sparkAngle || '').slice(0, 1500),
+        sparkAngle: String(song.sparkAngle || '').slice(0, 3000),
       };
       if (song.claim && typeof song.claim === 'object') pending.claim = song.claim;
       store.setItem(PENDING_KEY, JSON.stringify(pending));

@@ -6,7 +6,7 @@
   if (!packs) return;
 
   function storyMax() {
-    return (window.SongFlow && window.SongFlow.STORY_MAX) || 1500;
+    return (window.SongFlow && window.SongFlow.STORY_MAX) || 3000;
   }
 
   function armStory(el) {

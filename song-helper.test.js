@@ -504,8 +504,8 @@ async function runApi() {
     const blocked = await post(fixture(), honeyIp);
     assert.strictEqual(blocked.statusCode, 429);
 
-    const story = ('We left for a new experience and new adventure. ').repeat(8).trim();
-    assert.ok(story.length > 180 && story.length <= core.STORY_MAX);
+    const story = ('We left for a new experience and new adventure. ').repeat(45).trim();
+    assert.ok(story.length >= 2000 && story.length <= core.STORY_MAX);
     const keptStory = await post(Object.assign(fixture(), { happened: story }), '203.0.113.24');
     assert.strictEqual(keptStory.statusCode, 200);
     assert.ok(JSON.stringify(keptStory.json.draft).indexOf(story) !== -1);

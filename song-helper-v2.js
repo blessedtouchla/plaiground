@@ -4,7 +4,7 @@
   if (!modes || !document.getElementById('sh-modes')) return;
 
   function storyMax() {
-    return (window.SongFlow && window.SongFlow.STORY_MAX) || (modes.STORY_MAX || 1500);
+    return (window.SongFlow && window.SongFlow.STORY_MAX) || (modes.STORY_MAX || 3000);
   }
 
   function armStory(el) {
