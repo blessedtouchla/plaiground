@@ -8,6 +8,10 @@
     (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_started', payload: {} });
   }
 
+  var styleDesign = null;
+  var designOpen = false;
+  var designNote = '';
+  var designUndo = null;
   var craft = {
     vocabulary: 'plain',
     imagery: 'concrete',
@@ -1091,7 +1095,7 @@
     var ids = raw && window.SongFlow && window.SongFlow.styleIds ? window.SongFlow.styleIds(raw) : null;
     var genre = fieldValue('genre') || '';
     if (!genre && raw && raw.genres && raw.genres[0]) genre = GENRE_LABELS[raw.genres[0]] || '';
-    return {
+    return withStyleDesign({
       genre: genre,
       mood: readMood() || '',
       region: craft.region || '',
@@ -1102,28 +1106,95 @@
       instruments: [],
       era: '',
       flow: ids
-    };
+    });
   }
 
-  function showV2StylePrompt(bag) {
+  function withStyleDesign(bag) {
+    var next = bag || {};
+    if (styleDesign && window.StyleDesign && window.StyleDesign.active(styleDesign)) next.design = styleDesign;
+    return next;
+  }
+
+  function styleStrip(text) {
+    return window.SongHelperCore && window.SongHelperCore.stripArtistNames ? window.SongHelperCore.stripArtistNames(text) : text;
+  }
+
+  function paintStyleDesign() {
+    var host = $('sh-style-design');
+    if (!host || !window.StyleDesign) return;
+    if (!styleDesign) styleDesign = window.StyleDesign.blank();
+    window.StyleDesign.render(host, {
+      design: styleDesign,
+      open: designOpen,
+      note: designNote,
+      canUndo: !!designUndo
+    }, {
+      onToggle: function (open) {
+        designOpen = open;
+        paintStyleDesign();
+      },
+      onChange: function (next) {
+        styleDesign = next;
+        paintStyleDesign();
+        if (styleShown && !v2StyleOpen) showV2StylePrompt(collectV2Style(), { quiet: true });
+      },
+      onNote: function (text) {
+        designNote = text || '';
+        paintStyleDesign();
+      },
+      onFresh: function (result) {
+        designUndo = styleDesign;
+        styleDesign = result.design;
+        designNote = (result.changes || []).join(' ');
+        paintStyleDesign();
+        if (styleShown && !v2StyleOpen) showV2StylePrompt(collectV2Style(), { quiet: true });
+      },
+      onUndo: function () {
+        if (!designUndo) return;
+        styleDesign = designUndo;
+        designUndo = null;
+        designNote = 'Back to your earlier picks.';
+        paintStyleDesign();
+        if (styleShown && !v2StyleOpen) showV2StylePrompt(collectV2Style(), { quiet: true });
+      },
+      promptFor: function (design) {
+        var bag = collectV2Style();
+        if (window.StyleDesign.active(design)) bag.design = design;
+        else delete bag.design;
+        return {
+          text: window.SunoStyle ? window.SunoStyle.prompt(bag, styleStrip) : '',
+          warning: window.StyleDesign.warning(design.lead, design.flavor)
+        };
+      }
+    });
+  }
+
+  function showV2StylePrompt(bag, opts) {
     if (!window.SunoStyle) return;
-    v2StyleBag = bag;
+    v2StyleBag = withStyleDesign(bag);
     v2StyleOpen = false;
     styleShown = true;
     var host = $('sh-v2-style');
-    window.SunoStyle.renderPrompt(host, window.SunoStyle.prompt(bag, function (text) {
-      return window.SongHelperCore && window.SongHelperCore.stripArtistNames ? window.SongHelperCore.stripArtistNames(text) : text;
-    }), function (id) {
-      showV2StylePrompt(window.SunoStyle.tweak(v2StyleBag, id));
+    window.SunoStyle.renderPrompt(host, window.SunoStyle.prompt(v2StyleBag, styleStrip), function (id) {
+      showV2StylePrompt(window.SunoStyle.tweak(v2StyleBag, id), { quiet: true });
     });
     paintGo();
-    try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
+    if (!opts || !opts.quiet) {
+      try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
+    }
   }
 
   function startV2Style() {
     if (!window.SunoStyle) return;
     var bag = v2StyleBag || collectV2Style();
-    var asks = window.SunoStyle.missing(bag);
+    var asks = window.SunoStyle.missing(bag).filter(function (ask) {
+      var design = bag.design;
+      if (!design) return true;
+      if (ask.id === 'genre' && design.lead && design.flavor) return false;
+      if (ask.id === 'vocal' && (design.tone || design.delivery || design.instrumental)) return false;
+      if (ask.id === 'tempo' && design.lead && design.flavor) return false;
+      return true;
+    });
     if (asks.length) {
       v2StyleBag = bag;
       v2StyleOpen = true;
@@ -2735,6 +2806,7 @@
   if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
   if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
   paintBranch();
+  paintStyleDesign();
   loadStatus();
   loadSlang();
   loadSpark();
