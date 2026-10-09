@@ -58,12 +58,23 @@
 
   function restoreWizard() {
     var saved = readStoryStore().wizard || {};
+    var hasLocal = saved.happened || saved.who || saved.why || saved.line;
+    if (!hasLocal) {
+      var session = readSession();
+      saved = {
+        happened: session.happened || '',
+        who: session.who || '',
+        why: session.why || '',
+        line: session.line || '',
+      };
+    }
     ['happened', 'who', 'why', 'line'].forEach(function (key) {
       var el = $('sh-' + key);
       if (!el || String(el.value || '').trim() || !saved[key]) return;
       el.value = String(saved[key]);
       paintStory(el);
     });
+    if (saved.happened || saved.who || saved.why || saved.line) writeStoryStore({ wizard: saved });
   }
 
   var STEPS = ['genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
