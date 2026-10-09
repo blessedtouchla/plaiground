@@ -193,7 +193,7 @@ body.song-helper-page .plai-bubble {
   margin-top: 14px;
 }
 
-.sh-field span,
+.sh-field > span:first-child,
 .sh-label {
   display: block;
   font-size: 13px;
@@ -230,6 +230,7 @@ body.song-helper-page .plai-bubble {
 }
 
 .sh-count {
+  display: block;
   margin: 6px 0 0;
   color: var(--muted, #9a9a9a);
   font-size: 13px;
@@ -243,6 +244,7 @@ body.song-helper-page .plai-bubble {
 }
 
 .sh-count-warn {
+  display: block;
   margin: 4px 0 0;
   color: #ffb020;
   font-size: 14px;
@@ -689,6 +691,8 @@ body.song-helper-page .plai-bubble {
   .sh-actions { flex-direction: column-reverse; }
   .sh-chip { padding: 14px 16px; }
   .sh-modes .sh-chip { flex: 1 1 calc(50% - 8px); }
+  .sh-count,
+  .sh-count-warn { display: block; max-width: 100%; }
 }
 
 .sh-answers {

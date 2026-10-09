@@ -41,7 +41,77 @@
   }
 
   function refresh() {
+    persistFlow();
     if (window.SongHelperPage && window.SongHelperPage.refreshAnswers) window.SongHelperPage.refreshAnswers();
+  }
+
+  var STORY_STORE = 'plaiground.songHelper.story';
+
+  function readStoryStore() {
+    try {
+      return JSON.parse(localStorage.getItem(STORY_STORE) || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeStoryStore(patch) {
+    try {
+      var prev = readStoryStore();
+      Object.keys(patch || {}).forEach(function (key) { prev[key] = patch[key]; });
+      localStorage.setItem(STORY_STORE, JSON.stringify(prev));
+    } catch (err) {}
+  }
+
+  function flowSnapshot() {
+    var reveals = state.reveals || {};
+    return {
+      forId: state.forId || '',
+      forText: state.forText || '',
+      aims: (state.aims || []).slice(),
+      aimOther: state.aimOther || '',
+      opener: state.opener || '',
+      wisdom: state.wisdom || '',
+      keep: state.keep || '',
+      reveals: {
+        never: reveals.never || '',
+        scared: reveals.scared || '',
+        nobody: reveals.nobody || '',
+      },
+      sensory: Object.assign({}, state.sensory || {}),
+      notes: (state.notes || []).map(function (note) {
+        return { ask: note.ask || '', text: note.text || '' };
+      }),
+      kinds: (state.kinds || []).slice(),
+      title: state.title || '',
+      talk: state.talk || '',
+      genres: (state.genres || []).slice(),
+      language: state.language || '',
+      explicit: state.explicit || '',
+      revealId: state.revealId || '',
+      followByStep: Object.assign({}, state.followByStep || {}),
+    };
+  }
+
+  function persistFlow() {
+    writeStoryStore({ flow: flowSnapshot() });
+  }
+
+  function restoreFlow() {
+    var saved = readStoryStore().flow;
+    if (!saved || typeof saved !== 'object') return;
+    var has = saved.opener || saved.forText || saved.keep || saved.wisdom || (saved.notes && saved.notes.length);
+    if (!has) return;
+    ['forId', 'forText', 'aimOther', 'opener', 'wisdom', 'keep', 'title', 'talk', 'revealId', 'language', 'explicit'].forEach(function (key) {
+      if (saved[key]) state[key] = saved[key];
+    });
+    if (Array.isArray(saved.aims) && saved.aims.length) state.aims = saved.aims.slice();
+    if (Array.isArray(saved.kinds) && saved.kinds.length) state.kinds = saved.kinds.slice();
+    if (Array.isArray(saved.genres) && saved.genres.length) state.genres = saved.genres.slice();
+    if (Array.isArray(saved.notes) && saved.notes.length) state.notes = saved.notes.slice();
+    if (saved.reveals) state.reveals = Object.assign(state.reveals || {}, saved.reveals);
+    if (saved.sensory) state.sensory = Object.assign({}, saved.sensory);
+    if (saved.followByStep) state.followByStep = Object.assign({}, saved.followByStep);
   }
 
   function repaint() {
@@ -587,6 +657,7 @@
   }
 
   function render() {
+    persistFlow();
     var host = $('sh-flow-host');
     if (!host) return;
     syncTitle();
@@ -785,6 +856,7 @@
   state.followByStep = {};
   state.followSkip = {};
   state.revealId = '';
+  restoreFlow();
 
   window.SongFlowPage = {
     talk: function () { return state.talk; },

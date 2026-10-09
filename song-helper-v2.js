@@ -19,7 +19,7 @@
     try {
       return modes.normalizeInput(body);
     } catch (err) {
-      return { __long: !!(err && err.code === 'long'), __bad: true };
+      return { __long: !!(err && err.code === 'long'), __bad: true, error: err && err.message };
     }
   }
 
@@ -158,6 +158,8 @@
       place: fieldValue('place') || followExtra.place || sense.place || '',
       object: fieldValue('object') || followExtra.object || sense.object || '',
       quote: fieldValue('quote') || followExtra.quote || sense.quote || '',
+      followQuote: fieldValue('quote') || followExtra.quote || sense.quote || '',
+      stylePrompt: currentStyleText(),
       genre: fieldValue('genre'),
       title: (($('sh-working-title') && $('sh-working-title').value) || fieldValue('title') || '').slice(0, 80),
       north: window.SongFlowPage ? window.SongFlowPage.north() : null,
@@ -1561,7 +1563,7 @@
     var body = payload();
     var prepared = preparedInput(body);
     if (prepared.__long) {
-      showError('That answer is a little long. Shorten it and try again.');
+      showError(prepared.error || 'That answer is a little long. Shorten it and try again.');
       return;
     }
     if (prepared.__bad) {
@@ -1712,7 +1714,7 @@
     if (genre) body.genre = genre;
     var preparedLines = preparedInput(body);
     if (preparedLines.__long) {
-      showTransformError('That answer is a little long. Shorten it and try again.');
+      showTransformError(preparedLines.error || 'That answer is a little long. Shorten it and try again.');
       return;
     }
     if (preparedLines.__bad) {
@@ -1793,6 +1795,20 @@
   function v2StylePrompt() {
     var box = document.querySelector('#sh-v2-style .sh-style-box');
     return box ? String(box.value || '').trim() : '';
+  }
+
+  function currentStyleText() {
+    var preview = document.querySelector('#sh-style-design .sh-style-preview');
+    var shown = preview ? String(preview.value || '').trim() : '';
+    if (shown) return shown;
+    if (window.SunoStyle && window.StyleDesign && styleDesign && window.StyleDesign.active(styleDesign)) {
+      try {
+        return String(window.SunoStyle.prompt(collectV2Style(), styleStrip) || '').trim();
+      } catch (err) {
+        return '';
+      }
+    }
+    return v2StylePrompt();
   }
 
   function claimHumanParts() {
@@ -2836,6 +2852,7 @@
       paintSlang();
     },
     region: function () { return craft.region || ''; },
+    styleText: currentStyleText,
   };
   bindCraft();
   paintOwn();

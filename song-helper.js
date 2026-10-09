@@ -17,12 +17,54 @@
     if (window.SongFlow && window.SongFlow.paintStoryBox) window.SongFlow.paintStoryBox(el);
   }
 
-  ['sh-live-answer', 'sh-happened', 'sh-why', 'sh-line'].forEach(function (id) {
+  ['sh-live-answer', 'sh-happened', 'sh-who', 'sh-why', 'sh-line'].forEach(function (id) {
     var el = document.getElementById(id);
     armStory(el);
     if (!el || id === 'sh-live-answer') return;
-    el.addEventListener('input', function () { paintAnswers(); });
+    el.addEventListener('input', function () {
+      persistWizard();
+      paintAnswers();
+    });
   });
+
+  var STORY_STORE = 'plaiground.songHelper.story';
+
+  function readStoryStore() {
+    try {
+      return JSON.parse(localStorage.getItem(STORY_STORE) || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeStoryStore(patch) {
+    try {
+      var prev = readStoryStore();
+      Object.keys(patch || {}).forEach(function (key) { prev[key] = patch[key]; });
+      localStorage.setItem(STORY_STORE, JSON.stringify(prev));
+    } catch (err) {}
+  }
+
+  function persistWizard() {
+    writeStoryStore({
+      wizard: {
+        happened: readAnswer('sh-happened'),
+        who: ($('sh-who') && $('sh-who').value.trim()) || '',
+        why: readAnswer('sh-why'),
+        line: readAnswer('sh-line'),
+      },
+    });
+  }
+
+  function restoreWizard() {
+    var saved = readStoryStore().wizard || {};
+    ['happened', 'who', 'why', 'line'].forEach(function (key) {
+      var el = $('sh-' + key);
+      if (!el || String(el.value || '').trim() || !saved[key]) return;
+      el.value = String(saved[key]);
+      paintStory(el);
+    });
+  }
 
   var STEPS = ['genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
   var COPY = {
@@ -204,6 +246,8 @@
       variant: variant,
       followPlace: followExtra.place || '',
       followObject: followExtra.object || '',
+      followQuote: followExtra.quote || '',
+      stylePrompt: currentStylePrompt(),
       revision: pendingRevision || '',
       previous: pendingPrevious || '',
       company_website: $('sh-honey').value,
@@ -1453,9 +1497,25 @@
     return { answers: answers, choices: choices };
   }
 
+  function currentStylePrompt() {
+    if (window.SongHelperV2 && window.SongHelperV2.styleText) {
+      var live = window.SongHelperV2.styleText();
+      if (live) return live;
+    }
+    return stylePromptValue();
+  }
+
   function stylePromptValue() {
-    var box = document.querySelector('#sh-suno-style .sh-style-box');
-    return box ? String(box.value || '').trim() : '';
+    var boxes = [
+      document.querySelector('#sh-style-design .sh-style-preview'),
+      document.querySelector('#sh-suno-style .sh-style-box'),
+      document.querySelector('#sh-v2-style .sh-style-box'),
+    ];
+    for (var i = 0; i < boxes.length; i += 1) {
+      var text = boxes[i] ? String(boxes[i].value || '').trim() : '';
+      if (text) return text;
+    }
+    return '';
   }
 
   function showClaimGate(id) {
@@ -1629,7 +1689,7 @@
     if ($('sh-mood-custom')) $('sh-mood-custom').hidden = false;
     if ($('sh-mood-input')) $('sh-mood-input').value = String(saved.mood || '').slice(0, 40);
     if ($('sh-happened')) $('sh-happened').value = String(saved.happened || '').slice(0, storyMax());
-    if ($('sh-who')) $('sh-who').value = String(saved.who || '').slice(0, 80);
+    if ($('sh-who')) $('sh-who').value = String(saved.who || '').slice(0, storyMax());
     if ($('sh-why')) $('sh-why').value = String(saved.why || '').slice(0, storyMax());
     if ($('sh-line')) $('sh-line').value = String(saved.line || '').slice(0, storyMax());
     paintStory($('sh-happened'));
@@ -1775,7 +1835,10 @@
 
   var battleSaved = battleSavedDraft();
   if (battleSaved) openBattleDraft(battleSaved);
-  else showStep();
+  else {
+    restoreWizard();
+    showStep();
+  }
   foldAllOptionLists();
   window.SongHelperChips = { fold: foldOptions, foldAll: foldAllOptionLists };
 }());

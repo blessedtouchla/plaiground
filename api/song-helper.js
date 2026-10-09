@@ -185,7 +185,7 @@ function modeInput(body) {
     return { input: modes.normalizeInput(body || {}) };
   } catch (err) {
     if (err && err.code === 'long') {
-      return { error: 'That answer is a little long. Shorten it and try again.' };
+      return { error: err.message || 'That answer is a little long. Shorten it and try again.' };
     }
     return { error: 'Those answers did not come through. Try again.' };
   }
@@ -415,7 +415,7 @@ async function handler(req, res) {
     interview = core.normalizeInterview(body);
   } catch (err) {
     if (err && err.code === 'long') {
-      sendJson(res, 400, { ok: false, error: 'That answer is a little long. Shorten it and try again.' });
+      sendJson(res, 400, { ok: false, error: err.message || 'That answer is a little long. Shorten it and try again.' });
       return;
     }
     sendJson(res, 400, { ok: false, error: 'Those answers did not come through. Try again.' });

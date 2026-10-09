@@ -512,7 +512,38 @@ async function runApi() {
 
     const long = await post(Object.assign(fixture(), { happened: 'y'.repeat(core.STORY_MAX + 1) }), '203.0.113.22');
     assert.strictEqual(long.statusCode, 400);
+    assert.ok(/What happened/.test(long.json.error));
+    assert.ok(/3000/.test(long.json.error));
     assert.ok(/shorten/i.test(long.json.error));
+
+    const whoStory = ('For my sister on the porch. ').repeat(90).trim();
+    const styleText = ('Close and homey, acoustic, Sunday kitchen. ').repeat(50).trim();
+    assert.ok(whoStory.length >= 2400 && whoStory.length <= core.STORY_MAX);
+    assert.ok(styleText.length >= 1800 && styleText.length <= core.STORY_MAX);
+    const both = await post(Object.assign(fixture(), {
+      happened: story,
+      who: whoStory,
+      stylePrompt: styleText,
+      north: {
+        forId: 'someone',
+        opener: story,
+        forText: whoStory,
+        keep: 'I still set a place for you like you are coming home.',
+      },
+    }), '203.0.113.25');
+    assert.strictEqual(both.statusCode, 200, both.json && both.json.error);
+    assert.ok(JSON.stringify(both.json.draft).indexOf(story) !== -1);
+    assert.strictEqual(both.json.ok, true);
+
+    const whoLong = await post(Object.assign(fixture(), { who: 'n'.repeat(core.STORY_MAX + 1) }), '203.0.113.26');
+    assert.strictEqual(whoLong.statusCode, 400);
+    assert.ok(/Who/.test(whoLong.json.error));
+    assert.ok(/3000/.test(whoLong.json.error));
+
+    const styleLong = await post(Object.assign(fixture(), { stylePrompt: 's'.repeat(core.STORY_MAX + 1) }), '203.0.113.27');
+    assert.strictEqual(styleLong.statusCode, 400);
+    assert.ok(/Style prompt/.test(styleLong.json.error));
+    assert.ok(/3000/.test(styleLong.json.error));
 
     const huge = mockRes();
     await handler({
@@ -980,6 +1011,14 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
+  assert.ok(html.includes('song-helper.js?v=20261009story'));
+  assert.ok(html.includes('song-flow-page.js?v=20261009story'));
+  assert.ok(html.includes('song-helper.css?v=20261009story'));
+  assert.ok(html.includes('id="sh-who"'));
+  assert.ok(!/id="sh-who"[^>]*maxlength/.test(html));
+  assert.ok(js.includes('plaiground.songHelper.story'));
+  assert.ok(read('song-flow-page.js').includes('plaiground.songHelper.story'));
+  assert.ok(read('lib/song-flow.js').includes("className = 'sh-count'"));
   assert.ok(js.includes('surpriseWords'));
   assert.ok(js.includes('publicFigureName'));
   assert.ok(js.includes('coverLook'));
