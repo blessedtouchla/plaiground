@@ -103,7 +103,14 @@ function runStatic() {
   assert.ok(!/href="plai.html">Plai<\/a>/.test(page.match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'do not add Plai Coach to the signed-in product menu');
   assert.ok(!/buy a car at the click of a button/i.test(page), 'coach page must not dump the FAQ car-click essay');
   assert.ok(!/Hey\. I'm Plai/i.test(page), 'do not paste a first chat bubble');
-  assert.ok(read('plai-coach.js').includes("Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out."), 'coach chat greeting is the release coach line');
+  assert.ok(read('plai-coach.js').includes("Hi, I'm Plai. I'm your release coach. How can I help you?"), 'coach chat greeting asks how Plai can help');
+  assert.ok(!coachJs.includes('Ask me anything about getting your music ready and out.'), 'old ask-me-anything greeting is retired');
+  ['Where do I start?', 'How does distribution work?', 'What does it cost?', 'How do I protect my song?'].forEach(function (q) {
+    assert.ok(coachJs.includes(q), 'coach quick chip: ' + q);
+  });
+  assert.ok(coachJs.includes("href: '/destination'") && coachJs.includes("href: '/how-it-works.html'") && coachJs.includes("href: '/pricing'") && coachJs.includes("href: '/qualify'"), 'coach chips link verified pages');
+  assert.ok(coachJs.includes('function answerQuick') && coachJs.includes('plai-coach-quick'), 'coach chips show a saved answer and then hide');
+  assert.ok(!coachJs.includes('\u2014') && !/Human first/i.test(coachJs) && !/\bSuno\b/.test(coachJs), 'coach quick chat copy stays plain');
   assert.ok(!/I help people release the music they made with AI tools/.test(read('plai-coach.js')), 'coach chat does not ship the old AI-tools greeting');
   assert.ok(coachJs.includes('OLD_COACH_GREETING'), 'coach chat rewrites the old voice-agent hello');
   assert.ok(coachJs.includes('isOldHelloStream'), 'coach chat hides the old hello while it streams');

@@ -352,7 +352,17 @@ function runStatic() {
   assert.ok(!/Meet Plai/i.test(sessionUpdate), 'voice session must not dump the Meet Plai FAQ lead');
   assert.ok(!/session\.instructions|instructions:/.test(sessionUpdate), 'configureSession must not set Voice Agent instructions');
   assert.ok(js.includes('sounds like PLAY'), 'visible name stays Plai with PLAY hint');
-  assert.ok(js.includes("Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out."), 'chat greeting is the release coach line');
+  assert.ok(js.includes("Hi, I'm Plai. I'm your release coach. How can I help you?"), 'chat greeting asks how Plai can help');
+  assert.ok(!js.includes('Ask me anything about getting your music ready and out.'), 'old ask-me-anything greeting is retired');
+  ['Where do I start?', 'How does distribution work?', 'What does it cost?', 'How do I protect my song?'].forEach(function (q) {
+    assert.ok(js.includes(q), 'quick chip: ' + q);
+  });
+  assert.ok(js.includes("href: '/destination'") && js.includes("href: '/how-it-works.html'") && js.includes("href: '/pricing'") && js.includes("href: '/qualify'"), 'each chip has a verified page');
+  assert.ok(js.includes('function answerQuick'), 'chip taps show a saved answer');
+  assert.ok(js.includes('quickEl.hidden = conversationStarted()'), 'chips hide after the first message');
+  assert.ok(!js.includes('\u2014') && !/Human first/i.test(js) && !/\bSuno\b/.test(js), 'quick chat copy stays plain');
+  assert.ok(css.includes('.plai-bubble-quick') && css.includes('min-height: 44px'), 'quick chips have a 44px tap target');
+  assert.ok(/\.plai-bubble:not\(\.is-closed\) \.plai-bubble-row/.test(css), 'Talk and Text stay visible while the panel is open');
   assert.ok(!/I help people release the music they made with AI tools/.test(js), 'old AI-tools greeting is not shipped');
   assert.ok(js.includes('OLD_COACH_GREETING'), 'old Hey I am Play greeting is rewritten when the voice agent still says it');
   assert.ok(js.includes('isOldHelloStream'), 'streaming voice-agent hello is detected before the full sentence lands');
@@ -587,7 +597,7 @@ function pushEvent(socket, event) {
 
 function runGreetingFlash() {
   const ui = loadWidget();
-  const coach = "Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out.";
+  const coach = "Hi, I'm Plai. I'm your release coach. How can I help you?";
   const oldParts = ['Hey, ', "I'm Play. ", 'I help people ', 'release the music they made with AI tools.'];
   return wait(20).then(function () {
     assert.strictEqual(logText(ui), coach, 'closed panel already shows the coach greeting');
@@ -615,8 +625,35 @@ function runGreetingFlash() {
   });
 }
 
+function runQuickChips() {
+  const ui = loadWidget();
+  return wait(20).then(function () {
+    const box = queryOne(ui.root(), '.plai-bubble-quick');
+    assert.ok(box && box.hidden !== true, 'quick questions show before the first message');
+    assert.strictEqual(box.children.length, 4, 'four quick questions');
+    assert.deepStrictEqual(box.children.map(function (node) { return node.textContent; }), [
+      'Where do I start?',
+      'How does distribution work?',
+      'What does it cost?',
+      'How do I protect my song?',
+    ]);
+    assert.ok(logText(ui).indexOf("How can I help you?") !== -1, 'opening line asks how Plai can help');
+    box.children[1].click();
+    const seen = logText(ui);
+    assert.ok(seen.indexOf('How does distribution work?') !== -1, 'the chip is sent as the user message');
+    assert.ok(seen.indexOf('It is $2.49 per song to 50+ platforms.') !== -1, 'distribution answer uses the verified price');
+    assert.ok(seen.indexOf('No promise of streams or payouts.') !== -1, 'distribution answer does not promise streams');
+    const jump = queryOne(ui.root(), '.plai-bubble-jump');
+    assert.ok(jump && jump.getAttribute('href') === '/how-it-works.html', 'distribution answer links how it works');
+    assert.strictEqual(jump.textContent, 'How it works');
+    assert.strictEqual(box.hidden, true, 'chips hide after the first message');
+    assert.strictEqual(ui.sockets.length, 0, 'a saved chip answer does not call the voice agent');
+    assert.ok(ui.pill('talk') && ui.pill('text'), 'Talk and Text stay available');
+  });
+}
+
 function run() {
-  return runGreetingFlash().then(function () {
+  return runGreetingFlash().then(runQuickChips).then(function () {
     runStatic();
     return runClicks().then(runPhoneChrome).then(runPageTalk).then(runPageText).then(runChartsClearance);
   }).then(function () {

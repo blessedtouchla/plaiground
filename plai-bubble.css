@@ -67,7 +67,7 @@
 }
 
 .plai-bubble-log {
-  max-height: 132px;
+  max-height: 220px;
   overflow-x: hidden;
   overflow-y: auto;
   display: flex;
@@ -119,7 +119,7 @@
 .plai-bubble-input {
   flex: 1;
   min-width: 0;
-  height: 36px;
+  height: 44px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   background: #111111;
@@ -144,7 +144,7 @@
 
 .plai-bubble-send {
   flex: 0 0 auto;
-  height: 36px;
+  height: 44px;
   border: none;
   border-radius: 999px;
   padding: 0 14px;
@@ -177,6 +177,7 @@
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+  min-height: 44px;
   position: relative;
   border: none;
   border-radius: 999px;
@@ -278,8 +279,71 @@
   max-width: min(420px, calc(100vw - 32px));
 }
 
-.plai-bubble.is-menu-open .plai-bubble-row {
+.plai-bubble.is-menu-open .plai-bubble-row,
+.plai-bubble:not(.is-closed) .plai-bubble-row {
   display: flex;
+}
+
+.plai-bubble-quick,
+.plai-coach-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.plai-bubble-quick[hidden],
+.plai-coach-quick[hidden] {
+  display: none;
+}
+
+.plai-bubble-q,
+.plai-coach-q,
+.plai-bubble-jump,
+.plai-coach-jump {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 203, 71, 0.55);
+  background: transparent;
+  color: #f3cb47;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.plai-bubble-q,
+.plai-coach-q {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.plai-bubble-jump,
+.plai-coach-jump {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 8px;
+}
+
+.plai-bubble-q:focus-visible,
+.plai-coach-q:focus-visible,
+.plai-bubble-jump:focus-visible,
+.plai-coach-jump:focus-visible {
+  outline: 2px solid #f3cb47;
+  outline-offset: 3px;
+}
+
+.plai-coach-composer .btn,
+.plai-coach-composer input {
+  min-height: 44px;
 }
 
 .plai-bubble-chip {

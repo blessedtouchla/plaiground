@@ -6,7 +6,33 @@
   var CHUNK_MS = 100;
   var MAX_TURNS = 8;
   var MAX_TEXT = 400;
-  var COACH_GREETING = "Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out.";
+  var COACH_GREETING = "Hi, I'm Plai. I'm your release coach. How can I help you?";
+  var QUICK_CHIPS = [
+    {
+      q: 'Where do I start?',
+      a: 'Start with My roadmap. Choose Idea, Made, or Out, then your goal. Plai shows the route. Song Helper and Cover Art are live.',
+      href: '/destination',
+      link: 'My roadmap',
+    },
+    {
+      q: 'How does distribution work?',
+      a: 'Distribution is optional. It is $2.49 per song to 50+ platforms. Split sheets are signed before delivery. No promise of streams or payouts.',
+      href: '/how-it-works.html',
+      link: 'How it works',
+    },
+    {
+      q: 'What does it cost?',
+      a: 'Join free. You keep 100% of your royalties. Distribution is $2.49 per song and optional. Monthly plans are coming soon.',
+      href: '/pricing',
+      link: 'Plans and pricing',
+    },
+    {
+      q: 'How do I protect my song?',
+      a: 'Check and file checks the song, then copyright, publishing, and the release. Contracts is where you review, fix, or create what you sign. Split sheets are signed before delivery.',
+      href: '/qualify',
+      link: 'Is my song ready?',
+    },
+  ];
   var OLD_COACH_GREETING = /^hey,\s*i['’]m pla[iy]\b[\s\S]*music they made with ai tools/i;
   var OLD_HELLO = "hey i'm plai i help people release the music they made with ai tools";
 
@@ -80,6 +106,28 @@
     return clean;
   }
 
+  function quickFor(text) {
+    var clean = String(text || '').replace(/\s+/g, ' ').trim();
+    var i;
+    for (i = 0; i < QUICK_CHIPS.length; i += 1) {
+      if (QUICK_CHIPS[i].q === clean || QUICK_CHIPS[i].a === clean) return QUICK_CHIPS[i];
+    }
+    return null;
+  }
+
+  function conversationStarted() {
+    return transcript.some(function (row) { return row.role === 'user' && row.text; });
+  }
+
+  var quickEl = document.createElement('div');
+  quickEl.className = 'plai-coach-quick';
+  quickEl.setAttribute('role', 'group');
+  quickEl.setAttribute('aria-label', 'Quick questions');
+
+  function syncQuick() {
+    quickEl.hidden = conversationStarted();
+  }
+
   function renderLog() {
     logEl.innerHTML = '';
     var rows = transcript.filter(function (row) {
@@ -91,15 +139,25 @@
       hello.className = 'plai-coach-msg is-plai';
       hello.textContent = COACH_GREETING;
       logEl.appendChild(hello);
+      syncQuick();
       return;
     }
     rows.forEach(function (row) {
       var bubble = document.createElement('div');
       bubble.className = 'plai-coach-msg is-' + row.role;
       bubble.textContent = row.text;
+      var quick = row.role === 'plai' ? quickFor(row.text) : null;
+      if (quick && quick.a === row.text) {
+        var jump = document.createElement('a');
+        jump.className = 'plai-coach-jump';
+        jump.href = quick.href;
+        jump.textContent = quick.link;
+        bubble.appendChild(jump);
+      }
       logEl.appendChild(bubble);
     });
     logEl.scrollTop = logEl.scrollHeight;
+    syncQuick();
   }
 
   function sameLine(row, role, text) {
@@ -559,10 +617,22 @@
     };
   }
 
+  function answerQuick(item) {
+    if (!item) return;
+    addLine('user', item.q);
+    addLine('plai', item.a);
+  }
+
   function sendTyped() {
-    if (!configured) return;
     var text = inputEl.value ? inputEl.value.replace(/\s+/g, ' ').trim() : '';
     if (!text) return;
+    var quick = quickFor(text);
+    if (quick && quick.q === text) {
+      inputEl.value = '';
+      answerQuick(quick);
+      return;
+    }
+    if (!configured) return;
     inputEl.value = '';
     addLine('user', text);
     wantMic = false;
@@ -600,6 +670,17 @@
     }
     setLive('idle');
   }
+
+  QUICK_CHIPS.forEach(function (item) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'plai-coach-q';
+    chip.textContent = item.q;
+    chip.addEventListener('click', function () { answerQuick(item); });
+    quickEl.appendChild(chip);
+  });
+  form.parentNode.insertBefore(quickEl, form);
+  renderLog();
 
   form.addEventListener('submit', function (event) {
     event.preventDefault();
