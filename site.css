@@ -7996,12 +7996,12 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 #playground { scroll-margin-top: calc(var(--nav-h) + 12px); }
 .playground { padding: 8px 0 36px; }
 .playground .wrap { max-width: 1120px; }
-.play-stage {
+.play-road-head {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px 24px;
-  margin-bottom: 18px;
+  gap: 12px;
+  padding: 16px 14px 0;
 }
 .play-ask-label {
   margin: 0 0 8px;
@@ -8060,7 +8060,7 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
   gap: 12px;
   align-items: start;
 }
-.play-band { display: none; }
+.play-band { display: block; grid-column: 1 / -1; }
 .play-card {
   position: relative;
   display: flex;
@@ -8086,6 +8086,11 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .play-card.is-contracts {
   border-color: rgba(243, 203, 71, 0.72);
   box-shadow: 0 0 0 1px rgba(243, 203, 71, 0.35), 0 12px 32px rgba(243, 203, 71, 0.14);
+}
+.play-card.is-roadmap {
+  grid-column: 1 / -1;
+  border-color: rgba(243, 203, 71, 0.72);
+  box-shadow: 0 0 0 1px rgba(125, 60, 255, 0.55), 0 0 0 1px rgba(243, 203, 71, 0.35), 0 16px 40px rgba(125, 60, 255, 0.22);
 }
 .play-main {
   position: relative;
@@ -8192,6 +8197,7 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .playground[data-stage="idea"] .play-card[data-for~="idea"],
 .playground[data-stage="made"] .play-card[data-for~="made"],
 .playground[data-stage="out"] .play-card[data-for~="out"] { opacity: 1; }
+.playground[data-stage] .play-card.is-roadmap { opacity: 1; }
 .play-soon {
   margin: 18px 0 0;
   color: var(--muted);
@@ -8217,16 +8223,16 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .play-band-protect { color: #f3cb47; }
 .play-band-out { color: #ff7ab3; }
 @media (max-width: 720px) {
-  .play-stage { flex-direction: column; }
   .play-say { max-width: none; width: 100%; }
   .play-pills { display: grid; grid-template-columns: 1fr 1fr; }
-  .play-card.is-contracts { grid-column: 1 / -1; order: 5; }
-  .play-card[data-id="roadmap"],
-  .play-card[data-id="splits"] { order: 1; }
+  .play-card[data-id="human"],
+  .play-card.is-contracts,
+  .play-card[data-id="check"],
+  .play-card[data-id="splits"],
+  .play-card[data-id="epk"] { grid-column: 1 / -1; }
   .play-card[data-id="distro"],
-  .play-card[data-id="earn"] { order: 2; }
-  .play-card[data-id="epk"] { order: 3; grid-column: 1 / -1; }
-  .play-card[data-id="check"] { order: 4; grid-column: 1 / -1; }
+  .play-card[data-id="earn"] { order: 1; }
+  .play-card[data-id="epk"] { order: 2; }
 }
 @media (min-width: 721px) {
   .play-grid {
@@ -8236,6 +8242,15 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
   .play-grid { align-items: stretch; }
   .play-band { display: block; grid-column: 1 / -1; }
   .play-pills { display: flex; }
+  .play-card.is-roadmap {
+    flex-direction: row;
+    align-items: center;
+  }
+  .play-road-head {
+    flex: 1.15;
+    padding: 18px 8px 18px 18px;
+  }
+  .is-roadmap .play-main { justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
   .play-card,

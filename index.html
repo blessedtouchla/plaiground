@@ -105,21 +105,28 @@
 
     <section class="playground" id="playground" aria-label="Playground">
       <div class="wrap">
-        <div class="play-stage">
-          <div class="play-ask">
-            <p class="play-ask-label" id="play-where">Where are you?</p>
-            <div class="play-chips" role="group" aria-labelledby="play-where">
-              <button type="button" class="play-chip" data-stage="idea" aria-pressed="false">Idea</button>
-              <button type="button" class="play-chip" data-stage="made" aria-pressed="false">Made</button>
-              <button type="button" class="play-chip" data-stage="out" aria-pressed="false">Out</button>
-            </div>
-          </div>
-          <p class="play-say">
-            <span class="play-say-name">Plai</span>
-            Got a song? Tell me where it is and I'll point the way.
-          </p>
-        </div>
         <div class="play-grid">
+          <article class="play-card play-make is-roadmap" data-for="idea" data-id="roadmap">
+            <div class="play-road-head">
+              <div class="play-ask">
+                <p class="play-ask-label" id="play-where">Where are you?</p>
+                <div class="play-chips" role="group" aria-labelledby="play-where">
+                  <button type="button" class="play-chip" data-stage="idea" aria-pressed="false">Idea</button>
+                  <button type="button" class="play-chip" data-stage="made" aria-pressed="false">Made</button>
+                  <button type="button" class="play-chip" data-stage="out" aria-pressed="false">Out</button>
+                </div>
+              </div>
+              <p class="play-say">
+                <span class="play-say-name">Plai</span>
+                Got a song? Tell me where it is and I'll point the way.
+              </p>
+            </div>
+            <a class="play-main" href="/destination">
+              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="8" cy="23" r="2.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><circle cx="24" cy="9" r="2.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M10 22c3.2-6.5 4.6-7.2 8-4.2 2.6 2.3 3.4 5.4 6.2-6.2" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <h3>My roadmap</h3>
+              <p>Tell Plai where your song is. Get your route.</p>
+            </a>
+          </article>
           <p class="play-band play-band-make">Make it</p>
           <article class="play-card play-make" data-for="idea" data-id="helper">
             <a class="play-main" href="/song-helper">
@@ -135,11 +142,11 @@
               <p>Make a cover in minutes.</p>
             </a>
           </article>
-          <article class="play-card play-make" data-for="idea" data-id="roadmap">
-            <a class="play-main" href="/destination">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="8" cy="23" r="2.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><circle cx="24" cy="9" r="2.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M10 22c3.2-6.5 4.6-7.2 8-4.2 2.6 2.3 3.4 5.4 6.2-6.2" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>My roadmap</h3>
-              <p>Tell Plai where your song is. Get your route.</p>
+          <article class="play-card play-make" data-for="idea" data-id="human">
+            <a class="play-main" href="/make-human">
+              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="10" r="4" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M8 26c1.2-5 4-7.5 8-7.5S22.8 21 24 26" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <h3>Make it human</h3>
+              <p>A human re-sing, a new human master, or a sync-ready package.</p>
             </a>
           </article>
           <p class="play-band play-band-protect">Protect it</p>
