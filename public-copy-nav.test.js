@@ -313,7 +313,10 @@ function run() {
   assert.ok(!/Don’t miss out on your publishing revenue/.test(index), 'homepage does not close on the publishing scare');
   assert.ok(!/The same product as Pro/i.test(index), 'Creator card must not say same as Pro');
   assert.ok(!/grow a release/i.test(index), 'do not sell Creator as a different product');
-  assert.ok(index.includes('class="after-stay"'), 'logged-out landing shows after upload');
+  assert.ok(index.includes('id="playground"'), 'logged-out landing shows the playground grid');
+  const playGrid = index.match(/<section class="playground"[\s\S]*?<\/section>/);
+  assert.ok(playGrid && /href="\/epk"/.test(playGrid[0]) && /href="\/ar"/.test(playGrid[0]) && /href="royalties\.html"/.test(playGrid[0]), 'playground keeps EPK, A&R, and earnings');
+  assert.ok(playGrid && !/\/guide|\/spark|\/battle/.test(playGrid[0]), 'Guide, What\'s hot, and Battle stay out of the grid');
   assert.ok(!/Starter[\s\S]*\$49/i.test(index), 'landing must not show Boost size cards');
 
   const creator = read('creator.html');
