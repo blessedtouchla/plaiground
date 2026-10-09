@@ -7749,6 +7749,8 @@ header.nav {
   color: var(--muted);
   font-size: 13px;
 }
+.price-later { margin-top: 28px; }
+.price-later summary { cursor: pointer; font-weight: 700; color: #fff; }
 .price-bundle {
   margin: 14px 0 0;
   color: var(--muted);

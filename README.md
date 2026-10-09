@@ -125,7 +125,7 @@ Public catalog still needed in Stripe (IDs not assigned; do not charge until the
 - Brand protection, month, 1900 cents
 - Coaching is hourly at $75, not a Stripe subscription
 - Sync's alternate 20% is a fee on the placement deal, not a Stripe price and not a royalty cut
-- Playlist pitching and creator campaigns are cost plus 15-20%, quoted per job, not a fixed price ID
+- Playlist pitching and creator campaigns are what the playlist or creator charges, plus a 15-20% service fee, quoted per job, not a fixed price ID
 
 Old membership prices already in Stripe (do not send the new catalog here):
 
