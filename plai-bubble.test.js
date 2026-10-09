@@ -355,6 +355,12 @@ function runStatic() {
   assert.ok(js.includes("Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out."), 'chat greeting is the release coach line');
   assert.ok(!/I help people release the music they made with AI tools/.test(js), 'old AI-tools greeting is not shipped');
   assert.ok(js.includes('OLD_COACH_GREETING'), 'old Hey I am Play greeting is rewritten when the voice agent still says it');
+  assert.ok(js.includes('isOldHelloStream'), 'streaming voice-agent hello is detected before the full sentence lands');
+  const visibleRows = sliceBetween(js, 'function visibleTranscript', 'function renderLog');
+  assert.ok(visibleRows.includes('isOldHelloStream'), 'visible chat drops a plai line that is still the old hello');
+  const renderLog = sliceBetween(js, 'function renderLog', 'function addLine');
+  assert.ok(renderLog.includes('visibleTranscript'), 'renderLog hides the old hello while it is still streaming');
+  assert.ok(renderLog.includes('COACH_GREETING'), 'an empty or old-hello log keeps the coach greeting on screen');
   assert.ok(!js.includes('XAI_API_KEY'), 'frontend must not contain XAI_API_KEY');
   assert.ok(!js.includes('ELEVEN') && !/elevenlabs/i.test(js), 'no ElevenLabs');
   assert.ok(!js.includes('tgk_'), 'do not invent a ToneGrid key');
@@ -569,9 +575,51 @@ function runChartsClearance() {
   });
 }
 
+function logText(ui) {
+  const log = queryOne(ui.root(), '.plai-bubble-log');
+  if (!log) return '';
+  return (log.children || []).map(function (child) { return child.textContent || ''; }).join('\n');
+}
+
+function pushEvent(socket, event) {
+  socket.onmessage({ data: JSON.stringify(event) });
+}
+
+function runGreetingFlash() {
+  const ui = loadWidget();
+  const coach = "Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out.";
+  const oldParts = ['Hey, ', "I'm Play. ", 'I help people ', 'release the music they made with AI tools.'];
+  return wait(20).then(function () {
+    assert.strictEqual(logText(ui), coach, 'closed panel already shows the coach greeting');
+    ui.pill('text').click();
+    return wait(40);
+  }).then(function () {
+    assert.strictEqual(ui.sockets.length, 1, 'Text Plai opens one voice socket');
+    const socket = ui.sockets[0];
+    oldParts.forEach(function (part) {
+      pushEvent(socket, { type: 'response.output_audio_transcript.delta', delta: part });
+      const seen = logText(ui);
+      assert.ok(seen.indexOf('Hey,') === -1, 'old hello stays off the visible log after ' + JSON.stringify(part));
+      assert.ok(!/music they made/i.test(seen), 'old hello body stays off the visible log');
+      assert.ok(seen.indexOf(coach) !== -1, 'coach greeting stays visible while the old line streams');
+    });
+    pushEvent(socket, { type: 'response.output_audio_transcript.done' });
+    assert.strictEqual(logText(ui), coach, 'finished old hello is the coach greeting');
+    pushEvent(socket, { type: 'response.created' });
+    ['Hey, ', "I'm Plai. ", 'What song are you working on?'].forEach(function (part) {
+      pushEvent(socket, { type: 'response.output_text.delta', delta: part });
+    });
+    const real = logText(ui);
+    assert.ok(real.indexOf('What song are you working on?') !== -1, 'a real Plai line shows once it leaves the old hello');
+    assert.ok(!/music they made/i.test(real), 'the real line does not bring the old hello back');
+  });
+}
+
 function run() {
-  runStatic();
-  return runClicks().then(runPhoneChrome).then(runPageTalk).then(runPageText).then(runChartsClearance).then(function () {
+  return runGreetingFlash().then(function () {
+    runStatic();
+    return runClicks().then(runPhoneChrome).then(runPageTalk).then(runPageText).then(runChartsClearance);
+  }).then(function () {
     console.log('plai-bubble.test.js ok');
   });
 }
