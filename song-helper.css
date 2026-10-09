@@ -748,7 +748,8 @@ body.song-helper-page .plai-bubble {
 
 .sh-style-box {
   width: 100%;
-  min-height: 72px;
+  max-width: 100%;
+  min-height: 168px;
   resize: vertical;
   background: #111;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -759,6 +760,85 @@ body.song-helper-page .plai-bubble {
 
 .sh-suno-style .sh-chip {
   min-height: 44px;
+}
+
+.sh-style-design {
+  margin-top: 14px;
+  max-width: 100%;
+}
+
+.sh-style-design-toggle {
+  width: 100%;
+  text-align: left;
+  min-height: 44px;
+}
+
+.sh-style-design-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 100%;
+}
+
+.sh-style-design-panel[hidden] {
+  display: none;
+}
+
+.sh-style-design-panel h3 {
+  margin: 8px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sh-style-select {
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #111;
+  color: #fff;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.sh-style-design .sh-chip {
+  min-height: 44px;
+}
+
+.sh-style-preview {
+  min-height: 120px;
+}
+
+.sh-style-meter-label {
+  margin: 0;
+  font-size: 14px;
+}
+
+.sh-style-meter {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.sh-style-meter span {
+  display: block;
+  height: 100%;
+  background: #f3cb47;
+}
+
+.sh-style-warn,
+.sh-style-note {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sh-style-note {
+  color: #f3cb47;
 }
 
 .sh-plai-log {
