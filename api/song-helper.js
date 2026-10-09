@@ -293,15 +293,19 @@ async function handleMode(req, res, body) {
     return;
   }
   try {
+    var system = modes.systemPrompt(input);
+    if (input.mode === 'funny') {
+      system += ' Funny mode shows humor through the writer\'s own words and specific details. Never say the song is funny, and never say a part is supposed to make them laugh, cry, or dance.';
+    }
     var chat = await xai.chat({
       url: 'https://api.x.ai/v1/chat/completions',
       messages: [
-        { role: 'system', content: modes.systemPrompt(input) },
+        { role: 'system', content: system },
         { role: 'user', content: modes.userPrompt(input) },
       ],
     });
-    var draft = modes.draftFromModel(chat.content, input);
-    if (!draft) {
+    var draft = modes.stripIntentDraft(modes.draftFromModel(chat.content, input), input);
+    if (!draft || !draft.sections || !draft.sections.length) {
       if (input.mode === 'hook') {
         sendJson(res, 502, {
           ok: false,
@@ -453,7 +457,7 @@ async function handler(req, res) {
       source: result.source,
       notice: result.notice,
       attribution: result.attribution,
-      draft: result.draft,
+      draft: modes.stripIntentDraft(result.draft, interview),
     });
   } catch (err) {
     var busy = err && err.status === 429;

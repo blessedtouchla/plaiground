@@ -89,6 +89,46 @@ function runModes() {
   const funnyThin = modes.buildSample(concrete({ mode: 'funny', place: '', object: '', quote: '' }));
   assert.strictEqual(funnyThin.ok, false);
   assert.ok(/Rabbit hole/i.test(funnyThin.error));
+  const funny = modes.buildSample(concrete({ mode: 'funny', meter: 'funny' }));
+  assert.strictEqual(funny.ok, true);
+  const funnyText = modes.allLines(funny.draft).map(function (row) { return row.text; }).join('\n');
+  assert.ok(/chipped mug/i.test(funnyText));
+  assert.ok(/we will figure it out/i.test(funnyText));
+  assert.ok(!/supposed to make them laugh/i.test(funnyText));
+  assert.ok(!/this (part|song) is supposed/i.test(funnyText));
+  assert.ok(!/the joke waits/i.test(funnyText));
+  assert.ok(!/the joke bows/i.test(funnyText));
+  const repeated = funnyText.toLowerCase().split('\n').filter(function (row) {
+    return row.indexOf('supposed to make') !== -1;
+  });
+  assert.strictEqual(repeated.length, 0);
+  const stripped = modes.stripIntentDraft({
+    title: 'The small disaster',
+    sections: [{
+      label: 'Verse',
+      lines: [
+        { text: 'this part is supposed to make them laugh', source: 'generated' },
+        { text: 'this song is supposed to make them laugh', source: 'generated' },
+        { text: 'this song is supposed to make them laugh', source: 'generated' },
+        { text: 'The mug is still in the kitchen.', source: 'generated' },
+        { text: 'this part is supposed to make them cry', source: 'generated' },
+      ],
+    }],
+  }, { quote: 'this song is supposed to make them laugh' });
+  const kept = stripped.sections[0].lines.map(function (row) { return row.text; });
+  assert.ok(kept.indexOf('The mug is still in the kitchen.') !== -1);
+  assert.ok(kept.indexOf('this song is supposed to make them laugh') !== -1);
+  assert.ok(!kept.some(function (text) { return /this part is supposed/i.test(text); }));
+  assert.ok(!kept.some(function (text) { return /make them cry/i.test(text); }));
+  assert.ok(/Never write a lyric that announces/i.test(modes.systemPrompt({ mode: 'funny', craft: {} })));
+  assert.ok(/Funny mode: the humor is the thing they named/i.test(modes.systemPrompt({ mode: 'funny', craft: {} })));
+  const ownedFunny = modes.buildSample(concrete({
+    mode: 'funny',
+    quote: 'this song is supposed to make them laugh',
+  }));
+  const ownedText = modes.allLines(ownedFunny.draft).map(function (row) { return row.text; }).join('\n');
+  assert.ok(/this song is supposed to make them laugh/i.test(ownedText));
+  assert.ok(!/this part is supposed to make them laugh/i.test(ownedText));
   const noMood = modes.buildSample(concrete({ mood: '' }));
   assert.strictEqual(noMood.ok, false);
   assert.ok(/feeling/i.test(noMood.error));

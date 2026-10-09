@@ -498,11 +498,29 @@ async function runApi() {
       words: { tiny: 'the last slice of pizza', habit: 'talks to the fridge' },
     }), '203.0.113.72');
     assert.strictEqual(comedy.statusCode, 200);
+    const funnyMode = await post({
+      mode: 'funny',
+      place: 'the kitchen at 2am',
+      object: 'a chipped mug',
+      quote: 'we will figure it out',
+      mood: 'nostalgic',
+      meter: 'funny',
+      craft: { rabbit: true },
+    }, '203.0.113.41');
+    assert.strictEqual(funnyMode.statusCode, 200, funnyMode.json && funnyMode.json.error);
+    const funnyBlob = JSON.stringify(funnyMode.json.draft);
+    assert.ok(/chipped mug/i.test(funnyBlob));
+    assert.ok(/we will figure it out/i.test(funnyBlob));
+    assert.ok(!/supposed to make them laugh/i.test(funnyBlob));
+    assert.ok(!/the joke waits/i.test(funnyBlob));
+    assert.ok(!/this part is supposed/i.test(funnyBlob));
     assert.strictEqual(comedy.json.preview, true);
     assert.strictEqual(comedy.json.notice, core.PREVIEW_NOTICE);
     assert.strictEqual(comedy.json.attribution, '');
     const comedyText = JSON.stringify(comedy.json.draft);
-    assert.ok(/pizza|crumb|drumroll|sticky note/i.test(comedyText));
+    assert.ok(/pizza|crumb|sticky note/i.test(comedyText));
+    assert.ok(!/supposed to make them laugh/i.test(comedyText));
+    assert.ok(!/drumroll/i.test(comedyText));
     assert.ok(!/Written with Grok/.test(comedyText));
     assert.strictEqual(fetchCalls, 0);
 
@@ -885,10 +903,13 @@ function runPacks() {
     },
   }));
   const jokeText = allLines(joke).map(function (line) { return line.text; }).join('\n');
-  assert.ok(/pizza|crumb|drumroll|sticky note/i.test(jokeText));
+  assert.ok(/pizza|crumb|sticky note/i.test(jokeText));
+  assert.ok(!/supposed to make them laugh/i.test(jokeText));
+  assert.ok(!/drumroll/i.test(jokeText));
   assert.ok(/very serious song/i.test(joke.title));
   assert.strictEqual(joke.hooks[0].text, fixture().line);
-  assert.ok(/pizza|crumb|drumroll/i.test(joke.hooks[1].text));
+  assert.ok(/pizza|crumb/i.test(joke.hooks[1].text));
+  assert.ok(!/drumroll|supposed to make/i.test(joke.hooks[1].text));
   assert.ok(allLines(joke).some(function (line) {
     return lineHasPhrase(line.text, 'the last slice of pizza') && line.text.toLowerCase() !== 'the last slice of pizza' && line.source === 'user';
   }));
