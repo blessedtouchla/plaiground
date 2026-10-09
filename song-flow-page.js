@@ -58,24 +58,36 @@
     return button;
   }
 
-  function field(label, value, onInput, placeholder, short) {
+  function field(label, value, onInput, placeholder, short, cap) {
     var wrap = document.createElement('label');
     wrap.className = 'sh-field';
     var span = document.createElement('span');
     span.textContent = label;
     var input = document.createElement('textarea');
     input.className = 'sh-area' + (short ? ' sh-area-short' : '');
-    input.maxLength = 280;
+    var limit = cap || flow.STORY_MAX;
     input.placeholder = placeholder || 'Your words.';
     input.value = value || '';
-    input.addEventListener('input', function () { onInput(input.value); });
+    if (limit < flow.STORY_MAX) input.maxLength = limit;
+    input.addEventListener('input', function () {
+      if (input.value.length > limit) return;
+      onInput(input.value);
+      refresh();
+    });
     wrap.appendChild(span);
     wrap.appendChild(input);
+    if (limit >= flow.STORY_MAX && flow.mountStoryBox) flow.mountStoryBox(input);
     return wrap;
   }
 
   function tidy(value, max) {
-    return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max || 280);
+    var text = String(value || '').replace(/\s+/g, ' ').trim();
+    var cap = max == null ? flow.STORY_MAX : max;
+    if (cap >= flow.STORY_MAX) {
+      if (text.length > flow.STORY_MAX) return null;
+      return text;
+    }
+    return text.slice(0, cap);
   }
 
   function starterFinished(text, starters) {
@@ -91,6 +103,10 @@
   function saveNote(ask, answer) {
     var question = tidy(ask, 220);
     var text = tidy(answer);
+    if (text == null) {
+      showFlowError(flow.TOO_LONG);
+      return;
+    }
     if (!question || !text) return;
     if (!Array.isArray(state.notes)) state.notes = [];
     for (var i = 0; i < state.notes.length; i += 1) {
@@ -103,6 +119,7 @@
     var question = tidy(ask, 220);
     if (!question) return;
     var text = tidy(answer);
+    if (text == null) return;
     var last = state.turns[state.turns.length - 1];
     var prev = state.turns[state.turns.length - 2];
     if (prev && prev.who === 'plai' && prev.text === question && last && last.who === 'you' && last.text === text) return;
@@ -116,7 +133,11 @@
   }
 
   function setStory(step, value) {
-    var text = tidy(value, step.id === 'aim' ? 80 : 280);
+    var text = tidy(value, step.id === 'aim' ? 80 : flow.STORY_MAX);
+    if (text == null) {
+      showFlowError(flow.TOO_LONG);
+      return;
+    }
     if (step.id === 'for') state.forText = text;
     else if (step.id === 'aim') state.aimOther = text;
     else if (step.id === 'open') state.opener = text;
@@ -312,7 +333,12 @@
     note.textContent = 'One more, if you want. Skip it and we will keep going.';
     block.appendChild(note);
     block.appendChild(field(ask, state.followByStep[step.id] || '', function (value) {
-      state.followByStep[step.id] = tidy(value);
+      var text = tidy(value);
+      if (text == null) {
+        showFlowError(flow.TOO_LONG);
+        return;
+      }
+      state.followByStep[step.id] = text;
     }, 'Optional.', true));
     var pass = document.createElement('button');
     pass.type = 'button';
@@ -388,8 +414,13 @@
       storyAsk.className = 'sh-scene-ask';
       storyAsk.textContent = step.storyAsk || 'Tell me a moment.';
       host.appendChild(storyAsk);
-      host.appendChild(field('Your answer', state.forText, function (value) {
-        state.forText = tidy(value, 280);
+        host.appendChild(field('Your answer', state.forText, function (value) {
+        var text = tidy(value);
+        if (text == null) {
+          showFlowError(flow.TOO_LONG);
+          return;
+        }
+        state.forText = text;
         if (state.forText) clearSkip(step);
         revealFollow(step);
       }, 'A moment is enough.'));
@@ -397,7 +428,7 @@
     } else if (step.kind === 'aim' && state.aims.indexOf('other') !== -1) {
       host.appendChild(field('Other', state.aimOther, function (value) {
         state.aimOther = tidy(value, 80);
-      }, 'What else should the song do?'));
+      }, 'What else should the song do?', false, 80));
     } else if (step.kind === 'scene') {
       (step.boxes || []).forEach(function (box) {
         var label = document.createElement('p');
@@ -405,7 +436,12 @@
         label.textContent = box.ask;
         host.appendChild(label);
         host.appendChild(field('Your answer', state.sensory[box.id] || '', function (value) {
-          state.sensory[box.id] = tidy(value);
+          var text = tidy(value);
+          if (text == null) {
+            showFlowError(flow.TOO_LONG);
+            return;
+          }
+          state.sensory[box.id] = text;
           if (state.sensory[box.id]) clearSkip(step);
           revealFollow(step);
         }, 'Optional. A short scene is enough.', true));
@@ -503,12 +539,19 @@
         var said = '';
         for (var i = 0; i < event.results.length; i += 1) said += event.results[i][0].transcript;
         var target = heardTarget(step);
-        if (target === 'follow') state.followByStep[step.id] = tidy(said);
+        var heard = tidy(said, target === 'story' || target === 'follow' || target === 'scene' ? flow.STORY_MAX : 80);
+        if (heard == null) {
+          showFlowError(flow.TOO_LONG);
+          recog = null;
+          button.textContent = 'Talk';
+          return;
+        }
+        if (target === 'follow') state.followByStep[step.id] = heard;
         else if (target === 'scene') {
           var box = sceneTarget(step);
-          if (box) state.sensory[box.id] = tidy(said);
+          if (box) state.sensory[box.id] = heard;
         } else if (step.kind === 'aim') state.aimOther = tidy(said, 80);
-        else setStory(step, said);
+        else setStory(step, heard);
         recog = null;
         render();
       };
@@ -659,6 +702,7 @@
       var text = String(value || '').trim();
       if (!el || !text || String(el.value || '').trim()) return;
       el.value = text;
+      if (flow.paintStoryBox) flow.paintStoryBox(el);
     }
     var sensory = star.sensory || {};
     put('sh-happened', star.opener || sensory.moment || sensory.place || star.forText || star.aimLabels.join(', '));

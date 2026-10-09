@@ -5,6 +5,25 @@
   var packs = window.SongPacks;
   if (!packs) return;
 
+  function storyMax() {
+    return (window.SongFlow && window.SongFlow.STORY_MAX) || 1500;
+  }
+
+  function armStory(el) {
+    if (window.SongFlow && window.SongFlow.mountStoryBox) window.SongFlow.mountStoryBox(el);
+  }
+
+  function paintStory(el) {
+    if (window.SongFlow && window.SongFlow.paintStoryBox) window.SongFlow.paintStoryBox(el);
+  }
+
+  ['sh-live-answer', 'sh-happened', 'sh-why', 'sh-line'].forEach(function (id) {
+    var el = document.getElementById(id);
+    armStory(el);
+    if (!el || id === 'sh-live-answer') return;
+    el.addEventListener('input', function () { paintAnswers(); });
+  });
+
   var STEPS = ['genre', 'happened', 'who', 'why', 'line', 'words', 'shape', 'draft', 'style', 'record', 'next'];
   var COPY = {
     mood: ['What is the mood?', 'Tap the feeling that fits. If none of them do, write your own.'],
@@ -161,10 +180,10 @@
     return {
       mood: moodValue(),
       sparkTitle: spark && spark.title ? String(spark.title).slice(0, 80) : '',
-      sparkAngle: spark && spark.angle ? String(spark.angle).slice(0, 280) : '',
-      sparkFeel: spark && spark.feel ? String(spark.feel).slice(0, 280) : '',
-      sparkStory: spark && spark.story ? String(spark.story).slice(0, 280) : '',
-      sparkKeep: spark && spark.keep ? String(spark.keep).slice(0, 280) : '',
+      sparkAngle: spark && spark.angle ? String(spark.angle).slice(0, storyMax()) : '',
+      sparkFeel: spark && spark.feel ? String(spark.feel).slice(0, storyMax()) : '',
+      sparkStory: spark && spark.story ? String(spark.story).slice(0, storyMax()) : '',
+      sparkKeep: spark && spark.keep ? String(spark.keep).slice(0, storyMax()) : '',
       happened: readAnswer('sh-happened'),
       who: $('sh-who').value.trim(),
       why: readAnswer('sh-why'),
@@ -290,11 +309,11 @@
       span.textContent = ask.ask;
       var input = document.createElement('input');
       input.className = 'sh-input';
-      input.maxLength = 120;
       input.placeholder = ask.placeholder || '';
       input.setAttribute('data-follow', ask.id);
       label.appendChild(span);
       label.appendChild(input);
+      armStory(input);
       host.appendChild(label);
     });
     var use = document.createElement('button');
@@ -962,12 +981,12 @@
       var input = document.createElement('input');
       input.className = 'sh-input';
       input.setAttribute('data-word', prompt.key);
-      input.maxLength = 160;
       input.autocomplete = 'off';
       input.placeholder = prompt.placeholder || '';
       input.value = wordValues[prompt.key] || '';
       label.appendChild(span);
       label.appendChild(input);
+      armStory(input);
       if (prompt.hint) {
         var hint = document.createElement('em');
         hint.className = 'sh-hint';
@@ -1076,7 +1095,7 @@
       (section.lines || []).forEach(function (line) {
         var text = String((line && line.text) || '').trim();
         if (!text) return;
-        lines.push({ text: text.slice(0, 280), yours: line.source === 'user' });
+        lines.push({ text: text.slice(0, storyMax()), yours: line.source === 'user' });
       });
     });
     return lines.slice(0, 80);
@@ -1609,17 +1628,20 @@
     picks.mood = 'custom';
     if ($('sh-mood-custom')) $('sh-mood-custom').hidden = false;
     if ($('sh-mood-input')) $('sh-mood-input').value = String(saved.mood || '').slice(0, 40);
-    if ($('sh-happened')) $('sh-happened').value = String(saved.happened || '').slice(0, 280);
+    if ($('sh-happened')) $('sh-happened').value = String(saved.happened || '').slice(0, storyMax());
     if ($('sh-who')) $('sh-who').value = String(saved.who || '').slice(0, 80);
-    if ($('sh-why')) $('sh-why').value = String(saved.why || '').slice(0, 280);
-    if ($('sh-line')) $('sh-line').value = String(saved.line || '').slice(0, 280);
+    if ($('sh-why')) $('sh-why').value = String(saved.why || '').slice(0, storyMax());
+    if ($('sh-line')) $('sh-line').value = String(saved.line || '').slice(0, storyMax());
+    paintStory($('sh-happened'));
+    paintStory($('sh-why'));
+    paintStory($('sh-line'));
     if (saved.pack) {
       picks.pack = saved.pack;
       setPressed('pack', saved.pack);
       if ($('sh-comedy')) $('sh-comedy').hidden = saved.pack !== 'comedy';
     }
     if (saved.artistName && $('sh-artist') && !$('sh-artist').value.trim()) $('sh-artist').value = saved.artistName;
-    wordValues.cameup = String(saved.happened || saved.title || 'the battle').slice(0, 160);
+    wordValues.cameup = String(saved.happened || saved.title || 'the battle').slice(0, storyMax());
     draft = saved.battleDraft;
     preview = Boolean(saved.battlePreview);
     if (draft.hooks && draft.hooks[0]) draft.hooks[0].selected = true;

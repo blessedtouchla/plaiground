@@ -229,6 +229,29 @@ body.song-helper-page .plai-bubble {
   font-weight: 500;
 }
 
+.sh-count {
+  margin: 6px 0 0;
+  color: var(--muted, #9a9a9a);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+}
+
+.sh-count.is-near {
+  color: #e2b340;
+}
+
+.sh-count-warn {
+  margin: 4px 0 0;
+  color: #ffb020;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .sh-words .sh-field { margin-top: 18px; }
 
 .sh-rules {
@@ -707,6 +730,9 @@ body.song-helper-page .plai-bubble {
 .sh-answer span {
   font-size: 1.02rem;
   line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .sh-follow {

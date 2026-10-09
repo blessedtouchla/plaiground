@@ -180,8 +180,24 @@ async function sparkPayload() {
   return pack;
 }
 
+function modeInput(body) {
+  try {
+    return { input: modes.normalizeInput(body || {}) };
+  } catch (err) {
+    if (err && err.code === 'long') {
+      return { error: 'That answer is a little long. Shorten it and try again.' };
+    }
+    return { error: 'Those answers did not come through. Try again.' };
+  }
+}
+
 async function roleReply(req, res, role, body) {
-  var input = modes.normalizeInput(body || {});
+  var read = modeInput(body);
+  if (read.error) {
+    sendJson(res, 400, { ok: false, error: read.error });
+    return;
+  }
+  var input = read.input;
   var blocked = await guard.enforce(req, guard.clientIp(req), body, {
     text: [input.place, input.object, input.quote, input.name, input.lines].join('\n'),
   });
@@ -227,7 +243,12 @@ async function roleReply(req, res, role, body) {
 }
 
 async function handleMode(req, res, body) {
-  var input = modes.normalizeInput(body);
+  var read = modeInput(body);
+  if (read.error) {
+    sendJson(res, 400, { ok: false, error: read.error });
+    return;
+  }
+  var input = read.input;
   if (input.mode === 'battle') {
     sendJson(res, 200, { ok: true, redirect: '/battle' });
     return;

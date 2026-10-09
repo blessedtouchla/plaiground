@@ -3,6 +3,26 @@
   var slangCore = window.SlangCore;
   if (!modes || !document.getElementById('sh-modes')) return;
 
+  function storyMax() {
+    return (window.SongFlow && window.SongFlow.STORY_MAX) || (modes.STORY_MAX || 1500);
+  }
+
+  function armStory(el) {
+    if (window.SongFlow && window.SongFlow.mountStoryBox) window.SongFlow.mountStoryBox(el);
+  }
+
+  function paintStory(el) {
+    if (window.SongFlow && window.SongFlow.paintStoryBox) window.SongFlow.paintStoryBox(el);
+  }
+
+  function preparedInput(body) {
+    try {
+      return modes.normalizeInput(body);
+    } catch (err) {
+      return { __long: !!(err && err.code === 'long'), __bad: true };
+    }
+  }
+
   if (!window.__plaiHelperSession) {
     window.__plaiHelperSession = 1;
     (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_started', payload: {} });
@@ -131,10 +151,10 @@
       live: liveAnswers(),
       mood: readMood(),
       sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
-      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, 280) : '',
-      sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, 280) : '',
-      sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, 280) : '',
-      sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, 280) : '',
+      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, storyMax()) : '',
+      sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, storyMax()) : '',
+      sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, storyMax()) : '',
+      sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, storyMax()) : '',
       place: fieldValue('place') || followExtra.place || sense.place || '',
       object: fieldValue('object') || followExtra.object || sense.object || '',
       quote: fieldValue('quote') || followExtra.quote || sense.quote || '',
@@ -279,11 +299,11 @@
       span.textContent = ask.ask;
       var input = document.createElement('input');
       input.className = 'sh-input';
-      input.maxLength = 120;
       input.placeholder = ask.placeholder || '';
       input.setAttribute('data-follow', ask.id);
       label.appendChild(span);
       label.appendChild(input);
+      armStory(input);
       host.appendChild(label);
     });
     var use = document.createElement('button');
@@ -455,6 +475,10 @@
     if (spec.placeholder) el.placeholder = spec.placeholder;
     if (spec.value && spec.kind !== 'select') el.value = spec.value;
     label.appendChild(el);
+    if (spec.story) {
+      armStory(el);
+      el.addEventListener('input', function () { paintV2Answers(); });
+    }
     host.appendChild(label);
   }
 
@@ -471,7 +495,7 @@
     }
     if (mode === 'parody') {
       addField(host, { id: 'title', label: 'Your title (not a look-alike)' });
-      addField(host, { id: 'comment', label: 'What are you saying about the original?', kind: 'area' });
+      addField(host, { id: 'comment', label: 'What are you saying about the original?', kind: 'area', story: true });
       addField(host, { id: 'artNote', label: 'Cover idea, if you have one', placeholder: 'A different picture. Not their art.' });
     }
     if (mode === 'public-domain') {
@@ -498,14 +522,14 @@
     }
     var rabbit = !sourceMode && craft.rabbit && mode !== 'review' && mode !== 'hook' && mode !== 'madlibs';
     if (rabbit) {
-      addField(host, { id: 'place', label: 'A real place', placeholder: 'the kitchen at 2am' });
-      addField(host, { id: 'object', label: 'An object you can touch', placeholder: 'a chipped mug' });
-      addField(host, { id: 'quote', label: 'Something someone said', placeholder: 'we will figure it out' });
+      addField(host, { id: 'place', label: 'A real place', placeholder: 'the kitchen at 2am', story: true });
+      addField(host, { id: 'object', label: 'An object you can touch', placeholder: 'a chipped mug', story: true });
+      addField(host, { id: 'quote', label: 'Something someone said', placeholder: 'we will figure it out', story: true });
     }
     if (mode === 'hook') {
-      addField(host, { id: 'line', label: 'The hook sentence', kind: 'area', placeholder: 'A full sentence you would actually sing.' });
-      addField(host, { id: 'happened', label: 'What happened', kind: 'area', placeholder: 'One concrete sentence about what happened.' });
-      addField(host, { id: 'why', label: 'Why it matters', kind: 'area', placeholder: 'One sentence about what changed.' });
+      addField(host, { id: 'line', label: 'The hook sentence', kind: 'area', placeholder: 'A full sentence you would actually sing.', story: true });
+      addField(host, { id: 'happened', label: 'What happened', kind: 'area', placeholder: 'One concrete sentence about what happened.', story: true });
+      addField(host, { id: 'why', label: 'Why it matters', kind: 'area', placeholder: 'One sentence about what changed.', story: true });
     }
     if (mode === 'flip') addField(host, { id: 'genre', label: 'Flip it toward', placeholder: 'country' });
     if (mode === 'flip' || mode === 'funkify') {
@@ -665,8 +689,8 @@
   function ideaTopic() {
     var own = $('sh-own-idea');
     var text = own ? String(own.value || '').trim() : '';
-    if (text) return text.slice(0, 120);
-    if (sparkSeed && sparkSeed.angle) return String(sparkSeed.angle).slice(0, 120);
+    if (text) return text;
+    if (sparkSeed && sparkSeed.angle) return String(sparkSeed.angle);
     return '';
   }
 
@@ -763,7 +787,6 @@
     var area = document.createElement('textarea');
     area.className = 'sh-area';
     area.id = 'sh-own-idea';
-    area.maxLength = 280;
     area.placeholder = 'One sentence about the song.';
     area.addEventListener('input', function () {
       if (String(area.value || '').trim() && (sparkSeed || sparkTopic || sparkHeadline)) {
@@ -775,6 +798,7 @@
     });
     idea.appendChild(ideaSpan);
     idea.appendChild(area);
+    armStory(area);
     host.appendChild(idea);
     questions.TOPIC_FOLLOWUPS.forEach(function (item) {
       var label = document.createElement('label');
@@ -784,11 +808,11 @@
       var input = document.createElement('textarea');
       input.className = 'sh-area';
       input.rows = 2;
-      input.maxLength = 280;
       input.placeholder = item.hint || '';
       input.setAttribute('data-spark-ask', item.id);
       label.appendChild(span);
       label.appendChild(input);
+      armStory(input);
       host.appendChild(label);
     });
     var note = document.createElement('p');
@@ -803,7 +827,10 @@
     function put(id, text) {
       var el = $(id);
       if (!el || !text) return;
-      if (!String(el.value || '').trim()) el.value = text;
+      if (!String(el.value || '').trim()) {
+        el.value = text;
+        paintStory(el);
+      }
     }
     saved.forEach(function (row) {
       if (row.id === 'who' || row.id === 'call') put('sh-who', row.text);
@@ -1532,7 +1559,15 @@
       return;
     }
     var body = payload();
-    var prepared = modes.normalizeInput(body);
+    var prepared = preparedInput(body);
+    if (prepared.__long) {
+      showError('That answer is a little long. Shorten it and try again.');
+      return;
+    }
+    if (prepared.__bad) {
+      showError('Those answers did not come through. Try again.');
+      return;
+    }
     if (mode === 'hook') {
       var hookProblem = modes.hookError(prepared);
       if (hookProblem) {
@@ -1675,7 +1710,16 @@
     body.mode = which;
     body.lines = lines;
     if (genre) body.genre = genre;
-    var problem = modes.concreteError(modes.normalizeInput(body));
+    var preparedLines = preparedInput(body);
+    if (preparedLines.__long) {
+      showTransformError('That answer is a little long. Shorten it and try again.');
+      return;
+    }
+    if (preparedLines.__bad) {
+      showTransformError('Those answers did not come through. Try again.');
+      return;
+    }
+    var problem = modes.concreteError(preparedLines);
     if (problem) {
       showTransformError(problem);
       return;
@@ -1726,10 +1770,10 @@
       mode: mode || 'write',
       mood: readMood(),
       sparkTitle: sparkSeed && sparkSeed.title ? String(sparkSeed.title).slice(0, 80) : '',
-      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, 280) : '',
-      sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, 280) : '',
-      sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, 280) : '',
-      sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, 280) : '',
+      sparkAngle: sparkSeed && sparkSeed.angle ? String(sparkSeed.angle).slice(0, storyMax()) : '',
+      sparkFeel: sparkSeed && sparkSeed.feel ? String(sparkSeed.feel).slice(0, storyMax()) : '',
+      sparkStory: sparkSeed && sparkSeed.story ? String(sparkSeed.story).slice(0, storyMax()) : '',
+      sparkKeep: sparkSeed && sparkSeed.keep ? String(sparkSeed.keep).slice(0, storyMax()) : '',
     };
   }
 
@@ -2143,12 +2187,15 @@
 
   function seedFields() {
     if (!sparkSeed || !sparkSeed.angle) return;
-    var happenedValue = sparkSeed.angle.slice(0, 280);
-    var quoteValue = sparkSeed.angle.slice(0, 160);
+    var happenedValue = sparkSeed.angle.slice(0, storyMax());
+    var quoteValue = sparkSeed.angle.slice(0, storyMax());
     function fill(el, next) {
       if (!el) return;
       var current = String(el.value || '').trim();
-      if (!current || current === seededAngle || current === seededAngle.slice(0, next.length)) el.value = next;
+      if (!current || current === seededAngle || current === seededAngle.slice(0, next.length)) {
+        el.value = next;
+        paintStory(el);
+      }
     }
     fill($('sh-happened'), happenedValue);
     fill(document.querySelector('#sh-v2-fields [data-field="quote"]'), quoteValue);
@@ -2323,7 +2370,7 @@
     var value = String(el.value || '').trim();
     var hint = String(el.getAttribute('placeholder') || '').trim();
     if (hint && value.toLowerCase() === hint.toLowerCase()) return '';
-    return value.slice(0, 280);
+    return value;
   }
 
   function pastedOrDraft() {
@@ -2383,13 +2430,13 @@
     clearOwnIdea();
     var same = sparkSeed && sparkSeed.id && sparkSeed.id === item.id;
     if (!same) sparkAsk = { feel: '', story: '', keep: '' };
-    if (item.feel != null) sparkAsk.feel = String(item.feel).slice(0, 280);
-    if (item.story != null) sparkAsk.story = String(item.story).slice(0, 280);
-    if (item.keep != null) sparkAsk.keep = String(item.keep).slice(0, 280);
+    if (item.feel != null) sparkAsk.feel = String(item.feel).slice(0, storyMax());
+    if (item.story != null) sparkAsk.story = String(item.story).slice(0, storyMax());
+    if (item.keep != null) sparkAsk.keep = String(item.keep).slice(0, storyMax());
     sparkSeed = {
       id: item.id || '',
       title: String(item.title || '').replace(/\s+/g, ' ').trim().slice(0, 80),
-      angle: angle.slice(0, 280),
+      angle: angle.slice(0, storyMax()),
       lane: item.lane || '',
       topic: item.topic || '',
       headline: item.headline || '',
@@ -2717,7 +2764,6 @@
     var area = document.createElement('textarea');
     area.className = 'sh-area';
     area.rows = 2;
-    area.maxLength = 280;
     area.setAttribute('data-spark-ask', key);
     if (hint) area.placeholder = hint;
     area.value = sparkAsk[key] || '';
@@ -2727,6 +2773,7 @@
     });
     field.appendChild(span);
     field.appendChild(area);
+    armStory(area);
     parent.appendChild(field);
   }
 
