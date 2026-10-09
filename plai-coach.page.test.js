@@ -103,6 +103,8 @@ function runStatic() {
   assert.ok(!/href="plai.html">Plai<\/a>/.test(page.match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'do not add Plai Coach to the signed-in product menu');
   assert.ok(!/buy a car at the click of a button/i.test(page), 'coach page must not dump the FAQ car-click essay');
   assert.ok(!/Hey\. I'm Plai/i.test(page), 'do not paste a first chat bubble');
+  assert.ok(read('plai-coach.js').includes("Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out."), 'coach chat greeting is the release coach line');
+  assert.ok(!/I help people release the music they made with AI tools/.test(read('plai-coach.js')), 'coach chat does not ship the old AI-tools greeting');
   assert.ok(!/Real AI coming soon/i.test(page) && !/function sendMessage/.test(page), 'do not ship a fake sendMessage AI');
   assert.ok(!/<style[\s>]/.test(page), 'do not paste standalone inline page styles');
 

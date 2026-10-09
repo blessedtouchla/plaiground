@@ -352,6 +352,9 @@ function runStatic() {
   assert.ok(!/Meet Plai/i.test(sessionUpdate), 'voice session must not dump the Meet Plai FAQ lead');
   assert.ok(!/session\.instructions|instructions:/.test(sessionUpdate), 'configureSession must not set Voice Agent instructions');
   assert.ok(js.includes('sounds like PLAY'), 'visible name stays Plai with PLAY hint');
+  assert.ok(js.includes("Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out."), 'chat greeting is the release coach line');
+  assert.ok(!/I help people release the music they made with AI tools/.test(js), 'old AI-tools greeting is not shipped');
+  assert.ok(js.includes('OLD_COACH_GREETING'), 'old Hey I am Play greeting is rewritten when the voice agent still says it');
   assert.ok(!js.includes('XAI_API_KEY'), 'frontend must not contain XAI_API_KEY');
   assert.ok(!js.includes('ELEVEN') && !/elevenlabs/i.test(js), 'no ElevenLabs');
   assert.ok(!js.includes('tgk_'), 'do not invent a ToneGrid key');
