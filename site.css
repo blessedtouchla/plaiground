@@ -8220,14 +8220,13 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
   .play-stage { flex-direction: column; }
   .play-say { max-width: none; width: 100%; }
   .play-pills { display: grid; grid-template-columns: 1fr 1fr; }
-  .play-card.is-contracts { grid-column: 1 / -1; order: 4; }
+  .play-card.is-contracts { grid-column: 1 / -1; order: 5; }
   .play-card[data-id="roadmap"],
   .play-card[data-id="splits"] { order: 1; }
   .play-card[data-id="distro"],
   .play-card[data-id="earn"] { order: 2; }
-  .play-card[data-id="epk"],
-  .play-card[data-id="check"] { order: 3; }
-  .play-card[data-id="check"] .play-pills { grid-template-columns: 1fr; }
+  .play-card[data-id="epk"] { order: 3; grid-column: 1 / -1; }
+  .play-card[data-id="check"] { order: 4; grid-column: 1 / -1; }
 }
 @media (min-width: 721px) {
   .play-grid {
