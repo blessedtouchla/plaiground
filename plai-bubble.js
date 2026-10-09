@@ -15,6 +15,8 @@
   var CHUNK_MS = 100;
   var MAX_TURNS = 8;
   var MAX_TEXT = 400;
+  var COACH_GREETING = "Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out.";
+  var OLD_COACH_GREETING = /^hey,\s*i['’]m pla[iy]\b[\s\S]*music they made with ai tools/i;
   var RESUME_TTL_MS = 30 * 60 * 1000;
   var SEED_PREFIX = 'We were already talking on this site.';
 
@@ -120,15 +122,19 @@
     return row && row.role === role && String(row.text || '').trim() === String(text || '').trim();
   }
 
+  function coachGreeting(text) {
+    var clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (OLD_COACH_GREETING.test(clean)) return COACH_GREETING;
+    return clean;
+  }
+
   function renderLog() {
     if (!logEl) return;
     logEl.innerHTML = '';
     if (!transcript.length) {
       logEl.appendChild(el('p', {
         className: 'plai-bubble-empty',
-        text: wantMic
-          ? 'Talk to Plai. Her name sounds like PLAY.'
-          : 'Text Plai. Type only. The mic stays off.',
+        text: COACH_GREETING,
       }));
       return;
     }
@@ -142,7 +148,7 @@
   }
 
   function addLine(role, text) {
-    var clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT);
+    var clean = coachGreeting(text).slice(0, MAX_TEXT);
     if (!clean) return;
     var last = transcript[transcript.length - 1];
     if (sameLine(last, role, clean)) {
@@ -179,7 +185,7 @@
     var last = transcript[transcript.length - 1];
     if (last && last.role === role && last.streaming) {
       last.streaming = false;
-      last.text = last.text.replace(/\s+/g, ' ').trim();
+      last.text = coachGreeting(last.text).slice(0, MAX_TEXT);
       if (!last.text) transcript.pop();
       renderLog();
       persistState();

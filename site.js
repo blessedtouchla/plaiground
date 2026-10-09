@@ -606,7 +606,7 @@
     { href: "/song-helper", label: "Song Helper" },
     { href: "/cover-art", label: "Cover Art" },
     { href: "/copyright", label: "Copyright & publishing" },
-    { href: "/qualify", label: "Qualify my song" },
+    { href: "/qualify", label: "Is my song ready?" },
     { href: "/claim", label: "Claim my human parts" },
     { href: "/make-human", label: "Make it human" },
     { href: "/destination", label: "Route map" },

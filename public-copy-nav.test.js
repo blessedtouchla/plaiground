@@ -316,7 +316,15 @@ function run() {
   assert.ok(index.includes('id="playground"'), 'logged-out landing shows the playground grid');
   const playGrid = index.match(/<section class="playground"[\s\S]*?<\/section>/);
   assert.ok(playGrid && /href="\/epk"/.test(playGrid[0]) && /href="\/ar"/.test(playGrid[0]) && /href="royalties\.html"/.test(playGrid[0]), 'playground keeps EPK, A&R, and earnings');
+  assert.ok(playGrid && /<h3>Check and file<\/h3>/.test(playGrid[0]) && /class="play-go">Is my song ready\?</.test(playGrid[0]) && /href="\/qualify"/.test(playGrid[0]), 'Check and file opens the qualify check');
+  assert.ok(playGrid && /<h3>My roadmap<\/h3>/.test(playGrid[0]) && /href="\/destination"/.test(playGrid[0]), 'My roadmap sits in the grid');
+  assert.ok(playGrid && !/<h3>Qualify my song<\/h3>|<h3>Protect it<\/h3>/.test(playGrid[0]), 'Qualify and Protect are not separate grid cards');
   assert.ok(playGrid && !/\/guide|\/spark|\/battle/.test(playGrid[0]), 'Guide, What\'s hot, and Battle stay out of the grid');
+  assert.ok(read('qualify.html').includes('<title>Qualify my song - PLAIGROUND</title>'), 'Qualify page title stays');
+  assert.ok(read('qualify.html').includes('A quick check on whether your song is ready for copyright, publishing, sync and a clean release.'), 'Qualify page leads with the plain explainer');
+  assert.ok(read('login.html').includes('href="/qualify">Is my song ready?</a>'), 'What\'s new uses the qualify check label');
+  assert.ok(!read('login.html').includes('Qualify my song'), 'What\'s new does not keep the old qualify label');
+  assert.ok(read('site.js').includes('label: "Is my song ready?"'), 'public What\'s new menu uses the qualify check label');
   assert.ok(!/Starter[\s\S]*\$49/i.test(index), 'landing must not show Boost size cards');
 
   const creator = read('creator.html');

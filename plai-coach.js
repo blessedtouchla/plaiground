@@ -6,6 +6,8 @@
   var CHUNK_MS = 100;
   var MAX_TURNS = 8;
   var MAX_TEXT = 400;
+  var COACH_GREETING = "Hi, I'm Plai. I'm your release coach. Ask me anything about getting your music ready and out.";
+  var OLD_COACH_GREETING = /^hey,\s*i['’]m pla[iy]\b[\s\S]*music they made with ai tools/i;
 
   var form = document.querySelector('[data-plai-coach-form]');
   var logEl = document.querySelector('.plai-coach-log');
@@ -54,9 +56,21 @@
     return '';
   }
 
+  function coachGreeting(text) {
+    var clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (OLD_COACH_GREETING.test(clean)) return COACH_GREETING;
+    return clean;
+  }
+
   function renderLog() {
     logEl.innerHTML = '';
-    if (!transcript.length) return;
+    if (!transcript.length) {
+      var hello = document.createElement('div');
+      hello.className = 'plai-coach-msg is-plai';
+      hello.textContent = COACH_GREETING;
+      logEl.appendChild(hello);
+      return;
+    }
     transcript.forEach(function (row) {
       var bubble = document.createElement('div');
       bubble.className = 'plai-coach-msg is-' + row.role;
@@ -71,7 +85,7 @@
   }
 
   function addLine(role, text) {
-    var clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT);
+    var clean = coachGreeting(text).slice(0, MAX_TEXT);
     if (!clean) return;
     var last = transcript[transcript.length - 1];
     if (sameLine(last, role, clean)) {
@@ -105,7 +119,7 @@
     var last = transcript[transcript.length - 1];
     if (last && last.role === role && last.streaming) {
       last.streaming = false;
-      last.text = last.text.replace(/\s+/g, ' ').trim();
+      last.text = coachGreeting(last.text).slice(0, MAX_TEXT);
       if (!last.text) transcript.pop();
       renderLog();
     }
