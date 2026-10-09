@@ -53,13 +53,16 @@ function run() {
   assert.ok(/class="btn btn-gold btn-md" href="signup\.html">Join free</.test(indexHero[0]), 'homepage gold CTA is Join free');
   assert.ok(!/<section class="hero"[\s\S]*Join for free/.test(index), 'hero does not keep a second Join for free primary');
   assert.ok(!/Put my team to work/.test(indexHero[0]), 'hero keeps a single primary');
+  assert.ok(/class="steps distro-pipe"[\s\S]*<p class="eyebrow">Distribution<\/p>[\s\S]*\$2\.49 per song[\s\S]*href="signup\.html">Distribute my song</.test(index), 'homepage store section names Distribution and the release button');
 
   const how = read('how-it-works.html');
   const howAppCopy = read('how.html');
   assert.ok(!/Built for AI-assisted creators/i.test(how), 'how-it-works must not lead as AI-only');
   assert.ok(/<h1>Market the act\.<\/h1>/.test(how), 'how-it-works leads with marketing the act');
   assert.ok(/id="distribute"/.test(how) && /We also get the release on the stores\./.test(how), 'store delivery stays a supporting line');
-  assert.ok(!/\$2\.49/.test(how), 'how-it-works does not lead with the per-song price');
+  const howHero = how.match(/<section class="page-hero[\s\S]*?<\/section>/) || [''];
+  assert.ok(!/\$2\.49/.test(howHero[0]), 'how-it-works does not lead with the per-song price');
+  assert.ok(/<p class="eyebrow">Distribution<\/p>[\s\S]*\$2\.49 per song[\s\S]*Distribution is optional[\s\S]*href="signup\.html">Distribute my song</.test(how), 'distribute section names the phase, the price, and the release button');
   assert.ok(/id="after-upload"/.test(how) && /Package the act\./.test(how), 'After upload track packages the act');
   assert.ok(how.includes('<h3>Upload</h3>') && how.includes('<h3>Release</h3>') && how.includes('<h3>Get paid</h3>'), 'Distribute steps stay Upload / Release / Get paid');
   assert.ok(/Label clearly/.test(how) && /A&amp;R optional/.test(how), 'After upload names label, then optional A&R');

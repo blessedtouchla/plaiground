@@ -4189,7 +4189,8 @@ body.app.artists-page .page {
   .cta-inner { padding: 36px 20px; }
   .hero { padding-top: calc(var(--nav-h) + 56px); }
   .hero-ctas { flex-direction: column; align-items: center; }
-  .hero-ctas .btn { width: 100%; max-width: 280px; }
+  .hero-ctas .btn,
+  .distro-cta .btn { width: 100%; max-width: 280px; }
   .page { padding: 22px 16px 40px; }
   body.app.settings-page .page,
   body.app.artists-page .page {
@@ -7639,6 +7640,26 @@ header.nav {
   letter-spacing: -0.04em;
   margin: 8px 0 28px;
 }
+.distro-pipe h2 { margin-bottom: 14px; }
+#distribute h2 { margin: 0 0 12px; }
+.distro-lead {
+  margin: 0 0 18px;
+  max-width: 38rem;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.distro-pipe .distro-lead {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.distro-cta {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 28px;
+}
+.distro-pipe .distro-cta { justify-content: center; }
 .after-stay { padding: 64px 0; }
 .pricing .plans.price-ladder {
   grid-template-columns: minmax(0, 560px);
