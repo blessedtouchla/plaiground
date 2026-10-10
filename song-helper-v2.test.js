@@ -903,6 +903,15 @@ function runPages() {
   assert.ok(js.includes("kind === 'tone'"));
   assert.ok(html.includes('id="sh-choice-page"'));
   assert.ok(html.includes('How do you want to start?'));
+  assert.ok(html.includes('id="sh-level-create"'));
+  assert.ok(html.includes('id="sh-level-craft"'));
+  assert.ok(html.includes('Polish this song'));
+  assert.ok(js.includes('polishFromDraft'));
+  assert.ok(js.includes("polish.hidden = !ready || level === 'craft'"));
+  assert.ok(js.includes("return 'prechorus'"));
+  assert.ok(js.includes("showEl('sh-page', crafting)"));
+  assert.ok(!/\bSuno\b/.test(html.slice(html.indexOf('id="sh-levels"'), html.indexOf('id="sh-start"'))));
+  assert.ok(html.slice(html.indexOf('id="sh-levels"'), html.indexOf('id="sh-start"')).indexOf('\u2014') === -1);
   assert.ok(js.includes('bootWriteFirst'));
   assert.ok(js.includes('lyricsOpen'));
   assert.ok(js.includes('lastAngle'));

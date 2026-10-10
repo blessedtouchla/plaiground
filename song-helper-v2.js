@@ -88,6 +88,7 @@
   var branch = '';
   var storyBox = false;
   var haveLyrics = false;
+  var level = 'create';
   var lyricsOriginal = '';
   var lyricsTone = '';
   var pageSections = [];
@@ -2321,9 +2322,11 @@
   }
 
   function syncStructure() {
+    var ready = hasDraft();
+    var polish = $('sh-polish-wrap');
+    if (polish) polish.hidden = !ready || level === 'craft';
     var panel = $('sh-expand');
     if (!panel) return;
-    var ready = hasDraft();
     panel.hidden = !ready;
     var present = partPresent(anyDraft());
     document.querySelectorAll('[data-structure]').forEach(function (button) {
@@ -2539,8 +2542,9 @@
         }
       }
     }
-    var scratch = branch === 'scratch';
-    var source = branch === 'source';
+    var crafting = level === 'craft';
+    var scratch = !crafting && branch === 'scratch';
+    var source = !crafting && branch === 'source';
     var methodReady = mode === 'write' || mode === 'assist' || mode === 'exchange' || mode === 'madlibs';
     var setupReady = scratch && !!making && !!amount && methodReady;
     showEl('sh-setup', scratch);
@@ -2561,7 +2565,7 @@
     showEl('sh-purpose', storyReady && (talk === 'form' || talk === 'plai'));
     showEl('sh-cast', !!draftReady);
     showEl('sh-live', false);
-    showEl('sh-craft', !!drafted);
+    showEl('sh-craft', !crafting && !!drafted);
     showEl('sh-part-pick', false);
     var main = mode === 'write' || mode === 'assist' || (!mode && drafted);
     var writeSurface = main && ((!!draftReady && pageFlow && pageFlow.opened()) || drafted);
@@ -2569,7 +2573,8 @@
     var shell = document.getElementById('sh-shell');
     if (shell) shell.classList.toggle('is-v2', v2On);
     var finishedLyrics = window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen();
-    showEl('sh-write', writeSurface || !!finishedLyrics);
+    showEl('sh-write', (!crafting && writeSurface) || !!finishedLyrics);
+    showEl('sh-polish-wrap', !crafting && !!drafted);
     var panel = $('sh-v2');
     if (panel) panel.hidden = !v2On;
     var scratchBtn = $('sh-choice-scratch');
@@ -2582,8 +2587,10 @@
       sourceBtn.classList.toggle('on', source);
       sourceBtn.setAttribute('aria-pressed', source ? 'true' : 'false');
     }
-    showEl('sh-page', !!storyBox);
-    showEl('sh-have', !!haveLyrics);
+    showEl('sh-page', crafting);
+    showEl('sh-have', crafting && !!haveLyrics);
+    showEl('sh-start', !crafting);
+    paintLevels();
     var pageBtn = $('sh-choice-page');
     if (pageBtn) {
       pageBtn.classList.toggle('on', !!storyBox && !haveLyrics);
@@ -2599,10 +2606,44 @@
     paintDraftButton();
   }
 
+  function paintLevels() {
+    var createBtn = $('sh-level-create');
+    var craftBtn = $('sh-level-craft');
+    if (createBtn) {
+      createBtn.classList.toggle('on', level === 'create');
+      createBtn.setAttribute('aria-pressed', level === 'create' ? 'true' : 'false');
+    }
+    if (craftBtn) {
+      craftBtn.classList.toggle('on', level === 'craft');
+      craftBtn.setAttribute('aria-pressed', level === 'craft' ? 'true' : 'false');
+    }
+    var note = $('sh-level-note');
+    if (note) {
+      note.textContent = level === 'craft'
+        ? 'Craft is the polish pass. Each section has its own box.'
+        : 'Create turns an idea, a feeling, or a rant into a full song.';
+    }
+  }
+
+  function setLevel(next, opts) {
+    if (next !== 'create' && next !== 'craft') return;
+    level = next;
+    if (level === 'craft') storyBox = true;
+    paintBranch();
+    if (!(opts && opts.quiet)) persistPage();
+    var host = level === 'craft' ? $('sh-page') : $('sh-start');
+    if (host && host.scrollIntoView && !(opts && opts.keep)) {
+      try { host.scrollIntoView({ block: 'start' }); } catch (err) {}
+    }
+  }
+
   function setStoryBox(on, opts) {
     storyBox = !!on;
     if (!(opts && opts.keepHave)) haveLyrics = false;
-    if (storyBox) branch = '';
+    if (storyBox) {
+      level = 'craft';
+      branch = '';
+    }
     paintBranch();
     if (storyBox && !(opts && opts.keep)) {
       var page = $('sh-page');
@@ -3309,6 +3350,7 @@
         original: lyricsOriginal,
         paste: pasteText(),
         lyricsTone: lyricsTone,
+        level: level,
       },
     });
   }
@@ -3695,6 +3737,66 @@
     persistPage();
   }
 
+  function polishKind(label) {
+    var name = String(label || '');
+    if (/pre[-\s]?chorus/i.test(name)) return 'prechorus';
+    if (/chorus|hook/i.test(name)) return 'hook';
+    if (/bridge/i.test(name)) return 'bridge';
+    if (/outro/i.test(name)) return 'outro';
+    return 'verse';
+  }
+
+  function polishFromDraft() {
+    var page = window.SongHelperPage;
+    var draft = page && page.draft ? page.draft() : null;
+    if (!draft || !draft.sections || !draft.sections.length) return;
+    var seen = {};
+    var rows = [];
+    var verseN = 0;
+    draft.sections.forEach(function (section) {
+      var lines = (section.lines || []).map(function (line) {
+        return String(line && line.text || '').trim();
+      }).filter(Boolean);
+      if (!lines.length) return;
+      var text = lines.join('\n');
+      var key = text.replace(/\s+/g, ' ').toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      var kind = polishKind(section.label);
+      var label = String(section.label || 'Verse').replace(/\s+/g, ' ').trim();
+      if (kind === 'verse') {
+        verseN += 1;
+        if (!/\d/.test(label)) label = 'Verse ' + verseN;
+      }
+      if (kind === 'hook') label = 'Hook';
+      var marks = text.replace(/[^\n]/g, 'a');
+      rows.push({
+        id: (kind + '-' + (rows.length + 1)).slice(0, 24),
+        kind: kind,
+        label: label.slice(0, 40),
+        text: text,
+        marks: marks,
+        undo: null,
+        lastAngle: '',
+        asked: [],
+        question: '',
+      });
+    });
+    if (!rows.length) return;
+    pageSections = rows;
+    level = 'craft';
+    storyBox = true;
+    haveLyrics = false;
+    renderSections();
+    paintHumanMeter();
+    paintBranch();
+    persistPage();
+    var host = $('sh-page');
+    if (host && host.scrollIntoView) {
+      try { host.scrollIntoView({ block: 'start' }); } catch (err) {}
+    }
+  }
+
   function bootWriteFirst() {
     var host = $('sh-page-sections');
     var lyricsBtn = $('sh-page-lyrics');
@@ -3745,23 +3847,39 @@
     else if (pasteBox && lyricsOriginal) pasteBox.value = lyricsOriginal;
     paintOriginal();
     if (saved.have) haveLyrics = true;
+    if (saved.level === 'create' || saved.level === 'craft') level = saved.level;
     var anyText = pageSections.some(function (row) { return String(row.text || '').trim(); });
-    if (saved.open || saved.lyrics || anyText) setStoryBox(true, { keep: true, quiet: true, keepHave: !!saved.have });
-    else if (saved.have) paintBranch();
+    var openCraft = level === 'craft' || (!saved.level && (saved.open || saved.lyrics || saved.have || anyText));
+    if (openCraft) {
+      level = 'craft';
+      storyBox = true;
+      paintBranch();
+    } else {
+      level = 'create';
+      storyBox = false;
+      paintBranch();
+    }
     if (pageBtn) pageBtn.addEventListener('click', function () { setStoryBox(true); });
     var haveChoice = $('sh-choice-lyrics');
     if (haveChoice) haveChoice.addEventListener('click', function () {
       haveLyrics = true;
-      storyBox = false;
+      storyBox = true;
+      level = 'craft';
       branch = '';
       haveError('');
       paintBranch();
-      var panel = $('sh-have');
-      if (panel && panel.scrollIntoView) {
-        try { panel.scrollIntoView({ block: 'nearest' }); } catch (err) {}
-      }
       persistPage();
+      var panel = $('sh-page');
+      if (panel && panel.scrollIntoView) {
+        try { panel.scrollIntoView({ block: 'start' }); } catch (err) {}
+      }
     });
+    var levelCreate = $('sh-level-create');
+    var levelCraft = $('sh-level-craft');
+    if (levelCreate) levelCreate.addEventListener('click', function () { setLevel('create'); });
+    if (levelCraft) levelCraft.addEventListener('click', function () { setLevel('craft'); });
+    var polishBtn = $('sh-polish');
+    if (polishBtn) polishBtn.addEventListener('click', polishFromDraft);
     var finishHave = $('sh-have-finish');
     var formatHave = $('sh-have-format');
     var rhymeHave = $('sh-have-rhymify');

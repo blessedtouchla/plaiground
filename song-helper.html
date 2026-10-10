@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261010reset" />
+  <link rel="stylesheet" href="song-helper.css?v=20261010levels" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -82,7 +82,12 @@
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Create from scratch, or start from a real song. Then what you are making, how much, and how you write. The writing questions come next. Tone, feeling, Design my style, and Sounds like stay optional.</p>
+      <p class="sh-path">Create turns an idea, a feeling, or a rant into a full song. Craft is where you polish each section. Tone, Design my style, and Sounds like stay optional.</p>
+      <div class="sh-levels" id="sh-levels" role="group" aria-label="Song Helper level">
+        <button type="button" class="sh-choice" id="sh-level-create" aria-pressed="true">Create</button>
+        <button type="button" class="sh-choice" id="sh-level-craft" aria-pressed="false">Craft</button>
+      </div>
+      <p class="sh-help" id="sh-level-note">Create turns an idea, a feeling, or a rant into a full song.</p>
       <div class="sh-start-over no-print" id="sh-start-over">
         <button type="button" class="btn btn-ghost btn-md" id="sh-restart">Start over</button>
         <div id="sh-restart-confirm" hidden>
@@ -156,8 +161,8 @@
         <p class="sh-form-error" id="sh-have-error" role="alert" hidden></p>
       </section>
       <section class="sh-craft sh-page" id="sh-page" hidden>
-        <h2 class="sh-craft-title">Write it here</h2>
-        <p class="sh-help">Each part has its own box. Verse 1, the hook, Verse 2, and the bridge start you off. Add a verse or an outro if you need one. Nothing is filled in until you tap Use this. Extend, Shorten, and Rhymify sit beside your words. Your words stay until you tap Accept or Edit.</p>
+        <h2 class="sh-craft-title">Craft</h2>
+        <p class="sh-help">Polish one section at a time. Verse 1, the hook, Verse 2, and the bridge start you off. Extend, Shorten, Remove, and Add section sit on each box, with Rhymify, Make it song format, Ask me a question, and Give me a suggestion. Your words stay until you tap Accept or Edit.</p>
         <div id="sh-page-sections"></div>
         <div class="sh-meter" id="sh-meter" role="meter" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="0">
           <p class="sh-meter-label" id="sh-meter-label">Not started</p>
@@ -526,6 +531,9 @@
             <input class="sh-title" id="sh-title" maxlength="80" autocomplete="off" />
           </label>
           <div id="sh-lyric"></div>
+          <div class="sh-side-actions no-print" id="sh-polish-wrap" hidden>
+            <button type="button" class="btn btn-purple btn-md" id="sh-polish">Polish this song</button>
+          </div>
           <div id="sh-hearing" class="sh-hearing" hidden></div>
           <p class="sh-attr" id="sh-attr" hidden></p>
           <div class="sh-suno" id="sh-suno-card" hidden>
@@ -847,7 +855,7 @@
   <script src="lib/song-questions.js?v=20261010song"></script>
   <script src="song-helper.js?v=20261010reset"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010reset"></script>
+  <script src="song-helper-v2.js?v=20261010levels"></script>
   <script src="song-flow-page.js?v=20261010hear"></script>
   <script src="site.js?v=20261010fix"></script>
   <script src="plai-bubble.js" defer></script>

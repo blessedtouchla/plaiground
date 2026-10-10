@@ -295,6 +295,13 @@ body.song-helper-page .plai-bubble {
   margin: 8px 0 18px;
 }
 
+.sh-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
 .sh-actions {
   display: flex;
   gap: 12px;
