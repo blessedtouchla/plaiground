@@ -53,6 +53,7 @@
     if (index >= api.QUESTIONS.length) {
       var card = api.result(answers);
       (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'qualify_completed', payload: { tier: card && card.id } });
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'check_and_file_completed', payload: { tool: 'qualify' } });
       var html = '<h1 tabindex="-1">' + esc(card.title) + '</h1>';
       html += '<p class="qualify-lead">' + esc(card.lead) + '</p>';
       html += forList(card.gates, true);

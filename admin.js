@@ -172,10 +172,61 @@
         + cell('Medium', escapeHtml(dash(row.utm_medium)))
         + cell('Campaign', escapeHtml(dash(row.utm_campaign)))
         + cell('Content', escapeHtml(dash(row.utm_content)))
+        + cell('Segment', escapeHtml(dash(row.segment)))
+        + cell('Angle', escapeHtml(dash(row.angle)))
         + cell('Visits', escapeHtml(String(row.visits == null ? 0 : row.visits)))
         + cell('Signups', escapeHtml(String(row.signups == null ? 0 : row.signups)))
         + cell('First songs', escapeHtml(String(row.first_songs == null ? 0 : row.first_songs)))
         + cell('Distribution purchases', escapeHtml(String(row.distro_purchases == null ? 0 : row.distro_purchases)))
+        + '</tr>';
+    });
+    var tools = result && result.tools ? result.tools : [];
+    fillTable('[data-launch-tools-table]', '[data-launch-tools-empty]', '[data-launch-tools-body]', tools, function (row) {
+      return '<tr>'
+        + cell('Tool', escapeHtml(dash(row.tool)), 'admin-lead')
+        + cell('Visitors', escapeHtml(String(row.visitors == null ? 0 : row.visitors)))
+        + cell('Events', escapeHtml(String(row.events == null ? 0 : row.events)))
+        + '</tr>';
+    });
+    var funnels = result && result.funnels ? result.funnels : [];
+    var usedFunnels = funnels.filter(function (row) { return row && row.visitors; });
+    fillTable('[data-launch-funnels-table]', '[data-launch-funnels-empty]', '[data-launch-funnels-body]', usedFunnels, function (row) {
+      return '<tr>'
+        + cell('Funnel', escapeHtml(dash(row.funnel)), 'admin-lead')
+        + cell('Step', escapeHtml(dash(row.step)))
+        + cell('Visitors', escapeHtml(String(row.visitors == null ? 0 : row.visitors)))
+        + '</tr>';
+    });
+    var returns = result && result.returns ? result.returns : {};
+    var back = [];
+    (returns.by_first_tool || []).forEach(function (row) {
+      back.push({
+        group: 'First tool',
+        key: row.first_tool,
+        segment: '',
+        visitors: row.visitors,
+        returned_1d: row.returned_1d,
+        returned_7d: row.returned_7d,
+      });
+    });
+    (returns.by_source || []).forEach(function (row) {
+      back.push({
+        group: 'Source',
+        key: row.utm_source,
+        segment: row.segment,
+        visitors: row.visitors,
+        returned_1d: row.returned_1d,
+        returned_7d: row.returned_7d,
+      });
+    });
+    fillTable('[data-launch-returns-table]', '[data-launch-returns-empty]', '[data-launch-returns-body]', back, function (row) {
+      return '<tr>'
+        + cell('Group', escapeHtml(dash(row.group)), 'admin-lead')
+        + cell('Key', escapeHtml(dash(row.key)))
+        + cell('Segment', escapeHtml(dash(row.segment)))
+        + cell('Visitors', escapeHtml(String(row.visitors == null ? 0 : row.visitors)))
+        + cell('1-day', escapeHtml(String(row.returned_1d == null ? 0 : row.returned_1d)))
+        + cell('7-day', escapeHtml(String(row.returned_7d == null ? 0 : row.returned_7d)))
         + '</tr>';
     });
   }

@@ -570,6 +570,7 @@
       return;
     }
     downloadBlob(blob, 'plaiground-cover.jpg');
+    (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'cover_art_downloaded', payload: { tool: 'cover_art' } });
     writeCover(preview ? core.PLACEHOLDER_RECORD : core.GROK_RECORD);
   }
 

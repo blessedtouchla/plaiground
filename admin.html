@@ -167,7 +167,7 @@
           <h3>Launch sources</h3>
           <a class="btn btn-ghost btn-sm" href="/api/admin/marketing.csv?from=2026-10-10&amp;to=2026-10-20" data-launch-export>Export CSV</a>
         </div>
-        <p class="hint">Today, UTC. Visits, signups, first Song Helper songs, and distribution purchases by source. The CSV link is the Oct 10 to Oct 20 sprint.</p>
+        <p class="hint">Today, UTC. Visits, signups, first Song Helper songs, and distribution purchases by source. Segment and angle come from utm_content when it is segment_angle_version. Tools, funnels, and who came back are below. The CSV link is the Oct 10 to Oct 20 sprint.</p>
         <p class="hint" data-launch-empty hidden>No launch visits yet.</p>
         <div class="admin-table-wrap" data-launch-table hidden>
           <table class="data">
@@ -177,6 +177,8 @@
                 <th>Medium</th>
                 <th>Campaign</th>
                 <th>Content</th>
+                <th>Segment</th>
+                <th>Angle</th>
                 <th>Visits</th>
                 <th>Signups</th>
                 <th>First songs</th>
@@ -184,6 +186,52 @@
               </tr>
             </thead>
             <tbody data-launch-body></tbody>
+          </table>
+        </div>
+        <h4>Tools</h4>
+        <p class="hint" data-launch-tools-empty hidden>No tool use in this range.</p>
+        <div class="admin-table-wrap" data-launch-tools-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Visitors</th>
+                <th>Events</th>
+              </tr>
+            </thead>
+            <tbody data-launch-tools-body></tbody>
+          </table>
+        </div>
+        <h4>Funnels</h4>
+        <p class="hint" data-launch-funnels-empty hidden>No funnel steps in this range.</p>
+        <div class="admin-table-wrap" data-launch-funnels-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Funnel</th>
+                <th>Step</th>
+                <th>Visitors</th>
+              </tr>
+            </thead>
+            <tbody data-launch-funnels-body></tbody>
+          </table>
+        </div>
+        <h4>Came back</h4>
+        <p class="hint">1-day is the next UTC day after a visitor's first day in this range. 7-day is any day from the next day through day 7. Counts use a further 7 days after the range ends.</p>
+        <p class="hint" data-launch-returns-empty hidden>No return cohort in this range.</p>
+        <div class="admin-table-wrap" data-launch-returns-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Key</th>
+                <th>Segment</th>
+                <th>Visitors</th>
+                <th>1-day</th>
+                <th>7-day</th>
+              </tr>
+            </thead>
+            <tbody data-launch-returns-body></tbody>
           </table>
         </div>
       </div>
@@ -321,7 +369,7 @@
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
-  <script src="admin.js"></script>
+  <script src="admin.js?v=20261010tools"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

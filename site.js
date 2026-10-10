@@ -1439,7 +1439,7 @@
   if (window.PlaigroundEvents) return;
   if (!document || !document.head || !document.createElement) return;
   var script = document.createElement('script');
-  script.src = '/product-events.js?v=20261010track';
+  script.src = '/product-events.js?v=20261010tools';
   script.async = false;
   document.head.appendChild(script);
 })();

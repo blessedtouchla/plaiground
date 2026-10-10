@@ -1000,7 +1000,8 @@ async function recordMarketing(req, res) {
       body && (body.visitor_id || body.visitorId),
       body && body.name,
       body && body.attribution,
-      body && body.at
+      body && body.at,
+      { tool: body && body.tool, step: body && body.step }
     );
     if (!result.recorded && result.reason === 'bad_event') {
       sendJson(res, 400, { error: 'Unknown event.' });

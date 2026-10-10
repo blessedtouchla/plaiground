@@ -190,7 +190,7 @@
   <script src="lib/guide.js?v=20261007guide"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="site.js?v=20261010track"></script>
+  <script src="site.js?v=20261010tools"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -201,6 +201,30 @@
 
       var resendWrap = document.getElementById('pending-resend');
       var resendBtn = document.getElementById('resend-confirm');
+
+      function launchVisitorId() {
+        var raw = '';
+        try {
+          var parts = String(document.cookie || '').split(';');
+          for (var i = 0; i < parts.length; i += 1) {
+            var bit = parts[i].replace(/^\s+/, '');
+            if (bit.indexOf('plaiground_consent=') === 0) raw = decodeURIComponent(bit.slice(19));
+          }
+        } catch (err) {}
+        if (!raw) {
+          try { raw = window.localStorage ? String(window.localStorage.getItem('plaiground.consent') || '') : ''; } catch (err2) {}
+        }
+        var choice = String(raw || '').trim().toLowerCase();
+        if (choice === 'denied' || choice === '0' || choice === 'no') return '';
+        try {
+          if (window.PlaigroundEvents && window.PlaigroundEvents.visitorId) return window.PlaigroundEvents.visitorId() || '';
+        } catch (err3) {}
+        try {
+          var id = window.localStorage ? String(window.localStorage.getItem('plaiground.visitor') || '') : '';
+          if (/^[A-Za-z0-9_-]{8,64}$/.test(id)) return id;
+        } catch (err4) {}
+        return '';
+      }
 
       function setStatus(text) {
         if (!status) return;
@@ -240,7 +264,7 @@
           method: 'POST',
           credentials: 'same-origin',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, password: password, remember: remember }),
+          body: JSON.stringify({ email: email, password: password, remember: remember, visitor_id: launchVisitorId() }),
         }).then(function (response) {
           return response.json().then(function (data) {
             return { ok: response.ok, status: response.status, data: data || {} };

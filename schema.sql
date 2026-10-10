@@ -142,7 +142,9 @@ CREATE TABLE IF NOT EXISTS product_event_rollups (
   PRIMARY KEY (user_id, event_name)
 );
 
--- Launch sprint counts. No email, name, or account id.
+-- Launch sprint counts. No email or name.
+-- user_id is set only after signup or login so earlier visits stay with the account.
+-- The owner report never returns user_id, click ids, or free text.
 CREATE TABLE IF NOT EXISTS marketing_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   visitor_id text NOT NULL,
@@ -155,8 +157,21 @@ CREATE TABLE IF NOT EXISTS marketing_events (
   fbclid text NOT NULL DEFAULT '',
   ttclid text NOT NULL DEFAULT '',
   gclid text NOT NULL DEFAULT '',
+  tool text NOT NULL DEFAULT '',
+  step text NOT NULL DEFAULT '',
+  segment text NOT NULL DEFAULT '',
+  angle text NOT NULL DEFAULT '',
+  version text NOT NULL DEFAULT '',
+  user_id uuid,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS tool text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS step text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS segment text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS angle text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS version text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS user_id uuid;
 
 CREATE INDEX IF NOT EXISTS marketing_events_created_idx
   ON marketing_events (created_at DESC);

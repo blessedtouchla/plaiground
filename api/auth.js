@@ -147,6 +147,7 @@ async function signup(req, res) {
     try {
       const visitor = body && (body.visitor_id || body.visitorId);
       await marketing.record(visitor, 'signup', attribution);
+      await marketing.linkVisitor(row.id, visitor);
       await recordEvent(row.id, 'signup', { attribution: attribution || {} });
     } catch {
       /* launch counts must not fail account create */
@@ -221,7 +222,7 @@ async function login(req, res) {
   const token = String((body && body.token) || '').trim();
   // Username is a community handle. Sign-in stays email.
   if (token) {
-    await loginWithToken(req, res, token);
+    await loginWithToken(req, res, token, body);
     return;
   }
   if (!isEmail(email) || !password) {
@@ -236,10 +237,12 @@ async function login(req, res) {
       return;
     }
     if (!isConfirmed(row)) {
+      await linkLaunchVisitor(row.id, body);
       sendJson(res, 403, pendingPayload(row));
       return;
     }
     attachSession(req, res, row.id, { remember: wantsRemember(body) });
+    await linkLaunchVisitor(row.id, body);
     sendJson(res, 200, authPayload(row));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
@@ -250,7 +253,16 @@ async function login(req, res) {
   }
 }
 
-async function loginWithToken(req, res, token) {
+async function linkLaunchVisitor(userId, body) {
+  try {
+    const visitor = body && (body.visitor_id || body.visitorId);
+    await marketing.linkVisitor(userId, visitor);
+  } catch {
+    /* tying earlier visits to the account must not fail sign-in */
+  }
+}
+
+async function loginWithToken(req, res, token, body) {
   const verified = verifyToken(token, 'magic');
   if (!verified) {
     sendJson(res, 400, { error: 'Invalid or expired sign-in link.' });
@@ -263,10 +275,12 @@ async function loginWithToken(req, res, token) {
       return;
     }
     if (!isConfirmed(row)) {
+      await linkLaunchVisitor(row.id, body);
       sendJson(res, 403, pendingPayload(row));
       return;
     }
     attachSession(req, res, row.id);
+    await linkLaunchVisitor(row.id, body);
     sendJson(res, 200, authPayload(row));
   } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {

@@ -153,7 +153,7 @@
   <script src="membership.js"></script>
   <script src="lib/guide.js?v=20261007guide"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
-  <script src="site.js?v=20261010track"></script>
+  <script src="site.js?v=20261010tools"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -174,6 +174,30 @@
       var resend = document.querySelector('[data-magic-resend]');
       var sendBtn = document.querySelector('[data-magic-send]');
       var endsAt = Date.now() + (60 * 60 * 1000);
+
+      function launchVisitorId() {
+        var raw = '';
+        try {
+          var parts = String(document.cookie || '').split(';');
+          for (var i = 0; i < parts.length; i += 1) {
+            var bit = parts[i].replace(/^\s+/, '');
+            if (bit.indexOf('plaiground_consent=') === 0) raw = decodeURIComponent(bit.slice(19));
+          }
+        } catch (err) {}
+        if (!raw) {
+          try { raw = window.localStorage ? String(window.localStorage.getItem('plaiground.consent') || '') : ''; } catch (err2) {}
+        }
+        var choice = String(raw || '').trim().toLowerCase();
+        if (choice === 'denied' || choice === '0' || choice === 'no') return '';
+        try {
+          if (window.PlaigroundEvents && window.PlaigroundEvents.visitorId) return window.PlaigroundEvents.visitorId() || '';
+        } catch (err3) {}
+        try {
+          var id = window.localStorage ? String(window.localStorage.getItem('plaiground.visitor') || '') : '';
+          if (/^[A-Za-z0-9_-]{8,64}$/.test(id)) return id;
+        } catch (err4) {}
+        return '';
+      }
 
       function showError(message) {
         if (!errorBox) return;
@@ -245,7 +269,7 @@
           method: 'POST',
           credentials: 'same-origin',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token }),
+          body: JSON.stringify({ token: token, visitor_id: launchVisitorId() }),
         }).then(function (response) {
           return response.json().then(function (data) {
             return { ok: response.ok, data: data || {} };
