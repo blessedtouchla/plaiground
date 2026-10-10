@@ -778,6 +778,12 @@ function runPages() {
   assert.ok(html.includes('id="sh-choice-ideas"'));
   assert.ok(html.includes('id="sh-choice-own"'));
   assert.ok(html.includes('Create from scratch'));
+  assert.ok(html.includes('id="sh-page-text"'));
+  assert.ok(html.includes('Ask me a question'));
+  assert.ok(html.includes('I already have my lyrics'));
+  assert.ok(html.includes('id="sh-more-ways"'));
+  assert.ok(js.includes('bootWriteFirst'));
+  assert.ok(js.includes('lyricsOpen'));
   assert.ok(html.includes('From a real song'));
   assert.ok(html.includes('id="sh-choice-scratch"'));
   assert.ok(html.includes('id="sh-choice-source"'));

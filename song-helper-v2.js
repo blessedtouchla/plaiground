@@ -2345,7 +2345,8 @@
     var v2On = (source && sourceModeOn()) || (feelReady && !!mode && mode !== 'write' && mode !== 'battle');
     var shell = document.getElementById('sh-shell');
     if (shell) shell.classList.toggle('is-v2', v2On);
-    showEl('sh-write', writeSurface);
+    var finishedLyrics = window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen();
+    showEl('sh-write', writeSurface || !!finishedLyrics);
     var panel = $('sh-v2');
     if (panel) panel.hidden = !v2On;
     var scratchBtn = $('sh-choice-scratch');
@@ -2888,6 +2889,222 @@
     }, prompt.which === 'flip' ? 'flip' : 'spark');
   }
 
+  function storyPatch(patch) {
+    try {
+      var prev = JSON.parse(localStorage.getItem('plaiground.songHelper.story') || '{}') || {};
+      Object.keys(patch || {}).forEach(function (key) { prev[key] = patch[key]; });
+      localStorage.setItem('plaiground.songHelper.story', JSON.stringify(prev));
+    } catch (err) {}
+  }
+
+  function pageError(message) {
+    var el = $('sh-page-error');
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
+  function paintHumanMeter() {
+    var box = $('sh-page-text');
+    var flow = window.SongFlow;
+    if (!box || !flow || !flow.humanMeter) return;
+    var meter = flow.humanMeter(box.value);
+    var host = $('sh-meter');
+    if (host) {
+      host.classList.toggle('is-full', meter.band === 'full');
+      host.setAttribute('aria-valuenow', String(Math.min(meter.count, meter.max)));
+      host.setAttribute('aria-valuetext', meter.line);
+    }
+    var label = $('sh-meter-label');
+    if (label) label.textContent = meter.label;
+    var count = $('sh-meter-count');
+    if (count) count.textContent = meter.count + ' / ' + meter.max;
+    var line = $('sh-meter-line');
+    if (line) line.textContent = meter.line;
+    var note = $('sh-meter-note');
+    if (note) note.textContent = meter.note;
+    var fill = $('sh-meter-fill');
+    if (fill) fill.style.width = Math.min(100, Math.round((Math.min(meter.count, meter.max) / meter.max) * 100)) + '%';
+    if (window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen()) paintCleanLyrics();
+  }
+
+  function paintCleanLyrics() {
+    var box = $('sh-page-text');
+    var ready = $('sh-page-ready');
+    var clean = $('sh-page-clean');
+    var note = $('sh-page-ready-note');
+    var flow = window.SongFlow;
+    if (!box || !ready || !clean || !flow || !flow.cleanPageLyrics) return;
+    var cleaned = flow.cleanPageLyrics(box.value);
+    clean.textContent = cleaned;
+    var same = cleaned === String(box.value || '').replace(/\r\n/g, '\n').replace(/^\n+|\n+$/g, '');
+    if (note) {
+      note.textContent = same
+        ? 'Your lyrics are ready. Nothing was rewritten.'
+        : 'Your lyrics, with extra blank lines folded up. Every word is still yours.';
+    }
+  }
+
+  function persistPage() {
+    var box = $('sh-page-text');
+    var answer = $('sh-page-answer');
+    var question = $('sh-page-question');
+    storyPatch({
+      page: {
+        text: box ? box.value : '',
+        answer: answer ? answer.value : '',
+        question: question ? question.textContent : '',
+        lyrics: !!(window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen()),
+      },
+    });
+  }
+
+  function bootWriteFirst() {
+    var box = $('sh-page-text');
+    var more = $('sh-more-ways');
+    var askBtn = $('sh-page-ask');
+    var addBtn = $('sh-page-add');
+    var lyricsBtn = $('sh-page-lyrics');
+    var answer = $('sh-page-answer');
+    if (!box) return;
+    armStory(box);
+    var saved = {};
+    try {
+      saved = (JSON.parse(localStorage.getItem('plaiground.songHelper.story') || '{}') || {}).page || {};
+    } catch (err) { saved = {}; }
+    if (saved.text && !String(box.value || '').trim()) {
+      var flow = window.SongFlow;
+      var restored = String(saved.text);
+      if (flow && flow.proposeStory && restored.length > storyMax()) {
+        pageError(flow.TOO_LONG);
+      } else {
+        box.value = restored;
+        paintStory(box);
+      }
+    }
+    if (answer && saved.answer && !String(answer.value || '').trim()) answer.value = String(saved.answer);
+    if (saved.question) {
+      var q = $('sh-page-question');
+      var panel = $('sh-page-q');
+      if (q) q.textContent = String(saved.question);
+      if (panel) panel.hidden = false;
+    }
+    paintHumanMeter();
+    box.addEventListener('input', function () {
+      pageError('');
+      paintHumanMeter();
+      persistPage();
+    });
+    if (answer) {
+      answer.addEventListener('input', function () { persistPage(); });
+    }
+    if (more) {
+      more.addEventListener('toggle', function () {
+        var start = $('sh-start');
+        if (start) start.hidden = !more.open;
+      });
+    }
+    if (askBtn) {
+      askBtn.addEventListener('click', function () { askFromPage(); });
+    }
+    if (addBtn) {
+      addBtn.addEventListener('click', function () { addPageAnswer(); });
+    }
+    if (lyricsBtn) {
+      lyricsBtn.addEventListener('click', function () { openLyricsPath(); });
+    }
+    if (saved.lyrics && String(box.value || '').trim() && window.SongHelperPage && window.SongHelperPage.openFinishedLyrics) {
+      openLyricsPath();
+    }
+  }
+
+  function askFromPage() {
+    var box = $('sh-page-text');
+    var flow = window.SongFlow;
+    var core = window.SongHelperCore;
+    var askBtn = $('sh-page-ask');
+    if (!box) return;
+    var text = String(box.value || '');
+    if (!text.trim()) {
+      pageError('Write a little in the box first. Then I can ask about what you wrote.');
+      return;
+    }
+    pageError('');
+    var fallback = core && core.askFallback ? core.askFallback(text) : 'What happened right after that?';
+    if (askBtn) askBtn.disabled = true;
+    fetch('/api/song-helper', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'ask', text: text }),
+    }).then(function (response) {
+      return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
+    }).then(function (result) {
+      var data = result && result.data;
+      var question = data && data.question ? String(data.question) : '';
+      var notice = data && data.notice ? String(data.notice) : '';
+      if (!question) question = fallback;
+      if (!result || !result.ok) {
+        question = fallback;
+        notice = notice || 'This question comes from what you wrote. The writer did not answer, so this is a backup question.';
+      }
+      showPageQuestion(question, notice);
+    }).catch(function () {
+      showPageQuestion(fallback, 'This question comes from what you wrote. The writer did not answer, so this is a backup question.');
+    }).then(function () {
+      if (askBtn) askBtn.disabled = false;
+    });
+  }
+
+  function showPageQuestion(question, notice) {
+    var panel = $('sh-page-q');
+    var q = $('sh-page-question');
+    var note = $('sh-page-ask-note');
+    if (q) q.textContent = question || '';
+    if (note) note.textContent = notice || 'Answer in your own words. Adding it counts toward the meter.';
+    if (panel) panel.hidden = false;
+    persistPage();
+    if (q && q.scrollIntoView) {
+      try { q.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+    }
+  }
+
+  function addPageAnswer() {
+    var box = $('sh-page-text');
+    var answer = $('sh-page-answer');
+    var flow = window.SongFlow;
+    if (!box || !answer || !flow || !flow.appendAnswer) return;
+    var verdict = flow.appendAnswer(box.value, answer.value);
+    if (!verdict.ok) {
+      pageError(verdict.message || (flow.TOO_LONG || ''));
+      return;
+    }
+    box.value = verdict.value;
+    answer.value = '';
+    pageError('');
+    paintStory(box);
+    paintHumanMeter();
+    persistPage();
+  }
+
+  function openLyricsPath() {
+    var box = $('sh-page-text');
+    var ready = $('sh-page-ready');
+    if (!box || !String(box.value || '').trim()) {
+      pageError('Paste your lyrics in the box first.');
+      return;
+    }
+    pageError('');
+    paintCleanLyrics();
+    if (ready) ready.hidden = false;
+    if (window.SongHelperPage && window.SongHelperPage.openFinishedLyrics) {
+      window.SongHelperPage.openFinishedLyrics();
+    }
+    persistPage();
+    if (ready && ready.scrollIntoView) {
+      try { ready.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+    }
+  }
+
   window.SongHelperV2 = {
     paintLog: paintLog,
     setMode: setMode,
@@ -2922,6 +3139,7 @@
   if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
   if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
   paintBranch();
+  bootWriteFirst();
   paintStyleDesign();
   loadStatus();
   loadSlang();

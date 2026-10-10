@@ -337,6 +337,67 @@ async function handleMode(req, res, body) {
   }
 }
 
+async function handleAsk(req, res, body) {
+  var text = String((body && body.text) || '');
+  if (text.length > core.STORY_MAX) {
+    sendJson(res, 400, {
+      ok: false,
+      error: 'That is a little long. The limit is ' + core.STORY_MAX + ' characters. Shorten it and try again.',
+    });
+    return;
+  }
+  var trimmed = text.trim();
+  if (!trimmed) {
+    sendJson(res, 200, {
+      ok: true,
+      question: '',
+      source: 'sample',
+      notice: 'Write a little in the box first. Then I can ask about what you wrote.',
+    });
+    return;
+  }
+  var blocked = await guard.enforce(req, guard.clientIp(req), body, { text: trimmed });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
+    return;
+  }
+  if (!xai.configured()) {
+    sendJson(res, 200, {
+      ok: true,
+      question: core.askFallback(trimmed),
+      source: 'sample',
+      notice: 'This question comes from what you wrote. It is a backup question, not a new draft.',
+    });
+    return;
+  }
+  try {
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      messages: [
+        {
+          role: 'system',
+          content: 'You help a songwriter add their own words. Ask exactly one short question about a concrete detail already in their text, such as a place, an object, a person, or what happened next. Do not ask them to explain the point of the song. Do not say the song is supposed to be funny, sad, or anything else. Do not name a music generator. One question, under 140 characters, no preamble.',
+        },
+        { role: 'user', content: trimmed },
+      ],
+      max_tokens: 80,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      question: core.tidyAsk(chat && chat.content, trimmed),
+      source: 'grok',
+      notice: '',
+    });
+  } catch (err) {
+    sendJson(res, 200, {
+      ok: true,
+      question: core.askFallback(trimmed),
+      source: 'sample',
+      notice: 'This question comes from what you wrote. The writer did not answer, so this is a backup question.',
+    });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'status') {
     sendJson(res, 200, guard.status());
@@ -368,6 +429,12 @@ async function handleAction(req, res, action, givenBody) {
   }
   if (action === 'spark') {
     sendJson(res, 200, await sparkPayload());
+    return;
+  }
+  if (action === 'ask') {
+    var askBody = givenBody;
+    if (!askBody) askBody = await readBody(req);
+    await handleAsk(req, res, askBody || {});
     return;
   }
   if (action === 'scout' || action === 'scoop') {
@@ -406,7 +473,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

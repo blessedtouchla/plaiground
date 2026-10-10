@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PLAIGROUND Song Helper</title>
-  <meta name="description" content="A guided co-writer for independent artists. Answer a few questions, keep your own lines, and get an AI-assisted lyric draft plus a style prompt." />
+  <meta name="description" content="Write the song in your own words, or paste lyrics you already have. Questions are optional. Then copy a style prompt." />
   <link rel="canonical" href="https://www.wannaplai.com/song-helper" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.wannaplai.com/song-helper" />
@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261009idea" />
+  <link rel="stylesheet" href="song-helper.css?v=20261010write" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -78,12 +78,53 @@
     <div class="wrap sh-shell" id="sh-shell">
       <p class="sh-kicker">Free co-writer</p>
       <h1>PLAIGROUND Song Helper</h1>
-      <p class="sh-intro">Tell me the song in your own words. I’ll draft lyrics around them, then a style prompt you can copy.</p>
+      <p class="sh-intro">Write the whole story here, or paste lyrics you already have. You do not have to answer a list of questions first.</p>
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Create from scratch, or start from a real song. Then a title, a feeling, and the point of the song. The draft comes after.</p>
-      <section class="sh-craft" id="sh-start">
+      <p class="sh-path">The box is the song. Feelings, modes, and extra questions stay under More ways to write until you want them.</p>
+      <section class="sh-craft sh-page" id="sh-page">
+        <h2 class="sh-craft-title">Write it here</h2>
+        <p class="sh-help">Lay down the whole story, or paste the lyrics you already finished. Nothing on this screen is required before you start.</p>
+        <label class="sh-field" for="sh-page-text">
+          <span>Your story or lyrics</span>
+          <textarea class="sh-area sh-page-box" id="sh-page-text" rows="12" placeholder="Start writing. A story, a verse, or the whole song."></textarea>
+        </label>
+        <div class="sh-meter" id="sh-meter" role="meter" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="0">
+          <p class="sh-meter-label" id="sh-meter-label">Not started</p>
+          <div class="sh-meter-track" aria-hidden="true"><div class="sh-meter-fill" id="sh-meter-fill"></div></div>
+          <p class="sh-meter-count" id="sh-meter-count">0 / 3000</p>
+          <p class="sh-meter-line" id="sh-meter-line"></p>
+          <p class="sh-help sh-meter-note" id="sh-meter-note"></p>
+        </div>
+        <div class="sh-side-actions">
+          <button type="button" class="btn btn-purple btn-md" id="sh-page-ask">Ask me a question</button>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-page-lyrics">I already have my lyrics</button>
+        </div>
+        <div id="sh-page-q" hidden>
+          <p class="sh-q" id="sh-page-question"></p>
+          <p class="sh-help" id="sh-page-ask-note"></p>
+          <label class="sh-field">
+            <span>Your answer</span>
+            <textarea class="sh-area" id="sh-page-answer" rows="4" placeholder="Your words. They get added to the box above."></textarea>
+          </label>
+          <div class="sh-side-actions">
+            <button type="button" class="btn btn-purple btn-md" id="sh-page-add">Add this to my song</button>
+          </div>
+        </div>
+        <p class="sh-form-error" id="sh-page-error" role="alert" hidden></p>
+        <div id="sh-page-ready" hidden>
+          <h3 class="sh-subhead">Your lyrics</h3>
+          <p class="sh-help" id="sh-page-ready-note"></p>
+          <pre class="sh-page-clean" id="sh-page-clean"></pre>
+          <p class="sh-help">Pick a sound below and copy the style prompt. This path does not ask the story questions, and it does not write a new song over your lyrics.</p>
+        </div>
+      </section>
+      <details class="sh-more-ways" id="sh-more-ways">
+        <summary>More ways to write</summary>
+        <p class="sh-help">Feelings and modes are optional. Open them only if you want the longer question path. You can leave this closed.</p>
+      </details>
+      <section class="sh-craft" id="sh-start" hidden>
         <h2 class="sh-craft-title">How do you want to start?</h2>
         <p class="sh-help">Pick one. You can switch anytime.</p>
         <div class="sh-idea-choices" role="group" aria-label="Where the song starts">
@@ -289,7 +330,7 @@
         </div>
       </div>
       <div id="sh-write" hidden>
-      <h2 class="sh-craft-title">Questions, then the first draft</h2>
+      <h2 class="sh-craft-title" id="sh-write-title">Questions, then the first draft</h2>
       <div class="sh-dots" id="sh-dots" role="navigation" aria-label="Progress"></div>
       <h2 class="sh-q" id="sh-q">What sound should it wear?</h2>
       <p class="sh-help" id="sh-help">Hip-hop, country, R&B, and the rest. Love, heartbreak, and the other kinds are already chosen above. Comedy is its own lane.</p>
@@ -639,10 +680,10 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261009story"></script>
+  <script src="lib/song-flow.js?v=20261010write"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261007ev1"></script>
-  <script src="lib/song-helper.js?v=20261009idea"></script>
+  <script src="lib/song-helper.js?v=20261010write"></script>
   <script src="lib/claim-record.js?v=20261009story"></script>
   <script src="lib/song-pass.js?v=20261009story"></script>
   <script src="lib/style-swaps.js?v=20261009story"></script>
@@ -653,9 +694,9 @@
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261009story"></script>
   <script src="lib/song-questions.js?v=20261009story"></script>
-  <script src="song-helper.js?v=20261009idea"></script>
+  <script src="song-helper.js?v=20261010write"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261009idea"></script>
+  <script src="song-helper-v2.js?v=20261010write"></script>
   <script src="song-flow-page.js?v=20261009story"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>

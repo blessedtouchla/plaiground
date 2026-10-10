@@ -115,6 +115,7 @@
   var feedbackOn = {};
   var feedbackNote = '';
   var styleOpen = false;
+  var lyricsOpen = false;
   var styleDone = false;
   var styleJumped = false;
   var styleBag = null;
@@ -597,6 +598,12 @@
     }
     if (id === 'record') renderRecord();
     else persistSession();
+    if (lyricsOpen) {
+      backBtn.hidden = true;
+      if (dotsEl) dotsEl.hidden = true;
+      var writeTitle = document.getElementById('sh-write-title');
+      if (writeTitle) writeTitle.hidden = true;
+    }
     if (id === 'shape') paintAnswers();
     else {
       followOpen = false;
@@ -1204,6 +1211,17 @@
   }
 
   function renderRecord() {
+    if (!draft && lyricsOpen) {
+      var pageBox = document.getElementById('sh-page-text');
+      var written = pageBox ? pageBox.value : '';
+      var cleaned = window.SongFlow && window.SongFlow.cleanPageLyrics
+        ? window.SongFlow.cleanPageLyrics(written)
+        : written;
+      recordEl.textContent = cleaned
+        ? ('Lyrics you wrote\n\n' + cleaned)
+        : 'Paste lyrics in the writing box first.';
+      return;
+    }
     if (!draft) {
       recordEl.textContent = 'Write the draft first, then this record can list your lines.';
       return;
@@ -1828,6 +1846,14 @@
     },
     openDraft: function () {
       go(STEPS.indexOf('draft'), true);
+    },
+    lyricsOpen: function () { return lyricsOpen; },
+    openFinishedLyrics: function () {
+      lyricsOpen = true;
+      var write = document.getElementById('sh-write');
+      if (write) write.hidden = false;
+      go(STEPS.indexOf('style'), true);
+      if (window.SongHelperV2 && window.SongHelperV2.repaint) window.SongHelperV2.repaint();
     },
   };
 

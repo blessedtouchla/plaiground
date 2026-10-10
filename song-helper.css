@@ -692,6 +692,93 @@ body.song-helper-page .plai-bubble {
   line-height: 1.45;
 }
 
+.sh-page-box {
+  min-height: 320px;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.sh-meter {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(226, 179, 64, 0.08);
+  border: 1px solid rgba(226, 179, 64, 0.35);
+  max-width: 100%;
+}
+
+.sh-meter.is-full {
+  background: rgba(125, 206, 122, 0.08);
+  border-color: rgba(125, 206, 122, 0.4);
+}
+
+.sh-meter-label {
+  margin: 0;
+  font-weight: 700;
+  color: #f3cb47;
+}
+
+.sh-meter.is-full .sh-meter-label { color: #9be09a; }
+
+.sh-meter-track {
+  height: 10px;
+  margin: 10px 0 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.sh-meter-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  background: #e2b340;
+}
+
+.sh-meter.is-full .sh-meter-fill { background: #7dce7a; }
+
+.sh-meter-count,
+.sh-meter-line,
+.sh-meter-note {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.sh-meter-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.sh-page-clean {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 12px 0 0;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  max-width: 100%;
+}
+
+.sh-more-ways {
+  margin: 18px 0 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 14px;
+}
+
+.sh-more-ways summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
 @media (max-width: 640px) {
   .sh { padding-top: calc(var(--nav-h) + 18px); }
   .sh-actions { flex-direction: column-reverse; }
@@ -699,6 +786,10 @@ body.song-helper-page .plai-bubble {
   .sh-modes .sh-chip { flex: 1 1 calc(50% - 8px); }
   .sh-count,
   .sh-count-warn { display: block; max-width: 100%; }
+  .sh-page-box { min-height: 260px; font-size: 17px; }
+  #sh-page .sh-side-actions { flex-direction: column; }
+  #sh-page .sh-side-actions .btn { width: 100%; }
+  #sh-page, #sh-page-text, .sh-meter, .sh-page-clean { max-width: 100%; }
 }
 
 .sh-answers {

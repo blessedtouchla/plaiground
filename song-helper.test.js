@@ -844,6 +844,31 @@ async function runApi() {
     if (previousModel === undefined) delete process.env.XAI_MODEL;
     else process.env.XAI_MODEL = previousModel;
   }
+
+  assert.ok(/kitchen/.test(core.askFallback('The chipped mug is still in the kitchen.')));
+  assert.ok(/we will figure it out/.test(core.askFallback('She said "we will figure it out" and left.')));
+  assert.strictEqual(core.askFallback('Hi'), 'What is one thing you can still point at from that moment?');
+  assert.ok(core.askFallback('The porch light stayed on after you drove away from the house tonight.').indexOf('?') !== -1);
+  assert.ok(core.tidyAsk('this song is supposed to make them laugh', 'in the kitchen').indexOf('kitchen') !== -1);
+  assert.ok(core.tidyAsk('a'.repeat(200), 'in the kitchen').indexOf('kitchen') !== -1);
+  assert.ok(!/\bSuno\b/.test(core.tidyAsk('Use Suno for this', 'in the kitchen')));
+  const asked = await post({ action: 'ask', text: 'The chipped mug is still in the kitchen.' }, '203.0.113.77');
+  assert.strictEqual(asked.statusCode, 200);
+  assert.strictEqual(asked.json.ok, true);
+  assert.ok(asked.json.question.indexOf('?') !== -1);
+  assert.ok(asked.json.question.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(asked.json.question));
+  if (!process.env.XAI_API_KEY) {
+    assert.strictEqual(asked.json.source, 'sample');
+    assert.ok(/kitchen/.test(asked.json.question));
+  }
+  const askEmpty = await post({ action: 'ask', text: '   ' }, '203.0.113.78');
+  assert.strictEqual(askEmpty.statusCode, 200);
+  assert.strictEqual(askEmpty.json.question, '');
+  const askLong = await post({ action: 'ask', text: 'x'.repeat(core.STORY_MAX + 1) }, '203.0.113.79');
+  assert.strictEqual(askLong.statusCode, 400);
+  assert.ok(/3000/.test(askLong.json.error));
+  assert.ok(read('api/song-helper.js').includes("action === 'ask'"));
 }
 
 function runPacks() {
@@ -1110,11 +1135,28 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261009idea'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261009idea'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261009idea'));
+  assert.ok(html.includes('song-helper.js?v=20261010write'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010write'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010write'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
-  assert.ok(html.includes('song-helper.css?v=20261009idea'));
+  assert.ok(html.includes('song-helper.css?v=20261010write'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010write'));
+  const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-more-ways"'));
+  assert.ok(pageBlock.indexOf('id="sh-page-text"') !== -1);
+  assert.ok(pageBlock.includes('Ask me a question'));
+  assert.ok(pageBlock.includes('I already have my lyrics'));
+  assert.ok(pageBlock.includes('id="sh-meter"'));
+  assert.ok(pageBlock.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(pageBlock));
+  assert.ok(!/Human first/i.test(pageBlock));
+  assert.ok(/id="sh-start"[^>]*hidden/.test(html));
+  assert.ok(html.indexOf('id="sh-page"') < html.indexOf('id="sh-start"'));
+  assert.ok(html.includes('More ways to write'));
+  assert.ok(read('song-helper-v2.js').includes('bootWriteFirst'));
+  assert.ok(read('song-helper-v2.js').includes('appendAnswer'));
+  assert.ok(read('song-helper-v2.js').includes('plaiground.songHelper.story'));
+  assert.ok(js.includes('openFinishedLyrics'));
+  assert.ok(js.includes('lyricsOpen'));
   const v2 = read('song-helper-v2.js');
   assert.ok(v2.includes('function ownIdea'));
   assert.ok(v2.includes("input.id = 'sh-own-' + item.id"));
