@@ -497,7 +497,7 @@
     for (var i = 0; i < host.children.length; i++) {
       var el = host.children[i];
       if (!el.classList || el.classList.contains('sh-more')) continue;
-      if (el.classList.contains('sh-chip') || el.classList.contains('spark-headline')) chips.push(el);
+      if (el.classList.contains('sh-chip') || el.classList.contains('spark-headline') || el.classList.contains('sh-mode-card')) chips.push(el);
     }
     if (chips.length <= MORE_LIMIT) {
       chips.forEach(function (el) { el.hidden = false; });
@@ -505,7 +505,8 @@
     }
     var open = !!moreOpen[key];
     chips.forEach(function (el, index) {
-      if (index >= MORE_LIMIT && el.classList.contains('on')) open = true;
+      var selected = el.classList.contains('on') || !!(el.querySelector && el.querySelector('.sh-chip.on'));
+      if (index >= MORE_LIMIT && selected) open = true;
     });
     chips.forEach(function (el, index) {
       var hide = !open && index >= MORE_LIMIT;

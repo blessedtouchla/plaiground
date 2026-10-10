@@ -61,6 +61,19 @@ function runModes() {
   ['write', 'hook', 'flip', 'funkify', 'funny', 'madlibs', 'review', 'parody', 'public-domain', 'cover', 'homage', 'superhero', 'bars', 'poem', 'battle'].forEach(function (id) {
     assert.ok(ids.indexOf(id) !== -1, id);
   });
+  assert.strictEqual(modes.modeById('write').id, 'write');
+  assert.strictEqual(modes.modeById('write').label, 'Let it all out');
+  assert.ok(/raw words/i.test(modes.modeById('write').blurb));
+  assert.ok(/turns them into a song/i.test(modes.modeById('write').blurb));
+  ['write', 'funny', 'madlibs', 'superhero', 'poem', 'battle'].forEach(function (id) {
+    var row = modes.modeById(id);
+    assert.strictEqual(row.id, id);
+    assert.ok(row.blurb && row.blurb.indexOf('\n') === -1, id);
+    assert.ok(row.blurb.indexOf('\u2014') === -1, id);
+    assert.ok(!/\bSuno\b/.test(row.blurb), id);
+    assert.ok(row.blurb.length < 140, id);
+  });
+  assert.ok(/Let it all out: the writer may dump raw words/i.test(modes.systemPrompt({ mode: 'write', craft: {} })));
   assert.strictEqual(modes.modeById('hook').label, 'Hook');
   assert.strictEqual(modes.modeById('flip').label, 'Flip it');
   assert.strictEqual(modes.modeById('flip').transform, true);
@@ -850,6 +863,11 @@ function runPages() {
   assert.ok(html.includes('id="sh-choice-source"'));
   assert.ok(html.includes('id="sh-source"'));
   assert.ok(html.includes('How you write'));
+  assert.ok(html.includes('Let it all out, Funny, Mad Libs, Superhero, Poem, and Battle'));
+  assert.ok(html.includes('Songify it for me'));
+  assert.ok(read('song-helper-v2.js').includes('sh-mode-line'));
+  assert.ok(read('song-helper-v2.js').includes("mode === 'write'"));
+  assert.ok(read('song-helper.css').includes('.sh-mode-line'));
   assert.ok(html.includes('How it feels'));
   assert.ok(!html.includes('data-group="mood"'));
   assert.ok(!html.includes('How does it feel?'));

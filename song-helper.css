@@ -519,6 +519,27 @@ body.song-helper-page .plai-bubble {
   margin: 0 0 16px;
 }
 
+.sh-mode-card {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.sh-modes .sh-mode-card .sh-chip {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.sh-mode-line {
+  margin: 0;
+  color: var(--muted-2);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .sh-craft,
 .sh-log,
 .sh-note-block,

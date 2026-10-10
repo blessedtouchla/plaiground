@@ -372,11 +372,16 @@
       if (lane === 'create' && itemLane !== 'create') show = false;
       if (!show) return;
       if (lane === 'remix') return;
+      var card = document.createElement('div');
+      card.className = 'sh-mode-card';
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'sh-chip' + (mode && item.id === mode ? ' on' : '');
       button.textContent = item.label;
       button.setAttribute('aria-pressed', mode && item.id === mode ? 'true' : 'false');
+      var about = document.createElement('p');
+      about.className = 'sh-mode-line';
+      about.textContent = item.blurb || '';
       button.addEventListener('click', function () {
         if (item.id === 'battle') {
           setMode(item.id);
@@ -394,8 +399,16 @@
         }
         setMode(item.id);
       });
-      host.appendChild(button);
+      card.appendChild(button);
+      card.appendChild(about);
+      host.appendChild(card);
     });
+  }
+
+  function paintDraftButton() {
+    var btn = $('sh-cast-draft');
+    if (!btn) return;
+    btn.textContent = (!mode || mode === 'write') ? 'Songify it for me' : 'Write the draft';
   }
 
   function paintModes() {
@@ -2370,6 +2383,7 @@
     }
     paintIdeaLane();
     paintSourceNotes();
+    paintDraftButton();
   }
 
   function setStoryBox(on, opts) {
