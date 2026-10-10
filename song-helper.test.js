@@ -845,22 +845,62 @@ async function runApi() {
     else process.env.XAI_MODEL = previousModel;
   }
 
-  assert.ok(/kitchen/.test(core.askFallback('The chipped mug is still in the kitchen.')));
-  assert.ok(/we will figure it out/.test(core.askFallback('She said "we will figure it out" and left.')));
-  assert.strictEqual(core.askFallback('Hi'), 'What is one thing you can still point at from that moment?');
-  assert.ok(core.askFallback('The porch light stayed on after you drove away from the house tonight.').indexOf('?') !== -1);
-  assert.ok(core.tidyAsk('this song is supposed to make them laugh', 'in the kitchen').indexOf('kitchen') !== -1);
-  assert.ok(core.tidyAsk('a'.repeat(200), 'in the kitchen').indexOf('kitchen') !== -1);
-  assert.ok(!/\bSuno\b/.test(core.tidyAsk('Use Suno for this', 'in the kitchen')));
-  const asked = await post({ action: 'ask', text: 'The chipped mug is still in the kitchen.' }, '203.0.113.77');
+  const mug = 'The chipped mug is still in the kitchen.';
+  assert.strictEqual(core.askFallback(mug), 'How do you feel about this?');
+  assert.strictEqual(core.askPlan(mug, { lastAngle: 'feeling', asked: ['How do you feel about this?'] }).angle, 'who');
+  const quoted = core.askPlan('She said "we will figure it out" and left.', { lastAngle: 'who' });
+  assert.strictEqual(quoted.angle, 'next');
+  assert.ok(/we will figure it out/.test(quoted.question));
+  assert.ok(!/colou?r|smell/i.test(core.askPlan(mug, { lastAngle: 'said' }).question));
+  assert.strictEqual(core.askPlan(mug, { lastAngle: 'said' }).question, 'What were you doing in the kitchen?');
+  const seenAngles = [];
+  let lastAngle = '';
+  const askedList = [];
+  for (let step = 0; step < 6; step += 1) {
+    const plan = core.askPlan(mug, { lastAngle: lastAngle, asked: askedList });
+    assert.notStrictEqual(plan.angle, lastAngle);
+    assert.ok(askedList.indexOf(plan.question) === -1);
+    assert.ok(!/colou?r|smell|what sound|texture|how hot|how cold/i.test(plan.question));
+    seenAngles.push(plan.angle);
+    askedList.push(plan.question);
+    lastAngle = plan.angle;
+  }
+  assert.deepStrictEqual(seenAngles, ['feeling', 'who', 'next', 'said', 'place', 'hold']);
+  assert.strictEqual(core.tidyAsk('What color is the chipped mug?', mug, { angle: 'feeling' }), 'How do you feel about this?');
+  assert.strictEqual(core.tidyAsk('What color is the chipped mug?', mug, { angle: 'who', lastAngle: 'feeling', asked: ['How do you feel about this?'] }), 'Who is this about?');
+  assert.ok(core.sensoryTrivia('What color is the chipped mug?', mug));
+  assert.ok(!core.sensoryTrivia('What color is the blue mug?', 'the blue mug'));
+  assert.strictEqual(core.tidyAsk('this song is supposed to make them laugh', mug, { angle: 'feeling' }), 'How do you feel about this?');
+  assert.ok(!/colou?r/i.test(core.tidyAsk('a'.repeat(200), mug, { angle: 'next', lastAngle: 'who' })));
+  const system = core.askSystem(core.askPlan(mug, {}));
+  assert.ok(system.indexOf('feeling') !== -1);
+  assert.ok(/do not ask about color/i.test(system));
+  assert.ok(system.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(system));
+  assert.ok(!/\bSuno\b/.test(core.tidyAsk('Use Suno for this', mug, { angle: 'feeling' })));
+  const asked = await post({ action: 'ask', text: mug }, '203.0.113.77');
   assert.strictEqual(asked.statusCode, 200);
   assert.strictEqual(asked.json.ok, true);
   assert.ok(asked.json.question.indexOf('?') !== -1);
   assert.ok(asked.json.question.indexOf('\u2014') === -1);
   assert.ok(!/\bSuno\b/.test(asked.json.question));
+  assert.ok(!/colou?r/i.test(asked.json.question));
   if (!process.env.XAI_API_KEY) {
     assert.strictEqual(asked.json.source, 'sample');
-    assert.ok(/kitchen/.test(asked.json.question));
+    assert.strictEqual(asked.json.angle, 'feeling');
+    assert.strictEqual(asked.json.question, 'How do you feel about this?');
+  }
+  const askedNext = await post({
+    action: 'ask',
+    text: mug,
+    lastAngle: 'feeling',
+    asked: ['How do you feel about this?'],
+  }, '203.0.113.80');
+  assert.strictEqual(askedNext.statusCode, 200);
+  assert.ok(!/colou?r/i.test(askedNext.json.question));
+  if (!process.env.XAI_API_KEY) {
+    assert.strictEqual(askedNext.json.angle, 'who');
+    assert.notStrictEqual(askedNext.json.angle, 'feeling');
   }
   const askEmpty = await post({ action: 'ask', text: '   ' }, '203.0.113.78');
   assert.strictEqual(askEmpty.statusCode, 200);
@@ -869,6 +909,8 @@ async function runApi() {
   assert.strictEqual(askLong.statusCode, 400);
   assert.ok(/3000/.test(askLong.json.error));
   assert.ok(read('api/song-helper.js').includes("action === 'ask'"));
+  assert.ok(read('api/song-helper.js').includes('askSystem'));
+  assert.ok(read('api/song-helper.js').includes('lastAngle'));
 }
 
 function runPacks() {
@@ -1136,12 +1178,12 @@ function runPage() {
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261010write'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010write'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010write'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010start'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010start'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
   assert.ok(html.includes('song-helper.css?v=20261010write'));
   assert.ok(html.includes('lib/song-flow.js?v=20261010write'));
-  const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-more-ways"'));
+  const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-text"') !== -1);
   assert.ok(pageBlock.includes('Ask me a question'));
   assert.ok(pageBlock.includes('I already have my lyrics'));
@@ -1149,9 +1191,14 @@ function runPage() {
   assert.ok(pageBlock.indexOf('\u2014') === -1);
   assert.ok(!/\bSuno\b/.test(pageBlock));
   assert.ok(!/Human first/i.test(pageBlock));
-  assert.ok(/id="sh-start"[^>]*hidden/.test(html));
-  assert.ok(html.indexOf('id="sh-page"') < html.indexOf('id="sh-start"'));
-  assert.ok(html.includes('More ways to write'));
+  assert.ok(!/id="sh-start"[^>]*hidden/.test(html));
+  assert.ok(/id="sh-page"[^>]*hidden/.test(html));
+  assert.ok(html.indexOf('id="sh-start"') < html.indexOf('id="sh-page"'));
+  assert.ok(html.includes('How do you want to start?'));
+  assert.ok(html.includes('I already have my story or lyrics'));
+  assert.ok(html.includes('id="sh-choice-page"'));
+  assert.ok(html.includes('Create from scratch'));
+  assert.ok(html.includes('Start with an idea'));
   assert.ok(read('song-helper-v2.js').includes('bootWriteFirst'));
   assert.ok(read('song-helper-v2.js').includes('appendAnswer'));
   assert.ok(read('song-helper-v2.js').includes('plaiground.songHelper.story'));

@@ -80,6 +80,8 @@
   var seededAngle = '';
   var ideaLane = '';
   var branch = '';
+  var storyBox = false;
+  var askState = { lastAngle: '', asked: [] };
   var KIND_MOOD = {
     love: 'in love',
     heartbreak: 'heartbroken',
@@ -2313,7 +2315,7 @@
   }
 
   function paintBranch() {
-    if (window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft() && !branch) {
+    if (window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft() && !branch && !storyBox) {
       branch = 'scratch';
       if (!ideaLane) ideaLane = 'own';
       if (!kind) {
@@ -2359,13 +2361,40 @@
       sourceBtn.classList.toggle('on', source);
       sourceBtn.setAttribute('aria-pressed', source ? 'true' : 'false');
     }
+    showEl('sh-page', !!storyBox);
+    var pageBtn = $('sh-choice-page');
+    if (pageBtn) {
+      pageBtn.classList.toggle('on', !!storyBox);
+      pageBtn.setAttribute('aria-pressed', storyBox ? 'true' : 'false');
+    }
     paintIdeaLane();
     paintSourceNotes();
   }
 
+  function setStoryBox(on, opts) {
+    storyBox = !!on;
+    if (storyBox) branch = '';
+    paintBranch();
+    if (storyBox && !(opts && opts.keep)) {
+      var page = $('sh-page');
+      if (page && page.scrollIntoView) {
+        try { page.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+      }
+    }
+    if (!(opts && opts.quiet)) persistPage();
+  }
+
   function setBranch(next) {
     if (next !== 'scratch' && next !== 'source') return;
-    if (branch === next) return;
+    var wasStory = storyBox;
+    storyBox = false;
+    if (branch === next) {
+      if (wasStory) {
+        paintBranch();
+        persistPage();
+      }
+      return;
+    }
     branch = next;
     if (next === 'scratch' && sourceModeOn()) {
       mode = 'write';
@@ -2373,6 +2402,7 @@
       paintFields();
     }
     paintBranch();
+    if (wasStory) persistPage();
   }
 
   function setIdeaLane(next) {
@@ -2955,16 +2985,26 @@
         answer: answer ? answer.value : '',
         question: question ? question.textContent : '',
         lyrics: !!(window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen()),
+        open: !!storyBox,
+        lastAngle: askState.lastAngle || '',
+        asked: (askState.asked || []).slice(0, 12),
       },
     });
   }
 
+  function rememberAsk(question, angle) {
+    var text = String(question || '').trim();
+    if (text && askState.asked.indexOf(text) === -1) askState.asked.push(text);
+    if (askState.asked.length > 12) askState.asked = askState.asked.slice(-12);
+    askState.lastAngle = angle || '';
+  }
+
   function bootWriteFirst() {
     var box = $('sh-page-text');
-    var more = $('sh-more-ways');
     var askBtn = $('sh-page-ask');
     var addBtn = $('sh-page-add');
     var lyricsBtn = $('sh-page-lyrics');
+    var pageBtn = $('sh-choice-page');
     var answer = $('sh-page-answer');
     if (!box) return;
     armStory(box);
@@ -2983,13 +3023,19 @@
       }
     }
     if (answer && saved.answer && !String(answer.value || '').trim()) answer.value = String(saved.answer);
+    if (saved.lastAngle) askState.lastAngle = String(saved.lastAngle);
+    if (Array.isArray(saved.asked)) askState.asked = saved.asked.map(function (item) { return String(item || ''); }).filter(Boolean).slice(0, 12);
     if (saved.question) {
       var q = $('sh-page-question');
       var panel = $('sh-page-q');
       if (q) q.textContent = String(saved.question);
       if (panel) panel.hidden = false;
+      if (askState.asked.indexOf(String(saved.question)) === -1) askState.asked.push(String(saved.question));
     }
     paintHumanMeter();
+    if (saved.open || saved.lyrics || (saved.text && String(saved.text).trim())) {
+      setStoryBox(true, { keep: true, quiet: true });
+    }
     box.addEventListener('input', function () {
       pageError('');
       paintHumanMeter();
@@ -2998,11 +3044,8 @@
     if (answer) {
       answer.addEventListener('input', function () { persistPage(); });
     }
-    if (more) {
-      more.addEventListener('toggle', function () {
-        var start = $('sh-start');
-        if (start) start.hidden = !more.open;
-      });
+    if (pageBtn) {
+      pageBtn.addEventListener('click', function () { setStoryBox(true); });
     }
     if (askBtn) {
       askBtn.addEventListener('click', function () { askFromPage(); });
@@ -3030,35 +3073,52 @@
       return;
     }
     pageError('');
-    var fallback = core && core.askFallback ? core.askFallback(text) : 'What happened right after that?';
+    var plan = core && core.askPlan ? core.askPlan(text, askState) : { angle: '', question: 'What happened right after that?' };
+    var fallback = plan.question;
     if (askBtn) askBtn.disabled = true;
     fetch('/api/song-helper', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'ask', text: text }),
+      body: JSON.stringify({
+        action: 'ask',
+        text: text,
+        lastAngle: askState.lastAngle || '',
+        asked: (askState.asked || []).slice(0, 12),
+      }),
     }).then(function (response) {
       return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
     }).then(function (result) {
       var data = result && result.data;
       var question = data && data.question ? String(data.question) : '';
+      var angle = data && data.angle ? String(data.angle) : plan.angle;
       var notice = data && data.notice ? String(data.notice) : '';
-      if (!question) question = fallback;
+      if (!question) {
+        question = fallback;
+        angle = plan.angle;
+      }
       if (!result || !result.ok) {
         question = fallback;
+        angle = plan.angle;
         notice = notice || 'This question comes from what you wrote. The writer did not answer, so this is a backup question.';
       }
-      showPageQuestion(question, notice);
+      if (angle && angle === askState.lastAngle && core && core.askPlan) {
+        var fresh = core.askPlan(text, askState);
+        question = fresh.question;
+        angle = fresh.angle;
+      }
+      showPageQuestion(question, notice, angle);
     }).catch(function () {
-      showPageQuestion(fallback, 'This question comes from what you wrote. The writer did not answer, so this is a backup question.');
+      showPageQuestion(fallback, 'This question comes from what you wrote. The writer did not answer, so this is a backup question.', plan.angle);
     }).then(function () {
       if (askBtn) askBtn.disabled = false;
     });
   }
 
-  function showPageQuestion(question, notice) {
+  function showPageQuestion(question, notice, angle) {
     var panel = $('sh-page-q');
     var q = $('sh-page-question');
     var note = $('sh-page-ask-note');
+    rememberAsk(question, angle);
     if (q) q.textContent = question || '';
     if (note) note.textContent = notice || 'Answer in your own words. Adding it counts toward the meter.';
     if (panel) panel.hidden = false;

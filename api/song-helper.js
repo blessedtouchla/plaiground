@@ -351,11 +351,17 @@ async function handleAsk(req, res, body) {
     sendJson(res, 200, {
       ok: true,
       question: '',
+      angle: '',
       source: 'sample',
       notice: 'Write a little in the box first. Then I can ask about what you wrote.',
     });
     return;
   }
+  var lastAngle = String((body && body.lastAngle) || '').replace(/[^a-z]/g, '').slice(0, 16);
+  var asked = Array.isArray(body && body.asked) ? body.asked.map(function (item) {
+    return String(item || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  }).filter(Boolean).slice(0, 12) : [];
+  var plan = core.askPlan(trimmed, { lastAngle: lastAngle, asked: asked });
   var blocked = await guard.enforce(req, guard.clientIp(req), body, { text: trimmed });
   if (blocked) {
     sendJson(res, blocked.status, blocked.body);
@@ -364,7 +370,8 @@ async function handleAsk(req, res, body) {
   if (!xai.configured()) {
     sendJson(res, 200, {
       ok: true,
-      question: core.askFallback(trimmed),
+      question: plan.question,
+      angle: plan.angle,
       source: 'sample',
       notice: 'This question comes from what you wrote. It is a backup question, not a new draft.',
     });
@@ -374,24 +381,28 @@ async function handleAsk(req, res, body) {
     var chat = await xai.chat({
       url: 'https://api.x.ai/v1/chat/completions',
       messages: [
-        {
-          role: 'system',
-          content: 'You help a songwriter add their own words. Ask exactly one short question about a concrete detail already in their text, such as a place, an object, a person, or what happened next. Do not ask them to explain the point of the song. Do not say the song is supposed to be funny, sad, or anything else. Do not name a music generator. One question, under 140 characters, no preamble.',
-        },
-        { role: 'user', content: trimmed },
+        { role: 'system', content: core.askSystem(plan) },
+        { role: 'user', content: core.askUser(trimmed, plan, asked) },
       ],
       max_tokens: 80,
     });
+    var question = core.tidyAsk(chat && chat.content, trimmed, {
+      lastAngle: lastAngle,
+      asked: asked,
+      angle: plan.angle,
+    });
     sendJson(res, 200, {
       ok: true,
-      question: core.tidyAsk(chat && chat.content, trimmed),
+      question: question,
+      angle: core.askAngle(question) || plan.angle,
       source: 'grok',
       notice: '',
     });
   } catch (err) {
     sendJson(res, 200, {
       ok: true,
-      question: core.askFallback(trimmed),
+      question: plan.question,
+      angle: plan.angle,
       source: 'sample',
       notice: 'This question comes from what you wrote. The writer did not answer, so this is a backup question.',
     });
