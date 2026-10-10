@@ -17,6 +17,7 @@
  */
 
 const core = require('../lib/song-helper');
+const flow = require('../lib/song-flow');
 const xai = require('../lib/xai-client');
 const guard = require('../lib/song-guard');
 const modes = require('../lib/song-modes');
@@ -564,6 +565,104 @@ async function handleRewrite(req, res, body, kind) {
   }
 }
 
+function kindFromLabel(label) {
+  var name = String(label || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (name === 'hook' || name === 'chorus') return { kind: 'hook', label: 'Hook' };
+  if (name === 'bridge') return { kind: 'bridge', label: 'Bridge' };
+  if (name === 'outro') return { kind: 'outro', label: 'Outro' };
+  if (name === 'pre-chorus' || name === 'prechorus') return { kind: 'prechorus', label: 'Pre-chorus' };
+  var verse = name.match(/^verse\s+(\d+)$/);
+  if (verse) return { kind: 'verse', label: 'Verse ' + verse[1] };
+  return null;
+}
+
+async function handleFormat(req, res, body) {
+  var text = String((body && body.text) || '');
+  var blocks = Array.isArray(body && body.blocks) ? body.blocks.map(function (row) {
+    return { text: String(row && row.text || '') };
+  }).filter(function (row) { return row.text.trim(); }) : [];
+  if (text.length > core.STORY_MAX) {
+    sendJson(res, 400, {
+      ok: false,
+      error: 'That is a little long. The limit is ' + core.STORY_MAX + ' characters. Shorten it and try again.',
+    });
+    return;
+  }
+  var source = blocks.length ? blocks.map(function (row) { return row.text; }).join('\n\n') : text;
+  if (!source.trim()) {
+    sendJson(res, 200, { ok: true, sections: [], notes: ['Paste lyrics first.'], source: 'sample' });
+    return;
+  }
+  var proposal = blocks.length ? flow.formatSong(source) : flow.formatSong(text);
+  if (blocks.length && proposal.sections.length !== blocks.length) proposal = flow.formatSong(blocks.map(function (row) { return row.text; }).join('\n\n'));
+  var notice = 'These labels come from the shape of what you pasted. Your words are unchanged.';
+  function sendStatic(why) {
+    sendJson(res, 200, {
+      ok: true,
+      sections: proposal.sections,
+      notes: proposal.notes,
+      source: 'sample',
+      notice: why || notice,
+    });
+  }
+  if (!flow.sameWords(source, proposal.sections) && !flow.sameWords(text, proposal.sections)) {
+    sendStatic('Your words stayed as you pasted them.');
+    return;
+  }
+  if (!xai.configured()) {
+    sendStatic();
+    return;
+  }
+  try {
+    var listed = proposal.sections.map(function (row, index) {
+      return (index + 1) + '. ' + String(row.text || '').replace(/\n/g, ' / ');
+    }).join('\n');
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      messages: [
+        { role: 'system', content: 'Label each lyric block. Allowed labels: Verse 1, Verse 2, Verse 3, Hook, Pre-chorus, Bridge, Outro. Use Hook when a line repeats. Use Pre-chorus only for a short block before the hook. Use Bridge for a turn. One label per line, in order. Do not rewrite the words. Do not name a music generator.' },
+        { role: 'user', content: listed },
+      ],
+      max_tokens: 160,
+    });
+    var labels = String(chat && chat.content || '').replace(/\u2014/g, ' ').split('\n').map(function (line) {
+      return line.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+    }).filter(Boolean);
+    if (labels.length !== proposal.sections.length) {
+      sendStatic();
+      return;
+    }
+    var polished = [];
+    for (var i = 0; i < labels.length; i += 1) {
+      var named = kindFromLabel(labels[i]);
+      if (!named) {
+        sendStatic();
+        return;
+      }
+      polished.push({
+        id: proposal.sections[i].id,
+        kind: named.kind,
+        label: named.label,
+        text: proposal.sections[i].text,
+        suggest: proposal.sections[i].suggest || '',
+      });
+    }
+    if (!flow.sameWords(proposal.sections.map(function (row) { return row.text; }).join('\n'), polished)) {
+      sendStatic();
+      return;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      sections: polished,
+      notes: proposal.notes,
+      source: 'grok',
+      notice: 'Labels only. Your words were not rewritten.',
+    });
+  } catch (err) {
+    sendStatic();
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'status') {
     sendJson(res, 200, guard.status());
@@ -609,6 +708,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleSuggest(req, res, suggestBody || {});
     return;
   }
+  if (action === 'format') {
+    var formatBody = givenBody;
+    if (!formatBody) formatBody = await readBody(req);
+    await handleFormat(req, res, formatBody || {});
+    return;
+  }
   if (action === 'extend' || action === 'shorten' || action === 'rhymify') {
     var rewriteBody = givenBody;
     if (!rewriteBody) rewriteBody = await readBody(req);
@@ -651,7 +756,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

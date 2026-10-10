@@ -788,6 +788,10 @@ function runPages() {
   assert.ok(js.includes('Keep mine'));
   assert.ok(js.includes('AI-assisted'));
   assert.ok(js.includes('Undo'));
+  assert.ok(html.includes('Make it song format'));
+  assert.ok(html.includes('Accept this structure'));
+  assert.ok(html.includes('Keep what I pasted'));
+  assert.ok(js.includes('formatSong'));
   assert.ok(js.includes('applySuggestion'));
   assert.ok(html.includes('I already have my lyrics'));
   assert.ok(html.includes('I already have my story or lyrics'));

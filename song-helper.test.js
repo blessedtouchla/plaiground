@@ -1002,6 +1002,25 @@ async function runApi() {
   }, '203.0.113.87');
   assert.strictEqual(rewriteLong.statusCode, 400);
   assert.ok(/3000/.test(rewriteLong.json.error));
+  const formatted = await post({
+    action: 'format',
+    text: 'I woke up and the porch light was on\nYou left your jacket on the chair\n\nI still set a place for you\n\nThe kettle clicked and I poured one cup\n\nI still set a place for you\n',
+  }, '203.0.113.88');
+  assert.strictEqual(formatted.statusCode, 200);
+  assert.strictEqual(formatted.json.ok, true);
+  assert.ok(formatted.json.sections.some(function (row) { return row.label === 'Hook' && row.text.indexOf('I still set a place for you') !== -1; }));
+  assert.ok(formatted.json.sections.map(function (row) { return row.text; }).join('\n').indexOf('porch light') !== -1);
+  const formatLines = formatted.json.sections.map(function (row) { return row.text; }).join('\n');
+  assert.ok(formatLines.indexOf('I woke up and the porch light was on') !== -1);
+  assert.ok(formatLines.indexOf('The kettle clicked and I poured one cup') !== -1);
+  assert.ok(JSON.stringify(formatted.json.sections).indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/i.test(JSON.stringify(formatted.json)));
+  if (!process.env.XAI_API_KEY) assert.strictEqual(formatted.json.source, 'sample');
+  const formatLong = await post({ action: 'format', text: 'x'.repeat(core.STORY_MAX + 1) }, '203.0.113.89');
+  assert.strictEqual(formatLong.statusCode, 400);
+  assert.ok(/3000/.test(formatLong.json.error));
+  assert.ok(read('api/song-helper.js').includes('handleFormat'));
+  assert.ok(read('api/song-helper.js').includes("action === 'format'"));
   assert.ok(read('api/song-helper.js').includes('handleRewrite'));
   assert.ok(read('api/song-helper.js').includes("action === 'extend'"));
 }
@@ -1271,11 +1290,11 @@ function runPage() {
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261010parts'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010edit'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010format'));
   assert.ok(html.includes('lib/song-helper.js?v=20261010edit'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
-  assert.ok(html.includes('song-helper.css?v=20261010edit'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010edit'));
+  assert.ok(html.includes('song-helper.css?v=20261010format'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010format'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1288,6 +1307,11 @@ function runPage() {
   assert.ok(pageJs.includes('AI-assisted'));
   assert.ok(pageJs.includes('commitPreview'));
   assert.ok(pageJs.includes('Undo'));
+  assert.ok(pageJs.includes('Make it song format') || pageBlock.includes('Make it song format'));
+  assert.ok(pageJs.includes('Accept this structure') || pageBlock.includes('Accept this structure'));
+  assert.ok(pageBlock.includes('Keep what I pasted'));
+  assert.ok(pageBlock.includes('Polish the labels'));
+  assert.ok(pageJs.includes('sameWords'));
   assert.ok(pageJs.includes('Use this'));
   assert.ok(pageJs.includes('applySuggestion'));
   assert.ok(pageJs.includes('proposeSectionText'));

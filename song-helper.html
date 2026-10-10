@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261010edit" />
+  <link rel="stylesheet" href="song-helper.css?v=20261010format" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -108,6 +108,17 @@
           <button type="button" class="btn btn-ghost btn-md" id="sh-add-verse">Add a verse</button>
           <button type="button" class="btn btn-ghost btn-md" id="sh-add-outro">Add an outro</button>
           <button type="button" class="btn btn-ghost btn-md" id="sh-page-lyrics">I already have my lyrics</button>
+        </div>
+        <div id="sh-format" hidden>
+          <h3 class="sh-subhead">Make it song format</h3>
+          <p class="sh-help" id="sh-format-help">These are your words, only the labels changed. Nothing is written into the boxes until you tap Accept this structure.</p>
+          <div id="sh-format-notes"></div>
+          <div id="sh-format-parts"></div>
+          <div class="sh-side-actions">
+            <button type="button" class="btn btn-purple btn-md" id="sh-format-accept">Accept this structure</button>
+            <button type="button" class="btn btn-ghost btn-md" id="sh-format-keep">Keep what I pasted</button>
+            <button type="button" class="btn btn-ghost btn-md" id="sh-format-polish">Polish the labels</button>
+          </div>
         </div>
         <p class="sh-form-error" id="sh-page-error" role="alert" hidden></p>
         <div id="sh-page-ready" hidden>
@@ -665,7 +676,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261010edit"></script>
+  <script src="lib/song-flow.js?v=20261010format"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261007ev1"></script>
   <script src="lib/song-helper.js?v=20261010edit"></script>
@@ -681,7 +692,7 @@
   <script src="lib/song-questions.js?v=20261009story"></script>
   <script src="song-helper.js?v=20261010parts"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010edit"></script>
+  <script src="song-helper-v2.js?v=20261010format"></script>
   <script src="song-flow-page.js?v=20261009story"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>

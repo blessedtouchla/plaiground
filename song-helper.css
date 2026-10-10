@@ -828,6 +828,41 @@ body.song-helper-page .plai-bubble {
 
 .sh-undo { margin-top: 8px; }
 
+.sh-format-part {
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.sh-format-part select {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+}
+
+.sh-format-part pre {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.sh-format-moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sh-format-note {
+  margin: 0 0 8px;
+}
+
 .sh-preview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -902,7 +937,9 @@ body.song-helper-page .plai-bubble {
     max-width: 100%;
     overflow-wrap: anywhere;
   }
-  .sh-edit-toggles .sh-toggle { flex: 1 1 46%; }
+  .sh-edit-toggles .sh-toggle,
+  .sh-format-moves .btn { flex: 1 1 46%; }
+  #sh-format, .sh-format-part, .sh-format-part pre, .sh-format-part select { max-width: 100%; }
 }
 
 .sh-answers {
