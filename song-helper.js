@@ -599,7 +599,6 @@
       if (styleOpen) nextBtn.textContent = 'Skip these';
       else if (styleDone) nextBtn.textContent = 'Authorship record';
     }
-    restartBtn.hidden = id !== 'next';
     renderDots();
     showError('');
     if (id === 'genre') $('sh-comedy').hidden = picks.pack !== 'comedy';
@@ -1879,9 +1878,83 @@
     }
     if (step < STEPS.length - 1) go(step + 1, false);
   });
-  restartBtn.addEventListener('click', function () {
-    try { sessionStorage.removeItem(core.SESSION_KEY); } catch (err) {}
+  function restartPanel() { return document.getElementById('sh-restart-confirm'); }
+  function restartNote(message) {
+    var el = document.getElementById('sh-restart-error');
+    if (!el) return;
+    el.hidden = !message;
+    el.textContent = message || '';
+  }
+  function clearSongHelperForm() {
+    if (core.clearSongHelperAutosave) core.clearSongHelperAutosave();
+    else {
+      try { sessionStorage.removeItem(core.SESSION_KEY); } catch (err) {}
+      try { localStorage.removeItem('plaiground.songHelper.story'); } catch (err2) {}
+    }
+  }
+  if (restartBtn) restartBtn.addEventListener('click', function () {
+    var panel = restartPanel();
+    if (!panel) {
+      clearSongHelperForm();
+      window.location.reload();
+      return;
+    }
+    panel.hidden = false;
+    var gate = document.getElementById('sh-restart-gate');
+    if (gate) gate.hidden = true;
+    restartNote('');
+  });
+  var restartCancel = document.getElementById('sh-restart-cancel');
+  if (restartCancel) restartCancel.addEventListener('click', function () {
+    var panel = restartPanel();
+    if (panel) panel.hidden = true;
+    restartNote('');
+  });
+  var restartClear = document.getElementById('sh-restart-clear');
+  if (restartClear) restartClear.addEventListener('click', function () {
+    clearSongHelperForm();
     window.location.reload();
+  });
+  var restartSave = document.getElementById('sh-restart-save');
+  if (restartSave) restartSave.addEventListener('click', function () {
+    var record = window.SongHelperV2 && window.SongHelperV2.copyRecord ? window.SongHelperV2.copyRecord() : null;
+    if (!record || !String(record.text || '').trim()) {
+      restartNote('Nothing to save yet.');
+      return;
+    }
+    if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.hold(record);
+    restartSave.disabled = true;
+    fetch('/api/me', { credentials: 'same-origin' }).then(function (session) {
+      if (session.status === 401) {
+        var gate = document.getElementById('sh-restart-gate');
+        if (gate) gate.hidden = false;
+        restartNote('');
+        restartSave.disabled = false;
+        return null;
+      }
+      if (session.status !== 200) throw new Error('account');
+      return fetch('/api/me/lyrics', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song: record }),
+      });
+    }).then(function (saveRes) {
+      if (!saveRes) return;
+      return saveRes.json().catch(function () { return {}; }).then(function (data) {
+        if (saveRes.ok && data && data.song && data.song.id) {
+          if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
+          clearSongHelperForm();
+          window.location.href = '/my-lyrics?id=' + encodeURIComponent(data.song.id);
+          return;
+        }
+        restartSave.disabled = false;
+        restartNote('The account save did not go through. Your text is still on this page.');
+      });
+    }).catch(function () {
+      restartSave.disabled = false;
+      restartNote('The account save did not go through. Your text is still on this page.');
+    });
   });
   $('sh-regen').addEventListener('click', function () {
     if (busy) return;

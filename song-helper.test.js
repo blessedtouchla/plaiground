@@ -71,6 +71,15 @@ function mockRes() {
   };
 }
 
+function memoryStore() {
+  const data = {};
+  return {
+    getItem: function (key) { return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null; },
+    setItem: function (key, value) { data[key] = String(value); },
+    removeItem: function (key) { delete data[key]; },
+  };
+}
+
 function mockReq(body, ip) {
   return {
     method: 'POST',
@@ -1555,16 +1564,16 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261010song'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010song'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010song'));
+  assert.ok(html.includes('song-helper.js?v=20261010reset'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010reset'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010reset'));
   assert.ok(html.includes('lib/style-clues.js?v=20261010tint'));
   assert.ok(html.includes('lib/suno-style.js?v=20261010tint'));
   assert.ok(html.includes('lib/song-modes.js?v=20261010song'));
   assert.ok(html.includes('It tints the words a little'));
   assert.ok(html.includes('It does not choose the genre, tempo, instruments, or era.'));
   assert.ok(html.includes('song-flow-page.js?v=20261010hear'));
-  assert.ok(html.includes('song-helper.css?v=20261010setup'));
+  assert.ok(html.includes('song-helper.css?v=20261010reset'));
   assert.ok(html.includes('lib/song-flow.js?v=20261010song'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
@@ -1597,6 +1606,40 @@ function runPage() {
   assert.ok(/id="sh-page"[^>]*hidden/.test(html));
   assert.ok(html.indexOf('id="sh-start"') < html.indexOf('id="sh-page"'));
   assert.ok(html.includes('How do you want to start?'));
+  assert.ok(html.indexOf('id="sh-restart"') < html.indexOf('id="sh-start"'));
+  assert.ok(!/id="sh-restart"[^>]*hidden/.test(html));
+  assert.ok(html.includes('Clear everything?'));
+  assert.ok(html.includes('Save a copy to My lyrics'));
+  assert.ok(html.includes('id="sh-restart-clear">Clear everything'));
+  assert.ok(html.includes('Keep working'));
+  assert.ok(/id="sh-restart-confirm"[^>]*hidden/.test(html));
+  const restartBlock = html.slice(html.indexOf('id="sh-start-over"'), html.indexOf('id="sh-start"'));
+  assert.ok(restartBlock.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(restartBlock));
+  assert.ok(js.includes('sh-restart-confirm'));
+  assert.ok(js.includes('clearSongHelperAutosave'));
+  assert.ok(!js.includes('restartBtn.hidden'));
+  assert.ok(js.includes('function restoreWizard'));
+  assert.ok(read('song-flow-page.js').includes('function restoreFlow'));
+  assert.ok(read('song-helper-v2.js').includes('function restoreOwn'));
+  assert.ok(read('song-helper-v2.js').includes('copyRecord'));
+  const store = {
+    session: memoryStore(),
+    local: memoryStore(),
+  };
+  store.local.setItem(core.STORY_STORE, '{"flow":{"opener":"the hoodie"}}');
+  store.local.setItem('plaiground.songHelper.pendingSong', '{"text":"keep me"}');
+  store.session.setItem(core.SESSION_KEY, '{"line":"still here"}');
+  core.clearSongHelperAutosave(store);
+  assert.strictEqual(store.local.getItem(core.STORY_STORE), null);
+  assert.strictEqual(store.session.getItem(core.SESSION_KEY), null);
+  assert.strictEqual(store.local.getItem('plaiground.songHelper.pendingSong'), '{"text":"keep me"}');
+  assert.strictEqual(core.songCopyText([
+    { label: 'Opening', text: 'You left the hoodie.' },
+    { label: 'Opening', text: 'You left the hoodie.' },
+    { label: 'Skip', text: '   ' },
+    { label: '', text: 'A second line.' },
+  ]), 'Opening\nYou left the hoodie.\n\nA second line.');
   assert.ok(html.includes('I already have my story or lyrics'));
   assert.ok(html.includes('I already have some lyrics'));
   assert.ok(html.includes('id="sh-choice-lyrics"'));

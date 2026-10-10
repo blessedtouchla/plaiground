@@ -291,6 +291,10 @@ body.song-helper-page .plai-bubble {
   font-weight: 700;
 }
 
+.sh-start-over {
+  margin: 8px 0 18px;
+}
+
 .sh-actions {
   display: flex;
   gap: 12px;

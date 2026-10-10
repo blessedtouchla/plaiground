@@ -1922,6 +1922,67 @@
     }
   }
 
+  function copyRecord() {
+    var helper = window.SongHelperCore;
+    var parts = [];
+    function push(label, text) {
+      parts.push({ label: label || '', text: text || '' });
+    }
+    var shell = document.getElementById('sh-shell');
+    if (shell) {
+      Array.prototype.forEach.call(shell.querySelectorAll('textarea, input.sh-input'), function (el) {
+        if (!el || el.id === 'sh-honey') return;
+        var wrap = el.closest ? el.closest('label') : null;
+        var span = wrap ? wrap.querySelector('span') : null;
+        push(span ? span.textContent : '', el.value);
+      });
+    }
+    var savedBlock = document.getElementById('sh-answer-original');
+    if (savedBlock) {
+      Array.prototype.forEach.call(savedBlock.querySelectorAll('p'), function (el) {
+        var text = el.textContent || '';
+        if (text === 'Your original' || text === 'Saved as you wrote it. The song below is AI-assisted.') return;
+        push('Your original', text);
+      });
+    }
+    var haveOriginal = document.getElementById('sh-have-original-text');
+    if (haveOriginal) push('Your original', haveOriginal.textContent);
+    if (window.SongFlowPage && window.SongFlowPage.flowState) {
+      var flowState = window.SongFlowPage.flowState();
+      push('Opening', flowState.opener);
+      push('Wisdom', flowState.wisdom);
+      push('Keep', flowState.keep);
+      push('For', flowState.forText);
+      var reveals = flowState.reveals || {};
+      push('Never told', reveals.never);
+      push('Scared truth', reveals.scared);
+      push('Nobody says', reveals.nobody);
+      Object.keys(flowState.sensory || {}).forEach(function (key) {
+        push(key, flowState.sensory[key]);
+      });
+    }
+    var own = ownIdea();
+    push('Idea', own.idea);
+    push('Feeling', own.feel);
+    push('Story', own.story);
+    push('Keep', own.keep);
+    pageSections.forEach(function (row) { push(row.label, row.text); });
+    push('Lyrics you pasted', pasteText());
+    if (lyricsOriginal) push('Your original', lyricsOriginal);
+    liveAnswers().forEach(function (row) { push(row.ask, row.text); });
+    var titleEl = document.getElementById('sh-title');
+    var working = document.getElementById('sh-working-title');
+    var title = (titleEl && String(titleEl.value || '').trim()) || (working && String(working.value || '').trim()) || 'Song Helper';
+    var text = helper && helper.songCopyText ? helper.songCopyText(parts) : '';
+    if (!text) return null;
+    return {
+      title: title.slice(0, 80),
+      text: text,
+      mode: mode || 'write',
+      mood: readMood(),
+    };
+  }
+
   function songRecord() {
     var draft = activeDraft();
     if (!draftHasContent(draft)) return null;
@@ -4471,6 +4532,7 @@
       persistPage();
     },
     applySoundLayout: applySoundLayout,
+    copyRecord: copyRecord,
   };
   bindCraft();
   paintOwn();
