@@ -911,6 +911,48 @@ async function runApi() {
   assert.ok(read('api/song-helper.js').includes("action === 'ask'"));
   assert.ok(read('api/song-helper.js').includes('askSystem'));
   assert.ok(read('api/song-helper.js').includes('lastAngle'));
+  const hookAsk = await post({
+    action: 'ask',
+    section: 'Hook',
+    text: '',
+    others: mug,
+  }, '203.0.113.81');
+  assert.strictEqual(hookAsk.statusCode, 200);
+  assert.ok(hookAsk.json.question.indexOf('?') !== -1);
+  assert.ok(!/colou?r/i.test(hookAsk.json.question));
+  if (!process.env.XAI_API_KEY) {
+    assert.strictEqual(hookAsk.json.source, 'sample');
+    assert.strictEqual(hookAsk.json.angle, 'feeling');
+    assert.ok(/Hook/.test(hookAsk.json.question));
+    assert.ok(/feel/i.test(hookAsk.json.question));
+  }
+  const bothLong = await post({
+    action: 'ask',
+    section: 'Hook',
+    text: 'x'.repeat(2000),
+    others: 'y'.repeat(1500),
+  }, '203.0.113.82');
+  assert.strictEqual(bothLong.statusCode, 400);
+  assert.ok(/3000/.test(bothLong.json.error));
+  assert.ok(!bothLong.json.question);
+  const suggested = await post({
+    action: 'suggest',
+    section: 'Hook',
+    text: 'The mug is still in the kitchen.',
+    others: '',
+  }, '203.0.113.83');
+  assert.strictEqual(suggested.statusCode, 200);
+  assert.strictEqual(suggested.json.ok, true);
+  assert.ok(suggested.json.options.length >= 1 && suggested.json.options.length <= 3);
+  assert.ok(suggested.json.options.join(' ').indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(suggested.json.options.join(' ')));
+  assert.ok(!/colou?r/i.test(suggested.json.options.join(' ')));
+  if (!process.env.XAI_API_KEY) {
+    assert.strictEqual(suggested.json.source, 'sample');
+    assert.ok(/Use this/.test(suggested.json.notice));
+  }
+  assert.ok(read('api/song-helper.js').includes('handleSuggest'));
+  assert.ok(read('api/song-helper.js').includes("action === 'suggest'"));
 }
 
 function runPacks() {
@@ -1177,15 +1219,23 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261010write'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010guide'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010start'));
+  assert.ok(html.includes('song-helper.js?v=20261010parts'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010parts'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010parts'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
-  assert.ok(html.includes('song-helper.css?v=20261010guide'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010guide'));
+  assert.ok(html.includes('song-helper.css?v=20261010parts'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010parts'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
-  assert.ok(pageBlock.indexOf('id="sh-page-text"') !== -1);
-  assert.ok(pageBlock.includes('Ask me a question'));
+  assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
+  assert.ok(pageBlock.includes('Add a verse'));
+  assert.ok(pageBlock.includes('Add an outro'));
+  const pageJs = read('song-helper-v2.js');
+  assert.ok(pageJs.includes('Ask me a question'));
+  assert.ok(pageJs.includes('Give me a suggestion'));
+  assert.ok(pageJs.includes('Use this'));
+  assert.ok(pageJs.includes('applySuggestion'));
+  assert.ok(pageJs.includes('proposeSectionText'));
+  assert.ok(pageJs.includes('sh-page-sections'));
   assert.ok(pageBlock.includes('I already have my lyrics'));
   assert.ok(pageBlock.includes('id="sh-meter"'));
   assert.ok(pageBlock.includes('id="sh-meter-next"'));

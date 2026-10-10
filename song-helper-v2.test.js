@@ -778,8 +778,13 @@ function runPages() {
   assert.ok(html.includes('id="sh-choice-ideas"'));
   assert.ok(html.includes('id="sh-choice-own"'));
   assert.ok(html.includes('Create from scratch'));
-  assert.ok(html.includes('id="sh-page-text"'));
-  assert.ok(html.includes('Ask me a question'));
+  assert.ok(html.includes('id="sh-page-sections"'));
+  assert.ok(html.includes('Add a verse'));
+  assert.ok(html.includes('Add an outro'));
+  assert.ok(js.includes('Ask me a question'));
+  assert.ok(js.includes('Give me a suggestion'));
+  assert.ok(js.includes('Use this'));
+  assert.ok(js.includes('applySuggestion'));
   assert.ok(html.includes('I already have my lyrics'));
   assert.ok(html.includes('I already have my story or lyrics'));
   assert.ok(html.includes('id="sh-choice-page"'));

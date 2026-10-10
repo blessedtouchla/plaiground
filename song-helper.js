@@ -1212,8 +1212,7 @@
 
   function renderRecord() {
     if (!draft && lyricsOpen) {
-      var pageBox = document.getElementById('sh-page-text');
-      var written = pageBox ? pageBox.value : '';
+      var written = window.SongHelperV2 && window.SongHelperV2.pageText ? window.SongHelperV2.pageText() : '';
       var cleaned = window.SongFlow && window.SongFlow.cleanPageLyrics
         ? window.SongFlow.cleanPageLyrics(written)
         : written;

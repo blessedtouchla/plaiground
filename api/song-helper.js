@@ -347,13 +347,22 @@ async function handleAsk(req, res, body) {
     return;
   }
   var trimmed = text.trim();
-  if (!trimmed) {
+  var others = String((body && body.others) || '');
+  var sectionLabel = String((body && body.section) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (text.length > core.STORY_MAX || others.length > core.STORY_MAX || text.length + others.length > core.STORY_MAX) {
+    sendJson(res, 400, {
+      ok: false,
+      error: 'That is a little long. The limit is ' + core.STORY_MAX + ' characters. Shorten it and try again.',
+    });
+    return;
+  }
+  if (!trimmed && !others.trim()) {
     sendJson(res, 200, {
       ok: true,
       question: '',
       angle: '',
       source: 'sample',
-      notice: 'Write a little in the box first. Then I can ask about what you wrote.',
+      notice: 'Write a little in this part first. Then I can ask about what you wrote.',
     });
     return;
   }
@@ -361,7 +370,9 @@ async function handleAsk(req, res, body) {
   var asked = Array.isArray(body && body.asked) ? body.asked.map(function (item) {
     return String(item || '').replace(/\s+/g, ' ').trim().slice(0, 200);
   }).filter(Boolean).slice(0, 12) : [];
-  var plan = core.askPlan(trimmed, { lastAngle: lastAngle, asked: asked });
+  var context = [trimmed, others.trim()].filter(Boolean).join('\n');
+  var plan = core.askPlan(context, { lastAngle: lastAngle, asked: asked });
+  var planned = sectionLabel ? core.sectionQuestion(sectionLabel, plan.angle, context) : plan.question;
   var blocked = await guard.enforce(req, guard.clientIp(req), body, { text: trimmed });
   if (blocked) {
     sendJson(res, blocked.status, blocked.body);
@@ -370,7 +381,7 @@ async function handleAsk(req, res, body) {
   if (!xai.configured()) {
     sendJson(res, 200, {
       ok: true,
-      question: plan.question,
+      question: planned,
       angle: plan.angle,
       source: 'sample',
       notice: 'This question comes from what you wrote. It is a backup question, not a new draft.',
@@ -381,16 +392,17 @@ async function handleAsk(req, res, body) {
     var chat = await xai.chat({
       url: 'https://api.x.ai/v1/chat/completions',
       messages: [
-        { role: 'system', content: core.askSystem(plan) },
-        { role: 'user', content: core.askUser(trimmed, plan, asked) },
+        { role: 'system', content: core.askSystem(plan) + (sectionLabel ? ' This question is only for the ' + sectionLabel + '.' : '') },
+        { role: 'user', content: core.askUser(context, plan, asked) },
       ],
       max_tokens: 80,
     });
-    var question = core.tidyAsk(chat && chat.content, trimmed, {
+    var question = core.tidyAsk(chat && chat.content, context, {
       lastAngle: lastAngle,
       asked: asked,
       angle: plan.angle,
     });
+    if (sectionLabel && core.askAngle(question) !== plan.angle) question = planned;
     sendJson(res, 200, {
       ok: true,
       question: question,
@@ -401,10 +413,88 @@ async function handleAsk(req, res, body) {
   } catch (err) {
     sendJson(res, 200, {
       ok: true,
-      question: plan.question,
+      question: planned,
       angle: plan.angle,
       source: 'sample',
       notice: 'This question comes from what you wrote. The writer did not answer, so this is a backup question.',
+    });
+  }
+}
+
+function cleanSuggestLines(content, label, sectionText, otherText) {
+  var lines = String(content || '').split('\n').map(function (line) {
+    return line.replace(/^[\s\-\d\.\)\]]+/, '').replace(/\s+/g, ' ').trim();
+  }).filter(Boolean);
+  var out = [];
+  lines.forEach(function (line) {
+    if (out.length >= 3) return;
+    if (line.length > 180) return;
+    if (core.sensoryTrivia(line, sectionText + ' ' + otherText)) return;
+    if (/\b(supposed to|meant to)\b/i.test(line)) return;
+    if (/suno/i.test(line)) return;
+    out.push(line.charAt(line.length - 1) === '?' ? line.slice(0, -1).trim() : line);
+  });
+  if (!out.length) return core.suggestFallback(label, sectionText, otherText);
+  return out;
+}
+
+async function handleSuggest(req, res, body) {
+  var text = String((body && body.text) || '');
+  var others = String((body && body.others) || '');
+  var sectionLabel = String((body && body.section) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (text.length > core.STORY_MAX || others.length > core.STORY_MAX || text.length + others.length > core.STORY_MAX) {
+    sendJson(res, 400, {
+      ok: false,
+      error: 'That is a little long. The limit is ' + core.STORY_MAX + ' characters. Shorten it and try again.',
+    });
+    return;
+  }
+  var trimmed = text.trim();
+  if (!trimmed && !others.trim()) {
+    sendJson(res, 200, {
+      ok: true,
+      options: [],
+      source: 'sample',
+      notice: 'Write a little in this part first. Then I can offer a line.',
+    });
+    return;
+  }
+  var blocked = await guard.enforce(req, guard.clientIp(req), body, { text: [trimmed, others].join('\n') });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
+    return;
+  }
+  var fallback = core.suggestFallback(sectionLabel, trimmed, others);
+  if (!xai.configured()) {
+    sendJson(res, 200, {
+      ok: true,
+      options: fallback,
+      source: 'sample',
+      notice: 'These are backup lines from what you wrote. Nothing is added until you tap Use this.',
+    });
+    return;
+  }
+  try {
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      messages: [
+        { role: 'system', content: core.suggestSystem(sectionLabel) },
+        { role: 'user', content: 'Part: ' + (sectionLabel || 'this part') + '\nThis part:\n' + trimmed + '\nOther parts:\n' + others.trim() },
+      ],
+      max_tokens: 180,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      options: cleanSuggestLines(chat && chat.content, sectionLabel, trimmed, others),
+      source: 'grok',
+      notice: '',
+    });
+  } catch (err) {
+    sendJson(res, 200, {
+      ok: true,
+      options: fallback,
+      source: 'sample',
+      notice: 'These are backup lines from what you wrote. Nothing is added until you tap Use this.',
     });
   }
 }
@@ -448,6 +538,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleAsk(req, res, askBody || {});
     return;
   }
+  if (action === 'suggest') {
+    var suggestBody = givenBody;
+    if (!suggestBody) suggestBody = await readBody(req);
+    await handleSuggest(req, res, suggestBody || {});
+    return;
+  }
   if (action === 'scout' || action === 'scoop') {
     var body = givenBody;
     if (!body) body = await readBody(req);
@@ -484,7 +580,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

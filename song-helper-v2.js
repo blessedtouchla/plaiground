@@ -81,7 +81,7 @@
   var ideaLane = '';
   var branch = '';
   var storyBox = false;
-  var askState = { lastAngle: '', asked: [] };
+  var pageSections = [];
   var KIND_MOOD = {
     love: 'in love',
     heartbreak: 'heartbroken',
@@ -2934,12 +2934,75 @@
     el.hidden = !message;
   }
 
+  function findPart(id) {
+    var found = null;
+    pageSections.forEach(function (row) { if (row.id === id) found = row; });
+    return found;
+  }
+
+  function partNode(attr, id) {
+    var host = $('sh-page-sections');
+    if (!host) return null;
+    var nodes = host.querySelectorAll('[' + attr + ']');
+    var found = null;
+    for (var i = 0; i < nodes.length; i += 1) {
+      if (nodes[i].getAttribute(attr) === id) found = nodes[i];
+    }
+    return found;
+  }
+
+  function otherBody(id) {
+    return pageSections.filter(function (row) { return row.id !== id; }).map(function (row) {
+      return String(row.text || '');
+    }).join('');
+  }
+
+  function adoptSections(rows) {
+    var prior = {};
+    pageSections.forEach(function (row) { prior[row.id] = row; });
+    return (rows || []).map(function (row) {
+      var old = prior[row.id] || {};
+      return {
+        id: String(row.id || ''),
+        kind: String(row.kind || old.kind || 'verse'),
+        label: String(row.label || old.label || 'Verse'),
+        text: String(row.text == null ? (old.text || '') : row.text),
+        lastAngle: old.lastAngle || '',
+        asked: Array.isArray(old.asked) ? old.asked.slice(0, 12) : [],
+        question: old.question || '',
+      };
+    });
+  }
+
+  function freshSections(rows) {
+    return (rows || []).map(function (row) {
+      return {
+        id: String(row.id || ''),
+        kind: String(row.kind || 'verse'),
+        label: String(row.label || 'Verse'),
+        text: String(row.text || ''),
+        lastAngle: '',
+        asked: [],
+        question: '',
+      };
+    });
+  }
+
+  function partError(id, message) {
+    var el = partNode('data-part-error', id);
+    if (!el) {
+      pageError(message);
+      return;
+    }
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
   function paintHumanMeter() {
-    var box = $('sh-page-text');
     var flow = window.SongFlow;
-    if (!box || !flow || !flow.humanMeter) return;
-    var meter = flow.humanMeter(box.value);
-    var guide = flow.nextGuide ? flow.nextGuide(box.value) : null;
+    if (!flow || !flow.humanMeter || !flow.sectionBody) return;
+    var meter = flow.humanMeter(flow.sectionBody(pageSections));
+    var guide = flow.nextGuide ? flow.nextGuide(pageSections) : null;
     var host = $('sh-meter');
     if (host) {
       host.classList.toggle('is-full', meter.band === 'full');
@@ -2949,7 +3012,10 @@
     var label = $('sh-meter-label');
     if (label) label.textContent = meter.label;
     var count = $('sh-meter-count');
-    if (count) count.textContent = meter.count + ' / ' + meter.max;
+    if (count) {
+      count.textContent = meter.count + ' / ' + meter.max;
+      count.classList.toggle('is-near', meter.count >= (flow.STORY_NEAR || 2700));
+    }
     var line = $('sh-meter-line');
     if (line) line.textContent = meter.line;
     var next = $('sh-meter-next');
@@ -2962,15 +3028,15 @@
   }
 
   function paintCleanLyrics() {
-    var box = $('sh-page-text');
     var ready = $('sh-page-ready');
     var clean = $('sh-page-clean');
     var note = $('sh-page-ready-note');
     var flow = window.SongFlow;
-    if (!box || !ready || !clean || !flow || !flow.cleanPageLyrics) return;
-    var cleaned = flow.cleanPageLyrics(box.value);
+    if (!ready || !clean || !flow || !flow.cleanPageLyrics || !flow.sectionText) return;
+    var joined = flow.sectionText(pageSections);
+    var cleaned = flow.cleanPageLyrics(joined);
     clean.textContent = cleaned;
-    var same = cleaned === String(box.value || '').replace(/\r\n/g, '\n').replace(/^\n+|\n+$/g, '');
+    var same = cleaned === joined.replace(/\r\n/g, '\n').replace(/^\n+|\n+$/g, '');
     if (note) {
       note.textContent = same
         ? 'Your lyrics are ready. Nothing was rewritten.'
@@ -2979,114 +3045,307 @@
   }
 
   function persistPage() {
-    var box = $('sh-page-text');
-    var answer = $('sh-page-answer');
-    var question = $('sh-page-question');
     storyPatch({
       page: {
-        text: box ? box.value : '',
-        answer: answer ? answer.value : '',
-        question: question ? question.textContent : '',
+        sections: pageSections.map(function (row) {
+          return {
+            id: row.id,
+            kind: row.kind,
+            label: row.label,
+            text: row.text,
+            lastAngle: row.lastAngle || '',
+            asked: (row.asked || []).slice(0, 12),
+            question: row.question || '',
+          };
+        }),
         lyrics: !!(window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen()),
         open: !!storyBox,
-        lastAngle: askState.lastAngle || '',
-        asked: (askState.asked || []).slice(0, 12),
       },
     });
   }
 
-  function rememberAsk(question, angle) {
-    var text = String(question || '').trim();
-    if (text && askState.asked.indexOf(text) === -1) askState.asked.push(text);
-    if (askState.asked.length > 12) askState.asked = askState.asked.slice(-12);
-    askState.lastAngle = angle || '';
+  function syncPartCount(id) {
+    var row = findPart(id);
+    var count = partNode('data-count', id);
+    if (count && row) count.textContent = String(row.text || '').length + ' characters';
+  }
+
+  function bindPartInput(area, id) {
+    var flow = window.SongFlow;
+    function nextValue(start, end, insert) {
+      return area.value.slice(0, start) + String(insert == null ? '' : insert) + area.value.slice(end);
+    }
+    function reject(message) {
+      var caret = area.selectionStart;
+      var row = findPart(id);
+      var keep = row ? row.text : '';
+      area.value = keep;
+      try {
+        var at = Math.min(typeof caret === 'number' ? caret : keep.length, keep.length);
+        area.setSelectionRange(at, at);
+      } catch (err) {}
+      pageError(message || (flow && flow.TOO_LONG) || '');
+    }
+    area.addEventListener('beforeinput', function (event) {
+      if (!flow || !flow.proposeSectionText) return;
+      var type = event.inputType || '';
+      if (type === 'insertFromPaste' || type.indexOf('insert') !== 0) return;
+      var data = event.data;
+      if (data == null && type === 'insertLineBreak') data = '\n';
+      if (data == null) return;
+      var verdict = flow.proposeSectionText(pageSections, id, nextValue(area.selectionStart, area.selectionEnd, data));
+      if (!verdict.ok) {
+        event.preventDefault();
+        pageError(verdict.message);
+      }
+    });
+    area.addEventListener('paste', function (event) {
+      if (!flow || !flow.proposeSectionText) return;
+      var text = event.clipboardData ? event.clipboardData.getData('text') : '';
+      var parsed = flow.splitLyrics ? flow.splitLyrics(text) : null;
+      if (parsed && parsed.length >= 2) {
+        event.preventDefault();
+        if (flow.sectionTotal(parsed) > storyMax()) {
+          pageError(flow.TOO_LONG || '');
+          return;
+        }
+        pageSections = freshSections(parsed);
+        renderSections();
+        pageError('');
+        paintHumanMeter();
+        persistPage();
+        return;
+      }
+      var verdict = flow.proposeSectionText(pageSections, id, nextValue(area.selectionStart, area.selectionEnd, text));
+      if (!verdict.ok) {
+        event.preventDefault();
+        pageError(verdict.message);
+      }
+    });
+    area.addEventListener('input', function () {
+      if (!flow || !flow.proposeSectionText) return;
+      var verdict = flow.proposeSectionText(pageSections, id, area.value);
+      if (!verdict.ok) {
+        reject(verdict.message);
+        return;
+      }
+      pageSections = adoptSections(verdict.sections);
+      pageError('');
+      partError(id, '');
+      syncPartCount(id);
+      paintHumanMeter();
+      persistPage();
+    });
+  }
+
+  function fillAskPanel(panel, id, question, notice) {
+    panel.hidden = false;
+    panel.textContent = '';
+    var q = document.createElement('p');
+    q.className = 'sh-q';
+    q.textContent = question || '';
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    note.textContent = notice || 'Answer in your own words. Adding it counts toward the meter.';
+    var field = document.createElement('label');
+    field.className = 'sh-field';
+    var span = document.createElement('span');
+    span.textContent = 'Your answer';
+    var answer = document.createElement('textarea');
+    answer.className = 'sh-area';
+    answer.rows = 4;
+    answer.placeholder = 'Your words. They get added to this part when you tap the button.';
+    field.appendChild(span);
+    field.appendChild(answer);
+    var actions = document.createElement('div');
+    actions.className = 'sh-side-actions';
+    var add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'btn btn-purple btn-md';
+    add.textContent = 'Add this to this part';
+    add.addEventListener('click', function () { appendAnswer(id, answer); });
+    actions.appendChild(add);
+    panel.appendChild(q);
+    panel.appendChild(note);
+    panel.appendChild(field);
+    panel.appendChild(actions);
+  }
+
+  function renderSections() {
+    var host = $('sh-page-sections');
+    if (!host) return;
+    host.textContent = '';
+    pageSections.forEach(function (row) {
+      var article = document.createElement('article');
+      article.className = 'sh-part';
+      article.setAttribute('data-id', row.id);
+      var head = document.createElement('div');
+      head.className = 'sh-part-head';
+      var title = document.createElement('h3');
+      title.textContent = row.label;
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn btn-ghost btn-md';
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', 'Remove ' + row.label);
+      remove.addEventListener('click', function () { removePart(row.id); });
+      head.appendChild(title);
+      head.appendChild(remove);
+      var area = document.createElement('textarea');
+      area.className = 'sh-area sh-part-box';
+      area.rows = 5;
+      area.setAttribute('data-part-text', row.id);
+      area.setAttribute('aria-label', row.label);
+      area.value = row.text || '';
+      area.placeholder = 'Write ' + row.label + ' in your own words.';
+      var count = document.createElement('p');
+      count.className = 'sh-help sh-part-count';
+      count.setAttribute('data-count', row.id);
+      count.textContent = String(area.value.length) + ' characters';
+      var actions = document.createElement('div');
+      actions.className = 'sh-side-actions';
+      var askBtn = document.createElement('button');
+      askBtn.type = 'button';
+      askBtn.className = 'btn btn-purple btn-md';
+      askBtn.textContent = 'Ask me a question';
+      askBtn.addEventListener('click', function () { askSection(row.id, askBtn); });
+      var suggestBtn = document.createElement('button');
+      suggestBtn.type = 'button';
+      suggestBtn.className = 'btn btn-ghost btn-md';
+      suggestBtn.textContent = 'Give me a suggestion';
+      suggestBtn.addEventListener('click', function () { suggestSection(row.id, suggestBtn); });
+      actions.appendChild(askBtn);
+      actions.appendChild(suggestBtn);
+      var askPanel = document.createElement('div');
+      askPanel.className = 'sh-part-ask';
+      askPanel.hidden = !row.question;
+      askPanel.setAttribute('data-ask', row.id);
+      var suggestPanel = document.createElement('div');
+      suggestPanel.className = 'sh-part-suggest';
+      suggestPanel.hidden = true;
+      suggestPanel.setAttribute('data-suggest', row.id);
+      var err = document.createElement('p');
+      err.className = 'sh-form-error';
+      err.setAttribute('role', 'alert');
+      err.hidden = true;
+      err.setAttribute('data-part-error', row.id);
+      article.appendChild(head);
+      article.appendChild(area);
+      article.appendChild(count);
+      article.appendChild(actions);
+      article.appendChild(askPanel);
+      article.appendChild(suggestPanel);
+      article.appendChild(err);
+      host.appendChild(article);
+      bindPartInput(area, row.id);
+      if (row.question) fillAskPanel(askPanel, row.id, row.question, 'Answer in your own words. Adding it counts toward the meter.');
+    });
   }
 
   function bootWriteFirst() {
-    var box = $('sh-page-text');
-    var askBtn = $('sh-page-ask');
-    var addBtn = $('sh-page-add');
+    var host = $('sh-page-sections');
     var lyricsBtn = $('sh-page-lyrics');
     var pageBtn = $('sh-choice-page');
-    var answer = $('sh-page-answer');
-    if (!box) return;
-    armStory(box);
+    var addVerse = $('sh-add-verse');
+    var addOutro = $('sh-add-outro');
+    var flow = window.SongFlow;
+    if (!host || !flow || !flow.blankSections) return;
+    pageSections = flow.blankSections();
     var saved = {};
     try {
       saved = (JSON.parse(localStorage.getItem('plaiground.songHelper.story') || '{}') || {}).page || {};
     } catch (err) { saved = {}; }
-    if (saved.text && !String(box.value || '').trim()) {
-      var flow = window.SongFlow;
-      var restored = String(saved.text);
-      if (flow && flow.proposeStory && restored.length > storyMax()) {
-        pageError(flow.TOO_LONG);
-      } else {
-        box.value = restored;
-        paintStory(box);
-      }
+    if (Array.isArray(saved.sections) && saved.sections.length) {
+      var restored = saved.sections.map(function (row) {
+        return {
+          id: String(row && row.id || '').replace(/[^a-z0-9-]/gi, '').slice(0, 24),
+          kind: String(row && row.kind || 'verse'),
+          label: String(row && row.label || 'Verse').replace(/\s+/g, ' ').trim().slice(0, 40),
+          text: String(row && row.text || ''),
+          lastAngle: String(row && row.lastAngle || '').replace(/[^a-z]/g, '').slice(0, 16),
+          asked: Array.isArray(row && row.asked) ? row.asked.map(function (item) { return String(item || ''); }).filter(Boolean).slice(0, 12) : [],
+          question: String(row && row.question || ''),
+        };
+      }).filter(function (row) { return row.id && row.label; });
+      if (flow.sectionTotal(restored) > storyMax()) pageError(flow.TOO_LONG || '');
+      else if (restored.length) pageSections = restored;
+    } else if (saved.text) {
+      var legacy = String(saved.text);
+      if (legacy.length > storyMax()) pageError(flow.TOO_LONG || '');
+      else if (legacy) pageSections[0].text = legacy;
     }
-    if (answer && saved.answer && !String(answer.value || '').trim()) answer.value = String(saved.answer);
-    if (saved.lastAngle) askState.lastAngle = String(saved.lastAngle);
-    if (Array.isArray(saved.asked)) askState.asked = saved.asked.map(function (item) { return String(item || ''); }).filter(Boolean).slice(0, 12);
-    if (saved.question) {
-      var q = $('sh-page-question');
-      var panel = $('sh-page-q');
-      if (q) q.textContent = String(saved.question);
-      if (panel) panel.hidden = false;
-      if (askState.asked.indexOf(String(saved.question)) === -1) askState.asked.push(String(saved.question));
-    }
+    renderSections();
     paintHumanMeter();
-    if (saved.open || saved.lyrics || (saved.text && String(saved.text).trim())) {
-      setStoryBox(true, { keep: true, quiet: true });
+    var anyText = pageSections.some(function (row) { return String(row.text || '').trim(); });
+    if (saved.open || saved.lyrics || anyText) setStoryBox(true, { keep: true, quiet: true });
+    if (pageBtn) pageBtn.addEventListener('click', function () { setStoryBox(true); });
+    if (addVerse) {
+      addVerse.addEventListener('click', function () {
+        pageSections = adoptSections(flow.addSection(pageSections, 'verse'));
+        renderSections();
+        persistPage();
+        var last = host.lastElementChild;
+        if (last && last.scrollIntoView) {
+          try { last.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+        }
+      });
     }
-    box.addEventListener('input', function () {
-      pageError('');
-      paintHumanMeter();
-      persistPage();
-    });
-    if (answer) {
-      answer.addEventListener('input', function () { persistPage(); });
+    if (addOutro) {
+      addOutro.addEventListener('click', function () {
+        var before = pageSections.length;
+        pageSections = adoptSections(flow.addSection(pageSections, 'outro'));
+        renderSections();
+        persistPage();
+        if (pageSections.length === before) pageError('An outro is already on the page.');
+        else pageError('');
+      });
     }
-    if (pageBtn) {
-      pageBtn.addEventListener('click', function () { setStoryBox(true); });
-    }
-    if (askBtn) {
-      askBtn.addEventListener('click', function () { askFromPage(); });
-    }
-    if (addBtn) {
-      addBtn.addEventListener('click', function () { addPageAnswer(); });
-    }
-    if (lyricsBtn) {
-      lyricsBtn.addEventListener('click', function () { openLyricsPath(); });
-    }
-    if (saved.lyrics && String(box.value || '').trim() && window.SongHelperPage && window.SongHelperPage.openFinishedLyrics) {
-      openLyricsPath();
-    }
+    if (lyricsBtn) lyricsBtn.addEventListener('click', function () { openLyricsPath(); });
+    if (saved.lyrics && anyText && window.SongHelperPage && window.SongHelperPage.openFinishedLyrics) openLyricsPath();
   }
 
-  function askFromPage() {
-    var box = $('sh-page-text');
+  function removePart(id) {
     var flow = window.SongFlow;
-    var core = window.SongHelperCore;
-    var askBtn = $('sh-page-ask');
-    if (!box) return;
-    var text = String(box.value || '');
-    if (!text.trim()) {
-      pageError('Write a little in the box first. Then I can ask about what you wrote.');
+    if (!flow || !flow.removeSection) return;
+    var verdict = flow.removeSection(pageSections, id);
+    if (!verdict.ok) {
+      partError(id, verdict.message || '');
       return;
     }
+    pageSections = adoptSections(verdict.sections);
     pageError('');
-    var plan = core && core.askPlan ? core.askPlan(text, askState) : { angle: '', question: 'What happened right after that?' };
-    var fallback = plan.question;
-    if (askBtn) askBtn.disabled = true;
+    renderSections();
+    paintHumanMeter();
+    persistPage();
+  }
+
+  function askSection(id, button) {
+    var row = findPart(id);
+    var core = window.SongHelperCore;
+    if (!row) return;
+    var text = String(row.text || '');
+    var others = otherBody(id);
+    if (!text.trim() && !others.trim()) {
+      partError(id, 'Write a little in this part first. Then I can ask about what you wrote.');
+      return;
+    }
+    partError(id, '');
+    pageError('');
+    var state = { lastAngle: row.lastAngle || '', asked: (row.asked || []).slice(0, 12) };
+    var context = [text.trim(), others.trim()].filter(Boolean).join('\n');
+    var plan = core && core.askPlan ? core.askPlan(context, state) : { angle: 'feeling', question: 'How do you feel about this?' };
+    var fallback = core && core.sectionQuestion ? core.sectionQuestion(row.label, plan.angle, context) : plan.question;
+    if (button) button.disabled = true;
     fetch('/api/song-helper', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'ask',
+        section: row.label,
         text: text,
-        lastAngle: askState.lastAngle || '',
-        asked: (askState.asked || []).slice(0, 12),
+        others: others,
+        lastAngle: state.lastAngle,
+        asked: state.asked,
       }),
     }).then(function (response) {
       return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
@@ -3095,66 +3354,189 @@
       var question = data && data.question ? String(data.question) : '';
       var angle = data && data.angle ? String(data.angle) : plan.angle;
       var notice = data && data.notice ? String(data.notice) : '';
-      if (!question) {
-        question = fallback;
-        angle = plan.angle;
-      }
-      if (!result || !result.ok) {
+      if (!question || !result || !result.ok) {
         question = fallback;
         angle = plan.angle;
         notice = notice || 'This question comes from what you wrote. The writer did not answer, so this is a backup question.';
       }
-      if (angle && angle === askState.lastAngle && core && core.askPlan) {
-        var fresh = core.askPlan(text, askState);
-        question = fresh.question;
+      if (angle && angle === row.lastAngle && core && core.askPlan && core.sectionQuestion) {
+        var fresh = core.askPlan(context, state);
+        question = core.sectionQuestion(row.label, fresh.angle, context);
         angle = fresh.angle;
       }
-      showPageQuestion(question, notice, angle);
+      showPartQuestion(id, question, notice, angle);
     }).catch(function () {
-      showPageQuestion(fallback, 'This question comes from what you wrote. The writer did not answer, so this is a backup question.', plan.angle);
+      showPartQuestion(id, fallback, 'This question comes from what you wrote. The writer did not answer, so this is a backup question.', plan.angle);
     }).then(function () {
-      if (askBtn) askBtn.disabled = false;
+      if (button) button.disabled = false;
     });
   }
 
-  function showPageQuestion(question, notice, angle) {
-    var panel = $('sh-page-q');
-    var q = $('sh-page-question');
-    var note = $('sh-page-ask-note');
-    rememberAsk(question, angle);
-    if (q) q.textContent = question || '';
-    if (note) note.textContent = notice || 'Answer in your own words. Adding it counts toward the meter.';
-    if (panel) panel.hidden = false;
+  function showPartQuestion(id, question, notice, angle) {
+    var row = findPart(id);
+    var text = String(question || '').trim();
+    if (row) {
+      if (text && (row.asked || []).indexOf(text) === -1) row.asked = (row.asked || []).concat([text]).slice(-12);
+      row.lastAngle = angle || '';
+      row.question = text;
+    }
+    var panel = partNode('data-ask', id);
+    if (panel) fillAskPanel(panel, id, text, notice);
     persistPage();
-    if (q && q.scrollIntoView) {
-      try { q.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+    if (panel && panel.scrollIntoView) {
+      try { panel.scrollIntoView({ block: 'nearest' }); } catch (err) {}
     }
   }
 
-  function addPageAnswer() {
-    var box = $('sh-page-text');
-    var answer = $('sh-page-answer');
+  function appendAnswer(id, answer) {
     var flow = window.SongFlow;
-    if (!box || !answer || !flow || !flow.appendAnswer) return;
-    var verdict = flow.appendAnswer(box.value, answer.value);
+    var row = findPart(id);
+    if (!flow || !flow.applySuggestion || !row || !answer) return;
+    if (!String(answer.value || '').trim()) {
+      partError(id, flow.ANSWER_EMPTY || 'Write an answer first. It stays out of the song until you add it.');
+      return;
+    }
+    var verdict = flow.applySuggestion(pageSections, id, answer.value);
     if (!verdict.ok) {
       pageError(verdict.message || (flow.TOO_LONG || ''));
       return;
     }
-    box.value = verdict.value;
+    pageSections = adoptSections(verdict.sections);
     answer.value = '';
     pageError('');
-    paintStory(box);
+    partError(id, '');
+    var area = partNode('data-part-text', id);
+    var next = findPart(id);
+    if (area && next) area.value = next.text;
+    syncPartCount(id);
+    paintHumanMeter();
+    persistPage();
+  }
+
+  function suggestSection(id, button) {
+    var row = findPart(id);
+    var core = window.SongHelperCore;
+    if (!row) return;
+    var text = String(row.text || '');
+    var others = otherBody(id);
+    if (!text.trim() && !others.trim()) {
+      partError(id, 'Write a little in this part first. Then I can offer a line.');
+      return;
+    }
+    partError(id, '');
+    pageError('');
+    var before = text;
+    var fallback = core && core.suggestFallback ? core.suggestFallback(row.label, text, others) : [];
+    if (button) button.disabled = true;
+    fetch('/api/song-helper', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'suggest',
+        section: row.label,
+        text: text,
+        others: others,
+      }),
+    }).then(function (response) {
+      return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
+    }).then(function (result) {
+      var data = result && result.data;
+      var options = data && Array.isArray(data.options) ? data.options : [];
+      var notice = data && data.notice ? String(data.notice) : '';
+      if (!options.length || !result || !result.ok) {
+        options = fallback;
+        notice = notice || 'These are backup lines from what you wrote. Nothing is added until you tap Use this.';
+      }
+      var current = findPart(id);
+      if (current && current.text !== before) return;
+      showSuggestions(id, options, notice);
+    }).catch(function () {
+      showSuggestions(id, fallback, 'These are backup lines from what you wrote. Nothing is added until you tap Use this.');
+    }).then(function () {
+      if (button) button.disabled = false;
+    });
+  }
+
+  function showSuggestions(id, options, notice) {
+    var panel = partNode('data-suggest', id);
+    if (!panel) return;
+    panel.hidden = false;
+    panel.textContent = '';
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    note.textContent = 'These are options. Nothing is added until you tap Use this. You can edit a line first, or skip it.';
+    if (notice) {
+      var extra = document.createElement('p');
+      extra.className = 'sh-help';
+      extra.textContent = notice;
+      panel.appendChild(extra);
+    }
+    panel.appendChild(note);
+    (options || []).forEach(function (line) {
+      var wrap = document.createElement('div');
+      wrap.className = 'sh-suggest-option';
+      var edit = document.createElement('textarea');
+      edit.className = 'sh-area sh-suggest-edit';
+      edit.rows = 2;
+      edit.value = String(line || '');
+      var actions = document.createElement('div');
+      actions.className = 'sh-side-actions';
+      var use = document.createElement('button');
+      use.type = 'button';
+      use.className = 'btn btn-purple btn-md';
+      use.textContent = 'Use this';
+      use.addEventListener('click', function () { useSuggestion(id, edit.value); });
+      var skip = document.createElement('button');
+      skip.type = 'button';
+      skip.className = 'btn btn-ghost btn-md';
+      skip.textContent = 'Skip';
+      skip.addEventListener('click', function () { wrap.remove(); });
+      actions.appendChild(use);
+      actions.appendChild(skip);
+      wrap.appendChild(edit);
+      wrap.appendChild(actions);
+      panel.appendChild(wrap);
+    });
+  }
+
+  function useSuggestion(id, line) {
+    var flow = window.SongFlow;
+    if (!flow || !flow.applySuggestion) return;
+    var verdict = flow.applySuggestion(pageSections, id, line);
+    if (!verdict.ok) {
+      pageError(verdict.message || (flow.TOO_LONG || ''));
+      return;
+    }
+    pageSections = adoptSections(verdict.sections);
+    pageError('');
+    partError(id, '');
+    var area = partNode('data-part-text', id);
+    var next = findPart(id);
+    if (area && next) area.value = next.text;
+    syncPartCount(id);
     paintHumanMeter();
     persistPage();
   }
 
   function openLyricsPath() {
-    var box = $('sh-page-text');
+    var flow = window.SongFlow;
     var ready = $('sh-page-ready');
-    if (!box || !String(box.value || '').trim()) {
-      pageError('Paste your lyrics in the box first.');
+    if (!flow) return;
+    var filled = pageSections.filter(function (row) { return String(row.text || '').trim(); });
+    if (!filled.length) {
+      pageError('Paste your lyrics into the parts first.');
       return;
+    }
+    if (filled.length === 1 && flow.splitLyrics) {
+      var parsed = flow.splitLyrics(filled[0].text);
+      if (parsed && parsed.length >= 2) {
+        if (flow.sectionTotal(parsed) > storyMax()) {
+          pageError(flow.TOO_LONG || '');
+          return;
+        }
+        pageSections = freshSections(parsed);
+        renderSections();
+      }
     }
     pageError('');
     paintCleanLyrics();
@@ -3185,6 +3567,14 @@
     },
     region: function () { return craft.region || ''; },
     styleText: currentStyleText,
+    pageText: function () {
+      return window.SongFlow && window.SongFlow.sectionText ? window.SongFlow.sectionText(pageSections) : '';
+    },
+    pageSections: function () {
+      return pageSections.map(function (row) {
+        return { id: row.id, kind: row.kind, label: row.label, text: row.text };
+      });
+    },
   };
   bindCraft();
   paintOwn();

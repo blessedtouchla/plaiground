@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261010guide" />
+  <link rel="stylesheet" href="song-helper.css?v=20261010parts" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -94,11 +94,8 @@
       </section>
       <section class="sh-craft sh-page" id="sh-page" hidden>
         <h2 class="sh-craft-title">Write it here</h2>
-        <p class="sh-help">Lay down the whole story, or paste the lyrics you already finished. Nothing on this screen is required before you start.</p>
-        <label class="sh-field" for="sh-page-text">
-          <span>Your story or lyrics</span>
-          <textarea class="sh-area sh-page-box" id="sh-page-text" rows="12" placeholder="Start writing. A story, a verse, or the whole song."></textarea>
-        </label>
+        <p class="sh-help">Each part has its own box. Verse 1, the hook, Verse 2, and the bridge start you off. Add a verse or an outro if you need one. Nothing is filled in until you tap Use this.</p>
+        <div id="sh-page-sections"></div>
         <div class="sh-meter" id="sh-meter" role="meter" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="0">
           <p class="sh-meter-label" id="sh-meter-label">Not started</p>
           <div class="sh-meter-track" aria-hidden="true"><div class="sh-meter-fill" id="sh-meter-fill"></div></div>
@@ -108,19 +105,9 @@
           <p class="sh-help sh-meter-note" id="sh-meter-note"></p>
         </div>
         <div class="sh-side-actions">
-          <button type="button" class="btn btn-purple btn-md" id="sh-page-ask">Ask me a question</button>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-add-verse">Add a verse</button>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-add-outro">Add an outro</button>
           <button type="button" class="btn btn-ghost btn-md" id="sh-page-lyrics">I already have my lyrics</button>
-        </div>
-        <div id="sh-page-q" hidden>
-          <p class="sh-q" id="sh-page-question"></p>
-          <p class="sh-help" id="sh-page-ask-note"></p>
-          <label class="sh-field">
-            <span>Your answer</span>
-            <textarea class="sh-area" id="sh-page-answer" rows="4" placeholder="Your words. They get added to the box above."></textarea>
-          </label>
-          <div class="sh-side-actions">
-            <button type="button" class="btn btn-purple btn-md" id="sh-page-add">Add this to my song</button>
-          </div>
         </div>
         <p class="sh-form-error" id="sh-page-error" role="alert" hidden></p>
         <div id="sh-page-ready" hidden>
@@ -678,10 +665,10 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261010guide"></script>
+  <script src="lib/song-flow.js?v=20261010parts"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261007ev1"></script>
-  <script src="lib/song-helper.js?v=20261010start"></script>
+  <script src="lib/song-helper.js?v=20261010parts"></script>
   <script src="lib/claim-record.js?v=20261009story"></script>
   <script src="lib/song-pass.js?v=20261009story"></script>
   <script src="lib/style-swaps.js?v=20261009story"></script>
@@ -692,9 +679,9 @@
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261009story"></script>
   <script src="lib/song-questions.js?v=20261009story"></script>
-  <script src="song-helper.js?v=20261010write"></script>
+  <script src="song-helper.js?v=20261010parts"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010guide"></script>
+  <script src="song-helper-v2.js?v=20261010parts"></script>
   <script src="song-flow-page.js?v=20261009story"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>
