@@ -1212,7 +1212,11 @@
     "blog-meet-siva.html": true,
     "meet-siva": true,
     "blog-what-a-human-did.html": true,
-    "what-a-human-did": true
+    "what-a-human-did": true,
+    "song-helper.html": true,
+    "song-helper": true,
+    "cover-art.html": true,
+    "cover-art": true
   };
 
   function pixelPageFile() {
@@ -1229,20 +1233,100 @@
     return /^\d{5,20}$/.test(String(value || "").trim());
   }
 
+  function tiktokIdOk(value) {
+    return /^[A-Za-z0-9]{10,32}$/.test(String(value || "").trim());
+  }
+
+  function ga4IdOk(value) {
+    return /^G-[A-Z0-9]{4,20}$/i.test(String(value || "").trim());
+  }
+
+  /* launch-pixels: standard events only. No email, name, or account id. */
+  var PIXEL_NAMES = {
+    PageView: true,
+    CompleteRegistration: true,
+    Lead: true,
+    InitiateCheckout: true,
+    Purchase: true
+  };
+  var TIKTOK_NAMES = {
+    PageView: "Pageview",
+    CompleteRegistration: "CompleteRegistration",
+    Lead: "SubmitForm",
+    InitiateCheckout: "InitiateCheckout",
+    Purchase: "CompletePayment"
+  };
+  var GA4_NAMES = {
+    CompleteRegistration: "sign_up",
+    Lead: "generate_lead",
+    InitiateCheckout: "begin_checkout",
+    Purchase: "purchase"
+  };
+
+  function consentChoice() {
+    var raw = "";
+    try {
+      var parts = String(document.cookie || "").split(";");
+      for (var i = 0; i < parts.length; i += 1) {
+        var bit = parts[i].replace(/^\s+/, "");
+        if (bit.indexOf("plaiground_consent=") === 0) raw = decodeURIComponent(bit.slice(19));
+      }
+    } catch (err) {}
+    if (!raw) {
+      try { raw = window.localStorage ? String(window.localStorage.getItem("plaiground.consent") || "") : ""; } catch (err2) {}
+    }
+    var value = String(raw || "").trim().toLowerCase();
+    if (value === "denied" || value === "0" || value === "no") return "denied";
+    if (value === "granted" || value === "1" || value === "yes" || value === "all") return "granted";
+    return "";
+  }
+
+  function adsAllowed() {
+    return consentChoice() !== "denied";
+  }
+
+  function firePixel(name) {
+    var eventName = String(name || "").trim();
+    if (!PIXEL_NAMES[eventName] || !adsAllowed()) return;
+    if (window.fbq && window.PlaigroundPixel.meta) window.fbq("track", eventName);
+    if (window.ttq && window.ttq.track && window.PlaigroundPixel.tiktok) {
+      if (eventName === "PageView") window.ttq.page();
+      else window.ttq.track(TIKTOK_NAMES[eventName]);
+    }
+    if (window.gtag && window.PlaigroundPixel.ga4 && GA4_NAMES[eventName]) {
+      window.gtag("event", GA4_NAMES[eventName]);
+    }
+  }
+
   window.PlaigroundPixel = {
     id: "",
+    meta: "",
+    tiktok: "",
+    ga4: "",
     ready: false,
     q: [],
     track: function (name) {
       var eventName = String(name || "").trim();
-      if (eventName !== "CompleteRegistration") return;
-      if (window.fbq && this.ready) {
-        window.fbq("track", eventName);
+      if (!PIXEL_NAMES[eventName]) return;
+      if (!adsAllowed()) return;
+      if (!this.meta && !this.tiktok && !this.ga4) {
+        this.q.push(eventName);
         return;
       }
-      this.q.push(eventName);
+      firePixel(eventName);
     }
   };
+
+  function drainPixelQueue() {
+    var queued = window.PlaigroundPixel.q.slice();
+    window.PlaigroundPixel.q = [];
+    var prior = window.PlaigroundPixelQueue;
+    if (Array.isArray(prior)) {
+      prior.forEach(function (name) { queued.push(name); });
+      window.PlaigroundPixelQueue = [];
+    }
+    queued.forEach(function (name) { firePixel(name); });
+  }
 
   function consumeSignupPixel() {
     try {
@@ -1254,56 +1338,108 @@
   }
 
   function injectMetaPixel(id) {
-    if (!pixelIdOk(id)) return;
-    if (window.fbq) return;
+    if (!pixelIdOk(id) || !adsAllowed()) return;
+    if (window.fbq && window.PlaigroundPixel.meta) return;
     window.PlaigroundPixel.id = id;
-    (function (f, b, e, v, n, t, s) {
-      if (f.fbq) return;
-      n = f.fbq = function () {
-        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-      };
-      if (!f._fbq) f._fbq = n;
-      n.push = n;
-      n.loaded = !0;
-      n.version = "2.0";
-      n.queue = [];
-      t = b.createElement(e);
-      t.async = !0;
-      t.src = v;
-      s = b.getElementsByTagName(e)[0];
-      if (s && s.parentNode) s.parentNode.insertBefore(t, s);
-    })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    window.PlaigroundPixel.meta = id;
+    if (!window.fbq) {
+      (function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = "2.0";
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        if (s && s.parentNode) s.parentNode.insertBefore(t, s);
+      })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    }
     window.fbq("init", id);
     window.PlaigroundPixel.ready = true;
     if (isPublicPixelPage()) window.fbq("track", "PageView");
-    consumeSignupPixel();
-    window.PlaigroundPixel.q.forEach(function (name) {
-      window.fbq("track", name);
-    });
-    window.PlaigroundPixel.q = [];
   }
 
-  function loadMetaPixel() {
-    if (!window.fetch) return;
+  function injectTikTokPixel(id) {
+    if (!tiktokIdOk(id) || !adsAllowed()) return;
+    if (window.PlaigroundPixel.tiktok) return;
+    (function (w, d, t) {
+      w.TiktokAnalyticsObject = t;
+      var ttq = w[t] = w[t] || [];
+      ttq.methods = ["page", "track", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie"];
+      ttq.setAndDefer = function (obj, method) {
+        obj[method] = function () {
+          obj.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+        };
+      };
+      for (var i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(ttq, ttq.methods[i]);
+      ttq.load = function (pixelId) {
+        var src = "https://analytics.tiktok.com/i18n/pixel/events.js";
+        ttq._i = ttq._i || {};
+        ttq._i[pixelId] = [];
+        ttq._t = ttq._t || {};
+        ttq._t[pixelId] = +new Date();
+        ttq._o = ttq._o || {};
+        ttq._o[pixelId] = {};
+        var script = d.createElement("script");
+        script.type = "text/javascript";
+        script.async = true;
+        script.src = src + "?sdkid=" + pixelId + "&lib=" + t;
+        var first = d.getElementsByTagName("script")[0];
+        if (first && first.parentNode) first.parentNode.insertBefore(script, first);
+      };
+      ttq.load(id);
+      if (isPublicPixelPage()) ttq.page();
+    })(window, document, "ttq");
+    window.PlaigroundPixel.tiktok = id;
+  }
+
+  function injectGa4(id) {
+    if (!ga4IdOk(id) || !adsAllowed()) return;
+    if (window.PlaigroundPixel.ga4) return;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    var script = document.createElement("script");
+    script.async = true;
+    script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id);
+    var parent = document.head || document.documentElement;
+    if (parent) parent.appendChild(script);
+    window.gtag("js", new Date());
+    window.gtag("config", id, { send_page_view: !!isPublicPixelPage() });
+    window.PlaigroundPixel.ga4 = id;
+  }
+
+  function loadAdsPixels() {
+    if (!adsAllowed() || !window.fetch) return;
     fetch("/api/auth/pixel", { credentials: "same-origin", headers: { Accept: "application/json" } })
       .then(function (res) {
         return res.json().catch(function () { return {}; });
       })
       .then(function (data) {
-        var id = data && data.pixel_id;
-        if (pixelIdOk(id)) injectMetaPixel(id);
+        data = data || {};
+        if (pixelIdOk(data.pixel_id)) injectMetaPixel(data.pixel_id);
+        if (tiktokIdOk(data.tiktok_pixel_id)) injectTikTokPixel(data.tiktok_pixel_id);
+        if (ga4IdOk(data.ga4_measurement_id)) injectGa4(data.ga4_measurement_id);
+        consumeSignupPixel();
+        drainPixelQueue();
       })
       .catch(function () {});
   }
+  /* end-launch-pixels */
 
-  loadMetaPixel();
+  loadAdsPixels();
 })();
 
 (function () {
   if (window.PlaigroundEvents) return;
   if (!document || !document.head || !document.createElement) return;
   var script = document.createElement('script');
-  script.src = '/product-events.js?v=20261007ev1';
+  script.src = '/product-events.js?v=20261010track';
   script.async = false;
   document.head.appendChild(script);
 })();

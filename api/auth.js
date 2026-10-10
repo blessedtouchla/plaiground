@@ -2,7 +2,7 @@
 
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
- * GET  /api/auth/pixel     → { pixel_id } from META_PIXEL_ID only; empty when unset
+ * GET  /api/auth/pixel     → pixel ids from env only; empty when unset
  * POST /api/auth/signup    pending user only; no session; tries confirm mail; records signup once
  * POST /api/auth/login     confirmed users only; remember=true → 30-day cookie
  * POST /api/auth/logout
@@ -45,9 +45,10 @@ const {
 } = require('../lib/mail');
 const { pathnameOf, queryValue } = require('../lib/route');
 const { readBody, sendJson } = require('../lib/tonegrid');
-const { pixelId } = require('../lib/growth-pixel');
+const { ga4MeasurementId, pixelId, tiktokPixelId } = require('../lib/growth-pixel');
 const { recordSignup } = require('../lib/growth-events');
-const { normalizeAttribution, normalizeRole } = require('../lib/product-events');
+const { normalizeAttribution, normalizeRole, recordEvent } = require('../lib/product-events');
+const marketing = require('../lib/marketing');
 
 function authAction(req) {
   const path = pathnameOf(req);
@@ -92,8 +93,11 @@ async function pixel(req, res) {
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }
-  const id = pixelId();
-  sendJson(res, 200, { pixel_id: id });
+  sendJson(res, 200, {
+    pixel_id: pixelId(),
+    tiktok_pixel_id: tiktokPixelId(),
+    ga4_measurement_id: ga4MeasurementId(),
+  });
 }
 
 async function signup(req, res) {
@@ -139,6 +143,13 @@ async function signup(req, res) {
       await recordSignup(row);
     } catch {
       /* signup event must not fail account create */
+    }
+    try {
+      const visitor = body && (body.visitor_id || body.visitorId);
+      await marketing.record(visitor, 'signup', attribution);
+      await recordEvent(row.id, 'signup', { attribution: attribution || {} });
+    } catch {
+      /* launch counts must not fail account create */
     }
     let mail;
     try {

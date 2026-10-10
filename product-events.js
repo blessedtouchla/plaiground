@@ -4,7 +4,28 @@
   var PENDING_KEY = 'plaiground.eventPending';
   var GUIDE_KEY = 'plaiground.guidePending';
   var RETURN_KEY = 'plaiground.returnDay';
+  var VISITOR_KEY = 'plaiground.visitor';
+  var VISIT_DAY_KEY = 'plaiground.visitDay';
+  var FIRST_SONG_KEY = 'plaiground.firstSong';
   var MAX_PENDING = 40;
+  var KEY_EVENTS = {
+    signup: true,
+    song_helper_first: true,
+    cover_art_generated: true,
+    distro_checkout_started: true,
+    distro_checkout_completed: true
+  };
+  var PIXEL_EVENTS = {
+    song_helper_first: 'Lead',
+    distro_checkout_started: 'InitiateCheckout',
+    distro_checkout_completed: 'Purchase'
+  };
+  var MARKETING_EVENTS = {
+    song_helper_first: 'song_first',
+    cover_art_generated: 'cover_art',
+    distro_checkout_started: 'distro_started',
+    distro_checkout_completed: 'distro_purchased'
+  };
 
   function storage() {
     try { return root.localStorage || null; } catch (err) { return null; }
@@ -82,6 +103,10 @@
       utm_medium: clip(params && params.get('utm_medium'), 120),
       utm_campaign: clip(params && params.get('utm_campaign'), 120),
       utm_content: clip(params && params.get('utm_content'), 120),
+      utm_term: clip(params && params.get('utm_term'), 120),
+      fbclid: clickId(params && params.get('fbclid')),
+      ttclid: clickId(params && params.get('ttclid')),
+      gclid: clickId(params && params.get('gclid')),
       ref: clip(params && params.get('ref'), 64).replace(/[^A-Za-z0-9_-]/g, ''),
       referrer: externalReferrer(),
       landed_at: new Date().toISOString()
@@ -91,18 +116,110 @@
     return record;
   }
 
+  function clickId(value) {
+    var text = clip(value, 200);
+    if (!/^[A-Za-z0-9._~-]{4,200}$/.test(text)) return '';
+    return text;
+  }
+
   function readAttribution() {
     return readJson(ATTR_KEY) || readCookie() || captureAttribution();
   }
 
-  function safePayload(payload) {
+  function publicAttribution(record) {
+    var src = record && typeof record === 'object' ? record : {};
+    return {
+      utm_source: clip(src.utm_source, 120),
+      utm_medium: clip(src.utm_medium, 120),
+      utm_campaign: clip(src.utm_campaign, 120),
+      utm_content: clip(src.utm_content, 120),
+      utm_term: clip(src.utm_term, 120),
+      fbclid: clickId(src.fbclid),
+      ttclid: clickId(src.ttclid),
+      gclid: clickId(src.gclid),
+      ref: clip(src.ref, 64).replace(/[^A-Za-z0-9_-]/g, ''),
+      referrer: clip(src.referrer, 300),
+      landed_at: clip(src.landed_at, 40)
+    };
+  }
+
+  function readVisitorCookie() {
+    try {
+      var parts = String(root.document.cookie || '').split(';');
+      for (var i = 0; i < parts.length; i += 1) {
+        var bit = parts[i].replace(/^\s+/, '');
+        if (bit.indexOf('plaiground_vid=') === 0) return decodeURIComponent(bit.slice('plaiground_vid='.length));
+      }
+    } catch (err) {}
+    return '';
+  }
+
+  function visitorId() {
+    var box = storage();
+    var current = '';
+    try { current = box ? String(box.getItem(VISITOR_KEY) || '') : ''; } catch (err) {}
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(current)) current = readVisitorCookie();
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(current)) {
+      var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      current = 'v';
+      for (var i = 0; i < 20; i += 1) current += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    try { if (box) box.setItem(VISITOR_KEY, current); } catch (err2) {}
+    try {
+      root.document.cookie = 'plaiground_vid=' + encodeURIComponent(current) + '; Path=/; Max-Age=7776000; SameSite=Lax';
+    } catch (err3) {}
+    return current;
+  }
+
+  function safePayload(payload, eventName) {
     var src = payload && typeof payload === 'object' ? payload : {};
     var out = {};
     if (src.tier) out.tier = clip(src.tier, 20);
     if (src.lane) out.lane = clip(src.lane, 20);
     if (src.release_id) out.release_id = clip(src.release_id, 80);
     if (src.stop_id) out.stop_id = clip(src.stop_id, 80);
+    if (KEY_EVENTS[eventName]) out.attribution = publicAttribution(readAttribution());
     return out;
+  }
+
+  function pixel(standard) {
+    if (!standard) return;
+    var api = root.PlaigroundPixel;
+    if (api && api.track) {
+      api.track(standard);
+      return;
+    }
+    var q = root.PlaigroundPixelQueue || [];
+    q.push(standard);
+    root.PlaigroundPixelQueue = q;
+  }
+
+  function postMarketing(name) {
+    var eventName = MARKETING_EVENTS[name];
+    if (!eventName || !root.fetch) return;
+    postJson('/api/me/marketing', {
+      name: eventName,
+      visitor_id: visitorId(),
+      attribution: publicAttribution(readAttribution())
+    }).catch(function () {});
+  }
+
+  function noteVisit() {
+    var day = new Date().toISOString().slice(0, 10);
+    var box = storage();
+    try {
+      if (box && box.getItem(VISIT_DAY_KEY) === day) return;
+    } catch (err) {}
+    if (!root.fetch) return;
+    postJson('/api/me/marketing', {
+      name: 'visit',
+      visitor_id: visitorId(),
+      attribution: publicAttribution(readAttribution())
+    }).then(function (res) {
+      if (res && (res.ok || res.status === 200)) {
+        try { if (box) box.setItem(VISIT_DAY_KEY, day); } catch (err2) {}
+      }
+    }).catch(function () {});
   }
 
   function park(body) {
@@ -134,7 +251,7 @@
   function track(name, payload, at) {
     var eventName = clip(name, 80);
     if (!eventName || !root.fetch) return;
-    var body = safePayload(payload);
+    var body = safePayload(payload, eventName);
     body.name = eventName;
     if (at) body.at = at;
     if (eventName === 'return_visit') {
@@ -145,6 +262,8 @@
         if (box && box.getItem(RETURN_KEY) === day) return;
       } catch (err) {}
     }
+    if (MARKETING_EVENTS[eventName]) postMarketing(eventName);
+    if (PIXEL_EVENTS[eventName]) pixel(PIXEL_EVENTS[eventName]);
     postJson('/api/me/events', body).then(function (res) {
       if (res && res.ok && eventName === 'return_visit') {
         var kept = storage();
@@ -156,6 +275,19 @@
     }).catch(function () {
       if (eventName !== 'return_visit') park(body);
     });
+    if (eventName === 'song_helper_draft' || eventName === 'song_helper_saved') noteFirstSong();
+  }
+
+  function noteFirstSong() {
+    var box = storage();
+    if (!box) return;
+    try {
+      if (box.getItem(FIRST_SONG_KEY) === '1') return;
+      box.setItem(FIRST_SONG_KEY, '1');
+    } catch (err) {
+      return;
+    }
+    track('song_helper_first', {});
   }
 
   function saveGuide(body) {
@@ -234,6 +366,7 @@
     captureAttribution();
     installQueue();
     flushPending();
+    noteVisit();
     track('return_visit', {});
     if (root.document) watchWhatsNew();
   }
@@ -241,6 +374,7 @@
   root.PlaigroundEvents = {
     captureAttribution: captureAttribution,
     readAttribution: readAttribution,
+    visitorId: visitorId,
     saveGuide: saveGuide,
     track: track
   };

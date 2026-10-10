@@ -172,7 +172,7 @@
   <script src="membership.js"></script>
   <script src="roadmap-account.js?v=20260930r1"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="site.js?v=20260924p3"></script>
+  <script src="site.js?v=20261010track"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -222,6 +222,9 @@
             body.attribution = window.PlaigroundEvents.readAttribution();
           } else {
             body.attribution = JSON.parse(localStorage.getItem('plaiground.attribution') || 'null');
+          }
+          if (window.PlaigroundEvents && window.PlaigroundEvents.visitorId) {
+            body.visitor_id = window.PlaigroundEvents.visitorId();
           }
         } catch (errAttr) {}
         if (password.length < 8) {

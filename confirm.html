@@ -140,7 +140,7 @@
   </footer>
   <script src="membership.js"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="site.js?v=20260924p3"></script>
+  <script src="site.js?v=20261010track"></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
@@ -181,6 +181,17 @@
       if (params.get('session_id')) {
         var sessionId = params.get('session_id');
         var plan = params.get('plan');
+        try {
+          var distroFlag = sessionStorage.getItem('plaigroundDistroCheckout');
+          var planName = String(plan || '').trim().toLowerCase();
+          var membershipReturn = planName === 'creator' || planName === 'pro' || planName === 'basic';
+          if (distroFlag === 'pending' && !membershipReturn) {
+            sessionStorage.setItem('plaigroundDistroCheckout', 'done');
+            (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'distro_checkout_completed', payload: {} });
+          } else if (membershipReturn) {
+            sessionStorage.removeItem('plaigroundDistroCheckout');
+          }
+        } catch (errDistro) {}
         if (window.PlaigroundMembership) {
           window.PlaigroundMembership.recordPaidMembership(plan, sessionId);
         } else {

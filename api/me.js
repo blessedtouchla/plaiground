@@ -17,6 +17,9 @@
  * POST /api/me/guide      session required; save guide answers and optional role
  * GET  /api/admin/events  owner session only; counts, unique users, day-30 cohort
  * GET  /api/admin/events.csv  same auth; that table as text/csv
+ * POST /api/me/marketing  first-party visit and launch counts; no email
+ * GET  /api/admin/marketing  owner session only; daily source report
+ * GET  /api/admin/marketing.csv  same auth; that table as text/csv
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -27,6 +30,7 @@ const roadmap = require('../lib/roadmap');
 const lyrics = require('../lib/lyrics');
 const { findById, listUsers, mergeFacts, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const productEvents = require('../lib/product-events');
+const marketing = require('../lib/marketing');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
@@ -166,6 +170,24 @@ function isAdminEvents(req) {
   const path = pathnameOf(req);
   if (path === '/api/admin/events' || path === '/api/admin/events.csv') return true;
   return queryValue(req, 'action') === 'admin-events';
+}
+
+function isMarketing(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/marketing') return true;
+  return queryValue(req, 'action') === 'marketing';
+}
+
+function isAdminMarketing(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/marketing' || path === '/api/admin/marketing.csv') return true;
+  return queryValue(req, 'action') === 'admin-marketing';
+}
+
+function wantsMarketingCsv(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/marketing.csv') return true;
+  return String(queryValue(req, 'format') || '').toLowerCase() === 'csv';
 }
 
 function wantsEventsCsv(req) {
@@ -951,6 +973,100 @@ async function saveGuideAnswers(req, res) {
   }
 }
 
+async function recordMarketing(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (bodyHasPassword(body)) {
+    sendJson(res, 400, { error: 'Password is not accepted here.' });
+    return;
+  }
+  if (body && (body.email || body.user_id || body.userId || body.artist || body.artist_name)) {
+    sendJson(res, 400, { error: 'That is not accepted here.' });
+    return;
+  }
+  try {
+    const result = await marketing.record(
+      body && (body.visitor_id || body.visitorId),
+      body && body.name,
+      body && body.attribution,
+      body && body.at
+    );
+    if (!result.recorded && result.reason === 'bad_event') {
+      sendJson(res, 400, { error: 'Unknown event.' });
+      return;
+    }
+    sendJson(res, 200, { ok: true, recorded: Boolean(result.recorded), reason: result.reason || '' });
+  } catch {
+    sendJson(res, 503, { error: 'Could not record that.' });
+  }
+}
+
+async function adminMarketing(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (rejectUnconfirmed(res, row)) return;
+    if (!hasStaffProOverride(row.email)) {
+      sendJson(res, 403, { error: 'Not allowed.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    const result = await marketing.report(queryValue(req, 'from') || queryValue(req, 'day'), queryValue(req, 'to'));
+    if (result.error === 'bad_range') {
+      sendJson(res, 400, { error: 'Use dates as YYYY-MM-DD.' });
+      return;
+    }
+    if (result.error === 'range_too_long') {
+      sendJson(res, 400, { error: 'Date range is too long.' });
+      return;
+    }
+    if (wantsMarketingCsv(req)) {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="plaiground-launch.csv"');
+      res.setHeader('Cache-Control', 'no-store');
+      res.end(marketing.reportToCsv(result));
+      return;
+    }
+    sendJson(res, 200, { launch: result });
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
 async function adminEvents(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -1007,8 +1123,16 @@ module.exports = async function handler(req, res) {
     await adminRoadmaps(req, res);
     return;
   }
+  if (isAdminMarketing(req)) {
+    await adminMarketing(req, res);
+    return;
+  }
   if (isAdminEvents(req)) {
     await adminEvents(req, res);
+    return;
+  }
+  if (isMarketing(req)) {
+    await recordMarketing(req, res);
     return;
   }
   if (isEvents(req)) {

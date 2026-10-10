@@ -82,6 +82,17 @@
     } catch (err) {}
   }
 
+  function isDistroCheckout(trigger) {
+    var kind = String(trigger.getAttribute('data-checkout-kind') || '').trim().toLowerCase();
+    var plan = String(trigger.getAttribute('data-checkout-plan') || '').trim().toLowerCase();
+    return kind === 'distro' || plan === 'distro';
+  }
+
+  function markDistroStarted() {
+    try { sessionStorage.setItem('plaigroundDistroCheckout', 'pending'); } catch (err) {}
+    (global.PlaigroundEventQueue = global.PlaigroundEventQueue || []).push({ name: 'distro_checkout_started', payload: {} });
+  }
+
   function startCheckout(trigger) {
     if (trigger.getAttribute('aria-busy') === 'true') return;
     rememberPendingPlan(trigger);
@@ -139,6 +150,7 @@
           return;
         }
         if (result.data && result.data.url) {
+          if (isDistroCheckout(trigger)) markDistroStarted();
           window.location.href = result.data.url;
           return;
         }

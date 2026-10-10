@@ -141,3 +141,25 @@ CREATE TABLE IF NOT EXISTS product_event_rollups (
   last_at timestamptz NOT NULL,
   PRIMARY KEY (user_id, event_name)
 );
+
+-- Launch sprint counts. No email, name, or account id.
+CREATE TABLE IF NOT EXISTS marketing_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  visitor_id text NOT NULL,
+  event_name text NOT NULL,
+  utm_source text NOT NULL DEFAULT '',
+  utm_medium text NOT NULL DEFAULT '',
+  utm_campaign text NOT NULL DEFAULT '',
+  utm_content text NOT NULL DEFAULT '',
+  utm_term text NOT NULL DEFAULT '',
+  fbclid text NOT NULL DEFAULT '',
+  ttclid text NOT NULL DEFAULT '',
+  gclid text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS marketing_events_created_idx
+  ON marketing_events (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS marketing_events_visitor_idx
+  ON marketing_events (visitor_id, event_name, created_at DESC);

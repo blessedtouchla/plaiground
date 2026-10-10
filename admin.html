@@ -28,6 +28,7 @@
       <a href="#roadmaps">Roadmaps</a>
       <a href="#events">Events</a>
       <a href="#product-events">Product events</a>
+      <a href="#launch">Launch sources</a>
       <a href="#paid">Paid</a>
       <a href="#subs">Subs</a>
       <a href="#money">Money</a>
@@ -155,6 +156,34 @@
               </tr>
             </thead>
             <tbody data-product-events-body></tbody>
+          </table>
+        </div>
+      </div>
+      </section>
+
+      <section class="admin-section" id="launch">
+      <div class="panel">
+        <div class="admin-section-head">
+          <h3>Launch sources</h3>
+          <a class="btn btn-ghost btn-sm" href="/api/admin/marketing.csv?from=2026-10-10&amp;to=2026-10-20" data-launch-export>Export CSV</a>
+        </div>
+        <p class="hint">Today, UTC. Visits, signups, first Song Helper songs, and distribution purchases by source. The CSV link is the Oct 10 to Oct 20 sprint.</p>
+        <p class="hint" data-launch-empty hidden>No launch visits yet.</p>
+        <div class="admin-table-wrap" data-launch-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Medium</th>
+                <th>Campaign</th>
+                <th>Content</th>
+                <th>Visits</th>
+                <th>Signups</th>
+                <th>First songs</th>
+                <th>Distribution purchases</th>
+              </tr>
+            </thead>
+            <tbody data-launch-body></tbody>
           </table>
         </div>
       </div>

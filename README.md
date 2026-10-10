@@ -75,6 +75,8 @@ CONFIRM_SECRET=
 SIGNUP_CONFIRM_SECRET=
 CONFIRM_FROM=PLAIGROUND <confirm@wannaplai.com>
 META_PIXEL_ID=
+TIKTOK_PIXEL_ID=
+GA4_MEASUREMENT_ID=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
@@ -82,7 +84,7 @@ R2_BUCKET=
 R2_ENDPOINT=
 ```
 
-`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, `SIGNUP_CONFIRM_SECRET`, `META_PIXEL_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_ENDPOINT` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. No `NEXT_PUBLIC_R2_*`. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
+`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, `SIGNUP_CONFIRM_SECRET`, `META_PIXEL_ID`, `TIKTOK_PIXEL_ID`, `GA4_MEASUREMENT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_ENDPOINT` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. No `NEXT_PUBLIC_R2_*`. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
 After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for a mapped live price arrives. New Checkout Sessions use Creator month/year and Pro month/year. Old yearly ids stay webhook-only. Checkout uses `mode=subscription`. Do not send `subscription_data[collection_method]` — Checkout Sessions reject it.
 
@@ -139,7 +141,7 @@ Accounts need `DATABASE_URL` (Postgres / Neon) and `SESSION_SECRET` (HMAC cookie
 Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 
 - `GET /api/auth` (schema bootstrap)
-- `GET /api/auth/pixel` (`{ pixel_id }` from `META_PIXEL_ID` only; empty when unset — no fake pixel)
+- `GET /api/auth/pixel` (`pixel_id`, `tiktok_pixel_id`, `ga4_measurement_id` from `META_PIXEL_ID`, `TIKTOK_PIXEL_ID`, and `GA4_MEASUREMENT_ID`; empty when unset)
 - `POST /api/auth/signup` (pending user only; no session; tries confirm mail; records `signup` once)
 - `POST /api/auth/login` (confirmed users only)
 - `POST /api/auth/logout`
@@ -158,7 +160,7 @@ Account routes (server-only `DATABASE_URL` + `SESSION_SECRET`):
 - `GET /api/admin/signups` (owner session only; signups, paid rows, store rows, once-per-user growth events)
 - `GET /api/admin/signups.csv` (same owner session + allowlist; `text/csv` of signup rows, newest first. Also `GET /api/me?action=admin-signups&format=csv`)
 
-Growth events (`user_events`, once per user): `signup` on account create, `first_upload` when the first release id is stored on our side (draft counts; not hop-to-store send), `first_store_live` when an already-polled store status becomes live (nothing is Live tonight — the hook still ships), `paid` on the existing Stripe webhook success writer (`checkout.session.completed` / `invoice.paid` / paid subscription update). Paid may wait if the live www webhook leftover (apex 308 / invalid signature) still blocks Stripe. Lifecycle mail A/B/C uses the existing Resend mailer (`CONFIRM_FROM`, default `PLAIGROUND <confirm@wannaplai.com>`). Mail C sends only when `first_store_live` actually records. Missing `RESEND_API_KEY` logs a skip. Meta pixel: `GET /api/auth/pixel` + `site.js` PageView on public pages and CompleteRegistration on signup success, only when `META_PIXEL_ID` is set. No Upload or Purchase pixel events.
+Growth events (`user_events`, once per user): `signup` on account create, `first_upload` when the first release id is stored on our side (draft counts; not hop-to-store send), `first_store_live` when an already-polled store status becomes live (nothing is Live tonight — the hook still ships), `paid` on the existing Stripe webhook success writer (`checkout.session.completed` / `invoice.paid` / paid subscription update). Paid may wait if the live www webhook leftover (apex 308 / invalid signature) still blocks Stripe. Lifecycle mail A/B/C uses the existing Resend mailer (`CONFIRM_FROM`, default `PLAIGROUND <confirm@wannaplai.com>`). Mail C sends only when `first_store_live` actually records. Missing `RESEND_API_KEY` logs a skip. Ads pixels load from `GET /api/auth/pixel` only when `META_PIXEL_ID`, `TIKTOK_PIXEL_ID`, or `GA4_MEASUREMENT_ID` is set. PageView, CompleteRegistration, Lead, InitiateCheckout, and Purchase carry no email or account id. See `docs/launch-tracking.md`. The owner daily source report is `GET /api/admin/marketing`.
 
 ToneGrid routes (no browser key):
 

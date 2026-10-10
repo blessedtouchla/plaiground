@@ -164,6 +164,22 @@
     });
   }
 
+  function renderLaunch(result) {
+    var rows = result && result.rows ? result.rows : [];
+    fillTable('[data-launch-table]', '[data-launch-empty]', '[data-launch-body]', rows, function (row) {
+      return '<tr>'
+        + cell('Source', escapeHtml(dash(row.utm_source)), 'admin-lead')
+        + cell('Medium', escapeHtml(dash(row.utm_medium)))
+        + cell('Campaign', escapeHtml(dash(row.utm_campaign)))
+        + cell('Content', escapeHtml(dash(row.utm_content)))
+        + cell('Visits', escapeHtml(String(row.visits == null ? 0 : row.visits)))
+        + cell('Signups', escapeHtml(String(row.signups == null ? 0 : row.signups)))
+        + cell('First songs', escapeHtml(String(row.first_songs == null ? 0 : row.first_songs)))
+        + cell('Distribution purchases', escapeHtml(String(row.distro_purchases == null ? 0 : row.distro_purchases)))
+        + '</tr>';
+    });
+  }
+
   function renderProductEvents(rows) {
     fillTable('[data-product-events-table]', '[data-product-events-empty]', '[data-product-events-body]', rows, function (row) {
       return '<tr>'
@@ -445,6 +461,9 @@
         if (!full.data.signups || !full.data.signups.length) full.data.signups = list.data.signups;
         showStatus('');
         render(full.data);
+        loadJson('/api/admin/marketing').then(function (launch) {
+          if (launch && launch.ok) renderLaunch(launch.data && launch.data.launch);
+        });
       });
     });
   }
