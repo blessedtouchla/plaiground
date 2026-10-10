@@ -4416,6 +4416,54 @@
         return { id: row.id, kind: row.kind, label: row.label, text: row.text };
       });
     },
+    keepOriginal: function (text) {
+      var value = String(text || '').trim();
+      if (!lyricsOriginal && value) lyricsOriginal = value.slice(0, storyMax());
+      paintOriginal();
+    },
+    appendAssisted: function (extra) {
+      var flow = window.SongFlow;
+      var line = String(extra || '').trim();
+      if (!line || !flow || !flow.previewMarks) return;
+      var target = null;
+      pageSections.forEach(function (row) {
+        if (String(row.text || '').trim()) target = row;
+      });
+      if (!target) target = pageSections[0];
+      if (!target) return;
+      var before = String(target.text || '').replace(/\s+$/, '');
+      var beforeMarks = String(target.marks || '').slice(0, before.length);
+      var next = before ? before + '\n' + line : line;
+      if (flow.proposeSectionText) {
+        var verdict = flow.proposeSectionText(pageSections, target.id, next);
+        if (!verdict.ok) return;
+        pageSections = adoptSections(verdict.sections);
+      }
+      pageSections.forEach(function (row) {
+        if (row.id !== target.id) return;
+        row.text = next;
+        row.marks = flow.previewMarks('tone', before, beforeMarks, next, false);
+      });
+      renderSections();
+      paintOriginal();
+      paintHumanMeter();
+      persistPage();
+    },
+    restoreAssisted: function () {
+      pageSections.forEach(function (row) {
+        var text = String(row.text || '');
+        var marks = String(row.marks || '');
+        if (marks.length !== text.length) return;
+        var end = text.length;
+        while (end > 0 && marks.charAt(end - 1) === 'a') end -= 1;
+        var kept = text.slice(0, end).replace(/\n+$/, '');
+        row.text = kept;
+        row.marks = marks.slice(0, kept.length);
+      });
+      renderSections();
+      paintHumanMeter();
+      persistPage();
+    },
     applySoundLayout: applySoundLayout,
   };
   bindCraft();

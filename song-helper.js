@@ -137,6 +137,9 @@
   var promptRoll = {};
   var styleTouched = false;
   var hearingOverrides = {};
+  var shapeOpen = false;
+  var shapeOriginal = '';
+  var shapeNote = '';
   var draft = null;
   var preview = true;
   var draftKey = '';
@@ -770,6 +773,12 @@
         });
         lyricEl.appendChild(box);
         fit(box);
+        if (line.assisted) {
+          var ai = document.createElement('p');
+          ai.className = 'sh-ai-label';
+          ai.textContent = 'AI-assisted';
+          lyricEl.appendChild(ai);
+        }
         if (window.SongModes) mountLineTools(lyricEl, box, line);
       });
       paintSectionTip();
@@ -1234,9 +1243,61 @@
     return window.SongFlow.mergeHear(window.SongFlow.hearStyle(lyricHearingText()), hearingOverrides);
   }
 
+  function saveShapeOriginal() {
+    if (shapeOriginal) return;
+    shapeOriginal = lyricHearingText();
+    if (window.SongHelperV2 && window.SongHelperV2.keepOriginal) window.SongHelperV2.keepOriginal(shapeOriginal);
+  }
+
+  function appendAssistedLine(line) {
+    var text = String(line || '').trim();
+    if (!text) return;
+    saveShapeOriginal();
+    if (draft && draft.sections && draft.sections.length) {
+      var section = null;
+      draft.sections.forEach(function (row) {
+        if ((row.lines || []).some(function (item) { return String(item.text || '').trim(); })) section = row;
+      });
+      if (!section) section = draft.sections[0];
+      section.lines.push({
+        text: text,
+        original: text,
+        assisted: true,
+        source: 'ai',
+        logged: text,
+      });
+      renderDraft();
+      return;
+    }
+    if (window.SongHelperV2 && window.SongHelperV2.appendAssisted) window.SongHelperV2.appendAssisted(text);
+  }
+
+  function restoreShapeOriginal() {
+    if (draft && draft.sections) {
+      draft.sections.forEach(function (section) {
+        section.lines = (section.lines || []).filter(function (line) { return !line.assisted; });
+      });
+      renderDraft();
+    }
+    if (window.SongHelperV2 && window.SongHelperV2.restoreAssisted) window.SongHelperV2.restoreAssisted();
+    shapeNote = 'Your original is back. The added line is gone.';
+    paintHearing();
+  }
+
+  function applyShapeTap(id) {
+    if (!window.SongFlow || !window.SongFlow.applyShape) return;
+    var heard = window.SongFlow.hearStyle(lyricHearingText());
+    var result = window.SongFlow.applyShape(heard, hearingOverrides, id);
+    hearingOverrides = result.overrides || {};
+    shapeNote = result.note || '';
+    shapeOpen = true;
+    if (result.words && result.line) appendAssistedLine(result.line);
+    renderStyle();
+  }
+
   function paintHearing() {
     var host = document.getElementById('sh-hearing');
-    if (!host || !window.SongFlow || !window.SongFlow.HEAR_LABELS) return;
+    if (!host || !window.SongFlow || !window.SongFlow.heardChips) return;
     var text = lyricHearingText();
     var heard = currentHearing();
     var onStyle = STEPS[step] === 'style';
@@ -1253,41 +1314,78 @@
     if (!text || !heard) return;
     var title = document.createElement('h3');
     title.className = 'sh-subhead';
-    title.textContent = "Here's the style I'm hearing from your words";
+    title.textContent = "Here's what I heard in your words";
     host.appendChild(title);
-    var note = document.createElement('p');
-    note.className = 'sh-help';
-    note.textContent = 'These are guesses from your lines. Change any one. Sounds like and Design my style still win if you fill them in.';
-    host.appendChild(note);
-    ['genre', 'era', 'tempo', 'mood', 'tone', 'vocal', 'instruments', 'rhyme', 'hook'].forEach(function (key) {
-      var pick = heard.picks[key];
-      if (!pick) return;
-      var row = document.createElement('div');
-      row.className = 'sh-hear-row';
-      var copy = document.createElement('p');
-      copy.className = 'sh-help';
-      var strong = document.createElement('strong');
-      strong.textContent = window.SongFlow.HEAR_LABELS[key] + ': ' + window.SongFlow.hearValueLabel(key, pick.value) + '.';
-      copy.appendChild(strong);
-      copy.appendChild(document.createTextNode(' ' + pick.reason));
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'btn btn-ghost btn-md';
-      button.textContent = 'Change';
-      button.addEventListener('click', function () {
-        hearingOverrides[key] = window.SongFlow.nextHear(key, pick.value);
-        paintHearing();
-        renderStyle();
-      });
-      row.appendChild(copy);
-      row.appendChild(button);
-      host.appendChild(row);
+    var chips = document.createElement('div');
+    chips.className = 'sh-chips';
+    chips.setAttribute('role', 'group');
+    chips.setAttribute('aria-label', "Here's what I heard in your words");
+    window.SongFlow.heardChips(heard).forEach(function (chip) {
+      var pill = document.createElement('span');
+      pill.className = 'sh-chip';
+      pill.textContent = chip.label + ': ' + chip.value;
+      chips.appendChild(pill);
     });
+    host.appendChild(chips);
+    var shape = document.createElement('button');
+    shape.type = 'button';
+    shape.className = 'btn btn-purple btn-md';
+    shape.id = 'sh-shape';
+    shape.textContent = 'Shape it';
+    shape.setAttribute('aria-expanded', shapeOpen ? 'true' : 'false');
+    shape.addEventListener('click', function () {
+      shapeOpen = !shapeOpen;
+      paintHearing();
+    });
+    host.appendChild(shape);
+    if (shapeOpen && window.SongFlow.SHAPE_TAPS) {
+      var taps = document.createElement('div');
+      taps.className = 'sh-chips';
+      taps.id = 'sh-shape-taps';
+      taps.setAttribute('role', 'group');
+      taps.setAttribute('aria-label', 'Shape it');
+      window.SongFlow.SHAPE_TAPS.forEach(function (tap) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'sh-chip';
+        button.textContent = tap.label;
+        button.addEventListener('click', function () { applyShapeTap(tap.id); });
+        taps.appendChild(button);
+      });
+      host.appendChild(taps);
+    }
+    if (shapeNote) {
+      var note = document.createElement('p');
+      note.className = 'sh-help';
+      note.id = 'sh-shape-note';
+      note.textContent = shapeNote;
+      host.appendChild(note);
+    }
+    if (shapeOriginal) {
+      var saved = document.createElement('div');
+      saved.id = 'sh-shape-original';
+      var savedTitle = document.createElement('p');
+      savedTitle.className = 'sh-help';
+      savedTitle.textContent = 'Your original';
+      var pre = document.createElement('pre');
+      pre.className = 'sh-page-clean';
+      pre.textContent = shapeOriginal;
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'btn btn-ghost btn-md';
+      back.textContent = 'Use my original';
+      back.addEventListener('click', restoreShapeOriginal);
+      saved.appendChild(savedTitle);
+      saved.appendChild(pre);
+      saved.appendChild(back);
+      host.appendChild(saved);
+    }
   }
 
   function renderStyle() {
     var sound = readSoundForm();
     var heard = currentHearing();
+    var shaped = !!(hearingOverrides.tone || hearingOverrides.mood || hearingOverrides.tempo || hearingOverrides.genre);
     var useHear = !!(heard && !heard.thin && !sound && !styleTouched);
     var genre = styleGenre();
     var era = sound && sound.era ? sound.era : picks.era;
@@ -1295,17 +1393,18 @@
     var texture = sound && sound.vocal ? sound.vocal : picks.texture;
     var inst = sound && sound.instruments.length ? sound.instruments : instruments.slice();
     var mix = sound ? sound.mix : '';
-    if (useHear) {
+    if ((useHear || shaped) && heard && !sound) {
       var picksHeard = heard.picks;
-      if (!genre && picksHeard.genre && picksHeard.genre.value !== 'plain') genre = picksHeard.genre.value;
+      if ((!genre || hearingOverrides.genre) && picksHeard.genre && picksHeard.genre.value !== 'plain') genre = picksHeard.genre.value;
       if (!era && picksHeard.era && picksHeard.era.value && picksHeard.era.value !== 'now') era = picksHeard.era.value;
-      if (!energy && picksHeard.tempo) {
+      if ((!energy || hearingOverrides.tempo) && picksHeard.tempo) {
         var tempo = picksHeard.tempo.value;
         energy = tempo === 'slow' ? 'low energy' : tempo === 'fast' ? 'high energy' : 'medium energy';
       }
       if (!texture && picksHeard.vocal) texture = picksHeard.vocal.value;
       if (!inst.length && picksHeard.instruments && picksHeard.instruments.value) inst = [picksHeard.instruments.value];
-      if (!mix && picksHeard.mood && picksHeard.mood.value && picksHeard.mood.value !== 'plain') mix = picksHeard.mood.value + ' mood';
+      if (hearingOverrides.tone && picksHeard.tone) mix = window.SongFlow.hearValueLabel('tone', picksHeard.tone.value).toLowerCase();
+      else if (!mix && picksHeard.mood && picksHeard.mood.value && picksHeard.mood.value !== 'plain') mix = picksHeard.mood.value + ' mood';
     }
     var built = core.buildStylePrompt({
       genre: genre,
