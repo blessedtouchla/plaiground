@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261010format" />
+  <link rel="stylesheet" href="song-helper.css?v=20261010sounds" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -451,6 +451,67 @@
         </section>
 
         <section data-step="style" hidden>
+          <div class="sh-group" id="sh-sounds">
+            <h3>Sounds like</h3>
+            <p class="sh-help" id="sh-sounds-label">Influence, not copying. An artist or a song becomes tempo, instruments, vocal, era, and mix. The name stays out of the style prompt.</p>
+            <label class="sh-field" for="sh-sounds-like">
+              <span>Artist or song</span>
+              <input class="sh-input" id="sh-sounds-like" maxlength="80" autocomplete="off" placeholder="a slow 90s ballad" />
+            </label>
+            <div class="sh-side-actions">
+              <button type="button" class="btn btn-purple btn-md" id="sh-sounds-go">Turn it into traits</button>
+            </div>
+            <p class="sh-form-error" id="sh-sounds-error" role="alert" hidden></p>
+            <div id="sh-sounds-traits" hidden>
+              <label class="sh-field" for="sh-sounds-tempo">
+                <span>Tempo feel</span>
+                <input class="sh-input" id="sh-sounds-tempo" maxlength="80" autocomplete="off" />
+              </label>
+              <label class="sh-field" for="sh-sounds-instruments">
+                <span>Instruments</span>
+                <input class="sh-input" id="sh-sounds-instruments" maxlength="80" autocomplete="off" />
+              </label>
+              <label class="sh-field" for="sh-sounds-vocal">
+                <span>Vocal character</span>
+                <input class="sh-input" id="sh-sounds-vocal" maxlength="80" autocomplete="off" />
+              </label>
+              <label class="sh-field" for="sh-sounds-era">
+                <span>Era</span>
+                <input class="sh-input" id="sh-sounds-era" maxlength="40" autocomplete="off" />
+              </label>
+              <label class="sh-field" for="sh-sounds-mix">
+                <span>Mix</span>
+                <input class="sh-input" id="sh-sounds-mix" maxlength="80" autocomplete="off" />
+              </label>
+              <label class="sh-field" for="sh-sounds-verse">
+                <span>Verse length</span>
+                <select class="sh-input" id="sh-sounds-verse">
+                  <option value="short">Short verses</option>
+                  <option value="medium">Medium verses</option>
+                  <option value="long">Long verses</option>
+                </select>
+              </label>
+              <label class="sh-field" for="sh-sounds-hook">
+                <span>Hook placement</span>
+                <select class="sh-input" id="sh-sounds-hook">
+                  <option value="early">Hook up front</option>
+                  <option value="after verse">Hook after the first verse</option>
+                  <option value="late">Hook after the verses</option>
+                </select>
+              </label>
+              <label class="sh-field" for="sh-sounds-bridge">
+                <span>Bridge</span>
+                <select class="sh-input" id="sh-sounds-bridge">
+                  <option value="yes">Include a bridge</option>
+                  <option value="no">No bridge</option>
+                </select>
+              </label>
+              <p class="sh-note" id="sh-sounds-note"></p>
+              <div class="sh-side-actions">
+                <button type="button" class="btn btn-ghost btn-md" id="sh-sounds-layout">Use this layout</button>
+              </div>
+            </div>
+          </div>
           <div class="sh-group">
             <h3>Genre</h3>
             <div class="sh-chips" id="sh-style-genres" role="group" aria-label="Style genre">
@@ -676,10 +737,10 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261010format"></script>
+  <script src="lib/song-flow.js?v=20261010sounds"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261007ev1"></script>
-  <script src="lib/song-helper.js?v=20261010edit"></script>
+  <script src="lib/song-helper.js?v=20261010sounds"></script>
   <script src="lib/claim-record.js?v=20261009story"></script>
   <script src="lib/song-pass.js?v=20261009story"></script>
   <script src="lib/style-swaps.js?v=20261009story"></script>
@@ -690,9 +751,9 @@
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261009story"></script>
   <script src="lib/song-questions.js?v=20261009story"></script>
-  <script src="song-helper.js?v=20261010parts"></script>
+  <script src="song-helper.js?v=20261010sounds"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010format"></script>
+  <script src="song-helper-v2.js?v=20261010sounds"></script>
   <script src="song-flow-page.js?v=20261009story"></script>
   <script src="site.js?v=20260924p3"></script>
   <script src="plai-bubble.js" defer></script>

@@ -1141,19 +1141,187 @@
     return genreValue();
   }
 
+  function soundPanelOpen() {
+    var box = document.getElementById('sh-sounds-traits');
+    return !!(box && !box.hidden);
+  }
+
+  function readSoundForm() {
+    if (!soundPanelOpen() || !window.SongFlow || !window.SongFlow.scrubSoundTraits) return null;
+    var box = document.getElementById('sh-sounds-traits');
+    var instrumentsField = readControl(document.getElementById('sh-sounds-instruments'));
+    var raw = {
+      tempo: readControl(document.getElementById('sh-sounds-tempo')),
+      instruments: instrumentsField.split(',').map(function (item) { return item.trim(); }).filter(Boolean).slice(0, 3),
+      vocal: readControl(document.getElementById('sh-sounds-vocal')),
+      era: readControl(document.getElementById('sh-sounds-era')),
+      mix: readControl(document.getElementById('sh-sounds-mix')),
+      verseLength: (document.getElementById('sh-sounds-verse') || {}).value || 'medium',
+      hookPlacement: (document.getElementById('sh-sounds-hook') || {}).value || 'after verse',
+      bridge: (document.getElementById('sh-sounds-bridge') || {}).value !== 'no',
+      genre: styleGenre(),
+    };
+    return window.SongFlow.scrubSoundTraits(raw, readControl(document.getElementById('sh-sounds-like')), box.getAttribute('data-via') || 'plain');
+  }
+
+  function syncSoundChips(group) {
+    if (!soundPanelOpen()) return;
+    if (group === 'era') {
+      var era = document.getElementById('sh-sounds-era');
+      if (era && picks.era) era.value = picks.era;
+    }
+    if (group === 'energy') {
+      var tempo = document.getElementById('sh-sounds-tempo');
+      if (tempo && picks.energy) tempo.value = picks.energy;
+    }
+    if (group === 'texture') {
+      var vocal = document.getElementById('sh-sounds-vocal');
+      if (vocal && picks.texture) vocal.value = picks.texture;
+    }
+    if (group === 'instrument') {
+      var inst = document.getElementById('sh-sounds-instruments');
+      if (inst) inst.value = instruments.join(', ');
+    }
+  }
+
   function renderStyle() {
+    var sound = readSoundForm();
     var built = core.buildStylePrompt({
       genre: styleGenre(),
-      era: picks.era,
-      energy: picks.energy,
+      era: sound && sound.era ? sound.era : picks.era,
+      energy: sound && sound.tempo ? sound.tempo : picks.energy,
       voice: picks.voice,
-      texture: picks.texture,
-      instruments: instruments,
+      texture: sound && sound.vocal ? sound.vocal : picks.texture,
+      instruments: sound && sound.instruments.length ? sound.instruments : instruments,
       feeling: readControl(feelingInput),
+      mix: sound ? sound.mix : '',
+      structure: sound && window.SongFlow ? window.SongFlow.structurePhrase(sound) : '',
     });
-    promptEl.textContent = built.prompt || 'Add a genre or a feeling and the prompt will show up here.';
+    var prompt = built.prompt || '';
+    var query = readControl(document.getElementById('sh-sounds-like'));
+    var box = document.getElementById('sh-sounds-traits');
+    if (sound && query && window.SongFlow && window.SongFlow.scrubSoundText) {
+      var cleaned = window.SongFlow.scrubSoundText(prompt, query, box.getAttribute('data-via') || 'plain');
+      if (cleaned !== prompt) built.artistNamesStripped = true;
+      prompt = cleaned;
+    }
+    promptEl.textContent = prompt || 'Add a genre or a feeling and the prompt will show up here.';
     artistNote.hidden = !built.artistNamesStripped;
-    promptEl.dataset.prompt = built.prompt || '';
+    promptEl.dataset.prompt = prompt || '';
+  }
+
+  function showSoundError(message) {
+    var el = document.getElementById('sh-sounds-error');
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
+  function fillSoundTraits(traits, notice) {
+    if (!traits) return;
+    var box = document.getElementById('sh-sounds-traits');
+    var tempo = document.getElementById('sh-sounds-tempo');
+    var inst = document.getElementById('sh-sounds-instruments');
+    var vocal = document.getElementById('sh-sounds-vocal');
+    var era = document.getElementById('sh-sounds-era');
+    var mix = document.getElementById('sh-sounds-mix');
+    var verse = document.getElementById('sh-sounds-verse');
+    var hook = document.getElementById('sh-sounds-hook');
+    var bridge = document.getElementById('sh-sounds-bridge');
+    var note = document.getElementById('sh-sounds-note');
+    if (tempo) tempo.value = traits.tempo || '';
+    if (inst) inst.value = (traits.instruments || []).join(', ');
+    if (vocal) vocal.value = traits.vocal || '';
+    if (era) era.value = traits.era || '';
+    if (mix) mix.value = traits.mix || '';
+    if (verse) verse.value = traits.verseLength || 'medium';
+    if (hook) hook.value = traits.hookPlacement || 'after verse';
+    if (bridge) bridge.value = traits.bridge === false ? 'no' : 'yes';
+    if (box) {
+      box.hidden = false;
+      box.setAttribute('data-via', traits.via || 'plain');
+    }
+    if (note) note.textContent = notice || traits.note || 'Influence, not copying.';
+    selectStyleGenre(traits.genre || '');
+    var eraChips = { '90s': true, '2000s': true, '2010s': true, now: true, timeless: true };
+    if (eraChips[traits.era]) {
+      picks.era = traits.era;
+      setPressed('era', traits.era);
+    } else {
+      picks.era = '';
+      setPressed('era', '');
+    }
+    var known = {};
+    document.querySelectorAll('[data-group="instrument"]').forEach(function (btn) {
+      known[btn.getAttribute('data-value')] = true;
+    });
+    setInstruments((traits.instruments || []).filter(function (item) { return known[item]; }).slice(0, 3));
+    styleTouched = true;
+    showSoundError('');
+    renderStyle();
+  }
+
+  function localSoundTraits(query) {
+    if (!window.SongFlow || !window.SongFlow.soundsLike) return null;
+    return window.SongFlow.soundsLike(query);
+  }
+
+  function bindSounds() {
+    var go = document.getElementById('sh-sounds-go');
+    var layout = document.getElementById('sh-sounds-layout');
+    var fields = ['sh-sounds-tempo', 'sh-sounds-instruments', 'sh-sounds-vocal', 'sh-sounds-era', 'sh-sounds-mix', 'sh-sounds-verse', 'sh-sounds-hook', 'sh-sounds-bridge'];
+    fields.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function () { if (soundPanelOpen()) renderStyle(); });
+      el.addEventListener('change', function () { if (soundPanelOpen()) renderStyle(); });
+    });
+    if (go) {
+      go.addEventListener('click', function () {
+        var query = readControl(document.getElementById('sh-sounds-like'));
+        if (!query) {
+          showSoundError('Type an artist or a song.');
+          return;
+        }
+        go.disabled = true;
+        fetch('/api/song-helper', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'sounds', text: query }),
+        }).then(function (response) {
+          return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
+        }).then(function (result) {
+          var traits = result && result.ok && result.data && result.data.traits;
+          if (!traits) traits = localSoundTraits(query);
+          if (!traits || !traits.tempo) {
+            showSoundError('Those traits did not come back. Try a genre or era, like 90s R&B.');
+            return;
+          }
+          fillSoundTraits(traits, (result && result.data && result.data.notice) || traits.note);
+        }).catch(function () {
+          var traits = localSoundTraits(query);
+          if (!traits || !traits.tempo) {
+            showSoundError('Those traits did not come back. Try a genre or era, like 90s R&B.');
+            return;
+          }
+          fillSoundTraits(traits, traits.note);
+        }).then(function () {
+          go.disabled = false;
+        });
+      });
+    }
+    if (layout) {
+      layout.addEventListener('click', function () {
+        var sound = readSoundForm();
+        var note = document.getElementById('sh-sounds-note');
+        if (!sound || !window.SongHelperV2 || !window.SongHelperV2.applySoundLayout) {
+          if (note) note.textContent = 'The layout stays as it is.';
+          return;
+        }
+        var result = window.SongHelperV2.applySoundLayout(sound);
+        if (note) note.textContent = (result && result.note) || 'Layout updated. Your words stayed in their boxes.';
+      });
+    }
   }
 
   function readSession() {
@@ -1278,6 +1446,7 @@
       }
       if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture' || group === 'styleGenre') {
         styleTouched = true;
+        syncSoundChips(group);
         renderStyle();
       }
       showError('');
@@ -1294,6 +1463,7 @@
       showError('');
       chip.classList.toggle('on', instruments.indexOf(value) >= 0);
       chip.setAttribute('aria-pressed', instruments.indexOf(value) >= 0 ? 'true' : 'false');
+      syncSoundChips(group);
       renderStyle();
       return;
     }
@@ -1301,6 +1471,7 @@
       styleTouched = true;
       styleGenreInput.value = value;
       setPressed(group, value);
+      syncSoundChips(group);
       renderStyle();
       showError('');
       return;
@@ -1318,7 +1489,10 @@
       $('sh-comedy').hidden = value !== 'comedy';
       renderWords();
     }
-    if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture') renderStyle();
+    if (group === 'era' || group === 'energy' || group === 'voice' || group === 'texture') {
+      syncSoundChips(group);
+      renderStyle();
+    }
     showError('');
   });
 
@@ -1882,6 +2056,7 @@
     (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_started', payload: {} });
   }
 
+  bindSounds();
   var battleSaved = battleSavedDraft();
   if (battleSaved) openBattleDraft(battleSaved);
   else {

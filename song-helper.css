@@ -863,6 +863,17 @@ body.song-helper-page .plai-bubble {
   margin: 0 0 8px;
 }
 
+#sh-sounds select.sh-input {
+  min-height: 44px;
+  width: 100%;
+}
+
+#sh-sounds,
+#sh-sounds .sh-input,
+#sh-sounds select {
+  max-width: 100%;
+}
+
 .sh-preview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -940,6 +951,9 @@ body.song-helper-page .plai-bubble {
   .sh-edit-toggles .sh-toggle,
   .sh-format-moves .btn { flex: 1 1 46%; }
   #sh-format, .sh-format-part, .sh-format-part pre, .sh-format-part select { max-width: 100%; }
+  #sh-sounds, #sh-sounds .sh-input, #sh-sounds select { max-width: 100%; }
+  #sh-sounds .sh-side-actions { flex-direction: column; align-items: stretch; }
+  #sh-sounds .sh-side-actions .btn { width: 100%; }
 }
 
 .sh-answers {

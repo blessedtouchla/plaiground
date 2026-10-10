@@ -663,6 +663,83 @@ async function handleFormat(req, res, body) {
   }
 }
 
+function publicSound(traits) {
+  if (!traits) return null;
+  return {
+    tempo: traits.tempo || '',
+    instruments: traits.instruments || [],
+    vocal: traits.vocal || '',
+    era: traits.era || '',
+    mix: traits.mix || '',
+    genre: traits.genre || '',
+    verseLength: traits.verseLength || 'medium',
+    hookPlacement: traits.hookPlacement || 'after verse',
+    bridge: traits.bridge !== false,
+    structure: traits.structure || '',
+    prompt: traits.prompt || '',
+    matched: !!traits.matched,
+    via: traits.via || 'plain',
+    label: 'Influence, not copying.',
+    note: traits.note || 'Influence, not copying.',
+  };
+}
+
+async function handleSounds(req, res, body) {
+  var text = String((body && body.text) || '').replace(/\s+/g, ' ').trim();
+  if (text.length > 200) {
+    sendJson(res, 400, { ok: false, error: 'That name is too long. Use a short artist or song.' });
+    return;
+  }
+  text = text.slice(0, 80);
+  if (!text) {
+    sendJson(res, 200, {
+      ok: true,
+      traits: null,
+      source: 'sample',
+      notice: 'Type an artist or a song.',
+    });
+    return;
+  }
+  var fallback = publicSound(flow.soundsLike(text));
+  var notice = fallback.note || 'Influence, not copying.';
+  if (!xai.configured()) {
+    sendJson(res, 200, { ok: true, traits: fallback, source: 'sample', notice: notice });
+    return;
+  }
+  var blocked = await guard.enforce(req, guard.clientIp(req), body || {}, { text: text });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
+    return;
+  }
+  try {
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      temperature: 0.2,
+      max_tokens: 220,
+      messages: [
+        {
+          role: 'system',
+          content: 'Turn a name into musical style traits. Reply with JSON only. Keys: tempo, instruments, vocal, era, mix, genre, verseLength, hookPlacement, bridge. tempo, vocal, era, mix, and genre are short phrases under 8 words. instruments is an array of up to 3 instruments. verseLength is short, medium, or long. hookPlacement is early, after verse, or late. bridge is true or false. Describe tempo feel, instruments, vocal character, era, and mix. Add structure only as verse length, hook placement, and whether a bridge fits. Do not include the artist name or the song title. Do not quote lyrics. Do not write lyrics. Do not name a music generator.',
+        },
+        { role: 'user', content: 'Describe the sound only. Do not repeat this name:\n' + text },
+      ],
+    });
+    var parsed = flow.parseSoundTraits(chat && chat.content, text);
+    if (!parsed) {
+      sendJson(res, 200, { ok: true, traits: fallback, source: 'sample', notice: notice });
+      return;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      traits: publicSound(parsed),
+      source: 'grok',
+      notice: 'Influence, not copying. These are sound traits, not lyrics.',
+    });
+  } catch (err) {
+    sendJson(res, 200, { ok: true, traits: fallback, source: 'sample', notice: notice });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'status') {
     sendJson(res, 200, guard.status());
@@ -714,6 +791,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleFormat(req, res, formatBody || {});
     return;
   }
+  if (action === 'sounds') {
+    var soundsBody = givenBody;
+    if (!soundsBody) soundsBody = await readBody(req);
+    await handleSounds(req, res, soundsBody || {});
+    return;
+  }
   if (action === 'extend' || action === 'shorten' || action === 'rhymify') {
     var rewriteBody = givenBody;
     if (!rewriteBody) rewriteBody = await readBody(req);
@@ -756,7 +839,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

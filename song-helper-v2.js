@@ -3976,6 +3976,25 @@
     });
   }
 
+  function applySoundLayout(hints) {
+    var flow = window.SongFlow;
+    if (!flow || !flow.layoutFromSounds) return { ok: false, note: 'The layout stays as it is.' };
+    if (!pageSections.length && flow.blankSections) pageSections = flow.blankSections();
+    function filled(rows) {
+      return (rows || []).map(function (row) { return String(row.text || ''); }).filter(function (text) { return text.trim(); }).sort();
+    }
+    var before = filled(pageSections);
+    var result = flow.layoutFromSounds(pageSections, hints || {});
+    var after = filled(result.sections);
+    if (before.join('\n') !== after.join('\n')) {
+      return { ok: false, note: 'Those labels would change your words, so the boxes stayed.' };
+    }
+    pageSections = adoptSections(result.sections);
+    renderSections();
+    persistPage();
+    return { ok: true, note: result.note || 'Layout updated. Your words stayed in their boxes.' };
+  }
+
   function finishLyrics() {
     var ready = $('sh-page-ready');
     pageError('');
@@ -4016,6 +4035,7 @@
         return { id: row.id, kind: row.kind, label: row.label, text: row.text };
       });
     },
+    applySoundLayout: applySoundLayout,
   };
   bindCraft();
   paintOwn();

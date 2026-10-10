@@ -792,6 +792,9 @@ function runPages() {
   assert.ok(html.includes('Accept this structure'));
   assert.ok(html.includes('Keep what I pasted'));
   assert.ok(js.includes('formatSong'));
+  assert.ok(js.includes('applySoundLayout'));
+  assert.ok(html.includes('Sounds like'));
+  assert.ok(html.includes('Influence, not copying'));
   assert.ok(js.includes('applySuggestion'));
   assert.ok(html.includes('I already have my lyrics'));
   assert.ok(html.includes('I already have my story or lyrics'));

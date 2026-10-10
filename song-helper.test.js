@@ -243,6 +243,22 @@ function runCore() {
   assert.ok(style.prompt.includes('2010s'));
   assert.ok(style.prompt.includes('medium energy'));
   assert.ok(style.prompt.includes('smooth female vocal'));
+  const shaped = core.buildStylePrompt({
+    genre: 'R&B',
+    era: '90s',
+    energy: 'slow and warm',
+    voice: '',
+    texture: 'silky close vocal',
+    instruments: ['electric piano', 'bass'],
+    feeling: '',
+    mix: 'polished and close',
+    structure: 'medium verses, hook after the first verse, with a bridge',
+  });
+  assert.ok(shaped.prompt.includes('slow and warm energy'));
+  assert.ok(shaped.prompt.includes('silky close vocal'));
+  assert.ok(shaped.prompt.includes('polished and close'));
+  assert.ok(shaped.prompt.includes('with a bridge'));
+  assert.ok(!/\bSuno\b/i.test(shaped.prompt));
   assert.ok(style.prompt.includes('piano'));
   assert.ok(style.prompt.includes('bass'));
   assert.ok(style.prompt.includes('synth'));
@@ -1021,6 +1037,37 @@ async function runApi() {
   assert.ok(/3000/.test(formatLong.json.error));
   assert.ok(read('api/song-helper.js').includes('handleFormat'));
   assert.ok(read('api/song-helper.js').includes("action === 'format'"));
+  const sounded = await post({ action: 'sounds', text: 'Adele' }, '203.0.113.90');
+  assert.strictEqual(sounded.statusCode, 200);
+  assert.strictEqual(sounded.json.ok, true);
+  assert.ok(sounded.json.traits);
+  assert.strictEqual(sounded.json.traits.label, 'Influence, not copying.');
+  assert.ok(/piano/.test(sounded.json.traits.prompt));
+  assert.ok(!/adele/i.test(JSON.stringify(sounded.json.traits) + sounded.json.notice));
+  assert.ok(sounded.json.traits.prompt.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/i.test(JSON.stringify(sounded.json)));
+  if (!process.env.XAI_API_KEY) assert.strictEqual(sounded.json.source, 'sample');
+  const genreSound = await post({ action: 'sounds', text: '90s R&B' }, '203.0.113.91');
+  assert.strictEqual(genreSound.statusCode, 200);
+  assert.strictEqual(genreSound.json.traits.era, '90s');
+  assert.ok(/R&B/.test(genreSound.json.traits.genre));
+  assert.ok(/90s/.test(genreSound.json.traits.prompt));
+  const songSound = await post({ action: 'sounds', text: 'Billie Jean' }, '203.0.113.92');
+  assert.strictEqual(songSound.statusCode, 200);
+  assert.ok(!/billie|jean/i.test(JSON.stringify(songSound.json.traits) + songSound.json.notice));
+  assert.strictEqual(songSound.json.traits.era, '80s');
+  const plainSound = await post({ action: 'sounds', text: 'Zelda Quill' }, '203.0.113.93');
+  assert.strictEqual(plainSound.statusCode, 200);
+  assert.strictEqual(plainSound.json.traits.matched, false);
+  assert.ok(!/zelda|quill/i.test(JSON.stringify(plainSound.json.traits) + plainSound.json.notice));
+  const emptySound = await post({ action: 'sounds', text: '   ' }, '203.0.113.94');
+  assert.strictEqual(emptySound.statusCode, 200);
+  assert.strictEqual(emptySound.json.traits, null);
+  const longSound = await post({ action: 'sounds', text: 'x'.repeat(201) }, '203.0.113.95');
+  assert.strictEqual(longSound.statusCode, 400);
+  assert.ok(read('api/song-helper.js').includes('handleSounds'));
+  assert.ok(read('api/song-helper.js').includes("action === 'sounds'"));
+  assert.ok(read('api/song-helper.js').includes('Do not quote lyrics'));
   assert.ok(read('api/song-helper.js').includes('handleRewrite'));
   assert.ok(read('api/song-helper.js').includes("action === 'extend'"));
 }
@@ -1289,12 +1336,12 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261010parts'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010format'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010edit'));
+  assert.ok(html.includes('song-helper.js?v=20261010sounds'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010sounds'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
-  assert.ok(html.includes('song-helper.css?v=20261010format'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010format'));
+  assert.ok(html.includes('song-helper.css?v=20261010sounds'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010sounds'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1334,6 +1381,17 @@ function runPage() {
   assert.ok(read('song-helper-v2.js').includes('appendAnswer'));
   assert.ok(read('song-helper-v2.js').includes('plaiground.songHelper.story'));
   assert.ok(js.includes('openFinishedLyrics'));
+  assert.ok(html.includes('Sounds like'));
+  assert.ok(html.includes('Influence, not copying'));
+  assert.ok(html.includes('id="sh-sounds-like"'));
+  assert.ok(html.includes('Turn it into traits'));
+  assert.ok(html.includes('Use this layout'));
+  assert.ok(js.includes('fillSoundTraits'));
+  assert.ok(js.includes("action: 'sounds'"));
+  assert.ok(js.includes('scrubSoundText'));
+  const styleBlock = html.match(/data-step="style"[\s\S]*?<\/section>/)[0];
+  assert.ok(styleBlock.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(styleBlock));
   assert.ok(js.includes('lyricsOpen'));
   const v2 = read('song-helper-v2.js');
   assert.ok(v2.includes('function ownIdea'));
