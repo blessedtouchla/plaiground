@@ -232,6 +232,8 @@
     { "source": "/charts/gospel", "destination": "/charts-gospel.html" },
     { "source": "/charts", "destination": "/charts.html" },
     { "source": "/ar", "destination": "/ar.html" },
+    { "source": "/social", "destination": "/social.html" },
+    { "source": "/social/", "destination": "/social.html" },
     { "source": "/epk", "destination": "/epk.html" },
     { "source": "/already-released", "destination": "/already-released.html" },
     { "source": "/song-helper", "destination": "/song-helper.html" },
