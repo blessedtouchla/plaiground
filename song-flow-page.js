@@ -766,22 +766,32 @@
     if (page.setShapeBits) page.setShapeBits({ language: state.language || 'english', explicit: state.explicit || 'clean', genre2: tint });
   }
 
+  function funnyChosen() {
+    var on = document.querySelector('#sh-modes .sh-chip.on');
+    return !!(on && /funny/i.test(on.textContent || ''));
+  }
+
   function seedWizard() {
-    var star = flow.northStar(state);
+    var seeds = flow.lyricSeeds(state);
     function put(id, value) {
       var el = $(id);
+      if (!el) return;
       var text = String(value || '').trim();
-      if (!el || !text || String(el.value || '').trim()) return;
+      var current = String(el.value || '').trim();
+      if (current && flow.isMetaLyric && flow.isMetaLyric(current)) {
+        if (funnyChosen() && flow.isAimHook && flow.isAimHook(current)) return;
+        el.value = text;
+        if (text && flow.paintStoryBox) flow.paintStoryBox(el);
+        return;
+      }
+      if (current || !text) return;
       el.value = text;
       if (flow.paintStoryBox) flow.paintStoryBox(el);
     }
-    var sensory = star.sensory || {};
-    put('sh-happened', star.opener || sensory.moment || sensory.place || star.forText || star.aimLabels.join(', '));
-    put('sh-who', sensory.who || star.forText || star.forLabel);
-    put('sh-why', star.wisdomLine || star.wisdom || star.reveals.scared || star.reveals.never || star.aimLabels.join(', '));
-    var hook = star.keep || star.wisdomLine || star.wisdom || star.reveals.nobody || '';
-    if (!hook && star.aimLabels[0]) hook = 'I want this song to ' + star.aimLabels[0].toLowerCase() + '.';
-    put('sh-line', hook || star.forText);
+    put('sh-happened', seeds.happened);
+    put('sh-who', seeds.who);
+    put('sh-why', seeds.why);
+    put('sh-line', seeds.line);
   }
 
   function currentStep() {

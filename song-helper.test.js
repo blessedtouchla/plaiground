@@ -435,6 +435,94 @@ function runCore() {
   assert.throws(function () {
     core.normalizeInterview({ idea: 'i'.repeat(core.STORY_MAX + 1), words: {}, shape: {} });
   }, function (err) { return err && err.code === 'long' && /Your idea/.test(err.message) && /3000/.test(err.message); });
+
+  const aimHook = 'I want this song to make them laugh.';
+  const toolVerse = "I'm making this song right now using song helper...";
+  const toolMade = 'Song Helper made this song.';
+  const toolHookB = 'Spark the wonder, feel the flow, song helper turns chaos into gold';
+  const steps = 'We sat on the steps and did not say the hard part.';
+  const porch = 'The porch light stayed on for her.';
+  assert.strictEqual(core.isMetaLyric(aimHook), true);
+  assert.strictEqual(core.isMetaLyric(toolHookB), true);
+  assert.strictEqual(core.isMetaLyric(toolMade), true);
+  assert.strictEqual(core.isMetaLyric(toolVerse), true);
+  assert.strictEqual(core.isMetaLyric(steps), false);
+  const metaOnly = {
+    mood: 'hopeful',
+    who: 'my sister',
+    line: aimHook,
+    happened: toolVerse,
+    why: toolMade,
+    shape: { genre: 'R&B', language: 'english', explicit: 'clean', length: 'short' },
+    north: { forId: 'someone', aims: ['laugh'], opener: toolVerse },
+  };
+  assert.ok(/real detail/i.test(core.missingAnswers(metaOnly)));
+  const metaDraft = core.buildSampleDraft(metaOnly);
+  const metaBlob = JSON.stringify(metaDraft);
+  assert.ok(!/make them laugh/i.test(metaBlob));
+  assert.ok(!/song helper/i.test(metaBlob));
+  assert.ok(!/this song/i.test(metaBlob));
+  assert.strictEqual(metaDraft.hooks[0].text, '');
+  assert.strictEqual(metaDraft.hooks[1].text, '');
+  const storyInterview = core.normalizeInterview(Object.assign({}, metaOnly, {
+    happened: steps,
+    why: porch,
+    north: { forId: 'someone', aims: ['laugh'], opener: steps, keep: porch },
+  }));
+  assert.strictEqual(core.missingAnswers(storyInterview), '');
+  const leaked = core.draftFromModelJson(JSON.stringify({
+    title: 'Gold',
+    hooks: [
+      { id: 'a', text: aimHook, source: 'user' },
+      { id: 'b', text: toolHookB, source: 'generated' },
+    ],
+    sections: [{
+      label: 'Verse',
+      lines: [
+        { text: toolMade, source: 'generated' },
+        { text: toolVerse, source: 'user' },
+        { text: steps, source: 'user' },
+      ],
+    }],
+  }), storyInterview);
+  const leakedBlob = JSON.stringify(leaked);
+  assert.ok(!/I want this song to make them laugh/i.test(leakedBlob));
+  assert.ok(!/song helper/i.test(leakedBlob));
+  assert.ok(!/Spark the wonder/i.test(leakedBlob));
+  assert.ok(!/made this song/i.test(leakedBlob));
+  assert.ok(!/making this song/i.test(leakedBlob));
+  assert.ok(leakedBlob.indexOf(steps) !== -1);
+  assert.ok(leakedBlob.indexOf(porch) !== -1);
+  assert.strictEqual(leaked.hooks[0].text, steps);
+  assert.notStrictEqual(leaked.hooks[1].text, toolHookB);
+  const funnyAim = core.normalizeInterview(fixture({
+    line: aimHook,
+    shape: {
+      genre: 'Comedy',
+      pack: 'comedy',
+      comedy: true,
+      language: 'english',
+      explicit: 'clean',
+      length: 'short',
+    },
+  }));
+  const funnyKept = core.draftFromModelJson(JSON.stringify({
+    title: 'The crumb',
+    hooks: [
+      { id: 'a', text: aimHook, source: 'user' },
+      { id: 'b', text: toolHookB, source: 'generated' },
+    ],
+    sections: [{
+      label: 'Verse',
+      lines: [
+        { text: toolMade, source: 'generated' },
+        { text: 'The crumb stayed on the plate.', source: 'generated' },
+      ],
+    }],
+  }), funnyAim);
+  assert.strictEqual(funnyKept.hooks[0].text, aimHook);
+  assert.ok(!/song helper/i.test(JSON.stringify(funnyKept.sections)));
+  assert.ok(!/Spark the wonder/i.test(funnyKept.hooks[1].text));
 }
 
 async function runApi() {
@@ -539,6 +627,23 @@ async function runApi() {
     assert.ok(!/drumroll/i.test(comedyText));
     assert.ok(!/Written with Grok/.test(comedyText));
     assert.strictEqual(fetchCalls, 0);
+
+    const aimOnly = await post({
+      mood: 'hopeful',
+      who: 'my sister',
+      line: 'I want this song to make them laugh.',
+      happened: "I'm making this song right now using song helper...",
+      why: 'Song Helper made this song.',
+      shape: { genre: 'R&B', language: 'english', explicit: 'clean', length: 'short' },
+      north: {
+        forId: 'someone',
+        aims: ['laugh'],
+        opener: "I'm making this song right now using song helper...",
+      },
+    }, '203.0.113.90');
+    assert.strictEqual(aimOnly.statusCode, 400);
+    assert.ok(/real detail/i.test(aimOnly.json.error));
+    assert.ok(!aimOnly.json.draft);
 
     const honeyIp = '203.0.113.21';
     for (let i = 0; i < core.RATE_MAX; i += 1) handler._limiter.allow(honeyIp);
@@ -1338,10 +1443,10 @@ function runPage() {
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-helper-v2.js?v=20261010sounds'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010sounds'));
-  assert.ok(html.includes('song-flow-page.js?v=20261009story'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010meta'));
+  assert.ok(html.includes('song-flow-page.js?v=20261010meta'));
   assert.ok(html.includes('song-helper.css?v=20261010sounds'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010sounds'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010meta'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1403,6 +1508,9 @@ function runPage() {
   assert.ok(!/id="sh-who"[^>]*maxlength/.test(html));
   assert.ok(js.includes('plaiground.songHelper.story'));
   assert.ok(read('song-flow-page.js').includes('plaiground.songHelper.story'));
+  assert.ok(read('song-flow-page.js').includes('lyricSeeds'));
+  assert.ok(!/I want this song to /.test(read('song-flow-page.js')));
+  assert.ok(html.includes('lib/song-modes.js?v=20261010meta'));
   assert.ok(read('lib/song-flow.js').includes("className = 'sh-count'"));
   assert.ok(js.includes('surpriseWords'));
   assert.ok(js.includes('publicFigureName'));

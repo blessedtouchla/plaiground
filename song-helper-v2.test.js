@@ -117,9 +117,48 @@ function runModes() {
   }, { quote: 'this song is supposed to make them laugh' });
   const kept = stripped.sections[0].lines.map(function (row) { return row.text; });
   assert.ok(kept.indexOf('The mug is still in the kitchen.') !== -1);
-  assert.ok(kept.indexOf('this song is supposed to make them laugh') !== -1);
+  assert.ok(kept.indexOf('this song is supposed to make them laugh') === -1);
   assert.ok(!kept.some(function (text) { return /this part is supposed/i.test(text); }));
   assert.ok(!kept.some(function (text) { return /make them cry/i.test(text); }));
+  const victoria = modes.stripIntentDraft({
+    title: 'Gold',
+    hooks: [
+      { id: 'a', text: 'I want this song to make them laugh.' },
+      { id: 'b', text: 'Spark the wonder, feel the flow, song helper turns chaos into gold' },
+    ],
+    sections: [{
+      label: 'Verse',
+      lines: [
+        { text: 'Song Helper made this song.' },
+        { text: "I'm making this song right now using song helper..." },
+        { text: 'The mug is still in the kitchen.' },
+      ],
+    }],
+  }, {
+    mode: 'write',
+    line: 'I want this song to make them laugh.',
+    happened: "I'm making this song right now using song helper...",
+    why: 'Song Helper made this song.',
+  });
+  const victoriaText = JSON.stringify(victoria);
+  assert.ok(!/I want this song to make them laugh/i.test(victoriaText));
+  assert.ok(!/song helper/i.test(victoriaText));
+  assert.ok(!/Spark the wonder/i.test(victoriaText));
+  assert.ok(!/made this song/i.test(victoriaText));
+  assert.ok(!/making this song/i.test(victoriaText));
+  assert.ok(/mug is still in the kitchen/i.test(victoriaText));
+  const funnyAim = modes.stripIntentDraft({
+    hooks: [{ id: 'a', text: 'I want this song to make them laugh.' }],
+    sections: [{
+      label: 'Verse',
+      lines: [
+        { text: 'The mug is still in the kitchen.' },
+        { text: 'Song Helper made this song.' },
+      ],
+    }],
+  }, { mode: 'funny', line: 'I want this song to make them laugh.' });
+  assert.ok(/I want this song to make them laugh/.test(JSON.stringify(funnyAim.hooks)));
+  assert.ok(!/song helper/i.test(JSON.stringify(funnyAim.sections)));
   assert.ok(/Never write a lyric that announces/i.test(modes.systemPrompt({ mode: 'funny', craft: {} })));
   assert.ok(/Funny mode: the humor is the thing they named/i.test(modes.systemPrompt({ mode: 'funny', craft: {} })));
   const ownedFunny = modes.buildSample(concrete({
@@ -127,8 +166,9 @@ function runModes() {
     quote: 'this song is supposed to make them laugh',
   }));
   const ownedText = modes.allLines(ownedFunny.draft).map(function (row) { return row.text; }).join('\n');
-  assert.ok(/this song is supposed to make them laugh/i.test(ownedText));
+  assert.ok(!/this song is supposed to make them laugh/i.test(ownedText));
   assert.ok(!/this part is supposed to make them laugh/i.test(ownedText));
+  assert.ok(/chipped mug/i.test(ownedText));
   const noMood = modes.buildSample(concrete({ mood: '' }));
   assert.strictEqual(noMood.ok, false);
   assert.ok(/feeling/i.test(noMood.error));
