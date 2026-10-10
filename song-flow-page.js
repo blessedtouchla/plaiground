@@ -83,6 +83,10 @@
         return { ask: note.ask || '', text: note.text || '' };
       }),
       kinds: (state.kinds || []).slice(),
+      feelFirst: !!state.feelFirst,
+      feelOther: state.feelOther || '',
+      feelStory: state.feelStory || '',
+      feelDone: !!state.feelDone,
       title: state.title || '',
       talk: state.talk || '',
       genres: (state.genres || []).slice(),
@@ -100,13 +104,17 @@
   function restoreFlow() {
     var saved = readStoryStore().flow;
     if (!saved || typeof saved !== 'object') return;
-    var has = saved.opener || saved.forText || saved.keep || saved.wisdom || (saved.notes && saved.notes.length);
+    var has = saved.opener || saved.forText || saved.keep || saved.wisdom || saved.feelStory || saved.feelFirst || saved.feelOther || (saved.notes && saved.notes.length);
     if (!has) return;
     ['forId', 'forText', 'aimOther', 'opener', 'wisdom', 'keep', 'title', 'talk', 'revealId', 'language', 'explicit'].forEach(function (key) {
       if (saved[key]) state[key] = saved[key];
     });
     if (Array.isArray(saved.aims) && saved.aims.length) state.aims = saved.aims.slice();
     if (Array.isArray(saved.kinds) && saved.kinds.length) state.kinds = saved.kinds.slice();
+    if (saved.feelFirst) state.feelFirst = true;
+    if (saved.feelOther) state.feelOther = saved.feelOther;
+    if (saved.feelStory) state.feelStory = saved.feelStory;
+    if (saved.feelDone) state.feelDone = true;
     if (Array.isArray(saved.genres) && saved.genres.length) state.genres = saved.genres.slice();
     if (Array.isArray(saved.notes) && saved.notes.length) state.notes = saved.notes.slice();
     if (saved.reveals) state.reveals = Object.assign(state.reveals || {}, saved.reveals);
@@ -213,6 +221,10 @@
     else if (step.id === 'open') state.opener = text;
     else if (step.id === 'wisdom') state.wisdom = text;
     else if (step.id === 'keep') state.keep = text;
+    else if (step.id === 'feel') {
+      state.feelStory = text;
+      if (!text) state.feelDone = false;
+    }
     else if (step.id === 'reveal' && state.revealId) {
       state.reveals[state.revealId] = text;
       flow.REVEALS.forEach(function (item) {
@@ -261,6 +273,7 @@
     if (step.id === 'open') return state.opener || '';
     if (step.id === 'wisdom') return state.wisdom || '';
     if (step.id === 'keep') return state.keep || '';
+    if (step.id === 'feel') return state.feelStory || '';
     if (step.id === 'reveal') return (state.revealId && state.reveals[state.revealId]) || '';
     if (step.id === 'scene') {
       var bits = [];
@@ -342,6 +355,7 @@
       skip(step);
       return;
     }
+    if (step.id === 'feel') state.feelDone = !!answer;
     pinned = '';
     if (answer) recordStory(step, answer);
     if (extra && extraAsk) {
@@ -470,6 +484,12 @@
     ask.className = 'sh-q';
     ask.textContent = step.ask;
     host.appendChild(ask);
+    if (step.note) {
+      var extra = document.createElement('p');
+      extra.className = 'sh-help';
+      extra.textContent = step.note;
+      host.appendChild(extra);
+    }
     if (step.recommended) {
       var rec = document.createElement('p');
       rec.className = 'sh-help';
@@ -532,7 +552,10 @@
       }, 'Optional. Skip if you want.', true));
       paintStarters(host, step);
     } else if (step.kind === 'story') {
-      var current = step.id === 'open' ? state.opener : (step.id === 'keep' ? state.keep : state.wisdom);
+      var current = state.wisdom;
+      if (step.id === 'open') current = state.opener;
+      else if (step.id === 'keep') current = state.keep;
+      else if (step.id === 'feel') current = state.feelStory || '';
       host.appendChild(field('Your answer', current, function (value) {
         setStory(step, value);
         revealFollow(step);
@@ -868,6 +891,12 @@
       state.kinds = (list || []).slice(0, 2);
       render();
     },
+    setFeelStart: function (on, other) {
+      state.feelFirst = !!on;
+      state.feelOther = tidy(other, 80) || '';
+      render();
+    },
+    setTalk: setTalk,
     paintCast: function () { paintCast(); },
     flowState: function () {
       syncTitle();
@@ -908,4 +937,5 @@
   paintCast();
   render();
   repaint();
+  if (window.SongHelperV2 && window.SongHelperV2.reapplyDoor) window.SongHelperV2.reapplyDoor();
 })();

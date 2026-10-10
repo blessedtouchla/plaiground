@@ -133,6 +133,14 @@
         <p class="sh-help">Pick the path. Name the song first. Only that path stays on the page.</p>
         <div class="sh-modes" id="sh-source-modes" role="group" aria-label="From a real song"></div>
       </section>
+      <section class="sh-craft" id="sh-doors" hidden>
+        <h2 class="sh-craft-title">Create from scratch</h2>
+        <p class="sh-help">Start with an idea, or start with a feeling. You can switch anytime.</p>
+        <div class="sh-idea-choices" role="group" aria-label="Create from scratch">
+          <button type="button" class="sh-choice" id="sh-door-idea" aria-pressed="false">Start with an idea</button>
+          <button type="button" class="sh-choice" id="sh-door-feel" aria-pressed="false">Start with a feeling</button>
+        </div>
+      </section>
       <section class="sh-craft" id="sh-idea" hidden>
         <h2 class="sh-craft-title">Start with an idea</h2>
         <p class="sh-help">Pick one. You can switch anytime.</p>
@@ -157,6 +165,15 @@
         <label class="sh-field" id="sh-title-field" hidden>
           <span>Working title</span>
           <input class="sh-input" id="sh-working-title" maxlength="80" autocomplete="off" placeholder="A few words for the song" />
+        </label>
+      </section>
+      <section class="sh-craft" id="sh-feel-pick" hidden>
+        <h2 class="sh-craft-title">Start with a feeling</h2>
+        <p class="sh-help">Pick a feeling. A second one can tint it. Or write your own. The first question follows the feeling you pick, and you can change every word.</p>
+        <div class="sh-modes" id="sh-feel-chips" role="group" aria-label="Feelings" data-no-fold="1"></div>
+        <label class="sh-field" id="sh-feel-other-field">
+          <span>Something else</span>
+          <input class="sh-input" id="sh-feel-other" maxlength="80" autocomplete="off" placeholder="A feeling in your own words" />
         </label>
       </section>
       <section class="sh-craft" id="sh-feeling" hidden>
@@ -741,7 +758,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261010sounds"></script>
+  <script src="lib/song-flow.js?v=20261010feel"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261010fix"></script>
   <script src="lib/song-helper.js?v=20261010sounds"></script>
@@ -757,8 +774,8 @@
   <script src="lib/song-questions.js?v=20261009story"></script>
   <script src="song-helper.js?v=20261010ideas"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010ideas"></script>
-  <script src="song-flow-page.js?v=20261009story"></script>
+  <script src="song-helper-v2.js?v=20261010feel"></script>
+  <script src="song-flow-page.js?v=20261010feel"></script>
   <script src="site.js?v=20261010fix"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

@@ -80,6 +80,8 @@
   var sparkSeed = null;
   var seededAngle = '';
   var ideaLane = '';
+  var scratchDoor = '';
+  var feelOther = '';
   var branch = '';
   var storyBox = false;
   var pageSections = [];
@@ -92,7 +94,18 @@
     grateful: 'grateful',
     nostalgic: 'nostalgic',
     angry: 'angry',
-    mindset: 'mindset'
+    mindset: 'mindset',
+    lonely: 'lonely',
+    hopeful: 'hopeful',
+    anxious: 'anxious',
+    proud: 'proud',
+    jealous: 'jealous',
+    free: 'free',
+    tender: 'tender',
+    confident: 'confident',
+    peaceful: 'peaceful',
+    guilty: 'guilty',
+    restless: 'restless'
   };
   var GENRE_LABELS = {
     hiphop: 'Hip-hop',
@@ -2344,6 +2357,7 @@
   function paintBranch() {
     if (window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft() && !branch && !storyBox) {
       branch = 'scratch';
+      if (!scratchDoor) scratchDoor = 'idea';
       if (!ideaLane) ideaLane = 'own';
       if (!kind) {
         kind = 'love';
@@ -2355,11 +2369,14 @@
     }
     var scratch = branch === 'scratch';
     var source = branch === 'source';
-    showEl('sh-idea', scratch);
+    showEl('sh-doors', scratch);
+    showEl('sh-idea', scratch && scratchDoor === 'idea');
+    showEl('sh-feel-pick', scratch && scratchDoor === 'feel');
     showEl('sh-source', source);
-    var ideaReady = scratch && (ideaLane === 'ideas' || ideaLane === 'own');
+    var ideaReady = scratch && scratchDoor === 'idea' && (ideaLane === 'ideas' || ideaLane === 'own');
+    var feelPath = scratch && scratchDoor === 'feel' && feelingKinds().length > 0;
     showEl('sh-feeling', ideaReady);
-    var feelReady = ideaReady && !!kind;
+    var feelReady = (ideaReady && !!kind) || feelPath;
     var pageFlow = window.SongFlowPage;
     var talk = pageFlow ? pageFlow.talk() : '';
     var draftReady = feelReady && pageFlow && pageFlow.ready();
@@ -2394,8 +2411,117 @@
       pageBtn.classList.toggle('on', !!storyBox);
       pageBtn.setAttribute('aria-pressed', storyBox ? 'true' : 'false');
     }
+    paintDoor();
     paintIdeaLane();
     paintSourceNotes();
+  }
+
+  function feelingKinds() {
+    var picked = kinds.filter(function (id) { return id && id !== 'other'; });
+    if (!picked.length && String(feelOther || '').trim()) return ['other'];
+    return picked.slice(0, 2);
+  }
+
+  function persistDoor() {
+    storyPatch({
+      scratchDoor: scratchDoor,
+      feelOther: feelOther,
+      branch: branch,
+    });
+  }
+
+  function restoreDoor() {
+    var saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem('plaiground.songHelper.story') || '{}') || {};
+    } catch (err) {
+      saved = {};
+    }
+    if (saved.scratchDoor === 'idea' || saved.scratchDoor === 'feel') scratchDoor = saved.scratchDoor;
+    if (saved.feelOther) feelOther = String(saved.feelOther).slice(0, 80);
+    if (saved.branch === 'scratch' || saved.branch === 'source') branch = saved.branch;
+    var flowSaved = saved.flow || {};
+    if (scratchDoor === 'feel' && Array.isArray(flowSaved.kinds)) {
+      kinds = flowSaved.kinds.filter(function (id) { return id && id !== 'other'; }).slice(0, 2);
+      kind = kinds[0] || '';
+    }
+    var other = $('sh-feel-other');
+    if (other && !String(other.value || '').trim()) other.value = feelOther;
+  }
+
+  function paintDoor() {
+    var ideaBtn = $('sh-door-idea');
+    var feelBtn = $('sh-door-feel');
+    if (ideaBtn) {
+      var ideaOn = scratchDoor === 'idea';
+      ideaBtn.classList.toggle('on', ideaOn);
+      ideaBtn.setAttribute('aria-pressed', ideaOn ? 'true' : 'false');
+    }
+    if (feelBtn) {
+      var feelOn = scratchDoor === 'feel';
+      feelBtn.classList.toggle('on', feelOn);
+      feelBtn.setAttribute('aria-pressed', feelOn ? 'true' : 'false');
+    }
+  }
+
+  function paintFeelings() {
+    var host = $('sh-feel-chips');
+    var flow = window.SongFlow;
+    if (!host || !flow || !flow.FEELINGS) return;
+    host.textContent = '';
+    flow.FEELINGS.forEach(function (item) {
+      var on = kinds.indexOf(item.id) !== -1;
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (on ? ' on' : '');
+      button.textContent = item.label;
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        var at = kinds.indexOf(item.id);
+        if (at >= 0) kinds.splice(at, 1);
+        else if (kinds.length < 2) kinds.push(item.id);
+        kind = kinds[0] || '';
+        applyFeelings();
+      });
+      host.appendChild(button);
+    });
+  }
+
+  function applyFeelings() {
+    kind = kinds[0] || '';
+    if (window.SongHelperPage && window.SongHelperPage.setMood) {
+      var mood = kind ? (KIND_MOOD[kind] || kind) : '';
+      if (!mood && feelOther) mood = feelOther;
+      window.SongHelperPage.setMood(mood);
+    }
+    var chosen = scratchDoor === 'feel' && feelingKinds().length > 0;
+    if (window.SongFlowPage && window.SongFlowPage.setFeelStart) {
+      window.SongFlowPage.setFeelStart(chosen, feelOther);
+    }
+    if (chosen && window.SongFlowPage && window.SongFlowPage.talk && !window.SongFlowPage.talk() && window.SongFlowPage.setTalk) {
+      window.SongFlowPage.setTalk('form');
+    }
+    paintFeelings();
+    paintBranch();
+    persistDoor();
+  }
+
+  function reapplyDoor() {
+    paintFeelings();
+    if (scratchDoor === 'feel') applyFeelings();
+    else paintBranch();
+  }
+
+  function setScratchDoor(next) {
+    if (next !== 'idea' && next !== 'feel') return;
+    if (scratchDoor === next) return;
+    scratchDoor = next;
+    if (next === 'feel') applyFeelings();
+    else {
+      if (window.SongFlowPage && window.SongFlowPage.setFeelStart) window.SongFlowPage.setFeelStart(false, feelOther);
+      paintBranch();
+      persistDoor();
+    }
   }
 
   function setStoryBox(on, opts) {
@@ -2429,6 +2555,7 @@
       paintFields();
     }
     paintBranch();
+    persistDoor();
     if (wasStory) persistPage();
   }
 
@@ -4088,7 +4215,11 @@
     ownIdea: ownIdea,
     snapshot: snapshot,
     repaint: paintBranch,
-    kinds: function () { return kinds.slice(); },
+    kinds: function () {
+      if (scratchDoor === 'feel') return feelingKinds();
+      return kinds.slice();
+    },
+    reapplyDoor: function () { reapplyDoor(); },
     setRegion: function (value) {
       craft.region = value || '';
       chosenSlang = '';
@@ -4130,6 +4261,19 @@
   var sourceBtn = $('sh-choice-source');
   if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
   if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
+  restoreDoor();
+  paintFeelings();
+  var feelOtherBox = $('sh-feel-other');
+  if (feelOtherBox) {
+    feelOtherBox.addEventListener('input', function () {
+      feelOther = String(feelOtherBox.value || '').slice(0, 80);
+      applyFeelings();
+    });
+  }
+  var doorIdea = $('sh-door-idea');
+  var doorFeel = $('sh-door-feel');
+  if (doorIdea) doorIdea.addEventListener('click', function () { setScratchDoor('idea'); });
+  if (doorFeel) doorFeel.addEventListener('click', function () { setScratchDoor('feel'); });
   paintBranch();
   bootWriteFirst();
   paintStyleDesign();

@@ -837,6 +837,18 @@ function runPages() {
   assert.ok(js.includes('Song you want to cover'));
   assert.ok(js.includes('FAIR_USE_NOTE'));
   assert.ok(html.includes('id="sh-ideas-panel"'));
+  assert.ok(html.includes('id="sh-doors"'));
+  assert.ok(html.includes('id="sh-door-idea"'));
+  assert.ok(html.includes('id="sh-door-feel"'));
+  assert.ok(html.includes('Start with a feeling'));
+  assert.ok(html.includes('id="sh-feel-pick"'));
+  assert.ok(html.includes('id="sh-feel-other"'));
+  assert.ok(html.includes('Something else'));
+  assert.ok(html.indexOf('id="sh-doors"') < html.indexOf('id="sh-idea"'));
+  assert.ok(html.indexOf('id="sh-feel-pick"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(js.includes('setScratchDoor'));
+  assert.ok(js.includes('setFeelStart'));
+  assert.ok(js.includes('feelingKinds'));
   assert.ok(html.includes('id="sh-own-panel"'));
   assert.ok(js.includes('setIdeaLane'));
   assert.ok(js.includes('clearOwnIdea'));
