@@ -495,6 +495,7 @@
 
   function foldOptions(host) {
     if (!host || !host.children) return;
+    if (host.id === 'sh-have-actions') return;
     var key = host.id || host.getAttribute('aria-label') || '';
     if (!key) return;
     var old = host.querySelector(':scope > button.sh-more');

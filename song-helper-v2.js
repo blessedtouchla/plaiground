@@ -86,6 +86,9 @@
   var ideaLane = '';
   var branch = '';
   var storyBox = false;
+  var haveLyrics = false;
+  var lyricsOriginal = '';
+  var lyricsTone = '';
   var pageSections = [];
   var formatState = null;
   var KIND_MOOD = {
@@ -2507,10 +2510,16 @@
       sourceBtn.setAttribute('aria-pressed', source ? 'true' : 'false');
     }
     showEl('sh-page', !!storyBox);
+    showEl('sh-have', !!haveLyrics);
     var pageBtn = $('sh-choice-page');
     if (pageBtn) {
-      pageBtn.classList.toggle('on', !!storyBox);
-      pageBtn.setAttribute('aria-pressed', storyBox ? 'true' : 'false');
+      pageBtn.classList.toggle('on', !!storyBox && !haveLyrics);
+      pageBtn.setAttribute('aria-pressed', storyBox && !haveLyrics ? 'true' : 'false');
+    }
+    var haveBtn = $('sh-choice-lyrics');
+    if (haveBtn) {
+      haveBtn.classList.toggle('on', !!haveLyrics);
+      haveBtn.setAttribute('aria-pressed', haveLyrics ? 'true' : 'false');
     }
     paintIdeaLane();
     paintSourceNotes();
@@ -2519,6 +2528,7 @@
 
   function setStoryBox(on, opts) {
     storyBox = !!on;
+    if (!(opts && opts.keepHave)) haveLyrics = false;
     if (storyBox) branch = '';
     paintBranch();
     if (storyBox && !(opts && opts.keep)) {
@@ -2533,9 +2543,11 @@
   function setBranch(next) {
     if (next !== 'scratch' && next !== 'source') return;
     var wasStory = storyBox;
+    var wasHave = haveLyrics;
     storyBox = false;
+    haveLyrics = false;
     if (branch === next) {
-      if (wasStory) {
+      if (wasStory || wasHave) {
         paintBranch();
         persistPage();
       }
@@ -2548,7 +2560,7 @@
       paintFields();
     }
     paintBranch();
-    if (wasStory) persistPage();
+    if (wasStory || wasHave) persistPage();
   }
 
   function setIdeaLane(next) {
@@ -3220,6 +3232,10 @@
         }),
         lyrics: !!(window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen()),
         open: !!storyBox,
+        have: !!haveLyrics,
+        original: lyricsOriginal,
+        paste: pasteText(),
+        lyricsTone: lyricsTone,
       },
     });
   }
@@ -3440,6 +3456,157 @@
     });
   }
 
+  function pasteText() {
+    var box = $('sh-have-text');
+    return box ? String(box.value || '').replace(/\r\n/g, '\n') : '';
+  }
+
+  function haveError(message) {
+    var el = $('sh-have-error');
+    if (!el) {
+      pageError(message);
+      return;
+    }
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
+  function paintOriginal() {
+    var wrap = $('sh-have-original');
+    var pre = $('sh-have-original-text');
+    if (pre) pre.textContent = lyricsOriginal || '';
+    if (wrap) wrap.hidden = !lyricsOriginal;
+  }
+
+  function hasAssistMarks() {
+    return pageSections.some(function (row) { return String(row.marks || '').indexOf('a') !== -1; });
+  }
+
+  function preparePaste() {
+    var flow = window.SongFlow;
+    var trimmed = pasteText().trim();
+    if (!trimmed) {
+      haveError('Paste or type your lyrics first.');
+      return false;
+    }
+    if (trimmed.length > storyMax()) {
+      haveError((flow && flow.TOO_LONG) || '');
+      return false;
+    }
+    if (!lyricsOriginal) lyricsOriginal = trimmed;
+    var filled = pageSections.filter(function (row) { return String(row.text || '').trim(); });
+    var same = filled.length === 1 && String(filled[0].text || '').trim() === trimmed;
+    if (!hasAssistMarks() && !same) {
+      pageSections = freshSections([{ id: 'verse-1', kind: 'verse', label: 'Verse 1', text: trimmed }]);
+    }
+    haveError('');
+    pageError('');
+    haveLyrics = true;
+    storyBox = true;
+    branch = '';
+    renderSections();
+    paintOriginal();
+    paintHumanMeter();
+    paintBranch();
+    persistPage();
+    return true;
+  }
+
+  function ensureFinishTarget(kind) {
+    var flow = window.SongFlow;
+    var open = '';
+    pageSections.forEach(function (row) {
+      if (!open && row.kind === kind && !String(row.text || '').trim()) open = row.id;
+    });
+    if (open) return open;
+    if (kind === 'hook' && !pageSections.some(function (row) { return row.kind === 'hook'; })) {
+      var hook = { id: 'hook', kind: 'hook', label: 'Hook' };
+      hook.text = '';
+      pageSections = adoptSections(pageSections.concat([hook]));
+      return 'hook';
+    }
+    if (!flow || !flow.addSection) return pageSections[0] ? pageSections[0].id : '';
+    pageSections = adoptSections(flow.addSection(pageSections, 'verse'));
+    return pageSections[pageSections.length - 1].id;
+  }
+
+  function filledPart() {
+    var found = null;
+    pageSections.forEach(function (row) {
+      if (!found && String(row.text || '').trim()) found = row;
+    });
+    return found;
+  }
+
+  function runFinish(button) {
+    var flow = window.SongFlow;
+    if (!preparePaste() || !flow || !flow.nextFinishKind) return;
+    var id = ensureFinishTarget(flow.nextFinishKind(pasteText()));
+    renderSections();
+    paintHumanMeter();
+    persistPage();
+    suggestSection(id, button);
+  }
+
+  function runRhymify(button) {
+    if (!preparePaste()) return;
+    var row = filledPart();
+    if (!row) return;
+    rewriteSection(row.id, 'rhymify', button);
+  }
+
+  function paintHaveTones() {
+    var host = $('sh-have-tones');
+    var modes = window.SongModes;
+    if (!host || !modes || !modes.TONES) return;
+    host.textContent = '';
+    modes.TONES.forEach(function (item) {
+      host.appendChild(choiceCard(item, lyricsTone === item.id, function (picked) {
+        lyricsTone = lyricsTone === picked.id ? '' : picked.id;
+        paintHaveTones();
+        if (lyricsTone) runTone($('sh-have-tone'));
+      }));
+    });
+    if (window.SongHelperChips) window.SongHelperChips.fold(host);
+  }
+
+  function runTone(button) {
+    if (!lyricsTone) {
+      var wrap = $('sh-have-tone-wrap');
+      if (wrap) wrap.hidden = false;
+      paintHaveTones();
+      haveError('Pick a tone. Your words stay either way.');
+      return;
+    }
+    if (!preparePaste()) return;
+    var row = filledPart();
+    if (!row) return;
+    rewriteSection(row.id, 'tone', button);
+  }
+
+  function runStyle() {
+    if (!preparePaste()) return;
+    finishLyrics();
+  }
+
+  function restoreOriginal() {
+    if (!lyricsOriginal) return;
+    var box = $('sh-have-text');
+    if (box) box.value = lyricsOriginal;
+    pageSections = freshSections([{ id: 'verse-1', kind: 'verse', label: 'Verse 1', text: lyricsOriginal }]);
+    hideFormat();
+    haveError('');
+    pageError('');
+    haveLyrics = true;
+    storyBox = true;
+    branch = '';
+    renderSections();
+    paintOriginal();
+    paintHumanMeter();
+    paintBranch();
+    persistPage();
+  }
+
   function bootWriteFirst() {
     var host = $('sh-page-sections');
     var lyricsBtn = $('sh-page-lyrics');
@@ -3483,9 +3650,50 @@
     }
     renderSections();
     paintHumanMeter();
+    lyricsOriginal = String(saved.original || '').slice(0, storyMax());
+    lyricsTone = String(saved.lyricsTone || '').replace(/[^a-z]/g, '').slice(0, 16);
+    var pasteBox = $('sh-have-text');
+    if (pasteBox && saved.paste) pasteBox.value = String(saved.paste).slice(0, storyMax());
+    else if (pasteBox && lyricsOriginal) pasteBox.value = lyricsOriginal;
+    paintOriginal();
+    if (saved.have) haveLyrics = true;
     var anyText = pageSections.some(function (row) { return String(row.text || '').trim(); });
-    if (saved.open || saved.lyrics || anyText) setStoryBox(true, { keep: true, quiet: true });
+    if (saved.open || saved.lyrics || anyText) setStoryBox(true, { keep: true, quiet: true, keepHave: !!saved.have });
+    else if (saved.have) paintBranch();
     if (pageBtn) pageBtn.addEventListener('click', function () { setStoryBox(true); });
+    var haveChoice = $('sh-choice-lyrics');
+    if (haveChoice) haveChoice.addEventListener('click', function () {
+      haveLyrics = true;
+      storyBox = false;
+      branch = '';
+      haveError('');
+      paintBranch();
+      var panel = $('sh-have');
+      if (panel && panel.scrollIntoView) {
+        try { panel.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+      }
+      persistPage();
+    });
+    var finishHave = $('sh-have-finish');
+    var formatHave = $('sh-have-format');
+    var rhymeHave = $('sh-have-rhymify');
+    var toneHave = $('sh-have-tone');
+    var styleHave = $('sh-have-style');
+    var restoreHave = $('sh-have-restore');
+    if (finishHave) finishHave.addEventListener('click', function () { runFinish(finishHave); });
+    if (formatHave) formatHave.addEventListener('click', function () {
+      if (!preparePaste()) return;
+      openLyricsPath();
+    });
+    if (rhymeHave) rhymeHave.addEventListener('click', function () { runRhymify(rhymeHave); });
+    if (toneHave) toneHave.addEventListener('click', function () { runTone(toneHave); });
+    if (styleHave) styleHave.addEventListener('click', function () { runStyle(); });
+    if (restoreHave) restoreHave.addEventListener('click', function () { restoreOriginal(); });
+    if (saved.have && lyricsTone) {
+      var toneWrap = $('sh-have-tone-wrap');
+      if (toneWrap) toneWrap.hidden = false;
+      paintHaveTones();
+    }
     if (addVerse) {
       addVerse.addEventListener('click', function () {
         pageSections = adoptSections(flow.addSection(pageSections, 'verse'));
@@ -3668,6 +3876,7 @@
     var core = window.SongHelperCore;
     if (!core) return text;
     if (kind === 'shorten' && core.shortenFallback) return core.shortenFallback(text);
+    if (kind === 'tone' && core.toneFallback) return core.toneFallback(text, lyricsTone);
     if (kind === 'rhymify' && core.rhymifyFallback) return core.rhymifyFallback(label, text);
     if (core.extendFallback) return core.extendFallback(label, text);
     return text;
@@ -3694,6 +3903,7 @@
         section: row.label,
         text: text,
         others: otherBody(id),
+        tone: kind === 'tone' ? lyricsTone : '',
       }),
     }).then(function (response) {
       return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
@@ -3707,6 +3917,8 @@
         next = fallback;
         notice = notice || 'Nothing changes until you tap Accept. Keep mine leaves your words.';
       }
+      var kept = before.replace(/\s+$/g, '');
+      if (kind === 'tone' && next.indexOf(kept) !== 0) next = fallback;
       var area = partNode('data-part-text', id);
       if (area && area.value !== before) return;
       showRewrite(id, kind, next, notice);
@@ -3900,7 +4112,9 @@
       use.type = 'button';
       use.className = 'btn btn-purple btn-md';
       use.textContent = 'Use this';
-      use.addEventListener('click', function () { useSuggestion(id, edit.value); });
+      use.addEventListener('click', function () {
+        useSuggestion(id, edit.value, String(edit.value || '').trim() !== String(line || '').trim());
+      });
       var skip = document.createElement('button');
       skip.type = 'button';
       skip.className = 'btn btn-ghost btn-md';
@@ -3914,7 +4128,7 @@
     });
   }
 
-  function useSuggestion(id, line) {
+  function useSuggestion(id, line, edited) {
     var flow = window.SongFlow;
     if (!flow || !flow.applySuggestion) return;
     var verdict = flow.applySuggestion(pageSections, id, line);
@@ -3922,15 +4136,13 @@
       pageError(verdict.message || (flow.TOO_LONG || ''));
       return;
     }
-    pageSections = adoptSections(verdict.sections);
-    pageError('');
-    partError(id, '');
-    var area = partNode('data-part-text', id);
-    var next = findPart(id);
-    if (area && next) area.value = next.text;
-    syncPartCount(id);
-    paintHumanMeter();
-    persistPage();
+    var nextRow = (verdict.sections || []).filter(function (item) { return item.id === id; })[0];
+    commitPreview(id, nextRow ? nextRow.text : line, 'extend', !!edited);
+    var panel = partNode('data-suggest', id);
+    if (panel) {
+      panel.hidden = true;
+      panel.textContent = '';
+    }
   }
 
   function lyricsSource() {

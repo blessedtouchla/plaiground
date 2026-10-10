@@ -1128,6 +1128,28 @@ async function runApi() {
     assert.ok(rhymed.json.text.indexOf('Stay with me tonight.') !== -1);
     assert.notStrictEqual(rhymed.json.text, 'Stay with me tonight.');
   }
+  const kept = 'The porch light stayed on.';
+  const toned = core.toneFallback(kept, 'heartfelt');
+  assert.strictEqual(toned.indexOf(kept), 0);
+  assert.ok(toned.length > kept.length);
+  assert.ok(toned.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/.test(toned));
+  assert.ok(/Fired up/.test(core.toneLabel('fired')));
+  assert.ok(/Keep every word they wrote/.test(core.rewriteSystem('tone', 'Verse 1', 'Heartfelt')));
+  const tonePass = await post({
+    action: 'tone',
+    section: 'Verse 1',
+    text: kept,
+    tone: 'heartfelt',
+    others: '',
+  }, '203.0.113.96');
+  assert.strictEqual(tonePass.statusCode, 200);
+  assert.ok(tonePass.json.text.indexOf(kept) === 0);
+  assert.ok(tonePass.json.text.length > kept.length);
+  assert.ok(/AI-assisted/.test(tonePass.json.notice));
+  assert.ok(tonePass.json.text.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/i.test(tonePass.json.text + tonePass.json.notice));
+  assert.ok(read('api/song-helper.js').includes("action === 'tone'"));
   const rewriteLong = await post({
     action: 'rhymify',
     section: 'Hook',
@@ -1455,9 +1477,9 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261010setup'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010setup'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010setup'));
+  assert.ok(html.includes('song-helper.js?v=20261010lyrics'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010lyrics'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010lyrics'));
   assert.ok(html.includes('lib/style-clues.js?v=20261010tint'));
   assert.ok(html.includes('lib/suno-style.js?v=20261010tint'));
   assert.ok(html.includes('lib/song-modes.js?v=20261010setup'));
@@ -1465,7 +1487,7 @@ function runPage() {
   assert.ok(html.includes('It does not choose the genre, tempo, instruments, or era.'));
   assert.ok(html.includes('song-flow-page.js?v=20261010setup'));
   assert.ok(html.includes('song-helper.css?v=20261010setup'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010meta'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010lyrics'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1498,6 +1520,22 @@ function runPage() {
   assert.ok(html.indexOf('id="sh-start"') < html.indexOf('id="sh-page"'));
   assert.ok(html.includes('How do you want to start?'));
   assert.ok(html.includes('I already have my story or lyrics'));
+  assert.ok(html.includes('I already have some lyrics'));
+  assert.ok(html.includes('id="sh-choice-lyrics"'));
+  assert.ok(html.includes('id="sh-have"'));
+  assert.ok(html.includes('id="sh-have-finish"'));
+  assert.ok(html.includes('id="sh-have-format"'));
+  assert.ok(html.includes('id="sh-have-rhymify"'));
+  assert.ok(html.includes('id="sh-have-tone"'));
+  assert.ok(html.includes('id="sh-have-style"'));
+  assert.ok(read('song-helper.js').includes("host.id === 'sh-have-actions'"));
+  assert.ok(html.includes('Suggest the next verse or hook in your voice.'));
+  assert.ok(html.includes('Sort what you pasted into Verse, Hook, and Bridge.'));
+  assert.ok(html.includes('A side-by-side preview. Your words stay until you accept.'));
+  assert.ok(html.includes('Keep your words, and add one line in the tone you pick.'));
+  assert.ok(html.includes('Build the style prompt for these lyrics.'));
+  assert.ok(html.includes('Your original stays saved.'));
+  assert.ok(html.indexOf('id="sh-choice-lyrics"') < html.indexOf('id="sh-page"'));
   assert.ok(html.includes('id="sh-choice-page"'));
   assert.ok(html.includes('Create from scratch'));
   assert.ok(html.includes('Start with an idea'));

@@ -535,12 +535,18 @@ async function handleRewrite(req, res, body, kind) {
     sendJson(res, blocked.status, blocked.body);
     return;
   }
+  var toneId = String((body && body.tone) || '').replace(/[^a-z]/g, '').slice(0, 16);
+  var toneName = core.toneLabel ? core.toneLabel(toneId) : '';
   var fallback = kind === 'shorten'
     ? core.shortenFallback(trimmed)
     : kind === 'rhymify'
       ? core.rhymifyFallback(sectionLabel, trimmed)
-      : core.extendFallback(sectionLabel, trimmed);
-  var notice = 'Nothing changes until you tap Accept. Keep mine leaves your words.';
+      : kind === 'tone'
+        ? core.toneFallback(trimmed, toneId)
+        : core.extendFallback(sectionLabel, trimmed);
+  var notice = kind === 'tone'
+    ? 'Your words stay. The added line is AI-assisted until you edit it. Nothing changes until you tap Accept.'
+    : 'Nothing changes until you tap Accept. Keep mine leaves your words.';
   if (!xai.configured()) {
     sendJson(res, 200, { ok: true, text: fallback, source: 'sample', notice: notice });
     return;
@@ -549,14 +555,16 @@ async function handleRewrite(req, res, body, kind) {
     var chat = await xai.chat({
       url: 'https://api.x.ai/v1/chat/completions',
       messages: [
-        { role: 'system', content: core.rewriteSystem(kind, sectionLabel) },
-        { role: 'user', content: 'Part: ' + (sectionLabel || 'this part') + '\nThis part:\n' + trimmed + '\nOther parts:\n' + others.trim() },
+        { role: 'system', content: core.rewriteSystem(kind, sectionLabel, toneName) },
+        { role: 'user', content: 'Part: ' + (sectionLabel || 'this part') + '\nTone: ' + (toneName || '') + '\nThis part:\n' + trimmed + '\nOther parts:\n' + others.trim() },
       ],
       max_tokens: 220,
     });
+    var produced = cleanRewrite(chat && chat.content, fallback, trimmed + '\n' + others);
+    if (kind === 'tone' && produced.indexOf(trimmed) !== 0) produced = fallback;
     sendJson(res, 200, {
       ok: true,
-      text: cleanRewrite(chat && chat.content, fallback, trimmed + '\n' + others),
+      text: produced,
       source: 'grok',
       notice: notice,
     });
@@ -797,7 +805,7 @@ async function handleAction(req, res, action, givenBody) {
     await handleSounds(req, res, soundsBody || {});
     return;
   }
-  if (action === 'extend' || action === 'shorten' || action === 'rhymify') {
+  if (action === 'extend' || action === 'shorten' || action === 'rhymify' || action === 'tone') {
     var rewriteBody = givenBody;
     if (!rewriteBody) rewriteBody = await readBody(req);
     await handleRewrite(req, res, rewriteBody || {}, action);
@@ -839,7 +847,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'tone' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

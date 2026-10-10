@@ -886,6 +886,14 @@ function runPages() {
   assert.ok(js.includes('applySuggestion'));
   assert.ok(html.includes('I already have my lyrics'));
   assert.ok(html.includes('I already have my story or lyrics'));
+  assert.ok(html.includes('I already have some lyrics'));
+  assert.ok(html.includes('id="sh-choice-lyrics"'));
+  assert.ok(html.includes('id="sh-have-finish"'));
+  assert.ok(html.includes('id="sh-have-style"'));
+  assert.ok(html.includes('Your original stays saved.'));
+  assert.ok(js.includes('sh-choice-lyrics'));
+  assert.ok(js.includes('lyricsOriginal'));
+  assert.ok(js.includes("kind === 'tone'"));
   assert.ok(html.includes('id="sh-choice-page"'));
   assert.ok(html.includes('How do you want to start?'));
   assert.ok(js.includes('bootWriteFirst'));

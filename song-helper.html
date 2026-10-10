@@ -90,7 +90,51 @@
           <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false">Create from scratch</button>
           <button type="button" class="sh-choice" id="sh-choice-source" aria-pressed="false">From a real song</button>
           <button type="button" class="sh-choice" id="sh-choice-page" aria-pressed="false">I already have my story or lyrics</button>
+          <button type="button" class="sh-choice" id="sh-choice-lyrics" aria-pressed="false">I already have some lyrics</button>
         </div>
+      </section>
+      <section class="sh-craft" id="sh-have" hidden>
+        <h2 class="sh-craft-title">I already have some lyrics</h2>
+        <p class="sh-help">Paste or type what you have. Your original stays saved. Lines this page adds are labeled AI-assisted, and they stay out of the meter until you edit them.</p>
+        <label class="sh-field">
+          <span>Your lyrics</span>
+          <textarea class="sh-area" id="sh-have-text" rows="8" placeholder="Paste or type the lyrics you already have."></textarea>
+        </label>
+        <div id="sh-have-original" hidden>
+          <h3 class="sh-subhead">Your original</h3>
+          <p class="sh-help">This copy stays, even after you accept a suggestion.</p>
+          <pre class="sh-page-clean" id="sh-have-original-text"></pre>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-have-restore">Use my original</button>
+        </div>
+        <h3 class="sh-subhead">What should we do with them?</h3>
+        <div class="sh-modes" id="sh-have-actions">
+          <div class="sh-mode-card">
+            <button type="button" class="sh-chip" id="sh-have-finish">Finish it</button>
+            <p class="sh-mode-line">Suggest the next verse or hook in your voice.</p>
+          </div>
+          <div class="sh-mode-card">
+            <button type="button" class="sh-chip" id="sh-have-format">Make it song format</button>
+            <p class="sh-mode-line">Sort what you pasted into Verse, Hook, and Bridge.</p>
+          </div>
+          <div class="sh-mode-card">
+            <button type="button" class="sh-chip" id="sh-have-rhymify">Rhymify</button>
+            <p class="sh-mode-line">A side-by-side preview. Your words stay until you accept.</p>
+          </div>
+          <div class="sh-mode-card">
+            <button type="button" class="sh-chip" id="sh-have-tone">Change the tone</button>
+            <p class="sh-mode-line">Keep your words, and add one line in the tone you pick.</p>
+          </div>
+          <div class="sh-mode-card">
+            <button type="button" class="sh-chip" id="sh-have-style">Go straight to style</button>
+            <p class="sh-mode-line">Build the style prompt for these lyrics.</p>
+          </div>
+        </div>
+        <div id="sh-have-tone-wrap" hidden>
+          <h3 class="sh-subhead">Tone</h3>
+          <p class="sh-help">Your words stay at the front. The added line is AI-assisted until you edit it.</p>
+          <div class="sh-modes" id="sh-have-tones" role="group" aria-label="Tone for these lyrics"></div>
+        </div>
+        <p class="sh-form-error" id="sh-have-error" role="alert" hidden></p>
       </section>
       <section class="sh-craft sh-page" id="sh-page" hidden>
         <h2 class="sh-craft-title">Write it here</h2>
@@ -764,10 +808,10 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261010meta"></script>
+  <script src="lib/song-flow.js?v=20261010lyrics"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261010fix"></script>
-  <script src="lib/song-helper.js?v=20261010setup"></script>
+  <script src="lib/song-helper.js?v=20261010lyrics"></script>
   <script src="lib/claim-record.js?v=20261009story"></script>
   <script src="lib/song-pass.js?v=20261010setup"></script>
   <script src="lib/style-swaps.js?v=20261009story"></script>
@@ -778,9 +822,9 @@
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261009story"></script>
   <script src="lib/song-questions.js?v=20261010setup"></script>
-  <script src="song-helper.js?v=20261010setup"></script>
+  <script src="song-helper.js?v=20261010lyrics"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010setup"></script>
+  <script src="song-helper-v2.js?v=20261010lyrics"></script>
   <script src="song-flow-page.js?v=20261010setup"></script>
   <script src="site.js?v=20261010fix"></script>
   <script src="plai-bubble.js" defer></script>
