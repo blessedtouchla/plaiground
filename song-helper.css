@@ -800,8 +800,60 @@ body.song-helper-page .plai-bubble {
 
 .sh-part-ask,
 .sh-part-suggest,
-.sh-suggest-option {
+.sh-suggest-option,
+.sh-rewrite {
   margin-top: 10px;
+}
+
+.sh-ai-label {
+  margin: 0;
+  color: #e2b340;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sh-edit-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sh-toggle,
+.sh-undo {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.sh-undo { margin-top: 8px; }
+
+.sh-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.sh-preview-mine,
+.sh-preview-edit {
+  width: 100%;
+  min-height: 96px;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sh-preview-mine {
+  margin: 0;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #111;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
 .sh-page-clean {
@@ -846,10 +898,11 @@ body.song-helper-page .plai-bubble {
   .sh-part .sh-side-actions { flex-direction: column; align-items: stretch; }
   #sh-page .sh-side-actions .btn,
   .sh-part .sh-side-actions .btn { width: 100%; }
-  #sh-page, #sh-page-sections, .sh-part, .sh-part-box, .sh-suggest-edit, .sh-meter, .sh-page-clean {
+  #sh-page, #sh-page-sections, .sh-part, .sh-part-box, .sh-suggest-edit, .sh-preview-mine, .sh-preview-edit, .sh-meter, .sh-page-clean {
     max-width: 100%;
     overflow-wrap: anywhere;
   }
+  .sh-edit-toggles .sh-toggle { flex: 1 1 46%; }
 }
 
 .sh-answers {

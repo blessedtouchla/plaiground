@@ -499,6 +499,71 @@ async function handleSuggest(req, res, body) {
   }
 }
 
+function cleanRewrite(content, fallback, sourceText) {
+  var text = String(content || '').replace(/\u2014/g, ', ').replace(/\s+\n/g, '\n').trim();
+  text = text.replace(/suno/ig, '').replace(/\n{3,}/g, '\n\n').trim();
+  if (!text || text.length > core.STORY_MAX) return fallback;
+  if (core.sensoryTrivia(text, sourceText)) return fallback;
+  if (/\b(supposed to|meant to)\b/i.test(text)) return fallback;
+  return text;
+}
+
+async function handleRewrite(req, res, body, kind) {
+  var text = String((body && body.text) || '');
+  var others = String((body && body.others) || '');
+  var sectionLabel = String((body && body.section) || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (text.length > core.STORY_MAX || others.length > core.STORY_MAX || text.length + others.length > core.STORY_MAX) {
+    sendJson(res, 400, {
+      ok: false,
+      error: 'That is a little long. The limit is ' + core.STORY_MAX + ' characters. Shorten it and try again.',
+    });
+    return;
+  }
+  var trimmed = text.trim();
+  if (!trimmed) {
+    sendJson(res, 200, {
+      ok: true,
+      text: '',
+      source: 'sample',
+      notice: 'Write a little in this part first.',
+    });
+    return;
+  }
+  var blocked = await guard.enforce(req, guard.clientIp(req), body, { text: [trimmed, others].join('\n') });
+  if (blocked) {
+    sendJson(res, blocked.status, blocked.body);
+    return;
+  }
+  var fallback = kind === 'shorten'
+    ? core.shortenFallback(trimmed)
+    : kind === 'rhymify'
+      ? core.rhymifyFallback(sectionLabel, trimmed)
+      : core.extendFallback(sectionLabel, trimmed);
+  var notice = 'Nothing changes until you tap Accept. Keep mine leaves your words.';
+  if (!xai.configured()) {
+    sendJson(res, 200, { ok: true, text: fallback, source: 'sample', notice: notice });
+    return;
+  }
+  try {
+    var chat = await xai.chat({
+      url: 'https://api.x.ai/v1/chat/completions',
+      messages: [
+        { role: 'system', content: core.rewriteSystem(kind, sectionLabel) },
+        { role: 'user', content: 'Part: ' + (sectionLabel || 'this part') + '\nThis part:\n' + trimmed + '\nOther parts:\n' + others.trim() },
+      ],
+      max_tokens: 220,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      text: cleanRewrite(chat && chat.content, fallback, trimmed + '\n' + others),
+      source: 'grok',
+      notice: notice,
+    });
+  } catch (err) {
+    sendJson(res, 200, { ok: true, text: fallback, source: 'sample', notice: notice });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'status') {
     sendJson(res, 200, guard.status());
@@ -544,6 +609,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleSuggest(req, res, suggestBody || {});
     return;
   }
+  if (action === 'extend' || action === 'shorten' || action === 'rhymify') {
+    var rewriteBody = givenBody;
+    if (!rewriteBody) rewriteBody = await readBody(req);
+    await handleRewrite(req, res, rewriteBody || {}, action);
+    return;
+  }
   if (action === 'scout' || action === 'scoop') {
     var body = givenBody;
     if (!body) body = await readBody(req);
@@ -580,7 +651,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

@@ -2959,14 +2959,21 @@
 
   function adoptSections(rows) {
     var prior = {};
+    var flow = window.SongFlow;
     pageSections.forEach(function (row) { prior[row.id] = row; });
     return (rows || []).map(function (row) {
       var old = prior[row.id] || {};
+      var text = String(row.text == null ? (old.text || '') : row.text);
+      var marks = flow && flow.normalizeMarks ? flow.normalizeMarks(old.text || '', old.marks || '') : '';
+      if (text !== String(old.text || '') && flow && flow.retagMarks) marks = flow.retagMarks(old.text || '', marks, text);
+      if (flow && flow.normalizeMarks) marks = flow.normalizeMarks(text, marks);
       return {
         id: String(row.id || ''),
         kind: String(row.kind || old.kind || 'verse'),
         label: String(row.label || old.label || 'Verse'),
-        text: String(row.text == null ? (old.text || '') : row.text),
+        text: text,
+        marks: marks,
+        undo: old.undo || null,
         lastAngle: old.lastAngle || '',
         asked: Array.isArray(old.asked) ? old.asked.slice(0, 12) : [],
         question: old.question || '',
@@ -2975,12 +2982,16 @@
   }
 
   function freshSections(rows) {
+    var flow = window.SongFlow;
     return (rows || []).map(function (row) {
+      var text = String(row.text || '');
       return {
         id: String(row.id || ''),
         kind: String(row.kind || 'verse'),
         label: String(row.label || 'Verse'),
-        text: String(row.text || ''),
+        text: text,
+        marks: flow && flow.normalizeMarks ? flow.normalizeMarks(text, 'u') : '',
+        undo: null,
         lastAngle: '',
         asked: [],
         question: '',
@@ -3001,7 +3012,8 @@
   function paintHumanMeter() {
     var flow = window.SongFlow;
     if (!flow || !flow.humanMeter || !flow.sectionBody) return;
-    var meter = flow.humanMeter(flow.sectionBody(pageSections));
+    var meter = flow.humanMeter(flow.humanText ? flow.humanText(pageSections) : flow.sectionBody(pageSections));
+    var total = flow.sectionTotal ? flow.sectionTotal(pageSections) : meter.count;
     var guide = flow.nextGuide ? flow.nextGuide(pageSections) : null;
     var host = $('sh-meter');
     if (host) {
@@ -3014,7 +3026,7 @@
     var count = $('sh-meter-count');
     if (count) {
       count.textContent = meter.count + ' / ' + meter.max;
-      count.classList.toggle('is-near', meter.count >= (flow.STORY_NEAR || 2700));
+      count.classList.toggle('is-near', meter.count >= (flow.STORY_NEAR || 2700) || total >= (flow.STORY_NEAR || 2700));
     }
     var line = $('sh-meter-line');
     if (line) line.textContent = meter.line;
@@ -3053,6 +3065,8 @@
             kind: row.kind,
             label: row.label,
             text: row.text,
+            marks: row.marks || '',
+            undo: row.undo ? { text: row.undo.text || '', marks: row.undo.marks || '' } : null,
             lastAngle: row.lastAngle || '',
             asked: (row.asked || []).slice(0, 12),
             question: row.question || '',
@@ -3067,7 +3081,13 @@
   function syncPartCount(id) {
     var row = findPart(id);
     var count = partNode('data-count', id);
-    if (count && row) count.textContent = String(row.text || '').length + ' characters';
+    if (count && row) {
+      var full = String(row.text || '').length;
+      var owned = window.SongFlow && window.SongFlow.ownedLength ? window.SongFlow.ownedLength(row) : full;
+      count.textContent = owned === full
+        ? (full + ' characters')
+        : (full + ' characters. ' + owned + ' count toward the meter.');
+    }
   }
 
   function bindPartInput(area, id) {
@@ -3183,14 +3203,13 @@
       head.className = 'sh-part-head';
       var title = document.createElement('h3');
       title.textContent = row.label;
-      var remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'btn btn-ghost btn-md';
-      remove.textContent = 'Remove';
-      remove.setAttribute('aria-label', 'Remove ' + row.label);
-      remove.addEventListener('click', function () { removePart(row.id); });
+      var ai = document.createElement('p');
+      ai.className = 'sh-ai-label';
+      ai.setAttribute('data-ai', row.id);
+      ai.textContent = 'AI-assisted';
+      ai.hidden = String(row.marks || '').indexOf('a') === -1;
       head.appendChild(title);
-      head.appendChild(remove);
+      head.appendChild(ai);
       var area = document.createElement('textarea');
       area.className = 'sh-area sh-part-box';
       area.rows = 5;
@@ -3202,6 +3221,31 @@
       count.className = 'sh-help sh-part-count';
       count.setAttribute('data-count', row.id);
       count.textContent = String(area.value.length) + ' characters';
+      var toggles = document.createElement('div');
+      toggles.className = 'sh-edit-toggles';
+      toggles.setAttribute('role', 'group');
+      toggles.setAttribute('aria-label', 'Edits for ' + row.label);
+      [
+        ['Extend', function (button) { rewriteSection(row.id, 'extend', button); }],
+        ['Shorten', function (button) { rewriteSection(row.id, 'shorten', button); }],
+        ['Remove', function () { removePart(row.id); }],
+        ['Add section', function () { addPartAfter(row.id); }],
+        ['Rhymify', function (button) { rewriteSection(row.id, 'rhymify', button); }],
+      ].forEach(function (item) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-ghost btn-md sh-toggle';
+        button.textContent = item[0];
+        button.addEventListener('click', function () { item[1](button); });
+        toggles.appendChild(button);
+      });
+      var undo = document.createElement('button');
+      undo.type = 'button';
+      undo.className = 'btn btn-ghost btn-md sh-undo';
+      undo.textContent = 'Undo';
+      undo.hidden = !row.undo;
+      undo.setAttribute('data-undo', row.id);
+      undo.addEventListener('click', function () { undoPart(row.id); });
       var actions = document.createElement('div');
       actions.className = 'sh-side-actions';
       var askBtn = document.createElement('button');
@@ -3224,6 +3268,10 @@
       suggestPanel.className = 'sh-part-suggest';
       suggestPanel.hidden = true;
       suggestPanel.setAttribute('data-suggest', row.id);
+      var rewritePanel = document.createElement('div');
+      rewritePanel.className = 'sh-rewrite';
+      rewritePanel.hidden = true;
+      rewritePanel.setAttribute('data-rewrite', row.id);
       var err = document.createElement('p');
       err.className = 'sh-form-error';
       err.setAttribute('role', 'alert');
@@ -3232,12 +3280,16 @@
       article.appendChild(head);
       article.appendChild(area);
       article.appendChild(count);
+      article.appendChild(toggles);
+      article.appendChild(undo);
       article.appendChild(actions);
       article.appendChild(askPanel);
       article.appendChild(suggestPanel);
+      article.appendChild(rewritePanel);
       article.appendChild(err);
       host.appendChild(article);
       bindPartInput(area, row.id);
+      syncPartCount(row.id);
       if (row.question) fillAskPanel(askPanel, row.id, row.question, 'Answer in your own words. Adding it counts toward the meter.');
     });
   }
@@ -3262,11 +3314,20 @@
           kind: String(row && row.kind || 'verse'),
           label: String(row && row.label || 'Verse').replace(/\s+/g, ' ').trim().slice(0, 40),
           text: String(row && row.text || ''),
+          marks: String(row && row.marks || ''),
+          undo: row && row.undo && typeof row.undo === 'object' ? {
+            text: String(row.undo.text || ''),
+            marks: String(row.undo.marks || ''),
+          } : null,
           lastAngle: String(row && row.lastAngle || '').replace(/[^a-z]/g, '').slice(0, 16),
           asked: Array.isArray(row && row.asked) ? row.asked.map(function (item) { return String(item || ''); }).filter(Boolean).slice(0, 12) : [],
           question: String(row && row.question || ''),
         };
       }).filter(function (row) { return row.id && row.label; });
+      restored.forEach(function (row) {
+        if (flow.normalizeMarks) row.marks = flow.normalizeMarks(row.text, row.marks);
+        if (row.undo && flow.normalizeMarks) row.undo.marks = flow.normalizeMarks(row.undo.text, row.undo.marks);
+      });
       if (flow.sectionTotal(restored) > storyMax()) pageError(flow.TOO_LONG || '');
       else if (restored.length) pageSections = restored;
     } else if (saved.text) {
@@ -3302,6 +3363,208 @@
     }
     if (lyricsBtn) lyricsBtn.addEventListener('click', function () { openLyricsPath(); });
     if (saved.lyrics && anyText && window.SongHelperPage && window.SongHelperPage.openFinishedLyrics) openLyricsPath();
+  }
+
+  function addPartAfter(id) {
+    var flow = window.SongFlow;
+    if (!flow || !flow.insertSection) return;
+    pageSections = adoptSections(flow.insertSection(pageSections, id));
+    pageError('');
+    renderSections();
+    paintHumanMeter();
+    persistPage();
+  }
+
+  function paintPartChrome(id) {
+    var row = findPart(id);
+    if (!row) return;
+    var ai = partNode('data-ai', id);
+    if (ai) ai.hidden = String(row.marks || '').indexOf('a') === -1;
+    var undo = partNode('data-undo', id);
+    if (undo) undo.hidden = !row.undo;
+    syncPartCount(id);
+    var area = partNode('data-part-text', id);
+    if (area && area.value !== row.text) area.value = row.text;
+  }
+
+  function commitPreview(id, nextText, kind, edited) {
+    var flow = window.SongFlow;
+    var row = findPart(id);
+    if (!flow || !flow.proposeSectionText || !flow.previewMarks || !row) return;
+    var before = String(row.text || '');
+    var beforeMarks = flow.normalizeMarks(before, row.marks || '');
+    var verdict = flow.proposeSectionText(pageSections, id, nextText);
+    if (!verdict.ok) {
+      pageError(verdict.message || flow.TOO_LONG || '');
+      return;
+    }
+    row.text = String(nextText || '');
+    row.marks = flow.previewMarks(kind, before, beforeMarks, row.text, !!edited);
+    row.undo = { text: before, marks: beforeMarks };
+    pageError('');
+    partError(id, '');
+    var panel = partNode('data-rewrite', id);
+    if (panel) {
+      panel.hidden = true;
+      panel.textContent = '';
+    }
+    paintPartChrome(id);
+    paintHumanMeter();
+    persistPage();
+  }
+
+  function undoPart(id) {
+    var flow = window.SongFlow;
+    var row = findPart(id);
+    if (!row || !row.undo) return;
+    var next = String(row.undo.text || '');
+    var marks = flow && flow.normalizeMarks ? flow.normalizeMarks(next, row.undo.marks || '') : '';
+    var verdict = flow.proposeSectionText(pageSections, id, next);
+    if (!verdict.ok) {
+      pageError(verdict.message || flow.TOO_LONG || '');
+      return;
+    }
+    row.text = next;
+    row.marks = marks;
+    row.undo = null;
+    pageError('');
+    paintPartChrome(id);
+    paintHumanMeter();
+    persistPage();
+  }
+
+  function showRewrite(id, kind, nextText, notice) {
+    var row = findPart(id);
+    var panel = partNode('data-rewrite', id);
+    if (!row || !panel) return;
+    var offered = String(nextText || '');
+    if (!offered || offered === String(row.text || '')) {
+      partError(id, kind === 'shorten'
+        ? 'This part is already short. Your words stayed.'
+        : 'Nothing new to show. Your words stayed.');
+      return;
+    }
+    panel.hidden = false;
+    panel.textContent = '';
+    var grid = document.createElement('div');
+    grid.className = 'sh-preview-grid';
+    var mineWrap = document.createElement('div');
+    var mineLabel = document.createElement('p');
+    mineLabel.className = 'sh-help';
+    mineLabel.textContent = 'Yours';
+    var mine = document.createElement('pre');
+    mine.className = 'sh-preview-mine';
+    mine.textContent = row.text || '';
+    mineWrap.appendChild(mineLabel);
+    mineWrap.appendChild(mine);
+    var altWrap = document.createElement('div');
+    var altLabel = document.createElement('p');
+    altLabel.className = 'sh-ai-label';
+    altLabel.textContent = 'AI-assisted';
+    var edit = document.createElement('textarea');
+    edit.className = 'sh-area sh-preview-edit';
+    edit.rows = 5;
+    edit.value = offered;
+    edit.setAttribute('aria-label', 'AI-assisted ' + (row.label || 'part'));
+    altWrap.appendChild(altLabel);
+    altWrap.appendChild(edit);
+    grid.appendChild(mineWrap);
+    grid.appendChild(altWrap);
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    note.textContent = notice || 'Nothing changes until you tap Accept. Keep mine leaves your words. Edit counts toward the meter.';
+    var actions = document.createElement('div');
+    actions.className = 'sh-side-actions';
+    var accept = document.createElement('button');
+    accept.type = 'button';
+    accept.className = 'btn btn-purple btn-md';
+    accept.textContent = 'Accept';
+    var editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn btn-ghost btn-md';
+    editBtn.textContent = 'Edit';
+    var keep = document.createElement('button');
+    keep.type = 'button';
+    keep.className = 'btn btn-ghost btn-md';
+    keep.textContent = 'Keep mine';
+    var baseline = offered;
+    accept.addEventListener('click', function () {
+      commitPreview(id, edit.value, kind, edit.value !== baseline);
+    });
+    editBtn.addEventListener('click', function () {
+      commitPreview(id, edit.value, kind, true);
+    });
+    keep.addEventListener('click', function () {
+      panel.hidden = true;
+      panel.textContent = '';
+      var area = partNode('data-part-text', id);
+      var current = findPart(id);
+      if (area && current && area.value !== current.text) area.value = current.text;
+    });
+    actions.appendChild(accept);
+    actions.appendChild(editBtn);
+    actions.appendChild(keep);
+    panel.appendChild(grid);
+    panel.appendChild(note);
+    panel.appendChild(actions);
+    if (panel.scrollIntoView) {
+      try { panel.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+    }
+  }
+
+  function localRewrite(kind, label, text) {
+    var core = window.SongHelperCore;
+    if (!core) return text;
+    if (kind === 'shorten' && core.shortenFallback) return core.shortenFallback(text);
+    if (kind === 'rhymify' && core.rhymifyFallback) return core.rhymifyFallback(label, text);
+    if (core.extendFallback) return core.extendFallback(label, text);
+    return text;
+  }
+
+  function rewriteSection(id, kind, button) {
+    var row = findPart(id);
+    if (!row) return;
+    var text = String(row.text || '');
+    if (!text.trim()) {
+      partError(id, 'Write a little in this part first.');
+      return;
+    }
+    partError(id, '');
+    pageError('');
+    var before = text;
+    var fallback = localRewrite(kind, row.label, text);
+    if (button) button.disabled = true;
+    fetch('/api/song-helper', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: kind,
+        section: row.label,
+        text: text,
+        others: otherBody(id),
+      }),
+    }).then(function (response) {
+      return response.json().then(function (data) { return { ok: response.ok, data: data }; }).catch(function () { return { ok: false, data: null }; });
+    }).then(function (result) {
+      var current = findPart(id);
+      if (!current || current.text !== before) return;
+      var data = result && result.data;
+      var next = data && data.text ? String(data.text) : '';
+      var notice = data && data.notice ? String(data.notice) : '';
+      if (!next || !result || !result.ok) {
+        next = fallback;
+        notice = notice || 'Nothing changes until you tap Accept. Keep mine leaves your words.';
+      }
+      var area = partNode('data-part-text', id);
+      if (area && area.value !== before) return;
+      showRewrite(id, kind, next, notice);
+    }).catch(function () {
+      var current = findPart(id);
+      if (!current || current.text !== before) return;
+      showRewrite(id, kind, fallback, 'Nothing changes until you tap Accept. Keep mine leaves your words.');
+    }).then(function () {
+      if (button) button.disabled = false;
+    });
   }
 
   function removePart(id) {

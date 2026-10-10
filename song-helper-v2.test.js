@@ -784,6 +784,10 @@ function runPages() {
   assert.ok(js.includes('Ask me a question'));
   assert.ok(js.includes('Give me a suggestion'));
   assert.ok(js.includes('Use this'));
+  assert.ok(js.includes('Rhymify'));
+  assert.ok(js.includes('Keep mine'));
+  assert.ok(js.includes('AI-assisted'));
+  assert.ok(js.includes('Undo'));
   assert.ok(js.includes('applySuggestion'));
   assert.ok(html.includes('I already have my lyrics'));
   assert.ok(html.includes('I already have my story or lyrics'));

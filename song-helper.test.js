@@ -953,6 +953,57 @@ async function runApi() {
   }
   assert.ok(read('api/song-helper.js').includes('handleSuggest'));
   assert.ok(read('api/song-helper.js').includes("action === 'suggest'"));
+  const extended = await post({
+    action: 'extend',
+    section: 'Verse 1',
+    text: 'The mug is still in the kitchen.',
+    others: '',
+  }, '203.0.113.84');
+  assert.strictEqual(extended.statusCode, 200);
+  assert.strictEqual(extended.json.ok, true);
+  assert.ok(extended.json.text.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/i.test(extended.json.text));
+  if (!process.env.XAI_API_KEY) {
+    assert.strictEqual(extended.json.source, 'sample');
+    assert.ok(extended.json.text.indexOf('The mug is still in the kitchen.') === 0);
+    assert.ok(extended.json.text.length > 'The mug is still in the kitchen.'.length);
+  }
+  const shortened = await post({
+    action: 'shorten',
+    section: 'Verse 1',
+    text: 'The mug is still in the kitchen after you left the light on.',
+    others: '',
+  }, '203.0.113.85');
+  assert.strictEqual(shortened.statusCode, 200);
+  assert.ok(shortened.json.text.indexOf('\u2014') === -1);
+  if (!process.env.XAI_API_KEY) {
+    assert.ok(shortened.json.text.length < 'The mug is still in the kitchen after you left the light on.'.length);
+  }
+  const rhymed = await post({
+    action: 'rhymify',
+    section: 'Hook',
+    text: 'Stay with me tonight.',
+    others: '',
+  }, '203.0.113.86');
+  assert.strictEqual(rhymed.statusCode, 200);
+  assert.ok(/Accept/.test(rhymed.json.notice));
+  assert.ok(rhymed.json.text.indexOf('\u2014') === -1);
+  assert.ok(!/\bSuno\b/i.test(rhymed.json.text + rhymed.json.notice));
+  if (!process.env.XAI_API_KEY) {
+    assert.strictEqual(rhymed.json.source, 'sample');
+    assert.ok(rhymed.json.text.indexOf('Stay with me tonight.') !== -1);
+    assert.notStrictEqual(rhymed.json.text, 'Stay with me tonight.');
+  }
+  const rewriteLong = await post({
+    action: 'rhymify',
+    section: 'Hook',
+    text: 'x'.repeat(2000),
+    others: 'y'.repeat(1500),
+  }, '203.0.113.87');
+  assert.strictEqual(rewriteLong.statusCode, 400);
+  assert.ok(/3000/.test(rewriteLong.json.error));
+  assert.ok(read('api/song-helper.js').includes('handleRewrite'));
+  assert.ok(read('api/song-helper.js').includes("action === 'extend'"));
 }
 
 function runPacks() {
@@ -1220,11 +1271,11 @@ function runPage() {
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261010parts'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010parts'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010parts'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010edit'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010edit'));
   assert.ok(html.includes('song-flow-page.js?v=20261009story'));
-  assert.ok(html.includes('song-helper.css?v=20261010parts'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010parts'));
+  assert.ok(html.includes('song-helper.css?v=20261010edit'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010edit'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1232,6 +1283,11 @@ function runPage() {
   const pageJs = read('song-helper-v2.js');
   assert.ok(pageJs.includes('Ask me a question'));
   assert.ok(pageJs.includes('Give me a suggestion'));
+  assert.ok(pageJs.includes('Rhymify'));
+  assert.ok(pageJs.includes('Keep mine'));
+  assert.ok(pageJs.includes('AI-assisted'));
+  assert.ok(pageJs.includes('commitPreview'));
+  assert.ok(pageJs.includes('Undo'));
   assert.ok(pageJs.includes('Use this'));
   assert.ok(pageJs.includes('applySuggestion'));
   assert.ok(pageJs.includes('proposeSectionText'));
