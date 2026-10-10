@@ -62,7 +62,40 @@ function runModes() {
     assert.ok(ids.indexOf(id) !== -1, id);
   });
   assert.strictEqual(modes.modeById('write').id, 'write');
+  assert.strictEqual(modes.modeById('assist').id, 'assist');
+  assert.strictEqual(modes.modeById('exchange').id, 'exchange');
+  assert.strictEqual(modes.modeById('madlibs').id, 'madlibs');
+  assert.strictEqual(modes.modeById('poem').id, 'poem');
+  assert.strictEqual(modes.modeById('funny').id, 'funny');
+  assert.strictEqual(modes.modeById('superhero').id, 'superhero');
+  assert.strictEqual(modes.modeById('battle').id, 'battle');
+  assert.strictEqual(modes.modeById('hook').id, 'hook');
   assert.strictEqual(modes.modeById('write').label, 'Let it all out');
+  assert.strictEqual(modes.modeById('assist').label, 'Write it for me');
+  assert.strictEqual(modes.modeById('exchange').label, 'Verse for verse');
+  ['song', 'poem', 'rap', 'chant'].forEach(function (id) {
+    assert.strictEqual(modes.MAKING.filter(function (row) { return row.id === id; }).length, 1);
+  });
+  assert.deepStrictEqual(modes.AMOUNT.map(function (row) { return row.id; }), ['hook', 'verse', 'verse-hook', 'song']);
+  assert.deepStrictEqual(modes.POEM_AMOUNT.map(function (row) { return row.id; }), ['short', 'long']);
+  assert.deepStrictEqual(modes.WRITE_WAYS.map(function (row) { return row.id; }), ['assist', 'write', 'exchange', 'madlibs']);
+  assert.strictEqual(modes.TONES.length, 11);
+  assert.strictEqual(modes.THEMES[0].id, 'superhero');
+  assert.ok(modes.RAP_STYLES.some(function (row) { return row.id === 'battle'; }));
+  modes.MAKING.concat(modes.AMOUNT, modes.POEM_AMOUNT, modes.WRITE_WAYS, modes.TONES, modes.THEMES, modes.RAP_STYLES).forEach(function (row) {
+    assert.ok(row.blurb && row.blurb.indexOf('\n') === -1, row.id);
+    assert.ok(row.blurb.indexOf('\u2014') === -1, row.id);
+    assert.ok(!/\bSuno\b/.test(row.blurb), row.id);
+  });
+  assert.strictEqual(modes.draftShape({ making: 'poem', amount: 'long' }), 'poem-long');
+  assert.strictEqual(modes.draftShape({ making: 'song', amount: 'hook' }), 'hook');
+  assert.strictEqual(modes.draftShape({ making: 'rap', amount: 'verse-hook' }), 'verse-hook');
+  assert.strictEqual(modes.draftShape({ making: 'chant', amount: 'song' }), 'chant');
+  assert.strictEqual(modes.draftShape({ making: 'chant', amount: 'hook' }), 'hook');
+  var toneBrief = modes.setupBrief({ making: 'song', amount: 'song', tone: 'funny' });
+  assert.ok(/Funny/.test(toneBrief));
+  assert.ok(!/\d+\s*BPM|guitar|808/i.test(toneBrief));
+  assert.ok(/does not choose the genre/i.test(toneBrief));
   assert.ok(/raw words/i.test(modes.modeById('write').blurb));
   assert.ok(/turns them into a song/i.test(modes.modeById('write').blurb));
   ['write', 'funny', 'madlibs', 'superhero', 'poem', 'battle'].forEach(function (id) {
@@ -760,7 +793,8 @@ function runPages() {
   assert.ok(js.includes('Write the hook'));
   assert.ok(read('song-helper.js').includes('isPlaceholderLyric'));
   assert.ok(html.includes('href="/spark"'));
-  assert.ok(html.indexOf('id="sh-idea"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(html.indexOf('id="sh-setup"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-idea"'));
   assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-craft"'));
   assert.ok(html.indexOf('id="sh-craft"') < html.indexOf('id="sh-v2"'));
   assert.ok(html.indexOf('id="sh-v2"') < html.indexOf('id="sh-write"'));
@@ -797,7 +831,8 @@ function runPages() {
   assert.ok(kindSteps.includes('Walk me through what they did, step by step.'));
   assert.ok(kindSteps.indexOf('\u2014') === -1);
   assert.ok(!/\bSuno\b/.test(kindSteps));
-  assert.ok(html.indexOf('id="sh-idea"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(html.indexOf('id="sh-setup"') < html.indexOf('id="sh-feeling"'));
+  assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-idea"'));
   assert.ok(html.indexOf('id="sh-feeling"') < html.indexOf('id="sh-kind"'));
   assert.ok(html.indexOf('id="sh-kind"') < html.indexOf('id="sh-live"'));
   assert.ok(html.indexOf('id="sh-live"') < html.indexOf('id="sh-craft"'));
@@ -862,8 +897,15 @@ function runPages() {
   assert.ok(html.includes('id="sh-choice-scratch"'));
   assert.ok(html.includes('id="sh-choice-source"'));
   assert.ok(html.includes('id="sh-source"'));
-  assert.ok(html.includes('How you write'));
-  assert.ok(html.includes('Let it all out, Funny, Mad Libs, Superhero, Poem, and Battle'));
+  assert.ok(html.includes('What are you making?'));
+  assert.ok(html.includes('How much?'));
+  assert.ok(html.includes('How do you want to write it?'));
+  assert.ok(html.includes('Write it for me'));
+  assert.ok(html.includes('Verse for verse'));
+  assert.ok(html.includes('id="sh-tones"'));
+  assert.ok(html.includes('id="sh-themes"'));
+  assert.ok(html.includes('id="sh-rap"'));
+  assert.ok(html.includes('I already have my story or lyrics'));
   assert.ok(html.includes('Songify it for me'));
   assert.ok(read('song-helper-v2.js').includes('sh-mode-line'));
   assert.ok(read('song-helper-v2.js').includes("mode === 'write'"));

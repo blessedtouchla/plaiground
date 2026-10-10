@@ -843,7 +843,7 @@ async function handler(req, res) {
     await handleAction(req, res, String(body.action), body);
     return;
   }
-  if (body.mode && body.mode !== 'write') {
+  if (body.mode && body.mode !== 'write' && body.mode !== 'assist') {
     await handleMode(req, res, body);
     return;
   }
@@ -865,6 +865,10 @@ async function handler(req, res) {
   }
   if (core.containsParodyAsk(interview)) {
     sendJson(res, 400, { ok: false, error: 'Write an original line. Song Helper does not parody existing songs or write to the tune of a real one.' });
+    return;
+  }
+  if (interview.theme === 'superhero' && modes.heroBlocked(interview.who)) {
+    sendJson(res, 400, { ok: false, error: 'Use yourself, not a trademarked hero.' });
     return;
   }
   if (interview.shape.comedy && core.publicFigureName(interview.who)) {

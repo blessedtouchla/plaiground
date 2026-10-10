@@ -767,6 +767,8 @@
   }
 
   function funnyChosen() {
+    var tone = document.querySelector('#sh-tones .sh-chip.on');
+    if (tone && /funny/i.test(tone.textContent || '')) return true;
     var on = document.querySelector('#sh-modes .sh-chip.on');
     return !!(on && /funny/i.test(on.textContent || ''));
   }

@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261010songify" />
+  <link rel="stylesheet" href="song-helper.css?v=20261010setup" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -82,7 +82,7 @@
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Create from scratch, or start from a real song. Then a title, a feeling, and the point of the song. The draft comes after.</p>
+      <p class="sh-path">Create from scratch, or start from a real song. Then what you are making, how much, how you write, the tone, a feeling, and the story. Design my style comes after.</p>
       <section class="sh-craft" id="sh-start">
         <h2 class="sh-craft-title">How do you want to start?</h2>
         <p class="sh-help">Pick one. You can switch anytime.</p>
@@ -133,6 +133,48 @@
         <p class="sh-help">Pick the path. Name the song first. Only that path stays on the page.</p>
         <div class="sh-modes" id="sh-source-modes" role="group" aria-label="From a real song"></div>
       </section>
+      <section class="sh-craft" id="sh-setup" hidden>
+        <h2 class="sh-craft-title">What are you making?</h2>
+        <p class="sh-help">Song, poem, rap, or something spoken. This picks the shape, not the feeling.</p>
+        <div class="sh-modes" id="sh-making" role="group" aria-label="What are you making"></div>
+        <div id="sh-amount-wrap" hidden>
+          <h3 class="sh-subhead">How much?</h3>
+          <p class="sh-help" id="sh-amount-help">How much of it to write.</p>
+          <div class="sh-modes" id="sh-amount" role="group" aria-label="How much"></div>
+        </div>
+        <div id="sh-method-wrap" hidden>
+          <h3 class="sh-subhead">How do you want to write it?</h3>
+          <div class="sh-modes" id="sh-modes" role="group" aria-label="How do you want to write it"></div>
+          <p class="sh-help" id="sh-mode-note">Write it for me drafts from your answers. Let it all out keeps a rant and songifies it. Verse for verse answers your verse. Mad Libs uses your blanks.</p>
+        </div>
+        <div id="sh-tone-wrap" hidden>
+          <h3 class="sh-subhead">Tone</h3>
+          <p class="sh-help">Tone tints the words. It does not choose the genre, tempo, instruments, or era.</p>
+          <div class="sh-modes" id="sh-tones" role="group" aria-label="Tone"></div>
+          <div id="sh-theme-wrap">
+            <h3 class="sh-subhead">Theme</h3>
+            <p class="sh-help">Optional. Superhero makes you the hero of the lyric.</p>
+            <div class="sh-modes" id="sh-themes" role="group" aria-label="Theme"></div>
+          </div>
+          <div id="sh-rap-wrap" hidden>
+            <h3 class="sh-subhead">Rap style</h3>
+            <p class="sh-help">Optional. A pocket for the bars. Battle opens the battle page.</p>
+            <div class="sh-modes" id="sh-rap" role="group" aria-label="Rap style"></div>
+          </div>
+        </div>
+      </section>
+      <section class="sh-craft" id="sh-feeling" hidden>
+        <h2 class="sh-craft-title">How it feels</h2>
+        <p class="sh-help">Pick a feeling. It tints the words a little. It does not choose the genre, tempo, instruments, or era. Those come from Design my style, Sounds like, genre, and the story.</p>
+        <div id="sh-kind">
+          <div class="sh-modes" id="sh-kinds" role="group" aria-label="Kind of song"></div>
+        </div>
+        <label class="sh-field" id="sh-mood-custom" hidden>
+          <span>Your mood</span>
+          <input class="sh-input" id="sh-mood-input" maxlength="40" autocomplete="off" placeholder="a few words" />
+        </label>
+        <p class="sh-form-error" id="sh-mood-error" role="alert" hidden></p>
+      </section>
       <section class="sh-craft" id="sh-idea" hidden>
         <h2 class="sh-craft-title">Start with an idea</h2>
         <p class="sh-help">Pick one. You can switch anytime.</p>
@@ -154,21 +196,6 @@
           <span>Working title</span>
           <input class="sh-input" id="sh-working-title" maxlength="80" autocomplete="off" placeholder="A few words for the song" />
         </label>
-      </section>
-      <section class="sh-craft" id="sh-feeling" hidden>
-        <h2 class="sh-craft-title">How it feels</h2>
-        <p class="sh-help">Pick a feeling. It tints the words a little. It does not choose the genre, tempo, instruments, or era. Those come from Design my style, Sounds like, genre, and the story.</p>
-        <div id="sh-kind">
-          <div class="sh-modes" id="sh-kinds" role="group" aria-label="Kind of song"></div>
-          <h3 class="sh-subhead">How you write</h3>
-          <div class="sh-modes" id="sh-modes" role="group" aria-label="Create modes"></div>
-          <p class="sh-help" id="sh-mode-note">Let it all out, Funny, Mad Libs, Superhero, Poem, and Battle are how you write. They are not another feeling. Flip it and Funkify wait until a draft is on the page.</p>
-        </div>
-        <label class="sh-field" id="sh-mood-custom" hidden>
-          <span>Your mood</span>
-          <input class="sh-input" id="sh-mood-input" maxlength="40" autocomplete="off" placeholder="a few words" />
-        </label>
-        <p class="sh-form-error" id="sh-mood-error" role="alert" hidden></p>
       </section>
       <section class="sh-craft" id="sh-talk" hidden>
         <h2 class="sh-craft-title">How should we ask?</h2>
@@ -740,21 +767,21 @@
   <script src="lib/song-flow.js?v=20261010meta"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261010fix"></script>
-  <script src="lib/song-helper.js?v=20261010songify"></script>
+  <script src="lib/song-helper.js?v=20261010setup"></script>
   <script src="lib/claim-record.js?v=20261009story"></script>
-  <script src="lib/song-pass.js?v=20261010songify"></script>
+  <script src="lib/song-pass.js?v=20261010setup"></script>
   <script src="lib/style-swaps.js?v=20261009story"></script>
   <script src="lib/style-design.js?v=20261010tint"></script>
   <script src="lib/style-clues.js?v=20261010tint"></script>
   <script src="lib/suno-style.js?v=20261010tint"></script>
-  <script src="lib/song-modes.js?v=20261010songify"></script>
+  <script src="lib/song-modes.js?v=20261010setup"></script>
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261009story"></script>
-  <script src="lib/song-questions.js?v=20261009story"></script>
-  <script src="song-helper.js?v=20261010songify"></script>
+  <script src="lib/song-questions.js?v=20261010setup"></script>
+  <script src="song-helper.js?v=20261010setup"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010songify"></script>
-  <script src="song-flow-page.js?v=20261010meta"></script>
+  <script src="song-helper-v2.js?v=20261010setup"></script>
+  <script src="song-flow-page.js?v=20261010setup"></script>
   <script src="site.js?v=20261010fix"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

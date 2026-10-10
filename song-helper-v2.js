@@ -41,7 +41,12 @@
     rabbit: true,
     region: '',
   };
-  var mode = 'write';
+  var mode = '';
+  var making = '';
+  var amount = '';
+  var tone = '';
+  var theme = '';
+  var rapStyle = '';
   var kind = '';
   var kinds = [];
   var part = 'song';
@@ -208,6 +213,12 @@
       line: fieldValue('line'),
       happened: fieldValue('happened'),
       why: fieldValue('why'),
+      making: making,
+      amount: amount,
+      tone: tone,
+      theme: theme,
+      method: mode,
+      rapStyle: rapStyle,
       parodyAck: parodyAck,
       craft: {
         vocabulary: craft.vocabulary,
@@ -231,6 +242,11 @@
     return {
       mode: mode,
       modeLabel: info.label || '',
+      making: making,
+      amount: amount,
+      tone: tone,
+      theme: theme,
+      rapStyle: rapStyle,
       topic: ideaTopic(),
       place: fieldValue('place') || followExtra.place || '',
       object: fieldValue('object') || followExtra.object || '',
@@ -265,7 +281,7 @@
 
   function paintV2Answers() {
     var host = $('sh-v2-answers');
-    if (!host || !window.SongPass || mode === 'write') return;
+    if (!host || !window.SongPass || mainPath(mode)) return;
     host.textContent = '';
     var rows = window.SongPass.summary(v2Bag());
     if (!rows.length) {
@@ -405,14 +421,118 @@
     });
   }
 
+  function mainPath(id) {
+    return !id || id === 'write' || id === 'assist';
+  }
+
   function paintDraftButton() {
     var btn = $('sh-cast-draft');
     if (!btn) return;
-    btn.textContent = (!mode || mode === 'write') ? 'Songify it for me' : 'Write the draft';
+    if (mode === 'write') btn.textContent = 'Songify it for me';
+    else if (mode === 'assist') btn.textContent = 'Write it for me';
+    else if (mode === 'exchange') btn.textContent = 'Answer the next verse';
+    else if (mode === 'madlibs') btn.textContent = 'Make the draft';
+    else btn.textContent = 'Write the draft';
+  }
+
+  function choiceCard(item, on, onPick) {
+    var card = document.createElement('div');
+    card.className = 'sh-mode-card';
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'sh-chip' + (on ? ' on' : '');
+    button.textContent = item.label;
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    var about = document.createElement('p');
+    about.className = 'sh-mode-line';
+    about.textContent = item.blurb || '';
+    button.addEventListener('click', function () { onPick(item); });
+    card.appendChild(button);
+    card.appendChild(about);
+    return card;
+  }
+
+  function paintChoiceRow(host, rows, current, onPick) {
+    if (!host) return;
+    host.textContent = '';
+    (rows || []).forEach(function (item) {
+      host.appendChild(choiceCard(item, current === item.id, onPick));
+    });
+    if (window.SongHelperChips) window.SongHelperChips.fold(host);
+  }
+
+  function amountRows() {
+    return making === 'poem' ? modes.POEM_AMOUNT : modes.AMOUNT;
+  }
+
+  function paintSetup() {
+    paintChoiceRow($('sh-making'), modes.MAKING, making, function (item) {
+      making = making === item.id ? '' : item.id;
+      if (making !== 'poem' && (amount === 'short' || amount === 'long')) amount = '';
+      if (making === 'poem' && amount && amount !== 'short' && amount !== 'long') amount = '';
+      if (making !== 'rap') rapStyle = '';
+      syncPartFromAmount();
+      resetLive();
+      paintSetup();
+      paintFields();
+      paintBranch();
+    });
+    var help = $('sh-amount-help');
+    if (help) {
+      help.textContent = making === 'poem'
+        ? 'Short or long. A poem does not use a hook and a verse.'
+        : 'Hook, one verse, verse and hook, or the whole song.';
+    }
+    paintChoiceRow($('sh-amount'), amountRows(), amount, function (item) {
+      amount = amount === item.id ? '' : item.id;
+      syncPartFromAmount();
+      resetLive();
+      paintSetup();
+      paintBranch();
+    });
+    paintChoiceRow($('sh-modes'), modes.WRITE_WAYS, mode, function (item) {
+      if (mode === item.id) {
+        mode = '';
+        paintSetup();
+        paintModes();
+        paintBranch();
+        return;
+      }
+      setMode(item.id);
+    });
+    paintChoiceRow($('sh-tones'), modes.TONES, tone, function (item) {
+      tone = tone === item.id ? '' : item.id;
+      resetLive();
+      paintSetup();
+      paintFields();
+      paintBranch();
+    });
+    paintChoiceRow($('sh-themes'), modes.THEMES, theme, function (item) {
+      theme = theme === item.id ? '' : item.id;
+      resetLive();
+      paintSetup();
+      paintFields();
+      paintBranch();
+    });
+    paintChoiceRow($('sh-rap'), modes.RAP_STYLES, rapStyle, function (item) {
+      if (item.id === 'battle') {
+        setMode('battle');
+        return;
+      }
+      rapStyle = rapStyle === item.id ? '' : item.id;
+      paintSetup();
+      paintBranch();
+    });
+  }
+
+  function syncPartFromAmount() {
+    if (amount === 'hook') part = 'hook';
+    else if (amount === 'verse') part = 'verse';
+    else if (amount === 'song' || amount === 'verse-hook' || amount === 'short' || amount === 'long') part = 'song';
   }
 
   function paintModes() {
-    paintModeRow($('sh-modes'), 'create');
+    paintSetup();
     paintModeRow($('sh-source-modes'), 'source');
     paintKinds();
     paintParts();
@@ -435,9 +555,9 @@
     if (id !== 'superhero' && id !== 'flip' && id !== 'funkify') lastDraft = null;
     var info = modes.modeById(id);
     var shell = document.getElementById('sh-shell');
-    if (shell) shell.classList.toggle('is-v2', id !== 'write');
+    if (shell) shell.classList.toggle('is-v2', !mainPath(id));
     var panel = $('sh-v2');
-    panel.hidden = id === 'write';
+    panel.hidden = mainPath(id);
     $('sh-v2-blurb').textContent = info.blurb;
     $('sh-v2-out').textContent = '';
     $('sh-v2-extra').textContent = '';
@@ -446,7 +566,7 @@
     paintModes();
     paintFields();
     paintSlang();
-    goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
+    goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : (id === 'exchange' ? 'Answer the next verse' : (id === 'assist' ? 'Write it for me' : 'Make the draft'))))));
     lyricsReady = false;
     styleShown = false;
     v2StyleOpen = false;
@@ -576,7 +696,7 @@
         placeholder: 'Paste a verse to reshape it. Leave this blank to draft from your answers.',
       });
     }
-    if (mode === 'funny') {
+    if (mode === 'funny' || tone === 'funny') {
       addField(host, {
         id: 'meter',
         label: 'Comedy meter',
@@ -587,8 +707,8 @@
     }
     if (mode === 'madlibs') addField(host, { id: 'verb', label: 'A verb', placeholder: 'wait' });
     if (mode === 'review') addField(host, { id: 'lines', label: 'Your lines', kind: 'area', placeholder: 'One line per row' });
-    if (mode === 'homage' || mode === 'superhero') addField(host, { id: 'name', label: mode === 'superhero' ? 'Your name, as the hero' : 'Who the tribute is for' });
-    if (mode === 'bars') {
+    if (mode === 'homage' || mode === 'superhero' || theme === 'superhero') addField(host, { id: 'name', label: (mode === 'superhero' || theme === 'superhero') ? 'Your name, as the hero' : 'Who the tribute is for' });
+    if (mode === 'bars' || making === 'rap') {
       addField(host, { id: 'barStyle', label: 'Style', kind: 'select', value: 'east', options: modes.BAR_STYLES });
       addField(host, {
         id: 'era',
@@ -620,7 +740,7 @@
       addField(host, { id: 'varietyMeter', label: 'Variety meter (1–5)', kind: 'number', min: '1', max: '5', value: '3' });
       addField(host, { id: 'delivery', label: 'Delivery note', placeholder: 'behind the beat, spoken' });
     }
-    if (mode === 'poem') {
+    if (mode === 'poem' || making === 'poem') {
       addField(host, { id: 'form', label: 'Form', kind: 'select', value: 'free', options: modes.POEM_FORMS });
       addField(host, { id: 'spirit', label: 'In the spirit of', kind: 'select', value: '', options: modes.POET_SPIRITS });
     }
@@ -741,10 +861,13 @@
     if (!questions) return;
     live = questions.open({
       kind: kind,
-      mode: mode,
+      mode: mode || 'write',
       mood: readMood(),
       topic: ideaTopic(),
       part: part,
+      tone: tone,
+      making: making,
+      theme: theme,
     });
   }
 
@@ -754,7 +877,7 @@
       resetLive();
       return;
     }
-    questions.sync(live, { mood: readMood(), topic: ideaTopic() });
+    questions.sync(live, { mood: readMood(), topic: ideaTopic(), tone: tone, making: making, theme: theme });
   }
 
   function paintKinds() {
@@ -987,7 +1110,7 @@
         return;
       }
       var barsSection = { label: 'Bars', lines: rows };
-      if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.appendSection) {
+      if (mainPath(mode) && window.SongHelperPage && window.SongHelperPage.appendSection) {
         window.SongHelperPage.appendSection(barsSection);
       } else if (lastDraft) {
         lastDraft.sections = (lastDraft.sections || []).concat([barsSection]);
@@ -1009,7 +1132,7 @@
       return;
     }
     showSectionError('');
-    if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.appendSection && window.SongHelperPage.appendSection(built.section)) {
+    if (mainPath(mode) && window.SongHelperPage && window.SongHelperPage.appendSection && window.SongHelperPage.appendSection(built.section)) {
       syncStructure();
       return;
     }
@@ -1335,7 +1458,7 @@
 
   function paintV2Feedback() {
     var host = $('sh-v2-feedback');
-    if (!host || !window.SongPass || !lastDraft || mode === 'write') return;
+    if (!host || !window.SongPass || !lastDraft || mainPath(mode)) return;
     host.hidden = false;
     host.textContent = '';
     var title = document.createElement('p');
@@ -2097,7 +2220,7 @@
   }
 
   function activeDraft() {
-    if (mode === 'write' && window.SongHelperPage && window.SongHelperPage.draft) {
+    if (mainPath(mode) && window.SongHelperPage && window.SongHelperPage.draft) {
       return window.SongHelperPage.draft();
     }
     return lastDraft;
@@ -2219,7 +2342,7 @@
       return;
     }
     showSectionError('');
-    if (mode === 'write') {
+    if (mainPath(mode)) {
       if (!window.SongHelperPage || !window.SongHelperPage.appendSection || !window.SongHelperPage.appendSection(built.section)) {
         showSectionError('Write a draft first. A verse, a hook, or a bridge adds to a song that is already on the page.');
         return;
@@ -2342,23 +2465,31 @@
     }
     var scratch = branch === 'scratch';
     var source = branch === 'source';
-    showEl('sh-idea', scratch);
+    var methodReady = mode === 'write' || mode === 'assist' || mode === 'exchange' || mode === 'madlibs';
+    var setupReady = scratch && !!making && !!amount && methodReady && !!tone;
+    showEl('sh-setup', scratch);
+    showEl('sh-amount-wrap', scratch && !!making);
+    showEl('sh-method-wrap', scratch && !!making && !!amount);
+    showEl('sh-tone-wrap', scratch && !!making && !!amount && methodReady);
+    showEl('sh-rap-wrap', making === 'rap');
     showEl('sh-source', source);
-    var ideaReady = scratch && (ideaLane === 'ideas' || ideaLane === 'own');
-    showEl('sh-feeling', ideaReady);
-    var feelReady = ideaReady && !!kind;
+    showEl('sh-feeling', setupReady);
+    var feelReady = setupReady && !!kind;
+    showEl('sh-idea', feelReady);
+    var storyReady = feelReady && (ideaLane === 'ideas' || ideaLane === 'own');
     var pageFlow = window.SongFlowPage;
     var talk = pageFlow ? pageFlow.talk() : '';
-    var draftReady = feelReady && pageFlow && pageFlow.ready();
+    var draftReady = storyReady && pageFlow && pageFlow.ready();
     var drafted = window.SongHelperPage && window.SongHelperPage.hasDraft && window.SongHelperPage.hasDraft();
-    showEl('sh-talk', feelReady);
-    showEl('sh-purpose', feelReady && (talk === 'form' || talk === 'plai'));
+    showEl('sh-talk', storyReady);
+    showEl('sh-purpose', storyReady && (talk === 'form' || talk === 'plai'));
     showEl('sh-cast', !!draftReady);
     showEl('sh-live', false);
     showEl('sh-craft', !!drafted);
     showEl('sh-part-pick', false);
-    var writeSurface = feelReady && (!mode || mode === 'write') && (!!draftReady && pageFlow && pageFlow.opened() || drafted);
-    var v2On = (source && sourceModeOn()) || (feelReady && !!mode && mode !== 'write' && mode !== 'battle');
+    var main = mode === 'write' || mode === 'assist' || (!mode && drafted);
+    var writeSurface = main && ((!!draftReady && pageFlow && pageFlow.opened()) || drafted);
+    var v2On = (source && sourceModeOn()) || (storyReady && !!mode && !mainPath(mode) && mode !== 'battle');
     var shell = document.getElementById('sh-shell');
     if (shell) shell.classList.toggle('is-v2', v2On);
     var finishedLyrics = window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen();
@@ -2412,7 +2543,7 @@
     }
     branch = next;
     if (next === 'scratch' && sourceModeOn()) {
-      mode = 'write';
+      mode = '';
       paintModes();
       paintFields();
     }
@@ -4031,6 +4162,9 @@
     spark: function () { return sparkSeed; },
     ownIdea: ownIdea,
     snapshot: snapshot,
+    setup: function () {
+      return { making: making, amount: amount, tone: tone, theme: theme, method: mode, rapStyle: rapStyle };
+    },
     repaint: paintBranch,
     kinds: function () { return kinds.slice(); },
     setRegion: function (value) {

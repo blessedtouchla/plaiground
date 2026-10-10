@@ -258,6 +258,12 @@
       words: words(),
       title: titleRaw.slice(0, 80),
       north: window.SongFlowPage ? window.SongFlowPage.north() : null,
+      making: window.SongHelperV2 && window.SongHelperV2.setup ? window.SongHelperV2.setup().making : '',
+      amount: window.SongHelperV2 && window.SongHelperV2.setup ? window.SongHelperV2.setup().amount : '',
+      tone: window.SongHelperV2 && window.SongHelperV2.setup ? window.SongHelperV2.setup().tone : '',
+      theme: window.SongHelperV2 && window.SongHelperV2.setup ? window.SongHelperV2.setup().theme : '',
+      method: window.SongHelperV2 && window.SongHelperV2.setup ? window.SongHelperV2.setup().method : '',
+      rapStyle: window.SongHelperV2 && window.SongHelperV2.setup ? window.SongHelperV2.setup().rapStyle : '',
       shape: {
         genre: genreValue(),
         pack: picks.pack,
