@@ -1533,6 +1533,12 @@
       row.logged = after;
     });
     parent.appendChild(box);
+    if (row.assisted) {
+      var assisted = document.createElement('p');
+      assisted.className = 'sh-ai-label';
+      assisted.textContent = 'AI-assisted';
+      parent.appendChild(assisted);
+    }
     var tools = document.createElement('div');
     tools.className = 'sh-line-tools';
     var ruler = document.createElement('p');

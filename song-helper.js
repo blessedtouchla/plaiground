@@ -84,7 +84,7 @@
     happened: ['What happened, in one sentence?', 'Keep it concrete. This sentence can go in the song as you wrote it.'],
     who: ['Who is this song for or about?', 'A nickname is fine.'],
     why: ['What did they do, or what changed?', 'One sentence. Your words, not a polished line.'],
-    line: ['If they were standing in front of you right now, what would you say?', 'A full sentence. This is the hook seed, and we keep it word for word.'],
+    line: ['If they were standing in front of you right now, what would you say?', 'A full sentence. This is the hook seed. We keep your images, then shape them into the song.'],
     words: ['Give me the pictures.', 'Short phrases or full lines. I weave them into the song and keep your words.'],
     shape: ['What shape is the song?', 'Language, clean or explicit, and how long you want the draft.'],
     draft: ['Your draft.', 'Pick a hook. Your lines stay underlined. Edit anything that doesn’t sound like you.'],
@@ -470,7 +470,7 @@
         return 'That line is a placeholder. Write the hook in your own words.';
       }
       var line = readAnswer('sh-line');
-      if (line.length < 12 || line.indexOf(' ') === -1) return 'Write a full sentence. That line stays yours, word for word.';
+      if (line.length < 12 || line.indexOf(' ') === -1) return 'Write a full sentence. We keep it, then shape it into the song.';
       var lineJoke = parodyMessage(line);
       if (lineJoke) return lineJoke;
     }
@@ -584,7 +584,7 @@
       helpEl.textContent = 'A nickname for someone you know, a pet, or the snack. Public figures stay out of it.';
     }
     if (id === 'line' && picks.pack === 'comedy') {
-      helpEl.textContent = 'A full sentence, as silly as you want. It stays word for word. Original lines only.';
+      helpEl.textContent = 'A full sentence, as silly as you want. We keep it, then shape it into the song. Original lines only.';
     }
     if (id === 'words') {
       var pack = packs.get(picks.pack);
@@ -721,6 +721,26 @@
     titleEl.value = draft.title || '';
     renderHooks();
     lyricEl.textContent = '';
+    if (draft.originalAnswers && draft.originalAnswers.length) {
+      var saved = document.createElement('div');
+      saved.id = 'sh-answer-original';
+      var savedTitle = document.createElement('p');
+      savedTitle.className = 'sh-section-label';
+      savedTitle.textContent = 'Your original';
+      saved.appendChild(savedTitle);
+      draft.originalAnswers.forEach(function (item) {
+        if (!item || !item.text) return;
+        var row = document.createElement('p');
+        row.className = 'sh-help';
+        row.textContent = item.text;
+        saved.appendChild(row);
+      });
+      var savedNote = document.createElement('p');
+      savedNote.className = 'sh-help';
+      savedNote.textContent = 'Saved as you wrote it. The song below is AI-assisted.';
+      saved.appendChild(savedNote);
+      lyricEl.appendChild(saved);
+    }
     draft.sections.forEach(function (section) {
       var visible = section.lines.filter(function (line) {
         if (core.isGrokCreditLine && core.isGrokCreditLine(line.text)) return false;

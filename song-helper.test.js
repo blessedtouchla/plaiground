@@ -107,7 +107,7 @@ function runCore() {
   assert.strictEqual(sparkedInterview.sparkAngle, 'Write it from the person who muted the chat.');
   const sparkedDraft = core.buildSampleDraft(sparkedInterview);
   assert.ok(allLines(sparkedDraft).some(function (line) {
-    return line.text.indexOf('muted the chat') !== -1 && line.source === 'user';
+    return line.text.indexOf('muted the chat') !== -1 && line.assisted === true;
   }));
   assert.ok(core.interviewPrompt(sparkedInterview).includes('muted the chat'));
   const withStory = core.normalizeInterview(Object.assign({}, interview, {
@@ -119,10 +119,10 @@ function runCore() {
   }));
   const storyDraft = core.buildSampleDraft(withStory);
   assert.ok(allLines(storyDraft).some(function (line) {
-    return line.source === 'user' && line.text.indexOf('typing bubble') !== -1;
+    return line.assisted === true && line.text.indexOf('typing bubble') !== -1;
   }));
   assert.ok(allLines(storyDraft).some(function (line) {
-    return line.source === 'user' && line.text.indexOf('left in the thread') !== -1;
+    return line.assisted === true && line.text.indexOf('left in the thread') !== -1;
   }));
   assert.ok(!allLines(storyDraft).some(function (line) {
     return /how do you feel|personal experience/i.test(line.text);
@@ -163,11 +163,23 @@ function runCore() {
   assert.strictEqual(core.PAGE_CREDIT, 'PLAIGROUND Song Helper · Written with Grok');
   assert.strictEqual(core.SUNO_CHAR_LIMIT, 3000);
 
+  assert.deepStrictEqual(core.verbatimCopies(draft, interview), []);
   verbatimStrings(interview).forEach(function (text) {
-    const hit = lines.filter(function (line) { return line.text === text; });
-    assert.ok(hit.length, 'missing verbatim line: ' + text);
-    assert.ok(hit.every(function (line) { return line.source === 'user'; }), 'user line not marked: ' + text);
+    assert.ok(!lines.some(function (line) { return line.text === text; }), 'pasted answer: ' + text);
+    assert.ok((draft.originalAnswers || []).some(function (item) { return item.text === text; }), 'original not saved: ' + text);
   });
+  assert.ok(lines.some(function (line) { return line.assisted === true; }));
+  assert.ok(/hoodie/i.test(JSON.stringify(draft.sections)));
+  assert.ok(/chair/i.test(JSON.stringify(draft.sections)));
+  assert.ok(/home|place/i.test(draft.hooks[0].text));
+  const assistedVerse = draft.sections.filter(function (section) { return /^verse\b/i.test(section.label); })
+    .reduce(function (list, section) {
+      return list.concat(section.lines.filter(function (line) { return line.assisted; }));
+    }, []);
+  const counts = assistedVerse.map(function (line) { return core.syllableCount(line.text); }).filter(Boolean);
+  if (counts.length >= 2) {
+    assert.ok(Math.max.apply(null, counts) - Math.min.apply(null, counts) <= 4, 'verse syllable feel');
+  }
   wordBank(interview).forEach(function (text) {
     const hit = lines.filter(function (line) { return lineHasPhrase(line.text, text); });
     assert.ok(hit.length, 'word bank not woven: ' + text);
@@ -180,18 +192,18 @@ function runCore() {
   });
   assert.strictEqual(core.draftNeedsRetry(draft, interview), false);
 
-  assert.strictEqual(draft.hooks[0].text, interview.line);
-  assert.strictEqual(draft.hooks[0].source, 'user');
+  assert.notStrictEqual(draft.hooks[0].text, interview.line);
+  assert.strictEqual(draft.hooks[0].assisted, true);
   assert.ok(draft.sections[0].lines.some(function (line) {
-    return line.role !== 'hook' && line.text === interview.line && line.source === 'user';
-  }), 'the user line stays in the verse when the chorus hook changes');
+    return line.assisted === true && line.text !== interview.line;
+  }), 'the verse is a reshaped song line');
   assert.notStrictEqual(draft.hooks[1].text, interview.line);
   assert.strictEqual(draft.hooks[1].source, 'generated');
   assert.deepStrictEqual(draft.sections.map(function (section) { return section.label; }), [
     'Verse', 'Pre-Chorus', 'Chorus', 'Verse', 'Chorus', 'Bridge', 'Chorus',
   ]);
   assert.ok(draft.sections.filter(function (section) { return section.label === 'Chorus'; }).every(function (section) {
-    return section.lines.some(function (line) { return line.role === 'hook' && line.text === interview.line; });
+    return section.lines.some(function (line) { return line.role === 'hook' && line.text === draft.hooks[0].text; });
   }));
 
   const short = core.buildSampleDraft(fixture({
@@ -200,9 +212,43 @@ function runCore() {
   assert.deepStrictEqual(short.sections.map(function (section) { return section.label; }), [
     'Verse', 'Chorus', 'Verse', 'Chorus',
   ]);
-  verbatimStrings(interview).forEach(function (text) {
-    assert.ok(allLines(short).some(function (line) { return line.text === text && line.source === 'user'; }));
+  assert.deepStrictEqual(core.verbatimCopies(short, interview), []);
+  assert.ok(!short.sections.some(function (section) { return section.label === 'Bridge'; }));
+
+  const rant = 'You left your hoodie on my chair and did not come back. You stopped answering when I asked you to stay. I still set a place for you like you are coming home.';
+  const rantSentences = [
+    'You left your hoodie on my chair and did not come back.',
+    'You stopped answering when I asked you to stay.',
+    'I still set a place for you like you are coming home.',
+  ];
+  const rantInterview = fixture({ happened: rant, why: '', line: rant, words: {} });
+  const rantDraft = core.buildSampleDraft(rantInterview);
+  const rantLines = allLines(rantDraft);
+  assert.deepStrictEqual(core.verbatimCopies(rantDraft, rantInterview), []);
+  assert.ok((rantDraft.originalAnswers || []).some(function (item) { return item.text === rant; }));
+  assert.ok(!rantLines.some(function (line) { return /come back you stopped/i.test(line.text); }));
+  rantSentences.forEach(function (sentence) {
+    assert.ok(!rantLines.some(function (line) { return core.lyricKey(line.text) === core.lyricKey(sentence); }), 'pasted sentence: ' + sentence);
   });
+  assert.ok(rantLines.some(function (line) { return line.assisted && /hoodie/i.test(line.text) && /chair/i.test(line.text); }));
+  assert.ok(/hoodie|chair|home|place/i.test(rantDraft.hooks[0].text));
+  assert.notStrictEqual(core.lyricKey(rantDraft.hooks[0].text), core.lyricKey(rant));
+  assert.strictEqual(rantDraft.hooks[0].assisted, true);
+  assert.ok(rantDraft.sections.some(function (section) { return section.label === 'Bridge'; }));
+  const rantVerseCounts = rantDraft.sections.filter(function (section) { return /^verse\b/i.test(section.label); })
+    .reduce(function (list, section) {
+      return list.concat(section.lines.filter(function (line) { return line.assisted; }));
+    }, [])
+    .map(function (line) { return core.syllableCount(line.text); })
+    .filter(Boolean);
+  if (rantVerseCounts.length >= 2) {
+    assert.ok(Math.max.apply(null, rantVerseCounts) - Math.min.apply(null, rantVerseCounts) <= 4, 'rant verse syllable feel');
+  }
+  const pasted = {
+    hooks: [{ id: 'a', text: rantSentences[0], source: 'generated' }],
+    sections: [{ label: 'Verse', lines: [{ text: rant, source: 'generated' }, { text: rantSentences[1], source: 'generated' }] }],
+  };
+  assert.ok(core.verbatimCopies(pasted, rantInterview).length >= 3);
   wordBank(interview).forEach(function (text) {
     assert.ok(allLines(short).some(function (line) {
       return lineHasPhrase(line.text, text) && line.text.toLowerCase() !== text.toLowerCase();
@@ -210,16 +256,19 @@ function runCore() {
   });
 
   const again = core.buildSampleDraft(fixture({ variant: 1 }));
-  const firstGen = allLines(draft).filter(function (line) { return line.source === 'generated'; })[0].text;
-  const nextGen = allLines(again).filter(function (line) { return line.source === 'generated'; })[0].text;
-  assert.notStrictEqual(firstGen, nextGen);
-  assert.strictEqual(again.hooks[0].text, interview.line);
+  function poolLine(sample) {
+    return allLines(sample).filter(function (line) { return line.source === 'generated' && !line.assisted; })[0].text;
+  }
+  assert.notStrictEqual(poolLine(draft), poolLine(again));
+  assert.strictEqual(again.hooks[0].text, draft.hooks[0].text);
+  assert.notStrictEqual(again.hooks[0].text, interview.line);
 
   const spanish = core.buildSampleDraft(fixture({
     shape: { genre: 'Latin', language: 'spanish', explicit: 'clean', length: 'full' },
   }));
   assert.ok(allLines(spanish).some(function (line) { return line.text === 'La luz del pasillo se quedó encendida.'; }));
-  assert.ok(allLines(spanish).some(function (line) { return line.text === interview.line && line.source === 'user'; }));
+  assert.deepStrictEqual(core.verbatimCopies(spanish, interview), []);
+  assert.ok((spanish.originalAnswers || []).some(function (item) { return item.text === interview.line; }));
 
   const drake = core.stripArtistNames('intimate, in the style of Taylor Swift');
   assert.strictEqual(drake.stripped, true);
@@ -318,10 +367,10 @@ function runCore() {
       { label: 'Verse', lines: [{ text: 'Only a generated line, featuring Drake.', source: 'generated' }] },
     ],
   }), interview);
-  assert.strictEqual(repaired.hooks[0].text, interview.line);
-  assert.strictEqual(repaired.hooks[0].source, 'user');
+  assert.notStrictEqual(repaired.hooks[0].text, interview.line);
+  assert.deepStrictEqual(core.verbatimCopies(repaired, interview), []);
   verbatimStrings(interview).forEach(function (text) {
-    assert.ok(allLines(repaired).some(function (line) { return line.text === text; }), 'repair dropped ' + text);
+    assert.ok((repaired.originalAnswers || []).some(function (item) { return item.text === text; }), 'repair dropped ' + text);
   });
   wordBank(interview).forEach(function (text) {
     assert.ok(!allLines(repaired).some(function (line) { return line.text === text; }), 'word bank dumped on repair: ' + text);
@@ -349,7 +398,8 @@ function runCore() {
   const creditedBlob = JSON.stringify(credited);
   assert.ok(!/written with grok|made with grok|generated by grok|written by grok/i.test(creditedBlob));
   assert.notStrictEqual(credited.title, 'Made with Grok');
-  assert.strictEqual(credited.hooks[0].text, interview.line);
+  assert.notStrictEqual(credited.hooks[0].text, interview.line);
+  assert.deepStrictEqual(core.verbatimCopies(credited, interview), []);
   assert.ok(allLines(credited).some(function (line) { return line.text === 'A real opening line.'; }));
   assert.ok(credited.sections.some(function (section) { return section.label === 'Chorus'; }));
   assert.strictEqual(credited.sections[0].label, 'Verse');
@@ -360,7 +410,8 @@ function runCore() {
   assert.ok(suno.includes('\n\n[Chorus]\n'));
   assert.ok(suno.includes('\n\n[Verse 2]\n'));
   assert.ok(suno.includes('\n\n[Bridge]\n'));
-  assert.ok(suno.includes(interview.line));
+  assert.ok(!suno.includes(interview.line));
+  assert.ok(/hoodie|chair|home/i.test(suno));
   assert.ok(!suno.includes(core.PAGE_CREDIT));
   assert.ok(!suno.includes(core.PREVIEW_NOTICE));
   assert.ok(!suno.includes(core.GROK_ATTRIBUTION));
@@ -504,9 +555,11 @@ function runCore() {
   assert.ok(!/Spark the wonder/i.test(leakedBlob));
   assert.ok(!/made this song/i.test(leakedBlob));
   assert.ok(!/making this song/i.test(leakedBlob));
-  assert.ok(leakedBlob.indexOf(steps) !== -1);
-  assert.ok(leakedBlob.indexOf(porch) !== -1);
-  assert.strictEqual(leaked.hooks[0].text, steps);
+  assert.ok((leaked.originalAnswers || []).some(function (item) { return item.text === steps; }));
+  assert.ok((leaked.originalAnswers || []).some(function (item) { return item.text === porch; }));
+  assert.notStrictEqual(leaked.hooks[0].text, steps);
+  assert.ok(/steps|porch/i.test(JSON.stringify(leaked.sections)));
+  assert.deepStrictEqual(core.verbatimCopies(leaked, storyInterview), []);
   assert.notStrictEqual(leaked.hooks[1].text, toolHookB);
   const funnyAim = core.normalizeInterview(fixture({
     line: aimHook,
@@ -558,7 +611,9 @@ async function runApi() {
     assert.strictEqual(preview.json.attribution, '');
     assert.strictEqual(fetchCalls, 0);
     assert.ok(!preview.body.includes('XAI_API_KEY'));
-    assert.strictEqual(preview.json.draft.hooks[0].text, fixture().line);
+    assert.notStrictEqual(preview.json.draft.hooks[0].text, fixture().line);
+    assert.deepStrictEqual(core.verbatimCopies(preview.json.draft, fixture()), []);
+    assert.ok((preview.json.draft.originalAnswers || []).some(function (item) { return item.text === fixture().line; }));
 
     const empty = await post({}, '203.0.113.26');
     assert.strictEqual(empty.statusCode, 400);
@@ -824,7 +879,8 @@ async function runApi() {
     assert.strictEqual(payload.reasoning_effort, 'none');
     assert.strictEqual(sent.opts.headers.Authorization, 'Bearer test-key-not-real');
     assert.ok(!live.body.includes('test-key-not-real'));
-    assert.strictEqual(live.json.draft.hooks[0].text, fixture().line);
+    assert.strictEqual(live.json.draft.hooks[0].text, 'Rewritten hook');
+    assert.deepStrictEqual(core.verbatimCopies(live.json.draft, fixture()), []);
 
     process.env.XAI_MODEL = 'grok-4.20-0309-non-reasoning';
     await post(fixture(), '203.0.113.25');
@@ -939,8 +995,9 @@ async function runApi() {
     assert.ok(retryLines.some(function (line) {
       return line.text === 'He made me watermelon juice and the light stayed on.' && line.source === 'user';
     }));
-    assert.ok(retryLines.some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
-    assert.ok(retryLines.some(function (line) { return line.text === 'I woke up on a Saturday'; }));
+    assert.ok(!retryLines.some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+    assert.ok(!retryLines.some(function (line) { return line.text === 'I woke up on a Saturday'; }));
+    assert.deepStrictEqual(core.verbatimCopies(retried.json.draft, mixedInterview), []);
     assert.ok(!retryLines.some(function (line) { return /West hollywood|Tesla x|Garlic asada|keeps Both/.test(line.text); }));
     assert.ok(!retryLines.some(function (line) { return line.text === 'Both' || line.text === '8:30' || line.text === 'Tango'; }));
     retried.json.draft.sections.filter(function (section) {
@@ -960,13 +1017,15 @@ async function runApi() {
     });
     const retrySuno = core.formatSunoLyrics(retried.json.draft);
     assert.ok(!/you wrote this/i.test(retrySuno));
-    assert.ok(retrySuno.includes('Gracias por tu luz, mi amor.'));
+    assert.ok(!retrySuno.includes('Gracias por tu luz, mi amor.'));
+    assert.ok(/luz/i.test(retrySuno));
     assert.ok(retrySuno.includes('Both of us still talking over garlic asada at 8:30.'));
     assert.ok(retrySuno.includes('Tesla X with the wings parked under a West Hollywood moon.'));
     assert.ok(retrySuno.includes('The same Saturday keeps both of the glasses on the counter.'));
     assert.ok(retrySuno.includes('West Hollywood can wait until the song is done.'));
     assert.ok(retrySuno.includes('Pepsi tonight?'));
-    assert.ok(retrySuno.includes('Me quedé despierto contigo.'));
+    assert.ok(!retrySuno.includes('Me quedé despierto contigo.'));
+    assert.ok(/contigo/i.test(retrySuno));
     assert.ok(!/West hollywood|Tesla x|Garlic asada/.test(retrySuno));
     retrySuno.split('\n\n').filter(function (block) { return /^\[Verse\b/.test(block); }).forEach(function (block) {
       assert.ok(block.split('\n').length >= 5, 'copied verse needs four lyric lines');
@@ -1273,7 +1332,8 @@ function runPacks() {
   assert.ok(!/supposed to make them laugh/i.test(jokeText));
   assert.ok(!/drumroll/i.test(jokeText));
   assert.ok(/very serious song/i.test(joke.title));
-  assert.strictEqual(joke.hooks[0].text, fixture().line);
+  assert.notStrictEqual(joke.hooks[0].text, fixture().line);
+  assert.deepStrictEqual(core.verbatimCopies(joke, fixture()), []);
   assert.ok(/pizza|crumb/i.test(joke.hooks[1].text));
   assert.ok(!/drumroll|supposed to make/i.test(joke.hooks[1].text));
   assert.ok(allLines(joke).some(function (line) {
@@ -1325,7 +1385,9 @@ function runPacks() {
     shape: { genre: 'Latin', pack: 'latin', language: 'spanglish', explicit: 'clean', length: 'full' },
   }));
   const mixedDraft = core.buildSampleDraft(mixed);
-  assert.strictEqual(mixedDraft.hooks[0].text, 'Gracias por tu luz, mi amor.');
+  assert.notStrictEqual(mixedDraft.hooks[0].text, 'Gracias por tu luz, mi amor.');
+  assert.ok(/luz/i.test(mixedDraft.hooks[0].text));
+  assert.deepStrictEqual(core.verbatimCopies(mixedDraft, mixed), []);
   Object.keys(mixed.words).forEach(function (key) {
     const bit = mixed.words[key];
     assert.ok(allLines(mixedDraft).some(function (line) {
@@ -1335,8 +1397,10 @@ function runPacks() {
   mixedDraft.sections.filter(function (section) { return /^verse\b/i.test(section.label); }).forEach(function (section) {
     assert.ok(section.lines.length >= 4, 'sample verse needs four lines');
   });
-  assert.ok(allLines(mixedDraft).some(function (line) { return line.text === 'I woke up on a Saturday'; }));
-  assert.ok(allLines(mixedDraft).some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+  assert.ok(!allLines(mixedDraft).some(function (line) { return line.text === 'I woke up on a Saturday'; }));
+  assert.ok(!allLines(mixedDraft).some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+  assert.ok(/saturday/i.test(JSON.stringify(mixedDraft.sections)));
+  assert.ok(/contigo/i.test(JSON.stringify(mixedDraft.sections)));
   assert.strictEqual(core.draftNeedsRetry(mixedDraft, mixed), false);
   mixedDraft.sections.filter(function (section) { return /^chorus\b/i.test(section.label); }).forEach(function (section) {
     const seen = {};
@@ -1347,7 +1411,8 @@ function runPacks() {
   });
   const mixedSuno = core.formatSunoLyrics(mixedDraft);
   assert.ok(!/you wrote this/i.test(mixedSuno));
-  assert.ok(mixedSuno.includes('Gracias por tu luz, mi amor.'));
+  assert.ok(!mixedSuno.includes('Gracias por tu luz, mi amor.'));
+  assert.ok(/luz/i.test(mixedSuno));
   assert.ok(mixedSuno.includes('West Hollywood'));
   assert.ok(mixedSuno.includes('Tesla X'));
   assert.ok(!mixedSuno.includes('West hollywood'));
@@ -1424,7 +1489,9 @@ function runPacks() {
   assert.ok(allLines(thin).some(function (line) {
     return line.text === 'Tesla X with the wings parked under a West Hollywood moon.';
   }));
-  assert.ok(allLines(thin).some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+  assert.ok(!allLines(thin).some(function (line) { return line.text === 'Me quedé despierto contigo.'; }));
+  assert.ok((thin.originalAnswers || []).some(function (item) { return item.text === 'Me quedé despierto contigo.'; }));
+  assert.deepStrictEqual(core.verbatimCopies(thin, mixed), []);
   const thickened = core.repairLyricShape(thin, mixed);
   assert.strictEqual(core.draftNeedsRetry(thickened, mixed), false);
   thickened.sections.filter(function (section) { return /^verse\b/i.test(section.label); }).forEach(function (section) {
@@ -1488,17 +1555,17 @@ function runPage() {
   assert.ok(html.includes('public figures or celebrities'));
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
-  assert.ok(html.includes('song-helper.js?v=20261010shape'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261010shape'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010lyrics'));
+  assert.ok(html.includes('song-helper.js?v=20261010song'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261010song'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010song'));
   assert.ok(html.includes('lib/style-clues.js?v=20261010tint'));
   assert.ok(html.includes('lib/suno-style.js?v=20261010tint'));
-  assert.ok(html.includes('lib/song-modes.js?v=20261010setup'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261010song'));
   assert.ok(html.includes('It tints the words a little'));
   assert.ok(html.includes('It does not choose the genre, tempo, instruments, or era.'));
   assert.ok(html.includes('song-flow-page.js?v=20261010hear'));
   assert.ok(html.includes('song-helper.css?v=20261010setup'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261010shape'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261010song'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1578,7 +1645,7 @@ function runPage() {
   assert.ok(read('song-flow-page.js').includes('plaiground.songHelper.story'));
   assert.ok(read('song-flow-page.js').includes('lyricSeeds'));
   assert.ok(!/I want this song to /.test(read('song-flow-page.js')));
-  assert.ok(html.includes('lib/song-modes.js?v=20261010setup'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261010song'));
   assert.ok(read('lib/song-flow.js').includes("className = 'sh-count'"));
   assert.ok(js.includes('surpriseWords'));
   assert.ok(js.includes('publicFigureName'));

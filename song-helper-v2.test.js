@@ -124,9 +124,10 @@ function runModes() {
   assert.strictEqual(flip.source, 'sample');
   assert.strictEqual(flip.notice, modes.DEMO_NOTICE);
   assert.ok(modes.allLines(flip.draft).some(function (line) {
-    return line.text === 'we will figure it out' && line.source === 'user';
+    return line.text.toLowerCase().indexOf('figure it out') !== -1 && line.assisted === true && line.text !== 'we will figure it out';
   }));
-  assert.strictEqual(modes.yoursPercent(modes.allLines(flip.draft)) > 0, true);
+  assert.ok((flip.draft.originalAnswers || []).some(function (item) { return item.text === 'we will figure it out'; }));
+  assert.strictEqual(modes.yoursPercent(modes.allLines(flip.draft)), 0);
 
   const thin = modes.buildSample(concrete({ place: '', object: '', quote: '', mood: '' }));
   assert.strictEqual(thin.ok, false);
@@ -139,7 +140,7 @@ function runModes() {
   assert.strictEqual(funny.ok, true);
   const funnyText = modes.allLines(funny.draft).map(function (row) { return row.text; }).join('\n');
   assert.ok(/chipped mug/i.test(funnyText));
-  assert.ok(/we will figure it out/i.test(funnyText));
+  assert.ok(/figure it out/i.test(funnyText));
   assert.ok(!/supposed to make them laugh/i.test(funnyText));
   assert.ok(!/this (part|song) is supposed/i.test(funnyText));
   assert.ok(!/the joke waits/i.test(funnyText));
@@ -285,8 +286,12 @@ function runModes() {
   assert.strictEqual(hookSample.ok, true);
   assert.strictEqual(hookSample.preview, true);
   const hookLines = modes.allLines(hookSample.draft).map(function (row) { return row.text; });
-  assert.deepStrictEqual(hookLines, [hookAnswers.line, hookAnswers.happened, hookAnswers.why]);
-  assert.ok(modes.allLines(hookSample.draft).every(function (row) { return row.source === 'user'; }));
+  assert.ok(hookLines.indexOf(hookAnswers.line) === -1);
+  assert.ok(hookLines.indexOf(hookAnswers.happened) === -1);
+  assert.ok(hookLines.indexOf(hookAnswers.why) === -1);
+  assert.ok(/place|table|hoodie|chair|stay/i.test(hookLines.join('\n')));
+  assert.ok(modes.allLines(hookSample.draft).every(function (row) { return row.assisted === true; }));
+  assert.ok((hookSample.draft.originalAnswers || []).some(function (item) { return item.text === hookAnswers.line; }));
   assert.ok(!/answers stay unseen|The hook sentence, what happened, and why/i.test(JSON.stringify(hookSample)));
   const cleaned = modes.draftFromModel(JSON.stringify({
     title: 'Echo',
@@ -384,7 +389,7 @@ function runModes() {
   const sparkedDraft = modes.buildSample(sparked);
   assert.strictEqual(sparkedDraft.ok, true);
   assert.ok(modes.allLines(sparkedDraft.draft).some(function (line) {
-    return line.source === 'user' && line.text.indexOf('muted the chat') !== -1;
+    return line.assisted === true && line.text.indexOf('muted the chat') !== -1;
   }));
   const withStory = modes.normalizeInput({
     mode: 'flip',
@@ -402,7 +407,7 @@ function runModes() {
   assert.strictEqual(storyDraft.ok, true);
   ['late to my own street', 'gate was already down', 'sound of the lock'].forEach(function (bit) {
     assert.ok(modes.allLines(storyDraft.draft).some(function (line) {
-      return line.source === 'user' && line.text.indexOf(bit) !== -1;
+      return line.assisted === true && line.text.toLowerCase().indexOf(bit) !== -1 && line.text !== withStory.sparkFeel && line.text !== withStory.sparkStory && line.text !== withStory.sparkKeep;
     }), bit);
   });
   const skipped = modes.buildSample({
@@ -440,12 +445,14 @@ function runModes() {
   });
   assert.strictEqual(verse.ok, true);
   assert.strictEqual(verse.section.label, 'Verse');
-  assert.deepStrictEqual(verse.section.lines.map(function (row) { return row.text; }), [
-    'M',
-    'You left the hoodie on the chair.',
-    'The room still smells like rain.',
-  ]);
-  assert.ok(verse.section.lines.every(function (row) { return row.source === 'user'; }));
+  const verseText = verse.section.lines.map(function (row) { return row.text; });
+  assert.strictEqual(verseText[0], 'M');
+  assert.ok(verseText.indexOf('You left the hoodie on the chair.') === -1);
+  assert.ok(verseText.indexOf('The room still smells like rain.') === -1);
+  assert.ok(/hoodie/i.test(verseText.join('\n')));
+  assert.ok(/rain/i.test(verseText.join('\n')));
+  assert.ok(verse.section.lines.slice(1).every(function (row) { return row.assisted === true; }));
+  assert.ok((verse.originalAnswers || []).some(function (item) { return item.text === 'You left the hoodie on the chair.'; }));
   const bridge = modes.sectionFromAnswers('bridge', {
     turn: 'The light in the kitchen goes out.',
     who: 'M',
