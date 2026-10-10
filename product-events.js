@@ -356,7 +356,7 @@
     }
   }
 
-  function track(name, payload, at) {
+  function track(name, payload, at, replay) {
     var eventName = clip(name, 80);
     if (!eventName || !root.fetch) return;
     var body = safePayload(payload, eventName);
@@ -370,7 +370,7 @@
         if (box && box.getItem(RETURN_KEY) === day) return;
       } catch (err) {}
     }
-    if (MARKETING_EVENTS[eventName]) postMarketing(eventName, payload);
+    if (!replay && MARKETING_EVENTS[eventName]) postMarketing(eventName, payload);
     if (PIXEL_EVENTS[eventName]) pixel(PIXEL_EVENTS[eventName]);
     if (MARKETING_ONLY[eventName]) return;
     postJson('/api/me/events', body).then(function (res) {
@@ -422,7 +422,7 @@
     if (Array.isArray(list) && list.length) {
       writeJson(PENDING_KEY, []);
       list.forEach(function (body) {
-        if (body && body.name) track(body.name, body, body.at);
+        if (body && body.name) track(body.name, body, body.at, true);
       });
     }
     if (guide && guide.status) saveGuide(guide);
@@ -548,6 +548,7 @@
   }
 
   function noteVisibleSteps() {
+    if (toolFromLocation() !== 'song_helper') return;
     if (!root.document || !root.document.querySelectorAll) return;
     var nodes = root.document.querySelectorAll('[data-step]');
     for (var i = 0; i < nodes.length; i += 1) {
@@ -565,7 +566,6 @@
     if (choice && choice.id) {
       var picked = choice.id.replace('sh-choice-', '');
       if (picked === 'page') picked = 'lyrics';
-      markMarketing('song_helper_started', { tool: 'song_helper' });
       markMarketing('song_helper_step', { tool: 'song_helper', step: picked });
       return;
     }
