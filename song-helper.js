@@ -136,6 +136,7 @@
   var wordValues = {};
   var promptRoll = {};
   var styleTouched = false;
+  var hearingOverrides = {};
   var draft = null;
   var preview = true;
   var draftKey = '';
@@ -728,6 +729,18 @@
       label.className = 'sh-section-label';
       label.textContent = section.label;
       lyricEl.appendChild(label);
+      var tip = document.createElement('p');
+      tip.className = 'sh-help sh-coach';
+      function paintSectionTip() {
+        if (!window.SongFlow || !window.SongFlow.coachTip) {
+          tip.hidden = true;
+          return;
+        }
+        var body = visible.map(function (line) { return String(line.text || ''); }).join('\n');
+        var text = window.SongFlow.coachTip(section.label, body);
+        tip.hidden = !text;
+        tip.textContent = text || '';
+      }
       visible.forEach(function (line) {
         if (line.original == null) line.original = line.text;
         if (line.logged == null) line.logged = String(line.text || '').trim();
@@ -741,6 +754,8 @@
           line.edited = box.value.trim() !== String(line.original || '').trim();
           box.classList.toggle('is-user', holdsUserWords(line));
           fit(box);
+          paintSectionTip();
+          paintHearing();
           renderSuno();
         });
         box.addEventListener('blur', function () {
@@ -757,7 +772,10 @@
         fit(box);
         if (window.SongModes) mountLineTools(lyricEl, box, line);
       });
+      paintSectionTip();
+      lyricEl.appendChild(tip);
     });
+    paintHearing();
     banner.hidden = !preview;
     banner.textContent = preview ? core.PREVIEW_NOTICE : '';
     attr.hidden = preview;
@@ -1192,17 +1210,112 @@
     }
   }
 
+  function lyricHearingText() {
+    var bits = [];
+    if (draft && draft.sections) {
+      draft.sections.forEach(function (section) {
+        (section.lines || []).forEach(function (line) {
+          var text = String(line && line.text || '').trim();
+          if (text) bits.push(text);
+        });
+      });
+    }
+    if (!bits.length) {
+      document.querySelectorAll('[data-part-text]').forEach(function (area) {
+        var text = String(area.value || '').trim();
+        if (text) bits.push(text);
+      });
+    }
+    return bits.join('\n');
+  }
+
+  function currentHearing() {
+    if (!window.SongFlow || !window.SongFlow.hearStyle || !window.SongFlow.mergeHear) return null;
+    return window.SongFlow.mergeHear(window.SongFlow.hearStyle(lyricHearingText()), hearingOverrides);
+  }
+
+  function paintHearing() {
+    var host = document.getElementById('sh-hearing');
+    if (!host || !window.SongFlow || !window.SongFlow.HEAR_LABELS) return;
+    var text = lyricHearingText();
+    var heard = currentHearing();
+    var onStyle = STEPS[step] === 'style';
+    var parent = document.querySelector('section[data-step="' + (onStyle ? 'style' : 'draft') + '"]');
+    if (parent) {
+      if (onStyle) parent.insertBefore(host, parent.firstChild);
+      else {
+        var lyric = document.getElementById('sh-lyric');
+        if (lyric && lyric.parentNode) lyric.parentNode.insertBefore(host, lyric.nextSibling);
+      }
+    }
+    host.hidden = !text || !heard;
+    host.textContent = '';
+    if (!text || !heard) return;
+    var title = document.createElement('h3');
+    title.className = 'sh-subhead';
+    title.textContent = "Here's the style I'm hearing from your words";
+    host.appendChild(title);
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    note.textContent = 'These are guesses from your lines. Change any one. Sounds like and Design my style still win if you fill them in.';
+    host.appendChild(note);
+    ['genre', 'era', 'tempo', 'mood', 'tone', 'vocal', 'instruments', 'rhyme', 'hook'].forEach(function (key) {
+      var pick = heard.picks[key];
+      if (!pick) return;
+      var row = document.createElement('div');
+      row.className = 'sh-hear-row';
+      var copy = document.createElement('p');
+      copy.className = 'sh-help';
+      var strong = document.createElement('strong');
+      strong.textContent = window.SongFlow.HEAR_LABELS[key] + ': ' + window.SongFlow.hearValueLabel(key, pick.value) + '.';
+      copy.appendChild(strong);
+      copy.appendChild(document.createTextNode(' ' + pick.reason));
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn btn-ghost btn-md';
+      button.textContent = 'Change';
+      button.addEventListener('click', function () {
+        hearingOverrides[key] = window.SongFlow.nextHear(key, pick.value);
+        paintHearing();
+        renderStyle();
+      });
+      row.appendChild(copy);
+      row.appendChild(button);
+      host.appendChild(row);
+    });
+  }
+
   function renderStyle() {
     var sound = readSoundForm();
+    var heard = currentHearing();
+    var useHear = !!(heard && !heard.thin && !sound && !styleTouched);
+    var genre = styleGenre();
+    var era = sound && sound.era ? sound.era : picks.era;
+    var energy = sound && sound.tempo ? sound.tempo : picks.energy;
+    var texture = sound && sound.vocal ? sound.vocal : picks.texture;
+    var inst = sound && sound.instruments.length ? sound.instruments : instruments.slice();
+    var mix = sound ? sound.mix : '';
+    if (useHear) {
+      var picksHeard = heard.picks;
+      if (!genre && picksHeard.genre && picksHeard.genre.value !== 'plain') genre = picksHeard.genre.value;
+      if (!era && picksHeard.era && picksHeard.era.value && picksHeard.era.value !== 'now') era = picksHeard.era.value;
+      if (!energy && picksHeard.tempo) {
+        var tempo = picksHeard.tempo.value;
+        energy = tempo === 'slow' ? 'low energy' : tempo === 'fast' ? 'high energy' : 'medium energy';
+      }
+      if (!texture && picksHeard.vocal) texture = picksHeard.vocal.value;
+      if (!inst.length && picksHeard.instruments && picksHeard.instruments.value) inst = [picksHeard.instruments.value];
+      if (!mix && picksHeard.mood && picksHeard.mood.value && picksHeard.mood.value !== 'plain') mix = picksHeard.mood.value + ' mood';
+    }
     var built = core.buildStylePrompt({
-      genre: styleGenre(),
-      era: sound && sound.era ? sound.era : picks.era,
-      energy: sound && sound.tempo ? sound.tempo : picks.energy,
+      genre: genre,
+      era: era,
+      energy: energy,
       voice: picks.voice,
-      texture: sound && sound.vocal ? sound.vocal : picks.texture,
-      instruments: sound && sound.instruments.length ? sound.instruments : instruments,
+      texture: texture,
+      instruments: inst,
       feeling: readControl(feelingInput),
-      mix: sound ? sound.mix : '',
+      mix: mix,
       structure: sound && window.SongFlow ? window.SongFlow.structurePhrase(sound) : '',
     });
     var prompt = built.prompt || '';
@@ -1216,6 +1329,7 @@
     promptEl.textContent = prompt || 'Add a genre or a feeling and the prompt will show up here.';
     artistNote.hidden = !built.artistNamesStripped;
     promptEl.dataset.prompt = prompt || '';
+    paintHearing();
   }
 
   function showSoundError(message) {

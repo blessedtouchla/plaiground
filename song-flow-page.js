@@ -8,6 +8,7 @@
   var pinned = '';
   var focusNext = false;
   var focusIndex = 0;
+  var paintedStep = null;
   var GENRES = [
     { id: 'hiphop', label: 'Hip-hop' },
     { id: 'rnb', label: 'R&B' },
@@ -143,6 +144,7 @@
       if (input.value.length > limit) return;
       onInput(input.value);
       refresh();
+      if (paintedStep) paintCoach(paintedStep);
     });
     wrap.appendChild(span);
     wrap.appendChild(input);
@@ -330,11 +332,11 @@
     var answer = currentAnswer(step);
     var extraAsk = followAsk(step);
     var extra = followText(step);
-    if (step.id === 'for' && !state.forId) {
+    if (step.id === 'for' && !state.forId && !step.optional) {
       showFlowError('Pick who this song is for.');
       return;
     }
-    if (step.id === 'aim' && !state.aims.length) {
+    if (step.id === 'aim' && !state.aims.length && !step.optional) {
       showFlowError('Pick at least one aim.');
       return;
     }
@@ -465,6 +467,24 @@
     if (window.SongHelperChips) window.SongHelperChips.fold(row);
   }
 
+  function coachLabel(step) {
+    if (!step) return '';
+    if (step.id === 'keep') return 'Hook';
+    if (step.id === 'open') return 'What happened';
+    if (step.id === 'scene') return 'Sensory detail';
+    if (step.id === 'for') return 'Who';
+    if (step.id === 'aim') return 'Listener feel';
+    return step.ask || '';
+  }
+
+  function paintCoach(step) {
+    var node = document.querySelector('#sh-flow-host .sh-coach');
+    if (!node || !flow.coachTip || !step) return;
+    var tip = flow.coachTip(coachLabel(step), currentAnswer(step));
+    node.hidden = !tip;
+    node.textContent = tip || '';
+  }
+
   function paintStep(host, step) {
     var ask = document.createElement('p');
     ask.className = 'sh-q';
@@ -479,10 +499,10 @@
       host.appendChild(rec);
     }
     if (step.kind === 'for' || step.kind === 'aim' || step.kind === 'reveal') paintChoices(host, step);
-    if (step.kind === 'for' && state.forId) {
+    if (step.kind === 'for' && state.forId === 'someone') {
       var storyAsk = document.createElement('p');
       storyAsk.className = 'sh-scene-ask';
-      storyAsk.textContent = step.storyAsk || 'Tell me a moment.';
+      storyAsk.textContent = step.storyAsk || 'What do you call them?';
       host.appendChild(storyAsk);
         host.appendChild(field('Your answer', state.forText, function (value) {
         var text = tidy(value);
@@ -493,7 +513,7 @@
         state.forText = text;
         if (state.forText) clearSkip(step);
         revealFollow(step);
-      }, 'A moment is enough.'));
+      }, 'A name is enough.'));
       paintStarters(host, step);
     } else if (step.kind === 'aim' && state.aims.indexOf('other') !== -1) {
       host.appendChild(field('Other', state.aimOther, function (value) {
@@ -501,10 +521,12 @@
       }, 'What else should the song do?', false, 80));
     } else if (step.kind === 'scene') {
       (step.boxes || []).forEach(function (box) {
-        var label = document.createElement('p');
-        label.className = 'sh-scene-ask';
-        label.textContent = box.ask;
-        host.appendChild(label);
+        if (box.ask) {
+          var label = document.createElement('p');
+          label.className = 'sh-scene-ask';
+          label.textContent = box.ask;
+          host.appendChild(label);
+        }
         host.appendChild(field('Your answer', state.sensory[box.id] || '', function (value) {
           var text = tidy(value);
           if (text == null) {
@@ -540,6 +562,11 @@
       paintStarters(host, step);
     }
     paintFollow(host, step);
+    paintedStep = step;
+    var coach = document.createElement('p');
+    coach.className = 'sh-help sh-coach';
+    host.appendChild(coach);
+    paintCoach(step);
     var actions = document.createElement('div');
     actions.className = 'sh-plai-actions';
     var next = document.createElement('button');
@@ -822,7 +849,7 @@
     syncKinds();
     flushCurrent();
     if (!flow.readyForDraft(state)) {
-      showFlowError('Pick who this song is for, or what you aim to do. Then I can write.');
+      showFlowError('Answer one writing question first. What happened, who, a detail, the heart line, or what the listener should feel.');
       return;
     }
     showFlowError('');

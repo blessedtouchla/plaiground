@@ -911,6 +911,10 @@ function runPages() {
   assert.ok(html.includes('Write it for me'));
   assert.ok(html.includes('Verse for verse'));
   assert.ok(html.includes('id="sh-tones"'));
+  assert.ok(html.includes('id="sh-tone-open"'));
+  assert.ok(html.includes('id="sh-hearing"'));
+  assert.ok(js.includes('setupReady = scratch && !!making && !!amount && methodReady'));
+  assert.ok(read('song-helper.js').includes("Here's the style I'm hearing from your words"));
   assert.ok(html.includes('id="sh-themes"'));
   assert.ok(html.includes('id="sh-rap"'));
   assert.ok(html.includes('I already have my story or lyrics'));

@@ -45,6 +45,7 @@
   var making = '';
   var amount = '';
   var tone = '';
+  var toneOpen = false;
   var theme = '';
   var rapStyle = '';
   var kind = '';
@@ -2125,6 +2126,11 @@
     if ($('sh-live-another')) $('sh-live-another').addEventListener('click', onLiveAnother);
     if ($('sh-live-write')) $('sh-live-write').addEventListener('click', onLiveOwn);
     if ($('sh-live-own-go')) $('sh-live-own-go').addEventListener('click', onLiveOwnGo);
+    var toneBtn = $('sh-tone-open');
+    if (toneBtn) toneBtn.addEventListener('click', function () {
+      toneOpen = !toneOpen;
+      paintBranch();
+    });
     var feeling = $('sh-feeling');
     if (feeling) feeling.addEventListener('click', function () {
       touchLive();
@@ -2469,17 +2475,17 @@
     var scratch = branch === 'scratch';
     var source = branch === 'source';
     var methodReady = mode === 'write' || mode === 'assist' || mode === 'exchange' || mode === 'madlibs';
-    var setupReady = scratch && !!making && !!amount && methodReady && !!tone;
+    var setupReady = scratch && !!making && !!amount && methodReady;
     showEl('sh-setup', scratch);
     showEl('sh-amount-wrap', scratch && !!making);
     showEl('sh-method-wrap', scratch && !!making && !!amount);
-    showEl('sh-tone-wrap', scratch && !!making && !!amount && methodReady);
+    showEl('sh-tone-open-wrap', setupReady);
+    showEl('sh-tone-wrap', setupReady && toneOpen);
     showEl('sh-rap-wrap', making === 'rap');
     showEl('sh-source', source);
     showEl('sh-feeling', setupReady);
-    var feelReady = setupReady && !!kind;
-    showEl('sh-idea', feelReady);
-    var storyReady = feelReady && (ideaLane === 'ideas' || ideaLane === 'own');
+    showEl('sh-idea', setupReady);
+    var storyReady = setupReady && (ideaLane === 'ideas' || ideaLane === 'own');
     var pageFlow = window.SongFlowPage;
     var talk = pageFlow ? pageFlow.talk() : '';
     var draftReady = storyReady && pageFlow && pageFlow.ready();
@@ -3315,6 +3321,14 @@
       pageError('');
       partError(id, '');
       syncPartCount(id);
+      var coach = document.querySelector('[data-coach="' + id + '"]');
+      if (coach && flow.coachTip) {
+        var label = '';
+        pageSections.forEach(function (row) { if (row.id === id) label = row.label; });
+        var tip = flow.coachTip(label, area.value);
+        coach.hidden = !tip;
+        coach.textContent = tip || '';
+      }
       paintHumanMeter();
       persistPage();
     });
@@ -3439,8 +3453,15 @@
       err.setAttribute('role', 'alert');
       err.hidden = true;
       err.setAttribute('data-part-error', row.id);
+      var coach = document.createElement('p');
+      coach.className = 'sh-help sh-coach';
+      coach.setAttribute('data-coach', row.id);
+      var coachText = (window.SongFlow && window.SongFlow.coachTip) ? window.SongFlow.coachTip(row.label, area.value) : '';
+      coach.hidden = !coachText;
+      coach.textContent = coachText;
       article.appendChild(head);
       article.appendChild(area);
+      article.appendChild(coach);
       article.appendChild(count);
       article.appendChild(toggles);
       article.appendChild(undo);

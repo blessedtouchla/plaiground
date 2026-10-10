@@ -82,7 +82,7 @@
       <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Create from scratch, or start from a real song. Then what you are making, how much, how you write, the tone, a feeling, and the story. Design my style comes after.</p>
+      <p class="sh-path">Create from scratch, or start from a real song. Then what you are making, how much, and how you write. The writing questions come next. Tone, feeling, Design my style, and Sounds like stay optional.</p>
       <section class="sh-craft" id="sh-start">
         <h2 class="sh-craft-title">How do you want to start?</h2>
         <p class="sh-help">Pick one. You can switch anytime.</p>
@@ -191,6 +191,10 @@
           <div class="sh-modes" id="sh-modes" role="group" aria-label="How do you want to write it"></div>
           <p class="sh-help" id="sh-mode-note">Write it for me drafts from your answers. Let it all out keeps a rant and songifies it. Verse for verse answers your verse. Mad Libs uses your blanks.</p>
         </div>
+        <div id="sh-tone-open-wrap" hidden>
+          <p class="sh-help">Tone is optional. I hear funny, heartfelt, or fired up from your words unless you change it here.</p>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-tone-open">Change tone, theme, or rap style</button>
+        </div>
         <div id="sh-tone-wrap" hidden>
           <h3 class="sh-subhead">Tone</h3>
           <p class="sh-help">Tone tints the words. It does not choose the genre, tempo, instruments, or era.</p>
@@ -209,7 +213,7 @@
       </section>
       <section class="sh-craft" id="sh-feeling" hidden>
         <h2 class="sh-craft-title">How it feels</h2>
-        <p class="sh-help">Pick a feeling. It tints the words a little. It does not choose the genre, tempo, instruments, or era. Those come from Design my style, Sounds like, genre, and the story.</p>
+        <p class="sh-help">Pick a feeling if you want. It tints the words a little. It does not choose the genre, tempo, instruments, or era. I hear those from your lines. Tone, Design my style, and Sounds like can override that.</p>
         <div id="sh-kind">
           <div class="sh-modes" id="sh-kinds" role="group" aria-label="Kind of song"></div>
         </div>
@@ -251,13 +255,13 @@
       </section>
       <section class="sh-craft" id="sh-purpose" hidden>
         <h2 class="sh-craft-title">The point of the song</h2>
-        <p class="sh-help" id="sh-purpose-help">Tell me your stories. Your own words become the lyrics, and every answer is saved as your record of writing it.</p>
+        <p class="sh-help" id="sh-purpose-help">Tell me your stories. Your own words become the lyrics, and every answer is saved as your record of writing it. Five questions: what happened, who, one sensory detail, the line people should repeat, and what the listener should feel.</p>
         <div id="sh-flow-host"></div>
         <p class="sh-form-error" id="sh-flow-error" role="alert" hidden></p>
       </section>
       <section class="sh-craft" id="sh-cast" hidden>
         <h2 class="sh-craft-title">Language, region, and genre</h2>
-        <p class="sh-help">Language and clean or explicit change the words. Region and genre are optional.</p>
+        <p class="sh-help">Optional. Language and clean or explicit change the words. Region, genre, and Design my style override what I hear from your lines. You can draft without filling this in.</p>
         <div id="sh-cast-host"></div>
         <div id="sh-style-design" class="sh-style-design"></div>
         <div class="sh-side-actions">
@@ -503,6 +507,7 @@
             <input class="sh-title" id="sh-title" maxlength="80" autocomplete="off" />
           </label>
           <div id="sh-lyric"></div>
+          <div id="sh-hearing" class="sh-hearing" hidden></div>
           <p class="sh-attr" id="sh-attr" hidden></p>
           <div class="sh-suno" id="sh-suno-card" hidden>
             <label class="sh-field" for="sh-suno">
@@ -808,7 +813,7 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/song-flow.js?v=20261010lyrics"></script>
+  <script src="lib/song-flow.js?v=20261010hear"></script>
   <script src="lib/song-packs.js?v=20261009story"></script>
   <script src="/product-events.js?v=20261010fix"></script>
   <script src="lib/song-helper.js?v=20261010lyrics"></script>
@@ -822,10 +827,10 @@
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261009story"></script>
   <script src="lib/song-questions.js?v=20261010setup"></script>
-  <script src="song-helper.js?v=20261010lyrics"></script>
+  <script src="song-helper.js?v=20261010hear"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010lyrics"></script>
-  <script src="song-flow-page.js?v=20261010setup"></script>
+  <script src="song-helper-v2.js?v=20261010hear"></script>
+  <script src="song-flow-page.js?v=20261010hear"></script>
   <script src="site.js?v=20261010fix"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
