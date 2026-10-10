@@ -265,6 +265,19 @@ function runCore() {
   assert.ok(!style.prompt.includes('organ'));
   assert.ok(!/drake/i.test(style.prompt));
   assert.ok(!/taylor/i.test(style.prompt));
+  assert.ok(style.prompt.indexOf('intimate') === -1);
+  const feelOnly = core.buildStylePrompt({ feeling: 'heartbroken' });
+  assert.strictEqual(feelOnly.prompt, 'heartbroken');
+  const feelGenre = core.buildStylePrompt({ genre: 'R&B', feeling: 'heartbroken', instruments: ['piano'] });
+  assert.ok(feelGenre.prompt.indexOf('R&B') !== -1);
+  assert.ok(feelGenre.prompt.indexOf('piano') !== -1);
+  assert.ok(feelGenre.prompt.indexOf('heartbroken') === -1);
+  const feelLove = core.buildStylePrompt({ feeling: 'in love', energy: 'fast' });
+  const feelAngry = core.buildStylePrompt({ feeling: 'angry', energy: 'fast' });
+  assert.strictEqual(feelLove.prompt, feelAngry.prompt);
+  assert.ok(feelLove.prompt.indexOf('fast energy') !== -1);
+  assert.ok(feelLove.prompt.indexOf('in love') === -1);
+  assert.ok(feelLove.prompt.indexOf('angry') === -1);
 
   const record = core.formatAuthorship(draft, {
     preview: true,
@@ -1443,7 +1456,12 @@ function runPage() {
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-helper-v2.js?v=20261010sounds'));
-  assert.ok(html.includes('lib/song-helper.js?v=20261010meta'));
+  assert.ok(html.includes('lib/song-helper.js?v=20261010tint'));
+  assert.ok(html.includes('lib/style-clues.js?v=20261010tint'));
+  assert.ok(html.includes('lib/suno-style.js?v=20261010tint'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261010tint'));
+  assert.ok(html.includes('It tints the words a little'));
+  assert.ok(html.includes('It does not choose the genre, tempo, instruments, or era.'));
   assert.ok(html.includes('song-flow-page.js?v=20261010meta'));
   assert.ok(html.includes('song-helper.css?v=20261010sounds'));
   assert.ok(html.includes('lib/song-flow.js?v=20261010meta'));
@@ -1510,7 +1528,7 @@ function runPage() {
   assert.ok(read('song-flow-page.js').includes('plaiground.songHelper.story'));
   assert.ok(read('song-flow-page.js').includes('lyricSeeds'));
   assert.ok(!/I want this song to /.test(read('song-flow-page.js')));
-  assert.ok(html.includes('lib/song-modes.js?v=20261010meta'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261010tint'));
   assert.ok(read('lib/song-flow.js').includes("className = 'sh-count'"));
   assert.ok(js.includes('surpriseWords'));
   assert.ok(js.includes('publicFigureName'));
