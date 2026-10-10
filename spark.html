@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>What’s hot – PLAIGROUND</title>
-  <meta name="description" content="A spark page for song ideas. Sample lanes until a live feed is connected. No tragedies, and every item shows its source." />
+  <meta name="description" content="A spark page for song ideas. Topics to write from, not breaking news. Sample lanes until a live feed is connected." />
   <link rel="canonical" href="https://www.wannaplai.com/spark" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.wannaplai.com/spark" />
   <meta property="og:title" content="What’s hot – PLAIGROUND" />
-  <meta property="og:description" content="Sample song sparks. A live feed is used only when one is connected." />
+  <meta property="og:description" content="Sample song topics, not breaking news. A live feed is used only when one is connected." />
   <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -73,13 +73,17 @@
     <div class="wrap sh-shell" id="spark-app">
       <p class="sh-kicker">What’s hot</p>
       <h1>A spark for the next song</h1>
-      <p class="sh-intro">Pick a category, then a topic, then a headline. The song idea opens after the headline. Questions are optional. The more you put in, the more human the draft feels. Tragedies stay off this page.</p>
-      <p class="sh-honest">With no live feed connected, every card is a sample. The source line says so. Nothing here is a chart, a count, or a quote from a paper.</p>
+      <p class="sh-intro">Pick a category, then a topic. A starter sentence lands in the box, and you can change every word. News topics are writing frames, not breaking news. Questions are optional. The more you put in, the more human the draft feels. Tragedies stay off this page.</p>
+      <p class="sh-honest">With no live feed connected, every card is a sample topic, not a headline from today. The source line says so. Nothing here is a chart, a count, or a quote from a paper.</p>
       <p class="sh-age">You must be 18+ to use this page.</p>
       <p class="sh-banner" id="spark-banner"></p>
       <h2>Daily spark</h2>
       <div id="spark-daily"></div>
       <div class="spark-lanes sh-modes" id="spark-lanes" role="group" aria-label="Lanes"></div>
+      <label class="sh-field" id="spark-starter-field">
+        <span>Starter sentence</span>
+        <textarea class="sh-area" id="spark-starter" placeholder="Tap an idea. A starter lands here, and you can edit it."></textarea>
+      </label>
       <div class="spark-list" id="spark-list"></div>
       <p class="sh-spark-link"><a href="/song-helper">Back to Song Helper</a> · <a href="/cover-art">Cover art</a></p>
     </div>
@@ -132,8 +136,8 @@
       <p class="copy">© 2026 PLAIGROUND LLC</p>
     </div>
   </footer>
-  <script src="lib/spark.js"></script>
-  <script src="spark.js"></script>
+  <script src="lib/spark.js?v=20261010ideas"></script>
+  <script src="spark.js?v=20261010ideas"></script>
   <script src="site.js?v=20261010fix"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

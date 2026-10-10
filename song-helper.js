@@ -499,7 +499,7 @@
       if (!el.classList || el.classList.contains('sh-more')) continue;
       if (el.classList.contains('sh-chip') || el.classList.contains('spark-headline')) chips.push(el);
     }
-    if (chips.length <= MORE_LIMIT) {
+    if (host.hasAttribute('data-no-fold') || chips.length <= MORE_LIMIT) {
       chips.forEach(function (el) { el.hidden = false; });
       return;
     }
@@ -528,7 +528,7 @@
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'sh-chip sh-more';
-    btn.textContent = 'More';
+    btn.textContent = 'Show more';
     btn.setAttribute('aria-expanded', 'false');
     btn.addEventListener('click', function (event) {
       event.preventDefault();

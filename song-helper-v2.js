@@ -74,6 +74,7 @@
   var sparkTopic = '';
   var sparkTopics = [];
   var sparkHeadline = '';
+  var sparkQuery = '';
   var sparkDailyOpen = false;
   var sparkAsk = { feel: '', story: '', keep: '' };
   var sparkSeed = null;
@@ -710,6 +711,9 @@
   }
 
   function ideaTopic() {
+    var starter = $('sh-spark-starter');
+    var seeded = starter ? String(starter.value || '').trim() : '';
+    if (ideaLane === 'ideas' && seeded) return seeded;
     var own = $('sh-own-idea');
     var text = own ? String(own.value || '').trim() : '';
     if (text) return text;
@@ -2231,28 +2235,50 @@
     if (!sparkSeed || !sparkSeed.angle) return;
     var happenedValue = sparkSeed.angle.slice(0, storyMax());
     var quoteValue = sparkSeed.angle.slice(0, storyMax());
+    var spark = window.SparkCore;
     function fill(el, next) {
       if (!el) return;
-      var current = String(el.value || '').trim();
-      if (!current || current === seededAngle || current === seededAngle.slice(0, next.length)) {
-        el.value = next;
+      var chosen = spark && spark.nextSeedValue
+        ? spark.nextSeedValue(el.value, seededAngle, next)
+        : next;
+      if (String(el.value || '').trim() !== chosen) {
+        el.value = chosen;
         paintStory(el);
       }
     }
+    fill($('sh-spark-starter'), happenedValue);
     fill($('sh-happened'), happenedValue);
     fill(document.querySelector('#sh-v2-fields [data-field="quote"]'), quoteValue);
     fill(document.querySelector('#sh-v2-fields [data-field="happened"]'), happenedValue);
     seededAngle = happenedValue;
   }
 
+  function wipeSeed() {
+    var previous = seededAngle;
+    sparkSeed = null;
+    sparkAsk = { feel: '', story: '', keep: '' };
+    seededAngle = '';
+    function wipe(el) {
+      if (!el || !previous) return;
+      var current = String(el.value || '').trim();
+      var prior = String(previous || '').trim();
+      if (current === prior || (prior && current === prior.slice(0, current.length))) {
+        el.value = '';
+        paintStory(el);
+      }
+    }
+    wipe($('sh-spark-starter'));
+    wipe($('sh-happened'));
+    wipe(document.querySelector('#sh-v2-fields [data-field="quote"]'));
+    wipe(document.querySelector('#sh-v2-fields [data-field="happened"]'));
+    paintSparkNote();
+  }
+
   function clearSparkChoice() {
     sparkTopic = '';
     sparkHeadline = '';
-    sparkSeed = null;
-    sparkAsk = { feel: '', story: '', keep: '' };
     sparkDailyOpen = false;
-    seededAngle = '';
-    paintSparkNote();
+    wipeSeed();
   }
 
   function clearOwnIdea() {
@@ -2505,11 +2531,12 @@
     put('sh-own-keep', saved.keep);
   }
 
-  function chooseSpark(item, which) {
+  function chooseSpark(item, which, opts) {
     if (!item) return;
+    opts = opts || {};
     rememberAsk();
     var whichId = which === 'flip' ? 'flip' : 'spark';
-    if (sparkSeed && sparkSeed.id && sparkSeed.id === item.id && sparkSeed.which === whichId) {
+    if (!opts.force && sparkSeed && sparkSeed.id && sparkSeed.id === item.id && sparkSeed.which === whichId) {
       clearSparkChoice();
       if (sparkPack) paintSpark(sparkPack);
       return;
@@ -2549,10 +2576,11 @@
     touchLive();
     paintLive();
     if (item.daily) sparkDailyOpen = true;
-    if (item.topic) sparkTopic = item.topic;
-    if (item.headline) sparkHeadline = item.headline;
+    if (!opts.keepTopic && item.topic) sparkTopic = item.topic;
+    if (!opts.keepHeadline && item.headline) sparkHeadline = item.headline;
     seedFields();
     paintSparkNote();
+    if (opts.quiet) return;
     if (sparkPack) paintSpark(sparkPack);
     paintBranch();
     var ask = document.getElementById('sh-spark-ask');
@@ -2684,15 +2712,15 @@
         var dailyId = sparkPack.daily && sparkPack.daily.id;
         var picked = sparkSeed && dailyId && sparkSeed.id === dailyId;
         if (picked) {
-          sparkSeed = null;
-          sparkAsk = { feel: '', story: '', keep: '' };
           sparkDailyOpen = false;
-          paintSparkNote();
+          wipeSeed();
           paintSpark();
           return;
         }
-        sparkDailyOpen = !sparkDailyOpen;
+        chooseSpark(sparkPack.daily, 'spark', { force: true, keepTopic: true, keepHeadline: true, quiet: true });
+        sparkDailyOpen = true;
         paintSpark();
+        revealStarter();
       });
       host.appendChild(dailyBtn);
       if (sparkDailyOpen) host.appendChild(sparkCard(sparkPack.daily));
@@ -2707,6 +2735,7 @@
         if (sparkGroup === group.id) sparkGroup = '';
         else sparkGroup = group.id;
         sparkNews = '';
+        sparkQuery = '';
         clearSparkChoice();
         paintSpark();
       }));
@@ -2721,6 +2750,7 @@
         rememberAsk();
         if (!sparkNews) return;
         sparkNews = '';
+        sparkQuery = '';
         clearSparkChoice();
         paintSpark();
       }));
@@ -2729,12 +2759,44 @@
           rememberAsk();
           if (sparkNews === lane.id) sparkNews = '';
           else sparkNews = lane.id;
+          sparkQuery = '';
           clearSparkChoice();
           paintSpark();
         }));
       });
       host.appendChild(desks);
+      var newsNote = document.createElement('p');
+      newsNote.className = 'sh-help';
+      newsNote.textContent = (spark.BROWSE && spark.BROWSE.news) || 'Topics to write from. Not breaking news.';
+      host.appendChild(newsNote);
     }
+    var query = String(sparkQuery || '').trim().toLowerCase();
+    var shownTopics = topics.filter(function (topic) {
+      return !query || String(topic.label || '').toLowerCase().indexOf(query) !== -1;
+    });
+    var searchField = document.createElement('label');
+    searchField.className = 'sh-field';
+    var searchSpan = document.createElement('span');
+    searchSpan.textContent = (spark.BROWSE && spark.BROWSE.search) || 'Search topics';
+    var search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'sh-input';
+    search.id = 'sh-spark-search';
+    search.placeholder = 'Search topics';
+    search.setAttribute('aria-label', 'Search topics');
+    search.value = sparkQuery;
+    search.addEventListener('input', function () {
+      var caret = search.selectionStart;
+      sparkQuery = search.value;
+      paintSpark();
+      var again = $('sh-spark-search');
+      if (!again) return;
+      again.focus();
+      try { again.setSelectionRange(caret, caret); } catch (err) {}
+    });
+    searchField.appendChild(searchSpan);
+    searchField.appendChild(search);
+    host.appendChild(searchField);
     var topicLabel = document.createElement('h3');
     topicLabel.className = 'sh-subhead';
     topicLabel.textContent = (spark.BROWSE && spark.BROWSE.topics) || 'Topics';
@@ -2743,13 +2805,16 @@
     topicRow.className = 'sh-modes';
     topicRow.setAttribute('role', 'group');
     topicRow.setAttribute('aria-label', 'Topics');
-    if (!topics.length) {
+    if (!shownTopics.length) {
       var emptyTopics = document.createElement('p');
       emptyTopics.className = 'sh-help';
-      emptyTopics.textContent = (spark.BROWSE && spark.BROWSE.empty) || 'Nothing in this lane right now.';
+      emptyTopics.textContent = query
+        ? ((spark.BROWSE && spark.BROWSE.searchEmpty) || 'No topics match that search.')
+        : ((spark.BROWSE && spark.BROWSE.empty) || 'Nothing in this lane right now.');
       host.appendChild(emptyTopics);
     } else {
-      topics.forEach(function (topic) {
+      if (query) topicRow.setAttribute('data-no-fold', '1');
+      shownTopics.forEach(function (topic) {
         var topicOn = sparkTopics.indexOf(topic.label) !== -1 || sparkTopic === topic.label;
         topicRow.appendChild(sparkChip(topic.label, topicOn, function () {
           rememberAsk();
@@ -2759,22 +2824,22 @@
             var was = topic.label;
             if (sparkTopic === topic.label) sparkTopic = sparkTopics[0] || '';
             sparkHeadline = '';
-            if (sparkSeed && sparkSeed.topic === was) {
-              sparkSeed = null;
-              sparkAsk = { feel: '', story: '', keep: '' };
-              paintSparkNote();
+            if (sparkSeed && sparkSeed.topic === was) wipeSeed();
+            if (sparkTopic) {
+              var still = spark.starterFor(sparkPack.items || [], lanes, sparkTopic, '');
+              if (still) chooseSpark(still, 'spark', { force: true, keepHeadline: true, quiet: true });
             }
-          } else if (sparkTopics.length < 2) {
+          } else {
+            if (sparkTopics.length >= 2) sparkTopics.shift();
             sparkTopics.push(topic.label);
             sparkTopic = topic.label;
             sparkHeadline = '';
-            if (sparkSeed && sparkSeed.topic && sparkTopics.indexOf(sparkSeed.topic) === -1) {
-              sparkSeed = null;
-              paintSparkNote();
-            }
             clearOwnIdea();
+            var picked = spark.starterFor(sparkPack.items || [], lanes, topic.label, '');
+            if (picked) chooseSpark(picked, 'spark', { force: true, keepHeadline: true, quiet: true });
           }
           paintSpark();
+          revealStarter();
         }));
       });
       host.appendChild(topicRow);
@@ -2802,18 +2867,17 @@
         button.addEventListener('click', function () {
           rememberAsk();
           if (sparkHeadline === row.label) {
-            var wasHead = row.label;
             sparkHeadline = '';
-            if (sparkSeed && sparkSeed.headline === wasHead) {
-              sparkSeed = null;
-              sparkAsk = { feel: '', story: '', keep: '' };
-              paintSparkNote();
-            }
+            var topicItem = spark.starterFor(sparkPack.items || [], lanes, sparkTopic, '');
+            if (topicItem) chooseSpark(topicItem, 'spark', { force: true, keepHeadline: true, quiet: true });
           } else {
             sparkHeadline = row.label;
             clearOwnIdea();
+            var pickedHead = spark.starterFor(sparkPack.items || [], lanes, sparkTopic, row.label);
+            if (pickedHead) chooseSpark(pickedHead, 'spark', { force: true, quiet: true });
           }
           paintSpark();
+          revealStarter();
         });
         headRow.appendChild(button);
       });
@@ -2834,6 +2898,12 @@
     }
     if (sparkSeed && sparkSeed.angle) host.appendChild(sparkAskPanel(spark));
     if (window.SongHelperChips) window.SongHelperChips.foldAll();
+  }
+
+  function revealStarter() {
+    var box = $('sh-spark-starter');
+    if (!box || !String(box.value || '').trim() || !box.scrollIntoView) return;
+    try { box.scrollIntoView({ block: 'nearest' }); } catch (err) {}
   }
 
   function sparkAskPanel(spark) {
@@ -4039,6 +4109,14 @@
   };
   bindCraft();
   paintOwn();
+  var starterBox = $('sh-spark-starter');
+  if (starterBox) {
+    armStory(starterBox);
+    starterBox.addEventListener('input', function () {
+      touchLive();
+      paintLive();
+    });
+  }
   paintModes();
   paintLog();
   applySparkPrompt();

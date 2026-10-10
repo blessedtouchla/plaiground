@@ -10,6 +10,10 @@
   var ask = { feel: '', story: '', keep: '' };
   var picked = null;
   var pack = null;
+  var topicQuery = '';
+  var topicsOpen = false;
+  var starterText = '';
+  var starterPrior = '';
 
   function $(id) { return document.getElementById(id); }
 
@@ -69,13 +73,22 @@
     parent.appendChild(p);
   }
 
+  function applyStarter(next) {
+    var chosen = spark.nextSeedValue ? spark.nextSeedValue(starterText, starterPrior, next) : (next || '');
+    starterText = chosen;
+    var incoming = String(next || '').replace(/\s+/g, ' ').trim();
+    if (chosen === incoming) starterPrior = chosen;
+  }
+
   function goWrite(item, which) {
     rememberAsk();
+    var box = $('spark-starter');
+    if (box) starterText = String(box.value || '');
     try {
       sessionStorage.setItem('plaiground.sparkPrompt', JSON.stringify({
         id: item.id || '',
         title: item.title || '',
-        detail: item.detail || '',
+        detail: String(starterText || '').trim() || item.detail || '',
         flip: item.flip || '',
         answer: item.answer || '',
         lane: item.lane || '',
@@ -233,6 +246,8 @@
         newsLane = '';
         topic = '';
         headline = '';
+        topicQuery = '';
+        topicsOpen = false;
         paint();
       }));
     });
@@ -245,6 +260,8 @@
         newsLane = '';
         topic = '';
         headline = '';
+        topicQuery = '';
+        topicsOpen = false;
         paint();
       }));
       spark.LANES.filter(function (lane) { return lane.id.indexOf('news-') === 0; }).forEach(function (lane) {
@@ -252,10 +269,16 @@
           newsLane = lane.id;
           topic = '';
           headline = '';
+          topicQuery = '';
+          topicsOpen = false;
           paint();
         }));
       });
       laneHost.appendChild(desks);
+      var newsNote = document.createElement('p');
+      newsNote.className = 'sh-help';
+      newsNote.textContent = (spark.BROWSE && spark.BROWSE.news) || 'Topics to write from. Not breaking news.';
+      laneHost.appendChild(newsNote);
     }
 
     var banner = $('spark-banner');
@@ -272,6 +295,7 @@
       dailyBtn.textContent = pack.daily.headline || pack.daily.title || 'Daily spark';
       dailyBtn.addEventListener('click', function () {
         rememberAsk();
+        if (!dailyOpen && pack.daily) applyStarter(pack.daily.detail);
         dailyOpen = !dailyOpen;
         paint();
       });
@@ -281,29 +305,76 @@
 
     var list = $('spark-list');
     list.textContent = '';
+    var query = String(topicQuery || '').trim().toLowerCase();
+    var shownTopics = topics.filter(function (row) {
+      return !query || String(row.label || '').toLowerCase().indexOf(query) !== -1;
+    });
+    var searchField = document.createElement('label');
+    searchField.className = 'sh-field';
+    var searchSpan = document.createElement('span');
+    searchSpan.textContent = (spark.BROWSE && spark.BROWSE.search) || 'Search topics';
+    var search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'sh-input';
+    search.id = 'spark-search';
+    search.placeholder = 'Search topics';
+    search.setAttribute('aria-label', 'Search topics');
+    search.value = topicQuery;
+    search.addEventListener('input', function () {
+      var caret = search.selectionStart;
+      topicQuery = search.value;
+      paint();
+      var again = $('spark-search');
+      if (!again) return;
+      again.focus();
+      try { again.setSelectionRange(caret, caret); } catch (err) {}
+    });
+    searchField.appendChild(searchSpan);
+    searchField.appendChild(search);
+    list.appendChild(searchField);
     var topicLabel = document.createElement('h3');
     topicLabel.className = 'sh-subhead';
     topicLabel.textContent = (spark.BROWSE && spark.BROWSE.topics) || 'Topics';
     list.appendChild(topicLabel);
-    if (!topics.length) {
+    if (!shownTopics.length) {
       var empty = document.createElement('p');
       empty.className = 'sh-help';
-      empty.textContent = (spark.BROWSE && spark.BROWSE.empty) || 'Nothing in this lane right now.';
+      empty.textContent = query
+        ? ((spark.BROWSE && spark.BROWSE.searchEmpty) || 'No topics match that search.')
+        : ((spark.BROWSE && spark.BROWSE.empty) || 'Nothing in this lane right now.');
       list.appendChild(empty);
     } else {
+      var topicLimit = 8;
+      var visibleTopics = (query || topicsOpen) ? shownTopics : shownTopics.slice(0, topicLimit);
       var topicRow = document.createElement('div');
       topicRow.className = 'sh-modes';
       topicRow.setAttribute('role', 'group');
       topicRow.setAttribute('aria-label', 'Topics');
-      topics.forEach(function (row) {
+      visibleTopics.forEach(function (row) {
         topicRow.appendChild(chip(row.label, topic === row.label, function () {
           topic = row.label;
           headline = '';
+          var pickedItem = spark.starterFor(pack.items || [], laneIds, row.label, '');
+          if (pickedItem) applyStarter(pickedItem.detail);
           paint();
         }));
       });
+      if (!query && !topicsOpen && shownTopics.length > topicLimit) {
+        var more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'sh-chip sh-more';
+        more.textContent = (spark.BROWSE && spark.BROWSE.showMore) || 'Show more';
+        more.setAttribute('aria-expanded', 'false');
+        more.addEventListener('click', function () {
+          topicsOpen = true;
+          paint();
+        });
+        topicRow.appendChild(more);
+      }
       list.appendChild(topicRow);
     }
+    var starter = $('spark-starter');
+    if (starter && document.activeElement !== starter) starter.value = starterText;
     if (!topic) {
       var pickTopic = document.createElement('p');
       pickTopic.className = 'sh-help';
@@ -327,6 +398,8 @@
         button.addEventListener('click', function () {
           rememberAsk();
           headline = row.label;
+          var pickedHead = spark.starterFor(pack.items || [], laneIds, topic, row.label);
+          if (pickedHead) applyStarter(pickedHead.detail);
           paint();
         });
         headRow.appendChild(button);
@@ -356,6 +429,13 @@
       }
     } catch (err) {}
     paint();
+  }
+
+  var starterBox = $('spark-starter');
+  if (starterBox) {
+    starterBox.addEventListener('input', function () {
+      starterText = starterBox.value;
+    });
   }
 
   load();

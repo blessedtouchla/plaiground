@@ -393,6 +393,8 @@ function runSpark() {
   const pack = spark.pack();
   assert.ok(pack.demo);
   assert.ok(/sample/i.test(pack.notice));
+  assert.ok(/not breaking news/i.test(pack.notice));
+  assert.ok(/not breaking news/i.test(spark.BROWSE.news));
   pack.items.forEach(function (item) {
     assert.strictEqual(item.sourceLabel, spark.SAMPLE_LABEL);
     assert.strictEqual(item.sourceUrl, '');
@@ -403,9 +405,13 @@ function runSpark() {
   assert.ok(spark.LANES.some(function (lane) { return lane.id === 'news-world'; }));
   assert.ok(spark.LANES.some(function (lane) { return lane.id === 'causes'; }));
   assert.ok(spark.GROUPS.some(function (group) { return group.id === 'news' && group.label === 'News'; }));
+  const bannedTopic = /shop hours|practice room|small stage|public room|youth room|^phone down$|^the long way$|group chat|late scroll/i;
   ['trending', 'news-world', 'news-music', 'news-movies', 'news-regional', 'causes', 'mindset'].forEach(function (lane) {
     const topics = spark.topicsFor(pack.items, [lane]);
     assert.ok(topics.length >= 2, lane + ' topics');
+    topics.forEach(function (topic) {
+      assert.ok(!bannedTopic.test(topic.label), topic.label);
+    });
     topics.forEach(function (topic) {
       const heads = spark.headlinesFor(pack.items, [lane], topic.label);
       assert.ok(heads.length >= 2, topic.label);
@@ -421,6 +427,18 @@ function runSpark() {
     });
   });
   assert.strictEqual(spark.sparksFor(pack.items, ['news-world'], 'Shop hours', '').length, 0);
+  assert.ok(spark.topicsFor(pack.items, ['mindset']).length >= 40, 'mindset topics');
+  ['Environment and climate', 'Mental health', 'Homelessness', 'Animal welfare', 'Education', 'Racial justice', "Women's rights", 'LGBTQ+ rights', 'Veterans', 'Addiction recovery', 'Hunger', 'Immigration', 'Gun violence', 'Healthcare', 'Clean water', 'Domestic violence', 'Foster care', 'Disability rights', 'Elder care', 'Literacy'].forEach(function (name) {
+    assert.ok(spark.topicsFor(pack.items, ['causes']).some(function (topic) { return topic.label === name; }), name);
+  });
+  const compare = spark.starterFor(pack.items, ['mindset'], 'Comparison', '');
+  assert.ok(compare && /measuring myself/.test(compare.detail));
+  assert.strictEqual(spark.nextSeedValue('', '', compare.detail), compare.detail);
+  assert.strictEqual(spark.nextSeedValue(compare.detail, compare.detail, 'A different line.'), 'A different line.');
+  assert.strictEqual(spark.nextSeedValue('I changed the line.', compare.detail, 'A different line.'), 'I changed the line.');
+  assert.ok(!spark.tragedy('The block learned a siren by heart'));
+  const newsTopics = spark.topicsFor(pack.items, ['news-world', 'news-music', 'news-movies', 'news-regional']);
+  assert.ok(newsTopics.length >= 20, 'news topics');
   assert.ok(/optional/i.test(spark.ASK.optional));
   assert.ok(/more human the draft feels/i.test(spark.ASK.optional));
   assert.ok(/personal experience/i.test(spark.ASK.story));
@@ -824,7 +842,17 @@ function runPages() {
   assert.ok(js.includes('clearOwnIdea'));
   assert.ok(js.includes('clearSparkChoice'));
   assert.ok(js.includes('sparkTopic === topic.label'));
-  assert.ok(read('song-helper.js').includes("textContent = 'More'"));
+  assert.ok(js.includes('sh-spark-starter'));
+  assert.ok(js.includes('nextSeedValue'));
+  assert.ok(js.includes('sh-spark-search'));
+  assert.ok(js.includes('data-no-fold'));
+  assert.ok(read('song-helper.html').includes('id="sh-spark-starter"'));
+  assert.ok(read('song-helper.js').includes("textContent = 'Show more'"));
+  assert.ok(read('song-helper.js').includes('data-no-fold'));
+  assert.ok(read('spark.js').includes('Show more'));
+  assert.ok(read('spark.js').includes('starterFor'));
+  assert.ok(read('spark.html').includes('id="spark-starter"'));
+  assert.ok(/not breaking news/i.test(read('spark.html')));
   assert.ok(read('song-helper.js').includes('classList.contains(\'on\')'));
   assert.ok(sparkHtml.includes('the more human the draft feels'));
   assert.ok(!/—/.test(read('lib/spark.js') + read('spark.js')));
