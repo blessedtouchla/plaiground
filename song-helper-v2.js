@@ -2939,11 +2939,12 @@
     var flow = window.SongFlow;
     if (!box || !flow || !flow.humanMeter) return;
     var meter = flow.humanMeter(box.value);
+    var guide = flow.nextGuide ? flow.nextGuide(box.value) : null;
     var host = $('sh-meter');
     if (host) {
       host.classList.toggle('is-full', meter.band === 'full');
       host.setAttribute('aria-valuenow', String(Math.min(meter.count, meter.max)));
-      host.setAttribute('aria-valuetext', meter.line);
+      host.setAttribute('aria-valuetext', guide ? (meter.line + ' ' + guide.line) : meter.line);
     }
     var label = $('sh-meter-label');
     if (label) label.textContent = meter.label;
@@ -2951,6 +2952,8 @@
     if (count) count.textContent = meter.count + ' / ' + meter.max;
     var line = $('sh-meter-line');
     if (line) line.textContent = meter.line;
+    var next = $('sh-meter-next');
+    if (next && guide) next.textContent = guide.line;
     var note = $('sh-meter-note');
     if (note) note.textContent = meter.note;
     var fill = $('sh-meter-fill');

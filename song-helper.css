@@ -739,9 +739,15 @@ body.song-helper-page .plai-bubble {
 
 .sh-meter-count,
 .sh-meter-line,
+.sh-meter-next,
 .sh-meter-note {
   margin: 0 0 6px;
   overflow-wrap: anywhere;
+}
+
+.sh-meter-next {
+  font-weight: 650;
+  color: #fff;
 }
 
 .sh-meter-count {

@@ -787,6 +787,7 @@ function runPages() {
   assert.ok(js.includes('bootWriteFirst'));
   assert.ok(js.includes('lyricsOpen'));
   assert.ok(js.includes('lastAngle'));
+  assert.ok(js.includes('nextGuide'));
   assert.ok(js.includes('sh-choice-page'));
   assert.ok(html.includes('From a real song'));
   assert.ok(html.includes('id="sh-choice-scratch"'));
