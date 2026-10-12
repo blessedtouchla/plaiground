@@ -28,6 +28,7 @@
       <a href="#roadmaps">Roadmaps</a>
       <a href="#applications">Applications</a>
       <a href="#events">Events</a>
+      <a href="#mail-failures">Mail failures</a>
       <a href="#product-events">Product events</a>
       <a href="#launch">Launch sources</a>
       <a href="#traffic">Traffic</a>
@@ -154,6 +155,31 @@
               </tr>
             </thead>
             <tbody data-events-body></tbody>
+          </table>
+        </div>
+      </div>
+      </section>
+
+      <section class="admin-section" id="mail-failures">
+      <div class="panel">
+        <div class="admin-section-head">
+          <h3>Mail failures</h3>
+        </div>
+        <p class="hint">Artist emails that did not send. A missing mail key and provider errors show up here.</p>
+        <p class="hint" data-mail-failures-empty hidden>No mail failures.</p>
+        <div class="admin-table-wrap" data-mail-failures-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>To</th>
+                <th>Event</th>
+                <th>Subject</th>
+                <th>Release</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody data-mail-failures-body></tbody>
           </table>
         </div>
       </div>

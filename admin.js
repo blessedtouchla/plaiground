@@ -388,6 +388,19 @@
     return items.length ? items.join(', ') : '-';
   }
 
+  function renderMailFailures(rows) {
+    fillTable('[data-mail-failures-table]', '[data-mail-failures-empty]', '[data-mail-failures-body]', rows, function (row) {
+      return '<tr>'
+        + cell('When', escapeHtml(formatSignedUpAt(row.created_at)))
+        + cell('To', escapeHtml(dash(row.to_email)), 'admin-lead')
+        + cell('Event', escapeHtml(dash(row.event_name)))
+        + cell('Subject', escapeHtml(dash(row.subject)))
+        + cell('Release', escapeHtml(dash(row.release_id)))
+        + cell('Error', escapeHtml(dash(row.error)))
+        + '</tr>';
+    });
+  }
+
   function renderApplications(rows) {
     fillTable('[data-applications-table]', '[data-applications-empty]', '[data-applications-body]', rows, function (row) {
       return '<tr>'
@@ -548,6 +561,9 @@
       });
       loadJson('/api/admin/applications').then(function (saved) {
         if (saved && saved.ok) renderApplications(saved.data && saved.data.applications);
+      });
+      loadJson('/api/admin/mail-failures').then(function (saved) {
+        if (saved && saved.ok) renderMailFailures(saved.data && saved.data.failures);
       });
       return loadList().then(function (full) {
         if (!full || !full.ok) {

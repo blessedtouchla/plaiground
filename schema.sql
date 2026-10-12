@@ -195,3 +195,27 @@ CREATE TABLE IF NOT EXISTS applications (
 
 CREATE INDEX IF NOT EXISTS applications_created_idx
   ON applications (created_at DESC);
+
+-- Artist emails that did not send. No password, key, or secret.
+CREATE TABLE IF NOT EXISTS mail_failures (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind text NOT NULL DEFAULT '',
+  event_name text NOT NULL DEFAULT '',
+  to_email text NOT NULL DEFAULT '',
+  subject text NOT NULL DEFAULT '',
+  error text NOT NULL DEFAULT '',
+  release_id text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS mail_failures_created_idx
+  ON mail_failures (created_at DESC);
+
+-- One live note per release. The first live event stays on user_events.
+CREATE TABLE IF NOT EXISTS artist_mail_sent (
+  user_id text NOT NULL,
+  kind text NOT NULL,
+  release_id text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, kind, release_id)
+);

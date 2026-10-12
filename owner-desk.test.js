@@ -290,6 +290,11 @@ function run() {
   assert.ok(adminHtml.includes('The Instagram app counts as Instagram'));
   assert.ok(adminJs.includes('/api/admin/traffic'));
   assert.ok(adminJs.includes('renderTraffic'));
+  assert.ok(nav.includes('href="#mail-failures">Mail failures</a>'));
+  assert.ok(adminHtml.includes('id="mail-failures"'));
+  assert.ok(adminHtml.includes('Artist emails that did not send.'));
+  assert.ok(adminJs.includes('/api/admin/mail-failures'));
+  assert.ok(adminJs.includes('renderMailFailures'));
   assert.ok(nav.includes('href="#paid">Paid</a>'));
   assert.ok(nav.includes('href="#subs">Subs</a>'));
   assert.ok(nav.includes('href="#money">Money</a>'));
