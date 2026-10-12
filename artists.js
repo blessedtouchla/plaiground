@@ -317,10 +317,16 @@
     setEditingScreen(current.mode === 'edit');
     if (!artist) {
       renderSongs(null);
+      try {
+        document.dispatchEvent(new CustomEvent('plaiground-artist', { detail: { artist: null, mode: '' } }));
+      } catch (err) {}
       painting = false;
       return;
     }
     renderSongs(artist);
+    try {
+      document.dispatchEvent(new CustomEvent('plaiground-artist', { detail: { artist: artist, mode: current.mode } }));
+    } catch (err) {}
     if (current.mode === 'preview') {
       renderPreview(artist);
       painting = false;

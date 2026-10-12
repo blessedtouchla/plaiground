@@ -60,6 +60,7 @@ const artistCheck = require('../lib/artist-check');
 const plans = require('../lib/plans');
 const coverUrl = require('../lib/cover-url');
 const profileLib = require('../lib/profile');
+const personaLib = require('../lib/persona');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const splitSheets = require('../lib/split-sheets');
@@ -843,6 +844,51 @@ async function listArtists(req, res) {
     query: out,
   });
   sendJson(res, result.status, result.data);
+}
+
+function primaryArtistName(scope, body) {
+  const direct = String((body && (body.primary_artist || body.artist_name)) || '').trim();
+  if (direct && !profileLib.isPlaceholderArtist(direct)) return direct.slice(0, 120);
+  const roster = rosterOf(scope && scope.row);
+  const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
+  const found = pgId ? profileLib.findArtist(roster, pgId) : null;
+  if (found && found.name && !profileLib.isPlaceholderArtist(found.name)) return found.name;
+  const named = String((body && body.name) || '').trim();
+  if (named && !profileLib.isPlaceholderArtist(named)) return named.slice(0, 120);
+  const only = roster.artists && roster.artists.length === 1 ? roster.artists[0] : null;
+  if (only && only.name && !profileLib.isPlaceholderArtist(only.name)) return only.name;
+  const account = String((scope && scope.row && scope.row.artist_name) || '').trim();
+  if (account && !profileLib.isPlaceholderArtist(account)) return account.slice(0, 120);
+  return '';
+}
+
+async function linkStoredRelease(row, releaseId, body, tonegridArtistId) {
+  if (!row || !releaseId) return;
+  const roster = rosterOf(row);
+  const pgId = String((body && (body.plaiground_artist_id || body.artist_profile_id)) || '').trim();
+  let artist = pgId ? profileLib.findArtist(roster, pgId) : null;
+  if (!artist && tonegridArtistId) {
+    const want = String(tonegridArtistId).trim().toLowerCase();
+    artist = (roster.artists || []).find(function (item) {
+      return String(item && item.tonegrid_artist_id || '').trim().toLowerCase() === want;
+    }) || null;
+  }
+  const name = artist && artist.name
+    ? artist.name
+    : String((body && (body.name || body.artist_name || body.primary_artist)) || '').trim();
+  const next = profileLib.upsertRelease(roster, {
+    id: releaseId,
+    tonegrid_release_id: releaseId,
+    title: String((body && body.title) || '').trim(),
+    plaiground_artist_id: artist ? (artist.id || artist.artist_id || pgId) : pgId,
+    tonegrid_artist_id: String(tonegridArtistId || (artist && artist.tonegrid_artist_id) || '').trim(),
+    artist: name,
+  });
+  await accounts.updateProfile(row.id, { profile: next });
+}
+
+function trackArtistRejected(result) {
+  return personaLib.shouldRetryTrackWithoutArtist(result);
 }
 
 function rosterOf(row) {
@@ -1998,6 +2044,11 @@ async function createRelease(req, res) {
     });
     const latest = await accounts.findById(scope.userId);
     await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', storedCredits);
+    try {
+      await linkStoredRelease(latest || scope.row, releaseId, body, artistId);
+    } catch (err) {
+      /* Local artist link is bookkeeping. The store release already exists. */
+    }
     return true;
   }
 
@@ -2007,6 +2058,12 @@ async function createRelease(req, res) {
       artistId: artistId,
       releaseId: leftoverId,
     });
+    const linkedRow = await accounts.findById(scope.userId);
+    try {
+      await linkStoredRelease(linkedRow || scope.row, leftoverId, body, artistId);
+    } catch (err) {
+      /* Keep the continued release even if the local link write fails. */
+    }
     await attachContinuedRelease(leftoverId);
     const tracks = await leftoverTracksForContinue(leftoverId);
     sendJson(res, 200, { uuid: leftoverId, continued: true, tracks });
@@ -2203,22 +2260,41 @@ async function createTrack(req, res) {
   const trackPayload = { title: fields.title, position, explicit };
   if (fields.language) trackPayload.language = fields.language;
   storeAi.applyTrackAiFields(trackPayload, body);
+  const trackArtistName = primaryArtistName(scope, body);
+  const trackArtistFields = trackArtistName ? { primary_artist: trackArtistName, artist_name: trackArtistName } : {};
+  Object.assign(trackPayload, trackArtistFields);
 
   if (isKnownAdoptRelease(releaseId) && await continueLeftoverTrack(res, releaseId, Object.assign({}, body, { title: fields.title }), songwriter, scope)) {
     return;
   }
 
   const browserKey = headerValue(req, 'idempotency-key');
-  const result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
+  const trackKey = hopIdempotencyKey(
+    'track',
+    'POST',
+    '/releases/' + releaseId + '/tracks',
+    [JSON.stringify(trackPayload), browserKey || ''].join('\n')
+  );
+  let result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',
     body: trackPayload,
-    idempotencyKey: hopIdempotencyKey(
-      'track',
-      'POST',
-      '/releases/' + releaseId + '/tracks',
-      [JSON.stringify(trackPayload), browserKey || ''].join('\n')
-    ),
+    idempotencyKey: trackKey,
   });
+  if (trackArtistRejected(result) && !createdTrackId(result.data)) {
+    const retryPayload = Object.assign({}, trackPayload);
+    delete retryPayload.primary_artist;
+    delete retryPayload.artist_name;
+    try {
+      const retry = await tonegridFetch('/releases/' + releaseId + '/tracks', {
+        method: 'POST',
+        body: retryPayload,
+        idempotencyKey: trackKey,
+      });
+      if (retry && retry.ok) result = retry;
+    } catch (err) {
+      /* Keep the first store result so a retry cannot fail a submission. */
+    }
+  }
   if (result.ok) {
     const trackId = createdTrackId(result.data);
     if (trackId) {

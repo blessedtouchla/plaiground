@@ -75,7 +75,7 @@
         var value = row.links && row.links[link.id] != null ? String(row.links[link.id]).trim() : '';
         links[link.id] = value.slice(0, 300);
       });
-      return {
+      var artist = {
         id: String(row.id || ('a' + (index + 1))),
         name: clip(row.name, 80).trim(),
         genre: genre,
@@ -87,6 +87,13 @@
         links: links,
         picked: !!row.picked
       };
+      if (row.persona && typeof row.persona === 'object' && !Array.isArray(row.persona)) {
+        try {
+          var packed = JSON.stringify(row.persona);
+          if (packed.length <= 12000 && packed.indexOf('"password"') === -1) artist.persona = JSON.parse(packed);
+        } catch (err) {}
+      }
+      return artist;
     });
     if (!clean.length) clean.push(emptyArtist({ id: 'a1', picked: true }));
     var seen = false;
