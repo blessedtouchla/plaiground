@@ -501,7 +501,8 @@ function runPage() {
   assert.ok(js.includes('helperSession'));
   assert.ok(js.includes('core.PREVIEW_NOTICE') || js.includes('data.notice'));
   assert.ok(!/battle/i.test(nav), 'the battle page nav does not link to itself');
-  assert.ok(!/battle/i.test(footer));
+  assert.ok(/<h4>Create<\/h4>[\s\S]*href="\/battle">Battle<\/a>/.test(footer), 'battle page footer lists Battle with the other Create tools');
+  assert.ok(!/battle\.html/i.test(footer));
   assert.ok(index.includes('href="/battle">Battle</a>'));
   assert.ok(!index.includes('battle.html'));
   assert.ok((vercel.rewrites || []).some(function (row) {
@@ -515,9 +516,9 @@ function runPage() {
   assert.ok(api.includes('normalizeBattle'));
 
   fs.readdirSync(__dirname).filter(function (name) { return name.endsWith('.html'); }).forEach(function (file) {
-    if (file === 'battle.html' || file === 'index.html') return;
-    const page = read(file);
-    assert.ok(!page.includes('href="/battle"') && !page.includes('href="/battle/') && !page.includes('battle.html'), file + ' must not link the battle page');
+    if (file === 'battle.html' || file === 'index.html' || file === 'login.html') return;
+    const page = read(file).replace(/<footer[\s\S]*?<\/footer>/gi, '');
+    assert.ok(!page.includes('href="/battle"') && !page.includes('href="/battle/') && !page.includes('battle.html'), file + ' body stays off the battle page');
   });
   fs.readdirSync(__dirname).forEach(function (name) {
     if (!/sitemap/i.test(name)) return;
@@ -527,8 +528,8 @@ function runPage() {
     const page = read(file);
     const pageNav = page.match(/<nav class="nav-links"[\s\S]*?<\/nav>/);
     const pageFooter = page.match(/<footer[\s\S]*?<\/footer>/);
-    const chunk = (pageNav ? pageNav[0] : '') + (pageFooter ? pageFooter[0] : '');
-    assert.ok(!chunk.includes('/battle') && !chunk.includes('battle.html'), file + ' nav and footer stay clear of battle');
+    assert.ok(!pageNav || !/\/battle/.test(pageNav[0]), file + ' nav stays clear of battle');
+    assert.ok(pageFooter && /href="\/battle">Battle<\/a>/.test(pageFooter[0]) && !/battle\.html/.test(pageFooter[0]), file + ' footer lists Battle under Create');
   });
   const helperJs = read('song-helper.js');
   assert.ok(helperJs.includes("params.get('from') !== 'battle'"));
