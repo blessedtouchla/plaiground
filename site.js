@@ -957,6 +957,8 @@
     if (!footer || !footer.querySelector) return;
     var grid = footer.querySelector(".footer-grid");
     if (!grid || grid.getAttribute("data-footer-journey") === "1") return;
+    var path = String((window.location && window.location.pathname) || "");
+    if (/(^|\/)terms\.html$/.test(path)) return;
     var root = footerUsesRoot(footer);
     var trust = footerKeptColumn(grid, "Trust") || footerLinkColumn("Trust", [
       { href: "transparency.html", label: "Transparency" },

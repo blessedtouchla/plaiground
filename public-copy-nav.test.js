@@ -480,6 +480,7 @@ function run() {
   assert.ok(!/boost\.html/.test(js), 'shared public nav must not nest Boost');
   assert.ok(js.includes('data-nav-group", "after"') || js.includes('After upload'), 'shared public nav builds After upload');
   assert.ok(js.includes('data-footer-journey') && js.includes('title: "Create"') && js.includes('title: "Release"') && js.includes('title: "Grow"') && js.includes('title: "Protect"'), 'shared footer builds Create, Release, Grow, and Protect');
+  assert.ok(/terms\\.html/.test(js) && js.includes('setupPublicFooter'), 'shared footer leaves terms.html for a separate review');
   assert.ok(js.includes('label: "Release now"') && js.includes('label: "Route map"') && js.includes('label: "Social Media Presence"') && js.includes('label: "Contracts hub"'), 'shared footer lists release, the route map, Social Media Presence, and the contracts hub');
   const footerCss = read('site.css');
   assert.ok(/\.footer-grid \{[^}]*repeat\(auto-fit, minmax\(128px, 1fr\)\)/.test(footerCss), 'footer columns wrap on desktop');
