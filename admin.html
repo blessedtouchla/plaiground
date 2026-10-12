@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css" />
+  <link rel="stylesheet" href="site.css?v=20261012testmail" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app" data-owner-desk>
@@ -29,6 +29,7 @@
       <a href="#applications">Applications</a>
       <a href="#events">Events</a>
       <a href="#mail-failures">Mail failures</a>
+      <button type="button" class="side-test-mail" data-send-test-emails>Send test emails</button>
       <a href="#product-events">Product events</a>
       <a href="#launch">Launch sources</a>
       <a href="#traffic">Traffic</a>
@@ -166,6 +167,8 @@
           <h3>Mail failures</h3>
         </div>
         <p class="hint">Artist emails that did not send. A missing mail key and provider errors show up here.</p>
+        <p class="hint">Send test emails sends four labeled notes only to emailplaiground@gmail.com. Artists do not get them.</p>
+        <p class="hint" data-test-mail-status hidden style="white-space:pre-line"></p>
         <p class="hint" data-mail-failures-empty hidden>No mail failures.</p>
         <div class="admin-table-wrap" data-mail-failures-table hidden>
           <table class="data">
@@ -470,7 +473,7 @@
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
-  <script src="admin.js?v=20261012traffic"></script>
+  <script src="admin.js?v=20261012testmail"></script>
   <script src="site.js?v=20261012traffic"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
