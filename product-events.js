@@ -134,15 +134,48 @@
     return clip(ref, 300);
   }
 
+  function landingPath() {
+    var path = '/';
+    try { path = String(root.location.pathname || '/'); } catch (err) {}
+    if (!path || path.charAt(0) !== '/') path = '/' + path;
+    var cut = path.split('?')[0].split('#')[0];
+    return clip(cut, 180);
+  }
+
+  function userAgent() {
+    try { return clip(root.navigator && root.navigator.userAgent, 300); } catch (err) { return ''; }
+  }
+
+  function rememberTouch(record) {
+    var next = record && typeof record === 'object' ? record : {};
+    var changed = false;
+    if (!next.path) {
+      next = Object.assign({}, next, { path: landingPath() });
+      changed = true;
+    }
+    if (!next.referrer && externalReferrer()) {
+      next = Object.assign({}, next, { referrer: externalReferrer() });
+      changed = true;
+    }
+    if (!next.user_agent && userAgent()) {
+      next = Object.assign({}, next, { user_agent: userAgent() });
+      changed = true;
+    }
+    if (changed) {
+      writeJson(ATTR_KEY, next);
+      writeCookie(next);
+    }
+    return next;
+  }
+
   function captureAttribution() {
     var existing = readJson(ATTR_KEY);
-    if (existing && existing.landed_at) return existing;
+    if (existing && existing.landed_at) return rememberTouch(existing);
     var fromCookie = readCookie();
     if (!existing && fromCookie && fromCookie.landed_at) {
       writeJson(ATTR_KEY, fromCookie);
-      return fromCookie;
+      return rememberTouch(fromCookie);
     }
-    if (existing && existing.landed_at) return existing;
     var params = queryParams();
     var record = {
       utm_source: clip(params && params.get('utm_source'), 120),
@@ -155,6 +188,8 @@
       gclid: clickId(params && params.get('gclid')),
       ref: clip(params && params.get('ref'), 64).replace(/[^A-Za-z0-9_-]/g, ''),
       referrer: externalReferrer(),
+      path: landingPath(),
+      user_agent: userAgent(),
       landed_at: new Date().toISOString()
     };
     writeJson(ATTR_KEY, record);
@@ -185,6 +220,8 @@
       gclid: clickId(src.gclid),
       ref: clip(src.ref, 64).replace(/[^A-Za-z0-9_-]/g, ''),
       referrer: clip(src.referrer, 300),
+      path: clip(src.path, 180),
+      user_agent: clip(src.user_agent, 300),
       landed_at: clip(src.landed_at, 40)
     };
   }

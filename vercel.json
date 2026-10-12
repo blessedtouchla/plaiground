@@ -199,6 +199,7 @@
     { "source": "/api/admin/events", "destination": "/api/me?action=admin-events" },
     { "source": "/api/admin/marketing.csv", "destination": "/api/me?action=admin-marketing&format=csv" },
     { "source": "/api/admin/marketing", "destination": "/api/me?action=admin-marketing" },
+    { "source": "/api/admin/traffic", "destination": "/api/me?action=admin-traffic" },
     { "source": "/api/me/marketing", "destination": "/api/me?action=marketing" },
     { "source": "/api/me/events", "destination": "/api/me?action=events" },
     { "source": "/api/me/guide", "destination": "/api/me?action=guide" },

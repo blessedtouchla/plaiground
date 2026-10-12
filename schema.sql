@@ -172,6 +172,9 @@ ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS segment text NOT NULL DEFA
 ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS angle text NOT NULL DEFAULT '';
 ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS version text NOT NULL DEFAULT '';
 ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS path text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS referrer text NOT NULL DEFAULT '';
+ALTER TABLE marketing_events ADD COLUMN IF NOT EXISTS user_agent text NOT NULL DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS marketing_events_created_idx
   ON marketing_events (created_at DESC);

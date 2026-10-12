@@ -146,7 +146,7 @@ async function signup(req, res) {
     }
     try {
       const visitor = body && (body.visitor_id || body.visitorId);
-      await marketing.record(visitor, 'signup', attribution);
+      await marketing.record(visitor, 'signup', body && body.attribution);
       await marketing.linkVisitor(row.id, visitor);
       await recordEvent(row.id, 'signup', { attribution: attribution || {} });
     } catch {
