@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="site.css?v=20260922ar3" />
   <link rel="stylesheet" href="artist-profiles.css?v=20260929a2" />
   <link rel="stylesheet" href="persona.css?v=20261012persona" />
+  <link rel="stylesheet" href="artist-drive.css?v=20261012drive" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app artists-page">
@@ -226,6 +227,12 @@
         <div data-persona-body></div>
       </section>
 
+      <section class="panel artist-drive" id="artist-drive" hidden>
+        <h2>Artist Drive</h2>
+        <p class="hint">Private to this account. Tag Use in EPK and the press kit and social kit pull that file.</p>
+        <div data-drive-root></div>
+      </section>
+
       <section class="panel" data-artist-songs hidden>
         <h3>This artist's songs</h3>
         <p class="hint">Owner playback only. Preview waits until the store says live, then Play opens the store stream.</p>
@@ -408,6 +415,7 @@
   <script src="artist-profiles.js?v=20260930a1"></script>
   <script src="lib/persona.js?v=20261012persona"></script>
   <script src="persona-page.js?v=20261012persona"></script>
+  <script src="artist-drive.js?v=20261012drive" defer></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

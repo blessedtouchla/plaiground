@@ -25,6 +25,7 @@
  * GET  /api/admin/mail-failures owner session only; artist emails that did not send
  * POST /api/admin/test-emails owner session only; four labeled test notes to the owner inbox
  * POST /api/apply          public; Hobby rewrite onto this function (?action=apply)
+ * GET/POST /api/me/artist-drive  session required; private files for one artist on this account
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -44,6 +45,7 @@ const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
 const persona = require('../lib/persona');
 const personaHttp = require('../lib/persona-http');
+const artistDriveHttp = require('../lib/artist-drive-http');
 const releaseCredits = require('../lib/release-credits');
 const {
   attachSession,
@@ -90,6 +92,12 @@ function isPersonaBio(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/persona-bio') return true;
   return queryValue(req, 'action') === 'persona-bio';
+}
+
+function isArtistDrive(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/artist-drive') return true;
+  return queryValue(req, 'action') === 'artist-drive';
 }
 
 function isArtists(req) {
@@ -1399,6 +1407,10 @@ module.exports = async function handler(req, res) {
   }
   if (isPersonaBio(req)) {
     await personaAction(req, res, 'bio');
+    return;
+  }
+  if (isArtistDrive(req)) {
+    await artistDriveHttp.handle(req, res);
     return;
   }
   if (isAdminSignups(req)) {

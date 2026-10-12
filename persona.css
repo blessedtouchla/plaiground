@@ -41,6 +41,9 @@
 .epk-release { display: flex; gap: 12px; align-items: center; margin: 10px 0; }
 .epk-release img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
 .epk-banner { background: #e2b657; color: #161616; padding: 10px 14px; border-radius: 10px; }
+.epk-kit { display: flex; flex-wrap: wrap; gap: 12px; }
+.epk-kit-item { width: 140px; }
+.epk-kit-item img, .epk-kit-item video { width: 140px; height: 140px; object-fit: cover; border-radius: 10px; background: #241c33; display: block; }
 @media print {
   .nav, .side, .topbar, .plai-bubble, .epk-live-actions, .page-hero, footer { display: none !important; }
   .epk-live { display: block !important; }

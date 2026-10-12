@@ -31,6 +31,20 @@
         + (row.release_date ? '<p>' + esc(row.release_date) + '</p>' : '')
         + links + '</div></div>';
     }).join('');
+    function safeUrl(value) {
+      var url = String(value || '');
+      return /^https:\/\//i.test(url) ? url : '';
+    }
+    var kitItems = Array.isArray(kit.social_kit) ? kit.social_kit : [];
+    var kitHtml = kitItems.map(function (item) {
+      var url = safeUrl(item && item.url);
+      var media = '';
+      if (item && item.kind === 'image' && url) media = '<img src="' + esc(url) + '" alt="" />';
+      else if (item && item.kind === 'video' && url) media = '<video controls src="' + esc(url) + '"></video>';
+      else if (url) media = '<a href="' + esc(url) + '">Open</a>';
+      return '<div class="epk-kit-item">' + media + '<p>' + esc((item && item.folder_label) || '') + '</p><strong>' + esc((item && item.name) || 'File') + '</strong></div>';
+    }).join('');
+    var kitBlock = kitHtml ? '<h2>Social kit</h2><div class="epk-kit">' + kitHtml + '</div>' : '';
     var press = (kit.press || []).map(function (item) {
       return '<blockquote>“' + esc(item.quote) + '”' + (item.source ? '<p>' + esc(item.source) + '</p>' : '') + '</blockquote>';
     }).join('');
@@ -42,6 +56,7 @@
       + '<div class="epk-bios"><p><strong>Short.</strong> ' + esc(bios.short || '') + '</p><p><strong>Medium.</strong> ' + esc(bios.medium || '') + '</p><p><strong>Long.</strong> ' + esc(bios.long || '') + '</p></div>'
       + (kit.story ? '<h2>Story</h2><p>' + esc(kit.story) + '</p>' : '')
       + (releaseHtml ? '<h2>Releases</h2>' + releaseHtml : '')
+      + kitBlock
       + (press ? '<h2>Press</h2>' + press : '')
       + (kit.booking && (kit.booking.email || kit.booking.name) ? '<h2>Booking</h2><p>' + esc([kit.booking.name, kit.booking.email].filter(Boolean).join(', ')) + '</p>' : '')
       + '<p>' + esc(kit.credit || 'Human + AI.') + '</p>';

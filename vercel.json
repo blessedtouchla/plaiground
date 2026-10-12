@@ -213,6 +213,7 @@
     { "source": "/api/me/artist-profiles", "destination": "/api/me?action=artist-profiles" },
     { "source": "/api/me/persona-import", "destination": "/api/me?action=persona-import" },
     { "source": "/api/me/persona-bio", "destination": "/api/me?action=persona-bio" },
+    { "source": "/api/me/artist-drive", "destination": "/api/me?action=artist-drive" },
     { "source": "/api/epk", "destination": "/api/me?action=epk" },
     { "source": "/epk/:slug", "destination": "/epk.html?artist=:slug" },
     { "source": "/my-roadmap", "destination": "/my-roadmap.html" },

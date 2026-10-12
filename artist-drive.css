@@ -1,0 +1,74 @@
+.artist-drive[hidden] { display: none !important; }
+.drive-folders { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.drive-folders button {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.drive-folders button[aria-pressed="true"] {
+  background: #e2b657;
+  color: #161616;
+  border-color: #e2b657;
+}
+.drive-file {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.drive-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: #241c33 center/cover no-repeat;
+}
+.drive-thumb.is-profile { background-color: #3a2a4a; }
+.drive-thumb.is-lifestyle { background-color: #2a3a4a; }
+.drive-thumb.is-covers { background-color: #4a3a2a; }
+.drive-thumb.is-logos { background-color: #2a4a3a; }
+.drive-thumb.is-videos { background-color: #4a2a3a; }
+.drive-thumb.is-documents { background-color: #2a2a4a; }
+.drive-thumb.is-audio { background-color: #3a3a2a; }
+.drive-name { margin: 0; font-weight: 600; }
+.drive-meta { margin: 2px 0 8px; }
+.drive-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.drive-actions label { display: inline-flex; gap: 6px; align-items: center; margin-right: 4px; }
+.drive-upload { position: relative; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.drive-upload input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.drive-rename { display: flex; gap: 6px; align-items: center; }
+.drive-rename input { min-width: 160px; }
+.drive-preview-layer {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 12, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 24px;
+}
+.drive-preview-layer[hidden] { display: none !important; }
+.drive-preview-card {
+  width: min(720px, 100%);
+  background: #161616;
+  border-radius: 16px;
+  padding: 16px;
+}
+.drive-preview-card img,
+.drive-preview-card video { width: 100%; max-height: 70vh; object-fit: contain; background: #241c33; border-radius: 10px; }
+.drive-empty { margin-top: 8px; }
