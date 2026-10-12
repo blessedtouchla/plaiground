@@ -1412,10 +1412,16 @@
 })();
 
 (function () {
-  if (window.PlaigroundEvents) return;
   if (!document || !document.head || !document.createElement) return;
-  var script = document.createElement('script');
-  script.src = '/product-events.js?v=20261010fix';
-  script.async = false;
-  document.head.appendChild(script);
+  function add(src, id, immediate) {
+    if (id && document.getElementById(id)) return;
+    var script = document.createElement('script');
+    if (id) script.id = id;
+    script.src = src;
+    script.async = !immediate;
+    if (immediate) script.async = false;
+    document.head.appendChild(script);
+  }
+  if (!window.PlaigroundEvents) add('/product-events.js?v=20261012traffic', 'plaiground-events', true);
+  add('/_vercel/insights/script.js', 'vercel-insights', false);
 })();

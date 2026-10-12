@@ -30,6 +30,7 @@
       <a href="#events">Events</a>
       <a href="#product-events">Product events</a>
       <a href="#launch">Launch sources</a>
+      <a href="#traffic">Traffic</a>
       <a href="#paid">Paid</a>
       <a href="#subs">Subs</a>
       <a href="#money">Money</a>
@@ -259,6 +260,58 @@
       </div>
       </section>
 
+      <section class="admin-section" id="traffic">
+      <div class="panel">
+        <div class="admin-section-head">
+          <h3>Traffic</h3>
+        </div>
+        <p class="hint">Visits are one per visitor per day. Source is the campaign tag, then the referring site. The Instagram app counts as Instagram even when it sends no tag.</p>
+        <p data-traffic-counts>Today: 0. Last 7 days: 0. Last 30 days: 0.</p>
+        <h4>Top sources</h4>
+        <p class="hint">Last 30 days.</p>
+        <p class="hint" data-traffic-sources-empty hidden>No visits yet.</p>
+        <div class="admin-table-wrap" data-traffic-sources-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Visits</th>
+              </tr>
+            </thead>
+            <tbody data-traffic-sources-body></tbody>
+          </table>
+        </div>
+        <h4>Top landing pages</h4>
+        <p class="hint">Last 30 days. The first page we recorded for that visit.</p>
+        <p class="hint" data-traffic-pages-empty hidden>No landing pages yet.</p>
+        <div class="admin-table-wrap" data-traffic-pages-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Visits</th>
+              </tr>
+            </thead>
+            <tbody data-traffic-pages-body></tbody>
+          </table>
+        </div>
+        <h4>Signups by source</h4>
+        <p class="hint">Last 30 days.</p>
+        <p class="hint" data-traffic-signups-empty hidden>No signups in this window.</p>
+        <div class="admin-table-wrap" data-traffic-signups-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Signups</th>
+              </tr>
+            </thead>
+            <tbody data-traffic-signups-body></tbody>
+          </table>
+        </div>
+      </div>
+      </section>
+
       <section class="admin-section" id="paid">
       <p class="hint" data-checkouts-empty hidden>No paid checkouts yet.</p>
       <div class="panel" data-checkouts-table hidden>
@@ -391,8 +444,8 @@
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
-  <script src="admin.js?v=20261010tools"></script>
-  <script src="site.js"></script>
+  <script src="admin.js?v=20261012traffic"></script>
+  <script src="site.js?v=20261012traffic"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
 </html>

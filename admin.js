@@ -164,6 +164,35 @@
     });
   }
 
+  function renderTraffic(result) {
+    var data = result || {};
+    var visits = data.visits || {};
+    var counts = $('[data-traffic-counts]');
+    if (counts) {
+      counts.textContent = 'Today: ' + String(visits.today || 0)
+        + '. Last 7 days: ' + String(visits.d7 || 0)
+        + '. Last 30 days: ' + String(visits.d30 || 0) + '.';
+    }
+    fillTable('[data-traffic-sources-table]', '[data-traffic-sources-empty]', '[data-traffic-sources-body]', data.sources || [], function (row) {
+      return '<tr>'
+        + cell('Source', escapeHtml(dash(row.source)), 'admin-lead')
+        + cell('Visits', escapeHtml(String(row.visits == null ? 0 : row.visits)))
+        + '</tr>';
+    });
+    fillTable('[data-traffic-pages-table]', '[data-traffic-pages-empty]', '[data-traffic-pages-body]', data.pages || [], function (row) {
+      return '<tr>'
+        + cell('Page', escapeHtml(dash(row.path)), 'admin-lead')
+        + cell('Visits', escapeHtml(String(row.visits == null ? 0 : row.visits)))
+        + '</tr>';
+    });
+    fillTable('[data-traffic-signups-table]', '[data-traffic-signups-empty]', '[data-traffic-signups-body]', data.signups || [], function (row) {
+      return '<tr>'
+        + cell('Source', escapeHtml(dash(row.source)), 'admin-lead')
+        + cell('Signups', escapeHtml(String(row.signups == null ? 0 : row.signups)))
+        + '</tr>';
+    });
+  }
+
   function renderLaunch(result) {
     var rows = result && result.rows ? result.rows : [];
     fillTable('[data-launch-table]', '[data-launch-empty]', '[data-launch-body]', rows, function (row) {
@@ -530,6 +559,9 @@
         render(full.data);
         loadJson('/api/admin/marketing').then(function (launch) {
           if (launch && launch.ok) renderLaunch(launch.data && launch.data.launch);
+        });
+        loadJson('/api/admin/traffic').then(function (traffic) {
+          if (traffic && traffic.ok) renderTraffic(traffic.data && traffic.data.traffic);
         });
       });
     });

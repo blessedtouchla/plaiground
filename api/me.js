@@ -19,6 +19,7 @@
  * GET  /api/admin/events.csv  same auth; that table as text/csv
  * POST /api/me/marketing  first-party visit and launch counts; no email
  * GET  /api/admin/marketing  owner session only; daily source report
+ * GET  /api/admin/traffic    owner session only; visits, sources, landing pages, signups
  * GET  /api/admin/marketing.csv  same auth; that table as text/csv
  * GET  /api/admin/applications  owner session only; waitlist applications
  * POST /api/apply          public; Hobby rewrite onto this function (?action=apply)
@@ -88,6 +89,7 @@ const ROUTE_ACTIONS = {
   events: true,
   guide: true,
   'admin-events': true,
+  'admin-traffic': true,
 };
 
 function artistVerb(body) {
@@ -193,6 +195,12 @@ function isMarketing(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/marketing') return true;
   return queryValue(req, 'action') === 'marketing';
+}
+
+function isAdminTraffic(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/traffic') return true;
+  return queryValue(req, 'action') === 'admin-traffic';
 }
 
 function isAdminMarketing(req) {
@@ -1069,6 +1077,45 @@ async function recordMarketing(req, res) {
   }
 }
 
+async function adminTraffic(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (rejectUnconfirmed(res, row)) return;
+    if (!hasStaffProOverride(row.email)) {
+      sendJson(res, 403, { error: 'Not allowed.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    const summary = await marketing.trafficSummary(new Date());
+    sendJson(res, 200, { traffic: summary });
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Could not load traffic.' });
+  }
+}
+
 async function adminMarketing(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -1186,6 +1233,10 @@ module.exports = async function handler(req, res) {
   }
   if (isAdminApplications(req)) {
     await adminApplications(req, res);
+    return;
+  }
+  if (isAdminTraffic(req)) {
+    await adminTraffic(req, res);
     return;
   }
   if (isAdminMarketing(req)) {
