@@ -376,8 +376,9 @@ function runPage() {
     return row.source === '/cover-art' && row.destination === '/cover-art.html';
   }));
   ['terms.html', 'privacy.html', 'rights.html'].forEach(function (file) {
-    assert.ok(!read(file).includes('Cover image'));
-    assert.ok(!read(file).includes('Song Helper'));
+    const body = read(file).replace(/<footer[\s\S]*?<\/footer>/gi, '');
+    assert.ok(!body.includes('Cover image'));
+    assert.ok(!body.includes('Song Helper'), file + ' legal body stays free of Song Helper');
   });
 }
 

@@ -837,7 +837,9 @@ function runPages() {
   assert.ok(!nav.includes('song-helper'));
   assert.ok(!sparkNav.includes('/spark'));
   assert.ok(!/Grok/.test(html + sparkHtml + js + read('spark.js')));
-  assert.ok(!html.includes('href="/battle"') && !sparkHtml.includes('battle.html'));
+  const helperBody = html.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+  const sparkBody = sparkHtml.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+  assert.ok(!helperBody.includes('href="/battle"') && !sparkBody.includes('battle.html'), 'Song Helper and What\'s hot pages keep Battle in the shared footer only');
   assert.ok(index.includes('href="/spark">What\'s hot</a>'));
   assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
   assert.ok(!index.includes('spark.html'));

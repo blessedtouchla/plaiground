@@ -1438,7 +1438,8 @@ function runPage() {
     return row.source === '/song-helper' && row.destination === '/song-helper.html';
   }));
   ['terms.html', 'privacy.html', 'rights.html'].forEach(function (file) {
-    assert.ok(!read(file).includes('Song Helper'));
+    const body = read(file).replace(/<footer[\s\S]*?<\/footer>/gi, '');
+    assert.ok(!body.includes('Song Helper'), file + ' legal body stays free of Song Helper');
   });
 }
 

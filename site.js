@@ -855,180 +855,149 @@
     if (blog && isBlogPage()) blog.classList.add("active");
   }
 
-  function footerHrefKey(href) {
-    var raw = String(href || "");
-    var file = hrefFile(raw);
-    if (raw.indexOf("#pricing") !== -1) return "plans";
-    if (file === "how-it-works.html") return "how";
-    if (file === "basic.html") return "basic";
-    if (file === "creator.html") return "creator";
-    if (file === "pro.html") return "pro";
-    if (file === ("boost" + ".html")) return "boost";
-    if (file === "plai.html") return "plai";
-    if (file === "ar.html" || file === "ar") return "ar";
-    if (file === "epk.html" || file === "epk") return "epk";
-    if (file === ("royalties" + ".html")) return "paid";
-    if (file === "transparency.html") return "transparency";
-    if (file === "faq.html") return "faq";
-    if (file === "about.html") return "about";
-    if (file === "blog.html" || file === "blog") return "blog";
-    if (file === "contact.html") return "contact";
-    if (file === "terms.html") return "terms";
-    if (file === "rights.html") return "rights";
-    if (file === "privacy.html") return "privacy";
-    if (file === "login.html") return "login";
-    if (file === "signup.html") return "signup";
-    return "";
+  var FOOTER_JOURNEY = [
+    {
+      key: "create",
+      title: "Create",
+      links: [
+        { href: "/song-helper", label: "Song Helper" },
+        { href: "/cover-art", label: "Cover Art" },
+        { href: "/battle", label: "Battle" },
+        { href: "/spark", label: "What's hot" },
+        { href: "/qualify", label: "Is my song ready?" },
+        { href: "/make-human", label: "Make it human" }
+      ]
+    },
+    {
+      key: "release",
+      title: "Release",
+      links: [
+        { href: "signup.html", label: "Release now" },
+        { href: "index.html#pricing", label: "Plans and Pricing" },
+        { href: "/copyright", label: "Copyright and publishing" },
+        { href: "/claim", label: "Claim my human parts" }
+      ]
+    },
+    {
+      key: "after",
+      title: "After upload",
+      links: [
+        { href: "ar.html", label: "A&R" },
+        { href: "epk.html", label: "EPK" },
+        { href: "royalties.html", label: "How you get paid" },
+        { href: "/destination", label: "Route map" }
+      ]
+    },
+    {
+      key: "grow",
+      title: "Grow",
+      links: [
+        { href: "index.html#pricing", label: "Persona" },
+        { href: "index.html#pricing", label: "Content engine" },
+        { href: "index.html#pricing", label: "Fan growth" },
+        { href: "index.html#pricing", label: "Social Media Presence" },
+        { href: "/charts", label: "SIQA Charts" }
+      ]
+    },
+    {
+      key: "protect",
+      title: "Protect",
+      links: [
+        { href: "/contracts", label: "Contracts hub" },
+        { href: "/contracts/review", label: "Review mine" },
+        { href: "/contracts/fix", label: "Fix mine" },
+        { href: "/contracts/create", label: "Create mine" },
+        { href: "/contracts?lane=human", label: "Human library" },
+        { href: "/contracts?lane=ai", label: "AI library" }
+      ]
+    }
+  ];
+
+  function footerPageHref(href, root) {
+    var value = String(href || "");
+    if (!value || value.charAt(0) === "/" || value.charAt(0) === "#" || value.indexOf("://") !== -1) return value;
+    return root ? "/" + value : value;
   }
 
-  function ensureFooterTools() {
-    var footer = document.querySelector("footer");
-    if (!footer || !footer.querySelector) return;
-    var cols = footer.querySelectorAll(".footer-col");
-    var product = null;
+  function footerUsesRoot(footer) {
+    var rooted = 0;
+    var relative = 0;
+    Array.prototype.forEach.call(footer.querySelectorAll("a"), function (anchor) {
+      var href = anchor.getAttribute("href") || "";
+      if (/^\/(?:how-it-works|ar|about|index)\.html/.test(href)) rooted += 1;
+      else if (/^(?:how-it-works|ar|about|index)\.html/.test(href)) relative += 1;
+    });
+    return rooted > relative;
+  }
+
+  function footerLinkColumn(title, links, root, key) {
+    var node = document.createElement("div");
+    node.className = "footer-col";
+    if (key) node.setAttribute("data-footer-journey", key);
+    var heading = document.createElement("h4");
+    heading.textContent = title;
+    node.appendChild(heading);
+    links.forEach(function (item) {
+      var anchor = document.createElement("a");
+      var href = footerPageHref(item.href, root);
+      anchor.setAttribute("href", href);
+      anchor.href = href;
+      anchor.textContent = item.label;
+      node.appendChild(anchor);
+    });
+    return node;
+  }
+
+  function footerKeptColumn(grid, title) {
+    var cols = grid.querySelectorAll(".footer-col");
     var i;
     for (i = 0; i < cols.length; i += 1) {
       var heading = cols[i].querySelector("h4");
       var label = heading ? String(heading.textContent || "").replace(/\s+/g, " ").trim() : "";
-      if (/^product$/i.test(label)) product = cols[i];
+      if (label.toLowerCase() === title.toLowerCase()) return cols[i];
     }
-    if (!product || product.getAttribute("data-footer-tools") === "1") return;
-    product.setAttribute("data-footer-tools", "1");
-    function add(href, text) {
-      var links = product.querySelectorAll("a");
-      var n;
-      for (n = 0; n < links.length; n += 1) {
-        var current = links[n].getAttribute("href") || "";
-        if (current === href || current === href.replace(/^\//, "") || current === href.slice(1) + ".html") return;
-      }
-      var anchor = document.createElement("a");
-      anchor.setAttribute("href", href);
-      anchor.href = href;
-      anchor.textContent = text;
-      product.appendChild(anchor);
-    }
-    WHATS_NEW_LINKS.forEach(function (item) {
-      if (item.href === "/contracts") return;
-      add(item.href, item.label);
-    });
-    ensureContractsFooter();
-  }
-
-  function ensureContractsFooter() {
-    var footer = document.querySelector("footer");
-    if (!footer || !footer.querySelector) return;
-    var grid = footer.querySelector(".footer-grid");
-    if (!grid || grid.querySelector("[data-footer-contracts]")) return;
-    var col = document.createElement("div");
-    col.className = "footer-col";
-    col.setAttribute("data-footer-contracts", "1");
-    var heading = document.createElement("h4");
-    heading.textContent = "Contracts";
-    col.appendChild(heading);
-    fillContractMenu(col, "active");
-    var product = null;
-    var cols = grid.querySelectorAll(".footer-col");
-    var i;
-    for (i = 0; i < cols.length; i += 1) {
-      var h = cols[i].querySelector("h4");
-      var name = h ? String(h.textContent || "").replace(/\s+/g, " ").trim() : "";
-      if (/^product$/i.test(name)) product = cols[i];
-    }
-    if (product) grid.insertBefore(col, product);
-    else grid.appendChild(col);
+    return null;
   }
 
   function setupPublicFooter() {
     var footer = document.querySelector("footer");
     if (!footer || !footer.querySelector) return;
     var grid = footer.querySelector(".footer-grid");
-    if (!grid) return;
-    var headers = footer.querySelectorAll(".footer-col h4");
-    var i;
-    var hasProduct = false;
-    for (i = 0; i < headers.length; i += 1) {
-      var label = String(headers[i].textContent || "").replace(/\s+/g, " ").trim();
-      if (/after upload/i.test(label)) {
-        ensureFooterTools();
-        return;
-      }
-      if (/^product$/i.test(label)) hasProduct = true;
-    }
-    if (!hasProduct) return;
-
-    var found = {};
-    var root = false;
-    Array.prototype.forEach.call(footer.querySelectorAll(".footer-col a"), function (anchor) {
-      var href = anchor.getAttribute("href") || "";
-      if (href.charAt(0) === "/") root = true;
-      var key = footerHrefKey(href);
-      if (!key || found[key]) return;
-      found[key] = anchor;
-    });
-
-    function ensure(key, href, text) {
-      if (found[key]) return found[key];
-      var anchor = document.createElement("a");
-      var next = root ? "/" + href.replace(/^\//, "") : href;
-      anchor.setAttribute("href", next);
-      anchor.href = next;
-      anchor.textContent = text;
-      found[key] = anchor;
-      return anchor;
-    }
-
-    ensure("how", "how-it-works.html", "How it works");
-    ensure("plans", "index.html#pricing", "Plans and Pricing");
-    ensure("ar", "ar.html", "A&R");
-    ensure("epk", "epk.html", "EPK");
-    ensure("paid", "royalties.html", "How you get paid");
-    ensure("transparency", "transparency.html", "Transparency");
-    ensure("faq", "faq.html", "FAQ");
-    ensure("about", "about.html", "About us");
-    ensure("blog", "blog.html", "Blog");
-    ensure("contact", "contact.html", "Contact us");
-    ensure("terms", "terms.html", "Terms of Service");
-    ensure("rights", "rights.html", "Rights Attestation");
-    ensure("privacy", "privacy.html", "Privacy");
-    ensure("login", "login.html", "Sign in");
-    ensure("signup", "signup.html", "Create account");
-
-    function col(title, keys) {
-      var node = document.createElement("div");
-      node.className = "footer-col";
-      var heading = document.createElement("h4");
-      heading.textContent = title;
-      node.appendChild(heading);
-      keys.forEach(function (key) {
-        if (found[key]) node.appendChild(found[key]);
-      });
-      return node;
-    }
-
-    var productKeys = ["how", "plans"];
-    if (found.boost) productKeys.push("boost");
-    if (found.plai) productKeys.push("plai");
-    var productCol = col("Product", productKeys);
-
+    if (!grid || grid.getAttribute("data-footer-journey") === "1") return;
+    var path = String((window.location && window.location.pathname) || "");
+    if (/(^|\/)terms\.html$/.test(path)) return;
+    var root = footerUsesRoot(footer);
+    var trust = footerKeptColumn(grid, "Trust") || footerLinkColumn("Trust", [
+      { href: "transparency.html", label: "Transparency" },
+      { href: "faq.html", label: "FAQ" }
+    ], root);
+    var company = footerKeptColumn(grid, "Company") || footerLinkColumn("Company", [
+      { href: "about.html", label: "About us" },
+      { href: "blog.html", label: "Blog" },
+      { href: "contact.html", label: "Contact us" }
+    ], root);
+    var legal = footerKeptColumn(grid, "Legal") || footerLinkColumn("Legal", [
+      { href: "terms.html", label: "Terms of Service" },
+      { href: "rights.html", label: "Rights Attestation" },
+      { href: "privacy.html", label: "Privacy" }
+    ], root);
+    var account = footerKeptColumn(grid, "Account") || footerLinkColumn("Account", [
+      { href: "login.html", label: "Sign in" },
+      { href: "signup.html", label: "Create account" }
+    ], root);
     var oldCols = [];
     Array.prototype.forEach.call(grid.querySelectorAll(".footer-col"), function (node) { oldCols.push(node); });
     oldCols.forEach(function (node) {
-      Array.prototype.forEach.call(node.querySelectorAll("a"), function (anchor) {
-        if (anchor.parentNode) productCol.appendChild(anchor);
-      });
       if (node.parentNode) node.parentNode.removeChild(node);
     });
-    grid.appendChild(productCol);
-    grid.appendChild(col("After upload", ["ar", "epk", "paid"]));
-    grid.appendChild(col("Trust", ["transparency", "faq"]));
-    grid.appendChild(col("Company", ["about", "blog", "contact"]));
-    grid.appendChild(col("Legal", ["terms", "rights", "privacy"]));
-    grid.appendChild(col("Account", ["login", "signup"]));
-    ["basic", "creator", "pro"].forEach(function (key) {
-      var node = found[key];
-      if (node && node.parentNode) node.parentNode.removeChild(node);
+    FOOTER_JOURNEY.forEach(function (spec) {
+      grid.appendChild(footerLinkColumn(spec.title, spec.links, root, spec.key));
     });
-    ensureFooterTools();
+    grid.appendChild(trust);
+    grid.appendChild(company);
+    grid.appendChild(legal);
+    grid.appendChild(account);
+    grid.setAttribute("data-footer-journey", "1");
   }
 
   function markRoadmapLink(nav) {

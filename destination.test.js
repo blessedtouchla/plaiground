@@ -315,7 +315,7 @@ function runPage() {
   assert.ok(!/\bAI music\b/i.test(html));
   assert.ok(/data-nav-group="roadmap"[\s\S]*href="\/destination">Roadmap<\/a>/.test(nav), 'Roadmap is the public nav link to /destination');
   assert.ok(nav.indexOf('data-nav-group="roadmap"') < nav.indexOf('data-nav-group="product"'), 'Roadmap is the first public nav item');
-  assert.ok(!/href="\/destination"/.test(footer), 'footer does not grow a destination link');
+  assert.ok(/<h4>After upload<\/h4>[\s\S]*href="\/destination">Route map<\/a>/.test(footer), 'footer lists the route map under After upload');
   assert.ok(html.includes('id="dest-go"'));
   assert.ok(html.includes('signup.html?plan=basic'));
   assert.ok(html.includes('id="dest-save"'));
