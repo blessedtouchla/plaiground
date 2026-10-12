@@ -388,6 +388,63 @@
     return items.length ? items.join(', ') : '-';
   }
 
+  function showTestMail(text) {
+    var statusEl = $('[data-test-mail-status]');
+    if (!statusEl) return;
+    statusEl.hidden = !text;
+    statusEl.textContent = text || '';
+  }
+
+  function testMailReport(data) {
+    var emails = data && Array.isArray(data.emails) ? data.emails : [];
+    if (!emails.length) return (data && data.error) || 'Could not send the test emails.';
+    return emails.map(function (row) {
+      var name = (row && row.label) || (row && row.event) || 'Email';
+      if (row && row.mail_sent) return name + ': sent.';
+      return name + ': ' + ((row && row.error) || 'Could not send.');
+    }).join('\n');
+  }
+
+  function sendTestEmails(event) {
+    if (event) event.preventDefault();
+    var button = $('[data-send-test-emails]');
+    var section = document.getElementById('mail-failures');
+    if (section && section.scrollIntoView) section.scrollIntoView({ block: 'start' });
+    if (button) button.disabled = true;
+    showTestMail('Sending four test emails to the owner inbox.');
+    global.fetch('/api/admin/test-emails', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: '{}',
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        return { ok: response.ok, status: response.status, data: data || {} };
+      }).catch(function () {
+        return { ok: false, status: response.status, data: {} };
+      });
+    }).then(function (result) {
+      if (button) button.disabled = false;
+      if (!result || result.status === 401) {
+        global.location.replace(LOGIN);
+        return;
+      }
+      if (result.status === 403) {
+        global.location.replace(DENY);
+        return;
+      }
+      showTestMail(testMailReport(result.data));
+      if (result.ok) {
+        loadJson('/api/admin/mail-failures').then(function (saved) {
+          if (saved && saved.ok) renderMailFailures(saved.data && saved.data.failures);
+        });
+      }
+    }).catch(function () {
+      if (button) button.disabled = false;
+      showTestMail('Could not send the test emails.');
+    });
+  }
+
   function renderMailFailures(rows) {
     fillTable('[data-mail-failures-table]', '[data-mail-failures-empty]', '[data-mail-failures-body]', rows, function (row) {
       return '<tr>'
@@ -648,6 +705,11 @@
     if (exportLink && !exportLink.getAttribute('data-bound')) {
       exportLink.setAttribute('data-bound', '1');
       exportLink.addEventListener('click', exportSignups);
+    }
+    var testMail = $('[data-send-test-emails]');
+    if (testMail && !testMail.getAttribute('data-bound')) {
+      testMail.setAttribute('data-bound', '1');
+      testMail.addEventListener('click', sendTestEmails);
     }
     if (global.document && !global.document.documentElement.getAttribute('data-roadmap-bound')) {
       global.document.documentElement.setAttribute('data-roadmap-bound', '1');

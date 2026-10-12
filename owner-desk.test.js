@@ -291,6 +291,11 @@ function run() {
   assert.ok(adminJs.includes('/api/admin/traffic'));
   assert.ok(adminJs.includes('renderTraffic'));
   assert.ok(nav.includes('href="#mail-failures">Mail failures</a>'));
+  assert.ok(nav.includes('data-send-test-emails'), 'owner menu has Send test emails next to Mail failures');
+  assert.ok(nav.includes('>Send test emails</button>'));
+  assert.ok(adminHtml.includes('data-test-mail-status'));
+  assert.ok(adminJs.includes('/api/admin/test-emails'));
+  assert.ok(adminJs.includes('sendTestEmails'));
   assert.ok(adminHtml.includes('id="mail-failures"'));
   assert.ok(adminHtml.includes('Artist emails that did not send.'));
   assert.ok(adminJs.includes('/api/admin/mail-failures'));

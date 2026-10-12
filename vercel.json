@@ -206,6 +206,7 @@
     { "source": "/api/admin/roadmaps", "destination": "/api/me?action=admin-roadmaps" },
     { "source": "/api/admin/applications", "destination": "/api/me?action=admin-applications" },
     { "source": "/api/admin/mail-failures", "destination": "/api/me?action=admin-mail-failures" },
+    { "source": "/api/admin/test-emails", "destination": "/api/me?action=admin-test-emails" },
     { "source": "/api/apply", "destination": "/api/me?action=apply" },
     { "source": "/api/me/roadmap", "destination": "/api/me?action=roadmap" },
     { "source": "/api/me/lyrics", "destination": "/api/me?action=lyrics" },

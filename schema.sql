@@ -211,6 +211,12 @@ CREATE TABLE IF NOT EXISTS mail_failures (
 CREATE INDEX IF NOT EXISTS mail_failures_created_idx
   ON mail_failures (created_at DESC);
 
+-- One row so the owner test-email button cannot fire again inside a minute.
+CREATE TABLE IF NOT EXISTS owner_mail_limits (
+  name text PRIMARY KEY,
+  sent_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- One live note per release. The first live event stays on user_events.
 CREATE TABLE IF NOT EXISTS artist_mail_sent (
   user_id text NOT NULL,
