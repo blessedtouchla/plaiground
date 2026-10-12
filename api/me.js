@@ -21,6 +21,7 @@
  * GET  /api/admin/marketing  owner session only; daily source report
  * GET  /api/admin/marketing.csv  same auth; that table as text/csv
  * GET  /api/admin/applications  owner session only; waitlist applications
+ * POST /api/apply          public; Hobby rewrite onto this function (?action=apply)
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -83,6 +84,7 @@ const ROUTE_ACTIONS = {
   'artist-profiles': true,
   'admin-roadmaps': true,
   'admin-applications': true,
+  apply: true,
   events: true,
   guide: true,
   'admin-events': true,
@@ -157,6 +159,12 @@ function isAdminApplications(req) {
   const path = pathnameOf(req);
   if (path === '/api/admin/applications') return true;
   return queryValue(req, 'action') === 'admin-applications';
+}
+
+function isApply(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/apply') return true;
+  return queryValue(req, 'action') === 'apply';
 }
 
 function wantsSignupPart(req) {
@@ -1164,6 +1172,10 @@ async function adminEvents(req, res) {
 }
 
 module.exports = async function handler(req, res) {
+  if (isApply(req)) {
+    await applications.handleApply(req, res);
+    return;
+  }
   if (isAdminSignups(req)) {
     await adminSignups(req, res);
     return;
