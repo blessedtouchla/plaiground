@@ -60,6 +60,7 @@ const artistCheck = require('../lib/artist-check');
 const plans = require('../lib/plans');
 const coverUrl = require('../lib/cover-url');
 const profileLib = require('../lib/profile');
+const personaLib = require('../lib/persona');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const splitSheets = require('../lib/split-sheets');
@@ -887,10 +888,7 @@ async function linkStoredRelease(row, releaseId, body, tonegridArtistId) {
 }
 
 function trackArtistRejected(result) {
-  if (!result || result.ok) return false;
-  if (result.status !== 400 && result.status !== 422) return false;
-  const text = JSON.stringify(result.data || {}).toLowerCase();
-  return text.indexOf('primary_artist') !== -1 || text.indexOf('artist_name') !== -1 || text.indexOf('unknown') !== -1;
+  return personaLib.shouldRetryTrackWithoutArtist(result);
 }
 
 function rosterOf(row) {
@@ -2046,7 +2044,11 @@ async function createRelease(req, res) {
     });
     const latest = await accounts.findById(scope.userId);
     await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', storedCredits);
-    await linkStoredRelease(latest || scope.row, releaseId, body, artistId);
+    try {
+      await linkStoredRelease(latest || scope.row, releaseId, body, artistId);
+    } catch (err) {
+      /* Local artist link is bookkeeping. The store release already exists. */
+    }
     return true;
   }
 
@@ -2057,7 +2059,11 @@ async function createRelease(req, res) {
       releaseId: leftoverId,
     });
     const linkedRow = await accounts.findById(scope.userId);
-    await linkStoredRelease(linkedRow || scope.row, leftoverId, body, artistId);
+    try {
+      await linkStoredRelease(linkedRow || scope.row, leftoverId, body, artistId);
+    } catch (err) {
+      /* Keep the continued release even if the local link write fails. */
+    }
     await attachContinuedRelease(leftoverId);
     const tracks = await leftoverTracksForContinue(leftoverId);
     sendJson(res, 200, { uuid: leftoverId, continued: true, tracks });
@@ -2263,29 +2269,31 @@ async function createTrack(req, res) {
   }
 
   const browserKey = headerValue(req, 'idempotency-key');
+  const trackKey = hopIdempotencyKey(
+    'track',
+    'POST',
+    '/releases/' + releaseId + '/tracks',
+    [JSON.stringify(trackPayload), browserKey || ''].join('\n')
+  );
   let result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
     method: 'POST',
     body: trackPayload,
-    idempotencyKey: hopIdempotencyKey(
-      'track',
-      'POST',
-      '/releases/' + releaseId + '/tracks',
-      [JSON.stringify(trackPayload), browserKey || ''].join('\n')
-    ),
+    idempotencyKey: trackKey,
   });
-  if (trackArtistRejected(result)) {
-    delete trackPayload.primary_artist;
-    delete trackPayload.artist_name;
-    result = await tonegridFetch('/releases/' + releaseId + '/tracks', {
-      method: 'POST',
-      body: trackPayload,
-      idempotencyKey: hopIdempotencyKey(
-        'track',
-        'POST',
-        '/releases/' + releaseId + '/tracks',
-        [JSON.stringify(trackPayload), browserKey || '', 'no-artist'].join('\n')
-      ),
-    });
+  if (trackArtistRejected(result) && !createdTrackId(result.data)) {
+    const retryPayload = Object.assign({}, trackPayload);
+    delete retryPayload.primary_artist;
+    delete retryPayload.artist_name;
+    try {
+      const retry = await tonegridFetch('/releases/' + releaseId + '/tracks', {
+        method: 'POST',
+        body: retryPayload,
+        idempotencyKey: trackKey,
+      });
+      if (retry && retry.ok) result = retry;
+    } catch (err) {
+      /* Keep the first store result so a retry cannot fail a submission. */
+    }
   }
   if (result.ok) {
     const trackId = createdTrackId(result.data);

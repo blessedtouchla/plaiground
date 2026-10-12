@@ -50,36 +50,31 @@
       + '<div class="persona-meter" aria-hidden="true"><span style="width:' + Math.round((meter.filled / meter.total) * 100) + '%"></span></div>'
       + field('Vibe', '<div class="persona-chips">' + chipButtons(catalog.VIBE, vibe, 'vibe') + '</div><p class="hint">Pick up to 3.</p>')
       + field('Story', '<textarea data-persona-story rows="3" maxlength="600" placeholder="The moment this artist started">' + esc(row.story || '') + '</textarea>')
+      + field('Voice', '<div class="persona-chips">' + chipButtons(catalog.VOICE, voice, 'voice') + '</div>')
+      + field('Paste what you have', '<p class="hint">Paste a public link or an old bio. Plai suggests the rest. You confirm before anything is saved. We never ask for a password.</p>'
+        + '<textarea data-persona-paste rows="3" placeholder="Paste links or bio text"></textarea>'
+        + '<p><button class="btn btn-ghost btn-sm" type="button" data-persona-read>Read what I pasted</button></p>'
+        + '<div data-persona-suggestions></div>')
+      + '<details class="persona-block"><summary>Add look, audience, colors, and contact</summary>'
       + field('Look', '<div class="persona-chips">' + chipButtons(catalog.LOOK, look, 'look') + '</div><input data-persona-photo type="url" placeholder="Photo link (https)" value="' + esc((row.look && row.look.photo) || '') + '" />')
-      + field('Voice', '<div class="persona-chips">' + chipButtons(catalog.VOICE, voice, 'voice') + '</div>'
-        + '<label>Warmth <input data-persona-warmth type="range" min="1" max="5" value="' + ((row.voice && row.voice.warmth) || 3) + '" /></label>'
-        + '<label>Energy <input data-persona-energy type="range" min="1" max="5" value="' + ((row.voice && row.voice.energy) || 3) + '" /></label>')
       + field('Audience', '<div class="persona-chips">' + chipButtons(catalog.AGES, ages ? [ages] : [], 'ages') + '</div>'
         + '<input data-persona-city placeholder="City" value="' + esc((row.audience && row.audience.city) || '') + '" />'
         + '<input data-persona-through placeholder="What they are going through" value="' + esc((row.audience && row.audience.going_through) || '') + '" />')
       + field('Influences', '<p class="hint">Eras, places, feelings. Skip other artist names.</p>'
         + '<div class="persona-chips">' + chipButtons(catalog.ERAS, influences.eras || [], 'eras') + chipButtons(catalog.PLACES, influences.places || [], 'places') + chipButtons(catalog.FEELINGS, influences.feelings || [], 'feelings') + '</div>')
-      + field('Brand colors', '<div class="persona-colors">' + colorButtons(catalog.COLORS, colors) + '</div><p class="hint">Pick 2 or 3.</p>')
-      + field('Stats, press, booking', '<input data-persona-listeners placeholder="Monthly listeners, if public" value="' + esc((row.stats && row.stats.monthly_listeners) || '') + '" />'
-        + '<input data-persona-followers placeholder="Followers, if public" value="' + esc((row.stats && row.stats.followers) || '') + '" />'
-        + '<input data-persona-shows placeholder="Shows" value="' + esc((row.stats && row.stats.shows) || '') + '" />'
-        + '<textarea data-persona-press rows="2" placeholder="A press quote">' + esc((row.press && row.press[0] && row.press[0].quote) || '') + '</textarea>'
+      + field('Brand colors', '<div class="persona-colors">' + colorButtons(catalog.COLORS, colors) + '</div>')
+      + field('Press and booking', '<textarea data-persona-press rows="2" placeholder="A press quote">' + esc((row.press && row.press[0] && row.press[0].quote) || '') + '</textarea>'
         + '<input data-persona-booking-name placeholder="Booking name" value="' + esc((row.booking && row.booking.name) || '') + '" />'
-        + '<input data-persona-booking-email type="email" placeholder="Booking email" autocomplete="off" value="' + esc((row.booking && row.booking.email) || '') + '" />')
-      + field('Socials and store artist links', '<input data-persona-instagram placeholder="Instagram" value="' + esc((row.socials && row.socials.instagram) || '') + '" />'
-        + '<input data-persona-tiktok placeholder="TikTok" value="' + esc((row.socials && row.socials.tiktok) || '') + '" />'
-        + '<input data-persona-youtube placeholder="YouTube" value="' + esc((row.socials && row.socials.youtube) || '') + '" />'
+        + '<input data-persona-booking-email type="email" placeholder="Booking email" autocomplete="off" value="' + esc((row.booking && row.booking.email) || '') + '" />'
+        + '<input data-persona-listeners placeholder="Monthly listeners, if public" value="' + esc((row.stats && row.stats.monthly_listeners) || '') + '" />'
         + '<input data-persona-spotify placeholder="Spotify artist link" value="' + esc(row.spotify_artist || '') + '" />'
-        + '<input data-persona-apple placeholder="Apple artist link" value="' + esc(row.apple_artist || '') + '" />')
-      + field('Paste what you have', '<p class="hint">Paste public links or an old bio. Spotify, Apple, Linktree, Instagram, TikTok, YouTube, a site, a press page. Plai suggests fields for you to confirm. Nothing goes public on its own. We never ask for a password.</p>'
-        + '<textarea data-persona-paste rows="4" placeholder="Paste links or bio text"></textarea>'
-        + '<p><button class="btn btn-ghost btn-sm" type="button" data-persona-read>Read what I pasted</button></p>'
-        + '<div data-persona-suggestions></div>')
+        + '<input data-persona-apple placeholder="Apple artist link" value="' + esc(row.apple_artist || '') + '" />'
+        + '<input data-persona-instagram placeholder="Instagram" value="' + esc((row.socials && row.socials.instagram) || '') + '" />')
+      + '</details>'
       + '<div data-persona-asks></div>'
       + '<p class="page-head-actions">'
       + '<button class="btn btn-purple btn-sm" type="button" data-persona-save>Save persona</button>'
       + '<button class="btn btn-gold btn-sm" type="button" data-persona-publish>Publish EPK</button>'
-      + '<button class="btn btn-ghost btn-sm" type="button" data-persona-bio>Draft bio</button>'
       + '</p>'
       + '<p class="hint" data-persona-status></p>'
       + '<p data-persona-links></p>';
@@ -91,21 +86,23 @@
     });
   }
 
+  function fieldValue(root, selector) {
+    var el = root.querySelector(selector);
+    if (!el) return null;
+    return el.value || '';
+  }
+
   function collect(root) {
-    var press = String((root.querySelector('[data-persona-press]') || {}).value || '').trim();
-    return {
+    var press = String(fieldValue(root, '[data-persona-press]') || '').trim();
+    var persona = {
       vibe: readChips(root, 'vibe').slice(0, 3),
-      story: (root.querySelector('[data-persona-story]') || {}).value || '',
-      look: { chips: readChips(root, 'look'), photo: (root.querySelector('[data-persona-photo]') || {}).value || '' },
-      voice: {
-        chips: readChips(root, 'voice'),
-        warmth: Number((root.querySelector('[data-persona-warmth]') || {}).value || 0),
-        energy: Number((root.querySelector('[data-persona-energy]') || {}).value || 0),
-      },
+      story: fieldValue(root, '[data-persona-story]') || '',
+      look: { chips: readChips(root, 'look'), photo: fieldValue(root, '[data-persona-photo]') || '' },
+      voice: { chips: readChips(root, 'voice') },
       audience: {
         ages: (readChips(root, 'ages')[0] || ''),
-        city: (root.querySelector('[data-persona-city]') || {}).value || '',
-        going_through: (root.querySelector('[data-persona-through]') || {}).value || '',
+        city: fieldValue(root, '[data-persona-city]') || '',
+        going_through: fieldValue(root, '[data-persona-through]') || '',
       },
       influences: {
         eras: readChips(root, 'eras'),
@@ -115,24 +112,22 @@
       colors: Array.prototype.map.call(root.querySelectorAll('[data-persona-color][aria-pressed="true"]'), function (button) {
         return button.getAttribute('data-persona-color');
       }).slice(0, 3),
-      stats: {
-        monthly_listeners: (root.querySelector('[data-persona-listeners]') || {}).value || '',
-        followers: (root.querySelector('[data-persona-followers]') || {}).value || '',
-        shows: (root.querySelector('[data-persona-shows]') || {}).value || '',
-      },
-      press: press ? [{ quote: press, source: 'you' }] : [],
-      booking: {
-        name: (root.querySelector('[data-persona-booking-name]') || {}).value || '',
-        email: (root.querySelector('[data-persona-booking-email]') || {}).value || '',
-      },
-      socials: {
-        instagram: (root.querySelector('[data-persona-instagram]') || {}).value || '',
-        tiktok: (root.querySelector('[data-persona-tiktok]') || {}).value || '',
-        youtube: (root.querySelector('[data-persona-youtube]') || {}).value || '',
-      },
-      spotify_artist: (root.querySelector('[data-persona-spotify]') || {}).value || '',
-      apple_artist: (root.querySelector('[data-persona-apple]') || {}).value || '',
     };
+    var listeners = fieldValue(root, '[data-persona-listeners]');
+    if (listeners != null) persona.stats = { monthly_listeners: listeners };
+    if (fieldValue(root, '[data-persona-press]') != null) persona.press = press ? [{ quote: press, source: 'you' }] : [];
+    var bookingName = fieldValue(root, '[data-persona-booking-name]');
+    var bookingEmail = fieldValue(root, '[data-persona-booking-email]');
+    if (bookingName != null || bookingEmail != null) {
+      persona.booking = { name: bookingName || '', email: bookingEmail || '' };
+    }
+    var instagram = fieldValue(root, '[data-persona-instagram]');
+    if (instagram != null) persona.socials = { instagram: instagram };
+    var spotify = fieldValue(root, '[data-persona-spotify]');
+    if (spotify != null) persona.spotify_artist = spotify;
+    var apple = fieldValue(root, '[data-persona-apple]');
+    if (apple != null) persona.apple_artist = apple;
+    return persona;
   }
 
   function sourceLine(sources, key) {

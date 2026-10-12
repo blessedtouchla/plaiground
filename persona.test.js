@@ -44,12 +44,19 @@ function runModel() {
 
   const partial = persona.normalize({ vibe: ['warm'], story: 'A start.' });
   const questions = persona.asks(partial).map((item) => item.ask).join(' ');
-  assert.ok(questions.indexOf('brand colors') !== -1);
+  assert.ok(questions.indexOf('How does the voice') !== -1);
+  assert.ok(questions.indexOf('brand colors') === -1);
+  assert.strictEqual(persona.asks(partial).length, 1);
   assert.ok(questions.toLowerCase().indexOf('password') === -1);
   assert.ok(!persona.asks(partial).some((item) => item.field === 'vibe' || item.field === 'story'));
+  assert.strictEqual(persona.shouldRetryTrackWithoutArtist({ ok: false, status: 422, data: { error: 'unknown field primary_artist' } }), true);
+  assert.strictEqual(persona.shouldRetryTrackWithoutArtist({ ok: false, status: 400, data: { error: 'unknown release' } }), false);
+  assert.strictEqual(persona.shouldRetryTrackWithoutArtist({ ok: false, status: 422, data: { uuid: '11111111-1111-1111-1111-111111111111', error: 'primary_artist' } }), false);
+  assert.strictEqual(persona.shouldRetryTrackWithoutArtist({ ok: true, status: 200, data: { error: 'primary_artist' } }), false);
 
   const meter = persona.progress(persona.normalize(readyPersona()));
   assert.strictEqual(meter.ready, true);
+  assert.strictEqual(meter.total, 3);
   assert.ok(meter.label.indexOf('Complete your persona to unlock your auto EPK') !== -1);
   assert.ok(!/[\u2014\u2013]/.test(meter.label));
 
@@ -166,6 +173,36 @@ async function runImport() {
   assert.ok(imported.suggestions.press.some((row) => row.quote.indexOf('chorus') !== -1));
   assert.strictEqual(JSON.stringify(imported).indexOf('hunter2'), -1);
   assert.ok(imported.asks.every((item) => item.ask.toLowerCase().indexOf('password') === -1));
+
+  const ssrfCalls = [];
+  function ssrfFetch(url) {
+    ssrfCalls.push(String(url));
+    return Promise.resolve({ ok: false, status: 500, headers: { get: () => '' }, text: async () => '' });
+  }
+  const privateDns = await personaImport.extract('https://evil.example/bio from the road', {
+    fetch: ssrfFetch,
+    lookup: async () => ['127.0.0.1'],
+    configured: false,
+  });
+  assert.ok(privateDns.skipped.some((row) => row.reason === 'private host'));
+  assert.ok(!ssrfCalls.some((url) => url.indexOf('evil.example') !== -1));
+
+  const loginPage = await personaImport.extract('https://example.com/login old bio text here', {
+    fetch: ssrfFetch,
+    lookup: async () => ['93.184.216.34'],
+    configured: false,
+  });
+  assert.ok(loginPage.skipped.some((row) => row.reason === 'login page'));
+  assert.ok(!ssrfCalls.some((url) => url.indexOf('/login') !== -1));
+  assert.strictEqual(personaImport.authTarget('https://accounts.spotify.com/login'), true);
+  assert.strictEqual(personaImport.privateHost('169.254.169.254'), true);
+  assert.strictEqual(personaImport.privateHost('fc00::1'), true);
+
+  const personaHttp = require('./lib/persona-http');
+  personaHttp.resetImportLimits();
+  for (let i = 0; i < 6; i += 1) assert.strictEqual(personaHttp.allowImport('artist-1'), true);
+  assert.strictEqual(personaHttp.allowImport('artist-1'), false);
+  assert.strictEqual(personaHttp.allowImport('artist-2'), true);
 }
 
 function runCopy() {
