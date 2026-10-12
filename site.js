@@ -51,6 +51,11 @@
     });
   }
 
+  function isOwnerDesk(node) {
+    if (!node || !node.getAttribute) return false;
+    return node.getAttribute("data-owner-desk") != null;
+  }
+
   function setupAppMenu() {
     var app = document.body;
     if (!app || !app.classList.contains("app")) return;
@@ -69,10 +74,12 @@
         el.classList.add("on");
       });
     }
-    setupAppBlogLink(side);
-    ensureSignedInRoadmap(side);
-    ensureWhatsNewSide(side);
-    ensureContractsSide(side);
+    if (!isOwnerDesk(app) && !isOwnerDesk(side)) {
+      setupAppBlogLink(side);
+      ensureSignedInRoadmap(side);
+      ensureWhatsNewSide(side);
+      ensureContractsSide(side);
+    }
     markRoadmapLink(side.querySelector(".side-nav"));
     side.classList.add("side-fresh");
 

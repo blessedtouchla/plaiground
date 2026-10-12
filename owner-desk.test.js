@@ -227,6 +227,48 @@ function runBrandNav(account) {
   return { logo: logo, location: location };
 }
 
+function runOwnerMenu() {
+  const admin = el('a', { href: '/admin' });
+  admin.textContent = 'Admin';
+  const signups = el('a', { href: '#signups' });
+  signups.textContent = 'Signups';
+  const nav = el('nav', { class: 'side-nav' }, [admin, signups]);
+  const side = el('aside', { class: 'side' }, [nav]);
+  side.setAttribute('data-owner-desk', '');
+  const topbar = el('div', { class: 'topbar' });
+  const body = el('body', { class: 'app' }, [side, el('div', { class: 'app-main' }, [topbar])]);
+  body.setAttribute('data-owner-desk', '');
+  const document = {
+    body: body,
+    querySelector: function (sel) { return body.querySelector(sel); },
+    querySelectorAll: function (sel) { return body.querySelectorAll(sel); },
+    createElement: function (tag) { return el(tag); },
+    addEventListener: function () {},
+  };
+  const context = {
+    document: document,
+    window: {
+      location: { href: '/admin', pathname: '/admin', search: '' },
+      PlaigroundMembership: {
+        whenReady: function (cb) { if (typeof cb === 'function') cb(); },
+        isSignedIn: function () { return true; },
+        signedInHome: function () { return '/admin'; },
+        isOwner: function () { return true; },
+      },
+    },
+    NodeList: Array,
+  };
+  context.window.document = document;
+  vm.runInNewContext(read('site.js'), context);
+  const labels = nav.children.map(function (node) { return node.textContent; });
+  assert.ok(labels.indexOf('Song Helper') === -1, 'owner menu does not gain Song Helper');
+  assert.ok(labels.indexOf('Cover Art') === -1, 'owner menu does not gain Cover Art');
+  assert.ok(labels.indexOf('Battle') === -1, 'owner menu does not gain Battle');
+  assert.ok(labels.indexOf("What's new") === -1, 'owner menu does not gain the creator What\'s new block');
+  assert.ok(labels.indexOf('Signups') !== -1, 'owner menu keeps Signups');
+  assert.strictEqual(labels[0], 'Admin', 'owner menu keeps Admin first');
+}
+
 function run() {
   const adminHtml = read('admin.html');
   const adminJs = read('admin.js');
@@ -250,6 +292,9 @@ function run() {
   assert.ok(nav.includes('href="#deliveries">Deliveries</a>'));
   assert.ok(nav.includes('href="#royalties">Royalties</a>'));
   assert.ok(/href="https:\/\/app\.tonegrid\.pro\/super\/login" target="_blank" rel="noopener noreferrer">ToneGrid dashboard<\/a>/.test(nav), 'owner desk opens the store partner dashboard in a new tab');
+  assert.ok(/href="https:\/\/plaiground\.tonegrid\.pro\/admin\/login" target="_blank" rel="noopener noreferrer">ToneGrid admin<\/a>/.test(nav), 'owner desk opens ToneGrid admin in a new tab');
+  assert.ok(!/song-helper-switch|Song Helper switch/.test(adminHtml), 'owner desk does not keep the Song Helper switch panel');
+  assert.ok(!/Song Helper|Cover Art|>Battle</.test(nav), 'owner menu does not list creator tools');
   assert.ok(/href="dashboard.html">Dashboard<\/a>/.test(nav), 'owner desk can open the signed-in artist home in this session');
   assert.ok(!/<a href="dashboard.html"[^>]*target="_blank"/.test(nav), 'artist home stays in this tab');
   assert.ok(nav.includes('href="settings.html">Settings</a>'));
@@ -416,6 +461,7 @@ function run() {
     const ownerBrand = runBrandNav({ email: 'emailplaiground@gmail.com' });
     assert.strictEqual(ownerBrand.logo.getAttribute('href'), '/admin', 'owner wordmark is the desk');
     assert.strictEqual(ownerBrand.location.href, '/admin', 'owner logo click goes to /admin');
+    runOwnerMenu();
 
     console.log('owner-desk.test.js ok');
   });
