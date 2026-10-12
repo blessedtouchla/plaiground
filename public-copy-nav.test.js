@@ -391,7 +391,10 @@ function run() {
   const priceSheet = index.match(/<section class="pricing"[\s\S]*?<\/section>/);
   assert.ok(priceSheet && /\$0/.test(priceSheet[0]) && /\$2\.49/.test(priceSheet[0]) && /\$149/.test(priceSheet[0]) && /\$299/.test(priceSheet[0]) && /\$199/.test(priceSheet[0]) && /\$99/.test(priceSheet[0]) && /\$59\/mo/.test(priceSheet[0]) && /\$179\/mo/.test(priceSheet[0]) && /\$449\/mo/.test(priceSheet[0]) && /\$29\/mo/.test(priceSheet[0]) && /\$19\/mo/.test(priceSheet[0]) && /\$75\/hr/.test(priceSheet[0]) && /15-20% service fee/.test(priceSheet[0]), 'pricing lists the approved catalog');
   assert.ok(priceSheet && !/\$79/.test(priceSheet[0]) && !/Growth campaign|Sync package|Unchanged|Cost \+ 15-20%/.test(priceSheet[0]), 'old prices and changelog labels stay off the homepage sheet');
-  assert.ok(/Coming soon \/ join waitlist/.test(priceSheet[0]), 'monthly plans are labeled coming soon');
+  assert.ok(/Apply free/.test(priceSheet[0]) && /No charge to apply/.test(priceSheet[0]) && /Human \+ AI/.test(priceSheet[0]) && /Human-involved, AI-powered/.test(priceSheet[0]), 'waitlist packages use Apply free');
+  assert.ok(!/Coming soon \/ join waitlist/.test(priceSheet[0]) && !/Join the waitlist/.test(priceSheet[0]), 'price sheet does not keep the old waitlist line');
+  assert.ok(/data-apply-package="Persona package"/.test(priceSheet[0]) && /data-apply-package="Content engine"/.test(priceSheet[0]) && /data-apply-package="Release package"/.test(priceSheet[0]) && /data-apply-package="Fan growth setup"/.test(priceSheet[0]) && /data-apply-package="Starter"/.test(priceSheet[0]) && /data-apply-package="Grow"/.test(priceSheet[0]) && /data-apply-package="Full management"/.test(priceSheet[0]) && /data-apply-package="Coaching"/.test(priceSheet[0]), 'named waitlist packages open Apply free');
+  assert.ok(packCard && !/data-apply-package/.test(packCard[0]) && /Talk to A&amp;R/.test(packCard[0]), 'Act Pack stays a purchase path');
   assert.ok(/Optional\. Your free account stays free\./.test(priceSheet[0]), 'monthly plans are optional and the free account stays free');
   assert.ok(/<details class="price-later">/.test(priceSheet[0]), 'extra prices sit in one coming soon list');
   assert.ok(/fee on the placement, not a royalty cut/.test(priceSheet[0]), 'sync percent is a placement fee');

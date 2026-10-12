@@ -26,6 +26,7 @@
       <a class="on" href="/admin">Admin</a>
       <a href="#signups">Signups</a>
       <a href="#roadmaps">Roadmaps</a>
+      <a href="#applications">Applications</a>
       <a href="#events">Events</a>
       <a href="#product-events">Product events</a>
       <a href="#launch">Launch sources</a>
@@ -53,7 +54,7 @@
       <div class="page-head">
         <p class="kicker">Owner</p>
         <h1>Admin</h1>
-        <p>This is every signup, paid checkout, subscription, money, and store submission.</p>
+        <p>This is every signup, application, paid checkout, subscription, money, and store submission.</p>
       </div>
       <section class="admin-section" id="song-helper-switch">
         <h3>Song Helper switch</h3>
@@ -113,6 +114,30 @@
         <div data-roadmap-detail hidden>
           <p><button type="button" class="btn btn-ghost btn-sm" data-roadmap-back>Back to the list</button></p>
           <div data-roadmap-detail-body></div>
+        </div>
+      </div>
+      </section>
+
+      <section class="admin-section" id="applications">
+      <div class="panel">
+        <div class="admin-section-head">
+          <h3>Applications</h3>
+        </div>
+        <p class="hint" data-applications-empty hidden>No applications yet.</p>
+        <div class="admin-table-wrap" data-applications-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Package</th>
+                <th>Help</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody data-applications-body></tbody>
+          </table>
         </div>
       </div>
       </section>

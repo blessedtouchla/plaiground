@@ -178,3 +178,17 @@ CREATE INDEX IF NOT EXISTS marketing_events_created_idx
 
 CREATE INDEX IF NOT EXISTS marketing_events_visitor_idx
   ON marketing_events (visitor_id, event_name, created_at DESC);
+
+-- Waitlist applications. No password. No account required.
+CREATE TABLE IF NOT EXISTS applications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text NOT NULL,
+  phone text NOT NULL,
+  package text NOT NULL,
+  help text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS applications_created_idx
+  ON applications (created_at DESC);
