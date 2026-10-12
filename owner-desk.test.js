@@ -285,6 +285,11 @@ function run() {
   assert.ok(/href="\/admin">Admin</.test(nav), 'Admin is home on the owner desk');
   assert.ok(nav.includes('href="#signups">Signups</a>'));
   assert.ok(nav.includes('href="#events">Events</a>'));
+  assert.ok(nav.includes('href="#mail-failures">Mail failures</a>'));
+  assert.ok(adminHtml.includes('id="mail-failures"'));
+  assert.ok(adminHtml.includes('Artist emails that did not send.'));
+  assert.ok(adminJs.includes('/api/admin/mail-failures'));
+  assert.ok(adminJs.includes('renderMailFailures'));
   assert.ok(nav.includes('href="#paid">Paid</a>'));
   assert.ok(nav.includes('href="#subs">Subs</a>'));
   assert.ok(nav.includes('href="#money">Money</a>'));

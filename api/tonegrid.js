@@ -3286,7 +3286,11 @@ async function webhook(req, res) {
     }
   }
   const nextStatus = incoming === 'taken_down' ? 'takedown_submitted' : status;
-  await persistReleaseMeta(row, releaseId, nextStatus, reason);
+  await persistReleaseMeta(row, releaseId, nextStatus, reason, '', '', null, {
+    release: release,
+    title: release.title || data.title || '',
+    release_date: release.release_date || release.releaseDate || data.release_date || '',
+  });
   sendJson(res, 200, { ok: true, release_id: releaseId, status: nextStatus || undefined });
 }
 
@@ -3662,18 +3666,23 @@ async function submitRelease(req, res, releaseId) {
   const submittedStatus = String(next.status || 'pending').toLowerCase();
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
   await persistReleaseMeta(scope.row, releaseId, submittedStatus, '', '', '', Object.assign({}, credits || {}, splitMeta));
-  await notifyFirstUpload(scope.row, { release_id: releaseId });
+  const songTitle = (body && (body.title || body.songTitle || body.song_title)) || row.title || next.title || '';
+  await notifyFirstUpload(scope.row, {
+    release_id: releaseId,
+    title: songTitle,
+    release_date: releaseDate,
+  });
   if (submittedStatus === 'pending' || submittedStatus === 'pending_review') {
     await notifyQcRelease({
       artist: scope.row && scope.row.artist_name,
-      title: (body && (body.title || body.songTitle || body.song_title)) || row.title || next.title || '',
+      title: songTitle,
       release_id: releaseId,
       at: new Date(),
     });
   }
   await notifyNewRelease({
     artist: scope.row && scope.row.artist_name,
-    title: (body && (body.title || body.songTitle || body.song_title)) || row.title || next.title || '',
+    title: songTitle,
     release_id: releaseId,
     at: new Date(),
     plan: scope.row && scope.row.plan,
