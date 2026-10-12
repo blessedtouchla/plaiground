@@ -204,7 +204,6 @@
     { "source": "/api/me/guide", "destination": "/api/me?action=guide" },
     { "source": "/api/admin/roadmaps", "destination": "/api/me?action=admin-roadmaps" },
     { "source": "/api/admin/applications", "destination": "/api/me?action=admin-applications" },
-    { "source": "/api/apply/", "destination": "/api/apply" },
     { "source": "/api/me/roadmap", "destination": "/api/me?action=roadmap" },
     { "source": "/api/me/lyrics", "destination": "/api/me?action=lyrics" },
     { "source": "/api/me/artist-profiles", "destination": "/api/me?action=artist-profiles" },
