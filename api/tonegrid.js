@@ -70,7 +70,7 @@ const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
 const growthEvents = require('../lib/growth-events');
-const { sendQcReleaseAlert } = require('../lib/mail');
+const { sendQcReleaseAlert, sendReleaseAlert } = require('../lib/mail');
 const objectStore = require('../lib/object-store');
 const { personalScope, idAllowed, rejectHold, allowedSet, releaseIdsFrom } = require('../lib/scope');
 const { pathnameOf, queryOf, queryValue } = require('../lib/route');
@@ -1013,6 +1013,14 @@ async function notifyQcRelease(input) {
     await sendQcReleaseAlert(input);
   } catch {
     /* QC mail must not block store submit */
+  }
+}
+
+async function notifyNewRelease(input) {
+  try {
+    await sendReleaseAlert(input);
+  } catch {
+    /* owner alert must not block store submit */
   }
 }
 
@@ -3663,6 +3671,13 @@ async function submitRelease(req, res, releaseId) {
       at: new Date(),
     });
   }
+  await notifyNewRelease({
+    artist: scope.row && scope.row.artist_name,
+    title: (body && (body.title || body.songTitle || body.song_title)) || row.title || next.title || '',
+    release_id: releaseId,
+    at: new Date(),
+    plan: scope.row && scope.row.plan,
+  });
   sendJson(res, submitted.status, {
     ok: true,
     signed: Boolean(signwellInfo.signed),

@@ -359,6 +359,19 @@
     return items.length ? items.join(', ') : '-';
   }
 
+  function renderApplications(rows) {
+    fillTable('[data-applications-table]', '[data-applications-empty]', '[data-applications-body]', rows, function (row) {
+      return '<tr>'
+        + cell('Name', escapeHtml(dash(row.name)), 'admin-lead')
+        + cell('Email', escapeHtml(dash(row.email)))
+        + cell('Phone', escapeHtml(dash(row.phone)))
+        + cell('Package', escapeHtml(dash(row.package)))
+        + cell('Help', escapeHtml(dash(row.help)))
+        + cell('When', escapeHtml(formatSignedUpAt(row.created_at)))
+        + '</tr>';
+    });
+  }
+
   function renderRoadmaps(rows) {
     roadmapRows = Array.isArray(rows) ? rows : [];
     var detail = $('[data-roadmap-detail]');
@@ -503,6 +516,9 @@
       renderSignups(list.data && list.data.signups);
       loadJson('/api/admin/roadmaps').then(function (saved) {
         if (saved && saved.ok) renderRoadmaps(saved.data && saved.data.roadmaps);
+      });
+      loadJson('/api/admin/applications').then(function (saved) {
+        if (saved && saved.ok) renderApplications(saved.data && saved.data.applications);
       });
       return loadList().then(function (full) {
         if (!full || !full.ok) {

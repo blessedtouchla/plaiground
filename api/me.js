@@ -20,6 +20,8 @@
  * POST /api/me/marketing  first-party visit and launch counts; no email
  * GET  /api/admin/marketing  owner session only; daily source report
  * GET  /api/admin/marketing.csv  same auth; that table as text/csv
+ * GET  /api/admin/applications  owner session only; waitlist applications
+ * POST /api/apply          public; Hobby rewrite onto this function (?action=apply)
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -27,6 +29,7 @@
 const { listAdminOverview } = require('../lib/admin-overview');
 const { listSignupRows, signupRowsToCsv } = require('../lib/admin-signups');
 const roadmap = require('../lib/roadmap');
+const applications = require('../lib/applications');
 const lyrics = require('../lib/lyrics');
 const { findById, listUsers, mergeFacts, updateCatalog, updateProfile, updateStripe } = require('../lib/accounts');
 const productEvents = require('../lib/product-events');
@@ -80,6 +83,8 @@ const ROUTE_ACTIONS = {
   lyrics: true,
   'artist-profiles': true,
   'admin-roadmaps': true,
+  'admin-applications': true,
+  apply: true,
   events: true,
   guide: true,
   'admin-events': true,
@@ -148,6 +153,18 @@ function isAdminRoadmaps(req) {
   const path = pathnameOf(req);
   if (path === '/api/admin/roadmaps') return true;
   return queryValue(req, 'action') === 'admin-roadmaps';
+}
+
+function isAdminApplications(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/applications') return true;
+  return queryValue(req, 'action') === 'admin-applications';
+}
+
+function isApply(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/apply') return true;
+  return queryValue(req, 'action') === 'apply';
 }
 
 function wantsSignupPart(req) {
@@ -325,6 +342,45 @@ async function ownLyrics(req, res) {
       sendJson(res, 413, { error: err.message });
       return;
     }
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Accounts are not configured.' });
+  }
+}
+
+async function adminApplications(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return;
+  }
+  try {
+    const row = await findById(session.userId);
+    if (!row) {
+      sendJson(res, 401, { error: 'Sign in required.' });
+      return;
+    }
+    if (rejectUnconfirmed(res, row)) return;
+    if (!hasStaffProOverride(row.email)) {
+      sendJson(res, 403, { error: 'Not allowed.' });
+      return;
+    }
+    attachSession(req, res, row.id);
+    const rows = await applications.listApplications();
+    sendJson(res, 200, { applications: rows });
+  } catch (err) {
     if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
       notConfigured(res);
       return;
@@ -1116,12 +1172,20 @@ async function adminEvents(req, res) {
 }
 
 module.exports = async function handler(req, res) {
+  if (isApply(req)) {
+    await applications.handleApply(req, res);
+    return;
+  }
   if (isAdminSignups(req)) {
     await adminSignups(req, res);
     return;
   }
   if (isAdminRoadmaps(req)) {
     await adminRoadmaps(req, res);
+    return;
+  }
+  if (isAdminApplications(req)) {
+    await adminApplications(req, res);
     return;
   }
   if (isAdminMarketing(req)) {

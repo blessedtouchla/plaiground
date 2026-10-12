@@ -672,6 +672,7 @@
     var drawerWho = doc.getElementById('dest-drawer-who');
     var drawerFace = doc.getElementById('dest-drawer-face');
     var drawerLink = doc.getElementById('dest-drawer-link');
+    var drawerApply = doc.getElementById('dest-drawer-apply');
     var drawerClose = doc.getElementById('dest-drawer-close');
     var lastFocus = null;
     var drawTimer = 0;
@@ -1220,6 +1221,28 @@
           link.href = info.href;
           link.textContent = info.link;
           drawerLink.appendChild(link);
+        }
+      }
+      if (drawerApply) {
+        drawerApply.textContent = '';
+        drawerApply.hidden = info.status !== 'soon';
+        if (info.status === 'soon') {
+          var badge = doc.createElement('span');
+          badge.className = 'human-ai';
+          badge.textContent = 'Human + AI';
+          var note = doc.createElement('span');
+          note.className = 'apply-note';
+          note.textContent = 'Human-involved, AI-powered. No charge to apply.';
+          var applyButton = doc.createElement('button');
+          applyButton.type = 'button';
+          applyButton.className = 'btn btn-purple btn-sm';
+          applyButton.setAttribute('data-apply-package', info.title);
+          applyButton.textContent = 'Apply free';
+          drawerApply.appendChild(badge);
+          drawerApply.appendChild(doc.createTextNode(' '));
+          drawerApply.appendChild(note);
+          drawerApply.appendChild(doc.createTextNode(' '));
+          drawerApply.appendChild(applyButton);
         }
       }
       drawer.hidden = false;

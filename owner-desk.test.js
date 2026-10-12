@@ -280,7 +280,7 @@ function run() {
   assert.ok(adminHtml.includes('<title>Admin – PLAIGROUND</title>'));
   assert.ok(adminHtml.includes('kicker">Owner'));
   assert.ok(adminHtml.includes('<h1>Admin</h1>'));
-  assert.ok(/This is every signup, paid checkout, subscription, money, and store submission/.test(adminHtml));
+  assert.ok(/This is every signup, application, paid checkout, subscription, money, and store submission/.test(adminHtml));
   assert.ok(adminHtml.includes('data-owner-desk'));
   assert.ok(/href="\/admin">Admin</.test(nav), 'Admin is home on the owner desk');
   assert.ok(nav.includes('href="#signups">Signups</a>'));
@@ -320,7 +320,9 @@ function run() {
   assert.ok(adminHtml.includes('href="/api/admin/signups.csv"'));
   assert.ok(adminHtml.includes('<h3>Events</h3>'));
   assert.ok(/<th>Email<\/th>\s*<th>Name<\/th>\s*<th>Plan<\/th>\s*<th>Status<\/th>\s*<th>Signed up<\/th>\s*<th>Stripe<\/th>/.test(adminHtml));
-  assert.ok(!/Last login|Phone|IPI/i.test(adminHtml));
+  assert.ok(!/Last login|\bIPI\b/i.test(adminHtml));
+  const signupTable = adminHtml.slice(adminHtml.indexOf('id="signups"'), adminHtml.indexOf('id="roadmaps"'));
+  assert.ok(!/Phone/i.test(signupTable), 'signup table stays off phone');
   assert.ok(adminHtml.includes('<h3>Paid checkouts</h3>'));
   assert.ok(adminHtml.includes('<h3>Subscriptions</h3>'));
   assert.ok(adminHtml.includes('<h3>Money in and out</h3>'));

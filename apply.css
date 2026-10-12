@@ -1,0 +1,126 @@
+.human-ai {
+  display: inline-block;
+  margin: 0 6px 0 0;
+  padding: 2px 7px;
+  border: 1px solid rgba(125, 60, 255, 0.55);
+  border-radius: 999px;
+  color: #c9a6ff;
+  background: rgba(125, 60, 255, 0.12);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+.apply-note {
+  color: var(--muted, #9a9aa8);
+  font-size: 13px;
+}
+
+.price-sheet .btn,
+.acts-price .btn,
+.play-soon .btn,
+.plan-switch .btn,
+.dest-drawer-apply .btn {
+  margin: 8px 8px 8px 0;
+  vertical-align: middle;
+}
+
+.dest-drawer-apply {
+  margin-top: 14px;
+}
+
+.apply-modal[hidden] {
+  display: none;
+}
+
+.apply-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.apply-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 12, 0.72);
+}
+
+.apply-modal-panel {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  background: #16161c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 22px;
+  color: #f4f4f5;
+}
+
+.apply-modal h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.apply-modal p {
+  margin: 0 0 14px;
+  color: #b7b7c2;
+  line-height: 1.45;
+}
+
+.apply-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.apply-modal input,
+.apply-modal textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0e0e12;
+  color: #fff;
+  font: inherit;
+}
+
+.apply-modal input[readonly] {
+  color: #d8d8e2;
+}
+
+.apply-package {
+  margin: -6px 0 12px;
+  color: #f3cb47;
+  font-weight: 700;
+}
+
+.apply-honey {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.apply-modal-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.apply-status {
+  min-height: 1.2em;
+  color: #f3cb47;
+  font-size: 14px;
+}
