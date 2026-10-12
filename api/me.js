@@ -42,6 +42,8 @@ const marketing = require('../lib/marketing');
 const artistCheck = require('../lib/artist-check');
 const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
+const persona = require('../lib/persona');
+const personaHttp = require('../lib/persona-http');
 const releaseCredits = require('../lib/release-credits');
 const {
   attachSession,
@@ -72,6 +74,24 @@ function isProfile(req) {
   return queryValue(req, 'action') === 'profile';
 }
 
+function isEpk(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/epk' || path === '/api/me/epk') return true;
+  return queryValue(req, 'action') === 'epk';
+}
+
+function isPersonaImport(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/persona-import') return true;
+  return queryValue(req, 'action') === 'persona-import';
+}
+
+function isPersonaBio(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/persona-bio') return true;
+  return queryValue(req, 'action') === 'persona-bio';
+}
+
 function isArtists(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/artists') return true;
@@ -96,6 +116,9 @@ const ROUTE_ACTIONS = {
   guide: true,
   'admin-events': true,
   'admin-traffic': true,
+  epk: true,
+  'persona-import': true,
+  'persona-bio': true,
 };
 
 function artistVerb(body) {
@@ -744,7 +767,9 @@ async function saveArtists(req, res) {
 
   let stored = seedRoster(row);
   if (req.method === 'GET') {
-    if (shouldPersistRecoveredRoster(row, stored)) {
+    const linked = persona.linkReleases(stored, row.tonegrid_artist_id);
+    if (linked.changed) stored = linked.profile;
+    if (linked.changed || shouldPersistRecoveredRoster(row, stored)) {
       const next = await persistRoster(row, stored);
       sendJson(res, 200, publicUser(next || row));
       return;
@@ -766,6 +791,11 @@ async function saveArtists(req, res) {
   }
 
   const action = artistVerb(body);
+
+  if (action === 'persona') {
+    await personaHttp.savePersona(res, row, stored, body);
+    return;
+  }
 
   if (action === 'create') {
     const name = String((body && body.name) || '').trim();
@@ -970,6 +1000,10 @@ async function saveArtists(req, res) {
       edit_status: '',
       pending_edit: null,
     }));
+    if (!artist) {
+      sendJson(res, 400, { error: 'Artist name is required.' });
+      return;
+    }
     if (artist.photo === '' && photo && String(photo).indexOf('data:image') === 0) {
       sendJson(res, 400, { error: 'Photo must be a JPG or PNG.' });
       return;
@@ -1322,9 +1356,49 @@ async function adminEvents(req, res) {
   }
 }
 
+async function personaAction(req, res, kind) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+  let body;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJson(res, 400, { error: 'Invalid JSON.' });
+    return;
+  }
+  if (bodyHasPassword(body)) {
+    sendJson(res, 400, { error: 'Password is not accepted here.' });
+    return;
+  }
+  const stored = seedRoster(row);
+  if (kind === 'import') {
+    await personaHttp.handleImport(req, res, row, body);
+    return;
+  }
+  await personaHttp.handleBio(req, res, row, stored, body);
+}
+
 module.exports = async function handler(req, res) {
   if (isApply(req)) {
     await applications.handleApply(req, res);
+    return;
+  }
+  if (isEpk(req)) {
+    await personaHttp.handleEpk(req, res);
+    return;
+  }
+  if (isPersonaImport(req)) {
+    await personaAction(req, res, 'import');
+    return;
+  }
+  if (isPersonaBio(req)) {
+    await personaAction(req, res, 'bio');
     return;
   }
   if (isAdminSignups(req)) {
