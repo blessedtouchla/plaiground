@@ -912,6 +912,67 @@ function runQuestions() {
   assert.ok(packedText.indexOf('a chipped mug') !== -1);
 }
 
+function runReggae() {
+  const ids = modes.MODES.map(function (mode) { return mode.id; });
+  assert.strictEqual(ids[ids.indexOf('write') + 1], 'reggae', 'Reggae sits next to Write');
+  const reggae = modes.modeById('reggae');
+  assert.strictEqual(reggae.label, 'Reggae');
+  assert.strictEqual(reggae.lane, 'create');
+  assert.ok(!reggae.transform);
+  const laneIds = modes.REGGAE_LANES.map(function (row) { return row.id; });
+  assert.deepStrictEqual(laneIds, ['roots', 'lovers', 'dancehall', 'dub', 'cali']);
+  assert.strictEqual(modes.REGGAE_LANES[4].label, 'California (Cali), featured');
+  const blob = modes.REGGAE_LANES.map(function (row) {
+    return [row.label, row.coaching, row.hookPrompt, row.versePrompt, row.rhythm, row.slang].join(' ');
+  }).join('\n') + '\n' + modes.REGGAE_RESPECT;
+  assert.ok(/one-drop/i.test(blob));
+  assert.ok(/offbeat skank/i.test(blob));
+  assert.ok(/beach/i.test(modes.reggaeGuide('cali').coaching));
+  assert.ok(/backyard/i.test(modes.reggaeGuide('cali').coaching));
+  assert.ok(/surf/i.test(modes.reggaeGuide('cali').versePrompt));
+  assert.ok(/skate/i.test(modes.reggaeGuide('cali').versePrompt));
+  assert.ok(/own voice/i.test(modes.reggaeGuide('cali').coaching));
+  assert.ok(/rock and pop/i.test(modes.reggaeGuide('cali').coaching));
+  assert.ok(/do not fake patois/i.test(blob));
+  assert.ok(/Jamaican reggae is the root/i.test(blob));
+  assert.ok(!/—|–/.test(blob));
+  assert.ok(!/Suno|ToneGrid/i.test(blob));
+  ['Bob Marley', 'Peter Tosh', 'Jimmy Cliff', 'Sublime', 'Rebelution', 'Stick Figure', 'Toots', 'Dennis Brown', 'Buju', 'Vybz'].forEach(function (name) {
+    assert.ok(blob.indexOf(name) === -1, name);
+  });
+  const sample = modes.buildSample(concrete({
+    mode: 'reggae',
+    reggae: 'cali',
+    place: 'the patio',
+    object: 'a skateboard',
+    quote: 'we can stay out here',
+  }));
+  assert.strictEqual(sample.ok, true);
+  const text = modes.allLines(sample.draft).map(function (row) { return row.text; }).join('\n');
+  assert.ok(text.indexOf('we can stay out here') !== -1);
+  assert.ok(text.indexOf('a skateboard') !== -1);
+  assert.ok(sample.draft.notes.join(' ').indexOf('California (Cali), featured') !== -1);
+  assert.ok(sample.draft.notes.join(' ').indexOf('Hook prompt.') !== -1);
+  const roots = modes.normalizeInput({ mode: 'reggae', reggae: 'nope', place: 'a', object: 'b', quote: 'c' });
+  assert.strictEqual(roots.reggae, 'roots');
+  const prompt = modes.systemPrompt(modes.normalizeInput({
+    mode: 'reggae',
+    reggae: 'cali',
+    place: 'the beach',
+    object: 'a board',
+    quote: 'stay',
+  }));
+  assert.ok(/fake patois/i.test(prompt));
+  assert.ok(/California \(Cali\), featured/.test(prompt));
+  assert.ok(!/Suno|ToneGrid/i.test(prompt));
+  const html = read('song-helper.html');
+  assert.ok(html.includes('Write, Reggae, Funny'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261014reggae'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261014reggae'));
+  assert.ok(read('song-helper-v2.js').includes('paintReggaeGuide'));
+  assert.ok(read('song-helper-v2.js').includes('Write the reggae draft'));
+}
+
 async function run() {
   runModes();
   runQuestions();
@@ -919,6 +980,7 @@ async function run() {
   runSpark();
   await runApi();
   runPages();
+  runReggae();
   console.log('song-helper-v2.test.js ok');
 }
 

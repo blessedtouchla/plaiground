@@ -192,6 +192,7 @@
       kind: fieldValue('kind') || 'composition',
       work: fieldValue('work'),
       meter: fieldValue('meter') || 'clean',
+      reggae: fieldValue('reggae') || 'roots',
       barStyle: fieldValue('barStyle') || 'east',
       era: fieldValue('era') || 'now',
       bars: fieldValue('bars') || '8',
@@ -433,7 +434,7 @@
     paintModes();
     paintFields();
     paintSlang();
-    goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : 'Make the draft'))));
+    goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : (id === 'reggae' ? 'Write the reggae draft' : 'Make the draft')))));
     lyricsReady = false;
     styleShown = false;
     v2StyleOpen = false;
@@ -572,6 +573,20 @@
         options: modes.FUNNY_METERS,
       });
     }
+    if (mode === 'reggae') {
+      addField(host, {
+        id: 'reggae',
+        label: 'Reggae lane',
+        kind: 'select',
+        value: 'roots',
+        options: modes.REGGAE_LANES,
+      });
+      paintReggaeGuide(host, 'roots');
+      var reggaePick = host.querySelector('[data-field="reggae"]');
+      if (reggaePick) reggaePick.addEventListener('change', function () {
+        paintReggaeGuide(host, reggaePick.value);
+      });
+    }
     if (mode === 'madlibs') addField(host, { id: 'verb', label: 'A verb', placeholder: 'wait' });
     if (mode === 'review') addField(host, { id: 'lines', label: 'Your lines', kind: 'area', placeholder: 'One line per row' });
     if (mode === 'homage' || mode === 'superhero') addField(host, { id: 'name', label: mode === 'superhero' ? 'Your name, as the hero' : 'Who the tribute is for' });
@@ -623,6 +638,38 @@
       });
     }
     seedFields();
+  }
+
+  function paintReggaeGuide(host, id) {
+    if (!host || !modes.reggaeGuide) return;
+    var guide = modes.reggaeGuide(id);
+    var box = host.querySelector('.sh-reggae-guide');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'sh-note-block sh-reggae-guide';
+      host.appendChild(box);
+    }
+    box.textContent = '';
+    function add(label, text) {
+      var p = document.createElement('p');
+      p.className = 'sh-help';
+      if (label) {
+        var strong = document.createElement('strong');
+        strong.textContent = label;
+        p.appendChild(strong);
+        p.appendChild(document.createTextNode(' ' + text));
+      } else {
+        p.textContent = text;
+      }
+      box.appendChild(p);
+    }
+    add('', guide.label);
+    add('Coaching.', guide.coaching);
+    add('Hook prompt.', guide.hookPrompt);
+    add('Verse prompt.', guide.versePrompt);
+    add('Rhythm.', guide.rhythm);
+    add('Slang.', guide.slang);
+    add('', guide.respect);
   }
 
   function paintSlang() {

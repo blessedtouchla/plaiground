@@ -37,7 +37,7 @@
       status: 'live',
       href: '/song-helper',
       link: 'Song Helper',
-      what: 'Help for the idea stage: write, Flip it, Funkify it, Make it funny, Mad Libs, and Battle.',
+      what: 'Help for the idea stage: write, Reggae, Flip it, Funkify it, Make it funny, Mad Libs, and Battle.',
       get: 'A draft you can shape. People check the work.',
       who: 'Plai, with people checking the work.',
       why: {
