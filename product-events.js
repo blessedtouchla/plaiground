@@ -12,12 +12,15 @@
   var MAX_PENDING = 40;
   var KEY_EVENTS = {
     signup: true,
+    submission: true,
     song_helper_first: true,
     cover_art_generated: true,
     distro_checkout_started: true,
     distro_checkout_completed: true
   };
   var PIXEL_EVENTS = {
+    signup: 'CompleteRegistration',
+    submission: 'SubmitApplication',
     song_helper_first: 'Lead',
     distro_checkout_started: 'InitiateCheckout',
     distro_checkout_completed: 'Purchase'

@@ -1,21 +1,22 @@
 # Launch tracking (Oct 10 to Oct 20)
 
-Pixels stay off until these env vars are set on Vercel (Production and Preview). No ids belong in the repo.
+GA4 and the Meta Pixel are on for wannaplai.com. If `GA4_MEASUREMENT_ID` or `META_PIXEL_ID` is empty, the public ids are used. A set env var overrides that id. TikTok stays off until `TIKTOK_PIXEL_ID` is set.
 
 | Env var | What Victoria creates | Shape |
 | --- | --- | --- |
-| `META_PIXEL_ID` | Meta Events Manager pixel for wannaplai.com | Digits only, 5 to 20 |
-| `TIKTOK_PIXEL_ID` | TikTok Events Manager pixel | Letters and digits, 10 to 32 |
-| `GA4_MEASUREMENT_ID` | Google Analytics 4 web stream for wannaplai.com | `G-` plus 4 to 20 letters or digits |
+| `META_PIXEL_ID` | Meta Events Manager pixel for wannaplai.com | Digits only, 5 to 20. Empty uses `1646654180170753`. |
+| `TIKTOK_PIXEL_ID` | TikTok Events Manager pixel | Letters and digits, 10 to 32. Empty stays off. |
+| `GA4_MEASUREMENT_ID` | Google Analytics 4 web stream for wannaplai.com | `G-` plus 4 to 20 letters or digits. Empty uses `G-3033FJLNC7`. |
 
-`GET /api/auth/pixel` returns `pixel_id`, `tiktok_pixel_id`, and `ga4_measurement_id`. Each is an empty string until that env var is set.
+`GET /api/auth/pixel` returns `pixel_id`, `tiktok_pixel_id`, and `ga4_measurement_id`.
 
 ## What each standard event means
 
 | Ours | Meta | TikTok | GA4 |
 | --- | --- | --- | --- |
-| Page view on a public page | PageView | Pageview | page_view |
+| Page view on every route, including client-side path changes | PageView | Pageview | page_view |
 | Signup | CompleteRegistration | CompleteRegistration | sign_up |
+| Release submission | SubmitApplication | SubmitForm | submit_application |
 | First Song Helper song | Lead | SubmitForm | generate_lead |
 | Distribution checkout started | InitiateCheckout | InitiateCheckout | begin_checkout |
 | Distribution checkout completed | Purchase | CompletePayment | purchase |

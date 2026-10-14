@@ -6836,6 +6836,12 @@
     syncReviewAudioRepick();
   }
 
+  function noteSubmission() {
+    try {
+      (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'submission', payload: {} });
+    } catch (err) {}
+  }
+
   function finishSubmit(draft, releaseDate, trigger, nextHref) {
     return restoreHeldAudio().then(function () {
       return finishSubmitReady(readDraft(), releaseDate, trigger, nextHref);
@@ -6882,6 +6888,7 @@
             writeDraft({ submitted: true, tonegrid_status: 'pending' });
             setStatus('tg-status', 'Store status: pending');
             showSubmitRetry(false);
+            noteSubmission();
             if (nextHref) go(nextHref);
             return;
           }
@@ -6900,6 +6907,7 @@
           ? 'Store status: ' + toneStatus + ' · awaiting signature'
           : 'Store status: ' + toneStatus);
         showSubmitRetry(false);
+        noteSubmission();
         if (nextHref) go(nextHref);
       }).catch(function (err) {
         failSubmit((err && err.message) || 'Could not reach catalog.', trigger);
