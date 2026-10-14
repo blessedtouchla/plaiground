@@ -307,6 +307,14 @@ async function handleMode(req, res, body) {
       sendJson(res, fallback.ok ? 200 : 400, fallback);
       return;
     }
+    var parodyNote = null;
+    if (input.mode === 'parody') {
+      parodyNote = modes.parodyCritique(input);
+      draft.notes = draft.notes || [];
+      [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE].forEach(function (note) {
+        if (draft.notes.indexOf(note) === -1) draft.notes.push(note);
+      });
+    }
     sendJson(res, 200, {
       ok: true,
       preview: false,
@@ -314,6 +322,7 @@ async function handleMode(req, res, body) {
       notice: '',
       attribution: core.GROK_ATTRIBUTION,
       mode: input.mode,
+      critique: parodyNote,
       draft: draft,
     });
   } catch (err) {

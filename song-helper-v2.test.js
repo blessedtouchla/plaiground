@@ -238,10 +238,37 @@ function runModes() {
     comment: 'The original pretends the town is fine.',
     parodyAck: false,
   }));
-  assert.strictEqual(parodyOk.step, 'critique');
+  assert.strictEqual(parodyOk.ok, true);
   assert.strictEqual(parodyOk.critique.ok, true);
+  assert.ok(parodyOk.draft.sections.length >= 2);
   assert.ok(/fair use/i.test(parodyOk.critique.fairUse));
+  assert.ok(/fair use/i.test(parodyOk.draft.notes.join(' ')));
   assert.ok(/parody/i.test(parodyOk.critique.release));
+  assert.ok(/The original pretends the town is fine/.test(JSON.stringify(parodyOk.draft)));
+  const parodyRabbit = modes.buildSample({
+    mode: 'parody',
+    originalTitle: 'HUMBLE. by Kendrick Lamar',
+    title: 'The receipt',
+    comment: 'He pays for streams, cheated, got high, is not home, and says he is a good person.',
+    artNote: 'A receipt on a table, not their cover.',
+    craft: { rabbit: true },
+  });
+  assert.strictEqual(parodyRabbit.ok, true);
+  assert.ok(!/Rabbit hole/i.test(parodyRabbit.error || ''));
+  assert.ok(/fair use/i.test(parodyRabbit.draft.notes.join(' ')));
+  assert.ok(/Not their lyric, and not their melody/.test(JSON.stringify(parodyRabbit.draft)));
+  assert.ok(/do not copy or quote/i.test(modes.systemPrompt(modes.normalizeInput({ mode: 'parody', originalTitle: 'HUMBLE. by Kendrick Lamar', comment: 'The point.', craft: {} }))));
+  const parodyModel = modes.draftFromModel(JSON.stringify({
+    title: 'The receipt',
+    sections: [{ label: 'Verse', lines: ['The story is the one you told, in new words.'] }],
+  }), modes.normalizeInput({
+    mode: 'parody',
+    originalTitle: 'HUMBLE. by Kendrick Lamar',
+    title: 'The receipt',
+    comment: 'He says he is good.',
+  }));
+  assert.ok(parodyModel);
+  assert.ok(/fair use/i.test(parodyModel.notes.join(' ')));
 
   const voiced = modes.parodyCritique({
     originalTitle: 'Old Song',
@@ -877,6 +904,10 @@ function runPages() {
   assert.ok(js.includes('KIND_MOOD'));
   assert.ok(js.includes("heartbreak: 'heartbroken'"));
   assert.ok(js.includes('Song you want to cover'));
+  assert.ok(js.includes('Original song'));
+  assert.ok(js.includes('HUMBLE. by Kendrick Lamar'));
+  assert.ok(js.includes('plaiground.songHelper.fields'));
+  assert.ok(js.includes('snapshotFields'));
   assert.ok(js.includes('FAIR_USE_NOTE'));
   assert.ok(html.includes('id="sh-ideas-panel"'));
   assert.ok(html.includes('id="sh-own-panel"'));

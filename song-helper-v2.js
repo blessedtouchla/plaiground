@@ -132,6 +132,107 @@
     return value;
   }
 
+  var FIELD_STORE = 'plaiground.songHelper.fields';
+
+  function readFieldStore() {
+    try {
+      return JSON.parse(localStorage.getItem(FIELD_STORE) || '{}') || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function fieldStoreKey(el) {
+    if (!el || !el.closest || !el.closest('#sh-shell')) return '';
+    if (el.id === 'sh-honey') return '';
+    var data = el.getAttribute('data-field');
+    if (data) return 'v2:' + data;
+    var spark = el.getAttribute('data-spark-ask');
+    if (spark) return 'spark:' + spark;
+    if (el.id) return 'id:' + el.id;
+    return '';
+  }
+
+  function snapshotFields() {
+    var saved = readFieldStore();
+    var values = saved.values || {};
+    var nodes = document.querySelectorAll('#sh-shell input, #sh-shell textarea, #sh-shell select');
+    Array.prototype.forEach.call(nodes, function (el) {
+      var key = fieldStoreKey(el);
+      if (!key) return;
+      if (el.type === 'checkbox' || el.type === 'radio') values[key] = el.checked ? '1' : '0';
+      else values[key] = String(el.value || '');
+    });
+    saved.values = values;
+    saved.mode = mode || '';
+    saved.branch = branch || '';
+    try {
+      localStorage.setItem(FIELD_STORE, JSON.stringify(saved));
+    } catch (err) {}
+  }
+
+  function applyStoredValue(el, raw) {
+    if (!el || raw == null) return;
+    if (el.type === 'checkbox') {
+      el.checked = raw === '1';
+      return;
+    }
+    if (el.type === 'radio') return;
+    if (String(el.value || '').trim()) return;
+    el.value = String(raw);
+  }
+
+  function restoreStaticFields() {
+    var values = readFieldStore().values || {};
+    var nodes = document.querySelectorAll('#sh-shell input, #sh-shell textarea, #sh-shell select');
+    Array.prototype.forEach.call(nodes, function (el) {
+      var key = fieldStoreKey(el);
+      if (!key || values[key] == null || values[key] === '') return;
+      applyStoredValue(el, values[key]);
+    });
+    var rabbit = $('sh-rabbit');
+    if (rabbit) craft.rabbit = rabbit.checked;
+  }
+
+  function restoreV2Fields() {
+    var values = readFieldStore().values || {};
+    var nodes = document.querySelectorAll('#sh-v2-fields [data-field]');
+    Array.prototype.forEach.call(nodes, function (el) {
+      var key = 'v2:' + el.getAttribute('data-field');
+      if (values[key] == null || values[key] === '') return;
+      if (el.tagName === 'SELECT') {
+        el.value = String(values[key]);
+        return;
+      }
+      if (String(el.value || '').trim()) return;
+      el.value = String(values[key]);
+    });
+  }
+
+  function bindFieldAutosave() {
+    var shell = $('sh-shell');
+    if (!shell || shell.getAttribute('data-autosave')) return;
+    shell.setAttribute('data-autosave', '1');
+    function onEdit(event) {
+      var el = event && event.target;
+      if (!fieldStoreKey(el)) return;
+      snapshotFields();
+    }
+    shell.addEventListener('input', onEdit);
+    shell.addEventListener('change', onEdit);
+  }
+
+  function restoreParodyVisit() {
+    var saved = readFieldStore();
+    var values = saved.values || {};
+    var hasParody = ['v2:originalTitle', 'v2:comment', 'v2:artNote'].some(function (key) {
+      return String(values[key] || '').trim();
+    });
+    if (!hasParody || (saved.mode !== 'parody' && saved.mode !== 'cover' && saved.mode !== 'public-domain')) return;
+    if (saved.branch === 'source') setBranch('source');
+    if (saved.mode) setMode(saved.mode);
+  }
+
   function readMood() {
     if (window.SongHelperPage && window.SongHelperPage.mood) {
       var fromPage = window.SongHelperPage.mood();
@@ -516,11 +617,15 @@
     if (mode === 'parody' || mode === 'cover') {
       addField(host, {
         id: 'originalTitle',
-        label: mode === 'cover' ? 'Song you want to cover' : 'Original title',
-        placeholder: 'The real song title'
+        label: mode === 'cover' ? 'Song you want to cover' : 'Original song',
+        placeholder: mode === 'cover' ? 'The real song title' : 'Song title by artist'
       });
     }
     if (mode === 'parody') {
+      var parodyHelp = document.createElement('p');
+      parodyHelp.className = 'sh-help';
+      parodyHelp.textContent = 'Name the original song and artist, for example HUMBLE. by Kendrick Lamar. The new lyric comments on it and does not copy its lyrics or melody.';
+      host.appendChild(parodyHelp);
       addField(host, { id: 'title', label: 'Your title (not a look-alike)' });
       addField(host, { id: 'comment', label: 'What are you saying about the original?', kind: 'area', story: true });
       addField(host, { id: 'artNote', label: 'Cover idea, if you have one', placeholder: 'A different picture. Not their art.' });
@@ -627,6 +732,7 @@
       });
     }
     seedFields();
+    restoreV2Fields();
   }
 
   function paintSlang() {
@@ -1099,6 +1205,12 @@
         syncStructure();
         return;
       }
+    }
+    if (mode === 'parody') {
+      draft.notes = draft.notes || [];
+      [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE].forEach(function (note) {
+        if (note && draft.notes.indexOf(note) === -1) draft.notes.push(note);
+      });
     }
     lastDraft = draft;
     (window.PlaigroundEventQueue = window.PlaigroundEventQueue || []).push({ name: 'song_helper_draft', payload: {} });
@@ -4277,6 +4389,9 @@
   if (haveBtn) haveBtn.addEventListener('click', function () { setBranch('have'); });
   paintBranch();
   bootWriteFirst();
+  bindFieldAutosave();
+  restoreStaticFields();
+  restoreParodyVisit();
   paintStyleDesign();
   loadStatus();
   loadSlang();
