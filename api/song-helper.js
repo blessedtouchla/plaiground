@@ -25,6 +25,7 @@ const slang = require('../lib/slang');
 const reddit = require('../lib/reddit-slang');
 const spark = require('../lib/spark');
 const sparkFeed = require('../lib/spark-feed');
+const artistDev = require('../lib/artist-dev');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -740,6 +741,37 @@ async function handleSounds(req, res, body) {
   }
 }
 
+async function handleDev(req, res, action, body) {
+  var userId = guard.sessionUserId(req);
+  if (!userId) {
+    if (action === 'dev-status') {
+      sendJson(res, 200, { ok: true, signedIn: false });
+      return;
+    }
+    sendJson(res, 401, { ok: false, error: 'Sign in to use artist tools.' });
+    return;
+  }
+  try {
+    var result;
+    if (action === 'dev-status') result = await artistDev.status(userId);
+    else if (action === 'vault-list') result = { ok: true, items: await artistDev.listVault(userId) };
+    else if (action === 'vault-save') result = await artistDev.saveVault(userId, body);
+    else if (action === 'vault-delete') result = await artistDev.deleteVault(userId, body && body.id);
+    else if (action === 'read-me') result = await artistDev.readMe(userId);
+    else if (action === 'persona-lock') result = await artistDev.personaLock(userId);
+    else if (action === 'voice-check') result = await artistDev.voiceCheck(userId, body);
+    else if (action === 'voice-rewrite') result = await artistDev.voiceRewrite(userId, body);
+    else {
+      sendJson(res, 404, { ok: false, error: 'That action is not on this page.' });
+      return;
+    }
+    sendJson(res, result.status || 200, result);
+  } catch (err) {
+    var status = err && err.code === 'CREDITS' ? 402 : (err && err.code === 'VALIDATION' ? 400 : 500);
+    sendJson(res, status, { ok: false, error: err && err.message ? err.message : 'That did not save.' });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'status') {
     sendJson(res, 200, guard.status());
@@ -803,6 +835,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleRewrite(req, res, rewriteBody || {}, action);
     return;
   }
+  if (action === 'dev-status' || action === 'vault-list' || action === 'vault-save' || action === 'vault-delete' || action === 'read-me' || action === 'persona-lock' || action === 'voice-check' || action === 'voice-rewrite') {
+    var devBody = givenBody;
+    if (!devBody && req.method === 'POST') devBody = await readBody(req);
+    await handleDev(req, res, action, devBody || {});
+    return;
+  }
   if (action === 'scout' || action === 'scoop') {
     var body = givenBody;
     if (!body) body = await readBody(req);
@@ -839,7 +877,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

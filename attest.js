@@ -131,8 +131,21 @@
       var lyricsOn = Boolean(didLyrics && didLyrics.checked) || selectedElements().indexOf('Original lyrics') !== -1;
       var beatOn = Boolean(didBeat && didBeat.checked);
       var directedOn = Boolean(directed && directed.checked);
+      var aiBox = document.getElementById('attest-ai-use');
+      var howNow = selectedHow();
+      var caption = '';
+      if (root.PlaigroundArtistDev && typeof root.PlaigroundArtistDev.madeCaption === 'function') {
+        caption = root.PlaigroundArtistDev.madeCaption({
+          made_how: howNow,
+          ai_used: Boolean(aiBox && aiBox.checked) || howNow === 'ai_assisted' || howNow === 'fully_ai',
+          human_elements: selectedElements(),
+          human_contribution: human ? String(human.value || '').trim() : '',
+        });
+      }
       var fields = {
-        made_how: selectedHow(),
+        made_how: howNow,
+        ai_used: Boolean(aiBox && aiBox.checked) || howNow === 'ai_assisted' || howNow === 'fully_ai',
+        made_caption: caption,
         human_elements: selectedElements(),
         human_contribution: human ? String(human.value || '').trim() : '',
         rights_confirmed: Boolean(rights && rights.checked),
@@ -330,8 +343,28 @@
       }
     }
 
+    function syncAiUse() {
+      var aiBox = document.getElementById('attest-ai-use');
+      var caption = document.querySelector('[data-made-caption]');
+      var how = selectedHow();
+      if (aiBox) aiBox.checked = how === 'ai_assisted' || how === 'fully_ai';
+      var text = root.PlaigroundArtistDev && root.PlaigroundArtistDev.madeCaption
+        ? root.PlaigroundArtistDev.madeCaption({
+          made_how: how,
+          ai_used: Boolean(aiBox && aiBox.checked),
+          human_elements: selectedElements(),
+          human_contribution: human ? String(human.value || '').trim() : '',
+        })
+        : '';
+      if (caption) {
+        caption.textContent = text;
+        caption.hidden = !text;
+      }
+    }
+
     function refresh() {
       syncHumanSection();
+      syncAiUse();
       syncSolo();
       syncRightsStatus();
       if (countEl) countEl.textContent = selectedElements().length + ' selected';
@@ -367,6 +400,15 @@
     });
     if (human) human.addEventListener('input', refresh);
     if (rights) rights.addEventListener('change', refresh);
+    var aiUse = document.getElementById('attest-ai-use');
+    if (aiUse) aiUse.addEventListener('change', function () {
+      if (aiUse.checked) {
+        if (selectedHow() !== 'fully_ai') selectHow('ai_assisted');
+        else refresh();
+      } else {
+        selectHow('no_ai');
+      }
+    });
     if (solo) {
       solo.addEventListener('change', function () {
         setOtherWriters(!(solo && solo.checked));

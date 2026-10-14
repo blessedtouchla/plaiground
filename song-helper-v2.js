@@ -3156,6 +3156,7 @@
       syncPartCount(id);
       paintHumanMeter();
       persistPage();
+      noteArtistSections();
     });
   }
 
@@ -3287,12 +3288,24 @@
       article.appendChild(askPanel);
       article.appendChild(suggestPanel);
       article.appendChild(rewritePanel);
+      var voice = document.createElement('div');
+      voice.className = 'sh-voice';
+      voice.setAttribute('data-voice', row.id);
+      voice.hidden = true;
+      article.appendChild(voice);
       article.appendChild(err);
       host.appendChild(article);
       bindPartInput(area, row.id);
       syncPartCount(row.id);
       if (row.question) fillAskPanel(askPanel, row.id, row.question, 'Answer in your own words. Adding it counts toward the meter.');
     });
+    noteArtistSections();
+  }
+
+  function noteArtistSections() {
+    try {
+      window.dispatchEvent(new CustomEvent('plaiground-sections', { detail: pageSections }));
+    } catch (err) {}
   }
 
   function bootWriteFirst() {

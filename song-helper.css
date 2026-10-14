@@ -12,6 +12,14 @@ body.song-helper-page .plai-bubble {
   display: none;
 }
 
+.sh-voice-warn {
+  margin-top: 8px;
+}
+
+#sh-social-card {
+  margin-top: 18px;
+}
+
 .sh {
   padding: calc(var(--nav-h) + 28px) 0 96px;
 }
