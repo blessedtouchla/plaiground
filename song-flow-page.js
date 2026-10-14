@@ -466,6 +466,14 @@
   }
 
   function paintStep(host, step) {
+    var muse = window.SongHelperMuse;
+    if (muse && muse.prompt && step.kind === 'for') {
+      var museLine = document.createElement('p');
+      museLine.className = 'sh-help';
+      museLine.id = 'sh-muse-carry';
+      museLine.textContent = 'Muse: ' + muse.label + '. ' + muse.prompt;
+      host.appendChild(museLine);
+    }
     var ask = document.createElement('p');
     ask.className = 'sh-q';
     ask.textContent = step.ask;
@@ -869,6 +877,10 @@
       render();
     },
     paintCast: function () { paintCast(); },
+    setMuse: function (muse) {
+      window.SongHelperMuse = muse || null;
+      render();
+    },
     flowState: function () {
       syncTitle();
       syncKinds();

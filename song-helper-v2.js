@@ -77,6 +77,7 @@
   var sparkDailyOpen = false;
   var sparkAsk = { feel: '', story: '', keep: '' };
   var sparkSeed = null;
+  var museId = '';
   var seededAngle = '';
   var ideaLane = '';
   var branch = '';
@@ -2376,6 +2377,37 @@
     }
     paintIdeaLane();
     paintSourceNotes();
+    paintMuses();
+  }
+
+  function paintMuses() {
+    var host = $('sh-muse-list');
+    var note = $('sh-muse-note');
+    var flow = window.SongFlow;
+    if (!host || !flow || !flow.MUSES) return;
+    host.textContent = '';
+    flow.MUSES.forEach(function (muse) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (museId === muse.id ? ' on' : '');
+      button.textContent = muse.label;
+      button.setAttribute('aria-pressed', museId === muse.id ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        museId = museId === muse.id ? '' : muse.id;
+        paintMuses();
+        if (window.SongFlowPage && window.SongFlowPage.setMuse) window.SongFlowPage.setMuse(window.SongHelperMuse);
+      });
+      host.appendChild(button);
+    });
+    var picked = null;
+    flow.MUSES.forEach(function (muse) {
+      if (muse.id === museId) picked = muse;
+    });
+    if (note) {
+      note.hidden = !picked;
+      note.textContent = picked ? picked.prompt : '';
+    }
+    window.SongHelperMuse = picked;
   }
 
   function setStoryBox(on, opts) {
@@ -2604,8 +2636,10 @@
     article.appendChild(title);
     if (detail.textContent) article.appendChild(detail);
     article.appendChild(source);
-    addSparkLine(article, 'Flip the angle', item.flip);
-    addSparkLine(article, 'Answer song', item.answer);
+    var flipLabel = item.lane === 'causes' ? 'Hopeful angle' : 'Flip the angle';
+    var answerLabel = item.lane === 'causes' ? 'Protest angle' : 'Answer song';
+    addSparkLine(article, flipLabel, item.flip);
+    addSparkLine(article, answerLabel, item.answer);
     if (item.cause) addSparkLine(article, 'Cause drop', item.cause);
     if (item.dailyNote) {
       var daily = document.createElement('p');
@@ -2616,7 +2650,7 @@
     var actions = document.createElement('div');
     actions.className = 'sh-spark-actions';
     actions.appendChild(sparkButton('Use this spark', function () { chooseSpark(item, 'spark'); }));
-    if (item.flip) actions.appendChild(sparkButton('Flip the angle', function () { chooseSpark(item, 'flip'); }));
+    if (item.flip) actions.appendChild(sparkButton(item.lane === 'causes' ? 'Hopeful angle' : 'Flip the angle', function () { chooseSpark(item, 'flip'); }));
     article.appendChild(actions);
     return article;
   }
@@ -2890,8 +2924,13 @@
       if (response.ok) {
         var data = await response.json();
         if (data && data.items) pack = data;
+        else if (spark && spark.withoutTrending) pack = spark.withoutTrending(pack);
+      } else if (spark && spark.withoutTrending) {
+        pack = spark.withoutTrending(pack);
       }
-    } catch (err) {}
+    } catch (err) {
+      if (spark && spark.withoutTrending) pack = spark.withoutTrending(pack);
+    }
     if (pack) paintSpark(pack);
   }
 

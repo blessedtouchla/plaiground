@@ -425,9 +425,26 @@ function runSpark() {
   assert.ok(/more human the draft feels/i.test(spark.ASK.optional));
   assert.ok(/personal experience/i.test(spark.ASK.story));
   assert.strictEqual(spark.tragedy('A shooting downtown'), true);
-  const xml = '<rss><channel><title>Feed</title><item><title>Library hours</title></item><item><title>A shooting downtown</title></item></channel></rss>';
+  assert.strictEqual(spark.tragedy('Singer dies at home'), true);
+  assert.strictEqual(spark.tragedy('The deadline moved'), false);
+  const xml = '<rss><channel><title>Feed</title><item><title>Library hours</title></item><item><title>A shooting downtown</title></item><item><title>A quiet name</title><ht:news_item_title>Reporter dies at 73</ht:news_item_title></item></channel></rss>';
   const titles = sparkFeed.titlesFromXml(xml);
   assert.deepStrictEqual(titles, ['Library hours']);
+  const causeTopics = spark.topicsFor(pack.items, ['causes']).map(function (row) { return row.label; });
+  ['Climate and environment', 'Racial justice', 'Immigration', 'Mental health', 'Housing and homelessness', 'LGBTQ+ rights', 'Gun violence', "Workers' rights", 'Peace and anti-war', 'Animal rights', 'Voting', "Women's rights", 'Community and youth'].forEach(function (label) {
+    assert.ok(causeTopics.indexOf(label) !== -1, label);
+  });
+  pack.items.filter(function (item) { return item.lane === 'causes'; }).forEach(function (item) {
+    assert.ok(item.flip.length > 20 && item.answer.length > 20, item.id);
+    assert.ok(/hopeful or protest/i.test(item.cause), item.id);
+    assert.ok(!/Democrat|Republican|Trump|Biden|\bparty\b|candidate/i.test(JSON.stringify(item)));
+    assert.ok(!spark.tragedy([item.title, item.detail, item.flip, item.answer, item.cause].join(' ')));
+  });
+  assert.strictEqual(spark.REFRESH_NOTICE, 'Trending is refreshing, check back soon');
+  const flow = require('./lib/song-flow');
+  assert.ok(flow.MUSES.length >= 8);
+  assert.ok(flow.MUSES.some(function (muse) { return muse.label === 'Someone you love' && muse.prompt; }));
+  assert.ok(!/—|–/.test(JSON.stringify(flow.MUSES)));
 }
 
 async function runApi() {
@@ -496,10 +513,14 @@ async function runApi() {
     assert.strictEqual(refresh.json.configured, false);
     assert.ok(/not configured/i.test(refresh.json.error));
 
+    sparkFeed.clearCache();
     const sparkRes = mockRes();
     await handler({ method: 'GET', url: '/api/spark', query: { action: 'spark' }, headers: {} }, sparkRes);
     assert.strictEqual(sparkRes.statusCode, 200);
     assert.strictEqual(sparkRes.json.demo, true);
+    assert.strictEqual(sparkRes.json.notice, 'Trending is refreshing, check back soon');
+    assert.ok(!(sparkRes.json.items || []).some(function (item) { return item.lane === 'trending' || item.topic === 'The group chat'; }));
+    assert.ok((sparkRes.json.items || []).some(function (item) { return item.topic === 'Climate and environment'; }));
 
     const status = mockRes();
     await handler({ method: 'GET', url: '/api/song-helper?action=status', headers: {} }, status);
@@ -772,6 +793,12 @@ function runPages() {
   assert.ok(read('spark.js').includes('Use this spark'));
   assert.ok(read('spark.js').includes('spark.headlinesFor'));
   assert.ok(read('spark.js').includes('Start writing'));
+  assert.ok(html.includes('id="sh-muses"'));
+  assert.ok(html.includes('>Muses<'));
+  assert.ok(js.includes('paintMuses'));
+  assert.ok(js.includes('Hopeful angle'));
+  assert.ok(js.includes('Protest angle'));
+  assert.ok(read('lib/song-flow.js').includes('Someone you love'));
   assert.ok(html.includes('Give me ideas'));
   assert.ok(html.includes('I have my own idea'));
   assert.ok(html.includes('the more human the draft feels'));
@@ -912,12 +939,86 @@ function runQuestions() {
   assert.ok(packedText.indexOf('a chipped mug') !== -1);
 }
 
+async function runTrendFeed() {
+  const previousFetch = global.fetch;
+  const previousKey = process.env.YOUTUBE_API_KEY;
+  const previousFeeds = process.env.SPARK_FEEDS;
+  delete process.env.YOUTUBE_API_KEY;
+  delete process.env.SPARK_FEEDS;
+  sparkFeed.clearCache();
+  const google = '<rss><channel><item><title>Library hours</title><ht:news_item_title>City extends hours</ht:news_item_title></item><item><title>A quiet name</title><ht:news_item_title>Singer dies at 73</ht:news_item_title></item><item><title>OnlyFans rumor</title></item></channel></rss>';
+  const apple = JSON.stringify({ feed: { results: [{ name: 'Window Seat', artistName: 'A Real Singer' }, { name: 'Nude Beach', artistName: 'Nope' }] } });
+  let calls = 0;
+  global.fetch = function (url) {
+    calls += 1;
+    const href = String(url);
+    if (href.indexOf('trends.google.com') !== -1) return Promise.resolve({ ok: true, text: async function () { return google; } });
+    if (href.indexOf('apple.com') !== -1) return Promise.resolve({ ok: true, text: async function () { return apple; } });
+    return Promise.reject(new Error('unexpected ' + href));
+  };
+  const live = await sparkFeed.load();
+  assert.strictEqual(live.failed, false);
+  assert.ok(live.asOf);
+  assert.ok(/^As of /.test(live.notice));
+  assert.ok(/Google Trends/.test(live.notice));
+  assert.ok(/Apple Music/.test(live.notice));
+  const titles = live.items.map(function (item) { return item.title; });
+  assert.ok(titles.indexOf('Library hours') !== -1);
+  assert.ok(titles.some(function (title) { return title.indexOf('Window Seat') !== -1; }));
+  assert.ok(!titles.some(function (title) { return /dies|OnlyFans|Nude/i.test(title); }));
+  assert.ok(live.items.every(function (item) { return item.lane === 'trending' && item.sample === false; }));
+  const packed = sparkFeed.publicPack(live);
+  assert.strictEqual(packed.demo, false);
+  assert.ok(packed.items.some(function (item) { return item.topic === 'Climate and environment'; }));
+  assert.ok(!packed.items.some(function (item) { return item.topic === 'The group chat'; }));
+  const after = calls;
+  const again = await sparkFeed.load();
+  assert.strictEqual(calls, after);
+  assert.strictEqual(again.items[0].title, live.items[0].title);
+
+  sparkFeed.clearCache();
+  process.env.YOUTUBE_API_KEY = 'test-key-not-real';
+  global.fetch = function (url) {
+    const href = String(url);
+    if (href.indexOf('googleapis.com') === -1) return Promise.resolve({ ok: false, text: async function () { return ''; } });
+    assert.ok(href.indexOf('videoCategoryId=10') !== -1);
+    assert.ok(href.indexOf('test-key-not-real') !== -1);
+    return Promise.resolve({
+      ok: true,
+      text: async function () { return JSON.stringify({ items: [{ snippet: { title: 'A real video', channelTitle: 'A channel' } }] }); },
+    });
+  };
+  const video = await sparkFeed.load();
+  assert.strictEqual(video.failed, false);
+  assert.ok(video.items.some(function (item) { return item.topic === 'Music videos' && item.title.indexOf('A real video') !== -1; }));
+  assert.ok(video.items.every(function (item) { return String(item.sourceUrl).indexOf('test-key-not-real') === -1; }));
+
+  sparkFeed.clearCache();
+  delete process.env.YOUTUBE_API_KEY;
+  global.fetch = function () { return Promise.reject(new Error('down')); };
+  const failed = await sparkFeed.load();
+  assert.strictEqual(failed.failed, true);
+  const empty = sparkFeed.publicPack(failed);
+  assert.strictEqual(empty.demo, true);
+  assert.strictEqual(empty.notice, 'Trending is refreshing, check back soon');
+  assert.strictEqual(empty.daily, null);
+  assert.ok(!empty.items.some(function (item) { return item.lane === 'trending'; }));
+
+  sparkFeed.clearCache();
+  global.fetch = previousFetch;
+  if (previousKey == null) delete process.env.YOUTUBE_API_KEY;
+  else process.env.YOUTUBE_API_KEY = previousKey;
+  if (previousFeeds == null) delete process.env.SPARK_FEEDS;
+  else process.env.SPARK_FEEDS = previousFeeds;
+}
+
 async function run() {
   runModes();
   runQuestions();
   runSlang();
   runSpark();
   await runApi();
+  await runTrendFeed();
   runPages();
   console.log('song-helper-v2.test.js ok');
 }

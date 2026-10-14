@@ -138,8 +138,8 @@
     article.appendChild(title);
     article.appendChild(detail);
     article.appendChild(source);
-    addBlock(article, 'Flip the angle', item.flip);
-    addBlock(article, 'Answer song', item.answer);
+    addBlock(article, item.lane === 'causes' ? 'Hopeful angle' : 'Flip the angle', item.flip);
+    addBlock(article, item.lane === 'causes' ? 'Protest angle' : 'Answer song', item.answer);
     if (item.cause) addBlock(article, 'Cause drop', item.cause);
     if (item.dailyNote) {
       var note = document.createElement('p');
@@ -159,7 +159,7 @@
       var flip = document.createElement('button');
       flip.type = 'button';
       flip.className = 'btn btn-ghost btn-md';
-      flip.textContent = 'Flip the angle';
+      flip.textContent = item.lane === 'causes' ? 'Hopeful angle' : 'Flip the angle';
       flip.addEventListener('click', function () { choose(item, 'flip'); });
       actions.appendChild(flip);
     }
@@ -353,8 +353,13 @@
       if (response.ok) {
         var data = await response.json();
         if (data && data.items) pack = data;
+        else pack = spark.withoutTrending(pack);
+      } else {
+        pack = spark.withoutTrending(pack);
       }
-    } catch (err) {}
+    } catch (err) {
+      pack = spark.withoutTrending(pack);
+    }
     paint();
   }
 

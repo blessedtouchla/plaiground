@@ -32,7 +32,7 @@ Do this once:
 3. Add `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` together (Cloudflare Turnstile). The person check runs only when the xAI key is also set. Demo mode skips it. The site key is the only one the browser sees.
 4. Optional: `SONG_HELPER_DAILY_LIMIT` (default `40`). One bucket per signed-in user when the session cookie verifies, otherwise per IP. `SONG_HELPER_DISABLED=1` is the kill switch. The pages still open and say the switch is on. Admin shows the same instruction. It does not flip the switch.
 5. Optional, later: `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` for a Reddit script app (client credentials). `POST /api/slang/refresh` then returns candidate words from r/slang, r/SlangOfTheDay, r/Chiraqology, and `REDDIT_CITY_SUBS` (comma-separated, optional). Optional `REDDIT_USER_AGENT`. With no Reddit keys the route says Reddit is not configured. Candidates are not written into the slang list.
-6. Optional: `SPARK_FEEDS`, a comma-separated list of https RSS URLs. What’s hot uses those titles and drops tragedies. With no feed, the page shows labeled samples and does not invent a source.
+6. Trending in What’s hot reads Google Trends and Apple Music most played each day. If `YOUTUBE_API_KEY` is set, it also reads YouTube’s most popular music videos. Optional `SPARK_FEEDS` adds extra https RSS URLs (up to 4). Tragedies and NSFW titles are dropped. The page shows the date. If every source fails, it says trending is refreshing and does not invent topics. News, Causes, and Mindset stay labeled writing prompts.
 7. To refresh the slang list from a CSV: `node scripts/import-slang.js path/to/slang-log.csv`. That rewrites `data/slang.json`. Commit the JSON when you want the site to use it.
 
 Names, exactly:
@@ -50,6 +50,7 @@ REDDIT_CLIENT_SECRET=
 REDDIT_USER_AGENT=
 REDDIT_CITY_SUBS=
 SPARK_FEEDS=
+YOUTUBE_API_KEY=
 ```
 
 `XAI_API_KEY`, `TURNSTILE_SECRET_KEY`, `REDDIT_CLIENT_SECRET`, and the rest of the secrets stay server-only. Do not put them in frontend files.

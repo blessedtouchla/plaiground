@@ -23,7 +23,6 @@ const guard = require('../lib/song-guard');
 const modes = require('../lib/song-modes');
 const slang = require('../lib/slang');
 const reddit = require('../lib/reddit-slang');
-const spark = require('../lib/spark');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
 
@@ -164,22 +163,11 @@ function requestAction(req) {
 }
 
 async function sparkPayload() {
-  var live = await sparkFeed.load();
-  if (live && live.items && live.items.length) {
-    return {
-      ok: true,
-      demo: false,
-      notice: '',
-      lanes: spark.LANES,
-      daily: live.daily,
-      items: live.items,
-    };
+  try {
+    return sparkFeed.publicPack(await sparkFeed.load());
+  } catch (err) {
+    return sparkFeed.publicPack(null);
   }
-  var pack = spark.pack();
-  if (live && live.failed) {
-    pack.notice = 'The live feed did not load. These are samples. ' + spark.SAMPLE_LABEL;
-  }
-  return pack;
 }
 
 function modeInput(body) {
