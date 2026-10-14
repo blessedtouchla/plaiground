@@ -2685,10 +2685,24 @@
   }
 
   function sparkLanes() {
-    var group = SPARK_GROUPS.filter(function (row) { return row.id === sparkGroup; })[0];
-    var lanes = group ? group.lanes.slice() : [];
-    if (sparkNews) lanes = [sparkNews];
+    var id = sparkGroup || 'trending';
+    var group = SPARK_GROUPS.filter(function (row) { return row.id === id; })[0];
+    var lanes = group ? group.lanes.slice() : ['trending'];
+    if (id === 'news' && sparkNews && !sparkPack.newsNotice) lanes = [sparkNews];
     return lanes;
+  }
+
+  function tabNotice(spark) {
+    if (sparkGroup === 'news') return sparkPack.newsNotice || (spark && spark.NEWS_REFRESH_NOTICE) || 'News is refreshing, check back soon';
+    if (sparkGroup === 'causes') return (spark && spark.CAUSES_NOTICE) || 'Writing prompts. Each one is a personal story, with a hopeful angle and a protest angle.';
+    if (sparkGroup === 'mindset') return (spark && spark.MINDSET_NOTICE) || 'Writing prompts for growth, motivation, healing, and confidence.';
+    return sparkPack.notice || (spark && spark.REFRESH_NOTICE) || 'Trending is refreshing, check back soon';
+  }
+
+  function tabDaily() {
+    if (sparkGroup === 'news') return sparkPack.newsDaily || null;
+    if (sparkGroup === 'trending') return sparkPack.daily || null;
+    return null;
   }
 
   function paintSpark(pack) {
@@ -2705,23 +2719,45 @@
     var headlines = spark.headlinesFor(sparkPack.items || [], lanes, sparkTopic);
     if (sparkHeadline && !headlines.some(function (row) { return row.label === sparkHeadline; })) sparkHeadline = '';
     host.textContent = '';
+    var sectionLabel = document.createElement('h3');
+    sectionLabel.className = 'sh-subhead';
+    sectionLabel.textContent = 'Daily Spark';
+    host.appendChild(sectionLabel);
+    var groups = document.createElement('div');
+    groups.className = 'sh-modes';
+    groups.id = 'sh-spark-tabs';
+    groups.setAttribute('role', 'group');
+    groups.setAttribute('aria-label', 'Daily Spark');
+    SPARK_GROUPS.forEach(function (group) {
+      groups.appendChild(sparkChip(group.label, group.id === sparkGroup, function () {
+        rememberAsk();
+        if (sparkGroup === group.id) return;
+        sparkGroup = group.id;
+        sparkNews = '';
+        sparkTopics = [];
+        clearSparkChoice();
+        paintSpark();
+      }));
+    });
+    host.appendChild(groups);
     var banner = document.createElement('p');
     banner.className = 'sh-banner';
-    banner.textContent = sparkPack.notice || spark.SAMPLE_LABEL;
+    banner.textContent = tabNotice(spark);
     host.appendChild(banner);
-    if (sparkPack.daily && !spark.tragedy(sparkText(sparkPack.daily))) {
+    var dailyItem = tabDaily();
+    if (dailyItem && !spark.tragedy(sparkText(dailyItem))) {
       var dailyLabel = document.createElement('h3');
       dailyLabel.className = 'sh-subhead';
-      dailyLabel.textContent = (spark.BROWSE && spark.BROWSE.daily) || 'Daily spark';
+      dailyLabel.textContent = 'Today';
       host.appendChild(dailyLabel);
       var dailyBtn = document.createElement('button');
       dailyBtn.type = 'button';
       dailyBtn.className = 'spark-headline' + (sparkDailyOpen ? ' on' : '');
       dailyBtn.setAttribute('aria-expanded', sparkDailyOpen ? 'true' : 'false');
-      dailyBtn.textContent = sparkPack.daily.headline || sparkPack.daily.title || 'Daily spark';
+      dailyBtn.textContent = dailyItem.headline || dailyItem.title || 'Today';
       dailyBtn.addEventListener('click', function () {
         rememberAsk();
-        var dailyId = sparkPack.daily && sparkPack.daily.id;
+        var dailyId = dailyItem && dailyItem.id;
         var picked = sparkSeed && dailyId && sparkSeed.id === dailyId;
         if (picked) {
           sparkSeed = null;
@@ -2735,24 +2771,9 @@
         paintSpark();
       });
       host.appendChild(dailyBtn);
-      if (sparkDailyOpen) host.appendChild(sparkCard(sparkPack.daily));
+      if (sparkDailyOpen) host.appendChild(sparkCard(dailyItem));
     }
-    var groups = document.createElement('div');
-    groups.className = 'sh-modes';
-    groups.setAttribute('role', 'group');
-    groups.setAttribute('aria-label', "What's hot");
-    SPARK_GROUPS.forEach(function (group) {
-      groups.appendChild(sparkChip(group.label, group.id === sparkGroup, function () {
-        rememberAsk();
-        if (sparkGroup === group.id) sparkGroup = '';
-        else sparkGroup = group.id;
-        sparkNews = '';
-        clearSparkChoice();
-        paintSpark();
-      }));
-    });
-    host.appendChild(groups);
-    if (sparkGroup === 'news') {
+    if (sparkGroup === 'news' && !sparkPack.newsNotice) {
       var desks = document.createElement('div');
       desks.className = 'sh-modes';
       desks.setAttribute('role', 'group');
@@ -2761,6 +2782,7 @@
         rememberAsk();
         if (!sparkNews) return;
         sparkNews = '';
+        sparkTopics = [];
         clearSparkChoice();
         paintSpark();
       }));
@@ -2769,6 +2791,7 @@
           rememberAsk();
           if (sparkNews === lane.id) sparkNews = '';
           else sparkNews = lane.id;
+          sparkTopics = [];
           clearSparkChoice();
           paintSpark();
         }));

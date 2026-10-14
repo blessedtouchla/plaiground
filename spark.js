@@ -236,7 +236,7 @@
         paint();
       }));
     });
-    if (current === 'news') {
+    if (current === 'news' && !pack.newsNotice) {
       var desks = document.createElement('div');
       desks.className = 'sh-modes';
       desks.setAttribute('role', 'group');
@@ -260,23 +260,27 @@
 
     var banner = $('spark-banner');
     banner.hidden = false;
-    banner.textContent = pack.notice || spark.SAMPLE_LABEL;
+    if (current === 'news') banner.textContent = pack.newsNotice || spark.NEWS_REFRESH_NOTICE;
+    else if (current === 'causes') banner.textContent = spark.CAUSES_NOTICE;
+    else if (current === 'mindset') banner.textContent = spark.MINDSET_NOTICE;
+    else banner.textContent = pack.notice || spark.REFRESH_NOTICE || spark.SAMPLE_LABEL;
 
     var daily = $('spark-daily');
     daily.textContent = '';
-    if (pack.daily && !spark.tragedy([pack.daily.title, pack.daily.detail, pack.daily.flip].join(' '))) {
+    var dailyItem = current === 'news' ? pack.newsDaily : (current === 'trending' ? pack.daily : null);
+    if (dailyItem && !spark.tragedy([dailyItem.title, dailyItem.detail, dailyItem.flip].join(' '))) {
       var dailyBtn = document.createElement('button');
       dailyBtn.type = 'button';
       dailyBtn.className = 'spark-headline' + (dailyOpen ? ' on' : '');
       dailyBtn.setAttribute('aria-expanded', dailyOpen ? 'true' : 'false');
-      dailyBtn.textContent = pack.daily.headline || pack.daily.title || 'Daily spark';
+      dailyBtn.textContent = dailyItem.headline || dailyItem.title || 'Today';
       dailyBtn.addEventListener('click', function () {
         rememberAsk();
         dailyOpen = !dailyOpen;
         paint();
       });
       daily.appendChild(dailyBtn);
-      if (dailyOpen) daily.appendChild(card(pack.daily));
+      if (dailyOpen) daily.appendChild(card(dailyItem));
     }
 
     var list = $('spark-list');
