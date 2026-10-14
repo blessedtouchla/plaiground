@@ -217,6 +217,59 @@ CREATE TABLE IF NOT EXISTS owner_mail_limits (
   sent_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS chart_artists (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  ai_label text NOT NULL DEFAULT 'Unknown',
+  ai_source_name text NOT NULL DEFAULT '',
+  ai_source_url text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chart_songs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  artist_id uuid NOT NULL,
+  title text NOT NULL,
+  slug text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chart_songs_slug_unique UNIQUE (slug)
+);
+
+CREATE TABLE IF NOT EXISTS chart_sources (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  song_id uuid NOT NULL,
+  chart_name text NOT NULL DEFAULT '',
+  position integer,
+  chart_date date,
+  source_name text NOT NULL DEFAULT '',
+  source_url text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chart_snapshots (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  song_id uuid NOT NULL,
+  metric text NOT NULL,
+  value_text text NOT NULL DEFAULT '',
+  source_name text NOT NULL DEFAULT '',
+  source_url text NOT NULL DEFAULT '',
+  as_of date NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS chart_snapshots_day
+  ON chart_snapshots (song_id, metric, as_of);
+
+CREATE TABLE IF NOT EXISTS chart_corrections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  song_slug text NOT NULL DEFAULT '',
+  field_name text NOT NULL DEFAULT '',
+  message text NOT NULL,
+  source_url text NOT NULL DEFAULT '',
+  email text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- One live note per release. The first live event stays on user_events.
 CREATE TABLE IF NOT EXISTS artist_mail_sent (
   user_id text NOT NULL,

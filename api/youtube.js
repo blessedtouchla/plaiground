@@ -140,7 +140,24 @@ async function searchYouTube(query) {
   return videoId;
 }
 
+function chartsAction(req) {
+  const query = req && req.query;
+  const fromQuery = query && query.action ? String(query.action) : '';
+  const url = String((req && req.url) || '');
+  const mark = url.indexOf('?');
+  const fromUrl = mark === -1 ? '' : (new URLSearchParams(url.slice(mark + 1)).get('action') || '');
+  const action = fromQuery || fromUrl;
+  if (action === 'charts' || action === 'charts-song' || action === 'charts-corrections' || action === 'charts-cron') return action;
+  return '';
+}
+
 module.exports = async function handler(req, res) {
+  const chartAction = chartsAction(req);
+  if (chartAction) {
+    const charts = require('../lib/charts-preview');
+    await charts.handle(req, res, chartAction);
+    return;
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     sendJson(res, 405, { error: 'Method not allowed.' });

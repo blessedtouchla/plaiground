@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Chart preview corrections</title>
+  <link rel="stylesheet" href="site.css?v=20261007polish" />
+  <link rel="stylesheet" href="charts-preview.css?v=20261014charts" />
+</head>
+<body class="charts-preview-page" data-charts-page="corrections">
+  <main class="charts-preview">
+    <p class="charts-note">Preview. This page is not a public chart.</p>
+    <h1>Corrections</h1>
+    <nav class="charts-preview-nav" aria-label="Chart preview">
+      <a href="/charts-preview">Index</a>
+      <a href="/charts-preview/methodology">Methodology</a>
+      <a href="/charts-preview/corrections">Corrections</a>
+    </nav>
+    <form id="charts-correct-form" class="charts-card">
+      <label>Song
+        <select id="charts-correct-song" name="song_slug"></select>
+      </label>
+      <label>Field
+        <input id="charts-correct-field" name="field_name" maxlength="80" autocomplete="off" />
+      </label>
+      <label>What should change
+        <textarea id="charts-correct-message" name="message" rows="5" maxlength="2000" required></textarea>
+      </label>
+      <label>Source link
+        <input id="charts-correct-source" name="source_url" type="url" maxlength="300" autocomplete="off" />
+      </label>
+      <label>Email
+        <input id="charts-correct-email" name="email" type="email" maxlength="200" autocomplete="off" />
+      </label>
+      <button class="btn btn-purple btn-md" type="submit">Send correction</button>
+      <p id="charts-correct-note" class="charts-note" role="status"></p>
+    </form>
+  </main>
+  <script src="charts-preview.js?v=20261014charts"></script>
+</body>
+</html>

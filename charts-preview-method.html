@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Chart preview methodology</title>
+  <link rel="stylesheet" href="site.css?v=20261007polish" />
+  <link rel="stylesheet" href="charts-preview.css?v=20261014charts" />
+</head>
+<body class="charts-preview-page" data-charts-page="methodology">
+  <main class="charts-preview">
+    <p class="charts-note">Preview. This page is not a public chart.</p>
+    <h1>Methodology</h1>
+    <nav class="charts-preview-nav" aria-label="Chart preview">
+      <a href="/charts-preview">Index</a>
+      <a href="/charts-preview/methodology">Methodology</a>
+      <a href="/charts-preview/corrections">Corrections</a>
+    </nav>
+    <article class="charts-card">
+      <h2>What a number is</h2>
+      <p>A chart position is stored with the chart name, the source name, and the chart date. If the date or the source was not provided, the page says Data unavailable. It does not guess.</p>
+      <p>YouTube views come from a daily pull of the YouTube Data API. The pull runs only when YOUTUBE_API_KEY is set. If the key is missing, or the search does not return one exact title and artist match, the value is Data unavailable.</p>
+      <p>Apple Music position comes from the free Most Played songs feed. The song counts only when the title and artist match that feed. If the feed is down, or the song is not in it, the value is Data unavailable.</p>
+      <p>Spotify and TikTok are Coming soon. They are not estimated.</p>
+      <p>The AI label is AI only when a public source URL is stored with the artist. Otherwise the label is Unknown.</p>
+      <p>The daily job is /api/charts-preview/cron. A correction form note is saved and does not change a number by itself.</p>
+    </article>
+  </main>
+</body>
+</html>
