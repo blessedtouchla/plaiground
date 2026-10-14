@@ -12,6 +12,14 @@ body.song-helper-page .plai-bubble {
   display: none;
 }
 
+.sh-voice-warn {
+  margin-top: 8px;
+}
+
+#sh-social-card {
+  margin-top: 18px;
+}
+
 .sh {
   padding: calc(var(--nav-h) + 28px) 0 96px;
 }
@@ -805,6 +813,18 @@ body.song-helper-page .plai-bubble {
   margin-top: 10px;
 }
 
+.sh-have-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.sh-have-compare p {
+  white-space: pre-wrap;
+  margin: 0;
+}
+
 .sh-ai-label {
   margin: 0;
   color: #e2b340;
@@ -944,6 +964,7 @@ body.song-helper-page .plai-bubble {
   .sh-part .sh-side-actions { flex-direction: column; align-items: stretch; }
   #sh-page .sh-side-actions .btn,
   .sh-part .sh-side-actions .btn { width: 100%; }
+  .sh-have-compare { grid-template-columns: 1fr; }
   #sh-page, #sh-page-sections, .sh-part, .sh-part-box, .sh-suggest-edit, .sh-preview-mine, .sh-preview-edit, .sh-meter, .sh-page-clean {
     max-width: 100%;
     overflow-wrap: anywhere;

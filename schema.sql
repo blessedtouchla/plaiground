@@ -225,3 +225,29 @@ CREATE TABLE IF NOT EXISTS artist_mail_sent (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, kind, release_id)
 );
+
+CREATE TABLE IF NOT EXISTS idea_vault (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
+  kind text NOT NULL,
+  title text NOT NULL DEFAULT '',
+  body text NOT NULL DEFAULT '',
+  mime text NOT NULL DEFAULT '',
+  audio text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT idea_vault_kind_check CHECK (kind IN ('title', 'line', 'memo', 'song'))
+);
+
+CREATE INDEX IF NOT EXISTS idea_vault_user_idx
+  ON idea_vault (user_id, created_at DESC);
+
+ALTER TABLE idea_vault DROP CONSTRAINT IF EXISTS idea_vault_kind_check;
+ALTER TABLE idea_vault ADD CONSTRAINT idea_vault_kind_check CHECK (kind IN ('title', 'line', 'memo', 'song'));
+
+CREATE TABLE IF NOT EXISTS artist_dev_state (
+  user_id text PRIMARY KEY,
+  credits integer NOT NULL DEFAULT 12,
+  read_me jsonb,
+  persona jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);

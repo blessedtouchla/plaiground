@@ -2363,10 +2363,16 @@
       sourceBtn.setAttribute('aria-pressed', source ? 'true' : 'false');
     }
     showEl('sh-page', !!storyBox);
+    showEl('sh-have', branch === 'have');
     var pageBtn = $('sh-choice-page');
     if (pageBtn) {
       pageBtn.classList.toggle('on', !!storyBox);
       pageBtn.setAttribute('aria-pressed', storyBox ? 'true' : 'false');
+    }
+    var haveBtn = $('sh-choice-have');
+    if (haveBtn) {
+      haveBtn.classList.toggle('on', branch === 'have');
+      haveBtn.setAttribute('aria-pressed', branch === 'have' ? 'true' : 'false');
     }
     paintIdeaLane();
     paintSourceNotes();
@@ -2386,7 +2392,7 @@
   }
 
   function setBranch(next) {
-    if (next !== 'scratch' && next !== 'source') return;
+    if (next !== 'scratch' && next !== 'source' && next !== 'have') return;
     var wasStory = storyBox;
     storyBox = false;
     if (branch === next) {
@@ -3156,6 +3162,7 @@
       syncPartCount(id);
       paintHumanMeter();
       persistPage();
+      noteArtistSections();
     });
   }
 
@@ -3287,12 +3294,24 @@
       article.appendChild(askPanel);
       article.appendChild(suggestPanel);
       article.appendChild(rewritePanel);
+      var voice = document.createElement('div');
+      voice.className = 'sh-voice';
+      voice.setAttribute('data-voice', row.id);
+      voice.hidden = true;
+      article.appendChild(voice);
       article.appendChild(err);
       host.appendChild(article);
       bindPartInput(area, row.id);
       syncPartCount(row.id);
       if (row.question) fillAskPanel(askPanel, row.id, row.question, 'Answer in your own words. Adding it counts toward the meter.');
     });
+    noteArtistSections();
+  }
+
+  function noteArtistSections() {
+    try {
+      window.dispatchEvent(new CustomEvent('plaiground-sections', { detail: pageSections }));
+    } catch (err) {}
   }
 
   function bootWriteFirst() {
@@ -4052,6 +4071,8 @@
   var sourceBtn = $('sh-choice-source');
   if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
   if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
+  var haveBtn = $('sh-choice-have');
+  if (haveBtn) haveBtn.addEventListener('click', function () { setBranch('have'); });
   paintBranch();
   bootWriteFirst();
   paintStyleDesign();

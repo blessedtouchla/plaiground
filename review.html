@@ -54,6 +54,10 @@
         <p class="hint" data-review-audio-error hidden></p>
       </figcaption>
     </figure>
+    <section class="flow-card" data-review-made hidden>
+      <h3>How this song was made</h3>
+      <p data-review-made-caption></p>
+    </section>
     <section class="flow-card" data-review-lyrics hidden>
       <h3>Lyrics</h3>
       <pre class="lyrics-preview" data-review-lyrics-text></pre>
@@ -187,6 +191,21 @@
     })();
   </script>
   <script src="account.js"></script>
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '';
+        var draft = JSON.parse(raw || '{}') || {};
+        var caption = draft.made_caption || '';
+        var box = document.querySelector('[data-review-made]');
+        var line = document.querySelector('[data-review-made-caption]');
+        if (caption && box && line) {
+          line.textContent = caption;
+          box.hidden = false;
+        }
+      } catch (err) {}
+    }());
+  </script>
   <script src="/product-events.js?v=20261014pixels"></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
