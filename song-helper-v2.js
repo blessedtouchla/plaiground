@@ -83,6 +83,14 @@
   var storyBox = false;
   var pageSections = [];
   var formatState = null;
+  var feelings = [];
+  var riddimState = {
+    stop: 'riddim',
+    hummed: false,
+    memoStatus: '',
+    block: '',
+    parts: { hook: '', 'verse-1': '', 'verse-2': '', bridge: '', angle: '', dub: '' },
+  };
   var KIND_MOOD = {
     love: 'in love',
     heartbreak: 'heartbroken',
@@ -193,6 +201,13 @@
       work: fieldValue('work'),
       meter: fieldValue('meter') || 'clean',
       reggae: fieldValue('reggae') || 'roots',
+      feelings: feelings.slice(0, 2),
+      riddimHook: riddimState.parts.hook || '',
+      riddimVerse1: riddimState.parts['verse-1'] || '',
+      riddimVerse2: riddimState.parts['verse-2'] || '',
+      riddimBridge: riddimState.parts.bridge || '',
+      riddimAngle: riddimState.parts.angle || '',
+      riddimDub: riddimState.parts.dub || '',
       barStyle: fieldValue('barStyle') || 'east',
       era: fieldValue('era') || 'now',
       bars: fieldValue('bars') || '8',
@@ -403,6 +418,7 @@
     paintModeRow($('sh-modes'), 'create');
     paintModeRow($('sh-source-modes'), 'source');
     paintKinds();
+    paintFeelings();
     paintParts();
     paintLive();
     if (window.SongHelperChips) window.SongHelperChips.foldAll();
@@ -576,16 +592,19 @@
     if (mode === 'reggae') {
       addField(host, {
         id: 'reggae',
-        label: 'Reggae lane',
+        label: 'Riddim feel',
         kind: 'select',
-        value: 'roots',
+        value: 'cali',
         options: modes.REGGAE_LANES,
       });
-      paintReggaeGuide(host, 'roots');
+      paintReggaeGuide(host, 'cali');
       var reggaePick = host.querySelector('[data-field="reggae"]');
       if (reggaePick) reggaePick.addEventListener('change', function () {
         paintReggaeGuide(host, reggaePick.value);
+        var lane = host.querySelector('.sh-riddim-lane');
+        if (lane && modes.reggaeGuide) lane.textContent = modes.reggaeGuide(reggaePick.value).label;
       });
+      paintRiddimRoad(host);
     }
     if (mode === 'madlibs') addField(host, { id: 'verb', label: 'A verb', placeholder: 'wait' });
     if (mode === 'review') addField(host, { id: 'lines', label: 'Your lines', kind: 'area', placeholder: 'One line per row' });
@@ -670,6 +689,266 @@
     add('Rhythm.', guide.rhythm);
     add('Slang.', guide.slang);
     add('', guide.respect);
+  }
+
+  function riddimIndex(id) {
+    var stops = (modes && modes.RIDDIM_STOPS) || [];
+    for (var i = 0; i < stops.length; i += 1) if (stops[i].id === id) return i;
+    return 0;
+  }
+
+  function riddimWriteStop(id) {
+    return id === 'hook' || id === 'verse-1' || id === 'verse-2' || id === 'bridge' || id === 'done' || id === 'angle' || id === 'dub';
+  }
+
+  function setRiddimStop(id) {
+    if (riddimWriteStop(id) && !riddimState.hummed) {
+      riddimState.stop = 'listen';
+      riddimState.block = 'Hum or la la a melody before you write any words.';
+    } else {
+      riddimState.stop = id;
+      riddimState.block = '';
+    }
+    paintRiddimRoad();
+  }
+
+  function saveRiddimMemo(fileInput, noteInput, status) {
+    var file = fileInput && fileInput.files && fileInput.files[0];
+    var note = noteInput ? noteInput.value : '';
+    function apply(data) {
+      var message = (data && data.ok) ? 'Saved to Idea Vault.' : ((data && data.error) || 'That voice memo did not save.');
+      if (data && data.status === 401) message = 'Sign in to save this hum in Idea Vault.';
+      riddimState.memoStatus = message;
+      if (status) status.textContent = message;
+    }
+    function post(body) {
+      fetch('/api/song-helper?action=vault-save', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          data.status = res.status;
+          return data;
+        });
+      }).then(apply).catch(function () {
+        apply({ ok: false, error: 'That voice memo did not save.' });
+      });
+    }
+    if (!file) {
+      post({ action: 'vault-save', kind: 'memo', body: note });
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      post({
+        action: 'vault-save',
+        kind: 'memo',
+        body: note,
+        mime: file.type || 'audio/webm',
+        audio: String(reader.result || ''),
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function paintRiddimRoad(host) {
+    var boxHost = host || document.getElementById('sh-v2-fields');
+    if (!boxHost || !modes || !modes.RIDDIM_STOPS) return;
+    var box = boxHost.querySelector('.sh-riddim-road');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'sh-note-block sh-riddim-road';
+      boxHost.appendChild(box);
+    }
+    var stop = modes.riddimStop(riddimState.stop);
+    var laneId = fieldValue('reggae') || 'cali';
+    var guide = modes.reggaeGuide ? modes.reggaeGuide(laneId) : null;
+    box.textContent = '';
+    var title = document.createElement('h3');
+    title.className = 'sh-subhead';
+    title.textContent = 'Riddim first';
+    box.appendChild(title);
+    var lane = document.createElement('p');
+    lane.className = 'sh-help sh-riddim-lane';
+    lane.textContent = guide ? guide.label : '';
+    box.appendChild(lane);
+    if (feelings.length && modes.feelingLabels) {
+      var felt = document.createElement('p');
+      felt.className = 'sh-help sh-riddim-feelings';
+      felt.textContent = 'Feelings. ' + modes.feelingLabels(feelings).join(', ') + '.';
+      box.appendChild(felt);
+    }
+    var nav = document.createElement('div');
+    nav.className = 'sh-feeling-chips';
+    nav.setAttribute('role', 'group');
+    nav.setAttribute('aria-label', 'Riddim first stops');
+    modes.RIDDIM_STOPS.forEach(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      var on = item.id === stop.id;
+      button.className = 'sh-chip' + (on ? ' on' : '');
+      button.textContent = item.label;
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.addEventListener('click', function () { setRiddimStop(item.id); });
+      nav.appendChild(button);
+    });
+    box.appendChild(nav);
+    var say = document.createElement('p');
+    say.className = 'sh-help';
+    say.textContent = (stop.id === 'listen' ? 'Plai says: ' : '') + stop.prompt;
+    box.appendChild(say);
+    if (riddimState.block) {
+      var block = document.createElement('p');
+      block.className = 'sh-form-error sh-riddim-block';
+      block.textContent = riddimState.block;
+      box.appendChild(block);
+    }
+    if (stop.id === 'listen') {
+      var hum = document.createElement('button');
+      hum.type = 'button';
+      hum.className = 'sh-chip' + (riddimState.hummed ? ' on' : '');
+      hum.textContent = 'I hummed it';
+      hum.setAttribute('aria-pressed', riddimState.hummed ? 'true' : 'false');
+      hum.addEventListener('click', function () {
+        riddimState.hummed = !riddimState.hummed;
+        if (riddimState.hummed) riddimState.block = '';
+        hum.classList.toggle('on', riddimState.hummed);
+        hum.setAttribute('aria-pressed', riddimState.hummed ? 'true' : 'false');
+        var nextBtn = box.querySelector('.sh-riddim-next');
+        if (nextBtn) nextBtn.disabled = stop.id === 'listen' && !riddimState.hummed;
+        var blockNote = box.querySelector('.sh-riddim-block');
+        if (blockNote && riddimState.hummed && blockNote.parentNode) blockNote.parentNode.removeChild(blockNote);
+      });
+      box.appendChild(hum);
+      var memoHelp = document.createElement('p');
+      memoHelp.className = 'sh-help';
+      memoHelp.textContent = stop.memo;
+      box.appendChild(memoHelp);
+      var fileLabel = document.createElement('label');
+      fileLabel.className = 'sh-field';
+      var fileSpan = document.createElement('span');
+      fileSpan.textContent = 'Voice memo';
+      var file = document.createElement('input');
+      file.className = 'sh-input';
+      file.type = 'file';
+      file.accept = 'audio/*';
+      fileLabel.appendChild(fileSpan);
+      fileLabel.appendChild(file);
+      box.appendChild(fileLabel);
+      var noteLabel = document.createElement('label');
+      noteLabel.className = 'sh-field';
+      var noteSpan = document.createElement('span');
+      noteSpan.textContent = 'Note for the memo';
+      var note = document.createElement('input');
+      note.className = 'sh-input';
+      note.maxLength = 400;
+      note.placeholder = 'Optional. A few words about the hum.';
+      noteLabel.appendChild(noteSpan);
+      noteLabel.appendChild(note);
+      box.appendChild(noteLabel);
+      var memoStatus = document.createElement('p');
+      memoStatus.className = 'sh-help';
+      memoStatus.textContent = riddimState.memoStatus || '';
+      var save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'btn btn-ghost btn-md';
+      save.textContent = 'Save voice memo';
+      save.addEventListener('click', function () { saveRiddimMemo(file, note, memoStatus); });
+      var memoActions = document.createElement('div');
+      memoActions.className = 'sh-side-actions';
+      memoActions.appendChild(save);
+      box.appendChild(memoActions);
+      box.appendChild(memoStatus);
+    }
+    if (stop.id === 'hook' || stop.id === 'verse-1' || stop.id === 'verse-2' || stop.id === 'bridge' || stop.id === 'angle' || stop.id === 'dub') {
+      if (guide && stop.id === 'hook') {
+        var hookHelp = document.createElement('p');
+        hookHelp.className = 'sh-help';
+        hookHelp.textContent = guide.hookPrompt;
+        box.appendChild(hookHelp);
+      }
+      if (guide && (stop.id === 'verse-1' || stop.id === 'verse-2')) {
+        var verseHelp = document.createElement('p');
+        verseHelp.className = 'sh-help';
+        verseHelp.textContent = guide.versePrompt;
+        box.appendChild(verseHelp);
+      }
+      if (stop.id === 'dub' && modes.RIDDIM_DUB_IDEAS) {
+        var list = document.createElement('ul');
+        list.className = 'sh-help';
+        modes.RIDDIM_DUB_IDEAS.forEach(function (idea) {
+          var item = document.createElement('li');
+          item.textContent = idea;
+          list.appendChild(item);
+        });
+        box.appendChild(list);
+      }
+      var field = document.createElement('label');
+      field.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = stop.label;
+      var area = document.createElement('textarea');
+      area.className = 'sh-area';
+      area.rows = 4;
+      area.value = riddimState.parts[stop.id] || '';
+      area.placeholder = stop.id === 'dub' ? 'Your drop-in, if you want one.' : 'Your words.';
+      area.addEventListener('input', function () { riddimState.parts[stop.id] = area.value; });
+      field.appendChild(span);
+      field.appendChild(area);
+      box.appendChild(field);
+    }
+    if (stop.id === 'done') {
+      ['hook', 'verse-1', 'verse-2', 'bridge'].forEach(function (id) {
+        var part = modes.riddimStop(id);
+        var block = document.createElement('p');
+        block.className = 'sh-help';
+        var strong = document.createElement('strong');
+        strong.textContent = part.label + '. ';
+        block.appendChild(strong);
+        block.appendChild(document.createTextNode(String(riddimState.parts[id] || '').trim() || 'This part is still open.'));
+        box.appendChild(block);
+      });
+    }
+    var index = riddimIndex(stop.id);
+    var actions = document.createElement('div');
+    actions.className = 'sh-side-actions';
+    if (index > 0) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'btn btn-ghost btn-md';
+      back.textContent = 'Back';
+      back.addEventListener('click', function () {
+        riddimState.block = '';
+        riddimState.stop = modes.RIDDIM_STOPS[index - 1].id;
+        paintRiddimRoad(boxHost);
+      });
+      actions.appendChild(back);
+    }
+    if (stop.optional) {
+      var skip = document.createElement('button');
+      skip.type = 'button';
+      skip.className = 'btn btn-ghost btn-md';
+      skip.textContent = 'Skip this';
+      skip.addEventListener('click', function () {
+        riddimState.parts.angle = '';
+        setRiddimStop('dub');
+      });
+      actions.appendChild(skip);
+    }
+    if (index < modes.RIDDIM_STOPS.length - 1) {
+      var next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'btn btn-purple btn-md sh-riddim-next';
+      next.textContent = stop.id === 'listen' ? 'Hook' : 'Next';
+      if (stop.id === 'listen' && !riddimState.hummed) next.disabled = true;
+      next.addEventListener('click', function () {
+        setRiddimStop(modes.RIDDIM_STOPS[index + 1].id);
+      });
+      actions.appendChild(next);
+    }
+    box.appendChild(actions);
   }
 
   function paintSlang() {
@@ -819,6 +1098,46 @@
       host.appendChild(button);
     });
     if (window.SongHelperChips) window.SongHelperChips.fold(host);
+  }
+
+  function paintFeelings() {
+    var host = $('sh-feelings');
+    if (!host || !modes || !modes.FEELINGS) return;
+    host.textContent = '';
+    modes.FEELINGS.forEach(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      var on = feelings.indexOf(item.id) !== -1;
+      button.className = 'sh-chip' + (on ? ' on' : '');
+      button.textContent = item.label;
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        var at = feelings.indexOf(item.id);
+        if (at >= 0) feelings.splice(at, 1);
+        else if (feelings.length < 2) feelings.push(item.id);
+        if (!kind && window.SongHelperPage && window.SongHelperPage.setMood) {
+          var first = modes.feelingById(feelings[0] || '');
+          window.SongHelperPage.setMood(first ? first.label.toLowerCase() : '');
+        }
+        paintFeelings();
+        var felt = document.querySelector('.sh-riddim-feelings');
+        if (feelings.length && modes.feelingLabels) {
+          if (!felt) {
+            var road = document.querySelector('.sh-riddim-road');
+            var lane = road && road.querySelector('.sh-riddim-lane');
+            if (road && lane) {
+              felt = document.createElement('p');
+              felt.className = 'sh-help sh-riddim-feelings';
+              lane.parentNode.insertBefore(felt, lane.nextSibling);
+            }
+          }
+          if (felt) felt.textContent = 'Feelings. ' + modes.feelingLabels(feelings).join(', ') + '.';
+        } else if (felt && felt.parentNode) {
+          felt.parentNode.removeChild(felt);
+        }
+      });
+      host.appendChild(button);
+    });
   }
 
   function paintParts() {

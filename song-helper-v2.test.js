@@ -920,8 +920,8 @@ function runReggae() {
   assert.strictEqual(reggae.lane, 'create');
   assert.ok(!reggae.transform);
   const laneIds = modes.REGGAE_LANES.map(function (row) { return row.id; });
-  assert.deepStrictEqual(laneIds, ['roots', 'lovers', 'dancehall', 'dub', 'cali']);
-  assert.strictEqual(modes.REGGAE_LANES[4].label, 'California (Cali), featured');
+  assert.deepStrictEqual(laneIds, ['cali', 'roots', 'lovers', 'dancehall', 'dub']);
+  assert.strictEqual(modes.REGGAE_LANES[0].label, 'California (Cali), featured');
   const blob = modes.REGGAE_LANES.map(function (row) {
     return [row.label, row.coaching, row.hookPrompt, row.versePrompt, row.rhythm, row.slang].join(' ');
   }).join('\n') + '\n' + modes.REGGAE_RESPECT;
@@ -967,10 +967,63 @@ function runReggae() {
   assert.ok(!/Suno|ToneGrid/i.test(prompt));
   const html = read('song-helper.html');
   assert.ok(html.includes('Write, Reggae, Funny'));
-  assert.ok(html.includes('lib/song-modes.js?v=20261014reggae'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261014reggae'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261014riddim'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261014riddim'));
+  assert.ok(html.includes('song-helper.css?v=20261014riddim'));
+  assert.ok(html.includes('id="sh-feelings"'));
   assert.ok(read('song-helper-v2.js').includes('paintReggaeGuide'));
+  assert.ok(read('song-helper-v2.js').includes('paintRiddimRoad'));
+  assert.ok(read('song-helper-v2.js').includes('paintFeelings'));
   assert.ok(read('song-helper-v2.js').includes('Write the reggae draft'));
+  assert.ok(read('song-helper-v2.js').includes('Save voice memo'));
+  assert.ok(read('song-helper-v2.js').includes('vault-save'));
+  assert.ok(read('song-helper-v2.js').includes('Plai says:'));
+  const stopIds = modes.RIDDIM_STOPS.map(function (row) { return row.id; });
+  assert.deepStrictEqual(stopIds, ['riddim', 'listen', 'hook', 'verse-1', 'verse-2', 'bridge', 'done', 'angle', 'dub']);
+  assert.strictEqual(modes.riddimStop('listen').prompt, 'Listen for about 20 seconds. Then hum or la la a melody before you write any words.');
+  assert.ok(/Idea Vault/.test(modes.riddimStop('listen').memo));
+  assert.strictEqual(modes.riddimStop('hook').prompt, 'Fit words to that melody.');
+  assert.strictEqual(modes.riddimStop('angle').label, 'Same beat, your angle');
+  assert.strictEqual(modes.riddimStop('dub').label, 'Dub it');
+  assert.ok(/stripped-down drums-and-bass/.test(modes.riddimStop('dub').prompt));
+  assert.ok(/echo/.test(modes.riddimStop('dub').prompt));
+  assert.ok(modes.RIDDIM_DUB_IDEAS.some(function (line) { return /drop/i.test(line); }));
+  const feelingLabels = modes.FEELINGS.map(function (row) { return row.label; });
+  assert.strictEqual(modes.FEELINGS.length, 33);
+  ['Admiration', 'Adoration', 'Aesthetic appreciation', 'Amusement', 'Anger', 'Anxiety', 'Awe', 'Awkwardness', 'Boredom', 'Calmness', 'Confusion', 'Craving', 'Disgust', 'Empathic pain', 'Entrancement', 'Excitement', 'Fear', 'Horror', 'Interest', 'Joy', 'Nostalgia', 'Relief', 'Romance', 'Sadness', 'Satisfaction', 'Sexual desire', 'Surprise', 'Pride', 'Triumph', 'Guilt', 'Envy', 'Disappointment', 'Sympathy'].forEach(function (label) {
+    assert.ok(feelingLabels.indexOf(label) !== -1, label);
+  });
+  const roadCopy = modes.RIDDIM_STOPS.map(function (row) {
+    return [row.label, row.prompt, row.memo || ''].join(' ');
+  }).join('\n') + '\n' + modes.RIDDIM_DUB_IDEAS.join('\n') + '\n' + feelingLabels.join('\n');
+  assert.ok(!/—|–/.test(roadCopy));
+  assert.ok(!/Suno|ToneGrid/i.test(roadCopy));
+  ['Bob Marley', 'Peter Tosh', 'Jimmy Cliff', 'Sublime', 'Rebelution', 'Stick Figure', 'Toots', 'Dennis Brown', 'Buju', 'Vybz'].forEach(function (name) {
+    assert.ok(roadCopy.indexOf(name) === -1, name);
+  });
+  const withRoad = modes.buildSample(concrete({
+    mode: 'reggae',
+    reggae: 'cali',
+    place: 'the patio',
+    object: 'a skateboard',
+    quote: 'we can stay out here',
+    feelings: ['joy', 'pride'],
+    riddimHook: 'Stay on the patio line',
+    riddimVerse1: 'The board is by the door',
+    riddimVerse2: 'Late light on the lot',
+    riddimBridge: 'We turn back slow',
+    riddimAngle: 'Same groove, a quieter story',
+    riddimDub: 'Echo the last word',
+  }));
+  assert.strictEqual(withRoad.ok, true);
+  const roadText = modes.allLines(withRoad.draft).map(function (row) { return row.text; }).join('\n');
+  assert.ok(roadText.indexOf('Stay on the patio line') !== -1);
+  assert.ok(roadText.indexOf('The board is by the door') !== -1);
+  const roadNotes = withRoad.draft.notes.join(' ');
+  assert.ok(roadNotes.indexOf('Feelings. Joy, Pride.') !== -1);
+  assert.ok(roadNotes.indexOf('Same beat, your angle.') !== -1);
+  assert.ok(roadNotes.indexOf('Dub it.') !== -1);
+  assert.deepStrictEqual(modes.feelingList(['nope', 'joy', 'pride', 'guilt']), ['joy', 'pride']);
 }
 
 async function run() {
