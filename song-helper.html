@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261010sounds" />
+  <link rel="stylesheet" href="song-helper.css?v=20261014have" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="song-helper-page">
@@ -90,7 +90,26 @@
           <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false">Create from scratch</button>
           <button type="button" class="sh-choice" id="sh-choice-source" aria-pressed="false">From a real song</button>
           <button type="button" class="sh-choice" id="sh-choice-page" aria-pressed="false">I already have my story or lyrics</button>
+          <button type="button" class="sh-choice" id="sh-choice-have" aria-pressed="false">I already have a song</button>
         </div>
+      </section>
+      <section class="sh-craft" id="sh-have" hidden>
+        <h2 class="sh-craft-title">I already have a song</h2>
+        <p class="sh-help">Paste the full song. Break it down uses 1 credit. A full rewrite uses 1 credit. The original draft stays in Idea Vault as proof you wrote it. Artists keep 100%.</p>
+        <label class="sh-field">
+          <span>Paste your full song</span>
+          <textarea class="sh-area" id="sh-have-paste" rows="10" maxlength="8000" placeholder="Paste the whole song. Labels are optional."></textarea>
+        </label>
+        <div class="sh-side-actions">
+          <button type="button" class="btn btn-purple btn-md" id="sh-have-break">Break it down (1 credit)</button>
+        </div>
+        <p class="sh-form-error" id="sh-have-error" role="alert" hidden></p>
+        <div id="sh-have-parts"></div>
+        <div class="sh-side-actions" id="sh-have-actions" hidden>
+          <button type="button" class="btn btn-purple btn-md" id="sh-have-rewrite">Make the whole song better (1 credit)</button>
+          <button type="button" class="btn btn-ghost btn-md" id="sh-have-save">Save original and final to Idea Vault</button>
+        </div>
+        <p class="sh-help" id="sh-have-note" hidden></p>
       </section>
       <section class="sh-craft sh-page" id="sh-page" hidden>
         <h2 class="sh-craft-title">Write it here</h2>
@@ -801,9 +820,9 @@
   <script src="lib/song-questions.js?v=20261009story"></script>
   <script src="song-helper.js?v=20261010sounds"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="song-helper-v2.js?v=20261010sounds"></script>
-  <script src="lib/artist-dev.js?v=20261014dev"></script>
-  <script src="song-helper-dev.js?v=20261014dev"></script>
+  <script src="song-helper-v2.js?v=20261014have"></script>
+  <script src="/lib/artist-dev.js?v=20261014have3"></script>
+  <script src="song-helper-dev.js?v=20261014have"></script>
   <script src="apply.js"></script>
   <script src="song-flow-page.js?v=20261009story"></script>
   <script src="site.js?v=20261014pixels"></script>

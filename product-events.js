@@ -602,7 +602,7 @@
     var node = event && event.target;
     if (node && node.nodeType === 3) node = node.parentElement;
     if (!node || !node.closest) return;
-    var choice = node.closest('#sh-choice-scratch, #sh-choice-source, #sh-choice-page, #sh-choice-ideas, #sh-choice-own');
+    var choice = node.closest('#sh-choice-scratch, #sh-choice-source, #sh-choice-page, #sh-choice-have, #sh-choice-ideas, #sh-choice-own');
     if (choice && choice.id) {
       var picked = choice.id.replace('sh-choice-', '');
       if (picked === 'page') picked = 'lyrics';

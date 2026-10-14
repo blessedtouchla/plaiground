@@ -235,11 +235,14 @@ CREATE TABLE IF NOT EXISTS idea_vault (
   mime text NOT NULL DEFAULT '',
   audio text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT idea_vault_kind_check CHECK (kind IN ('title', 'line', 'memo'))
+  CONSTRAINT idea_vault_kind_check CHECK (kind IN ('title', 'line', 'memo', 'song'))
 );
 
 CREATE INDEX IF NOT EXISTS idea_vault_user_idx
   ON idea_vault (user_id, created_at DESC);
+
+ALTER TABLE idea_vault DROP CONSTRAINT IF EXISTS idea_vault_kind_check;
+ALTER TABLE idea_vault ADD CONSTRAINT idea_vault_kind_check CHECK (kind IN ('title', 'line', 'memo', 'song'));
 
 CREATE TABLE IF NOT EXISTS artist_dev_state (
   user_id text PRIMARY KEY,

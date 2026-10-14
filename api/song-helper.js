@@ -761,6 +761,8 @@ async function handleDev(req, res, action, body) {
     else if (action === 'persona-lock') result = await artistDev.personaLock(userId);
     else if (action === 'voice-check') result = await artistDev.voiceCheck(userId, body);
     else if (action === 'voice-rewrite') result = await artistDev.voiceRewrite(userId, body);
+    else if (action === 'song-breakdown') result = await artistDev.songBreakdown(userId, body);
+    else if (action === 'song-rewrite') result = await artistDev.songRewrite(userId, body);
     else {
       sendJson(res, 404, { ok: false, error: 'That action is not on this page.' });
       return;
@@ -835,7 +837,7 @@ async function handleAction(req, res, action, givenBody) {
     await handleRewrite(req, res, rewriteBody || {}, action);
     return;
   }
-  if (action === 'dev-status' || action === 'vault-list' || action === 'vault-save' || action === 'vault-delete' || action === 'read-me' || action === 'persona-lock' || action === 'voice-check' || action === 'voice-rewrite') {
+  if (action === 'dev-status' || action === 'vault-list' || action === 'vault-save' || action === 'vault-delete' || action === 'read-me' || action === 'persona-lock' || action === 'voice-check' || action === 'voice-rewrite' || action === 'song-breakdown' || action === 'song-rewrite') {
     var devBody = givenBody;
     if (!devBody && req.method === 'POST') devBody = await readBody(req);
     await handleDev(req, res, action, devBody || {});
@@ -877,7 +879,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

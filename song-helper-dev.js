@@ -28,7 +28,7 @@
     var el = $('sh-dev-credits');
     if (!el) return;
     el.textContent = state.signedIn
-      ? (state.credits + ' credits left. Read Me, Persona Lock, and an on-voice rewrite each use 1.')
+      ? (state.credits + ' credits left. A song breakdown, a full rewrite, Read Me, Persona Lock, and an on-voice rewrite each use 1.')
       : '';
   }
 
@@ -53,7 +53,7 @@
       var row = document.createElement('article');
       row.className = 'sh-part';
       var title = document.createElement('h3');
-      title.textContent = item.kind === 'title' ? 'Title' : (item.kind === 'memo' ? 'Voice memo' : 'Line');
+      title.textContent = item.kind === 'title' ? 'Title' : (item.kind === 'memo' ? 'Voice memo' : (item.kind === 'song' ? (item.title || 'Song draft') : 'Line'));
       var body = document.createElement('p');
       body.textContent = item.kind === 'title' ? (item.title || '') : (item.body || item.title || '');
       row.appendChild(title);
@@ -239,7 +239,275 @@
     if (panel) panel.hidden = false;
   }
 
+  function bootHave() {
+    var breakBtn = $('sh-have-break');
+    var rewriteBtn = $('sh-have-rewrite');
+    var saveBtn = $('sh-have-save');
+    if (breakBtn) breakBtn.addEventListener('click', breakSong);
+    if (rewriteBtn) rewriteBtn.addEventListener('click', rewriteSong);
+    if (saveBtn) saveBtn.addEventListener('click', saveSong);
+  }
+
+  var haveState = { original: '', parts: [], voice: null };
+  var HAVE_LABELS = [
+    ['Hook', 'hook'],
+    ['Verse 1', 'verse'],
+    ['Verse 2', 'verse'],
+    ['Verse 3', 'verse'],
+    ['Pre-chorus', 'prechorus'],
+    ['Bridge', 'bridge'],
+    ['Intro', 'intro'],
+    ['Outro', 'outro'],
+  ];
+
+  function haveError(message) {
+    var el = $('sh-have-error');
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
+  function haveNote(message) {
+    var el = $('sh-have-note');
+    if (!el) return;
+    el.textContent = message || '';
+    el.hidden = !message;
+  }
+
+  function finalText(part) {
+    if (part.pick === 'suggested' && part.suggested) return part.suggested;
+    return part.text || '';
+  }
+
+  function assembleFinal() {
+    return haveState.parts.map(function (part) {
+      return part.label + '\n' + finalText(part);
+    }).join('\n\n');
+  }
+
+  function refreshPartNote(part) {
+    var core = window.PlaigroundArtistDev;
+    var genre = haveState.voice && haveState.voice.genre ? haveState.voice.genre : '';
+    var note = core && core.partNote ? core.partNote(part, genre) : { works: '', improve: '', hook_ok: null, hook_note: '' };
+    part.works = note.works;
+    part.improve = note.improve;
+    part.hook_ok = note.hook_ok;
+    part.hook_note = note.hook_note;
+  }
+
+  function compareCol(heading, text, buttonLabel, pressed, click) {
+    var col = document.createElement('div');
+    var headingNode = document.createElement('h3');
+    headingNode.textContent = heading;
+    var body = document.createElement('p');
+    body.textContent = text || '';
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-ghost btn-md';
+    button.textContent = buttonLabel;
+    button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    button.addEventListener('click', click);
+    col.appendChild(headingNode);
+    col.appendChild(body);
+    col.appendChild(button);
+    return col;
+  }
+
+  function renderHave() {
+    var host = $('sh-have-parts');
+    var actions = $('sh-have-actions');
+    if (!host) return;
+    host.textContent = '';
+    if (actions) actions.hidden = !haveState.parts.length;
+    haveState.parts.forEach(function (part, index) {
+      var card = document.createElement('article');
+      card.className = 'sh-part';
+      var title = document.createElement('h3');
+      title.textContent = part.label;
+      var field = document.createElement('label');
+      field.className = 'sh-field';
+      var span = document.createElement('span');
+      span.textContent = 'Part label';
+      var select = document.createElement('select');
+      select.className = 'sh-input';
+      var options = HAVE_LABELS.slice();
+      if (!options.some(function (row) { return row[0] === part.label; })) options.push([part.label, part.kind]);
+      options.forEach(function (row) {
+        var option = document.createElement('option');
+        option.value = row[0];
+        option.textContent = row[0];
+        option.setAttribute('data-kind', row[1]);
+        if (row[0] === part.label) option.selected = true;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', function () {
+        var chosen = select.options[select.selectedIndex];
+        part.label = chosen.value;
+        part.kind = chosen.getAttribute('data-kind') || 'verse';
+        part.suggested = '';
+        part.pick = 'mine';
+        refreshPartNote(part);
+        renderHave();
+      });
+      field.appendChild(span);
+      field.appendChild(select);
+      card.appendChild(title);
+      card.appendChild(field);
+      if (part.inferred) {
+        var inferred = document.createElement('p');
+        inferred.className = 'sh-help';
+        inferred.textContent = 'Label inferred. Fix it if this part is something else.';
+        card.appendChild(inferred);
+      }
+      if (part.hook_note) {
+        var score = document.createElement('p');
+        score.className = 'sh-help';
+        score.textContent = part.hook_note;
+        card.appendChild(score);
+      }
+      var works = document.createElement('p');
+      works.className = 'sh-help';
+      works.textContent = 'What works: ' + (part.works || '');
+      var move = document.createElement('p');
+      move.className = 'sh-help';
+      move.textContent = part.improve || '';
+      var original = document.createElement('p');
+      original.textContent = part.text || '';
+      var better = document.createElement('button');
+      better.type = 'button';
+      better.className = 'btn btn-ghost btn-md';
+      better.textContent = 'Make it better';
+      better.addEventListener('click', function () { improveOne(index); });
+      card.appendChild(works);
+      card.appendChild(move);
+      card.appendChild(original);
+      card.appendChild(better);
+      if (part.suggested) {
+        var compare = document.createElement('div');
+        compare.className = 'sh-have-compare';
+        compare.appendChild(compareCol('Your words', part.text, 'Keep mine', part.pick !== 'suggested', function () {
+          part.pick = 'mine';
+          renderHave();
+        }));
+        compare.appendChild(compareCol('Suggested', part.suggested, 'Use this', part.pick === 'suggested', function () {
+          part.pick = 'suggested';
+          renderHave();
+        }));
+        card.appendChild(compare);
+        var using = document.createElement('p');
+        using.className = 'sh-help';
+        using.textContent = part.pick === 'suggested'
+          ? 'Using the suggestion. Every line is still yours.'
+          : 'Keeping your words.';
+        card.appendChild(using);
+      }
+      host.appendChild(card);
+    });
+  }
+
+  function improveOne(index) {
+    var core = window.PlaigroundArtistDev;
+    var part = haveState.parts[index];
+    if (!core || !core.improvePart || !part) {
+      haveError('That rewrite did not come back.');
+      return;
+    }
+    var better = core.improvePart(part.text, part.kind, haveState.voice || {});
+    part.suggested = better.text || part.text;
+    haveError('');
+    renderHave();
+  }
+
+  function breakSong() {
+    var area = $('sh-have-paste');
+    var text = area ? area.value : '';
+    haveError('');
+    haveNote('');
+    post('song-breakdown', { text: text }).then(function (data) {
+      if (!data || !data.ok) {
+        haveError((data && data.error) || 'Sign in to use artist tools.');
+        return;
+      }
+      haveState.original = text;
+      haveState.voice = data.voice || null;
+      haveState.parts = (data.parts || []).map(function (part) {
+        part.pick = 'mine';
+        part.suggested = '';
+        return part;
+      });
+      if (typeof data.credits === 'number') {
+        state.credits = data.credits;
+        state.signedIn = true;
+        paintCredits();
+      }
+      haveNote(data.voice_source === 'persona'
+        ? 'Using your Persona Lock voice sheet.'
+        : 'No Persona Lock yet, so this pass reads the voice in the lyrics you pasted.');
+      renderHave();
+    }).catch(function () {
+      haveError('That breakdown did not come back.');
+    });
+  }
+
+  function rewriteSong() {
+    haveError('');
+    post('song-rewrite', {
+      parts: haveState.parts.map(function (part) {
+        return { id: part.id, kind: part.kind, label: part.label, text: part.text };
+      }),
+    }).then(function (data) {
+      if (!data || !data.ok) {
+        haveError((data && data.error) || 'That rewrite did not come back.');
+        return;
+      }
+      var byId = {};
+      (data.parts || []).forEach(function (part) { byId[part.id] = part; });
+      haveState.parts.forEach(function (part) {
+        var next = byId[part.id];
+        if (!next) return;
+        part.suggested = next.suggested || part.text;
+      });
+      if (typeof data.credits === 'number') {
+        state.credits = data.credits;
+        paintCredits();
+      }
+      haveNote(data.voice_source === 'persona'
+        ? 'Full rewrite used your Persona Lock. Pick Keep mine or Use this on each part.'
+        : 'Full rewrite used the voice in your lyrics. Pick Keep mine or Use this on each part.');
+      renderHave();
+    }).catch(function () {
+      haveError('That rewrite did not come back.');
+    });
+  }
+
+  function saveSong() {
+    if (!haveState.original || !haveState.parts.length) {
+      haveError('Break the song down before you save it.');
+      return;
+    }
+    post('vault-save', { kind: 'song', title: 'Original draft', body: haveState.original }).then(function (data) {
+      if (!data || !data.ok) {
+        haveError((data && data.error) || 'The original draft did not save.');
+        return null;
+      }
+      applyResult(data);
+      return post('vault-save', { kind: 'song', title: 'Final version', body: assembleFinal() });
+    }).then(function (data) {
+      if (!data) return;
+      if (!data.ok) {
+        haveError(data.error || 'The original saved. The final version did not.');
+        return;
+      }
+      applyResult(data);
+      haveError('');
+      haveNote('Saved. The original draft is your authorship proof. The final version is saved beside it.');
+    }).catch(function () {
+      haveError('That save did not come through.');
+    });
+  }
+
   function boot() {
+    bootHave();
     var panel = $('sh-dev');
     if (!panel) return;
     fetch('/api/song-helper?action=dev-status', { credentials: 'same-origin' })
