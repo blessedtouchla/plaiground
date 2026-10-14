@@ -270,6 +270,14 @@ CREATE TABLE IF NOT EXISTS chart_corrections (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE chart_artists ADD COLUMN IF NOT EXISTS ai_note text NOT NULL DEFAULT '';
+ALTER TABLE chart_songs ADD COLUMN IF NOT EXISTS genre text NOT NULL DEFAULT '';
+ALTER TABLE chart_songs ADD COLUMN IF NOT EXISTS scope_tag text NOT NULL DEFAULT '';
+ALTER TABLE chart_songs ADD COLUMN IF NOT EXISTS youtube_video_id text NOT NULL DEFAULT '';
+ALTER TABLE chart_songs ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+ALTER TABLE chart_sources ADD COLUMN IF NOT EXISTS position_label text NOT NULL DEFAULT '';
+ALTER TABLE chart_sources ADD COLUMN IF NOT EXISTS chart_date_text text NOT NULL DEFAULT '';
+
 -- One live note per release. The first live event stays on user_events.
 CREATE TABLE IF NOT EXISTS artist_mail_sent (
   user_id text NOT NULL,

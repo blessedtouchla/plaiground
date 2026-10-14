@@ -52,9 +52,12 @@
       card.appendChild(title);
     }
     card.appendChild(el('p', 'charts-meta', song.artist || ''));
+    card.appendChild(el('p', 'charts-meta', 'Genre: ' + (song.genre || 'Data unavailable')));
+    if (song.scope_tag === 'benchmark') card.appendChild(el('p', 'charts-tag', 'Benchmark'));
     var ai = el('p', 'charts-meta');
     ai.textContent = 'AI label: ' + (song.ai_label || 'Unknown');
     card.appendChild(ai);
+    if (song.ai_note) card.appendChild(el('p', 'charts-meta', song.ai_note));
     if (song.ai_source_url) card.appendChild(sourceLine({
       source_name: song.ai_source_name || 'Data unavailable',
       source_url: song.ai_source_url,
