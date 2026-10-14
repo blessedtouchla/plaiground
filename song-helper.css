@@ -126,10 +126,19 @@ body.song-helper-page .plai-bubble {
   line-height: 1.45;
 }
 
-.sh-chips {
+.sh-chips,
+.sh-feeling-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.sh-riddim-road {
+  margin-top: 16px;
+}
+
+.sh-riddim-road .sh-feeling-chips {
+  margin-bottom: 12px;
 }
 
 .sh-chip {
