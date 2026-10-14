@@ -82,6 +82,9 @@
   var ideaLane = '';
   var branch = '';
   var storyBox = false;
+  var basedOn = false;
+  var basedGuideOn = false;
+  var basedVibe = null;
   var pageSections = [];
   var formatState = null;
   var KIND_MOOD = {
@@ -2363,8 +2366,15 @@
       sourceBtn.classList.toggle('on', source);
       sourceBtn.setAttribute('aria-pressed', source ? 'true' : 'false');
     }
+    showEl('sh-based', basedOn);
     showEl('sh-page', !!storyBox);
     showEl('sh-have', branch === 'have');
+    var basedBtn = $('sh-choice-based');
+    if (basedBtn) {
+      basedBtn.classList.toggle('on', basedOn);
+      basedBtn.setAttribute('aria-pressed', basedOn ? 'true' : 'false');
+    }
+    paintBasedPath();
     var pageBtn = $('sh-choice-page');
     if (pageBtn) {
       pageBtn.classList.toggle('on', !!storyBox);
@@ -2412,7 +2422,13 @@
 
   function setStoryBox(on, opts) {
     storyBox = !!on;
-    if (storyBox) branch = '';
+    if (storyBox) {
+      branch = '';
+      if (!(opts && opts.keepBased)) {
+        basedOn = false;
+        basedGuideOn = false;
+      }
+    }
     paintBranch();
     if (storyBox && !(opts && opts.keep)) {
       var page = $('sh-page');
@@ -2424,9 +2440,19 @@
   }
 
   function setBranch(next) {
-    if (next !== 'scratch' && next !== 'source' && next !== 'have') return;
+    if (next !== 'scratch' && next !== 'source' && next !== 'have' && next !== 'based') return;
     var wasStory = storyBox;
     storyBox = false;
+    basedGuideOn = false;
+    if (next === 'based') {
+      if (basedOn && !wasStory && branch === '') return;
+      branch = '';
+      basedOn = true;
+      paintBranch();
+      if (wasStory) persistPage();
+      return;
+    }
+    basedOn = false;
     if (branch === next) {
       if (wasStory) {
         paintBranch();
@@ -3083,7 +3109,7 @@
     if (!flow || !flow.humanMeter || !flow.sectionBody) return;
     var meter = flow.humanMeter(flow.humanText ? flow.humanText(pageSections) : flow.sectionBody(pageSections));
     var total = flow.sectionTotal ? flow.sectionTotal(pageSections) : meter.count;
-    var guide = flow.nextGuide ? flow.nextGuide(pageSections) : null;
+    var guide = (basedGuideOn && flow.basedGuide) ? flow.basedGuide(pageSections) : (flow.nextGuide ? flow.nextGuide(pageSections) : null);
     var host = $('sh-meter');
     if (host) {
       host.classList.toggle('is-full', meter.band === 'full');
@@ -3374,6 +3400,114 @@
     try {
       window.dispatchEvent(new CustomEvent('plaiground-sections', { detail: pageSections }));
     } catch (err) {}
+  }
+
+  var PAGE_HELP = 'Each part has its own box. Verse 1, the hook, Verse 2, and the bridge start you off. Add a verse or an outro if you need one. Nothing is filled in until you tap Use this. Extend, Shorten, and Rhymify sit beside your words. Your words stay until you tap Accept or Edit.';
+  var BASED_HELP = 'Each part has its own box. This song starts with the Hook, then Verse 1, Verse 2, and the Bridge. Done is the last step. Nothing is filled in until you tap Use this. Your words stay until you tap Accept or Edit.';
+
+  function paintBasedPath() {
+    var path = $('sh-based-path');
+    var help = $('sh-page-help');
+    var writing = !!(basedGuideOn && basedVibe && basedVibe.ok);
+    if (help) help.textContent = writing ? BASED_HELP : PAGE_HELP;
+    if (!path) return;
+    if (!writing) {
+      path.hidden = true;
+      path.textContent = '';
+      return;
+    }
+    path.hidden = false;
+    path.textContent = basedVibe.note + ' Style prompt: ' + basedVibe.prompt;
+  }
+
+  function paintBasedResult(result) {
+    var box = $('sh-based-result');
+    var list = $('sh-based-feel');
+    var prompt = $('sh-based-prompt');
+    var note = $('sh-based-note');
+    var err = $('sh-based-error');
+    if (!result || !result.ok) {
+      basedVibe = null;
+      if (box) box.hidden = true;
+      if (err) {
+        err.hidden = false;
+        err.textContent = (result && result.message) || 'Type a song title and an artist.';
+      }
+      return;
+    }
+    basedVibe = result;
+    if (err) {
+      err.hidden = true;
+      err.textContent = '';
+    }
+    if (note) note.textContent = result.note;
+    if (prompt) prompt.textContent = result.prompt;
+    if (list) {
+      list.textContent = '';
+      [
+        ['Tempo', result.tempo],
+        ['Mood', result.mood],
+        ['Groove', result.groove],
+        ['Structure', result.structure],
+        ['Vocal energy', result.vocalEnergy],
+        ['Themes', result.themes],
+        ['Rhyme density', result.rhymeDensity],
+      ].forEach(function (pair) {
+        if (!pair[1]) return;
+        var li = document.createElement('li');
+        li.textContent = pair[0] + ': ' + pair[1];
+        list.appendChild(li);
+      });
+    }
+    if (box) box.hidden = false;
+  }
+
+  function generatedLeak(result, query) {
+    var flow = window.SongFlow;
+    if (!flow || !flow.nameLeak || !result) return false;
+    return flow.nameLeak({
+      tempo: result.tempo,
+      mood: result.mood,
+      groove: result.groove,
+      structure: result.structure,
+      vocalEnergy: result.vocalEnergy,
+      themes: result.themes,
+      rhymeDensity: result.rhymeDensity,
+      prompt: result.prompt,
+      note: '',
+    }, query);
+  }
+
+  function describeBased() {
+    var flow = window.SongFlow;
+    var title = askValue($('sh-based-title'));
+    var artist = askValue($('sh-based-artist'));
+    if (!flow || !flow.basedOnSong) return;
+    var result = flow.basedOnSong(title, artist);
+    if (result && result.ok && (generatedLeak(result, title) || generatedLeak(result, artist) || generatedLeak(result, title + ' ' + artist))) {
+      result = { ok: false, message: 'That description did not stay original. Try a different title.' };
+    }
+    paintBasedResult(result);
+  }
+
+  function startBasedWrite() {
+    var flow = window.SongFlow;
+    if (!basedVibe || !basedVibe.ok || !flow || !flow.basedSections) return;
+    basedGuideOn = true;
+    basedOn = true;
+    branch = '';
+    var empty = !pageSections.some(function (row) { return String(row.text || '').trim(); });
+    if (empty) pageSections = freshSections(flow.basedSections());
+    storyBox = true;
+    pageError('');
+    renderSections();
+    paintBranch();
+    paintHumanMeter();
+    persistPage();
+    var page = $('sh-page');
+    if (page && page.scrollIntoView) {
+      try { page.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+    }
   }
 
   function bootWriteFirst() {
@@ -4131,8 +4265,14 @@
   if (ownBtn) ownBtn.addEventListener('click', function () { setIdeaLane('own'); });
   var scratchBtn = $('sh-choice-scratch');
   var sourceBtn = $('sh-choice-source');
+  var basedBtn = $('sh-choice-based');
   if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
+  if (basedBtn) basedBtn.addEventListener('click', function () { setBranch('based'); });
   if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
+  var basedGo = $('sh-based-go');
+  var basedWrite = $('sh-based-write');
+  if (basedGo) basedGo.addEventListener('click', describeBased);
+  if (basedWrite) basedWrite.addEventListener('click', startBasedWrite);
   var haveBtn = $('sh-choice-have');
   if (haveBtn) haveBtn.addEventListener('click', function () { setBranch('have'); });
   paintBranch();

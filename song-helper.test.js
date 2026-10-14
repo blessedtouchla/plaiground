@@ -1337,11 +1337,11 @@ function runPage() {
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261010sounds'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261014tabs'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261014based'));
   assert.ok(html.includes('lib/song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-flow-page.js?v=20261014trends'));
   assert.ok(html.includes('song-helper.css?v=20261014have'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261014trends'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261014based'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));

@@ -859,6 +859,14 @@ function runPages() {
   assert.ok(js.includes('sh-choice-page'));
   assert.ok(html.includes('From a real song'));
   assert.ok(html.includes('id="sh-choice-scratch"'));
+  assert.ok(html.includes('id="sh-choice-based"'));
+  assert.ok(html.includes('Based on a real song'));
+  assert.ok(html.includes('Inspired by, not copied. Your song will be fully original.'));
+  assert.ok(html.includes('id="sh-based-title"'));
+  assert.ok(html.includes('id="sh-based-artist"'));
+  assert.ok(js.includes('basedOnSong'));
+  assert.ok(js.includes('basedGuide'));
+  assert.ok(js.includes('sh-choice-based'));
   assert.ok(html.includes('id="sh-choice-source"'));
   assert.ok(html.includes('id="sh-source"'));
   assert.ok(html.includes('How you write'));
