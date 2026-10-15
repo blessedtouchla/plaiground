@@ -245,6 +245,37 @@ function runModes() {
   assert.ok(/fair use/i.test(parodyOk.draft.notes.join(' ')));
   assert.ok(/parody/i.test(parodyOk.critique.release));
   assert.ok(/The original pretends the town is fine/.test(JSON.stringify(parodyOk.draft)));
+  const parodyBoth = modes.buildSample(concrete({
+    mode: 'parody',
+    originalTitle: 'Old Song',
+    title: 'A kitchen light',
+    comment: 'The original pretends the town is fine.',
+    happened: 'Today is my whole week in one kitchen and the light stayed on.',
+  }));
+  assert.strictEqual(parodyBoth.ok, true);
+  const bothText = JSON.stringify(parodyBoth.draft);
+  assert.ok(bothText.indexOf('Today is my whole week in one kitchen and the light stayed on.') !== -1);
+  assert.ok(bothText.indexOf('The original pretends the town is fine.') !== -1);
+  const parodyKept = modes.draftFromModel(JSON.stringify({
+    title: 'A kitchen light',
+    sections: [{ label: 'Verse', lines: ['A new line that is not theirs.'] }],
+  }), modes.normalizeInput({
+    mode: 'parody',
+    originalTitle: 'Old Song',
+    title: 'A kitchen light',
+    comment: 'The original pretends the town is fine.',
+    happened: 'Today is my whole week in one kitchen and the light stayed on.',
+  }));
+  const keptText = JSON.stringify(parodyKept);
+  assert.ok(keptText.indexOf('Today is my whole week in one kitchen and the light stayed on.') !== -1);
+  assert.ok(keptText.indexOf('The original pretends the town is fine.') !== -1);
+  assert.ok(/keep happened and comment word for word/i.test(modes.systemPrompt(modes.normalizeInput({
+    mode: 'parody',
+    originalTitle: 'Old Song',
+    comment: 'The point.',
+    happened: 'Today is my whole week in one kitchen and the light stayed on.',
+    craft: {},
+  }))));
   const parodyRabbit = modes.buildSample({
     mode: 'parody',
     originalTitle: 'HUMBLE. by Kendrick Lamar',
@@ -1168,9 +1199,13 @@ function runReggae() {
   assert.ok(!/Suno|ToneGrid/i.test(prompt));
   const html = read('song-helper.html');
   assert.ok(html.includes('Write, Reggae, Funny'));
-  assert.ok(html.includes('lib/song-modes.js?v=20261014riddim'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261014riddim'));
-  assert.ok(html.includes('song-helper.css?v=20261014riddim'));
+  assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261015answers'));
+  assert.ok(html.includes('song-helper.css?v=20261015answers'));
+  assert.ok(html.includes('lib/song-pass.js?v=20261015answers'));
+  assert.ok(read('song-helper-v2.js').includes('Say what happened before you name the song.'));
+  assert.ok(read('song-helper-v2.js').includes('mountAnswerList'));
+  assert.ok(read('lib/song-pass.js').includes('is-clamped'));
   assert.ok(html.includes('id="sh-feelings"'));
   assert.ok(read('song-helper-v2.js').includes('paintReggaeGuide'));
   assert.ok(read('song-helper-v2.js').includes('paintRiddimRoad'));

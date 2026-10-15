@@ -326,29 +326,34 @@
   }
 
   function paintCard(host, rows) {
-    if (!host || !window.SongPass) return;
-    host.textContent = '';
-    if (!rows.length) {
-      host.hidden = true;
-      return;
-    }
-    host.hidden = false;
-    var title = document.createElement('p');
-    title.className = 'sh-answers-title';
-    title.textContent = 'Your answers';
-    host.appendChild(title);
-    rows.forEach(function (row) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'sh-answer';
-      var label = document.createElement('b');
-      label.textContent = row.label;
-      var value = document.createElement('span');
-      value.textContent = row.value;
-      button.appendChild(label);
-      button.appendChild(value);
-      button.addEventListener('click', function () { editAnswer(row.id); });
-      host.appendChild(button);
+    if (!host || !window.SongPass || !window.SongPass.mountAnswerList) return;
+    window.SongPass.mountAnswerList(host, rows, {
+      read: function (row) {
+        var map = { happened: 'sh-happened', who: 'sh-who', why: 'sh-why', line: 'sh-line', idea: 'sh-own-idea' };
+        var el = map[row.id] ? document.getElementById(map[row.id]) : null;
+        if (!el) el = document.querySelector('#sh-v2-fields [data-field="' + row.id + '"]');
+        if (el && String(el.value || '').trim()) return el.value;
+        return row.value;
+      },
+      write: function (row, text) {
+        var map = { happened: 'sh-happened', who: 'sh-who', why: 'sh-why', line: 'sh-line', idea: 'sh-own-idea' };
+        var el = map[row.id] ? document.getElementById(map[row.id]) : null;
+        if (!el) el = document.querySelector('#sh-v2-fields [data-field="' + row.id + '"]');
+        if (el) {
+          el.value = text;
+          paintStory(el);
+        }
+        if (window.SongHelperV2 && window.SongHelperV2.rememberFields) window.SongHelperV2.rememberFields();
+      },
+      jump: function (row) {
+        var field = document.querySelector('#sh-v2-fields [data-field="' + row.id + '"]');
+        if (!field) {
+          var map = { happened: 'sh-happened', who: 'sh-who', why: 'sh-why', line: 'sh-line', idea: 'sh-own-idea' };
+          field = map[row.id] ? document.getElementById(map[row.id]) : null;
+        }
+        if (field && field.offsetParent !== null) return;
+        editAnswer(row.liveId ? 'live' : row.id);
+      },
     });
   }
 
@@ -2021,6 +2026,7 @@
       go(STEPS.indexOf('draft'), true);
     },
     lyricsOpen: function () { return lyricsOpen; },
+    editAnswer: editAnswer,
     openFinishedLyrics: function () {
       lyricsOpen = true;
       var write = document.getElementById('sh-write');

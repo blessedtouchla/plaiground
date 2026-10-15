@@ -1003,7 +1003,7 @@ body.song-helper-page .plai-bubble {
 .sh-answer {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 4px;
   width: 100%;
   min-height: 64px;
@@ -1014,6 +1014,20 @@ body.song-helper-page .plai-bubble {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #fff;
   text-align: left;
+}
+
+.sh-answer-open {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -1022,12 +1036,36 @@ body.song-helper-page .plai-bubble {
   color: #f3cb47;
 }
 
-.sh-answer span {
+.sh-answer-text {
   font-size: 1.02rem;
   line-height: 1.35;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   max-width: 100%;
+}
+
+.sh-answer-text.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.sh-answer.is-open .sh-answer-text {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.sh-answer-edit {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sh-answer-edit .sh-area {
+  width: 100%;
+  min-height: 140px;
+  font-size: 16px;
 }
 
 .sh-follow {

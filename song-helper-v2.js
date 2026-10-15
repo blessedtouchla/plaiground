@@ -208,11 +208,6 @@
     Array.prototype.forEach.call(nodes, function (el) {
       var key = 'v2:' + el.getAttribute('data-field');
       if (values[key] == null || values[key] === '') return;
-      if (el.tagName === 'SELECT') {
-        el.value = String(values[key]);
-        return;
-      }
-      if (String(el.value || '').trim()) return;
       el.value = String(values[key]);
     });
   }
@@ -225,6 +220,7 @@
       var el = event && event.target;
       if (!fieldStoreKey(el)) return;
       snapshotFields();
+      if (el.closest && el.closest('#sh-v2-fields') && mode !== 'write') paintV2Answers();
     }
     shell.addEventListener('input', onEdit);
     shell.addEventListener('change', onEdit);
@@ -233,7 +229,7 @@
   function restoreParodyVisit() {
     var saved = readFieldStore();
     var values = saved.values || {};
-    var hasParody = ['v2:originalTitle', 'v2:comment', 'v2:artNote'].some(function (key) {
+    var hasParody = ['v2:originalTitle', 'v2:comment', 'v2:artNote', 'v2:happened'].some(function (key) {
       return String(values[key] || '').trim();
     });
     if (!hasParody || (saved.mode !== 'parody' && saved.mode !== 'cover' && saved.mode !== 'public-domain')) return;
@@ -367,7 +363,9 @@
     var snap = snapshot();
     return {
       topic: snap.topic,
-      happened: fieldValue('happened') || snap.topic,
+      happened: fieldValue('happened'),
+      originalTitle: fieldValue('originalTitle'),
+      comment: fieldValue('comment'),
       who: fieldValue('name'),
       why: fieldValue('why'),
       line: fieldValue('line'),
@@ -384,41 +382,47 @@
     };
   }
 
+  function answerControl(row) {
+    var id = String(row && row.id || '');
+    var field = document.querySelector('#sh-v2-fields [data-field="' + id + '"]');
+    if (field) return field;
+    var map = { happened: 'sh-happened', who: 'sh-who', why: 'sh-why', line: 'sh-line', idea: 'sh-own-idea', mood: 'sh-mood-input' };
+    if (map[id]) return document.getElementById(map[id]);
+    if (row && row.liveId) return document.getElementById('sh-live-answer');
+    return null;
+  }
+
+  function writeAnswer(row, text) {
+    var field = answerControl(row);
+    if (field && (!row.liveId || field.getAttribute('data-live-id') === row.liveId)) {
+      field.value = text;
+      paintStory(field);
+    }
+    if (row && row.liveId && live && live.saved) {
+      live.saved.forEach(function (item) {
+        if (item && item.id === row.liveId) item.text = text;
+      });
+    }
+    snapshotFields();
+  }
+
+  function jumpAnswer(row) {
+    var field = answerControl(row);
+    if (field && field.offsetParent !== null) return;
+    if (window.SongHelperPage && window.SongHelperPage.editAnswer) window.SongHelperPage.editAnswer(row && row.liveId ? 'live' : row.id);
+  }
+
   function paintV2Answers() {
     var host = $('sh-v2-answers');
-    if (!host || !window.SongPass || mode === 'write') return;
-    host.textContent = '';
-    var rows = window.SongPass.summary(v2Bag());
-    if (!rows.length) {
-      host.hidden = true;
-      return;
-    }
-    host.hidden = false;
-    var title = document.createElement('p');
-    title.className = 'sh-answers-title';
-    title.textContent = 'Your answers';
-    host.appendChild(title);
-    rows.forEach(function (row) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'sh-answer';
-      var label = document.createElement('b');
-      label.textContent = row.label;
-      var value = document.createElement('span');
-      value.textContent = row.value;
-      button.appendChild(label);
-      button.appendChild(value);
-      button.addEventListener('click', function () {
-        var field = document.querySelector('#sh-v2-fields [data-field="' + row.id + '"]');
-        var target = field || document.getElementById(row.id === 'idea' ? 'sh-own-idea' : (row.id === 'mood' ? 'sh-feeling' : 'sh-region'));
-        if (target && target.focus) {
-          try { target.focus(); } catch (err) {}
-        }
-        if (target && target.scrollIntoView) {
-          try { target.scrollIntoView({ block: 'center' }); } catch (err2) {}
-        }
-      });
-      host.appendChild(button);
+    if (!host || !window.SongPass || !window.SongPass.mountAnswerList || mode === 'write') return;
+    window.SongPass.mountAnswerList(host, window.SongPass.summary(v2Bag()), {
+      read: function (row) {
+        var field = answerControl(row);
+        if (field && String(field.value || '').trim()) return field.value;
+        return row.value;
+      },
+      write: writeAnswer,
+      jump: jumpAnswer,
     });
   }
 
@@ -631,6 +635,20 @@
     var host = $('sh-v2-fields');
     host.textContent = '';
     var sourceMode = mode === 'parody' || mode === 'cover' || mode === 'public-domain';
+    if (mode === 'parody') {
+      addField(host, {
+        id: 'happened',
+        label: 'What happened',
+        kind: 'area',
+        rows: 6,
+        placeholder: 'The real thing that happened, in your words.',
+        story: true,
+      });
+      var happenedHelp = document.createElement('p');
+      happenedHelp.className = 'sh-help';
+      happenedHelp.textContent = 'Say what happened before you name the song. This stays in the parody.';
+      host.appendChild(happenedHelp);
+    }
     if (mode === 'parody' || mode === 'cover') {
       addField(host, {
         id: 'originalTitle',
@@ -4720,6 +4738,7 @@
     },
     region: function () { return craft.region || ''; },
     styleText: currentStyleText,
+    rememberFields: snapshotFields,
     pageText: function () {
       return window.SongFlow && window.SongFlow.sectionText ? window.SongFlow.sectionText(pageSections) : '';
     },
