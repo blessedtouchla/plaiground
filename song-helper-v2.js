@@ -1222,6 +1222,7 @@
         paintKinds();
         paintLive();
         paintBranch();
+        paintV2Answers();
       });
       host.appendChild(button);
     });
@@ -1248,6 +1249,7 @@
           window.SongHelperPage.setMood(first ? first.label.toLowerCase() : '');
         }
         paintFeelings();
+        paintV2Answers();
         var felt = document.querySelector('.sh-riddim-feelings');
         if (feelings.length && modes.feelingLabels) {
           if (!felt) {
@@ -1313,6 +1315,7 @@
       persistOwn();
       touchLive();
       paintLive();
+      if (mode && mode !== 'write') paintV2Answers();
     });
     idea.appendChild(ideaSpan);
     idea.appendChild(area);
@@ -4739,6 +4742,7 @@
     region: function () { return craft.region || ''; },
     styleText: currentStyleText,
     rememberFields: snapshotFields,
+    refreshAnswers: paintV2Answers,
     pageText: function () {
       return window.SongFlow && window.SongFlow.sectionText ? window.SongFlow.sectionText(pageSections) : '';
     },

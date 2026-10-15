@@ -1489,6 +1489,7 @@
     if (group === 'mood') {
       $('sh-mood-custom').hidden = value !== 'custom';
       showMoodError('');
+      if (window.SongHelperV2 && window.SongHelperV2.refreshAnswers) window.SongHelperV2.refreshAnswers();
     }
     if (group === 'pack') {
       $('sh-comedy').hidden = value !== 'comedy';
@@ -1506,7 +1507,10 @@
     if (!el) return;
     el.addEventListener('input', function () {
       if (id === 'sh-style-genre' || id === 'sh-style-feel') styleTouched = true;
-      if (id === 'sh-mood-input') showMoodError('');
+      if (id === 'sh-mood-input') {
+        showMoodError('');
+        if (window.SongHelperV2 && window.SongHelperV2.refreshAnswers) window.SongHelperV2.refreshAnswers();
+      }
       if (STEPS[step] === 'style') renderStyle();
     });
   });
