@@ -17,7 +17,12 @@
  *                                         never 200-removed while the store still has the row
  * POST /api/tonegrid/releases/:id/submit   -> skipped when already pending/approved/live
  *                                         made_how ai_assisted/fully_ai PATCHes
- *                                         includes_ai on each track; no_ai omits it
+ *                                         includes_ai on each track; no_ai PATCHes
+ *                                         track_properties without includes_ai so a
+ *                                         previous flag, ai_elements, and
+ *                                         ai_service_other are cleared.
+ *                                         ai_service_other is the tool name.
+ *                                         Do not send the human description there.
  * POST /api/tonegrid/releases/:id/dsps
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
  * POST /api/tonegrid/releases/:id/artwork  -> ToneGrid POST /releases/:uuid/artwork
@@ -548,12 +553,11 @@ async function continueLeftoverTrack(res, releaseId, body, songwriter, scope) {
     return true;
   }
   const leftoverAi = storeAi.trackAiFields(body);
-  if (leftoverAi) {
-    try {
-      await applyTrackAiDisclosure(reuseId, leftoverAi);
-    } catch {
-      /* leftover continue still hops if the AI tag misses */
-    }
+  try {
+    if (leftoverAi) await applyTrackAiDisclosure(reuseId, leftoverAi);
+    else if (storeAi.shouldClearTrackAi(body)) await clearTrackAiDisclosure(reuseId);
+  } catch {
+    /* leftover continue still hops if the AI tag misses */
   }
   await accounts.updateCatalog(scope.userId, { trackId: reuseId });
   sendJson(res, 200, { uuid: reuseId, continued: true });
@@ -1404,6 +1408,27 @@ async function applyTrackAiDisclosure(trackId, fields) {
     method: 'PATCH',
     body: fields,
     idempotencyKey: hopIdempotencyKey('track-ai', 'PATCH', '/tracks/' + trackId, JSON.stringify(fields)),
+  });
+}
+
+function listedTrackProperties(data) {
+  const row = data && data.track && typeof data.track === 'object'
+    ? data.track
+    : (data && data.data && data.data.track && typeof data.data.track === 'object' ? data.data.track : data);
+  const list = row && (row.track_properties || row.trackProperties);
+  return Array.isArray(list) ? list : [];
+}
+
+async function clearTrackAiDisclosure(trackId) {
+  if (!isUuid(trackId)) return { ok: true, skipped: true };
+  const existing = await tonegridFetch('/tracks/' + trackId, { method: 'GET' });
+  const kept = existing && existing.ok
+    ? storeAi.clearTrackProperties(listedTrackProperties(existing.data))
+    : [];
+  return tonegridFetch('/tracks/' + trackId, {
+    method: 'PATCH',
+    body: { track_properties: kept },
+    idempotencyKey: hopIdempotencyKey('track-ai-clear', 'PATCH', '/tracks/' + trackId, JSON.stringify(kept)),
   });
 }
 
@@ -3710,6 +3735,7 @@ async function submitRelease(req, res, releaseId) {
   const trackIds = collectSubmitTrackIds(row, body);
   const seenTracks = {};
   const aiFields = storeAi.trackAiFields(body);
+  const clearAi = storeAi.shouldClearTrackAi(body);
   for (let i = 0; i < trackIds.length; i += 1) {
     const tid = String(trackIds[i] || '').trim();
     if (!isUuid(tid) || seenTracks[tid]) continue;
@@ -3723,6 +3749,12 @@ async function submitRelease(req, res, releaseId) {
       const tagged = await applyTrackAiDisclosure(tid, aiFields);
       if (!tagged.ok) {
         sendJson(res, tagged.status, tagged.data);
+        return;
+      }
+    } else if (clearAi) {
+      const cleared = await clearTrackAiDisclosure(tid);
+      if (!cleared.ok) {
+        sendJson(res, cleared.status, cleared.data);
         return;
       }
     }

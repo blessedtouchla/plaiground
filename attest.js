@@ -2,6 +2,19 @@
   var DRAFT_KEY = 'plaiground.store.draft';
   var SHEET_KEY = 'plaiground.tonegrid.draft';
   var HUMAN_SAVED_KEY = 'plaiground.attest.human_saved';
+  var QUALIFYING = {
+    'Lead vocals performed': true,
+    'Backing vocals': true,
+    'Played an instrument': true,
+    'Melody written': true,
+  };
+  var SOFT_ONLY = {
+    'Original lyrics': true,
+    'Arrangement': true,
+    'Prompt authorship': true,
+    'Mixed by a person': true,
+    'Mastered by a person': true,
+  };
 
   function readDraft() {
     try {
@@ -334,13 +347,52 @@
       }
     }
 
+    function qualifyingOn(items) {
+      return (items || selectedElements()).some(function (label) { return QUALIFYING[label]; });
+    }
+
+    function onlySoftChips(items) {
+      var have = items || selectedElements();
+      return have.length > 0 && !qualifyingOn(have) && have.every(function (label) { return SOFT_ONLY[label]; });
+    }
+
     function syncHumanSection() {
-      var show = selectedHow() === 'ai_assisted';
+      var how = selectedHow();
+      var show = how === 'ai_assisted' || how === 'fully_ai';
       if (!humanSection) return;
       humanSection.hidden = !show;
       if (humanSection.classList && humanSection.classList.toggle) {
         humanSection.classList.toggle('is-hidden', !show);
+        humanSection.classList.toggle('is-lyrics-only', how === 'fully_ai');
       }
+    }
+
+    function syncQualify() {
+      var note = document.querySelector('[data-qualify]');
+      if (!note) return;
+      var how = selectedHow();
+      var have = selectedElements();
+      var text = '';
+      var ok = false;
+      if (how === 'ai_assisted' && qualifyingOn(have)) {
+        text = 'Qualifies as AI-assisted';
+        ok = true;
+      } else if (how === 'ai_assisted' && onlySoftChips(have)) {
+        text = 'Some platforms accept this, but YouTube needs a human voice, instrument or melody in the final recording. Add one, or this will be sent as Fully AI.';
+      }
+      note.textContent = text;
+      note.hidden = !text;
+      if (note.classList && note.classList.toggle) {
+        note.classList.toggle('is-ok', ok);
+        note.classList.toggle('is-hidden', !text);
+      }
+    }
+
+    function showSwitched(on) {
+      var note = document.querySelector('[data-switched]');
+      if (!note) return;
+      note.hidden = !on;
+      if (note.classList && note.classList.toggle) note.classList.toggle('is-hidden', !on);
     }
 
     function syncAiUse() {
@@ -364,6 +416,7 @@
 
     function refresh() {
       syncHumanSection();
+      syncQualify();
       syncAiUse();
       syncSolo();
       syncRightsStatus();
@@ -372,10 +425,11 @@
       writeDraft(collect());
     }
 
-    function selectHow(value) {
+    function selectHow(value, opts) {
       Array.prototype.forEach.call(choices, function (el) {
         el.classList.toggle('on', el.getAttribute('data-made-how') === value);
       });
+      if (!opts || !opts.keepSwitchNote) showSwitched(false);
       refresh();
     }
 
@@ -408,6 +462,11 @@
       } else {
         selectHow('no_ai');
       }
+    });
+    var switchedBack = document.querySelector('[data-switched-back]');
+    if (switchedBack) switchedBack.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault();
+      selectHow('ai_assisted');
     });
     if (solo) {
       solo.addEventListener('change', function () {
@@ -449,6 +508,12 @@
       if (error) {
         setStatus(error);
         if (trigger.classList) trigger.classList.add('is-incomplete');
+        return false;
+      }
+      if (fields.made_how === 'ai_assisted' && onlySoftChips(fields.human_elements)) {
+        selectHow('fully_ai', { keepSwitchNote: true });
+        showSwitched(true);
+        setStatus('');
         return false;
       }
       markHumanSaved();

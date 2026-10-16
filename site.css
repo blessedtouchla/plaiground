@@ -6751,6 +6751,31 @@ body.attest-page .plai-bubble-row {
 .attest-page .attest-rights-ok[hidden] {
   display: none !important;
 }
+.attest-page .attest-qualify,
+.attest-page .attest-switched {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.attest-page .attest-qualify.is-ok {
+  color: var(--green);
+}
+.attest-page .attest-qualify[hidden],
+.attest-page .attest-switched[hidden] {
+  display: none !important;
+}
+.attest-page .attest-switched .attest-back {
+  display: inline;
+  margin-left: 8px;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.attest-page [data-human-section].is-lyrics-only .tag:not([data-lyrics]) {
+  display: none;
+}
 .attest-page .attest-actions {
   position: sticky;
   bottom: 0;

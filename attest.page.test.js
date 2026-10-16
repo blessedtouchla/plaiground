@@ -70,8 +70,8 @@ function makeStorage() {
 function load(opts) {
   opts = opts || {};
   const defaultOn = Boolean(opts.defaultOn);
-  const ai = makeEl({ attrs: { 'data-made-how': 'ai_assisted' }, on: 'on' });
-  const noAi = makeEl({ attrs: { 'data-made-how': 'no_ai' } });
+  const ai = makeEl({ attrs: { 'data-made-how': 'ai_assisted' } });
+  const noAi = makeEl({ attrs: { 'data-made-how': 'no_ai' }, on: 'on' });
   const fullyAi = makeEl({ attrs: { 'data-made-how': 'fully_ai' } });
   const humanSection = makeEl({ attrs: { 'data-human-section': '' } });
   const tags = TAGS.map(function (label, index) {
@@ -121,6 +121,13 @@ function load(opts) {
   const status = makeEl({ id: 'attest-status' });
   const rightsNudge = makeEl({ attrs: { 'data-rights-nudge': '' }, hidden: false, textContent: 'Tick the box to continue.' });
   const rightsOk = makeEl({ attrs: { 'data-rights-ok': '' }, hidden: true, textContent: 'Accepted' });
+  const qualify = makeEl({ attrs: { 'data-qualify': '' }, hidden: true, textContent: '' });
+  const switchedLine = makeEl({
+    attrs: { 'data-switched-line': '' },
+    textContent: 'This will be sent as Fully AI because the recording has no human voice, instrument, or melody.',
+  });
+  const switchedBack = makeEl({ attrs: { 'data-switched-back': '' }, textContent: 'Go back' });
+  const switched = makeEl({ attrs: { 'data-switched': '' }, hidden: true });
   const trigger = makeEl({ attrs: { href: 'split-sheet.html', 'data-attest-continue': '' }, textContent: 'Continue to the split sheet' });
   const localStorage = opts.localStorage || makeStorage();
   const sessionStorage = opts.sessionStorage || makeStorage();
@@ -172,6 +179,9 @@ function load(opts) {
       if (sel === '[data-other-writers]') return otherToggle;
       if (sel === '[data-other-writers-count]') return otherCountWrap;
       if (sel === '[data-directed-claim]') return directedWrap;
+      if (sel === '[data-qualify]') return qualify;
+      if (sel === '[data-switched]') return switched;
+      if (sel === '[data-switched-back]') return switchedBack;
       if (sel === '[data-other-writers].on') {
         return otherNo.classList.contains('on') ? otherNo : (otherYes.classList.contains('on') ? otherYes : null);
       }
@@ -206,6 +216,10 @@ function load(opts) {
     rights,
     rightsNudge,
     rightsOk,
+    qualify,
+    switched,
+    switchedLine,
+    switchedBack,
     solo,
     soloCard,
     otherNo,
@@ -228,7 +242,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20260918vn1') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20261016ai') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
   assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
@@ -259,8 +273,16 @@ function run() {
   assert.ok(!/class="tag on"/.test(html), 'chips must not be preselected in HTML');
 
   const page = load();
-  assert.ok(page.ai.classList.contains('on'));
-  assert.ok(!page.noAi.classList.contains('on'));
+  assert.ok(/class="choice on" data-made-how="no_ai"/.test(html), 'No AI used is the default choice');
+  assert.ok(/class="choice" data-made-how="ai_assisted"/.test(html), 'AI assisted is not the default');
+  assert.ok(html.indexOf('data-qualify') !== -1);
+  assert.ok(attestSrc.indexOf('Qualifies as AI-assisted') !== -1);
+  assert.ok(attestSrc.indexOf('this will be sent as Fully AI') !== -1);
+  assert.ok(html.indexOf('data-lyrics') !== -1, 'Fully AI can claim original lyrics');
+  assert.ok(html.indexOf('data-switched-back') !== -1, 'auto-switch can go back');
+  assert.ok(page.noAi.classList.contains('on'));
+  assert.ok(!page.ai.classList.contains('on'));
+  assert.strictEqual(page.humanSection.hidden, true, 'No AI hides the human chips');
   assert.strictEqual(page.count.textContent, '0 selected');
   assert.strictEqual(page.rightsNudge.hidden, false, 'unchecked shows the yellow nudge');
   assert.strictEqual(page.rightsOk.hidden, true, 'unchecked hides Accepted');
@@ -322,14 +344,28 @@ function run() {
   again.human.value = '';
   again.trigger.listeners.click({ preventDefault() {} });
   assert.notStrictEqual(again.status.textContent, 'Describe the human contribution is required.');
+  assert.strictEqual(again.location.href, 'attest.html', 'unqualified chips do not leave the page');
+  assert.ok(again.fullyAi.classList.contains('on'), 'unqualified continue switches to Fully AI');
+  assert.strictEqual(again.switched.hidden, false, 'switch explains why');
+  assert.ok(again.humanSection.classList.contains('is-lyrics-only'));
+  again.switchedBack.listeners.click({ preventDefault() {} });
+  assert.ok(again.ai.classList.contains('on'), 'Go back returns to AI assisted');
+  assert.strictEqual(again.switched.hidden, true);
+  assert.strictEqual(again.qualify.textContent, 'Some platforms accept this, but YouTube needs a human voice, instrument or melody in the final recording. Add one, or this will be sent as Fully AI.');
+  again.tags[1].listeners.click({ preventDefault() {} });
+  assert.strictEqual(again.qualify.textContent, 'Qualifies as AI-assisted');
+  assert.ok(again.qualify.classList.contains('is-ok'));
+  again.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(again.location.href, 'review.html');
+  assert.strictEqual(JSON.parse(again.localStorage.getItem('plaiground.store.draft')).made_how, 'ai_assisted');
 
   const full = load();
   full.fullyAi.listeners.click({ preventDefault() {} });
   assert.ok(full.fullyAi.classList.contains('on'));
   assert.ok(!full.ai.classList.contains('on'));
   assert.ok(!full.noAi.classList.contains('on'));
-  assert.strictEqual(full.humanSection.hidden, true);
+  assert.strictEqual(full.humanSection.hidden, false, 'Fully AI still shows the lyrics chip');
+  assert.ok(full.humanSection.classList.contains('is-lyrics-only'));
   full.rights.checked = false;
   full.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(full.status.textContent, 'Rights confirmation is required.');
