@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260917at3" />
+  <link rel="stylesheet" href="site.css?v=20261016tool" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
 <body class="attest-page">
@@ -46,11 +46,11 @@
     <section class="flow-card">
       <h3>How was this song made?</h3>
       <p class="hint">Full AI tracks are accepted.</p>
-      <div class="choice on" data-made-how="ai_assisted">
+      <div class="choice" data-made-how="ai_assisted">
         <b>AI assisted, human authored</b>
         <span>AI generated parts of the track, a person wrote and performed the rest</span>
       </div>
-      <div class="choice" data-made-how="no_ai">
+      <div class="choice on" data-made-how="no_ai">
         <b>No AI used</b>
         <span>Written, played and performed entirely by people</span>
       </div>
@@ -58,11 +58,26 @@
         <b>Fully AI</b>
         <span>Generated entirely by AI</span>
       </div>
+      <p class="attest-switched" data-switched hidden>
+        <span data-switched-line>This will be sent as Fully AI because the recording has no human voice, instrument, or melody.</span>
+        <button type="button" class="attest-back" data-switched-back>Go back</button>
+      </p>
       <label class="checkline" for="attest-ai-use">
         <input id="attest-ai-use" type="checkbox" data-ai-use />
         <span>This release used AI.</span>
       </label>
       <p class="hint" id="attest-made-caption" data-made-caption hidden></p>
+    </section>
+
+    <section class="flow-card" data-ai-tool hidden>
+      <h3>Which AI tool did you use?</h3>
+      <p class="hint">Pick the app that made the recording. We send the exact name to stores for you.</p>
+      <div class="choice" data-ai-service="Suno"><b>Suno</b></div>
+      <div class="choice" data-ai-service="other"><b>Other</b></div>
+      <div class="field" data-ai-other hidden>
+        <label for="attest-ai-other">Tool name</label>
+        <input id="attest-ai-other" type="text" maxlength="80" autocomplete="off" placeholder="Type the AI tool name" />
+      </div>
     </section>
 
     <section class="flow-card" data-human-section>
@@ -72,7 +87,7 @@
       </div>
       <p class="hint">Pick everything a person did.</p>
       <div class="tags">
-        <button class="tag" type="button" data-human-tag>Original lyrics</button>
+        <button class="tag" type="button" data-human-tag data-lyrics>Original lyrics</button>
         <button class="tag" type="button" data-human-tag>Lead vocals performed</button>
         <button class="tag" type="button" data-human-tag>Backing vocals</button>
         <button class="tag" type="button" data-human-tag>Played an instrument</button>
@@ -82,6 +97,7 @@
         <button class="tag" type="button" data-human-tag>Mixed by a person</button>
         <button class="tag" type="button" data-human-tag>Mastered by a person</button>
       </div>
+      <p class="attest-qualify" data-qualify hidden></p>
       <div class="field" style="margin-top:18px">
         <label for="attest-human">Describe the human contribution</label>
         <textarea id="attest-human" rows="4" placeholder="e.g. I wrote the lyrics and topline, recorded the lead vocal at home, and directed the prompts for the instrumental before mixing it myself"></textarea>
@@ -125,10 +141,10 @@
   <script src="account.js?v=20260910live1"></script>
   <script src="lib/upload-cancel-overview.js?v=20260910c1"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
-  <script src="lib/upload-required.js?v=20260918vn1"></script>
+  <script src="lib/upload-required.js?v=20261016tool"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/release-credits.js?v=20260918vn1"></script>
-  <script src="attest.js?v=20260918vn1"></script>
+  <script src="attest.js?v=20261016chip"></script>
   <script src="store-client.js?v=20260912a2" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
