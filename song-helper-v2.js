@@ -82,6 +82,7 @@
   var ideaLane = '';
   var branch = '';
   var storyBox = false;
+  var partStop = '';
   var basedOn = false;
   var basedGuideOn = false;
   var basedVibe = null;
@@ -1640,6 +1641,7 @@
       renderSuno(out, draft);
       lyricsReady = true;
       if (claimPanel) claimPanel.hidden = false;
+      if (!out.querySelector('.sh-x-reveal-tools')) presentReveal(out);
     }
     paintV2Feedback();
     syncStructure();
@@ -1736,6 +1738,8 @@
       showV2StylePrompt(window.SunoStyle.tweak(v2StyleBag, id), { quiet: true });
     });
     paintGo();
+    var revealShell = $('sh-v2');
+    if (revealShell) revealShell.classList.add('is-revealed');
     if (!opts || !opts.quiet) {
       try { host.scrollIntoView({ block: 'center' }); } catch (err) {}
     }
@@ -2887,6 +2891,7 @@
     paintIdeaLane();
     paintSourceNotes();
     paintMuses();
+    dressJourney();
   }
 
   function paintMuses() {
@@ -2929,6 +2934,7 @@
       }
     }
     paintBranch();
+    if (storyBox) renderSections();
     if (storyBox && !(opts && opts.keep)) {
       var page = $('sh-page');
       if (page && page.scrollIntoView) {
@@ -3887,6 +3893,7 @@
       voice.hidden = true;
       article.appendChild(voice);
       article.appendChild(err);
+      mountPartScene(article, row, host);
       host.appendChild(article);
       bindPartInput(area, row.id);
       syncPartCount(row.id);
@@ -4724,6 +4731,339 @@
     }
   }
 
+  var ROAD_STOPS = ['mood', 'story', 'hook', 'verse-1', 'verse-2', 'bridge', 'done'];
+
+  function quietMotion() {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return reduce ? 'auto' : 'smooth';
+  }
+
+  function avatarNode() {
+    var host = document.createElement('div');
+    host.className = 'sh-x-host';
+    var face = document.createElement('span');
+    face.className = 'sh-x-avatar';
+    face.setAttribute('aria-hidden', 'true');
+    face.innerHTML = '<svg viewBox="0 0 64 64" focusable="false"><circle cx="32" cy="32" r="30" fill="#7D3CFF"/><circle cx="24" cy="28" r="3.2" fill="#fff"/><circle cx="40" cy="28" r="3.2" fill="#fff"/><path d="M22 40c3 5 17 5 20 0" fill="none" stroke="#F5C542" stroke-width="2.4" stroke-linecap="round"/></svg>';
+    var name = document.createElement('p');
+    name.appendChild(document.createTextNode('Plai'));
+    var line = document.createElement('span');
+    line.textContent = 'Ask it in your own words.';
+    name.appendChild(line);
+    host.appendChild(face);
+    host.appendChild(name);
+    return host;
+  }
+
+  function ensureHost(parent) {
+    if (!parent || parent.querySelector('.sh-x-host')) return;
+    var title = parent.querySelector('.sh-craft-title');
+    var node = avatarNode();
+    if (title && title.parentNode === parent) parent.insertBefore(node, title);
+    else parent.insertBefore(node, parent.firstChild);
+  }
+
+  function journeyStop() {
+    if (document.querySelector('.is-revealed')) return 'done';
+    var page = $('sh-page');
+    if (page && !page.hidden) return partStop || 'hook';
+    var purpose = $('sh-purpose');
+    if (purpose && !purpose.hidden) return 'story';
+    var feeling = $('sh-feeling');
+    if (feeling && !feeling.hidden) return 'mood';
+    var talk = $('sh-talk');
+    if (talk && !talk.hidden) return 'mood';
+    return '';
+  }
+
+  function refreshRoad(force) {
+    var road = $('sh-x-road');
+    if (!road) return;
+    var stop = force || journeyStop();
+    var at = ROAD_STOPS.indexOf(stop);
+    road.hidden = at < 0;
+    Array.prototype.forEach.call(road.querySelectorAll('[data-stop]'), function (item) {
+      var id = item.getAttribute('data-stop');
+      var index = ROAD_STOPS.indexOf(id);
+      item.classList.toggle('is-now', id === stop);
+      item.classList.toggle('is-done', at > index && index >= 0);
+    });
+  }
+
+  function dressJourney() {
+    var page = $('sh-page');
+    var purpose = $('sh-purpose');
+    var storyOn = purpose && !purpose.hidden;
+    var pageOn = page && !page.hidden;
+    var feeling = $('sh-feeling');
+    if (feeling) {
+      var moodOn = !feeling.hidden && !storyOn && !pageOn;
+      feeling.classList.toggle('is-scene', moodOn);
+      if (moodOn) {
+        feeling.setAttribute('data-hue', '2');
+        ensureHost(feeling);
+      }
+    }
+    if (page) {
+      page.classList.toggle('is-scene', !!pageOn);
+      if (pageOn) {
+        var hue = { hook: '0', 'verse-1': '1', 'verse-2': '2', bridge: '3' };
+        page.setAttribute('data-hue', hue[partStop || 'hook'] || '0');
+        ensureHost(page);
+      }
+    }
+    refreshRoad();
+  }
+
+  function answerWords() {
+    var chunks = [];
+    function add(value) {
+      String(value || '').split(/[^A-Za-z0-9']+/).forEach(function (word) {
+        var clean = word.trim();
+        if (clean.length < 3) chunks.push('');
+        else chunks.push(clean);
+      });
+    }
+    var flowPage = window.SongFlowPage;
+    var state = flowPage && flowPage.flowState ? flowPage.flowState() : null;
+    if (state) {
+      add(state.forText);
+      add(state.opener);
+      add(state.wisdom);
+      add(state.keep);
+      add(state.aimOther);
+      add(state.title);
+      Object.keys(state.reveals || {}).forEach(function (key) { add(state.reveals[key]); });
+      Object.keys(state.sensory || {}).forEach(function (key) { add(state.sensory[key]); });
+      (state.notes || []).forEach(function (note) { add(note && note.text); });
+    }
+    ['sh-working-title', 'sh-have-paste'].forEach(function (id) {
+      var el = $(id);
+      if (el) add(el.value);
+    });
+    document.querySelectorAll('#sh-v2-fields textarea, #sh-v2-fields input, #sh-own textarea, #sh-own input').forEach(function (el) {
+      add(el.value);
+    });
+    if (flowPage && flowPage.north) {
+      var star = flowPage.north();
+      (star.notes || []).forEach(function (note) { add(note && (note.text || note.value)); });
+    }
+    var seen = {};
+    var skip = { the: 1, and: 1, for: 1, you: 1, your: 1, that: 1, this: 1, with: 1, from: 1, was: 1, were: 1, are: 1, but: 1, not: 1, have: 1, has: 1 };
+    var out = [];
+    chunks.forEach(function (word) {
+      var key = word.toLowerCase();
+      if (!key || skip[key] || seen[key]) return;
+      seen[key] = 1;
+      out.push(word);
+    });
+    return out.slice(0, 18);
+  }
+
+  function snapWord(text, word) {
+    var body = String(text || '');
+    if (!body.trim()) return word;
+    var lines = body.split('\n');
+    var last = lines[lines.length - 1] || '';
+    var count = last.trim() ? last.trim().split(/\s+/).length : 0;
+    if (count >= 6) return body.replace(/\s+$/, '') + '\n' + word;
+    return body.replace(/\s+$/, '') + ' ' + word;
+  }
+
+  function placeTile(tile, area, word) {
+    if (!area || !word || (tile && tile.classList.contains('is-used'))) return;
+    area.value = snapWord(area.value, word);
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+    if (tile) {
+      tile.classList.add('is-used');
+      tile.disabled = true;
+    }
+  }
+
+  function mountPartScene(article, row, host) {
+    var kind = row.kind;
+    if (kind !== 'hook' && kind !== 'verse' && kind !== 'bridge') return;
+    if (kind === 'hook' || kind === 'verse') {
+      var note = document.createElement('p');
+      note.className = 'sh-x-tile-note';
+      var words = answerWords();
+      var area = article.querySelector('.sh-part-box');
+      if (!words.length) {
+        note.textContent = 'Your answer words show up here. Tell the story, then tap a word onto this line.';
+      } else {
+        note.textContent = 'Tap a word to set it on the line. On a bigger screen you can drag it.';
+        var board = document.createElement('div');
+        board.className = 'sh-x-tiles';
+        board.setAttribute('role', 'group');
+        board.setAttribute('aria-label', 'Your words');
+        words.forEach(function (word) {
+          var tile = document.createElement('button');
+          tile.type = 'button';
+          tile.className = 'sh-x-tile';
+          tile.textContent = word;
+          tile.draggable = true;
+          tile.addEventListener('dragstart', function (event) {
+            if (!event.dataTransfer) return;
+            event.dataTransfer.setData('text/plain', word);
+            event.dataTransfer.effectAllowed = 'copy';
+          });
+          tile.addEventListener('click', function () { placeTile(tile, area, word); });
+          board.appendChild(tile);
+        });
+        if (area) {
+          area.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            article.classList.add('is-drop');
+          });
+          area.addEventListener('dragleave', function () { article.classList.remove('is-drop'); });
+          area.addEventListener('drop', function (event) {
+            event.preventDefault();
+            article.classList.remove('is-drop');
+            var dropped = event.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
+            if (!dropped) return;
+            var match = null;
+            Array.prototype.forEach.call(board.querySelectorAll('.sh-x-tile'), function (item) {
+              if (!match && item.textContent === dropped && !item.classList.contains('is-used')) match = item;
+            });
+            placeTile(match, area, dropped);
+          });
+        }
+        if (area) article.insertBefore(board, area);
+      }
+      if (area) article.insertBefore(note, area);
+    }
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'btn btn-purple btn-md sh-x-next';
+    next.textContent = 'Next scene';
+    next.addEventListener('click', function () {
+      var order = ['hook', 'verse-1', 'verse-2', 'bridge'];
+      var at = order.indexOf(row.id);
+      var following = at >= 0 ? order[at + 1] : '';
+      if (!following) {
+        partStop = 'done';
+        refreshRoad('done');
+        var meter = $('sh-meter');
+        if (meter && meter.scrollIntoView) {
+          try { meter.scrollIntoView({ block: 'center', behavior: quietMotion() }); } catch (err) {}
+        }
+        return;
+      }
+      partStop = following;
+      dressJourney();
+      var card = host.querySelector('.sh-part[data-id="' + following + '"]');
+      if (card && card.scrollIntoView) {
+        try { card.scrollIntoView({ block: 'start', behavior: quietMotion() }); } catch (err2) {}
+      }
+    });
+    article.appendChild(next);
+  }
+
+  function replayCurtain(curtain) {
+    if (!curtain) return;
+    curtain.style.animation = 'none';
+    curtain.style.opacity = '1';
+    curtain.style.visibility = 'visible';
+    void curtain.offsetWidth;
+    curtain.style.animation = '';
+    curtain.style.opacity = '';
+    curtain.style.visibility = '';
+  }
+
+  function writeAnother() {
+    lastDraft = null;
+    lyricsReady = false;
+    styleShown = false;
+    v2StyleOpen = false;
+    var out = $('sh-v2-out');
+    if (out) {
+      out.textContent = '';
+      out.classList.remove('is-revealed');
+    }
+    var styleHost = $('sh-v2-style');
+    if (styleHost) {
+      styleHost.hidden = true;
+      styleHost.textContent = '';
+    }
+    var claim = $('sh-v2-claim');
+    if (claim) claim.hidden = true;
+    var shell = $('sh-v2');
+    if (shell) shell.classList.remove('is-revealed');
+    var draftStep = document.querySelector('[data-step="draft"]');
+    if (draftStep) {
+      var old = draftStep.querySelector('.sh-x-reveal-tools');
+      if (old) old.remove();
+      var curtain = draftStep.querySelector('.sh-x-curtain');
+      if (curtain) curtain.remove();
+      draftStep.classList.remove('is-revealed');
+    }
+    paintGo();
+    partStop = '';
+    refreshRoad();
+    var start = $('sh-start');
+    if (start && start.scrollIntoView) {
+      try { start.scrollIntoView({ block: 'start', behavior: quietMotion() }); } catch (err) {}
+    }
+  }
+
+  function presentReveal(anchor) {
+    if (!anchor) return;
+    var oldCurtain = anchor.querySelector('.sh-x-curtain');
+    if (oldCurtain) oldCurtain.remove();
+    var oldTools = anchor.querySelector('.sh-x-reveal-tools');
+    if (oldTools) oldTools.remove();
+    anchor.classList.add('is-revealed');
+    var shell = $('sh-v2');
+    if (shell && anchor.id === 'sh-v2-out') shell.classList.add('is-revealed');
+    var curtain = document.createElement('div');
+    curtain.className = 'sh-x-curtain';
+    curtain.setAttribute('role', 'status');
+    var record = document.createElement('div');
+    record.className = 'sh-x-record';
+    record.setAttribute('aria-hidden', 'true');
+    var line = document.createElement('p');
+    line.textContent = 'Your draft is ready.';
+    curtain.appendChild(record);
+    curtain.appendChild(line);
+    var tools = document.createElement('div');
+    tools.className = 'sh-x-reveal-tools';
+    var wave = document.createElement('div');
+    wave.className = 'sh-x-wave';
+    wave.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < 12; i += 1) wave.appendChild(document.createElement('span'));
+    var actions = document.createElement('div');
+    actions.className = 'sh-x-actions';
+    var replay = document.createElement('button');
+    replay.type = 'button';
+    replay.className = 'btn btn-ghost btn-md';
+    replay.textContent = 'Replay';
+    replay.addEventListener('click', function () { replayCurtain(curtain); });
+    var send = document.createElement('a');
+    send.className = 'btn btn-purple btn-md';
+    send.href = 'upload.html';
+    send.textContent = 'Send it to release';
+    var again = document.createElement('button');
+    again.type = 'button';
+    again.className = 'btn btn-ghost btn-md';
+    again.textContent = 'Write another';
+    again.addEventListener('click', writeAnother);
+    actions.appendChild(replay);
+    actions.appendChild(send);
+    actions.appendChild(again);
+    tools.appendChild(wave);
+    tools.appendChild(actions);
+    anchor.insertBefore(curtain, anchor.firstChild);
+    anchor.appendChild(tools);
+    partStop = 'done';
+    refreshRoad('done');
+  }
+
+  window.SongHelperExperience = {
+    avatar: avatarNode,
+    refreshRoad: refreshRoad,
+    present: presentReveal,
+  };
+
   window.SongHelperV2 = {
     paintLog: paintLog,
     setMode: setMode,
@@ -4777,6 +5117,27 @@
   var haveBtn = $('sh-choice-have');
   if (haveBtn) haveBtn.addEventListener('click', function () { setBranch('have'); });
   paintBranch();
+  var moodNext = $('sh-mood-next');
+  if (moodNext) moodNext.addEventListener('click', function () {
+    if (!kind) {
+      var kindsHost = $('sh-kinds');
+      if (kindsHost && kindsHost.scrollIntoView) {
+        try { kindsHost.scrollIntoView({ block: 'center', behavior: quietMotion() }); } catch (err) {}
+      }
+      var moodErr = $('sh-mood-error');
+      if (moodErr) {
+        moodErr.hidden = false;
+        moodErr.textContent = 'Pick a feeling, then the next scene opens.';
+      }
+      return;
+    }
+    var purpose = $('sh-purpose');
+    var talk = $('sh-talk');
+    var target = purpose && !purpose.hidden ? purpose : talk;
+    if (target && !target.hidden && target.scrollIntoView) {
+      try { target.scrollIntoView({ block: 'start', behavior: quietMotion() }); } catch (err2) {}
+    }
+  });
   bootWriteFirst();
   bindFieldAutosave();
   restoreStaticFields();

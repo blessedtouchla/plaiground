@@ -553,7 +553,8 @@
     var next = document.createElement('button');
     next.type = 'button';
     next.className = 'btn btn-purple btn-md';
-    next.textContent = 'Next';
+    next.textContent = 'Next scene';
+    next.classList.add('sh-x-next');
     next.addEventListener('click', function () { accept(step); });
     actions.appendChild(next);
     if (step.optional) {
@@ -566,6 +567,17 @@
     }
     if (state.talk === 'plai') actions.appendChild(micButton(step));
     host.appendChild(actions);
+    var purpose = document.getElementById('sh-purpose');
+    if (purpose) {
+      purpose.classList.add('is-scene');
+      purpose.setAttribute('data-hue', String(stepIndex(step) % 4));
+    }
+    if (window.SongHelperExperience && window.SongHelperExperience.avatar) {
+      host.insertBefore(window.SongHelperExperience.avatar(), host.firstChild);
+    }
+    if (window.SongHelperExperience && window.SongHelperExperience.refreshRoad) {
+      window.SongHelperExperience.refreshRoad('story');
+    }
   }
 
   function paintEnough(host, label, purple) {

@@ -1200,8 +1200,8 @@ function runReggae() {
   const html = read('song-helper.html');
   assert.ok(html.includes('Write, Reggae, Funny'));
   assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261015edit'));
-  assert.ok(html.includes('song-helper.css?v=20261015answers'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261016scene'));
+  assert.ok(html.includes('song-helper.css?v=20261016scene'));
   assert.ok(html.includes('lib/song-pass.js?v=20261015answers'));
   assert.ok(read('song-helper-v2.js').includes('Say what happened before you name the song.'));
   assert.ok(read('song-helper-v2.js').includes('mountAnswerList'));
@@ -1262,6 +1262,32 @@ function runReggae() {
   assert.deepStrictEqual(modes.feelingList(['nope', 'joy', 'pride', 'guilt']), ['joy', 'pride']);
 }
 
+function runExperience() {
+  const html = read('song-helper.html');
+  const page = read('song-flow-page.js');
+  const v2 = read('song-helper-v2.js');
+  const css = read('song-helper.css');
+  assert.ok(html.includes('id="sh-x-road"'), 'song road stays on the page');
+  assert.ok(html.includes('>Mood<') && html.includes('>Done<'), 'road stops stay labeled');
+  assert.ok(html.includes('id="sh-mood-next"'), 'mood scene has a next button');
+  assert.ok(page.includes("next.textContent = 'Next scene'"), 'interview moves by scene');
+  assert.ok(page.includes('SongHelperExperience'), 'talk scenes still call the host');
+  assert.ok(v2.includes('Tap a word to set it on the line.'), 'magnetic tiles explain tap to place');
+  assert.ok(v2.includes('Send it to release') && v2.includes('Write another') && v2.includes('Replay'), 'reveal actions stay');
+  assert.ok(v2.includes('Your draft is ready.'), 'reveal line stays');
+  assert.ok(css.includes('prefers-reduced-motion: reduce'), 'motion yields when asked');
+  assert.ok(html.includes('href="/battle"'), 'Battle link stays');
+  const fresh = [
+    'Tap a word to set it on the line. On a bigger screen you can drag it.',
+    'Your answer words show up here. Tell the story, then tap a word onto this line.',
+    'Ask it in your own words.',
+    'Your draft is ready.',
+    'Pick a feeling, then the next scene opens.',
+  ].join(' ');
+  assert.ok(!/—|–/.test(fresh), 'new scene copy has no dash');
+  assert.ok(!/Suno|ToneGrid/i.test(fresh), 'new scene copy does not name tools');
+}
+
 async function run() {
   runModes();
   runQuestions();
@@ -1271,6 +1297,7 @@ async function run() {
   await runTrendFeed();
   runPages();
   runReggae();
+  runExperience();
   console.log('song-helper-v2.test.js ok');
 }
 

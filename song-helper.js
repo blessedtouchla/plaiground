@@ -762,6 +762,10 @@
     renderSuno();
     paintFeedback();
     if (window.SongHelperV2 && window.SongHelperV2.syncStructure) window.SongHelperV2.syncStructure();
+    var draftStep = document.querySelector('[data-step="draft"]');
+    if (draftStep && window.SongHelperExperience && window.SongHelperExperience.present) {
+      window.SongHelperExperience.present(draftStep);
+    }
   }
 
   function compactDraft(source) {
