@@ -92,15 +92,17 @@
       return on ? String(on.getAttribute('data-ai-service') || '') : '';
     }
 
+    var AI_APP_TO_SERVICE = { 'app-s': 'Suno', 'app-u': 'Udio' };
+    var AI_SERVICE_TO_APP = { Suno: 'app-s', Udio: 'app-u' };
+
     function toolFields() {
       var how = selectedHow();
       if (how !== 'ai_assisted' && how !== 'fully_ai') {
         return { ai_service: '', ai_service_other: '' };
       }
       var picked = selectedTool();
-      if (picked === 'Suno' || picked === 'Udio') {
-        return { ai_service: picked, ai_service_other: '' };
-      }
+      var service = AI_APP_TO_SERVICE[picked];
+      if (service) return { ai_service: service, ai_service_other: '' };
       if (picked === 'other') {
         return {
           ai_service: '',
@@ -352,9 +354,8 @@
       var savedOther = String(draft.ai_service_other || '').trim();
       Array.prototype.forEach.call(toolChoices, function (el) {
         var value = el.getAttribute('data-ai-service');
-        var on = (savedTool === 'Suno' || savedTool === 'Udio')
-          ? value === savedTool
-          : Boolean(savedOther) && value === 'other';
+        var savedApp = AI_SERVICE_TO_APP[savedTool];
+        var on = savedApp ? value === savedApp : Boolean(savedOther) && value === 'other';
         el.classList.toggle('on', on);
       });
       if (toolOther && draft.ai_service_other != null) toolOther.value = String(draft.ai_service_other);

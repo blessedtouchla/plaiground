@@ -122,9 +122,9 @@ function load(opts) {
   const rightsNudge = makeEl({ attrs: { 'data-rights-nudge': '' }, hidden: false, textContent: 'Tick the box to continue.' });
   const rightsOk = makeEl({ attrs: { 'data-rights-ok': '' }, hidden: true, textContent: 'Accepted' });
   const toolSection = makeEl({ attrs: { 'data-ai-tool': '' }, hidden: true });
-  const toolSuno = makeEl({ attrs: { 'data-ai-service': 'Suno' }, textContent: 'Suno' });
-  const toolUdio = makeEl({ attrs: { 'data-ai-service': 'Udio' }, textContent: 'Udio' });
-  const toolOtherChoice = makeEl({ attrs: { 'data-ai-service': 'other' }, textContent: 'Other' });
+  const toolSuno = makeEl({ attrs: { 'data-ai-service': 'app-s' }, textContent: 'AI song app S' });
+  const toolUdio = makeEl({ attrs: { 'data-ai-service': 'app-u' }, textContent: 'AI song app U' });
+  const toolOtherChoice = makeEl({ attrs: { 'data-ai-service': 'other' }, textContent: 'Another AI tool' });
   const toolChoices = [toolSuno, toolUdio, toolOtherChoice];
   const toolOtherWrap = makeEl({ attrs: { 'data-ai-other': '' }, hidden: true });
   const toolOtherInput = makeEl({ id: 'attest-ai-other', value: '' });
@@ -265,7 +265,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20261016tool') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20261016app') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
   assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
@@ -304,9 +304,14 @@ function run() {
   assert.ok(html.indexOf('data-lyrics') !== -1, 'Fully AI can claim original lyrics');
   assert.ok(html.indexOf('data-switched-back') !== -1, 'auto-switch can go back');
   assert.ok(html.indexOf('Which AI tool did you use?') !== -1);
-  assert.ok(html.indexOf('data-ai-service="Suno"') !== -1);
-  assert.ok(html.indexOf('data-ai-service="Udio"') !== -1);
+  assert.ok(html.indexOf('Pick the app that made the recording. We send the exact name to stores for you.') !== -1);
+  assert.ok(html.indexOf('>AI song app S<') !== -1);
+  assert.ok(html.indexOf('>AI song app U<') !== -1);
+  assert.ok(html.indexOf('>Another AI tool<') !== -1);
+  assert.ok(html.indexOf('data-ai-service="app-s"') !== -1);
+  assert.ok(html.indexOf('data-ai-service="app-u"') !== -1);
   assert.ok(html.indexOf('data-ai-service="other"') !== -1);
+  assert.ok(!/suno|udio/i.test(html), 'attest page does not show the tool brands');
   assert.ok(html.indexOf('id="attest-ai-other"') !== -1);
   assert.ok(page.noAi.classList.contains('on'));
   assert.strictEqual(page.toolSection.hidden, true, 'No AI hides the tool picker');
