@@ -92,17 +92,13 @@
       return on ? String(on.getAttribute('data-ai-service') || '') : '';
     }
 
-    var AI_APP_TO_SERVICE = { 'app-s': 'Suno', 'app-u': 'Udio' };
-    var AI_SERVICE_TO_APP = { Suno: 'app-s', Udio: 'app-u' };
-
     function toolFields() {
       var how = selectedHow();
       if (how !== 'ai_assisted' && how !== 'fully_ai') {
         return { ai_service: '', ai_service_other: '' };
       }
       var picked = selectedTool();
-      var service = AI_APP_TO_SERVICE[picked];
-      if (service) return { ai_service: service, ai_service_other: '' };
+      if (picked === 'Suno') return { ai_service: 'Suno', ai_service_other: '' };
       if (picked === 'other') {
         return {
           ai_service: '',
@@ -352,13 +348,14 @@
       if (human && draft.human_contribution != null) human.value = String(draft.human_contribution);
       var savedTool = String(draft.ai_service || '').trim();
       var savedOther = String(draft.ai_service_other || '').trim();
+      if (savedTool && savedTool !== 'Suno' && !savedOther) savedOther = savedTool;
       Array.prototype.forEach.call(toolChoices, function (el) {
         var value = el.getAttribute('data-ai-service');
-        var savedApp = AI_SERVICE_TO_APP[savedTool];
-        var on = savedApp ? value === savedApp : Boolean(savedOther) && value === 'other';
+        var on = savedTool === 'Suno' ? value === 'Suno' : Boolean(savedOther) && value === 'other';
         el.classList.toggle('on', on);
       });
-      if (toolOther && draft.ai_service_other != null) toolOther.value = String(draft.ai_service_other);
+      if (toolOther && savedTool !== 'Suno') toolOther.value = savedOther;
+      else if (toolOther && draft.ai_service_other != null) toolOther.value = String(draft.ai_service_other);
       if (rights && draft.rights_confirmed != null) {
         rights.checked = draft.rights_confirmed === true || draft.rights_confirmed === 'true';
       }

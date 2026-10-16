@@ -72,12 +72,11 @@
     <section class="flow-card" data-ai-tool hidden>
       <h3>Which AI tool did you use?</h3>
       <p class="hint">Pick the app that made the recording. We send the exact name to stores for you.</p>
-      <div class="choice" data-ai-service="app-s"><b>AI song app S</b></div>
-      <div class="choice" data-ai-service="app-u"><b>AI song app U</b></div>
-      <div class="choice" data-ai-service="other"><b>Another AI tool</b></div>
+      <div class="choice" data-ai-service="Suno"><b>Suno</b></div>
+      <div class="choice" data-ai-service="other"><b>Other</b></div>
       <div class="field" data-ai-other hidden>
         <label for="attest-ai-other">Tool name</label>
-        <input id="attest-ai-other" type="text" maxlength="80" autocomplete="off" />
+        <input id="attest-ai-other" type="text" maxlength="80" autocomplete="off" placeholder="Type the AI tool name" />
       </div>
     </section>
 
@@ -145,7 +144,7 @@
   <script src="lib/upload-required.js?v=20261016tool"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/release-credits.js?v=20260918vn1"></script>
-  <script src="attest.js?v=20261016app"></script>
+  <script src="attest.js?v=20261016chip"></script>
   <script src="store-client.js?v=20260912a2" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>

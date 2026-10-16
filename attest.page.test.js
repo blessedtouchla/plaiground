@@ -122,10 +122,9 @@ function load(opts) {
   const rightsNudge = makeEl({ attrs: { 'data-rights-nudge': '' }, hidden: false, textContent: 'Tick the box to continue.' });
   const rightsOk = makeEl({ attrs: { 'data-rights-ok': '' }, hidden: true, textContent: 'Accepted' });
   const toolSection = makeEl({ attrs: { 'data-ai-tool': '' }, hidden: true });
-  const toolSuno = makeEl({ attrs: { 'data-ai-service': 'app-s' }, textContent: 'AI song app S' });
-  const toolUdio = makeEl({ attrs: { 'data-ai-service': 'app-u' }, textContent: 'AI song app U' });
-  const toolOtherChoice = makeEl({ attrs: { 'data-ai-service': 'other' }, textContent: 'Another AI tool' });
-  const toolChoices = [toolSuno, toolUdio, toolOtherChoice];
+  const toolSuno = makeEl({ attrs: { 'data-ai-service': 'Suno' }, textContent: 'Suno' });
+  const toolOtherChoice = makeEl({ attrs: { 'data-ai-service': 'other' }, textContent: 'Other' });
+  const toolChoices = [toolSuno, toolOtherChoice];
   const toolOtherWrap = makeEl({ attrs: { 'data-ai-other': '' }, hidden: true });
   const toolOtherInput = makeEl({ id: 'attest-ai-other', value: '' });
   const qualify = makeEl({ attrs: { 'data-qualify': '' }, hidden: true, textContent: '' });
@@ -192,7 +191,6 @@ function load(opts) {
       if (sel === '[data-ai-other]') return toolOtherWrap;
       if (sel === '[data-ai-service].on') {
         if (toolSuno.classList.contains('on')) return toolSuno;
-        if (toolUdio.classList.contains('on')) return toolUdio;
         if (toolOtherChoice.classList.contains('on')) return toolOtherChoice;
         return null;
       }
@@ -236,7 +234,6 @@ function load(opts) {
     qualify,
     toolSection,
     toolSuno,
-    toolUdio,
     toolOtherChoice,
     toolOtherWrap,
     toolOtherInput,
@@ -265,7 +262,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20261016app') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20261016chip') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
   assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
@@ -305,13 +302,13 @@ function run() {
   assert.ok(html.indexOf('data-switched-back') !== -1, 'auto-switch can go back');
   assert.ok(html.indexOf('Which AI tool did you use?') !== -1);
   assert.ok(html.indexOf('Pick the app that made the recording. We send the exact name to stores for you.') !== -1);
-  assert.ok(html.indexOf('>AI song app S<') !== -1);
-  assert.ok(html.indexOf('>AI song app U<') !== -1);
-  assert.ok(html.indexOf('>Another AI tool<') !== -1);
-  assert.ok(html.indexOf('data-ai-service="app-s"') !== -1);
-  assert.ok(html.indexOf('data-ai-service="app-u"') !== -1);
+  assert.ok(html.indexOf('>Suno<') !== -1);
+  assert.ok(html.indexOf('>Other<') !== -1);
+  assert.ok(html.indexOf('data-ai-service="Suno"') !== -1);
   assert.ok(html.indexOf('data-ai-service="other"') !== -1);
-  assert.ok(!/suno|udio/i.test(html), 'attest page does not show the tool brands');
+  assert.ok(html.indexOf('placeholder="Type the AI tool name"') !== -1);
+  assert.ok(!/udio|AI song app/i.test(html), 'the Udio choice is gone');
+  assert.strictEqual((html.match(/Suno/g) || []).length, 2, 'Suno appears only on its chip');
   assert.ok(html.indexOf('id="attest-ai-other"') !== -1);
   assert.ok(page.noAi.classList.contains('on'));
   assert.strictEqual(page.toolSection.hidden, true, 'No AI hides the tool picker');
@@ -418,7 +415,7 @@ function run() {
   full.rights.checked = false;
   full.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(full.status.textContent, 'Which AI tool did you use is required.');
-  full.toolUdio.listeners.click({ preventDefault() {} });
+  full.toolSuno.listeners.click({ preventDefault() {} });
   full.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(full.status.textContent, 'Rights confirmation is required.');
   assert.notStrictEqual(full.location.href, 'split-sheet.html');
@@ -431,7 +428,7 @@ function run() {
   const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(fullDraft.made_how, 'fully_ai');
   assert.strictEqual(fullDraft.rights_confirmed, true);
-  assert.strictEqual(fullDraft.ai_service, 'Udio');
+  assert.strictEqual(fullDraft.ai_service, 'Suno');
   assert.strictEqual(fullDraft.ai_service_other, '');
 
   const otherTool = load();
