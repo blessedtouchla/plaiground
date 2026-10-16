@@ -1589,6 +1589,7 @@ async function run() {
       release_date: '2026-09-20',
       artwork_url: 'https://cdn.example/cover.jpg',
       credits: { performer: 'Ada Night', producer: 'Ada Night' },
+      ai_service: 'Suno',
     }),
     responses: [
       { ok: true, status: 200, data: { signed: true, status: 'Completed' } },
@@ -1607,6 +1608,7 @@ async function run() {
   assert.strictEqual(JSON.parse(submitCall.init.body).document_id, 'doc_split_sheet_01');
   assert.strictEqual(JSON.parse(submitCall.init.body).made_how, 'ai_assisted');
   assert.strictEqual(JSON.parse(submitCall.init.body).human_contribution, 'I wrote the lyrics and sang the lead.');
+  assert.strictEqual(JSON.parse(submitCall.init.body).ai_service, 'Suno');
   assert.deepStrictEqual(JSON.parse(submitCall.init.body).credits, {
     performer: 'Ada Night',
     producer: 'Ada Night',
@@ -4903,7 +4905,7 @@ async function run() {
   assert.ok(!reviewHtml.includes('store-client.js?v=20260913c1'), 'review.html must cache-bust past 20260913c1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260914a1'), 'review.html must cache-bust past leftover-gate 20260914a1');
   assert.ok(!reviewHtml.includes('store-client.js?v=20260914a2'), 'review.html must cache-bust past leftover-gate 20260914a2');
-  assert.ok(reviewHtml.includes('store-client.js?v=20260917a1'), 'review.html cache-busts store-client.js at 20260917a1');
+  assert.ok(reviewHtml.includes('store-client.js?v=20261016f1'), 'review.html cache-busts store-client.js at 20261016f1');
   assert.ok(source.includes('function showSubmitStoreLoader'), 'Review Submit keeps the center Working panel through submit-to-store');
   assert.ok(source.includes("showSubmitStoreLoader('Submitting to the store…')"), 'center Working uses the live submit-to-store copy');
   assert.ok(source.includes("showSubmitStoreLoader(solo ? 'Submitting to the store…' : 'Sending split sheet…')"), 'split-sheet phase stays the existing send copy');
@@ -4945,7 +4947,7 @@ async function run() {
   assert.strictEqual((uploadHtmlForBust.match(/href="site\.css\?v=/g) || []).length, 1, 'upload.html has one site.css link');
   assert.ok(uploadHtmlForBust.includes('lib/store-pick.js?v=20260912a2'), 'upload.html cache-busts store-pick.js at 20260912a2');
   assert.ok(attestHtml.includes('store-client.js?v=20260912a2'), 'attest.html cache-busts store-client.js at 20260912a2');
-  assert.ok(attestHtml.includes('attest.js?v=20261016ai'), 'attest.html cache-busts attest.js at 20261016ai');
+  assert.ok(attestHtml.includes('attest.js?v=20261016tool'), 'attest.html cache-busts attest.js at 20261016tool');
   assert.ok(attestHtml.indexOf('Save and exit') === -1, 'Attest must not say Save and exit');
   assert.ok(/data-upload-cancel[^>]*aria-label="Cancel"/.test(attestHtml), 'Attest Cancel is a tiny icon with an accessible name');
   assert.ok(splitSheetHtml.includes('store-client.js?v=20260912a2'), 'split-sheet.html cache-busts store-client.js at 20260912a2');

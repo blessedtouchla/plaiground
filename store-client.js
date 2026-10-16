@@ -3370,6 +3370,8 @@
       human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
       human_contribution: draft.human_contribution || '',
       rights_confirmed: draft.rights_confirmed === true,
+      ai_service: draft.ai_service || '',
+      ai_service_other: draft.ai_service_other || '',
       solo_owned_100: solo,
       featured: draft.featured || '',
       title: draft.title || '',
@@ -3881,6 +3883,8 @@
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
     if (draft.made_how) trackBody.made_how = draft.made_how;
     if (draft.human_contribution) trackBody.human_contribution = draft.human_contribution;
+    if (draft.ai_service) trackBody.ai_service = draft.ai_service;
+    if (draft.ai_service_other) trackBody.ai_service_other = draft.ai_service_other;
     trackBody = Object.assign(trackBody, hopLegalFields(draft));
     if (draft.credits && typeof draft.credits === 'object') trackBody.credits = draft.credits;
     if (Array.isArray(draft.contributors) && draft.contributors.length) trackBody.contributors = draft.contributors;

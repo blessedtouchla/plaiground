@@ -46,6 +46,10 @@
     var tags = document.querySelectorAll('.tag, [data-human-tag]');
     var countEl = document.querySelector('[data-human-count]');
     var humanSection = document.querySelector('[data-human-section]');
+    var toolSection = document.querySelector('[data-ai-tool]');
+    var toolChoices = document.querySelectorAll('[data-ai-service]');
+    var toolOtherWrap = document.querySelector('[data-ai-other]');
+    var toolOther = document.getElementById('attest-ai-other');
     var human = document.getElementById('attest-human');
     var rights = document.getElementById('attest-rights');
     var solo = document.getElementById('attest-solo');
@@ -81,6 +85,29 @@
       return Array.prototype.map.call(tags, function (tag) {
         return tag.classList.contains('on') ? String(tag.textContent || '').trim() : '';
       }).filter(Boolean);
+    }
+
+    function selectedTool() {
+      var on = document.querySelector('[data-ai-service].on');
+      return on ? String(on.getAttribute('data-ai-service') || '') : '';
+    }
+
+    function toolFields() {
+      var how = selectedHow();
+      if (how !== 'ai_assisted' && how !== 'fully_ai') {
+        return { ai_service: '', ai_service_other: '' };
+      }
+      var picked = selectedTool();
+      if (picked === 'Suno' || picked === 'Udio') {
+        return { ai_service: picked, ai_service_other: '' };
+      }
+      if (picked === 'other') {
+        return {
+          ai_service: '',
+          ai_service_other: toolOther ? String(toolOther.value || '').trim() : '',
+        };
+      }
+      return { ai_service: '', ai_service_other: '' };
     }
 
     function featuredName() {
@@ -161,6 +188,8 @@
         made_caption: caption,
         human_elements: selectedElements(),
         human_contribution: human ? String(human.value || '').trim() : '',
+        ai_service: toolFields().ai_service,
+        ai_service_other: toolFields().ai_service_other,
         rights_confirmed: Boolean(rights && rights.checked),
         featured: featured,
         solo_owned_100: !featured && !others,
@@ -259,6 +288,9 @@
           return 'Human element is required.';
         }
       }
+      if ((fields.made_how === 'ai_assisted' || fields.made_how === 'fully_ai') && !fields.ai_service && !fields.ai_service_other) {
+        return 'Which AI tool did you use is required.';
+      }
       if (!fields.rights_confirmed) return 'Rights confirmation is required.';
       return '';
     }
@@ -316,6 +348,16 @@
       }
       applyHumanElements(savedHumanElements(draft));
       if (human && draft.human_contribution != null) human.value = String(draft.human_contribution);
+      var savedTool = String(draft.ai_service || '').trim();
+      var savedOther = String(draft.ai_service_other || '').trim();
+      Array.prototype.forEach.call(toolChoices, function (el) {
+        var value = el.getAttribute('data-ai-service');
+        var on = (savedTool === 'Suno' || savedTool === 'Udio')
+          ? value === savedTool
+          : Boolean(savedOther) && value === 'other';
+        el.classList.toggle('on', on);
+      });
+      if (toolOther && draft.ai_service_other != null) toolOther.value = String(draft.ai_service_other);
       if (rights && draft.rights_confirmed != null) {
         rights.checked = draft.rights_confirmed === true || draft.rights_confirmed === 'true';
       }
@@ -367,6 +409,20 @@
       }
     }
 
+    function syncToolSection() {
+      var how = selectedHow();
+      var show = how === 'ai_assisted' || how === 'fully_ai';
+      setHiddenEl(toolSection, !show);
+      setHiddenEl(toolOtherWrap, !show || selectedTool() !== 'other');
+    }
+
+    function selectTool(value) {
+      Array.prototype.forEach.call(toolChoices, function (el) {
+        el.classList.toggle('on', el.getAttribute('data-ai-service') === value);
+      });
+      refresh();
+    }
+
     function syncQualify() {
       var note = document.querySelector('[data-qualify]');
       if (!note) return;
@@ -416,6 +472,7 @@
 
     function refresh() {
       syncHumanSection();
+      syncToolSection();
       syncQualify();
       syncAiUse();
       syncSolo();
@@ -452,6 +509,13 @@
         toggleTag(tag);
       });
     });
+    Array.prototype.forEach.call(toolChoices, function (choice) {
+      choice.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        selectTool(choice.getAttribute('data-ai-service'));
+      });
+    });
+    if (toolOther) toolOther.addEventListener('input', refresh);
     if (human) human.addEventListener('input', refresh);
     if (rights) rights.addEventListener('change', refresh);
     var aiUse = document.getElementById('attest-ai-use');

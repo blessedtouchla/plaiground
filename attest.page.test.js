@@ -121,6 +121,13 @@ function load(opts) {
   const status = makeEl({ id: 'attest-status' });
   const rightsNudge = makeEl({ attrs: { 'data-rights-nudge': '' }, hidden: false, textContent: 'Tick the box to continue.' });
   const rightsOk = makeEl({ attrs: { 'data-rights-ok': '' }, hidden: true, textContent: 'Accepted' });
+  const toolSection = makeEl({ attrs: { 'data-ai-tool': '' }, hidden: true });
+  const toolSuno = makeEl({ attrs: { 'data-ai-service': 'Suno' }, textContent: 'Suno' });
+  const toolUdio = makeEl({ attrs: { 'data-ai-service': 'Udio' }, textContent: 'Udio' });
+  const toolOtherChoice = makeEl({ attrs: { 'data-ai-service': 'other' }, textContent: 'Other' });
+  const toolChoices = [toolSuno, toolUdio, toolOtherChoice];
+  const toolOtherWrap = makeEl({ attrs: { 'data-ai-other': '' }, hidden: true });
+  const toolOtherInput = makeEl({ id: 'attest-ai-other', value: '' });
   const qualify = makeEl({ attrs: { 'data-qualify': '' }, hidden: true, textContent: '' });
   const switchedLine = makeEl({
     attrs: { 'data-switched-line': '' },
@@ -160,6 +167,7 @@ function load(opts) {
         'attest-did-lyrics': didLyrics,
         'attest-did-beat': didBeat,
         'attest-directed': directed,
+        'attest-ai-other': toolOtherInput,
       };
       return ids[id] || null;
     },
@@ -180,6 +188,14 @@ function load(opts) {
       if (sel === '[data-other-writers-count]') return otherCountWrap;
       if (sel === '[data-directed-claim]') return directedWrap;
       if (sel === '[data-qualify]') return qualify;
+      if (sel === '[data-ai-tool]') return toolSection;
+      if (sel === '[data-ai-other]') return toolOtherWrap;
+      if (sel === '[data-ai-service].on') {
+        if (toolSuno.classList.contains('on')) return toolSuno;
+        if (toolUdio.classList.contains('on')) return toolUdio;
+        if (toolOtherChoice.classList.contains('on')) return toolOtherChoice;
+        return null;
+      }
       if (sel === '[data-switched]') return switched;
       if (sel === '[data-switched-back]') return switchedBack;
       if (sel === '[data-other-writers].on') {
@@ -189,6 +205,7 @@ function load(opts) {
     },
     querySelectorAll(sel) {
       if (sel === '[data-made-how]') return [ai, noAi, fullyAi];
+      if (sel === '[data-ai-service]') return toolChoices;
       if (sel === '.tag, [data-human-tag]') return tags;
       if (sel === '[data-other-writers]') return [otherNo, otherYes];
       return [];
@@ -217,6 +234,12 @@ function load(opts) {
     rightsNudge,
     rightsOk,
     qualify,
+    toolSection,
+    toolSuno,
+    toolUdio,
+    toolOtherChoice,
+    toolOtherWrap,
+    toolOtherInput,
     switched,
     switchedLine,
     switchedBack,
@@ -242,7 +265,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20261016ai') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20261016tool') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
   assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
@@ -280,7 +303,13 @@ function run() {
   assert.ok(attestSrc.indexOf('this will be sent as Fully AI') !== -1);
   assert.ok(html.indexOf('data-lyrics') !== -1, 'Fully AI can claim original lyrics');
   assert.ok(html.indexOf('data-switched-back') !== -1, 'auto-switch can go back');
+  assert.ok(html.indexOf('Which AI tool did you use?') !== -1);
+  assert.ok(html.indexOf('data-ai-service="Suno"') !== -1);
+  assert.ok(html.indexOf('data-ai-service="Udio"') !== -1);
+  assert.ok(html.indexOf('data-ai-service="other"') !== -1);
+  assert.ok(html.indexOf('id="attest-ai-other"') !== -1);
   assert.ok(page.noAi.classList.contains('on'));
+  assert.strictEqual(page.toolSection.hidden, true, 'No AI hides the tool picker');
   assert.ok(!page.ai.classList.contains('on'));
   assert.strictEqual(page.humanSection.hidden, true, 'No AI hides the human chips');
   assert.strictEqual(page.count.textContent, '0 selected');
@@ -298,6 +327,15 @@ function run() {
   page.ai.listeners.click({ preventDefault() {} });
   assert.ok(page.ai.classList.contains('on'));
   assert.ok(!page.noAi.classList.contains('on'));
+  assert.strictEqual(page.toolSection.hidden, false, 'AI assisted shows the tool picker');
+  assert.strictEqual(page.toolOtherWrap.hidden, true, 'Other text stays hidden until Other is chosen');
+  page.fullyAi.listeners.click({ preventDefault() {} });
+  assert.strictEqual(page.toolSection.hidden, false, 'Fully AI shows the tool picker');
+  page.toolOtherChoice.listeners.click({ preventDefault() {} });
+  assert.strictEqual(page.toolOtherWrap.hidden, false, 'Other shows the short text box');
+  page.noAi.listeners.click({ preventDefault() {} });
+  assert.strictEqual(page.toolSection.hidden, true, 'No AI hides the tool picker again');
+  page.ai.listeners.click({ preventDefault() {} });
 
   page.tags.forEach(function (tag) {
     const before = tag.classList.contains('on');
@@ -343,6 +381,11 @@ function run() {
   again.tags[0].listeners.click({ preventDefault() {} });
   again.human.value = '';
   again.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(again.status.textContent, 'Which AI tool did you use is required.');
+  assert.strictEqual(again.location.href, 'attest.html', 'AI assisted cannot continue without a tool');
+  assert.ok(again.ai.classList.contains('on'), 'missing tool does not auto-switch');
+  again.toolSuno.listeners.click({ preventDefault() {} });
+  again.trigger.listeners.click({ preventDefault() {} });
   assert.notStrictEqual(again.status.textContent, 'Describe the human contribution is required.');
   assert.strictEqual(again.location.href, 'attest.html', 'unqualified chips do not leave the page');
   assert.ok(again.fullyAi.classList.contains('on'), 'unqualified continue switches to Fully AI');
@@ -358,6 +401,7 @@ function run() {
   again.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(again.location.href, 'review.html');
   assert.strictEqual(JSON.parse(again.localStorage.getItem('plaiground.store.draft')).made_how, 'ai_assisted');
+  assert.strictEqual(JSON.parse(again.localStorage.getItem('plaiground.store.draft')).ai_service, 'Suno');
 
   const full = load();
   full.fullyAi.listeners.click({ preventDefault() {} });
@@ -367,6 +411,9 @@ function run() {
   assert.strictEqual(full.humanSection.hidden, false, 'Fully AI still shows the lyrics chip');
   assert.ok(full.humanSection.classList.contains('is-lyrics-only'));
   full.rights.checked = false;
+  full.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(full.status.textContent, 'Which AI tool did you use is required.');
+  full.toolUdio.listeners.click({ preventDefault() {} });
   full.trigger.listeners.click({ preventDefault() {} });
   assert.strictEqual(full.status.textContent, 'Rights confirmation is required.');
   assert.notStrictEqual(full.location.href, 'split-sheet.html');
@@ -379,6 +426,23 @@ function run() {
   const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(fullDraft.made_how, 'fully_ai');
   assert.strictEqual(fullDraft.rights_confirmed, true);
+  assert.strictEqual(fullDraft.ai_service, 'Udio');
+  assert.strictEqual(fullDraft.ai_service_other, '');
+
+  const otherTool = load();
+  otherTool.fullyAi.listeners.click({ preventDefault() {} });
+  otherTool.toolOtherChoice.listeners.click({ preventDefault() {} });
+  otherTool.rights.checked = true;
+  otherTool.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(otherTool.status.textContent, 'Which AI tool did you use is required.');
+  otherTool.toolOtherInput.value = 'My Tool';
+  if (otherTool.toolOtherInput.listeners.input) otherTool.toolOtherInput.listeners.input();
+  otherTool.trigger.listeners.click({ preventDefault() {} });
+  assert.strictEqual(otherTool.location.href, 'review.html');
+  const otherDraft = JSON.parse(otherTool.localStorage.getItem('plaiground.store.draft'));
+  assert.strictEqual(otherDraft.made_how, 'fully_ai');
+  assert.strictEqual(otherDraft.ai_service, '');
+  assert.strictEqual(otherDraft.ai_service_other, 'My Tool');
 
   const soloPage = load();
   soloPage.noAi.listeners.click({ preventDefault() {} });
@@ -473,12 +537,22 @@ function run() {
     human_elements: ['Original lyrics'],
     human_contribution: '',
     rights_confirmed: true,
+    ai_service: 'Suno',
   }).ok);
+  assert.strictEqual(rules.validateAttestPage({
+    made_how: 'ai_assisted',
+    human_elements: ['Original lyrics'],
+    human_contribution: '',
+    rights_confirmed: true,
+    legal_first: 'Ada',
+    legal_last: 'Night',
+  }).error, 'Which AI tool did you use is required.');
   assert.ok(!rules.validateAttestPage({
     made_how: 'ai_assisted',
     human_elements: ['Original lyrics'],
     human_contribution: '',
     rights_confirmed: true,
+    ai_service: 'Suno',
     legal_first: 'Ada',
     legal_last: 'Night',
   }).error);

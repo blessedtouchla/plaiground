@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20261016ai" />
+  <link rel="stylesheet" href="site.css?v=20261016tool" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
 <body class="attest-page">
@@ -67,6 +67,17 @@
         <span>This release used AI.</span>
       </label>
       <p class="hint" id="attest-made-caption" data-made-caption hidden></p>
+    </section>
+
+    <section class="flow-card" data-ai-tool hidden>
+      <h3>Which AI tool did you use?</h3>
+      <div class="choice" data-ai-service="Suno"><b>Suno</b></div>
+      <div class="choice" data-ai-service="Udio"><b>Udio</b></div>
+      <div class="choice" data-ai-service="other"><b>Other</b></div>
+      <div class="field" data-ai-other hidden>
+        <label for="attest-ai-other">Tool name</label>
+        <input id="attest-ai-other" type="text" maxlength="80" autocomplete="off" />
+      </div>
     </section>
 
     <section class="flow-card" data-human-section>
@@ -130,10 +141,10 @@
   <script src="account.js?v=20260910live1"></script>
   <script src="lib/upload-cancel-overview.js?v=20260910c1"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
-  <script src="lib/upload-required.js?v=20260918vn1"></script>
+  <script src="lib/upload-required.js?v=20261016tool"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/release-credits.js?v=20260918vn1"></script>
-  <script src="attest.js?v=20261016ai"></script>
+  <script src="attest.js?v=20261016tool"></script>
   <script src="store-client.js?v=20260912a2" defer></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>

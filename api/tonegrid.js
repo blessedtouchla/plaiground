@@ -19,10 +19,14 @@
  *                                         made_how ai_assisted/fully_ai PATCHes
  *                                         includes_ai on each track; no_ai PATCHes
  *                                         track_properties without includes_ai so a
- *                                         previous flag, ai_elements, and
- *                                         ai_service_other are cleared.
- *                                         ai_service_other is the tool name.
+ *                                         previous flag, ai_elements, and tool
+ *                                         name are cleared.
+ *                                         Known tool names go to ai_service.
+ *                                         Any other name goes to ai_service_other.
  *                                         Do not send the human description there.
+ *                                         PUT /releases/:id/rights keeps the
+ *                                         existing rights and sets ai_disclosure:
+ *                                         none, partial, or full.
  * POST /api/tonegrid/releases/:id/dsps
  * PUT  /api/tonegrid/releases/:id/dsps     -> ToneGrid PUT /releases/:uuid/dsps
  * POST /api/tonegrid/releases/:id/artwork  -> ToneGrid POST /releases/:uuid/artwork
@@ -1400,6 +1404,35 @@ async function hopSubmitAssets(scope, releaseId, body, row) {
     return { ok: false, audioOk: false, coverOk: coverOk, status: 400, data: { error: uploadRequired.AUDIO_REQUIRED } };
   }
   return { ok: true, audioOk: audioOk, coverOk: coverOk };
+}
+
+function rightsDocument(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const nested = data.rights && typeof data.rights === 'object' && !Array.isArray(data.rights)
+    ? data.rights
+    : (data.data && data.data.rights && typeof data.data.rights === 'object' && !Array.isArray(data.data.rights)
+      ? data.data.rights
+      : null);
+  if (nested) return nested;
+  if (data.release || data.track || (Array.isArray(data.tracks) && data.title)) return null;
+  return data;
+}
+
+async function applyReleaseAiDisclosure(releaseId, body, hopCredits) {
+  const disclosure = storeAi.aiDisclosureOf(body);
+  if (!disclosure || !isUuid(releaseId)) return { ok: true, skipped: true };
+  const existing = await tonegridFetch('/releases/' + releaseId + '/rights', { method: 'GET' });
+  const kept = Object.assign({}, storeCredits.rightsEnvelope(hopCredits || {}));
+  if (existing && existing.ok) {
+    const doc = rightsDocument(existing.data);
+    if (doc) Object.assign(kept, doc);
+  }
+  kept.ai_disclosure = disclosure;
+  return tonegridFetch('/releases/' + releaseId + '/rights', {
+    method: 'PUT',
+    body: kept,
+    idempotencyKey: hopIdempotencyKey('rights-ai', 'PUT', '/releases/' + releaseId + '/rights', JSON.stringify(kept)),
+  });
 }
 
 async function applyTrackAiDisclosure(trackId, fields) {
@@ -3730,6 +3763,11 @@ async function submitRelease(req, res, releaseId) {
   const credited = await applyReleaseCredits(releaseId, hopCredits, { patch: true });
   if (!credited.ok) {
     sendJson(res, credited.status, credited.data);
+    return;
+  }
+  const disclosed = await applyReleaseAiDisclosure(releaseId, body, hopCredits);
+  if (!disclosed.ok) {
+    sendJson(res, disclosed.status, disclosed.data);
     return;
   }
   const trackIds = collectSubmitTrackIds(row, body);

@@ -6776,6 +6776,19 @@ body.attest-page .plai-bubble-row {
 .attest-page [data-human-section].is-lyrics-only .tag:not([data-lyrics]) {
   display: none;
 }
+.attest-page [data-ai-tool][hidden],
+.attest-page [data-ai-other][hidden] {
+  display: none !important;
+}
+.attest-page [data-ai-tool] .choice {
+  padding: 12px 16px;
+}
+.attest-page [data-ai-tool] .choice b {
+  margin-bottom: 0;
+}
+.attest-page [data-ai-tool] .field {
+  margin-top: 8px;
+}
 .attest-page .attest-actions {
   position: sticky;
   bottom: 0;
