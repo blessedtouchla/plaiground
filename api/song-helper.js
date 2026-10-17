@@ -25,6 +25,8 @@ const slang = require('../lib/slang');
 const reddit = require('../lib/reddit-slang');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
+const features = require('../lib/features');
+const parodyV2 = require('../lib/parody-v2');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -230,6 +232,102 @@ async function roleReply(req, res, role, body) {
       error: busy ? 'The writer is busy. Try again in a moment.' : 'That note did not come back. Try again in a moment.',
     });
   }
+}
+
+async function handleParodyWrite(req, res, body) {
+  if (!features.enabled('PARODY_V2_ENABLED')) {
+    sendJson(res, 404, { ok: false, error: 'That action is not on this page.' });
+    return;
+  }
+  var userId = guard.sessionUserId(req);
+  if (!userId) {
+    sendJson(res, 401, { ok: false, error: parodyV2.SIGN_IN_NOTE });
+    return;
+  }
+  var read = modeInput(body);
+  if (read.error) {
+    sendJson(res, 400, { ok: false, error: read.error });
+    return;
+  }
+  var input = read.input;
+  input.mode = 'parody';
+  input.version = body && (body.parodyVersion === 'weird' || body.version === 'weird') ? 'weird' : 'straight';
+  input.parodyVersion = input.version;
+  var critique = modes.parodyCritique(input);
+  if (!critique.ok) {
+    sendJson(res, 400, { ok: false, error: critique.blocks[0], critique: critique });
+    return;
+  }
+  var filtered = guard.contentFilter([
+    input.comment,
+    input.happened,
+    input.title,
+    input.originalTitle,
+    input.lines,
+    input.artNote,
+  ].join('\n'));
+  if (!filtered.ok) {
+    sendJson(res, 400, { ok: false, error: filtered.error });
+    return;
+  }
+  if (!limiter.allow(guard.clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
+  }
+  var charged;
+  try {
+    charged = await artistDev.chargeCredit(userId);
+  } catch (err) {
+    var status = err && err.code === 'CREDITS' ? 402 : 500;
+    sendJson(res, status, { ok: false, error: err && err.message ? err.message : 'That uses 1 credit. You are out of credits.' });
+    return;
+  }
+  var pack = parodyV2.package(input);
+  if (xai.configured()) {
+    try {
+      var chat = await xai.chat({
+        url: 'https://api.x.ai/v1/chat/completions',
+        temperature: 0.8,
+        max_tokens: 1400,
+        messages: [
+          { role: 'system', content: parodyV2.systemPrompt(input) },
+          { role: 'user', content: JSON.stringify({
+            title: input.title,
+            originalTitle: input.originalTitle,
+            comment: input.comment,
+            happened: input.happened,
+            version: input.version,
+            avoidLongRunsFrom: String(input.lines || '').slice(0, 800),
+          }) },
+        ],
+      });
+      var merged = parodyV2.fromModel(chat && chat.content, input, pack);
+      if (merged) pack = merged;
+    } catch (err) {
+      pack.notice = parodyV2.DEMO_NOTICE;
+      pack.preview = true;
+      pack.source = 'sample';
+    }
+  }
+  pack = parodyV2.scrubPackage(pack, input);
+  var after = guard.contentFilter(JSON.stringify(pack.draft || {}));
+  if (!after.ok) {
+    pack = parodyV2.package({
+      title: input.title,
+      originalTitle: input.originalTitle,
+      comment: 'The point stays. The blocked wording stays out.',
+      happened: '',
+      lines: input.lines,
+      version: input.version,
+    });
+    pack = parodyV2.scrubPackage(pack, input);
+  }
+  pack.credit = parodyV2.CREDIT;
+  pack.credits = charged.credits;
+  pack.critique = pack.critique || critique;
+  pack.critique.fairUse = modes.FAIR_USE_NOTE;
+  pack.critique.release = modes.RELEASE_NOTE;
+  sendJson(res, 200, pack);
 }
 
 async function handleMode(req, res, body) {
@@ -776,6 +874,12 @@ async function handleAction(req, res, action, givenBody) {
     sendJson(res, 200, guard.status());
     return;
   }
+  if (action === 'parody-write') {
+    var parodyBody = givenBody;
+    if (!parodyBody) parodyBody = await readBody(req);
+    await handleParodyWrite(req, res, parodyBody || {});
+    return;
+  }
   if (action === 'slang') {
     var region = '';
     if (req.query && req.query.region) region = String(req.query.region);
@@ -876,7 +980,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite' || body.action === 'parody-write') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

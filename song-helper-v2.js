@@ -68,6 +68,7 @@
   var lastDraft = null;
   var lastMeta = { preview: true, notice: '' };
   var parodyAck = false;
+  var parodyVersion = 'straight';
   var sparkPack = null;
   var sparkGroup = 'trending';
   var sparkNews = '';
@@ -245,9 +246,8 @@
       return String(values[key] || '').trim();
     });
     if (!hasParody || (saved.mode !== 'parody' && saved.mode !== 'cover' && saved.mode !== 'public-domain')) return;
-    var flow = window.SongFlow;
-    var start = flow && flow.normalizeStart ? flow.normalizeStart(saved.start || saved.branch || 'source') : 'based';
-    if (start === 'based' && !basedOn && !storyBox) setBranch('based');
+    setBranch('source');
+    setMode(saved.mode);
   }
 
   function adoptHavePaste() {
@@ -577,6 +577,101 @@
     if (window.SongHelperChips) window.SongHelperChips.foldAll();
   }
 
+  function parodyV2On() {
+    return !!(window.PlaigroundFeatures && window.PlaigroundFeatures.enabled && window.PlaigroundFeatures.enabled('PARODY_V2_ENABLED') && window.PlaigroundParodyV2);
+  }
+
+  function parodyGoLabel() {
+    if (parodyVersion === 'weird') return 'Write the Weird Al style mix (1 credit)';
+    return 'Write the parody (1 credit)';
+  }
+
+  function applyParodyVoice() {
+    if (!window.PlaigroundParodyV2) return [];
+    var unsure = [];
+    ['comment', 'happened', 'title'].forEach(function (id) {
+      var el = document.querySelector('#sh-v2-fields [data-field="' + id + '"]');
+      if (!el) return;
+      var cleaned = window.PlaigroundParodyV2.cleanVoice(el.value);
+      if (cleaned.text && cleaned.text !== String(el.value || '').trim()) el.value = cleaned.text;
+      (cleaned.unsure || []).forEach(function (token) {
+        if (unsure.indexOf(token) === -1) unsure.push(token);
+      });
+    });
+    return unsure;
+  }
+
+  function parodySample(body, notice) {
+    var tool = window.PlaigroundParodyV2;
+    var local = tool.package(Object.assign({}, body, {
+      version: parodyVersion,
+      parodyVersion: parodyVersion,
+      lines: fieldValue('originalLyrics') || body.lines || '',
+    }));
+    local.preview = true;
+    local.notice = notice || tool.SIGN_IN_NOTE;
+    return local;
+  }
+
+  function showParodyStyle(text) {
+    if (!window.SunoStyle || !text) return;
+    var host = $('sh-v2-style');
+    if (!host) return;
+    window.SunoStyle.renderPrompt(host, text, function (id) {
+      var extra = id === 'energy' ? 'higher energy' : (id === 'softer' ? 'softer edges' : (id === 'vocal' ? 'a different vocal color' : 'extra ear candy'));
+      var next = String(text || '').replace(/,\s*punchy and bouncy\s*$/i, '');
+      showParodyStyle(next + ', ' + extra);
+    });
+  }
+
+  function paintParodyVersions(host) {
+    var versions = document.createElement('div');
+    versions.className = 'sh-chips';
+    versions.setAttribute('role', 'group');
+    versions.setAttribute('aria-label', 'Parody version');
+    [
+      { id: 'straight', label: 'Straight' },
+      { id: 'weird', label: 'Weird Al style mix' },
+    ].forEach(function (opt) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip' + (parodyVersion === opt.id ? ' on' : '');
+      button.setAttribute('data-version', opt.id);
+      button.setAttribute('aria-pressed', parodyVersion === opt.id ? 'true' : 'false');
+      button.textContent = opt.label;
+      button.addEventListener('click', function () {
+        parodyVersion = opt.id;
+        versions.querySelectorAll('button').forEach(function (el) {
+          var on = el.getAttribute('data-version') === parodyVersion;
+          el.classList.toggle('on', on);
+          el.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        goLabel = parodyGoLabel();
+        paintGo();
+      });
+      versions.appendChild(button);
+    });
+    host.appendChild(versions);
+    var help = document.createElement('p');
+    help.className = 'sh-help';
+    help.textContent = 'Straight is sharp commentary. Weird Al style mix is a style label only: big jokes, not an attack.';
+    host.appendChild(help);
+  }
+
+  function openParodyForm(original) {
+    setBranch('source');
+    parodyVersion = 'straight';
+    setMode('parody');
+    if (original) {
+      var field = document.querySelector('#sh-v2-fields [data-field="originalTitle"]');
+      if (field && !String(field.value || '').trim()) field.value = original;
+    }
+    var panel = $('sh-v2');
+    if (panel && panel.scrollIntoView) {
+      try { panel.scrollIntoView({ block: 'start' }); } catch (err) {}
+    }
+  }
+
   function setMode(id) {
     if (id === 'battle') {
       var battleUrl = '/battle';
@@ -596,6 +691,9 @@
     var panel = $('sh-v2');
     panel.hidden = id === 'write';
     $('sh-v2-blurb').textContent = info.blurb;
+    if (id === 'parody' && parodyV2On()) {
+      $('sh-v2-blurb').textContent = 'Your notes become a full original parody. Straight is sharp. Weird Al style mix is the funny one.';
+    }
     $('sh-v2-out').textContent = '';
     $('sh-v2-extra').textContent = '';
     $('sh-v2-error').hidden = true;
@@ -603,7 +701,9 @@
     paintModes();
     paintFields();
     paintSlang();
-    goLabel = id === 'parody' ? 'Check the parody' : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : (id === 'reggae' ? 'Write the reggae draft' : 'Make the draft')))));
+    goLabel = id === 'parody'
+      ? (parodyV2On() ? parodyGoLabel() : 'Check the parody')
+      : (id === 'cover' ? 'Show the steps' : (id === 'hook' ? 'Write the hook' : (id === 'flip' ? 'Flip the draft' : (id === 'funkify' ? 'Funkify the draft' : (id === 'reggae' ? 'Write the reggae draft' : 'Make the draft')))));
     lyricsReady = false;
     styleShown = false;
     v2StyleOpen = false;
@@ -708,6 +808,16 @@
       addField(host, { id: 'title', label: 'Your title (not a look-alike)' });
       addField(host, { id: 'comment', label: 'What are you saying about the original?', kind: 'area', story: true });
       addField(host, { id: 'artNote', label: 'Cover idea, if you have one', placeholder: 'A different picture. Not their art.' });
+      if (parodyV2On()) {
+        paintParodyVersions(host);
+        addField(host, {
+          id: 'originalLyrics',
+          label: 'Original lyrics, if you have them',
+          kind: 'area',
+          rows: 4,
+          placeholder: 'Optional. A long copied run is rewritten so the parody stays original.',
+        });
+      }
     }
     if (mode === 'public-domain') {
       addField(host, {
@@ -1639,7 +1749,9 @@
     }
     if (mode === 'parody') {
       draft.notes = draft.notes || [];
-      [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE].forEach(function (note) {
+      var parodyNotes = [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE];
+      if (parodyV2On() && window.PlaigroundParodyV2) parodyNotes = parodyNotes.concat(window.PlaigroundParodyV2.TIPS);
+      parodyNotes.forEach(function (note) {
         if (note && draft.notes.indexOf(note) === -1) draft.notes.push(note);
       });
     }
@@ -1656,12 +1768,29 @@
       });
       out.appendChild(list);
     }
-    (draft.notes || []).forEach(function (note) {
-      var p = document.createElement('p');
-      p.className = 'sh-help';
-      p.textContent = note;
-      out.appendChild(p);
-    });
+    var deferParodyNotes = mode === 'parody' && parodyV2On();
+    if (deferParodyNotes && data.unsure && data.unsure.length) {
+      var unsure = document.createElement('p');
+      unsure.className = 'sh-help';
+      unsure.setAttribute('data-parody-unsure', '1');
+      unsure.textContent = "We weren't sure about: " + data.unsure.join(', ');
+      out.appendChild(unsure);
+    }
+    if (deferParodyNotes && draft.versionLabel) {
+      var versionHead = document.createElement('p');
+      versionHead.className = 'sh-section-label';
+      versionHead.textContent = draft.versionLabel;
+      out.appendChild(versionHead);
+    }
+    function paintDraftNotes() {
+      (draft.notes || []).forEach(function (note) {
+        var p = document.createElement('p');
+        p.className = 'sh-help';
+        p.textContent = note;
+        out.appendChild(p);
+      });
+    }
+    if (!deferParodyNotes) paintDraftNotes();
     if (draft.sourceWork) {
       var source = document.createElement('p');
       source.className = 'sh-note';
@@ -1677,6 +1806,7 @@
         renderLine(out, part, row, index);
       });
     });
+    if (deferParodyNotes) paintDraftNotes();
     if (draft.edits) renderEdits(out, draft.edits);
     var lines = modes.allLines(draft);
     if (lines.length) {
@@ -1685,6 +1815,12 @@
       lyricsReady = true;
       if (claimPanel) claimPanel.hidden = false;
       if (!out.querySelector('.sh-x-reveal-tools')) presentReveal(out);
+    }
+    if (deferParodyNotes && lines.length) {
+      lyricsReady = false;
+      showParodyStyle((data && data.stylePrompt) || (draft && draft.stylePrompt) || '');
+      var lyricTop = out.querySelector('.sh-section-label') || out;
+      try { lyricTop.scrollIntoView({ block: 'start' }); } catch (err) {}
     }
     paintV2Feedback();
     syncStructure();
@@ -2135,7 +2271,15 @@
       showError('Song Helper is turned off right now.');
       return;
     }
+    if (mode === 'parody' && parodyV2On()) applyParodyVoice();
     var body = payload();
+    if (mode === 'parody' && parodyV2On()) {
+      body.action = 'parody-write';
+      body.parodyVersion = parodyVersion;
+      body.version = parodyVersion;
+      var pastedLyric = fieldValue('originalLyrics');
+      if (pastedLyric) body.lines = pastedLyric;
+    }
     var prepared = preparedInput(body);
     if (prepared.__long) {
       showError(prepared.error || 'That answer is a little long. Shorten it and try again.');
@@ -2183,6 +2327,12 @@
       var data = await response.json().catch(function () { return null; });
       if (!data) throw new Error('offline');
       if (!response.ok || data.ok === false) {
+        if (mode === 'parody' && parodyV2On() && response.status !== 400 && response.status !== 402) {
+          renderResult(parodySample(body, data.error || window.PlaigroundParodyV2.SIGN_IN_NOTE));
+          pendingRevision = '';
+          pendingPrevious = '';
+          return;
+        }
         showError(data.error || 'That draft did not come through.');
         if (data.critique) renderResult(data);
         return;
@@ -2193,6 +2343,12 @@
     } catch (err) {
       if (mode === 'hook') {
         showError('The hook did not come back. Try again in a moment.');
+        return;
+      }
+      if (mode === 'parody' && parodyV2On()) {
+        renderResult(parodySample(body, window.PlaigroundParodyV2.SIGN_IN_NOTE));
+        pendingRevision = '';
+        pendingPrevious = '';
         return;
       }
       var local = modes.buildSample(body);
@@ -2853,7 +3009,10 @@
     }
     host.hidden = false;
     var lines = [];
-    if (mode === 'parody') lines = [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE];
+    if (mode === 'parody') {
+      lines = [modes.FAIR_USE_NOTE, modes.RELEASE_NOTE];
+      if (parodyV2On()) lines = lines.concat(window.PlaigroundParodyV2.TIPS);
+    }
     else if (mode === 'cover') lines = ['Name the song first. This page does not sell a license.', modes.MECHANICAL_STEPS[0]];
     else if (mode === 'public-domain') lines = [modes.PD_NOTE];
     lines.forEach(function (text) {
@@ -5289,6 +5448,12 @@
   var basedWrite = $('sh-based-write');
   if (basedGo) basedGo.addEventListener('click', describeBased);
   if (basedWrite) basedWrite.addEventListener('click', startBasedWrite);
+  var basedParody = $('sh-based-parody');
+  if (basedParody) basedParody.addEventListener('click', function () {
+    var title = askValue($('sh-based-title'));
+    var artist = askValue($('sh-based-artist'));
+    openParodyForm([title, artist].filter(Boolean).join(' by '));
+  });
   var haveBtn = $('sh-choice-have');
   if (haveBtn) haveBtn.addEventListener('click', function () { setBranch('have'); });
   paintBranch();
