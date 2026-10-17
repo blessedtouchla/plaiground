@@ -16,6 +16,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260917pl2" />
+  <style>
+    .roadmap-saved {
+      background: #241808;
+      color: #f3cb47;
+      border: 1px solid rgba(243, 203, 71, 0.45);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin: 0 0 18px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+  </style>
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app">
@@ -67,6 +79,7 @@
         <h1>My roadmap</h1>
         <p>The route saved on this account.</p>
       </div>
+      <p class="roadmap-saved" data-roadmap-saved hidden>Got it! Your roadmap is saved. Our team will look it over and reach out with next steps.</p>
       <p class="hint" data-roadmap-status>Loading...</p>
       <div data-roadmap-empty hidden>
         <p>No roadmap saved yet.</p>
@@ -85,7 +98,7 @@
   <script src="account.js"></script>
   <script src="roadmap-account.js?v=20261003edit"></script>
   <script src="/product-events.js?v=20261014pixels"></script>
-  <script src="my-roadmap.js?v=20260930r1"></script>
+  <script src="my-roadmap.js?v=20261017alert"></script>
   <script src="site.js"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

@@ -639,6 +639,19 @@ body.destination-page .dest-avatar .plai-coach-avatar {
   letter-spacing: -0.02em;
 }
 
+.dest-go[aria-disabled="true"] {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.dest-go-status {
+  color: #ffb4c8;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 36rem;
+}
+
 .dest-end-note {
   color: var(--muted);
   font-size: 14px;

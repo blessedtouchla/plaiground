@@ -142,7 +142,9 @@
       var record = readJson(PLAN_KEY);
       if (!record || !record.song || !record.goal) return Promise.resolve(null);
       if (!opts.force && !hasSession()) return Promise.resolve({ saved: false, local: true });
-      return post('/api/me/roadmap', { plan: record });
+      var body = { plan: record };
+      if (opts.notify === true) body.notify = true;
+      return post('/api/me/roadmap', body);
     }
     if (opts.immediate) {
       if (root.clearTimeout) root.clearTimeout(planTimer);

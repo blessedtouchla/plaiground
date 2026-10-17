@@ -151,13 +151,29 @@
     });
   }
 
+  function savedVisit() {
+    try {
+      return new URLSearchParams(global.location.search || '').get('saved') === '1';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function paintSavedBanner() {
+    var banner = $('[data-roadmap-saved]');
+    if (!banner) return;
+    banner.hidden = !savedVisit();
+  }
+
   function boot() {
+    paintSavedBanner();
     var membership = global.PlaigroundMembership;
     var ready = membership && typeof membership.whenReady === 'function'
       ? membership.whenReady()
       : Promise.resolve(null);
     ready.then(function () {
       bindStops();
+      paintSavedBanner();
       load();
     });
   }

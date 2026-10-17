@@ -343,7 +343,14 @@ function runPage() {
   assert.strictEqual(core.editRequested('?edit=1'), true);
   assert.strictEqual(core.editRequested('edit=1'), true);
   assert.strictEqual(core.editRequested(''), false);
-  assert.ok(js.includes("go.setAttribute('href', showSaved ? '/my-roadmap' : href)"));
+  assert.ok(js.includes("go.setAttribute('href', signedIn ? '/my-roadmap?saved=1' : href)"));
+  assert.ok(js.includes('accountSaved'));
+  assert.ok(js.includes("go.textContent = 'Saving\u2026'"));
+  assert.ok(js.includes("setAttribute('aria-disabled', 'true')"));
+  assert.ok(js.includes('Please try again.'));
+  assert.ok(js.includes('opts.notify = true'));
+  assert.ok(html.includes('id="dest-go-status"'));
+  assert.ok(read('roadmap-account.js').includes('body.notify = true'));
   assert.ok(!/<a[^>]+href="https?:\/\/(?:www\.)?wannaplai\.com\/destination/.test(html), 'Edit stays on the current host');
   assert.ok(js.includes('persistAccount'));
   assert.ok(js.includes('applySavedPlan'));

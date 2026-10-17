@@ -95,6 +95,18 @@ CREATE TABLE IF NOT EXISTS roadmap_plans (
 CREATE INDEX IF NOT EXISTS roadmap_plans_user_created_idx
   ON roadmap_plans (user_id, created_at DESC);
 
+-- One row each time the owner alert actually sends. A repeat of the same
+-- goal, stage, and stops inside 10 minutes does not send again.
+CREATE TABLE IF NOT EXISTS roadmap_alerts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  fingerprint text NOT NULL,
+  sent_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS roadmap_alerts_user_sent_idx
+  ON roadmap_alerts (user_id, sent_at DESC);
+
 CREATE TABLE IF NOT EXISTS artist_profile_saves (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,

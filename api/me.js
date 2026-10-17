@@ -342,7 +342,8 @@ async function ownSaved(req, res, read, save, key) {
       return;
     }
     const input = body && (body[key] || (key === 'plan' ? body.roadmap : body.record));
-    const saved = await save(row.id, input);
+    const notify = key === 'plan' && !!(body && body.notify === true);
+    const saved = await save(row.id, input, notify ? { notify: true } : null);
     sendJson(res, 200, savedPayload(saved, key));
   } catch (err) {
     if (err && err.code === 'VALIDATION') {

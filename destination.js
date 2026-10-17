@@ -678,6 +678,7 @@
     var drawTimer = 0;
     var authKnown = false;
     var signedIn = false;
+    var accountSaved = false;
     var accountTimer = 0;
 
     var copy = {
@@ -751,30 +752,37 @@
       };
     }
 
-    function save(plan, immediate) {
+    function save(plan, immediate, notify) {
       var record = planRecord(plan);
       try {
         root.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
       } catch (err) {}
-      persistAccount(record, !!immediate);
-      return record;
+      return persistAccount(record, !!immediate, !!notify);
     }
 
     function accountApi() {
       return root.PlaigroundRoadmapAccount || null;
     }
 
-    function persistAccount(record, immediate) {
+    function noteAccountSave(result) {
+      if (result && result.ok && result.data && result.data.plan) accountSaved = true;
+      paintAccount(currentPlan());
+      return result;
+    }
+
+    function persistAccount(record, immediate, notify) {
       var account = accountApi();
-      if (!account || typeof account.savePlan !== 'function' || !signedIn) return;
+      if (!account || typeof account.savePlan !== 'function' || !signedIn) return Promise.resolve(null);
       if (root.clearTimeout) root.clearTimeout(accountTimer);
       if (immediate) {
-        account.savePlan(record, { immediate: true });
-        return;
+        var opts = { immediate: true };
+        if (notify) opts.notify = true;
+        return Promise.resolve(account.savePlan(record, opts)).then(noteAccountSave, noteAccountSave);
       }
       accountTimer = root.setTimeout(function () {
-        account.savePlan(record, { immediate: true });
+        Promise.resolve(account.savePlan(record, { immediate: true })).then(noteAccountSave, noteAccountSave);
       }, 600);
+      return Promise.resolve(null);
     }
 
     function paintAccount(plan) {
@@ -787,14 +795,14 @@
       if (signup) signup.setAttribute('href', href);
       if (login) login.setAttribute('href', '/login');
       var showPrompt = authKnown && !signedIn && state.step === 3;
-      var showSaved = authKnown && signedIn && state.step === 3;
+      var showSaved = authKnown && signedIn && accountSaved && state.step === 3;
       if (box) box.hidden = !showPrompt;
       if (savedNote) savedNote.hidden = !showSaved;
-      if (go) go.setAttribute('href', showSaved ? '/my-roadmap' : href);
+      if (go && go.getAttribute('aria-disabled') !== 'true') go.setAttribute('href', signedIn ? '/my-roadmap?saved=1' : href);
       if (endNote && state.step === 3 && authKnown) {
-        endNote.textContent = signedIn
-          ? 'Saved to your account. You can open it any time.'
-          : 'This opens the free account. Your route comes along so the plan can be saved later.';
+        if (signedIn && accountSaved) endNote.textContent = 'Saved to your account. You can open it any time.';
+        else if (signedIn) endNote.textContent = 'Tap the gold button to save this route to your account.';
+        else endNote.textContent = 'This opens the free account. Your route comes along so the plan can be saved later.';
       }
     }
 
@@ -1383,9 +1391,46 @@
       });
     }
     if (go) {
-      go.addEventListener('click', function () {
+      go.addEventListener('click', function (event) {
+        if (go.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          return;
+        }
         readMini();
-        if (state.routeSong && state.routeGoal) save(currentPlan(), true);
+        var goLabel = go.textContent;
+        var nextHref = signedIn ? '/my-roadmap?saved=1' : (go.getAttribute('href') || '/signup.html?plan=basic');
+        event.preventDefault();
+        go.textContent = 'Saving…';
+        go.setAttribute('aria-disabled', 'true');
+        var status = doc.getElementById('dest-go-status');
+        if (status) {
+          status.hidden = true;
+          status.textContent = '';
+        }
+        function restoreGo() {
+          go.textContent = goLabel;
+          go.removeAttribute('aria-disabled');
+          if (status) {
+            status.hidden = false;
+            status.textContent = 'We could not save that just now. Please try again.';
+          }
+        }
+        if (!signedIn) {
+          if (state.routeSong && state.routeGoal) save(currentPlan(), true);
+          root.location.href = nextHref;
+          return;
+        }
+        var pending = (state.routeSong && state.routeGoal) ? save(currentPlan(), true, true) : Promise.resolve(null);
+        Promise.resolve(pending).then(function (result) {
+          var ok = !!(result && result.ok && result.data && result.data.plan);
+          if (!ok) {
+            restoreGo();
+            return;
+          }
+          root.location.href = '/my-roadmap?saved=1';
+        }).catch(function () {
+          restoreGo();
+        });
       });
     }
     if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
@@ -1420,6 +1465,7 @@
       }
       function showPlan(plan, persistLocal) {
         var editing = state.editing || editMode();
+        if (!persistLocal && plan) accountSaved = true;
         if (persistLocal && plan) persistAccount(planRecord(plan), true);
         if (plan) applySavedPlan(plan, { editing: editing });
         else paintAccount(currentPlan());
