@@ -33,6 +33,8 @@
 .persona-asks { margin: 8px 0 0; padding-left: 18px; }
 .persona-source { display: block; font-size: 0.85rem; opacity: 0.75; margin-top: 4px; }
 .persona-suggestion { border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 10px 0; }
+[data-persona-links] a { margin-right: 14px; }
+[data-persona-private] { font-size: 0.92rem; }
 .epk-live { display: none; }
 .epk-live.is-on { display: block; }
 .epk-live-hero { display: flex; gap: 18px; align-items: center; margin: 18px 0; }

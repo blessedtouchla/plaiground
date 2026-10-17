@@ -687,5 +687,24 @@
     sendTyped();
   });
   if (talkBtn) talkBtn.addEventListener('click', toggleTalk);
+
+  function queryParams() {
+    try { return new URLSearchParams(window.location.search); } catch (e) { return null; }
+  }
+
+  function startFromQuery() {
+    var params = queryParams();
+    if (!params) return;
+    var topic = params.get('topic') || '';
+    var typed = params.get('q') || '';
+    if (topic === 'release-week') {
+      addLine('user', 'Help me plan posts for release week.');
+      addLine('plai', 'A week out, post a short teaser clip. Three days out, share behind the scenes, a lyric card, and a countdown. On release day, post the link. After that, thank fans and share their posts. What day does the song come out?');
+      if (!typed) inputEl.value = 'My song comes out on ';
+    }
+    if (typed) inputEl.value = String(typed).slice(0, MAX_TEXT);
+  }
+
+  startFromQuery();
   checkConfigured();
 })();

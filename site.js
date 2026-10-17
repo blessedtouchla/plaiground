@@ -896,6 +896,7 @@
         { href: "index.html#pricing", label: "Content engine" },
         { href: "index.html#pricing", label: "Fan growth" },
         { href: "index.html#pricing", label: "Social Media Presence" },
+        { href: "/release-week", label: "Release week" },
         { href: "/charts", label: "SIQA Charts" }
       ]
     },
@@ -959,11 +960,39 @@
     return null;
   }
 
+  function ensureReleaseWeekLink(footer) {
+    if (!footer || !footer.querySelectorAll) return;
+    var cols = footer.querySelectorAll(".footer-col");
+    var i;
+    for (i = 0; i < cols.length; i += 1) {
+      var heading = cols[i].querySelector("h4");
+      var label = heading ? String(heading.textContent || "").replace(/\s+/g, " ").trim() : "";
+      if (label !== "Grow") continue;
+      var found = cols[i].querySelector('a[href="/release-week"], a[href="release-week.html"]');
+      if (found) return;
+      var charts = null;
+      Array.prototype.forEach.call(cols[i].querySelectorAll("a"), function (anchor) {
+        var href = anchor.getAttribute("href") || "";
+        if (!charts && (href === "/charts" || href === "charts.html" || String(anchor.textContent || "").replace(/\s+/g, " ").trim() === "SIQA Charts")) charts = anchor;
+      });
+      var link = document.createElement("a");
+      link.setAttribute("href", "/release-week");
+      link.href = "/release-week";
+      link.textContent = "Release week";
+      if (charts) cols[i].insertBefore(link, charts);
+      else cols[i].appendChild(link);
+      return;
+    }
+  }
+
   function setupPublicFooter() {
     var footer = document.querySelector("footer");
     if (!footer || !footer.querySelector) return;
     var grid = footer.querySelector(".footer-grid");
-    if (!grid || grid.getAttribute("data-footer-journey") === "1") return;
+    if (!grid || grid.getAttribute("data-footer-journey") === "1") {
+      ensureReleaseWeekLink(footer);
+      return;
+    }
     var path = String((window.location && window.location.pathname) || "");
     if (/(^|\/)terms\.html$/.test(path)) return;
     var root = footerUsesRoot(footer);
@@ -998,6 +1027,7 @@
     grid.appendChild(legal);
     grid.appendChild(account);
     grid.setAttribute("data-footer-journey", "1");
+    ensureReleaseWeekLink(footer);
   }
 
   function markRoadmapLink(nav) {
