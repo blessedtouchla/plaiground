@@ -5,12 +5,14 @@
   var state = {
     slug: '',
     game: null,
+    level: 1,
     next: 0,
     score: 0,
     combo: 0,
     hearts: 3,
     done: false,
     played: false,
+    toBeat: 0,
   };
 
   function $(sel) {
@@ -32,9 +34,63 @@
     return slug;
   }
 
+  function fanId() {
+    var key = 'plaiground.stage.fan';
+    try {
+      var existing = root.localStorage.getItem(key) || '';
+      existing = existing.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+      if (existing) return existing;
+      var next = 'fan' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      root.localStorage.setItem(key, next);
+      return next;
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function scoreTools() {
+    return root.PlaigroundSongGame || null;
+  }
+
+  function formatScore(value) {
+    var tools = scoreTools();
+    if (tools && tools.formatScore) return tools.formatScore(value);
+    var num = Math.max(0, Math.min(100000, Math.round(Number(value) || 0)));
+    return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function playerName() {
+    var input = $('[data-player-name]');
+    var tools = scoreTools();
+    var raw = input ? input.value : '';
+    if (tools && tools.challengeName) return tools.challengeName(raw);
+    var name = String(raw || '').replace(/[^A-Za-z0-9 .'-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+    return name || 'Friend';
+  }
+
   function shareUrl() {
     var origin = root.location && root.location.origin ? root.location.origin : '';
-    return origin + '/play/' + encodeURIComponent(state.slug);
+    var hash = 'score=' + encodeURIComponent(String(state.score || 0)) + '&name=' + encodeURIComponent(playerName());
+    return origin + '/play/' + encodeURIComponent(state.slug) + '#' + hash;
+  }
+
+  function currentLevel() {
+    var levels = state.game && Array.isArray(state.game.levels) ? state.game.levels : [];
+    var found = null;
+    levels.forEach(function (level) {
+      if (Number(level.id) === state.level) found = level;
+    });
+    if (found && found.words && found.words.length) return found;
+    return {
+      id: 1,
+      label: 'Level 1',
+      name: 'The hook',
+      words: state.game.hookWords || [],
+      wordLines: state.game.wordLines || [],
+      lines: state.game.hookLines || [],
+      hook: state.game.hook || '',
+      decoys: state.game.decoys || [],
+    };
   }
 
   function paintHud() {
@@ -56,22 +112,45 @@
         event: event,
         score: extra && extra.score || state.score,
         line: extra && extra.line || '',
+        level: state.level,
+        fan: fanId(),
       }),
     }).catch(function () {});
   }
 
   function lineFor(index) {
-    var lines = state.game && state.game.wordLines;
-    if (lines && lines[index]) return lines[index];
-    var hookLines = state.game && state.game.hookLines;
-    return hookLines && hookLines[0] ? hookLines[0] : '';
+    var level = currentLevel();
+    var lines = level.wordLines || [];
+    if (lines[index]) return lines[index];
+    return level.lines && level.lines[0] ? level.lines[0] : '';
+  }
+
+  function paintLevel() {
+    var level = currentLevel();
+    var label = $('[data-level]');
+    if (label) label.textContent = (level.label || 'Level 1') + '. ' + (level.name || 'The hook');
+    var buttons = root.document.querySelectorAll('[data-level-pick]');
+    Array.prototype.forEach.call(buttons, function (button) {
+      var on = Number(button.getAttribute('data-level-pick')) === state.level;
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
 
   function finish() {
     state.done = true;
+    state.toBeat = Math.max(state.toBeat || 0, state.score);
+    var level = currentLevel();
     var panel = $('[data-play-done]');
     var hook = $('[data-hook]');
-    if (hook) hook.textContent = state.game.hook || state.game.hookWords.join(' ');
+    var scoreLine = $('[data-level-score]');
+    var next = $('[data-next-level]');
+    if (hook) hook.textContent = level.hook || (level.words || []).join(' ');
+    if (scoreLine) scoreLine.textContent = (level.label || 'Level 1') + ' score ' + formatScore(state.score);
+    if (next) {
+      var upcoming = state.level < 3;
+      next.hidden = !upcoming;
+      if (upcoming) next.textContent = state.level === 1 ? 'Play level 2' : 'Play level 3';
+    }
     if (panel) panel.hidden = false;
     postEvent('finish', { score: state.score });
   }
@@ -92,7 +171,7 @@
       state.combo += 1;
       state.score += 50 * state.combo;
       paintHud();
-      if (state.next >= state.game.hookWords.length) finish();
+      if (state.next >= currentLevel().words.length) finish();
       return;
     }
     state.combo = 0;
@@ -125,10 +204,11 @@
     var still = reduced();
     sky.classList.toggle('is-still', still);
     var pieces = [];
-    state.game.hookWords.forEach(function (word, index) {
+    var level = currentLevel();
+    (level.words || []).forEach(function (word, index) {
       pieces.push({ text: word, kind: 'hook', index: index, used: false });
     });
-    (state.game.decoys || []).forEach(function (word, index) {
+    (level.decoys || state.game.decoys || []).forEach(function (word, index) {
       pieces.push({ text: word, kind: 'decoy', index: index, used: false });
     });
     shuffle(pieces).forEach(function (piece, index) {
@@ -186,8 +266,26 @@
     var fail = $('[data-play-fail]');
     if (done) done.hidden = true;
     if (fail) fail.hidden = true;
+    paintLevel();
     paintHud();
     paintWords();
+  }
+
+  function playAgain() {
+    var target = state.toBeat || state.score;
+    resetRound();
+    var line = $('[data-your-score]');
+    if (line) {
+      line.hidden = false;
+      line.textContent = 'Beat your score: ' + formatScore(target);
+    }
+  }
+
+  function pickLevel(level) {
+    state.level = level;
+    var line = $('[data-your-score]');
+    if (line) line.hidden = true;
+    resetRound();
   }
 
   function showError(message) {
@@ -223,14 +321,63 @@
     });
   }
 
+  function showChallenge() {
+    var banner = $('[data-challenge]');
+    if (!banner) return;
+    var hash = String(root.location.hash || '').replace(/^#/, '');
+    var params;
+    try { params = new URLSearchParams(hash); } catch (err) { params = new URLSearchParams(); }
+    var score = params.get('score');
+    if (!score) return;
+    var tools = scoreTools();
+    banner.hidden = false;
+    banner.textContent = tools && tools.challengeLine
+      ? tools.challengeLine(params.get('name'), score)
+      : 'Beat ' + playerName() + "'s score: " + formatScore(score);
+  }
+
+  function showStageNote(note) {
+    var banner = $('[data-stage-note]');
+    if (!banner || !note) return;
+    banner.hidden = false;
+    banner.textContent = note;
+  }
+
+  function paintLevelPicks() {
+    var host = $('[data-levels]');
+    if (!host) return;
+    host.textContent = '';
+    var levels = state.game && state.game.levels && state.game.levels.length
+      ? state.game.levels
+      : [{ id: 1, label: 'Level 1', name: 'The hook' }];
+    levels.forEach(function (level) {
+      var button = root.document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn btn-ghost btn-sm';
+      button.setAttribute('data-level-pick', String(level.id));
+      button.textContent = (level.label || 'Level') + ' ' + (level.name || '');
+      button.addEventListener('click', function () { pickLevel(Number(level.id) || 1); });
+      host.appendChild(button);
+    });
+  }
+
   function start(payload) {
     state.game = payload.game;
+    state.level = 1;
     paintHeader(payload);
+    paintLevelPicks();
+    showChallenge();
+    showStageNote(payload.note);
+    paintLevel();
     paintHud();
     paintWords();
     bindShare();
     var again = $('[data-try-again]');
     if (again) again.addEventListener('click', resetRound);
+    var replay = $('[data-play-again]');
+    if (replay) replay.addEventListener('click', playAgain);
+    var next = $('[data-next-level]');
+    if (next) next.addEventListener('click', function () { pickLevel(Math.min(3, state.level + 1)); });
     if (!state.played) {
       state.played = true;
       postEvent('play', {});
@@ -247,7 +394,7 @@
       showError('This game is not ready yet.');
       return;
     }
-    root.fetch('/api/play?slug=' + encodeURIComponent(state.slug), { headers: { Accept: 'application/json' } })
+    root.fetch('/api/play?slug=' + encodeURIComponent(state.slug) + '&fan=' + encodeURIComponent(fanId()) + '&surface=play', { headers: { Accept: 'application/json' } })
       .then(function (response) {
         return response.json().then(function (data) {
           return { ok: response.ok, data: data || {} };

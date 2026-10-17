@@ -1,6 +1,15 @@
 .stage-public {
   margin: 28px 0 8px;
 }
+.stage-note {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #F5C542;
+  background: #111;
+  color: #F5C542;
+  font-weight: 700;
+}
 .stage-public h2,
 .stage-row h3,
 .sh-x-game-title {

@@ -107,11 +107,62 @@ body.play-page main {
   from { transform: translateY(-40px); }
   to { transform: translateY(460px); }
 }
+.play-challenge,
+.stage-note,
+.play-your-score {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #F5C542;
+  background: #111;
+  color: #F5C542;
+  font-weight: 700;
+}
+.play-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.play-levels button[aria-pressed="true"] {
+  background: #7D3CFF;
+  color: #fff;
+  border-color: #7D3CFF;
+}
+.play-level {
+  margin: 0 0 12px;
+  color: #fff;
+  font-weight: 700;
+}
+.play-done .play-again {
+  min-height: 64px;
+  width: min(100%, 420px);
+  font-size: 20px;
+  padding: 16px 22px;
+  background: #F5C542;
+  color: #111;
+}
+.play-name {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(100%, 280px);
+  font-size: 14px;
+  color: #fff;
+}
+.play-name input {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  padding: 0 12px;
+  font: inherit;
+}
 .play-done,
 .play-fail {
   position: fixed;
   inset: 0;
   z-index: 200;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   align-items: center;

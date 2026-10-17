@@ -37,6 +37,41 @@
     section.appendChild(intro);
     section.appendChild(grid);
     host.appendChild(section);
+    askNote(section, epk);
+  }
+
+  function fanId() {
+    var key = 'plaiground.stage.fan';
+    try {
+      var existing = root.localStorage.getItem(key) || '';
+      existing = existing.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+      if (existing) return existing;
+      var next = 'fan' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      root.localStorage.setItem(key, next);
+      return next;
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function askNote(section, epk) {
+    var statsOn = root.PlaigroundFeatures && root.PlaigroundFeatures.enabled('STAGE_STATS_ENABLED');
+    var artist = epk && (epk.slug || '');
+    if (!statsOn || !artist || !section) return;
+    root.fetch('/api/play?artist=' + encodeURIComponent(artist) + '&fan=' + encodeURIComponent(fanId()) + '&surface=stage', {
+      headers: { Accept: 'application/json' },
+    }).then(function (response) {
+      return response.json();
+    }).then(function (data) {
+      if (!data || !data.note || !section.isConnected) return;
+      var banner = root.document.createElement('p');
+      banner.className = 'stage-note';
+      banner.setAttribute('data-stage-note', '1');
+      banner.textContent = data.note;
+      var heading = section.querySelector('h2');
+      if (heading && heading.nextSibling) section.insertBefore(banner, heading.nextSibling);
+      else section.appendChild(banner);
+    }).catch(function () {});
   }
 
   root.PlaigroundStagePublic = { paint: paint };

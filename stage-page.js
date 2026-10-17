@@ -74,9 +74,13 @@
     stats.className = 'stage-stats';
     stats.setAttribute('data-stage-stats', item.slug || '');
     var missed = item.stats.most_missed || 'None yet.';
+    var levels = item.stats.levels || {};
     stats.textContent = 'Plays ' + item.stats.plays
       + '. Finishes ' + item.stats.finishes
       + '. Top score ' + item.stats.top_score
+      + '. Level 1 ' + (levels[1] || levels['1'] || 0)
+      + '. Level 2 ' + (levels[2] || levels['2'] || 0)
+      + '. Level 3 ' + (levels[3] || levels['3'] || 0)
       + '. Most missed line: ' + missed;
     return stats;
   }
