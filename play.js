@@ -14,6 +14,7 @@
     played: false,
     toBeat: 0,
     result: '',
+    meterText: '',
     kind: '',
     games: [],
     colors: ['#7D3CFF', '#FF3C8E', '#F5C542'],
@@ -114,7 +115,9 @@
     var hearts = $('[data-hearts]');
     if (score) score.textContent = 'Score ' + state.score;
     if (combo) combo.textContent = 'Combo ' + state.combo;
-    if (hearts) hearts.textContent = 'Hearts ' + (state.hearts > 0 ? new Array(state.hearts + 1).join('♥') : 'none');
+    if (hearts) {
+      hearts.textContent = state.meterText || ('Hearts ' + (state.hearts > 0 ? new Array(state.hearts + 1).join('♥') : 'none'));
+    }
   }
 
   function postEvent(event, extra) {
@@ -316,8 +319,8 @@
         paintHud();
       },
       setMeter: function (text) {
-        var meter = $('[data-hearts]');
-        if (meter) meter.textContent = text;
+        state.meterText = text || '';
+        paintHud();
       },
       setLine: function (text) {
         var line = $('[data-lyric-line]');
@@ -405,6 +408,7 @@
     state.hearts = 3;
     state.done = false;
     state.result = '';
+    state.meterText = '';
     var done = $('[data-play-done]');
     var fail = $('[data-play-fail]');
     if (done) done.hidden = true;
