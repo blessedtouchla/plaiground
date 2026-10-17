@@ -5242,6 +5242,24 @@
   window.SongHelperV2 = {
     paintLog: paintLog,
     setMode: setMode,
+    openParody: function () {
+      setBranch('source');
+      setMode('parody');
+      var start = $('sh-start');
+      if (start) start.hidden = true;
+    },
+    openLyrics: function (text) {
+      var raw = String(text || '').slice(0, storyMax());
+      var flow = window.SongFlow;
+      var parts = flow && flow.splitLyrics ? flow.splitLyrics(raw) : null;
+      if (!parts || !parts.length) parts = [{ id: 'verse-1', kind: 'verse', label: 'Verse 1', text: raw }];
+      pageSections = freshSections(parts);
+      setStoryBox(true, { keep: true });
+      renderSections();
+      persistPage();
+      var start = $('sh-start');
+      if (start) start.hidden = true;
+    },
     syncStructure: syncStructure,
     spark: function () { return sparkSeed; },
     ownIdea: ownIdea,

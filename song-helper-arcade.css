@@ -1,0 +1,247 @@
+/* Song Helper arcade. Phone first. The old start stays in the HTML. */
+
+#sh-arcade {
+  margin: 18px 0 28px;
+}
+
+#sh-shell.is-arcade > :not(#sh-arcade):not(.sh-kicker):not(h1):not(.sh-intro):not(.sh-honest):not(.sh-age):not(#sh-demo) {
+  display: none !important;
+}
+
+.sh-arcade-progress {
+  margin: 0 0 14px;
+}
+
+.sh-arcade-progress-label {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #F5C542;
+}
+
+.sh-arcade-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #1c1c1c;
+  overflow: hidden;
+}
+
+.sh-arcade-progress-fill {
+  height: 100%;
+  background: #7D3CFF;
+  border-radius: 999px;
+}
+
+.sh-arcade-kicker {
+  margin: 0 0 8px;
+  color: #F5C542;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.sh-arcade-title {
+  margin: 0 0 8px;
+  font-size: 1.55rem;
+  line-height: 1.15;
+}
+
+.sh-arcade-help {
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.sh-arcade-list,
+.sh-arcade-tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.sh-arcade-cabinet,
+.sh-arcade-tile {
+  width: 100%;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #111;
+  color: #fff;
+  padding: 14px 16px;
+  min-height: 44px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.sh-arcade-cabinet small,
+.sh-arcade-tile small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.sh-arcade-tile.on,
+.sh-arcade-cabinet:active {
+  background: #7D3CFF;
+  border-color: #7D3CFF;
+}
+
+.sh-arcade-tile:focus-visible,
+.sh-arcade-cabinet:focus-visible,
+.sh-arcade-back:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.sh-arcade-field {
+  display: block;
+  margin: 0 0 12px;
+}
+
+.sh-arcade-field span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.sh-arcade-field textarea,
+.sh-arcade-field input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #0c0c0c;
+  color: #fff;
+  padding: 12px;
+  font: inherit;
+  min-height: 44px;
+}
+
+.sh-arcade-field textarea {
+  min-height: 8.5rem;
+  resize: vertical;
+}
+
+.sh-arcade-tips {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(125, 60, 255, 0.16);
+}
+
+.sh-arcade-tips li + li {
+  margin-top: 6px;
+}
+
+.sh-arcade-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+
+.sh-arcade-actions .btn,
+.sh-arcade-back {
+  min-height: 44px;
+}
+
+.sh-arcade-back {
+  margin-top: 4px;
+  background: transparent;
+  color: #fff;
+  border: 0;
+  padding: 8px 0;
+  font-weight: 700;
+  text-align: left;
+}
+
+.sh-arcade-class {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #F5C542;
+  color: #111;
+  font-weight: 800;
+}
+
+.sh-arcade-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.sh-arcade-col {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+  background: #0c0c0c;
+}
+
+.sh-arcade-col h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.sh-arcade-line {
+  margin: 0;
+  padding: 2px 0 2px 8px;
+  white-space: pre-wrap;
+}
+
+.sh-arcade-line.is-changed {
+  background: rgba(245, 197, 66, 0.16);
+  box-shadow: inset 3px 0 0 #F5C542;
+}
+
+.sh-arcade-style {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #111;
+  border: 1px solid rgba(255, 60, 142, 0.45);
+}
+
+.sh-arcade-style p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.sh-arcade-note,
+.sh-arcade-error {
+  margin: 0 0 12px;
+}
+
+.sh-arcade-error {
+  color: #FF3C8E;
+}
+
+.sh-song-class,
+.sh-x-class {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #F5C542;
+  color: #111;
+  font-weight: 800;
+}
+
+@media (min-width: 800px) {
+  .sh-arcade-cols {
+    flex-direction: row;
+  }
+
+  .sh-arcade-col {
+    flex: 1;
+  }
+
+  .sh-arcade-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

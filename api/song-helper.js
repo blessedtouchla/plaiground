@@ -25,6 +25,7 @@ const slang = require('../lib/slang');
 const reddit = require('../lib/reddit-slang');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
+const arcade = require('../lib/song-arcade');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -771,6 +772,75 @@ async function handleDev(req, res, action, body) {
   }
 }
 
+async function handleArcade(req, res, action, body) {
+  var userId = guard.sessionUserId(req);
+  if (!userId) {
+    sendJson(res, 401, { ok: false, error: 'Sign in to use artist tools.' });
+    return;
+  }
+  var input = body || {};
+  var packed = [input.lyrics, input.text, input.story, input.who, input.keep, input.voice, input.mood, input.vibe, input.after, input.fromMood].join('\n');
+  var filtered = guard.contentFilter(packed);
+  if (!filtered.ok) {
+    sendJson(res, 400, { ok: false, error: filtered.error });
+    return;
+  }
+  var built = arcade.prepare(action, input);
+  if (!built.ok) {
+    sendJson(res, 400, { ok: false, error: built.error || 'Paste the lyrics first.' });
+    return;
+  }
+  var charged;
+  try {
+    charged = await artistDev.chargeCredit(userId);
+  } catch (err) {
+    var status = err && err.code === 'CREDITS' ? 402 : 500;
+    sendJson(res, status, { ok: false, error: err && err.message ? err.message : 'That did not save.' });
+    return;
+  }
+  var after = built.after;
+  var source = 'kept';
+  if (xai.configured()) {
+    try {
+      var chat = await xai.chat({
+        temperature: 0.4,
+        max_tokens: action === 'arcade-line' ? 120 : 900,
+        messages: [
+          { role: 'system', content: built.system },
+          { role: 'user', content: built.prompt },
+        ],
+      });
+      var accepted = action === 'arcade-line'
+        ? arcade.acceptLine(chat && chat.content)
+        : arcade.acceptAi(chat && chat.content, built.sourceText);
+      if (accepted) {
+        var again = guard.contentFilter(accepted);
+        if (again.ok) {
+          after = accepted;
+          source = 'ai';
+        }
+      }
+    } catch (err) {
+      after = built.after;
+    }
+  }
+  var painted = arcade.finish(built, after);
+  sendJson(res, 200, {
+    ok: true,
+    credit: 1,
+    credits: charged.credits,
+    before: painted.before,
+    after: painted.after,
+    style: painted.style,
+    heading: painted.heading,
+    lines: painted.lines,
+    classLabel: painted.classLabel,
+    madeHow: painted.madeHow,
+    options: painted.options || [],
+    source: source,
+  });
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'status') {
     sendJson(res, 200, guard.status());
@@ -840,6 +910,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleDev(req, res, action, devBody || {});
     return;
   }
+  if (action === 'arcade-fix' || action === 'arcade-remix' || action === 'arcade-write' || action === 'arcade-line') {
+    var arcadeBody = givenBody;
+    if (!arcadeBody) arcadeBody = await readBody(req);
+    await handleArcade(req, res, action, arcadeBody || {});
+    return;
+  }
   if (action === 'scout' || action === 'scoop') {
     var body = givenBody;
     if (!body) body = await readBody(req);
@@ -876,7 +952,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite' || body.action === 'arcade-fix' || body.action === 'arcade-remix' || body.action === 'arcade-write' || body.action === 'arcade-line') {
     await handleAction(req, res, String(body.action), body);
     return;
   }
