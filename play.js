@@ -1,5 +1,5 @@
 /**
- * One shared hook game. No account. Words fall, or sit still when motion is reduced.
+ * Shared play page. Picks a game, then keeps score, combo, levels, and the finish.
  */
 (function (root) {
   var state = {
@@ -13,6 +13,10 @@
     done: false,
     played: false,
     toBeat: 0,
+    kind: '',
+    games: [],
+    colors: ['#7D3CFF', '#FF3C8E', '#F5C542'],
+    engine: null,
   };
 
   function $(sel) {
@@ -68,9 +72,19 @@
     return name || 'Friend';
   }
 
+  function gameFromLocation() {
+    var params;
+    try { params = new URLSearchParams(root.location.search || ''); } catch (err) { params = new URLSearchParams(); }
+    var hashParams;
+    try { hashParams = new URLSearchParams(String(root.location.hash || '').replace(/^#/, '')); } catch (err) { hashParams = new URLSearchParams(); }
+    return hashParams.get('game') || params.get('game') || '';
+  }
+
   function shareUrl() {
     var origin = root.location && root.location.origin ? root.location.origin : '';
-    var hash = 'score=' + encodeURIComponent(String(state.score || 0)) + '&name=' + encodeURIComponent(playerName());
+    var hash = 'game=' + encodeURIComponent(state.kind || 'hook')
+      + '&score=' + encodeURIComponent(String(state.score || 0))
+      + '&name=' + encodeURIComponent(playerName());
     return origin + '/play/' + encodeURIComponent(state.slug) + '#' + hash;
   }
 
@@ -137,7 +151,9 @@
   }
 
   function finish() {
+    if (state.done) return;
     state.done = true;
+    if (state.engine && state.engine.stop) state.engine.stop();
     state.toBeat = Math.max(state.toBeat || 0, state.score);
     var level = currentLevel();
     var panel = $('[data-play-done]');
@@ -231,6 +247,7 @@
   function paintHeader(payload) {
     var artist = payload.artist || {};
     var colors = Array.isArray(artist.colors) && artist.colors.length ? artist.colors : (payload.game.colors || ['#7D3CFF', '#FF3C8E', '#F5C542']);
+    state.colors = colors;
     var head = $('[data-play-head]');
     var photo = $('[data-play-photo]');
     var name = $('[data-play-artist]');
@@ -256,6 +273,122 @@
     }
   }
 
+  function helpFor(kind) {
+    if (kind === 'racer') return 'Steer into the next word. A wrong word slows you down. Hook lines are boost pads.';
+    if (kind === 'hero') return 'Tap the lane, or press A S D F, as the note reaches the line.';
+    return 'Tap the words in order. A wrong word costs a heart. No account needed.';
+  }
+
+  function setKindLabel() {
+    var label = $('[data-game-name]');
+    var help = $('[data-play-help]');
+    var match = null;
+    state.games.forEach(function (game) {
+      if (game.id === state.kind) match = game;
+    });
+    if (label) label.textContent = match ? match.name : 'Pick a game';
+    if (help) help.textContent = state.kind ? helpFor(state.kind) : 'Same song. Pick a game to start.';
+  }
+
+  function sessionFor() {
+    return {
+      level: currentLevel(),
+      hookLines: state.game.hookLines || [],
+      mood: state.game.mood || '',
+      colors: state.colors,
+      reduced: reduced(),
+      sky: $('[data-sky]'),
+      canvas: $('[data-play-canvas]'),
+      addScore: function (points) {
+        state.score += points;
+        paintHud();
+      },
+      setCombo: function (combo) {
+        state.combo = combo;
+        paintHud();
+      },
+      setMeter: function (text) {
+        var meter = $('[data-hearts]');
+        if (meter) meter.textContent = text;
+      },
+      setLine: function (text) {
+        var line = $('[data-lyric-line]');
+        if (!line) return;
+        line.hidden = !text;
+        line.textContent = text || '';
+      },
+      miss: function (line) { postEvent('miss', { line: line || '' }); },
+      finish: finish,
+      fail: fail,
+      isDone: function () { return state.done; },
+    };
+  }
+
+  function launch() {
+    if (state.engine && state.engine.stop) state.engine.stop();
+    state.engine = null;
+    var sky = $('[data-sky]');
+    var canvas = $('[data-play-canvas]');
+    var picker = $('[data-play-picker]');
+    if (picker) picker.hidden = true;
+    setKindLabel();
+    if (state.kind === 'racer' && root.PlaigroundLyricRacer) {
+      state.engine = root.PlaigroundLyricRacer;
+      if (sky && !reduced()) sky.hidden = true;
+      if (canvas && reduced()) canvas.hidden = true;
+      state.engine.start(sessionFor());
+      return;
+    }
+    if (state.kind === 'hero' && root.PlaigroundStageHero) {
+      state.engine = root.PlaigroundStageHero;
+      if (sky && !reduced()) sky.hidden = true;
+      if (canvas && reduced()) canvas.hidden = true;
+      state.engine.start(sessionFor());
+      return;
+    }
+    if (canvas) canvas.hidden = true;
+    if (sky) sky.hidden = false;
+    var line = $('[data-lyric-line]');
+    if (line) line.hidden = true;
+    paintWords();
+    paintHud();
+  }
+
+  function showPicker() {
+    if (state.engine && state.engine.stop) state.engine.stop();
+    state.engine = null;
+    state.kind = '';
+    var picker = $('[data-play-picker]');
+    var cards = $('[data-picker-cards]');
+    var sky = $('[data-sky]');
+    var canvas = $('[data-play-canvas]');
+    if (sky) sky.hidden = true;
+    if (canvas) canvas.hidden = true;
+    if (picker) picker.hidden = false;
+    setKindLabel();
+    if (!cards) return;
+    cards.textContent = '';
+    state.games.forEach(function (game) {
+      var button = root.document.createElement('button');
+      button.type = 'button';
+      button.className = 'play-pick';
+      button.setAttribute('data-game-open', game.id);
+      var name = root.document.createElement('strong');
+      name.textContent = game.name;
+      var blurb = root.document.createElement('span');
+      blurb.textContent = game.blurb;
+      button.appendChild(name);
+      button.appendChild(blurb);
+      button.addEventListener('click', function () { chooseGame(game.id); });
+      cards.appendChild(button);
+    });
+  }
+
+  function chooseGame(id) {
+    state.kind = id;
+    resetRound();
+  }
+
   function resetRound() {
     state.next = 0;
     state.score = 0;
@@ -268,7 +401,8 @@
     if (fail) fail.hidden = true;
     paintLevel();
     paintHud();
-    paintWords();
+    if (!state.kind) return;
+    launch();
   }
 
   function playAgain() {
@@ -364,13 +498,15 @@
   function start(payload) {
     state.game = payload.game;
     state.level = 1;
+    state.games = payload.games && payload.games.length
+      ? payload.games
+      : (payload.game.games && payload.game.games.length ? payload.game.games : [{ id: 'hook', name: 'Hook Catcher', blurb: 'Catch the falling words in order.' }]);
     paintHeader(payload);
     paintLevelPicks();
     showChallenge();
     showStageNote(payload.note);
     paintLevel();
     paintHud();
-    paintWords();
     bindShare();
     var again = $('[data-try-again]');
     if (again) again.addEventListener('click', resetRound);
@@ -382,6 +518,11 @@
       state.played = true;
       postEvent('play', {});
     }
+    var requested = gameFromLocation();
+    var match = state.games.filter(function (game) { return game.id === requested; })[0];
+    if (match) chooseGame(match.id);
+    else if (state.games.length === 1) chooseGame(state.games[0].id);
+    else showPicker();
   }
 
   function boot() {
