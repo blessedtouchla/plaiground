@@ -17,6 +17,8 @@
  */
 
 const core = require('../lib/song-helper');
+const features = require('../lib/features');
+const songV3 = require('../lib/song-v3');
 const flow = require('../lib/song-flow');
 const xai = require('../lib/xai-client');
 const guard = require('../lib/song-guard');
@@ -30,6 +32,48 @@ const limiter = core.createLimiter({
   max: core.RATE_MAX,
   windowMs: core.RATE_WINDOW_MS,
 });
+
+const v3Limiter = core.createLimiter({
+  max: 8,
+  windowMs: 60 * 60 * 1000,
+});
+
+function isV3Action(action) {
+  return action === 'v3-write' || action === 'v3-line' || action === 'v3-finish' || action === 'v3-fix';
+}
+
+function handleV3(req, res, action, body) {
+  if (!features.enabled('SONG_HELPER_V3')) {
+    sendJson(res, 404, { ok: false, error: 'Not found' });
+    return;
+  }
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { ok: false, error: 'Use POST.' });
+    return;
+  }
+  var payload = body || {};
+  if (honeypotFilled(payload)) {
+    sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
+    return;
+  }
+  if (!v3Limiter.allow(clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
+  }
+  if (action === 'v3-line') {
+    sendJson(res, 200, { ok: true, lines: songV3.giveLines(payload, payload.userLines || []) });
+    return;
+  }
+  if (action === 'v3-finish') {
+    sendJson(res, 200, { ok: true, line: songV3.finishLine(payload, payload.partial || '') });
+    return;
+  }
+  if (action === 'v3-fix') {
+    sendJson(res, 200, { ok: true, fix: songV3.tryFix(payload.line || '', payload.kind || 'shorter', payload) });
+    return;
+  }
+  sendJson(res, 200, { ok: true, song: songV3.compose(payload) });
+}
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -772,6 +816,12 @@ async function handleDev(req, res, action, body) {
 }
 
 async function handleAction(req, res, action, givenBody) {
+  if (isV3Action(action)) {
+    var v3Body = givenBody;
+    if (!v3Body && req.method === 'POST') v3Body = await readBody(req);
+    handleV3(req, res, action, v3Body || {});
+    return;
+  }
   if (action === 'status') {
     sendJson(res, 200, guard.status());
     return;
@@ -870,6 +920,10 @@ async function handler(req, res) {
   }
   if (!body || body.__bad || typeof body !== 'object') {
     sendJson(res, 400, { ok: false, error: 'Those answers did not come through. Try again.' });
+    return;
+  }
+  if (isV3Action(body.action)) {
+    await handleAction(req, res, String(body.action), body);
     return;
   }
   if (honeypotFilled(body)) {
