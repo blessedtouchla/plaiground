@@ -108,6 +108,18 @@
       "permanent": true
     },
     {
+      "source": "/play/:slug",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/play/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/play/:slug/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/play/:slug",
+      "permanent": true
+    },
+    {
       "source": "/battle",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/battle",
@@ -226,7 +238,11 @@
     { "source": "/api/me/persona-import", "destination": "/api/me?action=persona-import" },
     { "source": "/api/me/persona-bio", "destination": "/api/me?action=persona-bio" },
     { "source": "/api/epk", "destination": "/api/me?action=epk" },
+    { "source": "/api/me/stage", "destination": "/api/me?action=stage" },
+    { "source": "/api/play", "destination": "/api/me?action=play" },
     { "source": "/epk/:slug", "destination": "/epk.html?artist=:slug" },
+    { "source": "/play/:slug", "destination": "/play.html?song=:slug" },
+    { "source": "/play/:slug/", "destination": "/play.html?song=:slug" },
     { "source": "/my-roadmap", "destination": "/my-roadmap.html" },
     { "source": "/my-roadmap/", "destination": "/my-roadmap.html" },
     { "source": "/my-lyrics", "destination": "/my-lyrics.html" },

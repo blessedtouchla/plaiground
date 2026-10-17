@@ -80,6 +80,9 @@
         });
         host.innerHTML = render(result.data.epk)
           + '<p class="epk-live-actions"><a class="btn btn-gold btn-sm" href="' + url + '&format=pdf">Download PDF</a> <button class="btn btn-ghost btn-sm" type="button" onclick="window.print()">Print</button></p>';
+        if (windowRef.PlaigroundStagePublic && windowRef.PlaigroundStagePublic.paint) {
+          windowRef.PlaigroundStagePublic.paint(host, result.data.epk);
+        }
       })
       .catch(function () {
         host.innerHTML = '<p>This EPK is not public yet.</p>';

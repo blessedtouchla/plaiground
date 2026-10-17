@@ -34,6 +34,9 @@
       show(empty, true);
       show(list, false);
       show(view, false);
+      if (global.PlaigroundStagePage && global.PlaigroundStagePage.afterLyrics) {
+        global.PlaigroundStagePage.afterLyrics(rows);
+      }
       return;
     }
     show(empty, false);
@@ -52,6 +55,9 @@
         button.addEventListener('click', function () { showSong(song); });
         list.appendChild(button);
       });
+    }
+    if (global.PlaigroundStagePage && global.PlaigroundStagePage.afterLyrics) {
+      global.PlaigroundStagePage.afterLyrics(rows);
     }
     var pick = null;
     rows.forEach(function (song) {
