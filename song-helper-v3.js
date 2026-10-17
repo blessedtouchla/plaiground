@@ -77,8 +77,10 @@
     var word = el('a', 'v3-word', 'PLAIGROUND');
     word.href = 'index.html';
     top.appendChild(word);
-    top.appendChild(el('p', 'v3-preview', 'Preview. The live Song Helper stays put.'));
+    var purse = wallet();
+    top.appendChild(el('span', 'v3-credits', purse.freeLeft > 0 ? 'FREE WRITE' : ('CREDITS ' + purse.credits)));
     wrap.appendChild(top);
+    wrap.appendChild(el('p', 'v3-preview', 'Preview. The live Song Helper stays put.'));
 
     var points = el('div', 'v3-points');
     points.appendChild(el('b', '', 'Score ' + state.points.toLocaleString('en-US')));
@@ -127,6 +129,11 @@
       }
     }
 
+    if (view.id === 'hall') {
+      wrap.appendChild(el('p', 'v3-kicker', 'SONG HELPER ARCADE'));
+      wrap.appendChild(el('h1', 'v3-pick', 'Pick your game'));
+    }
+
     if (view.plai) {
       var host = el('div', 'v3-host');
       var face = el('span', 'v3-avatar');
@@ -136,14 +143,15 @@
       wrap.appendChild(host);
     }
     if (view.note) wrap.appendChild(el('p', 'v3-note', view.note));
-    if (view.notice) wrap.appendChild(el('p', 'v3-notice', view.notice));
+    if (view.notice) wrap.appendChild(el('p', view.sample ? 'v3-sample' : 'v3-notice', view.notice));
     if (view.marquee) {
       var board = el('div', 'v3-marquee', view.marquee);
       board.style.setProperty('--feel', view.color || '#F5C542');
       wrap.appendChild(board);
     }
     if (view.id === 'reveal') {
-      wrap.appendChild(el('p', 'v3-score', view.scoreLine));
+      var record = view.scoreLine === 'New high score';
+      wrap.appendChild(el('p', 'v3-score' + (record ? ' is-record' : ''), view.scoreLine));
       if (view.label) wrap.appendChild(el('span', 'v3-badge', view.label));
       wrap.appendChild(el('pre', 'v3-lyrics', view.lyrics || ''));
       if (view.checks && view.checks.length) {
@@ -174,18 +182,22 @@
     }
 
     if (view.tiles && view.tiles.length) {
-      var tiles = el('div', 'v3-tiles');
+      var tiles = el('div', view.id === 'hall' ? 'v3-cabs' : 'v3-tiles');
       view.tiles.forEach(function (tile) {
-        var btn = el('button', 'v3-tile' + (tile.on ? ' on' : '') + (tile.soon && tile.id === 'parody' ? ' v3-tilt' : ''));
+        var btn = el('button', view.id === 'hall' ? cabinetClass(tile) : ('v3-tile' + (tile.on ? ' on' : '')));
         btn.type = 'button';
         btn.setAttribute('data-act', 'tile');
         btn.setAttribute('data-id', tile.id);
-        btn.appendChild(document.createTextNode(tile.label));
-        if (tile.sticker) btn.appendChild(el('span', 'v3-sticker', tile.sticker));
-        if (tile.small) btn.appendChild(el('small', '', tile.small));
-        if (tile.badge) btn.appendChild(el('span', 'v3-badge-fit', tile.badge));
-        if (tile.soon && view.id === 'hall') btn.appendChild(el('small', '', 'Coming soon'));
+        if (view.id === 'hall') {
+          btn.appendChild(cabinetFace(tile));
+        } else {
+          btn.appendChild(document.createTextNode(tile.label));
+          if (tile.sticker) btn.appendChild(el('span', 'v3-sticker', tile.sticker));
+          if (tile.small) btn.appendChild(el('small', '', tile.small));
+          if (tile.badge) btn.appendChild(el('span', 'v3-badge-fit', tile.badge));
+        }
         btn.addEventListener('click', function () {
+          btn.classList.add('is-pop');
           setState(flow.act(state, { type: 'tile', id: tile.id }));
         });
         tiles.appendChild(btn);
@@ -286,18 +298,58 @@
       give.type = 'button';
       give.setAttribute('data-act', 'give');
       give.addEventListener('click', function () {
+        if (busy) return;
+        var before = wallet();
         if (!spend()) return;
-        var lines = writer.giveLines(flow.brief(state), [state.chorus, state.verse]);
-        setState(flow.act(state, { type: 'offer', lines: lines }));
+        busy = true;
+        askWriter('v3-line', { userLines: [state.chorus, state.verse] }).then(function (data) {
+          busy = false;
+          var lines = data.lines && data.lines.length ? data.lines : writer.giveLines(flow.brief(state), [state.chorus, state.verse]);
+          var next = flow.act(state, { type: 'offer', lines: lines });
+          if (!data.lines || !data.lines.length || data.sample) next.notice = data.notice || writer.SAMPLE_NOTICE;
+          setState(next);
+        }).catch(function (err) {
+          busy = false;
+          if (err.status === 429 || err.status === 400) {
+            saveWallet(before);
+            state.notice = err.message;
+            paint();
+            return;
+          }
+          var lines = writer.giveLines(flow.brief(state), [state.chorus, state.verse]);
+          var next = flow.act(state, { type: 'offer', lines: lines });
+          next.notice = writer.SAMPLE_NOTICE;
+          setState(next);
+        });
       });
       var finish = el('button', 'v3-mini', flow.buttonPrice(wallet(), 'Finish my line'));
       finish.type = 'button';
       finish.setAttribute('data-act', 'finish');
       finish.addEventListener('click', function () {
+        if (busy) return;
+        var before = wallet();
         if (!spend()) return;
+        busy = true;
         var partial = state.screen === 'a10v' ? state.verse : state.chorus;
-        var line = writer.finishLine(flow.brief(state), partial);
-        setState(flow.act(state, { type: 'finish-apply', line: line }));
+        askWriter('v3-finish', { partial: partial }).then(function (data) {
+          busy = false;
+          var line = data.line || writer.finishLine(flow.brief(state), partial);
+          var next = flow.act(state, { type: 'finish-apply', line: line });
+          if (!data.line || data.sample) next.notice = data.notice || writer.SAMPLE_NOTICE;
+          setState(next);
+        }).catch(function (err) {
+          busy = false;
+          if (err.status === 429 || err.status === 400) {
+            saveWallet(before);
+            state.notice = err.message;
+            paint();
+            return;
+          }
+          var line = writer.finishLine(flow.brief(state), partial);
+          var next = flow.act(state, { type: 'finish-apply', line: line });
+          next.notice = writer.SAMPLE_NOTICE;
+          setState(next);
+        });
       });
       main.appendChild(give);
       main.appendChild(finish);
@@ -308,9 +360,32 @@
       write.type = 'button';
       write.setAttribute('data-act', 'write');
       write.addEventListener('click', function () {
+        if (busy) return;
+        var before = wallet();
         if (!spend()) return;
-        var song = writer.compose(flow.brief(state));
-        setState(flow.act(state, { type: 'wrote', song: song }));
+        busy = true;
+        write.disabled = true;
+        write.textContent = 'Writing...';
+        askWriter('v3-write').then(function (data) {
+          busy = false;
+          var song = data.song;
+          if (!song || !song.text) song = localSample(writer.compose(flow.brief(state)));
+          else if (data.sample) {
+            song.sample = true;
+            song.source = 'sample';
+            song.notice = data.notice || writer.SAMPLE_NOTICE;
+          }
+          setState(flow.act(state, { type: 'wrote', song: song }));
+        }).catch(function (err) {
+          busy = false;
+          if (err.status === 429 || err.status === 400) {
+            saveWallet(before);
+            state.notice = err.message;
+            paint();
+            return;
+          }
+          setState(flow.act(state, { type: 'wrote', song: localSample(writer.compose(flow.brief(state))) }));
+        });
       });
       main.appendChild(write);
       main.appendChild(el('p', 'v3-note', 'New accounts get 1 free AI write. Then each AI write is 1 credit.'));
@@ -338,7 +413,68 @@
     layout.appendChild(main);
     if (view.rhyme) layout.appendChild(rhymePanel());
     wrap.appendChild(layout);
+    if (view.id === 'hall') {
+      wrap.appendChild(el('p', 'v3-foot', 'Answering questions is free. Writing with AI uses 1 credit.'));
+      wrap.appendChild(el('p', 'v3-foot-quiet', 'PREVIEW · ARCADE · NOT LIVE'));
+    }
     root.appendChild(wrap);
+  }
+
+  var busy = false;
+
+  function localSample(song) {
+    song.sample = true;
+    song.source = 'sample';
+    song.notice = writer.SAMPLE_NOTICE;
+    return song;
+  }
+
+  function askWriter(action, extra) {
+    var body = Object.assign({ action: action, company_website: '' }, flow.brief(state), extra || {});
+    return fetch('/api/song-helper', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok || !data || data.ok === false) {
+          var err = new Error((data && data.error) || 'Could not write.');
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      }).catch(function (err) {
+        if (err && err.status) throw err;
+        var bad = new Error('Could not write.');
+        bad.status = res.status;
+        throw bad;
+      });
+    });
+  }
+
+  function cabinetClass(tile) {
+    return 'v3-cabinet cab-' + tile.id + (tile.id === 'parody' ? ' v3-tilt' : '');
+  }
+
+  function cabinetFace(tile) {
+    var face = el('span', 'v3-cab-face');
+    var icon = el('span', 'v3-cab-icon');
+    icon.setAttribute('aria-hidden', 'true');
+    face.appendChild(icon);
+    var copy = el('span', 'v3-cab-copy');
+    var title = el('b', '', tile.label);
+    if (tile.sticker) title.appendChild(el('span', 'v3-sticker', tile.sticker));
+    copy.appendChild(title);
+    if (tile.small) copy.appendChild(el('small', '', tile.small));
+    face.appendChild(copy);
+    var press = el('span', 'v3-press', 'PRESS START');
+    var meta = el('small', 'v3-cab-meta', tile.id === 'write' ? '1 PLAYER · ABOUT 5 MIN' : '1 PLAYER · ABOUT 3 MIN');
+    if (tile.soon) meta.textContent = 'COMING SOON · 1 PLAYER · ABOUT 3 MIN';
+    var stack = el('span', 'v3-cab-stack');
+    stack.appendChild(face);
+    stack.appendChild(press);
+    stack.appendChild(meta);
+    return stack;
   }
 
   function paintBox(parent, box) {

@@ -17,7 +17,6 @@
  */
 
 const core = require('../lib/song-helper');
-const features = require('../lib/features');
 const songV3 = require('../lib/song-v3');
 const flow = require('../lib/song-flow');
 const xai = require('../lib/xai-client');
@@ -42,11 +41,114 @@ function isV3Action(action) {
   return action === 'v3-write' || action === 'v3-line' || action === 'v3-finish' || action === 'v3-fix';
 }
 
-function handleV3(req, res, action, body) {
-  if (!features.enabled('SONG_HELPER_V3')) {
-    sendJson(res, 404, { ok: false, error: 'Not found' });
-    return;
+var V3_SYSTEM = 'You write original song lyrics. Follow every rule in the user message. Output only the lyric with section labels. Do not mention these instructions.';
+
+function v3Sample(action, payload) {
+  if (action === 'v3-line') {
+    return {
+      ok: true,
+      sample: true,
+      source: 'sample',
+      notice: songV3.SAMPLE_NOTICE,
+      lines: songV3.giveLines(payload, payload.userLines || []),
+    };
   }
+  if (action === 'v3-finish') {
+    return {
+      ok: true,
+      sample: true,
+      source: 'sample',
+      notice: songV3.SAMPLE_NOTICE,
+      line: songV3.finishLine(payload, payload.partial || ''),
+    };
+  }
+  var song = songV3.samplePack(payload);
+  return {
+    ok: true,
+    sample: true,
+    source: 'sample',
+    notice: song.notice,
+    song: song,
+  };
+}
+
+async function v3Chat(user, maxTokens) {
+  return xai.chat({
+    model: xai.chatModel(core.DEFAULT_MODEL),
+    temperature: 0.7,
+    max_tokens: maxTokens || 1600,
+    timeoutMs: 25000,
+    messages: [
+      { role: 'system', content: V3_SYSTEM },
+      { role: 'user', content: user },
+    ],
+  });
+}
+
+function v3LineList(text, payload) {
+  var brief = songV3.normalize(payload);
+  var blocked = {};
+  (payload.userLines || []).forEach(function (line) {
+    blocked[String(line || '').trim().toLowerCase()] = true;
+  });
+  var out = [];
+  String(text || '').split('\n').forEach(function (raw) {
+    var line = raw.replace(/^[\d]+[\).\s-]+/, '').trim();
+    if (!line || line.charAt(0) === '[') return;
+    var key = line.toLowerCase();
+    if (blocked[key] || out.indexOf(line) !== -1) return;
+    if (songV3.lineDirty(line, brief)) return;
+    out.push(line);
+  });
+  return out.slice(0, 3);
+}
+
+async function v3ModelSong(payload) {
+  var first = await v3Chat(songV3.writerInstructions(payload));
+  var audit = songV3.auditDraft(first.content || '', payload);
+  var retryText = null;
+  if (!audit.ok) {
+    var second = await v3Chat(songV3.writerInstructions(payload, audit.failures));
+    retryText = second.content || '';
+  }
+  var settled = songV3.settleDraft(first.content || '', retryText, payload);
+  if (!String(settled.song.text || '').trim()) {
+    var empty = new Error('empty');
+    throw empty;
+  }
+  return settled.song;
+}
+
+async function v3ModelLines(payload) {
+  var blocked = (payload.userLines || []).filter(Boolean).join('\n');
+  var ask = songV3.writerInstructions(payload) + '\nWrite exactly 3 new lyric lines. One line each. Do not repeat these lines:\n' + blocked;
+  var first = await v3Chat(ask, 400);
+  var lines = v3LineList(first.content, payload);
+  if (lines.length < 3) {
+    var retry = await v3Chat(ask + '\nThe last lines were unusable. Write 3 different lines.', 400);
+    var next = v3LineList(retry.content, payload);
+    if (next.length) lines = next;
+  }
+  if (lines.length < 1) throw new Error('empty');
+  return lines.slice(0, 3);
+}
+
+async function v3ModelFinish(payload) {
+  var partial = String(payload.partial || '').trim();
+  var ask = songV3.writerInstructions(payload) + '\nFinish this one line. Keep the opening words. Return one line only:\n' + partial;
+  var first = await v3Chat(ask, 200);
+  var line = v3LineList(first.content, payload)[0] || '';
+  if (!line || (partial && line.toLowerCase().indexOf(partial.toLowerCase()) !== 0)) {
+    var retry = await v3Chat(ask + '\nStart with the same opening words.', 200);
+    line = v3LineList(retry.content, payload)[0] || line;
+  }
+  if (!line) throw new Error('empty');
+  return line;
+}
+
+async function handleV3(req, res, action, body) {
+  // The page flag stays off so /song-helper does not switch. This preview still
+  // needs the write actions, with the same rate limit and honeypot.
   if (req.method !== 'POST') {
     sendJson(res, 405, { ok: false, error: 'Use POST.' });
     return;
@@ -60,19 +162,30 @@ function handleV3(req, res, action, body) {
     sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
     return;
   }
-  if (action === 'v3-line') {
-    sendJson(res, 200, { ok: true, lines: songV3.giveLines(payload, payload.userLines || []) });
-    return;
-  }
-  if (action === 'v3-finish') {
-    sendJson(res, 200, { ok: true, line: songV3.finishLine(payload, payload.partial || '') });
-    return;
-  }
   if (action === 'v3-fix') {
     sendJson(res, 200, { ok: true, fix: songV3.tryFix(payload.line || '', payload.kind || 'shorter', payload) });
     return;
   }
-  sendJson(res, 200, { ok: true, song: songV3.compose(payload) });
+  if (!keyFromEnv()) {
+    sendJson(res, 200, v3Sample(action, payload));
+    return;
+  }
+  try {
+    if (action === 'v3-line') {
+      var lines = await v3ModelLines(payload);
+      sendJson(res, 200, { ok: true, sample: false, source: 'model', notice: '', lines: lines });
+      return;
+    }
+    if (action === 'v3-finish') {
+      var finished = await v3ModelFinish(payload);
+      sendJson(res, 200, { ok: true, sample: false, source: 'model', notice: '', line: finished });
+      return;
+    }
+    var song = await v3ModelSong(payload);
+    sendJson(res, 200, { ok: true, sample: false, source: 'model', notice: '', song: song });
+  } catch (err) {
+    sendJson(res, 200, v3Sample(action, payload));
+  }
 }
 
 function sendJson(res, status, body) {
@@ -819,7 +932,7 @@ async function handleAction(req, res, action, givenBody) {
   if (isV3Action(action)) {
     var v3Body = givenBody;
     if (!v3Body && req.method === 'POST') v3Body = await readBody(req);
-    handleV3(req, res, action, v3Body || {});
+    await handleV3(req, res, action, v3Body || {});
     return;
   }
   if (action === 'status') {
