@@ -4432,6 +4432,7 @@ body.app.artists-page .page {
   font-size: 14px;
   line-height: 1.4;
   word-wrap: break-word;
+  white-space: pre-line;
 }
 .plai-coach-msg.is-user {
   align-self: flex-end;

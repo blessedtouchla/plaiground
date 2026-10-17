@@ -146,6 +146,7 @@
     rows.forEach(function (row) {
       var bubble = document.createElement('div');
       bubble.className = 'plai-coach-msg is-' + row.role;
+      bubble.style.whiteSpace = 'pre-line';
       bubble.textContent = row.text;
       var quick = row.role === 'plai' ? quickFor(row.text) : null;
       if (quick && quick.a === row.text) {
