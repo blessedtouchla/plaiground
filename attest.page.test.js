@@ -262,7 +262,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20261016chip') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20261017name') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
   assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');

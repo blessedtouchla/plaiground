@@ -227,6 +227,8 @@ function runCopy() {
   assert.ok(tonegrid.indexOf('linkStoredRelease') !== -1);
   assert.ok(tonegrid.indexOf('trackArtistRejected') !== -1);
   const page = read('persona-page.js');
+  assert.ok(page.includes('Publish EPK free'));
+  assert.ok(page.includes('catalog.normalize(collect(body))'), 'chip picks recount the persona meter');
   assert.ok(page.includes('Saved. Your EPK is still public.'));
   assert.ok(page.includes('Make private') && page.includes('data-persona-private') && page.includes('unpublish: true'));
   const week = read('release-week.html');

@@ -72,9 +72,45 @@
     }
   }
 
-  function load() {
+  function summaryHasContent(summary) {
+    if (!summary) return false;
+    if (summary.goal || summary.stage || summary.note || summary.artist_count) return true;
+    return Array.isArray(summary.stops) && summary.stops.length > 0;
+  }
+
+  function displayFromResponse(data) {
+    if (!data) return null;
+    if (summaryHasContent(data.summary)) {
+      return {
+        saved_at: data.saved_at,
+        plan: data.summary,
+        stopIds: (data.plan && data.plan.stops) || []
+      };
+    }
+    var raw = data.plan;
+    if (!raw && data.history && data.history[0] && data.history[0].plan) raw = data.history[0].plan;
+    if (!raw) return null;
+    var shaped = shape({ plan: raw, saved_at: data.saved_at || (data.history && data.history[0] && data.history[0].saved_at) || '' });
+    if (!shaped || !summaryHasContent(shaped.plan)) return null;
+    shaped.stopIds = raw.stops || [];
+    return shaped;
+  }
+
+  function localPlanRecord() {
+    try {
+      var raw = global.localStorage.getItem('plaigroundDestinationPlan');
+      if (!raw) return null;
+      var plan = JSON.parse(raw);
+      return plan && plan.song && plan.goal ? plan : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function fetchRoadmap() {
     return global.fetch('/api/me/roadmap', {
       credentials: 'same-origin',
+      cache: 'no-store',
       headers: { Accept: 'application/json' }
     }).then(function (response) {
       return response.json().then(function (data) {
@@ -82,26 +118,68 @@
       }).catch(function () {
         return { ok: false, data: {} };
       });
-    }).then(function (result) {
+    });
+  }
+
+  function showLoadError() {
+    var status = $('[data-roadmap-status]');
+    if (status) {
+      status.hidden = false;
+      status.textContent = 'Could not load your roadmap.';
+    }
+    paintSavedBanner(false);
+  }
+
+  function showRoadmap(view) {
+    paintSavedBanner(Boolean(view) && savedVisit());
+    render(view || { plan: null });
+  }
+
+  function wait(ms) {
+    return new Promise(function (resolve) {
+      global.setTimeout(resolve, ms);
+    });
+  }
+
+  function load() {
+    return fetchRoadmap().then(function (result) {
       if (!result.ok) {
-        var status = $('[data-roadmap-status]');
-        if (status) {
-          status.hidden = false;
-          status.textContent = 'Could not load your roadmap.';
-        }
+        showLoadError();
         return;
       }
-      render({
-        saved_at: result.data.saved_at,
-        plan: result.data.summary || null,
-        stopIds: (result.data.plan && result.data.plan.stops) || []
+      var view = displayFromResponse(result.data);
+      if (view || !savedVisit()) {
+        showRoadmap(view);
+        return;
+      }
+      return wait(450).then(fetchRoadmap).then(function (again) {
+        var second = again && again.ok ? displayFromResponse(again.data) : null;
+        if (second) {
+          showRoadmap(second);
+          return;
+        }
+        var local = localPlanRecord();
+        if (!local) {
+          showRoadmap(null);
+          return;
+        }
+        var account = global.PlaigroundRoadmapAccount;
+        var claim = account && typeof account.savePlan === 'function'
+          ? account.savePlan(local, { immediate: true, force: true })
+          : null;
+        return Promise.resolve(claim).then(function () {
+          return fetchRoadmap();
+        }).then(function (third) {
+          var saved = third && third.ok ? displayFromResponse(third.data) : null;
+          if (saved) {
+            showRoadmap(saved);
+            return;
+          }
+          showRoadmap(displayFromResponse({ plan: local }));
+        });
       });
     }).catch(function () {
-      var status = $('[data-roadmap-status]');
-      if (status) {
-        status.hidden = false;
-        status.textContent = 'Could not load your roadmap.';
-      }
+      showLoadError();
     });
   }
 
@@ -159,21 +237,20 @@
     }
   }
 
-  function paintSavedBanner() {
+  function paintSavedBanner(show) {
     var banner = $('[data-roadmap-saved]');
     if (!banner) return;
-    banner.hidden = !savedVisit();
+    banner.hidden = !show;
   }
 
   function boot() {
-    paintSavedBanner();
+    paintSavedBanner(false);
     var membership = global.PlaigroundMembership;
     var ready = membership && typeof membership.whenReady === 'function'
       ? membership.whenReady()
       : Promise.resolve(null);
     ready.then(function () {
       bindStops();
-      paintSavedBanner();
       load();
     });
   }
@@ -184,6 +261,6 @@
   }
 
   if (typeof module === 'object' && module.exports) {
-    module.exports = { shape: shape };
+    module.exports = { shape: shape, displayFromResponse: displayFromResponse, summaryHasContent: summaryHasContent };
   }
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -23,6 +23,17 @@
     view.appendChild(text('p', 'claim-note', message));
   }
 
+  function showMissingRecord() {
+    view.textContent = '';
+    view.appendChild(text('h1', '', 'Nothing here yet'));
+    view.appendChild(text('p', 'claim-note', 'This account does not have that song record.'));
+    var back = document.createElement('a');
+    back.className = 'btn btn-purple btn-md';
+    back.href = '/dashboard';
+    back.textContent = 'Back to the dashboard';
+    view.appendChild(back);
+  }
+
   function addBlock(title, rows, render) {
     if (!rows || !rows.length) return;
     var block = document.createElement('section');
@@ -135,7 +146,7 @@
               view.appendChild(note);
               return;
             }
-            showStatus('That record is not on this account yet.');
+            showMissingRecord();
           });
         });
       });

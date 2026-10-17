@@ -53,6 +53,7 @@ function run() {
   assert.ok(review.indexOf('Nothing is charged on this screen.') !== -1);
   assert.ok(review.indexOf('Included in membership') === -1);
   assert.ok(split.indexOf('$0 · included') !== -1);
+  assert.ok(split.indexOf('$2.49 per song, optional') !== -1, 'split sheet distribution is $2.49 per song, optional');
   assert.ok(split.indexOf('included in membership') === -1);
   assert.ok(split.indexOf('None taken by PLAIGROUND') !== -1);
   assert.ok(split.indexOf('Publishing registration') !== -1);

@@ -1082,6 +1082,42 @@
     if (file === "my-roadmap" || file === "my-roadmap.html") mine.classList.add("on");
   }
 
+  function placeSidePriceUnderPricing(nav) {
+    if (!nav || !nav.querySelector) return;
+    var price = nav.querySelector(".side-price");
+    if (!price) return;
+    var pricing = null;
+    var links = nav.querySelectorAll("a");
+    var i;
+    for (i = 0; i < links.length; i += 1) {
+      var label = String(links[i].textContent || "").replace(/\s+/g, " ").trim();
+      if (label === "Pricing") {
+        pricing = links[i];
+        break;
+      }
+    }
+    if (!pricing) {
+      pricing = document.createElement("a");
+      pricing.setAttribute("href", "/#pricing");
+      pricing.textContent = "Pricing";
+      var accountLabel = null;
+      var nodes = nav.children;
+      for (i = 0; i < nodes.length; i += 1) {
+        if (nodes[i].classList && nodes[i].classList.contains("side-label") && String(nodes[i].textContent || "").trim() === "Account") {
+          accountLabel = nodes[i];
+          break;
+        }
+      }
+      if (accountLabel) nav.insertBefore(pricing, accountLabel.nextSibling);
+      else nav.appendChild(pricing);
+    }
+    if (pricing.nextSibling !== price) {
+      if (price.parentNode) price.parentNode.removeChild(price);
+      if (pricing.nextSibling) nav.insertBefore(price, pricing.nextSibling);
+      else nav.appendChild(price);
+    }
+  }
+
   function setupAppBlogLink(side) {
     if (!side || !side.querySelector) return;
     var nav = side.querySelector(".side-nav");
@@ -1094,18 +1130,11 @@
     }
     if (isBlogPage()) blog.classList.add("on");
     if (blog.parentNode) blog.parentNode.removeChild(blog);
-    var after = nav.querySelector("a.side-action[data-new-release]") || nav.querySelector("a.side-action") || nav.querySelector("[data-new-release]");
-    if (after && after.parentNode === nav) {
-      var ref = after.nextElementSibling;
-      if (ref) nav.insertBefore(blog, ref);
-      else nav.appendChild(blog);
-    } else if (nav.firstElementChild) {
-      nav.insertBefore(blog, nav.firstElementChild);
-    } else {
-      nav.appendChild(blog);
-    }
     var siqa = findNavSiqa(nav);
+    if (siqa && siqa.parentNode === nav) nav.insertBefore(blog, siqa);
+    else nav.appendChild(blog);
     if (siqa && nav.lastElementChild !== siqa) nav.appendChild(siqa);
+    placeSidePriceUnderPricing(nav);
   }
 
   function setupPublicPlansMenu(links) {

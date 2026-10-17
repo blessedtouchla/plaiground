@@ -419,7 +419,8 @@ function run() {
   assert.ok(/data-plai-text[^>]*>Text to Plai</.test(html), 'Artist Profiles nav still has Text to Plai');
   assert.ok(!/<select[^>]*data-problem/.test(html), 'Artist Profiles does not add a type picker');
   assert.ok(html.includes('How to fill this out'));
-  assert.ok(html.includes('AI-infused'));
+  assert.ok(html.includes('AI-assisted'));
+  assert.ok(html.includes('value="ai_infused"'));
   assert.ok(html.includes('Optional mix %'));
   assert.ok(html.includes('Profile average. Not a verified score for every song.'));
   assert.ok(html.includes('data-human-contribution="lyrics"'));

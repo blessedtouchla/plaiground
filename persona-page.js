@@ -49,7 +49,7 @@
       + '<p class="persona-meter-label">' + meter.label + '</p>'
       + '<div class="persona-meter" aria-hidden="true"><span style="width:' + Math.round((meter.filled / meter.total) * 100) + '%"></span></div>'
       + field('Vibe', '<div class="persona-chips">' + chipButtons(catalog.VIBE, vibe, 'vibe') + '</div><p class="hint">Pick up to 3.</p>')
-      + field('Story', '<textarea data-persona-story rows="3" maxlength="600" placeholder="The moment this artist started">' + esc(row.story || '') + '</textarea>')
+      + field('Story', '<textarea data-persona-story rows="4" maxlength="600" placeholder="The moment this artist started">' + esc(row.story || '') + '</textarea>')
       + field('Voice', '<div class="persona-chips">' + chipButtons(catalog.VOICE, voice, 'voice') + '</div>')
       + field('Paste what you have', '<p class="hint">Paste a public link or an old bio. Plai suggests the rest. You confirm before anything is saved. We never ask for a password.</p>'
         + '<textarea data-persona-paste rows="3" placeholder="Paste links or bio text"></textarea>'
@@ -74,7 +74,7 @@
       + '<div data-persona-asks></div>'
       + '<p class="page-head-actions">'
       + '<button class="btn btn-purple btn-sm" type="button" data-persona-save>Save persona</button>'
-      + '<button class="btn btn-gold btn-sm" type="button" data-persona-publish>Publish EPK</button>'
+      + '<button class="btn btn-gold btn-sm" type="button" data-persona-publish>Publish EPK free</button>'
       + '</p>'
       + '<p class="hint" data-persona-status></p>'
       + '<p data-persona-links></p>';
@@ -210,6 +210,21 @@
       var el = host.querySelector('[data-persona-status]');
       if (el) el.textContent = text;
     }
+    function refreshMeter() {
+      var body = host.querySelector('[data-persona-body]');
+      if (!body || !state.artist) return;
+      var next = catalog.normalize(collect(body)) || catalog.emptyPersona();
+      var meter = catalog.progress(next);
+      var label = body.querySelector('.persona-meter-label');
+      var bar = body.querySelector('.persona-meter > span');
+      if (label) label.textContent = meter.label;
+      if (bar) bar.style.width = Math.round((meter.filled / Math.max(meter.total, 1)) * 100) + '%';
+    }
+    host.addEventListener('input', function (event) {
+      var target = event.target;
+      if (!target || !target.hasAttribute || !target.hasAttribute('data-persona-story')) return;
+      refreshMeter();
+    });
     host.addEventListener('click', function (event) {
       var chip = event.target && event.target.closest && event.target.closest('[data-persona-chip], [data-persona-color]');
       if (chip) {
@@ -220,6 +235,7 @@
         }
         if (chip.getAttribute('data-persona-chip') === 'vibe' && !pressed && readChips(host, 'vibe').length >= 3) return;
         chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+        refreshMeter();
         return;
       }
       var target = event.target;

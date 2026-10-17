@@ -644,7 +644,7 @@ function run() {
     return title === 'Lost 2' || title === 'Dolly' || title === 'Mr Herman';
   }).length === 2, 'two Platform QC tiles fill the remaining slots');
   assert.ok(read('account.js').includes('function isRecentLive'), 'Overview Recent prefers the Releases live signal');
-  assert.ok(read('dashboard.html').includes('account.js?v=20260910live1'), 'Overview cache-busts the Live-first strip');
+  assert.ok(read('dashboard.html').includes('account.js?v=20261017acct'), 'Overview cache-busts the Live-first strip');
 
   const fiveLive = fillAccount({
     artist: 'Fuvtu',

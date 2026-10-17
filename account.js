@@ -83,8 +83,15 @@
 
   function planLabel(plan) {
     var next = String(plan || '').trim().toLowerCase();
-    if (!next) return '-';
+    if (!next) return 'Free';
     return 'FREE';
+  }
+
+  function accountPlanBadge(me) {
+    var email = String((me && me.email) || '').trim();
+    var label = planLabel(me && me.plan);
+    if (email) return email + ' · ' + label;
+    return label;
   }
 
   function planPitch() {
@@ -258,7 +265,7 @@
       if (el.tagName === 'INPUT') el.value = country;
       else setText(el, country);
     });
-    $all('[data-account-plan]').forEach(function (el) { setText(el, planLabel(me.plan)); });
+    $all('[data-account-plan]').forEach(function (el) { setText(el, accountPlanBadge(me)); });
     var interval = String(me.billing_interval || me.interval || '').toLowerCase();
     $all('[data-account-plan-pitch]').forEach(function (el) { setText(el, planPitch(me.plan, interval)); });
     $all('[data-account-plan-price]').forEach(function (el) { setText(el, sidebarPrice(me.plan)); });

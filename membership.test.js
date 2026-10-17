@@ -23,6 +23,24 @@ function makeStorage() {
   };
 }
 
+function makeAnchor(text, href) {
+  const attrs = { href: href, 'data-plan': 'basic' };
+  return {
+    textContent: text,
+    href: href,
+    getAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(attrs, name) ? attrs[name] : null;
+    },
+    setAttribute(name, value) {
+      attrs[name] = String(value);
+      if (name === 'href') this.href = String(value);
+    },
+    removeAttribute(name) {
+      delete attrs[name];
+    },
+  };
+}
+
 function load(options) {
   const localStorage = makeStorage();
   const sessionStorage = makeStorage();
@@ -96,6 +114,10 @@ function load(options) {
       querySelector() {
         return null;
       },
+      querySelectorAll(sel) {
+        if (sel === 'a') return (options && options.anchors) || [];
+        return [];
+      },
       addEventListener(type, handler) {
         if (type === 'click') clicks.push(handler);
       },
@@ -106,7 +128,7 @@ function load(options) {
   context.globalThis = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'lib/release-credits.js'), 'utf8'), context);
   vm.runInNewContext(code, context);
-  return { api: context.PlaigroundMembership, credits: context.PlaigroundReleaseCredits, localStorage, sessionStorage, location, clicks, fetches };
+  return { api: context.PlaigroundMembership, credits: context.PlaigroundReleaseCredits, localStorage, sessionStorage, location, clicks, fetches, anchors: (options && options.anchors) || [] };
 }
 
 function clickEvent(sel, href) {
@@ -626,7 +648,55 @@ function run() {
       return noPlan.api.whenReady().then(function () {
         assert.ok(noPlan.location.href.indexOf('index.html?needplan=1#pricing') !== -1, 'signed-in /api/me 200 without a plan still goes to pricing');
 
-        return continueMembershipSyncTests();
+        const freeDashboard = load({
+          require: true,
+          pathname: '/dashboard',
+          href: 'dashboard.html',
+          account: { email: 'free@example.com', plan: null, status: 'active' },
+        });
+        return freeDashboard.api.whenReady().then(function () {
+          assert.strictEqual(freeDashboard.location.href, 'dashboard.html', 'plan null stays on the dashboard');
+          const freeArtists = load({
+            require: true,
+            pathname: '/artists',
+            href: 'artists.html',
+            account: { email: 'free@example.com', plan: null, status: 'active' },
+          });
+          return freeArtists.api.whenReady().then(function () {
+            assert.strictEqual(freeArtists.location.href, 'artists.html', 'plan null stays on artist profiles');
+            const freeRoadmap = load({
+              require: true,
+              pathname: '/my-roadmap',
+              href: 'my-roadmap.html?saved=1',
+              search: '?saved=1',
+              account: { email: 'free@example.com', plan: null, status: 'active' },
+            });
+            return freeRoadmap.api.whenReady().then(function () {
+              assert.strictEqual(freeRoadmap.location.href, 'my-roadmap.html?saved=1', 'plan null stays on my roadmap');
+              const signedInCtas = [
+                makeAnchor('Create free account', 'signup.html?plan=basic'),
+                makeAnchor('Join free', 'signup.html'),
+                makeAnchor('See pricing', 'index.html#pricing'),
+              ];
+              const pricing = load({
+                pathname: '/index.html',
+                href: 'index.html',
+                account: { email: 'free@example.com', plan: null, status: 'active' },
+                anchors: signedInCtas,
+              });
+              return pricing.api.whenReady().then(function () {
+                assert.strictEqual(signedInCtas[0].textContent, 'Go to your dashboard');
+                assert.strictEqual(signedInCtas[0].getAttribute('href'), 'dashboard.html');
+                assert.strictEqual(signedInCtas[0].getAttribute('data-plan'), null);
+                assert.strictEqual(signedInCtas[1].textContent, 'Go to your dashboard');
+                assert.strictEqual(signedInCtas[1].getAttribute('href'), 'dashboard.html');
+                assert.strictEqual(signedInCtas[2].textContent, 'See pricing');
+                assert.strictEqual(signedInCtas[2].getAttribute('href'), 'index.html#pricing');
+                return continueMembershipSyncTests();
+              });
+            });
+          });
+        });
       });
     });
   });

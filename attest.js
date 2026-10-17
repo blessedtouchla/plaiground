@@ -337,6 +337,54 @@
       return draft.human_elements;
     }
 
+    function knownArtistName(draft) {
+      var blocked = {
+        john: true,
+        'john ham': true,
+        'john doe': true,
+        'john harper': true,
+        patrick: true,
+        'neon shadows': true,
+        'neon sermon': true,
+        'neon santos': true,
+        'victoria reyes': true,
+        'victoria void': true
+      };
+      function clean(value) {
+        var next = String(value || '').trim().replace(/\s+/g, ' ');
+        if (!next) return '';
+        var key = next.toLowerCase();
+        if (blocked[key]) return '';
+        var first = key.split(' ')[0];
+        if (first === 'john' || first === 'patrick') return '';
+        return next;
+      }
+      var fromDraft = clean(draft && (draft.name || draft.artist));
+      if (fromDraft) return fromDraft;
+      var me = root.PlaigroundMembership && typeof root.PlaigroundMembership.account === 'function'
+        ? root.PlaigroundMembership.account()
+        : null;
+      var fromAccount = clean(me && me.artist);
+      if (fromAccount) return fromAccount;
+      var roster = me && me.profile && me.profile.artists;
+      if (Array.isArray(roster)) {
+        var i;
+        for (i = 0; i < roster.length; i += 1) {
+          var named = clean(roster[i] && roster[i].name);
+          if (named) return named;
+        }
+      }
+      return '';
+    }
+
+    function paintAttestHello(draft) {
+      var who = document.querySelector('[data-account-who]');
+      if (!who) return;
+      var name = knownArtistName(draft);
+      if (!name) return;
+      who.textContent = 'Hi ' + name + '!';
+    }
+
     function applyDraft(draft) {
       draft = draft || {};
       if (draft.made_how) {
@@ -385,6 +433,7 @@
         if (writerFirst && !writerFirst.value) writerFirst.value = remembered.first || '';
         if (writerLast && !writerLast.value) writerLast.value = remembered.last || '';
       }
+      paintAttestHello(draft);
     }
 
     function qualifyingOn(items) {

@@ -352,6 +352,15 @@
     return signedInHome(account);
   }
 
+  function allowsFreeAccount() {
+    var path = String((global.location && global.location.pathname) || '');
+    var file = path.split('/').pop() || '';
+    if (path === '/dashboard' || file === 'dashboard' || file === 'dashboard.html') return true;
+    if (path === '/artists' || file === 'artists' || file === 'artists.html') return true;
+    if (path === '/my-roadmap' || file === 'my-roadmap' || file === 'my-roadmap.html') return true;
+    return false;
+  }
+
   function requireMembership() {
     if (!accountSettled) return true;
     if (isConfirmedLoggedOut()) {
@@ -359,6 +368,7 @@
       return false;
     }
     if (serverStatus === 200 && !hasPlan()) {
+      if (serverAccount && allowsFreeAccount()) return true;
       global.location.replace(PRICING);
       return false;
     }
@@ -599,6 +609,25 @@
     return true;
   }
 
+  function paintSignedInCtas() {
+    if (!(serverStatus === 200 && serverAccount)) return;
+    var doc = global.document;
+    if (!doc || typeof doc.querySelectorAll !== 'function') return;
+    var links = doc.querySelectorAll('a');
+    var i;
+    for (i = 0; i < links.length; i += 1) {
+      var el = links[i];
+      if (!el || !el.getAttribute) continue;
+      var text = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text !== 'Join free' && text !== 'Create free account') continue;
+      if (el.getAttribute('data-signed-in-cta') === '1') continue;
+      el.setAttribute('href', 'dashboard.html');
+      el.textContent = 'Go to your dashboard';
+      if (el.removeAttribute) el.removeAttribute('data-plan');
+      el.setAttribute('data-signed-in-cta', '1');
+    }
+  }
+
   function applyPlanCopy() {
     var doc = global.document;
     if (!doc || typeof doc.querySelectorAll !== 'function') return;
@@ -611,6 +640,7 @@
       el.hidden = !show;
       if (el.classList && el.classList.toggle) el.classList.toggle('is-hidden', !show);
     }
+    paintSignedInCtas();
   }
 
   function whenDomReady(cb) {

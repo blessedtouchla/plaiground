@@ -30,6 +30,27 @@
 .persona-colors button { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .persona-block { margin-top: 16px; }
 .persona-block h3 { margin: 0 0 6px; font-size: 1rem; }
+.persona-block textarea,
+.persona-block input[type="text"],
+.persona-block input[type="url"],
+.persona-block input[type="email"],
+.persona-block input:not([type="radio"]):not([type="checkbox"]) {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  background: #0C0C12;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  margin-top: 8px;
+}
+.persona-block textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
 .persona-asks { margin: 8px 0 0; padding-left: 18px; }
 .persona-source { display: block; font-size: 0.85rem; opacity: 0.75; margin-top: 4px; }
 .persona-suggestion { border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 10px 0; }

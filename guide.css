@@ -90,6 +90,11 @@ body.guide-page [hidden] { display: none !important; }
   margin: 8px 0 18px;
 }
 
+.guide-screen h1:focus,
+.guide-screen h1:focus-visible {
+  outline: none;
+}
+
 .guide-choices {
   display: flex;
   flex-direction: column;
