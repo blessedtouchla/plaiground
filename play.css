@@ -62,8 +62,59 @@ body.play-page main {
   background: #111;
   border: 1px solid rgba(125, 60, 255, 0.45);
 }
-.play-help {
+.play-help,
+.play-kind,
+.play-lyric {
   color: #C8C8D0;
+}
+.play-kind,
+.play-lyric {
+  margin: 0 0 8px;
+  color: #fff;
+  font-weight: 700;
+}
+.play-picker h2 {
+  margin: 0 0 12px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+}
+.play-picker-grid {
+  display: grid;
+  gap: 12px;
+}
+.play-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 88px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 197, 66, 0.55);
+  background: #111;
+  color: #fff;
+  text-align: left;
+  font: inherit;
+}
+.play-pick strong {
+  color: #F5C542;
+  font-size: 22px;
+}
+.play-canvas {
+  width: 100%;
+  height: 520px;
+  border-radius: 18px;
+  background: #000;
+  touch-action: none;
+}
+.play-sky.is-racer,
+.play-sky.is-hero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: auto;
+}
+.play-sky.is-hero {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .play-sky {
   position: relative;
@@ -211,6 +262,12 @@ body.play-page main {
   }
   .play-head h1 {
     font-size: 26px;
+  }
+  .play-canvas {
+    height: 460px;
+  }
+  .play-pick {
+    min-height: 96px;
   }
   .play-done,
   .play-fail {

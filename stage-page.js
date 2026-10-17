@@ -125,6 +125,11 @@
         link.textContent = 'Play link';
         row.appendChild(link);
       }
+      if (item.games && item.games.length) {
+        var names = root.document.createElement('p');
+        names.textContent = item.games.map(function (game) { return game.name; }).join('. ');
+        row.appendChild(names);
+      }
       var controls = root.document.createElement('div');
       controls.className = 'stage-controls';
       var up = button('Move up', function () { move(items, index, -1); });

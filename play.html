@@ -95,8 +95,15 @@
       <div class="play-levels" data-levels></div>
       <p class="play-level" data-level>Level 1. The hook</p>
       <p class="play-your-score" data-your-score hidden></p>
-      <p class="play-help">Tap the words in order. A wrong word costs a heart. No account needed.</p>
+      <p class="play-kind" data-game-name>Pick a game</p>
+      <p class="play-help" data-play-help>Tap the words in order. A wrong word costs a heart. No account needed.</p>
+      <p class="play-lyric" data-lyric-line hidden></p>
+      <section class="play-picker" data-play-picker hidden>
+        <h2>Pick a game</h2>
+        <div class="play-picker-grid" data-picker-cards></div>
+      </section>
       <div class="play-sky" data-sky></div>
+      <canvas class="play-canvas" data-play-canvas hidden></canvas>
     </div>
     <section class="play-done" data-play-done hidden>
       <h2>You caught it.</h2>
@@ -121,8 +128,10 @@
     </div>
   </footer>
   <script src="lib/features.js?v=20261017stage"></script>
-  <script src="lib/song-game.js?v=20261017stage"></script>
-  <script src="play.js?v=20261017stage4"></script>
+  <script src="lib/song-game.js?v=20261017games"></script>
+  <script src="play-racer.js?v=20261017games"></script>
+  <script src="play-hero.js?v=20261017games"></script>
+  <script src="play.js?v=20261017games"></script>
   <script src="site.js?v=20261014pixels"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

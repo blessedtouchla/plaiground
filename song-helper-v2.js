@@ -5006,7 +5006,58 @@
     }
   }
 
-  async function makeGame(button) {
+  function openGamePicker(button) {
+    var features = window.PlaigroundFeatures;
+    var tools = window.PlaigroundSongGame;
+    if (!features || !tools || !features.enabled('SONG_GAME_ENABLED') || !features.enabled('STAGE_ENABLED')) return;
+    var host = document.querySelector('.sh-x-reveal-tools');
+    if (!host) return;
+    var old = host.querySelector('.sh-x-game-picker');
+    if (old) {
+      old.hidden = false;
+      return;
+    }
+    var games = tools.openGames(function (name) { return features.enabled(name); });
+    if (!games.length) return;
+    var card = document.createElement('div');
+    card.className = 'sh-x-game-picker';
+    var title = document.createElement('p');
+    title.className = 'sh-x-game-title';
+    title.textContent = 'Pick the games for this song';
+    card.appendChild(title);
+    games.forEach(function (game) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = true;
+      input.value = game.id;
+      input.setAttribute('data-game-pick', game.id);
+      var text = document.createElement('span');
+      var name = document.createElement('strong');
+      name.textContent = game.name;
+      text.appendChild(name);
+      text.appendChild(document.createTextNode(' ' + game.blurb));
+      label.appendChild(input);
+      label.appendChild(text);
+      card.appendChild(label);
+    });
+    var add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'btn btn-gold btn-md';
+    add.textContent = 'Add to my stage';
+    add.addEventListener('click', function () {
+      var picked = [];
+      card.querySelectorAll('[data-game-pick]').forEach(function (input) {
+        if (input.checked) picked.push(input.value);
+      });
+      if (!picked.length) return;
+      makeGame(button, picked);
+    });
+    card.appendChild(add);
+    host.appendChild(card);
+  }
+
+  async function makeGame(button, kinds) {
     var features = window.PlaigroundFeatures;
     if (!features || !features.enabled('SONG_GAME_ENABLED') || !features.enabled('STAGE_ENABLED')) return;
     var record = songRecord();
@@ -5033,7 +5084,7 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ action: 'make', song: record }),
+        body: JSON.stringify({ action: 'make', song: record, games: kinds || [] }),
       });
       var stageData = await stageRes.json().catch(function () { return {}; });
       if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
@@ -5132,7 +5183,7 @@
       gameBtn.type = 'button';
       gameBtn.className = 'btn btn-gold btn-md';
       gameBtn.textContent = 'Make it a game';
-      gameBtn.addEventListener('click', function () { makeGame(gameBtn); });
+      gameBtn.addEventListener('click', function () { openGamePicker(gameBtn); });
       actions.appendChild(gameBtn);
     }
     tools.appendChild(wave);
