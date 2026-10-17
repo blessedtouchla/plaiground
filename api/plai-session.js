@@ -114,8 +114,8 @@ async function coachText(res, text) {
   try {
     response = await xai.postJson(xai.CHAT_URL, xai.key(), {
       model: xai.chatModel(),
-      temperature: 0.2,
-      max_tokens: 500,
+      temperature: 0.75,
+      max_tokens: 700,
       messages: [
         { role: 'system', content: reply.FACTS },
         { role: 'user', content: asked },
