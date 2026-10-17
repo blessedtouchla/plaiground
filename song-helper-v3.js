@@ -310,7 +310,7 @@
           setState(next);
         }).catch(function (err) {
           busy = false;
-          if (err.status === 429 || err.status === 400) {
+          if (err.status === 429 || err.status === 400 || err.status === 422) {
             saveWallet(before);
             state.notice = err.message;
             paint();
@@ -339,7 +339,7 @@
           setState(next);
         }).catch(function (err) {
           busy = false;
-          if (err.status === 429 || err.status === 400) {
+          if (err.status === 429 || err.status === 400 || err.status === 422) {
             saveWallet(before);
             state.notice = err.message;
             paint();
@@ -378,7 +378,7 @@
           setState(flow.act(state, { type: 'wrote', song: song }));
         }).catch(function (err) {
           busy = false;
-          if (err.status === 429 || err.status === 400) {
+          if (err.status === 429 || err.status === 400 || err.status === 422) {
             saveWallet(before);
             state.notice = err.message;
             paint();

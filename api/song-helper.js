@@ -182,6 +182,10 @@ async function handleV3(req, res, action, body) {
       return;
     }
     var song = await v3ModelSong(payload);
+    if (song.guardError) {
+      sendJson(res, 422, { ok: false, error: song.guardError });
+      return;
+    }
     sendJson(res, 200, { ok: true, sample: false, source: 'model', notice: '', song: song });
   } catch (err) {
     sendJson(res, 200, v3Sample(action, payload));
