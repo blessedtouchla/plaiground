@@ -4880,57 +4880,57 @@
     }
   }
 
+  function wordTilesOn() {
+    var features = window.PlaigroundFeatures;
+    return !!(features && features.enabled && features.enabled('WORD_TILES_ENABLED'));
+  }
+
+  function mountWordTiles(article, area) {
+    if (!wordTilesOn() || !area) return;
+    var words = answerWords();
+    if (!words.length) return;
+    var board = document.createElement('div');
+    board.className = 'sh-x-tiles';
+    board.setAttribute('role', 'group');
+    board.setAttribute('aria-label', 'Your words');
+    words.forEach(function (word) {
+      var tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'sh-x-tile';
+      tile.textContent = word;
+      tile.draggable = true;
+      tile.addEventListener('dragstart', function (event) {
+        if (!event.dataTransfer) return;
+        event.dataTransfer.setData('text/plain', word);
+        event.dataTransfer.effectAllowed = 'copy';
+      });
+      tile.addEventListener('click', function () { placeTile(tile, area, word); });
+      board.appendChild(tile);
+    });
+    area.addEventListener('dragover', function (event) {
+      event.preventDefault();
+      article.classList.add('is-drop');
+    });
+    area.addEventListener('dragleave', function () { article.classList.remove('is-drop'); });
+    area.addEventListener('drop', function (event) {
+      event.preventDefault();
+      article.classList.remove('is-drop');
+      var dropped = event.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
+      if (!dropped) return;
+      var match = null;
+      Array.prototype.forEach.call(board.querySelectorAll('.sh-x-tile'), function (item) {
+        if (!match && item.textContent === dropped && !item.classList.contains('is-used')) match = item;
+      });
+      placeTile(match, area, dropped);
+    });
+    article.insertBefore(board, area);
+  }
+
   function mountPartScene(article, row, host) {
     var kind = row.kind;
     if (kind !== 'hook' && kind !== 'verse' && kind !== 'bridge') return;
     if (kind === 'hook' || kind === 'verse') {
-      var note = document.createElement('p');
-      note.className = 'sh-x-tile-note';
-      var words = answerWords();
-      var area = article.querySelector('.sh-part-box');
-      if (!words.length) {
-        note.textContent = 'Your answer words show up here. Tell the story, then tap a word onto this line.';
-      } else {
-        note.textContent = 'Tap a word to set it on the line. On a bigger screen you can drag it.';
-        var board = document.createElement('div');
-        board.className = 'sh-x-tiles';
-        board.setAttribute('role', 'group');
-        board.setAttribute('aria-label', 'Your words');
-        words.forEach(function (word) {
-          var tile = document.createElement('button');
-          tile.type = 'button';
-          tile.className = 'sh-x-tile';
-          tile.textContent = word;
-          tile.draggable = true;
-          tile.addEventListener('dragstart', function (event) {
-            if (!event.dataTransfer) return;
-            event.dataTransfer.setData('text/plain', word);
-            event.dataTransfer.effectAllowed = 'copy';
-          });
-          tile.addEventListener('click', function () { placeTile(tile, area, word); });
-          board.appendChild(tile);
-        });
-        if (area) {
-          area.addEventListener('dragover', function (event) {
-            event.preventDefault();
-            article.classList.add('is-drop');
-          });
-          area.addEventListener('dragleave', function () { article.classList.remove('is-drop'); });
-          area.addEventListener('drop', function (event) {
-            event.preventDefault();
-            article.classList.remove('is-drop');
-            var dropped = event.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
-            if (!dropped) return;
-            var match = null;
-            Array.prototype.forEach.call(board.querySelectorAll('.sh-x-tile'), function (item) {
-              if (!match && item.textContent === dropped && !item.classList.contains('is-used')) match = item;
-            });
-            placeTile(match, area, dropped);
-          });
-        }
-        if (area) article.insertBefore(board, area);
-      }
-      if (area) article.insertBefore(note, area);
+      mountWordTiles(article, article.querySelector('.sh-part-box'));
     }
     var next = document.createElement('button');
     next.type = 'button';

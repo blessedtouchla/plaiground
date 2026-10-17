@@ -1200,7 +1200,7 @@ function runReggae() {
   const html = read('song-helper.html');
   assert.ok(html.includes('Write, Reggae, Funny'));
   assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261016scene'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261017tiles'));
   assert.ok(html.includes('song-helper.css?v=20261016scene'));
   assert.ok(html.includes('lib/song-pass.js?v=20261015answers'));
   assert.ok(read('song-helper-v2.js').includes('Say what happened before you name the song.'));
@@ -1272,14 +1272,16 @@ function runExperience() {
   assert.ok(html.includes('id="sh-mood-next"'), 'mood scene has a next button');
   assert.ok(page.includes("next.textContent = 'Next scene'"), 'interview moves by scene');
   assert.ok(page.includes('SongHelperExperience'), 'talk scenes still call the host');
-  assert.ok(v2.includes('Tap a word to set it on the line.'), 'magnetic tiles explain tap to place');
+  assert.ok(v2.includes("enabled('WORD_TILES_ENABLED')"), 'word tiles stay behind their own flag');
+  assert.ok(read('lib/features.js').includes('WORD_TILES_ENABLED: false'), 'word tiles are off');
+  assert.ok(!v2.includes('Word tiles'), 'song parts have no Word tiles toggle');
+  assert.ok(!v2.includes('Tap a word to set it on the line.'), 'the tile instruction is gone');
+  assert.ok(!v2.includes('Tell the story, then tap a word onto this line.'), 'the empty tile note is gone');
   assert.ok(v2.includes('Send it to release') && v2.includes('Write another') && v2.includes('Replay'), 'reveal actions stay');
   assert.ok(v2.includes('Your draft is ready.'), 'reveal line stays');
   assert.ok(css.includes('prefers-reduced-motion: reduce'), 'motion yields when asked');
   assert.ok(html.includes('href="/battle"'), 'Battle link stays');
   const fresh = [
-    'Tap a word to set it on the line. On a bigger screen you can drag it.',
-    'Your answer words show up here. Tell the story, then tap a word onto this line.',
     'Ask it in your own words.',
     'Your draft is ready.',
     'Pick a feeling, then the next scene opens.',
