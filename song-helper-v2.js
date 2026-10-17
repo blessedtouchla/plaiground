@@ -4920,75 +4920,50 @@
     }
   }
 
+  function wordTilesOn() {
+    var features = window.PlaigroundFeatures;
+    return !!(features && features.enabled && features.enabled('WORD_TILES_ENABLED'));
+  }
+
   function mountWordTiles(article, area) {
-    var toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'sh-x-tile-toggle';
-    toggle.textContent = 'Word tiles';
-    toggle.setAttribute('aria-expanded', 'false');
-    var panel = document.createElement('div');
-    panel.className = 'sh-x-tile-panel';
-    panel.hidden = true;
-    var dragReady = false;
-    function fill() {
-      panel.textContent = '';
-      var words = answerWords().slice(0, 12);
-      var note = document.createElement('p');
-      note.className = 'sh-x-tile-note';
-      if (!words.length) {
-        note.textContent = 'No picture words yet. Add a little more of the story, then open this again.';
-        panel.appendChild(note);
-        return;
-      }
-      note.textContent = 'Tap a word to set it on the line.';
-      var board = document.createElement('div');
-      board.className = 'sh-x-tiles';
-      board.setAttribute('role', 'group');
-      board.setAttribute('aria-label', 'Word tiles');
-      words.forEach(function (word) {
-        var tile = document.createElement('button');
-        tile.type = 'button';
-        tile.className = 'sh-x-tile';
-        tile.textContent = word;
-        tile.draggable = true;
-        tile.addEventListener('dragstart', function (event) {
-          if (!event.dataTransfer) return;
-          event.dataTransfer.setData('text/plain', word);
-          event.dataTransfer.effectAllowed = 'copy';
-        });
-        tile.addEventListener('click', function () { placeTile(tile, area, word); });
-        board.appendChild(tile);
+    if (!wordTilesOn() || !area) return;
+    var words = answerWords();
+    if (!words.length) return;
+    var board = document.createElement('div');
+    board.className = 'sh-x-tiles';
+    board.setAttribute('role', 'group');
+    board.setAttribute('aria-label', 'Your words');
+    words.forEach(function (word) {
+      var tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'sh-x-tile';
+      tile.textContent = word;
+      tile.draggable = true;
+      tile.addEventListener('dragstart', function (event) {
+        if (!event.dataTransfer) return;
+        event.dataTransfer.setData('text/plain', word);
+        event.dataTransfer.effectAllowed = 'copy';
       });
-      panel.appendChild(note);
-      panel.appendChild(board);
-      if (dragReady) return;
-      dragReady = true;
-      area.addEventListener('dragover', function (event) {
-        event.preventDefault();
-        article.classList.add('is-drop');
-      });
-      area.addEventListener('dragleave', function () { article.classList.remove('is-drop'); });
-      area.addEventListener('drop', function (event) {
-        event.preventDefault();
-        article.classList.remove('is-drop');
-        var dropped = event.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
-        if (!dropped) return;
-        var match = null;
-        Array.prototype.forEach.call(panel.querySelectorAll('.sh-x-tile'), function (item) {
-          if (!match && item.textContent === dropped && !item.classList.contains('is-used')) match = item;
-        });
-        placeTile(match, area, dropped);
-      });
-    }
-    toggle.addEventListener('click', function () {
-      var open = panel.hidden;
-      if (open) fill();
-      panel.hidden = !open;
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      tile.addEventListener('click', function () { placeTile(tile, area, word); });
+      board.appendChild(tile);
     });
-    var after = area.nextSibling;
-    article.insertBefore(toggle, after);
-    article.insertBefore(panel, toggle.nextSibling);
+    area.addEventListener('dragover', function (event) {
+      event.preventDefault();
+      article.classList.add('is-drop');
+    });
+    area.addEventListener('dragleave', function () { article.classList.remove('is-drop'); });
+    area.addEventListener('drop', function (event) {
+      event.preventDefault();
+      article.classList.remove('is-drop');
+      var dropped = event.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
+      if (!dropped) return;
+      var match = null;
+      Array.prototype.forEach.call(board.querySelectorAll('.sh-x-tile'), function (item) {
+        if (!match && item.textContent === dropped && !item.classList.contains('is-used')) match = item;
+      });
+      placeTile(match, area, dropped);
+    });
+    article.insertBefore(board, area);
   }
 
   function mountPartScene(article, row, host) {
