@@ -5,7 +5,7 @@
   var SESSION_URL = '/api/plai-session';
   var CHUNK_MS = 100;
   var MAX_TURNS = 8;
-  var MAX_TEXT = 400;
+  var MAX_TEXT = 1200;
   var COACH_GREETING = "Hi, I'm Plai. I'm your release coach. How can I help you?";
   var QUICK_CHIPS = [
     {
@@ -51,6 +51,7 @@
   var pendingText = '';
   var transcript = [];
   var assistantStreamKind = '';
+  var replyCut = false;
   var realtimeUrl = '';
   var ws = null;
   var talkGen = 0;
@@ -164,8 +165,29 @@
     return row && row.role === role && String(row.text || '').trim() === String(text || '').trim();
   }
 
+  function replyApi() {
+    return window.PlaigroundPlaiReply || null;
+  }
+
+  function capPlain(text) {
+    var clean = String(text || '');
+    if (clean.length <= MAX_TEXT) return clean;
+    var cut = clean.slice(0, MAX_TEXT);
+    var api = replyApi();
+    return api ? api.polish(cut, { truncated: true }) : cut.replace(/\s+\S*$/, '').trim();
+  }
+
+  function showPlai(text, truncated) {
+    var clean = String(text || '');
+    var api = replyApi();
+    if (api) clean = api.polish(clean, { truncated: !!truncated });
+    if (clean.length > MAX_TEXT) clean = capPlain(clean);
+    return clean.trim();
+  }
+
   function addLine(role, text) {
-    var clean = coachGreeting(text).slice(0, MAX_TEXT);
+    var greeted = coachGreeting(text);
+    var clean = role === 'plai' ? showPlai(greeted, false) : capPlain(greeted);
     if (!clean) return;
     var last = transcript[transcript.length - 1];
     if (last && last.role === role && (sameLine(last, role, clean) || (last.streaming && isOldHelloStream(last.text)))) {
@@ -200,11 +222,16 @@
     var last = transcript[transcript.length - 1];
     if (last && last.role === role && last.streaming) {
       last.streaming = false;
-      last.text = coachGreeting(last.text).slice(0, MAX_TEXT);
+      var greeted = coachGreeting(last.text);
+      var hitCap = greeted.length >= MAX_TEXT && !/[.!?]$/.test(greeted.trim());
+      last.text = role === 'plai' ? showPlai(greeted, replyCut || hitCap) : capPlain(greeted);
       if (!last.text) transcript.pop();
       renderLog();
     }
-    if (role === 'plai') assistantStreamKind = '';
+    if (role === 'plai') {
+      assistantStreamKind = '';
+      replyCut = false;
+    }
   }
 
   function itemText(item) {
@@ -440,7 +467,10 @@
         content: [{ type: 'input_text', text: text }],
       },
     }));
-    ws.send(JSON.stringify({ type: 'response.create' }));
+    ws.send(JSON.stringify({
+      type: 'response.create',
+      response: { max_output_tokens: 800 },
+    }));
     return true;
   }
 
@@ -506,6 +536,8 @@
     }
 
     if (event.type === 'response.done') {
+      var details = event.response && event.response.status_details;
+      replyCut = !!(details && details.reason === 'max_output_tokens');
       finishStreaming('plai');
       if (state === 'talking' && !playing) setLive(wantMic ? 'listening' : 'text');
     }
@@ -636,12 +668,26 @@
     inputEl.value = '';
     addLine('user', text);
     wantMic = false;
-    if (sessionReady) {
-      sendTextToSocket(text);
-      return;
-    }
-    pendingText = text;
-    startSession();
+    stopTalk();
+    setLive('text');
+    fetch(SESSION_URL, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: 'coach', text: text }),
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        return { ok: response.ok, data: data };
+      }).catch(function () { return { ok: false, data: null }; });
+    }).then(function (result) {
+      var data = result && result.data;
+      if (!result || !result.ok || !data || !data.reply) {
+        addLine('plai', 'I could not answer that just now. Try again in a moment.');
+        return;
+      }
+      addLine('plai', data.reply);
+    }).catch(function () {
+      addLine('plai', 'I could not answer that just now. Try again in a moment.');
+    });
   }
 
   function toggleTalk() {

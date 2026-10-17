@@ -91,7 +91,7 @@ function runStatic() {
   assert.ok(page.includes('class="card plai-coach-chat"'), 'chat shell reuses the site card');
   assert.ok(page.includes('data-plai-coach-talk'), 'coach page has a Talk control');
   assert.ok(page.includes('data-plai-coach-form'), 'coach page has the text form');
-  assert.ok(page.includes('src="plai-coach.js"'), 'coach page loads the coach session client');
+  assert.ok(/src="plai-coach\.js(?:\?[^"]*)?"/.test(page), 'coach page loads the coach session client');
   assert.ok(page.includes('plai-bubble.js'), 'Talk/Text Plai still load on the coach page');
   assert.ok(page.includes('class="card plai-coach-plan"'), 'Action Plan reuses the site card');
   assert.ok(page.includes('id="plai-action-plan-title">Action Plan</h2>'), 'Action Plan is labeled');

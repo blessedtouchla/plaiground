@@ -8,6 +8,9 @@
  * Docs: https://docs.x.ai/developers/model-capabilities/audio/ephemeral-tokens
  */
 
+const xai = require('../lib/xai-client');
+const reply = require('../lib/plai-reply');
+
 const CLIENT_SECRETS_URL = 'https://api.x.ai/v1/realtime/client_secrets';
 const REALTIME_BASE = 'wss://api.x.ai/v1/realtime';
 const COACH_AGENT_ID = 'agent_9BWdEFlNcpLwxoQR';
@@ -97,6 +100,57 @@ function sanitizeMintPayload(data) {
   return out;
 }
 
+async function coachText(res, text) {
+  var asked = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  if (!asked) {
+    sendJson(res, 400, { error: 'Type a question first.' });
+    return;
+  }
+  if (!xai.configured()) {
+    sendJson(res, 503, { configured: false });
+    return;
+  }
+  var response;
+  try {
+    response = await xai.postJson(xai.CHAT_URL, xai.key(), {
+      model: xai.chatModel(),
+      temperature: 0.2,
+      max_tokens: 500,
+      messages: [
+        { role: 'system', content: reply.FACTS },
+        { role: 'user', content: asked },
+      ],
+    }, 20000);
+  } catch (err) {
+    sendJson(res, 502, { configured: true, error: 'Plai could not answer just now.' });
+    return;
+  }
+  var data = {};
+  try {
+    data = await response.json();
+  } catch (err) {
+    data = {};
+  }
+  if (!response.ok) {
+    sendJson(res, 502, { configured: true, error: 'Plai could not answer just now.' });
+    return;
+  }
+  var choice = data.choices && data.choices[0];
+  var message = choice && choice.message;
+  var content = '';
+  if (message && typeof message.content === 'string') content = message.content;
+  else if (message && Array.isArray(message.content)) {
+    content = message.content.map(function (part) {
+      if (typeof part === 'string') return part;
+      return part && part.text ? part.text : '';
+    }).join(' ');
+  }
+  var reason = choice && choice.finish_reason;
+  var polished = reply.polish(content, { truncated: reason === 'length', ask: asked });
+  if (!polished) polished = reply.PRICE;
+  sendJson(res, 200, { configured: true, reply: polished });
+}
+
 async function mintToken(res, coach) {
   if (!isConfigured()) {
     sendJson(res, 503, { configured: false });
@@ -155,6 +209,10 @@ module.exports = async function handler(req, res) {
     body = await readBody(req);
   } catch {
     body = {};
+  }
+  if (wantsCoach(body) && String(body.text || '').trim()) {
+    await coachText(res, body.text);
+    return;
   }
   await mintToken(res, wantsCoach(body));
 };
