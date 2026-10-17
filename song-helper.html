@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261007polish" />
-  <link rel="stylesheet" href="song-helper.css?v=20261017start" />
+  <link rel="stylesheet" href="song-helper.css?v=20261017tools" />
   <link rel="stylesheet" href="stage.css?v=20261017stage" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
@@ -152,7 +152,25 @@
         <h2 class="sh-craft-title">Write it here</h2>
         <p class="sh-help" id="sh-based-path" hidden></p>
         <p class="sh-help" id="sh-page-help">Each part has its own box. Verse 1, the hook, Verse 2, and the bridge start you off. Add a verse or an outro if you need one. Nothing is filled in until you tap Use this. Extend, Shorten, and Rhymify sit beside your words. Your words stay until you tap Accept or Edit.</p>
-        <div id="sh-page-sections"></div>
+        <div class="sh-write-stage" id="sh-write-stage">
+          <div id="sh-page-sections"></div>
+          <aside class="sh-tools" id="sh-tools" hidden>
+            <button type="button" class="sh-tools-tab" id="sh-tools-tab" aria-expanded="false" aria-controls="sh-tools-panel">Small tools</button>
+            <div class="sh-tools-panel" id="sh-tools-panel">
+              <p class="sh-tools-kicker">Small tools</p>
+              <section class="sh-tool" id="sh-tool-rhyme" hidden>
+                <h3 class="sh-tool-title">Rhyme it</h3>
+                <p class="sh-help">Type a word. Tap a rhyme to drop it on the line you are writing.</p>
+                <label class="sh-field">
+                  <span>Type a word</span>
+                  <input class="sh-input" id="sh-rhyme-word" type="text" maxlength="40" autocomplete="off" enterkeyhint="search" />
+                </label>
+                <p class="sh-help sh-rhyme-status" id="sh-rhyme-status" role="status" hidden></p>
+                <div id="sh-rhyme-groups"></div>
+              </section>
+            </div>
+          </aside>
+        </div>
         <div class="sh-meter" id="sh-meter" role="meter" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="0">
           <p class="sh-meter-label" id="sh-meter-label">Not started</p>
           <div class="sh-meter-track" aria-hidden="true"><div class="sh-meter-fill" id="sh-meter-fill"></div></div>
@@ -870,8 +888,9 @@
   <script src="lib/song-questions.js?v=20261009story"></script>
   <script src="song-helper.js?v=20261016scene"></script>
   <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="lib/features.js?v=20261017tiles"></script>
-  <script src="song-helper-v2.js?v=20261017tiles"></script>
+  <script src="lib/features.js?v=20261017tools"></script>
+  <script src="lib/rhyme-it.js?v=20261017tools"></script>
+  <script src="song-helper-v2.js?v=20261017tools"></script>
   <script src="/lib/artist-dev.js?v=20261014have3"></script>
   <script src="song-helper-dev.js?v=20261014have"></script>
   <script src="apply.js"></script>

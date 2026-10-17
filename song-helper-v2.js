@@ -3737,7 +3737,23 @@
     }
   }
 
+  var lyricCaret = null;
+
+  function rememberLyric(area) {
+    if (!area) return;
+    function save() {
+      if (!area.isConnected) return;
+      lyricCaret = { el: area, start: area.selectionStart, end: area.selectionEnd };
+    }
+    area.addEventListener('focus', save);
+    area.addEventListener('click', save);
+    area.addEventListener('keyup', save);
+    area.addEventListener('select', save);
+    area.addEventListener('blur', save);
+  }
+
   function bindPartInput(area, id) {
+    rememberLyric(area);
     var flow = window.SongFlow;
     function nextValue(start, end, insert) {
       return area.value.slice(0, start) + String(insert == null ? '' : insert) + area.value.slice(end);
@@ -5233,6 +5249,179 @@
     refreshRoad('done');
   }
 
+  function songToolsOn() {
+    var features = window.PlaigroundFeatures;
+    return !!(features && features.enabled && features.enabled('SONG_TOOLS_ENABLED'));
+  }
+
+  function toolFlagOn(name) {
+    var features = window.PlaigroundFeatures;
+    return songToolsOn() && !!(features && features.enabled && features.enabled(name));
+  }
+
+  function bootSongTools() {
+    var aside = $('sh-tools');
+    var page = $('sh-page');
+    var tab = $('sh-tools-tab');
+    var rhyme = window.PlaigroundRhyme;
+    if (!aside || !rhyme) return;
+    var rhymeOn = toolFlagOn('TOOL_RHYME_IT');
+    if (!songToolsOn() || !rhymeOn) {
+      aside.hidden = true;
+      if (page) page.classList.remove('is-tools', 'is-tools-open');
+      return;
+    }
+    aside.hidden = false;
+    if (page) page.classList.add('is-tools');
+    var tool = $('sh-tool-rhyme');
+    if (tool) tool.hidden = !rhymeOn;
+    if (tab) {
+      tab.addEventListener('click', function () {
+        var open = !aside.classList.contains('is-open');
+        aside.classList.toggle('is-open', open);
+        tab.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (page) page.classList.toggle('is-tools-open', open);
+        if (open) {
+          var input = $('sh-rhyme-word');
+          if (input && input.focus) input.focus();
+        }
+      });
+    }
+    mountRhymeTool(rhyme);
+  }
+
+  function mountRhymeTool(rhyme) {
+    var input = $('sh-rhyme-word');
+    var status = $('sh-rhyme-status');
+    var groups = $('sh-rhyme-groups');
+    if (!input || !groups) return;
+    var cache = {};
+    var timer = 0;
+    var request = 0;
+
+    function say(text) {
+      if (!status) return;
+      status.hidden = !text;
+      status.textContent = text || '';
+    }
+
+    function paint(pack) {
+      groups.textContent = '';
+      if (!pack || pack.empty) {
+        say(rhyme.EMPTY);
+        return;
+      }
+      say('');
+      [
+        ['Perfect rhymes', pack.perfect],
+        ['Close rhymes', pack.close],
+      ].forEach(function (pair) {
+        if (!pair[1].length) return;
+        var block = document.createElement('div');
+        block.className = 'sh-rhyme-group';
+        var title = document.createElement('h4');
+        title.textContent = pair[0];
+        var chips = document.createElement('div');
+        chips.className = 'sh-chips';
+        chips.setAttribute('role', 'group');
+        chips.setAttribute('aria-label', pair[0]);
+        pair[1].forEach(function (word) {
+          var chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'sh-chip sh-rhyme-chip';
+          chip.textContent = word;
+          chip.addEventListener('click', function () { useRhyme(word); });
+          chips.appendChild(chip);
+        });
+        block.appendChild(title);
+        block.appendChild(chips);
+        groups.appendChild(block);
+      });
+    }
+
+    function useRhyme(word) {
+      var spot = lyricCaret;
+      var field = spot && spot.el && spot.el.isConnected ? spot.el : null;
+      if (!field) {
+        var focused = document.activeElement;
+        if (focused && focused.classList && focused.classList.contains('sh-part-box')) field = focused;
+      }
+      if (field) {
+        var placed = rhyme.placeWord(field.value, field.selectionStart, field.selectionEnd, word);
+        if (spot && spot.el === field && document.activeElement !== field) {
+          placed = rhyme.placeWord(field.value, spot.start, spot.end, word);
+        }
+        field.value = placed.text;
+        try {
+          field.focus();
+          field.setSelectionRange(placed.caret, placed.caret);
+        } catch (err) {}
+        lyricCaret = { el: field, start: placed.caret, end: placed.caret };
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        say('Added to the line.');
+        return;
+      }
+      var copied = false;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(word).then(function () {
+          say('Copied.');
+        }).catch(function () {
+          say('Tap a lyric box, then tap the word again.');
+        });
+        copied = true;
+      }
+      if (!copied) say('Tap a lyric box, then tap the word again.');
+    }
+
+    function lookup(word) {
+      if (cache[word]) {
+        paint(cache[word]);
+        return;
+      }
+      var ticket = request + 1;
+      request = ticket;
+      say('Looking for rhymes.');
+      var perfectUrl = rhyme.datamuseUrl('rel_rhy', word);
+      var closeUrl = rhyme.datamuseUrl('rel_nry', word);
+      Promise.all([
+        fetch(perfectUrl).then(function (res) { return res.ok ? res.json() : []; }).catch(function () { return null; }),
+        fetch(closeUrl).then(function (res) { return res.ok ? res.json() : []; }).catch(function () { return null; }),
+      ]).then(function (pair) {
+        if (ticket !== request) return;
+        if (pair[0] == null && pair[1] == null) {
+          groups.textContent = '';
+          say('Those rhymes did not load. Try that word again.');
+          return;
+        }
+        var pack = rhyme.packRhymes(pair[0] || [], pair[1] || []);
+        cache[word] = pack;
+        paint(pack);
+      });
+    }
+
+    function searchNow() {
+      var word = rhyme.queryWord(input.value);
+      if (!word) {
+        groups.textContent = '';
+        if (String(input.value || '').trim()) say(rhyme.EMPTY);
+        else say('');
+        return;
+      }
+      lookup(word);
+    }
+
+    input.addEventListener('input', function () {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(searchNow, 400);
+    });
+    input.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (timer) clearTimeout(timer);
+      searchNow();
+    });
+  }
+
   window.SongHelperExperience = {
     avatar: avatarNode,
     refreshRoad: refreshRoad,
@@ -5314,6 +5503,7 @@
     }
   });
   bootWriteFirst();
+  bootSongTools();
   bindFieldAutosave();
   restoreStaticFields();
   restoreStart();
