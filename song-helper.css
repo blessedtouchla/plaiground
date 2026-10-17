@@ -1473,6 +1473,30 @@ body.song-helper-page .plai-bubble {
   opacity: 0.35;
   cursor: default;
 }
+.sh-x-tile-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin: 8px 0 0;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #fff;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sh-x-tile-panel {
+  margin-top: 8px;
+}
+
+.sh-x-tile-panel[hidden] {
+  display: none !important;
+}
+
 .sh-x-tile-note {
   margin: 0 0 8px;
   color: #C8C8D0;

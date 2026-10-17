@@ -1337,12 +1337,12 @@ function runPage() {
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261016scene'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261016scene'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261017start'));
   assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
   assert.ok(html.includes('lib/song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-flow-page.js?v=20261016scene'));
-  assert.ok(html.includes('song-helper.css?v=20261016scene'));
-  assert.ok(html.includes('lib/song-flow.js?v=20261014based'));
+  assert.ok(html.includes('song-helper.css?v=20261017start'));
+  assert.ok(html.includes('lib/song-flow.js?v=20261017start'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
   assert.ok(pageBlock.includes('Add a verse'));
@@ -1374,9 +1374,9 @@ function runPage() {
   assert.ok(/id="sh-page"[^>]*hidden/.test(html));
   assert.ok(html.indexOf('id="sh-start"') < html.indexOf('id="sh-page"'));
   assert.ok(html.includes('How do you want to start?'));
-  assert.ok(html.includes('I already have my story or lyrics'));
+  assert.ok(html.includes('I already have lyrics or a story'));
   assert.ok(html.includes('id="sh-choice-page"'));
-  assert.ok(html.includes('Create from scratch'));
+  assert.ok(html.includes('Start from scratch'));
   assert.ok(html.includes('Start with an idea'));
   assert.ok(read('song-helper-v2.js').includes('bootWriteFirst'));
   assert.ok(read('song-helper-v2.js').includes('appendAnswer'));

@@ -887,7 +887,7 @@ function runPages() {
   assert.ok(html.includes('the more human the draft feels'));
   assert.ok(html.includes('id="sh-choice-ideas"'));
   assert.ok(html.includes('id="sh-choice-own"'));
-  assert.ok(html.includes('Create from scratch'));
+  assert.ok(html.includes('Start from scratch'));
   assert.ok(html.includes('id="sh-page-sections"'));
   assert.ok(html.includes('Add a verse'));
   assert.ok(html.includes('Add an outro'));
@@ -907,7 +907,7 @@ function runPages() {
   assert.ok(html.includes('Influence, not copying'));
   assert.ok(js.includes('applySuggestion'));
   assert.ok(html.includes('I already have my lyrics'));
-  assert.ok(html.includes('I already have my story or lyrics'));
+  assert.ok(html.includes('I already have lyrics or a story'));
   assert.ok(html.includes('id="sh-choice-page"'));
   assert.ok(html.includes('How do you want to start?'));
   assert.ok(js.includes('bootWriteFirst'));
@@ -925,7 +925,8 @@ function runPages() {
   assert.ok(js.includes('basedOnSong'));
   assert.ok(js.includes('basedGuide'));
   assert.ok(js.includes('sh-choice-based'));
-  assert.ok(html.includes('id="sh-choice-source"'));
+  assert.ok(!html.slice(html.indexOf('id="sh-start"'), html.indexOf('id="sh-based"')).includes('id="sh-choice-source"'));
+  assert.ok(!html.slice(html.indexOf('id="sh-start"'), html.indexOf('id="sh-based"')).includes('id="sh-choice-have"'));
   assert.ok(html.includes('id="sh-source"'));
   assert.ok(html.includes('How you write'));
   assert.ok(html.includes('How it feels'));
@@ -1200,8 +1201,8 @@ function runReggae() {
   const html = read('song-helper.html');
   assert.ok(html.includes('Write, Reggae, Funny'));
   assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261016scene'));
-  assert.ok(html.includes('song-helper.css?v=20261016scene'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261017start'));
+  assert.ok(html.includes('song-helper.css?v=20261017start'));
   assert.ok(html.includes('lib/song-pass.js?v=20261015answers'));
   assert.ok(read('song-helper-v2.js').includes('Say what happened before you name the song.'));
   assert.ok(read('song-helper-v2.js').includes('mountAnswerList'));
@@ -1272,14 +1273,17 @@ function runExperience() {
   assert.ok(html.includes('id="sh-mood-next"'), 'mood scene has a next button');
   assert.ok(page.includes("next.textContent = 'Next scene'"), 'interview moves by scene');
   assert.ok(page.includes('SongHelperExperience'), 'talk scenes still call the host');
-  assert.ok(v2.includes('Tap a word to set it on the line.'), 'magnetic tiles explain tap to place');
+  assert.ok(v2.includes('Tap a word to set it on the line.'), 'word tiles explain tap to place');
+  assert.ok(v2.includes("textContent = 'Word tiles'"), 'tiles stay behind a toggle');
+  assert.ok(v2.includes('usefulTileWords'), 'tiles keep useful words only');
   assert.ok(v2.includes('Send it to release') && v2.includes('Write another') && v2.includes('Replay'), 'reveal actions stay');
   assert.ok(v2.includes('Your draft is ready.'), 'reveal line stays');
   assert.ok(css.includes('prefers-reduced-motion: reduce'), 'motion yields when asked');
   assert.ok(html.includes('href="/battle"'), 'Battle link stays');
   const fresh = [
-    'Tap a word to set it on the line. On a bigger screen you can drag it.',
-    'Your answer words show up here. Tell the story, then tap a word onto this line.',
+    'Tap a word to set it on the line.',
+    'No picture words yet. Add a little more of the story, then open this again.',
+    'Word tiles',
     'Ask it in your own words.',
     'Your draft is ready.',
     'Pick a feeling, then the next scene opens.',
