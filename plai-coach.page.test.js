@@ -110,7 +110,13 @@ function runStatic() {
   });
   assert.ok(coachJs.includes("href: '/destination'") && coachJs.includes("href: '/how-it-works.html'") && coachJs.includes("href: '/pricing'") && coachJs.includes("href: '/qualify'"), 'coach chips link verified pages');
   assert.ok(coachJs.includes('function answerQuick') && coachJs.includes('plai-coach-quick'), 'coach chips show a saved answer and then hide');
-  assert.ok(!coachJs.includes('\u2014') && !/Human first/i.test(coachJs) && !/\bSuno\b/.test(coachJs), 'coach quick chat copy stays plain');
+  assert.ok(!coachJs.includes('\u2014') && !coachJs.includes('\u2013') && !/Human first/i.test(coachJs) && !/\bSuno\b/.test(coachJs), 'coach quick chat copy stays plain');
+  assert.ok(coachJs.includes("topic === 'release-week'") && coachJs.includes('Help me plan posts for release week.'), 'release week opens with a local Plai context');
+  assert.ok(coachJs.includes('What day does the song come out?'), 'release week asks for the date without calling the voice session');
+  assert.ok(page.includes('href="/release-week">Plan the posts for release week</a>'), 'Plai page links the release week ideas');
+  const planEnd = page.indexOf('id="plai-action-plan-title">Action Plan</h2>');
+  const weekLink = page.indexOf('href="/release-week">Plan the posts for release week</a>');
+  assert.ok(planEnd !== -1 && weekLink > planEnd, 'release week link sits after the empty Action Plan');
   assert.ok(!/I help people release the music they made with AI tools/.test(read('plai-coach.js')), 'coach chat does not ship the old AI-tools greeting');
   assert.ok(coachJs.includes('OLD_COACH_GREETING'), 'coach chat rewrites the old voice-agent hello');
   assert.ok(coachJs.includes('isOldHelloStream'), 'coach chat hides the old hello while it streams');

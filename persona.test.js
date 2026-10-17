@@ -226,6 +226,22 @@ function runCopy() {
   assert.ok(tonegrid.indexOf('primary_artist') !== -1);
   assert.ok(tonegrid.indexOf('linkStoredRelease') !== -1);
   assert.ok(tonegrid.indexOf('trackArtistRejected') !== -1);
+  const page = read('persona-page.js');
+  assert.ok(page.includes('Saved. Your EPK is still public.'));
+  assert.ok(page.includes('Make private') && page.includes('data-persona-private') && page.includes('unpublish: true'));
+  const week = read('release-week.html');
+  assert.ok(!/[\u2014\u2013]/.test(week), 'release week copy has a dash');
+  assert.ok(!/\bSuno\b|\bToneGrid\b/.test(week));
+  ['A week before', '3 days before', 'Release day', 'The days after', 'Teaser clip', 'Behind the scenes', 'lyric card', 'countdown', 'Release day link post', 'Fan reposts', 'thank-you post', 'Caption starter', 'Hook idea', 'Talk it through with Plai', 'Make your next song', 'Want help? We offer content, fan growth and social media services'].forEach((line) => {
+    assert.ok(week.includes(line), 'release week missing: ' + line);
+  });
+  assert.ok(week.includes('href="/plai.html?topic=release-week"'));
+  assert.ok(week.includes('href="/ar.html">Want help?'));
+  assert.ok(week.includes('href="/song-helper">Make your next song</a>'));
+  assert.ok(vercel.includes('"/release-week"') && vercel.includes('"/release-week.html"'));
+  assert.ok(read('plai.html').includes('href="/release-week">Plan the posts for release week</a>'));
+  assert.ok(read('blog-30-day-plan.html').includes('href="/release-week">plan the posts for release week</a>'));
+  assert.ok(read('site.js').includes('label: "Release week"') && read('site.js').includes('ensureReleaseWeekLink'));
 }
 
 async function runHttp() {
@@ -308,6 +324,31 @@ async function runHttp() {
   const pdf = mockRes();
   await meApi({ method: 'GET', url: '/api/epk?slug=vicki-g&format=pdf', headers: {} }, pdf);
   assert.ok(String(pdf.body).indexOf('%PDF') === 0);
+  const kept = mockRes();
+  await meApi({
+    method: 'POST',
+    url: '/api/me/artists',
+    headers: { cookie: cookie },
+    body: { artist_action: 'persona', id: artist.id, publish: false, persona: Object.assign({ published: false }, readyPersona()) },
+  }, kept);
+  assert.strictEqual(kept.statusCode, 200, kept.body);
+  const keptJson = JSON.parse(kept.body);
+  assert.strictEqual(keptJson.published, true, 'a plain save keeps a live EPK public');
+  const still = mockRes();
+  await meApi({ method: 'GET', url: '/api/epk?slug=vicki-g', headers: {} }, still);
+  assert.strictEqual(still.statusCode, 200, still.body);
+  const hidden = mockRes();
+  await meApi({
+    method: 'POST',
+    url: '/api/me/artists',
+    headers: { cookie: cookie },
+    body: { artist_action: 'persona', id: artist.id, unpublish: true, publish: false, persona: readyPersona() },
+  }, hidden);
+  assert.strictEqual(hidden.statusCode, 200, hidden.body);
+  assert.strictEqual(JSON.parse(hidden.body).published, false);
+  const gone = mockRes();
+  await meApi({ method: 'GET', url: '/api/epk?slug=vicki-g', headers: {} }, gone);
+  assert.strictEqual(gone.statusCode, 404, gone.body);
   const pasted = mockRes();
   await meApi({
     method: 'POST',

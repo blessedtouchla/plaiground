@@ -171,6 +171,30 @@
         var missing = catalog.asks(catalog.normalize(collect(body), { name: state.artist.name }));
         asksHost.innerHTML = missing.length ? '<p>Plai will only ask what is still open.</p><ul class="persona-asks">' + missing.slice(0, 4).map(function (item) { return '<li>' + item.ask + '</li>'; }).join('') + '</ul>' : '<p>Plai has what it needs for the press kit.</p>';
       }
+      paintLinks();
+    }
+    function epkPath() {
+      if (state.epkPath) return state.epkPath;
+      var slug = state.persona && state.persona.slug;
+      if (!slug && catalog.slugify && state.artist) slug = catalog.slugify(state.artist.name);
+      return slug ? '/epk/' + encodeURIComponent(slug) : '';
+    }
+    function paintLinks() {
+      var links = host.querySelector('[data-persona-links]');
+      if (!links || !state.persona) return;
+      var path = epkPath();
+      if (!path) {
+        links.innerHTML = '';
+        return;
+      }
+      var html = '<a href="' + esc(path) + '?preview=1">Preview EPK</a>';
+      if (state.persona.published) html += ' <a href="#persona-private" data-persona-private>Make private</a>';
+      links.innerHTML = html;
+    }
+    function saveStatus(result, publishing) {
+      if (publishing && result.data.published) return 'Your EPK is public.';
+      if (result.data.published) return 'Saved. Your EPK is still public.';
+      return 'Saved. It stays private until you publish.';
     }
     function post(url, body) {
       return fetch(url, {
@@ -219,12 +243,37 @@
         var suggested = state.suggestions && state.suggestions.suggestions;
         if (!suggested) return;
         var current = collect(host);
+        var keepPublic = Boolean(state.persona && state.persona.published);
         state.persona = Object.assign({}, suggested, current);
         if (!String(current.story || '').trim() && suggested.story) state.persona.story = suggested.story;
         if (!(current.vibe || []).length) state.persona.vibe = suggested.vibe;
-        state.persona.published = false;
+        state.persona.published = keepPublic;
         paint();
         status('Suggestions are in the form. Save when they look right. This does not publish.');
+        return;
+      }
+      if (target.closest('[data-persona-private]')) {
+        if (event.preventDefault) event.preventDefault();
+        if (!state.artist) return;
+        var privatePayload = collect(host);
+        if (state.bios) privatePayload.bios = state.bios;
+        status('Making the EPK private.');
+        post('/api/me/artists', {
+          artist_action: 'persona',
+          id: state.artist.id,
+          persona: privatePayload,
+          publish: false,
+          unpublish: true,
+        }).then(function (result) {
+          if (!result.ok) {
+            status((result.data && result.data.error) || 'That did not go through.');
+            return;
+          }
+          state.persona = result.data.persona;
+          if (result.data.epk_path) state.epkPath = result.data.epk_path;
+          paint();
+          status('Your EPK is private now.');
+        }).catch(function () { status('That did not go through.'); });
         return;
       }
       if (target.closest('[data-persona-save]') || target.closest('[data-persona-publish]')) {
@@ -244,12 +293,9 @@
             return;
           }
           state.persona = result.data.persona;
+          if (result.data.epk_path) state.epkPath = result.data.epk_path;
           paint();
-          var links = host.querySelector('[data-persona-links]');
-          if (links && result.data.epk_path) {
-            links.innerHTML = '<a href="' + esc(result.data.epk_path) + '?preview=1">Preview EPK</a>';
-          }
-          status(result.data.published ? 'Your EPK is public.' : 'Saved. It stays private until you publish.');
+          status(saveStatus(result, publishing));
         }).catch(function () { status('Save did not go through.'); });
         return;
       }

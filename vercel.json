@@ -96,6 +96,18 @@
       "permanent": true
     },
     {
+      "source": "/release-week",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/release-week",
+      "permanent": true
+    },
+    {
+      "source": "/release-week/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/release-week",
+      "permanent": true
+    },
+    {
       "source": "/battle",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/battle",
@@ -253,6 +265,8 @@
     { "source": "/already-released", "destination": "/already-released.html" },
     { "source": "/song-helper", "destination": "/song-helper.html" },
     { "source": "/song-helper/", "destination": "/song-helper.html" },
+    { "source": "/release-week", "destination": "/release-week.html" },
+    { "source": "/release-week/", "destination": "/release-week.html" },
     { "source": "/cover-art", "destination": "/cover-art.html" },
     { "source": "/cover-art/", "destination": "/cover-art.html" },
     { "source": "/battle", "destination": "/battle.html" },

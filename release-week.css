@@ -1,0 +1,43 @@
+.release-week-days {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.release-week-days article {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 20px;
+}
+.release-week-days h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+.release-week-kicker {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.release-week-days p {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+.release-week-days p:last-child { margin-bottom: 0; }
+.release-week-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+.release-week-note { margin-top: 28px; }
+.release-week-note a { color: var(--gold); }
+@media (max-width: 720px) {
+  .release-week-days { grid-template-columns: 1fr; }
+}
