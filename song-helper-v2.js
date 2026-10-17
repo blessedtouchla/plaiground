@@ -5029,29 +5029,14 @@
         }
         return;
       }
-      var saveRes = await fetch('/api/me/lyrics', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ song: record }),
-      });
-      var saved = await saveRes.json().catch(function () { return {}; });
-      if (!saveRes.ok || !saved.song || !saved.song.id) {
-        showSaveGate('We could not make the game just now. Your song is still here.');
-        if (button) {
-          button.disabled = false;
-          button.textContent = 'Make it a game';
-        }
-        return;
-      }
-      if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
       var stageRes = await fetch('/api/me/stage', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ action: 'add', lyric_id: saved.song.id }),
+        body: JSON.stringify({ action: 'make', song: record }),
       });
       var stageData = await stageRes.json().catch(function () { return {}; });
+      if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
       if (!stageRes.ok || !stageData.item) {
         showSaveError((stageData && stageData.error) || 'We could not make the game just now. Your song is still here.');
         if (button) {
@@ -5091,7 +5076,7 @@
     var origin = window.location && window.location.origin ? window.location.origin : '';
     link.textContent = origin + path;
     var note = document.createElement('p');
-    note.textContent = 'Share that link. A friend can play with no account.';
+    note.textContent = 'It is on your stage. Share that link. A friend can play with no account.';
     card.appendChild(title);
     card.appendChild(link);
     card.appendChild(note);

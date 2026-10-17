@@ -359,5 +359,19 @@ CREATE TABLE IF NOT EXISTS stage_stats (
   finishes integer NOT NULL DEFAULT 0,
   top_score integer NOT NULL DEFAULT 0,
   missed jsonb NOT NULL DEFAULT '{}'::jsonb,
+  level_scores jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE stage_stats ADD COLUMN IF NOT EXISTS level_scores jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- Fans who played a stage game. A random id or IP, plus which songs they had already seen.
+CREATE TABLE IF NOT EXISTS stage_fans (
+  fan_key text NOT NULL,
+  artist_slug text NOT NULL,
+  known jsonb NOT NULL DEFAULT '[]'::jsonb,
+  seen jsonb NOT NULL DEFAULT '[]'::jsonb,
+  told jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (fan_key, artist_slug)
 );

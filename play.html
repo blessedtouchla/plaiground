@@ -85,18 +85,27 @@
         <img class="play-plai" src="assets/plai-avatar.png" alt="Plai" />
       </header>
       <p class="hint" data-play-status>Loading the game.</p>
+      <p class="play-challenge" data-challenge hidden></p>
+      <p class="stage-note" data-stage-note hidden></p>
       <div class="play-hud" aria-live="polite">
         <span data-score>Score 0</span>
         <span data-combo>Combo 0</span>
         <span data-hearts>Hearts ♥♥♥</span>
       </div>
-      <p class="play-help">Tap the hook words in order. The extra words are from the verses. No account needed.</p>
+      <div class="play-levels" data-levels></div>
+      <p class="play-level" data-level>Level 1. The hook</p>
+      <p class="play-your-score" data-your-score hidden></p>
+      <p class="play-help">Tap the words in order. A wrong word costs a heart. No account needed.</p>
       <div class="play-sky" data-sky></div>
     </div>
     <section class="play-done" data-play-done hidden>
-      <h2>You finished the hook!</h2>
+      <h2>You caught it.</h2>
       <p class="play-hook" data-hook></p>
-      <button class="btn btn-gold btn-md" type="button" data-share>Challenge a friend</button>
+      <p data-level-score></p>
+      <button class="btn btn-gold play-again" type="button" data-play-again>Play again, beat your score</button>
+      <button class="btn btn-purple btn-md" type="button" data-next-level hidden>Play level 2</button>
+      <label class="play-name">Your name <input data-player-name maxlength="24" placeholder="Your name" autocomplete="nickname"></label>
+      <button class="btn btn-ghost btn-md" type="button" data-share>Challenge a friend</button>
       <p data-share-note hidden>Link copied. Send it to a friend.</p>
       <a class="btn btn-purple btn-md" href="/song-helper">Make your own song on wannaplai</a>
     </section>
@@ -112,7 +121,8 @@
     </div>
   </footer>
   <script src="lib/features.js?v=20261017stage"></script>
-  <script src="play.js?v=20261017stage"></script>
+  <script src="lib/song-game.js?v=20261017stage"></script>
+  <script src="play.js?v=20261017stage4"></script>
   <script src="site.js?v=20261014pixels"></script>
   <script src="plai-bubble.js" defer></script>
 </body>
