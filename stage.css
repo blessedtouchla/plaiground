@@ -1,0 +1,79 @@
+.stage-public {
+  margin: 28px 0 8px;
+}
+.stage-public h2,
+.stage-row h3,
+.sh-x-game-title {
+  font-family: "Space Grotesk", Inter, sans-serif;
+}
+.stage-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.stage-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 96px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(125, 60, 255, 0.45);
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+}
+.stage-tile strong {
+  color: #F5C542;
+  font-size: 18px;
+}
+.stage-tile span {
+  color: #C8C8D0;
+  font-size: 14px;
+}
+.stage-add {
+  display: inline-flex;
+  margin: 8px 0 14px;
+  min-height: 44px;
+}
+.stage-row {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.stage-row h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.stage-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.stage-controls .btn {
+  min-height: 44px;
+}
+.stage-stats {
+  margin: 10px 0 0;
+  color: #F5C542;
+}
+.sh-x-game-ready {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 197, 66, 0.7);
+  background: #111;
+}
+.sh-x-game-title {
+  margin: 0 0 8px;
+  color: #F5C542;
+  font-size: 22px;
+}
+.sh-x-game-ready a {
+  color: #fff;
+  word-break: break-all;
+}
+.sh-x-game-ready p {
+  margin: 8px 0 0;
+}

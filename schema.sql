@@ -324,3 +324,40 @@ CREATE TABLE IF NOT EXISTS artist_dev_state (
   persona jsonb,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Songs an artist put on their stage, in display order.
+CREATE TABLE IF NOT EXISTS stage_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
+  lyric_id text NOT NULL DEFAULT '',
+  position integer NOT NULL DEFAULT 0,
+  title text NOT NULL DEFAULT '',
+  game_slug text NOT NULL,
+  artist_slug text NOT NULL DEFAULT '',
+  artist_name text NOT NULL DEFAULT '',
+  artist_photo text NOT NULL DEFAULT '',
+  artist_colors jsonb NOT NULL DEFAULT '[]'::jsonb,
+  game jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS stage_items_game_slug_idx
+  ON stage_items (game_slug);
+
+CREATE INDEX IF NOT EXISTS stage_items_user_idx
+  ON stage_items (user_id, position);
+
+CREATE INDEX IF NOT EXISTS stage_items_artist_idx
+  ON stage_items (artist_slug, position);
+
+-- Plays, finishes, top score, and missed hook lines for one game.
+CREATE TABLE IF NOT EXISTS stage_stats (
+  game_slug text PRIMARY KEY,
+  user_id text NOT NULL,
+  plays integer NOT NULL DEFAULT 0,
+  finishes integer NOT NULL DEFAULT 0,
+  top_score integer NOT NULL DEFAULT 0,
+  missed jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);

@@ -5006,6 +5006,98 @@
     }
   }
 
+  async function makeGame(button) {
+    var features = window.PlaigroundFeatures;
+    if (!features || !features.enabled('SONG_GAME_ENABLED') || !features.enabled('STAGE_ENABLED')) return;
+    var record = songRecord();
+    if (!record) {
+      showSaveError('Write a draft before you make it a game.');
+      return;
+    }
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Adding it...';
+    }
+    if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.hold(record);
+    try {
+      var session = await fetch('/api/me', { credentials: 'same-origin' });
+      if (session.status === 401) {
+        showSaveGate('');
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Make it a game';
+        }
+        return;
+      }
+      var saveRes = await fetch('/api/me/lyrics', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ song: record }),
+      });
+      var saved = await saveRes.json().catch(function () { return {}; });
+      if (!saveRes.ok || !saved.song || !saved.song.id) {
+        showSaveGate('We could not make the game just now. Your song is still here.');
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Make it a game';
+        }
+        return;
+      }
+      if (window.PlaigroundLyricsAccount) window.PlaigroundLyricsAccount.clearPending();
+      var stageRes = await fetch('/api/me/stage', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ action: 'add', lyric_id: saved.song.id }),
+      });
+      var stageData = await stageRes.json().catch(function () { return {}; });
+      if (!stageRes.ok || !stageData.item) {
+        showSaveError((stageData && stageData.error) || 'We could not make the game just now. Your song is still here.');
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Make it a game';
+        }
+        return;
+      }
+      showGameReady(stageData.item);
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'On your stage';
+      }
+    } catch (err) {
+      showSaveGate('We could not make the game just now. Your song is still here.');
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'Make it a game';
+      }
+    }
+  }
+
+  function showGameReady(item) {
+    var host = document.querySelector('.sh-x-reveal-tools');
+    if (!host || !item) return;
+    var old = host.querySelector('.sh-x-game-ready');
+    if (old) old.remove();
+    var card = document.createElement('div');
+    card.className = 'sh-x-game-ready';
+    card.setAttribute('role', 'status');
+    var title = document.createElement('p');
+    title.className = 'sh-x-game-title';
+    title.textContent = 'Your game is ready';
+    var path = item.play || ('/play/' + item.slug);
+    var link = document.createElement('a');
+    link.href = path;
+    var origin = window.location && window.location.origin ? window.location.origin : '';
+    link.textContent = origin + path;
+    var note = document.createElement('p');
+    note.textContent = 'Share that link. A friend can play with no account.';
+    card.appendChild(title);
+    card.appendChild(link);
+    card.appendChild(note);
+    host.appendChild(card);
+  }
+
   function presentReveal(anchor) {
     if (!anchor) return;
     var oldCurtain = anchor.querySelector('.sh-x-curtain');
@@ -5050,6 +5142,14 @@
     actions.appendChild(replay);
     actions.appendChild(send);
     actions.appendChild(again);
+    if (window.PlaigroundFeatures && window.PlaigroundFeatures.enabled('SONG_GAME_ENABLED') && window.PlaigroundFeatures.enabled('STAGE_ENABLED')) {
+      var gameBtn = document.createElement('button');
+      gameBtn.type = 'button';
+      gameBtn.className = 'btn btn-gold btn-md';
+      gameBtn.textContent = 'Make it a game';
+      gameBtn.addEventListener('click', function () { makeGame(gameBtn); });
+      actions.appendChild(gameBtn);
+    }
     tools.appendChild(wave);
     tools.appendChild(actions);
     anchor.insertBefore(curtain, anchor.firstChild);

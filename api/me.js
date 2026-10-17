@@ -25,6 +25,8 @@
  * GET  /api/admin/mail-failures owner session only; artist emails that did not send
  * POST /api/admin/test-emails owner session only; four labeled test notes to the owner inbox
  * POST /api/apply          public; Hobby rewrite onto this function (?action=apply)
+ * GET/POST /api/me/stage   session required; stage songs, order, and artist stats
+ * GET/POST /api/play       public; play a hook game and record a play
  *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
@@ -44,6 +46,7 @@ const platformLinks = require('../lib/platform-links');
 const profile = require('../lib/profile');
 const persona = require('../lib/persona');
 const personaHttp = require('../lib/persona-http');
+const stageHttp = require('../lib/stage-http');
 const releaseCredits = require('../lib/release-credits');
 const {
   attachSession,
@@ -119,6 +122,8 @@ const ROUTE_ACTIONS = {
   epk: true,
   'persona-import': true,
   'persona-bio': true,
+  stage: true,
+  play: true,
 };
 
 function artistVerb(body) {
@@ -166,6 +171,18 @@ function isLyrics(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/lyrics') return true;
   return queryValue(req, 'action') === 'lyrics';
+}
+
+function isStage(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/stage') return true;
+  return queryValue(req, 'action') === 'stage';
+}
+
+function isPlay(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/play') return true;
+  return queryValue(req, 'action') === 'play';
 }
 
 function isRoadmap(req) {
@@ -1392,6 +1409,14 @@ module.exports = async function handler(req, res) {
   }
   if (isEpk(req)) {
     await personaHttp.handleEpk(req, res);
+    return;
+  }
+  if (isPlay(req)) {
+    await stageHttp.handlePlay(req, res);
+    return;
+  }
+  if (isStage(req)) {
+    await stageHttp.handleStage(req, res);
     return;
   }
   if (isPersonaImport(req)) {
