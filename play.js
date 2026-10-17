@@ -13,6 +13,7 @@
     done: false,
     played: false,
     toBeat: 0,
+    result: '',
     kind: '',
     games: [],
     colors: ['#7D3CFF', '#FF3C8E', '#F5C542'],
@@ -161,6 +162,13 @@
     var scoreLine = $('[data-level-score]');
     var next = $('[data-next-level]');
     if (hook) hook.textContent = level.hook || (level.words || []).join(' ');
+    var heading = panel && panel.querySelector('h2');
+    if (heading) heading.textContent = state.result || 'You caught it.';
+    var place = $('[data-place]');
+    if (place) {
+      place.hidden = !state.result;
+      place.textContent = state.result || '';
+    }
     if (scoreLine) scoreLine.textContent = (level.label || 'Level 1') + ' score ' + formatScore(state.score);
     if (next) {
       var upcoming = state.level < 3;
@@ -274,7 +282,7 @@
   }
 
   function helpFor(kind) {
-    if (kind === 'racer') return 'Steer into the next word. A wrong word slows you down. Hook lines are boost pads.';
+    if (kind === 'racer') return 'Hold a side to drift, then release for a boost. The right word box boosts you. A wrong word spins you out.';
     if (kind === 'hero') return 'Tap the lane, or press A S D F, as the note reaches the line.';
     return 'Tap the words in order. A wrong word costs a heart. No account needed.';
   }
@@ -317,6 +325,7 @@
         line.hidden = !text;
         line.textContent = text || '';
       },
+      setResult: function (text) { state.result = text || ''; },
       miss: function (line) { postEvent('miss', { line: line || '' }); },
       finish: finish,
       fail: fail,
@@ -395,6 +404,7 @@
     state.combo = 0;
     state.hearts = 3;
     state.done = false;
+    state.result = '';
     var done = $('[data-play-done]');
     var fail = $('[data-play-fail]');
     if (done) done.hidden = true;
