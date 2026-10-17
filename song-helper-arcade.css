@@ -1,0 +1,435 @@
+/* Song Helper arcade. Flag on only. Motion yields when asked. */
+
+body.arcade-on {
+  background: #14081f;
+}
+body.arcade-on .nav {
+  background: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+body.arcade-on .nav-links,
+body.arcade-on .nav-actions,
+body.arcade-on .public-header-tools {
+  display: none;
+}
+#sh-shell.is-arcade > :not(#sh-arcade) {
+  display: none !important;
+}
+#sh-shell.is-arcade {
+  max-width: 1120px;
+}
+
+#sh-arcade {
+  position: relative;
+  color: #f7f2ff;
+  min-height: 70vh;
+  padding-bottom: 72px;
+}
+.arcade-top {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 36px;
+  margin-bottom: 8px;
+}
+.arcade-credits {
+  border: 2px solid #f5c542;
+  color: #f5c542;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+.arcade-kicker {
+  text-align: center;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ff4fa3;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.arcade-hero {
+  text-align: center;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(40px, 7vw, 72px);
+  line-height: 0.95;
+  margin: 0 0 16px;
+  color: #efe4ff;
+  text-shadow: 0 0 18px rgba(168, 85, 247, 0.85);
+  text-transform: uppercase;
+}
+.arcade-plai {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, 100%);
+  margin: 0 auto 28px;
+  background: #2a1650;
+  border-radius: 999px;
+  padding: 8px 16px 8px 8px;
+  box-shadow: 0 0 0 2px rgba(125, 60, 255, 0.35);
+}
+.arcade-face {
+  width: 42px;
+  height: 42px;
+  flex: none;
+}
+.arcade-face svg { width: 100%; height: 100%; display: block; }
+.arcade-plai p { margin: 0; font-size: 15px; }
+
+.arcade-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+.arcade-cab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: #1a1030;
+  border: 3px solid #ff3c8e;
+  border-radius: 18px;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(255, 60, 142, 0.28);
+}
+.arcade-cab.tone-gold {
+  border-color: #f5c542;
+  box-shadow: 0 0 24px rgba(245, 197, 66, 0.28);
+}
+.arcade-cab.tone-cyan {
+  border-color: #3ee0ff;
+  box-shadow: 0 0 24px rgba(62, 224, 255, 0.28);
+}
+.arcade-cab-head {
+  margin: 0;
+  padding: 12px 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  background: #ff3c8e;
+  color: #1a0b12;
+  border-radius: 14px 14px 0 0;
+  text-transform: uppercase;
+}
+.tone-gold .arcade-cab-head { background: #f5c542; }
+.tone-cyan .arcade-cab-head { background: #3ecbff; color: #062028; }
+.arcade-screen {
+  margin: 12px;
+  background: #12091c;
+  border-radius: 12px;
+  min-height: 132px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+.arcade-screen p { margin: 0; color: #d9d0ea; font-size: 14px; }
+.arcade-heart { width: 54px; height: 54px; }
+.arcade-emoji { font-size: 42px; line-height: 1; }
+.arcade-knobs { display: flex; gap: 8px; }
+.arcade-knob {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #9af6ff, #1a6f8a 60%, #0b2430);
+  box-shadow: inset 0 0 0 3px #123;
+}
+.arcade-start-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 8px;
+}
+.arcade-stick {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff4fa3;
+  box-shadow: 0 6px 0 #7a2048;
+  flex: none;
+}
+.arcade-press {
+  margin-left: auto;
+  background: #f5c542;
+  color: #1a1200;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 8px 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.arcade-time {
+  margin: 0 14px 12px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #b7a8d4;
+  text-align: center;
+}
+.arcade-new {
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  background: #ff4fa3;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 3px 8px;
+  transform: rotate(8deg);
+}
+.arcade-floor {
+  margin-top: 28px;
+  text-align: center;
+}
+.arcade-floor p { margin: 0 0 18px; color: #efe8ff; }
+.arcade-floor strong { color: #f5c542; }
+.arcade-grid {
+  height: 90px;
+  background:
+    linear-gradient(rgba(120, 70, 255, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 70, 255, 0.35) 1px, transparent 1px);
+  background-size: 42px 42px;
+  transform: perspective(180px) rotateX(58deg);
+  transform-origin: center top;
+  mask-image: linear-gradient(to bottom, #000, transparent);
+}
+
+.arcade-scene, .arcade-reveal { position: relative; }
+.arcade-mode {
+  display: block;
+  width: max-content;
+  margin: 0 auto 12px;
+  background: #f5c542;
+  color: #1a1200;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.arcade-level {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #d5c8ef;
+  margin-bottom: 18px;
+}
+.arcade-bar {
+  flex: 1;
+  height: 14px;
+  border-radius: 999px;
+  background: #2a1848;
+  box-shadow: inset 0 0 0 2px #5a3d86;
+  overflow: hidden;
+}
+.arcade-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #f5c542, #ffe98a);
+  width: 0;
+  transition: width 0.35s ease;
+}
+.arcade-pts { color: #f5c542; font-weight: 800; }
+.arcade-ask-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.arcade-ask-row .arcade-face { width: 84px; height: 84px; }
+.arcade-ask {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 0.95;
+  margin: 0;
+  text-transform: uppercase;
+}
+.arcade-ask em { font-style: normal; color: #f5c542; }
+.arcade-help { margin: 6px 0 0; color: #d5c8ef; }
+.arcade-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 14px; }
+.arcade-tile {
+  border: 2px solid #6d4db5;
+  background: #2a1658;
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.arcade-tile.on {
+  background: #f5c542;
+  color: #1a1200;
+  border-color: #f5c542;
+}
+.arcade-field { display: block; margin: 8px 0; }
+.arcade-field span, .arcade-take-label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #ff8fc4;
+  margin-bottom: 6px;
+}
+.arcade-field input, .arcade-take, .arcade-lyric {
+  width: 100%;
+  box-sizing: border-box;
+  background: #140c22;
+  color: #fff;
+  border: 2px solid #3ecbff;
+  border-radius: 14px;
+  padding: 12px;
+  font: inherit;
+}
+.arcade-take { min-height: 96px; }
+.arcade-versions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.arcade-version {
+  border-radius: 999px;
+  border: 2px solid #f5c542;
+  background: transparent;
+  color: #f5c542;
+  padding: 8px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.arcade-version.on { background: #f5c542; color: #1a1200; }
+.arcade-note {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px dashed #8a6bc4;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #ddd4f5;
+  font-size: 13px;
+}
+.arcade-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 22px;
+  gap: 12px;
+}
+.arcade-back, .arcade-sound {
+  background: none;
+  border: 0;
+  color: #efe8ff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.arcade-next, .arcade-copy-big, .arcade-open {
+  background: #f5c542;
+  color: #1a1200;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 800;
+  padding: 12px 18px;
+  cursor: pointer;
+}
+.arcade-next:disabled { opacity: 0.45; cursor: default; }
+.arcade-free { margin: 0; color: #b7a8d4; font-size: 13px; }
+
+.arcade-score {
+  text-align: center;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #ff4fa3;
+  font-weight: 800;
+  margin: 0;
+}
+.arcade-song {
+  text-align: center;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: clamp(36px, 6vw, 64px);
+  margin: 4px 0;
+  color: #f5c542;
+  text-shadow: 0 0 16px rgba(245, 197, 66, 0.45);
+}
+.arcade-clear {
+  text-align: center;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  color: #c9bee6;
+  margin-bottom: 16px;
+}
+.arcade-panels {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.arcade-panel {
+  border: 3px solid #f5c542;
+  border-radius: 18px;
+  padding: 14px;
+  background: #160c28;
+  box-shadow: 0 0 18px rgba(245, 197, 66, 0.18);
+}
+.arcade-panel.tone-cyan {
+  border-color: #3ecbff;
+  box-shadow: 0 0 18px rgba(62, 203, 255, 0.18);
+}
+.arcade-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: #f5c542;
+}
+.tone-cyan .arcade-panel-head { color: #9aefff; }
+.arcade-lyric { min-height: 180px; white-space: pre-wrap; }
+.arcade-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.arcade-actions button, .arcade-copy-big, .arcade-open { font: inherit; }
+.arcade-ghost {
+  background: transparent;
+  color: #efe8ff;
+  border: 2px solid #8d6ad4;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.arcade-copy-big, .arcade-open { width: 100%; margin-top: 8px; }
+.arcade-tips { color: #ddd4f5; font-size: 14px; }
+.arcade-host-line {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+.arcade-banner {
+  background: #2a1650;
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: #efe8ff;
+}
+
+@media (min-width: 900px) {
+  .arcade-row { grid-template-columns: repeat(3, 1fr); align-items: end; }
+  .arcade-cab.is-tilt { transform: rotate(-2.2deg); }
+  .arcade-cab.is-tilt:hover { transform: rotate(-2.2deg) translateY(-4px); }
+  .arcade-panels { grid-template-columns: 1.1fr 0.9fr; }
+  .arcade-cab:hover { transform: translateY(-4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arcade-bar span,
+  .arcade-cab,
+  .arcade-cab.is-tilt,
+  .arcade-grid {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}

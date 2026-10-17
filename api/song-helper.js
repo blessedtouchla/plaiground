@@ -27,6 +27,7 @@ const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
 const features = require('../lib/features');
 const parodyV2 = require('../lib/parody-v2');
+const songArcade = require('../lib/song-helper-arcade');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -232,6 +233,35 @@ async function roleReply(req, res, role, body) {
       error: busy ? 'The writer is busy. Try again in a moment.' : 'That note did not come back. Try again in a moment.',
     });
   }
+}
+
+async function handleArcadeWrite(req, res, body) {
+  if (!features.enabled('SONG_HELPER_ARCADE')) {
+    sendJson(res, 404, { ok: false, error: 'That action is not on this page.' });
+    return;
+  }
+  var userId = guard.sessionUserId(req);
+  if (!userId) {
+    sendJson(res, 401, { ok: false, error: songArcade.SIGN_IN_NOTE });
+    return;
+  }
+  var filtered = guard.contentFilter([body && body.story, body && body.line, body && body.title].join('\n'));
+  if (!filtered.ok) {
+    sendJson(res, 400, { ok: false, error: filtered.error });
+    return;
+  }
+  var charged;
+  try {
+    charged = await artistDev.chargeCredit(userId);
+  } catch (err) {
+    var status = err && err.code === 'CREDITS' ? 402 : 500;
+    sendJson(res, status, { ok: false, error: err && err.message ? err.message : 'That uses 1 credit. You are out of credits.' });
+    return;
+  }
+  var pack = songArcade.writePack(body || {});
+  pack.credit = 1;
+  pack.credits = charged.credits;
+  sendJson(res, 200, pack);
 }
 
 async function handleParodyWrite(req, res, body) {
@@ -880,6 +910,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleParodyWrite(req, res, parodyBody || {});
     return;
   }
+  if (action === 'arcade-write') {
+    var arcadeBody = givenBody;
+    if (!arcadeBody) arcadeBody = await readBody(req);
+    await handleArcadeWrite(req, res, arcadeBody || {});
+    return;
+  }
   if (action === 'slang') {
     var region = '';
     if (req.query && req.query.region) region = String(req.query.region);
@@ -980,7 +1016,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite' || body.action === 'parody-write') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite' || body.action === 'parody-write' || body.action === 'arcade-write') {
     await handleAction(req, res, String(body.action), body);
     return;
   }
