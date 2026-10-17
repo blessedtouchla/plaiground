@@ -1613,6 +1613,43 @@ body.song-helper-page .plai-bubble {
   opacity: 0.35;
   cursor: default;
 }
+.sh-guide {
+  margin: 0 0 10px;
+}
+
+.sh-guide-tiles {
+  margin: 0;
+}
+
+.sh-guide-tile {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.sh-guide-card {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(125, 60, 255, 0.18);
+  border: 1px solid rgba(125, 60, 255, 0.5);
+}
+
+.sh-guide-prompt {
+  margin: 0 0 4px;
+  color: #fff;
+  font-weight: 650;
+}
+
+.sh-guide-example {
+  margin: 0 0 8px;
+  color: #F5C542;
+}
+
+.sh-guide-credit {
+  margin: 8px 0 0;
+}
+
 .sh-x-tile-toggle {
   display: inline-flex;
   align-items: center;

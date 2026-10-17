@@ -4467,20 +4467,22 @@
     persistPage();
   }
 
-  function suggestSection(id, button) {
+  function suggestSection(id, button, seedText) {
     var row = findPart(id);
     var core = window.SongHelperCore;
     if (!row) return;
     var text = String(row.text || '');
     var others = otherBody(id);
-    if (!text.trim() && !others.trim()) {
+    var seed = String(seedText || '').trim();
+    var sent = text.trim() ? text : seed;
+    if (!sent.trim() && !others.trim()) {
       partError(id, 'Write a little in this part first. Then I can offer a line.');
       return;
     }
     partError(id, '');
     pageError('');
     var before = text;
-    var fallback = core && core.suggestFallback ? core.suggestFallback(row.label, text, others) : [];
+    var fallback = core && core.suggestFallback ? core.suggestFallback(row.label, sent, others) : [];
     if (button) button.disabled = true;
     fetch('/api/song-helper', {
       method: 'POST',
@@ -4488,7 +4490,7 @@
       body: JSON.stringify({
         action: 'suggest',
         section: row.label,
-        text: text,
+        text: sent,
         others: others,
       }),
     }).then(function (response) {
@@ -4982,9 +4984,112 @@
     article.insertBefore(board, area);
   }
 
+  var guideActive = {};
+
+  function guideTilesOn() {
+    var features = window.PlaigroundFeatures;
+    return !!(features && features.enabled && features.enabled('GUIDE_TILES_ENABLED'));
+  }
+
+  function guideContext() {
+    var own = ownIdea();
+    var flow = window.SongFlowPage && window.SongFlowPage.flowState ? window.SongFlowPage.flowState() : {};
+    var sense = flow.sensory || {};
+    var story = [own.idea, own.story, own.feel, own.keep].filter(Boolean).join(' ');
+    return {
+      kinds: flow.kinds || [],
+      aims: flow.aims || [],
+      mood: readMood(),
+      story: story,
+      opener: flow.opener || '',
+      wisdom: flow.wisdom || '',
+      keep: flow.keep || own.keep || '',
+      forText: flow.forText || '',
+      place: sense.place || '',
+      moment: sense.object || sense.place || '',
+    };
+  }
+
+  function mountGuideTiles(article, row, area) {
+    if (!guideTilesOn() || !area) return;
+    var lib = window.PlaigroundGuideTiles;
+    if (!lib || !lib.tilesFor || !lib.partKey(row)) return;
+    var pack = lib.tilesFor(row, guideContext());
+    if (!pack.tiles.length) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'sh-guide';
+    var tiles = document.createElement('div');
+    tiles.className = 'sh-chips sh-guide-tiles';
+    tiles.setAttribute('role', 'group');
+    tiles.setAttribute('aria-label', 'Guide tiles for ' + row.label);
+    var card = document.createElement('div');
+    card.className = 'sh-guide-card';
+    card.hidden = true;
+
+    function paintCard(tile, focus) {
+      guideActive[row.id] = tile.id;
+      card.hidden = false;
+      card.textContent = '';
+      Array.prototype.forEach.call(tiles.querySelectorAll('.sh-guide-tile'), function (button) {
+        var on = button.getAttribute('data-guide') === tile.id;
+        button.classList.toggle('on', on);
+        button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      var prompt = document.createElement('p');
+      prompt.className = 'sh-guide-prompt';
+      prompt.textContent = 'Plai: ' + tile.prompt;
+      var example = document.createElement('p');
+      example.className = 'sh-guide-example';
+      example.textContent = 'Example: ' + tile.example;
+      var lineBtn = document.createElement('button');
+      lineBtn.type = 'button';
+      lineBtn.className = 'btn btn-white btn-md';
+      lineBtn.textContent = 'Give me a line';
+      lineBtn.addEventListener('click', function () {
+        suggestSection(row.id, lineBtn, tile.prompt + ' ' + tile.example);
+      });
+      var credit = document.createElement('p');
+      credit.className = 'sh-help sh-guide-credit';
+      credit.textContent = 'This uses one credit. Nothing is added until you tap Use this.';
+      card.appendChild(prompt);
+      card.appendChild(example);
+      card.appendChild(lineBtn);
+      card.appendChild(credit);
+      if (!focus) return;
+      var end = area.value.length;
+      try {
+        area.focus();
+        area.setSelectionRange(end, end);
+      } catch (err) {}
+      lyricCaret = { el: area, start: end, end: end };
+    }
+
+    pack.tiles.forEach(function (tile) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sh-chip sh-guide-tile';
+      button.textContent = tile.label;
+      button.setAttribute('data-guide', tile.id);
+      button.setAttribute('aria-pressed', 'false');
+      button.addEventListener('click', function () { paintCard(tile, true); });
+      tiles.appendChild(button);
+    });
+    wrap.appendChild(tiles);
+    wrap.appendChild(card);
+    article.insertBefore(wrap, area);
+    var saved = guideActive[row.id];
+    if (!saved) return;
+    var match = null;
+    pack.tiles.forEach(function (tile) {
+      if (!match && tile.id === saved) match = tile;
+    });
+    if (match) paintCard(match, false);
+  }
+
   function mountPartScene(article, row, host) {
     var kind = row.kind;
     var area = article.querySelector('.sh-part-box');
+    if (area && (kind === 'hook' || kind === 'verse' || kind === 'bridge')) mountGuideTiles(article, row, area);
     if (area) mountWordTiles(article, area);
     if (kind !== 'hook' && kind !== 'verse' && kind !== 'bridge') return;
     var next = document.createElement('button');

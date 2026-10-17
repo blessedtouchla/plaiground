@@ -1201,8 +1201,8 @@ function runReggae() {
   const html = read('song-helper.html');
   assert.ok(html.includes('Write, Reggae, Funny'));
   assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261017tools'));
-  assert.ok(html.includes('song-helper.css?v=20261017tools'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261017guide'));
+  assert.ok(html.includes('song-helper.css?v=20261017guide'));
   assert.ok(html.includes('lib/song-pass.js?v=20261015answers'));
   assert.ok(read('song-helper-v2.js').includes('Say what happened before you name the song.'));
   assert.ok(read('song-helper-v2.js').includes('mountAnswerList'));
