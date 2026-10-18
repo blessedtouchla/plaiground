@@ -153,7 +153,31 @@
       var record = view.scoreLine === 'New high score';
       wrap.appendChild(el('p', 'v3-score' + (record ? ' is-record' : ''), view.scoreLine));
       if (view.label) wrap.appendChild(el('span', 'v3-badge', view.label));
-      wrap.appendChild(el('pre', 'v3-lyrics', view.lyrics || ''));
+      if (view.empty) {
+        // Never show an empty lyric box. Offer a retry instead.
+        var lost = el('div', 'v3-card v3-lost');
+        lost.appendChild(el('p', 'v3-plai', view.retry === 'write'
+          ? 'Plai lost the words. Tap to try again. You were not charged.'
+          : 'No words here yet. Tap to go back and write your chorus and verse.'));
+        var again = el('button', 'v3-go', view.retry === 'write' ? 'Try again (free)' : 'Back to my words');
+        again.type = 'button';
+        again.setAttribute('data-act', 'retry');
+        again.addEventListener('click', function () {
+          if (view.retry === 'write') {
+            var back = flow.act(state, { type: 'back' });
+            back.screen = 'a10a';
+            setState(back);
+            return;
+          }
+          var target = flow.act(state, { type: 'back' });
+          target.screen = 'a10v';
+          setState(target);
+        });
+        lost.appendChild(again);
+        wrap.appendChild(lost);
+      } else {
+        wrap.appendChild(el('pre', 'v3-lyrics', view.lyrics));
+      }
       if (view.checks && view.checks.length) {
         var hit = el('ul', 'v3-checks');
         view.checks.forEach(function (row) {
@@ -369,8 +393,11 @@
         askWriter('v3-write').then(function (data) {
           busy = false;
           var song = data.song;
-          if (!song || !song.text) song = localSample(writer.compose(flow.brief(state)));
-          else if (data.sample) {
+          if (!song || !String(song.text || '').trim()) {
+            lostWords(before);
+            return;
+          }
+          if (data.sample) {
             song.sample = true;
             song.source = 'sample';
             song.notice = data.notice || writer.SAMPLE_NOTICE;
@@ -384,7 +411,7 @@
             paint();
             return;
           }
-          setState(flow.act(state, { type: 'wrote', song: localSample(writer.compose(flow.brief(state))) }));
+          lostWords(before);
         });
       });
       main.appendChild(write);
@@ -421,6 +448,13 @@
   }
 
   var busy = false;
+
+  // A failed or empty write refunds the credit and stays on the write screen.
+  function lostWords(before) {
+    saveWallet(before);
+    state.notice = 'Plai lost the words. Tap to try again. You were not charged.';
+    paint();
+  }
 
   function localSample(song) {
     song.sample = true;
