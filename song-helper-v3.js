@@ -16,6 +16,11 @@
     localStorage.removeItem(APP);
   }
 
+  // Private key from the hidden link (?k=...). The write actions need it.
+  function pageKey() {
+    try { return new URLSearchParams(location.search).get('k') || ''; } catch (err) { return ''; }
+  }
+
   var state = flow.fresh();
   state.best = readNum(BEST);
 
@@ -465,6 +470,7 @@
 
   function askWriter(action, extra) {
     var body = Object.assign({ action: action, company_website: '' }, flow.brief(state), extra || {});
+    body.k = pageKey();
     return fetch('/api/song-helper', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -18,6 +18,7 @@
 
 const core = require('../lib/song-helper');
 const songV3 = require('../lib/song-v3');
+const v3Gate = require('../lib/song-v3-gate');
 const flow = require('../lib/song-flow');
 const xai = require('../lib/xai-client');
 const guard = require('../lib/song-guard');
@@ -154,6 +155,13 @@ async function handleV3(req, res, action, body) {
     return;
   }
   var payload = body || {};
+  // Hidden link only: without the private key these actions do not exist.
+  if (!v3Gate.keyOk(payload.k || v3Gate.queryKey(req))) {
+    sendJson(res, 404, { ok: false, error: 'Not found.' });
+    return;
+  }
+  payload = Object.assign({}, payload);
+  delete payload.k;
   if (honeypotFilled(payload)) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
@@ -932,7 +940,32 @@ async function handleDev(req, res, action, body) {
   }
 }
 
+// The new Song Helper page. Served only with the private key; everyone else
+// goes to the live Song Helper. Never cached, never indexed.
+function handleV3Page(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    sendJson(res, 405, { ok: false, error: 'Use GET.' });
+    return;
+  }
+  if (!v3Gate.keyOk(v3Gate.queryKey(req))) {
+    res.statusCode = 302;
+    res.setHeader('Location', '/song-helper');
+    res.end('');
+    return;
+  }
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.end(req.method === 'HEAD' ? '' : v3Gate.PAGE_HTML);
+}
+
 async function handleAction(req, res, action, givenBody) {
+  if (action === 'v3-page') {
+    handleV3Page(req, res);
+    return;
+  }
   if (isV3Action(action)) {
     var v3Body = givenBody;
     if (!v3Body && req.method === 'POST') v3Body = await readBody(req);
