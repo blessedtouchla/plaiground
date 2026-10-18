@@ -109,7 +109,7 @@
   <script src="account.js?v=20260910live1"></script>
   <script src="lib/upload-cancel-overview.js?v=20260910c1"></script>
   <script src="lib/upload-leave.js?v=20260912ly5"></script>
-  <script src="lib/upload-required.js?v=20260918vn1"></script>
+  <script src="lib/upload-required.js?v=20261018solo1"></script>
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/release-credits.js?v=20260918vn1"></script>
   <script src="https://static.signwell.com/assets/embedded.js"></script>
@@ -263,10 +263,55 @@
           }
         }
         if (shareCents() !== 10000) return 'Shares among writers must total 100% of the writer’s 50%.';
-        if (!payload.writers || payload.writers.length < 2) {
-          return 'Add a co-writer. Solo 100% is attested in the app and is not sent to SignWell.';
-        }
         return '';
+      }
+
+      // One writer at 100% is the solo path: attested in the app, no SignWell.
+      function isSoloSheet(payload) {
+        return Boolean(payload && payload.writers && payload.writers.length === 1 && shareCents() === 10000);
+      }
+
+      // Review reads plaiground.store.draft. Mirror the sheet fields there too.
+      function mirrorToStoreDraft(patch) {
+        var keys = ['plaiground.store.draft'];
+        [localStorage, sessionStorage].forEach(function (store) {
+          keys.forEach(function (key) {
+            try {
+              var current = parseDraft(store.getItem(key));
+              if (!current || !Object.keys(current).length) {
+                if (store === sessionStorage) return;
+              }
+              Object.keys(patch || {}).forEach(function (k) {
+                if (patch[k] !== undefined) current[k] = patch[k];
+              });
+              store.setItem(key, JSON.stringify(current));
+            } catch (err) {}
+          });
+        });
+      }
+
+      function finishSolo(payload) {
+        var patch = {
+          title: payload.songTitle,
+          writers: payload.writers,
+          solo_owned_100: true,
+          solo_writer_confirmed: true,
+          other_writers: false,
+          other_writer_count: 0,
+          signwell_document_id: '',
+          signwell_signed: false,
+          signwell_status: 'solo',
+        };
+        saveDraft(patch);
+        mirrorToStoreDraft(patch);
+        showStatus('ok', 'Solo 100% is attested in the app and is not sent to SignWell. Taking you to Review.');
+        var files = window.PlaigroundUploadDraftFiles;
+        var hold = files && typeof files.keepHeldFiles === 'function' ? files.keepHeldFiles(window) : Promise.resolve(null);
+        return Promise.resolve(hold).then(function () {
+          if (window.location) window.location.href = 'review.html';
+        }, function () {
+          if (window.location) window.location.href = 'review.html';
+        });
       }
 
       function markSignButtons(incomplete) {
@@ -336,10 +381,12 @@
           title: payload.songTitle,
           writers: payload.writers,
           solo_owned_100: false,
+          solo_writer_confirmed: false,
         };
         Object.keys(extra || {}).forEach(function (key) {
           if (extra[key] !== undefined) patch[key] = extra[key];
         });
+        mirrorToStoreDraft(patch);
         return saveDraft(patch);
       }
 
@@ -391,7 +438,7 @@
           url: url,
           containerId: 'signwell-embed',
           allowClose: true,
-          redirectionUrl: '/review.html',
+          redirectionUrl: new URL('review.html', window.location.href).toString(),
           events: {
             completed: function () {
               refreshSignWellStatus(documentId).then(function () {
@@ -410,10 +457,12 @@
           showStatus('bad', error);
           return;
         }
-        if (!payload.writers || payload.writers.length < 2) {
-          showStatus('bad', 'Add a co-writer. Solo 100% is attested in the app and is not sent to SignWell.');
+        if (isSoloSheet(payload)) {
+          await finishSolo(payload);
           return;
         }
+        // A 1-writer sheet is never minted in SignWell.
+        if (payload.writers.length < 2) return;
         if (!configured) {
           showStatus('err', 'SignWell is not configured. Set SIGNWELL_API_KEY and SIGNWELL_TEMPLATE_ID.');
           return;
@@ -497,6 +546,7 @@
         var index = Number(button.getAttribute('data-remove'));
         if (index > 0) writers.splice(index, 1);
         render();
+        refreshIncomplete();
       });
 
       addBtn.addEventListener('click', function () {
@@ -504,6 +554,7 @@
         readAll();
         writers.push({ first_name: '', last_name: '', name: '', email: '', share: 0, pro: '' });
         render();
+        refreshIncomplete();
       });
 
       signBtn.addEventListener('click', function () { createSheet(false); });

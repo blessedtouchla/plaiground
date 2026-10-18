@@ -1024,7 +1024,8 @@
   function isSoloOwned(draft) {
     var gate = rules();
     if (gate && typeof gate.isSoloOwned === 'function') return gate.isSoloOwned(draft);
-    return draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true') && !String((draft && draft.featured) || '').trim();
+    var confirmed = draft && (draft.solo_writer_confirmed === true || draft.solo_writer_confirmed === 'true');
+    return draft && (draft.solo_owned_100 === true || draft.solo_owned_100 === 'true') && (confirmed || !String((draft && draft.featured) || '').trim());
   }
 
   function checkSignWell(documentId) {
@@ -3373,6 +3374,7 @@
       ai_service: draft.ai_service || '',
       ai_service_other: draft.ai_service_other || '',
       solo_owned_100: solo,
+      solo_writer_confirmed: solo && (draft.solo_writer_confirmed === true || draft.solo_writer_confirmed === 'true'),
       featured: draft.featured || '',
       title: draft.title || '',
       songTitle: draft.title || draft.songTitle || '',
