@@ -31,7 +31,7 @@
     },
     {
       q: 'What does it cost?',
-      a: 'Join free. You keep 100% of your royalties. Distribution is $2.49 per song and optional. Monthly plans are coming soon.',
+      a: 'Join free. You keep 100% of your recording royalties. Publishing is optional, under a separate agreement. Distribution is $2.49 per song and optional. Monthly plans are coming soon.',
       href: '/pricing',
       link: 'Plans and pricing',
     },
