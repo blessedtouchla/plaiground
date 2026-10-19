@@ -69,7 +69,7 @@
     return '';
   }
 
-  var FREE_ACCOUNT_DETAIL = 'One free account for everyone. There is no monthly plan. Artists keep 100% of their royalties. Management plans keep their prices. Apply free. No charge to apply.';
+  var FREE_ACCOUNT_DETAIL = 'One free account for everyone. There is no monthly plan. Artists keep 100% of their recording royalties. Publishing is optional, under a separate agreement. Management plans keep their prices. Apply free. No charge to apply.';
   var PLAN_PITCH = {
     creator: 'Free account',
     pro: 'Free account',
