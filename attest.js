@@ -624,7 +624,12 @@
       if (fields.made_how === 'ai_assisted' && onlySoftChips(fields.human_elements)) {
         selectHow('fully_ai', { keepSwitchNote: true });
         showSwitched(true);
-        setStatus('');
+        var switchedNote = document.querySelector('[data-switched]');
+        var switchedLine = document.querySelector('[data-switched-line]');
+        setStatus(switchedLine ? switchedLine.textContent : '');
+        if (switchedNote && switchedNote.scrollIntoView) {
+          try { switchedNote.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (errScroll) {}
+        }
         return false;
       }
       markHumanSaved();
