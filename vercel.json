@@ -212,6 +212,12 @@
     }
   ],
   "rewrites": [
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/terms/", "destination": "/terms.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/privacy/", "destination": "/privacy.html" },
+    { "source": "/faq", "destination": "/faq.html" },
+    { "source": "/faq/", "destination": "/faq.html" },
     { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },
     { "source": "/api/me/catalog", "destination": "/api/me?action=catalog" },
     { "source": "/api/me/profile", "destination": "/api/me?action=profile" },

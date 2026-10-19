@@ -7048,6 +7048,13 @@
           markIncomplete(trigger, true);
           return;
         }
+        if (!pick.allOn && !pick.slugs.length) {
+          trigger.removeAttribute('aria-busy');
+          setStatus('tg-status', 'Pick at least one store before you submit.');
+          markStatusError(true);
+          markIncomplete(trigger, true);
+          return;
+        }
         var submitPatch = { release_date: releaseDate, dsps: pick.slugs, dsps_all: pick.allOn };
         var reviewGenre = catalogFieldValue('tg-genre') || draft.genre || '';
         var reviewLanguage = reviewInstrumental() ? '' : (catalogLanguageValue() || draft.language || '');
