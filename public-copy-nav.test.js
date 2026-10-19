@@ -46,7 +46,7 @@ function run() {
   assert.ok(!/Built for any AI music creator/i.test(index), 'homepage must not use the AI-only eyebrow');
   assert.ok(!/for AI music creators/i.test(index), 'homepage meta must not say for AI music creators');
   assert.ok(/for artists and all music/i.test(index), 'homepage meta must be all-music');
-  assert.ok(/Keep 100% of your royalties/i.test(index), 'homepage promises artists keep 100% of royalties');
+  assert.ok(/100% of your recording royalties\. Publishing is optional, under a separate agreement/i.test(index), 'homepage promises 100% of recording royalties');
   assert.ok(index.includes('class="public-header-tools"'), 'homepage HTML pins Login outside the drawer');
   assert.ok(/class="public-header-tools"[\s\S]*href="login.html">Log in/.test(index), 'homepage phone Login is in the header cluster');
   assert.ok(index.includes('public-menu-toggle'), 'homepage HTML has the public menu toggle');
@@ -191,7 +191,7 @@ function run() {
   assert.ok(/Every artist can use it\. Publishing not required/.test(faq), 'Video Collect is open to every artist');
   assert.ok(/Opt-in per song\. Original audio only/.test(faq), 'Video Collect is opt-in original audio');
   assert.ok(/Covers, samples, and already-claimed conflicts get a review/.test(faq), 'conflicts get a review');
-  assert.ok(/PLAIGROUND takes 0%\./.test(faq) && /You get 100% of the payout/.test(faq), 'Video Collect is 0% / 100%');
+  assert.ok(/100% of your recording royalties\. Publishing is optional, under a separate agreement\./.test(faq), 'FAQ payout answer uses the recording royalties line');
   assert.ok(/first royalty cycle after a match/.test(faq), 'first pay is the first cycle after a match');
   assert.ok(/collection and monetize, not a views buy/.test(faq), 'Video Collect Monetize is collection');
   assert.ok(/Not the same as buying YouTube views/.test(faq), 'not a YouTube views buy');
@@ -272,7 +272,7 @@ function run() {
   const royalties = read('royalties.html');
   assert.ok(royalties.includes('Wanna plai?'), 'royalties page keeps the Wanna plai? call');
   assert.ok(/PLAIGROUND takes no commission/i.test(royalties), 'royalties page states no commission');
-  assert.ok(/0% cut of royalties/i.test(royalties), 'royalties page states a 0% cut');
+  assert.ok(/takes no commission on your recording royalties/i.test(royalties), 'royalties page states a 0% cut');
   assert.ok(/The account is free/i.test(royalties), 'royalties page says the account is free');
   assert.ok(/There is no monthly subscription/i.test(royalties), 'royalties page says there is no monthly subscription');
   assert.ok(!/\$14\.99/.test(royalties) && !/\$19\.99/.test(royalties), 'royalties page does not sell old membership prices');
