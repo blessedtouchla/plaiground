@@ -192,7 +192,7 @@
         featured: featured,
         solo_owned_100: !featured && !others,
         other_writers: others,
-        other_writer_count: others ? Number(otherCount && otherCount.value) || 0 : 0,
+        other_writer_count: others ? (otherCount ? Number(otherCount.value) || 0 : (Number(draft && draft.other_writer_count) || 1)) : 0,
         legal_first: legal.first,
         legal_last: legal.last,
         name: String((draft && (draft.name || draft.artist)) || '').trim(),
