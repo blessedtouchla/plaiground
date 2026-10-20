@@ -8315,3 +8315,17 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
   .play-card:hover,
   .play-card:focus-within { transform: none; }
 }
+
+/* Homepage-style menu groups: accordion inside the open mobile drawer. */
+.nav.nav-open .nav-links[data-home-groups] .nav-group-toggle {
+  position: static; width: 100%; height: auto; margin: 0; clip: auto; overflow: visible;
+  display: flex; justify-content: space-between; align-items: center;
+  min-height: 48px; padding: 12px 0; background: transparent; border: 0; border-top: 1px solid rgba(255,255,255,.08);
+  font-family: "Space Grotesk", Inter, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 0; text-transform: none;
+  color: #fff; pointer-events: auto; cursor: pointer;
+}
+.nav.nav-open .nav-links[data-home-groups] .nav-group-toggle::after { display: inline-block; content: "+"; color: #F5C542; font-size: 20px; line-height: 1; width: auto; height: auto; border: 0; background: none; transform: none; margin: 0; }
+.nav.nav-open .nav-links[data-home-groups] .nav-group.open > .nav-group-toggle::after { content: "\2212"; }
+.nav.nav-open .nav-links[data-home-groups] .nav-group > .nav-group-menu,
+.nav.nav-open .nav-links[data-home-groups] .nav-group:hover > .nav-group-menu { display: none; }
+.nav.nav-open .nav-links[data-home-groups] .nav-group.open > .nav-group-menu { display: flex; padding: 0 0 8px 12px; }

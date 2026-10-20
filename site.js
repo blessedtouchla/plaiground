@@ -740,6 +740,7 @@
 
   function ensureContractsPublic(links) {
     if (!links || !links.querySelector || links.querySelector('[data-nav-group="contracts"]')) return;
+    if (links.getAttribute("data-home-groups") === "1") return;
     var group = makeNavGroup("contracts", "Contracts");
     fillContractMenu(group.querySelector(".nav-group-menu"), "active");
     var whats = links.querySelector('[data-nav-group="whats-new"]');
@@ -787,6 +788,66 @@
     });
   }
 
+  // Menu mirrors the homepage: Song Lab, What's new, then Make it / Protect it / Put it out / Grow.
+  var HOME_GROUPS = [
+    { id: "make", label: "Make it", test: /cover-art|make-human|battle|spark|my-lyrics/ },
+    { id: "protect", label: "Protect it", test: /contracts|copyright|qualify|claim|publishing|split|transparency|rights/ },
+    { id: "out", label: "Put it out", test: /how-it-works|pricing|signup|upload|(^|\/)ar(\.html)?$|epk|royalties|release-week|already-released|plans|basic|creator|pro\.html/ },
+    { id: "grow", label: "Grow", test: /.*/ }
+  ];
+  var GROUP_EXTRAS = {
+    make: [{ href: "/cover-art", label: "Cover Art" }, { href: "/make-human", label: "Make it human" }, { href: "/battle", label: "Battle" }, { href: "/spark", label: "What's hot" }],
+    protect: [{ href: "/contracts", label: "Contracts hub" }, { href: "/qualify", label: "Is my song ready?" }, { href: "/copyright", label: "Copyright & publishing" }, { href: "/claim", label: "Claim my human parts" }, { href: "split-sheet.html", label: "Split sheets" }, { href: "publishing.html", label: "Publishing registration" }],
+    out: [{ href: "signup.html", label: "Release a song" }],
+    grow: [{ href: "/persona.html", label: "Artist Development" }, { href: "/destination", label: "Route map" }, { href: "/guide", label: "Guide" }]
+  };
+
+  function regroupHomeNav(links) {
+    if (!links || !links.querySelectorAll || links.getAttribute("data-home-groups") === "1") return;
+    var keep = {};
+    Array.prototype.forEach.call(links.querySelectorAll('[data-nav-group="whats-new"], [data-nav-group="song-helper"]'), function (g) { keep[g.getAttribute("data-nav-group")] = g; });
+    var seen = {};
+    var buckets = { make: [], protect: [], out: [], grow: [] };
+    Array.prototype.forEach.call(links.querySelectorAll("a"), function (a) {
+      if (a.closest && a.closest('[data-nav-group="whats-new"], [data-nav-group="song-helper"]')) return;
+      var href = String(a.getAttribute("href") || "");
+      var label = String(a.textContent || "").replace(/\s+/g, " ").trim();
+      if (!href || !label || /song-helper/.test(href)) return;
+      if (href === "/charts" || /charts\.html$/.test(href)) {
+        a = document.createElement("a");
+        a.setAttribute("href", "https://www.plainow.com");
+        a.setAttribute("target", "_blank");
+        a.setAttribute("rel", "noopener");
+        a.textContent = "plainow";
+        href = "https://www.plainow.com"; label = "plainow";
+      }
+      var k = href + "|" + label;
+      if (seen[k]) return;
+      seen[k] = 1;
+      for (var i = 0; i < HOME_GROUPS.length; i += 1) {
+        if (HOME_GROUPS[i].test.test(href)) { buckets[HOME_GROUPS[i].id].push(a); break; }
+      }
+    });
+    Object.keys(GROUP_EXTRAS).forEach(function (id) {
+      GROUP_EXTRAS[id].forEach(function (x) {
+        var dup = buckets[id].some(function (a) { return String(a.getAttribute("href") || "").replace(/^\//, "") === x.href.replace(/^\//, ""); });
+        if (dup) return;
+        var a = document.createElement("a"); a.setAttribute("href", x.href); a.textContent = x.label; buckets[id].push(a);
+      });
+    });
+    while (links.firstChild) links.removeChild(links.firstChild);
+    if (keep["song-helper"]) links.appendChild(keep["song-helper"]);
+    if (keep["whats-new"]) links.appendChild(keep["whats-new"]);
+    HOME_GROUPS.forEach(function (g) {
+      if (!buckets[g.id].length) return;
+      var group = makeNavGroup(g.id, g.label);
+      var menu = group.querySelector(".nav-group-menu");
+      buckets[g.id].forEach(function (a) { a.removeAttribute("style"); menu.appendChild(a); });
+      links.appendChild(group);
+    });
+    links.setAttribute("data-home-groups", "1");
+  }
+
   function setupPublicNavSections(links) {
     if (!links) return;
     foldPublicPlanHeroes(links);
@@ -794,6 +855,7 @@
       ensurePublicRoadmap(links);
       ensureWhatsNewPublic(links);
       ensureContractsPublic(links);
+      regroupHomeNav(links);
       wirePublicNavGroups(links);
       return;
     }
@@ -860,6 +922,7 @@
     links.appendChild(makeNavLinkGroup("listen", "Listen", charts));
     links.appendChild(makeNavLinkGroup("stories", "Stories", blog));
     links.setAttribute("data-nav-sections", "1");
+    regroupHomeNav(links);
     wirePublicNavGroups(links);
   }
 
