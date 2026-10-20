@@ -165,3 +165,12 @@
   background: #000;
 }
 body.cover-make-open { overflow: hidden; }
+
+/* Crop or fit choice (Oct 19). */
+.cover-fit-choice { width: min(320px, 78vw); margin: 8px auto 0; display: flex; flex-direction: column; gap: 8px; }
+.cover-fit-choice[hidden], .cover-fit-colors[hidden], .cover-fit-hint[hidden] { display: none !important; }
+.cover-fit-modes, .cover-fit-colors { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+.cover-fit-mode, .cover-fit-swatch { margin: 0; padding: 6px 12px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: none; color: var(--muted-2, #C8C8D0); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.cover-fit-mode.is-on, .cover-fit-swatch.is-on { border-color: #F3CB47; color: #fff; }
+.cover-fit-swatch i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.5); display: inline-block; }
+.cover-fit-label, .cover-fit-hint { margin: 0; font-size: 12px; color: var(--muted-2, #C8C8D0); text-align: center; }
