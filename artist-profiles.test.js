@@ -181,7 +181,7 @@ function runPage() {
   assert.ok(!section.includes('id="artist-spotify"'));
   assert.ok(artists.includes('artist-profiles.js'));
   assert.ok(artists.includes('artist-profiles.css'));
-  assert.ok(artists.includes('artists.js?v=20260922ar3'));
+  assert.ok(artists.includes('artists.js?v=20261019aid1'));
   assert.ok(destination.includes('artist-profiles.js'));
   assert.ok(destJs.includes('ArtistProfiles') && destJs.includes('pickedStage'));
   const added = section + '\n' + js + '\n' + css;
