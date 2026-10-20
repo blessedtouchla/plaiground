@@ -3684,6 +3684,30 @@
     return out;
   }
 
+  // Read-only facts for the review page: same sources createTrack and submit use.
+  function reviewFacts() {
+    var draft = readDraft();
+    var legal = hopLegalFields(draft);
+    var tracks = [];
+    if (draft.type === 'album') {
+      albumRowsForSubmit(draft).forEach(function (t) {
+        var f = (t && (t.file || t.audio)) || null;
+        tracks.push({ title: (t && t.title) || '', name: (t && t.audio_name) || (f && f.name) || '', has: Boolean(t && (f || t.audio_name || t.audio_uploaded || t.track_id || t.audio_attached)) });
+      });
+    } else {
+      var picked = selectedAudio();
+      var name = String(draft.audio_name || draft.audio_picked_name || (picked && picked.name) || '').trim();
+      tracks.push({ title: draft.title || '', name: name, has: draftHasTrackFile(draft), url: draft.audio_url || '', duration: Number(draft.audio_duration || draft.duration || 0) || 0, file: picked || null });
+    }
+    return {
+      artist: String(draft.name || '').trim(),
+      legal_first: legal.legal_first || '',
+      legal_last: legal.legal_last || '',
+      tracks: tracks,
+    };
+  }
+  if (typeof window !== 'undefined') window.PlaigroundReviewFacts = reviewFacts;
+
   function hopCreditFields(draft) {
     var label = fieldValue('tg-label') || String((draft && draft.label) || '').trim();
     if (label === 'PLAIGROUND') label = '';
