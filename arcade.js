@@ -22,10 +22,10 @@
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function btn(label, cls, onClick, disabled) { var b = el('button', cls || 'v3-go', label); b.type = 'button'; b.disabled = !!disabled; b.onclick = onClick; return b; }
   function wallet() { try { var w = JSON.parse(localStorage.getItem(WALLET) || ''); if (w && typeof w.freeLeft === 'number') return w; } catch (e) {} return { freeLeft: 1, credits: 0 }; }
-  function canSpend() { var w = wallet(); return w.freeLeft > 0 || w.credits > 0; }
-  function spend() { var w = wallet(); if (w.freeLeft > 0) w.freeLeft -= 1; else if (w.credits > 0) w.credits -= 1; else return false; localStorage.setItem(WALLET, JSON.stringify(w)); return true; }
-  function refund(before) { localStorage.setItem(WALLET, JSON.stringify(before)); }
-  function priceTag(n) { if (!n) return 'free'; return wallet().freeLeft > 0 ? 'free write' : n + ' credit'; }
+  function canSpend() { return true; }
+  function spend() { return true; }
+  function refund() {}
+  function priceTag() { return 'free'; }
   function go(screen) { if (S.screen !== screen) { S.history.push(S.screen); S.points += 100; } S.screen = screen; S.note = ''; paint(); window.scrollTo(0, 0); }
   function back() { S.screen = S.history.pop() || 'home'; S.note = ''; paint(); }
   function post(action, extra) {
@@ -242,9 +242,9 @@
     S.busy = true; S.note = 'Writing...'; paint();
     post('arcade-write').then(function (d) {
       S.busy = false;
-      if (!d.ok) { if (!human) refund(before); S.note = d.error || 'Could not write that. You were not charged.'; paint(); return; }
+      if (!d.ok) { if (!human) refund(before); S.note = d.error || 'Could not write that.'; paint(); return; }
       finish(d.lyrics, d, 0);
-    }).catch(function () { if (!human) refund(before); S.busy = false; S.note = 'Plai lost the words. You were not charged.'; paint(); });
+    }).catch(function () { if (!human) refund(before); S.busy = false; S.note = 'Plai lost the words.'; paint(); });
   }
   function finish(lyrics, d, scoreBefore) {
     S.result = { lyrics: lyrics, sample: !!(d && d.sample), notice: (d && d.notice) || '', scoreBefore: scoreBefore || 0, label: A.aiLabel(S) };
@@ -268,7 +268,7 @@
     } else {
       w.appendChild(plai('I go first. Brace yourself.'));
     }
-    w.appendChild(btn(S.busy ? 'Plai is writing...' : (b.charged ? 'Fire' : 'Fire (' + priceTag(1) + ' for all 3 rounds)'), 'v3-go', function () {
+    w.appendChild(btn(S.busy ? 'Plai is writing...' : (b.charged ? 'Fire' : 'Fire (all 3 rounds free)'), 'v3-go', function () {
       if (needUser && !String(b.bars || '').trim()) { S.note = 'Write your bars first.'; paint(); return; }
       var before = wallet();
       if (!b.charged) { if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; } b.charged = true; }
@@ -389,7 +389,7 @@
     S.busy = true; paint();
     post('arcade-fix', { text: S.fix.text, off: S.fix.off }).then(function (d) {
       S.busy = false;
-      if (!d.ok) { refund(before); S.note = (d.error || 'Could not fix that.') + ' You were not charged.'; paint(); return; }
+      if (!d.ok) { refund(before); S.note = (d.error || 'Could not fix that.') + ''; paint(); return; }
       S.fix.before = S.fix.text; S.fix.after = d.lyrics; S.fix.notice = d.notice || ''; if (d.crisis) S.crisis = true; go('f-compare');
     });
   }
@@ -448,7 +448,7 @@
     S.busy = true; paint();
     post('arcade-flip', { text: f.text }).then(function (d) {
       S.busy = false;
-      if (!d.ok) { refund(before); S.note = (d.error || 'Could not flip that.') + ' You were not charged.'; paint(); return; }
+      if (!d.ok) { refund(before); S.note = (d.error || 'Could not flip that.') + ''; paint(); return; }
       S.userWords = true; S.aiLevel = 'assist';
       if (!S.title) S.title = 'The Flip';
       finish(d.lyrics, d, 0);
@@ -460,11 +460,10 @@
     root.innerHTML = '';
     var w = el('div', 'v3-wrap arc-wrap');
     var top = el('div', 'v3-top'); var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
-    var wl = wallet(); top.appendChild(el('span', 'v3-credits', wl.freeLeft > 0 ? 'FREE WRITE' : ('CREDITS ' + wl.credits)));
+    top.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
     top.appendChild(el('span', 'v3-points', String(S.points)));
     w.appendChild(top);
-    w.appendChild(el('p', 'v3-preview', 'Arcade preview. The live Song Helper stays put.'));
-    if (S.crisis) w.appendChild(crisisCard());
+        if (S.crisis) w.appendChild(crisisCard());
     if (S.screen !== 'home') w.appendChild(btn('Back', 'v3-link arc-back', back));
     (SCREENS[S.screen] || SCREENS.home)(w);
     if (S.note) w.appendChild(el('p', 'arc-note', S.note));
