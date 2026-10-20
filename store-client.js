@@ -1965,6 +1965,14 @@
     return next;
   }
 
+  // Releases left behind by Start over are never picked up again.
+  function isAbandonedRelease(id) {
+    try {
+      var list = JSON.parse(localStorage.getItem('plaiground.store.abandoned_releases') || '[]') || [];
+      return list.indexOf(String(id || '').trim().toLowerCase()) !== -1;
+    } catch (err) { return false; }
+  }
+
   function adoptCandidateIds(draft, skipId) {
     var seen = {};
     var out = [];
@@ -1972,6 +1980,7 @@
       var n = String(id || '').trim();
       if (!isUuidValue(n)) return;
       if (sameUuid(n, skipId) || isProtectedCatalogRelease(n)) return;
+      if (isAbandonedRelease(n)) return;
       if (isKnownDeadRelease(n) && !isKnownAdoptRelease(n)) return;
       var key = n.toLowerCase();
       if (seen[key]) return;
