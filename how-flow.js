@@ -15,7 +15,7 @@
     if (state === 'playing') { synth.pause(); state = 'paused'; setUi(); return; }
     if (state === 'paused') { synth.resume(); state = 'playing'; setUi(); return; }
     synth.cancel();
-    var u = new SpeechSynthesisUtterance(text.textContent.trim());
+    var u = new SpeechSynthesisUtterance((text.getAttribute('data-hw-script') || text.textContent).trim());
     u.rate = 1; u.pitch = 1.05;
     var voices = synth.getVoices().filter(function (v) { return /^en/i.test(v.lang); });
     if (voices.length) u.voice = voices[0];

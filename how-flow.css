@@ -28,3 +28,34 @@
 .hw-tool em{font-style:normal;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:#F5C542;color:#111;border-radius:999px;padding:3px 9px;margin-top:6px}
 @media (min-width:900px){.hw-steps{max-width:640px}}
 .hw-stop[hidden]{display:none}
+
+/* Journey v2: one numbered flow in three colored phases */
+.hj-map{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.hj-chip{padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px;color:#111}
+.hj-chip.c1,.hj-p1 .hj-tag{background:#F5C542}.hj-chip.c2,.hj-p2 .hj-tag{background:#9B5CFF;color:#fff}.hj-chip.c3,.hj-p3 .hj-tag{background:#FF3EA5;color:#fff}
+.hj-phase{padding:44px 0;border-top:4px solid}
+.hj-p1{background:linear-gradient(180deg,rgba(245,197,66,.14),#0b0b0d 70%);border-color:#F5C542}
+.hj-p2{background:linear-gradient(180deg,rgba(155,92,255,.18),#0b0b0d 70%);border-color:#9B5CFF}
+.hj-p3{background:linear-gradient(180deg,rgba(255,62,165,.16),#0b0b0d 70%);border-color:#FF3EA5}
+.hj-tag{display:inline-block;padding:4px 12px;border-radius:999px;font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#111;margin:0}
+.hj-phase h2,.hj-tools h2{font-family:"Space Grotesk",Inter,sans-serif;font-size:clamp(30px,8vw,48px);margin:10px 0 6px;color:#fff}
+.hj-lead{color:rgba(255,255,255,.75);margin:0 0 20px}
+.hj-list{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.hj-step{display:grid;grid-template-columns:auto auto 1fr;gap:12px;align-items:start;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.hj-n{font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;font-size:44px;line-height:.9;min-width:62px}
+.hj-p1 .hj-n,.hj-p1 .hj-ic{color:#F5C542}.hj-p2 .hj-n,.hj-p2 .hj-ic{color:#B488FF}.hj-p3 .hj-n,.hj-p3 .hj-ic{color:#FF5DB4}
+.hj-ic{font-size:22px;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.06);display:grid;place-items:center}
+.hj-step h3{margin:2px 0 4px;font-size:18px;color:#fff}
+.hj-step p{margin:0;color:rgba(255,255,255,.75);font-size:15px;line-height:1.45}
+.hj-step a{color:#F5C542;font-weight:700;margin-left:4px}
+.hj-soon{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;border:1px solid currentColor;font-size:11px;font-weight:700;color:#FF5DB4;vertical-align:middle}
+.hj-tools{padding:44px 0 56px;background:#0b0b0d;border-top:1px solid rgba(255,255,255,.08)}
+.hj-tools .hj-tag{background:#fff}
+.hj-tool-row{display:grid;gap:12px;margin-top:12px}
+.hj-tool-row a{display:block;padding:18px;border-radius:16px;background:rgba(245,197,66,.08);border:1px solid rgba(245,197,66,.35);color:#fff;text-decoration:none}
+.hj-tool-row span{font-size:24px;color:#F5C542;display:block}
+.hj-tool-row b{display:block;font-size:20px;margin:4px 0}
+.hj-tool-row em{font-style:normal;color:rgba(255,255,255,.75)}
+.hj-cta{margin-top:22px}
+@media (min-width:760px){.hj-list{grid-template-columns:1fr 1fr;column-gap:36px}.hj-tool-row{grid-template-columns:1fr 1fr;max-width:760px}.hj-n{font-size:56px}}
+.hj-step,.hj-tool-row a{text-align:left}
