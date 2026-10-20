@@ -27,10 +27,16 @@ const slang = require('../lib/slang');
 const reddit = require('../lib/reddit-slang');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
+const arcadeServer = require('../lib/arcade-server');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
   windowMs: core.RATE_WINDOW_MS,
+});
+
+const arcadeLimiter = core.createLimiter({
+  max: 150,
+  windowMs: 60 * 60 * 1000,
 });
 
 const v3Limiter = core.createLimiter({
@@ -961,9 +967,75 @@ function handleV3Page(req, res) {
   res.end(req.method === 'HEAD' ? '' : v3Gate.PAGE_HTML);
 }
 
+// Preview deploys only: the signed-in owner account opens the Arcade with no key in the URL.
+async function ownerOnPreview(req) {
+  if (String(process.env.VERCEL_ENV || '') === 'production') return false;
+  try {
+    const auth = require('../lib/auth');
+    const session = auth.sessionFromRequest(req);
+    if (!session) return false;
+    const row = await require('../lib/accounts').findById(session.userId);
+    return Boolean(row && auth.hasStaffProOverride(row.email));
+  } catch (err) {
+    return false;
+  }
+}
+
+// Hidden Song Helper Arcade. Same private key gate as the v3 preview.
+async function handleArcade(req, res, action, givenBody) {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  if (action === 'arcade-page') {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    if (!v3Gate.keyOk(v3Gate.queryKey(req)) && !(await ownerOnPreview(req))) {
+      res.statusCode = 302;
+      res.setHeader('Location', '/song-helper');
+      res.end('');
+      return;
+    }
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(req.method === 'HEAD' ? '' : arcadeServer.PAGE_HTML);
+    return;
+  }
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { ok: false, error: 'Use POST.' });
+    return;
+  }
+  var body = givenBody || await readBody(req) || {};
+  if (body.__tooBig || body.__bad) {
+    sendJson(res, 400, { ok: false, error: 'Could not read that.' });
+    return;
+  }
+  if (!v3Gate.keyOk(body.k || v3Gate.queryKey(req)) && !(await ownerOnPreview(req))) {
+    sendJson(res, 404, { ok: false, error: 'Not found.' });
+    return;
+  }
+  if (honeypotFilled(body)) {
+    sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
+    return;
+  }
+  if (action !== 'arcade-status' && !arcadeLimiter.allow(clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
+  }
+  var payload = Object.assign({}, body);
+  delete payload.k;
+  try {
+    var out = await arcadeServer.ACTIONS[action](payload);
+    sendJson(res, out.status, out.body);
+  } catch (err) {
+    sendJson(res, 502, { ok: false, error: 'The writer is busy. Try again in a moment.' });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'v3-page') {
     handleV3Page(req, res);
+    return;
+  }
+  if (action === 'arcade-page' || Object.prototype.hasOwnProperty.call(arcadeServer.ACTIONS, action)) {
+    await handleArcade(req, res, action, givenBody);
     return;
   }
   if (isV3Action(action)) {
