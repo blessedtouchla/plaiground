@@ -689,7 +689,11 @@
     function applyPickedSong() {
       var stage = '';
       try {
-        if (root.ArtistProfiles && typeof root.ArtistProfiles.pickedStage === 'function') {
+        var q = new URLSearchParams((root.location && root.location.search) || '').get('stage');
+        if (/^(idea|made|out)$/.test(String(q || ''))) stage = q;
+      } catch (err) {}
+      try {
+        if (!stage && root.ArtistProfiles && typeof root.ArtistProfiles.pickedStage === 'function') {
           stage = root.ArtistProfiles.pickedStage();
         }
       } catch (err) {

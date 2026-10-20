@@ -33,3 +33,31 @@
   .hf-path p{margin-left:0}
 }
 .hero-siqa-proof .hero-siqa-kicker{text-transform:none;letter-spacing:.04em;font-size:.95rem}
+
+/* v2: five-icon summary, roadmap front door, compact sections */
+.hf-five{padding:28px 0 20px;background:#0b0b0d;text-align:center}
+.hf-five-h{font-family:"Space Grotesk",Inter,sans-serif;font-size:22px;margin:0 0 16px;color:#fff}
+.hf-icons{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hf-icons li:nth-child(4){grid-column:1/2;margin-left:50%;width:100%}
+.hf-icons li:nth-child(4),.hf-icons li:nth-child(5){transform:translateX(0)}
+.hf-icons a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:14px;background:rgba(245,197,66,.06);color:#fff;text-decoration:none;min-height:96px}
+.hf-ic{font-size:24px;color:#F5C542;line-height:1}
+.hf-icons b{font-size:15px}
+.hf-icons em{font-style:normal;font-size:12px;color:rgba(255,255,255,.7);line-height:1.2}
+@media (max-width:719px){.hf-icons{grid-template-columns:repeat(6,1fr)}.hf-icons li{grid-column:span 2}.hf-icons li:nth-child(4){grid-column:2/span 2;margin:0}.hf-icons li:nth-child(5){grid-column:4/span 2}}
+@media (min-width:720px){.hf-icons{grid-template-columns:repeat(5,1fr);max-width:900px;margin:0 auto}.hf-icons li:nth-child(4){grid-column:auto;margin:0}.hf-five{padding:44px 0 36px}.hf-five-h{font-size:30px}}
+.hf-panel.hf-road{min-height:0;padding:40px 0}
+.hf-road h2{margin:6px 0 8px}
+.hf-step1{color:#F5C542;font-weight:700;margin:18px 0 10px}
+.hf-road-picks{display:grid;gap:10px}
+.hf-road-picks a{display:block;padding:14px 18px;border:1px solid rgba(245,197,66,.5);border-radius:999px;color:#fff;text-decoration:none;font-weight:700;text-align:center}
+.hf-road-picks a:hover{background:#F5C542;color:#111}
+@media (min-width:720px){.hf-road-picks{grid-template-columns:repeat(3,1fr);max-width:720px}}
+.hf-panel.hf-compact{min-height:0 !important;padding:36px 0}
+.hf-compact h2{font-size:clamp(28px,7vw,44px);margin:6px 0 8px}
+.hf-trio-row{display:grid;gap:10px}
+.hf-trio-row a{display:block;padding:14px 16px;border-left:3px solid #F5C542;color:#fff;text-decoration:none}
+.hf-trio-row b{display:block;font-size:18px}
+.hf-trio-row em{font-style:normal;font-size:14px;color:rgba(255,255,255,.7)}
+.hf-own{margin-top:14px;color:rgba(255,255,255,.75);font-size:14px}
+@media (min-width:720px){.hf-trio-row{grid-template-columns:repeat(3,1fr)}}
