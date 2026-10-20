@@ -4,6 +4,8 @@
   if (root) root.ArtistProfiles = api;
   if (typeof document !== 'undefined' && document.getElementById('plai-about')) api.mount(document);
 })(typeof window !== 'undefined' ? window : globalThis, function () {
+  // The factory has its own scope; the outer `root` param is not visible here.
+  var root = typeof window !== 'undefined' ? window : globalThis;
   var STORAGE_KEY = 'plaigroundArtistProfiles';
   var DESTINATION_KEY = 'plaigroundDestinationPlan';
   var NOTE_LIMIT = 240;
