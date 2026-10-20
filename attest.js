@@ -533,7 +533,11 @@
       Array.prototype.forEach.call(choices, function (el) {
         el.classList.toggle('on', el.getAttribute('data-made-how') === value);
       });
-      if (!opts || !opts.keepSwitchNote) showSwitched(false);
+      if (!opts || !opts.keepSwitchNote) {
+        showSwitched(false);
+        // Internal record only: a manual pick clears the auto-switch flag.
+        writeDraft({ ai_auto_switched: false, ai_switched_from: '' });
+      }
       refresh();
     }
 
@@ -564,7 +568,11 @@
     });
     if (toolOther) toolOther.addEventListener('input', refresh);
     if (human) human.addEventListener('input', refresh);
-    if (rights) rights.addEventListener('change', refresh);
+    if (rights) rights.addEventListener('change', function () {
+      // Internal record only: when the rights box was ticked.
+      writeDraft({ rights_confirmed_at: rights.checked ? new Date().toISOString() : '' });
+      refresh();
+    });
     var aiUse = document.getElementById('attest-ai-use');
     if (aiUse) aiUse.addEventListener('change', function () {
       if (aiUse.checked) {
@@ -623,6 +631,7 @@
       }
       if (fields.made_how === 'ai_assisted' && onlySoftChips(fields.human_elements)) {
         selectHow('fully_ai', { keepSwitchNote: true });
+        writeDraft({ ai_auto_switched: true, ai_switched_from: 'ai_assisted' });
         showSwitched(true);
         var switchedNote = document.querySelector('[data-switched]');
         var switchedLine = document.querySelector('[data-switched-line]');

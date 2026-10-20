@@ -3348,6 +3348,41 @@
     });
   }
 
+  // Full AI disclosure for PLAIGROUND's own release record. The server saves it and
+  // never forwards it to the distributor.
+  function plaigroundDisclosureOf(draft, legal) {
+    draft = draft || {};
+    legal = legal || {};
+    var how = String(draft.made_how || '');
+    var instrumental = draft.instrumental === true || draft.instrumental === 'true';
+    var tracks = Array.isArray(draft.tracks) ? draft.tracks : [];
+    return {
+      made_how: how,
+      auto_switched: draft.ai_auto_switched === true,
+      switched_from: draft.ai_auto_switched === true ? String(draft.ai_switched_from || 'ai_assisted') : '',
+      ai_used: draft.ai_used === true || how === 'ai_assisted' || how === 'fully_ai',
+      human_elements: Array.isArray(draft.human_elements) ? draft.human_elements.slice() : [],
+      human_contribution: String(draft.human_contribution || ''),
+      ai_service: String(draft.ai_service || ''),
+      ai_service_other: String(draft.ai_service_other || ''),
+      made_caption: String(draft.made_caption || ''),
+      rights_confirmed: draft.rights_confirmed === true,
+      rights_confirmed_at: String(draft.rights_confirmed_at || ''),
+      legal_first: String(legal.legal_first || draft.legal_first || ''),
+      legal_last: String(legal.legal_last || draft.legal_last || ''),
+      instrumental: instrumental,
+      lyrics: instrumental ? '' : String(draft.lyrics || ''),
+      track_lyrics: tracks.map(function (track) {
+        track = track || {};
+        return {
+          track_id: String(track.track_id || track.id || ''),
+          title: String(track.title || ''),
+          lyrics: String(track.lyrics || ''),
+        };
+      }).filter(function (row) { return row.lyrics; }),
+    };
+  }
+
   function submitRelease(draft, releaseDate) {
     draft = stampLeaveCredits(draft || readDraft());
     if (!draft || !draft.release_id) {
@@ -3412,6 +3447,7 @@
     if (Array.isArray(draft.contributors) && draft.contributors.length) {
       submitBody.contributors = draft.contributors;
     }
+    submitBody.plaiground_disclosure = plaigroundDisclosureOf(draft, legal);
     return resolveSubmitTracks(draft).then(function (ready) {
       if (ready.recover) return { recover: true, result: ready.result, draft: ready.draft || draft };
       if (ready.failed) return { failed: true, result: ready.result, draft: ready.draft || draft };
