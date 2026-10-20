@@ -68,3 +68,10 @@
 @keyframes baFloat{50%{transform:translateY(-6px)}}
 #roadmap{scroll-margin-top:72px}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+.hf-booked-row{display:flex;align-items:center;gap:18px;padding:18px;border-radius:18px;background:linear-gradient(135deg,#2a1146,#13213f);border:2px solid #3EE0FF;box-shadow:0 6px 0 #1a1024}
+.hf-booked-plai{width:110px;height:auto;flex:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
+.hf-booked-copy h2{margin:.1em 0 .3em;color:#F5C542}
+.hf-booked-copy p{margin:0 0 .8em}
+.hf-booked .hf-kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#3EE0FF;margin:0}
+.isrc-keep{font-weight:700;color:#3EE0FF}
+@media (max-width:560px){.hf-booked-row{flex-direction:column;text-align:center;margin:0 16px}.hf-booked-plai{width:96px}}
