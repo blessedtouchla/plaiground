@@ -27,6 +27,20 @@
     .pz-tile p{margin:0;color:rgba(255,255,255,.75);line-height:1.45}
     .pz-soon{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#111;background:#F5C542;border-radius:999px;padding:3px 9px}
     .pz-foot{text-align:center;padding:0 20px 56px;color:rgba(255,255,255,.6);font-size:.9rem}
+    .pz-voices{max-width:980px;margin:0 auto;padding:0 20px 40px}
+    .pz-voices details{background:linear-gradient(160deg,rgba(155,92,255,.18),#141018 60%);border:1px solid rgba(155,92,255,.55);border-radius:18px;padding:20px 22px;box-shadow:0 0 22px rgba(155,92,255,.18)}
+    .pz-voices summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:"Space Grotesk",Inter,sans-serif;font-size:1.25rem;font-weight:700}
+    .pz-voices summary::-webkit-details-marker{display:none}
+    .pz-voices summary::after{content:"+";color:#F5C542;font-size:1.6rem;line-height:1}
+    .pz-voices details[open] summary::after{content:"\2212"}
+    .pz-voices .lead{color:rgba(255,255,255,.8);margin:12px 0 6px;line-height:1.5}
+    .pz-voices ol{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+    .pz-voices li{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;color:rgba(255,255,255,.82);line-height:1.45}
+    .pz-voices li b{color:#fff}
+    .pz-voices .n{font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;font-size:1.3rem;color:#FF3EA5}
+    .pz-voices .ready{display:inline-block;font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#111;background:#4BE38A;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+    .pz-voices .pz-soon{margin-left:6px;vertical-align:middle;font-size:.62rem}
+    .pz-voices .note{margin:14px 0 0;color:rgba(255,255,255,.65);font-size:.92rem}
   </style>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
@@ -58,6 +72,20 @@
         <h3>30-second lifestyle videos</h3>
         <p>Short clips that show who you are, ready to post.</p>
       </article>
+    </section>
+    <section class="pz-voices" aria-label="Running AI voices">
+      <details>
+        <summary>Running AI voices?</summary>
+        <p class="lead">Artist Development is for every artist. If you run more than one AI voice, each one gets its own persona. You set the vision for every voice, and AI supports the daily work.</p>
+        <ol>
+          <li><span class="n">01</span><span><b>One persona per voice.</b> Every voice gets its own name, story and look.</span></li>
+          <li><span class="n">02</span><span><b>Shape the voice and persona.</b> You decide the sound, the attitude and the story. Plai helps you sharpen it. <span class="pz-soon">Coming soon</span></span></li>
+          <li><span class="n">03</span><span><b>Build its profile and social presence.</b> Profiles and a simple posting plan that match the persona. <span class="pz-soon">Coming soon</span></span></li>
+          <li><span class="n">04</span><span><b>Release under that name.</b> Save each artist name once and release under it. <span class="ready">Ready now</span></span></li>
+          <li><span class="n">05</span><span><b>We help manage it over time.</b> Proven industry strategy for each persona, with AI supporting the day to day. <span class="pz-soon">Coming soon</span></span></li>
+        </ol>
+        <p class="note">All under one account. Your real legal name stays on the credits, behind every persona.</p>
+      </details>
     </section>
     <p class="pz-foot">By application. No charge to apply.</p>
   </main>
