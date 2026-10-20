@@ -79,7 +79,7 @@
     var top = el('div', 'v3-top'); var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     var w = wallet(); top.appendChild(el('span', 'v3-credits', w.freeLeft > 0 ? 'FREE WRITE' : ('CREDITS ' + w.credits))); wrap.appendChild(top);
     wrap.appendChild(el('h1', 'fan-title', 'Fan Mail to Song'));
-    wrap.appendChild(el('p', 'fan-sub', 'Turn your love for someone famous into a song and a letter to send with it. For fun and sharing, not for release.'));
+    wrap.appendChild(el('p', 'fan-sub', 'Turn your love for someone famous into a song and a letter to send with it. Share it, send it, or release it under your own name.'));
 
     var who = card('Who is it for?');
     who.appendChild(field('Their name', 'name', 'First name or full name'));
@@ -153,7 +153,7 @@
       out.appendChild(el('pre', 'lyrics-preview', S.result.lyrics)); out.appendChild(copyBtn(S.result.lyrics, 'Copy lyrics'));
       out.appendChild(el('p', 'fan-q', 'Style prompt')); out.appendChild(el('pre', 'lyrics-preview', S.result.style)); out.appendChild(copyBtn(S.result.style, 'Copy style prompt'));
       out.appendChild(el('p', 'fan-q', 'A letter to send with it')); out.appendChild(el('pre', 'lyrics-preview', S.result.letter)); out.appendChild(copyBtn(S.result.letter, 'Copy letter'));
-      out.appendChild(el('p', 'hint', 'Fan songs are for fun and sharing. They cannot be released as your own song.'));
+      out.appendChild(el('p', 'hint', 'Fan songs are for fun and sharing. You can release it under your own artist name, with no Official or featuring in the title and no photo of them on the cover.'));
       wrap.appendChild(out);
     }
     root.appendChild(wrap);
