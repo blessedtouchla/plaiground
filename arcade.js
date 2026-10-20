@@ -186,8 +186,17 @@
     var bpm = el('input', 'arc-input arc-tune-bpm'); bpm.type = 'number'; bpm.min = 40; bpm.max = 220; bpm.inputMode = 'numeric'; bpm.placeholder = 'BPM, if you know it'; bpm.value = t.bpm || '';
     bpm.onchange = function () { t.bpm = bpm.value; paint(); }; box.appendChild(bpm);
     one('Vocals', 'vocals', T.vocals);
-    one('Voice', 'gender', T.gender);
-    box.appendChild(chips(T.tone, function (v) { return t.tone === v; }, function (v) { t.tone = t.tone === v ? '' : v; }, 'small'));
+    box.appendChild(el('p', 'arc-q', 'Voice'));
+    box.appendChild(chips(T.gender, function (v) { return t.gender === v; }, function (v) { t.gender = t.gender === v ? '' : v; if (v === 'Surprise me') t.surprise = 1 + Math.floor(Math.random() * 1e6); }, 'small'));
+    box.appendChild(btn((S.shapeOpen ? '\u25BE ' : '\u25B8 ') + 'Shape the voice', 'arc-tune-toggle arc-shape-toggle', function () { S.shapeOpen = !S.shapeOpen; paint(); }));
+    if (S.shapeOpen) {
+      t.voiceShape = t.voiceShape || {};
+      Object.keys(T.shape).forEach(function (k) {
+        box.appendChild(el('p', 'arc-q arc-q-sm', A.SHAPE_LABEL[k]));
+        box.appendChild(chips(T.shape[k], function (v) { return t.voiceShape[k] === v; }, function (v) { t.voiceShape[k] = t.voiceShape[k] === v ? '' : v; }, 'small'));
+      });
+    }
+    box.appendChild(el('p', 'hint arc-voice-line', 'Voice: ' + A.voiceDescriptor(stateForServer(), t)));
     box.appendChild(el('p', 'arc-q', 'Must-have instruments'));
     box.appendChild(chips(T.must, function (v) { return t.must.indexOf(v) !== -1; }, function (v) { var i = t.must.indexOf(v); if (i === -1) t.must.push(v); else t.must.splice(i, 1); }, 'small'));
     one('Energy build', 'energy', T.energy);
@@ -667,7 +676,8 @@
   var TUNE_Q = [
     { key: 'speed', ask: 'Want to fine-tune? What speed: slow, mid, upbeat or fast?', options: A.TUNE.speed },
     { key: 'vocals', ask: 'Vocals: solo, duet, band with backing vocals, or choir?', options: A.TUNE.vocals },
-    { key: 'tone', ask: 'Voice: raspy, smooth or airy?', options: A.TUNE.tone },
+    { key: 'gender', ask: 'Voice: male, female, or surprise me?', options: A.TUNE.gender },
+    { key: 'tone', ask: 'Voice texture: raspy, smooth or airy?', options: A.TUNE.tone },
     { key: 'energy', ask: 'Energy: steady, slow build, big drop, or quiet to loud?', options: A.TUNE.energy }
   ];
   function norm(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
