@@ -799,7 +799,7 @@
     make: [{ href: "/cover-art", label: "Cover Art" }, { href: "/make-human", label: "Make it human" }, { href: "/battle", label: "Battle" }, { href: "/spark", label: "What's hot" }],
     protect: [{ href: "/contracts", label: "Contracts hub" }, { href: "/qualify", label: "Is my song ready?" }, { href: "/copyright", label: "Copyright & publishing" }, { href: "/claim", label: "Claim my human parts" }, { href: "split-sheet.html", label: "Split sheets" }, { href: "publishing.html", label: "Publishing registration" }],
     out: [{ href: "signup.html", label: "Release a song" }],
-    grow: [{ href: "/persona.html", label: "Artist Development" }, { href: "https://webookshows.com/join/", label: "Get booked" }, { href: "/destination", label: "Route map" }, { href: "/guide", label: "Guide" }]
+    grow: [{ href: "/persona.html", label: "Artist Development" }, { href: "/#get-booked-form", label: "Get booked" }, { href: "/destination", label: "Route map" }, { href: "/guide", label: "Guide" }]
   };
 
   function regroupHomeNav(links) {
@@ -975,7 +975,7 @@
         { href: "index.html#pricing", label: "Fan growth" },
         { href: "index.html#pricing", label: "Social Media Presence" },
         { href: "/release-week", label: "Release week" },
-        { href: "https://webookshows.com/join/", label: "Get booked" },
+        { href: "/#get-booked-form", label: "Get booked" },
         { href: "/charts", label: "SIQA Charts" }
       ]
     },
