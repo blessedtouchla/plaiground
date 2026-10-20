@@ -1,0 +1,68 @@
+/* Arcade brand layer for homepage and how it works. Copy stays in the HTML; this file only adds color, depth and motion. */
+:root{--ba-y:#F5C542;--ba-p:#9B5CFF;--ba-m:#FF3EA5;--ba-c:#3EE0FF;--ba-ink:#1a1024}
+.ba-ico{width:48px;height:48px;display:block;filter:drop-shadow(0 4px 10px rgba(155,92,255,.35))}
+.hf-ic,.hj-ic{background:none!important;width:auto!important;height:auto!important;border-radius:0!important}
+/* Pixel headings with yellow glow */
+.hf-kicker,.hj-tag,.hw-kicker,.ba-level span,.ba-seg i,.ba-start{font-family:"Press Start 2P",monospace!important;letter-spacing:.04em}
+.hf-five-h,.hf-panel h2,.hj-phase h2,.hj-tools h2,.hw-top h1{color:var(--ba-y)!important;text-shadow:0 0 14px rgba(245,197,66,.55),0 0 38px rgba(245,197,66,.25)}
+.hf-kicker{font-size:11px!important;color:var(--ba-m)!important;text-shadow:0 0 10px rgba(255,62,165,.6)}
+.hj-tag{font-size:10px!important;padding:7px 12px!important}
+/* Scanlines and glow on dark sections */
+.hf-five,.hf-panel,.hj-phase,.hj-tools,.hw-top{position:relative;isolation:isolate}
+.hf-five::before,.hf-panel::before,.hj-phase::before,.hj-tools::before,.hw-top::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.hf-five{background:radial-gradient(120% 70% at 50% 0%,rgba(155,92,255,.28),transparent 60%),#0b0b0d!important}
+.hf-road{background:radial-gradient(90% 60% at 100% 0%,rgba(255,62,165,.22),transparent 60%),radial-gradient(80% 60% at 0% 100%,rgba(62,224,255,.12),transparent 60%),#0d0a14!important}
+.hf-lab{background:radial-gradient(100% 80% at 50% 0%,rgba(245,197,66,.22),transparent 60%),linear-gradient(180deg,#160d26,#0b0b0d)!important}
+.hf-trio{background:linear-gradient(180deg,#0b0b0d,#140a1c)!important}
+.hj-p1{background:radial-gradient(90% 60% at 0% 0%,rgba(245,197,66,.28),transparent 60%),linear-gradient(160deg,#241a05,#0b0b0d 70%)!important}
+.hj-p2{background:radial-gradient(90% 60% at 100% 0%,rgba(155,92,255,.34),transparent 60%),linear-gradient(200deg,#1b0d33,#0b0b0d 70%)!important}
+.hj-p3{background:radial-gradient(90% 60% at 0% 0%,rgba(255,62,165,.30),transparent 60%),linear-gradient(160deg,#2a0a1c,#0b0b0d 70%)!important}
+/* Neon cards */
+.hf-icons a,.hj-tool-row a,.hf-trio-row a{border:2px solid rgba(155,92,255,.55)!important;background:linear-gradient(180deg,rgba(155,92,255,.14),rgba(20,10,30,.6))!important;box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 18px rgba(155,92,255,.25);border-radius:16px!important;transition:transform .15s ease,box-shadow .15s ease}
+.hf-icons li:nth-child(2) a,.hj-tool-row a:nth-child(2){border-color:rgba(245,197,66,.6)!important;box-shadow:0 0 18px rgba(245,197,66,.22)}
+.hf-icons li:nth-child(3) a{border-color:rgba(255,62,165,.6)!important;box-shadow:0 0 18px rgba(255,62,165,.22)}
+.hf-icons li:nth-child(5) a{border-color:rgba(62,224,255,.55)!important;box-shadow:0 0 18px rgba(62,224,255,.2)}
+.hf-trio-row a{display:grid!important;grid-template-columns:48px 1fr;column-gap:12px;align-items:center;border-left-width:2px!important}
+.hf-trio-row a .ba-ico{grid-row:span 2}
+.hj-tool-row a .ba-ico{margin-bottom:6px}
+.hj-step{border-bottom:1px dashed rgba(255,255,255,.12)!important}
+.hj-n{text-shadow:0 0 16px currentColor}
+/* Chunky pressed arcade buttons */
+.ba-press,.hf-btn,.hf-road-picks a{position:relative;border-radius:14px!important;box-shadow:0 5px 0 #8a5a00,0 10px 22px rgba(245,197,66,.25)!important;transition:transform .08s ease,box-shadow .08s ease}
+.hf-road-picks a{background:linear-gradient(180deg,#2a1747,#1a0f2c)!important;border:2px solid var(--ba-p)!important;box-shadow:0 5px 0 #4b2a85,0 0 16px rgba(155,92,255,.3)!important}
+.hf-road-picks a:nth-child(2){border-color:var(--ba-m)!important;box-shadow:0 5px 0 #8a1f58,0 0 16px rgba(255,62,165,.3)!important}
+.hf-road-picks a:nth-child(3){border-color:var(--ba-c)!important;box-shadow:0 5px 0 #1d6f80,0 0 16px rgba(62,224,255,.25)!important}
+.ba-press:active,.hf-btn:active,.hf-road-picks a:active{transform:translateY(4px);box-shadow:0 1px 0 #8a5a00!important}
+/* Press start accent */
+.ba-start{display:inline-flex;gap:8px;align-items:center;margin-top:18px;font-size:11px;color:var(--ba-y);text-decoration:none;padding:9px 14px;border:2px dashed rgba(245,197,66,.6);border-radius:10px;text-shadow:0 0 10px rgba(245,197,66,.7)}
+.ba-start:hover{background:rgba(245,197,66,.1)}
+/* Levels and progress */
+.ba-level{margin:0 0 8px}
+.ba-level span{display:inline-block;font-size:12px;color:#fff;background:var(--ba-ink);border:2px solid currentColor;padding:8px 12px;border-radius:8px;transform:rotate(-2deg);box-shadow:3px 3px 0 rgba(0,0,0,.5)}
+.hj-p1 .ba-level span{color:var(--ba-y)}.hj-p2 .ba-level span{color:#B488FF}.hj-p3 .ba-level span{color:#FF5DB4}
+.ba-progress{display:flex;gap:6px;margin:6px 0 14px;max-width:420px}
+.hw-wrap .ba-progress{margin-left:auto;margin-right:auto}
+.ba-seg{flex:1;display:flex;flex-direction:column;gap:6px}
+.ba-seg::before{content:"";height:10px;border-radius:3px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15)}
+.ba-seg.on::before{background:linear-gradient(90deg,var(--ba-y),var(--ba-m));box-shadow:0 0 10px rgba(245,197,66,.6)}
+.ba-seg i{font-style:normal;font-size:8px;color:rgba(255,255,255,.55)}
+.ba-seg.on i{color:var(--ba-y)}
+.ba-seg b{font-size:12px;font-weight:600;color:rgba(255,255,255,.8)}
+.hj-phase .ba-seg i{display:none}
+/* Plai poses: small, decorative, never over text */
+.ba-plai{display:block;width:72px;height:auto;margin:0 auto 6px;filter:drop-shadow(0 8px 18px rgba(155,92,255,.45))}
+.hf-road .ba-plai,.hf-lab .ba-plai{margin:0 0 8px}
+.hj-phase .ba-plai{float:right;width:64px;margin:0 0 8px 12px}
+@media (min-width:760px){.ba-plai{width:96px}.hj-phase .ba-plai{width:110px}.hf-road .hf-wrap,.hf-lab .hf-wrap{position:relative}.hf-road .ba-plai,.hf-lab .ba-plai{position:absolute;right:4%;top:0;width:130px}}
+/* Motion, only when allowed */
+@media (prefers-reduced-motion:no-preference){
+  .hf-icons a:hover,.hj-tool-row a:hover,.hf-trio-row a:hover{transform:translateY(-4px) rotate(-1deg)}
+  .ba-press:hover,.hf-btn:hover{transform:translateY(-2px)}
+  .ba-blink{animation:baBlink 1s steps(2) infinite}
+  .ba-plai{animation:baFloat 3.2s ease-in-out infinite}
+  .ba-reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+  .ba-reveal.ba-in{opacity:1;transform:none}
+}
+@keyframes baBlink{50%{opacity:0}}
+@keyframes baFloat{50%{transform:translateY(-6px)}}
