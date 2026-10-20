@@ -191,16 +191,34 @@
     })();
   </script>
   <script src="account.js"></script>
-  <script src="lib/artist-dev.js?v=20261019cap1"></script>
   <script>
     (function () {
       try {
         var raw = localStorage.getItem('plaiground.store.draft') || sessionStorage.getItem('plaiground.store.draft') || '';
         var draft = JSON.parse(raw || '{}') || {};
-        var dev = window.PlaigroundArtistDev;
-        var caption = (draft.made_how && dev && typeof dev.madeCaption === 'function')
-          ? dev.madeCaption({ made_how: draft.made_how, ai_used: draft.ai_used, human_elements: draft.human_elements, human_contribution: draft.human_contribution })
-          : (draft.made_caption || '');
+        var caption = draft.made_caption || '';
+        // AI-assisted: rebuild from the chips actually ticked (same wording as lib/artist-dev.js).
+        if (draft.made_how === 'ai_assisted') {
+          var phrases = {
+            'original lyrics': 'wrote the lyrics',
+            'lead vocals performed': 'sang the lead vocals',
+            'backing vocals': 'sang backing vocals',
+            'played an instrument': 'played an instrument',
+            'melody written': 'wrote the melody',
+            'arrangement': 'arranged it',
+            'prompt authorship': 'wrote the prompts',
+            'mixed by a person': 'mixed it',
+            'mastered by a person': 'mastered it'
+          };
+          var did = [];
+          (Array.isArray(draft.human_elements) ? draft.human_elements : []).forEach(function (tag) {
+            var ph = phrases[String(tag || '').trim().toLowerCase()];
+            if (ph && did.indexOf(ph) === -1) did.push(ph);
+          });
+          var joined = did.length > 1 ? did.slice(0, -1).join(', ') + ' and ' + did[did.length - 1] : did.join('');
+          var note = String(draft.human_contribution || '').trim().slice(0, 280);
+          caption = 'How this song was made: AI-assisted.' + (joined ? ' A person ' + joined + '.' : '') + (note ? ' ' + note : '');
+        }
         var box = document.querySelector('[data-review-made]');
         var line = document.querySelector('[data-review-made-caption]');
         if (caption && box && line) {
