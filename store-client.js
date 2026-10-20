@@ -3368,6 +3368,8 @@
       made_caption: String(draft.made_caption || ''),
       rights_confirmed: draft.rights_confirmed === true,
       rights_confirmed_at: String(draft.rights_confirmed_at || ''),
+      plaiground_artist_id: String(draft.plaiground_artist_id || draft.artist_id || ''),
+      artist: String(draft.name || draft.artist || ''),
       legal_first: String(legal.legal_first || draft.legal_first || ''),
       legal_last: String(legal.legal_last || draft.legal_last || ''),
       instrumental: instrumental,

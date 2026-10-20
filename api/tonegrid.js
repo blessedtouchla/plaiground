@@ -3815,6 +3815,8 @@ async function submitRelease(req, res, releaseId) {
   // Our own copy of the full AI disclosure. Saved on the release record only; never sent to the store.
   const disclosureRecord = aiDisclosure.fromSubmit(body, {
     at: new Date(),
+    plaiground_artist_id: (row && row.plaiground_artist_id) || '',
+    artist: (scope.row && scope.row.artist_name) || '',
     legal_first: splitMeta.legal_first,
     legal_last: splitMeta.legal_last,
   });
