@@ -866,8 +866,22 @@ function primaryArtistName(scope, body) {
   if (named && !profileLib.isPlaceholderArtist(named)) return named.slice(0, 120);
   const only = roster.artists && roster.artists.length === 1 ? roster.artists[0] : null;
   if (only && only.name && !profileLib.isPlaceholderArtist(only.name)) return only.name;
-  const account = String((scope && scope.row && scope.row.artist_name) || '').trim();
-  if (account && !profileLib.isPlaceholderArtist(account)) return account.slice(0, 120);
+  // Never fall back to the account display name. It is not an artist.
+  return '';
+}
+
+const PICK_ARTIST_COPY = 'Pick an artist for this song.';
+
+// The artist chosen for this release, for our emails and records. Never the account display name.
+function releaseArtistName(scope, body, row) {
+  const fromBody = primaryArtistName(scope, Object.assign({}, body || {}, {
+    primary_artist: (body && (body.primary_artist || body.artist_name || body.artist)) || '',
+    plaiground_artist_id: (body && body.plaiground_artist_id) || (row && row.plaiground_artist_id) || '',
+  }));
+  if (fromBody) return fromBody;
+  const art = row && row.artist;
+  const stored = String((art && typeof art === 'object' ? art.name : art) || (row && (row.artist_name || row.primary_artist)) || '').trim();
+  if (stored && !profileLib.isPlaceholderArtist(stored)) return stored.slice(0, 120);
   return '';
 }
 
@@ -2320,6 +2334,10 @@ async function createTrack(req, res) {
   if (fields.language) trackPayload.language = fields.language;
   storeAi.applyTrackAiFields(trackPayload, body);
   const trackArtistName = primaryArtistName(scope, body);
+  if (!trackArtistName) {
+    sendJson(res, 400, { error: PICK_ARTIST_COPY, code: 'ARTIST_REQUIRED' });
+    return;
+  }
   const trackArtistFields = trackArtistName ? { primary_artist: trackArtistName, artist_name: trackArtistName } : {};
   Object.assign(trackPayload, trackArtistFields);
 
@@ -3716,9 +3734,9 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
 
-  const songwriter = songwriterFromHop(body, scope.row);
+  const songwriter = storeCredits.resolveSongwriter(body, creditArtistsOf(scope.row), { requireLegal: true });
   if (songwriter.error) {
-    sendJson(res, 400, { error: songwriter.error });
+    sendJson(res, 400, { error: songwriter.error, code: songwriter.code || 'LEGAL_NAME_REQUIRED' });
     return;
   }
 
@@ -3813,10 +3831,11 @@ async function submitRelease(req, res, releaseId) {
   const submittedStatus = String(next.status || 'pending').toLowerCase();
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
   // Our own copy of the full AI disclosure. Saved on the release record only; never sent to the store.
+  const chosenArtist = releaseArtistName(scope, body, row);
   const disclosureRecord = aiDisclosure.fromSubmit(body, {
     at: new Date(),
     plaiground_artist_id: (row && row.plaiground_artist_id) || '',
-    artist: (scope.row && scope.row.artist_name) || '',
+    artist: chosenArtist,
     legal_first: splitMeta.legal_first,
     legal_last: splitMeta.legal_last,
   });
@@ -3837,7 +3856,7 @@ async function submitRelease(req, res, releaseId) {
   });
   if (submittedStatus === 'pending' || submittedStatus === 'pending_review') {
     await notifyQcRelease({
-      artist: scope.row && scope.row.artist_name,
+      artist: chosenArtist,
       title: songTitle,
       release_id: releaseId,
       at: new Date(),
@@ -3845,7 +3864,7 @@ async function submitRelease(req, res, releaseId) {
     });
   }
   await notifyNewRelease({
-    artist: scope.row && scope.row.artist_name,
+    artist: chosenArtist,
     title: songTitle,
     release_id: releaseId,
     at: new Date(),
@@ -4395,3 +4414,5 @@ module.exports.isProtectedCatalogRelease = isProtectedCatalogRelease;
 module.exports.protectHardDelete = protectHardDelete;
 module.exports.protectedCatalogIdMatch = protectedCatalogIdMatch;
 module.exports.isRemovedCatalogRelease = isRemovedCatalogRelease;
+module.exports.primaryArtistName = primaryArtistName;
+module.exports.releaseArtistName = releaseArtistName;
