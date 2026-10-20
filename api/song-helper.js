@@ -962,13 +962,27 @@ function handleV3Page(req, res) {
   res.end(req.method === 'HEAD' ? '' : v3Gate.PAGE_HTML);
 }
 
+// Preview deploys only: the signed-in owner account opens Fan Mail to Song with no key in the URL.
+async function fanOwnerOnPreview(req) {
+  if (String(process.env.VERCEL_ENV || '') === 'production') return false;
+  try {
+    const auth = require('../lib/auth');
+    const session = auth.sessionFromRequest(req);
+    if (!session) return false;
+    const row = await require('../lib/accounts').findById(session.userId);
+    return Boolean(row && auth.hasStaffProOverride(row.email));
+  } catch (err) {
+    return false;
+  }
+}
+
 // Hidden Fan Mail to Song mode. Same private key gate as the v3 preview.
 async function handleFan(req, res, action, givenBody) {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   if (action === 'fan-page') {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    if (!v3Gate.keyOk(v3Gate.queryKey(req))) {
+    if (!v3Gate.keyOk(v3Gate.queryKey(req)) && !(await fanOwnerOnPreview(req))) {
       res.statusCode = 302;
       res.setHeader('Location', '/song-helper');
       res.end('');
@@ -988,7 +1002,7 @@ async function handleFan(req, res, action, givenBody) {
     sendJson(res, 400, { ok: false, error: 'Could not read that.' });
     return;
   }
-  if (!v3Gate.keyOk(body.k || v3Gate.queryKey(req))) {
+  if (!v3Gate.keyOk(body.k || v3Gate.queryKey(req)) && !(await fanOwnerOnPreview(req))) {
     sendJson(res, 404, { ok: false, error: 'Not found.' });
     return;
   }
