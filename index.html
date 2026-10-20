@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="site.css?v=20261007polish" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <link rel="stylesheet" href="apply.css" />
+  <link rel="stylesheet" href="home-flow.css?v=20261020a" />
   <style id="home-arcade-hero">
     html,body.home-portal{margin:0;background:#0b0b0f}
     body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box;background:radial-gradient(1200px 520px at 50% 18%,rgba(245,197,66,.16),transparent 60%),linear-gradient(180deg,#141018 0%,#0b0b0f 100%)}
@@ -110,182 +111,77 @@
         <p class="sub">You make the music. We handle the rest.</p>
         <p class="hero-for">For independent artists</p>
         <div class="hero-ctas">
-          <a class="btn btn-gold btn-md" href="signup.html">Wanna plai?</a>
-          <a class="btn btn-ghost btn-md" href="how-it-works.html">See how it works</a>
+          <a class="btn btn-gold btn-md" href="signup.html">Join free</a>
+          <a class="btn btn-ghost btn-md" href="/song-helper">Play now</a>
         </div>
-        <p class="hero-released"><a href="/already-released">Already released? Bring it.</a></p>
         <a class="hero-siqa-proof" href="/charts">
           <span class="hero-siqa-kicker">SIQA Charts</span>
         </a>
       </div>
     </section>
 
-    <section class="playground" id="playground" aria-label="Playground">
-      <div class="wrap">
-        <div class="play-grid">
-          <article class="play-card play-make is-roadmap" data-for="idea" data-id="roadmap">
-            <div class="play-road-head">
-              <div class="play-ask">
-                <p class="play-ask-label" id="play-where">Where are you?</p>
-                <div class="play-chips" role="group" aria-labelledby="play-where">
-                  <button type="button" class="play-chip" data-stage="idea" aria-pressed="false">Idea</button>
-                  <button type="button" class="play-chip" data-stage="made" aria-pressed="false">Made</button>
-                  <button type="button" class="play-chip" data-stage="out" aria-pressed="false">Out</button>
-                </div>
-              </div>
-              <p class="play-say">
-                <span class="play-say-name">Plai</span>
-                Got a song? I'll point the way.
-              </p>
-            </div>
-            <a class="play-main" href="/destination">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="8" cy="23" r="2.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><circle cx="24" cy="9" r="2.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M10 22c3.2-6.5 4.6-7.2 8-4.2 2.6 2.3 3.4 5.4 6.2-6.2" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>My roadmap</h3>
-              <p>Get your route.</p>
-            </a>
-          </article>
-          <p class="play-band play-band-make">Make it</p>
-          <article class="play-card play-make" data-for="idea" data-id="helper">
-            <a class="play-main" href="/song-helper">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M12 24V8l14-3v16" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="24" r="3.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><circle cx="23" cy="21" r="3.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/></svg>
-              <h3>Song Lab</h3>
-              <p>Your story, into lyrics.</p>
-            </a>
-          </article>
-          <article class="play-card play-make" data-for="idea" data-id="cover">
-            <a class="play-main" href="/cover-art">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect x="6" y="6" width="20" height="20" rx="3" fill="none" stroke="#f3cb47" stroke-width="1.7"/><circle cx="13" cy="14" r="2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M6 22l6-6 4 4 3-3 7 7" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linejoin="round"/></svg>
-              <h3>Cover Art</h3>
-              <p>Make a cover in minutes.</p>
-            </a>
-          </article>
-          <article class="play-card play-make" data-for="idea" data-id="human">
-            <a class="play-main" href="/make-human">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="10" r="4" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M8 26c1.2-5 4-7.5 8-7.5S22.8 21 24 26" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>Make it human</h3>
-              <p>Re-sing, remaster, sync-ready.</p>
-            </a>
-          </article>
-          <p class="play-band play-band-protect">Protect it</p>
-          <article class="play-card play-protect is-contracts" data-for="idea made out" data-id="contracts">
-            <a class="play-main" href="/contracts">
-              <span class="play-badge">BIG</span>
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M10 5h8l6 6v16a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linejoin="round"/><path d="M18 5v6h6M12 16h8M12 20h8" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>Contracts</h3>
-              <p>Know what you sign.</p>
-            </a>
-            <div class="play-pills">
-              <a href="/contracts/review">Review</a>
-              <a href="/contracts/fix">Fix</a>
-              <a href="/contracts/create">Create</a>
-            </div>
-          </article>
-          <article class="play-card play-protect" data-for="made" data-id="check">
-            <a class="play-main" href="/qualify">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M9 5h10l6 6v16a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linejoin="round"/><path d="M19 5v6h6" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M12 18.2l2.4 2.4L20 15" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <h3>Check and file</h3>
-              <p>Ready? Then file it.</p>
-              <span class="play-go">Is my song ready?</span>
-            </a>
-            <div class="play-pills">
-              <a href="/copyright">Copyright</a>
-              <a href="publishing.html">Publishing</a>
-              <a href="/claim">Claim my human parts</a>
-              <a href="/make-human">Make it human</a>
-            </div>
-          </article>
-          <article class="play-card play-protect" data-id="splits">
-            <a class="play-main" href="split-sheet.html">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect x="5" y="6" width="12" height="16" rx="1.5" fill="none" stroke="#f3cb47" stroke-width="1.7"/><rect x="15" y="10" width="12" height="16" rx="1.5" fill="none" stroke="#f3cb47" stroke-width="1.7"/></svg>
-              <h3>Split sheets</h3>
-              <p>Agree who gets what, in writing.</p>
-            </a>
-          </article>
-          <p class="play-band play-band-out">Put it out</p>
-          <article class="play-card play-out" data-for="made" data-id="distro">
-            <a class="play-main" href="signup.html">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 20V8M11 13l5-5 5 5" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 22h18" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>Distribute my song</h3>
-              <p>Stores worldwide, $2.49 a month.</p>
-            </a>
-          </article>
-          <article class="play-card play-out" data-for="out" data-id="epk">
-            <a class="play-main" href="/epk">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect x="6" y="5" width="20" height="22" rx="2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M10 11h12M10 16h12M10 21h7" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>EPK and Act Pack</h3>
-              <p>Press kit and A&amp;R pack.</p>
-            </a>
-            <div class="play-pills">
-              <a href="/epk">EPK</a>
-              <a href="/ar">A&amp;R</a>
-            </div>
-          </article>
-          <article class="play-card play-out" data-for="out" data-id="earn">
-            <a class="play-main" href="royalties.html">
-              <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="10" fill="none" stroke="#f3cb47" stroke-width="1.7"/><path d="M16 10v12M13 13.5c.6-1 1.6-1.5 3-1.5 1.8 0 3 1 3 2.3s-1.2 2.2-3 2.5-3 1.2-3 2.5 1.2 2.2 3 2.2c1.4 0 2.4-.5 3-1.4" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
-              <h3>Earnings</h3>
-              <p>See where the money lands.</p>
-            </a>
-          </article>
+    <section class="hf-panel hf-route" aria-label="Start where you are">
+      <div class="hf-wrap">
+        <p class="hf-kicker">Start where you are</p>
+        <div class="hf-seg" role="tablist" aria-label="Where are you?">
+          <button type="button" role="tab" aria-selected="true" data-hf="idea">Idea</button>
+          <button type="button" role="tab" aria-selected="false" data-hf="made">Made</button>
+          <button type="button" role="tab" aria-selected="false" data-hf="out">Out</button>
         </div>
-        <p class="play-soon"><span class="coming-soon">Coming soon</span>. Monthly management, pitching, Persona kit. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Monthly management">Apply free</button></p>
+        <div class="hf-route-out" aria-live="polite">
+          <h2 data-hf-title>Turn your idea into a song.</h2>
+          <p data-hf-line>Write it with Plai in Song Lab. You set the vision.</p>
+          <a class="hf-btn" data-hf-cta href="/song-helper">Open Song Lab</a>
+        </div>
       </div>
     </section>
 
-    <section class="story-tiles" aria-label="Honesty">
-      <div class="wrap">
-        <div class="story-tiles-grid">
-          <article>
-            <h2>Your credit stays yours</h2>
-            <p>We never retag your release.</p>
-          </article>
-          <article>
-            <h2>You declare</h2>
-            <p>Human, assisted, or fully AI.</p>
-          </article>
-          <article>
-            <h2>You keep rights</h2>
-            <p>Non-exclusive. Leave anytime.</p>
-          </article>
-        </div>
-        <p class="story-tiles-more"><a class="home-trust-link" href="transparency.html">How labeling works</a></p>
+    <section class="hf-panel hf-lab" aria-label="Song Lab">
+      <div class="hf-wrap">
+        <p class="hf-kicker">Song Lab</p>
+        <h2 class="hf-big">Your story.<br />Your song.</h2>
+        <p class="hf-lead">Pick a game. Plai helps you write it, line by line.</p>
+        <ul class="hf-modes">
+          <li><b>Start from scratch</b><span>Tributes, roasts, holiday hits, kids songs and more.</span></li>
+          <li><b>Fix my song</b><span>Tighten the lines that feel off.</span></li>
+          <li><b>Flip my song</b><span>Same words, new genre or vibe.</span></li>
+        </ul>
+        <a class="hf-btn" href="/song-helper">Play Song Lab</a>
       </div>
     </section>
 
-    <section class="steps distro-pipe" id="how">
-      <div class="wrap">
-        <p class="eyebrow">Distribution</p>
-        <h2>Put it in stores.</h2>
-        <p class="distro-lead">Release Plan: $2.49 a month or $24.99 a year, unlimited releases. Splits signed first, 10 days lead time. No stream or payout promises.</p>
-        <p class="distro-cta"><a class="btn btn-purple btn-md" href="signup.html">Distribute my song</a></p>
-        <div class="steps-grid">
-          <article class="step">
-            <div class="step-num">01</div>
-            <h3>Upload</h3>
-            <p>Track, art, lyrics.</p>
-          </article>
-          <article class="step">
-            <div class="step-num">02</div>
-            <h3>Release</h3>
-            <p>Live on every major store.</p>
-          </article>
-          <article class="step">
-            <div class="step-num">03</div>
-            <h3>Get paid</h3>
-            <p><a href="royalties.html">How you get paid</a></p>
-          </article>
+    <section class="hf-panel hf-path" aria-label="Make it, protect it, put it out">
+      <div class="hf-wrap">
+        <div class="hf-step">
+          <p class="hf-num">01</p>
+          <h2>Make it</h2>
+          <p>Lyrics, cover art, and a human touch where it counts.</p>
+          <p class="hf-links"><a href="/song-helper">Song Lab</a><a href="/cover-art">Cover Art</a><a href="/make-human">Make it human</a></p>
         </div>
-        <div class="platforms" aria-label="Spotify, Apple Music, and Amazon Music">
-          <span aria-label="Spotify">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.52 17.34c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-1.02-.12-1.14-.6-.12-.48.12-1.02.6-1.14 4.38-1.32 9.78-.66 13.5 1.62.36.18.54.78.24 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62.54.3.72 1.02.42 1.56-.3.48-1.02.66-1.56.36z"/></svg>
-          </span>
-          <span aria-label="Apple Music">
-            <svg width="18" height="22" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true"><path d="M11.3 0c.08 1.55-.45 3.06-1.4 4.18-.98 1.14-2.56 2.02-4.1 1.9-.1-1.48.54-3.02 1.46-4.08C8.26.9 9.94.08 11.3 0zM15.4 14.6c-.28.64-.43 1.16-.8 1.86-.54 1.02-1.3 2.28-2.26 2.3-.84.02-1.06-.54-2.22-.54-1.16 0-1.4.52-2.26.56-.9.04-1.6-1.1-2.14-2.1-1.12-2.06-1.98-5.82-.82-8.36.56-1.26 1.58-2.06 2.68-2.06.86 0 1.64.58 2.2.58.54 0 1.5-.7 2.62-.6.44.02 1.7.18 2.5 1.36-2.2 1.2-1.84 4.34.5 5.16.46.16.88.46 1.2.84z"/></svg>
-          </span>
-          <span aria-label="Amazon Music">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.58 9.99c.2 0 .36.16.36.36v7.3c0 .2-.16.36-.36.36h-1.16a.36.36 0 0 1-.36-.36v-7.3c0-.2.16-.36.36-.36h1.16zm-3.7 2.08c.2 0 .36.16.36.36v5.22c0 .2-.16.36-.36.36H8.36a.36.36 0 0 1-.36-.36v-5.22c0-.2.16-.36.36-.36h1.52zm7.4-3.5c.2 0 .36.16.36.36v8.72c0 .2-.16.36-.36.36h-1.52a.36.36 0 0 1-.36-.36V8.93c0-.2.16-.36.36-.36h1.52zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
-          </span>
+        <div class="hf-step">
+          <p class="hf-num">02</p>
+          <h2>Protect it</h2>
+          <p>Know what you sign. Agree on splits. File it right.</p>
+          <p class="hf-links"><a href="/contracts">Contracts</a><a href="split-sheet.html">Split sheets</a><a href="/copyright">Copyright</a><a href="publishing.html">Publishing</a></p>
         </div>
+        <div class="hf-step">
+          <p class="hf-num">03</p>
+          <h2>Put it out</h2>
+          <p>Every major store on the Release Plan. Splits signed first. No stream or payout promises.</p>
+          <p class="hf-links"><a href="signup.html">Release a song</a><a href="/epk">EPK</a><a href="/ar">A&amp;R</a><a href="royalties.html">How you get paid</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="hf-panel hf-trust" aria-label="Your rights">
+      <div class="hf-wrap">
+        <h2>You set the vision. AI does the legwork.</h2>
+        <ul class="hf-trust-list">
+          <li><b>Your credit stays yours.</b> We never retag your release.</li>
+          <li><b>You declare.</b> Human, assisted, or fully AI.</li>
+          <li><b>You keep your rights.</b> Non-exclusive. Leave anytime.</li>
+        </ul>
+        <p class="hf-soon">Monthly management, pitching and Persona kit are coming. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Monthly management">Apply free</button></p>
       </div>
     </section>
 
@@ -526,7 +422,7 @@
   <script src="plai-welcome.js?v=20260912w1"></script>
   <script src="plai-bubble.js" defer></script>
   <script src="apply.js" defer></script>
-  <script src="playground.js" defer></script>
+  <script src="home-flow.js" defer></script>
   <script src="checkout.js?v=20261010track" defer></script>
 </body>
 </html>
