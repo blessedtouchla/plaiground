@@ -32,3 +32,19 @@
 .arc-age{display:block;margin:6px 0}
 .arc-research ul{margin:6px 0 0 18px}
 .arc-back{margin:4px 0}
+
+/* Plai hosts Song Lab: small inline pose, never fixed over content */
+.arc-host{display:flex;align-items:flex-end;gap:10px;margin:8px 0 12px}
+.arc-host-img{width:56px;height:auto;flex:0 0 56px;filter:drop-shadow(0 6px 14px rgba(155,92,255,.35))}
+.arc-host-say{position:relative;margin:0 0 10px;padding:10px 14px;border-radius:16px 16px 16px 4px;background:rgba(245,197,66,.1);border:1px solid rgba(245,197,66,.4);color:#fff;font-size:15px;line-height:1.35}
+.arc-host-say b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#F5C542;margin-bottom:2px}
+.arc-host-worried .arc-host-say{border-color:rgba(255,93,180,.6);background:rgba(255,62,165,.1)}
+@media (min-width:720px){.arc-host-img{width:72px;flex-basis:72px}}
+@media (prefers-reduced-motion:no-preference){
+  .arc-host{animation:arcHostIn .35s ease-out}
+  .arc-host-thinking .arc-host-img{animation:arcHostBob 1.4s ease-in-out infinite}
+  .arc-host-dancing .arc-host-img{animation:arcHostDance .9s ease-in-out infinite}
+}
+@keyframes arcHostIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes arcHostBob{50%{transform:translateY(-4px)}}
+@keyframes arcHostDance{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
