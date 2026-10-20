@@ -8,7 +8,7 @@
   var synth = window.speechSynthesis;
   var state = 'idle';
   function setUi() {
-    play.innerHTML = state === 'playing' ? '&#10074;&#10074; Pause' : (state === 'paused' ? '&#9654; Resume' : '&#9654; Play');
+    play.innerHTML = state === 'playing' ? '&#10074;&#10074; Pause' : (state === 'paused' ? '&#9654; Resume' : '&#9654; Plai it');
     stop.hidden = state === 'idle';
   }
   play.addEventListener('click', function () {
