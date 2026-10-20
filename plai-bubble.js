@@ -25,7 +25,7 @@
     },
     {
       q: 'How does distribution work?',
-      a: 'Distribution is optional. It is $2.49 per song to 50+ platforms. Split sheets are signed before delivery. No promise of streams or payouts.',
+      a: 'Distribution is optional. It is $2.49 per song to every major store. Split sheets are signed before delivery. No promise of streams or payouts.',
       href: '/how-it-works.html',
       link: 'How it works',
     },

@@ -224,6 +224,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/img/logo.webp", "destination": "/for-david-fv/img/logo.webp" },
+    { "source": "/PLAIGROUND_one_sheet.pdf", "destination": "/for-david-fv/PLAIGROUND_one_sheet.pdf" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/terms/", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

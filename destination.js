@@ -117,7 +117,7 @@
       status: 'live',
       href: '/royalties.html',
       link: 'How you get paid',
-      what: 'Store royalties land in the dashboard. PLAIGROUND does not take a cut of them.',
+      what: 'Track your release in the dashboard. PLAIGROUND does not take a cut of your royalties.',
       get: 'A clear picture of payment. People check the work.',
       who: 'Plai, with people checking the work.',
       why: {
