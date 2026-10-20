@@ -7,6 +7,7 @@
   var WALLET = 'plaiground.v3.wallet';
   var BEST = 'plaiground.arcade.best';
   var SAVED = 'plaiground.arcade.saved';
+  var ROAST_NOTE = 'Comedy parody. Not statements of fact.';
   var S;
   function fresh() {
     return { screen: 'home', card: '', type: '', sub: '', qIndex: 0, answers: {}, aiLevel: 'assist', vibe: '', title: '', length: 'Song', language: 'English',
@@ -323,15 +324,16 @@
     w.appendChild(el('span', 'arc-label', r.label || A.aiLabel(S)));
     if (S.sub === 'battle') w.appendChild(chips(['You won', 'Plai won', 'Tie'], function (v) { return S.vote === v; }, function (v) { S.vote = v; }));
     var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre);
+    if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
     var row = el('div', 'arc-actions');
-    var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(r.lyrics, b1); });
+    var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, b1); });
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
     var b3 = btn('Copy both', 'v3-mini', function () { copy(r.lyrics + '\n\nStyle prompt\n' + r.style, b3); });
     var b4 = btn('Save', 'v3-mini', function () {
-      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saved'; } catch (e) { b4.textContent = 'Could not save'; }
+      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saved'; } catch (e) { b4.textContent = 'Could not save'; }
     });
     var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.fix.text = t; go('f-off'); });
     var b6 = btn('Flip', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'flip'; S.title = keepTitle; S.flip.text = t; go('x-genre'); });

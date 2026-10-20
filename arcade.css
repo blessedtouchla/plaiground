@@ -73,3 +73,4 @@
 }
 @keyframes arcSpark{0%{opacity:0;transform:translateY(6px) scale(.6)}40%{opacity:1;transform:translateY(-4px) scale(1.1)}100%{opacity:.85;transform:translateY(-8px) scale(1)}}
 @keyframes arcPulse{50%{box-shadow:0 0 2px rgba(155,92,255,.4)}}
+.arc-parody-note{display:inline-block;margin:8px 0 4px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,62,165,.6);background:rgba(255,62,165,.12);color:#FFB3DA;font-size:12px;font-weight:700;letter-spacing:.04em;box-shadow:0 0 10px rgba(255,62,165,.25)}
