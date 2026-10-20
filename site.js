@@ -610,7 +610,7 @@
 
   var WHATS_NEW_LINKS = [
     { href: "/contracts", label: "Contracts" },
-    { href: "/song-helper", label: "Song Helper" },
+    { href: "/song-helper", label: "Song Lab" },
     { href: "/cover-art", label: "Cover Art" },
     { href: "/copyright", label: "Copyright & publishing" },
     { href: "/qualify", label: "Is my song ready?" },
@@ -646,8 +646,23 @@
       else if (roadmap && roadmap.parentNode) roadmap.parentNode.appendChild(group);
       else links.insertBefore(group, links.firstChild);
     }
-    var lone = links.querySelector('[data-nav-group="song-helper"]');
-    if (lone && lone.parentNode) lone.parentNode.removeChild(lone);
+    // Song Lab is a top-level menu item on every page, right after Roadmap.
+    var lab = links.querySelector('[data-nav-group="song-helper"]');
+    if (!lab) {
+      lab = document.createElement("div");
+      lab.className = "nav-group nav-group-link";
+      lab.setAttribute("data-nav-group", "song-helper");
+    }
+    var labLink = lab.querySelector("a") || document.createElement("a");
+    labLink.setAttribute("href", "/song-helper");
+    labLink.textContent = "Song Lab";
+    labLink.className = "nav-songlab";
+    labLink.setAttribute("style", "color:#F3CB47;font-weight:700");
+    if (/^\/song-helper/.test(String((window.location && window.location.pathname) || ""))) labLink.setAttribute("aria-current", "page");
+    if (!labLink.parentNode) lab.appendChild(labLink);
+    var road = links.querySelector('[data-nav-group="roadmap"]');
+    if (road && road.parentNode === links) links.insertBefore(lab, road.nextSibling);
+    else links.insertBefore(lab, links.firstChild);
   }
 
   function ensureWhatsNewSide(side) {
@@ -860,7 +875,7 @@
       key: "create",
       title: "Create",
       links: [
-        { href: "/song-helper", label: "Song Helper" },
+        { href: "/song-helper", label: "Song Lab" },
         { href: "/cover-art", label: "Cover Art" },
         { href: "/battle", label: "Battle" },
         { href: "/spark", label: "What's hot" },
