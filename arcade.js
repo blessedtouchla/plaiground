@@ -81,6 +81,67 @@
       b.appendChild(el('b', '', c.label)); b.appendChild(el('small', '', c.small)); grid.appendChild(b);
     });
     w.appendChild(grid);
+    w.appendChild(btn('\u2728 Give me ideas', 'v3-go arc-gi-start', function () { S = fresh(); S.gi = { seen: [] }; go('g-doors'); }));
+  };
+
+  // ---------- Give me ideas ----------
+  SCREENS['g-doors'] = function (w) {
+    w.appendChild(plai('Real stories, your angle. Pick a door.'));
+    var grid = el('div', 'arc-cards arc-gi-doors');
+    A.IDEA_DOORS.forEach(function (d) {
+      var b = btn('', 'v3-cabinet arc-card arc-gi-door gi-' + d.id, function () { S.gi.door = d.id; go('g-tiles'); });
+      b.appendChild(el('b', '', d.label)); b.appendChild(el('small', '', d.small)); grid.appendChild(b);
+    });
+    w.appendChild(grid);
+  };
+  SCREENS['g-tiles'] = function (w) {
+    var d = A.IDEA_DOORS.filter(function (x) { return x.id === S.gi.door; })[0] || A.IDEA_DOORS[0];
+    w.appendChild(plai(d.id === 'news' ? 'What kind of story?' : 'What moves you?'));
+    var grid = el('div', 'arc-tiles');
+    d.tiles.forEach(function (t) {
+      var b = btn('', 'v3-tile arc-tile', function () { S.gi.tile = t.id; S.gi.label = t.label; S.gi.ideas = []; S.gi.msg = ''; go('g-ideas'); fetchNewsIdeas(); });
+      b.appendChild(el('b', '', t.label)); grid.appendChild(b);
+    });
+    w.appendChild(grid);
+  };
+  function fetchNewsIdeas() {
+    S.gi.busy = true; S.gi.msg = ''; paint();
+    post('arcade-news-ideas', { tile: S.gi.tile, seen: S.gi.seen }).then(function (d) {
+      S.gi.busy = false;
+      if (!d.ok) { S.gi.msg = d.error || A.NO_STORIES; paint(); return; }
+      S.gi.ideas = d.ideas || []; S.gi.msg = d.empty ? (d.message || A.NO_STORIES) : '';
+      S.gi.ideas.forEach(function (x) { S.gi.seen.push(x.link); });
+      paint();
+    });
+  }
+  function useNewsIdea(x) {
+    var keep = S.gi;
+    S = fresh(); S.card = 'scratch'; S.type = 'jam'; S.sub = ''; S.vibe = defaultVibe();
+    S.answers = { topic: x.angle, detail: x.story };
+    S.ideaList = [x.angle, x.story].concat(x.sides || []);
+    S.ideas = [x.angle, x.story];
+    S.newsIdea = x; S.gi = keep;
+    S.qIndex = 2; go('s-q');
+  }
+  SCREENS['g-ideas'] = function (w) {
+    w.appendChild(plai(S.gi.busy ? 'Reading this week\u2019s stories...' : 'Pick one. You set the vision.'));
+    w.appendChild(el('p', 'arc-step', S.gi.label || ''));
+    if (S.gi.msg) w.appendChild(el('p', 'flow-card hint arc-gi-empty', S.gi.msg));
+    (S.gi.ideas || []).forEach(function (x) {
+      var card = el('div', 'flow-card arc-gi-idea');
+      card.appendChild(el('p', 'arc-gi-angle', x.angle));
+      var st = el('p', 'arc-gi-story', 'The real story: ' + x.story + ' ');
+      var a = el('a', 'arc-gi-src', (x.source || 'Source') + (x.date ? ', ' + x.date : '')); a.href = x.link; a.target = '_blank'; a.rel = 'noopener nofollow';
+      st.appendChild(a); card.appendChild(st);
+      if (x.sides && x.sides.length === 2) {
+        card.appendChild(el('p', 'hint', 'Both sides. You pick the stance:'));
+        var ul = el('ul', 'arc-gi-sides'); x.sides.forEach(function (sd) { ul.appendChild(el('li', '', sd)); }); card.appendChild(ul);
+      }
+      card.appendChild(btn('Use this idea', 'v3-mini', function () { useNewsIdea(x); }));
+      w.appendChild(card);
+    });
+    w.appendChild(btn(S.gi.busy ? 'Thinking...' : 'More', 'v3-go', fetchNewsIdeas, S.gi.busy));
+    w.appendChild(btn('Pick another tile', 'v3-link', function () { go('g-tiles'); }));
   };
 
   // Start From Scratch
@@ -598,6 +659,9 @@
   }
   // A fitting pose and one short line for every step, so Plai stays with you the whole way.
   var SCREEN_HOST = {
+    'g-doors': ['hello', 'Real stories make real songs.'],
+    'g-tiles': ['thinking', 'Pick what pulls at you.'],
+    'g-ideas': ['thinking', 'Facts from the story. The angle is yours.'],
     's-type': ['hello', 'Pick a game. Each one plays different.'],
     's-sub': ['wink', 'Good pick. Now narrow it down.'],
     's-q': ['thinking', 'Real details beat generic every time.'],
