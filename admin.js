@@ -322,6 +322,23 @@
     });
   }
 
+  function aiDisclosureCell(row) {
+    var rec = row && row.ai_disclosure;
+    var line = String((row && row.ai_disclosure_summary) || '').trim();
+    if (!rec || !line) return escapeHtml('-');
+    var name = [rec.legal_first, rec.legal_last].filter(Boolean).join(' ');
+    var lyrics = rec.instrumental ? 'Instrumental' : String(rec.lyrics || '');
+    (rec.track_lyrics || []).forEach(function (t) {
+      lyrics += (lyrics ? '\n\n' : '') + '[' + (t.title || t.track_id || 'Track') + ']\n' + t.lyrics;
+    });
+    return '<details><summary>' + escapeHtml(line) + '</summary>'
+      + '<p>Used AI box: ' + escapeHtml(rec.ai_used ? 'checked' : 'not checked') + '</p>'
+      + '<p>Human contribution: ' + escapeHtml(rec.human_contribution || '(blank)') + '</p>'
+      + '<p>Rights: ' + escapeHtml((rec.rights_confirmed ? 'yes' : 'no') + (rec.rights_confirmed_at ? ' at ' + rec.rights_confirmed_at : '') + (name ? ' by ' + name : '')) + '</p>'
+      + (lyrics ? '<pre style="white-space:pre-wrap;max-height:240px;overflow:auto">' + escapeHtml(lyrics) + '</pre>' : '')
+      + '</details>';
+  }
+
   function renderSubmissions(submissions) {
     fillTable('[data-submissions-table]', '[data-submissions-empty]', '[data-submissions-body]', submissions, function (row) {
       var alert = String(row.alert || '').trim();
@@ -335,6 +352,7 @@
         + cell('UPC', escapeHtml(dash(row.upc)))
         + cell('ISRC', escapeHtml(dash(row.isrc)))
         + cell('Takedown', escapeHtml(dash(row.takedown)))
+        + cell('AI disclosure', aiDisclosureCell(row))
         + cell('Alert', escapeHtml(alert), 'admin-alert')
         + '</tr>';
     });

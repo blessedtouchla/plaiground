@@ -73,6 +73,7 @@ const personaLib = require('../lib/persona');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const splitSheets = require('../lib/split-sheets');
+const aiDisclosure = require('../lib/ai-disclosure');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
 const storeAi = require('../lib/store-ai');
@@ -3811,7 +3812,21 @@ async function submitRelease(req, res, releaseId) {
   const next = unwrapRelease(submitted.data) || submitted.data || {};
   const submittedStatus = String(next.status || 'pending').toLowerCase();
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
-  await persistReleaseMeta(scope.row, releaseId, submittedStatus, '', '', '', Object.assign({}, credits || {}, splitMeta));
+  // Our own copy of the full AI disclosure. Saved on the release record only; never sent to the store.
+  const disclosureRecord = aiDisclosure.fromSubmit(body, {
+    at: new Date(),
+    legal_first: splitMeta.legal_first,
+    legal_last: splitMeta.legal_last,
+  });
+  await persistReleaseMeta(
+    scope.row,
+    releaseId,
+    submittedStatus,
+    '',
+    '',
+    '',
+    Object.assign({}, credits || {}, splitMeta, disclosureRecord ? { plaiground_ai_disclosure: disclosureRecord } : {})
+  );
   const songTitle = (body && (body.title || body.songTitle || body.song_title)) || row.title || next.title || '';
   await notifyFirstUpload(scope.row, {
     release_id: releaseId,
@@ -3824,6 +3839,7 @@ async function submitRelease(req, res, releaseId) {
       title: songTitle,
       release_id: releaseId,
       at: new Date(),
+      ai_disclosure: disclosureRecord,
     });
   }
   await notifyNewRelease({
