@@ -15,7 +15,7 @@
       sound: { genre: '', sub: '', instruments: [], vocal: '', custom: '', fusion: [] }, result: null, userWords: false, keptPlai: false,
       fix: { text: '', off: [], before: '', history: [], picking: null, options: [], scoreBefore: 0 },
       flip: { text: '', from: '', fromPrompt: '', showPrompt: false, target: '', fusion: [], fusionOn: false, vibe: '', level: '', keep: [] },
-      battle: { round: 1, log: [], charged: false, bars: '' }, points: 0, busy: false, note: '', notice: '', crisis: false, history: [] };
+      battle: { round: 1, log: [], charged: false, bars: '' }, tune: { speed: '', bpm: '', vocals: '', gender: '', tone: '', must: [], energy: '', extra: '' }, tuneOpen: false, points: 0, busy: false, note: '', notice: '', crisis: false, history: [] };
   }
   S = fresh();
 
@@ -40,7 +40,7 @@
     return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
       explicit: S.explicit, ageOk: S.ageOk, built: S.built, research: S.research, styleOverride: S.styleOverride, flip: S.flip };
   }
-  function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
+  function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
   function style() {
     var st = stateForServer();
     var snd = soundForStyle();
@@ -171,10 +171,37 @@
     if (required) box.appendChild(el('p', 'hint', 'Spicy and Filthy need Explicit OK and the 18+ check.'));
     w.appendChild(box);
   }
+  // Optional Fine-tune panel under the vibe. Everything feeds the style prompt.
+  function tunePanel(w, preview) {
+    var T = A.TUNE, t = S.tune;
+    w.appendChild(btn((S.tuneOpen ? '\u25BE ' : '\u25B8 ') + 'Fine-tune (optional)', 'arc-tune-toggle', function () { S.tuneOpen = !S.tuneOpen; paint(); }));
+    if (!S.tuneOpen) return;
+    var box = el('div', 'arc-tune');
+    var one = function (label, key, list) {
+      box.appendChild(el('p', 'arc-q', label));
+      box.appendChild(chips(list, function (v) { return t[key] === v; }, function (v) { t[key] = t[key] === v ? '' : v; }, 'small'));
+    };
+    one('Speed', 'speed', T.speed);
+    var bpm = el('input', 'arc-input arc-tune-bpm'); bpm.type = 'number'; bpm.min = 40; bpm.max = 220; bpm.inputMode = 'numeric'; bpm.placeholder = 'BPM, if you know it'; bpm.value = t.bpm || '';
+    bpm.onchange = function () { t.bpm = bpm.value; paint(); }; box.appendChild(bpm);
+    one('Vocals', 'vocals', T.vocals);
+    one('Voice', 'gender', T.gender);
+    box.appendChild(chips(T.tone, function (v) { return t.tone === v; }, function (v) { t.tone = t.tone === v ? '' : v; }, 'small'));
+    box.appendChild(el('p', 'arc-q', 'Must-have instruments'));
+    box.appendChild(chips(T.must, function (v) { return t.must.indexOf(v) !== -1; }, function (v) { var i = t.must.indexOf(v); if (i === -1) t.must.push(v); else t.must.splice(i, 1); }, 'small'));
+    one('Energy build', 'energy', T.energy);
+    box.appendChild(el('p', 'arc-q', 'Anything else?'));
+    var ex = el('input', 'arc-input'); ex.maxLength = 120; ex.placeholder = 'a sound, a texture, a feeling (no artist names)'; ex.value = t.extra || '';
+    ex.onchange = function () { t.extra = ex.value; paint(); }; box.appendChild(ex);
+    if (preview) { box.appendChild(el('p', 'arc-q', 'Style prompt')); box.appendChild(el('pre', 'arc-style', style())); }
+    w.appendChild(box);
+  }
+
   SCREENS['s-basics'] = function (w) {
     w.appendChild(plai('Set the vibe.'));
     if (!S.title) S.title = A.suggestTitle(stateForServer());
     w.appendChild(chips(A.VIBES, function (v) { return S.vibe === v; }, function (v) { S.vibe = v; }));
+    tunePanel(w, false);
     w.appendChild(el('p', 'arc-q', 'Title'));
     w.appendChild(input(S.title, 'Title', function (v) { S.title = v; }));
     w.appendChild(el('p', 'arc-q', 'Sound'));
@@ -435,6 +462,7 @@
     w.appendChild(chips(Object.keys(A.FLIP_VIBES).map(function (k) { return { id: k, label: A.FLIP_VIBES[k].label }; }), function (k) { return f.vibe === k; }, function (k) { f.vibe = f.vibe === k ? '' : k; f.level = A.FLIP_VIBES[k] && A.FLIP_VIBES[k].levels ? A.FLIP_VIBES[k].levels[0] : ''; }));
     if (f.vibe && A.FLIP_VIBES[f.vibe].levels) w.appendChild(chips(A.FLIP_VIBES[f.vibe].levels, function (x) { return f.level === x; }, function (x) { f.level = x; }, 'small'));
     if (f.vibe === 'funny') w.appendChild(el('p', 'hint', 'Exaggerate, twist, punchlines. The hook stays.'));
+    tunePanel(w, true);
     if (f.vibe === 'dirty') { w.appendChild(el('p', 'hint', 'Innuendo, not graphic. Never minors, real named people, or non-consent.')); explicitToggle(w, f.level !== 'Flirty'); }
     w.appendChild(plai('Tap the lines to keep exactly as they are.'));
     var list = el('div', 'flow-card arc-read');
@@ -517,6 +545,141 @@
     return h;
   }
 
+  // ---------- Talk to Plai: she asks out loud, you answer by voice or typing ----------
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var TALK = { on: false, muted: false, key: '', phase: 'idle', heard: '', log: [], rec: null, listening: false, noMic: !SR, spoke: '' };
+  function say(text) {
+    if (TALK.muted || !('speechSynthesis' in window) || !text) return;
+    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.rate = 1.02; u.pitch = 1.08; u.onend = function () { if (TALK.phase === 'ask' || TALK.phase === 'confirm') listen(); }; speechSynthesis.speak(u); } catch (e) {}
+  }
+  function stopListen() { try { if (TALK.rec) TALK.rec.abort(); } catch (e) {} TALK.listening = false; }
+  function listen() {
+    if (!TALK.on || TALK.noMic || TALK.listening || S.busy || S.crisis) return;
+    try {
+      var r = new SR(); r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = function (e) { var t = (e.results[0] && e.results[0][0] && e.results[0][0].transcript) || ''; TALK.listening = false; heard(t); };
+      r.onerror = function (e) { TALK.listening = false; if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { TALK.noMic = true; TALK.micNote = 'Mic is off, so type your answer. I will still talk.'; } paint(); };
+      r.onend = function () { if (TALK.listening) { TALK.listening = false; paint(); } };
+      TALK.rec = r; TALK.listening = true; r.start(); paint();
+    } catch (e) { TALK.listening = false; TALK.noMic = true; paint(); }
+  }
+  // What Plai is asking on this screen, and how a spoken answer is applied.
+  function talkTarget() {
+    if (S.screen === 's-type') return { ask: 'What are we making? Say a game, like parody or roast.', options: A.TYPES.map(function (t) { return t.label; }), pick: true };
+    if (S.screen === 's-sub') { var t = A.TYPES.filter(function (x) { return x.id === S.type; })[0]; return { ask: S.type === 'tribute' ? "Who's it for?" : "Who's getting roasted?", options: (t && t.sub || []).map(function (id) { return A.SUBS[id]; }), pick: true }; }
+    if (S.screen === 's-q') {
+      var q = A.questionsFor(S.type, S.sub)[S.qIndex]; if (!q) return null;
+      var opts = q.kind === 'chips' ? (q.fromResearch && S.research && S.research.angles && S.research.angles.length ? S.research.angles.slice(0, 3) : q.options) : null;
+      return { ask: q.q + (q.kind === 'fields' && q.fields.length === 2 ? ' Say it like: title by artist.' : ''), q: q, options: opts, pick: false };
+    }
+    if ((S.screen === 's-basics' || S.screen === 'x-vibe') && (TALK.tuneStep || 0) < TUNE_Q.length) {
+      var tq = TUNE_Q[TALK.tuneStep || 0];
+      return { ask: tq.ask + ' Or say skip.', options: tq.options.concat(['Skip']), tune: tq.key, pick: false };
+    }
+    if (S.screen === 'f-paste' || S.screen === 'x-paste') return { ask: 'Say your lyrics, a line at a time. Tap Done when you are finished.', dictate: true };
+    return null;
+  }
+  var TUNE_Q = [
+    { key: 'speed', ask: 'Want to fine-tune? What speed: slow, mid, upbeat or fast?', options: A.TUNE.speed },
+    { key: 'vocals', ask: 'Vocals: solo, duet, band with backing vocals, or choir?', options: A.TUNE.vocals },
+    { key: 'tone', ask: 'Voice: raspy, smooth or airy?', options: A.TUNE.tone },
+    { key: 'energy', ask: 'Energy: steady, slow build, big drop, or quiet to loud?', options: A.TUNE.energy }
+  ];
+  function norm(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function matchOption(text, options) {
+    var t = norm(text); if (!options || !t) return '';
+    var best = '', score = 0;
+    options.forEach(function (o) {
+      var words = norm(o).split(' ').filter(function (w) { return w.length > 2; });
+      var hit = words.filter(function (w) { return t.indexOf(w) !== -1; }).length / Math.max(1, words.length);
+      if (norm(o) === t) hit = 2;
+      if (hit > score) { score = hit; best = o; }
+    });
+    return score >= 0.5 ? best : '';
+  }
+  function heard(text) {
+    text = String(text || '').trim(); if (!text) { paint(); return; }
+    if (A.crisis(text)) { S.crisis = true; TALK.phase = 'idle'; TALK.log.push({ who: 'you', text: text }); paint(); return; }
+    var tg = talkTarget(); if (!tg) return;
+    if (TALK.phase === 'confirm') {
+      if (/\b(yes|yeah|yep|yup|right|correct|sure|ok|okay)\b/i.test(text)) return confirmYes();
+      if (/\b(no|nope|nah|wrong|redo)\b/i.test(text)) return confirmNo();
+    }
+    TALK.log.push({ who: 'you', text: text });
+    if (tg.dictate) { var k = S.screen === 'f-paste' ? 'fix' : 'flip'; S[k].text = (S[k].text ? S[k].text + '\n' : '') + text; TALK.phase = 'ask'; paint(); setTimeout(listen, 300); return; }
+    var pick = tg.options ? matchOption(text, tg.options) : '';
+    if (tg.tune && pick === 'Skip') { TALK.heard = 'Skip'; return confirmYes(); }
+    if (tg.options && !pick && !(tg.q && tg.q.other)) { TALK.log.push({ who: 'plai', text: 'I did not catch that one. Try one of the buttons\u2019 words.' }); say('I did not catch that. Try one of the options.'); paint(); return; }
+    TALK.heard = pick || text; TALK.phase = 'confirm';
+    var line = 'So it\u2019s ' + TALK.heard + ', right?';
+    TALK.log.push({ who: 'plai', text: line }); paint(); say(line);
+  }
+  function confirmNo() { stopListen(); TALK.phase = 'ask'; TALK.heard = ''; TALK.log.push({ who: 'plai', text: 'No problem. Say it again.' }); paint(); say('No problem. Say it again.'); }
+  function clickBtn(label) { var b = Array.prototype.find.call(root.querySelectorAll('button'), function (x) { return x.textContent.trim().indexOf(label) === 0; }); if (b && !b.disabled) { b.click(); return true; } return false; }
+  function confirmYes() {
+    stopListen(); var tg = talkTarget(); var v = TALK.heard; if (!tg || !v) return;
+    TALK.phase = 'done'; TALK.log.push({ who: 'plai', text: 'Got it.' }); S.mood = 'gotit'; S.moodAt = Date.now();
+    if (tg.pick) { paint(); if (!clickBtn(v)) paint(); return; }
+    if (tg.tune) { if (v !== 'Skip') { S.tune[tg.tune] = v; S.tuneOpen = true; } TALK.tuneStep = (TALK.tuneStep || 0) + 1; paint(); return; }
+    var q = tg.q;
+    if (q.kind === 'chips') { if (tg.options.indexOf(v) !== -1) S.answers[q.key] = v; else { S.answers[q.key] = v; S.userWords = true; } }
+    else if (q.kind === 'fields') {
+      if (q.fields.length === 2) { var m = v.split(/\s+by\s+/i); S.answers[q.fields[0][0]] = m[0].trim(); if (m[1]) S.answers[q.fields[1][0]] = m[1].trim(); }
+      else S.answers[q.fields[0][0]] = v;
+    } else { S.answers[q.key] = v; S.userWords = true; }
+    paint(); clickBtn('Next');
+  }
+  // Called after every paint: speak once per new question, or hand off on tap screens.
+  function talkTick(w) {
+    if (S.screen === 'home') TALK.tuneStep = 0;
+    if (!TALK.on) return;
+    var tg = talkTarget();
+    var key = S.screen + ':' + S.qIndex + ':' + (S.type || '') + ':' + (S.sub || '') + ':' + (TALK.tuneStep || 0);
+    var box = el('div', 'arc-talk'); box.setAttribute('aria-live', 'polite');
+    var head = el('div', 'arc-talk-head');
+    var pose = !tg ? 'side' : (TALK.phase === 'confirm' || TALK.phase === 'done' ? 'gotit' : (TALK.listening ? 'thinking' : 'hello'));
+    var img = el('img', 'arc-talk-img'); img.src = '/for-david-fv/img/plai-' + pose + '.webp'; img.alt = ''; head.appendChild(img);
+    head.appendChild(el('b', '', TALK.listening ? 'Plai is listening...' : 'Talk to Plai'));
+    var mute = btn(TALK.muted ? 'Unmute' : 'Mute', 'arc-talk-mute', function () { TALK.muted = !TALK.muted; if (TALK.muted) try { speechSynthesis.cancel(); } catch (e) {} paint(); });
+    mute.setAttribute('aria-pressed', TALK.muted ? 'true' : 'false'); head.appendChild(mute);
+    box.appendChild(head);
+    if (S.crisis) { box.appendChild(el('p', 'arc-talk-msg plai', 'I am right here. Take your time. Talk mode is paused.')); w.insertBefore(box, w.children[2] || null); return; }
+    if (!tg) {
+      if (TALK.key !== key) { TALK.key = key; TALK.phase = 'idle'; stopListen(); say('Your turn to tap. I will pick back up on the next question.'); }
+      box.appendChild(el('p', 'arc-talk-msg plai', 'Your turn to tap here. I will pick back up on the next question.'));
+      w.insertBefore(box, w.children[2] || null); return;
+    }
+    if (TALK.key !== key) { TALK.key = key; TALK.phase = 'ask'; TALK.heard = ''; TALK.log = [{ who: 'plai', text: tg.ask }]; stopListen(); setTimeout(function () { say(tg.ask); if (TALK.muted || !('speechSynthesis' in window)) listen(); }, 250); }
+    var log = el('div', 'arc-talk-log');
+    TALK.log.slice(-4).forEach(function (m) { log.appendChild(el('p', 'arc-talk-msg ' + m.who, m.text)); });
+    box.appendChild(log);
+    if (TALK.phase === 'confirm') {
+      var row = el('div', 'arc-talk-row');
+      row.appendChild(btn('Yes', 'v3-go arc-talk-yes', confirmYes)); row.appendChild(btn('No, redo', 'v3-mini', confirmNo));
+      box.appendChild(row);
+    } else {
+      var row2 = el('div', 'arc-talk-row');
+      if (!TALK.noMic) row2.appendChild(btn(TALK.listening ? 'Listening...' : '\uD83C\uDFA4 Speak', 'arc-talk-mic' + (TALK.listening ? ' on' : ''), function () { if (TALK.listening) stopListen(); else listen(); paint(); }));
+      var t = el('input', 'arc-input arc-talk-type'); t.placeholder = tg.dictate ? 'Or type a line' : 'Or type your answer';
+      t.onkeydown = function (e) { if (e.key === 'Enter' && t.value.trim()) { var v = t.value; t.value = ''; heard(v); } };
+      row2.appendChild(t);
+      row2.appendChild(btn('Send', 'v3-mini', function () { if (t.value.trim()) { var v = t.value; t.value = ''; heard(v); } }));
+      if (tg.dictate) row2.appendChild(btn('Done', 'v3-mini', function () { stopListen(); clickBtn('Next'); }));
+      box.appendChild(row2);
+    }
+    if (TALK.micNote || TALK.noMic) box.appendChild(el('p', 'arc-talk-note', TALK.micNote || 'Voice answers are not supported in this browser, so type. I will still talk.'));
+    w.insertBefore(box, w.children[2] || null);
+  }
+  function talkToggle() {
+    var b = btn(TALK.on ? 'Talk mode on' : 'Talk to Plai', 'arc-talk-toggle' + (TALK.on ? ' on' : ''), function () {
+      TALK.on = !TALK.on; TALK.key = ''; TALK.micNote = '';
+      if (!TALK.on) { stopListen(); try { speechSynthesis.cancel(); } catch (e) {} }
+      paint();
+    });
+    b.setAttribute('aria-pressed', TALK.on ? 'true' : 'false');
+    return b;
+  }
+
   function paint() {
     root.innerHTML = '';
     var w = el('div', 'v3-wrap arc-wrap');
@@ -524,12 +687,16 @@
     top.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
     top.appendChild(el('span', 'v3-points', String(S.points)));
     w.appendChild(top);
+    w.appendChild(talkToggle());
         if (S.crisis) w.appendChild(crisisCard());
     if (S.screen !== 'home') w.appendChild(btn('Back', 'v3-link arc-back', back));
     var sb = stepBar(); if (sb) w.appendChild(sb);
     var slot = el('div', 'arc-host-slot'); w.appendChild(slot);
+    var painting = S.screen;
     (SCREENS[S.screen] || SCREENS.home)(w);
+    if (S.screen !== painting) return; // the screen moved on and already painted itself
     var hh = host(); if (hh) { if (S.screen === 'home') { var m = w.querySelector('.arc-marquee'); if (m) m.after(hh); else slot.appendChild(hh); } else slot.appendChild(hh); }
+    talkTick(w);
     if (S.note) w.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
   }
