@@ -1218,3 +1218,12 @@
     init();
   }
 })();
+
+// Vercel Web Analytics: load once per page.
+(function () {
+  try {
+    if (document.querySelector('script[src*="/_vercel/insights/script.js"]')) return;
+    var s = document.createElement('script'); s.defer = true; s.src = '/_vercel/insights/script.js';
+    (document.head || document.documentElement).appendChild(s);
+  } catch (e) {}
+})();
