@@ -847,6 +847,11 @@
     if (dateEl.removeAttribute) dateEl.removeAttribute('min');
     bindNativeDatePicker(dateEl);
     var shown = normalizePickedDate(dateEl.value) || normalizePickedDate(readDraft().release_date);
+    // New release: default to today + 7, and bump any saved date that is now too soon.
+    if (dateEl.id !== 'edit-release-date' && (!shown || shown < minSubmitDate())) {
+      shown = minSubmitDate();
+      writeDraft({ release_date: shown });
+    }
     if (shown) dateEl.value = shown;
     markReleaseDateState(dateEl, shown);
     return isReadyReleaseDate(shown) ? shown : '';
