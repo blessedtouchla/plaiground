@@ -1,4 +1,5 @@
 {
+  "buildCommand": "node scripts/guard-build.js",
   "redirects": [
     {
       "source": "/blog/lyrics-plus-ai-recording-is-fully-ai",
