@@ -26,13 +26,14 @@
   function spend() { return true; }
   function refund() {}
   function priceTag() { return 'free'; }
-  function go(screen) { if (S.screen !== screen) { S.history.push(S.screen); S.points += 100; } S.screen = screen; S.note = ''; paint(); window.scrollTo(0, 0); }
-  function back() { S.screen = S.history.pop() || 'home'; S.note = ''; paint(); }
+  function go(screen) { if (Date.now() - (S.moodAt || 0) > 80) S.mood = ''; if (S.screen !== screen) { S.history.push(S.screen); S.points += 100; } S.screen = screen; S.note = ''; paint(); window.scrollTo(0, 0); }
+  function back() { S.mood = ''; S.screen = S.history.pop() || 'home'; S.note = ''; paint(); }
   function post(action, extra) {
     var body = Object.assign({ action: action, company_website: '', k: K, state: stateForServer() }, extra || {});
     return fetch('/api/song-helper?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Something went wrong.' }; }).then(function (d) { d.__status = r.status; return d; }); })
-      .catch(function () { return { ok: false, error: 'Connection hiccup. Try again.' }; });
+      .catch(function () { return { ok: false, error: 'Connection hiccup. Try again.' }; })
+      .then(function (d) { S.mood = d && d.ok ? 'gotit' : 'worried'; S.moodAt = Date.now(); return d; });
   }
   function stateForServer() {
     return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
@@ -70,7 +71,6 @@
 
   SCREENS.home = function (w) {
     w.appendChild(el('h1', 'arc-marquee', 'Song Lab'));
-    w.appendChild(plai("Pick a machine. I'll host."));
     var grid = el('div', 'arc-cards');
     A.CARDS.forEach(function (c) {
       var b = btn('', 'v3-cabinet arc-card cab-' + c.id, function () {
@@ -213,7 +213,7 @@
     if (S.aiLevel !== 'human') {
       if (S.notice) w.appendChild(el('p', 'hint', S.notice));
       S.options.forEach(function (o) {
-        var b = btn('', 'v3-tile arc-option', function () { S.built.push(o); S.keptPlai = true; nextSlot(); });
+        var b = btn('', 'v3-tile arc-option', function () { S.built.push(o); S.keptPlai = true; S.mood = 'landed'; nextSlot(); });
         b.appendChild(syl(o)); b.appendChild(document.createTextNode(' ' + o)); w.appendChild(b);
       });
       w.appendChild(btn(S.busy ? 'Thinking...' : 'Give me a line', 'v3-mini', function () { fetchLines(true); }, S.busy));
@@ -229,7 +229,7 @@
       }).catch(function () { rhymeBox.textContent = 'Rhymes are offline.'; });
     }));
     w.appendChild(rhymeBox);
-    w.appendChild(btn('Use my line', 'v3-go', function () { var v = String(S.ownLine || '').trim(); if (!v) return; S.built.push(v); S.userWords = true; S.ownLine = ''; nextSlot(); }));
+    w.appendChild(btn('Use my line', 'v3-go', function () { var v = String(S.ownLine || '').trim(); if (!v) return; S.built.push(v); S.userWords = true; S.ownLine = ''; S.mood = 'landed'; nextSlot(); }));
     w.appendChild(btn('Finish now (' + priceTag(S.aiLevel === 'human' ? 0 : 1) + ')', 'v3-link', writeSong));
   };
   function mismatch(i) { var j = i >= 4 ? i - 4 : i + 4; return S.built[j] && Math.abs(A.lineSyllables(S.built[i]) - A.lineSyllables(S.built[j])) > 2; }
@@ -313,6 +313,7 @@
     var score = S.card === 'fix' ? A.songScore(r.lyrics) : S.points + A.songScore(r.lyrics);
     var high = score > best;
     if (high) localStorage.setItem(BEST, String(score));
+    if (S.revealHigh == null || S.revealSeen !== r) { S.revealHigh = high; S.revealSeen = r; }
     w.appendChild(el('p', 'arc-kicker', high ? 'New high score!' : 'High score'));
     w.appendChild(el('h2', 'arc-marquee', S.title || A.suggestTitle(stateForServer())));
     if (S.card === 'fix' && r.scoreBefore) w.appendChild(el('p', 'arc-jump', 'Score ' + r.scoreBefore + ' to ' + score + (score > r.scoreBefore ? '. Look at that jump!' : '')));
@@ -457,6 +458,29 @@
   }
 
   // ---------- paint ----------
+  // ---------- Plai hosts: one small pose plus one short line, inline so it never covers content ----------
+  function hostPose() {
+    if (S.crisis) return null;
+    if (S.busy) return ['thinking', 'Writing. Give me a second.'];
+    if (S.mood === 'worried' && S.note) return ['worried', "Hit a snag. Let's try that again."];
+    if (S.screen === 'reveal') {
+      return S.revealHigh ? ['dancing', 'New high score. You earned that one.'] : ['dancing', 'Song done. You set the vision, I kept up.'];
+    }
+    if (S.screen === 'home') return ['hello', "Three machines. Pick one and I'll host."];
+    if (S.card === 'flip' && S.flip.vibe === 'surprise') return ['wink', 'Surprise me? Bold. I like it.'];
+    if (S.mood === 'landed') return ['gotit', 'Got it. That line lands. ' + S.built.length + ' down.'];
+    if (S.mood === 'gotit') return ['gotit', 'Got it. Take a look.'];
+    return null;
+  }
+  function host() {
+    var p = hostPose(); if (!p) return null;
+    var h = el('div', 'arc-host arc-host-' + p[0]); h.setAttribute('role', 'status');
+    var img = el('img', 'arc-host-img'); img.src = '/for-david-fv/img/plai-' + p[0] + '.webp'; img.alt = ''; img.width = 56; img.height = 104; img.decoding = 'async';
+    h.appendChild(img);
+    var say = el('p', 'arc-host-say'); say.appendChild(el('b', '', 'Plai')); say.appendChild(document.createTextNode(p[1])); h.appendChild(say);
+    return h;
+  }
+
   function paint() {
     root.innerHTML = '';
     var w = el('div', 'v3-wrap arc-wrap');
@@ -466,7 +490,9 @@
     w.appendChild(top);
         if (S.crisis) w.appendChild(crisisCard());
     if (S.screen !== 'home') w.appendChild(btn('Back', 'v3-link arc-back', back));
+    var slot = el('div', 'arc-host-slot'); w.appendChild(slot);
     (SCREENS[S.screen] || SCREENS.home)(w);
+    var hh = host(); if (hh) { if (S.screen === 'home') { var m = w.querySelector('.arc-marquee'); if (m) m.after(hh); else slot.appendChild(hh); } else slot.appendChild(hh); }
     if (S.note) w.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
   }
