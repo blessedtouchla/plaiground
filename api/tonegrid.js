@@ -77,6 +77,7 @@ const aiDisclosure = require('../lib/ai-disclosure');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
 const storeAi = require('../lib/store-ai');
+const submitVerify = require('../lib/submit-verify');
 const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
@@ -3817,10 +3818,19 @@ async function submitRelease(req, res, releaseId) {
     }
   }
 
+  // Fresh status right before submit; the key changes per real attempt (deduped within ~60s).
+  let beforeStatus = row.status;
+  let beforeRow = row;
+  const preCheck = await tonegridFetch('/releases/' + releaseId, { method: 'GET' });
+  if (preCheck.ok) {
+    const rawPre = unwrapRelease(preCheck.data) || {};
+    const pre = pickRelease(rawPre);
+    if (pre) { beforeStatus = pre.status; beforeRow = Object.assign({}, row, { status: pre.status, updated_at: rawPre.updated_at || rawPre.updatedAt || row.updated_at || '' }); }
+  }
   const submitted = await tonegridFetch('/releases/' + releaseId + '/submit', {
     method: 'POST',
     body: {},
-    idempotencyKey: hopIdempotencyKey('submit', 'POST', '/releases/' + releaseId + '/submit', releaseId),
+    idempotencyKey: submitVerify.submitKey(releaseId, beforeRow),
   });
   if (!submitted.ok) {
     sendJson(res, submitted.status, submitted.data);
@@ -3828,7 +3838,24 @@ async function submitRelease(req, res, releaseId) {
   }
 
   const next = unwrapRelease(submitted.data) || submitted.data || {};
-  const submittedStatus = String(next.status || 'pending').toLowerCase();
+  // Only treat it as sent when the store really shows it in review now.
+  let afterStatus = '';
+  const postCheck = await tonegridFetch('/releases/' + releaseId, { method: 'GET' });
+  if (postCheck.ok) {
+    const post = pickRelease(unwrapRelease(postCheck.data));
+    afterStatus = post ? post.status : '';
+  }
+  if (!submitVerify.submitLanded(beforeStatus, afterStatus)) {
+    console.warn('[tonegrid] submit did not land', releaseId, 'before=' + submitVerify.norm(beforeStatus), 'after=' + submitVerify.norm(afterStatus), 'reply=' + submitVerify.norm(next.status));
+    sendJson(res, 502, {
+      ok: false,
+      error: submitVerify.NOT_SENT_COPY,
+      code: 'SUBMIT_NOT_LANDED',
+      status: submitVerify.norm(afterStatus) || submitVerify.norm(beforeStatus),
+    });
+    return;
+  }
+  const submittedStatus = submitVerify.norm(afterStatus);
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
   // Our own copy of the full AI disclosure. Saved on the release record only; never sent to the store.
   const chosenArtist = releaseArtistName(scope, body, row);
@@ -3854,7 +3881,7 @@ async function submitRelease(req, res, releaseId) {
     title: songTitle,
     release_date: releaseDate,
   });
-  if (submittedStatus === 'pending' || submittedStatus === 'pending_review') {
+  if (submitVerify.IN_REVIEW.has(submittedStatus) && submittedStatus !== 'approved') {
     await notifyQcRelease({
       artist: chosenArtist,
       title: songTitle,
