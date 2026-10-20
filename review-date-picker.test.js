@@ -326,16 +326,22 @@ function run() {
   assert.strictEqual(empty.date.type, 'date');
   assert.ok(!empty.date.min || empty.date.min <= todayLocal(), 'native min must not be the 7-day lock');
   assert.strictEqual(empty.date.required, true);
-  assert.strictEqual(empty.date.value, '');
+  // Oct 19: a new release defaults to today + 7 days.
+  assert.strictEqual(empty.date.value, min, 'empty release date defaults to today + 7');
+  assert.strictEqual(draftOf(empty.localStorage).release_date, min);
   assert.ok(empty.date.listeners.click, 'release date must open on a tap of the whole field');
   empty.date.listeners.click();
-  assert.ok(empty.date.pickerOpened >= 1, 'tapping an empty release date must call showPicker');
-  assert.strictEqual(empty.date.value, '', 'empty tap must not auto-snap a date');
-  empty.date.listeners.change();
-  assert.strictEqual(empty.date.value, '', 'empty change must not auto-snap a date that would close the picker');
-  empty.payBtn.listeners.click({ preventDefault() {} });
-  assert.strictEqual(empty.status.textContent, 'Release date is required.');
-  assert.ok(!String(draftOf(empty.localStorage).release_date || '').trim());
+  assert.ok(empty.date.pickerOpened >= 1, 'tapping the release date must call showPicker');
+
+  const past = loadReview({
+    draft: {
+      artist_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      title: 'Night Drive',
+      release_date: '2026-09-21',
+    },
+  });
+  assert.strictEqual(past.date.value, min, 'a saved past date is bumped to today + 7');
+  assert.strictEqual(draftOf(past.localStorage).release_date, min);
 
   testNormalizePickedDateDoesNotEmptyWindowPick(empty);
   testPersistReleaseDateKeepsWindowPick(empty);
