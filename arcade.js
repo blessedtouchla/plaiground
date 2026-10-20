@@ -7,6 +7,7 @@
   var WALLET = 'plaiground.v3.wallet';
   var BEST = 'plaiground.arcade.best';
   var SAVED = 'plaiground.arcade.saved';
+  var ROAST_NOTE = 'Comedy parody. Not statements of fact.';
   var S;
   function fresh() {
     return { screen: 'home', card: '', type: '', sub: '', qIndex: 0, answers: {}, aiLevel: 'assist', vibe: '', title: '', length: 'Song', language: 'English',
@@ -116,16 +117,16 @@
     w.appendChild(el('p', 'arc-step', 'Question ' + (S.qIndex + 1) + ' of ' + qs.length));
     w.appendChild(plai(q.q));
     if (q.fromResearch && S.research) {
-      var box = el('div', 'flow-card arc-research'); box.appendChild(el('h3', '', "Here's what that song is about"));
+      var box = el('div', 'flow-card arc-research'); box.appendChild(el('h3', '', S.sub === 'celeb' ? 'Roast ammo (public info)' : "Here's what that song is about"));
       var ul = el('ul'); (S.research.topics || []).forEach(function (t) { ul.appendChild(el('li', '', t)); }); box.appendChild(ul);
       if (S.researchNotice) box.appendChild(el('p', 'hint', S.researchNotice));
       w.appendChild(box);
     }
     if (q.kind === 'chips') {
       var opts = q.options.slice();
-      if (q.fromResearch && S.research && S.research.angles) opts = S.research.angles.concat(opts);
+      if (q.kind === 'chips' && q.fromResearch && S.research && S.research.angles && S.research.angles.length) opts = S.research.angles.slice(0, 3);
       w.appendChild(chips(opts, function (v) { return S.answers[q.key] === v; }, function (v) { S.answers[q.key] = v; }));
-      if (q.other) w.appendChild(input(opts.indexOf(S.answers[q.key]) === -1 ? (S.answers[q.key] || '') : '', 'Something else? Type it', function (v) { S.answers[q.key] = v; S.userWords = true; }));
+      if (q.other) w.appendChild(input(opts.indexOf(S.answers[q.key]) === -1 ? (S.answers[q.key] || '') : '', (q.otherPh || 'Something else? Type it'), function (v) { S.answers[q.key] = v; S.userWords = true; }));
     } else if (q.kind === 'text') {
       if (q.prefillFrom && !S.answers[q.key] && S.answers[q.prefillFrom]) S.answers[q.key] = S.answers[q.prefillFrom];
       w.appendChild(input(S.answers[q.key], q.ph, function (v) { S.answers[q.key] = v; S.userWords = true; }, q.rows || 3));
@@ -323,15 +324,16 @@
     w.appendChild(el('span', 'arc-label', r.label || A.aiLabel(S)));
     if (S.sub === 'battle') w.appendChild(chips(['You won', 'Plai won', 'Tie'], function (v) { return S.vote === v; }, function (v) { S.vote = v; }));
     var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre);
+    if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
     var row = el('div', 'arc-actions');
-    var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(r.lyrics, b1); });
+    var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, b1); });
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
     var b3 = btn('Copy both', 'v3-mini', function () { copy(r.lyrics + '\n\nStyle prompt\n' + r.style, b3); });
     var b4 = btn('Save', 'v3-mini', function () {
-      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saved'; } catch (e) { b4.textContent = 'Could not save'; }
+      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saved'; } catch (e) { b4.textContent = 'Could not save'; }
     });
     var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.fix.text = t; go('f-off'); });
     var b6 = btn('Flip', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'flip'; S.title = keepTitle; S.flip.text = t; go('x-genre'); });
@@ -468,13 +470,47 @@
     }
     if (S.screen === 'home') return ['hello', "Three machines. Pick one and I'll host."];
     if (S.card === 'flip' && S.flip.vibe === 'surprise') return ['wink', 'Surprise me? Bold. I like it.'];
-    if (S.mood === 'landed') return ['gotit', 'Got it. That line lands. ' + S.built.length + ' down.'];
-    if (S.mood === 'gotit') return ['gotit', 'Got it. Take a look.'];
-    return null;
+    if (S.mood === 'landed') { var n = S.built.length; return ['gotit', n === 1 ? 'Got it. 1 down.' : (n === 2 ? 'Two down. It is building.' : (n === 3 ? 'Three down. That has hook energy.' : n + ' down. Keep that run going.')), true]; }
+    if (S.mood === 'gotit') return ['gotit', 'Got it. Take a look.', true];
+    return SCREEN_HOST[S.screen] || null;
+  }
+  // A fitting pose and one short line for every step, so Plai stays with you the whole way.
+  var SCREEN_HOST = {
+    's-type': ['hello', 'Pick a game. Each one plays different.'],
+    's-sub': ['wink', 'Good pick. Now narrow it down.'],
+    's-q': ['thinking', 'Real details beat generic every time.'],
+    's-ai': ['autopilot', 'Your call. You lead either way.'],
+    's-basics': ['side', 'Set the vibe, then we roll.'],
+    's-build': ['claim', 'Your story. One line at a time.'],
+    's-battle': ['wink', 'Bring your best bars.'],
+    'f-paste': ['hello', 'Drop it in. I read every line.'],
+    'f-off': ['thinking', 'What bugs you? Be honest.'],
+    'f-read': ['claim', 'Here is my read. Tap any line.'],
+    'f-compare': ['gotit', 'Before and after. You decide.'],
+    'x-paste': ['hello', 'Paste it. Same heart, new outfit.'],
+    'x-genre': ['side', 'Where are we taking it?'],
+    'x-vibe': ['wink', 'Pick a mood. Go big.']
+  };
+  var STEPS = {
+    scratch: ['s-type', 's-sub', 's-q', 's-ai', 's-basics', 's-build', 'reveal'],
+    fix: ['f-paste', 'f-off', 'f-read', 'f-compare', 'reveal'],
+    flip: ['x-paste', 'x-genre', 'x-vibe', 'reveal']
+  };
+  function stepBar() {
+    var list = STEPS[S.card]; if (!list || S.screen === 'home') return null;
+    var cur = S.screen === 's-battle' ? 's-build' : S.screen;
+    var i = list.indexOf(cur); if (i < 0) return null;
+    var wrap = el('div', 'arc-steps'); wrap.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + list.length);
+    var bar = el('div', 'arc-steps-bar');
+    list.forEach(function (_, k) { bar.appendChild(el('span', k < i ? 'done' : (k === i ? 'now' : ''))); });
+    wrap.appendChild(el('span', 'arc-steps-n', i === list.length - 1 ? 'Final' : 'Step ' + (i + 1) + ' of ' + list.length));
+    wrap.appendChild(bar);
+    return wrap;
   }
   function host() {
     var p = hostPose(); if (!p) return null;
-    var h = el('div', 'arc-host arc-host-' + p[0]); h.setAttribute('role', 'status');
+    var h = el('div', 'arc-host arc-host-' + p[0] + (p[2] ? ' arc-host-win' : '')); h.setAttribute('role', 'status');
+    if (p[2]) { var sp = el('span', 'arc-sparkle'); sp.setAttribute('aria-hidden', 'true'); sp.textContent = '\u2726 \u2727 \u2726'; h.appendChild(sp); }
     var img = el('img', 'arc-host-img'); img.src = '/for-david-fv/img/plai-' + p[0] + '.webp'; img.alt = ''; img.width = 56; img.height = 104; img.decoding = 'async';
     h.appendChild(img);
     var say = el('p', 'arc-host-say'); say.appendChild(el('b', '', 'Plai')); say.appendChild(document.createTextNode(p[1])); h.appendChild(say);
@@ -490,6 +526,7 @@
     w.appendChild(top);
         if (S.crisis) w.appendChild(crisisCard());
     if (S.screen !== 'home') w.appendChild(btn('Back', 'v3-link arc-back', back));
+    var sb = stepBar(); if (sb) w.appendChild(sb);
     var slot = el('div', 'arc-host-slot'); w.appendChild(slot);
     (SCREENS[S.screen] || SCREENS.home)(w);
     var hh = host(); if (hh) { if (S.screen === 'home') { var m = w.querySelector('.arc-marquee'); if (m) m.after(hh); else slot.appendChild(hh); } else slot.appendChild(hh); }

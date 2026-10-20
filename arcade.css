@@ -48,3 +48,29 @@
 @keyframes arcHostIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes arcHostBob{50%{transform:translateY(-4px)}}
 @keyframes arcHostDance{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+
+/* Color all the way through: step bar, accent chips, sparkle on each finished part */
+.arc-steps{display:flex;align-items:center;gap:10px;margin:4px 0 6px}
+.arc-steps-n{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#3EE0FF;white-space:nowrap}
+.arc-steps-bar{flex:1;display:flex;gap:4px}
+.arc-steps-bar span{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.12)}
+.arc-steps-bar span.done{background:linear-gradient(90deg,#F5C542,#FF3EA5)}
+.arc-steps-bar span.now{background:#9B5CFF;box-shadow:0 0 10px rgba(155,92,255,.8)}
+.arc-chips .arc-chip:nth-child(4n+1){border-color:rgba(245,197,66,.6)}
+.arc-chips .arc-chip:nth-child(4n+2){border-color:rgba(155,92,255,.7)}
+.arc-chips .arc-chip:nth-child(4n+3){border-color:rgba(255,62,165,.6)}
+.arc-chips .arc-chip:nth-child(4n+4){border-color:rgba(62,224,255,.6)}
+.arc-chips .arc-chip.on{background:#F5C542;color:#111;border-color:#F5C542;box-shadow:0 0 12px rgba(245,197,66,.5)}
+.arc-input{border:1px solid rgba(155,92,255,.55)!important;box-shadow:0 0 0 1px rgba(155,92,255,.15) inset}
+.arc-input:focus{outline:none;border-color:#3EE0FF!important;box-shadow:0 0 12px rgba(62,224,255,.35)}
+.arc-option,.v3-tile{border-color:rgba(255,62,165,.5)!important}
+.arc-host{position:relative}
+.arc-host-win .arc-host-say{border-color:rgba(75,227,138,.6);background:rgba(75,227,138,.1)}
+.arc-sparkle{position:absolute;left:4px;top:-6px;color:#F5C542;font-size:14px;letter-spacing:4px;text-shadow:0 0 8px rgba(245,197,66,.9);pointer-events:none}
+@media (prefers-reduced-motion:no-preference){
+  .arc-sparkle{animation:arcSpark 1.1s ease-out forwards}
+  .arc-steps-bar span.now{animation:arcPulse 1.6s ease-in-out infinite}
+}
+@keyframes arcSpark{0%{opacity:0;transform:translateY(6px) scale(.6)}40%{opacity:1;transform:translateY(-4px) scale(1.1)}100%{opacity:.85;transform:translateY(-8px) scale(1)}}
+@keyframes arcPulse{50%{box-shadow:0 0 2px rgba(155,92,255,.4)}}
+.arc-parody-note{display:inline-block;margin:8px 0 4px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,62,165,.6);background:rgba(255,62,165,.12);color:#FFB3DA;font-size:12px;font-weight:700;letter-spacing:.04em;box-shadow:0 0 10px rgba(255,62,165,.25)}
