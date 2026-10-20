@@ -3699,10 +3699,24 @@
       var name = String(draft.audio_name || draft.audio_picked_name || (picked && picked.name) || '').trim();
       tracks.push({ title: draft.title || '', name: name, has: draftHasTrackFile(draft), url: draft.audio_url || '', duration: Number(draft.audio_duration || draft.duration || 0) || 0, file: picked || null });
     }
+    var first = legal.legal_first || '';
+    var last = legal.legal_last || '';
+    var artistId = String(draft.plaiground_artist_id || '').trim();
+    if ((!first || !last) && artistId) {
+      // Server fills the songwriter from the saved artist profile (same id), so show that.
+      try {
+        var acct = window.PlaigroundMembership && typeof window.PlaigroundMembership.account === 'function' ? window.PlaigroundMembership.account() : null;
+        var list = acct && acct.profile && Array.isArray(acct.profile.artists) ? acct.profile.artists : [];
+        list.forEach(function (a) {
+          if (a && String(a.id || a.artist_id || '') === artistId && a.legal_first && a.legal_last) { first = String(a.legal_first).trim(); last = String(a.legal_last).trim(); }
+        });
+      } catch (errLegal) {}
+    }
     return {
       artist: String(draft.name || '').trim(),
-      legal_first: legal.legal_first || '',
-      legal_last: legal.legal_last || '',
+      artist_id: artistId,
+      legal_first: first,
+      legal_last: last,
       tracks: tracks,
     };
   }
