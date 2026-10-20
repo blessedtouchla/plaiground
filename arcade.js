@@ -116,14 +116,14 @@
     w.appendChild(el('p', 'arc-step', 'Question ' + (S.qIndex + 1) + ' of ' + qs.length));
     w.appendChild(plai(q.q));
     if (q.fromResearch && S.research) {
-      var box = el('div', 'flow-card arc-research'); box.appendChild(el('h3', '', "Here's what that song is about"));
+      var box = el('div', 'flow-card arc-research'); box.appendChild(el('h3', '', S.sub === 'celeb' ? 'Roast ammo (public info)' : "Here's what that song is about"));
       var ul = el('ul'); (S.research.topics || []).forEach(function (t) { ul.appendChild(el('li', '', t)); }); box.appendChild(ul);
       if (S.researchNotice) box.appendChild(el('p', 'hint', S.researchNotice));
       w.appendChild(box);
     }
     if (q.kind === 'chips') {
       var opts = q.options.slice();
-      if (q.fromResearch && S.research && S.research.angles && S.research.angles.length) opts = S.research.angles.slice(0, 3);
+      if (q.kind === 'chips' && q.fromResearch && S.research && S.research.angles && S.research.angles.length) opts = S.research.angles.slice(0, 3);
       w.appendChild(chips(opts, function (v) { return S.answers[q.key] === v; }, function (v) { S.answers[q.key] = v; }));
       if (q.other) w.appendChild(input(opts.indexOf(S.answers[q.key]) === -1 ? (S.answers[q.key] || '') : '', (q.otherPh || 'Something else? Type it'), function (v) { S.answers[q.key] = v; S.userWords = true; }));
     } else if (q.kind === 'text') {
