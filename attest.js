@@ -477,11 +477,12 @@
       var have = selectedElements();
       var text = '';
       var ok = false;
-      if (how === 'ai_assisted' && qualifyingOn(have)) {
+      // Rule (Oct 19): any human chip or a human description keeps the song AI-assisted.
+      // Fully AI only when the artist picks it. No auto-switch.
+      var described = human ? String(human.value || '').trim() : '';
+      if (how === 'ai_assisted' && (have.length || described)) {
         text = 'Qualifies as AI-assisted';
         ok = true;
-      } else if (how === 'ai_assisted' && onlySoftChips(have)) {
-        text = 'Some platforms accept this, but YouTube needs a human voice, instrument or melody in the final recording. Add one, or this will be sent as Fully AI.';
       }
       note.textContent = text;
       note.hidden = !text;
@@ -627,18 +628,6 @@
       if (error) {
         setStatus(error);
         if (trigger.classList) trigger.classList.add('is-incomplete');
-        return false;
-      }
-      if (fields.made_how === 'ai_assisted' && onlySoftChips(fields.human_elements)) {
-        selectHow('fully_ai', { keepSwitchNote: true });
-        writeDraft({ ai_auto_switched: true, ai_switched_from: 'ai_assisted' });
-        showSwitched(true);
-        var switchedNote = document.querySelector('[data-switched]');
-        var switchedLine = document.querySelector('[data-switched-line]');
-        setStatus(switchedLine ? switchedLine.textContent : '');
-        if (switchedNote && switchedNote.scrollIntoView) {
-          try { switchedNote.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (errScroll) {}
-        }
         return false;
       }
       markHumanSaved();
