@@ -3926,6 +3926,12 @@
     };
     if (existingId) trackBody.track_id = existingId;
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
+    var chosenArtist = String(draft.name || '').trim();
+    if (chosenArtist) {
+      trackBody.primary_artist = chosenArtist;
+      trackBody.artist_name = chosenArtist;
+    }
+    if (draft.plaiground_artist_id) trackBody.plaiground_artist_id = String(draft.plaiground_artist_id);
     if (draft.made_how) trackBody.made_how = draft.made_how;
     if (draft.human_contribution) trackBody.human_contribution = draft.human_contribution;
     if (draft.ai_service) trackBody.ai_service = draft.ai_service;
