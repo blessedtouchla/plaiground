@@ -27,6 +27,7 @@ const slang = require('../lib/slang');
 const reddit = require('../lib/reddit-slang');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
+const fanServer = require('../lib/fan-song-server');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -961,9 +962,61 @@ function handleV3Page(req, res) {
   res.end(req.method === 'HEAD' ? '' : v3Gate.PAGE_HTML);
 }
 
+// Hidden Fan Mail to Song mode. Same private key gate as the v3 preview.
+async function handleFan(req, res, action, givenBody) {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  if (action === 'fan-page') {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    if (!v3Gate.keyOk(v3Gate.queryKey(req))) {
+      res.statusCode = 302;
+      res.setHeader('Location', '/song-helper');
+      res.end('');
+      return;
+    }
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(req.method === 'HEAD' ? '' : fanServer.PAGE_HTML);
+    return;
+  }
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { ok: false, error: 'Use POST.' });
+    return;
+  }
+  var body = givenBody || await readBody(req) || {};
+  if (body.__tooBig || body.__bad) {
+    sendJson(res, 400, { ok: false, error: 'Could not read that.' });
+    return;
+  }
+  if (!v3Gate.keyOk(body.k || v3Gate.queryKey(req))) {
+    sendJson(res, 404, { ok: false, error: 'Not found.' });
+    return;
+  }
+  if (honeypotFilled(body)) {
+    sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
+    return;
+  }
+  if (!v3Limiter.allow(clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
+  }
+  var payload = Object.assign({}, body);
+  delete payload.k;
+  try {
+    var out = action === 'fan-research' ? await fanServer.research(payload) : await fanServer.write(payload);
+    sendJson(res, out.status, out.body);
+  } catch (err) {
+    sendJson(res, 502, { ok: false, error: 'The writer is busy. Try again in a moment.' });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
   if (action === 'v3-page') {
     handleV3Page(req, res);
+    return;
+  }
+  if (action === 'fan-page' || action === 'fan-research' || action === 'fan-write') {
+    await handleFan(req, res, action, givenBody);
     return;
   }
   if (isV3Action(action)) {
