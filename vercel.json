@@ -1,6 +1,16 @@
 {
   "redirects": [
     {
+      "source": "/blog/lyrics-plus-ai-recording-is-fully-ai",
+      "destination": "/blog/lyrics-plus-ai-recording",
+      "permanent": true
+    },
+    {
+      "source": "/blog-lyrics-plus-ai-recording-is-fully-ai.html",
+      "destination": "/blog/lyrics-plus-ai-recording",
+      "permanent": true
+    },
+    {
       "source": "/",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/",
@@ -363,7 +373,7 @@
     { "source": "/blog/fusion-is-invention", "destination": "/blog-fusion-is-invention.html" },
     { "source": "/blog/point-of-view", "destination": "/blog-point-of-view.html" },
     { "source": "/blog/bots-do-the-drudgery", "destination": "/blog-bots-do-the-drudgery.html" },
-    { "source": "/blog/lyrics-plus-ai-recording-is-fully-ai", "destination": "/blog-lyrics-plus-ai-recording-is-fully-ai.html" },
+    { "source": "/blog/lyrics-plus-ai-recording", "destination": "/blog-lyrics-plus-ai-recording.html" },
     { "source": "/blog/youtube-music-labels", "destination": "/blog-youtube-music-labels.html" }
   ],
   "headers": [
