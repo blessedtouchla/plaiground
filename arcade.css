@@ -107,3 +107,12 @@
 .arc-edit .arc-lrow>span:first-child{flex:1;min-width:0}
 .arc-edit .arc-lrow .arc-tiny{flex:none}
 .arc-tiny{font-size:11px;padding:2px 8px;white-space:nowrap}
+.arc-gi-start{margin-top:16px}
+.arc-gi-door.gi-news{border-color:#3EE0FF}
+.arc-gi-door.gi-cause{border-color:#FF3EA5}
+.arc-gi-idea{text-align:left;margin:10px 0}
+.arc-gi-angle{font-weight:800;font-size:1.08em;color:#F5C542;margin:0 0 6px}
+.arc-gi-story{margin:0 0 8px;font-size:.92em;opacity:.92}
+.arc-gi-src{color:#3EE0FF;text-decoration:underline}
+.arc-gi-sides{margin:4px 0 8px 18px;font-size:.9em}
+.arc-gi-empty{border:2px dashed #9B5CFF}
