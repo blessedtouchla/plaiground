@@ -813,6 +813,14 @@
       var href = String(a.getAttribute("href") || "");
       var label = String(a.textContent || "").replace(/\s+/g, " ").trim();
       if (!href || !label || /song-helper/.test(href)) return;
+      if (href === "/charts" || /charts\.html$/.test(href)) {
+        a = document.createElement("a");
+        a.setAttribute("href", "https://www.plainow.com");
+        a.setAttribute("target", "_blank");
+        a.setAttribute("rel", "noopener");
+        a.textContent = "plainow";
+        href = "https://www.plainow.com"; label = "plainow";
+      }
       var k = href + "|" + label;
       if (seen[k]) return;
       seen[k] = 1;
