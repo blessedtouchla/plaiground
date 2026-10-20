@@ -35,12 +35,7 @@ const limiter = core.createLimiter({
 });
 
 const arcadeLimiter = core.createLimiter({
-  max: 30,
-  windowMs: 60 * 60 * 1000,
-});
-
-const arcadeLightLimiter = core.createLimiter({
-  max: 300,
+  max: 150,
   windowMs: 60 * 60 * 1000,
 });
 
@@ -972,20 +967,32 @@ function handleV3Page(req, res) {
   res.end(req.method === 'HEAD' ? '' : v3Gate.PAGE_HTML);
 }
 
-// Public Song Helper Arcade (serves /song-helper). No login and no credit lock.
-// Safety filters run inside lib/arcade-server. Per-IP hourly caps keep the AI bill sane.
-const ARCADE_AI = { 'arcade-write': 1, 'arcade-battle': 1, 'arcade-flip': 1, 'arcade-research': 1 };
-const arcadeUsage = { since: new Date().toISOString(), counts: {} };
-function logArcade(action, kind, ip) {
-  arcadeUsage.counts[action] = (arcadeUsage.counts[action] || 0) + 1;
+// Preview deploys only: the signed-in owner account opens the Arcade with no key in the URL.
+async function ownerOnPreview(req) {
+  if (String(process.env.VERCEL_ENV || '') === 'production') return false;
   try {
-    console.log(JSON.stringify({ evt: 'arcade_usage', action: action, kind: kind, ipHash: require('crypto').createHash('sha256').update(String(ip || '')).digest('hex').slice(0, 12), total: arcadeUsage.counts[action] }));
-  } catch (err) {}
+    const auth = require('../lib/auth');
+    const session = auth.sessionFromRequest(req);
+    if (!session) return false;
+    const row = await require('../lib/accounts').findById(session.userId);
+    return Boolean(row && auth.hasStaffProOverride(row.email));
+  } catch (err) {
+    return false;
+  }
 }
 
+// Hidden Song Helper Arcade. Same private key gate as the v3 preview.
 async function handleArcade(req, res, action, givenBody) {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   if (action === 'arcade-page') {
-    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    if (!v3Gate.keyOk(v3Gate.queryKey(req)) && !(await ownerOnPreview(req))) {
+      res.statusCode = 302;
+      res.setHeader('Location', '/song-helper');
+      res.end('');
+      return;
+    }
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(req.method === 'HEAD' ? '' : arcadeServer.PAGE_HTML);
@@ -1000,26 +1007,22 @@ async function handleArcade(req, res, action, givenBody) {
     sendJson(res, 400, { ok: false, error: 'Could not read that.' });
     return;
   }
+  if (!v3Gate.keyOk(body.k || v3Gate.queryKey(req)) && !(await ownerOnPreview(req))) {
+    sendJson(res, 404, { ok: false, error: 'Not found.' });
+    return;
+  }
   if (honeypotFilled(body)) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  var ip = clientIp(req);
-  var heavy = Boolean(ARCADE_AI[action]) || (action === 'arcade-fix' && !body.line);
-  if (action !== 'arcade-status') {
-    var limiter = heavy ? arcadeLimiter : arcadeLightLimiter;
-    if (!limiter.allow(ip)) {
-      logArcade(action, 'capped', ip);
-      sendJson(res, 429, { ok: false, error: heavy ? 'You hit the hourly limit of 30 songs. Take a breather and come back soon.' : 'Slow down a little. Try again in a few minutes.' });
-      return;
-    }
+  if (action !== 'arcade-status' && !arcadeLimiter.allow(clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'That is a lot of drafts from this connection. Wait a bit and try again.' });
+    return;
   }
   var payload = Object.assign({}, body);
   delete payload.k;
   try {
     var out = await arcadeServer.ACTIONS[action](payload);
-    logArcade(action, heavy ? 'ai' : 'light', ip);
-    if (action === 'arcade-status' && out && out.body) out.body.usage = arcadeUsage;
     sendJson(res, out.status, out.body);
   } catch (err) {
     sendJson(res, 502, { ok: false, error: 'The writer is busy. Try again in a moment.' });
