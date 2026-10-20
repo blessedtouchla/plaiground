@@ -918,6 +918,13 @@
     }
   }
 
+  function howItWasMadeOf(stored) {
+    var rec = stored && stored.plaiground_ai_disclosure;
+    var lib = global.PlaigroundAiDisclosure;
+    if (!rec || !lib || typeof lib.howItWasMade !== 'function') return null;
+    try { return lib.howItWasMade(rec); } catch (err) { return null; }
+  }
+
   function storedRelease(me, release) {
     var list = me && me.profile && Array.isArray(me.profile.releases) ? me.profile.releases : [];
     var want = String((release && (release.uuid || release.id || release.tonegrid_release_id)) || '').toLowerCase();
@@ -1002,6 +1009,21 @@
       top.appendChild(title);
       top.appendChild(pill);
       card.appendChild(top);
+      var made = howItWasMadeOf(stored);
+      if (made) {
+        var madeLine = document.createElement('p');
+        madeLine.className = 'hint artist-song-made';
+        madeLine.setAttribute('data-how-made', '');
+        madeLine.textContent = made.text;
+        card.appendChild(madeLine);
+        if (made.description) {
+          var madeDesc = document.createElement('p');
+          madeDesc.className = 'hint artist-song-made-desc';
+          madeDesc.setAttribute('data-how-made-desc', '');
+          madeDesc.textContent = '\u201c' + made.description + '\u201d';
+          card.appendChild(madeDesc);
+        }
+      }
       var player = document.createElement('div');
       player.className = 'owner-player';
       if (playerApi) {
