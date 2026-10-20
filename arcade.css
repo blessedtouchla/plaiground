@@ -99,3 +99,11 @@
 .arc-tune{padding:12px 14px;border-radius:16px;border:1px solid rgba(62,224,255,.4);background:rgba(62,224,255,.06);margin-bottom:10px}
 .arc-tune .arc-q{margin:10px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#F5C542}
 .arc-tune-bpm{max-width:200px;margin-top:8px}
+.arc-couplet{display:block;text-align:left}
+.arc-couplet .arc-line{margin:.2em 0}
+.arc-couplet-btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.arc-edit .arc-sec{display:flex;align-items:center;gap:8px;margin-top:10px}
+.arc-edit .arc-lrow{display:flex;align-items:center;gap:6px;justify-content:space-between;white-space:normal}
+.arc-edit .arc-lrow>span:first-child{flex:1;min-width:0}
+.arc-edit .arc-lrow .arc-tiny{flex:none}
+.arc-tiny{font-size:11px;padding:2px 8px;white-space:nowrap}

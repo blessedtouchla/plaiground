@@ -66,3 +66,5 @@
 }
 @keyframes baBlink{50%{opacity:0}}
 @keyframes baFloat{50%{transform:translateY(-6px)}}
+#roadmap{scroll-margin-top:72px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
