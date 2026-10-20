@@ -38,7 +38,7 @@
   }
   function stateForServer() {
     return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
-      explicit: S.explicit, ageOk: S.ageOk, built: S.built, research: S.research, styleOverride: S.styleOverride, flip: S.flip };
+      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, styleOverride: S.styleOverride, flip: S.flip };
   }
   function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
   function style() {
@@ -127,6 +127,7 @@
       if (q.kind === 'chips' && q.fromResearch && S.research && S.research.angles && S.research.angles.length) opts = S.research.angles.slice(0, 3);
       w.appendChild(chips(opts, function (v) { return S.answers[q.key] === v; }, function (v) { S.answers[q.key] = v; }));
       if (q.other) w.appendChild(input(opts.indexOf(S.answers[q.key]) === -1 ? (S.answers[q.key] || '') : '', (q.otherPh || 'Something else? Type it'), function (v) { S.answers[q.key] = v; S.userWords = true; }));
+      if (/^(spice|feel|twist)$/.test(q.key)) tunePanel(w, true);
     } else if (q.kind === 'text') {
       if (q.prefillFrom && !S.answers[q.key] && S.answers[q.prefillFrom]) S.answers[q.key] = S.answers[q.prefillFrom];
       w.appendChild(input(S.answers[q.key], q.ph, function (v) { S.answers[q.key] = v; S.userWords = true; }, q.rows || 3));
@@ -185,8 +186,17 @@
     var bpm = el('input', 'arc-input arc-tune-bpm'); bpm.type = 'number'; bpm.min = 40; bpm.max = 220; bpm.inputMode = 'numeric'; bpm.placeholder = 'BPM, if you know it'; bpm.value = t.bpm || '';
     bpm.onchange = function () { t.bpm = bpm.value; paint(); }; box.appendChild(bpm);
     one('Vocals', 'vocals', T.vocals);
-    one('Voice', 'gender', T.gender);
-    box.appendChild(chips(T.tone, function (v) { return t.tone === v; }, function (v) { t.tone = t.tone === v ? '' : v; }, 'small'));
+    box.appendChild(el('p', 'arc-q', 'Voice'));
+    box.appendChild(chips(T.gender, function (v) { return t.gender === v; }, function (v) { t.gender = t.gender === v ? '' : v; if (v === 'Surprise me') t.surprise = 1 + Math.floor(Math.random() * 1e6); }, 'small'));
+    box.appendChild(btn((S.shapeOpen ? '\u25BE ' : '\u25B8 ') + 'Shape the voice', 'arc-tune-toggle arc-shape-toggle', function () { S.shapeOpen = !S.shapeOpen; paint(); }));
+    if (S.shapeOpen) {
+      t.voiceShape = t.voiceShape || {};
+      Object.keys(T.shape).forEach(function (k) {
+        box.appendChild(el('p', 'arc-q arc-q-sm', A.SHAPE_LABEL[k]));
+        box.appendChild(chips(T.shape[k], function (v) { return t.voiceShape[k] === v; }, function (v) { t.voiceShape[k] = t.voiceShape[k] === v ? '' : v; }, 'small'));
+      });
+    }
+    box.appendChild(el('p', 'hint arc-voice-line', 'Voice: ' + A.voiceDescriptor(stateForServer(), t)));
     box.appendChild(el('p', 'arc-q', 'Must-have instruments'));
     box.appendChild(chips(T.must, function (v) { return t.must.indexOf(v) !== -1; }, function (v) { var i = t.must.indexOf(v); if (i === -1) t.must.push(v); else t.must.splice(i, 1); }, 'small'));
     one('Energy build', 'energy', T.energy);
@@ -197,6 +207,24 @@
     w.appendChild(box);
   }
 
+  function ideaChips(w) {
+    S.ideas = S.ideas || [];
+    var box = el('div', 'flow-card arc-ideas');
+    box.appendChild(el('p', 'arc-q', 'Idea chips'));
+    if (S.ideaList && S.ideaList.length) {
+      box.appendChild(el('p', 'hint', 'Tap the ideas you want in the song.' + (/^(tribute|roast|parody)$/.test(S.type) ? ' Facts marked (unsure) may be wrong.' : '')));
+      box.appendChild(el('p', 'hint', 'Plai picked her top ' + S.ideas.length + '. Tap to swap or remove.'));
+      box.appendChild(chips(S.ideaList, function (v) { return S.ideas.indexOf(v) !== -1; }, function (v) { var i = S.ideas.indexOf(v); if (i === -1) S.ideas.push(v); else S.ideas.splice(i, 1); }, 'small'));
+      var own = el('input', 'arc-input'); own.maxLength = 80; own.placeholder = 'Add your own idea';
+      own.onchange = function () { var v = String(own.value || '').trim(); if (v && S.ideaList.indexOf(v) === -1) { S.ideaList.push(v); S.ideas.push(v); } paint(); };
+      box.appendChild(own);
+    }
+    box.appendChild(btn(S.ideaBusy ? 'Thinking...' : (S.ideaList && S.ideaList.length ? 'More ideas' : 'Give me idea chips'), 'v3-mini', function () {
+      S.ideaBusy = true; paint();
+      post('arcade-ideas').then(function (d) { S.ideaBusy = false; if (d.ok) { S.ideaList = (d.ideas || []).concat(S.ideas.filter(function (x) { return (d.ideas || []).indexOf(x) === -1; })); if (!S.ideas.length) S.ideas = S.ideaList.filter(function (x) { return !/\(unsure\)/i.test(x); }).slice(0, 4); } else S.note = d.error || 'No ideas right now.'; paint(); });
+    }, S.ideaBusy));
+    w.appendChild(box);
+  }
   SCREENS['s-basics'] = function (w) {
     w.appendChild(plai('Set the vibe.'));
     if (!S.title) S.title = A.suggestTitle(stateForServer());
@@ -204,6 +232,7 @@
     tunePanel(w, false);
     w.appendChild(el('p', 'arc-q', 'Title'));
     w.appendChild(input(S.title, 'Title', function (v) { S.title = v; }));
+    ideaChips(w);
     w.appendChild(el('p', 'arc-q', 'Sound'));
     w.appendChild(el('pre', 'arc-style', style()));
     if (S.type === 'parody') w.appendChild(el('p', 'hint', S.research && S.research.sound ? 'Matches the original sound, described without names.' : 'Pick a sound below to match the original.'));
@@ -217,6 +246,7 @@
       w.appendChild(chips(['English', 'Spanish', 'Spanglish'], function (v) { return S.language === v; }, function (v) { S.language = v; }));
     }
     if (S.type === 'roast') explicitToggle(w, false);
+    if (S.aiLevel === 'assist') w.appendChild(btn('Make the whole song (' + priceTag(1) + ')', 'v3-mini', function () { if (S.explicit === 'ok' && !S.ageOk) { S.note = 'Tick the 18+ box, or switch Explicit off.'; paint(); return; } writeSong(); }));
     w.appendChild(btn(S.aiLevel === 'full' ? 'Write it (' + priceTag(1) + ')' : 'Start building', 'v3-go', function () {
       if (S.explicit === 'ok' && !S.ageOk) { S.note = 'Tick the 18+ box, or switch Explicit off.'; paint(); return; }
       if (S.aiLevel === 'full') writeSong(); else { S.slotIndex = 0; S.built = []; go('s-build'); if (S.aiLevel === 'assist') fetchLines(); }
@@ -225,10 +255,12 @@
   var SLOTS = ['Chorus line 1', 'Chorus line 2', 'Chorus line 3', 'Chorus line 4', 'Verse line 1', 'Verse line 2', 'Verse line 3', 'Verse line 4'];
   function fetchLines(one) {
     S.busy = true; paint();
-    post('arcade-lines', { slot: SLOTS[S.slotIndex].split(' ')[0].toLowerCase() }).then(function (d) {
+    post('arcade-lines', { slot: SLOTS[S.slotIndex].split(' ')[0].toLowerCase(), left: 4 - (S.slotIndex % 4) }).then(function (d) {
       S.busy = false;
       if (!d.ok) { S.note = d.error || 'Plai is stuck. Write your own.'; paint(); return; }
-      S.options = one ? [d.lines[0]].concat(S.options.slice(1)) : d.lines; S.notice = d.notice || ''; paint();
+      var fresh = (window.Arcade && Arcade.dedupeLines) ? Arcade.dedupeLines(d.lines || [], S.built) : (d.lines || []);
+      S.options = one ? [fresh[0]].concat(S.options.slice(1)) : fresh; S.notice = d.notice || ''; paint();
+      if (TALK.on && S.options.length) say('Here are your options. ' + S.options.map(function (o, i) { return 'Option ' + (i + 1) + '. ' + String(o).split(' / ').join('. '); }).join(' ') + ' Tap the one you want.');
     });
   }
   SCREENS['s-build'] = function (w) {
@@ -240,9 +272,20 @@
     w.appendChild(el('p', 'arc-step', SLOTS[S.slotIndex]));
     if (S.aiLevel !== 'human') {
       if (S.notice) w.appendChild(el('p', 'hint', S.notice));
+      var left = 4 - (S.slotIndex % 4);
       S.options.forEach(function (o) {
-        var b = btn('', 'v3-tile arc-option', function () { S.built.push(o); S.keptPlai = true; S.mood = 'landed'; nextSlot(); });
-        b.appendChild(syl(o)); b.appendChild(document.createTextNode(' ' + o)); w.appendChild(b);
+        var two = String(o).split(' / ');
+        if (two.length === 2 && left >= 2) {
+          var card = el('div', 'v3-tile arc-option arc-couplet');
+          two.forEach(function (l) { var p = el('p', 'arc-line'); p.appendChild(syl(l)); p.appendChild(document.createTextNode(' ' + l)); card.appendChild(p); });
+          var row = el('div', 'arc-couplet-btns');
+          row.appendChild(btn('Use both', 'v3-mini', function () { S.built.push(two[0], two[1]); S.keptPlai = true; S.mood = 'landed'; S.slotIndex += 1; nextSlot(); }));
+          row.appendChild(btn('Just line 1', 'v3-mini', function () { S.built.push(two[0]); S.keptPlai = true; S.mood = 'landed'; nextSlot(); }));
+          card.appendChild(row); w.appendChild(card); return;
+        }
+        var one1 = two[0];
+        var b = btn('', 'v3-tile arc-option', function () { S.built.push(one1); S.keptPlai = true; S.mood = 'landed'; nextSlot(); });
+        b.appendChild(syl(one1)); b.appendChild(document.createTextNode(' ' + one1)); w.appendChild(b);
       });
       w.appendChild(btn(S.busy ? 'Thinking...' : 'Give me a line', 'v3-mini', function () { fetchLines(true); }, S.busy));
     }
@@ -257,7 +300,8 @@
       }).catch(function () { rhymeBox.textContent = 'Rhymes are offline.'; });
     }));
     w.appendChild(rhymeBox);
-    w.appendChild(btn('Use my line', 'v3-go', function () { var v = String(S.ownLine || '').trim(); if (!v) return; S.built.push(v); S.userWords = true; S.ownLine = ''; S.mood = 'landed'; nextSlot(); }));
+    w.appendChild(btn('Use my line', 'v3-go', function () { var v = String(S.ownLine || '').trim(); if (!v) return; S.built.push(v); (S.ownLines = S.ownLines || []).push(v); S.userWords = true; S.ownLine = ''; S.mood = 'landed'; nextSlot(); }));
+    if (S.aiLevel !== 'human') w.appendChild(btn('Make the whole song (' + priceTag(1) + ')', 'v3-go', writeSong));
     w.appendChild(btn('Finish now (' + priceTag(S.aiLevel === 'human' ? 0 : 1) + ')', 'v3-link', writeSong));
   };
   function mismatch(i) { var j = i >= 4 ? i - 4 : i + 4; return S.built[j] && Math.abs(A.lineSyllables(S.built[i]) - A.lineSyllables(S.built[j])) > 2; }
@@ -288,6 +332,7 @@
     var log = el('div', 'flow-card arc-battle');
     b.log.forEach(function (r) { log.appendChild(el('p', 'arc-tag', '[' + r.who + ']')); log.appendChild(el('pre', 'arc-bars', r.text)); });
     if (b.log.length) w.appendChild(log);
+    if (!b.log.length) tunePanel(w, true);
     var plaiFirst = S.answers.first === 'Plai first';
     if (b.round > 3) { w.appendChild(btn('See the battle', 'v3-go', endBattle)); return; }
     var needUser = !(plaiFirst && b.log.length === 0);
@@ -334,6 +379,54 @@
     w.appendChild(box);
   }
 
+  // ---------- Change line / Change topic on the finished song ----------
+  function isOwn(l) { return (S.ownLines || []).indexOf(String(l).trim()) !== -1; }
+  function editLyrics(w, r) {
+    var box = el('div', 'lyrics-preview arc-lyrics arc-edit');
+    var lines = String(r.lyrics).split('\n');
+    lines.forEach(function (l, i) {
+      var t = l.trim();
+      if (/^\[.*\]$/.test(t)) {
+        var head = el('div', 'arc-sec');
+        head.appendChild(el('strong', '', t));
+        head.appendChild(btn(S.secBusy === i ? 'Thinking...' : 'Change topic', 'v3-mini arc-tiny', function () { changeTopic(r, i); }, S.secBusy === i));
+        box.appendChild(head); return;
+      }
+      var row = el('div', 'arc-lrow');
+      row.appendChild(el('span', '', l || '\u00a0'));
+      if (t && isOwn(t)) row.appendChild(el('span', 'hint', ' (your line)'));
+      else if (t) row.appendChild(btn(S.lineBusy === i ? '...' : 'Change line', 'v3-mini arc-tiny', function () { changeLine(r, i); }, S.lineBusy === i));
+      box.appendChild(row);
+    });
+    w.appendChild(box);
+  }
+  function changeLine(r, i) {
+    var lines = String(r.lyrics).split('\n');
+    S.lineBusy = i; paint();
+    post('arcade-fix', { text: r.lyrics, line: lines[i], off: [] }).then(function (d) {
+      S.lineBusy = null;
+      var opts = (d.options || []).filter(function (o) { return !lines.some(function (x) { return A.nearDuplicate(o, x); }); });
+      if (opts.length) { lines[i] = opts[0]; r.lyrics = lines.join('\n'); r.label = 'AI-assisted'; } else S.note = 'No fresh line right now. Try again.';
+      paint();
+    });
+  }
+  function changeTopic(r, i) {
+    var lines = String(r.lyrics).split('\n');
+    var end = i + 1; while (end < lines.length && !/^\[.*\]$/.test(lines[end].trim())) end++;
+    var section = lines.slice(i + 1, end);
+    var pool = (S.ideaList || []).filter(function (x) { return x !== r['topic' + i]; });
+    var unused = pool.filter(function (x) { return S.ideas.indexOf(x) === -1; });
+    var idea = (unused.length ? unused : pool)[0] || 'a fresh image';
+    r['topic' + i] = idea;
+    S.secBusy = i; paint();
+    post('arcade-section', { section: section.join('\n'), idea: idea, song: r.lyrics, keep: section.filter(isOwn) }).then(function (d) {
+      S.secBusy = null;
+      if (d.ok && d.lines && d.lines.length) { lines.splice.apply(lines, [i + 1, end - i - 1].concat(d.lines)); r.lyrics = lines.join('\n'); S.note = 'New topic: ' + idea; }
+      else S.note = d.error || 'Could not change that part.';
+      paint();
+    });
+  }
+
   // ---------- Reveal ----------
   SCREENS.reveal = function (w) {
     var r = S.result || { lyrics: '' };
@@ -350,7 +443,8 @@
     if (r.notice) w.appendChild(el('p', 'hint', r.notice));
     w.appendChild(el('span', 'arc-label', r.label || A.aiLabel(S)));
     if (S.sub === 'battle') w.appendChild(chips(['You won', 'Plai won', 'Tie'], function (v) { return S.vote === v; }, function (v) { S.vote = v; }));
-    var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre);
+    if (S.card !== 'fix' && S.aiLevel !== 'human' && r.lyrics) editLyrics(w, r);
+    else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
@@ -582,7 +676,8 @@
   var TUNE_Q = [
     { key: 'speed', ask: 'Want to fine-tune? What speed: slow, mid, upbeat or fast?', options: A.TUNE.speed },
     { key: 'vocals', ask: 'Vocals: solo, duet, band with backing vocals, or choir?', options: A.TUNE.vocals },
-    { key: 'tone', ask: 'Voice: raspy, smooth or airy?', options: A.TUNE.tone },
+    { key: 'gender', ask: 'Voice: male, female, or surprise me?', options: A.TUNE.gender },
+    { key: 'tone', ask: 'Voice texture: raspy, smooth or airy?', options: A.TUNE.tone },
     { key: 'energy', ask: 'Energy: steady, slow build, big drop, or quiet to loud?', options: A.TUNE.energy }
   ];
   function norm(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
