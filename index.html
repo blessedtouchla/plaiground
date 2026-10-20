@@ -29,6 +29,15 @@
     body.home-portal .hero .sub{color:#F5C542;font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;letter-spacing:.02em;text-shadow:0 0 18px rgba(245,197,66,.35)}
     body.home-portal .hero .hero-for{margin:-6px 0 18px;color:rgba(255,255,255,.78);font-size:.82rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
   </style>
+  <style id="artist-dev-band">
+    .artist-dev-band{padding:28px 0}
+    .artist-dev-link{display:block;text-align:center;padding:18px 20px;border-radius:16px;border:1px solid rgba(245,197,66,.45);background:radial-gradient(600px 120px at 50% 0,rgba(245,197,66,.14),transparent 70%),#0f0d13;color:#fff;font-weight:700;text-decoration:none;font-size:1.1rem}
+    .artist-dev-link span{display:block;color:#F5C542;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+    .artist-dev-link b{color:#F5C542;margin-left:6px}
+    .release-plan{border-color:rgba(245,197,66,.55)!important}
+    @media (min-width:900px){.pricing .plans.price-ladder{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1080px;margin:0 auto}}
+    .founding-tag{display:inline-block;font-size:.72rem;font-weight:700;color:#F5C542;margin:2px 0}
+  </style>
 </head>
 <body class="home-portal">
   <header class="nav">
@@ -41,7 +50,7 @@
           <a href="/destination">Roadmap</a>
         </div>
         <div class="nav-group nav-group-link" data-nav-group="song-helper">
-          <a href="/song-helper">Song Helper</a>
+          <a href="/song-helper">Song Lab</a>
         </div>
         <div class="nav-group" data-nav-group="product">
           <button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-product">Product</button>
@@ -139,7 +148,7 @@
           <article class="play-card play-make" data-for="idea" data-id="helper">
             <a class="play-main" href="/song-helper">
               <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M12 24V8l14-3v16" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="24" r="3.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/><circle cx="23" cy="21" r="3.2" fill="none" stroke="#f3cb47" stroke-width="1.7"/></svg>
-              <h3>Song Helper</h3>
+              <h3>Song Lab</h3>
               <p>Your story, into lyrics.</p>
             </a>
           </article>
@@ -197,7 +206,7 @@
             <a class="play-main" href="signup.html">
               <svg class="play-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 20V8M11 13l5-5 5 5" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 22h18" fill="none" stroke="#f3cb47" stroke-width="1.7" stroke-linecap="round"/></svg>
               <h3>Distribute my song</h3>
-              <p>Stores worldwide, $2.49.</p>
+              <p>Stores worldwide, $2.49 a month.</p>
             </a>
           </article>
           <article class="play-card play-out" data-for="out" data-id="epk">
@@ -247,7 +256,7 @@
       <div class="wrap">
         <p class="eyebrow">Distribution</p>
         <h2>Put it in stores.</h2>
-        <p class="distro-lead">$2.49 per song. Splits signed first, 10 days lead time. No stream or payout promises.</p>
+        <p class="distro-lead">Release Plan: $2.49 a month or $24.99 a year, unlimited releases. Splits signed first, 10 days lead time. No stream or payout promises.</p>
         <p class="distro-cta"><a class="btn btn-purple btn-md" href="signup.html">Distribute my song</a></p>
         <div class="steps-grid">
           <article class="step">
@@ -280,6 +289,12 @@
       </div>
     </section>
 
+    <section class="artist-dev-band" aria-label="Artist Development">
+      <div class="wrap">
+        <a class="artist-dev-link" href="persona.html"><span>Artist Development</span> We build the artist, not just the release. <b>See how</b></a>
+      </div>
+    </section>
+
     <section class="pricing" id="pricing">
       <div class="wrap">
         <div class="pricing-head">
@@ -306,6 +321,21 @@
               <a class="btn btn-ghost btn-md btn-block" href="signup.html?plan=basic" data-plan="basic">Create free account</a>
             </div>
           </article>
+          <article class="card offer-pack release-plan">
+            <div class="plan-name">Release Plan</div>
+            <div class="price"><strong>$2.49</strong><em>a month</em></div>
+            <p class="plan-blurb">Or $24.99 a year. Unlimited releases.</p>
+            <ul>
+              <li>Every major store</li>
+              <li>Unlimited songs</li>
+              <li>Splits signed first</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <p class="offer-note">Shown price. Not charged here.</p>
+            <div class="card-cta">
+              <a class="btn btn-purple btn-md btn-block" href="signup.html">Start releasing</a>
+            </div>
+          </article>
           <article class="card offer-pack">
             <div class="plan-name">A&amp;R Act Pack</div>
             <div class="price"><strong>$149</strong><em>one-time</em></div>
@@ -324,7 +354,7 @@
             </div>
           </article>
         </div>
-        <p class="distro-addon">Distribute: <strong>$2.49</strong> per song.</p>
+        <p class="distro-addon">Songs stay in stores while your Release Plan is active. If you cancel, your songs stay up for a 30-day grace period, then come down.</p>
         <h3 class="price-sheet-title">Persona package</h3>
         <ul class="price-sheet">
           <li>
@@ -353,8 +383,9 @@
               <em>Find fans and keep them. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Fan growth setup">Apply free</button></em>
             </li>
             <li>
-              <span class="price-name">Starter</span>
+              <span class="price-name">Founding Management</span>
               <strong>$59/mo</strong>
+              <span class="founding-tag">Founding spots, by application, 10 open</span>
               <em>1 platform, a few posts a week. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Starter">Apply free</button></em>
             </li>
             <li>
@@ -407,7 +438,7 @@
         </div>
         <div class="footer-col" data-footer-journey="create">
           <h4>Create</h4>
-          <a href="/song-helper">Song Helper</a>
+          <a href="/song-helper">Song Lab</a>
           <a href="/cover-art">Cover Art</a>
           <a href="/battle">Battle</a>
           <a href="/spark">What's hot</a>

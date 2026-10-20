@@ -16,13 +16,13 @@
     },
     {
       q: 'How does distribution work?',
-      a: 'Distribution is optional. It is $2.49 per song to every major store. Split sheets are signed before delivery. No promise of streams or payouts.',
+      a: 'Distribution is optional. The Release Plan is $2.49 a month or $24.99 a year, unlimited songs to every major store. Split sheets are signed before delivery. No promise of streams or payouts.',
       href: '/how-it-works.html',
       link: 'How it works',
     },
     {
       q: 'What does it cost?',
-      a: 'Join free. You keep 100% of your recording royalties. Publishing is optional, under a separate agreement. Distribution is $2.49 per song and optional. Monthly plans are coming soon.',
+      a: 'Join free. You keep 100% of your recording royalties. Publishing is optional, under a separate agreement. Distribution is on the Release Plan, $2.49 a month, and optional. Monthly plans are coming soon.',
       href: '/pricing',
       link: 'Plans and pricing',
     },
