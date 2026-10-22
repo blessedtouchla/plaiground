@@ -7,7 +7,7 @@
  *   node scripts/import-slang.js
  *   node scripts/import-slang.js path/to/slang-log.csv
  *
- * Columns: word, meaning, example, region_tag, region_detail,
+ * Columns: word, meaning, example, region_tag, region_detail, (optional genre, ; separated),
  * source_url, source_url_2, first_seen, logged_on, confidence, notes.
  * Profanity is flagged from the notes and from a small word list.
  * The script does not call the network.
@@ -95,6 +95,7 @@ function toEntry(header, cells) {
     logged_on: raw.logged_on,
     confidence: raw.confidence,
     notes: raw.notes,
+    genre: String(raw.genre || '').split(/[;|]/).map(function (g) { return g.trim(); }).filter(Boolean),
   };
   entry.profanity = flagProfanity(entry);
   return entry;
