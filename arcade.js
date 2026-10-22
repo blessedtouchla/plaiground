@@ -82,7 +82,35 @@
     });
     w.appendChild(grid);
     w.appendChild(btn('\u2728 Give me ideas', 'v3-go arc-gi-start', function () { S = fresh(); S.gi = { seen: [] }; go('g-doors'); }));
+    hotSlang(w);
   };
+
+  // What's hot: slang of the day from data/slang.json (sourced daily research, no explicit words here).
+  var slangCache = null;
+  function hotSlang(w) {
+    var box = el('section', 'arc-hot');
+    box.appendChild(el('p', 'arc-kicker', "What's hot"));
+    var body = el('div', 'arc-hot-body', 'Loading slang of the day...');
+    box.appendChild(body);
+    w.appendChild(box);
+    var p = slangCache ? Promise.resolve(slangCache) : fetch('/data/slang.json', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (d) { slangCache = d; return d; });
+    p.then(function (d) {
+      var rows = (d && Array.isArray(d.entries) ? d.entries : []).filter(function (r) { return r && r.word && r.meaning && !r.profanity; })
+        .sort(function (a, b) { return String(b.logged_on || '').localeCompare(String(a.logged_on || '')); });
+      if (!rows.length) { box.remove(); return; }
+      var pick = rows[Math.floor(Date.now() / 86400000) % rows.length];
+      body.textContent = '';
+      body.appendChild(el('h3', 'arc-hot-word', pick.word));
+      body.appendChild(el('p', '', pick.meaning));
+      if (pick.example) body.appendChild(el('p', 'hint', '"' + pick.example + '"'));
+      body.appendChild(el('p', 'hint', [pick.region_tag, pick.logged_on ? 'logged ' + pick.logged_on : ''].filter(Boolean).join(' · ')));
+      var src = (pick.sources || []).filter(function (u) { return /^https:\/\//.test(u); })[0];
+      var links = el('p', 'arc-hot-links');
+      if (src) { var a1 = el('a', 'v3-link', 'Source'); a1.href = src; a1.target = '_blank'; a1.rel = 'noopener nofollow'; links.appendChild(a1); links.appendChild(document.createTextNode(' · ')); }
+      var a2 = el('a', 'v3-link', 'All slang'); a2.href = '/slang'; links.appendChild(a2);
+      body.appendChild(links);
+    }).catch(function () { box.remove(); });
+  }
 
   // ---------- Give me ideas ----------
   SCREENS['g-doors'] = function (w) {

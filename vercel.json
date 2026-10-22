@@ -314,6 +314,8 @@
     { "source": "/battle/", "destination": "/battle.html" },
     { "source": "/spark", "destination": "/spark.html" },
     { "source": "/spark/", "destination": "/spark.html" },
+    { "source": "/slang", "destination": "/slang.html" },
+    { "source": "/slang/", "destination": "/slang.html" },
     { "source": "/api/slang/refresh", "destination": "/api/song-helper?action=slang-refresh" },
     { "source": "/api/slang", "destination": "/api/song-helper?action=slang" },
     { "source": "/api/spark", "destination": "/api/song-helper?action=spark" },
