@@ -15,6 +15,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Often with 🍟✌️ emoji. Only one solid source so far; re-check UD/KYM.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -31,6 +32,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "Two meanings in use (keep quiet vs. tell someone to hush). Vice 2026-09-28; UD entries from 2026-07-13.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -47,6 +49,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "Origin UK, now national/online in US kids' speech.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -63,6 +66,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "KYM + UD agree on meaning.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -78,6 +82,7 @@
       "logged_on": "2026-10-02",
       "confidence": "low",
       "notes": "UD Word of the Day only; no second source yet. Watch.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -93,6 +98,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Catchphrase from a news clip about a hazing case, not organic street slang. Short shelf life likely.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -109,6 +115,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "Green Line (2026-09-26) uses it in an example; UD says Rexdale origin; Wiktionary: synonym of brodie.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -124,6 +131,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Also heard elsewhere; regional tag is soft.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -140,6 +148,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Region sources disagree (London vs Toronto). Same family as crodie. Wiktionary added it 2026-08-01.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -156,6 +165,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "Comes from 'that bitch gas'. Profanity, so filter by app content rating.",
+      "genre": [],
       "profanity": true
     },
     {
@@ -172,6 +182,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "Coinage older; strong Sep 2026 news spike (USA Today, Vice, MW, Euronews). Also 'larp'.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -188,6 +199,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "KYM + Vice; googling spike Aug–Sep 2026 — allowed as spiking.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -203,6 +215,7 @@
       "logged_on": "2026-10-02",
       "confidence": "low",
       "notes": "Single primary source; also heard as 'that's AI'. Confidence discount.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -219,6 +232,7 @@
       "logged_on": "2026-10-02",
       "confidence": "high",
       "notes": "KYM + Wiktionary + UD + explainers. First seen >90d; still circulating.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -235,6 +249,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "MW + Brewtiful + Euronews. Older coinage; Sep 2026 search spike.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -250,6 +265,7 @@
       "logged_on": "2026-10-02",
       "confidence": "low",
       "notes": "UD Word of the Day only; no second source. Watch.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -265,6 +281,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Not brand-new; youth spike ~2025. Soft region conflict (origin vs national). Pairs with choppelganger.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -281,6 +298,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Also 'the 5'. First seen Jan 2026; inventory keep.",
+      "genre": [],
       "profanity": false
     },
     {
@@ -297,6 +315,7 @@
       "logged_on": "2026-10-02",
       "confidence": "medium",
       "notes": "Waterloo + Etymology Nerd (2026-09-19). Weak for street Bars; tech-adjacent watch.",
+      "genre": [],
       "profanity": false
     }
   ]
