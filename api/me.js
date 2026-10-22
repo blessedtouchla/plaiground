@@ -379,6 +379,21 @@ async function ownSaved(req, res, read, save, key) {
   }
 }
 
+const lyricsWrites = new Map();
+function lyricsWriteAllowed(userId) {
+  const now = Date.now();
+  const key = String(userId);
+  const hits = (lyricsWrites.get(key) || []).filter((t) => now - t < 60000);
+  if (hits.length >= 30) {
+    lyricsWrites.set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  lyricsWrites.set(key, hits);
+  if (lyricsWrites.size > 5000) lyricsWrites.clear();
+  return true;
+}
+
 async function ownLyrics(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
@@ -396,6 +411,19 @@ async function ownLyrics(req, res) {
     const body = await readBody(req);
     if (bodyHasPassword(body)) {
       sendJson(res, 400, { error: 'Password is not accepted here.' });
+      return;
+    }
+    if (!lyricsWriteAllowed(row.id)) {
+      sendJson(res, 429, { error: 'Slow down a moment, then try saving again.' });
+      return;
+    }
+    const act = body && typeof body.action === 'string' ? body.action : '';
+    if (act === 'rename') {
+      sendJson(res, 200, await lyrics.renameOwn(row.id, body.id, body.title));
+      return;
+    }
+    if (act === 'delete') {
+      sendJson(res, 200, await lyrics.deleteOwn(row.id, body.id));
       return;
     }
     const saved = await lyrics.saveOwn(row.id, body && (body.song || body));
