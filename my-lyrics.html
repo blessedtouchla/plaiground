@@ -70,6 +70,7 @@
       </div>
       <p class="hint" data-lyrics-status>Loading...</p>
       <p class="hint" data-lyrics-pending hidden></p>
+      <div class="panel" data-lyrics-import hidden><p data-lyrics-import-text></p><p style="margin-top:10px"><button type="button" class="btn btn-purple btn-md" data-lyrics-import-go>Import to my account</button> <button type="button" class="btn btn-ghost btn-md" data-lyrics-import-skip>Not now</button></p></div>
       <div data-lyrics-empty hidden>
         <p>No songs saved yet.</p>
         <p style="margin-top:16px"><a class="btn btn-purple btn-md" href="/song-helper">Write in Song Helper</a></p>
@@ -83,16 +84,16 @@
       <div class="panel" data-lyrics-view hidden>
         <h2 data-lyrics-title></h2>
         <p class="hint" data-lyrics-meta></p>
-        <pre class="sh-record" data-lyrics-text></pre>
+        <pre class="sh-record" data-lyrics-text style="white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere;max-width:100%"></pre>
       </div>
     </div>
   </div>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
   <script src="lib/features.js?v=20261017stage"></script>
-  <script src="stage-page.js?v=20261017stage"></script>
-  <script src="lyrics-account.js?v=20261005ly1"></script>
-  <script src="my-lyrics.js?v=20261017stage"></script>
+  <script src="stage-page.js?v=20261022acct"></script>
+  <script src="lyrics-account.js?v=20261022acct"></script>
+  <script src="my-lyrics.js?v=20261022acct"></script>
   <script src="site.js?v=20261017menu"></script>
   <script src="plai-bubble.js" defer></script>
 </body>

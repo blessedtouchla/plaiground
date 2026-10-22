@@ -178,7 +178,7 @@
     if (!enabled('STAGE_ENABLED') || !root.document) return;
     var list = $('[data-lyrics-list]');
     if (list) {
-      var buttons = list.querySelectorAll('button');
+      var buttons = list.querySelectorAll('.ly-row > button:first-child').length ? list.querySelectorAll('.ly-row > button:first-child') : list.querySelectorAll('button');
       (Array.isArray(songs) ? songs : []).forEach(function (song, index) {
         if (!song || !song.id || !buttons[index]) return;
         if (list.querySelector('[data-stage-add="' + song.id + '"]')) return;
@@ -188,7 +188,7 @@
         add.setAttribute('data-stage-add', song.id);
         add.textContent = 'Add to my stage';
         add.addEventListener('click', function () { addSong(song.id, add); });
-        buttons[index].insertAdjacentElement('afterend', add);
+        (buttons[index].parentElement.classList.contains('ly-row') ? buttons[index].parentElement.appendChild(add) : buttons[index].insertAdjacentElement('afterend', add));
       });
     }
     load();

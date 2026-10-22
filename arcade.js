@@ -470,6 +470,32 @@
 
   // ---------- Change line / Change topic on the finished song ----------
   function isOwn(l) { return (S.ownLines || []).indexOf(String(l).trim()) !== -1; }
+
+  // Song Lab saves to the wannaplai account when signed in. Signed out, the local copy stays and My lyrics offers to import it after login.
+  function markImported(item, id) {
+    try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.forEach(function (x) { if (x.at === item.at && x.title === item.title) x.accountId = id; }); localStorage.setItem(SAVED, JSON.stringify(list)); } catch (e) {}
+  }
+  function saveToAccount(item, b, w) {
+    var old = w.querySelector('.arc-save-note'); if (old) old.remove();
+    var note = el('div', 'arc-save-note');
+    function done(html) { note.innerHTML = html; b.insertAdjacentElement('afterend', note); }
+    fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (me) {
+      if (me.status === 401) {
+        b.textContent = 'Saved on this device';
+        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do. After you log in, import it from My lyrics.</p><p><a class="v3-mini arc-tiny" href="/signup.html?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login.html?next=/my-lyrics">Log in</a></p>');
+        return;
+      }
+      if (!me.ok) throw new Error('me');
+      return fetch('/api/me/lyrics', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ song: { title: item.title || '', text: item.lyrics || '', mode: String(item.card || '').slice(0, 40), mood: String(item.type || '').slice(0, 40) } }) }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok || !d || !d.song) { b.textContent = 'Saved on this device'; done('<p>' + ((d && d.error) ? String(d.error).replace(/</g, '&lt;') : 'The account save did not go through. Your song stays on this device.') + '</p>'); return; }
+          markImported(item, d.song.id);
+          b.textContent = 'Saved to your account';
+          done('<p><a class="v3-link" href="/my-lyrics?id=' + encodeURIComponent(d.song.id) + '">Open My lyrics</a></p>');
+        });
+      });
+    }).catch(function () { b.textContent = 'Saved on this device'; done('<p>The account save did not go through. Your song stays on this device.</p>'); });
+  }
   function editLyrics(w, r) {
     var box = el('div', 'lyrics-preview arc-lyrics arc-edit');
     var lines = String(r.lyrics).split('\n');
@@ -542,8 +568,8 @@
     var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, b1); });
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
     var b3 = btn('Copy both', 'v3-mini', function () { copy(r.lyrics + '\n\nStyle prompt\n' + r.style, b3); });
-    var b4 = btn('Save', 'v3-mini', function () {
-      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saved'; } catch (e) { b4.textContent = 'Could not save'; }
+    var b4 = btn('Save to my account', 'v3-mini', function () {
+      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saving...'; } catch (e) { b4.textContent = 'Could not save'; return; } saveToAccount(list[list.length - 1], b4, w);
     });
     var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.fix.text = t; go('f-off'); });
     var b6 = btn('Flip', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'flip'; S.title = keepTitle; S.flip.text = t; go('x-genre'); });

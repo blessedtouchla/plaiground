@@ -1590,3 +1590,26 @@ body.song-helper-page .plai-bubble {
     display: none !important;
   }
 }
+
+/* Finished lyrics on phones: keep full width. overflow-wrap:anywhere shrinks
+   min-content to one letter, so flex and grid parents squeezed the lyrics
+   into a one-word column. break-word wraps long words without that. */
+@media (max-width: 640px) {
+  #sh-page-ready,
+  .sh-page-clean,
+  .sh-record,
+  #sh-page, #sh-page-sections, .sh-part, .sh-part-box, .sh-preview-mine, .sh-preview-edit {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  #sh-page-ready,
+  .sh-page-clean,
+  .sh-record {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+    box-sizing: border-box;
+    writing-mode: horizontal-tb;
+  }
+}

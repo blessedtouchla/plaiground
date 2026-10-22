@@ -44,16 +44,39 @@
     if (list) {
       list.textContent = '';
       rows.forEach(function (song) {
-        var button = global.document.createElement('button');
+        var doc = global.document;
+        var row = doc.createElement('div');
+        row.className = 'ly-row';
+        row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px';
+        var button = doc.createElement('button');
         button.type = 'button';
         button.className = 'btn btn-ghost btn-md';
-        button.style.display = 'block';
-        button.style.marginTop = '8px';
         var title = song.title || 'Untitled';
         var when = formatWhen(song.saved_at);
         button.textContent = when ? (title + ' · ' + when) : title;
+        button.setAttribute('aria-label', 'Open ' + title);
         button.addEventListener('click', function () { showSong(song); });
-        list.appendChild(button);
+        var rename = doc.createElement('button');
+        rename.type = 'button';
+        rename.className = 'btn btn-ghost btn-sm';
+        rename.textContent = 'Rename';
+        rename.addEventListener('click', function () {
+          var next = global.prompt('New title', song.title || '');
+          if (next == null || !String(next).trim()) return;
+          write({ action: 'rename', id: song.id, title: String(next).trim() }, song.id);
+        });
+        var del = doc.createElement('button');
+        del.type = 'button';
+        del.className = 'btn btn-ghost btn-sm';
+        del.textContent = 'Delete';
+        del.addEventListener('click', function () {
+          if (!global.confirm('Delete "' + title + '" from your account? This cannot be undone.')) return;
+          write({ action: 'delete', id: song.id }, '');
+        });
+        row.appendChild(button);
+        row.appendChild(rename);
+        row.appendChild(del);
+        list.appendChild(row);
       });
     }
     if (global.PlaigroundStagePage && global.PlaigroundStagePage.afterLyrics) {
@@ -88,6 +111,57 @@
     if (text) text.textContent = song.text || '';
   }
 
+  function write(body, keepId) {
+    var status = $('[data-lyrics-status]');
+    return global.fetch('/api/me/lyrics', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (res.ok && data && data.ok) {
+          render(data.songs || [], keepId);
+          return;
+        }
+        if (status) {
+          status.hidden = false;
+          status.textContent = (data && data.error) || 'That did not go through. Try again in a moment.';
+        }
+      });
+    }).catch(function () {
+      if (status) {
+        status.hidden = false;
+        status.textContent = 'That did not go through. Try again in a moment.';
+      }
+    });
+  }
+
+  function offerImport() {
+    var account = global.PlaigroundLyricsAccount;
+    var box = $('[data-lyrics-import]');
+    if (!box || !account || !account.readLocal) return;
+    var local = account.readLocal();
+    if (!local.length) { box.hidden = true; return; }
+    box.hidden = false;
+    var text = $('[data-lyrics-import-text]');
+    if (text) text.textContent = 'You have ' + local.length + (local.length === 1 ? ' song' : ' songs') + ' saved on this device. Import ' + (local.length === 1 ? 'it' : 'them') + ' to your account to open ' + (local.length === 1 ? 'it' : 'them') + ' on any device.';
+    var go = $('[data-lyrics-import-go]');
+    var skip = $('[data-lyrics-import-skip]');
+    if (go) go.onclick = function () {
+      go.disabled = true;
+      go.textContent = 'Importing...';
+      account.importLocal().then(function (r) {
+        go.disabled = false;
+        go.textContent = 'Import to my account';
+        if (text) text.textContent = r.failed ? ('Imported ' + r.imported + '. ' + r.failed + ' did not go through. Try again.') : ('Imported ' + r.imported + (r.imported === 1 ? ' song.' : ' songs.'));
+        if (!r.failed) global.setTimeout(function () { box.hidden = true; }, 2500);
+        load(null);
+      });
+    };
+    if (skip) skip.onclick = function () { box.hidden = true; };
+  }
+
   function load(claimed) {
     var claimedId = claimed && claimed.song && claimed.song.id ? claimed.song.id : '';
     return global.fetch('/api/me/lyrics', {
@@ -109,6 +183,7 @@
         return;
       }
       render(result.data.songs || [], selectedId() || claimedId);
+      offerImport();
       var pending = global.PlaigroundLyricsAccount && global.PlaigroundLyricsAccount.readPending
         ? global.PlaigroundLyricsAccount.readPending()
         : null;

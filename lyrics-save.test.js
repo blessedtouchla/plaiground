@@ -38,6 +38,11 @@ async function run() {
   assert.strictEqual(saved.created, true);
   assert.strictEqual(saved.songs.length, 1);
   assert.strictEqual(saved.song.title, 'Night bus');
+  const renamed = await lyrics.renameOwn('user-1', saved.song.id, 'Night bus home');
+  assert.strictEqual(renamed.songs[0].title, 'Night bus home');
+  await assert.rejects(function () { return lyrics.renameOwn('user-2', saved.song.id, 'Stolen'); }, function (err) { return err && err.code === 'VALIDATION'; });
+  await assert.rejects(function () { return lyrics.deleteOwn('user-2', saved.song.id); }, function (err) { return err && err.code === 'VALIDATION'; });
+  await lyrics.renameOwn('user-1', saved.song.id, 'Night bus');
   assert.ok(saved.song.text.indexOf('\n') !== -1);
   const again = await lyrics.saveOwn('user-1', {
     title: 'Night bus',
