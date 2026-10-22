@@ -16,6 +16,7 @@
 .arc-line.amber .arc-syl,.arc-readline.amber .arc-syl{background:#f0a020;color:#111}
 .arc-option{display:block;width:100%;text-align:left;margin:6px 0;padding:12px;border-radius:12px}
 .arc-readline{display:block;width:100%;text-align:left;background:transparent;border:0;color:inherit;padding:6px;border-radius:8px;cursor:pointer}
+.arc-readline.focus{background:rgba(255,79,216,.12);box-shadow:inset 3px 0 0 #ff4fd8}
 .arc-readline.on{background:rgba(245,197,66,.18)}
 .arc-tag{opacity:.6;margin:10px 0 2px;font-size:.85em}
 .arc-bars,.arc-lyrics{white-space:pre-wrap}
