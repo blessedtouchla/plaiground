@@ -64,7 +64,8 @@ textarea{min-height:70px}
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.tcardpick{border-radius:14px;padding:14px;min-height:90px;cursor:pointer;border:3px solid #3a2466;font-weight:800;text-align:left}.tcardpick small{display:block;font-weight:400;font-size:12px;margin-top:4px}
 .tcardpick[aria-pressed=true]{border-color:var(--gd);box-shadow:0 0 0 3px #000,0 0 16px var(--gd)}.rec{color:#000;background:var(--gd);border-radius:99px;padding:2px 8px;font-size:11px;margin-left:6px}
 .cpick{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.cpick label{display:flex;gap:6px;align-items:center;font-size:14px}
-@media print{.etools{display:none!important}.esec.off{display:none}}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.lshot{margin:0;border:2px solid var(--ac);border-radius:14px;padding:8px;background:color-mix(in srgb,var(--ink) 6%,transparent)}.lshot img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:10px;display:block}.lshot figcaption{font-weight:700;margin:6px 0}.lsvg{aspect-ratio:9/16;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;text-align:center;padding:8px}.lsvg small{opacity:.8}.lshot .note{color:inherit;opacity:.85}.lbtns{display:flex;flex-wrap:wrap;gap:6px}.lbtns .chip{font-size:12px;padding:5px 10px}
+@media print{.lbtns{display:none!important}.etools{display:none!important}.esec.off{display:none}}
 @media print{body{background:#fff}.noprint,header,.meter{display:none!important}.card{border:0;box-shadow:none}}
 </style>
 </head>
@@ -80,7 +81,7 @@ textarea{min-height:70px}
 <script src="/lib/genre-presence.js"></script>
 <script>
 (function(){
-var S={label:'',name:'',photoOk:false,photo:'',picks:{},own:{},stats:{Swagger:5,Heart:5,Chaos:5,Grind:5,Mystery:5},cyborg:30,links:'',tracks:'',extra:'',facts:[],epk:null,source:'',skin:'',colors:{},order:null,hidden:{},edit:{},editMode:false,coins:0,credits:500,step:0};
+var S={label:'',name:'',photoOk:false,photo:'',picks:{},own:{},stats:{Swagger:5,Heart:5,Chaos:5,Grind:5,Mystery:5},cyborg:30,links:'',tracks:'',extra:'',facts:[],epk:null,source:'',skin:'',colors:{},order:null,hidden:{},edit:{},editMode:false,life:[],coins:0,credits:500,step:0};
 var app=document.getElementById('app');
 var LABELS={'Human artist':'A real person makes and performs the music.','AI assisted':'A real artist, with an AI-styled avatar from your photo.','Full AI persona':'A fully AI-generated artist persona. No photo.'};
 var Q=[
@@ -169,9 +170,9 @@ function stepBio(){var e=S.epk;
  n.onclick=function(){['oneLiner','shortBio','longBio','forFansOf'].forEach(function(k){e[k]=val2('e_'+k)});e.panels=e.panels.map(function(_,i){return val2('e_p'+i)});coin(20);go(S.step+1,'Dress up time!')};
 }
 var THEMES=[['space','Deep Space Saga','Dark sci-fi, starfield, glowing type'],['arcade','Bright Arcade','Loud color, cartoon pop, bold shadows'],['press','Minimal Press','White, serif, clean for bookers and press'],['street','Street Poster','Black, gold, heavy poster type'],['velvet','Velvet Night','Warm dark tones, soft and intimate'],['comic','Comic Book','Paper white, ink lines, panels'],['gold','Gold Cabinet','Black and gold, classic cabinet']];
-var SECS={hero:'Avatar and name',oneLiner:'One-liner',bio:'Bio',story:'Origin story',tracks:'Tracks',links:'Links',forFansOf:'For fans of',platforms:'Where to post first',hashtags:'Hashtags'};
+var SECS={hero:'Avatar and name',lifestyle:'Lifestyle',oneLiner:'One-liner',bio:'Bio',story:'Origin story',tracks:'Tracks',links:'Links',forFansOf:'For fans of',platforms:'Where to post first',hashtags:'Hashtags'};
 function preset(){return window.GenrePresence?GenrePresence.forGenre(val('genre')):null}
-function applyPreset(force){var p=preset();if(!p)return;if(force||!S.skin)S.skin=p.theme;if(force||!S.order)S.order=p.order.concat(['platforms','hashtags']);if(force)S.colors={}}
+function applyPreset(force){var p=preset();if(!p)return;if(force||!S.skin)S.skin=p.theme;if(force||!S.order)S.order=p.order.concat(['lifestyle','platforms','hashtags']);if(force)S.colors={}}
 function stepSkin(){applyPreset(false);if(!S.skin)S.skin='arcade';var p=preset();
  app.innerHTML='<section class="card"><div class="lvl">Level 8: Dress Up</div><h1>Pick your theme</h1>'+
  (p?'<p class="note">Tuned for <b>'+esc(p.genre)+'</b>: '+esc(p.basis)+' Post first on '+esc(p.platforms.slice(0,3).join(', '))+'. Photo idea: '+esc(p.photo)+'</p><button class="btn alt" id="reset">Use '+esc(p.genre)+' defaults</button>':'<p class="note">No research preset for this genre yet, so pick the theme that fits you best.</p>')+
@@ -187,6 +188,16 @@ function stepSkin(){applyPreset(false);if(!S.skin)S.skin='arcade';var p=preset()
 }
 function platformOf(u){var l=u.toLowerCase();var m=[['tiktok','TikTok'],['instagram','Instagram'],['youtu','YouTube'],['spotify','Spotify'],['apple','Apple Music'],['soundcloud','SoundCloud'],['bandcamp','Bandcamp'],['x.com','X'],['twitter','X'],['facebook','Facebook'],['discord','Discord'],['wannaplai','PLAIGROUND']];for(var i=0;i<m.length;i++)if(l.indexOf(m[i][0])>-1)return m[i][1];return u[0]==='@'?'Handle':'Link'}
 function linkChips(){var a=S.links.split(/[\n,]+/).map(function(x){return x.trim()}).filter(Boolean);if(!a.length)return '';return '<ul class="lchips">'+a.map(function(u){var href=/^https?:\/\//i.test(u)?u:(/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)?'https://'+u:'');return '<li>'+(href?'<a class="lchip" href="'+esc(href)+'" target="_blank" rel="noopener"><b>'+esc(platformOf(u))+'</b>'+esc(u.replace(/^https?:\/\/(www\.)?/i,''))+'</a>':'<span class="lchip"><b>'+esc(platformOf(u))+'</b>'+esc(u)+'</span>')+'</li>'}).join('')+'</ul>'}
+var LIFE_COST=40;
+function cap1(t){t=String(t||'');return t.charAt(0).toUpperCase()+t.slice(1)}
+function scenes(){var h=(S.picks.hobbies||[]).concat(S.own.hobbies?S.own.hobbies.split(/\s*,\s*/):[]).map(function(x){return String(x).toLowerCase()}).filter(Boolean);var map={gaming:'gaming at a glowing arcade setup',gamer:'gaming at a glowing arcade setup',dance:'dancing in a neon studio',dancing:'dancing in a neon studio',skate:'skateboarding at sunset',skating:'skateboarding at sunset',cooking:'cooking in a cozy kitchen',fashion:'trying on outfits in a dressing room',art:'painting a mural',reading:'reading in a window seat',sports:'shooting hoops on a court',travel:'exploring a night market',gym:'training at the gym',writing:'writing lyrics in a notebook at a cafe'};var out=[];h.forEach(function(x){var m='';for(var k in map)if(x.indexOf(k)>-1){m=map[k];break}out.push(m||x)});['backstage before a show','dancing in a neon studio','writing lyrics in the studio'].forEach(function(d){out.push(d)});var u=[];out.forEach(function(x){if(u.indexOf(x)<0)u.push(x)});return u.slice(0,3)}
+function lifeSvg(x,i){var bgs=[['#7D3CFF','#FF3C8E'],['#0b2a5c','#2FE6FF'],['#3d2f00','#F5C542']][i%3];return '<div class="lsvg" style="background:linear-gradient(160deg,'+bgs[0]+','+bgs[1]+')"><div style="width:46%">'+svgAvatar()+'</div><span>'+esc(cap1(x))+'</span><small>Drawn preview</small></div>'}
+function makeLife(i,btn){var st=document.getElementById('lst'+i);if(S.credits<LIFE_COST){st.textContent='Not enough credits.';return}btn.disabled=true;S.credits-=LIFE_COST;hud();st.textContent='Shooting the scene...';var sc=scenes()[i];
+ var p=payload();p.scene=sc+'. Story: '+String((S.epk&&S.epk.shortBio)||'').slice(0,160);
+ fetch('/api/song-helper?action=epk-avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json().catch(function(){return{}})}).then(function(d){
+  if(!d||!d.image){S.credits+=LIFE_COST;hud();toast('Credits refunded');S.life[i]={msg:'That shot did not come back. '+LIFE_COST+' credits refunded automatically.'};stepPrize();return}
+  S.life[i]={img:d.image,own:false,msg:'AI lifestyle shot. Not a real photo.'};coin(15);stepPrize();toast('Shot unlocked!')
+ }).catch(function(){S.credits+=LIFE_COST;hud();S.life[i]={msg:'Network hiccup. '+LIFE_COST+' credits refunded automatically.'};stepPrize()})}
 function txt(key,def){return S.edit[key]!=null?S.edit[key]:def}
 function ed(key,def,tag){return '<'+(tag||'p')+' data-edit="'+key+'"'+(S.editMode?' contenteditable="true"':'')+'>'+esc(txt(key,def))+'</'+(tag||'p')+'>'}
 function secHtml(k){var e=S.epk,n=esc(S.name),p=preset();var body='';
@@ -196,18 +207,21 @@ function secHtml(k){var e=S.epk,n=esc(S.name),p=preset();var body='';
  else if(k==='story')body='<h3>Origin story</h3><div class="panels">'+e.panels.map(function(x,i){return ed('panel'+i,x,'div')}).join('')+'</div>';
  else if(k==='tracks'){var t=S.tracks.split(/\n+/).filter(Boolean);if(!t.length)return '';body='<h3>Tracks</h3><ul class="lchips">'+t.map(function(x){return '<li><span class="lchip">'+esc(x)+'</span></li>'}).join('')+'</ul>'}
  else if(k==='links'){var lc=linkChips();if(!lc)return '';body='<h3>Links</h3>'+lc}
+ else if(k==='lifestyle'){var sc=scenes();body='<h3>Lifestyle</h3><div class="lgrid">'+sc.map(function(x,i){var sh=S.life[i]||{};return '<figure class="lshot">'+(sh.img?'<img src="'+esc(sh.img)+'" alt="'+esc(S.name+' '+x)+'">':lifeSvg(x,i))+'<figcaption>'+ed('life'+i,cap1(x),'span')+'</figcaption><div class="noprint lbtns">'+(sh.img&&!sh.own?'':'<button type="button" class="chip" data-life="'+i+'">'+(sh.img?'Redo':'Make AI shot')+' ('+LIFE_COST+' credits)</button>')+'<label class="chip">Add your own photo<input type="file" accept="image/*" data-lown="'+i+'" hidden></label></div><p class="note noprint" id="lst'+i+'">'+esc(sh.msg||'Failed or blank shots refund credits automatically.')+'</p></figure>'}).join('')+'</div>'}
  else if(k==='forFansOf')body='<i>'+ed('forFansOf',e.forFansOf)+'</i>';
  else if(k==='platforms'){if(!p)return '';body='<h3>Where to post first</h3><ul class="lchips">'+p.platforms.map(function(x,i){return '<li><span class="lchip"><b>'+(i+1)+'</b>'+esc(x)+'</span></li>'}).join('')+'</ul>'}
  else if(k==='hashtags'){if(!p)return '';body=ed('hashtags',p.hashtags.join(' '))}
  var tools='<div class="etools noprint"><button type="button" data-mv="-1" data-k="'+k+'" aria-label="Move '+SECS[k]+' up">Up</button><button type="button" data-mv="1" data-k="'+k+'" aria-label="Move '+SECS[k]+' down">Down</button><button type="button" data-hide="'+k+'">'+(S.hidden[k]?'Show':'Hide')+'</button>'+(k==='hero'?'<label>Swap image<input type="file" accept="image/*" data-img hidden></label>':'')+'</div>';
  return '<div class="esec'+(S.hidden[k]?' off':'')+'" data-sec="'+k+'">'+tools+'<div class="ebody">'+body+'</div></div>'}
-function epkHtml(){if(!S.order)S.order=['hero','oneLiner','bio','story','tracks','links','forFansOf','platforms','hashtags'];Object.keys(SECS).forEach(function(k){if(S.order.indexOf(k)<0)S.order.push(k)});
+function epkHtml(){if(!S.order)S.order=['hero','oneLiner','bio','story','tracks','lifestyle','links','forFansOf','platforms','hashtags'];Object.keys(SECS).forEach(function(k){if(S.order.indexOf(k)<0)S.order.push(k)});
  var st=Object.keys(S.colors).map(function(c){return '--'+c+':'+S.colors[c]}).join(';');
  return '<article class="epk t-'+(S.skin||'arcade')+(S.editMode?' editing':'')+'" id="epk" style="'+st+'">'+S.order.map(secHtml).join('')+'</article>'}
 function wireEdit(){var ep=document.getElementById('epk');
  ep.querySelectorAll('[data-edit]').forEach(function(x){x.onblur=function(){S.edit[x.dataset.edit]=x.innerText.trim()}});
  ep.querySelectorAll('[data-mv]').forEach(function(b){b.onclick=function(){var i=S.order.indexOf(b.dataset.k),j=i+Number(b.dataset.mv);if(j<0||j>=S.order.length)return;var t=S.order[i];S.order[i]=S.order[j];S.order[j]=t;stepPrize()}});
  ep.querySelectorAll('[data-hide]').forEach(function(b){b.onclick=function(){var k=b.dataset.hide;S.hidden[k]=!S.hidden[k];stepPrize()}});
+ ep.querySelectorAll('[data-life]').forEach(function(b){b.onclick=function(){makeLife(Number(b.dataset.life),b)}});
+ ep.querySelectorAll('[data-lown]').forEach(function(f){f.onchange=function(){var i=Number(f.dataset.lown),r=new FileReader();r.onload=function(){S.life[i]={img:r.result,own:true,msg:'Your photo.'};stepPrize()};if(f.files[0])r.readAsDataURL(f.files[0])}});
  var im=ep.querySelector('[data-img]');if(im)im.onchange=function(){var r=new FileReader();r.onload=function(){S.avImg=r.result;S.avBlend=false;stepPrize()};if(im.files[0])r.readAsDataURL(im.files[0])};
 }
 var CLAIM=/(#\s?1\b|number one|no\.? ?1\b|million(s)? (of )?(streams|plays|views|fans|followers)|billion|platinum|gold record|grammy|chart[- ]topping|top of the charts|viral hit|award[- ]winning|sold[- ]out)/i;
