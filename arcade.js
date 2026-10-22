@@ -72,6 +72,7 @@
 
   SCREENS.home = function (w) {
     w.appendChild(el('h1', 'arc-marquee', 'Song Lab'));
+    w.appendChild(el('h2', 'arc-ask', 'What are we making today?'));
     var grid = el('div', 'arc-cards');
     A.CARDS.forEach(function (c) {
       var b = btn('', 'v3-cabinet arc-card cab-' + c.id, function () {
@@ -82,8 +83,10 @@
     });
     w.appendChild(grid);
     w.appendChild(btn('\u2728 Give me ideas', 'v3-go arc-gi-start', function () { S = fresh(); S.gi = { seen: [] }; go('g-doors'); }));
-    hotSlang(w);
+    homeDots(w);
   };
+  // Progress dots on the start screen: you are on step 1 of 3 (start, pick, write).
+  function homeDots(w) { var d = el('div', 'arc-dots'); d.setAttribute('aria-hidden', 'true'); [1, 0, 0].forEach(function (on) { d.appendChild(el('i', on ? 'on' : '')); }); w.appendChild(d); }
 
   // What's hot: slang of the day from data/slang.json (sourced daily research, no explicit words here).
   var slangCache = null;
@@ -184,6 +187,7 @@
       b.appendChild(el('b', '', t.label)); b.appendChild(el('small', '', t.small)); grid.appendChild(b);
     });
     w.appendChild(grid);
+    hotSlang(w);
   };
   SCREENS['s-sub'] = function (w) {
     var t = A.TYPES.filter(function (x) { return x.id === S.type; })[0];
@@ -893,12 +897,27 @@
     return b;
   }
 
+  // Look: Arcade mode (neon night, default) or Chill mode (soft pastel). Saved on this device.
+  var MODE_KEY = 'plai-songlab-mode';
+  function getMode() { try { return localStorage.getItem(MODE_KEY) === 'chill' ? 'chill' : 'arcade'; } catch (e) { return 'arcade'; } }
+  function applyMode(m) { document.body.classList.toggle('mode-chill', m === 'chill'); document.body.classList.toggle('mode-arcade', m !== 'chill'); }
+  function modeToggle() {
+    var m = getMode(); var box = el('div', 'arc-mode'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Look');
+    [['arcade', 'Arcade mode'], ['chill', 'Chill mode']].forEach(function (o) {
+      var b = btn(o[1], 'arc-mode-btn' + (m === o[0] ? ' on' : ''), function () { try { localStorage.setItem(MODE_KEY, o[0]); } catch (e) {} applyMode(o[0]); paint(); });
+      b.setAttribute('aria-pressed', m === o[0] ? 'true' : 'false'); box.appendChild(b);
+    });
+    return box;
+  }
+  applyMode(getMode());
+
   function paint() {
     root.innerHTML = '';
     var w = el('div', 'v3-wrap arc-wrap');
     var top = el('div', 'v3-top'); var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     top.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
     top.appendChild(el('span', 'v3-points', String(S.points)));
+    top.appendChild(modeToggle());
     w.appendChild(top);
     w.appendChild(talkToggle());
         if (S.crisis) w.appendChild(crisisCard());

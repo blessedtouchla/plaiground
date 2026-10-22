@@ -121,3 +121,53 @@
 .arc-edit .arc-tiny{width:auto!important;min-width:0;padding:6px 10px;font-size:12px;white-space:nowrap}
 .arc-edit .arc-sec strong{flex:1;min-width:0}
 @media (max-width:640px){.arc-edit .arc-lrow{flex-wrap:wrap;gap:2px 6px}.arc-edit .arc-lrow>span:first-child{flex:1 1 100%}.arc-edit .arc-lrow .arc-tiny{margin-left:auto}.arc-edit .arc-sec{flex-wrap:wrap}}
+
+/* ===== Song Lab looks: Arcade mode (default) and Chill mode. Sharp frosted glass panels, no grid lines. ===== */
+body.mode-arcade,body.mode-chill{background-image:none!important}
+body.mode-arcade::before,body.mode-chill::before{display:none!important}
+body.mode-arcade{background:radial-gradient(ellipse at 15% 0%,rgba(255,62,165,.28),transparent 45%),radial-gradient(ellipse at 90% 20%,rgba(62,224,255,.22),transparent 45%),radial-gradient(ellipse at 50% 110%,rgba(125,60,255,.4),transparent 55%),#06020f!important;background-attachment:fixed!important}
+body.mode-chill{color-scheme:light;--text:#3d1a5c;--muted:rgba(61,26,92,.7);--card:rgba(255,255,255,.5);--gold:#8a5cff;--mood:#ff4fa3;--purple:#8a5cff;color:#3d1a5c;background:radial-gradient(circle at 20% 20%,#ffd6f0,transparent 40%),radial-gradient(circle at 80% 30%,#c9e4ff,transparent 45%),radial-gradient(circle at 50% 90%,#e3d0ff,transparent 50%),#fdf2ff!important;background-attachment:fixed!important}
+
+/* Glass panel recipe, shared by both looks */
+.arc-app{--glass:rgba(16,8,32,.42);--edge:rgba(255,255,255,.16);--hud:#3EE0FF;--glow:rgba(62,224,255,.08)}
+.mode-chill .arc-app{--glass:rgba(255,255,255,.42);--edge:rgba(61,26,92,.16);--hud:#8a5cff;--glow:rgba(255,255,255,.6)}
+.arc-app .arc-card,.arc-app .v3-cabinet,.arc-app .arc-tile,.arc-app .v3-tile,.arc-app .arc-option,.arc-app .arc-hot,.arc-app .arc-tune,.arc-app .arc-talk,.arc-app .arc-gi-idea{position:relative;border:1px solid var(--edge)!important;border-radius:2px!important;background:var(--glass)!important;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);box-shadow:inset 0 0 0 1px var(--glow),inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px rgba(0,0,0,.18)!important;color:inherit;transform:none}
+/* HUD corner brackets */
+.arc-app .arc-card::before,.arc-app .arc-tile::before,.arc-app .arc-hot::before{content:"";position:absolute;inset:-1px;pointer-events:none;background:linear-gradient(var(--hud),var(--hud)) top left/12px 1px,linear-gradient(var(--hud),var(--hud)) top left/1px 12px,linear-gradient(var(--hud),var(--hud)) bottom right/12px 1px,linear-gradient(var(--hud),var(--hud)) bottom right/1px 12px;background-repeat:no-repeat}
+.arc-app .arc-card,.arc-app .v3-cabinet{min-height:132px;padding:22px 20px;justify-content:flex-end}
+.arc-app .arc-card b{font-size:1.3rem;letter-spacing:.01em}
+.arc-app .arc-card:hover,.arc-app .arc-tile:hover,.arc-app .arc-option:hover{border-color:var(--hud)!important;box-shadow:inset 0 0 18px var(--glow),0 0 18px color-mix(in srgb,var(--hud) 30%,transparent)!important}
+.arc-app .arc-tile.on,.arc-app .v3-tile.on{outline:0;border-color:var(--hud)!important;background:color-mix(in srgb,var(--hud) 16%,var(--glass))!important}
+.arc-app .v3-go,.arc-app .v3-mini{border-radius:2px!important;border:1px solid var(--edge)!important;box-shadow:none!important}
+.arc-app .v3-go{background:linear-gradient(90deg,#ff3ea5,#7d3cff)!important;color:#fff!important;border-color:transparent!important;letter-spacing:.04em}
+.arc-app .v3-mini{background:var(--glass)!important;color:inherit;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.arc-app .arc-chip,.arc-app .arc-label,.arc-app .arc-parody-note,.arc-app .arc-talk-toggle,.arc-app .arc-talk-mic,.arc-app .arc-talk-mute,.arc-app .v3-credits,.arc-app .arc-input,.arc-app .arc-style,.arc-app .arc-host-say,.arc-app .arc-talk-msg,.arc-app .arc-crisis{border-radius:2px!important}
+.arc-app .arc-chip{background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.arc-app .arc-input{background:var(--glass)!important}
+.arc-app .arc-steps-bar span{border-radius:0;height:3px}
+.arc-ask{font-size:clamp(26px,5vw,44px);line-height:1.05;font-weight:900;letter-spacing:-.02em;margin:6px 0 20px}
+.arc-app .arc-marquee{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--hud);margin:18px 0 0;font-weight:800}
+.arc-dots{display:flex;gap:6px;justify-content:center;margin:26px 0 6px}.arc-dots i{width:8px;height:3px;background:var(--edge)}.arc-dots i.on{width:24px;background:var(--hud)}
+.arc-gi-start{margin-top:18px}
+
+/* Mode switch, like light / dark */
+.arc-mode{display:inline-flex;border:1px solid var(--edge);border-radius:2px;background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.arc-mode-btn{border:0;background:transparent;color:inherit;font:inherit;font-size:12px;font-weight:800;letter-spacing:.06em;padding:8px 12px;min-height:36px;cursor:pointer;opacity:.65}
+.arc-mode-btn.on{opacity:1;background:color-mix(in srgb,var(--hud) 22%,transparent);box-shadow:inset 0 -2px 0 var(--hud)}
+.arc-app .v3-top{flex-wrap:wrap}
+@media (max-width:480px){.arc-app .v3-top{gap:8px}.arc-mode{order:5;width:100%}.arc-mode-btn{flex:1}}
+
+/* Chill mode: pastel text and accents on light glass */
+.mode-chill .arc-app,.mode-chill .arc-app .v3-back,.mode-chill .arc-app .v3-link,.mode-chill .arc-app .v3-cabinet,.mode-chill .arc-app .arc-chip,.mode-chill .arc-app .arc-input,.mode-chill .arc-app .arc-host-say,.mode-chill .arc-app .arc-talk-mute,.mode-chill .arc-app .arc-talk-note,.mode-chill .arc-app .arc-talk-head b,.mode-chill .arc-app .arc-talk-toggle,.mode-chill .arc-app .arc-parody-note{color:#3d1a5c!important}
+.mode-chill .arc-app .v3-word{color:#8a5cff;text-shadow:none}
+.mode-chill .arc-app .v3-credits{color:#8a5cff;border-color:rgba(138,92,255,.5);box-shadow:none;border-width:1px}
+.mode-chill .arc-app .arc-kicker,.mode-chill .arc-app .arc-host-say b,.mode-chill .arc-app .arc-gi-angle,.mode-chill .arc-app .arc-tune .arc-q,.mode-chill .arc-app .arc-steps-n,.mode-chill .arc-app .arc-tune-toggle{color:#8a5cff}
+.mode-chill .arc-app .arc-chip,.mode-chill .arc-app .arc-input,.mode-chill .arc-app .arc-host-say,.mode-chill .arc-app .arc-talk-toggle{border-color:rgba(61,26,92,.18)!important;background:rgba(255,255,255,.5)}
+.mode-chill .arc-app .arc-chip.on{background:#8a5cff;color:#fff!important;border-color:#8a5cff!important;box-shadow:none}
+.mode-chill .arc-app .v3-go{background:linear-gradient(90deg,#ff4fa3,#8a5cff)!important}
+.mode-chill .arc-app .arc-steps-bar span{background:rgba(61,26,92,.12)}.mode-chill .arc-app .arc-steps-bar span.done{background:linear-gradient(90deg,#ff4fa3,#8a5cff)}.mode-chill .arc-app .arc-steps-bar span.now{background:#3fc6ff;box-shadow:none}
+.mode-chill .arc-app .arc-hot-links a,.mode-chill .arc-app .arc-gi-src{color:#5a3cc8}
+.mode-chill .arc-app .arc-readline.on{background:rgba(138,92,255,.14)}
+.mode-chill .arc-app .arc-syl{background:rgba(61,26,92,.1)}
+.mode-chill .arc-app .arc-note{color:#c2185b}
+.mode-chill .arc-app .v3-cab-icon{filter:saturate(.8)}
