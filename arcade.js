@@ -591,6 +591,7 @@
     w.appendChild(plai('What feels off?'));
     w.appendChild(chips(A.OFF_CHIPS, function (v) { return S.fix.off.indexOf(v) !== -1; }, function (v) { var i = S.fix.off.indexOf(v); if (i === -1) S.fix.off.push(v); else S.fix.off.splice(i, 1); }));
     w.appendChild(btn('Read it', 'v3-go', function () { S.fix.scoreBefore = A.songScore(S.fix.text); go('f-read'); }));
+    w.appendChild(btn('Clean up my lines (free)', 'v3-link', function () { S.fix.scoreBefore = A.songScore(S.fix.text); runShape('cleanup'); }, S.busy));
   };
   function readLine() {
     var flags = A.syllableFlags(S.fix.text); var n = flags.filter(function (f) { return f.flag; }).length;
@@ -617,7 +618,9 @@
     });
     w.appendChild(list);
     if (S.fix.history.length) w.appendChild(btn('Undo last change', 'v3-link', function () { S.fix.text = S.fix.history.pop(); paint(); }));
-    w.appendChild(btn('Fix it all (' + priceTag(1) + ')', 'v3-go', fixAll, S.busy));
+    if (wantsTrim()) w.appendChild(btn('Cut it down (' + priceTag(1) + ')', 'v3-go', function () { go('f-trim'); }, S.busy));
+    w.appendChild(btn('Fix it all (' + priceTag(1) + ')', wantsTrim() ? 'v3-link' : 'v3-go', fixAll, S.busy));
+    w.appendChild(btn('Clean up my lines (free)', 'v3-link', function () { runShape('cleanup'); }, S.busy));
     w.appendChild(btn('Done, show my score', 'v3-link', function () { S.result = { lyrics: S.fix.text, scoreBefore: S.fix.scoreBefore, label: S.fix.history.length ? 'AI-assisted' : 'Human' }; go('reveal'); }));
   };
   function pickLine(line) {
@@ -625,6 +628,7 @@
     post('arcade-fix', { text: S.fix.text, line: line, off: S.fix.off }).then(function (d) { S.busy = false; if (!d.ok) { S.note = d.error; paint(); return; } S.fix.options = d.options || []; paint(); });
   }
   function fixAll() {
+    if (wantsTrim() && S.screen !== 'f-trim' && !S.fix.trimAsked) { S.fix.trimAsked = true; go('f-trim'); return; }
     var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
     S.busy = true; paint();
     post('arcade-fix', { text: S.fix.text, off: S.fix.off }).then(function (d) {
@@ -642,6 +646,73 @@
     grid.appendChild(l); grid.appendChild(r); w.appendChild(grid);
     w.appendChild(btn('Keep', 'v3-go', function () { S.fix.history.push(S.fix.before); S.fix.text = S.fix.after; S.result = { lyrics: S.fix.after, scoreBefore: S.fix.scoreBefore, label: 'AI-assisted', notice: S.fix.notice }; go('reveal'); }));
     w.appendChild(btn('Undo', 'v3-link', function () { back(); }));
+  };
+
+  // ---------- Too wordy (real cuts) and Clean up my lines (structure only) ----------
+  function wantsTrim() { return S.fix.off.indexOf('Too wordy') !== -1; }
+  function runShape(mode, level) {
+    if (mode === 'trim') { var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; } }
+    S.busy = true; S.fix.shapeMode = mode; S.fix.level = level || ''; paint();
+    post('arcade-fix', { text: S.fix.text, mode: mode, level: level || '', off: S.fix.off }).then(function (d) {
+      S.busy = false;
+      if (!d.ok) { if (mode === 'trim') refund(before); S.note = d.error || 'Could not do that.'; paint(); return; }
+      S.fix.shape = { items: d.items || [], before: d.wordsBefore, mode: mode, level: d.level || level, notice: d.notice || '', undone: {} };
+      if (d.crisis) S.crisis = true;
+      go('f-shape');
+    });
+  }
+  function shapeText() { var sh = S.fix.shape; return sh ? A.draftText(sh.items, sh.undone) : S.fix.text; }
+  SCREENS['f-trim'] = function (w) {
+    w.appendChild(plai('How much should I cut? I only delete your words. Nothing new gets added.'));
+    var grid = el('div', 'arc-trim-levels');
+    A.TRIM_LEVELS.forEach(function (lv) {
+      var b = btn('', 'v3-tile arc-trim-level', function () { runShape('trim', lv.id); }, S.busy);
+      b.appendChild(el('b', '', lv.label)); b.appendChild(el('small', '', lv.small)); grid.appendChild(b);
+    });
+    w.appendChild(grid);
+    w.appendChild(el('p', 'hint', 'Your song: ' + A.countWords(S.fix.text) + ' words. Price: ' + priceTag(1) + '.'));
+    if (S.busy) w.appendChild(el('p', 'hint', 'Cutting...'));
+  };
+  SCREENS['f-shape'] = function (w) {
+    var sh = S.fix.shape; if (!sh) { back(); return; }
+    var lv = sh.mode === 'trim' ? A.trimLevel(sh.level) : null;
+    var after = A.countWords(shapeText());
+    w.appendChild(plai(sh.mode === 'trim'
+      ? lv.label + ': cut words are crossed out. Tap Undo on any line to bring its words back.'
+      : 'Same words, now in lines and sections. Nothing added, nothing cut.'));
+    if (sh.notice) w.appendChild(el('p', 'hint', sh.notice));
+    var pct = sh.before ? Math.round((1 - after / sh.before) * 100) : 0;
+    w.appendChild(el('p', 'arc-wordcount', sh.before + ' words \u2192 ' + after + ' words' + (sh.mode === 'trim' ? ' (' + pct + '% shorter)' : '')));
+    var list = el('div', 'flow-card arc-shape');
+    sh.items.forEach(function (it, i) {
+      if (it.tag) { list.appendChild(el('p', 'arc-tag', it.tag)); return; }
+      if (it.gap) { list.appendChild(el('div', 'arc-gap')); return; }
+      var cut = it.words.some(function (x) { return !x.keep; });
+      var undone = !!sh.undone[i];
+      var row = el('div', 'arc-shape-line' + (undone ? ' undone' : ''));
+      var p = el('p', 'arc-shape-words');
+      it.words.forEach(function (x, j) {
+        if (j) p.appendChild(document.createTextNode(' '));
+        if (x.keep || undone) p.appendChild(document.createTextNode(x.w));
+        else p.appendChild(el('s', 'arc-cut', x.w));
+      });
+      row.appendChild(p);
+      if (cut) row.appendChild(btn(undone ? 'Keep cut' : 'Undo', 'v3-mini arc-shape-toggle', function () { if (sh.undone[i]) delete sh.undone[i]; else sh.undone[i] = true; paint(); }));
+      list.appendChild(row);
+    });
+    w.appendChild(list);
+    var row2 = el('div', 'arc-actions');
+    row2.appendChild(btn('Keep this', 'v3-go', function () {
+      var t = shapeText(); S.fix.history.push(S.fix.text); S.fix.before = S.fix.text; S.fix.text = t; S.fix.shape = null;
+      S.result = { lyrics: t, scoreBefore: S.fix.scoreBefore, label: sh.mode === 'trim' ? 'AI-assisted' : (S.fix.history.length > 1 ? 'AI-assisted' : 'Human'), notice: sh.notice };
+      go(sh.mode === 'trim' ? 'reveal' : 'f-read');
+    }));
+    if (sh.mode === 'trim') {
+      A.TRIM_LEVELS.filter(function (x) { return x.id !== sh.level; }).forEach(function (x) { row2.appendChild(btn(x.label, 'v3-mini', function () { runShape('trim', x.id); }, S.busy)); });
+    }
+    row2.appendChild(btn('Undo all', 'v3-link', function () { S.fix.shape = null; back(); }));
+    w.appendChild(row2);
+    if (S.busy) w.appendChild(el('p', 'hint', 'Working...'));
   };
 
   // ---------- Flip My Song ----------

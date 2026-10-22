@@ -121,3 +121,15 @@
 .arc-edit .arc-tiny{width:auto!important;min-width:0;padding:6px 10px;font-size:12px;white-space:nowrap}
 .arc-edit .arc-sec strong{flex:1;min-width:0}
 @media (max-width:640px){.arc-edit .arc-lrow{flex-wrap:wrap;gap:2px 6px}.arc-edit .arc-lrow>span:first-child{flex:1 1 100%}.arc-edit .arc-lrow .arc-tiny{margin-left:auto}.arc-edit .arc-sec{flex-wrap:wrap}}
+/* Too wordy: levels, word count, strikethrough cuts, per-line undo */
+.arc-trim-levels{display:grid;gap:10px;grid-template-columns:repeat(3,1fr)}
+@media (max-width:640px){.arc-trim-levels{grid-template-columns:1fr}}
+.arc-trim-level{display:flex;flex-direction:column;gap:4px;padding:16px;text-align:left}
+.arc-trim-level small{opacity:.75}
+.arc-wordcount{font-weight:700;font-size:1.05rem;margin:6px 0}
+.arc-shape-line{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:4px 0}
+.arc-shape-words{margin:0;line-height:1.5;flex:1 1 auto;min-width:0}
+.arc-shape-line.undone .arc-shape-words{opacity:.9}
+.arc-cut{opacity:.5;text-decoration:line-through;text-decoration-thickness:2px;color:#ff6b8b}
+.arc-shape-toggle{flex:0 0 auto!important;width:auto!important;min-width:0!important;margin:0!important;padding:4px 12px!important;font-size:.8rem!important}
+.arc-gap{height:8px}
