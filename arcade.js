@@ -723,7 +723,7 @@
   SCREENS['f-off'] = function (w) {
     w.appendChild(plai('What feels off?'));
     w.appendChild(chips(A.OFF_CHIPS, function (v) { return S.fix.off.indexOf(v) !== -1; }, function (v) { var i = S.fix.off.indexOf(v); if (i === -1) S.fix.off.push(v); else S.fix.off.splice(i, 1); }));
-    w.appendChild(btn('Read it', 'v3-go', function () { S.fix.scoreBefore = A.songScore(S.fix.text); go('f-read'); }));
+    w.appendChild(btn('Read it', 'v3-go', function () { S.fix.scoreBefore = A.songScore(S.fix.text); var p = A.prepSections(S.fix.text, S.fix.off); S.fix.text = p.text; S.fix.chorusNote = p.note; go('f-read'); }));
     w.appendChild(btn('Clean up my lines (free)', 'v3-link', function () { S.fix.scoreBefore = A.songScore(S.fix.text); runShape('cleanup'); }, S.busy));
   };
   function readLine() {
@@ -737,6 +737,7 @@
   }
   SCREENS['f-read'] = function (w) {
     w.appendChild(plai(readLine()));
+    if (S.fix.chorusNote) w.appendChild(el('p', 'hint', S.fix.chorusNote));
     var list = el('div', 'flow-card arc-read');
     var lit = []; S.fix.off.forEach(function (c) { A.focusLines(S.fix.text, c).forEach(function (l) { lit.push(l); }); });
     A.splitLyrics(S.fix.text).forEach(function (sec) {
@@ -755,7 +756,7 @@
     if (S.fix.history.length) w.appendChild(btn('Undo last change', 'v3-link', function () { S.fix.text = S.fix.history.pop(); paint(); }));
     if (wantsTrim()) w.appendChild(btn('Cut it down (' + priceTag(1) + ')', 'v3-go', function () { go('f-trim'); }, S.busy));
     var focusChips = S.fix.off.filter(function (c) { return A.chipFocus(c); });
-    focusChips.forEach(function (c) { w.appendChild(btn(A.chipFocus(c).action + ' (' + priceTag(1) + ')', wantsTrim() ? 'v3-link' : 'v3-go', function () { fixAll(null, [c]); }, S.busy)); });
+    focusChips.forEach(function (c) { if (S.fix.chorusNote && A.chipFocus(c).part === 'chorus') return; w.appendChild(btn(A.chipFocus(c).action + ' (' + priceTag(1) + ')', wantsTrim() ? 'v3-link' : 'v3-go', function () { fixAll(null, [c]); }, S.busy)); });
     w.appendChild(btn('Fix it all (' + priceTag(1) + ')', wantsTrim() || focusChips.length ? 'v3-link' : 'v3-go', fixAll, S.busy));
     w.appendChild(btn('Clean up my lines (free)', 'v3-link', function () { runShape('cleanup'); }, S.busy));
     w.appendChild(btn('Done, show my score', 'v3-link', function () { S.result = { lyrics: S.fix.text, scoreBefore: S.fix.scoreBefore, label: S.fix.history.length ? 'AI-assisted' : 'Human' }; go('reveal'); }));
@@ -771,7 +772,7 @@
     post('arcade-fix', { text: S.fix.text, off: only || S.fix.off }).then(function (d) {
       S.busy = false;
       if (!d.ok) { refund(before); S.note = (d.error || 'Could not fix that.') + ''; paint(); return; }
-      S.fix.before = S.fix.text; S.fix.after = d.lyrics; S.fix.notice = d.notice || ''; if (d.crisis) S.crisis = true; go('f-compare');
+      S.fix.before = d.before || S.fix.text; S.fix.after = d.lyrics; S.fix.notice = d.notice || ''; if (d.crisis) S.crisis = true; go('f-compare');
     });
   }
   SCREENS['f-compare'] = function (w) {
