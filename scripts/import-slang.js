@@ -8,7 +8,8 @@
  *   node scripts/import-slang.js path/to/slang-log.csv
  *
  * Columns: word, meaning, example, region_tag, region_detail, (optional genre, ; separated),
- * source_url, source_url_2, first_seen, logged_on, confidence, notes.
+ * source_url, source_url_2, first_seen, logged_on, confidence, notes,
+ * plus Song Lab fields: define, explicit (yes/no), variants (; separated), source_note (who vouched when there is no URL).
  * Profanity is flagged from the notes and from a small word list.
  * The script does not call the network.
  */
@@ -97,6 +98,11 @@ function toEntry(header, cells) {
     notes: raw.notes,
     genre: String(raw.genre || '').split(/[;|]/).map(function (g) { return g.trim(); }).filter(Boolean),
   };
+  // Song Lab tap-to-define fields. Kept on import so the CSV is the full source of truth.
+  if (raw.define) entry.define = raw.define;
+  if (raw.source_note) entry.source_note = raw.source_note;
+  if (raw.variants) entry.variants = raw.variants.split(/[;|]/).map(function (v) { return v.trim(); }).filter(Boolean);
+  entry.explicit = /^(1|true|yes|y)$/i.test(raw.explicit || '');
   entry.profanity = flagProfanity(entry);
   return entry;
 }

@@ -145,3 +145,21 @@
 .arc-pop-flag{font-size:10px;padding:1px 6px;border:1px solid #ff5fd2;color:#ff8fd8;vertical-align:middle}
 .arc-pop-def{margin:6px 0 4px}
 .arc-pop-ex{margin:0;color:#cdb8ff;font-style:italic}
+
+/* Badges, word library, Go more hyphy */
+.arc-qhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.arc-badge{font-size:10px;letter-spacing:.6px;padding:2px 7px;border:1px solid;background:rgba(255,255,255,.04)}
+.arc-badge-lyrics{color:#7ef0c8;border-color:#7ef0c8}.arc-badge-prompt{color:#ffd36e;border-color:#ffd36e}.arc-badge-both{color:#ff8fd8;border-color:#ff8fd8}
+.arc-words{margin:10px 0;padding:12px;background:rgba(20,8,40,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,211,110,.45);max-height:60vh;overflow:auto}
+.arc-words-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.arc-word{padding:8px 0;border-top:1px solid rgba(255,255,255,.1)}
+.arc-word-top{margin:0;display:flex;gap:8px;align-items:center}.arc-word-top b{color:#ffd36e}
+.arc-word-def{margin:4px 0 2px;font-size:13px}
+.arc-hy-bar{display:flex;align-items:center;gap:10px;margin:10px 0}
+.arc-hy-go{border-color:#ffd36e!important;box-shadow:0 0 12px rgba(255,211,110,.35)}
+.arc-hy-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.1)}
+.arc-hy-before{margin:0;grid-column:1;text-decoration:line-through;opacity:.55;font-size:12px}
+.arc-hy-after{margin:0;grid-column:1;font-size:13px}
+.arc-hy-row button{grid-column:2;grid-row:1 / span 2;align-self:center}
+.arc-hy-row.undone .arc-hy-after{opacity:.4;text-decoration:line-through}.arc-hy-row.undone .arc-hy-before{opacity:1;text-decoration:none}
+.arc-words-head button{width:auto;flex:0 0 auto;min-width:0}

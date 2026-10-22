@@ -2,6 +2,7 @@
   var GENRES = ['Hip hop', 'R&B', 'Pop', 'Country', 'Latin', 'EDM', 'Rock', 'Gospel'];
   var rows = [];
   var f = { region: '', genre: '', explicit: false };
+  try { f.region = new URLSearchParams(location.search).get('region') || ''; } catch (e) { f.region = ''; }
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function safeUrl(u) { return /^https:\/\//i.test(String(u || '')) ? String(u) : ''; }

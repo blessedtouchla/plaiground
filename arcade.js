@@ -497,6 +497,74 @@
       });
     }).catch(function () { b.textContent = 'Saved on this device'; done('<p>The account save did not go through. Your song stays on this device.</p>'); });
   }
+  // Lyrics / Prompt / Both badge next to a question.
+  function qHead(text, badge) {
+    var p = el('p', 'arc-q arc-qhead'); p.appendChild(document.createTextNode(text));
+    if (badge) { var b = el('span', 'arc-badge arc-badge-' + badge.toLowerCase(), badge === 'Lyrics' ? 'LYRICS' : badge === 'Prompt' ? 'PROMPT' : 'BOTH'); b.title = badge === 'Lyrics' ? 'Changes the words' : badge === 'Prompt' ? 'Changes the sound' : 'Changes the words and the sound'; p.appendChild(b); }
+    return p;
+  }
+  // A to Z word library for the picked slang mode. Explicit words only show when explicit is on.
+  function wordLibrary(w) {
+    var mode = window.SlangMode && window.SlangMode.modeFor(S.flip.slang);
+    var box = el('div', 'arc-words');
+    var head = el('div', 'arc-words-head');
+    head.appendChild(el('b', '', (mode ? mode.label : 'Slang') + ' words'));
+    head.appendChild(btn('Close', 'v3-mini arc-tiny', function () { S.wordsOpen = false; paint(); }));
+    box.appendChild(head);
+    if (!SLANG.entries) { box.appendChild(el('p', 'hint', 'Loading words...')); w.appendChild(box); return; }
+    var showX = S.explicit === 'ok' && S.ageOk;
+    var list = SLANG.entries.filter(function (e) { return mode && e.region_tag === mode.region && (showX || !(e.explicit || e.profanity)); })
+      .sort(function (a, b) { return a.word.replace(/^the /i, '').localeCompare(b.word.replace(/^the /i, '')); });
+    box.appendChild(el('p', 'hint', list.length + ' words' + (showX ? '' : '. Explicit words are hidden.')));
+    list.forEach(function (e) {
+      var row = el('div', 'arc-word');
+      var top = el('p', 'arc-word-top'); top.appendChild(el('b', '', e.word));
+      if (e.explicit || e.profanity) top.appendChild(el('span', 'arc-pop-flag', '18+'));
+      row.appendChild(top);
+      row.appendChild(el('p', 'arc-word-def', e.define || e.meaning));
+      if (e.example) row.appendChild(el('p', 'arc-pop-ex', '\u201c' + e.example + '\u201d'));
+      box.appendChild(row);
+    });
+    var a = el('a', 'v3-link', 'Open on the slang page'); a.href = '/slang?region=' + encodeURIComponent(mode ? mode.region : '');
+    box.appendChild(a);
+    w.appendChild(box);
+  }
+  // Go more hyphy: one level up, same meaning and rhyme words, per-line undo.
+  function goMoreHyphy(r) {
+    var f = S.flip; var SM = window.SlangMode;
+    var before = String(r.lyrics || '');
+    var up = SM.nextLevel(f.hyphy || 'hyphy');
+    S.busy = true; paint();
+    var keep = f.hyphy; f.hyphy = up; f.boost = true;
+    post('arcade-flip', { text: before }).then(function (d) {
+      S.busy = false; f.boost = false;
+      if (!d.ok || !d.lyrics) { f.hyphy = keep; S.note = d.error || 'Could not go more hyphy. Try again.'; paint(); return; }
+      var a = before.split('\n'), b = String(d.lyrics).split('\n');
+      if (a.length === b.length) {
+        r.hyphyEdits = [];
+        b.forEach(function (line, i) { if (line !== a[i]) r.hyphyEdits.push({ i: i, before: a[i], after: line, undone: false }); });
+        r.lyrics = b.join('\n');
+      } else { r.hyphyUndoAll = before; r.hyphyEdits = []; r.lyrics = d.lyrics; }
+      r.style = ''; r.extras = null;
+      paint();
+    });
+  }
+  function hyphyEdits(w, r) {
+    if (!(r.hyphyEdits && r.hyphyEdits.length) && !r.hyphyUndoAll) return;
+    var box = el('div', 'flow-card arc-hy-edits');
+    box.appendChild(el('p', 'arc-q', 'More hyphy: ' + (r.hyphyEdits || []).filter(function (e) { return !e.undone; }).length + ' lines changed'));
+    (r.hyphyEdits || []).forEach(function (e) {
+      var row = el('div', 'arc-hy-row' + (e.undone ? ' undone' : ''));
+      row.appendChild(el('p', 'arc-hy-before', e.before));
+      row.appendChild(el('p', 'arc-hy-after', e.after));
+      row.appendChild(btn(e.undone ? 'Redo' : 'Undo', 'v3-mini arc-tiny', function () {
+        var lines = String(r.lyrics).split('\n'); e.undone = !e.undone; lines[e.i] = e.undone ? e.before : e.after; r.lyrics = lines.join('\n'); paint();
+      }));
+      box.appendChild(row);
+    });
+    if (r.hyphyUndoAll) box.appendChild(btn('Undo all', 'v3-mini', function () { r.lyrics = r.hyphyUndoAll; r.hyphyUndoAll = null; paint(); }));
+    w.appendChild(box);
+  }
   // ---------- Slang: underline + tap to define ----------
   var SLANG = { entries: null, loading: false };
   function loadSlang() {
@@ -603,6 +671,15 @@
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
     if (S.card === 'flip' && !r.extras) { style(); r.extras = S.flipExtras || null; }
+    if (S.card === 'flip' && S.flip.slang === 'bay' && window.SlangMode) {
+      var lvl = window.SlangMode.level(S.flip.hyphy);
+      var hb = el('div', 'arc-hy-bar');
+      hb.appendChild(el('span', 'arc-badge arc-badge-both', 'BOTH'));
+      hb.appendChild(el('span', 'hint', 'Hyphy level: ' + lvl.label));
+      if (lvl.id !== 'dumb') hb.appendChild(btn(S.busy ? 'Going...' : 'Go more hyphy', 'v3-mini arc-hy-go', function () { goMoreHyphy(r); }, S.busy));
+      w.appendChild(hb);
+      hyphyEdits(w, r);
+    }
     var fx = S.card === 'flip' ? r.extras : null;
     var tagged = function (t) { return fx && fx.voice && window.PromptCheck ? window.PromptCheck.tagLyrics(t, fx.voice) : t; };
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
@@ -800,9 +877,15 @@
     if (f.vibe && A.FLIP_VIBES[f.vibe].levels) w.appendChild(chips(A.FLIP_VIBES[f.vibe].levels, function (x) { return f.level === x; }, function (x) { f.level = x; }, 'small'));
     if (f.vibe === 'funny') w.appendChild(el('p', 'hint', 'Exaggerate, twist, punchlines. The hook stays.'));
     if (window.SlangMode) {
-      w.appendChild(el('p', 'arc-q', 'Slang mode'));
-      w.appendChild(chips([{ id: '', label: 'Off' }, { id: 'bay', label: 'Hyphy / Bay Area' }], function (k) { return (f.slang || '') === k; }, function (k) { f.slang = k; if (k) loadSlang(); }, 'small'));
-      if (f.slang === 'bay') w.appendChild(el('p', 'hint', 'Plai works in Bay slang like hyphy, hella and go dumb. Tap any underlined word to see what it means.'));
+      w.appendChild(qHead('Slang mode', 'Both'));
+      w.appendChild(chips([{ id: '', label: 'Off' }, { id: 'bay', label: 'Hyphy / Bay Area' }], function (k) { return (f.slang || '') === k; }, function (k) { f.slang = k; if (k) { loadSlang(); f.hyphy = f.hyphy || 'hyphy'; } }, 'small'));
+      if (f.slang === 'bay') {
+        w.appendChild(btn('See all words', 'v3-link arc-see-all', function () { S.wordsOpen = true; loadSlang(); paint(); }));
+        w.appendChild(qHead('How hyphy?', 'Both'));
+        w.appendChild(chips(window.SlangMode.LEVELS.map(function (L) { return { id: L.id, label: L.label }; }), function (k) { return (f.hyphy || 'hyphy') === k; }, function (k) { f.hyphy = k; }, 'small'));
+        w.appendChild(el('p', 'hint', { little: '1 or 2 Bay words and a subtle bounce.', hyphy: 'Bay words, a chant hook, a [Hype Break] and a thumping bounce.', dumb: 'Slang in most lines, crowd ad-libs, 100 to 110 BPM, claps and chants.' }[f.hyphy || 'hyphy'] + ' Tap any underlined word to see what it means.'));
+      }
+      if (S.wordsOpen) wordLibrary(w);
     }
     tunePanel(w, true);
     if (f.vibe === 'dirty') { w.appendChild(el('p', 'hint', 'Innuendo, not graphic. Never minors, real named people, or non-consent.')); explicitToggle(w, f.level !== 'Flirty'); }
