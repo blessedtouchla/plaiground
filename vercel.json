@@ -380,7 +380,12 @@
     { "source": "/blog/point-of-view", "destination": "/blog-point-of-view.html" },
     { "source": "/blog/bots-do-the-drudgery", "destination": "/blog-bots-do-the-drudgery.html" },
     { "source": "/blog/lyrics-plus-ai-recording", "destination": "/blog-lyrics-plus-ai-recording.html" },
-    { "source": "/blog/youtube-music-labels", "destination": "/blog-youtube-music-labels.html" }
+    { "source": "/blog/youtube-music-labels", "destination": "/blog-youtube-music-labels.html" },
+    { "source": "/blog/human-made-human-paid", "destination": "/blog-human-made-human-paid.html" },
+    { "source": "/blog/spotify-50m-slop", "destination": "/blog-spotify-50m-slop.html" },
+    { "source": "/blog/spotify-ai-remix-deal", "destination": "/blog-spotify-ai-remix-deal.html" },
+    { "source": "/blog/deezer-ai-detector-time", "destination": "/blog-deezer-ai-detector-time.html" },
+    { "source": "/blog/denmark-digital-replica-bill", "destination": "/blog-denmark-digital-replica-bill.html" }
   ],
   "headers": [
     {
