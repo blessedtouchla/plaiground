@@ -1,6 +1,6 @@
 {
   "imported_from": "slang-log.csv",
-  "count": 25,
+  "count": 59,
   "entries": [
     {
       "word": "fries",
@@ -16,6 +16,7 @@
       "confidence": "medium",
       "notes": "Often with 🍟✌️ emoji. Only one solid source so far; re-check UD/KYM.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -33,6 +34,7 @@
       "confidence": "high",
       "notes": "Two meanings in use (keep quiet vs. tell someone to hush). Vice 2026-09-28; UD entries from 2026-07-13.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -50,6 +52,7 @@
       "confidence": "high",
       "notes": "Origin UK, now national/online in US kids' speech.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -67,6 +70,7 @@
       "confidence": "high",
       "notes": "KYM + UD agree on meaning.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -83,6 +87,7 @@
       "confidence": "low",
       "notes": "UD Word of the Day only; no second source yet. Watch.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -99,6 +104,7 @@
       "confidence": "medium",
       "notes": "Catchphrase from a news clip about a hazing case, not organic street slang. Short shelf life likely.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -116,6 +122,7 @@
       "confidence": "high",
       "notes": "Green Line (2026-09-26) uses it in an example; UD says Rexdale origin; Wiktionary: synonym of brodie.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -132,6 +139,7 @@
       "confidence": "medium",
       "notes": "Also heard elsewhere; regional tag is soft.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -149,6 +157,7 @@
       "confidence": "medium",
       "notes": "Region sources disagree (London vs Toronto). Same family as crodie. Wiktionary added it 2026-08-01.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -166,6 +175,7 @@
       "confidence": "high",
       "notes": "Comes from 'that bitch gas'. Profanity, so filter by app content rating.",
       "genre": [],
+      "explicit": false,
       "profanity": true
     },
     {
@@ -183,6 +193,7 @@
       "confidence": "high",
       "notes": "Coinage older; strong Sep 2026 news spike (USA Today, Vice, MW, Euronews). Also 'larp'.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -200,6 +211,7 @@
       "confidence": "high",
       "notes": "KYM + Vice; googling spike Aug–Sep 2026 — allowed as spiking.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -216,6 +228,7 @@
       "confidence": "low",
       "notes": "Single primary source; also heard as 'that's AI'. Confidence discount.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -233,6 +246,7 @@
       "confidence": "high",
       "notes": "KYM + Wiktionary + UD + explainers. First seen >90d; still circulating.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -250,6 +264,7 @@
       "confidence": "medium",
       "notes": "MW + Brewtiful + Euronews. Older coinage; Sep 2026 search spike.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -266,6 +281,7 @@
       "confidence": "low",
       "notes": "UD Word of the Day only; no second source. Watch.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -282,6 +298,7 @@
       "confidence": "medium",
       "notes": "Not brand-new; youth spike ~2025. Soft region conflict (origin vs national). Pairs with choppelganger.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -299,6 +316,7 @@
       "confidence": "medium",
       "notes": "Also 'the 5'. First seen Jan 2026; inventory keep.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
@@ -316,141 +334,862 @@
       "confidence": "medium",
       "notes": "Waterloo + Etymology Nerd (2026-09-19). Weak for street Bars; tech-adjacent watch.",
       "genre": [],
+      "explicit": false,
       "profanity": false
     },
     {
       "word": "hyphy",
       "meaning": "Hyperactive, rowdy, hype; also the Bay Area party rap sound and culture",
-      "define": "Bay word for going wild with energy. Also the name of the Oakland party rap sound.",
       "example": "DJ dropped that slap and the whole room got hyphy.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
       "sources": [
         "https://en.wikipedia.org/wiki/Hyphy"
       ],
-      "profanity": false,
-      "explicit": false,
-      "region_tag": "Bay Area",
-      "region_detail": "Oakland and the wider Bay Area",
       "first_seen": "",
       "logged_on": "2026-10-22",
       "confidence": "high",
       "notes": "Hyphy mode",
       "genre": [
         "Hip hop"
-      ]
+      ],
+      "define": "Bay word for going wild with energy. Also the name of the Oakland party rap sound.",
+      "explicit": false,
+      "profanity": false
     },
     {
       "word": "go dumb",
       "meaning": "Dance or act wild with zero chill, a hyphy move",
-      "define": "Let loose all the way. Wild dancing, no chill, pure hyphy.",
       "example": "Beat hit and we all went dumb in the parking lot.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
       "sources": [
         "https://en.wikipedia.org/wiki/Hyphy"
       ],
-      "profanity": false,
-      "explicit": false,
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Let loose all the way. Wild dancing, no chill, pure hyphy.",
       "variants": [
         "going dumb",
         "gone dumb",
         "went dumb"
       ],
-      "region_tag": "Bay Area",
-      "region_detail": "Oakland and the wider Bay Area",
-      "first_seen": "",
-      "logged_on": "2026-10-22",
-      "confidence": "high",
-      "notes": "Hyphy mode",
-      "genre": [
-        "Hip hop"
-      ]
+      "explicit": false,
+      "profanity": false
     },
     {
       "word": "hella",
       "meaning": "Very or a lot; East Bay intensifier, in the OED since 2002",
-      "define": "Means very or a lot. Born in the East Bay, now everywhere.",
       "example": "That show was hella packed.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
       "sources": [
         "https://en.wikipedia.org/wiki/Hella"
       ],
-      "profanity": false,
-      "explicit": false,
-      "region_tag": "Bay Area",
-      "region_detail": "Oakland and the wider Bay Area",
       "first_seen": "",
       "logged_on": "2026-10-22",
       "confidence": "high",
       "notes": "Hyphy mode",
       "genre": [
         "Hip hop"
-      ]
+      ],
+      "define": "Means very or a lot. Born in the East Bay, now everywhere.",
+      "explicit": false,
+      "profanity": false
     },
     {
       "word": "thizz",
       "meaning": "Slang for ecstasy (MDMA); popularized by Mac Dre and his Thizz label",
-      "define": "Bay slang for ecstasy. Drug reference, adults only.",
       "example": "He talking about thizz again, keep it off the radio cut.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
       "sources": [
         "https://www.npr.org/sections/therecord/2013/09/09/220682752/federal-drug-case-ensnares-the-home-of-hyphy",
         "https://eastbayexpress.com/hyphy-vs-thizzin-1/"
       ],
-      "profanity": false,
-      "explicit": true,
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Bay slang for ecstasy. Drug reference, adults only.",
       "variants": [
         "thizzin",
         "thizzin'"
       ],
-      "region_tag": "Bay Area",
-      "region_detail": "Oakland and the wider Bay Area",
-      "first_seen": "",
-      "logged_on": "2026-10-22",
-      "confidence": "high",
-      "notes": "Hyphy mode",
-      "genre": [
-        "Hip hop"
-      ]
+      "explicit": true,
+      "profanity": false
     },
     {
       "word": "thizz face",
       "meaning": "Scrunched face you make when the music is so nasty it hits",
-      "define": "The squint you make when a beat is too nasty. The face says it slaps.",
       "example": "Bass dropped and she hit the thizz face.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
       "sources": [
         "https://www.npr.org/sections/therecord/2013/09/09/220682752/federal-drug-case-ensnares-the-home-of-hyphy"
       ],
-      "profanity": false,
-      "explicit": true,
-      "region_tag": "Bay Area",
-      "region_detail": "Oakland and the wider Bay Area",
       "first_seen": "",
       "logged_on": "2026-10-22",
       "confidence": "high",
       "notes": "Hyphy mode",
       "genre": [
         "Hip hop"
-      ]
+      ],
+      "define": "The squint you make when a beat is too nasty. The face says it slaps.",
+      "explicit": true,
+      "profanity": false
     },
     {
       "word": "turf",
       "meaning": "Turf dancing (turfin), an Oakland street dance; Taking Up Room on the Floor",
-      "define": "Oakland street dance with glides, waves and flexes. Short for Taking Up Room on the Floor.",
       "example": "They was turfin on the BART platform.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
       "sources": [
         "https://en.wikipedia.org/wiki/Turfing"
       ],
-      "profanity": false,
-      "explicit": false,
-      "variants": [
-        "turfin",
-        "turfing"
-      ],
-      "region_tag": "Bay Area",
-      "region_detail": "Oakland and the wider Bay Area",
       "first_seen": "",
       "logged_on": "2026-10-22",
       "confidence": "high",
       "notes": "Hyphy mode",
       "genre": [
         "Hip hop"
-      ]
+      ],
+      "define": "Oakland street dance with glides, waves and flexes. Short for Taking Up Room on the Floor.",
+      "variants": [
+        "turfin",
+        "turfing"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "yadadamean",
+      "meaning": "Short for 'you know what I mean?' Tag it on the end to land a point.",
+      "example": "Bay don't play, yadadamean.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Short for 'you know what I mean?' Tag it on the end to land a point.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "yadadimean",
+        "ya dig"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "slaps",
+      "meaning": "When a song goes hard. If it slaps, it bangs in the whip.",
+      "example": "This beat slaps, run it back.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "When a song goes hard. If it slaps, it bangs in the whip.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "slap",
+        "slappin"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "mob",
+      "meaning": "Roll deep with your people, or move with Bay energy.",
+      "example": "We mobbin to the show tonight.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Roll deep with your people, or move with Bay energy.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "mobbin",
+        "mobbing"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "fa sho",
+      "meaning": "For sure. Yes, no doubt.",
+      "example": "You coming through? Fa sho.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "For sure. Yes, no doubt.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "fo sho",
+        "fo' sho"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "bootsy",
+      "meaning": "Lame, corny, or wack.",
+      "example": "That knockoff fit is bootsy.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Lame, corny, or wack.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "boosty"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "yee",
+      "meaning": "A hype yell. Shout it when the energy is right.",
+      "example": "Bass dropped and the whole crowd said yee.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "A hype yell. Shout it when the energy is right.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "yeee",
+        "yeeee"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "the Town",
+      "meaning": "Oakland. Locals call it the Town.",
+      "example": "Born and raised in the Town.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Oakland. Locals call it the Town.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "the Yay",
+      "meaning": "The Bay Area. Also said Yay Area.",
+      "example": "Shout out to the Yay.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "The Bay Area. Also said Yay Area.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "Yay Area",
+        "the Yay Area"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "scraper",
+      "meaning": "An older Buick or Oldsmobile, lifted with big rims and loud paint. Oakland car culture.",
+      "example": "Candy paint scraper sitting on 24s.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "An older Buick or Oldsmobile, lifted with big rims and loud paint. Oakland car culture.",
+      "source_note": "Victoria, Bay Area usage, Oct 22 2026",
+      "variants": [
+        "scrapers",
+        "skraper",
+        "skrapers"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "sideshow",
+      "meaning": "A street car gathering with donuts and a crowd. Bay culture, also risky and often illegal.",
+      "example": "Whole block pulled up to the sideshow.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Sideshow_(automobile_exhibition)"
+      ],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "A street car gathering with donuts and a crowd. Bay culture, also risky and often illegal.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "sideshows"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "hecka",
+      "meaning": "Clean version of hella. Means very or a lot.",
+      "example": "It's hecka cold by the water.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Clean version of hella. Means very or a lot.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "grimy",
+      "meaning": "Shady or dirty, someone who does you wrong.",
+      "example": "He grimy, don't trust him with the aux.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Shady or dirty, someone who does you wrong.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "gas",
+      "meaning": "Something really good. That's gas means it's fire.",
+      "example": "New tape is gas.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Something really good. That's gas means it's fire.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "player",
+      "meaning": "Someone smooth with style, or a friendly greeting.",
+      "example": "What it do, player?",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Someone smooth with style, or a friendly greeting.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "playa"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "figgas",
+      "meaning": "Money, big numbers. Old school E-40 era talk.",
+      "example": "Stacking figgas on the grind.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Money, big numbers. Old school E-40 era talk.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "fetti",
+      "meaning": "Money. Short for fettuccine, Bay rap classic.",
+      "example": "Gotta get that fetti first.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Money. Short for fettuccine, Bay rap classic.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "feddy",
+        "feddi"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "scrilla",
+      "meaning": "Money. Classic Bay rap word.",
+      "example": "Chasing scrilla since the ninth grade.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Money. Classic Bay rap word.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "broccoli",
+      "meaning": "Money, green like cash. E-40 era slang.",
+      "example": "Long broccoli in the pocket.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Money, green like cash. E-40 era slang.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "gouda",
+      "meaning": "Money. The cheese, the bread.",
+      "example": "Got the gouda, now we eating.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Money. The cheese, the bread.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "cutty",
+      "meaning": "Your close homie or partner.",
+      "example": "That's my cutty from the block.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Your close homie or partner.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "cuddy"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "potna",
+      "meaning": "Partner or close friend.",
+      "example": "Me and my potna built this from nothing.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Partner or close friend.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "partna"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "tycoon",
+      "meaning": "Big boss with a come-up. Building money and a name.",
+      "example": "Started small, now a Bay tycoon.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Big boss with a come-up. Building money and a name.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "stunna",
+      "meaning": "A show-off with style. Also big stunna shades.",
+      "example": "Stunna shades on at night.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "A show-off with style. Also big stunna shades.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "stunner",
+        "stunnas"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "bammer",
+      "meaning": "Low quality, wack. Started as cheap weed, now anything weak.",
+      "example": "That party was bammer.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode; drug or alcohol reference",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Low quality, wack. Started as cheap weed, now anything weak.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "bammy"
+      ],
+      "explicit": true,
+      "profanity": false
+    },
+    {
+      "word": "slizzard",
+      "meaning": "Drunk or wasted. E-40 slang. Adults only.",
+      "example": "He got slizzard at the function.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode; drug or alcohol reference",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Drunk or wasted. E-40 slang. Adults only.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "slizzered"
+      ],
+      "explicit": true,
+      "profanity": false
+    },
+    {
+      "word": "pushin",
+      "meaning": "Driving, or rolling up on a spot.",
+      "example": "Pushin down the 880 with the windows down.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Driving, or rolling up on a spot.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "pushing"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "tighten up",
+      "meaning": "Get it together, fix up, step your game up.",
+      "example": "You missed the beat, tighten up.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Get it together, fix up, step your game up.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "sick wit it",
+      "meaning": "Crazy good or all in. Also E-40's label.",
+      "example": "He sick wit it on the mic.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Sick_Wid_It_Records"
+      ],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Crazy good or all in. Also E-40's label.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "sick wid it"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "function",
+      "meaning": "A party or kickback.",
+      "example": "Pull up to the function after.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "A party or kickback.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "functions"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "tweakin",
+      "meaning": "Acting crazy or out of line.",
+      "example": "You tweakin if you think I'm stopping.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Acting crazy or out of line.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "variants": [
+        "tweaking"
+      ],
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "dummy",
+      "meaning": "Very, extra. Dummy hard means really hard.",
+      "example": "Track go dummy hard.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Very, extra. Dummy hard means really hard.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "lightweight",
+      "meaning": "Kind of, a little bit.",
+      "example": "I'm lightweight tired but I'm still coming.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Kind of, a little bit.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "on one",
+      "meaning": "Acting wild or extra today.",
+      "example": "She on one tonight, can't stop her.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "Acting wild or extra today.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
+    },
+    {
+      "word": "the Bay",
+      "meaning": "The San Francisco Bay Area.",
+      "example": "Reppin the Bay wherever I go.",
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "sources": [],
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "medium",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ],
+      "define": "The San Francisco Bay Area.",
+      "source_note": "Common Bay Area usage, Oct 22 2026",
+      "explicit": false,
+      "profanity": false
     }
   ]
 }
