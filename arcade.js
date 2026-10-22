@@ -45,6 +45,7 @@
     var st = stateForServer();
     var snd = soundForStyle();
     if (S.card === 'flip' && !snd.genre && S.flip.target) snd.genre = S.flip.target;
+    if (S.card === 'flip') { var fs = A.flipStyle(st, snd); S.flipExtras = fs; return fs.style; }
     return A.stylePrompt(st, snd);
   }
   function chips(list, isOn, onTap, cls) {
@@ -562,12 +563,28 @@
     else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
+    if (S.card === 'flip' && !r.extras) { style(); r.extras = S.flipExtras || null; }
+    var fx = S.card === 'flip' ? r.extras : null;
+    var tagged = function (t) { return fx && fx.voice && window.PromptCheck ? window.PromptCheck.tagLyrics(t, fx.voice) : t; };
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
+    if (fx) {
+      var tips = el('div', 'flow-card arc-flip-tips');
+      tips.appendChild(el('p', 'arc-q', 'Exclude'));
+      tips.appendChild(el('pre', 'arc-style arc-exclude', (fx.exclude || []).join(', ')));
+      var bx = btn('Copy Exclude', 'v3-mini', function () { copy((fx.exclude || []).join(', '), bx); });
+      tips.appendChild(bx);
+      tips.appendChild(el('p', 'hint', 'Paste this into the Exclude box in your music AI. Leave "no" words out of the style box.'));
+      tips.appendChild(el('p', 'arc-q', 'Suggested sliders'));
+      tips.appendChild(el('p', 'arc-sliders', 'Weirdness about ' + fx.sliders.weirdness + '%  \u00b7  Style Influence about ' + fx.sliders.styleInfluence + '%'));
+      tips.appendChild(el('p', 'hint', 'Copy lyrics adds voice tags like [Rap] and [Sung] so the voice stays put.'));
+      tips.appendChild(el('p', 'hint', 'Lower weirdness keeps the voice natural. Style Influence near 65 follows the prompt without going stiff.'));
+      w.appendChild(tips);
+    }
     var row = el('div', 'arc-actions');
-    var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, b1); });
+    var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : tagged(r.lyrics), b1); });
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
-    var b3 = btn('Copy both', 'v3-mini', function () { copy(r.lyrics + '\n\nStyle prompt\n' + r.style, b3); });
+    var b3 = btn('Copy both', 'v3-mini', function () { copy(tagged(r.lyrics) + '\n\nStyle prompt\n' + r.style + (fx ? '\n\nExclude\n' + (fx.exclude || []).join(', ') : ''), b3); });
     var b4 = btn('Save to my account', 'v3-mini', function () {
       try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saving...'; } catch (e) { b4.textContent = 'Could not save'; return; } saveToAccount(list[list.length - 1], b4, w);
     });
