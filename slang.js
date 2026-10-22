@@ -10,7 +10,7 @@
   function genresOf(r) { return Array.isArray(r.genre) ? r.genre : (r.genre ? [String(r.genre)] : []); }
   function dateOf(r) { return String(r.date || r.logged_on || r.first_seen || ''); }
   function pass(r) {
-    if (!f.explicit && r.profanity) return false;
+    if (!f.explicit && (r.profanity || r.explicit)) return false;
     if (f.region && regionOf(r) !== f.region) return false;
     if (f.genre && genresOf(r).map(function (g) { return g.toLowerCase(); }).indexOf(f.genre.toLowerCase()) === -1) return false;
     return true;
