@@ -1227,3 +1227,10 @@
     (document.head || document.documentElement).appendChild(s);
   } catch (e) {}
 })();
+
+// Ask Plai text chat rides along with the bubble on every page that loads it.
+(function () {
+  try { if (window.parent && window.parent !== window) return; } catch (e) {}
+  if (document.querySelector('script[src$="plai-ask.js"]')) return;
+  var s = document.createElement('script'); s.src = '/plai-ask.js'; s.defer = true; document.head.appendChild(s);
+})();
