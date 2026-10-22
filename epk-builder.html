@@ -21,7 +21,7 @@ h1,h2,h3{font-family:'Space Grotesk';margin:.2em 0}h1{font-size:28px}h2{color:va
 .q{margin:16px 0}.q>label{font-weight:800;display:block;margin-bottom:6px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{background:#1d1036;color:var(--tx);border:2px solid #3a2466;border-radius:99px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px}
-.chip[aria-pressed=true]{background:var(--pu);border-color:var(--gd);box-shadow:0 0 12px var(--pu)}
+.chip[aria-pressed=true]{background:var(--gd);color:#000;border-color:var(--gd);box-shadow:0 0 0 2px #000,0 0 14px var(--gd)}.chip[aria-pressed=true]::before{content:'\2713  '}
 input[type=text],input[type=url],textarea{width:100%;background:#0b0616;color:var(--tx);border:2px solid #3a2466;border-radius:12px;padding:10px;font:inherit;margin-top:6px}
 textarea{min-height:70px}
 .btn{background:linear-gradient(90deg,var(--mg),var(--pu));color:#fff;border:0;border-radius:14px;padding:13px 22px;font-weight:900;font-size:16px;cursor:pointer;margin:6px 6px 0 0}
@@ -31,8 +31,8 @@ textarea{min-height:70px}
 .toast{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%) scale(0);background:var(--gd);color:#000;font:900 30px 'Space Grotesk';padding:20px 34px;border-radius:20px;transition:transform .3s;z-index:9;text-align:center}.toast.on{transform:translate(-50%,-50%) scale(1)}
 .fact{display:flex;gap:8px;align-items:flex-start;margin:8px 0;background:#0b0616;padding:10px;border-radius:10px}
 .skins{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.skin{padding:14px;border-radius:14px;cursor:pointer;border:3px solid transparent;font-weight:800;text-align:center}
-.skin[aria-pressed=true]{border-color:var(--gd)}
-.s-neon{background:linear-gradient(135deg,#7D3CFF,#FF3C8E)}.s-gold{background:linear-gradient(135deg,#000,#3d2f00);color:var(--gd)}.s-comic{background:#fff;color:#000}
+.skin{text-shadow:0 1px 2px rgba(0,0,0,.6);color:#fff;font-size:16px}.skin[aria-pressed=true]{border-color:var(--gd);box-shadow:0 0 0 3px #000,0 0 16px var(--gd)}.skin[aria-pressed=true]::after{content:' \2713'}
+.s-neon{background:linear-gradient(135deg,#7D3CFF,#FF3C8E)}.s-gold{background:linear-gradient(135deg,#000,#3d2f00);color:var(--gd)}.s-comic{background:#fff;color:#000;text-shadow:none;border-color:#000}
 .qc li{margin:4px 0}.ok{color:#7dff9a}
 .epk{border-radius:18px;padding:24px;margin-top:12px}.epk.neon{background:linear-gradient(160deg,#2a0f5c,#5c0f3a);}.epk.gold{background:#050505;border:2px solid var(--gd)}.epk.gold h2,.epk.gold h3{color:var(--gd)}.epk.comic{background:#fffaf0;color:#111}.epk.comic h2{color:#7D3CFF}
 .avatar{width:170px;height:210px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:12px;font-weight:700;background:radial-gradient(circle,var(--mg),var(--pu) 70%);color:#fff;float:right;margin:0 0 10px 14px;border:3px solid var(--gd)}
@@ -68,7 +68,7 @@ var Q=[
  {lvl:'Level 2: Hybrid Mode',hybrid:true,items:[
   ['planet','Alien home planet',['Bass Planet','Soul Moon','Trap Nebula','Pop Galaxy','Rock Asteroid','Earth only']]]},
  {lvl:'Level 3: Voice and Sound',items:[
-  ['voice','Voice texture',['Raspy','Airy','Deep','Silky','Gritty','Falsetto','Robotic']],
+  ['voice','Voice texture',['Raspy','Airy','Deep','Silky','Gritty','Soulful','Smoky','Falsetto','Robotic']],
   ['genre','Genre',['Pop','Hip hop','R&B','Rock','Country','EDM','Latin','Gospel','Synth pop']],
   ['vibe','Vibe',['Dreamy','Hype','Dark','Heartfelt','Funny','Rebel','Chill']]]},
  {lvl:'Level 4: Lifestyle and Backstory',items:[
@@ -130,7 +130,7 @@ function write(btn){btn.disabled=true;var st=document.getElementById('st');st.te
  fetch('/api/song-helper?action=epk-write',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())}).then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d}})}).then(function(res){
   if(!res.ok||!res.d.ok){S.credits+=100;hud();btn.disabled=false;st.innerHTML='<span class="bad">'+esc((res.d&&res.d.error)||'That did not work.')+'</span> Credits refunded automatically.';return}
   if(res.d.refund){S.credits+=100;hud();toast('Credits refunded')}
-  S.epk=res.d.epk;S.facts=res.d.facts;S.source=res.d.source;S.notice=res.d.notice;coin(30);go(S.step+1,'Bio unlocked!')
+  S.epk=res.d.epk;S.facts=res.d.facts;S.source=res.d.source;S.notice=res.d.notice;coin(30);go(S.step+1,'Check your facts')
  }).catch(function(){S.credits+=100;hud();btn.disabled=false;st.innerHTML='<span class="bad">Network hiccup.</span> Credits refunded automatically.'})}
 function stepBio(){var e=S.epk;
  var h='<section class="card"><div class="lvl">Level 7: Bio Builder</div><h1>Check your facts</h1>'+(S.notice?'<p class="warn">'+esc(S.notice)+'</p>':'<p class="note">Written by AI from your answers only.</p>')+
@@ -168,9 +168,42 @@ function stepQC(){var r=qc(),pass=r.every(function(x){return x[0]});
  '<p class="note">PLAIGROUND QC: a person also reviews flagged EPKs before anything goes public.</p><button class="btn alt" id="back">Back to fix</button><button class="btn" id="next" '+(pass?'':'disabled')+'>Looks good</button></section>';
  document.getElementById('back').onclick=function(){go(pass?S.step-1:7)};document.getElementById('next').onclick=function(){coin(50);go(S.step+1,'PRIZE TICKET!')};
 }
-function avatar(){var face={She:'👩‍🎤',He:'👨‍🎤',They:'🧑‍🎤',Beyond:'👽'}[(S.picks.gender||[])[0]]||'🎤';
- return '<div class="avatar" aria-label="Avatar card">'+(S.photo&&S.label==='AI assisted'?'<img src="'+S.photo+'" alt="Artist photo" style="width:100%;height:110px;object-fit:cover;border-radius:10px">':'<div class="face">'+face+'</div>')+
- '<div>'+esc([val('hair'),val('look'),isHybrid()?S.cyborg+'% cyborg':'',val('planet')].filter(Boolean).join(' / '))+'</div><div style="opacity:.8;margin-top:4px">Avatar preview card. AI avatar art is coming soon.</div></div>'}
+function pick(k){return ((S.picks[k]||[]).concat(S.own[k]?[S.own[k]]:[]).join(' ')).toLowerCase()}
+function avColor(t,map,d){for(var k in map){if(t.indexOf(k)>-1)return map[k]}return d}
+function svgAvatar(){var hair=pick('hair'),look=pick('look'),item=pick('item'),vibe=pick('vibe'),g=pick('gender');var hy=isHybrid(),cy=hy?S.cyborg:0,alien=hy&&(pick('planet')||g.indexOf('beyond')>-1);
+ var hc=avColor(hair,{neon:'#39FF14',pink:'#FF3C8E',purple:'#7D3CFF',blue:'#2FA8FF',blonde:'#F5C542',gold:'#F5C542',red:'#E0302A',white:'#eee',silver:'#ccc',flame:'#FF6A00',star:'#B9A7FF',black:'#111'},'#3a2466');
+ var oc=avColor(look,{street:'#FF3C8E',gown:'#7D3CFF',armor:'#9aa4b5',thrift:'#c08a4a',futur:'#2FE6FF',gold:'#F5C542',black:'#151515'},'#7D3CFF');
+ var skin=alien?'#8ef0c4':avColor(pick('skin')+look,{chrome:'#c9d1dc',glow:'#ffe9a8',crystal:'#bfe8ff'},'#c68a5e');
+ var lean=/wild|bounc|chaos|hype/.test(vibe)?-8:(/chill|calm|dream/.test(vibe)?3:0);
+ var longH=/long|flow|wave/.test(hair),spike=/spik|punk|mohawk|flame/.test(hair);
+ var svg='<svg viewBox="0 0 180 320" role="img" aria-label="Full-body avatar" style="width:100%;max-width:220px;display:block;margin:0 auto"><defs><radialGradient id="aur"><stop offset="0" stop-color="#F5C542" stop-opacity=".55"/><stop offset="1" stop-color="#7D3CFF" stop-opacity="0"/></radialGradient></defs>'+
+ '<ellipse cx="90" cy="150" rx="88" ry="150" fill="url(#aur)"/><ellipse cx="90" cy="308" rx="46" ry="7" fill="#000" opacity=".4"/>'+
+ '<g transform="rotate('+lean+' 90 300)">'+
+ '<rect x="68" y="210" width="18" height="92" rx="8" fill="'+(/gown/.test(look)?oc:'#1d1036')+'"/><rect x="94" y="210" width="18" height="92" rx="8" fill="'+(/gown/.test(look)?oc:'#1d1036')+'"/>'+
+ (/gown/.test(look)?'<path d="M60 150 L120 150 L140 300 L40 300 Z" fill="'+oc+'"/>':'')+
+ '<rect x="58" y="110" width="64" height="108" rx="20" fill="'+oc+'"/>'+
+ (cy>0?'<rect x="58" y="'+(218-Math.round(108*cy/100))+'" width="'+Math.max(8,Math.round(64*Math.min(cy,60)/60))+'" height="'+Math.round(108*cy/100)+'" rx="10" fill="#9aa4b5" opacity=".9"/><circle cx="90" cy="150" r="9" fill="#2FE6FF"/>':'')+
+ '<rect x="38" y="116" width="16" height="78" rx="8" fill="'+(cy>40?'#9aa4b5':skin)+'"/><rect x="126" y="116" width="16" height="78" rx="8" fill="'+(cy>20?'#9aa4b5':skin)+'"/>'+
+ '<rect x="80" y="92" width="20" height="22" fill="'+skin+'"/><circle cx="90" cy="70" r="30" fill="'+skin+'"/>'+
+ (alien?'<line x1="76" y1="42" x2="66" y2="22" stroke="'+skin+'" stroke-width="4"/><circle cx="66" cy="20" r="5" fill="#FF3C8E"/><line x1="104" y1="42" x2="114" y2="22" stroke="'+skin+'" stroke-width="4"/><circle cx="114" cy="20" r="5" fill="#FF3C8E"/>':'')+
+ (spike?'<path d="M60 60 L66 26 L78 46 L90 18 L102 46 L114 26 L120 60 Z" fill="'+hc+'"/>':'<path d="M58 72 Q60 34 90 36 Q120 34 122 72 L118 60 Q90 46 62 60 Z" fill="'+hc+'"/>'+(longH?'<rect x="56" y="62" width="12" height="60" rx="6" fill="'+hc+'"/><rect x="112" y="62" width="12" height="60" rx="6" fill="'+hc+'"/>':''))+
+ '<circle cx="80" cy="72" r="4" fill="'+(cy>50?'#2FE6FF':'#111')+'"/><circle cx="100" cy="72" r="4" fill="#111"/><path d="M80 86 Q90 93 100 86" stroke="#111" stroke-width="3" fill="none"/>'+
+ (/headphone/.test(item)?'<path d="M60 70 Q90 30 120 70" stroke="#111" stroke-width="6" fill="none"/><rect x="54" y="64" width="10" height="18" rx="4" fill="#FF3C8E"/><rect x="116" y="64" width="10" height="18" rx="4" fill="#FF3C8E"/>':'')+
+ (/chain|gold/.test(item)?'<path d="M72 112 Q90 140 108 112" stroke="#F5C542" stroke-width="5" fill="none"/>':'')+
+ (/guitar/.test(item)?'<rect x="122" y="150" width="8" height="70" fill="#7a4b22" transform="rotate(-30 126 185)"/><ellipse cx="140" cy="212" rx="18" ry="22" fill="#c08a4a"/>':'')+
+ (/mic/.test(item)||!item?'<rect x="140" y="104" width="6" height="22" fill="#333"/><circle cx="143" cy="100" r="8" fill="#ccc"/>':'')+
+ '</g></svg>';
+ return svg}
+function avatar(small){var cap=esc([val('hair'),val('look'),val('item'),isHybrid()?S.cyborg+'% cyborg':'',isHybrid()?val('planet'):''].filter(Boolean).join(', '));
+ var art=S.avImg?'<img src="'+esc(S.avImg)+'" alt="Full-body avatar of '+esc(S.name)+'" style="width:100%;max-width:'+(small?160:260)+'px;aspect-ratio:9/16;object-fit:cover;border-radius:12px;display:block;margin:0 auto">':svgAvatar();
+ return '<div class="avatar" aria-label="Full-body avatar">'+art+(small?'':'<div style="margin-top:6px">'+cap+'</div><div style="opacity:.8;margin-top:4px">'+(S.avImg?'AI avatar'+(S.avBlend?' blended with your photo':'')+'.':'Drawn avatar from your picks. Tap Make my AI avatar for the full art.')+'</div>')+'</div>'}
+function shrinkPhoto(cb){if(!S.photo||S.label!=='AI assisted'||!S.photoOk)return cb('');var im=new Image();im.onload=function(){var sc=Math.min(1,512/Math.max(im.width,im.height));var c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',0.8))};im.onerror=function(){cb('')};im.src=S.photo}
+function makeAvatar(btn){var COST=60,st=document.getElementById('avst');if(S.credits<COST){st.textContent='Not enough credits.';return}btn.disabled=true;S.credits-=COST;hud();st.textContent='Drawing your full-body avatar...';
+ shrinkPhoto(function(ph){var p=payload();p.photo=ph;p.photoOk=S.photoOk;
+ fetch('/api/song-helper?action=epk-avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json().catch(function(){return{}})}).then(function(d){
+  if(!d||!d.image){S.credits+=COST;hud();toast('Credits refunded');btn.disabled=false;st.innerHTML=esc((d&&(d.notice||d.error))||'The avatar did not come back.')+' Credits refunded automatically.';return}
+  S.avImg=d.image;S.avBlend=!!d.blended;coin(20);stepPrize();toast('Avatar unlocked!');if(d.notice){var s2=document.getElementById('avst');if(s2)s2.textContent=d.notice}
+ }).catch(function(){S.credits+=COST;hud();btn.disabled=false;st.textContent='Network hiccup. Credits refunded automatically.'})})}
 function stepPrize(){var e=S.epk,n=esc(S.name);
  var links=S.links.split(/\n+/).filter(Boolean).map(function(l){var u=l.trim();var href=u[0]==='@'?'':u;return '<li>'+(href?'<a href="'+esc(href)+'" style="color:inherit">'+esc(u)+'</a>':esc(u))+'</li>'}).join('');
  var tracks=S.tracks.split(/\n+/).filter(Boolean).map(function(t){return '<li>'+esc(t)+'</li>'}).join('');
@@ -180,18 +213,18 @@ function stepPrize(){var e=S.epk,n=esc(S.name);
  '<p><b>'+esc(e.oneLiner)+'</b></p><p>'+esc(e.shortBio)+'</p>'+e.longBio.split(/\n+/).map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'<p><i>'+esc(e.forFansOf)+'</i></p>'+
  '<h3>Origin story</h3><div class="panels">'+e.panels.map(function(p){return '<div>'+esc(p)+'</div>'}).join('')+'</div>'+
  (tracks?'<h3>Tracks</h3><ul>'+tracks+'</ul>':'')+(links?'<h3>Links</h3><ul>'+links+'</ul>':'')+'</article>'+
- '<button class="btn noprint" id="pdf">Print / Save as PDF</button></section>'+
- '<section class="card noprint"><h2>Social package</h2>'+caps.map(function(c,i){return '<div class="fact"><span>'+esc(c)+'</span><button class="chip copy" data-i="'+i+'">Copy</button></div>'}).join('')+'</section>'+
- '<section class="card noprint"><h2>Trading card</h2><div class="tcard" id="tcard"><div class="row"><span>'+n+'</span><span>LVL '+Math.max(1,Math.floor(S.coins/50))+'</span></div><div style="text-align:center;font-size:60px">'+avatar().match(/class="face">(.*?)<\/div>/)?.[1]+'</div>'+
+ '<button class="btn noprint" id="pdf">Print / Save as PDF</button>'+(S.avImg?'':'<button class="btn alt noprint" id="mkav">Make my AI avatar (60 credits)</button>')+'<p class="note noprint" id="avst">Failed or blank avatars refund your credits automatically.</p></section>'+
+ '<section class="card noprint"><h2>Social package</h2>'+(S.avImg?'<div style="max-width:200px">'+avatar(true)+'<a class="btn alt" download="'+n+'-avatar.jpg" href="'+esc(S.avImg)+'">Download avatar</a></div>':'')+caps.map(function(c,i){return '<div class="fact"><span>'+esc(c)+'</span><button class="chip copy" data-i="'+i+'">Copy</button></div>'}).join('')+'</section>'+
+ '<section class="card noprint"><h2>Trading card</h2><div class="tcard" id="tcard"><div class="row"><span>'+n+'</span><span>LVL '+Math.max(1,Math.floor(S.coins/50))+'</span></div>'+avatar(true)+
  '<div class="badge">'+esc(S.label)+'</div><div style="font-size:12px;margin:4px 0">'+esc(val('genre'))+' / '+esc(val('voice'))+'</div>'+Object.keys(S.stats).map(function(k){return '<div class="row"><span>'+k+'</span><span>'+S.stats[k]+'/10</span></div>'}).join('')+'<div style="font-size:12px;margin-top:6px">Power: '+esc(val('superpower')||'Mystery')+'</div></div></section>'+
  '<section class="card noprint"><h2>Did you like it?</h2><button class="btn" id="thumb" aria-label="Thumbs up">👍 Thumbs up</button><span id="thx" class="note"></span>'+
  '<p class="warn">Failed or blank generations refund your credits automatically. You do not need to dispute those.</p>'+
- '<button class="btn alt" id="dispute">Dispute</button><div id="dform" class="hidden"><input type="text" id="dname" placeholder="Your name" aria-label="Your name"><input type="text" id="demail" placeholder="Your email" aria-label="Your email"><textarea id="dwhy" placeholder="What went wrong?" aria-label="What went wrong"></textarea><input type="text" id="dhp" name="company_website" class="hidden" tabindex="-1" autocomplete="off"><button class="btn" id="dsend">Send dispute</button><p id="dst" class="note"></p></div>'+
+ '<button class="btn alt" id="dispute">Dispute</button><div id="dform" class="hidden"><input type="text" id="dname" placeholder="Your name" aria-label="Your name"><input type="text" id="demail" placeholder="Your email" aria-label="Your email"><textarea id="dwhy" placeholder="What went wrong?" aria-label="What went wrong"></textarea><input type="text" id="dhp" name="company_website" class="hidden" tabindex="-1" autocomplete="off"><button class="btn" id="dsend">Send dispute</button><button class="btn alt" id="dcancel" type="button">Cancel</button><p id="dst" class="note"></p></div>'+
  '<button class="btn alt" id="restart">Plai again</button></section>';
- document.getElementById('pdf').onclick=function(){window.print()};
+ document.getElementById('pdf').onclick=function(){window.print()};var mk=document.getElementById('mkav');if(mk)mk.onclick=function(){makeAvatar(mk)};
  app.querySelectorAll('.copy').forEach(function(b){b.onclick=function(){try{navigator.clipboard.writeText(caps[b.dataset.i])}catch(e){}b.textContent='Copied'}});
  document.getElementById('thumb').onclick=function(){document.getElementById('thx').textContent=' Thanks! +10 coins';coin(10)};
- document.getElementById('dispute').onclick=function(){document.getElementById('dform').classList.remove('hidden')};
+ document.getElementById('dispute').onclick=function(){var f=document.getElementById('dform');var open=f.classList.toggle('hidden')===false;this.textContent=open?'Close dispute':'Dispute';this.setAttribute('aria-expanded',open)};document.getElementById('dcancel').onclick=function(){document.getElementById('dform').classList.add('hidden');var d=document.getElementById('dispute');d.textContent='Dispute';d.setAttribute('aria-expanded','false')};
  document.getElementById('restart').onclick=function(){location.reload()};
  document.getElementById('dsend').onclick=function(){var st=document.getElementById('dst');var why=val2('dwhy');if(why.length<2){st.textContent='Tell us what went wrong.';return}st.textContent='Sending...';
   fetch('/api/apply',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({name:val2('dname')||S.name,email:val2('demail'),phone:'',package:'EPK dispute',help:'Artist: '+S.name+' | Label: '+S.label+' | Source: '+S.source+' | Credits left: '+S.credits+' | Why: '+why,company_website:val2('dhp')})})
@@ -201,5 +234,6 @@ var STEPS=[stepMode].concat(Q.map(function(_,i){return qStep(i)})).concat([stepL
 go(0);
 })();
 </script>
+  <script src="/plai-ask.js" defer></script>
 </body>
 </html>
