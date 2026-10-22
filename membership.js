@@ -358,6 +358,7 @@
     if (path === '/dashboard' || file === 'dashboard' || file === 'dashboard.html') return true;
     if (path === '/artists' || file === 'artists' || file === 'artists.html') return true;
     if (path === '/my-roadmap' || file === 'my-roadmap' || file === 'my-roadmap.html') return true;
+    if (path === '/my-lyrics' || file === 'my-lyrics' || file === 'my-lyrics.html') return true;
     return false;
   }
 
