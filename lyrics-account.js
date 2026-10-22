@@ -49,21 +49,47 @@
 
   var LOCAL_KEY = 'plaiground.songHelper.localSongs';
 
-  function readLocal() {
+  var ARCADE_KEY = 'plaiground.arcade.saved';
+
+  function readArcade() {
     var store = storage();
     if (!store) return [];
     try {
-      var list = JSON.parse(store.getItem(LOCAL_KEY) || '[]');
-      return Array.isArray(list) ? list.filter(function (s) { return s && String(s.text || '').trim(); }) : [];
+      var list = JSON.parse(store.getItem(ARCADE_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
     } catch (err) {
       return [];
     }
   }
 
+  function readLocal() {
+    var store = storage();
+    if (!store) return [];
+    var own = [];
+    try {
+      var list = JSON.parse(store.getItem(LOCAL_KEY) || '[]');
+      own = Array.isArray(list) ? list.filter(function (s) { return s && String(s.text || '').trim(); }) : [];
+    } catch (err) {
+      own = [];
+    }
+    var arcade = readArcade().filter(function (x) { return x && !x.accountId && String(x.lyrics || '').trim(); }).map(function (x) {
+      return { title: String(x.title || '').slice(0, 80), text: String(x.lyrics || '').slice(0, 12000), mode: String(x.card || '').slice(0, 40), mood: String(x.type || '').slice(0, 40), localAt: x.at, arcadeAt: x.at || '' };
+    });
+    return own.concat(arcade);
+  }
+
+  function markArcade(song) {
+    var store = storage();
+    if (!store || !song.arcadeAt) return;
+    var list = readArcade();
+    list.forEach(function (x) { if (x.at === song.arcadeAt) x.accountId = 'imported'; });
+    try { store.setItem(ARCADE_KEY, JSON.stringify(list)); } catch (err) {}
+  }
+
   function keepLocal(song) {
     var store = storage();
     if (!store) return;
-    var list = readLocal().filter(function (s) { return !(s.text === song.text && s.title === song.title); });
+    var list = readLocal().filter(function (s) { return !s.arcadeAt && !(s.text === song.text && s.title === song.title); });
     var copy = JSON.parse(JSON.stringify(song));
     copy.localAt = new Date().toISOString();
     list.unshift(copy);
@@ -85,13 +111,14 @@
       return p.then(function () {
         var body = Object.assign({}, song);
         delete body.localAt;
+        delete body.arcadeAt;
         return fetchFn('/api/me/lyrics', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({ song: body }),
         }).then(function (res) {
-          if (res.ok) done++; else { failed++; left.push(song); }
+          if (res.ok) { done++; markArcade(song); } else { failed++; if (!song.arcadeAt) left.push(song); }
         }).catch(function () { failed++; left.push(song); });
       });
     }, Promise.resolve()).then(function () {
@@ -112,7 +139,7 @@
     if (!store) return;
     var was = readPending();
     if (was) {
-      var rest = readLocal().filter(function (x) { return !(x.text === was.text && (x.title || '') === (was.title || '')); });
+      var rest = readLocal().filter(function (x) { return !x.arcadeAt && !(x.text === was.text && (x.title || '') === (was.title || '')); });
       try {
         if (rest.length) store.setItem(LOCAL_KEY, JSON.stringify(rest));
         else store.removeItem(LOCAL_KEY);

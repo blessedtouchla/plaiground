@@ -116,3 +116,7 @@
 .arc-gi-src{color:#3EE0FF;text-decoration:underline}
 .arc-gi-sides{margin:4px 0 8px 18px;font-size:.9em}
 .arc-gi-empty{border:2px dashed #9B5CFF}
+/* Finished lyrics: .v3-mini is width:100%, which squeezed each lyric line into a one-word column. Keep the small buttons small, and on phones put them under the line. */
+.arc-edit .arc-tiny{width:auto!important;min-width:0;padding:6px 10px;font-size:12px;white-space:nowrap}
+.arc-edit .arc-sec strong{flex:1;min-width:0}
+@media (max-width:640px){.arc-edit .arc-lrow{flex-wrap:wrap;gap:2px 6px}.arc-edit .arc-lrow>span:first-child{flex:1 1 100%}.arc-edit .arc-lrow .arc-tiny{margin-left:auto}.arc-edit .arc-sec{flex-wrap:wrap}}
