@@ -663,7 +663,7 @@
   }
   function shapeText() { var sh = S.fix.shape; return sh ? A.draftText(sh.items, sh.undone) : S.fix.text; }
   SCREENS['f-trim'] = function (w) {
-    w.appendChild(plai('How much should I cut? I only delete your words. Nothing new gets added.'));
+    w.appendChild(plai('How much should I cut? A little only deletes words. Tighten and Cut to the bone shorten each line in your own words, same rhyme at the end.'));
     var grid = el('div', 'arc-trim-levels');
     A.TRIM_LEVELS.forEach(function (lv) {
       var b = btn('', 'v3-tile arc-trim-level', function () { runShape('trim', lv.id); }, S.busy);
@@ -678,7 +678,7 @@
     var lv = sh.mode === 'trim' ? A.trimLevel(sh.level) : null;
     var after = A.countWords(shapeText());
     w.appendChild(plai(sh.mode === 'trim'
-      ? lv.label + ': cut words are crossed out. Tap Undo on any line to bring its words back.'
+      ? (A.isRewriteLevel(sh.level) ? lv.label + ': each line is shorter in your own words, same last word. Cut words are crossed out. Tap Undo on any line to get it back.' : lv.label + ': cut words are crossed out. Tap Undo on any line to bring its words back.')
       : 'Same words, now in lines and sections. Nothing added, nothing cut.'));
     if (sh.notice) w.appendChild(el('p', 'hint', sh.notice));
     var pct = sh.before ? Math.round((1 - after / sh.before) * 100) : 0;
@@ -687,7 +687,7 @@
     sh.items.forEach(function (it, i) {
       if (it.tag) { list.appendChild(el('p', 'arc-tag', it.tag)); return; }
       if (it.gap) { list.appendChild(el('div', 'arc-gap')); return; }
-      var cut = it.words.some(function (x) { return !x.keep; });
+      var cut = !!it.rewrite || it.words.some(function (x) { return !x.keep; });
       var undone = !!sh.undone[i];
       var row = el('div', 'arc-shape-line' + (undone ? ' undone' : ''));
       var p = el('p', 'arc-shape-words');
@@ -696,7 +696,8 @@
         if (x.keep || undone) p.appendChild(document.createTextNode(x.w));
         else p.appendChild(el('s', 'arc-cut', x.w));
       });
-      row.appendChild(p);
+      if (it.rewrite && !undone) { var box = el('div', 'arc-shape-pair'); box.appendChild(p); box.appendChild(el('p', 'arc-shape-new', it.rewrite)); row.appendChild(box); }
+      else row.appendChild(p);
       if (cut) row.appendChild(btn(undone ? 'Keep cut' : 'Undo', 'v3-mini arc-shape-toggle', function () { if (sh.undone[i]) delete sh.undone[i]; else sh.undone[i] = true; paint(); }));
       list.appendChild(row);
     });
