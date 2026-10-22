@@ -732,16 +732,18 @@
     if (n) bits.push(n + ' line' + (n > 1 ? 's are' : ' is') + ' off-beat next to ' + (n > 1 ? 'their partners' : 'its partner'));
     else bits.push('The rhythm lines up well');
     if (S.fix.off.length) bits.push('you flagged ' + S.fix.off.join(', ').toLowerCase());
-    return bits.join(', and ') + '. Tap a line for 3 rewrites, or fix it all.';
+    var says = S.fix.off.map(function (c) { var f = A.chipFocus(c); return f ? f.say : ''; }).filter(Boolean);
+    return bits.join(', and ') + '. ' + (says.length ? says.join(' ') + ' ' : '') + 'Tap a line for 3 rewrites, or fix it all.';
   }
   SCREENS['f-read'] = function (w) {
     w.appendChild(plai(readLine()));
     var list = el('div', 'flow-card arc-read');
+    var lit = []; S.fix.off.forEach(function (c) { A.focusLines(S.fix.text, c).forEach(function (l) { lit.push(l); }); });
     A.splitLyrics(S.fix.text).forEach(function (sec) {
       list.appendChild(el('p', 'arc-tag', '[' + sec.label + ']'));
       sec.lines.forEach(function (line) {
         var f = A.syllableFlags(S.fix.text).filter(function (x) { return x.line === line; })[0];
-        var b = btn('', 'arc-readline' + (f && f.flag ? ' amber' : '') + (S.fix.picking === line ? ' on' : ''), function () { pickLine(line); });
+        var b = btn('', 'arc-readline' + (f && f.flag ? ' amber' : '') + (lit.indexOf(line) !== -1 ? ' focus' : '') + (S.fix.picking === line ? ' on' : ''), function () { pickLine(line); });
         b.appendChild(syl(line)); b.appendChild(document.createTextNode(' ' + line)); list.appendChild(b);
         if (S.fix.picking === line) {
           if (S.busy) list.appendChild(el('p', 'hint', 'Thinking...'));
@@ -752,7 +754,9 @@
     w.appendChild(list);
     if (S.fix.history.length) w.appendChild(btn('Undo last change', 'v3-link', function () { S.fix.text = S.fix.history.pop(); paint(); }));
     if (wantsTrim()) w.appendChild(btn('Cut it down (' + priceTag(1) + ')', 'v3-go', function () { go('f-trim'); }, S.busy));
-    w.appendChild(btn('Fix it all (' + priceTag(1) + ')', wantsTrim() ? 'v3-link' : 'v3-go', fixAll, S.busy));
+    var focusChips = S.fix.off.filter(function (c) { return A.chipFocus(c); });
+    focusChips.forEach(function (c) { w.appendChild(btn(A.chipFocus(c).action + ' (' + priceTag(1) + ')', wantsTrim() ? 'v3-link' : 'v3-go', function () { fixAll(null, [c]); }, S.busy)); });
+    w.appendChild(btn('Fix it all (' + priceTag(1) + ')', wantsTrim() || focusChips.length ? 'v3-link' : 'v3-go', fixAll, S.busy));
     w.appendChild(btn('Clean up my lines (free)', 'v3-link', function () { runShape('cleanup'); }, S.busy));
     w.appendChild(btn('Done, show my score', 'v3-link', function () { S.result = { lyrics: S.fix.text, scoreBefore: S.fix.scoreBefore, label: S.fix.history.length ? 'AI-assisted' : 'Human' }; go('reveal'); }));
   };
@@ -760,11 +764,11 @@
     S.fix.picking = line; S.fix.options = []; S.busy = true; paint();
     post('arcade-fix', { text: S.fix.text, line: line, off: S.fix.off }).then(function (d) { S.busy = false; if (!d.ok) { S.note = d.error; paint(); return; } S.fix.options = d.options || []; paint(); });
   }
-  function fixAll() {
-    if (wantsTrim() && S.screen !== 'f-trim' && !S.fix.trimAsked) { S.fix.trimAsked = true; go('f-trim'); return; }
+  function fixAll(ev, only) {
+    if (!only && wantsTrim() && S.screen !== 'f-trim' && !S.fix.trimAsked) { S.fix.trimAsked = true; go('f-trim'); return; }
     var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
     S.busy = true; paint();
-    post('arcade-fix', { text: S.fix.text, off: S.fix.off }).then(function (d) {
+    post('arcade-fix', { text: S.fix.text, off: only || S.fix.off }).then(function (d) {
       S.busy = false;
       if (!d.ok) { refund(before); S.note = (d.error || 'Could not fix that.') + ''; paint(); return; }
       S.fix.before = S.fix.text; S.fix.after = d.lyrics; S.fix.notice = d.notice || ''; if (d.crisis) S.crisis = true; go('f-compare');
