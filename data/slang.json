@@ -1,6 +1,6 @@
 {
   "imported_from": "slang-log.csv",
-  "count": 19,
+  "count": 25,
   "entries": [
     {
       "word": "fries",
@@ -317,6 +317,140 @@
       "notes": "Waterloo + Etymology Nerd (2026-09-19). Weak for street Bars; tech-adjacent watch.",
       "genre": [],
       "profanity": false
+    },
+    {
+      "word": "hyphy",
+      "meaning": "Hyperactive, rowdy, hype; also the Bay Area party rap sound and culture",
+      "define": "Bay word for going wild with energy. Also the name of the Oakland party rap sound.",
+      "example": "DJ dropped that slap and the whole room got hyphy.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Hyphy"
+      ],
+      "profanity": false,
+      "explicit": false,
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ]
+    },
+    {
+      "word": "go dumb",
+      "meaning": "Dance or act wild with zero chill, a hyphy move",
+      "define": "Let loose all the way. Wild dancing, no chill, pure hyphy.",
+      "example": "Beat hit and we all went dumb in the parking lot.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Hyphy"
+      ],
+      "profanity": false,
+      "explicit": false,
+      "variants": [
+        "going dumb",
+        "gone dumb",
+        "went dumb"
+      ],
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ]
+    },
+    {
+      "word": "hella",
+      "meaning": "Very or a lot; East Bay intensifier, in the OED since 2002",
+      "define": "Means very or a lot. Born in the East Bay, now everywhere.",
+      "example": "That show was hella packed.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Hella"
+      ],
+      "profanity": false,
+      "explicit": false,
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ]
+    },
+    {
+      "word": "thizz",
+      "meaning": "Slang for ecstasy (MDMA); popularized by Mac Dre and his Thizz label",
+      "define": "Bay slang for ecstasy. Drug reference, adults only.",
+      "example": "He talking about thizz again, keep it off the radio cut.",
+      "sources": [
+        "https://www.npr.org/sections/therecord/2013/09/09/220682752/federal-drug-case-ensnares-the-home-of-hyphy",
+        "https://eastbayexpress.com/hyphy-vs-thizzin-1/"
+      ],
+      "profanity": false,
+      "explicit": true,
+      "variants": [
+        "thizzin",
+        "thizzin'"
+      ],
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ]
+    },
+    {
+      "word": "thizz face",
+      "meaning": "Scrunched face you make when the music is so nasty it hits",
+      "define": "The squint you make when a beat is too nasty. The face says it slaps.",
+      "example": "Bass dropped and she hit the thizz face.",
+      "sources": [
+        "https://www.npr.org/sections/therecord/2013/09/09/220682752/federal-drug-case-ensnares-the-home-of-hyphy"
+      ],
+      "profanity": false,
+      "explicit": true,
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ]
+    },
+    {
+      "word": "turf",
+      "meaning": "Turf dancing (turfin), an Oakland street dance; Taking Up Room on the Floor",
+      "define": "Oakland street dance with glides, waves and flexes. Short for Taking Up Room on the Floor.",
+      "example": "They was turfin on the BART platform.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Turfing"
+      ],
+      "profanity": false,
+      "explicit": false,
+      "variants": [
+        "turfin",
+        "turfing"
+      ],
+      "region_tag": "Bay Area",
+      "region_detail": "Oakland and the wider Bay Area",
+      "first_seen": "",
+      "logged_on": "2026-10-22",
+      "confidence": "high",
+      "notes": "Hyphy mode",
+      "genre": [
+        "Hip hop"
+      ]
     }
   ]
 }
