@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>EPK Builder Tester | PLAIGROUND</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+:root{--bk:#07040d;--pu:#7D3CFF;--mg:#FF3C8E;--gd:#F3CB47;--tx:#f4eefc}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#24104a,var(--bk) 60%);color:var(--tx);font-family:Inter,sans-serif;min-height:100vh}
+.wrap{max-width:860px;margin:0 auto;padding:18px}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{font-family:'Space Grotesk';font-weight:700;font-size:22px;letter-spacing:1px}.logo b{color:var(--mg)}
+.hud{display:flex;gap:10px}.pill{background:#160b2b;border:2px solid var(--pu);border-radius:99px;padding:6px 12px;font-weight:800}
+.pill.gold{border-color:var(--gd);color:var(--gd)}
+.meter{height:14px;background:#160b2b;border-radius:99px;margin:12px 0;overflow:hidden;border:1px solid #3a2466}.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pu),var(--mg),var(--gd));transition:width .4s}
+.card{background:#120a22;border:2px solid #2e1a55;border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 0 30px #7d3cff22}
+h1,h2,h3{font-family:'Space Grotesk';margin:.2em 0}h1{font-size:28px}h2{color:var(--gd)}
+.lvl{color:var(--mg);font-weight:900;letter-spacing:2px;font-size:12px;text-transform:uppercase}
+.q{margin:16px 0}.q>label{font-weight:800;display:block;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:#1d1036;color:var(--tx);border:2px solid #3a2466;border-radius:99px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px}
+.chip[aria-pressed=true]{background:var(--pu);border-color:var(--gd);box-shadow:0 0 12px var(--pu)}
+input[type=text],input[type=url],textarea{width:100%;background:#0b0616;color:var(--tx);border:2px solid #3a2466;border-radius:12px;padding:10px;font:inherit;margin-top:6px}
+textarea{min-height:70px}
+.btn{background:linear-gradient(90deg,var(--mg),var(--pu));color:#fff;border:0;border-radius:14px;padding:13px 22px;font-weight:900;font-size:16px;cursor:pointer;margin:6px 6px 0 0}
+.btn.alt{background:#1d1036;border:2px solid var(--gd);color:var(--gd)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.note{font-size:13px;color:#c9b8ef}.warn{color:var(--gd);font-weight:700}.bad{color:var(--mg);font-weight:700}
+.stat{display:grid;grid-template-columns:110px 1fr 40px;align-items:center;gap:8px;margin:6px 0}input[type=range]{width:100%;accent-color:var(--mg)}
+.toast{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%) scale(0);background:var(--gd);color:#000;font:900 30px 'Space Grotesk';padding:20px 34px;border-radius:20px;transition:transform .3s;z-index:9;text-align:center}.toast.on{transform:translate(-50%,-50%) scale(1)}
+.fact{display:flex;gap:8px;align-items:flex-start;margin:8px 0;background:#0b0616;padding:10px;border-radius:10px}
+.skins{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.skin{padding:14px;border-radius:14px;cursor:pointer;border:3px solid transparent;font-weight:800;text-align:center}
+.skin[aria-pressed=true]{border-color:var(--gd)}
+.s-neon{background:linear-gradient(135deg,#7D3CFF,#FF3C8E)}.s-gold{background:linear-gradient(135deg,#000,#3d2f00);color:var(--gd)}.s-comic{background:#fff;color:#000}
+.qc li{margin:4px 0}.ok{color:#7dff9a}
+.epk{border-radius:18px;padding:24px;margin-top:12px}.epk.neon{background:linear-gradient(160deg,#2a0f5c,#5c0f3a);}.epk.gold{background:#050505;border:2px solid var(--gd)}.epk.gold h2,.epk.gold h3{color:var(--gd)}.epk.comic{background:#fffaf0;color:#111}.epk.comic h2{color:#7D3CFF}
+.avatar{width:170px;height:210px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:12px;font-weight:700;background:radial-gradient(circle,var(--mg),var(--pu) 70%);color:#fff;float:right;margin:0 0 10px 14px;border:3px solid var(--gd)}
+.avatar .face{font-size:54px}
+.badge{display:inline-block;background:var(--gd);color:#000;font-weight:900;border-radius:8px;padding:4px 10px;font-size:13px;margin:4px 0}
+.panels{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.panels div{border:2px solid currentColor;border-radius:10px;padding:10px;font-size:14px;min-height:70px}
+.tcard{width:260px;border-radius:16px;padding:14px;background:linear-gradient(160deg,var(--pu),var(--mg));border:4px solid var(--gd);color:#fff}
+.tcard .row{display:flex;justify-content:space-between;font-size:13px;font-weight:800}
+.hidden{display:none}
+@media print{body{background:#fff}.noprint,header,.meter{display:none!important}.card{border:0;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="noprint"><div class="logo">PLAI<b>GROUND</b> EPK ARCADE</div>
+<div class="hud"><span class="pill gold" id="coins" aria-label="Coins">Coins: 0</span><span class="pill" id="credits" aria-label="Credits">Credits: 500</span></div></header>
+<div class="meter noprint" aria-label="Progress"><i id="bar"></i></div>
+<p class="note noprint">Tester build. Unlisted. Nothing here goes public until you share it.</p>
+<main id="app"></main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+var S={label:'',name:'',photoOk:false,photo:'',picks:{},own:{},stats:{Swagger:5,Heart:5,Chaos:5,Grind:5,Mystery:5},cyborg:30,links:'',tracks:'',extra:'',facts:[],epk:null,source:'',skin:'neon',coins:0,credits:500,step:0};
+var app=document.getElementById('app');
+var LABELS={'Human artist':'A real person makes and performs the music.','AI assisted':'A real artist, with an AI-styled avatar from your photo.','Full AI persona':'A fully AI-generated artist persona. No photo.'};
+var Q=[
+ {lvl:'Level 1: Basics',items:[
+  ['era','Era / age',['Born in the 80s','Born in the 90s','Born in the 2000s','Born in the 2010s','Ageless']],
+  ['gender','Gender',['She','He','They','Beyond']],
+  ['hair','Hair',['Neon','Flames','Stardust','Braids','Buzz cut','Long and wavy','Chrome']],
+  ['look','Look',['Streetwear','Gown','Armor','Thrift','Futuristic','Cowboy','Gothic']]]},
+ {lvl:'Level 2: Hybrid Mode',hybrid:true,items:[
+  ['planet','Alien home planet',['Bass Planet','Soul Moon','Trap Nebula','Pop Galaxy','Rock Asteroid','Earth only']]]},
+ {lvl:'Level 3: Voice and Sound',items:[
+  ['voice','Voice texture',['Raspy','Airy','Deep','Silky','Gritty','Falsetto','Robotic']],
+  ['genre','Genre',['Pop','Hip hop','R&B','Rock','Country','EDM','Latin','Gospel','Synth pop']],
+  ['vibe','Vibe',['Dreamy','Hype','Dark','Heartfelt','Funny','Rebel','Chill']]]},
+ {lvl:'Level 4: Lifestyle and Backstory',items:[
+  ['hobbies','Hobbies',['Skating','Gaming','Cooking','Fashion','Anime','Dance','Cars'],1],
+  ['fears','Fears (your villain)',['Failure','Being forgotten','Silence','Heights','The dark','Selling out']],
+  ['dreams','Dreams (your quest)',['Headline a festival','Buy mom a house','Start a label','Tour the world','Inspire kids']],
+  ['hometown','Hometown vibe',['Big city block','Beach town','Small farm town','Desert','Outer space']],
+  ['item','Signature item',['Gold chain','Guitar','Headphones','Shades','Mic','Skateboard']]]},
+ {lvl:'Level 5: Powers',stats:true,items:[
+  ['superpower','Superpower',['Hypnotize crowds','Heal hearts','Break the internet','Time travel','Read minds']]]}
+];
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('on');setTimeout(function(){e.classList.remove('on')},1100)}
+function coin(n){S.coins+=n;hud()}
+function hud(){document.getElementById('coins').textContent='Coins: '+S.coins;document.getElementById('credits').textContent='Credits: '+S.credits;document.getElementById('bar').style.width=Math.round(S.step/STEPS.length*100)+'%'}
+function isHybrid(){return S.label!=='Human artist'}
+function val(k){var p=(S.picks[k]||[]).slice();if(S.own[k])p.push(S.own[k]);return p.join(', ')}
+function go(n,msg){S.dir=n<S.step?-1:1;S.step=n;if(msg)toast(msg);hud();STEPS[n]();window.scrollTo(0,0)}
+function chips(k,opts,multi){return '<div class="chips" role="group" aria-label="'+esc(k)+'">'+opts.map(function(o){var on=(S.picks[k]||[]).indexOf(o)>-1;return '<button type="button" class="chip" data-k="'+k+'" data-v="'+esc(o)+'" data-multi="'+(multi?1:0)+'" aria-pressed="'+on+'">'+esc(o)+'</button>'}).join('')+'</div><input type="text" data-own="'+k+'" placeholder="Add your own" aria-label="Add your own '+esc(k)+'" value="'+esc(S.own[k]||'')+'">'}
+app.addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;var k=c.dataset.k,v=c.dataset.v,a=S.picks[k]||[];if(c.dataset.multi==='1'){var i=a.indexOf(v);i>-1?a.splice(i,1):a.push(v)}else a=a[0]===v?[]:[v];S.picks[k]=a;if(a.length)coin(5);c.parentNode.querySelectorAll('.chip').forEach(function(b){b.setAttribute('aria-pressed',a.indexOf(b.dataset.v)>-1)})});
+app.addEventListener('input',function(e){var t=e.target;if(t.dataset.own)S.own[t.dataset.own]=t.value;if(t.dataset.stat){S.stats[t.dataset.stat]=+t.value;t.nextElementSibling.textContent=t.value}if(t.id==='cyborg'){S.cyborg=+t.value;document.getElementById('cyv').textContent=t.value+'%'}});
+
+function stepMode(){
+ app.innerHTML='<section class="card"><div class="lvl">Press Start</div><h1>Pick your artist identity</h1><p>Required. This label shows on your finished EPK and trading card. It is about who the artist is, and it is separate from the AI credits you add on each song.</p>'+
+ '<div class="chips" role="radiogroup" aria-label="Artist identity">'+Object.keys(LABELS).map(function(l){return '<button type="button" class="chip mode" data-mode="'+l+'" aria-pressed="'+(S.label===l)+'">'+l+'</button>'}).join('')+'</div><p class="note" id="mdesc">'+(S.label?esc(LABELS[S.label]):'Pick one to continue.')+'</p>'+
+ '<p class="note warn">Heads up: streaming platforms may badge AI personas. Picking the honest label now keeps your profile safe later.</p>'+
+ '<div class="q"><label for="aname">Artist name</label><input type="text" id="aname" value="'+esc(S.name)+'" placeholder="Your artist name"></div>'+
+ '<div id="photo" class="q '+(S.label==='AI assisted'?'':'hidden')+'"><label for="pfile">Your photo (AI assisted)</label><input type="file" id="pfile" accept="image/*" aria-label="Upload photo"><label><input type="checkbox" id="isme" '+(S.photoOk?'checked':'')+'> This is me</label><p class="note">Only upload a photo of yourself.</p></div>'+
+ '<button class="btn" id="startBtn">Insert coin: Start</button><p class="bad" id="merr"></p></section>';
+ app.querySelectorAll('.mode').forEach(function(b){b.onclick=function(){S.label=b.dataset.mode;stepMode()}});
+ var f=document.getElementById('pfile');if(f)f.onchange=function(){var r=new FileReader();r.onload=function(){S.photo=r.result};if(f.files[0])r.readAsDataURL(f.files[0])};
+ document.getElementById('isme').onchange=function(e){S.photoOk=e.target.checked};
+ document.getElementById('startBtn').onclick=function(){S.name=document.getElementById('aname').value.trim();var m=document.getElementById('merr');
+  if(!S.label){m.textContent='Pick an artist identity first.';return}if(!S.name){m.textContent='Add your artist name.';return}
+  if(S.label==='AI assisted'&&S.photo&&!S.photoOk){m.textContent='Tick "This is me" to use your photo.';return}
+  coin(10);go(1,'Level up!')};
+}
+function qStep(i){return function(){
+ var sec=Q[i];if(sec.hybrid&&!isHybrid()){go(S.step+(S.dir<0?-1:1));return}
+ var h='<section class="card"><div class="lvl">'+sec.lvl+'</div><h1>Build your character</h1>';
+ if(sec.hybrid)h+='<div class="q"><label for="cyborg">Cyborg %</label><input type="range" id="cyborg" min="0" max="100" value="'+S.cyborg+'"> <b id="cyv">'+S.cyborg+'%</b></div>';
+ sec.items.forEach(function(it){h+='<div class="q"><label>'+esc(it[1])+'</label>'+chips(it[0],it[2],it[3])+'</div>'});
+ if(sec.stats)h+='<div class="q"><label>Stat bars</label>'+Object.keys(S.stats).map(function(k){return '<div class="stat"><span>'+k+'</span><input type="range" min="1" max="10" data-stat="'+k+'" aria-label="'+k+'" value="'+S.stats[k]+'"><b>'+S.stats[k]+'</b></div>'}).join('')+'</div>';
+ h+='<button class="btn alt" id="back">Back</button><button class="btn" id="next">Next level</button></section>';
+ app.innerHTML=h;document.getElementById('back').onclick=function(){go(S.step-1)};document.getElementById('next').onclick=function(){coin(20);go(S.step+1,'Level up! +20')};
+}}
+function stepLinks(){
+ app.innerHTML='<section class="card"><div class="lvl">Level 6: Treasure Hunt</div><h1>Drop your own links</h1><p class="note">We only use what you paste here. No scraping.</p>'+
+ '<div class="q"><label for="links">Links and handles (one per line)</label><textarea id="links" placeholder="https://instagram.com/you&#10;@yourtiktok">'+esc(S.links)+'</textarea></div>'+
+ '<div class="q"><label for="tracks">Tracks (title or link, one per line)</label><textarea id="tracks">'+esc(S.tracks)+'</textarea></div>'+
+ '<div class="q"><label for="extra">Add your own (press, bio notes, anything)</label><textarea id="extra">'+esc(S.extra)+'</textarea></div>'+
+ '<button class="btn alt" id="back">Back</button><button class="btn" id="next">Write my bio (100 credits)</button><p id="st" class="note"></p></section>';
+ document.getElementById('back').onclick=function(){go(S.step-1)};
+ document.getElementById('next').onclick=function(){S.links=val2('links');S.tracks=val2('tracks');S.extra=val2('extra');write(this)};
+}
+function val2(id){return document.getElementById(id).value.trim()}
+function payload(){var p={mode:S.label,name:S.name,cyborg:isHybrid()?S.cyborg+'%':'',links:S.links,tracks:S.tracks,extra:S.extra,stats:S.stats};Q.forEach(function(s){s.items.forEach(function(it){p[it[0]]=val(it[0])})});if(!isHybrid()){p.planet='';}return p}
+function write(btn){btn.disabled=true;var st=document.getElementById('st');st.textContent='The writer is cooking...';S.credits-=100;hud();
+ fetch('/api/song-helper?action=epk-write',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())}).then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d}})}).then(function(res){
+  if(!res.ok||!res.d.ok){S.credits+=100;hud();btn.disabled=false;st.innerHTML='<span class="bad">'+esc((res.d&&res.d.error)||'That did not work.')+'</span> Credits refunded automatically.';return}
+  if(res.d.refund){S.credits+=100;hud();toast('Credits refunded')}
+  S.epk=res.d.epk;S.facts=res.d.facts;S.source=res.d.source;S.notice=res.d.notice;coin(30);go(S.step+1,'Bio unlocked!')
+ }).catch(function(){S.credits+=100;hud();btn.disabled=false;st.innerHTML='<span class="bad">Network hiccup.</span> Credits refunded automatically.'})}
+function stepBio(){var e=S.epk;
+ var h='<section class="card"><div class="lvl">Level 7: Bio Builder</div><h1>Check your facts</h1>'+(S.notice?'<p class="warn">'+esc(S.notice)+'</p>':'<p class="note">Written by AI from your answers only.</p>')+
+ '<p>Confirm every fact. Each one is yours, so tick it only if it is true.</p>'+S.facts.map(function(f,i){return '<label class="fact"><input type="checkbox" class="fc" aria-label="Confirm fact '+(i+1)+'"> <span>'+esc(f)+'</span></label>'}).join('')+
+ '<h3>One-liner</h3><textarea id="e_oneLiner">'+esc(e.oneLiner)+'</textarea><h3>Short bio</h3><textarea id="e_shortBio">'+esc(e.shortBio)+'</textarea><h3>Long bio</h3><textarea id="e_longBio" style="min-height:140px">'+esc(e.longBio)+'</textarea><h3>For fans of</h3><textarea id="e_forFansOf">'+esc(e.forFansOf)+'</textarea>'+
+ '<h3>Origin story (4 panels)</h3>'+e.panels.map(function(p,i){return '<textarea id="e_p'+i+'">'+esc(p)+'</textarea>'}).join('')+
+ '<button class="btn alt" id="back">Back</button><button class="btn" id="next" disabled>All facts confirmed</button></section>';
+ app.innerHTML=h;var n=document.getElementById('next');
+ function chk(){n.disabled=[].some.call(app.querySelectorAll('.fc'),function(c){return !c.checked})}chk();
+ app.querySelectorAll('.fc').forEach(function(c){c.onchange=function(){if(c.checked)coin(2);chk()}});
+ document.getElementById('back').onclick=function(){go(S.step-1)};
+ n.onclick=function(){['oneLiner','shortBio','longBio','forFansOf'].forEach(function(k){e[k]=val2('e_'+k)});e.panels=e.panels.map(function(_,i){return val2('e_p'+i)});coin(20);go(S.step+1,'Dress up time!')};
+}
+function stepSkin(){
+ app.innerHTML='<section class="card"><div class="lvl">Level 8: Dress Up</div><h1>Pick a skin</h1><div class="skins">'+
+ [['neon','Neon Arcade'],['gold','Gold Cabinet'],['comic','Comic Book']].map(function(s){return '<button type="button" class="skin s-'+s[0]+'" data-skin="'+s[0]+'" aria-pressed="'+(S.skin===s[0])+'">'+s[1]+'</button>'}).join('')+'</div>'+
+ '<button class="btn alt" id="back">Back</button><button class="btn" id="next">Boss level</button></section>';
+ app.querySelectorAll('.skin').forEach(function(b){b.onclick=function(){S.skin=b.dataset.skin;coin(5);stepSkin()}});
+ document.getElementById('back').onclick=function(){go(S.step-1)};document.getElementById('next').onclick=function(){go(S.step+1,'Boss level!')};
+}
+var CLAIM=/(#\s?1\b|number one|no\.? ?1\b|million(s)? (of )?(streams|plays|views|fans|followers)|billion|platinum|gold record|grammy|chart[- ]topping|top of the charts|viral hit|award[- ]winning|sold[- ]out)/i;
+function qc(){var e=S.epk,r=[];
+ function t(ok,msg){r.push([ok,msg])}
+ t(!!S.label,'Artist identity label is set ('+(S.label||'missing')+')');
+ ['oneLiner','shortBio','longBio','forFansOf'].forEach(function(k){t(!!(e[k]||'').trim(),k+' is filled in')});
+ t(e.panels.every(function(p){return p.trim()}),'All 4 story panels are filled in');
+ var all=[e.oneLiner,e.shortBio,e.longBio,e.forFansOf].concat(e.panels).join(' ');
+ t(!CLAIM.test(all),'No unverifiable claims (like #1 or millions of streams)');
+ t(!/[\u2014\u2013]/.test(all),'No long dashes');
+ var bad=S.links.split(/\n+/).map(function(s){return s.trim()}).filter(Boolean).filter(function(l){return !(/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(l)||/^@[\w.]{2,30}$/.test(l))});
+ t(!bad.length,bad.length?'Fix these links: '+bad.join(', '):'Links and handles look valid');
+ return r}
+function stepQC(){var r=qc(),pass=r.every(function(x){return x[0]});
+ app.innerHTML='<section class="card"><div class="lvl">Level 9: Boss Level QC</div><h1>'+(pass?'Boss defeated!':'The boss blocked you')+'</h1><ul class="qc">'+r.map(function(x){return '<li class="'+(x[0]?'ok':'bad')+'">'+(x[0]?'PASS':'FIX')+': '+esc(x[1])+'</li>'}).join('')+'</ul>'+
+ '<p class="note">PLAIGROUND QC: a person also reviews flagged EPKs before anything goes public.</p><button class="btn alt" id="back">Back to fix</button><button class="btn" id="next" '+(pass?'':'disabled')+'>Looks good</button></section>';
+ document.getElementById('back').onclick=function(){go(pass?S.step-1:7)};document.getElementById('next').onclick=function(){coin(50);go(S.step+1,'PRIZE TICKET!')};
+}
+function avatar(){var face={She:'👩‍🎤',He:'👨‍🎤',They:'🧑‍🎤',Beyond:'👽'}[(S.picks.gender||[])[0]]||'🎤';
+ return '<div class="avatar" aria-label="Avatar card">'+(S.photo&&S.label==='AI assisted'?'<img src="'+S.photo+'" alt="Artist photo" style="width:100%;height:110px;object-fit:cover;border-radius:10px">':'<div class="face">'+face+'</div>')+
+ '<div>'+esc([val('hair'),val('look'),isHybrid()?S.cyborg+'% cyborg':'',val('planet')].filter(Boolean).join(' / '))+'</div><div style="opacity:.8;margin-top:4px">Avatar preview card. AI avatar art is coming soon.</div></div>'}
+function stepPrize(){var e=S.epk,n=esc(S.name);
+ var links=S.links.split(/\n+/).filter(Boolean).map(function(l){var u=l.trim();var href=u[0]==='@'?'':u;return '<li>'+(href?'<a href="'+esc(href)+'" style="color:inherit">'+esc(u)+'</a>':esc(u))+'</li>'}).join('');
+ var tracks=S.tracks.split(/\n+/).filter(Boolean).map(function(t){return '<li>'+esc(t)+'</li>'}).join('');
+ var caps=e.captions.concat(['Bio for IG / TikTok / X: '+e.socialBio]);
+ app.innerHTML='<section class="card"><div class="lvl noprint">Level 10: Prize Ticket</div><h1 class="noprint">Your EPK is ready</h1>'+
+ '<article class="epk '+S.skin+'" id="epk">'+avatar()+'<h2>'+n+'</h2><span class="badge" id="idlabel">'+esc(S.label)+'</span><p class="note" style="color:inherit;opacity:.8">Artist identity label. Separate from per-song AI credits.'+(S.label!=='Human artist'?' Streaming platforms may badge AI personas.':'')+'</p>'+
+ '<p><b>'+esc(e.oneLiner)+'</b></p><p>'+esc(e.shortBio)+'</p>'+e.longBio.split(/\n+/).map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'<p><i>'+esc(e.forFansOf)+'</i></p>'+
+ '<h3>Origin story</h3><div class="panels">'+e.panels.map(function(p){return '<div>'+esc(p)+'</div>'}).join('')+'</div>'+
+ (tracks?'<h3>Tracks</h3><ul>'+tracks+'</ul>':'')+(links?'<h3>Links</h3><ul>'+links+'</ul>':'')+'</article>'+
+ '<button class="btn noprint" id="pdf">Print / Save as PDF</button></section>'+
+ '<section class="card noprint"><h2>Social package</h2>'+caps.map(function(c,i){return '<div class="fact"><span>'+esc(c)+'</span><button class="chip copy" data-i="'+i+'">Copy</button></div>'}).join('')+'</section>'+
+ '<section class="card noprint"><h2>Trading card</h2><div class="tcard" id="tcard"><div class="row"><span>'+n+'</span><span>LVL '+Math.max(1,Math.floor(S.coins/50))+'</span></div><div style="text-align:center;font-size:60px">'+avatar().match(/class="face">(.*?)<\/div>/)?.[1]+'</div>'+
+ '<div class="badge">'+esc(S.label)+'</div><div style="font-size:12px;margin:4px 0">'+esc(val('genre'))+' / '+esc(val('voice'))+'</div>'+Object.keys(S.stats).map(function(k){return '<div class="row"><span>'+k+'</span><span>'+S.stats[k]+'/10</span></div>'}).join('')+'<div style="font-size:12px;margin-top:6px">Power: '+esc(val('superpower')||'Mystery')+'</div></div></section>'+
+ '<section class="card noprint"><h2>Did you like it?</h2><button class="btn" id="thumb" aria-label="Thumbs up">👍 Thumbs up</button><span id="thx" class="note"></span>'+
+ '<p class="warn">Failed or blank generations refund your credits automatically. You do not need to dispute those.</p>'+
+ '<button class="btn alt" id="dispute">Dispute</button><div id="dform" class="hidden"><input type="text" id="dname" placeholder="Your name" aria-label="Your name"><input type="text" id="demail" placeholder="Your email" aria-label="Your email"><textarea id="dwhy" placeholder="What went wrong?" aria-label="What went wrong"></textarea><input type="text" id="dhp" name="company_website" class="hidden" tabindex="-1" autocomplete="off"><button class="btn" id="dsend">Send dispute</button><p id="dst" class="note"></p></div>'+
+ '<button class="btn alt" id="restart">Plai again</button></section>';
+ document.getElementById('pdf').onclick=function(){window.print()};
+ app.querySelectorAll('.copy').forEach(function(b){b.onclick=function(){try{navigator.clipboard.writeText(caps[b.dataset.i])}catch(e){}b.textContent='Copied'}});
+ document.getElementById('thumb').onclick=function(){document.getElementById('thx').textContent=' Thanks! +10 coins';coin(10)};
+ document.getElementById('dispute').onclick=function(){document.getElementById('dform').classList.remove('hidden')};
+ document.getElementById('restart').onclick=function(){location.reload()};
+ document.getElementById('dsend').onclick=function(){var st=document.getElementById('dst');var why=val2('dwhy');if(why.length<2){st.textContent='Tell us what went wrong.';return}st.textContent='Sending...';
+  fetch('/api/apply',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({name:val2('dname')||S.name,email:val2('demail'),phone:'',package:'EPK dispute',help:'Artist: '+S.name+' | Label: '+S.label+' | Source: '+S.source+' | Credits left: '+S.credits+' | Why: '+why,company_website:val2('dhp')})})
+  .then(function(r){return r.json().catch(function(){return{}}).then(function(d){st.textContent=r.ok?'Ticket sent. We will look at it soon.':((d&&d.error)||'Could not send. Try again.')})}).catch(function(){st.textContent='Could not send. Try again.'})};
+}
+var STEPS=[stepMode].concat(Q.map(function(_,i){return qStep(i)})).concat([stepLinks,stepBio,stepSkin,stepQC,stepPrize]);
+go(0);
+})();
+</script>
+</body>
+</html>

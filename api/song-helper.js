@@ -28,6 +28,7 @@ const reddit = require('../lib/reddit-slang');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
 const arcadeServer = require('../lib/arcade-server');
+const epkBuilder = require('../lib/epk-builder');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -1026,7 +1027,40 @@ async function handleArcade(req, res, action, givenBody) {
   }
 }
 
+const epkLimiter = core.createLimiter({ max: 20, windowMs: 60 * 60 * 1000 });
+
+// EPK builder tester (/epk-builder). Writes bios only from the artist's own answers.
+async function handleEpk(req, res, givenBody) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { ok: false, error: 'Use POST.' });
+    return;
+  }
+  var body = givenBody || await readBody(req) || {};
+  if (body.__tooBig || body.__bad) {
+    sendJson(res, 400, { ok: false, error: 'Could not read that.' });
+    return;
+  }
+  if (honeypotFilled(body)) {
+    sendJson(res, 400, { ok: false, error: 'Could not build that.' });
+    return;
+  }
+  if (!epkLimiter.allow(clientIp(req))) {
+    sendJson(res, 429, { ok: false, error: 'You hit the hourly EPK limit. Come back soon.' });
+    return;
+  }
+  try {
+    var out = await epkBuilder.write(body, keyFromEnv() ? xai.chat : null);
+    sendJson(res, 200, out);
+  } catch (err) {
+    sendJson(res, 502, { ok: false, refund: true, error: 'The bio writer did not answer. Your credits come back automatically. Try again.' });
+  }
+}
+
 async function handleAction(req, res, action, givenBody) {
+  if (action === 'epk-write') {
+    await handleEpk(req, res, givenBody);
+    return;
+  }
   if (action === 'v3-page') {
     handleV3Page(req, res);
     return;

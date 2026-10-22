@@ -298,6 +298,7 @@
     { "source": "/charts", "destination": "/charts.html" },
     { "source": "/ar", "destination": "/ar.html" },
     { "source": "/epk", "destination": "/epk.html" },
+    { "source": "/epk-builder", "destination": "/epk-builder.html" },
     { "source": "/already-released", "destination": "/already-released.html" },
     { "source": "/song-helper", "destination": "/api/song-helper?action=arcade-page" },
     { "source": "/song-helper/", "destination": "/api/song-helper?action=arcade-page" },
@@ -382,6 +383,10 @@
     { "source": "/blog/youtube-music-labels", "destination": "/blog-youtube-music-labels.html" }
   ],
   "headers": [
+    {
+      "source": "/epk-builder",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
     {
       "source": "/review.html",
       "headers": [
