@@ -42,6 +42,29 @@ textarea{min-height:70px}
 .tcard{width:260px;border-radius:16px;padding:14px;background:linear-gradient(160deg,var(--pu),var(--mg));border:4px solid var(--gd);color:#fff}
 .tcard .row{display:flex;justify-content:space-between;font-size:13px;font-weight:800}
 .hidden{display:none}
+
+.epk{--bg:#2a0f5c;--ink:#fff;--ac:#F5C542;--ac2:#FF3C8E;background:var(--bg);color:var(--ink);font-family:inherit}
+.epk h2,.epk h3{color:var(--ac)}.epk .badge{background:var(--ac);color:var(--bg)}
+.epk.t-space{--bg:#05040f;--ink:#e6e8ff;--ac:#2FE6FF;--ac2:#b37dff;background:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 40% 80%,#cfe,transparent),radial-gradient(900px 400px at 80% -10%,rgba(125,60,255,.45),transparent),var(--bg);font-family:'Trebuchet MS',system-ui,sans-serif;letter-spacing:.02em}
+.epk.t-space h2{text-transform:uppercase;letter-spacing:.18em;text-shadow:0 0 18px var(--ac)}
+.epk.t-arcade{--bg:#fff3fb;--ink:#1a1033;--ac:#FF3C8E;--ac2:#7D3CFF;background:repeating-linear-gradient(45deg,#fff3fb 0 22px,#ffe6f5 22px 44px);border:4px solid #1a1033;box-shadow:8px 8px 0 #7D3CFF}
+.epk.t-arcade h2{font-size:34px;color:#7D3CFF;text-shadow:3px 3px 0 #F5C542}
+.epk.t-press{--bg:#ffffff;--ink:#111;--ac:#111;--ac2:#888;font-family:Georgia,'Times New Roman',serif;border:1px solid #ddd}
+.epk.t-press h2{font-size:30px;font-weight:400;border-bottom:1px solid #111;padding-bottom:6px}.epk.t-press .lchip{background:#fff;color:#111;border-color:#111}
+.epk.t-street{--bg:#0b0b0f;--ink:#fff;--ac:#F5C542;--ac2:#FF3C8E;background:linear-gradient(180deg,#141018,#0b0b0f);font-family:Impact,'Arial Black',sans-serif}
+.epk.t-street h2{font-size:40px;text-transform:uppercase}.epk.t-street p{font-family:system-ui,sans-serif}
+.epk.t-velvet{--bg:#1a0b14;--ink:#fbeee6;--ac:#d98a6a;--ac2:#7D3CFF;background:linear-gradient(160deg,#2a0f22,#1a0b14);font-family:Georgia,serif}
+.epk.t-comic{--bg:#fffaf0;--ink:#111;--ac:#7D3CFF;--ac2:#FF3C8E;border:3px solid #111}
+.epk.t-gold{--bg:#050505;--ink:#fff;--ac:#F5C542;--ac2:#F5C542;border:2px solid var(--ac)}
+.lchips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0}.lchip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;border:2px solid var(--ac,#F5C542);background:color-mix(in srgb,var(--ac,#F5C542) 18%,transparent);color:inherit;text-decoration:none;font-weight:700;font-size:14px}
+.lchip b{font-size:11px;opacity:.75;text-transform:uppercase}
+.esec{position:relative;border-radius:10px}.editing .esec{outline:2px dashed var(--ac);outline-offset:4px;margin:14px 0;padding-top:30px}
+.etools{display:none;position:absolute;top:2px;right:2px;gap:4px}.editing .etools{display:flex}.etools button,.etools label{background:#000;color:#F5C542;border:1px solid #F5C542;border-radius:6px;font-size:12px;padding:3px 7px;cursor:pointer}
+.esec.off{opacity:.35}.esec.off .ebody{display:none}.editing [contenteditable=true]{background:rgba(245,197,66,.08);outline:1px solid rgba(245,197,66,.4)}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.tcardpick{border-radius:14px;padding:14px;min-height:90px;cursor:pointer;border:3px solid #3a2466;font-weight:800;text-align:left}.tcardpick small{display:block;font-weight:400;font-size:12px;margin-top:4px}
+.tcardpick[aria-pressed=true]{border-color:var(--gd);box-shadow:0 0 0 3px #000,0 0 16px var(--gd)}.rec{color:#000;background:var(--gd);border-radius:99px;padding:2px 8px;font-size:11px;margin-left:6px}
+.cpick{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}.cpick label{display:flex;gap:6px;align-items:center;font-size:14px}
+@media print{.etools{display:none!important}.esec.off{display:none}}
 @media print{body{background:#fff}.noprint,header,.meter{display:none!important}.card{border:0;box-shadow:none}}
 </style>
 </head>
@@ -54,9 +77,10 @@ textarea{min-height:70px}
 <main id="app"></main>
 </div>
 <div class="toast" id="toast"></div>
+<script src="/lib/genre-presence.js"></script>
 <script>
 (function(){
-var S={label:'',name:'',photoOk:false,photo:'',picks:{},own:{},stats:{Swagger:5,Heart:5,Chaos:5,Grind:5,Mystery:5},cyborg:30,links:'',tracks:'',extra:'',facts:[],epk:null,source:'',skin:'neon',coins:0,credits:500,step:0};
+var S={label:'',name:'',photoOk:false,photo:'',picks:{},own:{},stats:{Swagger:5,Heart:5,Chaos:5,Grind:5,Mystery:5},cyborg:30,links:'',tracks:'',extra:'',facts:[],epk:null,source:'',skin:'',colors:{},order:null,hidden:{},edit:{},editMode:false,coins:0,credits:500,step:0};
 var app=document.getElementById('app');
 var LABELS={'Human artist':'A real person makes and performs the music.','AI assisted':'A real artist, with an AI-styled avatar from your photo.','Full AI persona':'A fully AI-generated artist persona. No photo.'};
 var Q=[
@@ -144,12 +168,47 @@ function stepBio(){var e=S.epk;
  document.getElementById('back').onclick=function(){go(S.step-1)};
  n.onclick=function(){['oneLiner','shortBio','longBio','forFansOf'].forEach(function(k){e[k]=val2('e_'+k)});e.panels=e.panels.map(function(_,i){return val2('e_p'+i)});coin(20);go(S.step+1,'Dress up time!')};
 }
-function stepSkin(){
- app.innerHTML='<section class="card"><div class="lvl">Level 8: Dress Up</div><h1>Pick a skin</h1><div class="skins">'+
- [['neon','Neon Arcade'],['gold','Gold Cabinet'],['comic','Comic Book']].map(function(s){return '<button type="button" class="skin s-'+s[0]+'" data-skin="'+s[0]+'" aria-pressed="'+(S.skin===s[0])+'">'+s[1]+'</button>'}).join('')+'</div>'+
+var THEMES=[['space','Deep Space Saga','Dark sci-fi, starfield, glowing type'],['arcade','Bright Arcade','Loud color, cartoon pop, bold shadows'],['press','Minimal Press','White, serif, clean for bookers and press'],['street','Street Poster','Black, gold, heavy poster type'],['velvet','Velvet Night','Warm dark tones, soft and intimate'],['comic','Comic Book','Paper white, ink lines, panels'],['gold','Gold Cabinet','Black and gold, classic cabinet']];
+var SECS={hero:'Avatar and name',oneLiner:'One-liner',bio:'Bio',story:'Origin story',tracks:'Tracks',links:'Links',forFansOf:'For fans of',platforms:'Where to post first',hashtags:'Hashtags'};
+function preset(){return window.GenrePresence?GenrePresence.forGenre(val('genre')):null}
+function applyPreset(force){var p=preset();if(!p)return;if(force||!S.skin)S.skin=p.theme;if(force||!S.order)S.order=p.order.concat(['platforms','hashtags']);if(force)S.colors={}}
+function stepSkin(){applyPreset(false);if(!S.skin)S.skin='arcade';var p=preset();
+ app.innerHTML='<section class="card"><div class="lvl">Level 8: Dress Up</div><h1>Pick your theme</h1>'+
+ (p?'<p class="note">Tuned for <b>'+esc(p.genre)+'</b>: '+esc(p.basis)+' Post first on '+esc(p.platforms.slice(0,3).join(', '))+'. Photo idea: '+esc(p.photo)+'</p><button class="btn alt" id="reset">Use '+esc(p.genre)+' defaults</button>':'<p class="note">No research preset for this genre yet, so pick the theme that fits you best.</p>')+
+ '<div class="tgrid" role="group" aria-label="Themes">'+THEMES.map(function(t){return '<button type="button" class="tcardpick epk t-'+t[0]+'" data-skin="'+t[0]+'" aria-pressed="'+(S.skin===t[0])+'">'+t[1]+(p&&p.theme===t[0]?'<span class="rec">Best for '+esc(p.genre)+'</span>':'')+'<small>'+t[2]+'</small></button>'}).join('')+'</div>'+
+ '<h3>Colors</h3><div class="cpick">'+[['bg','Background'],['ink','Text'],['ac','Accent']].map(function(c){return '<label>'+c[1]+' <input type="color" data-c="'+c[0]+'" value="'+(S.colors[c[0]]||(p&&{bg:p.palette.bg,ink:p.palette.ink,ac:p.palette.accent}[c[0]])||'#7D3CFF')+'"></label>'}).join('')+'<button type="button" class="chip" id="nocol">Theme colors</button></div>'+
+ '<p class="note">You can edit every section, reorder, hide and swap images on the last level.</p>'+
  '<button class="btn alt" id="back">Back</button><button class="btn" id="next">Boss level</button></section>';
- app.querySelectorAll('.skin').forEach(function(b){b.onclick=function(){S.skin=b.dataset.skin;coin(5);stepSkin()}});
+ app.querySelectorAll('.tcardpick').forEach(function(b){b.onclick=function(){S.skin=b.dataset.skin;coin(5);stepSkin()}});
+ app.querySelectorAll('[data-c]').forEach(function(i){i.oninput=function(){S.colors[i.dataset.c]=i.value}});
+ document.getElementById('nocol').onclick=function(){S.colors={};stepSkin()};
+ var r=document.getElementById('reset');if(r)r.onclick=function(){applyPreset(true);stepSkin();toast('Genre defaults on')};
  document.getElementById('back').onclick=function(){go(S.step-1)};document.getElementById('next').onclick=function(){go(S.step+1,'Boss level!')};
+}
+function platformOf(u){var l=u.toLowerCase();var m=[['tiktok','TikTok'],['instagram','Instagram'],['youtu','YouTube'],['spotify','Spotify'],['apple','Apple Music'],['soundcloud','SoundCloud'],['bandcamp','Bandcamp'],['x.com','X'],['twitter','X'],['facebook','Facebook'],['discord','Discord'],['wannaplai','PLAIGROUND']];for(var i=0;i<m.length;i++)if(l.indexOf(m[i][0])>-1)return m[i][1];return u[0]==='@'?'Handle':'Link'}
+function linkChips(){var a=S.links.split(/[\n,]+/).map(function(x){return x.trim()}).filter(Boolean);if(!a.length)return '';return '<ul class="lchips">'+a.map(function(u){var href=/^https?:\/\//i.test(u)?u:(/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)?'https://'+u:'');return '<li>'+(href?'<a class="lchip" href="'+esc(href)+'" target="_blank" rel="noopener"><b>'+esc(platformOf(u))+'</b>'+esc(u.replace(/^https?:\/\/(www\.)?/i,''))+'</a>':'<span class="lchip"><b>'+esc(platformOf(u))+'</b>'+esc(u)+'</span>')+'</li>'}).join('')+'</ul>'}
+function txt(key,def){return S.edit[key]!=null?S.edit[key]:def}
+function ed(key,def,tag){return '<'+(tag||'p')+' data-edit="'+key+'"'+(S.editMode?' contenteditable="true"':'')+'>'+esc(txt(key,def))+'</'+(tag||'p')+'>'}
+function secHtml(k){var e=S.epk,n=esc(S.name),p=preset();var body='';
+ if(k==='hero')body=avatar()+ed('name',S.name,'h2')+'<span class="badge" id="idlabel">'+esc(S.label)+'</span><p class="note" style="color:inherit;opacity:.8">Artist identity label. Separate from per-song AI credits.'+(S.label!=='Human artist'?' Streaming platforms may badge AI personas.':'')+'</p>';
+ else if(k==='oneLiner')body='<b>'+ed('oneLiner',e.oneLiner)+'</b>';
+ else if(k==='bio')body=ed('shortBio',e.shortBio)+ed('longBio',e.longBio);
+ else if(k==='story')body='<h3>Origin story</h3><div class="panels">'+e.panels.map(function(x,i){return ed('panel'+i,x,'div')}).join('')+'</div>';
+ else if(k==='tracks'){var t=S.tracks.split(/\n+/).filter(Boolean);if(!t.length)return '';body='<h3>Tracks</h3><ul class="lchips">'+t.map(function(x){return '<li><span class="lchip">'+esc(x)+'</span></li>'}).join('')+'</ul>'}
+ else if(k==='links'){var lc=linkChips();if(!lc)return '';body='<h3>Links</h3>'+lc}
+ else if(k==='forFansOf')body='<i>'+ed('forFansOf',e.forFansOf)+'</i>';
+ else if(k==='platforms'){if(!p)return '';body='<h3>Where to post first</h3><ul class="lchips">'+p.platforms.map(function(x,i){return '<li><span class="lchip"><b>'+(i+1)+'</b>'+esc(x)+'</span></li>'}).join('')+'</ul>'}
+ else if(k==='hashtags'){if(!p)return '';body=ed('hashtags',p.hashtags.join(' '))}
+ var tools='<div class="etools noprint"><button type="button" data-mv="-1" data-k="'+k+'" aria-label="Move '+SECS[k]+' up">Up</button><button type="button" data-mv="1" data-k="'+k+'" aria-label="Move '+SECS[k]+' down">Down</button><button type="button" data-hide="'+k+'">'+(S.hidden[k]?'Show':'Hide')+'</button>'+(k==='hero'?'<label>Swap image<input type="file" accept="image/*" data-img hidden></label>':'')+'</div>';
+ return '<div class="esec'+(S.hidden[k]?' off':'')+'" data-sec="'+k+'">'+tools+'<div class="ebody">'+body+'</div></div>'}
+function epkHtml(){if(!S.order)S.order=['hero','oneLiner','bio','story','tracks','links','forFansOf','platforms','hashtags'];Object.keys(SECS).forEach(function(k){if(S.order.indexOf(k)<0)S.order.push(k)});
+ var st=Object.keys(S.colors).map(function(c){return '--'+c+':'+S.colors[c]}).join(';');
+ return '<article class="epk t-'+(S.skin||'arcade')+(S.editMode?' editing':'')+'" id="epk" style="'+st+'">'+S.order.map(secHtml).join('')+'</article>'}
+function wireEdit(){var ep=document.getElementById('epk');
+ ep.querySelectorAll('[data-edit]').forEach(function(x){x.onblur=function(){S.edit[x.dataset.edit]=x.innerText.trim()}});
+ ep.querySelectorAll('[data-mv]').forEach(function(b){b.onclick=function(){var i=S.order.indexOf(b.dataset.k),j=i+Number(b.dataset.mv);if(j<0||j>=S.order.length)return;var t=S.order[i];S.order[i]=S.order[j];S.order[j]=t;stepPrize()}});
+ ep.querySelectorAll('[data-hide]').forEach(function(b){b.onclick=function(){var k=b.dataset.hide;S.hidden[k]=!S.hidden[k];stepPrize()}});
+ var im=ep.querySelector('[data-img]');if(im)im.onchange=function(){var r=new FileReader();r.onload=function(){S.avImg=r.result;S.avBlend=false;stepPrize()};if(im.files[0])r.readAsDataURL(im.files[0])};
 }
 var CLAIM=/(#\s?1\b|number one|no\.? ?1\b|million(s)? (of )?(streams|plays|views|fans|followers)|billion|platinum|gold record|grammy|chart[- ]topping|top of the charts|viral hit|award[- ]winning|sold[- ]out)/i;
 function qc(){var e=S.epk,r=[];
@@ -207,12 +266,9 @@ function makeAvatar(btn){var COST=60,st=document.getElementById('avst');if(S.cre
 function stepPrize(){var e=S.epk,n=esc(S.name);
  var links=S.links.split(/\n+/).filter(Boolean).map(function(l){var u=l.trim();var href=u[0]==='@'?'':u;return '<li>'+(href?'<a href="'+esc(href)+'" style="color:inherit">'+esc(u)+'</a>':esc(u))+'</li>'}).join('');
  var tracks=S.tracks.split(/\n+/).filter(Boolean).map(function(t){return '<li>'+esc(t)+'</li>'}).join('');
- var caps=e.captions.concat(['Bio for IG / TikTok / X: '+e.socialBio]);
+ var pr=preset();var caps=e.captions.concat(['Bio for IG / TikTok / X: '+e.socialBio]).concat(pr?['Hashtags for '+pr.genre+': '+txt('hashtags',pr.hashtags.join(' ')),'Post first on: '+pr.platforms.join(', ')]:[]);
  app.innerHTML='<section class="card"><div class="lvl noprint">Level 10: Prize Ticket</div><h1 class="noprint">Your EPK is ready</h1>'+
- '<article class="epk '+S.skin+'" id="epk">'+avatar()+'<h2>'+n+'</h2><span class="badge" id="idlabel">'+esc(S.label)+'</span><p class="note" style="color:inherit;opacity:.8">Artist identity label. Separate from per-song AI credits.'+(S.label!=='Human artist'?' Streaming platforms may badge AI personas.':'')+'</p>'+
- '<p><b>'+esc(e.oneLiner)+'</b></p><p>'+esc(e.shortBio)+'</p>'+e.longBio.split(/\n+/).map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'<p><i>'+esc(e.forFansOf)+'</i></p>'+
- '<h3>Origin story</h3><div class="panels">'+e.panels.map(function(p){return '<div>'+esc(p)+'</div>'}).join('')+'</div>'+
- (tracks?'<h3>Tracks</h3><ul>'+tracks+'</ul>':'')+(links?'<h3>Links</h3><ul>'+links+'</ul>':'')+'</article>'+
+ '<div class="noprint" style="margin:8px 0"><button class="btn alt" id="edmode" aria-pressed="'+S.editMode+'">'+(S.editMode?'Done editing':'Edit EPK')+'</button> <button class="btn alt" id="retheme">Change theme</button></div>'+epkHtml()+
  '<button class="btn noprint" id="pdf">Print / Save as PDF</button>'+(S.avImg?'':'<button class="btn alt noprint" id="mkav">Make my AI avatar (60 credits)</button>')+'<p class="note noprint" id="avst">Failed or blank avatars refund your credits automatically.</p></section>'+
  '<section class="card noprint"><h2>Social package</h2>'+(S.avImg?'<div style="max-width:200px">'+avatar(true)+'<a class="btn alt" download="'+n+'-avatar.jpg" href="'+esc(S.avImg)+'">Download avatar</a></div>':'')+caps.map(function(c,i){return '<div class="fact"><span>'+esc(c)+'</span><button class="chip copy" data-i="'+i+'">Copy</button></div>'}).join('')+'</section>'+
  '<section class="card noprint"><h2>Trading card</h2><div class="tcard" id="tcard"><div class="row"><span>'+n+'</span><span>LVL '+Math.max(1,Math.floor(S.coins/50))+'</span></div>'+avatar(true)+
@@ -221,7 +277,7 @@ function stepPrize(){var e=S.epk,n=esc(S.name);
  '<p class="warn">Failed or blank generations refund your credits automatically. You do not need to dispute those.</p>'+
  '<button class="btn alt" id="dispute">Dispute</button><div id="dform" class="hidden"><input type="text" id="dname" placeholder="Your name" aria-label="Your name"><input type="text" id="demail" placeholder="Your email" aria-label="Your email"><textarea id="dwhy" placeholder="What went wrong?" aria-label="What went wrong"></textarea><input type="text" id="dhp" name="company_website" class="hidden" tabindex="-1" autocomplete="off"><button class="btn" id="dsend">Send dispute</button><button class="btn alt" id="dcancel" type="button">Cancel</button><p id="dst" class="note"></p></div>'+
  '<button class="btn alt" id="restart">Plai again</button></section>';
- document.getElementById('pdf').onclick=function(){window.print()};var mk=document.getElementById('mkav');if(mk)mk.onclick=function(){makeAvatar(mk)};
+ document.getElementById('pdf').onclick=function(){window.print()};wireEdit();document.getElementById('edmode').onclick=function(){if(S.editMode)document.querySelectorAll('#epk [data-edit]').forEach(function(x){S.edit[x.dataset.edit]=x.innerText.trim()});S.editMode=!S.editMode;stepPrize()};document.getElementById('retheme').onclick=function(){go(STEPS.indexOf(stepSkin))};var mk=document.getElementById('mkav');if(mk)mk.onclick=function(){makeAvatar(mk)};
  app.querySelectorAll('.copy').forEach(function(b){b.onclick=function(){try{navigator.clipboard.writeText(caps[b.dataset.i])}catch(e){}b.textContent='Copied'}});
  document.getElementById('thumb').onclick=function(){document.getElementById('thx').textContent=' Thanks! +10 coins';coin(10)};
  document.getElementById('dispute').onclick=function(){var f=document.getElementById('dform');var open=f.classList.toggle('hidden')===false;this.textContent=open?'Close dispute':'Dispute';this.setAttribute('aria-expanded',open)};document.getElementById('dcancel').onclick=function(){document.getElementById('dform').classList.add('hidden');var d=document.getElementById('dispute');d.textContent='Dispute';d.setAttribute('aria-expanded','false')};
@@ -231,6 +287,7 @@ function stepPrize(){var e=S.epk,n=esc(S.name);
   .then(function(r){return r.json().catch(function(){return{}}).then(function(d){st.textContent=r.ok?'Ticket sent. We will look at it soon.':((d&&d.error)||'Could not send. Try again.')})}).catch(function(){st.textContent='Could not send. Try again.'})};
 }
 var STEPS=[stepMode].concat(Q.map(function(_,i){return qStep(i)})).concat([stepLinks,stepBio,stepSkin,stepQC,stepPrize]);
+if(/[?&]epktest=1/.test(location.search))window.__epkTest={S:function(){return S},go:go,STEPS:STEPS,applyPreset:applyPreset,stepPrize:stepPrize,stepSkin:stepSkin};
 go(0);
 })();
 </script>
