@@ -156,6 +156,18 @@
       "permanent": true
     },
     {
+      "source": "/ipi-guide",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/ipi-guide",
+      "permanent": true
+    },
+    {
+      "source": "/ipi-guide/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/ipi-guide",
+      "permanent": true
+    },
+    {
       "source": "/claim",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/claim",
@@ -331,6 +343,9 @@
     { "source": "/contracts/", "destination": "/contracts.html" },
     { "source": "/copyright", "destination": "/copyright.html" },
     { "source": "/copyright/", "destination": "/copyright.html" },
+    { "source": "/ipi-guide", "destination": "/ipi-guide.html" },
+    { "source": "/ipi-guide/", "destination": "/ipi-guide.html" },
+    { "source": "/publishing/ipi-guide", "destination": "/ipi-guide.html" },
     { "source": "/qualify", "destination": "/qualify.html" },
     { "source": "/qualify/", "destination": "/qualify.html" },
     { "source": "/make-human", "destination": "/make-human.html" },
