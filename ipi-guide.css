@@ -59,6 +59,8 @@ html{background:#0b0614}
 .ipg-mini{font-size:12px;opacity:.7;margin:4px 0;line-height:1.4}
 .ipg-mini a,.ipg-foot a{color:#C9A6FF}
 .ipg-ask{font-weight:700;margin:14px 0 0}
+.ipg-keep{font-size:13px;margin:8px 0 4px;padding:10px 12px;border:1px solid rgba(201,166,255,.35);border-radius:12px;background-color:rgba(201,166,255,.08);line-height:1.45}
+.ipg-keep-link{color:#C9A6FF;font-weight:700}
 .ipg-nav{display:flex;gap:10px;margin:14px 0 6px}
 .ipg-go,.ipg-back,.ipg-cta{font:inherit;cursor:pointer;border:0;border-radius:16px;padding:15px 16px;font-weight:800;font-size:16px;text-align:center;text-decoration:none}
 .ipg-go{flex:1;width:100%;color:#fff;background:linear-gradient(90deg,#9B5CFF,#FF3EA5);box-shadow:0 0 18px rgba(155,92,255,.5)}
