@@ -404,7 +404,8 @@
     { "source": "/blog/spotify-50m-slop", "destination": "/blog-spotify-50m-slop.html" },
     { "source": "/blog/spotify-ai-remix-deal", "destination": "/blog-spotify-ai-remix-deal.html" },
     { "source": "/blog/deezer-ai-detector-time", "destination": "/blog-deezer-ai-detector-time.html" },
-    { "source": "/blog/denmark-digital-replica-bill", "destination": "/blog-denmark-digital-replica-bill.html" }
+    { "source": "/blog/denmark-digital-replica-bill", "destination": "/blog-denmark-digital-replica-bill.html" },
+    { "source": "/blog/publish-ai-assisted-music", "destination": "/blog-publish-ai-assisted-music.html" }
   ],
   "headers": [
     {
