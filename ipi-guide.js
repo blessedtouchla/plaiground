@@ -1,4 +1,5 @@
-// Free "Get your IPI" guide: renders the stepper. Saves progress and the IPI in this browser only.
+// Free "Get your IPI" guide: renders the stepper. Saves progress and the IPI in this browser.
+// Signed-in members also get the IPI saved on their account via /api/me/ipi (lib/writer-ipi-client.js).
 (function () {
   'use strict';
   var G = window.PlaigroundIpiGuide;
@@ -7,6 +8,9 @@
   var store = null;
   try { store = window.localStorage; } catch (err) { store = null; }
   var state = G.load(store);
+  var W = window.PlaigroundWriterIpi || null;
+  var account = { signedIn: false, writer: null, checked: false };
+  var LOGIN_BACK = 'login.html?next=' + encodeURIComponent('ipi-guide.html#step-' + (G.STEPS.length - 1));
   var current = G.clampStep(readHash() != null ? readHash() : state.step || 0);
 
   function readHash() {
@@ -146,24 +150,56 @@
     var input = el('input', 'ipg-ipi');
     input.id = 'ipg-ipi'; input.type = 'text'; input.inputMode = 'numeric'; input.autocomplete = 'off';
     input.placeholder = 'Paste your IPI';
-    if (state.ipi) input.value = state.ipi;
+    var saved = account.signedIn && account.writer ? account.writer.ipi : state.ipi;
+    if (saved) input.value = saved;
     var msg = el('p', 'ipg-msg'); msg.setAttribute('role', 'status');
-    if (state.ipi) msg.textContent = 'Saved on this device.';
+    if (account.signedIn && account.writer) msg.textContent = 'Saved on your PLAIGROUND account.';
+    else if (state.ipi) msg.textContent = 'Saved on this device.';
     frag.appendChild(label); frag.appendChild(input);
-    frag.appendChild(el('p', 'ipg-mini', 'Find it in your BMI Online Services account after BMI emails you. We save it only in this browser for now.'));
+    frag.appendChild(el('p', 'ipg-mini', account.signedIn
+      ? 'Find it in your BMI Online Services account after BMI emails you. We keep it on your PLAIGROUND account so it is always there.'
+      : 'Find it in your BMI Online Services account after BMI emails you. We save it in this browser.'));
     frag.appendChild(button('ipg-go', step.next, function () {
       var r = G.saveIpi(store, input.value);
       state = G.load(store);
-      msg.textContent = r.ok ? 'Saved on this device. Nice work.' : r.error;
-      msg.className = 'ipg-msg ' + (r.ok ? 'ok' : 'bad');
+      if (!r.ok) { setMsg(msg, r.error, false); return; }
+      if (!account.signedIn || !W) { setMsg(msg, 'Saved on this device. Nice work.', true); return; }
+      setMsg(msg, 'Saving to your account...', true);
+      W.saveWriter(null, { ipi: state.ipi, pro: 'BMI' }).then(function (res) {
+        if (res.ok) {
+          account.writer = res.writer;
+          setMsg(msg, 'Saved on your PLAIGROUND account. Nice work.', true);
+        } else if (res.status === 401) {
+          account.signedIn = false;
+          setMsg(msg, 'Saved on this device. Log in again to keep it on your account.', true);
+        } else {
+          setMsg(msg, 'Saved on this device. ' + res.error, false);
+        }
+      });
     }));
     frag.appendChild(msg);
+    if (!account.signedIn) {
+      var keep = el('p', 'ipg-keep');
+      var join = el('a', 'ipg-keep-link', 'Sign up free to keep your IPI on your account.');
+      join.href = 'signup.html';
+      keep.appendChild(join);
+      keep.appendChild(document.createTextNode(' Already a member? '));
+      var login = el('a', 'ipg-keep-link', 'Log in');
+      login.href = LOGIN_BACK;
+      keep.appendChild(login);
+      frag.appendChild(keep);
+    }
     frag.appendChild(tip(step));
     frag.appendChild(el('p', 'ipg-ask', 'Got songs out? Let us handle the publishing side.'));
     var cta = el('a', 'ipg-cta', 'Publish my song with PLAIGROUND');
     cta.href = G.PUBLISH_URL;
     frag.appendChild(cta);
     frag.appendChild(el('p', 'ipg-mini', 'We register your songs with BMI and The MLC and handle the paperwork. No upfront cost. No promises on how much a song earns.'));
+  }
+
+  function setMsg(node, text, ok) {
+    node.textContent = text;
+    node.className = 'ipg-msg ' + (ok ? 'ok' : 'bad');
   }
 
   function render() {
@@ -201,4 +237,12 @@
     if (h != null && h !== current) { current = G.clampStep(h); render(); }
   });
   render();
+
+  // Signed in? Copy a device-only IPI to the account once, then show the account copy.
+  if (W) {
+    W.migrateLocal(null, store).then(function (res) {
+      account = { signedIn: Boolean(res.signedIn), writer: res.writer || null, checked: true };
+      if (G.STEPS[current].kind === 'ipi') render();
+    });
+  }
 })();

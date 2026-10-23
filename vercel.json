@@ -259,6 +259,7 @@
     { "source": "/api/me/marketing", "destination": "/api/me?action=marketing" },
     { "source": "/api/me/events", "destination": "/api/me?action=events" },
     { "source": "/api/me/guide", "destination": "/api/me?action=guide" },
+    { "source": "/api/me/ipi", "destination": "/api/me?action=ipi" },
     { "source": "/api/admin/roadmaps", "destination": "/api/me?action=admin-roadmaps" },
     { "source": "/api/admin/applications", "destination": "/api/me?action=admin-applications" },
     { "source": "/api/admin/mail-failures", "destination": "/api/me?action=admin-mail-failures" },
