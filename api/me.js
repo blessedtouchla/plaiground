@@ -15,6 +15,7 @@
  * GET  /api/admin/signups.csv  same auth; signup rows as text/csv (also ?format=csv)
  * POST /api/me/events     session required; one product usage event, no lyrics
  * POST /api/me/guide      session required; save guide answers and optional role
+ * GET/PUT /api/me/ipi     session required; writer IPI and PRO on this account (DELETE clears)
  * GET  /api/admin/events  owner session only; counts, unique users, day-30 cohort
  * GET  /api/admin/events.csv  same auth; that table as text/csv
  * POST /api/me/marketing  first-party visit and launch counts; no email
@@ -48,6 +49,7 @@ const persona = require('../lib/persona');
 const personaHttp = require('../lib/persona-http');
 const stageHttp = require('../lib/stage-http');
 const releaseCredits = require('../lib/release-credits');
+const writerIpi = require('../lib/writer-ipi');
 const {
   attachSession,
   bodyHasPassword,
@@ -117,6 +119,7 @@ const ROUTE_ACTIONS = {
   apply: true,
   events: true,
   guide: true,
+  ipi: true,
   'admin-events': true,
   'admin-traffic': true,
   epk: true,
@@ -235,6 +238,12 @@ function isEvents(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/events') return true;
   return queryValue(req, 'action') === 'events';
+}
+
+function isIpi(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/ipi') return true;
+  return queryValue(req, 'action') === 'ipi';
 }
 
 function isGuide(req) {
@@ -1493,6 +1502,19 @@ module.exports = async function handler(req, res) {
   }
   if (isEvents(req)) {
     await recordProductEvent(req, res);
+    return;
+  }
+  if (isIpi(req)) {
+    await writerIpi.handle(req, res, {
+      loadUser: loadUser,
+      readBody: readBody,
+      sendJson: sendJson,
+      rejectQueryPassword: rejectQueryPassword,
+      bodyHasPassword: bodyHasPassword,
+      mergeFacts: mergeFacts,
+      readStored: profile.readStored,
+      notConfigured: notConfigured,
+    });
     return;
   }
   if (isGuide(req)) {
