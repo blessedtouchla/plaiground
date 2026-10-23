@@ -83,6 +83,31 @@
           <div class="field"><label>Country</label><input data-account-country placeholder="Country" autocomplete="country-name" /></div>
         </div>
       </div>
+      <div class="panel" id="writer-ipi" data-writer-ipi>
+        <h3>Your writer IPI</h3>
+        <p class="hint">Your songwriter number from your PRO. Save it once and it stays on your account, ready for publishing. We never ask for your SSN, birth date, bank details or PRO login.</p>
+        <div class="head-row" data-writer-ipi-view>
+          <div>
+            <p style="font-weight:800;font-size:1.15rem;margin:4px 0 4px" data-writer-ipi-value>Loading...</p>
+            <p style="color:var(--muted);font-size:14px;margin:0" data-writer-ipi-pro-label></p>
+          </div>
+          <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-edit>Add IPI</button>
+        </div>
+        <div data-writer-ipi-form hidden>
+          <div class="form-grid">
+            <div class="field"><label for="writer-ipi-number">IPI number</label><input id="writer-ipi-number" data-writer-ipi-number inputmode="numeric" autocomplete="off" placeholder="Paste your IPI" /></div>
+            <div class="field"><label for="writer-ipi-pro">PRO</label><select id="writer-ipi-pro" data-writer-ipi-pro><option value="BMI">BMI</option><option value="ASCAP">ASCAP</option><option value="SESAC">SESAC</option><option value="Other">Other</option></select></div>
+            <div class="field" data-writer-ipi-other-wrap hidden><label for="writer-ipi-other">PRO name</label><input id="writer-ipi-other" data-writer-ipi-other maxlength="60" autocomplete="off" placeholder="PRO name" /></div>
+          </div>
+          <div class="sec-btns">
+            <button class="btn btn-purple btn-sm" type="button" data-writer-ipi-save>Save IPI</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-cancel>Cancel</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-remove hidden>Remove</button>
+          </div>
+        </div>
+        <p class="hint" data-writer-ipi-status role="status" hidden></p>
+        <p class="hint" data-writer-ipi-guide-row><a href="/ipi-guide">I don't have one yet</a></p>
+      </div>
       <div class="draft-banner" data-billing-warning hidden>
         <strong>Payment warning</strong>
         <p>We could not charge your card. Payouts are paused until you <a href="#manage-billing">update the card</a>.</p>
@@ -163,6 +188,8 @@
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
   <script src="lib/rejected-log.js?v=20260905r1"></script>
+  <script src="lib/writer-ipi-client.js?v=20261023acct"></script>
+  <script src="writer-ipi.js?v=20261023acct"></script>
   <script src="checkout.js?v=20261010track"></script>
   <script src="site.js?v=20261017menu"></script>
   <script src="plai-bubble.js" defer></script>
