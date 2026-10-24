@@ -187,6 +187,8 @@
         writers[index].email = row.querySelector('[data-field="email"]').value;
         writers[index].share = row.querySelector('[data-field="share"]').value;
         writers[index].pro = row.querySelector('[data-field="pro"]').value;
+        var ipiEl = row.querySelector('[data-field="ipi"]');
+        if (ipiEl) writers[index].ipi = String(ipiEl.value || '').replace(/[\s.\-]/g, '');
       }
 
       function readAll() {
@@ -212,7 +214,8 @@
                 '<div class="field"><label>Legal last name</label><input data-field="last" type="text" value="' + escapeHtml(writer.last_name || '') + '" placeholder="Last name" autocomplete="off" /></div>' +
                 '<div class="field"><label>Email</label><input data-field="email" type="email" value="' + escapeHtml(writer.email) + '" placeholder="needed to send the sheet" autocomplete="email" /></div>' +
                 '<div class="field"><label>Share %</label><input data-field="share" type="number" min="0" max="100" step="0.01" value="' + escapeHtml(writer.share) + '" /></div>' +
-                '<div class="field"><label>PRO</label><select data-field="pro">' + options + '</select></div>' +
+                '<div class="field"><label>PRO</label><select data-field="pro"' + (index === 0 && writer.ipi_locked ? ' disabled' : '') + '>' + options + '</select></div>' +
+                '<div class="field"><label>IPI (optional)</label><input data-field="ipi" type="text" inputmode="numeric" value="' + escapeHtml(writer.ipi || '') + '" placeholder="' + (index === 0 ? 'Locks in from Settings' : 'If they have one') + '" autocomplete="off"' + (index === 0 && writer.ipi_locked ? ' readonly' : '') + ' /></div>' +
               '</div>' +
             '</div>'
           );
@@ -244,7 +247,8 @@
               name: String(writer.name || [first, last].filter(Boolean).join(' ')).trim(),
               email: String(writer.email || '').trim(),
               share: Number(writer.share),
-              pro: String(writer.pro || '').trim()
+              pro: String(writer.pro || '').trim(),
+              ipi: String(writer.ipi || '').trim()
             };
           })
         };
@@ -633,6 +637,33 @@
 
       render();
       refreshIncomplete();
+      // Writer 1 (you): fill the locked IPI and Name for payouts from Settings.
+      fetch('/api/me/ipi', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          var w = data && data.writer;
+          if (!w || !w.locked_at || !writers[0]) return;
+          readAll();
+          writers[0].ipi = w.ipi;
+          writers[0].pro = w.pro === 'Other' ? 'Other' : w.pro;
+          writers[0].ipi_locked = true;
+          render();
+        })
+        .catch(function () {});
+      fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (me) {
+          var p = me && me.profile;
+          if (!p || !p.legal_name_locked_at || !writers[0] || draft.plaiground_artist_id) return;
+          var parts = String(p.legal_name || '').trim().split(/\s+/).filter(Boolean);
+          if (parts.length < 2) return;
+          readAll();
+          writers[0].first_name = parts[0];
+          writers[0].last_name = parts.slice(1).join(' ');
+          writers[0].name = parts.join(' ');
+          render();
+        })
+        .catch(function () {});
       var existingId = readDraft().signwell_document_id;
       if (existingId) refreshSignWellStatus(existingId);
       function keepCarriedFiles() {
@@ -655,7 +686,7 @@
       });
     })();
   </script>
-  <script src="store-client.js?v=20261019sv1" defer></script>
+  <script src="store-client.js?v=20261023lock" defer></script>
   <script src="problem.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
