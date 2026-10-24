@@ -24,17 +24,17 @@ function mockRes() {
   };
 }
 
-function mockReq(body, ip) {
+function mockReq(body, ip, headers) {
   return {
     method: 'POST',
-    headers: { 'x-forwarded-for': ip || '198.51.100.10' },
+    headers: Object.assign({ 'x-forwarded-for': ip || '198.51.100.10' }, headers || {}),
     body: body,
   };
 }
 
-async function post(body, ip) {
+async function post(body, ip, headers) {
   const res = mockRes();
-  await handler(mockReq(body, ip), res);
+  await handler(mockReq(body, ip, headers), res);
   return res;
 }
 
@@ -259,9 +259,9 @@ async function runApi() {
 
     process.env.XAI_API_KEY = 'test-image-key';
     process.env.XAI_IMAGE_MODEL = 'grok-imagine-image-2.0';
-    let sent = null;
+    const sent = [];
     global.fetch = function (url, opts) {
-      sent = { url: url, opts: opts };
+      sent.push({ url: url, opts: opts });
       return Promise.resolve({
         ok: true,
         json: async function () {
@@ -281,18 +281,132 @@ async function runApi() {
     assert.strictEqual(live.json.notice, '');
     assert.strictEqual(live.json.upscale, true);
     assert.ok(live.json.upscaleNote.includes('3000'));
-    assert.strictEqual(sent.url, 'https://api.x.ai/v1/images/generations');
-    const body = JSON.parse(sent.opts.body);
+    assert.strictEqual(sent.length, 2);
+    assert.strictEqual(sent[0].url, 'https://api.x.ai/v1/images/generations');
+    const body = JSON.parse(sent[0].opts.body);
     assert.strictEqual(body.model, 'grok-imagine-image-2.0');
-    assert.strictEqual(body.resolution, '2k');
+    assert.strictEqual(body.resolution, '1k');
     assert.strictEqual(body.aspect_ratio, '1:1');
     assert.strictEqual(body.quality, 'low');
     assert.strictEqual(body.response_format, 'b64_json');
-    assert.strictEqual(body.n, 2);
+    assert.strictEqual(body.n, 1);
+    assert.strictEqual(JSON.parse(sent[1].opts.body).n, 1);
     assert.ok(body.prompt.includes('No text, no letters'));
     assert.ok(!/drake/i.test(body.prompt));
-    assert.strictEqual(sent.opts.headers.Authorization, 'Bearer test-image-key');
+    assert.strictEqual(sent[0].opts.headers.Authorization, 'Bearer test-image-key');
+    assert.strictEqual(live.json.images.length, 2);
+    assert.strictEqual(live.json.charged, false);
     assert.ok(!live.body.includes('test-image-key'));
+
+    const auth = require('./lib/auth');
+    const artistDev = require('./lib/artist-dev');
+    const previousSecret = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = 'cover-bill-test-secret';
+    try {
+      artistDev.resetStore();
+      const token = auth.signSession('cover-bill-user');
+      const cookie = { cookie: auth.COOKIE + '=' + encodeURIComponent(token) };
+      const unsigned = await post(payload({
+        count: 2,
+        session_id: 'bill-anon',
+        bill: 'release',
+      }), '198.51.100.61');
+      assert.strictEqual(unsigned.statusCode, 401);
+      assert.ok(/Sign in/.test(unsigned.json.error));
+
+      const paid = await post(payload({
+        count: 2,
+        session_id: 'bill-ok-session',
+        bill: 'release',
+      }), '198.51.100.63', cookie);
+      assert.strictEqual(paid.statusCode, 200, paid.body);
+      assert.strictEqual(paid.json.charged, true);
+      assert.strictEqual(paid.json.credits, artistDev.ALLOWANCE - 1);
+      assert.strictEqual(paid.json.images.length, 2);
+
+      const finishedBody = mockReq(payload({
+        count: 2,
+        session_id: 'bill-body-done',
+        bill: 'release',
+      }), '198.51.100.67', cookie);
+      finishedBody.destroyed = true;
+      finishedBody.complete = true;
+      const finished = mockRes();
+      await handler(finishedBody, finished);
+      assert.strictEqual(finished.statusCode, 200, finished.body);
+      assert.strictEqual(finished.json.charged, true);
+      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 2);
+
+      const closedRes = mockRes();
+      closedRes.closed = true;
+      const closedReq = mockReq(payload({
+        count: 2,
+        session_id: 'bill-res-closed',
+        bill: 'release',
+      }), '198.51.100.68', cookie);
+      await handler(closedReq, closedRes);
+      assert.strictEqual(closedRes.statusCode, 0);
+      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 2);
+
+      const goneReq = mockReq(payload({
+        count: 2,
+        session_id: 'bill-gone-session',
+        bill: 'release',
+      }), '198.51.100.66', cookie);
+      goneReq.aborted = false;
+      goneReq.on = function () {};
+      global.fetch = function () {
+        goneReq.aborted = true;
+        return Promise.resolve({
+          ok: true,
+          json: async function () { return { data: [{ b64_json: 'aGVsbG8=' }] }; },
+        });
+      };
+      const goneRes = mockRes();
+      await handler(goneReq, goneRes);
+      assert.strictEqual(goneRes.statusCode, 0);
+      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 2);
+
+      global.fetch = function () {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          json: async function () { return {}; },
+        });
+      };
+      const failed = await post(payload({
+        count: 2,
+        session_id: 'bill-fail',
+        bill: 'release',
+      }), '198.51.100.64', cookie);
+      assert.strictEqual(failed.statusCode, 502);
+      assert.strictEqual(failed.json.charged, false);
+      assert.ok(/Nothing was charged/.test(failed.json.error));
+      const afterFail = await artistDev.balance('cover-bill-user');
+      assert.strictEqual(afterFail.credits, artistDev.ALLOWANCE - 2);
+
+      let left = afterFail.credits;
+      while (left > 0) {
+        await artistDev.spendCredit('cover-bill-user');
+        left -= 1;
+      }
+      let fetches = 0;
+      global.fetch = function () {
+        fetches += 1;
+        return Promise.resolve({ ok: true, json: async function () { return { data: [] }; } });
+      };
+      const empty = await post(payload({
+        count: 2,
+        session_id: 'bill-empty',
+        bill: 'release',
+      }), '198.51.100.65', cookie);
+      assert.strictEqual(empty.statusCode, 402);
+      assert.strictEqual(empty.json.error, 'That takes 1 credit.');
+      assert.strictEqual(fetches, 0, 'a short balance must not start image generation');
+    } finally {
+      if (previousSecret === undefined) delete process.env.SESSION_SECRET;
+      else process.env.SESSION_SECRET = previousSecret;
+    }
   } finally {
     global.fetch = originalFetch;
     guard.dailyLimiter.reset();
@@ -316,7 +430,7 @@ function runPage() {
   const songPage = read('song-helper.html');
   const songNav = songPage.match(/<nav class="nav-links"[\s\S]*?<\/nav>/)[0];
 
-  assert.ok(html.includes('PLAIGROUND Song Helper'));
+  assert.ok(html.includes('Cover Art Maker: album cover maker for music'));
   assert.ok(html.includes('You must be 18+ to use the Song Helper.'));
   assert.ok(html.includes('Covers are AI-assisted'));
   assert.ok(html.includes('name="company_website"'));
@@ -369,9 +483,13 @@ function runPage() {
   assert.ok(api.includes('https://api.x.ai/v1/images/generations'));
   assert.ok(api.includes('Cloudflare Turnstile'));
   assert.ok(/in-memory/i.test(api));
-  assert.ok(api.includes('resolution: \'2k\''));
+  assert.ok(api.includes('resolution: \'1k\''));
+  assert.ok(api.includes('28 second cap'));
+  assert.ok(js.includes('Still making options'));
+  assert.ok(js.includes('AbortController'));
+  assert.ok(js.includes("body.bill = 'release'"));
   assert.ok(index.includes('href="/cover-art">Cover Art</a>'));
-  assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
+  assert.ok(index.includes('href="/song-helper">Song Lab</a>'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/cover-art' && row.destination === '/cover-art.html';
   }));
