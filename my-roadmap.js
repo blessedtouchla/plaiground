@@ -47,6 +47,9 @@
     if (stops) {
       var list = Array.isArray(plan.stops) ? plan.stops : [];
       var ids = Array.isArray(data.stopIds) ? data.stopIds : [];
+      // Highlight a current step only when the artist has marked real progress.
+      var current = -1;
+      var anyDone = ids.some(function (id) { try { return id && localStorage.getItem('plaiground.routeDone.' + id) === '1'; } catch (err) { return false; } });
       stops.innerHTML = list.map(function (title, index) {
         var id = ids[index] || '';
         var done = false;
@@ -54,7 +57,12 @@
         var action = '';
         if (id && done) action = ' <span>Done</span>';
         else if (id) action = ' <button type="button" data-route-stop="' + escapeHtml(id) + '">Mark done</button>';
-        return '<li>' + escapeHtml(title) + action + '</li>';
+        var core = window.DestinationCore && window.DestinationCore.STOPS;
+        var href = (id && core && core[id] && core[id].href) || '';
+        var label = href ? '<a class="roadmap-stop-link" href="' + escapeHtml(href) + '">' + escapeHtml(title) + '</a>' : escapeHtml(title);
+        var cls = done ? ' class="is-done"' : '';
+        if (!done && id && current === -1 && anyDone) { current = index; cls = ' class="is-current" aria-current="step"'; }
+        return '<li' + cls + '>' + label + action + '</li>';
       }).join('');
     }
     if (meta) {
