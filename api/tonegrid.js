@@ -4403,7 +4403,7 @@ async function storeStatusFor(releaseId, fetcher) {
   } catch {
     ok = false;
   }
-  const value = { release_id: id, ok, stores: rows };
+  const value = { release_id: id, ok, counts: storeStatus.counts(rows), stores: rows };
   if (ok) storeStatusCache.set(id, { at: Date.now(), value });
   return value;
 }
