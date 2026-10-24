@@ -71,8 +71,6 @@
   ];
   // Reached from inside Song Lab instead of the menu. The pages stay.
   var SIDE_DROP = ["make-human", "battle"];
-  // Tagged "Free" only where the site copy says so: the DIY EPK template is free on every account.
-  var SIDE_FREE = ["epk"];
   function sideKey(href) {
     var h = String(href || "").trim();
     if (/#pricing$/.test(h)) return { file: "pricing", key: "pricing" };
@@ -172,13 +170,6 @@
     items.forEach(function (a) {
       var key = sideItemKey(a), placed = false;
       if (SIDE_DROP.indexOf(key) !== -1) return;
-      if (SIDE_FREE.indexOf(key) !== -1 && !a.querySelector(".side-free")) {
-        var tag = document.createElement("span");
-        tag.className = "side-free";
-        tag.textContent = "Free";
-        a.appendChild(document.createTextNode(" "));
-        a.appendChild(tag);
-      }
       SIDE_GROUPS.forEach(function (g) {
         if (placed) return;
         var where = (g.lead || []).indexOf(key) !== -1 ? "lead" : g.main.indexOf(key) !== -1 ? "main" : g.more.indexOf(key) !== -1 ? "more" : "";
@@ -482,9 +473,28 @@
     if (toggle && toggle.parentNode !== tools) tools.appendChild(toggle);
     if (tools.parentNode !== inner) inner.insertBefore(tools, drawer);
 
+    if (!document.querySelector(".starter-banner")) {
+      var banner = document.createElement("a");
+      banner.className = "starter-banner starter-cta";
+      banner.href = "/signup.html";
+      banner.setAttribute("data-starter-cta", "");
+      banner.textContent = "Join free. Get starter credits to try every tool.";
+      header.insertBefore(banner, header.firstChild);
+    }
+    var footBrand = document.querySelector(".footer .footer-brand, footer .footer-brand");
+    if (footBrand && !footBrand.querySelector(".starter-cta")) {
+      var foot = document.createElement("a");
+      foot.className = "starter-cta starter-foot btn btn-gold btn-sm";
+      foot.href = "/signup.html";
+      foot.setAttribute("data-starter-cta", "");
+      foot.textContent = "Join free. Get starter credits to try every tool.";
+      footBrand.appendChild(foot);
+    }
     function syncSignedIn() {
       var signedIn = isSignedInPublic();
       login.hidden = !!signedIn;
+      // Starter credits copy is only for signed-out visitors.
+      document.querySelectorAll("[data-starter-cta]").forEach(function (el) { el.hidden = !!signedIn; });
       tools.classList.toggle("is-signed-in", signedIn);
     }
     syncSignedIn();
