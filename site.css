@@ -8389,3 +8389,19 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
     font-size: 15px;
   }
 }
+
+/* -- Signed-in side menu: scrolls, Submit first, grouped -- */
+.side {
+  max-height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.side-nav a.side-submit {
+  margin: 0 0 10px;
+  text-align: center;
+  font-weight: 700;
+}
+.side-nav .side-label[data-side-group] {
+  margin-top: 14px;
+}

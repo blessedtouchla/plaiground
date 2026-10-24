@@ -56,6 +56,71 @@
     return node.getAttribute("data-owner-desk") != null;
   }
 
+
+  // Signed-in side menu: Submit a release first, then deduped links under Release, Write, Publish, Account.
+  var SIDE_GROUPS = [
+    { id: "release", label: "Release", test: /^(upload|releases|artists|already-released|release-week|boosts?|epk|ar|profile|persona|destination|my-roadmap|roadmap)$/ },
+    { id: "write", label: "Write", test: /^(song-helper|song-helper-v3|my-lyrics|cover-art|make-human|battle|spark|guide|slang|style-prompt-template|cowriter|creator)$/ },
+    { id: "publish", label: "Publish", test: /^(contracts|split-sheet|splits|publishing|publishing-register|copyright|qualify|claim|rights|transparency|earnings|analytics|payouts|royalties|charts)$/ },
+    { id: "account", label: "Account", test: /.*/ }
+  ];
+  function sideKey(href) {
+    var h = String(href || "").trim();
+    var path = h.split("#")[0];
+    var q = path.indexOf("?") === -1 ? "" : path.slice(path.indexOf("?"));
+    path = path.split("?")[0].replace(/^\.?\//, "").replace(/\.html$/, "").replace(/\/$/, "");
+    return { file: path.split("/")[0] || "dashboard", key: (path || "dashboard") + q };
+  }
+  function organizeSideNav(side) {
+    var nav = side && side.querySelector(".side-nav");
+    if (!nav || nav.getAttribute("data-side-organized") === "1") return;
+    var seenKey = {}, seenLabel = {}, buckets = {}, extras = [];
+    SIDE_GROUPS.forEach(function (g) { buckets[g.id] = []; });
+    Array.prototype.slice.call(nav.children).forEach(function (node) {
+      if (node.tagName === "P" || node.tagName === "BUTTON") {
+        if (node.tagName === "BUTTON") extras.push(node);
+        if (node.parentNode) node.parentNode.removeChild(node);
+        return;
+      }
+      var anchors = node.tagName === "A" ? [node] : Array.prototype.slice.call(node.querySelectorAll("a"));
+      if (node.parentNode) node.parentNode.removeChild(node);
+      anchors.forEach(function (a) {
+        var href = a.getAttribute("href") || "";
+        var label = linkText(a).toLowerCase();
+        var k = sideKey(href);
+        if (k.file === "upload" || a.hasAttribute("data-new-release")) return;
+        if (seenKey[k.key] || seenLabel[label]) return;
+        seenKey[k.key] = true; seenLabel[label] = true;
+        a.classList.remove("side-action");
+        a.removeAttribute("style");
+        for (var i = 0; i < SIDE_GROUPS.length; i++) {
+          var g = SIDE_GROUPS[i];
+          var isProblem = a.classList.contains("side-problem");
+          if ((g.id === "account" && isProblem) || (!isProblem && g.test.test(k.file))) { buckets[g.id].push(a); break; }
+        }
+      });
+    });
+    var submit = document.createElement("a");
+    submit.className = "side-action side-submit";
+    submit.setAttribute("href", "upload.html");
+    submit.setAttribute("data-new-release", "");
+    submit.setAttribute("data-signed-in-upload", "");
+    submit.textContent = "Submit a release";
+    if (/^(upload|attest|review|split-sheet)$/.test(sideKey((window.location && window.location.pathname) || "").file)) submit.classList.add("on");
+    nav.appendChild(submit);
+    SIDE_GROUPS.forEach(function (g) {
+      if (!buckets[g.id].length && !(g.id === "account" && extras.length)) return;
+      var h = document.createElement("p");
+      h.className = "side-label";
+      h.setAttribute("data-side-group", g.id);
+      h.textContent = g.label;
+      nav.appendChild(h);
+      buckets[g.id].forEach(function (a) { nav.appendChild(a); });
+      if (g.id === "account") extras.forEach(function (b) { nav.appendChild(b); });
+    });
+    nav.setAttribute("data-side-organized", "1");
+  }
+
   function setupAppMenu() {
     var app = document.body;
     if (!app || !app.classList.contains("app")) return;
@@ -81,6 +146,7 @@
       ensureContractsSide(side);
     }
     markRoadmapLink(side.querySelector(".side-nav"));
+    if (!isOwnerDesk(app) && !isOwnerDesk(side)) organizeSideNav(side);
     side.classList.add("side-fresh");
 
     var toggle = topbar.querySelector(".menu-toggle");
