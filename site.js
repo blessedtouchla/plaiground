@@ -57,42 +57,36 @@
   }
 
 
-  // Signed-in side menu: Submit a release first, then deduped links under Release, Write, Publish, Account.
+  // Signed-in side menu: Submit a release on top, then expandable groups.
+  // Each group shows its main items; the rest appear when the header is clicked.
+  // The group holding the current page opens on its own. Help & account catches anything unlisted.
   var SIDE_GROUPS = [
-    { id: "release", label: "Release", test: /^(upload|releases|artists|already-released|release-week|boosts?|epk|ar|profile|persona|destination|my-roadmap|roadmap)$/ },
-    { id: "write", label: "Write", test: /^(song-helper|song-helper-v3|my-lyrics|cover-art|make-human|battle|spark|guide|slang|style-prompt-template|cowriter|creator)$/ },
-    { id: "publish", label: "Publish", test: /^(contracts|split-sheet|splits|publishing|publishing-register|copyright|qualify|claim|rights|transparency|earnings|analytics|payouts|royalties|charts)$/ },
-    { id: "account", label: "Account", test: /.*/ }
+    { id: "release", label: "My music", main: ["releases", "artists", "destination", "roadmap"], more: ["my-roadmap", "ar", "epk", "profile", "persona", "already-released", "release-week"] },
+    { id: "write", label: "Create", main: ["song-helper", "song-helper-v3", "cover-art", "make-human"], more: ["guide", "spark", "battle", "my-lyrics", "slang", "style-prompt-template", "cowriter", "creator"] },
+    { id: "money", label: "Money", main: ["earnings", "payouts", "analytics"], more: ["charts", "royalties"] },
+    { id: "publish", label: "Publishing", main: ["splits", "split-sheet", "publishing-register", "publishing", "contracts"], more: ["copyright", "qualify", "claim", "contracts-sub", "rights", "transparency"] },
+    { id: "grow", label: "Grow", main: ["boosts", "boost", "epk"], more: [], also: true },
+    { id: "account", label: "Help & account", main: ["settings", "problem", "plai-talk"], more: ["plai-text", "faq", "how", "pricing", "blog"], rest: true }
   ];
   function sideKey(href) {
     var h = String(href || "").trim();
+    if (/#pricing$/.test(h)) return { file: "pricing", key: "pricing" };
     var path = h.split("#")[0];
     var q = path.indexOf("?") === -1 ? "" : path.slice(path.indexOf("?"));
     path = path.split("?")[0].replace(/^\.?\//, "").replace(/\.html$/, "").replace(/\/$/, "");
     return { file: path.split("/")[0] || "dashboard", key: (path || "dashboard") + q };
   }
-  // Every group shows its main items. The rest sit behind the group header, which expands on click.
-  // The group holding the current page opens on its own, so nothing is lost.
-  var SIDE_MAIN = {
-    release: ["releases", "artists", "destination", "roadmap", "boosts"],
-    write: ["song-helper", "song-helper-v3", "my-lyrics", "cover-art", "make-human"],
-    publish: ["contracts", "splits", "split-sheet", "publishing-register", "publishing", "earnings", "payouts"],
-    account: ["settings", "problem", "plai-talk", "plai-text"]
-  };
   function sideItemKey(node) {
-    if (node.hasAttribute("data-plai-talk")) return { file: "plai-talk", key: "plai-talk" };
-    if (node.hasAttribute("data-plai-text")) return { file: "plai-text", key: "plai-text" };
-    return sideKey(node.getAttribute("href") || "");
+    if (node.hasAttribute("data-plai-talk")) return "plai-talk";
+    if (node.hasAttribute("data-plai-text")) return "plai-text";
+    if (node.classList.contains("side-problem")) return "problem";
+    var k = sideKey(node.getAttribute("href") || "");
+    if (k.file === "contracts" && k.key !== "contracts") return "contracts-sub";
+    return k.file;
   }
-  function isMainItem(groupId, node) {
-    var k = sideItemKey(node);
-    if (k.key.indexOf("?") !== -1 || /^contracts\/./.test(k.key)) return false;
-    return (SIDE_MAIN[groupId] || []).indexOf(k.file) !== -1;
-  }
-  function appendSideGroup(nav, g, items) {
-    var main = [], more = [];
-    items.forEach(function (n) { (isMainItem(g.id, n) ? main : more).push(n); });
-    if (!main.length) { main = more.slice(0, 4); more = more.slice(4); }
+  function appendSideGroup(nav, g, main, more) {
+    if (!main.length && !more.length) return;
+    if (!main.length) { main = more.slice(0, 3); more = more.slice(3); }
     var head;
     if (more.length) {
       head = document.createElement("button");
@@ -117,8 +111,7 @@
     box.setAttribute("aria-label", "More in " + g.label);
     more.forEach(function (n) { box.appendChild(n); });
     nav.appendChild(box);
-    var here = !!(box.querySelector("a.on, a.active"));
-    var open = here || items.some(function (n) { return n.classList && (n.classList.contains("on") || n.classList.contains("active")); });
+    var open = main.concat(more).some(function (n) { return n.classList.contains("on") || n.classList.contains("active"); });
     function set(o) {
       box.hidden = !o;
       head.setAttribute("aria-expanded", o ? "true" : "false");
@@ -131,21 +124,21 @@
       set(box.hidden);
     });
   }
+  function sortByList(items, list) {
+    return items.map(function (n, i) { var r = list.indexOf(sideItemKey(n)); return { n: n, r: r === -1 ? 999 + i : r }; })
+      .sort(function (x, y) { return x.r - y.r; }).map(function (x) { return x.n; });
+  }
 
   function organizeSideNav(side) {
     var nav = side && side.querySelector(".side-nav");
     if (!nav || nav.getAttribute("data-side-organized") === "1") return;
-    var seenKey = {}, seenLabel = {}, buckets = {}, extras = [];
-    SIDE_GROUPS.forEach(function (g) { buckets[g.id] = []; });
+    var seenKey = {}, seenLabel = {}, items = [];
     Array.prototype.slice.call(nav.children).forEach(function (node) {
-      if (node.tagName === "P" || node.tagName === "BUTTON") {
-        if (node.tagName === "BUTTON") extras.push(node);
-        if (node.parentNode) node.parentNode.removeChild(node);
-        return;
-      }
-      var anchors = node.tagName === "A" ? [node] : Array.prototype.slice.call(node.querySelectorAll("a"));
+      if (node.tagName === "P") { if (node.parentNode) node.parentNode.removeChild(node); return; }
+      var list = (node.tagName === "A" || node.tagName === "BUTTON") ? [node] : Array.prototype.slice.call(node.querySelectorAll("a, button"));
       if (node.parentNode) node.parentNode.removeChild(node);
-      anchors.forEach(function (a) {
+      list.forEach(function (a) {
+        if (a.tagName === "BUTTON") { items.push(a); return; }
         var href = a.getAttribute("href") || "";
         var label = linkText(a).toLowerCase();
         var k = sideKey(href);
@@ -154,12 +147,20 @@
         seenKey[k.key] = true; seenLabel[label] = true;
         a.classList.remove("side-action");
         a.removeAttribute("style");
-        for (var i = 0; i < SIDE_GROUPS.length; i++) {
-          var g = SIDE_GROUPS[i];
-          var isProblem = a.classList.contains("side-problem");
-          if ((g.id === "account" && isProblem) || (!isProblem && g.test.test(k.file))) { buckets[g.id].push(a); break; }
-        }
+        items.push(a);
       });
+    });
+    var buckets = {};
+    SIDE_GROUPS.forEach(function (g) { buckets[g.id] = { main: [], more: [] }; });
+    items.forEach(function (a) {
+      var key = sideItemKey(a), placed = false;
+      SIDE_GROUPS.forEach(function (g) {
+        var inMain = g.main.indexOf(key) !== -1, inMore = g.more.indexOf(key) !== -1;
+        if (!inMain && !inMore) return;
+        if (!placed) { buckets[g.id][inMain ? "main" : "more"].push(a); placed = true; }
+        else if (g.also) { var copy = a.cloneNode(true); copy.setAttribute("data-side-copy", ""); buckets[g.id][inMain ? "main" : "more"].push(copy); }
+      });
+      if (!placed) buckets.account.more.push(a);
     });
     var submit = document.createElement("a");
     submit.className = "side-action side-submit";
@@ -169,9 +170,14 @@
     submit.textContent = "Submit a release";
     if (/^(upload|attest|review|split-sheet)$/.test(sideKey((window.location && window.location.pathname) || "").file)) submit.classList.add("on");
     nav.appendChild(submit);
+    // The group is named Publishing, so its Publishing link reads "Publishing setup".
+    buckets.publish.main.concat(buckets.publish.more).forEach(function (a) {
+      var f = sideItemKey(a);
+      if ((f === "publishing-register" || f === "publishing") && linkText(a).toLowerCase() === "publishing") a.textContent = "Publishing setup";
+    });
     SIDE_GROUPS.forEach(function (g) {
-      if (!buckets[g.id].length && !(g.id === "account" && extras.length)) return;
-      appendSideGroup(nav, g, g.id === "account" ? buckets[g.id].concat(extras) : buckets[g.id]);
+      var b = buckets[g.id];
+      appendSideGroup(nav, g, sortByList(b.main, g.main), sortByList(b.more, g.more));
     });
     nav.setAttribute("data-side-organized", "1");
   }
