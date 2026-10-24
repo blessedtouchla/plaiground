@@ -72,7 +72,12 @@
   var SCREENS = {};
 
   SCREENS.home = function (w) {
-    w.appendChild(el('h1', 'arc-marquee', 'Song Lab'));
+    var home = el('div', 'arc-home');
+    var hero = el('div', 'arc-hero');
+    hero.appendChild(el('p', 'arc-kicker', 'Start here'));
+    hero.appendChild(el('h1', 'arc-marquee', 'Song Lab'));
+    hero.appendChild(el('p', 'arc-lede', 'Pick one door. You can tune the sound after.'));
+    home.appendChild(hero);
     var grid = el('div', 'arc-cards');
     A.CARDS.forEach(function (c) {
       var b = btn('', 'v3-cabinet arc-card cab-' + c.id, function () {
@@ -81,9 +86,13 @@
       });
       b.appendChild(el('b', '', c.label)); b.appendChild(el('small', '', c.small)); grid.appendChild(b);
     });
-    w.appendChild(grid);
-    w.appendChild(btn('\u2728 Give me ideas', 'v3-go arc-gi-start', function () { S = fresh(); S.gi = { seen: [] }; go('g-doors'); }));
-    hotSlang(w);
+    home.appendChild(grid);
+    var more = el('details', 'arc-more');
+    more.appendChild(el('summary', 'arc-more-sum', 'More ways in'));
+    more.appendChild(btn('\u2728 Give me ideas', 'v3-mini arc-gi-start', function () { S = fresh(); S.gi = { seen: [] }; go('g-doors'); }));
+    hotSlang(more);
+    home.appendChild(more);
+    w.appendChild(home);
   };
 
   // What's hot: slang of the day from data/slang.json (sourced daily research, no explicit words here).
@@ -861,10 +870,6 @@
   };
   SCREENS['x-genre'] = function (w) {
     var f = S.flip;
-    w.appendChild(plai('What is it now? (optional)'));
-    w.appendChild(chips(Object.keys(A.GENRES), function (g) { return f.from === g; }, function (g) { f.from = f.from === g ? '' : g; }, 'small'));
-    w.appendChild(btn(f.showPrompt ? 'Hide' : 'Paste my prompt', 'v3-link', function () { f.showPrompt = !f.showPrompt; paint(); }));
-    if (f.showPrompt) w.appendChild(input(f.fromPrompt, 'Paste the style prompt you used', function (v) { f.fromPrompt = v; f.from = v.slice(0, 80); }, 3));
     w.appendChild(plai('Flip it to...'));
     w.appendChild(chips(Object.keys(A.GENRES).concat(['Fusion (mix two)']), function (g) { return g === 'Fusion (mix two)' ? f.fusionOn : (f.fusionOn ? f.fusion.indexOf(g) !== -1 : f.target === g); }, function (g) {
       if (g === 'Fusion (mix two)') { f.fusionOn = !f.fusionOn; f.fusion = []; return; }
@@ -872,6 +877,12 @@
       else { f.target = g; S.sound.genre = g; }
     }));
     if (f.fusionOn) w.appendChild(el('p', 'hint', 'Pick two genres to mix.'));
+    w.appendChild(btn(f.fromOpen ? 'Hide where it is now' : 'Where it is now (optional)', 'v3-link', function () { f.fromOpen = !f.fromOpen; paint(); }));
+    if (f.fromOpen) {
+      w.appendChild(chips(Object.keys(A.GENRES), function (g) { return f.from === g; }, function (g) { f.from = f.from === g ? '' : g; }));
+      w.appendChild(btn(f.showPrompt ? 'Hide prompt' : 'Paste my prompt', 'v3-link', function () { f.showPrompt = !f.showPrompt; paint(); }));
+      if (f.showPrompt) w.appendChild(input(f.fromPrompt, 'Paste the style prompt you used', function (v) { f.fromPrompt = v; f.from = v.slice(0, 80); }, 3));
+    }
     w.appendChild(btn('Next', 'v3-go', function () { if (!f.target || (f.fusionOn && f.fusion.length < 2)) { S.note = 'Pick where it is going.'; paint(); return; } go('x-vibe'); }));
   };
   SCREENS['x-vibe'] = function (w) {
@@ -1076,11 +1087,11 @@
     var mute = btn(TALK.muted ? 'Unmute' : 'Mute', 'arc-talk-mute', function () { TALK.muted = !TALK.muted; if (TALK.muted) try { speechSynthesis.cancel(); } catch (e) {} paint(); });
     mute.setAttribute('aria-pressed', TALK.muted ? 'true' : 'false'); head.appendChild(mute);
     box.appendChild(head);
-    if (S.crisis) { box.appendChild(el('p', 'arc-talk-msg plai', 'I am right here. Take your time. Talk mode is paused.')); w.insertBefore(box, w.children[2] || null); return; }
+    if (S.crisis) { box.appendChild(el('p', 'arc-talk-msg plai', 'I am right here. Take your time. Talk mode is paused.')); placeTalk(w, box); return; }
     if (!tg) {
       if (TALK.key !== key) { TALK.key = key; TALK.phase = 'idle'; stopListen(); say('Your turn to tap. I will pick back up on the next question.'); }
       box.appendChild(el('p', 'arc-talk-msg plai', 'Your turn to tap here. I will pick back up on the next question.'));
-      w.insertBefore(box, w.children[2] || null); return;
+      placeTalk(w, box); return;
     }
     if (TALK.key !== key) { TALK.key = key; TALK.phase = 'ask'; TALK.heard = ''; TALK.log = [{ who: 'plai', text: tg.ask }]; stopListen(); setTimeout(function () { say(tg.ask); if (TALK.muted || !('speechSynthesis' in window)) listen(); }, 250); }
     var log = el('div', 'arc-talk-log');
@@ -1101,6 +1112,11 @@
       box.appendChild(row2);
     }
     if (TALK.micNote || TALK.noMic) box.appendChild(el('p', 'arc-talk-note', TALK.micNote || 'Voice answers are not supported in this browser, so type. I will still talk.'));
+    placeTalk(w, box);
+  }
+  function placeTalk(w, box) {
+    var slot = w.querySelector('.arc-talk-slot');
+    if (slot) { slot.textContent = ''; slot.appendChild(box); return; }
     w.insertBefore(box, w.children[2] || null);
   }
   function talkToggle() {
@@ -1116,21 +1132,44 @@
   function paint() {
     root.innerHTML = '';
     var w = el('div', 'v3-wrap arc-wrap');
-    var top = el('div', 'v3-top'); var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
-    top.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
-    top.appendChild(el('span', 'v3-points', String(S.points)));
+    var top = el('div', 'v3-top');
+    var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
+    var meta = el('div', 'arc-top-meta');
+    meta.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
+    meta.appendChild(el('span', 'v3-points', String(S.points)));
+    meta.appendChild(talkToggle());
+    top.appendChild(meta);
     w.appendChild(top);
-    w.appendChild(talkToggle());
-        if (S.crisis) w.appendChild(crisisCard());
+    var talkSlot = el('div', 'arc-talk-slot'); w.appendChild(talkSlot);
+    if (S.crisis) w.appendChild(crisisCard());
     if (S.screen !== 'home') w.appendChild(btn('Back', 'v3-link arc-back', back));
     var sb = stepBar(); if (sb) w.appendChild(sb);
-    var slot = el('div', 'arc-host-slot'); w.appendChild(slot);
+    var shell = el('div', 'arc-shell');
+    var main = el('div', 'arc-main');
+    shell.appendChild(main);
+    var slot = el('div', 'arc-host-slot');
+    if (S.screen !== 'home') {
+      var rail = el('aside', 'arc-rail');
+      rail.appendChild(slot);
+      shell.appendChild(rail);
+    }
+    w.appendChild(shell);
     var painting = S.screen;
-    (SCREENS[S.screen] || SCREENS.home)(w);
+    (SCREENS[S.screen] || SCREENS.home)(main);
     if (S.screen !== painting) return; // the screen moved on and already painted itself
-    var hh = host(); if (hh) { if (S.screen === 'home') { var m = w.querySelector('.arc-marquee'); if (m) m.after(hh); else slot.appendChild(hh); } else slot.appendChild(hh); }
+    var hh = host();
+    if (hh) {
+      if (S.screen === 'home') {
+        var m = w.querySelector('.arc-marquee');
+        if (m) m.after(hh); else main.insertBefore(hh, main.firstChild);
+      } else slot.appendChild(hh);
+    } else if (S.screen !== 'home') {
+      var emptyRail = shell.querySelector('.arc-rail');
+      if (emptyRail) emptyRail.remove();
+    }
+    if (shell.querySelector('.arc-rail')) shell.classList.add('has-rail');
     talkTick(w);
-    if (S.note) w.appendChild(el('p', 'arc-note', S.note));
+    if (S.note) main.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
   }
   paint();
