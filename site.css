@@ -8405,3 +8405,86 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .side-nav .side-label[data-side-group] {
   margin-top: 14px;
 }
+
+/* -- Desktop polish (>=900px): real two-column review, centered upload stage, roomy split sheet.
+   #364 did apply, but it only widened review to 860px (two ~410px columns) and kept the
+   sticky Submit dock over Stores. This block is last in the file so it wins the cascade. -- */
+@media (min-width: 900px) {
+  body.review-page main.page {
+    max-width: 1200px;
+    padding-bottom: 48px;
+  }
+  .review-page .review-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+    grid-template-rows: auto auto auto auto 1fr;
+    column-gap: 56px;
+    align-items: start;
+  }
+  .review-page .review-layout > .review-hero { grid-column: 1; grid-row: 1; }
+  .review-page .review-layout > .review-schedule { grid-column: 1; grid-row: 2 / 6; }
+  .review-page .review-layout > .review-side { grid-column: 2; grid-row: 1 / 3; margin-top: 0; }
+  .review-page .review-layout > .review-due { grid-column: 2; grid-row: 3; }
+  .review-page .review-layout > .review-stores { grid-column: 2; grid-row: 4; }
+  .review-page .review-hero {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 28px;
+  }
+  .review-page .review-cover,
+  .review-page .thumb.review-cover {
+    max-width: 300px;
+    flex: 0 0 300px;
+  }
+  .review-page .review-actions,
+  body.review-page main.page > a.have-problem,
+  body.review-page main.page > #tg-status,
+  body.review-page main.page > #tg-retry-wrap {
+    width: min(440px, 100%);
+    margin-left: auto;
+  }
+  .review-page .review-actions {
+    position: static;
+    margin-top: 24px;
+    padding: 16px 0;
+  }
+  body.review-page main.page > a.have-problem {
+    display: block;
+    width: fit-content;
+    margin: 14px 0 0 auto;
+  }
+  .review-page .review-out .field input.date-picker,
+  .review-page .review-out .field input[type="date"].date-picker {
+    width: auto;
+    min-width: 220px;
+    max-width: 280px;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-align: left;
+    border-radius: 10px;
+  }
+
+  .upload-page .release-stage-board {
+    max-width: 760px;
+    margin: 0 auto;
+    grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) minmax(110px, 150px);
+  }
+  .upload-page [data-copyright-wrap] label[for="tg-copyright-owner"],
+  .upload-page [data-copyright-wrap] label[for="tg-phonogram-owner"] {
+    font-size: 22px;
+    line-height: 1.1;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .writer-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(260px, 1.4fr) 110px;
+  }
+  .writer-grid input[data-field="email"] {
+    min-width: 240px;
+  }
+}
