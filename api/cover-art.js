@@ -8,8 +8,11 @@
  * (https://docs.x.ai/developers/models/grok-imagine-image-2.0)
  * and can be overridden with XAI_IMAGE_MODEL.
  *
- * Documented output resolutions are "1k" and "2k" only. This route asks for 2k.
- * That is still under a 3000px distributor master, so the browser scales up on export.
+ * Documented output resolutions are "1k" and "2k" only.
+ * 2k from grok-imagine-image-2.0 often takes 60 to 170 seconds. This function
+ * stops at 60 seconds, so a 2k batch sat on "Making a few options…" until the
+ * platform killed the request. Each option is now one 1k image, requested in
+ * parallel, with a 28 second cap. The browser still scales the export to 3000px.
  * Published price: $0.04 per image
  * (https://docs.x.ai/developers/pricing and the model page above).
  *
@@ -27,6 +30,7 @@ const core = require('../lib/cover-art');
 const song = require('../lib/song-helper');
 const xai = require('../lib/xai-client');
 const guard = require('../lib/song-guard');
+const artistDev = require('../lib/artist-dev');
 
 const limiter = song.createLimiter({
   max: core.RATE_MAX,
@@ -97,6 +101,20 @@ function honeypotFilled(body) {
   return Boolean(String((body && body.company_website) || '').trim());
 }
 
+function watchClient(req, res) {
+  var gone = false;
+  function mark() {
+    if (!res.writableEnded) gone = true;
+  }
+  if (req && typeof req.on === 'function') {
+    req.on('aborted', mark);
+    req.on('close', mark);
+  }
+  return function () {
+    return gone || Boolean(req && (req.aborted || req.destroyed));
+  };
+}
+
 function validationMessage(code) {
   if (code === 'explicit') return core.EXPLICIT_NOTE;
   if (code === 'idea') return 'Tell me the image in a sentence, or use Suggest from my song.';
@@ -121,6 +139,28 @@ async function bytesFromItem(item) {
   }
 }
 
+async function oneImage(spec, key, model) {
+  var payload = {
+    model: model,
+    prompt: spec.prompt,
+    n: 1,
+    aspect_ratio: '1:1',
+    resolution: '1k',
+    quality: 'low',
+    response_format: 'b64_json',
+  };
+  try {
+    var response = await xai.postJson('https://api.x.ai/v1/images/generations', key, payload, 28000);
+    var data = await response.json().catch(function () { return {}; });
+    if (!response.ok) return { b64: '', status: response.status };
+    var row = data && data.data && data.data[0];
+    var b64 = await bytesFromItem(row);
+    return { b64: b64 || '', status: response.status };
+  } catch (err) {
+    return { b64: '', status: err && err.name === 'AbortError' ? 504 : 0 };
+  }
+}
+
 async function callImages(spec, count) {
   var key = String(process.env.XAI_API_KEY || '').trim();
   if (!key) {
@@ -134,47 +174,36 @@ async function callImages(spec, count) {
     };
   }
   var model = String(process.env.XAI_IMAGE_MODEL || core.DEFAULT_IMAGE_MODEL).trim() || core.DEFAULT_IMAGE_MODEL;
-  var payload = {
+  var jobs = [];
+  var n;
+  for (n = 0; n < count; n += 1) jobs.push(oneImage(spec, key, model));
+  var rows = await Promise.all(jobs);
+  var images = [];
+  var size = 0;
+  var saw429 = false;
+  rows.forEach(function (row) {
+    if (row && row.status === 429) saw429 = true;
+    var b64 = row && row.b64;
+    if (!b64) return;
+    if (size + b64.length > 3200000 && images.length) return;
+    size += b64.length;
+    images.push({ id: String(images.length + 1), b64: b64 });
+  });
+  if (!images.length) {
+    var empty = new Error('xai');
+    empty.status = saw429 ? 429 : 502;
+    throw empty;
+  }
+  return {
+    preview: false,
+    source: 'grok',
     model: model,
-    prompt: spec.prompt,
-    n: count,
-    aspect_ratio: '1:1',
-    resolution: '2k',
-    quality: 'low',
-    response_format: 'b64_json',
+    notice: '',
+    attribution: core.ARTWORK_CREDIT,
+    upscale: true,
+    upscaleNote: core.UPSCALE_NOTE,
+    images: images,
   };
-  var response = await xai.postJson('https://api.x.ai/v1/images/generations', key, payload, 50000);
-  var data = await response.json().catch(function () { return {}; });
-    if (!response.ok) {
-      var failure = new Error('xai');
-      failure.status = response.status;
-      throw failure;
-    }
-    var rows = (data && data.data) || [];
-    var images = [];
-    var size = 0;
-    for (var i = 0; i < rows.length && images.length < count; i += 1) {
-      var b64 = await bytesFromItem(rows[i]);
-      if (!b64) continue;
-      if (size + b64.length > 3200000 && images.length) break;
-      size += b64.length;
-      images.push({ id: String(images.length + 1), b64: b64 });
-    }
-    if (!images.length) {
-      var empty = new Error('xai');
-      empty.status = 502;
-      throw empty;
-    }
-    return {
-      preview: false,
-      source: 'grok',
-      model: model,
-      notice: '',
-      attribution: core.ARTWORK_CREDIT,
-      upscale: true,
-      upscaleNote: core.UPSCALE_NOTE,
-      images: images,
-    };
 }
 
 async function handler(req, res) {
@@ -221,9 +250,50 @@ async function handler(req, res) {
     sendJson(res, 429, { ok: false, error: 'This session has used its cover images. Start again to make more.' });
     return;
   }
+  var billRelease = body.bill === 'release';
+  var billUser = '';
+  if (billRelease) {
+    billUser = guard.sessionUserId(req);
+    if (!billUser) {
+      sessions.refund(spec.sessionId, room.allowed);
+      sendJson(res, 401, { ok: false, charged: false, error: 'Sign in to use a credit.' });
+      return;
+    }
+    var wallet = await artistDev.balance(billUser);
+    if (!wallet.credits || wallet.credits < 1) {
+      sessions.refund(spec.sessionId, room.allowed);
+      sendJson(res, 402, { ok: false, charged: false, error: 'That takes 1 credit.' });
+      return;
+    }
+  }
+  var clientLeft = watchClient(req, res);
   try {
     var result = await callImages(spec, room.allowed);
     if (result.images.length < room.allowed) sessions.refund(spec.sessionId, room.allowed - result.images.length);
+    var charged = false;
+    var creditsLeft = null;
+    if (clientLeft()) {
+      sessions.refund(spec.sessionId, result.images.length);
+      return;
+    }
+    if (billRelease && !result.preview) {
+      try {
+        var paid = await artistDev.spendCredit(billUser);
+        charged = true;
+        creditsLeft = paid.credits;
+      } catch (payErr) {
+        sessions.refund(spec.sessionId, result.images.length);
+        var short = payErr && payErr.code === 'CREDITS';
+        sendJson(res, short ? 402 : 502, {
+          ok: false,
+          charged: false,
+          error: short
+            ? 'That takes 1 credit.'
+            : 'The covers did not come back. Nothing was charged. Try again.',
+        });
+        return;
+      }
+    }
     sendJson(res, 200, {
       ok: true,
       preview: result.preview,
@@ -234,15 +304,20 @@ async function handler(req, res) {
       upscale: result.upscale,
       upscaleNote: result.upscaleNote || '',
       images: result.images,
+      charged: charged,
+      credits: creditsLeft,
     });
   } catch (err) {
     sessions.refund(spec.sessionId, room.allowed);
     var busy = err && err.status === 429;
     sendJson(res, busy ? 429 : 502, {
       ok: false,
+      charged: false,
       error: busy
         ? 'The artist is busy. Try again in a moment.'
-        : 'The covers did not come back. Try again in a moment.',
+        : (billRelease
+          ? 'The covers did not come back. Nothing was charged. Try again.'
+          : 'The covers did not come back. Try again in a moment.'),
     });
   }
 }

@@ -30,6 +30,7 @@ const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
 const arcadeServer = require('../lib/arcade-server');
 const epkBuilder = require('../lib/epk-builder');
+const lyricsTranscribe = require('../lib/lyrics-transcribe');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -1114,7 +1115,106 @@ async function handleEpk(req, res, givenBody) {
   }
 }
 
+function queryValue(req, name) {
+  if (req && req.query && req.query[name]) return String(req.query[name]);
+  var url = String((req && req.url) || '');
+  var mark = url.indexOf('?');
+  if (mark === -1) return '';
+  return new URLSearchParams(url.slice(mark + 1)).get(name) || '';
+}
+
+function readAudio(req, max) {
+  if (Buffer.isBuffer(req.body)) {
+    if (req.body.length > max) return Promise.resolve({ __tooBig: true });
+    return Promise.resolve(req.body);
+  }
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body) && req.body.audio) {
+    var raw = String(req.body.audio).replace(/^data:[^,]*,/, '');
+    var decoded = Buffer.from(raw, 'base64');
+    if (!decoded.length) return Promise.resolve({ __bad: true });
+    if (decoded.length > max) return Promise.resolve({ __tooBig: true });
+    return Promise.resolve(decoded);
+  }
+  return new Promise(function (resolve) {
+    var chunks = [];
+    var size = 0;
+    var tooBig = false;
+    req.on('data', function (chunk) {
+      size += chunk.length;
+      if (size > max) {
+        tooBig = true;
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', function () {
+      if (tooBig) {
+        resolve({ __tooBig: true });
+        return;
+      }
+      resolve(Buffer.concat(chunks));
+    });
+    req.on('error', function () { resolve({ __bad: true }); });
+  });
+}
+
+function audioMime(req) {
+  var headers = (req && req.headers) || {};
+  var type = String(headers['content-type'] || headers['Content-Type'] || '').split(';')[0].trim().toLowerCase();
+  if (type.indexOf('audio/') === 0) return type;
+  return 'audio/wav';
+}
+
+function watchClient(req, res) {
+  var gone = false;
+  function mark() {
+    if (!res.writableEnded) gone = true;
+  }
+  if (req && typeof req.on === 'function') {
+    req.on('aborted', mark);
+    req.on('close', mark);
+  }
+  return function () {
+    return gone || Boolean(req && (req.aborted || req.destroyed));
+  };
+}
+
+async function handleTranscribe(req, res) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { ok: false, error: 'Use POST.' });
+    return;
+  }
+  var userId = guard.sessionUserId(req);
+  if (!userId) {
+    sendJson(res, 401, { ok: false, charged: false, error: 'Sign in to use a credit.' });
+    return;
+  }
+  var clientLeft = watchClient(req, res);
+  var audio = await readAudio(req, lyricsTranscribe.AUDIO_MAX);
+  if (audio && audio.__tooBig) {
+    sendJson(res, 413, { ok: false, charged: false, error: 'That audio is too large to transcribe. Nothing was charged.' });
+    return;
+  }
+  if (!audio || audio.__bad) {
+    sendJson(res, 400, { ok: false, charged: false, error: 'Add the song audio first. Nothing was charged.' });
+    return;
+  }
+  var mime = audioMime(req);
+  if (req.body && req.body.mime) mime = String(req.body.mime).slice(0, 80);
+  var result = await lyricsTranscribe.transcribeRelease(userId, audio, {
+    mime: mime,
+    filename: mime.indexOf('mpeg') !== -1 ? 'lyrics.mp3' : 'lyrics.wav',
+    language: queryValue(req, 'language') || (req.body && req.body.language) || '',
+    stillHere: function () { return !clientLeft(); },
+  });
+  sendJson(res, result.status || 200, result);
+}
+
 async function handleAction(req, res, action, givenBody) {
+  if (action === 'transcribe') {
+    await handleTranscribe(req, res);
+    return;
+  }
   if (action === 'epk-avatar') {
     await handleEpkAvatar(req, res, givenBody);
     return;
@@ -1313,5 +1413,10 @@ async function handler(req, res) {
   }
 }
 
+handler.config = {
+  api: { bodyParser: false },
+  maxDuration: 60,
+};
 handler._limiter = limiter;
 module.exports = handler;
+module.exports.config = handler.config;

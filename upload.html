@@ -91,10 +91,11 @@
             </label>
           </div>
           <p class="release-sleeve-actions">
-            <button class="btn btn-ghost btn-sm" type="button" data-cover-make>Don't have a cover? Make one</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-cover-make>Create cover with AI <span class="credit-tag">1 credit</span></button>
             <button class="btn btn-ghost btn-sm" type="button" data-art-clear hidden>Clear</button>
             <button class="btn btn-purple btn-sm" type="button" data-art-resize hidden>Resize for me</button>
           </p>
+          <p class="hint" data-cover-make-status hidden></p>
           <div class="field upload-title-field">
             <label for="tg-title" data-title-label>Song title</label>
             <input id="tg-title" name="release-title" type="text" value="" placeholder="Song title" autocomplete="off" />
@@ -144,7 +145,11 @@
             <div class="flow-card field lyrics-field upload-lyrics-card" id="tg-lyrics-panel" data-lyrics-field hidden>
               <label for="tg-lyrics">Lyrics</label>
               <textarea id="tg-lyrics" name="release-lyrics" rows="8" placeholder="Type or paste lyrics" autocomplete="off"></textarea>
-              <p class="hint">Optional timed .srt or .lrc file. Lyrics save with this release on PLAIGROUND.</p>
+              <p class="lyrics-tools">
+                <button class="btn btn-ghost btn-sm" type="button" data-lyrics-transcribe>Use AI to transcribe <span class="credit-tag">1 credit</span></button>
+              </p>
+              <p class="hint" data-lyrics-status hidden></p>
+              <p class="hint">Paste lyrics, or transcribe the audio and edit them before you submit. Lyrics save with this release.</p>
             </div>
           </div>
         </div>
@@ -331,7 +336,9 @@
   <script src="/product-events.js?v=20261014pixels"></script>
   <script src="lib/cover-reposition.js?v=20261007crop2"></script>
   <script src="lib/cover-bind.js?v=20261023fit3"></script>
-  <script src="lib/cover-make.js?v=20261007make"></script>
+  <script src="lib/lyrics-audio.js?v=20261024ly1"></script>
+  <script src="lib/release-lyrics.js?v=20261024ly1"></script>
+  <script src="lib/cover-make.js?v=20261024make"></script>
   <script src="lib/object-hop.js?v=20260913b1"></script>
   <script src="lib/upload-leave.js?v=20261019sv1"></script>
   <script src="lib/upload-skip-legal-create.js?v=20260905u1"></script>

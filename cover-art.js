@@ -234,6 +234,7 @@
     backBtn.hidden = step === 0;
     nextBtn.hidden = id === 'overlay';
     nextBtn.textContent = NEXT_LABEL[id] || 'Next';
+    if (embed && id === 'idea') nextBtn.textContent = 'Make the covers (1 credit)';
     renderDots();
     showError('');
     if (id === 'idea') {
@@ -362,17 +363,43 @@
     if ($('ca-use')) $('ca-use').disabled = on;
   }
 
+  function coverMiss(message) {
+    genError.hidden = false;
+    genError.textContent = message;
+  }
+
+  async function releaseWallet() {
+    var response = await fetch('/api/song-helper?action=dev-status', { credentials: 'same-origin' });
+    return response.json().catch(function () { return {}; });
+  }
+
   async function loadCovers() {
     setBusy(true);
     genError.hidden = true;
+    if (loadingEl) loadingEl.textContent = 'Making a few options…';
     var guarded = core.guardCoverText($('ca-idea').value);
     if (guarded.rejected) {
       setBusy(false);
-      genError.hidden = false;
-      genError.textContent = guarded.note;
+      coverMiss(guarded.note);
       return;
     }
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, 40000) : null;
+    var slowNote = setTimeout(function () {
+      if (loadingEl && busy) loadingEl.textContent = 'Still making options. This can take a minute.';
+    }, 8000);
     try {
+      if (embed) {
+        var wallet = await releaseWallet();
+        if (!wallet || !wallet.signedIn) {
+          coverMiss('Sign in to use a credit.');
+          return;
+        }
+        if (!(wallet.credits >= 1)) {
+          coverMiss('That takes 1 credit.');
+          return;
+        }
+      }
       var body = {
         look: picks.look,
         theme: picks.theme || '',
@@ -383,6 +410,7 @@
         company_website: $('ca-honey').value,
         turnstile_token: turnstileToken,
       };
+      if (embed) body.bill = 'release';
       if (picks.palette) {
         body.palette = picks.palette;
         body.customColor = picks.palette === 'custom' ? $('ca-custom').value : '';
@@ -390,13 +418,16 @@
       }
       var response = await fetch('/api/cover-art', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: controller ? controller.signal : undefined,
       });
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.ok) {
-        genError.hidden = false;
-        genError.textContent = data.error || 'The covers did not come back. Try again in a moment.';
+        coverMiss(data.error || (embed
+          ? 'The covers did not come back. Nothing was charged. Try again.'
+          : 'The covers did not come back. Try again in a moment.'));
         return;
       }
       images = data.images || [];
@@ -408,16 +439,27 @@
       banner.textContent = preview ? core.PLACEHOLDER_NOTICE : '';
       attr.hidden = preview || !data.attribution;
       attr.textContent = preview ? '' : (data.attribution || '');
-      noteEl.hidden = !data.note;
-      noteEl.textContent = data.note || '';
+      var note = data.note || '';
+      if (data.charged) note = note ? note + ' 1 credit used.' : '1 credit used.';
+      noteEl.hidden = !note;
+      noteEl.textContent = note;
       upscaleEl.hidden = preview || !data.upscale;
       upscaleEl.textContent = preview ? '' : (data.upscaleNote || core.UPSCALE_NOTE);
       renderOptions();
       writeCover(preview ? core.PLACEHOLDER_RECORD : core.GROK_RECORD);
     } catch (err) {
-      genError.hidden = false;
-      genError.textContent = 'The covers did not come back. Check the connection and try again.';
+      var aborted = err && (err.name === 'AbortError' || err.code === 20);
+      coverMiss(aborted
+        ? (embed
+          ? 'The covers took too long. Nothing was charged. Try again.'
+          : 'The covers took too long. Try again.')
+        : (embed
+          ? 'The covers did not come back. Nothing was charged. Check the connection and try again.'
+          : 'The covers did not come back. Check the connection and try again.'));
     } finally {
+      if (timer) clearTimeout(timer);
+      clearTimeout(slowNote);
+      if (loadingEl) loadingEl.textContent = 'Making a few options…';
       setBusy(false);
     }
   }
@@ -783,6 +825,7 @@
     });
   }
   if (embed && $('ca-use')) $('ca-use').hidden = false;
+  if (embed && $('ca-regen')) $('ca-regen').textContent = 'Regenerate (1 credit)';
   if ($('ca-use')) $('ca-use').addEventListener('click', useSelectedCover);
   window.addEventListener('message', function (event) {
     if (!embed || event.origin !== window.location.origin) return;
