@@ -324,6 +324,7 @@
     { "source": "/ai-lyrics-generator", "destination": "/song-helper.html" },
     { "source": "/album-cover-maker", "destination": "/cover-art.html" },
     { "source": "/epk-maker", "destination": "/epk.html" },
+    { "source": "/split-sheet-template", "destination": "/split-sheet-template.html" },
     { "source": "/split-sheet-template", "destination": "/split-sheets.html" },
     { "source": "/cover-art", "destination": "/cover-art.html" },
     { "source": "/cover-art/", "destination": "/cover-art.html" },
