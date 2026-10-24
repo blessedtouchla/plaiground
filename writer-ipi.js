@@ -19,6 +19,11 @@
   var removeBtn = q('remove');
   var statusEl = q('status');
   var guideRow = q('guide-row');
+  var badge = q('badge');
+  var confirmBox = q('confirm');
+  var confirmValue = q('confirm-value');
+  var yesBtn = q('confirm-yes');
+  var noBtn = q('confirm-no');
   var writer = null;
   var store = null;
   try { store = window.localStorage; } catch (err) { store = null; }
@@ -29,18 +34,26 @@
     statusEl.style.color = bad ? '#FF8A8A' : '';
   }
   function syncOther() { otherWrap.hidden = proSel.value !== 'Other'; }
+  function masked(ipi) {
+    var v = String(ipi || '');
+    return v.length > 3 ? '\u2022\u2022\u2022\u2022\u2022\u2022' + v.slice(-3) : v;
+  }
   function show() {
     form.hidden = true;
+    confirmBox.hidden = true;
     editBtn.hidden = false;
+    var locked = Boolean(writer && writer.locked_at);
+    badge.hidden = !locked;
     if (writer) {
-      valueEl.textContent = writer.ipi;
-      proEl.textContent = 'PRO: ' + W.proLabel(writer);
-      editBtn.textContent = 'Edit';
+      valueEl.textContent = locked ? masked(writer.ipi) : writer.ipi;
+      proEl.textContent = 'PRO: ' + W.proLabel(writer) + (locked ? '. Locked for the life of this account. Contact support to change it.' : '. Not locked yet.');
+      editBtn.textContent = 'Lock it in';
+      editBtn.hidden = locked;
       guideRow.hidden = true;
     } else {
-      valueEl.textContent = 'No IPI saved yet';
-      proEl.textContent = 'Add it once you have it. Publishing reads it from here.';
-      editBtn.textContent = 'Add IPI';
+      valueEl.textContent = 'No IPI on your account yet';
+      proEl.textContent = 'Have one? Lock it in and it fills in on your releases.';
+      editBtn.textContent = 'I have an IPI';
       guideRow.hidden = false;
     }
   }
@@ -57,14 +70,22 @@
     numberEl.focus();
   }
   function save() {
-    saveBtn.disabled = true;
-    status('Saving...');
-    W.saveWriter(null, { ipi: numberEl.value, pro: proSel.value, pro_other: otherEl.value }).then(function (r) {
-      saveBtn.disabled = false;
-      if (!r.ok) { status(r.error, true); return; }
+    var ipi = String(numberEl.value || '').replace(/[\s.\-]/g, '');
+    if (!/^\d{6,15}$/.test(ipi)) { status('Paste your full IPI, numbers only.', true); return; }
+    confirmValue.textContent = masked(ipi);
+    form.hidden = true;
+    confirmBox.hidden = false;
+    status('');
+  }
+  function lock() {
+    yesBtn.disabled = true;
+    status('Locking it in...');
+    W.saveWriter(null, { ipi: numberEl.value, pro: proSel.value, pro_other: otherEl.value, lock: true }).then(function (r) {
+      yesBtn.disabled = false;
+      if (!r.ok) { confirmBox.hidden = true; form.hidden = false; status(r.error, true); return; }
       writer = r.writer;
       show();
-      status('Saved on your account.');
+      status('Locked in. It now fills in on your releases.');
     });
   }
   function remove() {
@@ -83,6 +104,8 @@
   editBtn.addEventListener('click', edit);
   cancelBtn.addEventListener('click', function () { show(); status(''); });
   saveBtn.addEventListener('click', save);
+  yesBtn.addEventListener('click', lock);
+  noBtn.addEventListener('click', function () { confirmBox.hidden = true; form.hidden = false; status(''); });
   removeBtn.addEventListener('click', remove);
   proSel.addEventListener('change', syncOther);
 

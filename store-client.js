@@ -3683,6 +3683,25 @@
     return out;
   }
 
+  // Locked "Name for payouts" (Settings). Wins for account releases; a roster artist's own legal name still wins for that artist.
+  function lockedPayoutName(draft) {
+    var out = { first: '', last: '', locked: false };
+    try {
+      var acct = window.PlaigroundMembership && typeof window.PlaigroundMembership.account === 'function' ? window.PlaigroundMembership.account() : null;
+      var profile = acct && acct.profile && typeof acct.profile === 'object' ? acct.profile : {};
+      if (!profile.legal_name_locked_at) return out;
+      var artistId = String((draft && (draft.plaiground_artist_id || draft.artist_id)) || '').trim();
+      var roster = false;
+      if (artistId && artistId !== 'account' && Array.isArray(profile.artists)) {
+        profile.artists.forEach(function (a) { if (a && String(a.id || a.artist_id || '') === artistId && a.legal_first && a.legal_last) roster = true; });
+      }
+      if (roster) return out;
+      var parts = String(profile.legal_name || '').trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) { out.first = parts[0]; out.last = parts.slice(1).join(' '); out.locked = true; }
+    } catch (errLocked) {}
+    return out;
+  }
+
   function hopLegalFields(draft) {
     var modeEl = document.getElementById('tg-artist-mode');
     var mode = modeEl ? String(modeEl.value || '').trim() : '';
@@ -3694,7 +3713,10 @@
       : (document.getElementById('tg-legal-last') || document.getElementById('tg-legal-last-create'));
     var first = firstEl ? String(firstEl.value || '').trim() : '';
     var last = lastEl ? String(lastEl.value || '').trim() : '';
-    if (mode !== 'create') {
+    var lockedName = lockedPayoutName(draft);
+    if (mode !== 'create' && lockedName.first && lockedName.last) {
+      first = lockedName.first; last = lockedName.last;
+    } else if (mode !== 'create') {
       if (!first) first = String((draft && draft.legal_first) || '').trim();
       if (!last) last = String((draft && draft.legal_last) || '').trim();
       if (!first || !last) {
@@ -3752,6 +3774,7 @@
       artist_id: artistId,
       legal_first: first,
       legal_last: last,
+      payout_locked: lockedPayoutName(draft).locked,
       tracks: tracks,
     };
   }

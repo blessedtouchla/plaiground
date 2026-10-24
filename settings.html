@@ -69,29 +69,50 @@
       </div>
       <div class="panel">
         <h3>Account</h3>
-        <p class="hint">Legal name and email are for this login. Username is an optional community handle. Sign-in stays email.</p>
+        <p class="hint">Email is for this login. Username is an optional community handle. Sign-in stays email.</p>
         <div class="rel" style="margin-bottom:20px">
           <span class="avatar" style="width:56px;height:56px;font-size:16px" data-account-avatar>PG</span>
           <button class="btn btn-ghost btn-sm" type="button" data-account-photo-pick>Change photo</button>
           <input id="account-photo" data-account-photo type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden />
           <p class="hint" data-account-photo-status hidden></p>
         </div>
+        <input type="hidden" data-account-legal />
         <div class="form-grid four">
           <div class="field"><label>Username</label><input data-account-username placeholder="Username" autocomplete="nickname" /></div>
-          <div class="field"><label for="account-legal">Legal name</label><input id="account-legal" data-account-legal placeholder="Legal name" autocomplete="name" /></div>
           <div class="field"><label>Email</label><input data-account-email type="email" placeholder="you@label.com" autocomplete="email" /></div>
           <div class="field"><label>Country</label><input data-account-country placeholder="Country" autocomplete="country-name" /></div>
         </div>
       </div>
+      <div class="panel" id="account-legal" data-payout-name>
+        <h3>Name for payouts <span class="badge" data-payout-badge hidden style="margin-left:8px;font-size:12px;padding:2px 10px;border-radius:999px;background:#1f7a4d;color:#fff">Locked</span></h3>
+        <p class="hint">Your legal first and last name, exactly as it should appear on your songwriter credit and payout records. Not your artist name.</p>
+        <div class="form-grid">
+          <div class="field"><label for="payout-first">Legal first name</label><input id="payout-first" data-payout-first maxlength="60" autocomplete="given-name" placeholder="First name" /></div>
+          <div class="field"><label for="payout-last">Legal last name</label><input id="payout-last" data-payout-last maxlength="60" autocomplete="family-name" placeholder="Last name" /></div>
+        </div>
+        <div class="sec-btns" data-payout-actions>
+          <button class="btn btn-purple btn-sm" type="button" data-payout-lock>Lock it in</button>
+        </div>
+        <div class="draft-banner" data-payout-confirm hidden>
+          <strong>Lock in <span data-payout-confirm-name></span>?</strong>
+          <p>Once locked, this name stays on your account for the life of the account. To change it later you have to contact support.</p>
+          <div class="sec-btns">
+            <button class="btn btn-purple btn-sm" type="button" data-payout-confirm-yes>Yes, lock it in</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-payout-confirm-no>Go back</button>
+          </div>
+        </div>
+        <p class="hint" data-payout-locked-note hidden>Locked for the life of this account. Contact support to change it.</p>
+        <p class="hint" data-payout-status role="status" hidden></p>
+      </div>
       <div class="panel" id="writer-ipi" data-writer-ipi>
-        <h3>Your writer IPI</h3>
-        <p class="hint">Your songwriter number from your PRO. Save it once and it stays on your account, ready for publishing. We never ask for your SSN, birth date, bank details or PRO login.</p>
+        <h3>IPI number <span class="badge" data-writer-ipi-badge hidden style="margin-left:8px;font-size:12px;padding:2px 10px;border-radius:999px;background:#1f7a4d;color:#fff">Locked</span></h3>
+        <p class="hint">Your songwriter number from your PRO. Lock it in once and it fills in on your releases. We never ask for your SSN, birth date, bank details or PRO login.</p>
         <div class="head-row" data-writer-ipi-view>
           <div>
             <p style="font-weight:800;font-size:1.15rem;margin:4px 0 4px" data-writer-ipi-value>Loading...</p>
             <p style="color:var(--muted);font-size:14px;margin:0" data-writer-ipi-pro-label></p>
           </div>
-          <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-edit>Add IPI</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-edit>I have an IPI</button>
         </div>
         <div data-writer-ipi-form hidden>
           <div class="form-grid">
@@ -100,13 +121,21 @@
             <div class="field" data-writer-ipi-other-wrap hidden><label for="writer-ipi-other">PRO name</label><input id="writer-ipi-other" data-writer-ipi-other maxlength="60" autocomplete="off" placeholder="PRO name" /></div>
           </div>
           <div class="sec-btns">
-            <button class="btn btn-purple btn-sm" type="button" data-writer-ipi-save>Save IPI</button>
+            <button class="btn btn-purple btn-sm" type="button" data-writer-ipi-save>Lock it in</button>
             <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-cancel>Cancel</button>
             <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-remove hidden>Remove</button>
           </div>
         </div>
+        <div class="draft-banner" data-writer-ipi-confirm hidden>
+          <strong>Lock in IPI <span data-writer-ipi-confirm-value></span>?</strong>
+          <p>Once locked, this IPI stays on your account for the life of the account and fills in on your releases. To change it later you have to contact support.</p>
+          <div class="sec-btns">
+            <button class="btn btn-purple btn-sm" type="button" data-writer-ipi-confirm-yes>Yes, lock it in</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-writer-ipi-confirm-no>Go back</button>
+          </div>
+        </div>
         <p class="hint" data-writer-ipi-status role="status" hidden></p>
-        <p class="hint" data-writer-ipi-guide-row><a href="/ipi-guide">I don't have one yet</a></p>
+        <p class="sec-btns" data-writer-ipi-guide-row><a class="btn btn-gold btn-sm" href="/ipi-guide">Get my IPI / Unlock publishing</a></p>
       </div>
       <div class="draft-banner" data-billing-warning hidden>
         <strong>Payment warning</strong>
@@ -188,8 +217,9 @@
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
   <script src="lib/rejected-log.js?v=20260905r1"></script>
-  <script src="lib/writer-ipi-client.js?v=20261023acct"></script>
-  <script src="writer-ipi.js?v=20261023acct"></script>
+  <script src="lib/writer-ipi-client.js?v=20261023lock"></script>
+  <script src="writer-ipi.js?v=20261023lock"></script>
+  <script src="payout-name.js?v=20261023lock"></script>
   <script src="checkout.js?v=20261010track"></script>
   <script src="site.js?v=20261017menu"></script>
   <script src="plai-bubble.js" defer></script>
