@@ -73,6 +73,7 @@ const personaLib = require('../lib/persona');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const splitSheets = require('../lib/split-sheets');
+const writerIpi = require('../lib/writer-ipi');
 const aiDisclosure = require('../lib/ai-disclosure');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
@@ -3863,6 +3864,10 @@ async function submitRelease(req, res, releaseId) {
   }
   const submittedStatus = submitVerify.norm(afterStatus);
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
+  // Writer IPI and PRO ride on our release record (store API has no writer IPI field).
+  splitMeta.writers = writerIpi.attachToWriters(splitMeta.writers, profileLib.readStored(scope.row).writer, {
+    roster: Boolean((body && body.plaiground_artist_id) || (row && row.plaiground_artist_id)),
+  });
   // Our own copy of the full AI disclosure. Saved on the release record only; never sent to the store.
   const chosenArtist = releaseArtistName(scope, body, row);
   const disclosureRecord = aiDisclosure.fromSubmit(body, {

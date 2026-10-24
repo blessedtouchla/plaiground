@@ -3699,17 +3699,17 @@
 
   // Locked "Name for payouts" (Settings). Wins for account releases; a roster artist's own legal name still wins for that artist.
   function lockedPayoutName(draft) {
-    var out = { first: '', last: '', locked: false };
+    var out = { first: '', last: '', locked: false, roster: false };
     try {
       var acct = window.PlaigroundMembership && typeof window.PlaigroundMembership.account === 'function' ? window.PlaigroundMembership.account() : null;
       var profile = acct && acct.profile && typeof acct.profile === 'object' ? acct.profile : {};
-      if (!profile.legal_name_locked_at) return out;
       var artistId = String((draft && (draft.plaiground_artist_id || draft.artist_id)) || '').trim();
       var roster = false;
       if (artistId && artistId !== 'account' && Array.isArray(profile.artists)) {
         profile.artists.forEach(function (a) { if (a && String(a.id || a.artist_id || '') === artistId && a.legal_first && a.legal_last) roster = true; });
       }
-      if (roster) return out;
+      if (roster) { out.roster = true; return out; }
+      if (!profile.legal_name_locked_at) return out;
       var parts = String(profile.legal_name || '').trim().split(/\s+/).filter(Boolean);
       if (parts.length >= 2) { out.first = parts[0]; out.last = parts.slice(1).join(' '); out.locked = true; }
     } catch (errLocked) {}
@@ -3789,6 +3789,7 @@
       legal_first: first,
       legal_last: last,
       payout_locked: lockedPayoutName(draft).locked,
+      payout_roster: lockedPayoutName(draft).roster,
       tracks: tracks,
     };
   }
