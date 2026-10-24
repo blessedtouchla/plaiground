@@ -47,7 +47,7 @@
       setOpen(!isOpen());
     });
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape" && !event.defaultPrevented) setOpen(false);
     });
   }
 
@@ -57,13 +57,13 @@
   }
 
 
-  // Signed-in side menu: Submit a release on top, then expandable groups.
-  // Each group shows its main items; the rest appear when the header is clicked.
-  // The group holding the current page opens on its own. Help & account catches anything unlisted.
+  // Signed-in side menu is an accordion. On load, only the category headers show, all collapsed.
+  // A header opens its items and closes the other groups. Tap the header again to close it.
+  // The group for the current page is marked, not opened, so the full header list stays on screen.
+  // Help & account catches anything unlisted. Nothing sits loose above the headers.
   var SIDE_GROUPS = [
-    { id: "top", label: "", top: true, main: ["destination", "roadmap", "releases", "spark"], more: [] },
-    { id: "profile", label: "My profile", main: ["artists", "epk", "ar"], more: ["profile", "persona", "my-roadmap", "already-released", "release-week"] },
-    { id: "write", label: "Create", main: ["song-helper", "song-helper-v3", "cover-art"], more: [] },
+    { id: "profile", label: "My profile", main: ["artists", "epk", "ar"], more: ["profile", "persona", "destination", "roadmap", "my-roadmap", "already-released", "release-week"] },
+    { id: "write", label: "Create", main: ["upload", "releases", "song-helper", "song-helper-v3", "cover-art", "spark"], more: [] },
     { id: "money", label: "Money", main: ["earnings", "payouts", "analytics"], more: ["charts", "royalties"] },
     { id: "rights", label: "Rights", lead: ["publishing-register", "publishing"], main: ["splits", "split-sheet", "contracts", "contracts-review"], more: ["copyright", "qualify", "claim", "contracts-fix", "contracts-create", "contracts-sub", "rights", "transparency"] },
     { id: "grow", label: "Grow", main: ["boosts", "boost"], more: [] },
@@ -90,53 +90,82 @@
   }
   function appendSideGroup(nav, g, main, more, lead) {
     lead = lead || [];
-    if (g.top) { main.forEach(function (n) { n.classList.add("side-top-link"); nav.appendChild(n); }); return; }
-    if (!main.length && !more.length && !lead.length) return;
-    if (!main.length) { main = more.slice(0, 3); more = more.slice(3); }
-    var head;
-    if (more.length) {
-      head = document.createElement("button");
-      head.type = "button";
-      head.className = "side-label side-group-toggle";
-      head.setAttribute("aria-controls", "side-more-" + g.id);
-      head.innerHTML = '<span class="side-group-name"></span><span class="side-group-count" aria-hidden="true"></span><span class="side-group-chevron" aria-hidden="true"></span>';
-      head.querySelector(".side-group-name").textContent = g.label;
-    } else {
-      head = document.createElement("p");
-      head.className = "side-label";
-      head.textContent = g.label;
-    }
+    var items = lead.concat(main, more);
+    if (!items.length) return;
+    var head = document.createElement("button");
+    head.type = "button";
+    head.className = "side-label side-group-toggle";
+    head.id = "side-group-" + g.id;
     head.setAttribute("data-side-group", g.id);
+    head.setAttribute("aria-controls", "side-panel-" + g.id);
+    head.setAttribute("aria-expanded", "false");
+    head.innerHTML = '<span class="side-group-name"></span><span class="side-group-chevron" aria-hidden="true"></span>';
+    head.querySelector(".side-group-name").textContent = g.label;
     nav.appendChild(head);
-    lead.forEach(function (n) { n.classList.add("side-lead"); nav.appendChild(n); });
-    main.forEach(function (n) { nav.appendChild(n); });
-    if (!more.length) return;
     var box = document.createElement("div");
-    box.className = "side-more-list";
-    box.id = "side-more-" + g.id;
+    box.className = "side-more-list side-group-panel";
+    box.id = "side-panel-" + g.id;
+    box.hidden = true;
     box.setAttribute("role", "group");
-    box.setAttribute("aria-label", "More in " + g.label);
+    box.setAttribute("aria-labelledby", head.id);
+    lead.forEach(function (n) { n.classList.add("side-lead"); box.appendChild(n); });
+    main.forEach(function (n) { box.appendChild(n); });
     more.forEach(function (n) { box.appendChild(n); });
     nav.appendChild(box);
-    var open = lead.concat(main, more).some(function (n) { return n.classList.contains("on") || n.classList.contains("active"); });
-    function set(o) {
-      box.hidden = !o;
-      box.style.display = o ? "flex" : "none";
-      var count = head.querySelector(".side-group-count");
-      if (count) count.textContent = o ? "Less" : "+" + more.length + " more";
-      head.setAttribute("aria-expanded", o ? "true" : "false");
-      head.setAttribute("aria-label", (o ? "Show fewer " : "Show all ") + g.label + " links");
+    var here = items.some(function (n) {
+      return n.classList.contains("on") || n.classList.contains("active") || n.getAttribute("aria-current") === "page";
+    });
+    if (here) {
+      head.classList.add("is-current");
+      var name = head.querySelector(".side-group-name");
+      if (name) name.style.color = "#F5C542";
     }
-    set(open);
-    head.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      var opening = box.hidden;
-      set(opening);
-      // The side panel scrolls on its own, so a group low in the list could open out of sight.
-      if (opening && box.lastElementChild && box.lastElementChild.scrollIntoView) {
-        try { box.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) { box.lastElementChild.scrollIntoView(false); }
+  }
+  function wireSideAccordion(nav) {
+    function headers() {
+      return Array.prototype.filter.call(nav.querySelectorAll(".side-group-toggle"), function (head) {
+        return head.getAttribute("aria-controls");
+      });
+    }
+    function apply(head, open) {
+      var box = document.getElementById(head.getAttribute("aria-controls"));
+      if (!box) return;
+      box.hidden = !open;
+      box.style.display = open ? "flex" : "none";
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      head.classList.toggle("is-open", !!open);
+    }
+    function setOpen(head, open) {
+      if (open) {
+        Array.prototype.forEach.call(headers(), function (other) {
+          if (other !== head) apply(other, false);
+        });
       }
+      apply(head, open);
+    }
+    Array.prototype.forEach.call(headers(), function (head) {
+      head.addEventListener("click", function (event) {
+        event.preventDefault();
+        setOpen(head, head.getAttribute("aria-expanded") !== "true");
+      });
+      head.addEventListener("keydown", function (event) {
+        var list = headers();
+        var i = Array.prototype.indexOf.call(list, head);
+        var next = null;
+        if (event.key === "ArrowDown") next = list[i + 1] || list[0];
+        else if (event.key === "ArrowUp") next = list[i - 1] || list[list.length - 1];
+        else if (event.key === "Home") next = list[0];
+        else if (event.key === "End") next = list[list.length - 1];
+        else if (event.key === "Escape" && head.getAttribute("aria-expanded") === "true") {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(head, false);
+          return;
+        }
+        if (!next || next === head) return;
+        event.preventDefault();
+        next.focus();
+      });
     });
   }
   function sortByList(items, list) {
@@ -185,7 +214,7 @@
     submit.setAttribute("data-signed-in-upload", "");
     submit.textContent = "Submit a release";
     if (/^(upload|attest|review|split-sheet)$/.test(sideKey((window.location && window.location.pathname) || "").file)) submit.classList.add("on");
-    nav.appendChild(submit);
+    buckets.write.main.push(submit);
     // Publishing setup sits as a secondary button at the top of Rights.
     buckets.rights.lead.forEach(function (a) { a.textContent = "Publishing setup"; });
     buckets.rights.lead = buckets.rights.lead.slice(0, 1);
@@ -193,7 +222,10 @@
       var b = buckets[g.id];
       appendSideGroup(nav, g, sortByList(b.main, g.main), sortByList(b.more, g.more), b.lead);
     });
+    wireSideAccordion(nav);
+    nav.style.paddingBottom = "8px";
     nav.setAttribute("data-side-organized", "1");
+    nav.setAttribute("data-side-accordion", "1");
   }
 
   function setupAppMenu() {
