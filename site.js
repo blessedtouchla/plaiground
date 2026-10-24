@@ -71,40 +71,65 @@
     path = path.split("?")[0].replace(/^\.?\//, "").replace(/\.html$/, "").replace(/\/$/, "");
     return { file: path.split("/")[0] || "dashboard", key: (path || "dashboard") + q };
   }
-  // Publish shows the essentials. Everything else sits under one "More publishing tools" toggle, so nothing is lost.
-  var PUBLISH_ESSENTIALS = ["publishing-register", "publishing", "splits", "split-sheet", "copyright", "contracts", "earnings", "payouts", "analytics"];
-  function publishRank(a) {
-    var k = sideKey(a.getAttribute("href") || "");
-    if (k.key.indexOf("?") !== -1 || /^contracts\/./.test(k.key)) return -1;
-    return PUBLISH_ESSENTIALS.indexOf(k.file);
+  // Every group shows its main items. The rest sit behind the group header, which expands on click.
+  // The group holding the current page opens on its own, so nothing is lost.
+  var SIDE_MAIN = {
+    release: ["releases", "artists", "destination", "roadmap", "boosts"],
+    write: ["song-helper", "song-helper-v3", "my-lyrics", "cover-art", "make-human"],
+    publish: ["contracts", "splits", "split-sheet", "publishing-register", "publishing", "earnings", "payouts"],
+    account: ["settings", "problem", "plai-talk", "plai-text"]
+  };
+  function sideItemKey(node) {
+    if (node.hasAttribute("data-plai-talk")) return { file: "plai-talk", key: "plai-talk" };
+    if (node.hasAttribute("data-plai-text")) return { file: "plai-text", key: "plai-text" };
+    return sideKey(node.getAttribute("href") || "");
   }
-  function appendPublishGroup(nav, links) {
-    var keep = [], more = [];
-    links.forEach(function (a) { (publishRank(a) === -1 ? more : keep).push(a); });
-    keep.forEach(function (a) { nav.appendChild(a); });
+  function isMainItem(groupId, node) {
+    var k = sideItemKey(node);
+    if (k.key.indexOf("?") !== -1 || /^contracts\/./.test(k.key)) return false;
+    return (SIDE_MAIN[groupId] || []).indexOf(k.file) !== -1;
+  }
+  function appendSideGroup(nav, g, items) {
+    var main = [], more = [];
+    items.forEach(function (n) { (isMainItem(g.id, n) ? main : more).push(n); });
+    if (!main.length) { main = more.slice(0, 4); more = more.slice(4); }
+    var head;
+    if (more.length) {
+      head = document.createElement("button");
+      head.type = "button";
+      head.className = "side-label side-group-toggle";
+      head.setAttribute("aria-controls", "side-more-" + g.id);
+      head.innerHTML = '<span class="side-group-name"></span><span class="side-group-chevron" aria-hidden="true"></span>';
+      head.querySelector(".side-group-name").textContent = g.label;
+    } else {
+      head = document.createElement("p");
+      head.className = "side-label";
+      head.textContent = g.label;
+    }
+    head.setAttribute("data-side-group", g.id);
+    nav.appendChild(head);
+    main.forEach(function (n) { nav.appendChild(n); });
     if (!more.length) return;
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "side-more-toggle";
-    btn.setAttribute("data-side-more", "publish");
-    btn.setAttribute("aria-controls", "side-more-publish");
-    btn.textContent = "More publishing tools";
     var box = document.createElement("div");
     box.className = "side-more-list";
-    box.id = "side-more-publish";
-    more.forEach(function (a) { box.appendChild(a); });
-    var open = !!box.querySelector("a.on, a.active");
-    box.hidden = !open;
-    btn.setAttribute("aria-expanded", open ? "true" : "false");
-    btn.addEventListener("click", function (event) {
+    box.id = "side-more-" + g.id;
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", "More in " + g.label);
+    more.forEach(function (n) { box.appendChild(n); });
+    nav.appendChild(box);
+    var here = !!(box.querySelector("a.on, a.active"));
+    var open = here || items.some(function (n) { return n.classList && (n.classList.contains("on") || n.classList.contains("active")); });
+    function set(o) {
+      box.hidden = !o;
+      head.setAttribute("aria-expanded", o ? "true" : "false");
+      head.setAttribute("aria-label", (o ? "Show fewer " : "Show all ") + g.label + " links");
+    }
+    set(open);
+    head.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
-      var next = box.hidden;
-      box.hidden = !next;
-      btn.setAttribute("aria-expanded", next ? "true" : "false");
+      set(box.hidden);
     });
-    nav.appendChild(btn);
-    nav.appendChild(box);
   }
 
   function organizeSideNav(side) {
@@ -146,14 +171,7 @@
     nav.appendChild(submit);
     SIDE_GROUPS.forEach(function (g) {
       if (!buckets[g.id].length && !(g.id === "account" && extras.length)) return;
-      var h = document.createElement("p");
-      h.className = "side-label";
-      h.setAttribute("data-side-group", g.id);
-      h.textContent = g.label;
-      nav.appendChild(h);
-      if (g.id === "publish") appendPublishGroup(nav, buckets[g.id]);
-      else buckets[g.id].forEach(function (a) { nav.appendChild(a); });
-      if (g.id === "account") extras.forEach(function (b) { nav.appendChild(b); });
+      appendSideGroup(nav, g, g.id === "account" ? buckets[g.id].concat(extras) : buckets[g.id]);
     });
     nav.setAttribute("data-side-organized", "1");
   }
@@ -240,38 +258,40 @@
   }
 
   // Release flow pages (upload, attest, splits, review, submitted) have no sidebar.
-  // Build the same signed-in side menu there, then let setupAppMenu wire it.
-  var FLOW_SIDE_HTML =
-    '<a href="/destination">Roadmap</a>' +
+  // They read the link list straight from settings.html (one source), then reuse the
+  // same organizer and setupAppMenu. The short list below is only an offline fallback.
+  var FLOW_SIDE_FALLBACK =
     '<a href="releases.html">Releases</a>' +
-    '<a href="artists.html">Artist Profiles</a>' +
     '<a href="splits.html">Split sheets</a>' +
-    '<a href="ar.html">A&amp;R</a>' +
-    '<a href="epk.html">EPK</a>' +
-    '<a href="profile.html">Persona</a>' +
-    '<a href="boosts.html">Boosts</a>' +
-    '<a href="publishing-register.html" data-publishing-register>Publishing</a>' +
     '<a href="earnings.html">Earnings</a>' +
-    '<a href="analytics.html">Analytics</a>' +
-    '<a href="payouts.html">Payouts</a>' +
-    '<button type="button" class="side-plai" data-plai-talk aria-label="Talk to Plai, pronounced PLAY">Talk to Plai</button>' +
-    '<button type="button" class="side-plai" data-plai-text aria-label="Text to Plai, text only, microphone stays off">Text to Plai</button>' +
     '<a href="settings.html">Settings</a>' +
-    '<a href="how.html">How it works</a>' +
-    '<a href="faq.html">FAQ</a>' +
-    '<a class="side-problem" href="problem.html" data-have-problem>Have a problem?</a>' +
-    '<a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>';
+    '<a href="faq.html">FAQ</a>';
   function setupFlowMenu() {
     var body = document.body;
     var top = body && document.querySelector("body > .flow-top");
     if (!top || body.classList.contains("app") || body.classList.contains("flow-menu") || document.querySelector(".side")) return;
-    var side = document.createElement("aside");
-    side.className = "side flow-side";
-    side.id = "app-menu";
-    side.innerHTML = '<a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a><nav class="side-nav" aria-label="Menu">' + FLOW_SIDE_HTML + "</nav>";
-    body.insertBefore(side, body.firstChild);
-    body.classList.add("flow-menu");
-    setupAppMenu();
+    function build(navHtml) {
+      if (body.classList.contains("flow-menu")) return;
+      var side = document.createElement("aside");
+      side.className = "side flow-side";
+      side.id = "app-menu";
+      side.innerHTML = '<a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a><nav class="side-nav" aria-label="Menu"></nav>';
+      var nav = side.querySelector(".side-nav");
+      nav.innerHTML = navHtml;
+      Array.prototype.forEach.call(nav.querySelectorAll(".on, .active"), function (el) { el.classList.remove("on", "active"); });
+      body.insertBefore(side, body.firstChild);
+      body.classList.add("flow-menu");
+      setupAppMenu();
+    }
+    if (!window.fetch || !window.DOMParser) { build(FLOW_SIDE_FALLBACK); return; }
+    window.fetch("settings.html", { credentials: "same-origin" })
+      .then(function (res) { if (!res.ok) throw new Error("menu"); return res.text(); })
+      .then(function (html) {
+        var doc = new window.DOMParser().parseFromString(html, "text/html");
+        var src = doc.querySelector(".side .side-nav");
+        build(src && src.innerHTML.trim() ? src.innerHTML : FLOW_SIDE_FALLBACK);
+      })
+      .catch(function () { build(FLOW_SIDE_FALLBACK); });
   }
 
   function setupPublicMenu() {

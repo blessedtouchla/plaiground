@@ -8537,3 +8537,38 @@ body.flow-menu.nav-open > .side.flow-side { transform: translateX(0); pointer-ev
 body.flow-menu .app-nav-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 80; }
 body.flow-menu.nav-open .app-nav-backdrop { display: block; }
 body.flow-menu.nav-open { overflow: hidden; }
+
+/* -- Expandable side groups: header shows main items, click to see the rest (20261023menu) -- */
+.side-nav button.side-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.side-nav button.side-group-toggle:hover { color: #fff; background: rgba(255, 255, 255, 0.04); }
+.side-nav button.side-group-toggle:focus-visible { outline: 2px solid #F5C542; outline-offset: 2px; }
+.side-group-chevron {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid #F5C542;
+  border-bottom: 2px solid #F5C542;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.side-group-toggle[aria-expanded="true"] .side-group-chevron { transform: rotate(-135deg) translateY(-1px); }
+.side .side-nav a.side-action.side-submit,
+.side .side-nav a.side-action.side-submit.on,
+.side .side-nav a.side-action.side-submit:hover {
+  background: #f3cb47;
+  color: #111;
+  opacity: 1;
+  font-weight: 700;
+}
