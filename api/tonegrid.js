@@ -4380,13 +4380,26 @@ function releaseListOf(payload) {
   return [];
 }
 
-async function storeStatusFor(releaseId, fetcher) {
+function releaseInfoOf(payload) {
+  const d = payload && payload.data ? payload.data : payload;
+  const rel = (d && d.release) || d || {};
+  const tracks = Array.isArray(rel.tracks) ? rel.tracks : (Array.isArray(d && d.tracks) ? d.tracks : []);
+  return {
+    upc: String(rel.upc || ''),
+    title: String(rel.title || ''),
+    artist: String(rel.artist_name || rel.primary_artist || (rel.artist && rel.artist.name) || ''),
+    isrcs: tracks.map((t) => String((t && t.isrc) || '')).filter(Boolean),
+  };
+}
+
+async function storeStatusFor(releaseId, fetcher, lookupFetch) {
   const id = String(releaseId || '').toLowerCase();
   const hit = storeStatusCache.get(id);
   if (hit && Date.now() - hit.at < STORE_STATUS_TTL_MS) return hit.value;
   const hop = fetcher || tonegridFetch;
   let rows = [];
   let ok = false;
+  let info = { upc: '', title: '', artist: '', isrcs: [] };
   try {
     const res = await hop('/releases/' + id + '/ddex/deliveries', { method: 'GET' });
     if (res && res.ok) {
@@ -4400,10 +4413,19 @@ async function storeStatusFor(releaseId, fetcher) {
         rows = storeStatus.normalize(fb.data);
       }
     }
+    const rel = await hop('/releases/' + id, { method: 'GET' });
+    if (rel && rel.ok) info = releaseInfoOf(rel.data);
   } catch {
     ok = false;
   }
-  const value = { release_id: id, ok, counts: storeStatus.counts(rows), stores: rows };
+  let audit = {};
+  try {
+    audit = await storeStatus.auditLookup(info, lookupFetch);
+  } catch {
+    audit = {};
+  }
+  rows = storeStatus.applyAudit(rows, audit);
+  const value = { release_id: id, ok, title: info.title, counts: storeStatus.counts(rows), stores: rows };
   if (ok) storeStatusCache.set(id, { at: Date.now(), value });
   return value;
 }
@@ -4439,7 +4461,7 @@ async function storeStatusAction(req, res) {
   releases = releases.slice(0, STORE_STATUS_MAX);
   const out = await Promise.all(releases.map(async (r) => {
     const status = await storeStatusFor(r.id);
-    return Object.assign({ title: r.title || '', artist: r.artist || '' }, status);
+    return Object.assign({ artist: r.artist || '' }, status, { title: status.title || r.title || '' });
   }));
   res.setHeader('Cache-Control', 'private, max-age=60');
   sendJson(res, 200, {
