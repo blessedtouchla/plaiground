@@ -367,6 +367,10 @@
           title: row.title,
           destination: item.destination,
           status: item.status,
+          tone: item.tone,
+          live_date: item.live_date,
+          store_url: item.store_url,
+          note: item.note,
         });
       });
     });
@@ -378,9 +382,24 @@
       return '<tr>'
         + cell('Title', escapeHtml(dash(row.title)), 'admin-lead')
         + cell('Store', escapeHtml(dash(row.destination)))
-        + cell('Status', escapeHtml(dash(row.status)))
+        + cell('Status', statusChip(row))
+        + cell('Live date', escapeHtml(dash(row.live_date)))
+        + cell('Link', storeLinkCell(row))
         + '</tr>';
     });
+  }
+
+  function statusChip(row) {
+    var tone = /^(live|wait|bad|off)$/.test(String(row.tone || '')) ? row.tone : 'wait';
+    var html = '<span class="store-chip store-chip-' + tone + '">' + escapeHtml(dash(row.status)) + '</span>';
+    if (row.note) html += '<div class="store-status-note">' + escapeHtml(row.note) + '</div>';
+    return html;
+  }
+
+  function storeLinkCell(row) {
+    var href = String(row.store_url || '');
+    if (!/^https:\/\//i.test(href)) return '-';
+    return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer">Open</a>';
   }
 
   function renderRoyalties(rows) {

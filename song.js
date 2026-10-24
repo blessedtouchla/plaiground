@@ -1201,6 +1201,29 @@
     var show = Boolean(rows.length);
     if (list) list.hidden = !show;
     if (empty) empty.hidden = show;
+    mountDeliveryBoard(release);
+  }
+
+  var boardFor = '';
+  function mountDeliveryBoard(release) {
+    var board = $('[data-song-delivery-board]');
+    var host = $('[data-song-delivery-list]');
+    var boardApi = global.PlaigroundStoreStatus;
+    var id = String((release && (release.uuid || release.id)) || queryId() || '').trim();
+    if (!board || !host || !boardApi || !id || boardFor === id) return;
+    boardFor = id;
+    getJson('/api/tonegrid/store-status?release=' + encodeURIComponent(id)).then(function (result) {
+      var entry = result && result.ok && result.data && result.data.releases && result.data.releases[0];
+      var rows = (entry && entry.stores) || [];
+      boardApi.mountBoard(host, rows);
+      board.hidden = !rows.length;
+      var list = $('[data-song-stores-list]');
+      var empty = $('[data-song-stores-empty]');
+      if (rows.length) {
+        if (list) list.hidden = true;
+        if (empty) empty.hidden = true;
+      }
+    }).catch(function () { boardFor = ''; });
   }
 
   function load() {
