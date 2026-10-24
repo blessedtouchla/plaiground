@@ -56,6 +56,13 @@
       </figcaption>
     </figure>
     <div class="review-side">
+    <section class="flow-card review-artist" data-review-artist>
+      <h3>Artist</h3>
+      <p>Releasing as <b data-review-artist-name>Not chosen yet</b></p>
+      <p class="hint" data-review-artist-store></p>
+      <p class="hint" data-review-artist-warn hidden style="color:#c0392b"></p>
+      <a href="upload.html#artist-choose-wrap" data-review-artist-change>Change</a>
+    </section>
     <section class="flow-card" data-review-made hidden>
       <h3>How this song was made</h3>
       <p data-review-made-caption></p>
@@ -172,8 +179,8 @@
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/solo-credits-stamp.js?v=20260905s1"></script>
   <script src="upload-catalog.js"></script>
-  <script src="store-client.js?v=20261023enf" defer></script>
-  <script src="lib/review-facts.js?v=20261023enf" defer></script>
+  <script src="store-client.js?v=20261023artist" defer></script>
+  <script src="lib/review-facts.js?v=20261023lock" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {

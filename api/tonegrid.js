@@ -73,7 +73,6 @@ const personaLib = require('../lib/persona');
 const signwell = require('../lib/signwell');
 const signwellApi = require('./signwell');
 const splitSheets = require('../lib/split-sheets');
-const writerIpi = require('../lib/writer-ipi');
 const aiDisclosure = require('../lib/ai-disclosure');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
@@ -2052,6 +2051,12 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'artist_id must be a uuid.' });
     return;
   }
+  const typedArtist = String((body && (body.artist || body.artist_name || body.primary_artist)) || '').trim();
+  const artistConflict = typedArtist ? artistCheck.storeIdNameConflict(rosterOf(scope.row), artistId, typedArtist) : '';
+  if (artistConflict) {
+    sendJson(res, 400, { error: 'Artist mismatch: you entered "' + typedArtist + '" but this release points at "' + artistConflict + '". Go back and choose the artist again.' });
+    return;
+  }
   if (fields.error) {
     sendJson(res, 400, { error: fields.error });
     return;
@@ -3858,10 +3863,6 @@ async function submitRelease(req, res, releaseId) {
   }
   const submittedStatus = submitVerify.norm(afterStatus);
   const splitMeta = splitSheets.persistFields(body, solo, signwellInfo, documentId, songwriter);
-  // Writer IPI and PRO ride on our release record (store API has no writer IPI field).
-  splitMeta.writers = writerIpi.attachToWriters(splitMeta.writers, profileLib.readStored(scope.row).writer, {
-    roster: Boolean((body && body.plaiground_artist_id) || (row && row.plaiground_artist_id)),
-  });
   // Our own copy of the full AI disclosure. Saved on the release record only; never sent to the store.
   const chosenArtist = releaseArtistName(scope, body, row);
   const disclosureRecord = aiDisclosure.fromSubmit(body, {
