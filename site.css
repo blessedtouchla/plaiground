@@ -8611,6 +8611,46 @@ body.flow-menu.nav-open { overflow: hidden; }
 .sh-lab-links a:hover { border-color: #F5C542; }
 .side-more-list > * { scroll-margin-bottom: 96px; }
 
+/* Signed-in accordion: headers only until a category opens. One group at a time. */
+.side:has(.side-nav[data-side-accordion]) {
+  padding: 12px 12px 10px;
+}
+.side:has(.side-nav[data-side-accordion]) .logo img {
+  height: 36px;
+  margin: 0 0 8px;
+}
+.side-nav[data-side-accordion] {
+  gap: 0;
+  padding-bottom: 8px;
+}
+.side-nav[data-side-accordion] .side-label[data-side-group] {
+  margin-top: 0;
+}
+.side-nav[data-side-accordion] button.side-group-toggle {
+  min-height: 36px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+.side-nav[data-side-accordion] .side-group-toggle.is-current .side-group-name {
+  color: #F5C542;
+}
+.side-nav[data-side-accordion] .side-group-panel {
+  padding: 2px 0 4px 4px;
+  gap: 0;
+}
+.side-nav[data-side-accordion] .side-group-panel[hidden] {
+  display: none !important;
+}
+.side:has(.side-nav[data-side-accordion]) .pro-card {
+  margin-top: 8px;
+  padding: 10px 12px;
+}
+.side:has(.side-nav[data-side-accordion]) .pro-card h4 { margin-bottom: 4px; }
+.side:has(.side-nav[data-side-accordion]) .pro-card p { font-size: 11px; line-height: 1.35; }
+
 .starter-cta[hidden] { display: none !important; }
 .starter-banner { display: block; width: 100%; padding: 6px 12px; background: #F5C542; color: #141018; font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
 .starter-banner:hover { background: #ffd76a; color: #141018; }
