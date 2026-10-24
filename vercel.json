@@ -406,7 +406,8 @@
     { "source": "/blog/deezer-ai-detector-time", "destination": "/blog-deezer-ai-detector-time.html" },
     { "source": "/blog/denmark-digital-replica-bill", "destination": "/blog-denmark-digital-replica-bill.html" },
     { "source": "/blog/publish-ai-assisted-music", "destination": "/blog-publish-ai-assisted-music.html" },
-    { "source": "/blog/can-my-ai-song-be-published", "destination": "/blog-can-my-ai-song-be-published.html" }
+    { "source": "/blog/can-my-ai-song-be-published", "destination": "/blog-can-my-ai-song-be-published.html" },
+    { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
     {
