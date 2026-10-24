@@ -8329,3 +8329,63 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .nav.nav-open .nav-links[data-home-groups] .nav-group > .nav-group-menu,
 .nav.nav-open .nav-links[data-home-groups] .nav-group:hover > .nav-group-menu { display: none; }
 .nav.nav-open .nav-links[data-home-groups] .nav-group.open > .nav-group-menu { display: flex; padding: 0 0 8px 12px; }
+
+/* -- Review desktop layout (>=900px): wider column, cover and schedule left, cards right -- */
+@media (min-width: 900px) {
+  body.review-page main.page {
+    max-width: 860px;
+  }
+  .review-page .review-kicker {
+    font-size: 15px;
+  }
+  .review-page .review-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto 1fr;
+    column-gap: 40px;
+    align-items: start;
+  }
+  .review-page .review-layout > .review-hero,
+  .review-page .review-layout > .review-schedule,
+  .review-page .review-layout > .review-due,
+  .review-page .review-layout > .review-stores {
+    grid-column: 1;
+  }
+  .review-page .review-layout > .review-side {
+    grid-column: 2;
+    grid-row: 1 / 6;
+    margin-top: 18px;
+  }
+  .review-page .review-side > .flow-card:first-child { margin-top: 0; }
+  .review-page .review-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .review-page .review-cover,
+  .review-page .thumb.review-cover {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-width: 340px;
+    border-radius: 12px;
+  }
+  .review-page .review-song {
+    font-size: 2rem;
+  }
+  .review-page .review-meta {
+    font-size: 15px;
+  }
+  .review-page .review-side .flow-card h3 {
+    font-size: 1.15rem;
+  }
+  .review-page .review-side .flow-card p,
+  .review-page .review-side .flow-card .hint {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .review-page .review-store-bar .hint,
+  .review-page .review-back {
+    font-size: 15px;
+  }
+}
