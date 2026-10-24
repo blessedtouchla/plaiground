@@ -81,6 +81,8 @@ const submitVerify = require('../lib/submit-verify');
 const audioConvert = require('../lib/audio-convert');
 const audioChunks = require('../lib/audio-chunks');
 const livePlayer = require('../lib/live-player');
+const storeStatus = require('../lib/store-status');
+const { hasStaffProOverride } = require('../lib/auth');
 const growthEvents = require('../lib/growth-events');
 const { sendQcReleaseAlert, sendReleaseAlert } = require('../lib/mail');
 const objectStore = require('../lib/object-store');
@@ -4361,8 +4363,98 @@ async function oneRelease(req, res, releaseId) {
   sendJson(res, 405, { error: 'Method not allowed.' });
 }
 
+// Read-only per-store delivery status board ("Find my music everywhere" step 1).
+// GET /api/tonegrid/store-status            -> the signed-in artist's releases
+// GET /api/tonegrid/store-status?release=ID -> one release (must be in scope)
+// GET /api/tonegrid/store-status?all=1      -> every release (staff only)
+// Short in-memory cache per release so dashboards do not hammer the upstream.
+const STORE_STATUS_TTL_MS = 60 * 1000;
+const STORE_STATUS_MAX = 50;
+const storeStatusCache = new Map();
+
+function releaseListOf(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.data)) return payload.data;
+  if (payload && payload.data && Array.isArray(payload.data.data)) return payload.data.data;
+  if (payload && Array.isArray(payload.releases)) return payload.releases;
+  return [];
+}
+
+async function storeStatusFor(releaseId, fetcher) {
+  const id = String(releaseId || '').toLowerCase();
+  const hit = storeStatusCache.get(id);
+  if (hit && Date.now() - hit.at < STORE_STATUS_TTL_MS) return hit.value;
+  const hop = fetcher || tonegridFetch;
+  let rows = [];
+  let ok = false;
+  try {
+    const res = await hop('/releases/' + id + '/ddex/deliveries', { method: 'GET' });
+    if (res && res.ok) {
+      ok = true;
+      rows = storeStatus.normalize(res.data);
+    }
+    if (!rows.length) {
+      const fb = await hop('/releases/' + id + '/distribution', { method: 'GET' });
+      if (fb && fb.ok) {
+        ok = true;
+        rows = storeStatus.normalize(fb.data);
+      }
+    }
+  } catch {
+    ok = false;
+  }
+  const value = { release_id: id, ok, stores: rows };
+  if (ok) storeStatusCache.set(id, { at: Date.now(), value });
+  return value;
+}
+
+async function storeStatusAction(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  const scope = await personalScope(req, res);
+  if (!scope) return;
+  const staff = hasStaffProOverride(scope.row && scope.row.email);
+  const one = String(queryValue(req, 'release') || '').trim().toLowerCase();
+  const wantsAll = staff && String(queryValue(req, 'all') || '') === '1';
+  let releases = [];
+  if (one) {
+    if (!staff && !idAllowed(scope.allow, one)) {
+      sendJson(res, 404, { error: 'Release not found.' });
+      return;
+    }
+    releases = [{ id: one, title: '' }];
+  } else if (wantsAll) {
+    const list = await tonegridFetch('/releases?per_page=' + STORE_STATUS_MAX, { method: 'GET' });
+    releases = releaseListOf(list && list.ok ? list.data : null).map((r) => ({
+      id: String(r.uuid || r.id || '').toLowerCase(),
+      title: String(r.title || ''),
+      artist: String(r.artist_name || (r.artist && r.artist.name) || ''),
+    })).filter((r) => r.id);
+  } else {
+    releases = (scope.releaseIds || []).map((id) => ({ id: String(id).toLowerCase(), title: '' }));
+  }
+  releases = releases.slice(0, STORE_STATUS_MAX);
+  const out = await Promise.all(releases.map(async (r) => {
+    const status = await storeStatusFor(r.id);
+    return Object.assign({ title: r.title || '', artist: r.artist || '' }, status);
+  }));
+  res.setHeader('Cache-Control', 'private, max-age=60');
+  sendJson(res, 200, {
+    scope: wantsAll ? 'all' : 'mine',
+    unconfirmed_copy: storeStatus.UNCONFIRMED_COPY,
+    releases: out,
+  });
+}
+
 async function handler(req, res) {
   const route = routeOf(req);
+  if (route.resource === 'store-status') {
+    await storeStatusAction(req, res);
+    return;
+  }
   if (route.resource === 'health') {
     await health(req, res);
     return;
@@ -4443,3 +4535,4 @@ module.exports.protectedCatalogIdMatch = protectedCatalogIdMatch;
 module.exports.isRemovedCatalogRelease = isRemovedCatalogRelease;
 module.exports.primaryArtistName = primaryArtistName;
 module.exports.releaseArtistName = releaseArtistName;
+module.exports.storeStatusFor = storeStatusFor;
