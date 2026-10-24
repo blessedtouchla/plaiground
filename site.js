@@ -57,34 +57,88 @@
   }
 
 
-  // Signed-in side menu: Submit a release first, then deduped links under Release, Write, Publish, Account.
+  // Signed-in side menu: Submit a release on top, then expandable groups.
+  // Each group shows its main items; the rest appear when the header is clicked.
+  // The group holding the current page opens on its own. Help & account catches anything unlisted.
   var SIDE_GROUPS = [
-    { id: "release", label: "Release", test: /^(upload|releases|artists|already-released|release-week|boosts?|epk|ar|profile|persona|destination|my-roadmap|roadmap)$/ },
-    { id: "write", label: "Write", test: /^(song-helper|song-helper-v3|my-lyrics|cover-art|make-human|battle|spark|guide|slang|style-prompt-template|cowriter|creator)$/ },
-    { id: "publish", label: "Publish", test: /^(contracts|split-sheet|splits|publishing|publishing-register|copyright|qualify|claim|rights|transparency|earnings|analytics|payouts|royalties|charts)$/ },
-    { id: "account", label: "Account", test: /.*/ }
+    { id: "release", label: "My music", main: ["releases", "artists", "destination", "roadmap"], more: ["my-roadmap", "ar", "epk", "profile", "persona", "already-released", "release-week"] },
+    { id: "write", label: "Create", main: ["song-helper", "song-helper-v3", "cover-art", "make-human"], more: ["guide", "spark", "battle", "my-lyrics", "slang", "style-prompt-template", "cowriter", "creator"] },
+    { id: "money", label: "Money", main: ["earnings", "payouts", "analytics"], more: ["charts", "royalties"] },
+    { id: "publish", label: "Publishing", main: ["splits", "split-sheet", "publishing-register", "publishing", "contracts"], more: ["copyright", "qualify", "claim", "contracts-sub", "rights", "transparency"] },
+    { id: "grow", label: "Grow", main: ["boosts", "boost", "epk"], more: [], also: true },
+    { id: "account", label: "Help & account", main: ["settings", "problem", "plai-talk"], more: ["plai-text", "faq", "how", "pricing", "blog"], rest: true }
   ];
   function sideKey(href) {
     var h = String(href || "").trim();
+    if (/#pricing$/.test(h)) return { file: "pricing", key: "pricing" };
     var path = h.split("#")[0];
     var q = path.indexOf("?") === -1 ? "" : path.slice(path.indexOf("?"));
     path = path.split("?")[0].replace(/^\.?\//, "").replace(/\.html$/, "").replace(/\/$/, "");
     return { file: path.split("/")[0] || "dashboard", key: (path || "dashboard") + q };
   }
+  function sideItemKey(node) {
+    if (node.hasAttribute("data-plai-talk")) return "plai-talk";
+    if (node.hasAttribute("data-plai-text")) return "plai-text";
+    if (node.classList.contains("side-problem")) return "problem";
+    var k = sideKey(node.getAttribute("href") || "");
+    if (k.file === "contracts" && k.key !== "contracts") return "contracts-sub";
+    return k.file;
+  }
+  function appendSideGroup(nav, g, main, more) {
+    if (!main.length && !more.length) return;
+    if (!main.length) { main = more.slice(0, 3); more = more.slice(3); }
+    var head;
+    if (more.length) {
+      head = document.createElement("button");
+      head.type = "button";
+      head.className = "side-label side-group-toggle";
+      head.setAttribute("aria-controls", "side-more-" + g.id);
+      head.innerHTML = '<span class="side-group-name"></span><span class="side-group-chevron" aria-hidden="true"></span>';
+      head.querySelector(".side-group-name").textContent = g.label;
+    } else {
+      head = document.createElement("p");
+      head.className = "side-label";
+      head.textContent = g.label;
+    }
+    head.setAttribute("data-side-group", g.id);
+    nav.appendChild(head);
+    main.forEach(function (n) { nav.appendChild(n); });
+    if (!more.length) return;
+    var box = document.createElement("div");
+    box.className = "side-more-list";
+    box.id = "side-more-" + g.id;
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", "More in " + g.label);
+    more.forEach(function (n) { box.appendChild(n); });
+    nav.appendChild(box);
+    var open = main.concat(more).some(function (n) { return n.classList.contains("on") || n.classList.contains("active"); });
+    function set(o) {
+      box.hidden = !o;
+      head.setAttribute("aria-expanded", o ? "true" : "false");
+      head.setAttribute("aria-label", (o ? "Show fewer " : "Show all ") + g.label + " links");
+    }
+    set(open);
+    head.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      set(box.hidden);
+    });
+  }
+  function sortByList(items, list) {
+    return items.map(function (n, i) { var r = list.indexOf(sideItemKey(n)); return { n: n, r: r === -1 ? 999 + i : r }; })
+      .sort(function (x, y) { return x.r - y.r; }).map(function (x) { return x.n; });
+  }
+
   function organizeSideNav(side) {
     var nav = side && side.querySelector(".side-nav");
     if (!nav || nav.getAttribute("data-side-organized") === "1") return;
-    var seenKey = {}, seenLabel = {}, buckets = {}, extras = [];
-    SIDE_GROUPS.forEach(function (g) { buckets[g.id] = []; });
+    var seenKey = {}, seenLabel = {}, items = [];
     Array.prototype.slice.call(nav.children).forEach(function (node) {
-      if (node.tagName === "P" || node.tagName === "BUTTON") {
-        if (node.tagName === "BUTTON") extras.push(node);
-        if (node.parentNode) node.parentNode.removeChild(node);
-        return;
-      }
-      var anchors = node.tagName === "A" ? [node] : Array.prototype.slice.call(node.querySelectorAll("a"));
+      if (node.tagName === "P") { if (node.parentNode) node.parentNode.removeChild(node); return; }
+      var list = (node.tagName === "A" || node.tagName === "BUTTON") ? [node] : Array.prototype.slice.call(node.querySelectorAll("a, button"));
       if (node.parentNode) node.parentNode.removeChild(node);
-      anchors.forEach(function (a) {
+      list.forEach(function (a) {
+        if (a.tagName === "BUTTON") { items.push(a); return; }
         var href = a.getAttribute("href") || "";
         var label = linkText(a).toLowerCase();
         var k = sideKey(href);
@@ -93,12 +147,20 @@
         seenKey[k.key] = true; seenLabel[label] = true;
         a.classList.remove("side-action");
         a.removeAttribute("style");
-        for (var i = 0; i < SIDE_GROUPS.length; i++) {
-          var g = SIDE_GROUPS[i];
-          var isProblem = a.classList.contains("side-problem");
-          if ((g.id === "account" && isProblem) || (!isProblem && g.test.test(k.file))) { buckets[g.id].push(a); break; }
-        }
+        items.push(a);
       });
+    });
+    var buckets = {};
+    SIDE_GROUPS.forEach(function (g) { buckets[g.id] = { main: [], more: [] }; });
+    items.forEach(function (a) {
+      var key = sideItemKey(a), placed = false;
+      SIDE_GROUPS.forEach(function (g) {
+        var inMain = g.main.indexOf(key) !== -1, inMore = g.more.indexOf(key) !== -1;
+        if (!inMain && !inMore) return;
+        if (!placed) { buckets[g.id][inMain ? "main" : "more"].push(a); placed = true; }
+        else if (g.also) { var copy = a.cloneNode(true); copy.setAttribute("data-side-copy", ""); buckets[g.id][inMain ? "main" : "more"].push(copy); }
+      });
+      if (!placed) buckets.account.more.push(a);
     });
     var submit = document.createElement("a");
     submit.className = "side-action side-submit";
@@ -108,24 +170,23 @@
     submit.textContent = "Submit a release";
     if (/^(upload|attest|review|split-sheet)$/.test(sideKey((window.location && window.location.pathname) || "").file)) submit.classList.add("on");
     nav.appendChild(submit);
+    // The group is named Publishing, so its Publishing link reads "Publishing setup".
+    buckets.publish.main.concat(buckets.publish.more).forEach(function (a) {
+      var f = sideItemKey(a);
+      if ((f === "publishing-register" || f === "publishing") && linkText(a).toLowerCase() === "publishing") a.textContent = "Publishing setup";
+    });
     SIDE_GROUPS.forEach(function (g) {
-      if (!buckets[g.id].length && !(g.id === "account" && extras.length)) return;
-      var h = document.createElement("p");
-      h.className = "side-label";
-      h.setAttribute("data-side-group", g.id);
-      h.textContent = g.label;
-      nav.appendChild(h);
-      buckets[g.id].forEach(function (a) { nav.appendChild(a); });
-      if (g.id === "account") extras.forEach(function (b) { nav.appendChild(b); });
+      var b = buckets[g.id];
+      appendSideGroup(nav, g, sortByList(b.main, g.main), sortByList(b.more, g.more));
     });
     nav.setAttribute("data-side-organized", "1");
   }
 
   function setupAppMenu() {
     var app = document.body;
-    if (!app || !app.classList.contains("app")) return;
+    if (!app || (!app.classList.contains("app") && !app.classList.contains("flow-menu"))) return;
     var side = app.querySelector(".side");
-    var topbar = app.querySelector(".topbar");
+    var topbar = app.querySelector(".topbar") || app.querySelector("body > .flow-top");
     if (!side || !topbar) return;
 
     if (!side.id) side.id = "app-menu";
@@ -171,22 +232,72 @@
       app.insertBefore(backdrop, app.firstChild);
     }
 
+    function wide() {
+      return !!(window.matchMedia && window.matchMedia("(min-width: 981px)").matches) && !app.classList.contains("flow-menu");
+    }
     function isOpen() {
+      if (wide()) return !app.classList.contains("side-collapsed");
       return app.classList.contains("nav-open");
     }
 
     function setOpen(open) {
+      if (wide()) {
+        app.classList.toggle("side-collapsed", !open);
+        app.classList.remove("nav-open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.setAttribute("aria-label", open ? "Hide menu" : "Open menu");
+        backdrop.hidden = true;
+        return;
+      }
       app.classList.toggle("nav-open", open);
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
       backdrop.hidden = !open;
     }
 
+    if (wide()) toggle.setAttribute("aria-expanded", "true");
     wireToggle(toggle, isOpen, setOpen);
     backdrop.addEventListener("click", function () { setOpen(false); });
     side.querySelectorAll("a, [data-plai-talk], [data-plai-text]").forEach(function (link) {
-      link.addEventListener("click", function () { setOpen(false); });
+      link.addEventListener("click", function () { if (!wide()) setOpen(false); });
     });
+  }
+
+  // Release flow pages (upload, attest, splits, review, submitted) have no sidebar.
+  // They read the link list straight from settings.html (one source), then reuse the
+  // same organizer and setupAppMenu. The short list below is only an offline fallback.
+  var FLOW_SIDE_FALLBACK =
+    '<a href="releases.html">Releases</a>' +
+    '<a href="splits.html">Split sheets</a>' +
+    '<a href="earnings.html">Earnings</a>' +
+    '<a href="settings.html">Settings</a>' +
+    '<a href="faq.html">FAQ</a>';
+  function setupFlowMenu() {
+    var body = document.body;
+    var top = body && document.querySelector("body > .flow-top");
+    if (!top || body.classList.contains("app") || body.classList.contains("flow-menu") || document.querySelector(".side")) return;
+    function build(navHtml) {
+      if (body.classList.contains("flow-menu")) return;
+      var side = document.createElement("aside");
+      side.className = "side flow-side";
+      side.id = "app-menu";
+      side.innerHTML = '<a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a><nav class="side-nav" aria-label="Menu"></nav>';
+      var nav = side.querySelector(".side-nav");
+      nav.innerHTML = navHtml;
+      Array.prototype.forEach.call(nav.querySelectorAll(".on, .active"), function (el) { el.classList.remove("on", "active"); });
+      body.insertBefore(side, body.firstChild);
+      body.classList.add("flow-menu");
+      setupAppMenu();
+    }
+    if (!window.fetch || !window.DOMParser) { build(FLOW_SIDE_FALLBACK); return; }
+    window.fetch("settings.html", { credentials: "same-origin" })
+      .then(function (res) { if (!res.ok) throw new Error("menu"); return res.text(); })
+      .then(function (html) {
+        var doc = new window.DOMParser().parseFromString(html, "text/html");
+        var src = doc.querySelector(".side .side-nav");
+        build(src && src.innerHTML.trim() ? src.innerHTML : FLOW_SIDE_FALLBACK);
+      })
+      .catch(function () { build(FLOW_SIDE_FALLBACK); });
   }
 
   function setupPublicMenu() {
@@ -1351,6 +1462,10 @@
     if (parent && parent.appendChild) parent.appendChild(script);
   }
 
+  if (window.PLAI_FLOW_MENU_ONLY) {
+    setupFlowMenu();
+    return;
+  }
   setupSignedInPublicAppChrome();
   setupAppMenu();
   setupPublicMenu();
@@ -1683,6 +1798,7 @@
 })();
 
 (function () {
+  if (window.PLAI_FLOW_MENU_ONLY) return;
   if (!document || !document.head || !document.createElement) return;
   function add(src, id, immediate) {
     if (id && document.getElementById(id)) return;
