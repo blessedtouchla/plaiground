@@ -2051,6 +2051,12 @@ async function createRelease(req, res) {
     sendJson(res, 400, { error: 'artist_id must be a uuid.' });
     return;
   }
+  const typedArtist = String((body && (body.artist || body.artist_name || body.primary_artist)) || '').trim();
+  const artistConflict = typedArtist ? artistCheck.storeIdNameConflict(rosterOf(scope.row), artistId, typedArtist) : '';
+  if (artistConflict) {
+    sendJson(res, 400, { error: 'Artist mismatch: you entered "' + typedArtist + '" but this release points at "' + artistConflict + '". Go back and choose the artist again.' });
+    return;
+  }
   if (fields.error) {
     sendJson(res, 400, { error: fields.error });
     return;

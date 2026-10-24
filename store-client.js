@@ -2600,9 +2600,7 @@
     }) : current.tracks;
     if (deadId) markDeadRelease(deadId);
     var artistId = String(current.artist_id || '').trim();
-    if (!isUuidValue(artistId)) {
-      artistId = catalogFromAccount(accountRecord()).artist_id || '';
-    }
+    if (!isUuidValue(artistId) || !storeIdBoundToDraftName(artistId, current)) artistId = '';
     var next = writeDraft({
       artist_id: artistId,
       release_id: '',
@@ -2672,6 +2670,12 @@
     return false;
   }
 
+  function sameArtistName(a, b) {
+    var api = artistCheckApi();
+    if (api && typeof api.artistNameKey === 'function') return api.artistNameKey(a) === api.artistNameKey(b) && Boolean(api.artistNameKey(a));
+    return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase() && Boolean(String(a || '').trim());
+  }
+
   function matchingRosterStoreArtistId(draft) {
     var current = draft || {};
     var artists = rosterFromMe();
@@ -2682,13 +2686,14 @@
       var row = artists[i] || {};
       var storeId = String(row.tonegrid_artist_id || '').trim();
       if (String(row.id || '') === 'account') {
-        if (isUuidValue(storeId) && !isLocalProfileArtistId(storeId, current) && name && String(row.name || '').toLowerCase() === name.toLowerCase()) {
+        if (isUuidValue(storeId) && !isLocalProfileArtistId(storeId, current) && name && sameArtistName(row.name, name)) {
           return storeId;
         }
         continue;
       }
-      var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId))
-        || (name && String(row.name || '').toLowerCase() === name.toLowerCase());
+      var sameName = name && sameArtistName(row.name, name);
+      var sameProfile = (pgId && (String(row.id || '') === pgId || String(row.plaiground_artist_id || '') === pgId) && (!name || sameName))
+        || sameName;
       if (!sameProfile) continue;
       if (isUuidValue(storeId) && !isLocalProfileArtistId(storeId, current)) return storeId;
       return '';
@@ -2722,6 +2727,7 @@
     var current = draft || {};
     if (String(current.artist_id || '') === 'account' && isUuidValue(current.tonegrid_artist_id)) {
       var accountId = String(current.tonegrid_artist_id).trim();
+      if (!storeIdBoundToDraftName(accountId, current)) return '';
       return isLocalProfileArtistId(accountId, current) ? '' : accountId;
     }
     var fromRoster = matchingRosterStoreArtistId(current);
@@ -2731,18 +2737,26 @@
 
   function ensureCatalogArtist(draft) {
     var current = draft || readDraft();
+    var boundName = String(current.name || '').trim();
     var existing = String(current.artist_id || '').trim();
-    if (isUuidValue(existing) && !isLocalProfileArtistId(existing, current)) {
+    if (isUuidValue(existing) && !isLocalProfileArtistId(existing, current) && storeIdBoundToDraftName(existing, current)) {
       return Promise.resolve({ ok: true, draft: current, reused: true });
     }
     var tonegridId = String(current.tonegrid_artist_id || '').trim();
+    if ((isUuidValue(existing) && !storeIdBoundToDraftName(existing, current))
+      || (isUuidValue(tonegridId) && !storeIdBoundToDraftName(tonegridId, current))) {
+      // Typed name does not own this id (old draft or account default). Drop it, never fall back.
+      current = writeDraft({ artist_id: '', tonegrid_artist_id: '', artist_bound_name: '' });
+      existing = '';
+      tonegridId = '';
+    }
     if (isUuidValue(tonegridId) && !isLocalProfileArtistId(tonegridId, current)) {
-      var reusedTone = writeDraft({ artist_id: tonegridId, tonegrid_artist_id: tonegridId });
+      var reusedTone = writeDraft({ artist_id: tonegridId, tonegrid_artist_id: tonegridId, artist_bound_name: boundName });
       return Promise.resolve({ ok: true, draft: reusedTone, reused: true });
     }
     var stored = existingStoreArtistId(current);
     if (stored) {
-      var reusedStored = writeDraft({ artist_id: stored, tonegrid_artist_id: stored });
+      var reusedStored = writeDraft({ artist_id: stored, tonegrid_artist_id: stored, artist_bound_name: boundName });
       return Promise.resolve({ ok: true, draft: reusedStored, reused: true });
     }
     var name = String(current.name || '').trim();
@@ -2764,7 +2778,7 @@
       if (!result.ok) {
         var adopted = pickUuid(result.data);
         if (adopted && !isLocalProfileArtistId(adopted, current)) {
-          var adoptedDraft = writeDraft({ artist_id: adopted, tonegrid_artist_id: adopted });
+          var adoptedDraft = writeDraft({ artist_id: adopted, tonegrid_artist_id: adopted, artist_bound_name: name });
           saveCatalog({ artist_id: adopted });
           rememberRosterArtist({
             id: current.plaiground_artist_id || name,
@@ -2790,7 +2804,7 @@
           draft: current,
         };
       }
-      var next = writeDraft({ artist_id: id, tonegrid_artist_id: id });
+      var next = writeDraft({ artist_id: id, tonegrid_artist_id: id, artist_bound_name: name });
       saveCatalog({ artist_id: id });
       rememberRosterArtist({
         id: current.plaiground_artist_id || name,
@@ -5126,6 +5140,15 @@
     return (typeof PlaigroundArtistCheck !== 'undefined' && PlaigroundArtistCheck) || null;
   }
 
+  // A store artist id is only reused when it belongs to the artist name on this draft.
+  // Never carry an id over from an old draft or the account default.
+  function storeIdBoundToDraftName(storeId, draft) {
+    var api = artistCheckApi();
+    var current = draft || {};
+    if (!api || typeof api.storeIdBoundToName !== 'function') return false;
+    return api.storeIdBoundToName(rosterFromMe(), storeId, current.name, current.artist_bound_name);
+  }
+
   function rosterApi() {
     return (typeof PlaigroundArtistRoster !== 'undefined' && PlaigroundArtistRoster) || null;
   }
@@ -5277,9 +5300,11 @@
     else if (mode === 'link') name = fieldValue('tg-artist-link-name');
     else {
       var picked = selectedArtistOption();
-      name = picked ? picked.name : fieldValue('tg-artist');
+      // With a picker on the page only a live pick counts. No stale hidden name.
+      name = picked ? picked.name : ($('tg-artist-select') ? '' : fieldValue('tg-artist'));
     }
-    if (name) hidden.value = name;
+    // Always mirror the live choice. An old name must never stay behind in the hidden field.
+    hidden.value = name || '';
     return hidden.value;
   }
 
@@ -5299,7 +5324,7 @@
       artwork_name: (art && art.name) || draft.artwork_name || '',
       artwork_object_key: draft.artwork_object_key || '',
       title: fieldValue('tg-title') || draft.title || '',
-      name: syncArtistHidden() || fieldValue('tg-artist') || draft.name || '',
+      name: syncArtistHidden() || '',
       featured: fieldValue('tg-featured') || draft.featured || '',
       legal_first: fieldValue('tg-legal-first') || fieldValue('tg-legal-first-create') || draft.legal_first || '',
       legal_last: fieldValue('tg-legal-last') || fieldValue('tg-legal-last-create') || draft.legal_last || '',
@@ -5658,8 +5683,6 @@
         setSelectValue(sel, matched);
       } else if (current && artists.some(function (artist) { return artistPickValue(artist) === current; })) {
         setSelectValue(sel, current);
-      } else if (artists.length === 1) {
-        setSelectValue(sel, artistPickValue(artists[0]));
       } else {
         setSelectValue(sel, '');
       }
@@ -6867,7 +6890,16 @@
             }
             var artistMode = fieldValue('tg-artist-mode') || '';
             var storeId = liveChosenStoreArtistId(artist);
-            if (!storeId && artistMode !== 'create') storeId = existingStoreArtistId(readDraft());
+            var chosenName = (artist && artist.name) || name;
+            if (!storeId && artistMode !== 'create') {
+              storeId = existingStoreArtistId(Object.assign({}, readDraft(), {
+                name: chosenName,
+                plaiground_artist_id: (artist && artist.id && artist.id !== 'account') ? artist.id : '',
+                artist_id: '',
+                tonegrid_artist_id: '',
+                artist_bound_name: '',
+              }));
+            }
             if (storeId && isLocalProfileArtistId(storeId, readDraft())) storeId = '';
             var persist = {
               name: (artist && artist.name) || name,
@@ -6879,9 +6911,11 @@
             if (artistMode === 'create' || !storeId) {
               persist.artist_id = '';
               persist.tonegrid_artist_id = '';
+              persist.artist_bound_name = '';
             } else {
               persist.artist_id = storeId;
               persist.tonegrid_artist_id = storeId;
+              persist.artist_bound_name = persist.name;
             }
             var nextDraft = writeDraft(persist);
             if (artist && artist.name) {
@@ -7437,6 +7471,35 @@
     }
   }
 
+  // Show the exact artist name and the ToneGrid artist this release will be sent under.
+  function fillReviewArtist(draft) {
+    var nameEl = document.querySelector('[data-review-artist-name]');
+    if (!nameEl) return;
+    var storeEl = document.querySelector('[data-review-artist-store]');
+    var warnEl = document.querySelector('[data-review-artist-warn]');
+    var current = draft || {};
+    var name = String(current.name || '').trim();
+    nameEl.textContent = name || 'Not chosen yet';
+    var storeId = String(current.artist_id || '').trim();
+    if (!isUuidValue(storeId)) storeId = '';
+    var api = artistCheckApi();
+    var conflict = storeId && api && typeof api.storeIdNameConflict === 'function'
+      ? api.storeIdNameConflict(rosterFromMe(), storeId, name)
+      : '';
+    if (storeEl) {
+      storeEl.textContent = conflict
+        ? 'Store artist: ' + conflict
+        : (storeId ? 'Store artist: ' + name : 'Store artist: new artist "' + name + '" will be created');
+      if (!name) storeEl.textContent = 'Choose or type an artist before you submit.';
+    }
+    if (warnEl) {
+      warnEl.hidden = !(conflict || !name);
+      warnEl.textContent = conflict
+        ? 'This does not match. Tap Change and pick the artist again.'
+        : (!name ? 'No artist chosen.' : '');
+    }
+  }
+
   function fillReviewSummary() {
     var titleEl = document.querySelector('[data-review-title]');
     var metaEl = document.querySelector('[data-review-meta]');
@@ -7445,6 +7508,7 @@
     var draft = readDraft();
     if (coverEl) paintReviewCover(draft, coverEl);
     if (titleEl && draft.title) titleEl.textContent = draft.title;
+    fillReviewArtist(draft);
     if (metaEl && draft.name) {
       metaEl.textContent = draft.genre
         ? draft.name + ' · Single · ' + draft.genre
