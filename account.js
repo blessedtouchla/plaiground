@@ -1007,6 +1007,14 @@
     return postAccountProfile(accountPayload({ photo: photo }));
   }
 
+  // ?return=review.html (same-site page only) sends the user back after a save.
+  function safeReturnPath() {
+    try {
+      var v = new URLSearchParams(global.location.search).get('return') || '';
+      return /^[a-z0-9-]+\.html$/i.test(v) ? v : '';
+    } catch (e) { return ''; }
+  }
+
   function saveAccountChanges() {
     var btn = document.querySelector('[data-account-save]');
     var status = document.querySelector('[data-account-save-status]');
@@ -1033,6 +1041,11 @@
         return result;
       }
       setHint(status, 'Saved on this account.');
+      var back = safeReturnPath();
+      if (back) {
+        setHint(status, 'Saved. Taking you back to your release...');
+        setTimeout(function () { global.location.href = back; }, 700);
+      }
       return result;
     }).catch(function () {
       if (btn) {

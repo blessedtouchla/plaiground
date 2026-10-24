@@ -3661,6 +3661,28 @@
     return sanitizePartnerCopy(fallback || '', status);
   }
 
+  // Saved legal name: the roster artist's own legal name when this release is for that
+  // artist, otherwise the Account settings legal name (settings.html#account-legal).
+  function savedLegalName(draft) {
+    var out = { first: '', last: '' };
+    try {
+      var acct = window.PlaigroundMembership && typeof window.PlaigroundMembership.account === 'function' ? window.PlaigroundMembership.account() : null;
+      var profile = acct && acct.profile && typeof acct.profile === 'object' ? acct.profile : {};
+      var artistId = String((draft && (draft.plaiground_artist_id || draft.artist_id)) || '').trim();
+      if (artistId && artistId !== 'account' && Array.isArray(profile.artists)) {
+        profile.artists.forEach(function (a) {
+          if (a && String(a.id || a.artist_id || '') === artistId && a.legal_first && a.legal_last) {
+            out.first = String(a.legal_first).trim(); out.last = String(a.legal_last).trim();
+          }
+        });
+        if (out.first && out.last) return out;
+      }
+      var parts = String(profile.legal_name || '').trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) { out.first = parts[0]; out.last = parts.slice(1).join(' '); }
+    } catch (errSaved) {}
+    return out;
+  }
+
   function hopLegalFields(draft) {
     var modeEl = document.getElementById('tg-artist-mode');
     var mode = modeEl ? String(modeEl.value || '').trim() : '';
@@ -3675,6 +3697,10 @@
     if (mode !== 'create') {
       if (!first) first = String((draft && draft.legal_first) || '').trim();
       if (!last) last = String((draft && draft.legal_last) || '').trim();
+      if (!first || !last) {
+        var saved = savedLegalName(draft);
+        if (saved.first && saved.last) { first = saved.first; last = saved.last; }
+      }
     }
     var out = {};
     if (first) {

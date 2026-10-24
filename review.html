@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css?v=20260917r2" />
+  <link rel="stylesheet" href="site.css?v=20261023rd1" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="membership.js" data-require-membership="true"></script>
 </head>
@@ -44,6 +44,7 @@
       </div>
     </div>
     <p class="upload-page-label sr-only">Review</p>
+    <div class="review-layout">
     <figure class="review-hero">
       <div class="thumb review-cover" data-review-cover aria-label="Cover art"></div>
       <figcaption>
@@ -54,6 +55,7 @@
         <p class="hint" data-review-audio-error hidden></p>
       </figcaption>
     </figure>
+    <div class="review-side">
     <section class="flow-card" data-review-made hidden>
       <h3>How this song was made</h3>
       <p data-review-made-caption></p>
@@ -63,6 +65,7 @@
       <pre class="lyrics-preview" data-review-lyrics-text></pre>
     </section>
     <section class="flow-card review-facts" data-review-facts hidden aria-live="polite"></section>
+    </div>
     <section class="review-schedule">
       <p class="review-out">
         <small>Out</small>
@@ -139,6 +142,7 @@
         <div class="store-pick is-hidden" data-store-list hidden></div>
       </div>
     </section>
+    </div>
     <div class="flow-actions review-actions" data-plai-sticky>
       <a class="review-back" href="split-sheet.html">Back</a>
       <a class="btn btn-gold btn-md" data-store-submit href="submitted.html">Submit</a>
@@ -168,8 +172,8 @@
   <script src="lib/upload-draft-files.js?v=20260908d1"></script>
   <script src="lib/solo-credits-stamp.js?v=20260905s1"></script>
   <script src="upload-catalog.js"></script>
-  <script src="store-client.js?v=20261019sv1" defer></script>
-  <script src="lib/review-facts.js?v=20261019rf2" defer></script>
+  <script src="store-client.js?v=20261023ln1" defer></script>
+  <script src="lib/review-facts.js?v=20261023ln1" defer></script>
   <script src="plai-bubble.js" defer></script>
   <script>
     (function () {
