@@ -8509,7 +8509,14 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .side-more-toggle[aria-expanded="true"]::after { content: "\2212"; }
 .side-more-toggle:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
 .side-more-list { display: flex; flex-direction: column; gap: 4px; padding-left: 12px; }
-.side-more-list[hidden] { display: none; }
+.side-more-list[hidden] { display: none !important; }
+.side-group-count { margin-left: auto; margin-right: 8px; font-size: 10px; letter-spacing: 0.04em; text-transform: none; color: #F5C542; font-weight: 600; }
+.side-group-toggle[aria-expanded="false"] .side-group-chevron { transform: rotate(45deg) translateY(-2px); }
+.side .side-nav { padding-bottom: 96px; }
+.side .side-nav a.side-top-link { font-weight: 600; }
+.side .side-nav a.side-lead { border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 10px; background: rgba(255, 255, 255, 0.06); color: #fff; font-weight: 600; justify-content: center; margin: 2px 0 6px; }
+.side .side-nav a.side-lead:hover { background: rgba(255, 255, 255, 0.12); }
+.side-free { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(91, 214, 140, 0.16); color: #7BE3A4; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: middle; }
 @media (min-width: 981px) {
   .app .topbar .menu-toggle { display: inline-flex; }
   .app.side-collapsed { grid-template-columns: 1fr; }
@@ -8572,3 +8579,12 @@ body.flow-menu.nav-open { overflow: hidden; }
   opacity: 1;
   font-weight: 700;
 }
+
+[data-roadmap-stops] a.roadmap-stop-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+[data-roadmap-stops] a.roadmap-stop-link:hover { color: #F5C542; }
+[data-roadmap-stops] li.is-done { opacity: 0.7; }
+[data-roadmap-stops] li.is-current { border-left: 3px solid #F5C542; padding-left: 8px; font-weight: 700; }
+.sh-lab-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.sh-lab-links a { padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; color: #fff; font-size: 13px; text-decoration: none; }
+.sh-lab-links a:hover { border-color: #F5C542; }
+.side-more-list > * { scroll-margin-bottom: 96px; }
