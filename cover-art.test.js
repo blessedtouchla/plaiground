@@ -324,6 +324,30 @@ async function runApi() {
       assert.strictEqual(paid.json.credits, artistDev.ALLOWANCE - 1);
       assert.strictEqual(paid.json.images.length, 2);
 
+      const finishedBody = mockReq(payload({
+        count: 2,
+        session_id: 'bill-body-done',
+        bill: 'release',
+      }), '198.51.100.67', cookie);
+      finishedBody.destroyed = true;
+      finishedBody.complete = true;
+      const finished = mockRes();
+      await handler(finishedBody, finished);
+      assert.strictEqual(finished.statusCode, 200, finished.body);
+      assert.strictEqual(finished.json.charged, true);
+      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 2);
+
+      const closedRes = mockRes();
+      closedRes.closed = true;
+      const closedReq = mockReq(payload({
+        count: 2,
+        session_id: 'bill-res-closed',
+        bill: 'release',
+      }), '198.51.100.68', cookie);
+      await handler(closedReq, closedRes);
+      assert.strictEqual(closedRes.statusCode, 0);
+      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 2);
+
       const goneReq = mockReq(payload({
         count: 2,
         session_id: 'bill-gone-session',
@@ -341,7 +365,7 @@ async function runApi() {
       const goneRes = mockRes();
       await handler(goneReq, goneRes);
       assert.strictEqual(goneRes.statusCode, 0);
-      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 1);
+      assert.strictEqual((await artistDev.balance('cover-bill-user')).credits, artistDev.ALLOWANCE - 2);
 
       global.fetch = function () {
         return Promise.resolve({
@@ -359,7 +383,7 @@ async function runApi() {
       assert.strictEqual(failed.json.charged, false);
       assert.ok(/Nothing was charged/.test(failed.json.error));
       const afterFail = await artistDev.balance('cover-bill-user');
-      assert.strictEqual(afterFail.credits, artistDev.ALLOWANCE - 1);
+      assert.strictEqual(afterFail.credits, artistDev.ALLOWANCE - 2);
 
       let left = afterFail.credits;
       while (left > 0) {

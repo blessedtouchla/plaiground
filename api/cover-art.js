@@ -103,15 +103,15 @@ function honeypotFilled(body) {
 
 function watchClient(req, res) {
   var gone = false;
-  function mark() {
-    if (!res.writableEnded) gone = true;
-  }
-  if (req && typeof req.on === 'function') {
-    req.on('aborted', mark);
-    req.on('close', mark);
+  if (res && typeof res.on === 'function') {
+    res.on('close', function () {
+      if (!res.writableEnded) gone = true;
+    });
   }
   return function () {
-    return gone || Boolean(req && (req.aborted || req.destroyed));
+    if (gone) return true;
+    if (res && res.closed && !res.writableEnded) return true;
+    return Boolean(req && req.aborted);
   };
 }
 
