@@ -71,6 +71,42 @@
     path = path.split("?")[0].replace(/^\.?\//, "").replace(/\.html$/, "").replace(/\/$/, "");
     return { file: path.split("/")[0] || "dashboard", key: (path || "dashboard") + q };
   }
+  // Publish shows the essentials. Everything else sits under one "More publishing tools" toggle, so nothing is lost.
+  var PUBLISH_ESSENTIALS = ["publishing-register", "publishing", "splits", "split-sheet", "copyright", "contracts", "earnings", "payouts", "analytics"];
+  function publishRank(a) {
+    var k = sideKey(a.getAttribute("href") || "");
+    if (k.key.indexOf("?") !== -1 || /^contracts\/./.test(k.key)) return -1;
+    return PUBLISH_ESSENTIALS.indexOf(k.file);
+  }
+  function appendPublishGroup(nav, links) {
+    var keep = [], more = [];
+    links.forEach(function (a) { (publishRank(a) === -1 ? more : keep).push(a); });
+    keep.forEach(function (a) { nav.appendChild(a); });
+    if (!more.length) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "side-more-toggle";
+    btn.setAttribute("data-side-more", "publish");
+    btn.setAttribute("aria-controls", "side-more-publish");
+    btn.textContent = "More publishing tools";
+    var box = document.createElement("div");
+    box.className = "side-more-list";
+    box.id = "side-more-publish";
+    more.forEach(function (a) { box.appendChild(a); });
+    var open = !!box.querySelector("a.on, a.active");
+    box.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var next = box.hidden;
+      box.hidden = !next;
+      btn.setAttribute("aria-expanded", next ? "true" : "false");
+    });
+    nav.appendChild(btn);
+    nav.appendChild(box);
+  }
+
   function organizeSideNav(side) {
     var nav = side && side.querySelector(".side-nav");
     if (!nav || nav.getAttribute("data-side-organized") === "1") return;
@@ -115,7 +151,8 @@
       h.setAttribute("data-side-group", g.id);
       h.textContent = g.label;
       nav.appendChild(h);
-      buckets[g.id].forEach(function (a) { nav.appendChild(a); });
+      if (g.id === "publish") appendPublishGroup(nav, buckets[g.id]);
+      else buckets[g.id].forEach(function (a) { nav.appendChild(a); });
       if (g.id === "account") extras.forEach(function (b) { nav.appendChild(b); });
     });
     nav.setAttribute("data-side-organized", "1");
@@ -123,9 +160,9 @@
 
   function setupAppMenu() {
     var app = document.body;
-    if (!app || !app.classList.contains("app")) return;
+    if (!app || (!app.classList.contains("app") && !app.classList.contains("flow-menu"))) return;
     var side = app.querySelector(".side");
-    var topbar = app.querySelector(".topbar");
+    var topbar = app.querySelector(".topbar") || app.querySelector("body > .flow-top");
     if (!side || !topbar) return;
 
     if (!side.id) side.id = "app-menu";
@@ -171,22 +208,70 @@
       app.insertBefore(backdrop, app.firstChild);
     }
 
+    function wide() {
+      return !!(window.matchMedia && window.matchMedia("(min-width: 981px)").matches) && !app.classList.contains("flow-menu");
+    }
     function isOpen() {
+      if (wide()) return !app.classList.contains("side-collapsed");
       return app.classList.contains("nav-open");
     }
 
     function setOpen(open) {
+      if (wide()) {
+        app.classList.toggle("side-collapsed", !open);
+        app.classList.remove("nav-open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.setAttribute("aria-label", open ? "Hide menu" : "Open menu");
+        backdrop.hidden = true;
+        return;
+      }
       app.classList.toggle("nav-open", open);
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
       backdrop.hidden = !open;
     }
 
+    if (wide()) toggle.setAttribute("aria-expanded", "true");
     wireToggle(toggle, isOpen, setOpen);
     backdrop.addEventListener("click", function () { setOpen(false); });
     side.querySelectorAll("a, [data-plai-talk], [data-plai-text]").forEach(function (link) {
-      link.addEventListener("click", function () { setOpen(false); });
+      link.addEventListener("click", function () { if (!wide()) setOpen(false); });
     });
+  }
+
+  // Release flow pages (upload, attest, splits, review, submitted) have no sidebar.
+  // Build the same signed-in side menu there, then let setupAppMenu wire it.
+  var FLOW_SIDE_HTML =
+    '<a href="/destination">Roadmap</a>' +
+    '<a href="releases.html">Releases</a>' +
+    '<a href="artists.html">Artist Profiles</a>' +
+    '<a href="splits.html">Split sheets</a>' +
+    '<a href="ar.html">A&amp;R</a>' +
+    '<a href="epk.html">EPK</a>' +
+    '<a href="profile.html">Persona</a>' +
+    '<a href="boosts.html">Boosts</a>' +
+    '<a href="publishing-register.html" data-publishing-register>Publishing</a>' +
+    '<a href="earnings.html">Earnings</a>' +
+    '<a href="analytics.html">Analytics</a>' +
+    '<a href="payouts.html">Payouts</a>' +
+    '<button type="button" class="side-plai" data-plai-talk aria-label="Talk to Plai, pronounced PLAY">Talk to Plai</button>' +
+    '<button type="button" class="side-plai" data-plai-text aria-label="Text to Plai, text only, microphone stays off">Text to Plai</button>' +
+    '<a href="settings.html">Settings</a>' +
+    '<a href="how.html">How it works</a>' +
+    '<a href="faq.html">FAQ</a>' +
+    '<a class="side-problem" href="problem.html" data-have-problem>Have a problem?</a>' +
+    '<a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>';
+  function setupFlowMenu() {
+    var body = document.body;
+    var top = body && document.querySelector("body > .flow-top");
+    if (!top || body.classList.contains("app") || body.classList.contains("flow-menu") || document.querySelector(".side")) return;
+    var side = document.createElement("aside");
+    side.className = "side flow-side";
+    side.id = "app-menu";
+    side.innerHTML = '<a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a><nav class="side-nav" aria-label="Menu">' + FLOW_SIDE_HTML + "</nav>";
+    body.insertBefore(side, body.firstChild);
+    body.classList.add("flow-menu");
+    setupAppMenu();
   }
 
   function setupPublicMenu() {
@@ -1351,6 +1436,10 @@
     if (parent && parent.appendChild) parent.appendChild(script);
   }
 
+  if (window.PLAI_FLOW_MENU_ONLY) {
+    setupFlowMenu();
+    return;
+  }
   setupSignedInPublicAppChrome();
   setupAppMenu();
   setupPublicMenu();
@@ -1683,6 +1772,7 @@
 })();
 
 (function () {
+  if (window.PLAI_FLOW_MENU_ONLY) return;
   if (!document || !document.head || !document.createElement) return;
   function add(src, id, immediate) {
     if (id && document.getElementById(id)) return;
