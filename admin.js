@@ -164,6 +164,67 @@
     });
   }
 
+  var PILOT_KEY = 'plaiground.pilotCohort';
+  var PILOT_STEPS = ['Signed up', 'Tried a tool', 'Split sheet started', 'Split sheet signed', 'Song qualified', 'Release submitted', 'Second release in 30 days'];
+  var pilotRows = [];
+
+  function pilotCohort() {
+    var raw = '';
+    try { raw = global.localStorage.getItem(PILOT_KEY) || ''; } catch (err) { raw = ''; }
+    var set = {};
+    raw.split(/[\s,;]+/).forEach(function (e) { var n = normalizeEmail(e); if (n) set[n] = true; });
+    return set;
+  }
+
+  function yesNo(value) { return value ? 'Yes' : 'No'; }
+
+  function renderPilot(rows) {
+    if (Array.isArray(rows)) pilotRows = rows;
+    var cohort = pilotCohort();
+    var onlyBox = $('[data-pilot-only]');
+    var only = Boolean(onlyBox && onlyBox.checked);
+    var shown = pilotRows.filter(function (row) {
+      return !only || cohort[normalizeEmail(row.email)];
+    });
+    var funnel = $('[data-pilot-funnel]');
+    if (funnel) {
+      funnel.textContent = PILOT_STEPS.map(function (step) {
+        var n = shown.filter(function (row) {
+          var r = row.reached || {};
+          var map = { 'Signed up': r.signup, 'Tried a tool': r.tool, 'Split sheet started': r.split_sheet_created, 'Split sheet signed': r.split_sheet_signed, 'Song qualified': r.qualify_completed, 'Release submitted': r.submission, 'Second release in 30 days': r.second_release };
+          return Boolean(map[step]);
+        }).length;
+        return step + ': ' + String(n);
+      }).join('. ') + '.';
+    }
+    fillTable('[data-pilot-table]', '[data-pilot-empty]', '[data-pilot-body]', shown, function (row) {
+      return '<tr>'
+        + cell('Artist', escapeHtml(dash(row.artist || row.email)) + (row.artist ? '<br><span class="hint">' + escapeHtml(row.email) + '</span>' : ''), 'admin-lead')
+        + cell('Pilot', cohort[normalizeEmail(row.email)] ? 'Pilot' : '-')
+        + cell('Signed up', escapeHtml(formatDate(row.signed_up_at)))
+        + cell('First tool', escapeHtml(dash(row.first_tool)))
+        + cell('Last step', escapeHtml(dash(row.last_step)))
+        + cell('Split sheet signed', yesNo(row.split_sheet_signed))
+        + cell('Song qualified', yesNo(row.song_qualified))
+        + cell('Release submitted', yesNo(row.release_submitted))
+        + cell('Second release in 30 days', escapeHtml(dash(row.second_release_30d)))
+        + cell('Last seen', escapeHtml(formatDate(row.last_seen_at)))
+        + '</tr>';
+    });
+  }
+
+  function bindPilot() {
+    var box = $('[data-pilot-cohort]');
+    if (box) { try { box.value = global.localStorage.getItem(PILOT_KEY) || ''; } catch (err) {} }
+    var save = $('[data-pilot-save]');
+    if (save) save.addEventListener('click', function () {
+      try { global.localStorage.setItem(PILOT_KEY, box ? box.value : ''); } catch (err) {}
+      renderPilot();
+    });
+    var only = $('[data-pilot-only]');
+    if (only) only.addEventListener('change', function () { renderPilot(); });
+  }
+
   function renderTraffic(result) {
     var data = result || {};
     var visits = data.visits || {};
@@ -583,6 +644,7 @@
     renderSubmissions(data && data.submissions);
     renderDestinations(data && data.submissions);
     renderRoyalties(data && data.store_royalties);
+    renderPilot(data && data.pilot);
   }
 
   function loadJson(url) {
@@ -719,6 +781,11 @@
     }).catch(function () {
       global.location.replace(LOGIN);
     });
+    var pilotSave = $('[data-pilot-save]');
+    if (pilotSave && !pilotSave.getAttribute('data-bound')) {
+      pilotSave.setAttribute('data-bound', '1');
+      bindPilot();
+    }
     var exportLink = $('[data-signups-export]');
     if (exportLink && !exportLink.getAttribute('data-bound')) {
       exportLink.setAttribute('data-bound', '1');
