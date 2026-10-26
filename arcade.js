@@ -1135,7 +1135,7 @@
     var top = el('div', 'v3-top');
     var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     var meta = el('div', 'arc-top-meta');
-    meta.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
+    meta.appendChild(el('span', 'v3-credits', 'Join free. Get starter credits to try every tool.'));
     meta.appendChild(el('span', 'v3-points', String(S.points)));
     meta.appendChild(talkToggle());
     top.appendChild(meta);
