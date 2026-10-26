@@ -338,6 +338,32 @@
             <tbody data-traffic-signups-body></tbody>
           </table>
         </div>
+        <h4>Artist pilot</h4>
+        <p class="hint">One row per signed-up artist, from the events we already log. Last step is the furthest point they reached. Second release counts only within 30 days of the first.</p>
+        <p class="hint">Pilot cohort: paste the emails, one per line or comma separated. The list is saved in this browser only.</p>
+        <textarea data-pilot-cohort rows="3" style="width:100%" placeholder="artist@example.com"></textarea>
+        <p><label><input type="checkbox" data-pilot-only> Show pilot cohort only</label> <button type="button" class="btn" data-pilot-save>Save cohort</button></p>
+        <p data-pilot-funnel class="hint"></p>
+        <p class="hint" data-pilot-empty hidden>No artists to show.</p>
+        <div class="admin-table-wrap" data-pilot-table hidden>
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Artist</th>
+                <th>Pilot</th>
+                <th>Signed up</th>
+                <th>First tool</th>
+                <th>Last step</th>
+                <th>Split sheet signed</th>
+                <th>Song qualified</th>
+                <th>Release submitted</th>
+                <th>Second release in 30 days</th>
+                <th>Last seen</th>
+              </tr>
+            </thead>
+            <tbody data-pilot-body></tbody>
+          </table>
+        </div>
       </div>
       </section>
 
