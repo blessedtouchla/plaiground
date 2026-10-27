@@ -162,6 +162,7 @@
         + cell('Stripe', escapeHtml(stripeLabel(row.stripe)))
         + cell('Confirmed', escapeHtml(row.email_confirmed_at ? formatSignedUpAt(row.email_confirmed_at) : 'Not yet'))
         + cell('Source', escapeHtml(dash(row.source)))
+        + cell('Heard about', escapeHtml(dash(row.heard_about)))
         + cell('IP', '<span title="' + escapeHtml(row.user_agent || '') + '">'
           + escapeHtml(dash([row.ip, [row.city, row.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')))
           + '</span>')
