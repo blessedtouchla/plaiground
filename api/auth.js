@@ -3,7 +3,8 @@
 /**
  * GET  /api/auth           → apply schema when DATABASE_URL + SESSION_SECRET are set
  * GET  /api/auth/pixel     → pixel ids from env only; empty when unset
- * POST /api/auth/signup    pending user only; no session; tries confirm mail; records signup once
+ * GET  /api/auth/form      → { form_token, turnstile_site_key, honeypot } for the signup form
+ * POST /api/auth/signup    pending user only; no session; bot checks first; tries confirm mail; records signup once
  * POST /api/auth/login     confirmed users only; remember=true → 30-day cookie
  * POST /api/auth/logout
  * POST /api/auth/password  signed-in current + new password; no email token
@@ -49,6 +50,9 @@ const { ga4MeasurementId, pixelId, tiktokPixelId } = require('../lib/growth-pixe
 const { recordSignup } = require('../lib/growth-events');
 const { normalizeAttribution, normalizeRole, recordEvent } = require('../lib/product-events');
 const marketing = require('../lib/marketing');
+const signupGuard = require('../lib/signup-guard');
+
+const HELD_MAIL_COPY = 'We are double checking this signup. Tap Resend on the next page to get your confirmation email.';
 
 function authAction(req) {
   const path = pathnameOf(req);
@@ -100,6 +104,16 @@ async function pixel(req, res) {
   });
 }
 
+async function signupForm(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  sendJson(res, 200, signupGuard.formConfig());
+}
+
 async function signup(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -136,11 +150,57 @@ async function signup(req, res) {
   }
 
   try {
+    await ensureReady();
+  } catch {
+    /* createUser below reports accounts errors */
+  }
+  const check = await signupGuard.checkSignup(req, body, email);
+  if (check.action === 'drop') {
+    // Honeypot: look like a normal pending signup, create nothing, mail nothing.
+    sendJson(res, 200, {
+      ok: true,
+      pending: true,
+      confirmed: false,
+      email: email,
+      artist: artist,
+      username: '',
+      plan: null,
+      mail_sent: true,
+    });
+    return;
+  }
+  if (check.action === 'block') {
+    sendJson(res, check.status || 400, { error: check.error, code: 'SIGNUP_CHECK', reason: check.reason });
+    return;
+  }
+  const suspected = check.flags.length > 0;
+
+  try {
     const attribution = normalizeAttribution(body && body.attribution);
     const role = normalizeRole(body && (body.role || body.i_am));
+    const base = signupGuard.plusBase(email);
+    if (base && (await findByEmail(base))) {
+      // a+anything@ is the same inbox as a@ at most providers: treat as a duplicate.
+      const dupErr = new Error('An account with that email already exists.');
+      dupErr.code = 'EMAIL_EXISTS';
+      throw dupErr;
+    }
     const row = await createUser({ email, password, artist, plan, username, attribution, role });
+    await signupGuard.recordOutcome(check, suspected ? 'flagged' : 'accepted', row.id);
+    const trace = {
+      ip: check.meta.ip,
+      country: check.meta.country,
+      region: check.meta.region,
+      city: check.meta.city,
+      user_agent: check.meta.user_agent,
+      time_to_submit_ms: check.meta.time_to_submit_ms,
+      turnstile: check.meta.turnstile,
+      flags: check.flags.slice(),
+      suspected_bot: suspected,
+      attribution: attribution || null,
+    };
     try {
-      await recordSignup(row);
+      await recordSignup(row, { trace: trace, holdArtistMail: suspected });
     } catch {
       /* signup event must not fail account create */
     }
@@ -153,10 +213,14 @@ async function signup(req, res) {
       /* launch counts must not fail account create */
     }
     let mail;
-    try {
-      mail = await sendConfirmEmail({ email: row.email, artist: row.artist_name });
-    } catch {
-      mail = { mail_sent: false, error: 'Could not send the confirmation email.' };
+    if (suspected) {
+      mail = { mail_sent: false, error: HELD_MAIL_COPY };
+    } else {
+      try {
+        mail = await sendConfirmEmail({ email: row.email, artist: row.artist_name });
+      } catch {
+        mail = { mail_sent: false, error: 'Could not send the confirmation email.' };
+      }
     }
     const payload = {
       ok: true,
@@ -174,6 +238,7 @@ async function signup(req, res) {
     sendJson(res, 200, payload);
   } catch (err) {
     if (err && err.code === 'EMAIL_EXISTS') {
+      await signupGuard.recordOutcome(check, 'exists');
       sendJson(res, 409, {
         error: err.message,
         code: 'EMAIL_EXISTS',
@@ -496,6 +561,14 @@ async function sendAccessEmail(req, email, purpose) {
   return sendAuthEmail({ email: to, artist: row.artist_name, purpose });
 }
 
+async function accountExists(email) {
+  try {
+    return Boolean(await findByEmail(email));
+  } catch {
+    return true;
+  }
+}
+
 async function mail(req, res) {
   if (req.method === 'GET') {
     const token = queryValue(req, 'token');
@@ -537,10 +610,18 @@ async function mail(req, res) {
   }
 
   const purpose = normalizePurpose(body && (body.kind || body.purpose));
+  const allowed = await signupGuard.checkMail(req, email);
+  if (!allowed.ok) {
+    sendJson(res, 429, { ok: false, mail_sent: false, error: allowed.error, kind: purpose });
+    return;
+  }
   let result;
   try {
     if (purpose === 'magic' || purpose === 'reset') {
       result = await sendAccessEmail(req, email, purpose);
+    } else if (isConfigured() && isMailConfigured() && !(await accountExists(email))) {
+      // No pending account for this address: do not mail a stranger.
+      result = { mail_sent: false, error: 'Could not send the email.' };
     } else {
       result = await sendConfirmEmail({
         email,
@@ -629,6 +710,10 @@ module.exports = async function handler(req, res) {
   const action = authAction(req);
   if (action === 'signup') {
     await signup(req, res);
+    return;
+  }
+  if (action === 'form') {
+    await signupForm(req, res);
     return;
   }
   if (action === 'login') {

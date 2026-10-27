@@ -115,6 +115,11 @@
             </select>
             <p class="hint">Optional. Artists first. Skip this if you want.</p>
           </div>
+          <div class="hp-field" aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">
+            <label for="website">Leave this empty</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" value="" />
+          </div>
+          <div id="signup-turnstile" hidden></div>
           <label class="checkline">
             <input type="checkbox" required />
             <span>I agree to the <a href="terms.html">Terms of Service</a> and the <a href="rights.html">Rights Attestation</a>.</span>
@@ -216,6 +221,38 @@
         status.textContent = text || '';
         status.hidden = !text;
       }
+      var formToken = '';
+      var turnstileToken = '';
+      var turnstileBox = document.getElementById('signup-turnstile');
+      function loadFormToken() {
+        return fetch('/api/auth/form', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        }).then(function (response) {
+          return response.json();
+        }).then(function (data) {
+          formToken = data && data.form_token ? String(data.form_token) : '';
+          var siteKey = data && data.turnstile_site_key ? String(data.turnstile_site_key) : '';
+          if (siteKey && turnstileBox && !turnstileBox.getAttribute('data-ready')) {
+            turnstileBox.setAttribute('data-ready', '1');
+            turnstileBox.hidden = false;
+            window.plaiTurnstileReady = function () {
+              if (!window.turnstile) return;
+              window.turnstile.render('#signup-turnstile', {
+                sitekey: siteKey,
+                callback: function (token) { turnstileToken = String(token || ''); },
+                'expired-callback': function () { turnstileToken = ''; },
+              });
+            };
+            var tag = document.createElement('script');
+            tag.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=plaiTurnstileReady&render=explicit';
+            tag.async = true;
+            tag.defer = true;
+            document.head.appendChild(tag);
+          }
+        }).catch(function () {});
+      }
+      loadFormToken();
       function chosenPlan() {
         var params = new URLSearchParams(window.location.search);
         var fromQuery = String(params.get('plan') || '').trim().toLowerCase();
@@ -239,10 +276,14 @@
           else sessionStorage.removeItem('plaigroundSignupEmail');
           sessionStorage.removeItem('plaigroundSignupArtist');
         } catch (err) {}
+        var websiteEl = document.getElementById('website');
         var body = {
           email: email,
           password: password,
+          form_token: formToken,
+          website: websiteEl ? String(websiteEl.value || '') : '',
         };
+        if (turnstileToken) body.turnstile_token = turnstileToken;
         if (username) body.username = username;
         if (plan) body.plan = plan;
         var roleEl = document.getElementById('role');
@@ -312,6 +353,13 @@
           }
           if (!result.ok) {
             setStatus(result.data.error || 'Could not create the account.');
+            if (result.data && result.data.code === 'SIGNUP_CHECK') {
+              if (result.data.reason !== 'too_fast') loadFormToken();
+              if (window.turnstile && turnstileBox && !turnstileBox.hidden) {
+                try { window.turnstile.reset('#signup-turnstile'); } catch (errReset) {}
+                turnstileToken = '';
+              }
+            }
             return;
           }
           try {
