@@ -115,6 +115,21 @@
             </select>
             <p class="hint">Optional. Artists first. Skip this if you want.</p>
           </div>
+          <div class="field">
+            <label for="heard-about">How did you hear about us?</label>
+            <select id="heard-about" name="heard_about">
+              <option value="" selected>Skip for now</option>
+              <option value="instagram">Instagram</option>
+              <option value="tiktok">TikTok</option>
+              <option value="plainow">plainow</option>
+              <option value="plaipals">plaipals</option>
+              <option value="friend">Friend or artist</option>
+              <option value="google">Google search</option>
+              <option value="other">Other</option>
+            </select>
+            <input id="heard-about-other" name="heard_about_other" type="text" maxlength="80" placeholder="Tell us where" autocomplete="off" style="display:none;margin-top:8px" />
+            <p class="hint">Optional. Helps us know what is working.</p>
+          </div>
           <div class="hp-field" aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">
             <label for="website">Leave this empty</label>
             <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" value="" />
@@ -221,6 +236,15 @@
         status.textContent = text || '';
         status.hidden = !text;
       }
+      var heardSelect = document.getElementById('heard-about');
+      var heardOtherBox = document.getElementById('heard-about-other');
+      if (heardSelect && heardOtherBox) {
+        heardSelect.addEventListener('change', function () {
+          var isOther = heardSelect.value === 'other';
+          heardOtherBox.style.display = isOther ? '' : 'none';
+          if (isOther) heardOtherBox.focus();
+        });
+      }
       var formToken = '';
       var turnstileToken = '';
       var turnstileBox = document.getElementById('signup-turnstile');
@@ -289,6 +313,14 @@
         var roleEl = document.getElementById('role');
         var role = roleEl ? String(roleEl.value || '').trim() : '';
         if (role) body.role = role;
+        var heardEl = document.getElementById('heard-about');
+        var heard = heardEl ? String(heardEl.value || '').trim() : '';
+        if (heard) {
+          body.heard_about = heard;
+          var heardOtherEl = document.getElementById('heard-about-other');
+          var heardOther = heardOtherEl ? String(heardOtherEl.value || '').trim().slice(0, 80) : '';
+          if (heard === 'other' && heardOther) body.heard_about_other = heardOther;
+        }
         try {
           if (window.PlaigroundEvents && window.PlaigroundEvents.readAttribution) {
             body.attribution = window.PlaigroundEvents.readAttribution();

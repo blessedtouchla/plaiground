@@ -51,6 +51,7 @@ const { recordSignup } = require('../lib/growth-events');
 const { normalizeAttribution, normalizeRole, recordEvent } = require('../lib/product-events');
 const marketing = require('../lib/marketing');
 const signupGuard = require('../lib/signup-guard');
+const { normalizeHeardAbout } = require('../lib/heard-about');
 
 const HELD_MAIL_COPY = 'We are double checking this signup. Tap Resend on the next page to get your confirmation email.';
 
@@ -176,7 +177,9 @@ async function signup(req, res) {
   const suspected = check.flags.length > 0;
 
   try {
-    const attribution = normalizeAttribution(body && body.attribution);
+    let attribution = normalizeAttribution(body && body.attribution);
+    const heard = normalizeHeardAbout(body && body.heard_about, body && body.heard_about_other);
+    if (heard) attribution = Object.assign({}, attribution || {}, heard);
     const role = normalizeRole(body && (body.role || body.i_am));
     const base = signupGuard.plusBase(email);
     if (base && (await findByEmail(base))) {
