@@ -160,6 +160,14 @@
         + cell('Status', escapeHtml(dash(row.status)))
         + cell('Signed up', escapeHtml(when), 'admin-signup-dup')
         + cell('Stripe', escapeHtml(stripeLabel(row.stripe)))
+        + cell('Confirmed', escapeHtml(row.email_confirmed_at ? formatSignedUpAt(row.email_confirmed_at) : 'Not yet'))
+        + cell('Source', escapeHtml(dash(row.source)))
+        + cell('IP', '<span title="' + escapeHtml(row.user_agent || '') + '">'
+          + escapeHtml(dash([row.ip, [row.city, row.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')))
+          + '</span>')
+        + cell('Flags', row.suspected_bot
+          ? '<strong>' + escapeHtml(dash(row.flags || 'suspected bot')) + '</strong>'
+          : escapeHtml(row.time_to_submit_s ? 'none (' + row.time_to_submit_s + 's)' : 'none'))
         + '</tr>';
     });
   }
