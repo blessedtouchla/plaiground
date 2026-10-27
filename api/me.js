@@ -29,10 +29,16 @@
  * GET/POST /api/me/stage   session required; stage songs, order, and artist stats
  * GET/POST /api/play       public; play a hook game and record a play
  *
+ * Read-only token: every GET /api/admin/* above also accepts the
+ * ADMIN_READONLY_TOKEN env value in the x-plai-admin-token header (or
+ * Authorization: Bearer). GET only, logged, no cookie, never a query param.
+ * POST /api/admin/test-emails refuses it. Delete the env var to revoke.
+ *
  * Public URLs stay the same via vercel.json rewrites. One Hobby function.
  */
 
 const { listAdminOverview } = require('../lib/admin-overview');
+const adminReadonly = require('../lib/admin-readonly');
 const { listSignupRows, signupRowsToCsv } = require('../lib/admin-signups');
 const roadmap = require('../lib/roadmap');
 const applications = require('../lib/applications');
@@ -294,6 +300,34 @@ function isProblem(req) {
   return queryValue(req, 'action') === 'problem';
 }
 
+/**
+ * GET-only gate for owner data. Either the read-only token
+ * (lib/admin-readonly.js, never sets a cookie) or a confirmed owner session.
+ * Returns true when the caller may read; otherwise a response was sent.
+ */
+async function requireStaffRead(req, res) {
+  const viaToken = adminReadonly.checkReadonly(req, res, sendJson);
+  if (viaToken === 'ok') return true;
+  if (viaToken === 'denied') return false;
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return false;
+  }
+  const row = await findById(session.userId);
+  if (!row) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return false;
+  }
+  if (rejectUnconfirmed(res, row)) return false;
+  if (!hasStaffProOverride(row.email)) {
+    sendJson(res, 403, { error: 'Not allowed.' });
+    return false;
+  }
+  attachSession(req, res, row.id);
+  return true;
+}
+
 async function adminSignups(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -305,23 +339,8 @@ async function adminSignups(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     if (wantsSignupCsv(req)) {
       sendSignupCsv(res, await listSignupRows());
       return;
@@ -465,23 +484,8 @@ async function adminApplications(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     const rows = await applications.listApplications();
     sendJson(res, 200, { applications: rows });
   } catch (err) {
@@ -504,23 +508,8 @@ async function adminMailFailures(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     const failures = await mailFailures.listMailFailures();
     sendJson(res, 200, { failures: failures });
   } catch (err) {
@@ -538,6 +527,7 @@ async function adminTestEmails(req, res) {
     sendJson(res, 405, { error: 'Method not allowed.' });
     return;
   }
+  if (adminReadonly.checkReadonly(req, res, sendJson) === 'denied') return;
   if (rejectQueryPassword(req, res)) return;
   if (!isConfigured()) {
     notConfigured(res);
@@ -590,23 +580,8 @@ async function adminRoadmaps(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     const rows = await roadmap.listAdminRoadmaps();
     sendJson(res, 200, { roadmaps: rows });
   } catch (err) {
@@ -1281,23 +1256,8 @@ async function adminTraffic(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     const summary = await marketing.trafficSummary(new Date());
     sendJson(res, 200, { traffic: summary });
   } catch (err) {
@@ -1320,23 +1280,8 @@ async function adminMarketing(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     const result = await marketing.report(queryValue(req, 'from') || queryValue(req, 'day'), queryValue(req, 'to'));
     if (result.error === 'bad_range') {
       sendJson(res, 400, { error: 'Use dates as YYYY-MM-DD.' });
@@ -1375,23 +1320,8 @@ async function adminEvents(req, res) {
     notConfigured(res);
     return;
   }
-  const session = sessionFromRequest(req);
-  if (!session) {
-    sendJson(res, 401, { error: 'Sign in required.' });
-    return;
-  }
   try {
-    const row = await findById(session.userId);
-    if (!row) {
-      sendJson(res, 401, { error: 'Sign in required.' });
-      return;
-    }
-    if (rejectUnconfirmed(res, row)) return;
-    if (!hasStaffProOverride(row.email)) {
-      sendJson(res, 403, { error: 'Not allowed.' });
-      return;
-    }
-    attachSession(req, res, row.id);
+    if (!(await requireStaffRead(req, res))) return;
     const rows = await productEvents.summarize(await listUsers());
     if (wantsEventsCsv(req)) {
       res.statusCode = 200;
