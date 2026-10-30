@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var A = window.Arcade;
+  var SM = window.ScoreMoment || null;
   var root = document.getElementById('arc');
   var K = new URLSearchParams(location.search).get('k') || '';
   var WALLET = 'plaiground.v3.wallet';
@@ -15,7 +16,8 @@
       sound: { genre: '', sub: '', instruments: [], vocal: '', custom: '', fusion: [] }, result: null, userWords: false, keptPlai: false,
       fix: { text: '', off: [], before: '', history: [], picking: null, options: [], scoreBefore: 0 },
       flip: { text: '', from: '', fromPrompt: '', showPrompt: false, target: '', fusion: [], fusionOn: false, vibe: '', level: '', keep: [] },
-      battle: { round: 1, log: [], charged: false, bars: '' }, tune: { speed: '', bpm: '', vocals: '', gender: '', tone: '', must: [], energy: '', extra: '' }, tuneOpen: false, points: 0, busy: false, note: '', notice: '', crisis: false, history: [] };
+      battle: { round: 1, log: [], charged: false, bars: '' }, tune: { speed: '', bpm: '', vocals: '', gender: '', tone: '', must: [], energy: '', extra: '' }, tuneOpen: false, points: 0, busy: false, note: '', notice: '', crisis: false, history: [],
+      moment: { on: false, short: false, declined: false, i: 0, answers: {}, follow: {}, angles: {}, guesses: [], reply: null, bank: [], notes: {}, noticed: [], lock: null, final: '', charged: false } };
   }
   S = fresh();
 
@@ -38,10 +40,21 @@
   }
   function stateForServer() {
     return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.type === 'banger' && A.bangerTitle ? A.bangerTitle(S.title) : S.title, length: S.length, language: S.language,
-      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, handleDetails: S.handleOk ? S.handleDetails : [], handleOk: !!S.handleOk, styleOverride: S.styleOverride, flip: S.flip };
+      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, handleDetails: S.handleOk ? S.handleDetails : [], handleOk: !!S.handleOk, styleOverride: S.styleOverride, flip: S.flip,
+      moment: S.moment && S.moment.lock ? { lock: S.moment.lock, answers: S.moment.answers, bank: S.moment.bank } : null };
   }
   function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
   function style() {
+    var out = baseStyle();
+    var m = S.moment;
+    if (!SM || !m || !m.lock) return out;
+    var styled = SM.applyStyle(out, m.lock, m.answers);
+    var fx = S.flipExtras && (S.card === 'flip' || S.sub === 'trip' || S.type === 'banger') ? S.flipExtras : { sliders: { weirdness: 35, styleInfluence: 65 } };
+    var ex = (fx.exclude || []).slice(); styled.exclude.forEach(function (x) { if (ex.indexOf(x) === -1) ex.push(x); });
+    S.flipExtras = Object.assign({}, fx, { style: styled.style, exclude: ex });
+    return styled.style;
+  }
+  function baseStyle() {
     var st = stateForServer();
     var snd = soundForStyle();
     if (S.card === 'flip' && !snd.genre && S.flip.target) snd.genre = S.flip.target;
@@ -276,6 +289,7 @@
     var qs = A.questionsFor(S.type, S.sub);
     var q = qs[S.qIndex];
     if (!q) { go(S.sub === 'battle' ? 's-ai' : 's-ai'); return; }
+    if (momentOffer(w)) return;
     w.appendChild(el('p', 'arc-step', 'Question ' + (S.qIndex + 1) + ' of ' + qs.length));
     w.appendChild(plai(q.q));
     if (S.qIndex === 0 && A.HANDLE_SUBS && A.HANDLE_SUBS.indexOf(S.sub) !== -1) handlePanel(w);
@@ -313,6 +327,163 @@
     }, S.busy));
     w.appendChild(btn('Skip', 'v3-link', function () { S.qIndex += 1; paint(); }));
   };
+
+  // ---------- Score the Moment ----------
+  // A coached interview before the writing. Shared by Banger Maker, Storyteller, and Battle ("Make it hit").
+  function momentKind() { if (!SM) return ''; if (S.sub === 'battle') return 'battle'; if (S.type === 'banger') return 'banger'; if (S.type === 'story' || S.sub === 'story' || S.sub === 'storyteller') return 'story'; return ''; }
+  function momentOffer(w) {
+    var m = S.moment, kind = momentKind();
+    if (!kind || S.qIndex !== 0 || m.lock || m.declined || m.on) return false;
+    var card = el('div', 'flow-card arc-moment-entry');
+    card.appendChild(el('h3', '', kind === 'battle' ? SM.ENTRY.battle : 'Score the Moment'));
+    card.appendChild(plai(kind === 'battle' ? 'Want your bars to hit harder? Tell me what is really going on first. Seven quick screens, or three if you are in a hurry.' : 'Before we write, let me ask you about the moment. Seven quick screens, or three if you are in a hurry. It makes the song sound like you.'));
+    card.appendChild(el('p', 'hint', SM.OPEN_LINE));
+    card.appendChild(el('p', 'hint', 'One credit covers the whole session.'));
+    var row = el('div', 'arc-actions');
+    row.appendChild(btn('Full (7 screens)', 'v3-go', function () { startMoment(false); }));
+    row.appendChild(btn('Short (3 screens)', 'v3-mini', function () { startMoment(true); }));
+    row.appendChild(btn('No thanks', 'v3-link', function () { m.declined = true; paint(); }));
+    card.appendChild(row); w.appendChild(card); return true;
+  }
+  function startMoment(short) {
+    var m = S.moment;
+    if (!m.charged) { if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; } m.charged = true; }
+    m.on = true; m.short = !!short; m.i = 0; go('m-q');
+  }
+  function mScreens() { return SM.screensFor(S.moment.short); }
+  function mStop() { try { if (MREC) MREC.abort(); } catch (e) {} MREC = null; }
+  var MREC = null;
+  function mMic(box, q) {
+    var R = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!R) return null;
+    return btn(MREC ? 'Listening...' : 'Mic', 'v3-mini arc-moment-mic', function () {
+      if (MREC) { mStop(); paint(); return; }
+      try {
+        var r = new R(); r.lang = 'en-US'; r.interimResults = false; r.continuous = false;
+        r.onresult = function (e) { var t = (e.results[0] && e.results[0][0] && e.results[0][0].transcript) || ''; var m = S.moment; m.answers[q.key] = (String(m.answers[q.key] || '') + ' ' + t).trim(); MREC = null; paint(); };
+        r.onerror = function () { MREC = null; S.note = 'Mic is off, so type it. That works just as well.'; paint(); };
+        r.onend = function () { if (MREC) { MREC = null; paint(); } };
+        MREC = r; r.start(); paint();
+      } catch (e) { MREC = null; paint(); }
+    });
+  }
+  function mNext() {
+    var m = S.moment; mStop();
+    m.reply = null; m.guesses = [];
+    m.i += 1;
+    if (m.i >= mScreens().length) { m.i = mScreens().length - 1; return; }
+    paint(); window.scrollTo(0, 0);
+  }
+  function mSend(q, opts) {
+    opts = opts || {};
+    var m = S.moment, list = mScreens(), last = m.i === list.length - 1;
+    var ans = q.chipsOnly ? [].concat(m.answers.sound || []).join(', ') + (m.answers.avoid ? '. Not: ' + m.answers.avoid : '') : String(m.answers[q.key] || '').trim();
+    var f = m.follow[q.key] || 0;
+    var thin = !opts.skip && !q.chipsOnly && SM.isThin(ans, q) && f < SM.MAX_FOLLOWUPS;
+    if (q.required && !ans && opts.skip) { S.note = 'This one matters most. Even three words is plenty.'; paint(); return; }
+    var payload = { key: q.key, answer: opts.skip ? '' : ans, follow: f, notes: m.notes, bank: m.bank, final: last && !thin, wantGuesses: thin && f >= 2 || !!opts.stuck,
+      answers: Object.keys(m.answers).reduce(function (o, k) { if (k !== q.key) o[k] = m.answers[k]; return o; }, {}) };
+    if (thin && f === 1 || opts.stuck && f < 2) { payload.angle = SM.nextAngle(m.angles[q.key] || []); }
+    S.busy = true; paint();
+    post('arcade-moment-turn', payload).then(function (d) {
+      S.busy = false;
+      if (!d.ok) { S.note = d.error || 'Plai lost the thread. Try that again.'; paint(); return; }
+      if (d.crisis) S.crisis = true;
+      if (d.notes) m.notes = d.notes;
+      if (d.catch && m.bank.indexOf(d.catch) === -1 && ans && !opts.skip) m.caught = d.catch; else m.caught = '';
+      var rep = SM.repeats(m.answers, m.noticed)[0]; if (rep) m.noticed.push(rep);
+      m.reply = { reflect: d.reflect || '', checkin: d.checkin || '', tears: d.tears || '', repeat: rep ? SM.repeatLine(rep) : '' };
+      if (thin || opts.stuck) {
+        m.follow[q.key] = f + 1;
+        if (payload.angle) { m.angles[q.key] = (m.angles[q.key] || []).concat(payload.angle); m.reply.ask = q.angles[payload.angle]; }
+        else if (!payload.wantGuesses) m.reply.ask = SM.nudge(f);
+        if (payload.wantGuesses) { m.guesses = (d.guesses || []).slice(0, 3).map(function (g) { return { text: g, v: '' }; }); m.reply.ask = 'Here are a few guesses. Tell me which is close.'; }
+        if (m.follow[q.key] >= SM.MAX_FOLLOWUPS && !m.guesses.length) m.reply.ask = SM.PARK_LINE;
+        paint(); return;
+      }
+      if (last) {
+        m.final = d.final || SM.understanding(m.notes);
+        m.lock = d.lock || SM.lockThesis(m.notes, m.answers.line || '');
+        m.done = true; paint(); return;
+      }
+      m.pending = true; paint();
+    });
+  }
+  SCREENS['m-q'] = function (w) {
+    if (!SM) { go('s-q'); return; }
+    var m = S.moment, list = mScreens(), q = list[m.i];
+    if (m.done) {
+      w.appendChild(el('p', 'arc-step', 'Got it'));
+      w.appendChild(plai(m.final));
+      if (m.bank.length) { var lb = el('div', 'flow-card arc-linebank'); lb.appendChild(el('p', 'arc-q', 'Line Bank')); m.bank.forEach(function (l) { lb.appendChild(el('p', 'arc-bank-line', l)); }); w.appendChild(lb); }
+      w.appendChild(btn("Let's write it", 'v3-go', function () { m.on = false; mStop(); S.qIndex = 0; S.history = S.history.filter(function (x) { return x !== 'm-q'; }); go(S.sub === 'battle' ? 's-q' : 's-q'); }));
+      if (S.crisis) w.appendChild(crisisCard());
+      return;
+    }
+    w.appendChild(el('p', 'arc-step', 'Screen ' + (m.i + 1) + ' of ' + list.length));
+    if (m.i === 0 && !m.reply) w.appendChild(el('p', 'hint', SM.OPEN_LINE));
+    w.appendChild(plai(q.q));
+    if (q.chips) w.appendChild(chips(q.chips, function (v) { return q.chipsOnly ? [].concat(m.answers.sound || []).indexOf(v) !== -1 : m.answers[q.key] === v; }, function (v) {
+      if (q.chipsOnly) { var cur = [].concat(m.answers.sound || []); var j = cur.indexOf(v); if (j === -1) cur.push(v); else cur.splice(j, 1); m.answers.sound = cur.slice(-2); }
+      else m.answers[q.key] = v;
+    }));
+    if (q.chipsOnly) w.appendChild(input(m.answers.avoid, 'What should it NOT sound like? (optional)', function (v) { m.answers.avoid = v; }));
+    else {
+      var box = input(m.answers[q.key], q.ph, function (v) { m.answers[q.key] = v; S.userWords = true; }, q.key === 'line' ? 1 : 4);
+      w.appendChild(box);
+      w.appendChild(el('p', 'hint', SM.UNDER_BOX));
+    }
+    var r = m.reply;
+    if (r) {
+      var card = el('div', 'flow-card arc-moment-reply');
+      if (r.reflect) card.appendChild(plai(r.reflect));
+      if (r.repeat) card.appendChild(el('p', 'hint arc-moment-repeat', r.repeat));
+      if (r.checkin) card.appendChild(el('p', 'hint', r.checkin));
+      if (r.tears) card.appendChild(el('p', 'hint arc-moment-tears', r.tears));
+      if (r.ask) card.appendChild(el('p', 'arc-q', r.ask));
+      w.appendChild(card);
+    }
+    if (m.caught) {
+      var cc = el('div', 'flow-card arc-moment-catch');
+      cc.appendChild(el('p', 'arc-q', 'Wait. That\'s the song.'));
+      cc.appendChild(el('p', 'arc-bank-line', '"' + m.caught + '"'));
+      cc.appendChild(btn('Save to Line Bank', 'v3-mini', function () { if (m.bank.indexOf(m.caught) === -1) m.bank.push(m.caught); m.caught = ''; paint(); }));
+      cc.appendChild(btn('Not that one', 'v3-link', function () { m.caught = ''; paint(); }));
+      w.appendChild(cc);
+    }
+    if (m.guesses.length) {
+      var gc = el('div', 'flow-card arc-moment-guesses');
+      m.guesses.forEach(function (g) {
+        gc.appendChild(el('p', 'arc-guess', g.text + (g.v ? '  (' + g.v + ')' : '')));
+        var row = el('div', 'arc-chips');
+        ['Yes', 'Close', 'No'].forEach(function (v) { row.appendChild(btn(v, 'arc-chip' + (g.v === v ? ' on' : ''), function () {
+          g.v = v;
+          if (v === 'Yes') { m.answers[q.key] = g.text; m.guesses = []; m.reply = null; m.follow[q.key] = SM.MAX_FOLLOWUPS; mSend(q); return; }
+          if (v === 'Close') { m.answers[q.key] = (String(m.answers[q.key] || '') + ' ' + g.text).trim(); S.note = 'Fix it up in the box so it is exactly right.'; }
+          paint();
+        })); });
+        gc.appendChild(row);
+      });
+      w.appendChild(gc);
+    }
+    if (S.crisis || (r && r.tears)) w.appendChild(crisisCard());
+    var acts = el('div', 'arc-actions');
+    if (m.pending) acts.appendChild(btn('Next', 'v3-go', function () { m.pending = false; mNext(); }));
+    else acts.appendChild(btn(S.busy ? 'Listening...' : (m.i === list.length - 1 ? 'That\'s it' : 'Send'), 'v3-go', function () { mSend(q); }, S.busy));
+    var mic = q.chipsOnly ? null : mMic(box, q); if (mic) acts.appendChild(mic);
+    if (!q.chipsOnly) acts.appendChild(btn("I'm stuck", 'v3-mini', function () { mSend(q, { stuck: true }); }, S.busy));
+    acts.appendChild(btn('Skip', 'v3-link', function () { if (q.required && !String(m.answers[q.key] || '').trim()) { S.note = 'This one matters most. Even three words is plenty. Tap I\'m stuck and I will offer some.'; paint(); return; } m.pending = false; if (m.i === list.length - 1) mSend(q, { skip: true }); else mNext(); }, S.busy));
+    acts.appendChild(btn('Back', 'v3-link', function () { mStop(); m.reply = null; m.guesses = []; m.caught = ''; m.pending = false; if (m.i > 0) { m.i -= 1; paint(); } else { m.on = false; back(); } }));
+    w.appendChild(acts);
+  };
+  function momentScoreCard(w, r) {
+    var card = el('div', 'flow-card arc-moment-score');
+    card.appendChild(el('p', 'arc-q', 'Moment score'));
+    Object.keys(SM.SCORE_LABELS).forEach(function (k) { if (r.mscore[k] == null) return; card.appendChild(el('p', 'arc-score-row', SM.SCORE_LABELS[k] + ': ' + r.mscore[k] + ' of 5')); });
+    if (r.rewrote) card.appendChild(el('p', 'hint', 'Plai tightened one pass to make it hit harder.'));
+    if (r.coach) card.appendChild(el('p', 'hint arc-moment-coach', r.coach));
+    w.appendChild(card);
+  }
   SCREENS['s-ai'] = function (w) {
     w.appendChild(plai("Who's holding the pen?"));
     var levels = A.AI_LEVELS.filter(function (l) { return l.id !== 'full' || !S.userWords; });
@@ -484,7 +655,7 @@
     }).catch(function () { if (!human) refund(before); S.busy = false; S.note = 'Plai lost the words.'; paint(); });
   }
   function finish(lyrics, d, scoreBefore) {
-    S.result = { lyrics: lyrics, sample: !!(d && d.sample), notice: (d && d.notice) || '', scoreBefore: scoreBefore || 0, label: A.aiLabel(S) };
+    S.result = { lyrics: lyrics, sample: !!(d && d.sample), notice: (d && d.notice) || '', scoreBefore: scoreBefore || 0, label: A.aiLabel(S), mscore: (d && d.score) || null, coach: (d && d.coach) || '', rewrote: !!(d && d.rewrote) };
     if (d && d.crisis) S.crisis = true;
     go('reveal');
   }
@@ -745,7 +916,7 @@
     else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
-    if ((S.card === 'flip' || S.sub === 'trip' || S.type === 'banger') && !r.extras) { style(); r.extras = S.flipExtras || null; }
+    if ((S.card === 'flip' || S.sub === 'trip' || S.type === 'banger' || S.moment.lock) && !r.extras) { style(); r.extras = S.flipExtras || null; }
     if (S.card === 'flip' && S.flip.slang === 'bay' && window.SlangMode) {
       var lvl = window.SlangMode.level(S.flip.hyphy);
       var hb = el('div', 'arc-hy-bar');
@@ -755,7 +926,8 @@
       w.appendChild(hb);
       hyphyEdits(w, r);
     }
-    var fx = S.card === 'flip' || S.sub === 'trip' || S.type === 'banger' ? r.extras : null;
+    var fx = S.card === 'flip' || S.sub === 'trip' || S.type === 'banger' || S.moment.lock ? r.extras : null;
+    if (r.mscore && SM) momentScoreCard(w, r);
     var tagged = function (t) { return fx && fx.voice && window.PromptCheck ? window.PromptCheck.tagLyrics(t, fx.voice) : t; };
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
