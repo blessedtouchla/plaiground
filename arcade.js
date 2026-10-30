@@ -37,7 +37,7 @@
       .then(function (d) { S.mood = d && d.ok ? 'gotit' : 'worried'; S.moodAt = Date.now(); return d; });
   }
   function stateForServer() {
-    return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
+    return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.type === 'banger' && A.bangerTitle ? A.bangerTitle(S.title) : S.title, length: S.length, language: S.language,
       explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, handleDetails: S.handleOk ? S.handleDetails : [], handleOk: !!S.handleOk, styleOverride: S.styleOverride, flip: S.flip };
   }
   function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
@@ -770,6 +770,7 @@
       tips.appendChild(el('p', 'arc-sliders', 'Weirdness about ' + fx.sliders.weirdness + '%  \u00b7  Style Influence about ' + fx.sliders.styleInfluence + '%'));
       if (fx.voice) tips.appendChild(el('p', 'hint', 'Copy lyrics adds voice tags like [Rap] and [Sung] so the voice stays put.'));
       tips.appendChild(el('p', 'hint', 'Lower weirdness keeps the voice natural. Style Influence near 65 follows the prompt without going stiff.'));
+      if (fx.tip) tips.appendChild(el('p', 'hint arc-voice-tip', fx.tip));
       w.appendChild(tips);
     }
     var row = el('div', 'arc-actions');
