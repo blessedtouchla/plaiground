@@ -977,7 +977,7 @@ function handleV3Page(req, res) {
 
 // Public Song Helper Arcade (serves /song-helper). No login and no credit lock.
 // Safety filters run inside lib/arcade-server. Per-IP hourly caps keep the AI bill sane.
-const ARCADE_AI = { 'arcade-write': 1, 'arcade-battle': 1, 'arcade-flip': 1, 'arcade-research': 1, 'arcade-news-ideas': 1, 'arcade-ideas': 1, 'arcade-section': 1 };
+const ARCADE_AI = { 'arcade-handle': 1, 'arcade-write': 1, 'arcade-battle': 1, 'arcade-flip': 1, 'arcade-research': 1, 'arcade-news-ideas': 1, 'arcade-ideas': 1, 'arcade-section': 1 };
 const arcadeUsage = { since: new Date().toISOString(), counts: {} };
 function logArcade(action, kind, ip) {
   arcadeUsage.counts[action] = (arcadeUsage.counts[action] || 0) + 1;
