@@ -38,7 +38,7 @@
   }
   function stateForServer() {
     return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
-      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, styleOverride: S.styleOverride, flip: S.flip };
+      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, handleDetails: S.handleOk ? S.handleDetails : [], handleOk: !!S.handleOk, styleOverride: S.styleOverride, flip: S.flip };
   }
   function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
   function style() {
@@ -237,12 +237,48 @@
     if (S.sub === 'occasion' || S.sub === 'fan') return 'Love';
     return 'Happy';
   }
+  // Use a friend's handle: pull safe public details, user edits them, only those feed the song.
+  function handlePanel(w) {
+    var H = S.handle || (S.handle = { open: false, value: '', inOnIt: false, busy: false, note: '' });
+    var box = el('div', 'flow-card arc-handle');
+    box.appendChild(btn(H.open ? "Hide friend's handle" : "Use a friend's handle", 'v3-link', function () { H.open = !H.open; paint(); }));
+    if (H.open) {
+      if (H.soon) { box.appendChild(el('p', 'hint', "Use a friend's handle is coming soon.")); w.appendChild(box); return; }
+      box.appendChild(input(H.value, '@their handle on X', function (v) { H.value = v; }));
+      var lab = el('label', 'arc-check'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = H.inOnIt; cb.onchange = function () { H.inOnIt = cb.checked; pull.disabled = !cb.checked; };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(" This is a friend who's in on it.")); box.appendChild(lab);
+      box.appendChild(el('p', 'hint', 'Public accounts only. Plai skips looks, weight, race, religion, sexuality, health, private info and location.'));
+      var pull = btn(H.busy ? 'Looking...' : 'Pull their details', 'v3-go', function () {
+        H.busy = true; H.note = ''; paint();
+        post('arcade-handle', { handle: H.value, inOnIt: H.inOnIt === true }).then(function (d) {
+          H.busy = false;
+          if (d && d.comingSoon) { H.soon = true; }
+          else if (d && d.ok) { S.handleDetails = d.details.slice(); S.handleOk = true; }
+          else H.note = (d && d.error) || 'Could not pull that one.';
+          paint();
+        }, function () { H.busy = false; H.note = 'Could not pull that one.'; paint(); });
+      }, !H.inOnIt || H.busy);
+      box.appendChild(pull);
+      if (H.note) box.appendChild(el('p', 'hint', H.note));
+      if (S.handleOk && (S.handleDetails || []).length) {
+        box.appendChild(el('p', 'arc-q', 'Edit or remove. Only these go in the song.'));
+        S.handleDetails.forEach(function (d, i) {
+          var row = el('div', 'arc-handle-row');
+          row.appendChild(input(d, 'detail', function (v) { S.handleDetails[i] = v; }));
+          row.appendChild(btn('Remove', 'v3-link', function () { S.handleDetails.splice(i, 1); paint(); }));
+          box.appendChild(row);
+        });
+      }
+    }
+    w.appendChild(box);
+  }
   SCREENS['s-q'] = function (w) {
     var qs = A.questionsFor(S.type, S.sub);
     var q = qs[S.qIndex];
     if (!q) { go(S.sub === 'battle' ? 's-ai' : 's-ai'); return; }
     w.appendChild(el('p', 'arc-step', 'Question ' + (S.qIndex + 1) + ' of ' + qs.length));
     w.appendChild(plai(q.q));
+    if (S.qIndex === 0 && A.HANDLE_SUBS && A.HANDLE_SUBS.indexOf(S.sub) !== -1) handlePanel(w);
     if (q.fromResearch && S.research) {
       var box = el('div', 'flow-card arc-research'); box.appendChild(el('h3', '', S.sub === 'celeb' ? 'Roast ammo (public info)' : "Here's what that song is about"));
       var ul = el('ul'); (S.research.topics || []).forEach(function (t) { ul.appendChild(el('li', '', t)); }); box.appendChild(ul);
