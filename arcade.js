@@ -46,6 +46,7 @@
     var snd = soundForStyle();
     if (S.card === 'flip' && !snd.genre && S.flip.target) snd.genre = S.flip.target;
     if (S.card === 'flip') { var fs = A.flipStyle(st, snd); S.flipExtras = fs; return fs.style; }
+    if (S.sub === 'trip' && A.tripStyle) { var ts = A.tripStyle(st, snd); S.flipExtras = ts; return ts.style; }
     return A.stylePrompt(st, snd);
   }
   function chips(list, isOn, onTap, cls) {
@@ -197,7 +198,7 @@
   };
   SCREENS['s-sub'] = function (w) {
     var t = A.TYPES.filter(function (x) { return x.id === S.type; })[0];
-    w.appendChild(plai(S.type === 'tribute' ? "Who's it for?" : "Who's getting roasted?"));
+    w.appendChild(plai(S.type === 'tribute' ? "Who's it for?" : (S.type === 'story' ? 'What kind of story?' : "Who's getting roasted?")));
     w.appendChild(chips(t.sub.map(function (id) { return { id: id, label: A.SUBS[id] }; }), function (id) { return S.sub === id; }, function (id) {
       S.sub = id; S.qIndex = 0; S.vibe = defaultVibe(); setTimeout(function () { go('s-q'); }, 0);
     }));
@@ -679,7 +680,7 @@
     else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
-    if (S.card === 'flip' && !r.extras) { style(); r.extras = S.flipExtras || null; }
+    if ((S.card === 'flip' || S.sub === 'trip') && !r.extras) { style(); r.extras = S.flipExtras || null; }
     if (S.card === 'flip' && S.flip.slang === 'bay' && window.SlangMode) {
       var lvl = window.SlangMode.level(S.flip.hyphy);
       var hb = el('div', 'arc-hy-bar');
@@ -689,7 +690,7 @@
       w.appendChild(hb);
       hyphyEdits(w, r);
     }
-    var fx = S.card === 'flip' ? r.extras : null;
+    var fx = S.card === 'flip' || S.sub === 'trip' ? r.extras : null;
     var tagged = function (t) { return fx && fx.voice && window.PromptCheck ? window.PromptCheck.tagLyrics(t, fx.voice) : t; };
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
@@ -702,7 +703,7 @@
       tips.appendChild(el('p', 'hint', 'Paste this into the Exclude box in your music AI. Leave "no" words out of the style box.'));
       tips.appendChild(el('p', 'arc-q', 'Suggested sliders'));
       tips.appendChild(el('p', 'arc-sliders', 'Weirdness about ' + fx.sliders.weirdness + '%  \u00b7  Style Influence about ' + fx.sliders.styleInfluence + '%'));
-      tips.appendChild(el('p', 'hint', 'Copy lyrics adds voice tags like [Rap] and [Sung] so the voice stays put.'));
+      if (fx.voice) tips.appendChild(el('p', 'hint', 'Copy lyrics adds voice tags like [Rap] and [Sung] so the voice stays put.'));
       tips.appendChild(el('p', 'hint', 'Lower weirdness keeps the voice natural. Style Influence near 65 follows the prompt without going stiff.'));
       w.appendChild(tips);
     }
