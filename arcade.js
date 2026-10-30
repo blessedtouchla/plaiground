@@ -46,6 +46,7 @@
     var snd = soundForStyle();
     if (S.card === 'flip' && !snd.genre && S.flip.target) snd.genre = S.flip.target;
     if (S.card === 'flip') { var fs = A.flipStyle(st, snd); S.flipExtras = fs; return fs.style; }
+    if (S.type === 'banger' && A.bangerStyle) { var bs = A.bangerStyle(st, snd); S.flipExtras = bs; return bs.style; }
     if (S.sub === 'trip' && A.tripStyle) { var ts = A.tripStyle(st, snd); S.flipExtras = ts; return ts.style; }
     return A.stylePrompt(st, snd);
   }
@@ -60,6 +61,32 @@
     return t;
   }
   function plai(text) { var p = el('p', 'v3-plai arc-plai'); p.appendChild(el('b', '', 'Plai: ')); p.appendChild(document.createTextNode(text)); return p; }
+  // Rhyme Time: type a word, tap a rhyme to drop it in your lyric (or copy it). Free, no credits.
+  var lastBox = null;
+  document.addEventListener('focusin', function (e) { var t = e.target; if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type !== 'button'))) { if (!t.classList.contains('arc-rhyme-in')) lastBox = t; } });
+  function rhymeTime(w) {
+    var box = el('div', 'flow-card arc-rhyme');
+    var open = btn('Rhyme Time', 'v3-link', function () { body.hidden = !body.hidden; if (!body.hidden) inp.focus(); });
+    var body = el('div', 'arc-rhyme-body'); body.hidden = true;
+    var inp = el('input', 'arc-input arc-rhyme-in'); inp.placeholder = 'Type any word'; inp.maxLength = 40;
+    var out = el('div', 'chips arc-rhyme-list');
+    var go2 = btn('Find rhymes', 'v3-go', function () {
+      out.textContent = 'Looking...';
+      A.findRhymes(inp.value).then(function (r) {
+        out.textContent = '';
+        if (!r.ok) { out.appendChild(el('p', 'hint', r.error)); return; }
+        r.words.forEach(function (wd) { out.appendChild(btn(wd, 'chip', function (e) {
+          var t = lastBox && document.body.contains(lastBox) ? lastBox : null;
+          if (t) { var a = t.selectionStart != null ? t.selectionStart : t.value.length; var pre = t.value.slice(0, a); var sp = pre && !/\s$/.test(pre) ? ' ' : ''; t.value = pre + sp + wd + t.value.slice(t.selectionEnd != null ? t.selectionEnd : a); t.dispatchEvent(new Event('input', { bubbles: true })); e.target.textContent = 'Added'; }
+          else copy(wd, e.target);
+        })); });
+        out.appendChild(el('p', 'hint', 'Tap a word to add it to your lyric, or copy it. Free, no credits.'));
+      });
+    });
+    inp.onkeydown = function (e) { if (e.key === 'Enter') go2.onclick(); };
+    body.appendChild(inp); body.appendChild(go2); body.appendChild(out);
+    box.appendChild(open); box.appendChild(body); w.appendChild(box);
+  }
   function copy(text, b) { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { b.textContent = 'Copied'; }, function () { b.textContent = 'Select and copy'; }); }
   function crisisCard() {
     var c = el('p', 'arc-crisis'); c.appendChild(document.createTextNode("You matter. If you're hurting, call or text 988 (US) or visit "));
@@ -198,7 +225,7 @@
   };
   SCREENS['s-sub'] = function (w) {
     var t = A.TYPES.filter(function (x) { return x.id === S.type; })[0];
-    w.appendChild(plai(S.type === 'tribute' ? "Who's it for?" : (S.type === 'story' ? 'What kind of story?' : "Who's getting roasted?")));
+    w.appendChild(plai(S.type === 'tribute' ? "Who's it for?" : (S.type === 'story' ? 'What kind of story?' : S.type === 'banger' ? 'What kind of banger?' : "Who's getting roasted?")));
     w.appendChild(chips(t.sub.map(function (id) { return { id: id, label: A.SUBS[id] }; }), function (id) { return S.sub === id; }, function (id) {
       S.sub = id; S.qIndex = 0; S.vibe = defaultVibe(); setTimeout(function () { go('s-q'); }, 0);
     }));
@@ -364,6 +391,7 @@
     });
   }
   SCREENS['s-build'] = function (w) {
+    setTimeout(function () { rhymeTime(w); }, 0);
     w.appendChild(plai(S.aiLevel === 'human' ? 'Write your next line. I count the syllables.' : 'Pick your next line.'));
     var song = el('div', 'flow-card arc-built');
     S.built.forEach(function (l, i) { var p = el('p', 'arc-line'); p.appendChild(syl(l)); p.appendChild(document.createTextNode(' ' + l)); var flag = mismatch(i); if (flag) p.classList.add('amber'); song.appendChild(p); });
@@ -662,6 +690,7 @@
 
   // ---------- Reveal ----------
   SCREENS.reveal = function (w) {
+    setTimeout(function () { rhymeTime(w); }, 0);
     var r = S.result || { lyrics: '' };
     var best = Number(localStorage.getItem(BEST) || 0);
     var score = S.card === 'fix' ? A.songScore(r.lyrics) : S.points + A.songScore(r.lyrics);
@@ -680,7 +709,7 @@
     else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
-    if ((S.card === 'flip' || S.sub === 'trip') && !r.extras) { style(); r.extras = S.flipExtras || null; }
+    if ((S.card === 'flip' || S.sub === 'trip' || S.type === 'banger') && !r.extras) { style(); r.extras = S.flipExtras || null; }
     if (S.card === 'flip' && S.flip.slang === 'bay' && window.SlangMode) {
       var lvl = window.SlangMode.level(S.flip.hyphy);
       var hb = el('div', 'arc-hy-bar');
@@ -690,7 +719,7 @@
       w.appendChild(hb);
       hyphyEdits(w, r);
     }
-    var fx = S.card === 'flip' || S.sub === 'trip' ? r.extras : null;
+    var fx = S.card === 'flip' || S.sub === 'trip' || S.type === 'banger' ? r.extras : null;
     var tagged = function (t) { return fx && fx.voice && window.PromptCheck ? window.PromptCheck.tagLyrics(t, fx.voice) : t; };
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
