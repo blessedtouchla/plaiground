@@ -1,0 +1,7 @@
+.album-apply{border:1px solid var(--line,rgba(255,255,255,.12));border-radius:14px;padding:14px 16px;margin:14px 0}
+.album-apply h4{margin:0 0 4px}
+.album-apply-line{margin:8px 0}
+.track-apply{margin-top:10px;border-top:1px dashed var(--line,rgba(255,255,255,.12));padding-top:10px}
+.track-apply .chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:rgba(124,92,255,.18)}
+.track-apply .chip-edit{background:rgba(255,196,0,.2)}
+.track-row[data-track-check-ok="false"] [data-track-check]{color:#ffb4a8}
