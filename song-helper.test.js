@@ -1337,7 +1337,7 @@ function runPage() {
   assert.ok(html.includes('id="sh-comedy"'));
   assert.ok(html.indexOf('lib/song-packs.js') < html.indexOf('lib/song-helper.js'));
   assert.ok(html.includes('song-helper.js?v=20261016scene'));
-  assert.ok(html.includes('song-helper-v2.js?v=20261017tiles'));
+  assert.ok(html.includes('song-helper-v2.js?v=20261031done'));
   assert.ok(html.includes('lib/song-modes.js?v=20261015answers'));
   assert.ok(html.includes('lib/song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-flow-page.js?v=20261016scene'));
