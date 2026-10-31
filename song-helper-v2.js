@@ -4966,6 +4966,47 @@
     article.insertBefore(board, area);
   }
 
+  // Is it done? Three free taps at the Done stop. Fix that line reopens the part; the drawer waits 7 days.
+  function mountDoneCheck() {
+    var page = $('sh-page');
+    if (!page || !window.IsItDone) return;
+    window.IsItDone.mount(page, {
+      sections: function () { return pageSections; },
+      onFix: function (id, line) {
+        partStop = id;
+        dressJourney();
+        var card = document.querySelector('.sh-part[data-id="' + id + '"]');
+        if (!card) return;
+        if (card.scrollIntoView) {
+          try { card.scrollIntoView({ block: 'start', behavior: quietMotion() }); } catch (err) {}
+        }
+        var area = card.querySelector('textarea');
+        if (area) {
+          area.focus();
+          var at = area.value.indexOf(line);
+          if (at !== -1 && area.setSelectionRange) area.setSelectionRange(at, at + line.length);
+        }
+      },
+    });
+  }
+
+  function offerDrawer() {
+    var main = document.querySelector('main.sh');
+    if (!main || !window.IsItDone) return;
+    window.IsItDone.offer(main, {
+      onPull: function (item) {
+        setBranch('have');
+        var paste = $('sh-have-paste');
+        if (paste) {
+          paste.value = item.lyrics || '';
+          if (paste.scrollIntoView) {
+            try { paste.scrollIntoView({ block: 'center', behavior: quietMotion() }); } catch (err) {}
+          }
+        }
+      },
+    });
+  }
+
   function mountPartScene(article, row, host) {
     var kind = row.kind;
     var area = article.querySelector('.sh-part-box');
@@ -4982,6 +5023,7 @@
       if (!following) {
         partStop = 'done';
         refreshRoad('done');
+        mountDoneCheck(host);
         var meter = $('sh-meter');
         if (meter && meter.scrollIntoView) {
           try { meter.scrollIntoView({ block: 'center', behavior: quietMotion() }); } catch (err) {}
@@ -5322,4 +5364,5 @@
   loadStatus();
   loadSlang();
   loadSpark();
+  offerDrawer();
 }());
