@@ -3413,6 +3413,23 @@
     };
   }
 
+  function albumDefaultsOf(draft) {
+    return {
+      artist: draft.name || draft.artist || '',
+      made_how: draft.made_how || '',
+      ai_service: draft.ai_service || draft.ai_service_other || '',
+      contributors: Array.isArray(draft.contributors) ? draft.contributors : [],
+      writers: Array.isArray(draft.album_writers) ? draft.album_writers : [],
+      explicit: draft.explicit === true || draft.explicit === 'true',
+    };
+  }
+
+  function albumTracksMeta(draft) {
+    var api = typeof window !== 'undefined' && window.PlaiAlbumApply;
+    if (!api || !draft || draft.type !== 'album' || !Array.isArray(draft.tracks)) return undefined;
+    return api.tracksMeta(albumDefaultsOf(draft), draft.tracks);
+  }
+
   function submitRelease(draft, releaseDate) {
     draft = stampLeaveCredits(draft || readDraft());
     if (!draft || !draft.release_id) {
@@ -3431,6 +3448,7 @@
       return Promise.resolve({ failed: true, result: { data: { error: 'Release date is required.' } } });
     }
     var submitBody = {
+      tracks_meta: albumTracksMeta(draft),
       release_date: date,
       made_how: draft.made_how || '',
       human_elements: Array.isArray(draft.human_elements) ? draft.human_elements : [],
@@ -3794,6 +3812,7 @@
     };
   }
   if (typeof window !== 'undefined') window.PlaigroundReviewFacts = reviewFacts;
+  if (typeof window !== 'undefined') window.PlaiStoreDraft = { read: readDraft, write: writeDraft };
 
   function hopCreditFields(draft) {
     var label = fieldValue('tg-label') || String((draft && draft.label) || '').trim();
@@ -3928,7 +3947,9 @@
       var trackId = row.getAttribute('data-track-id') || prior.track_id || '';
       var uploaded = row.getAttribute('data-audio-uploaded') === 'true' || prior.audio_uploaded === true;
       var lyricsEl = row.querySelector('[data-track-lyrics]');
+      var override = trackOverrideOf(row, prior);
       out.push({
+        override: override,
         title: titleEl ? String(titleEl.value || '').trim() : '',
         lyrics: lyricsEl ? lyricsText(lyricsEl.value) : lyricsText(prior.lyrics),
         audio: audioFileOf(input),
@@ -3939,6 +3960,15 @@
       });
     }
     return out;
+  }
+
+  // Album "Edit this track" overrides ride on the row so reorder keeps them.
+  function trackOverrideOf(row, prior) {
+    var raw = row && row.getAttribute ? row.getAttribute('data-track-override') : '';
+    if (raw) {
+      try { return JSON.parse(raw); } catch (err) { /* fall back to the saved draft */ }
+    }
+    return (prior && prior.override) || undefined;
   }
 
   function stampTrackRow(index, patch) {
@@ -3961,6 +3991,7 @@
         track_id: (track && track.track_id) || '',
         audio_uploaded: Boolean(track && track.audio_uploaded),
         audio_name: track && track.audio && track.audio.name ? track.audio.name : ((track && track.audio_name) || ''),
+        override: track && track.override ? track.override : undefined,
         position: i + 1,
       };
     });
@@ -6172,6 +6203,7 @@
     if (track && track.track_id) row.setAttribute('data-track-id', track.track_id);
     if (track && (track.audio || track.file)) rememberAudioFile(track.audio || track.file);
     if (track && track.audio_uploaded) row.setAttribute('data-audio-uploaded', 'true');
+    if (track && track.override) row.setAttribute('data-track-override', JSON.stringify(track.override));
     row.innerHTML = ''
       + '<div class="track-row-head">'
       + '<strong data-track-index>Track</strong>'

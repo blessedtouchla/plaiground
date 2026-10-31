@@ -3586,6 +3586,37 @@ async function releaseDsps(req, res, releaseId) {
   sendJson(res, result.status, result.data);
 }
 
+/**
+ * Album submit: body.tracks_meta holds one row per track (from lib/album-apply).
+ * A row only changes the submit body for its own track id; anything a row
+ * does not set keeps the album value.
+ */
+function albumTracksMetaError(body) {
+  const rows = body && Array.isArray(body.tracks_meta) ? body.tracks_meta : [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const how = String((rows[i] && rows[i].made_how) || '');
+    if (how !== 'no_ai' && how !== 'ai_assisted' && how !== 'fully_ai') {
+      return 'Track ' + (i + 1) + ' needs a Human, AI-assisted, or AI label before the album can go out.';
+    }
+  }
+  return '';
+}
+
+function albumTrackBody(body, trackId) {
+  const rows = body && Array.isArray(body.tracks_meta) ? body.tracks_meta : [];
+  const key = String(trackId || '').toLowerCase();
+  const row = rows.find((r) => r && String(r.track_id || '').toLowerCase() === key);
+  if (!row || row.applied_from_album === true) return body;
+  const next = Object.assign({}, body);
+  if (typeof row.made_how === 'string' && row.made_how) next.made_how = row.made_how;
+  if (typeof row.ai_service === 'string') {
+    next.ai_service = row.ai_service;
+    next.ai_service_other = '';
+  }
+  if (Array.isArray(row.contributors) && row.contributors.length) next.contributors = row.contributors;
+  return next;
+}
+
 async function submitRelease(req, res, releaseId) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -3753,6 +3784,11 @@ async function submitRelease(req, res, releaseId) {
     sendJson(res, 400, { error: submitFields.error });
     return;
   }
+  const albumTrackError = albumTracksMetaError(body);
+  if (albumTrackError) {
+    sendJson(res, 400, { error: albumTrackError, code: 'ALBUM_TRACK_CHECK' });
+    return;
+  }
 
   let releaseDate = normalizeReleaseDate((body && (body.release_date || body.releaseDate)) || row.release_date);
   const minDate = minSubmitDate();
@@ -3805,18 +3841,22 @@ async function submitRelease(req, res, releaseId) {
     const tid = String(trackIds[i] || '').trim();
     if (!isUuid(tid) || seenTracks[tid]) continue;
     seenTracks[tid] = true;
-    const writersHop = await attachTrackWriters(tid, songwriter, body);
+    // Album: a track edited on its own carries its own AI label and credits.
+    const trackBody = albumTrackBody(body, tid);
+    const trackAiFields = trackBody === body ? aiFields : storeAi.trackAiFields(trackBody);
+    const trackClearAi = trackBody === body ? clearAi : storeAi.shouldClearTrackAi(trackBody);
+    const writersHop = await attachTrackWriters(tid, songwriter, trackBody);
     if (!writersHop.ok) {
       sendJson(res, writersHop.status, writersHop.data);
       return;
     }
-    if (aiFields) {
-      const tagged = await applyTrackAiDisclosure(tid, aiFields);
+    if (trackAiFields) {
+      const tagged = await applyTrackAiDisclosure(tid, trackAiFields);
       if (!tagged.ok) {
         sendJson(res, tagged.status, tagged.data);
         return;
       }
-    } else if (clearAi) {
+    } else if (trackClearAi) {
       const cleared = await clearTrackAiDisclosure(tid);
       if (!cleared.ok) {
         sendJson(res, cleared.status, cleared.data);
@@ -4444,6 +4484,8 @@ handler.config = {
 
 module.exports = handler;
 module.exports.pickSummary = pickSummary;
+module.exports.albumTrackBody = albumTrackBody;
+module.exports.albumTracksMetaError = albumTracksMetaError;
 module.exports.pickDsps = pickDsps;
 module.exports.pickTerritories = pickTerritories;
 module.exports.pickDeliveries = livePlayer.pickDeliveries;
