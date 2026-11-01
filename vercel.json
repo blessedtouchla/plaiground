@@ -349,6 +349,13 @@
     { "source": "/contracts/", "destination": "/contracts.html" },
     { "source": "/copyright", "destination": "/copyright.html" },
     { "source": "/copyright/", "destination": "/copyright.html" },
+    { "source": "/get-paid", "destination": "/get-paid.html" },
+    { "source": "/get-paid/soundexchange-artist", "destination": "/get-paid-soundexchange-artist.html" },
+    { "source": "/get-paid/soundexchange-rights-owner", "destination": "/get-paid-soundexchange-rights-owner.html" },
+    { "source": "/get-paid/mlc", "destination": "/get-paid-mlc.html" },
+    { "source": "/get-paid/bmi-writer", "destination": "/get-paid-bmi-writer.html" },
+    { "source": "/get-paid/bmi-publisher", "destination": "/get-paid-bmi-publisher.html" },
+    { "source": "/get-paid/isrc", "destination": "/get-paid-isrc.html" },
     { "source": "/ipi-guide", "destination": "/ipi-guide.html" },
     { "source": "/ipi-guide/", "destination": "/ipi-guide.html" },
     { "source": "/publishing/ipi-guide", "destination": "/ipi-guide.html" },
@@ -474,4 +481,3 @@
     { "path": "/api/charts-preview/cron", "schedule": "0 13 * * *" }
   ]
 }
-
