@@ -89,6 +89,8 @@
   var pageSections = [];
   var formatState = null;
   var feelings = [];
+  var starter = 'missing';
+  var feelingOpen = '';
   var riddimState = {
     stop: 'riddim',
     hummed: false,
@@ -104,7 +106,8 @@
     grateful: 'grateful',
     nostalgic: 'nostalgic',
     angry: 'angry',
-    mindset: 'mindset'
+    mindset: 'mindset',
+    holiday: 'holiday'
   };
   var GENRE_LABELS = {
     hiphop: 'Hip-hop',
@@ -347,6 +350,7 @@
       meter: fieldValue('meter') || 'clean',
       reggae: fieldValue('reggae') || 'roots',
       feelings: feelings.slice(0, 2),
+      starter: kind === 'holiday' ? starter : '',
       riddimHook: riddimState.parts.hook || '',
       riddimVerse1: riddimState.parts['verse-1'] || '',
       riddimVerse2: riddimState.parts['verse-2'] || '',
@@ -1226,6 +1230,7 @@
     if (!questions) return;
     live = questions.open({
       kind: kind,
+      starter: starter,
       mode: mode,
       mood: readMood(),
       topic: ideaTopic(),
@@ -1235,7 +1240,7 @@
 
   function touchLive() {
     if (!questions) return;
-    if (!live || live.kind !== kind || live.mode !== mode || live.part !== part) {
+    if (!live || live.kind !== kind || live.mode !== mode || live.part !== part || (kind === 'holiday' && live.starter !== starter)) {
       resetLive();
       return;
     }
@@ -1271,13 +1276,107 @@
       host.appendChild(button);
     });
     if (window.SongHelperChips) window.SongHelperChips.fold(host);
+    paintStarters(host);
+  }
+
+  function paintStarters(kindsHost) {
+    var box = $('sh-holiday-starters');
+    if (!box && kindsHost && kindsHost.parentNode) {
+      box = document.createElement('div');
+      box.id = 'sh-holiday-starters';
+      box.className = 'sh-holiday';
+      kindsHost.parentNode.insertBefore(box, kindsHost.nextSibling);
+    }
+    if (!box || !questions || !questions.HOLIDAY_STARTERS) return;
+    box.textContent = '';
+    box.hidden = kind !== 'holiday';
+    if (box.hidden) return;
+    var head = document.createElement('h3');
+    head.className = 'sh-subhead';
+    head.textContent = 'Holiday pack. Pick a starter';
+    box.appendChild(head);
+    var row = document.createElement('div');
+    row.className = 'sh-starters';
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', 'Holiday starters');
+    var note = document.createElement('p');
+    note.className = 'sh-help';
+    questions.HOLIDAY_STARTERS.forEach(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      var on = item.id === starter;
+      button.className = 'sh-chip' + (on ? ' on' : '');
+      button.textContent = item.label;
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (on) note.textContent = item.blurb + ' For Thanksgiving, the winter holidays, or New Year.';
+      button.addEventListener('click', function () {
+        starter = item.id;
+        resetLive();
+        paintStarters(kindsHost);
+        paintLive();
+        paintV2Answers();
+      });
+      row.appendChild(button);
+    });
+    box.appendChild(row);
+    box.appendChild(note);
+  }
+
+  function toggleFeeling(id) {
+    var at = feelings.indexOf(id);
+    if (at >= 0) feelings.splice(at, 1);
+    else if (feelings.length < 2) feelings.push(id);
+    else { feelings.shift(); feelings.push(id); }
   }
 
   function paintFeelings() {
     var host = $('sh-feelings');
     if (!host || !modes || !modes.FEELINGS) return;
     host.textContent = '';
-    modes.FEELINGS.forEach(function (item) {
+    var families = modes.FEELING_FAMILIES || [];
+    var note = $('sh-feelings-note');
+    if (note && families.length) note.textContent = 'Tap a feeling, then the exact one. Pick up to two.';
+    var list = families.length ? families.map(function (fam) { return { id: 'fam:' + fam.id, label: fam.label, fam: fam }; }) : modes.FEELINGS;
+    var openFam = modes.feelingFamily ? modes.feelingFamily(feelingOpen) : null;
+    list.forEach(function (item) {
+      if (item.fam) {
+        var famButton = document.createElement('button');
+        famButton.type = 'button';
+        var picked = item.fam.precise.some(function (id) { return feelings.indexOf(id) !== -1; });
+        var isOpen = feelingOpen === item.fam.id;
+        famButton.className = 'sh-chip' + (isOpen || picked ? ' on' : '');
+        famButton.textContent = item.label;
+        famButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        famButton.addEventListener('click', function () {
+          feelingOpen = isOpen ? '' : item.fam.id;
+          paintFeelings();
+        });
+        host.appendChild(famButton);
+        return;
+      }
+      host.appendChild(feelingButton(item));
+    });
+    if (openFam) {
+      var sub = document.createElement('div');
+      sub.className = 'sh-feeling-chips sh-feeling-precise';
+      sub.setAttribute('role', 'group');
+      sub.setAttribute('aria-label', openFam.label + ', more exactly');
+      openFam.precise.forEach(function (id) {
+        var row = modes.feelingById(id);
+        if (row) sub.appendChild(feelingButton(row));
+      });
+      host.appendChild(sub);
+    }
+    if (feelings.length && modes.feelingLabels) {
+      var chosen = document.createElement('p');
+      chosen.className = 'sh-help sh-feeling-chosen';
+      chosen.textContent = 'Your feelings: ' + modes.feelingLabels(feelings).join(', ') + '.';
+      host.appendChild(chosen);
+    }
+  }
+
+  function feelingButton(item) {
+    {
       var button = document.createElement('button');
       button.type = 'button';
       var on = feelings.indexOf(item.id) !== -1;
@@ -1285,9 +1384,7 @@
       button.textContent = item.label;
       button.setAttribute('aria-pressed', on ? 'true' : 'false');
       button.addEventListener('click', function () {
-        var at = feelings.indexOf(item.id);
-        if (at >= 0) feelings.splice(at, 1);
-        else if (feelings.length < 2) feelings.push(item.id);
+        toggleFeeling(item.id);
         if (!kind && window.SongHelperPage && window.SongHelperPage.setMood) {
           var first = modes.feelingById(feelings[0] || '');
           window.SongHelperPage.setMood(first ? first.label.toLowerCase() : '');
@@ -1310,8 +1407,8 @@
           felt.parentNode.removeChild(felt);
         }
       });
-      host.appendChild(button);
-    });
+      return button;
+    }
   }
 
   function paintParts() {

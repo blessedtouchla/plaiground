@@ -1613,3 +1613,7 @@ body.song-helper-page .plai-bubble {
     writing-mode: horizontal-tb;
   }
 }
+
+.sh-holiday { margin-top: 12px; }
+.sh-feeling-precise { flex-basis: 100%; width: 100%; margin-top: 8px; padding-left: 12px; border-left: 2px solid currentColor; }
+.sh-feeling-chosen { flex-basis: 100%; width: 100%; margin: 6px 0 0; }
