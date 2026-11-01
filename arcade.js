@@ -5,7 +5,7 @@
   var root = document.getElementById('arc');
   var K = new URLSearchParams(location.search).get('k') || '';
   var WALLET = 'plaiground.v3.wallet';
-  var BEST = 'plaiground.arcade.best';
+  var BEST = 'plaiground.arcade.best2';
   var SAVED = 'plaiground.arcade.saved';
   var ROAST_NOTE = 'Comedy parody. Not statements of fact.';
   var S;
@@ -37,8 +37,8 @@
       .then(function (d) { S.mood = d && d.ok ? 'gotit' : 'worried'; S.moodAt = Date.now(); return d; });
   }
   function stateForServer() {
-    return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
-      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, styleOverride: S.styleOverride, flip: S.flip };
+    return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.type === 'banger' && A.bangerTitle ? A.bangerTitle(S.title) : S.title, length: S.length, language: S.language,
+      explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, handleDetails: S.handleOk ? S.handleDetails : [], handleOk: !!S.handleOk, styleOverride: S.styleOverride, flip: S.flip };
   }
   function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
   function style() {
@@ -46,6 +46,8 @@
     var snd = soundForStyle();
     if (S.card === 'flip' && !snd.genre && S.flip.target) snd.genre = S.flip.target;
     if (S.card === 'flip') { var fs = A.flipStyle(st, snd); S.flipExtras = fs; return fs.style; }
+    if (S.type === 'banger' && A.bangerStyle) { var bs = A.bangerStyle(st, snd); S.flipExtras = bs; return bs.style; }
+    if (S.sub === 'trip' && A.tripStyle) { var ts = A.tripStyle(st, snd); S.flipExtras = ts; return ts.style; }
     return A.stylePrompt(st, snd);
   }
   function chips(list, isOn, onTap, cls) {
@@ -59,6 +61,32 @@
     return t;
   }
   function plai(text) { var p = el('p', 'v3-plai arc-plai'); p.appendChild(el('b', '', 'Plai: ')); p.appendChild(document.createTextNode(text)); return p; }
+  // Rhyme Time: type a word, tap a rhyme to drop it in your lyric (or copy it). Free, no credits.
+  var lastBox = null;
+  document.addEventListener('focusin', function (e) { var t = e.target; if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type !== 'button'))) { if (!t.classList.contains('arc-rhyme-in')) lastBox = t; } });
+  function rhymeTime(w) {
+    var box = el('div', 'flow-card arc-rhyme');
+    var open = btn('Rhyme Time', 'v3-link', function () { body.hidden = !body.hidden; if (!body.hidden) inp.focus(); });
+    var body = el('div', 'arc-rhyme-body'); body.hidden = true;
+    var inp = el('input', 'arc-input arc-rhyme-in'); inp.placeholder = 'Type any word'; inp.maxLength = 40;
+    var out = el('div', 'chips arc-rhyme-list');
+    var go2 = btn('Find rhymes', 'v3-go', function () {
+      out.textContent = 'Looking...';
+      A.findRhymes(inp.value).then(function (r) {
+        out.textContent = '';
+        if (!r.ok) { out.appendChild(el('p', 'hint', r.error)); return; }
+        r.words.forEach(function (wd) { out.appendChild(btn(wd, 'chip', function (e) {
+          var t = lastBox && document.body.contains(lastBox) ? lastBox : null;
+          if (t) { var a = t.selectionStart != null ? t.selectionStart : t.value.length; var pre = t.value.slice(0, a); var sp = pre && !/\s$/.test(pre) ? ' ' : ''; t.value = pre + sp + wd + t.value.slice(t.selectionEnd != null ? t.selectionEnd : a); t.dispatchEvent(new Event('input', { bubbles: true })); e.target.textContent = 'Added'; }
+          else copy(wd, e.target);
+        })); });
+        out.appendChild(el('p', 'hint', 'Tap a word to add it to your lyric, or copy it. Free, no credits.'));
+      });
+    });
+    inp.onkeydown = function (e) { if (e.key === 'Enter') go2.onclick(); };
+    body.appendChild(inp); body.appendChild(go2); body.appendChild(out);
+    box.appendChild(open); box.appendChild(body); w.appendChild(box);
+  }
   function copy(text, b) { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { b.textContent = 'Copied'; }, function () { b.textContent = 'Select and copy'; }); }
   function crisisCard() {
     var c = el('p', 'arc-crisis'); c.appendChild(document.createTextNode("You matter. If you're hurting, call or text 988 (US) or visit "));
@@ -197,7 +225,7 @@
   };
   SCREENS['s-sub'] = function (w) {
     var t = A.TYPES.filter(function (x) { return x.id === S.type; })[0];
-    w.appendChild(plai(S.type === 'tribute' ? "Who's it for?" : "Who's getting roasted?"));
+    w.appendChild(plai(S.type === 'tribute' ? "Who's it for?" : (S.type === 'story' ? 'What kind of story?' : S.type === 'banger' ? 'What kind of banger?' : "Who's getting roasted?")));
     w.appendChild(chips(t.sub.map(function (id) { return { id: id, label: A.SUBS[id] }; }), function (id) { return S.sub === id; }, function (id) {
       S.sub = id; S.qIndex = 0; S.vibe = defaultVibe(); setTimeout(function () { go('s-q'); }, 0);
     }));
@@ -209,12 +237,48 @@
     if (S.sub === 'occasion' || S.sub === 'fan') return 'Love';
     return 'Happy';
   }
+  // Use a friend's handle: pull safe public details, user edits them, only those feed the song.
+  function handlePanel(w) {
+    var H = S.handle || (S.handle = { open: false, value: '', inOnIt: false, busy: false, note: '' });
+    var box = el('div', 'flow-card arc-handle');
+    box.appendChild(btn(H.open ? "Hide friend's handle" : "Use a friend's handle", 'v3-link', function () { H.open = !H.open; paint(); }));
+    if (H.open) {
+      if (H.soon) { box.appendChild(el('p', 'hint', "Use a friend's handle is coming soon.")); w.appendChild(box); return; }
+      box.appendChild(input(H.value, '@their handle on X', function (v) { H.value = v; }));
+      var lab = el('label', 'arc-check'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = H.inOnIt; cb.onchange = function () { H.inOnIt = cb.checked; pull.disabled = !cb.checked; };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(" This is a friend who's in on it.")); box.appendChild(lab);
+      box.appendChild(el('p', 'hint', 'Public accounts only. Plai skips looks, weight, race, religion, sexuality, health, private info and location.'));
+      var pull = btn(H.busy ? 'Looking...' : 'Pull their details', 'v3-go', function () {
+        H.busy = true; H.note = ''; paint();
+        post('arcade-handle', { handle: H.value, inOnIt: H.inOnIt === true }).then(function (d) {
+          H.busy = false;
+          if (d && d.comingSoon) { H.soon = true; }
+          else if (d && d.ok) { S.handleDetails = d.details.slice(); S.handleOk = true; }
+          else H.note = (d && d.error) || 'Could not pull that one.';
+          paint();
+        }, function () { H.busy = false; H.note = 'Could not pull that one.'; paint(); });
+      }, !H.inOnIt || H.busy);
+      box.appendChild(pull);
+      if (H.note) box.appendChild(el('p', 'hint', H.note));
+      if (S.handleOk && (S.handleDetails || []).length) {
+        box.appendChild(el('p', 'arc-q', 'Edit or remove. Only these go in the song.'));
+        S.handleDetails.forEach(function (d, i) {
+          var row = el('div', 'arc-handle-row');
+          row.appendChild(input(d, 'detail', function (v) { S.handleDetails[i] = v; }));
+          row.appendChild(btn('Remove', 'v3-link', function () { S.handleDetails.splice(i, 1); paint(); }));
+          box.appendChild(row);
+        });
+      }
+    }
+    w.appendChild(box);
+  }
   SCREENS['s-q'] = function (w) {
     var qs = A.questionsFor(S.type, S.sub);
     var q = qs[S.qIndex];
     if (!q) { go(S.sub === 'battle' ? 's-ai' : 's-ai'); return; }
     w.appendChild(el('p', 'arc-step', 'Question ' + (S.qIndex + 1) + ' of ' + qs.length));
     w.appendChild(plai(q.q));
+    if (S.qIndex === 0 && A.HANDLE_SUBS && A.HANDLE_SUBS.indexOf(S.sub) !== -1) handlePanel(w);
     if (q.fromResearch && S.research) {
       var box = el('div', 'flow-card arc-research'); box.appendChild(el('h3', '', S.sub === 'celeb' ? 'Roast ammo (public info)' : "Here's what that song is about"));
       var ul = el('ul'); (S.research.topics || []).forEach(function (t) { ul.appendChild(el('li', '', t)); }); box.appendChild(ul);
@@ -251,15 +315,17 @@
   };
   SCREENS['s-ai'] = function (w) {
     w.appendChild(plai("Who's holding the pen?"));
-    var levels = A.AI_LEVELS.filter(function (l) { return l.id !== 'full' || !S.userWords; });
+    var levels = A.AI_LEVELS.slice();
     if (S.sub === 'battle') levels = levels.filter(function (l) { return l.id !== 'human'; });
     var grid = el('div', 'arc-tiles');
     levels.forEach(function (l) {
-      var b = btn('', 'v3-tile arc-tile' + (S.aiLevel === l.id ? ' on' : ''), function () { S.aiLevel = l.id; go(S.sub === 'battle' ? 's-battle' : 's-basics'); });
-      b.appendChild(el('b', '', l.label)); b.appendChild(el('small', '', l.small)); grid.appendChild(b);
+      var off = l.id === 'full' && S.userWords;
+      var b = btn('', 'v3-tile arc-tile' + (S.aiLevel === l.id ? ' on' : '') + (off ? ' off' : ''), function () { if (off) return; S.aiLevel = l.id; go(S.sub === 'battle' ? 's-battle' : 's-basics'); });
+      if (off) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); b.style.opacity = '0.45'; }
+      b.appendChild(el('b', '', l.label)); b.appendChild(el('small', '', off ? 'Off because you typed your own words' : l.small)); grid.appendChild(b);
     });
     w.appendChild(grid);
-    if (S.userWords) w.appendChild(el('p', 'hint', "You wrote some of this already, so All Plai is off. It's AI-assisted. Nice."));
+    if (S.userWords) w.appendChild(el('p', 'hint', "You wrote some of this already, so All Plai is greyed out. All Plai means the AI writes every word. Your song mixes your words with plai's, so it counts as AI-assisted. Nice."));
   };
   function explicitToggle(w, required) {
     var box = el('div', 'arc-explicit');
@@ -328,6 +394,8 @@
     w.appendChild(plai('Set the vibe.'));
     if (!S.title) S.title = A.suggestTitle(stateForServer());
     w.appendChild(chips(A.VIBES, function (v) { return S.vibe === v; }, function (v) { S.vibe = v; }));
+    w.appendChild(el('p', 'arc-q', 'Genre (pick one)'));
+    w.appendChild(chips(['Pop', 'Country', 'Hip-Hop', 'R&B', 'Rock', 'Gospel', 'Folk'].filter(function (g) { return A.GENRES[g]; }), function (g) { return S.sound.genre === g; }, function (g) { S.sound.genre = S.sound.genre === g ? '' : g; S.sound.sub = ''; S.styleOverride = true; }));
     tunePanel(w, false);
     w.appendChild(el('p', 'arc-q', 'Title'));
     w.appendChild(input(S.title, 'Title', function (v) { S.title = v; }));
@@ -363,6 +431,7 @@
     });
   }
   SCREENS['s-build'] = function (w) {
+    setTimeout(function () { rhymeTime(w); }, 0);
     w.appendChild(plai(S.aiLevel === 'human' ? 'Write your next line. I count the syllables.' : 'Pick your next line.'));
     var song = el('div', 'flow-card arc-built');
     S.built.forEach(function (l, i) { var p = el('p', 'arc-line'); p.appendChild(syl(l)); p.appendChild(document.createTextNode(' ' + l)); var flag = mismatch(i); if (flag) p.classList.add('amber'); song.appendChild(p); });
@@ -661,16 +730,17 @@
 
   // ---------- Reveal ----------
   SCREENS.reveal = function (w) {
+    setTimeout(function () { rhymeTime(w); }, 0);
     var r = S.result || { lyrics: '' };
     var best = Number(localStorage.getItem(BEST) || 0);
-    var score = S.card === 'fix' ? A.songScore(r.lyrics) : S.points + A.songScore(r.lyrics);
+    var score = A.songScore(r.lyrics);
     var high = score > best;
     if (high) localStorage.setItem(BEST, String(score));
     if (S.revealHigh == null || S.revealSeen !== r) { S.revealHigh = high; S.revealSeen = r; }
     w.appendChild(el('p', 'arc-kicker', high ? 'New high score!' : 'High score'));
     w.appendChild(el('h2', 'arc-marquee', S.title || A.suggestTitle(stateForServer())));
     if (S.card === 'fix' && r.scoreBefore) w.appendChild(el('p', 'arc-jump', 'Score ' + r.scoreBefore + ' to ' + score + (score > r.scoreBefore ? '. Look at that jump!' : '')));
-    else w.appendChild(el('p', 'arc-jump', 'Score: ' + score.toLocaleString('en-US')));
+    else w.appendChild(el('p', 'arc-jump', 'Song score: ' + score.toLocaleString('en-US') + ' (rhyme, hook and detail)'));
     if (high) w.appendChild(el('div', 'arc-confetti', '\u2728 \u2728 \u2728'));
     if (r.notice) w.appendChild(el('p', 'hint', r.notice));
     w.appendChild(el('span', 'arc-label', r.label || A.aiLabel(S)));
@@ -679,7 +749,7 @@
     else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }
     if (S.type === 'roast') w.appendChild(el('p', 'arc-parody-note', ROAST_NOTE));
     if (!r.style) r.style = style();
-    if (S.card === 'flip' && !r.extras) { style(); r.extras = S.flipExtras || null; }
+    if ((S.card === 'flip' || S.sub === 'trip' || S.type === 'banger') && !r.extras) { style(); r.extras = S.flipExtras || null; }
     if (S.card === 'flip' && S.flip.slang === 'bay' && window.SlangMode) {
       var lvl = window.SlangMode.level(S.flip.hyphy);
       var hb = el('div', 'arc-hy-bar');
@@ -689,7 +759,7 @@
       w.appendChild(hb);
       hyphyEdits(w, r);
     }
-    var fx = S.card === 'flip' ? r.extras : null;
+    var fx = S.card === 'flip' || S.sub === 'trip' || S.type === 'banger' ? r.extras : null;
     var tagged = function (t) { return fx && fx.voice && window.PromptCheck ? window.PromptCheck.tagLyrics(t, fx.voice) : t; };
     w.appendChild(el('p', 'arc-q', 'Style prompt'));
     w.appendChild(el('pre', 'arc-style', r.style));
@@ -702,14 +772,15 @@
       tips.appendChild(el('p', 'hint', 'Paste this into the Exclude box in your music AI. Leave "no" words out of the style box.'));
       tips.appendChild(el('p', 'arc-q', 'Suggested sliders'));
       tips.appendChild(el('p', 'arc-sliders', 'Weirdness about ' + fx.sliders.weirdness + '%  \u00b7  Style Influence about ' + fx.sliders.styleInfluence + '%'));
-      tips.appendChild(el('p', 'hint', 'Copy lyrics adds voice tags like [Rap] and [Sung] so the voice stays put.'));
+      if (fx.voice) tips.appendChild(el('p', 'hint', 'Copy lyrics adds voice tags like [Rap] and [Sung] so the voice stays put.'));
       tips.appendChild(el('p', 'hint', 'Lower weirdness keeps the voice natural. Style Influence near 65 follows the prompt without going stiff.'));
+      if (fx.tip) tips.appendChild(el('p', 'hint arc-voice-tip', fx.tip));
       w.appendChild(tips);
     }
     var row = el('div', 'arc-actions');
     var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : tagged(r.lyrics), b1); });
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
-    var b3 = btn('Copy both', 'v3-mini', function () { copy(tagged(r.lyrics) + '\n\nStyle prompt\n' + r.style + (fx ? '\n\nExclude\n' + (fx.exclude || []).join(', ') : ''), b3); });
+    var b3 = btn('Copy for your music AI', 'v3-mini', function () { copy(tagged(r.lyrics) + '\n\nStyle prompt\n' + r.style + (fx ? '\n\nExclude\n' + (fx.exclude || []).join(', ') : ''), b3); });
     var b4 = btn('Save to my account', 'v3-mini', function () {
       try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saving...'; } catch (e) { b4.textContent = 'Could not save'; return; } saveToAccount(list[list.length - 1], b4, w);
     });
@@ -1135,8 +1206,7 @@
     var top = el('div', 'v3-top');
     var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     var meta = el('div', 'arc-top-meta');
-    meta.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
-    meta.appendChild(el('span', 'v3-points', String(S.points)));
+    meta.appendChild(el('span', 'v3-credits', 'Credits left: free right now'));
     meta.appendChild(talkToggle());
     top.appendChild(meta);
     w.appendChild(top);
