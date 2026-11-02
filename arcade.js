@@ -1050,8 +1050,9 @@
     flip: ['x-paste', 'x-genre', 'x-vibe', 'reveal']
   };
   function stepBar() {
+    // Modernize it has no steps: hide the bar whenever it is chosen.
+    if (S.flip && S.flip.how === 'modern' && (S.screen === 'x-paste' || S.screen === 'x-modern')) return null;
     var list = STEPS[S.card]; if (!list || S.screen === 'home') return null;
-    if (S.card === 'flip' && S.flip && S.flip.how === 'modern') return null;
     var cur = S.screen === 's-battle' ? 's-build' : S.screen;
     var i = list.indexOf(cur); if (i < 0) return null;
     var wrap = el('div', 'arc-steps'); wrap.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + list.length);
