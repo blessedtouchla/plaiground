@@ -922,10 +922,10 @@
     var table = el('div', 'flow-card arc-mod');
     r.pairs.forEach(function (p) {
       var row = el('div', 'arc-mod-row' + (p.off ? ' off' : '') + (p.hook ? ' hook' : ''));
-      row.appendChild(el('p', 'arc-mod-old', p.original + '  (' + p.origCount + ')'));
+      row.appendChild(el('p', 'arc-mod-old', p.original + '  (' + (p.origLabel || p.origCount) + ')'));
       var nw = el('p', 'arc-mod-new');
       ((p.diff && p.diff.tokens) || []).forEach(function (t, k) { if (k) nw.appendChild(document.createTextNode(' ')); if (t.changed) nw.appendChild(el('mark', '', t.w)); else nw.appendChild(document.createTextNode(t.w)); });
-      nw.appendChild(document.createTextNode('  (' + p.newCount + ')'));
+      nw.appendChild(document.createTextNode('  (' + (p.newLabel || p.newCount) + ')'));
       row.appendChild(nw);
       var tags = []; if (p.hook) tags.push('Hook kept'); if (p.off) tags.push('Count differs'); if (p.tooMuch) tags.push('More change than this strength');
       if (tags.length) row.appendChild(el('p', 'hint', tags.join(' . ')));
