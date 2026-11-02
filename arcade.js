@@ -866,7 +866,78 @@
   SCREENS['x-paste'] = function (w) {
     w.appendChild(plai('Paste the song you want to flip.'));
     w.appendChild(input(S.flip.text, 'Your lyrics', function (v) { S.flip.text = v; }, 12));
+    var M = window.Modernize; var f = S.flip;
+    if (M) {
+      w.appendChild(chips([{ id: '', label: 'Flip to a new sound' }, { id: 'modern', label: 'Modernize it' }], function (k) { return (f.how || '') === k; }, function (k) { f.how = k; }));
+      if (f.how === 'modern') { modernOptions(w); return; }
+    }
     w.appendChild(btn('Next', 'v3-go', function () { if (String(S.flip.text).trim().length < 12) { S.note = 'Paste your song first.'; paint(); return; } go('x-genre'); }));
+  };
+  // ---------- Flip My Song: Modernize it (close cover, same melody) ----------
+  function modernOptions(w) {
+    var M = window.Modernize; var f = S.flip;
+    f.perspective = f.perspective || 'same'; f.strength = f.strength || 'light';
+    var pd = el('div', 'flow-card arc-pd');
+    pd.appendChild(el('p', 'hint', M.PD_NOTE));
+    var lab = el('label', 'arc-check'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = !!f.pdOk; cb.onchange = function () { f.pdOk = cb.checked; };
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(' ' + M.PD_CHECK)); pd.appendChild(lab); w.appendChild(pd);
+    w.appendChild(input(f.title || '', 'Song title (stays the same)', function (v) { f.title = v; }));
+    w.appendChild(qHead('Whose eyes?', 'Both'));
+    w.appendChild(chips(M.PERSPECTIVES, function (k) { return !f.custom && f.perspective === k; }, function (k) { f.perspective = k; f.custom = ''; }));
+    w.appendChild(input(f.custom || '', 'Or type your own, like "as a nurse on night shift"', function (v) { f.custom = v; }));
+    w.appendChild(qHead('How much to change?', 'Both'));
+    w.appendChild(chips(M.STRENGTHS, function (k) { return f.strength === k; }, function (k) { f.strength = k; }, 'small'));
+    w.appendChild(el('p', 'hint', f.strength === 'light' ? 'Light changes only a few words per line. The hook and chorus never change.' : 'Medium updates more words. The hook and chorus still stay.'));
+    w.appendChild(el('p', 'hint', 'Every line keeps its syllable count and rhyme spot so it sings to the same melody.'));
+    w.appendChild(btn(S.busy ? 'Modernizing...' : 'Modernize it (' + priceTag(1) + ')', 'v3-go', modernizeIt, S.busy));
+  }
+  function modBody(extra) { var f = S.flip; return Object.assign({ text: f.text, pdConfirmed: !!f.pdOk, perspective: f.perspective, custom: f.custom || '', strength: f.strength, title: f.title || '', keep: f.keep || [] }, extra || {}); }
+  function modernizeIt() {
+    var f = S.flip;
+    if (String(f.text).trim().length < 12) { S.note = 'Paste the public domain lyrics first.'; paint(); return; }
+    if (!f.pdOk) { S.note = 'Check the public domain box first.'; paint(); return; }
+    var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
+    S.busy = true; paint();
+    post('arcade-modernize', modBody()).then(function (d) {
+      S.busy = false;
+      if (!d.ok) { refund(before); S.note = d.error || 'Could not modernize that.'; paint(); return; }
+      f.modern = d; go('x-modern');
+    });
+  }
+  function retryLine(i) {
+    var f = S.flip; var p = f.modern.pairs[i]; p.busy = true; paint();
+    post('arcade-modernize-line', modBody({ index: i, tried: p.line })).then(function (d) {
+      p.busy = false;
+      if (d.ok && d.pair) { f.modern.pairs[i] = d.pair; f.modern.summary = window.Modernize.summary(f.modern.pairs); } else S.note = d.error || 'Could not retry that line.';
+      paint();
+    });
+  }
+  SCREENS['x-modern'] = function (w) {
+    var f = S.flip; var r = f.modern || { pairs: [] };
+    w.appendChild(plai('Same song, ' + (r.perspective || 'today') + '. Check the counts, then sing it.'));
+    if (r.notice) w.appendChild(el('p', 'hint', r.notice));
+    if (r.summary) w.appendChild(el('p', 'arc-mod-sum', r.summary.note));
+    var off = r.pairs.filter(function (p) { return p.off; }).length;
+    w.appendChild(el('p', 'hint', off ? off + ' line' + (off === 1 ? '' : 's') + ' off the original syllable count. Tap retry on those.' : 'Every line matches the original syllable count.'));
+    var table = el('div', 'flow-card arc-mod');
+    r.pairs.forEach(function (p) {
+      var row = el('div', 'arc-mod-row' + (p.off ? ' off' : '') + (p.hook ? ' hook' : ''));
+      row.appendChild(el('p', 'arc-mod-old', p.original + '  (' + p.origCount + ')'));
+      var nw = el('p', 'arc-mod-new');
+      ((p.diff && p.diff.tokens) || []).forEach(function (t, k) { if (k) nw.appendChild(document.createTextNode(' ')); if (t.changed) nw.appendChild(el('mark', '', t.w)); else nw.appendChild(document.createTextNode(t.w)); });
+      nw.appendChild(document.createTextNode('  (' + p.newCount + ')'));
+      row.appendChild(nw);
+      var tags = []; if (p.hook) tags.push('Hook kept'); if (p.off) tags.push('Count differs'); if (p.tooMuch) tags.push('More change than this strength');
+      if (tags.length) row.appendChild(el('p', 'hint', tags.join(' . ')));
+      if (!p.hook && (p.off || p.tooMuch)) row.appendChild(btn(p.busy ? 'Retrying...' : 'Retry this line', 'v3-mini', function () { retryLine(p.i); }, p.busy));
+      table.appendChild(row);
+    });
+    w.appendChild(table);
+    w.appendChild(btn('Use these lyrics', 'v3-go', function () {
+      S.userWords = true; S.aiLevel = 'assist'; if (!S.title) S.title = f.title || 'The Update';
+      finish(r.pairs.map(function (p) { return p.line; }).join('\n'), r, 0);
+    }));
+    w.appendChild(btn('Change settings', 'v3-link', function () { go('x-paste'); }));
   };
   SCREENS['x-genre'] = function (w) {
     var f = S.flip;
@@ -960,7 +1031,8 @@
     'f-compare': ['gotit', 'Before and after. You decide.'],
     'x-paste': ['hello', 'Paste it. Same heart, new outfit.'],
     'x-genre': ['side', 'Where are we taking it?'],
-    'x-vibe': ['wink', 'Pick a mood. Go big.']
+    'x-vibe': ['wink', 'Pick a mood. Go big.'],
+    'x-modern': ['claim', 'Old song, new day. Same melody.']
   };
   var STEPS = {
     scratch: ['s-type', 's-sub', 's-q', 's-ai', 's-basics', 's-build', 'reveal'],

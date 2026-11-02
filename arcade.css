@@ -529,3 +529,12 @@ body.song-lab .arc-talk-toggle:focus-visible{
     animation:none;
   }
 }
+
+/* Flip My Song: Modernize it */
+.arc-check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.arc-mod-row{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.arc-mod-old{opacity:.65;margin:0}
+.arc-mod-new{margin:2px 0 0;font-weight:600}
+.arc-mod-row.off .arc-mod-new{color:#ffb35c}
+.arc-mod-row mark{background:rgba(160,110,255,.35);color:inherit;border-radius:3px;padding:0 2px}
+.arc-mod-sum{font-weight:700}
