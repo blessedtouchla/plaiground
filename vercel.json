@@ -413,6 +413,7 @@
     { "source": "/blog/nobody-asked-the-singers", "destination": "/blog-nobody-asked-the-singers.html" },
     { "source": "/blog/voice-is-not-a-sample", "destination": "/blog-voice-is-not-a-sample.html" },
     { "source": "/blog/copying-machine", "destination": "/blog-copying-machine.html" },
+    { "source": "/blog/distrokid-ai-data", "destination": "/blog-distrokid-ai-data.html" },
     { "source": "/blog/nothing-to-copy", "destination": "/blog-nothing-to-copy.html" },
     { "source": "/blog/fusion-is-invention", "destination": "/blog-fusion-is-invention.html" },
     { "source": "/blog/point-of-view", "destination": "/blog-point-of-view.html" },
