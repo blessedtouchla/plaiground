@@ -27,7 +27,7 @@
   function spend() { return true; }
   function refund() {}
   function priceTag() { return 'free'; }
-  function go(screen) { if (Date.now() - (S.moodAt || 0) > 80) S.mood = ''; if (S.screen !== screen) { S.history.push(S.screen); S.points += 100; } S.screen = screen; S.note = ''; paint(); window.scrollTo(0, 0); }
+  function go(screen) { if (Date.now() - (S.moodAt || 0) > 80) S.mood = ''; if (S.screen !== screen) { S.history.push(S.screen); if (!(S.card === 'flip' && S.flip && S.flip.how === 'modern')) S.points += 100; } S.screen = screen; S.note = ''; paint(); window.scrollTo(0, 0); }
   function back() { S.mood = ''; S.screen = S.history.pop() || 'home'; S.note = ''; paint(); }
   function post(action, extra) {
     var body = Object.assign({ action: action, company_website: '', k: K, state: stateForServer() }, extra || {});
@@ -889,7 +889,8 @@
     w.appendChild(chips(M.STRENGTHS, function (k) { return f.strength === k; }, function (k) { f.strength = k; }, 'small'));
     w.appendChild(el('p', 'hint', f.strength === 'light' ? 'Light changes only a few words per line. The hook and chorus never change.' : 'Medium updates more words. The hook and chorus still stay.'));
     w.appendChild(el('p', 'hint', 'Every line keeps its syllable count and rhyme spot so it sings to the same melody.'));
-    w.appendChild(btn(S.busy ? 'Modernizing...' : 'Modernize it (' + priceTag(1) + ')', 'v3-go', modernizeIt, S.busy));
+    w.appendChild(btn(S.busy ? 'Modernizing...' : 'Modernize it', 'v3-go', modernizeIt, S.busy));
+    w.appendChild(el('p', 'hint', 'Cost: ' + priceTag(1) + '.'));
   }
   function modBody(extra) { var f = S.flip; return Object.assign({ text: f.text, pdConfirmed: !!f.pdOk, perspective: f.perspective, custom: f.custom || '', strength: f.strength, title: f.title || '', keep: f.keep || [] }, extra || {}); }
   function modernizeIt() {
@@ -920,24 +921,33 @@
     var off = r.pairs.filter(function (p) { return p.off; }).length;
     w.appendChild(el('p', 'hint', off ? off + ' line' + (off === 1 ? '' : 's') + ' off the original syllable count. Tap retry on those.' : 'Every line matches the original syllable count.'));
     var table = el('div', 'flow-card arc-mod');
+    var head = el('div', 'arc-mod-row arc-mod-head');
+    head.appendChild(el('span', 'arc-mod-old', 'Original'));
+    head.appendChild(el('span', 'arc-mod-new', 'Today'));
+    head.appendChild(el('span', 'arc-mod-tag', ''));
+    table.appendChild(head);
     r.pairs.forEach(function (p) {
       var row = el('div', 'arc-mod-row' + (p.off ? ' off' : '') + (p.hook ? ' hook' : ''));
-      row.appendChild(el('p', 'arc-mod-old', p.original + '  (' + (p.origLabel || p.origCount) + ')'));
-      var nw = el('p', 'arc-mod-new');
+      var old = el('div', 'arc-mod-old'); old.appendChild(document.createTextNode(p.original)); old.appendChild(el('span', 'arc-mod-n', ' ' + (p.origLabel || p.origCount))); row.appendChild(old);
+      var nw = el('div', 'arc-mod-new');
       ((p.diff && p.diff.tokens) || []).forEach(function (t, k) { if (k) nw.appendChild(document.createTextNode(' ')); if (t.changed) nw.appendChild(el('mark', '', t.w)); else nw.appendChild(document.createTextNode(t.w)); });
-      nw.appendChild(document.createTextNode('  (' + (p.newLabel || p.newCount) + ')'));
+      nw.appendChild(el('span', 'arc-mod-n', ' ' + (p.newLabel || p.newCount)));
       row.appendChild(nw);
-      var tags = []; if (p.hook) tags.push('Hook kept'); if (p.off) tags.push('Count differs'); if (p.tooMuch) tags.push('More change than this strength');
-      if (tags.length) row.appendChild(el('p', 'hint', tags.join(' . ')));
-      if (!p.hook && (p.off || p.tooMuch)) row.appendChild(btn(p.busy ? 'Retrying...' : 'Retry this line', 'v3-mini', function () { retryLine(p.i); }, p.busy));
+      var tag = el('div', 'arc-mod-tag');
+      var tags = []; if (p.hook) tags.push('Hook kept'); else if (p.unchanged) tags.push('Unchanged'); if (p.off) tags.push('Count differs'); if (p.tooMuch) tags.push('Big change');
+      tag.appendChild(el('span', 'arc-mod-badge', tags.join(' . ')));
+      if (!p.hook && (p.off || p.tooMuch || p.unchanged)) tag.appendChild(btn(p.busy ? 'Retrying...' : 'Retry this line', 'v3-mini', function () { retryLine(p.i); }, p.busy));
+      row.appendChild(tag);
       table.appendChild(row);
     });
     w.appendChild(table);
-    w.appendChild(btn('Use these lyrics', 'v3-go', function () {
+    var acts = el('div', 'arc-mod-actions');
+    acts.appendChild(btn('Use these lyrics', 'v3-go', function () {
       S.userWords = true; S.aiLevel = 'assist'; if (!S.title) S.title = f.title || 'The Update';
       finish(r.pairs.map(function (p) { return p.line; }).join('\n'), r, 0);
     }));
-    w.appendChild(btn('Change settings', 'v3-link', function () { go('x-paste'); }));
+    acts.appendChild(btn('Change settings', 'v3-link', function () { go('x-paste'); }));
+    w.appendChild(acts);
   };
   SCREENS['x-genre'] = function (w) {
     var f = S.flip;
@@ -1041,6 +1051,7 @@
   };
   function stepBar() {
     var list = STEPS[S.card]; if (!list || S.screen === 'home') return null;
+    if (S.card === 'flip' && S.flip && S.flip.how === 'modern') return null;
     var cur = S.screen === 's-battle' ? 's-build' : S.screen;
     var i = list.indexOf(cur); if (i < 0) return null;
     var wrap = el('div', 'arc-steps'); wrap.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + list.length);
