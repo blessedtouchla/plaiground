@@ -10,7 +10,7 @@ const MIN_BLOG_BYTES = 500;
 const MAX_FUNCTIONS = 12;
 const REQUIRED_KEYS = ['redirects', 'rewrites', 'headers'];
 // Placeholder posts already on main before this guard existed. Warn only; replace with real posts, then remove from this list.
-const KNOWN_PLACEHOLDERS = new Set(['blog-distrokid-ai-numbers.html', 'blog-siqa-ai-music-awards.html']);
+const KNOWN_PLACEHOLDERS = new Set(['blog-distrokid-ai-numbers.html']);
 
 // 1. vercel.json
 const vjPath = path.join(root, 'vercel.json');
