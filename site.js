@@ -1306,12 +1306,42 @@
     }
   }
 
+  function ensureCompanyEditorialLink(footer) {
+    if (!footer || !footer.querySelectorAll) return;
+    var cols = footer.querySelectorAll(".footer-col");
+    var i;
+    for (i = 0; i < cols.length; i += 1) {
+      var heading = cols[i].querySelector("h4");
+      var label = heading ? String(heading.textContent || "").replace(/\s+/g, " ").trim() : "";
+      if (label !== "Company") continue;
+      var anchors = cols[i].querySelectorAll("a");
+      var j;
+      for (j = 0; j < anchors.length; j += 1) {
+        var href = anchors[j].getAttribute("href") || "";
+        if (href.indexOf("editorial-policy") !== -1) return;
+      }
+      var link = document.createElement("a");
+      link.setAttribute("href", "/blog/editorial-policy");
+      link.href = "/blog/editorial-policy";
+      link.textContent = "Editorial policy";
+      var contact = null;
+      for (j = 0; j < anchors.length; j += 1) {
+        var text = String(anchors[j].textContent || "").replace(/\s+/g, " ").trim();
+        if (text === "Contact us") contact = anchors[j];
+      }
+      if (contact) cols[i].insertBefore(link, contact);
+      else cols[i].appendChild(link);
+      return;
+    }
+  }
+
   function setupPublicFooter() {
     var footer = document.querySelector("footer");
     if (!footer || !footer.querySelector) return;
     var grid = footer.querySelector(".footer-grid");
     if (!grid || grid.getAttribute("data-footer-journey") === "1") {
       ensureReleaseWeekLink(footer);
+      ensureCompanyEditorialLink(footer);
       return;
     }
     var path = String((window.location && window.location.pathname) || "");
@@ -1349,6 +1379,7 @@
     grid.appendChild(account);
     grid.setAttribute("data-footer-journey", "1");
     ensureReleaseWeekLink(footer);
+    ensureCompanyEditorialLink(footer);
   }
 
   function markRoadmapLink(nav) {
