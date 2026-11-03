@@ -8352,6 +8352,18 @@ body.auth-full .contracts-feature-links { justify-content: flex-start; }
 .nav.nav-open .nav-links[data-home-groups] .nav-group > .nav-group-menu,
 .nav.nav-open .nav-links[data-home-groups] .nav-group:hover > .nav-group-menu { display: none; }
 .nav.nav-open .nav-links[data-home-groups] .nav-group.open > .nav-group-menu { display: flex; padding: 0 0 8px 12px; }
+.nav-links > .nav-group-link > a.nav-news { font-weight: 600; }
+.nav.nav-open .nav-links[data-home-groups] > .nav-group-link > a.nav-news {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+}
 
 /* -- Review desktop layout (>=900px): wider column, cover and schedule left, cards right -- */
 @media (min-width: 900px) {

@@ -1044,17 +1044,40 @@
     grow: [{ href: "/persona.html", label: "Artist Development" }, { href: "/#get-booked-form", label: "Get booked" }, { href: "/destination", label: "Route map" }, { href: "/guide", label: "Guide" }]
   };
 
+  function isPublicNewsAnchor(href, label) {
+    if (label === "Blog" || label === "News") return true;
+    return isBlogHref(href);
+  }
+
+  function makeNewsGroup() {
+    var group = document.createElement("div");
+    group.className = "nav-group nav-group-link";
+    group.setAttribute("data-nav-group", "news");
+    var link = document.createElement("a");
+    link.setAttribute("href", "/blog");
+    link.href = "/blog";
+    link.textContent = "News";
+    link.className = "nav-news";
+    if (isBlogPage()) {
+      link.classList.add("active");
+      link.setAttribute("aria-current", "page");
+    }
+    group.appendChild(link);
+    return group;
+  }
+
   function regroupHomeNav(links) {
     if (!links || !links.querySelectorAll || links.getAttribute("data-home-groups") === "1") return;
     var keep = {};
-    Array.prototype.forEach.call(links.querySelectorAll('[data-nav-group="whats-new"], [data-nav-group="song-helper"]'), function (g) { keep[g.getAttribute("data-nav-group")] = g; });
+    Array.prototype.forEach.call(links.querySelectorAll('[data-nav-group="whats-new"], [data-nav-group="song-helper"], [data-nav-group="news"]'), function (g) { keep[g.getAttribute("data-nav-group")] = g; });
     var seen = {};
     var buckets = { make: [], protect: [], out: [], grow: [] };
     Array.prototype.forEach.call(links.querySelectorAll("a"), function (a) {
-      if (a.closest && a.closest('[data-nav-group="whats-new"], [data-nav-group="song-helper"]')) return;
+      if (a.closest && a.closest('[data-nav-group="whats-new"], [data-nav-group="song-helper"], [data-nav-group="news"]')) return;
       var href = String(a.getAttribute("href") || "");
       var label = String(a.textContent || "").replace(/\s+/g, " ").trim();
       if (!href || !label || /song-helper/.test(href)) return;
+      if (isPublicNewsAnchor(href, label)) return;
       if (href === "/charts" || /charts\.html$/.test(href)) {
         a = document.createElement("a");
         a.setAttribute("href", "https://www.plainow.com");
@@ -1079,6 +1102,21 @@
     });
     while (links.firstChild) links.removeChild(links.firstChild);
     if (keep["song-helper"]) links.appendChild(keep["song-helper"]);
+    var news = keep["news"] || makeNewsGroup();
+    var newsLink = news.querySelector ? news.querySelector("a") : null;
+    if (!newsLink) {
+      news = makeNewsGroup();
+      newsLink = news.querySelector("a");
+    }
+    newsLink.setAttribute("href", "/blog");
+    newsLink.href = "/blog";
+    newsLink.textContent = "News";
+    if (newsLink.classList) newsLink.classList.add("nav-news");
+    if (isBlogPage() && newsLink.classList) {
+      newsLink.classList.add("active");
+      newsLink.setAttribute("aria-current", "page");
+    }
+    links.appendChild(news);
     if (keep["whats-new"]) links.appendChild(keep["whats-new"]);
     HOME_GROUPS.forEach(function (g) {
       if (!buckets[g.id].length) return;

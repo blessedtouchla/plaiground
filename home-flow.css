@@ -61,3 +61,16 @@
 .hf-trio-row em{font-style:normal;font-size:14px;color:rgba(255,255,255,.7)}
 .hf-own{margin-top:14px;color:rgba(255,255,255,.75);font-size:14px}
 @media (min-width:720px){.hf-trio-row{grid-template-columns:repeat(3,1fr)}}
+
+/* Homepage news strip: three newest posts from the blog index. */
+.home-news{background:#0b0b0d;border-bottom:1px solid rgba(255,255,255,.08);padding:18px 0 22px}
+.home-news-inner{max-width:1080px}
+.home-news-title{margin:0 0 12px;text-align:left}
+.home-news-title a{font-family:"Space Grotesk",Inter,sans-serif;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#F5C542;text-decoration:none}
+.home-news-title a:hover{color:#fff}
+.home-news-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.home-news-list a{display:flex;flex-direction:column;gap:4px;min-height:44px;padding:12px 14px;border-radius:14px;background:rgba(245,197,66,.06);border:1px solid rgba(245,197,66,.22);color:#fff;text-decoration:none}
+.home-news-list a:hover{border-color:#F5C542;background:rgba(245,197,66,.12)}
+.home-news-list time{color:#F5C542;font-size:12px;font-weight:700;letter-spacing:.04em}
+.home-news-list span{font-size:15px;font-weight:600;line-height:1.35}
+@media (min-width:800px){.home-news-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}}
