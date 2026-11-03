@@ -5326,7 +5326,7 @@
       artwork_object_key: draft.artwork_object_key || '',
       title: fieldValue('tg-title') || draft.title || '',
       name: syncArtistHidden() || '',
-      featured: fieldValue('tg-featured') || draft.featured || '',
+      featured: (window.plaiFeatured ? window.plaiFeatured.value() : fieldValue('tg-featured')) || draft.featured || '',
       legal_first: fieldValue('tg-legal-first') || fieldValue('tg-legal-first-create') || draft.legal_first || '',
       legal_last: fieldValue('tg-legal-last') || fieldValue('tg-legal-last-create') || draft.legal_last || '',
       label: fieldValue('tg-label') || draft.label || '',
@@ -6367,6 +6367,7 @@
     fill('tg-title', draft.title);
     fill('tg-artist', draft.name);
     fill('tg-featured', draft.featured);
+    if (window.plaiFeatured && draft && draft.featured && String(draft.featured).indexOf(',') !== -1) window.plaiFeatured.set(draft.featured);
     fill('tg-price', draft.price);
     fill('tg-label', (draft.label && draft.label !== 'PLAIGROUND') ? draft.label : 'PLAIGROUND');
     if (draft.copyright_holder && draft.copyright_holder !== 'PLAIGROUND') fill('tg-copyright-owner', draft.copyright_holder);
@@ -6809,6 +6810,7 @@
         language: language,
         price: price,
         featured: featured,
+        featured_list: String(featured || '').split(',').map(function (n) { return n.trim(); }).filter(Boolean),
         legal_first: fields.legal_first || readDraft().legal_first || '',
         legal_last: fields.legal_last || readDraft().legal_last || '',
         label: fields.label || readDraft().label || '',
@@ -6851,6 +6853,7 @@
             language: language,
             price: price,
             featured: featured,
+            featured_list: String(featured || '').split(',').map(function (n) { return n.trim(); }).filter(Boolean),
             legal_first: fields.legal_first || readDraft().legal_first || '',
             legal_last: fields.legal_last || readDraft().legal_last || '',
             label: fields.label || readDraft().label || '',
