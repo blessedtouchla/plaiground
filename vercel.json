@@ -426,6 +426,10 @@
     { "source": "/blog/denmark-digital-replica-bill", "destination": "/blog-denmark-digital-replica-bill.html" },
     { "source": "/blog/publish-ai-assisted-music", "destination": "/blog-publish-ai-assisted-music.html" },
     { "source": "/blog/can-my-ai-song-be-published", "destination": "/blog-can-my-ai-song-be-published.html" },
+    { "source": "/blog/billion-culture-ai-own-equity-not-just-royalties", "destination": "/blog-billion-culture-ai-own-equity-not-just-royalties.html" },
+    { "source": "/blog/who-develops-the-artist-label-layoffs", "destination": "/blog-who-develops-the-artist-label-layoffs.html" },
+    { "source": "/blog/spotify-slop-purge-ai-detection-artists", "destination": "/blog-spotify-slop-purge-ai-detection-artists.html" },
+    { "source": "/blog/cheat-codes-recognizable-artist-fan-participation", "destination": "/blog-cheat-codes-recognizable-artist-fan-participation.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
