@@ -143,11 +143,24 @@ assert.strictEqual(new Set(locs).size, locs.length, 'sitemap locs are unique');
   'https://www.wannaplai.com/blog/song-royalties-explained',
   'https://www.wannaplai.com/blog/epk-examples',
   'https://www.wannaplai.com/blog/how-to-label-ai-music',
+  'https://www.wannaplai.com/blog/surviving-the-silence',
   'https://www.wannaplai.com/battle',
   'https://www.wannaplai.com/destination'
 ].forEach(function (loc) {
   assert.ok(locs.includes(loc), 'sitemap missing ' + loc);
 });
+
+assert.ok(vercel.rewrites.some(function (row) {
+  return row.source === '/blog/surviving-the-silence' && row.destination === '/blog-surviving-the-silence.html';
+}), 'surviving the silence rewrite');
+const silence = read('blog-surviving-the-silence.html');
+assert.ok(silence.includes('blog-article.css'), 'visual template stylesheet');
+assert.ok(silence.includes('Silence is just where you do the work.'));
+assert.ok(silence.includes('class="cta-band"'));
+assert.ok(silence.includes('/assets/blog/surviving-the-silence/hero.jpg'));
+assert.ok(read('blog.html').includes('Fifty-nine posts.'));
+assert.ok(read('blog.html').includes('blog-surviving-the-silence.html'));
+assert.ok(!/draft banner|HOLD —/i.test(silence), 'ship the post clean');
 
 [
   'blog.html',
