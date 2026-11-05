@@ -116,8 +116,47 @@ function runModel() {
   const page = epkLive.render(hidden);
   assert.ok(page.indexOf('Vicki G') !== -1);
   assert.ok(page.indexOf('Human + AI') !== -1);
+  assert.ok(page.indexOf('Kitchen Light') !== -1);
+  assert.ok(page.indexOf('mailto:book@example.com') !== -1);
+  assert.ok(page.indexOf('>Press<') === -1);
   assert.ok(page.indexOf('Suno') === -1);
   assert.ok(page.indexOf('ToneGrid') === -1);
+  assert.ok(pdf.indexOf('Email: book@example.com') !== -1);
+  assert.ok(pdf.indexOf('Booking: Vicki') !== -1);
+
+  const bare = epkLive.render({
+    name: 'Only A Name That Runs Very Long On A Narrow Phone Screen',
+    bios: {},
+    releases: [],
+    press: [],
+    booking: {},
+    socials: {},
+    credit: 'Human + AI.',
+  });
+  assert.ok(bare.indexOf('Only A Name') !== -1);
+  assert.ok(bare.indexOf('Biography') === -1);
+  assert.ok(bare.indexOf('>Music<') === -1);
+  assert.ok(bare.indexOf('>Contact<') === -1);
+  const evil = epkLive.render({
+    name: 'X',
+    bios: {},
+    releases: [{ title: 'T', links: [{ label: 'Listen', url: 'javascript:alert(1)' }] }],
+    booking: { url: 'javascript:alert(1)' },
+    credit: 'Human + AI.',
+  });
+  assert.strictEqual(evil.indexOf('javascript:'), -1);
+
+  const dataArtist = profile.normalizeArtist({
+    name: 'Photo Act',
+    photo: 'data:image/png;base64,aaaa',
+    persona: { published: true, vibe: ['warm'], story: 'A start.', voice: { chips: ['smooth'] }, look: { photo: '' } },
+  });
+  const viewed = persona.epkView(dataArtist, { artists: [dataArtist], releases: [] });
+  assert.ok(viewed && viewed.photo.indexOf('data:image/png;base64,aaaa') === 0);
+  const emptyDemo = epkLive.render(epkLive.demoKit('empty'));
+  assert.ok(emptyDemo.indexOf('Demo layout') !== -1);
+  assert.ok(emptyDemo.indexOf('New Act') !== -1);
+  assert.ok(emptyDemo.indexOf('>Contact<') === -1);
 }
 
 async function runImport() {
