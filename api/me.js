@@ -28,6 +28,9 @@
  * POST /api/apply          public; Hobby rewrite onto this function (?action=apply)
  * GET/POST /api/me/stage   session required; stage songs, order, and artist stats
  * GET/POST /api/play       public; play a hook game and record a play
+ * GET  /api/toolost/start       owner session; sandbox authorize redirect (hidden)
+ * GET  /api/toolost/callback    TooLost redirect; code exchange; tokens stay server-side
+ * GET  /api/toolost/connected   owner session; quiet connected page, no public nav link
  *
  * Read-only token: every GET /api/admin/* above also accepts the
  * ADMIN_READONLY_TOKEN env value in the x-plai-admin-token header (or
@@ -70,8 +73,13 @@ const {
 } = require('../lib/auth');
 const { MAIL_NOT_CONFIGURED, sendProblemReport } = require('../lib/mail');
 const { applyPaidSessionToAccount, recoverPaidPlan } = require('../lib/stripe-webhook');
+const toolost = require('../lib/toolost');
 const { pathnameOf, queryValue } = require('../lib/route');
 const { isUuid, readBody, sendJson } = require('../lib/tonegrid');
+
+function isToolost(req) {
+  return Boolean(toolost.actionOf(req));
+}
 
 function isCatalog(req) {
   const path = pathnameOf(req);
@@ -1370,6 +1378,10 @@ async function personaAction(req, res, kind) {
 }
 
 module.exports = async function handler(req, res) {
+  if (isToolost(req)) {
+    await toolost.handle(req, res);
+    return;
+  }
   if (isApply(req)) {
     await applications.handleApply(req, res);
     return;

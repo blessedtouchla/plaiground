@@ -69,6 +69,10 @@ STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 TONEGRID_API_KEY=
 TONEGRID_BASE_URL=
+TOOLOST_CLIENT_ID=
+TOOLOST_CLIENT_SECRET=
+TOOLOST_REDIRECT_URI=https://www.wannaplai.com/api/toolost/callback
+TOOLOST_ENV=sandbox
 DATABASE_URL=
 SESSION_SECRET=
 RESEND_API_KEY=
@@ -85,7 +89,7 @@ R2_BUCKET=
 R2_ENDPOINT=
 ```
 
-`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, `SIGNUP_CONFIRM_SECRET`, `META_PIXEL_ID`, `TIKTOK_PIXEL_ID`, `GA4_MEASUREMENT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_ENDPOINT` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. No `NEXT_PUBLIC_R2_*`. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
+`XAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `TONEGRID_API_KEY`, `TOOLOST_CLIENT_SECRET`, `DATABASE_URL`, `SESSION_SECRET`, `RESEND_API_KEY`, `CONFIRM_SECRET`, `SIGNUP_CONFIRM_SECRET`, `META_PIXEL_ID`, `TIKTOK_PIXEL_ID`, `GA4_MEASUREMENT_ID`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_ENDPOINT` are server-only. Do not put them in frontend files. No `NEXT_PUBLIC_` mail keys. No `NEXT_PUBLIC_R2_*`. Live talk and Checkout stay off until `STRIPE_SECRET_KEY` is set on Vercel. `GET /api/create-checkout-session` may return a publishable key from `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` or `STRIPE_PUBLISHABLE_KEY` (pk only).
 
 After Checkout pays, the webhook — not the browser — sets the account to Creator or Pro (`status=active`). Basic stays Basic until a signed event for a mapped live price arrives. New Checkout Sessions use Creator month/year and Pro month/year. Old yearly ids stay webhook-only. Checkout uses `mode=subscription`. Do not send `subscription_data[collection_method]` — Checkout Sessions reject it.
 
@@ -189,6 +193,18 @@ ToneGrid routes (no browser key):
 Browser audio and covers PUT to a private object hop first. The `/audio` and `/artwork` POSTs send only the object key. The server then pulls those bytes for the store hop. Set the five `R2_*` values on the host. Missing any of them returns a nameless error. The bucket stays private. There is no public play page.
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
+
+TooLost label OAuth is a preview sketch on the same Hobby function (`api/me.js`). It does not add a file under `api/` (the cap is 12). Artists do not get a TooLost login. Nothing in the public nav links these paths.
+
+- `GET /api/toolost/start` — owner session only (the existing admin-desk account). Redirects to the sandbox authorize URL (`response_type=code`, state, PKCE S256). State is an HttpOnly cookie signed with the existing `SESSION_SECRET` for 10 minutes. The cookie holds the PKCE verifier. It does not hold tokens.
+- `GET /api/toolost/callback` — registered redirect URI `https://www.wannaplai.com/api/toolost/callback`. Exchanges the code at the sandbox token endpoint. Access and refresh tokens stay on the server.
+- `GET /api/toolost/connected` — quiet owner page. The HTML does not include tokens.
+
+Missing `TOOLOST_CLIENT_ID` or `TOOLOST_CLIENT_SECRET` returns `503` with `TooLost sandbox credentials are not configured yet.` `TOOLOST_ENV` defaults to sandbox. `TOOLOST_ENV=production` uses `https://toolost.com/oauth/authorize` and `https://toolost.com/oauth/token`. Leave Preview on sandbox. Set the client id and secret on the Vercel Preview environment only after TooLost issues them. Do not put them in this repo, and do not set them on Production until Victoria says GO.
+
+The token hold is in the server process that finished the exchange. It does not write the account database. A preview cold start can drop it. The connected page can still show that the exchange succeeded for a few minutes via an HttpOnly cookie that contains no token.
+
+Vercel preview serves `/api/toolost/callback` on the preview host (same path as production). TooLost will redirect only to `https://www.wannaplai.com/api/toolost/callback` until this branch is merged, or until TooLost adds the preview URL and Preview `TOOLOST_REDIRECT_URI` matches that URL exactly. `www.wannaplai.com` keeps serving `main` until then.
 
 Signup confirmation mail (same `api/auth.js` function; no `api/signup-confirm.js`):
 
