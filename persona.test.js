@@ -157,6 +157,37 @@ function runModel() {
   assert.ok(emptyDemo.indexOf('Demo layout') !== -1);
   assert.ok(emptyDemo.indexOf('New Act') !== -1);
   assert.ok(emptyDemo.indexOf('>Contact<') === -1);
+  const mainDemo = epkLive.render(epkLive.demoKit('demo'));
+  assert.ok(mainDemo.indexOf('North Room') !== -1);
+  assert.ok(mainDemo.indexOf('/assets/epk-demo/portrait.jpg') !== -1);
+  assert.ok(mainDemo.indexOf('/assets/epk-demo/cover-window.jpg') !== -1);
+  assert.ok(mainDemo.indexOf('Not a real artist') !== -1);
+  assert.ok(mainDemo.indexOf('Layout sample only') !== -1);
+  const longDemo = epkLive.render(epkLive.demoKit('long'));
+  assert.ok(longDemo.indexOf('Long Name') !== -1);
+  assert.ok(longDemo.indexOf('No image') !== -1);
+  assert.ok(longDemo.indexOf('epk-portrait') === -1);
+  const fs = require('fs');
+  const portrait = fs.readFileSync(path.join(__dirname, 'assets/epk-demo/portrait.jpg'));
+  const withJpeg = personaPdf.build({
+    name: 'North Room',
+    photo: 'data:image/jpeg;base64,' + portrait.toString('base64'),
+    bios: { short: 'Demo layout. Not a real artist.' },
+    booking: { name: 'Demo desk', email: 'demo@example.com' },
+    releases: [],
+    credit: 'Human + AI.',
+  });
+  assert.ok(withJpeg.indexOf('%PDF') === 0);
+  assert.ok(withJpeg.indexOf('DCTDecode') !== -1);
+  assert.ok(withJpeg.indexOf('North Room') !== -1);
+  const remoteOnly = personaPdf.build({
+    name: 'North Room',
+    photo: 'https://cdn.example.com/secret.jpg',
+    bios: {},
+    credit: 'Human + AI.',
+  });
+  assert.strictEqual(remoteOnly.indexOf('DCTDecode'), -1);
+  assert.ok(remoteOnly.indexOf('cdn.example.com') === -1);
 }
 
 async function runImport() {

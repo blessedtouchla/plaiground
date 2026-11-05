@@ -21,6 +21,13 @@
     return '';
   }
 
+  function safeSrc(url) {
+    var text = String(url || '').trim();
+    if (/^\/assets\/epk-demo\/[a-z0-9.-]+\.jpe?g$/i.test(text)) return text;
+    if (/^data:image\/(?:png|jpeg|jpg);base64,[a-z0-9+/=\s]+$/i.test(text) && text.length <= 1500000) return text;
+    return safeHref(text);
+  }
+
   function accentOf(colors) {
     var list = Array.isArray(colors) ? colors : [];
     var i;
@@ -74,14 +81,15 @@
     if (kit.vibe && kit.vibe.length) meta.push(kit.vibe.join(', '));
     if (kit.audience && kit.audience.city) meta.push(kit.audience.city);
     var voice = kit.voice && kit.voice.length ? kit.voice.join(', ') : '';
-    var photo = kit.photo ? '<div class="epk-portrait" style="background-image:url(\'' + esc(kit.photo) + '\')"></div>' : '';
+    var photoSrc = safeSrc(kit.photo);
+    var photo = photoSrc ? '<div class="epk-portrait" role="img" aria-label="Press photo" style="background-image:url(\'' + esc(photoSrc) + '\')"></div>' : '';
     var banner = '';
     if (kit.demo) banner += '<p class="epk-banner">Demo layout. Not a real artist. Nothing on this sample is a booking, a quote, or a result.</p>';
     if (kit.preview) banner += '<p class="epk-banner">Preview. This page is not public until you publish it.</p>';
     var bio = '';
     if (short || body || kit.story) {
       bio = '<section class="epk-section epk-bio"><p class="epk-kicker">Biography</p>'
-        + (photo ? '<div class="epk-bio-photo" style="background-image:url(\'' + esc(kit.photo) + '\')"></div>' : '')
+        + (photoSrc ? '<div class="epk-bio-photo" style="background-image:url(\'' + esc(photoSrc) + '\')"></div>' : '')
         + (short ? '<p class="epk-lead">' + esc(short) + '</p>' : '')
         + (body ? '<p class="epk-copy">' + esc(body) + '</p>' : '')
         + (kit.story && kit.story !== short && kit.story !== body ? '<p class="epk-copy">' + esc(kit.story) + '</p>' : '')
@@ -91,8 +99,9 @@
     var music = '';
     if (releases.length) {
       music = '<section class="epk-section"><p class="epk-kicker">Music</p><div class="epk-music">' + releases.map(function (row) {
-        var art = row.artwork_url && safeHref(row.artwork_url)
-          ? '<div class="epk-tile-art" style="background-image:url(\'' + esc(row.artwork_url) + '\')"></div>'
+        var artSrc = safeSrc(row.artwork_url);
+        var art = artSrc
+          ? '<div class="epk-tile-art" role="img" aria-label="' + esc(row.title || 'Cover') + '" style="background-image:url(\'' + esc(artSrc) + '\')"></div>'
           : '<div class="epk-tile-art is-empty"><span>No image</span></div>';
         var links = (row.links || []).map(function (link) {
           return linkHtml(link.url, link.label || 'Listen');
@@ -144,7 +153,8 @@
     if (contactBits.length) {
       contact = '<section class="epk-contact" style="--epk-ink:' + ink + '"><p class="epk-kicker">Contact</p><ul>' + contactBits.join('') + '</ul></section>';
     }
-    var openPhoto = kit.photo && safeHref(kit.photo) ? '<p class="epk-open-photo"><a href="' + esc(kit.photo) + '" rel="noopener noreferrer">Open photo</a></p>' : '';
+    var openPhoto = photoSrc && safeHref(photoSrc) ? '<p class="epk-open-photo"><a href="' + esc(photoSrc) + '" rel="noopener noreferrer">Open photo</a></p>' : '';
+    var creditNote = kit.imageCredit ? '<p class="epk-attrib">' + esc(kit.imageCredit) + '</p>' : '';
     return '<article class="epk-kit" style="--epk-accent:' + esc(accent) + ';--epk-ink:' + ink + '">'
       + banner
       + '<header class="epk-cover' + (photo ? ' has-photo' : '') + '">'
@@ -156,10 +166,12 @@
       + photo
       + '</header>'
       + bio + music + quotes + figures + photos + contact
+      + creditNote
       + '</article>';
   }
 
-  var DEMO_SWATCH = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000"><rect width="800" height="1000" fill="#1a1020"/><circle cx="400" cy="430" r="210" fill="#e2b657"/><rect y="760" width="800" height="240" fill="#5c3d6e"/></svg>');
+  var DEMO_CREDIT = 'Human + AI. A person made the choices. AI helped with drafts and tools.';
+  var DEMO_IMAGES = 'Demo layout. Not a real artist. Photos under the Unsplash License: 1493225457124, 1511379938547, 1514320291840, 1470225620780.';
 
   function demoKit(kind) {
     if (kind === 'empty') {
@@ -171,34 +183,47 @@
         press: [],
         booking: {},
         socials: {},
-        credit: 'Human + AI. A person made the choices. AI helped with drafts and tools.',
+        credit: DEMO_CREDIT,
+      };
+    }
+    if (kind === 'long') {
+      return {
+        demo: true,
+        name: 'Demo Act With A Long Name For The Cover',
+        photo: '',
+        vibe: ['late night'],
+        bios: { short: 'Edge case. Not a real artist.', long: '' },
+        releases: [{ title: 'Demo track', artwork_url: '', links: [{ label: 'Listen', url: 'https://example.com/demo-track' }] }],
+        press: [],
+        booking: {},
+        socials: {},
+        credit: DEMO_CREDIT,
       };
     }
     return {
       demo: true,
-      name: 'Demo Act With A Long Name For The Cover',
-      preview: false,
-      photo: DEMO_SWATCH,
+      name: 'North Room',
+      photo: '/assets/epk-demo/portrait.jpg',
       vibe: ['late night'],
       genres: ['Demo'],
       audience: { city: 'Sample city' },
-      voice: [],
+      voice: ['smooth'],
       bios: {
-        short: 'Demo layout only. Not a real artist.',
+        short: 'Demo layout. Not a real artist.',
         medium: '',
-        long: 'This sample shows the press kit layout with a short line and a longer line. It is not a booking, a quote, or a result.',
+        long: 'North Room is a fictional name used only to show this press kit. The portrait and the three covers are stock photographs. The songs, the desk, and the note in Press are layout copy. None of this is a booking, a chart, a client list, or a result.',
       },
       story: '',
-      releases: [{
-        title: 'Demo track',
-        release_date: '',
-        artwork_url: '',
-        links: [{ label: 'Listen', url: 'https://example.com/demo-track' }],
-      }],
-      press: [],
+      releases: [
+        { title: 'Window Light', artwork_url: '/assets/epk-demo/cover-window.jpg', links: [{ label: 'Listen', url: 'https://example.com/window-light' }] },
+        { title: 'Night Desk', artwork_url: '/assets/epk-demo/cover-night.jpg', links: [{ label: 'Listen', url: 'https://example.com/night-desk' }] },
+        { title: 'Violet Hour', artwork_url: '/assets/epk-demo/cover-violet.jpg', links: [{ label: 'Listen', url: 'https://example.com/violet-hour' }] },
+      ],
+      press: [{ quote: 'Layout sample only. This is not a real review.', source: 'Not a publication' }],
       booking: { name: 'Demo desk', email: 'demo@example.com', url: '' },
-      socials: { instagram: 'demoact', website: 'https://example.com' },
-      credit: 'Human + AI. A person made the choices. AI helped with drafts and tools.',
+      socials: { instagram: 'northroomdemo', website: 'https://example.com' },
+      credit: DEMO_CREDIT,
+      imageCredit: DEMO_IMAGES,
     };
   }
 
@@ -215,6 +240,7 @@
 
   function showKit(document, host) {
     host.className = 'epk-live is-on';
+    if (document.body && document.body.classList) document.body.classList.add('epk-recipient');
     document.querySelectorAll('main > section').forEach(function (section) {
       if (section.id !== 'epk-live') section.hidden = true;
     });
@@ -226,7 +252,7 @@
     var layout = '';
     try { layout = new URLSearchParams(windowRef.location.search).get('layout') || ''; } catch (err) { layout = ''; }
     var slug = slugFromLocation(windowRef.location);
-    if (!slug && (layout === 'demo' || layout === 'empty')) {
+    if (!slug && (layout === 'demo' || layout === 'empty' || layout === 'long')) {
       showKit(document, host);
       host.innerHTML = render(demoKit(layout))
         + '<p class="epk-live-actions"><button class="btn btn-ghost btn-sm" type="button" onclick="window.print()">Print</button></p>';

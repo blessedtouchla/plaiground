@@ -56,6 +56,13 @@
 .persona-suggestion { border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 10px 0; }
 [data-persona-links] a { margin-right: 14px; }
 [data-persona-private] { font-size: 0.92rem; }
+body.epk-recipient { background: #070708; }
+body.epk-recipient header.nav,
+body.epk-recipient footer,
+body.epk-recipient .plai-bubble,
+body.epk-recipient .plai-coach-float,
+body.epk-recipient #plai-ask-btn,
+body.epk-recipient #plai-ask-panel { display: none !important; }
 .epk-live { display: none; }
 .epk-live.is-on {
   display: block;
@@ -176,6 +183,7 @@
 .epk-contact li { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 12px; align-items: baseline; font-size: 1.05rem; }
 .epk-contact span { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .epk-contact a { color: inherit; font-weight: 700; overflow-wrap: anywhere; }
+.epk-attrib { margin: 18px 0 0; color: rgba(246, 241, 231, 0.55); font-size: 0.82rem; line-height: 1.45; max-width: 46rem; }
 .epk-live-actions { margin-top: 18px; }
 .epk-loading { color: rgba(246, 241, 231, 0.75); }
 @media (max-width: 720px) {
@@ -189,8 +197,21 @@
   .epk-contact li { grid-template-columns: 1fr; gap: 2px; }
 }
 @media print {
-  .nav, .side, .topbar, .plai-bubble, .epk-live-actions, .page-hero, footer { display: none !important; }
+  .nav, .side, .topbar, .plai-bubble, .plai-coach-float, .plai-ask, .epk-live-actions, .page-hero, footer { display: none !important; }
   .epk-live, .epk-live.is-on { display: block !important; max-width: none; margin: 0; padding: 0; }
+  .epk-cover, .epk-section, .epk-contact, .epk-tile, .epk-banner {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .epk-kicker { break-after: avoid; page-break-after: avoid; }
+  .epk-cover { min-height: 0; }
+  .epk-portrait { min-height: 180px; max-height: 260px; }
+  .epk-bio-photo { display: none; }
+  .epk-bio { grid-template-columns: 1fr; }
+  .epk-music { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .epk-tile-art { aspect-ratio: 1.35; min-height: 0; max-height: 150px; }
+  .epk-section { padding-top: 14px; }
+  .epk-contact { break-before: avoid; page-break-before: avoid; margin-top: 16px; }
   .epk-cover, .epk-contact, .epk-banner, .epk-portrait, .epk-bio-photo, .epk-tile-art {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
