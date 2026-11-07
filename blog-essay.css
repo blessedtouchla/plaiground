@@ -1,0 +1,212 @@
+/* Scoped layout for the Nov 6, 2026 essays. Loaded only by those pages. */
+.essay-page .page-hero h1 {
+  max-width: 14em;
+  font-size: clamp(2rem, 4.4vw, 3.2rem);
+  line-height: 1.08;
+}
+.essay-page .legal.legal-doc { padding-bottom: 56px; }
+.essay-page .legal-doc article > p,
+.essay-page .legal-doc .essay-card p,
+.essay-page .legal-doc .essay-prose p {
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.essay-page .legal-doc h2 { margin-top: 48px; }
+.essay-page .essay-kicker {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.essay-page .essay-card,
+.essay-page .essay-step,
+.essay-page .essay-link,
+.essay-page .essay-sheet,
+.essay-page .essay-aside {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 18px 8px;
+}
+.essay-page .essay-flow,
+.essay-page .essay-cards,
+.essay-page .essay-split,
+.essay-page .essay-chain,
+.essay-page .essay-ladder,
+.essay-page .essay-anchors,
+.essay-page .essay-timeline {
+  margin: 8px 0 32px;
+}
+.essay-page .essay-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+.essay-page .essay-step { flex: 1 1 180px; padding-bottom: 16px; }
+.essay-page .essay-step p:last-child,
+.essay-page .essay-card p:last-child,
+.essay-page .essay-aside p:last-child { margin-bottom: 10px; }
+.essay-page .essay-arrow {
+  align-self: center;
+  color: var(--magenta);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+}
+.essay-page .essay-aside {
+  margin: 0 0 36px;
+  border-color: rgba(255, 60, 142, 0.45);
+}
+.essay-page .essay-cards,
+.essay-page .essay-anchors {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.essay-page .essay-anchors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.essay-page .essay-card h2,
+.essay-page .essay-step h2,
+.essay-page .legal-doc h3 { margin-top: 0; font-size: 1.05rem; letter-spacing: -0.02em; }
+.essay-page .legal-doc h3 { margin: 28px 0 12px; font-size: 1.15rem; }
+.essay-page .essay-icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  color: var(--gold);
+}
+.essay-page .essay-icon svg { width: 36px; height: 36px; display: block; }
+.essay-page .essay-quote {
+  margin: 28px 0;
+  padding: 4px 0 4px 18px;
+  border-left: 3px solid var(--magenta);
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 650;
+  line-height: 1.45;
+  max-width: 40rem;
+}
+.essay-page .essay-chain,
+.essay-page .essay-ladder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.essay-page .essay-link,
+.essay-page .essay-ladder .essay-card { flex: 1 1 140px; }
+.essay-page .essay-link { padding-bottom: 14px; position: relative; }
+.essay-page .essay-link::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  width: 8px;
+  height: 2px;
+  background: var(--purple-bright);
+}
+.essay-page .essay-chain .essay-link:last-child::after { display: none; }
+.essay-page .essay-neq {
+  color: var(--magenta);
+  font-weight: 800;
+  font-size: 22px;
+  padding: 0 2px;
+}
+.essay-page .essay-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0 28px;
+}
+.essay-page .essay-move { margin: 12px 0 8px; }
+.essay-page .essay-move .essay-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.essay-page .essay-timeline { list-style: none; padding: 0; margin: 8px 0 28px; }
+.essay-page .essay-timeline li {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted-2);
+  font-size: 15px;
+}
+.essay-page .essay-timeline li:last-child { border-bottom: 1px solid var(--line); }
+.essay-page .essay-timeline strong { color: var(--text); font-weight: 700; }
+.essay-page .essay-check { list-style: none; padding: 0; margin: 8px 0 28px; }
+.essay-page .essay-check li {
+  padding: 14px 14px 14px 42px;
+  margin-bottom: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  position: relative;
+}
+.essay-page .essay-check li::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 2px solid var(--gold);
+}
+.essay-page .essay-sheet { padding: 8px 18px 18px; margin: 8px 0 28px; }
+.essay-page .essay-sheet li {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 12px;
+  align-items: end;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+}
+.essay-page .essay-sheet { list-style: none; padding-left: 18px; padding-right: 18px; }
+.essay-page .essay-blank {
+  display: block;
+  min-height: 1.4em;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.28);
+}
+.essay-page .essay-close {
+  margin: 40px 0 12px;
+  padding-top: 8px;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  max-width: 22em;
+}
+.essay-page .essay-note { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.essay-page .essay-label {
+  color: var(--muted);
+  font-size: 13px;
+  margin: -8px 0 20px;
+}
+@media (max-width: 800px) {
+  .essay-page .essay-cards,
+  .essay-page .essay-anchors,
+  .essay-page .essay-split { grid-template-columns: 1fr; }
+  .essay-page .essay-flow { flex-direction: column; }
+  .essay-page .essay-arrow { transform: rotate(90deg); align-self: center; }
+  .essay-page .essay-chain,
+  .essay-page .essay-ladder { flex-direction: column; align-items: stretch; }
+  .essay-page .essay-link::after { display: none; }
+  .essay-page .essay-neq { text-align: center; }
+  .essay-page .essay-timeline li,
+  .essay-page .essay-sheet li { grid-template-columns: 1fr; gap: 4px; }
+  .essay-page .page-hero { padding-top: calc(var(--nav-h) + 28px); }
+}

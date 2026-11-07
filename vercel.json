@@ -426,6 +426,13 @@
     { "source": "/blog/denmark-digital-replica-bill", "destination": "/blog-denmark-digital-replica-bill.html" },
     { "source": "/blog/publish-ai-assisted-music", "destination": "/blog-publish-ai-assisted-music.html" },
     { "source": "/blog/can-my-ai-song-be-published", "destination": "/blog-can-my-ai-song-be-published.html" },
+    { "source": "/blog/when-ai-music-goes-to-court-who-gets-paid", "destination": "/blog-when-ai-music-goes-to-court-who-gets-paid.html" },
+    { "source": "/blog/suno-style-case", "destination": "/blog-suno-style-case.html" },
+    { "source": "/blog/platos-ion-suno-mcp", "destination": "/blog-platos-ion-suno-mcp.html" },
+    { "source": "/blog/suno-majors-who-makes-the-rules", "destination": "/blog-suno-majors-who-makes-the-rules.html" },
+    { "source": "/blog/distrokid-ai-data-who-calls-a-song-human", "destination": "/blog-distrokid-ai-data-who-calls-a-song-human.html" },
+    { "source": "/blog/billion-culture-ai-own-equity-not-just-royalties", "destination": "/blog-billion-culture-ai-own-equity-not-just-royalties.html" },
+    { "source": "/blog/cheat-codes-recognizable-artist-fan-participation", "destination": "/blog-cheat-codes-recognizable-artist-fan-participation.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
