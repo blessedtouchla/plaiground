@@ -1,0 +1,184 @@
+:root {
+  --bg: #000;
+  --card: #12121a;
+  --ink: #fff;
+  --soft: #d8d8e4;
+  --gold: #f3cb47;
+  --purple: #7d3cff;
+  --line: rgba(255, 255, 255, 0.16);
+  --danger: #ffd0dc;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #000;
+  color: var(--ink);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+img { max-width: 100%; height: auto; }
+a { color: var(--gold); }
+button, input, textarea { font: inherit; color: inherit; }
+.spot-skip {
+  position: absolute;
+  left: 12px;
+  top: -40px;
+  background: var(--gold);
+  color: #111;
+  padding: 8px 12px;
+  z-index: 3;
+}
+.spot-skip:focus { top: 12px; }
+.spot-bg { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.spot-orb {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.35;
+}
+.spot-orb-a { right: -80px; top: -40px; background: radial-gradient(circle, #7d3cff, transparent 68%); }
+.spot-orb-b { left: -90px; bottom: 8%; background: radial-gradient(circle, #ff3c8e, transparent 70%); }
+.spot-banner, .spot-shell, .spot-foot { position: relative; z-index: 1; }
+.spot-banner {
+  margin: 0;
+  padding: 12px 16px;
+  background: #1a1404;
+  color: var(--gold);
+  border-bottom: 1px solid rgba(243, 203, 71, 0.45);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.spot-shell {
+  width: min(1080px, calc(100% - 28px));
+  margin: 18px auto 28px;
+  display: grid;
+  gap: 16px;
+}
+.spot-poster, .spot-card, .spot-result {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+}
+.spot-poster { padding: 22px 18px 20px; }
+.spot-logo { display: inline-block; }
+.spot-logo img { width: 168px; height: auto; }
+.spot-kicker {
+  margin: 18px 0 8px;
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+h1, h2, h3 { font-family: "Space Grotesk", Inter, sans-serif; letter-spacing: -0.03em; line-height: 1.05; }
+h1 { margin: 0; font-size: clamp(2.5rem, 12vw, 4.4rem); max-width: 9ch; }
+.spot-invite { margin: 10px 0 0; font-size: clamp(1.35rem, 5vw, 1.8rem); max-width: 16ch; }
+.spot-lead, .spot-note, .spot-card p, .spot-result p { color: var(--soft); }
+.spot-lead { font-size: 1.05rem; }
+.spot-facts { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; }
+.spot-facts li {
+  margin: 0;
+  padding: 12px 12px 12px 14px;
+  border-left: 3px solid var(--gold);
+  background: #0c0c12;
+  color: var(--ink);
+}
+.spot-card, .spot-result { padding: 18px 16px 20px; }
+.spot-card h2, .spot-result h2 { margin: 0 0 8px; font-size: 1.7rem; }
+form { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; font-weight: 700; }
+.spot-hint, .spot-error, .spot-count { font-weight: 500; color: var(--soft); font-size: 0.92rem; }
+.spot-error { color: var(--danger); min-height: 1.2em; }
+input, textarea {
+  width: 100%;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: #07070b;
+  border-radius: 12px;
+  padding: 14px 12px;
+  font-size: 16px;
+}
+textarea { min-height: 140px; resize: vertical; }
+input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, .spot-check input:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.spot-check {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+  font-weight: 650;
+  padding: 4px 0;
+}
+.spot-check input { width: 24px; height: 24px; margin-top: 2px; accent-color: var(--gold); }
+.spot-button, .spot-next a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 800;
+}
+.spot-button {
+  border: 0;
+  background: var(--gold);
+  color: #16120a;
+  cursor: pointer;
+}
+.spot-button-ghost {
+  background: transparent;
+  color: #fff;
+  border: 1.5px solid #fff;
+}
+.spot-errors {
+  padding: 12px;
+  border-radius: 12px;
+  background: #2a1218;
+  color: var(--danger);
+}
+.spot-errors p { margin: 0 0 6px; color: var(--danger); }
+.spot-result { display: grid; gap: 10px; }
+.spot-result h2 { color: var(--gold); }
+.spot-private { color: var(--ink); }
+.spot-recap { margin: 4px 0; display: grid; gap: 4px 12px; }
+.spot-recap dt { color: var(--gold); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.spot-recap dd { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.spot-next {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #0c0c12;
+}
+.spot-next a { width: fit-content; background: var(--purple); color: #fff; }
+.spot-foot {
+  width: min(1080px, calc(100% - 28px));
+  margin: 0 auto 32px;
+  color: var(--soft);
+  font-size: 0.92rem;
+}
+.spot-foot a { font-weight: 700; }
+.spot-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+@media (min-width: 880px) {
+  .spot-shell { grid-template-columns: 1.05fr 0.95fr; align-items: start; margin-top: 32px; }
+  .spot-poster { padding: 32px 28px; position: sticky; top: 16px; }
+  .spot-card, .spot-result { padding: 26px 24px 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .spot-orb { display: none; }
+}

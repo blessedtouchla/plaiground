@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Preview: Met us at SIQA? | PLAIGROUND</title>
+  <meta name="description" content="Preview only. Share a song and a short story for PLAIGROUND editorial consideration. Nothing on this page is saved or emailed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/spotlight-preview.css?v=20261108preview" />
+</head>
+<body>
+  <a class="spot-skip" href="#spot-form">Skip to the story form</a>
+  <div class="spot-bg" aria-hidden="true">
+    <div class="spot-orb spot-orb-a"></div>
+    <div class="spot-orb spot-orb-b"></div>
+  </div>
+  <p class="spot-banner" role="status">Preview only. Not live, not print-ready, and not a QR code. Nothing you type is saved or emailed.</p>
+  <main class="spot-shell">
+    <section class="spot-poster">
+      <a class="spot-logo" href="https://wannaplai.com" aria-label="PLAIGROUND"><img src="/assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <p class="spot-kicker">PLAIGROUND independent publication</p>
+      <h1>Met us at SIQA?</h1>
+      <p class="spot-invite">Share your music and story.</p>
+      <p class="spot-lead">Free editorial consideration for PLAIGROUND. Sending a story does not guarantee a feature, a mention, or a reply.</p>
+      <ul class="spot-facts">
+        <li>PLAIGROUND is not SIQA, Spotify, or MMF, and this is not an official event page.</li>
+        <li>Same page if we met earlier this week. Nothing is awarded, and this form does not take payment.</li>
+        <li>A published story later needs your permission and an editor’s review. This form is not a license to your music or your name.</li>
+      </ul>
+    </section>
+    <section class="spot-card">
+      <div id="spot-errors" class="spot-errors" role="alert" tabindex="-1" hidden></div>
+      <form id="spot-form" method="post" action="/siqa-spotlight-preview" novalidate onsubmit="event.preventDefault()" aria-labelledby="spot-form-title">
+        <h2 id="spot-form-title">Leave a story for an editor</h2>
+        <p>Use the public name you want in a story, an email an editor could reply to, one music or artist link, and a short note. The email is for that reply only. This preview does not send it.</p>
+        <div class="spot-trap" aria-hidden="true">
+          <label>Company<input type="text" name="company" tabindex="-1" autocomplete="off" /></label>
+        </div>
+        <label>Public name
+          <span class="spot-hint">The artist name, or the name you want an editor to use.</span>
+          <input id="spot-name" name="name" type="text" autocomplete="nickname" maxlength="80" required />
+          <span id="spot-name-error" class="spot-error"></span>
+        </label>
+        <label>Email
+          <span class="spot-hint">Not shown on the site. Not a newsletter unless you check the box below.</span>
+          <input id="spot-email" name="email" type="email" autocomplete="email" maxlength="120" required inputmode="email" />
+          <span id="spot-email-error" class="spot-error"></span>
+        </label>
+        <label>One music or artist link
+          <span class="spot-hint">A song, profile, or video page. One link only.</span>
+          <input id="spot-link" name="link" type="url" autocomplete="url" maxlength="300" required placeholder="https://" />
+          <span id="spot-link-error" class="spot-error"></span>
+        </label>
+        <label>Short story
+          <span class="spot-hint">What you want an editor to know. A few sentences is enough.</span>
+          <textarea id="spot-story" name="story" maxlength="800" required></textarea>
+          <span id="spot-count" class="spot-count">0 of 800 characters</span>
+          <span id="spot-story-error" class="spot-error"></span>
+        </label>
+        <label class="spot-check">
+          <input type="checkbox" name="updates" value="yes" />
+          <span>Also send me PLAIGROUND email updates. Optional. Leave this off and you are not enrolled. Checking it here does not subscribe you.</span>
+        </label>
+        <button class="spot-button" type="submit">Preview this story</button>
+      </form>
+      <div id="spot-result" class="spot-result" tabindex="-1" hidden></div>
+    </section>
+  </main>
+  <footer class="spot-foot">
+    <p>There is no staff list for this preview, because nothing is collected. The <a href="/privacy">current privacy page</a> is unchanged. The live home page is <a href="https://wannaplai.com">wannaplai.com</a>.</p>
+  </footer>
+  <script src="/lib/spotlight-preview.js?v=20261108preview"></script>
+  <script src="/spotlight-preview.js?v=20261108preview"></script>
+</body>
+</html>

@@ -338,6 +338,7 @@
     { "source": "/api/slang", "destination": "/api/song-helper?action=slang" },
     { "source": "/api/spark", "destination": "/api/song-helper?action=spark" },
     { "source": "/destination", "destination": "/destination.html" },
+    { "source": "/siqa-spotlight-preview", "destination": "/spotlight-preview.html" },
     { "source": "/destination/", "destination": "/destination.html" },
     { "source": "/contracts/create", "destination": "/contracts-create.html" },
     { "source": "/contracts/create/", "destination": "/contracts-create.html" },
@@ -472,6 +473,18 @@
     },
     {
       "source": "/charts-preview(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/siqa-spotlight-preview",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/spotlight-preview.html",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
       ]
