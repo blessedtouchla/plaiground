@@ -436,6 +436,9 @@
     { "source": "/blog/editorial-policy", "destination": "/blog-editorial-policy.html" },
     { "source": "/blog/is-a-style-property", "destination": "/blog-is-a-style-property.html" },
     { "source": "/blog/who-made-it-ai-credits", "destination": "/blog-who-made-it-ai-credits.html" },
+    { "source": "/blog/who-develops-the-artist-label-layoffs", "destination": "/blog-who-develops-the-artist-label-layoffs.html" },
+    { "source": "/blog/spotify-labels-who-used-ai", "destination": "/blog-spotify-labels-who-used-ai.html" },
+    { "source": "/blog/siqa-ai-music-awards", "destination": "/blog-siqa-ai-music-awards.html" },
     { "source": "/blog/billion-culture-ai-own-equity-not-just-royalties", "destination": "/blog-billion-culture-ai-own-equity-not-just-royalties.html" },
     { "source": "/blog/cheat-codes-recognizable-artist-fan-participation", "destination": "/blog-cheat-codes-recognizable-artist-fan-participation.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
