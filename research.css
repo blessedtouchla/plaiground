@@ -90,3 +90,5 @@
   .research-tabs button { flex: 1 1 calc(50% - 8px); }
   .research-choice, .research-link, .research-row { overflow-wrap: anywhere; }
 }
+/* This page already has Talk and Text in the menu. The floating Ask Plai button covers the last tab on a phone. */
+body.app #plai-ask-btn { display: none !important; }
