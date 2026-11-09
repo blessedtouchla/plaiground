@@ -130,6 +130,8 @@ async function run() {
   assert.ok(entity.entity.fields.some(function (field) { return field.id.indexOf('P1243') === 0; }));
   assert.ok(entity.entity.fields.some(function (field) { return field.id.indexOf('P1827') === 0; }));
   assert.ok(entity.entity.fields.filter(function (field) { return field.id.indexOf('P1243') === 0; })[0].note.indexOf('composition') !== -1);
+  assert.ok(entity.entity.fields.filter(function (field) { return field.id.indexOf('P434') === 0; })[0].note.indexOf('Not a result from the MusicBrainz web service') !== -1);
+  assert.strictEqual(search.dataClass, 'public-wikidata');
   assert.ok(entity.entity.fields.filter(function (field) { return field.id.indexOf('P1827') === 0; })[0].note.indexOf('PRO') !== -1);
 
   const mbidRequest = research.requestFor(research.parseSeed('b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d'));
@@ -171,14 +173,16 @@ async function run() {
   assert.strictEqual(research.loadNotes(notesA, 'b@example.com').length, 0);
   const own = research.loadNotes(notesA, 'a@example.com');
   assert.strictEqual(own.length, 4);
-  assert.strictEqual(own[0].released.state, 'documented');
+  assert.strictEqual(own[0].released.state, 'unknown');
+  assert.strictEqual(own[0].isrc, 'GBAYE0601647');
   assert.strictEqual(own[1].released.state, 'unknown');
   assert.strictEqual(own[3].registration.state, 'self-report');
+  assert.ok(/this browser only/.test(own[3].registration.source));
   assert.ok(/unregistered/i.test(own[3].lookupNote));
   assert.notStrictEqual(own[3].registration.state, 'unregistered');
   const meters = research.meterSummary(own);
   assert.strictEqual(meters.released.total, 2);
-  assert.strictEqual(meters.released.documented, 1);
+  assert.strictEqual(meters.released.documented, 0);
   assert.strictEqual(meters.registration.total, 1);
   assert.strictEqual(meters.registration['self-report'], 1);
   assert.strictEqual(meters.agreement.pending, 1);
@@ -208,6 +212,8 @@ async function run() {
   assert.ok(html.indexOf('Not built') !== -1);
   assert.ok(html.indexOf('does not estimate royalties') !== -1);
   assert.ok(client.indexOf('innerHTML') === -1);
+  assert.ok(client.indexOf("state: 'documented'") === -1);
+  assert.ok(client.indexOf('attempt < 1') === -1);
   assert.ok(client.indexOf('musicbrainz.org/ws') === -1);
   assert.ok(server.indexOf('musicbrainz.org/ws') === -1);
   assert.ok(server.indexOf('www.wikidata.org') !== -1);
@@ -273,6 +279,52 @@ async function run() {
   const missingBody = JSON.parse(missing.body);
   assert.strictEqual(missingBody.noMatch, true);
   assert.ok(/not proof/i.test(missingBody.limitation));
+
+  lookup.resetState();
+  const youtube = require('./api/youtube');
+  const previousFetch = global.fetch;
+  const youtubeCalls = [];
+  global.fetch = async function (url, init) {
+    youtubeCalls.push(String(url));
+    const headers = (init && init.headers) || {};
+    if (String(url).indexOf('wikidata.org') !== -1 || String(url).indexOf('query.wikidata.org') !== -1) {
+      assert.ok(String(headers['User-Agent'] || '').indexOf('PLAIGROUND-research/1.0') !== -1);
+      assert.ok(String(headers['User-Agent'] || '').indexOf('https://www.wannaplai.com/contact') !== -1);
+      return jsonResponse({ search: [] });
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: function () { return 'application/json'; } },
+      json: async function () { return {}; },
+      text: async function () { return '{}'; }
+    };
+  };
+  try {
+    const researchRes = mockRes();
+    await youtube(postReq({ q: 'Ada Artist' }), researchRes);
+    assert.strictEqual(researchRes.statusCode, 200);
+    assert.ok(youtubeCalls.length > 0);
+    youtubeCalls.forEach(function (url) {
+      assert.ok(url.indexOf('youtubei') === -1, url);
+      assert.strictEqual(research.allowedFetchUrl(url), true);
+    });
+    youtubeCalls.length = 0;
+    const plain = mockRes();
+    await youtube({
+      method: 'POST',
+      url: '/api/youtube',
+      query: {},
+      headers: {},
+      body: { title: 'Song', artist: 'Name', q: 'should-not-become-research' }
+    }, plain);
+    assert.ok(youtubeCalls.some(function (url) { return url.indexOf('youtubei/v1/search') !== -1; }));
+    assert.ok(!youtubeCalls.some(function (url) { return url.indexOf('wikidata') !== -1; }));
+    assert.strictEqual(plain.body.indexOf('video') !== -1 || plain.statusCode === 404, true);
+  } finally {
+    global.fetch = previousFetch;
+    lookup.resetState();
+  }
 
   lookup.resetState();
   const liveRes = mockRes();

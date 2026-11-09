@@ -27,16 +27,12 @@
     statusEl.classList.toggle('is-bad', !!bad);
   }
 
-  function delay(ms) {
-    return new Promise(function (resolve) { setTimeout(resolve, ms); });
-  }
-
   function enqueue(task) {
     chain = chain.then(task, task);
     return chain;
   }
 
-  function post(body, attempt) {
+  function post(body) {
     return fetch('/api/research', {
       method: 'POST',
       credentials: 'same-origin',
@@ -44,18 +40,19 @@
       body: JSON.stringify(body)
     }).then(function (response) {
       return response.json().catch(function () { return null; }).then(function (data) {
-        if (response.status === 429 && attempt < 1) {
-          var wait = Number(response.headers.get('Retry-After') || 2);
-          if (!Number.isFinite(wait) || wait < 1 || wait > 5) wait = 2;
-          say('Wikidata asked for a slower pace. Waiting ' + wait + ' seconds.', true);
-          return delay(wait * 1000).then(function () { return post(body, attempt + 1); });
-        }
         if (!data || typeof data !== 'object') return R.failure(response.status === 404 ? 'unavailable' : R.classifyStatus(response.status), response.status);
         return data;
       });
     }).catch(function () {
       return R.failure('offline', 0);
     });
+  }
+
+  function publicLine(result) {
+    var p = document.createElement('p');
+    p.className = 'research-note';
+    p.textContent = 'Public Wikidata data retrieved ' + ((result && result.checkedAt) || 'just now') + '. Not a PLAIGROUND sample catalog and not your private rights.';
+    return p;
   }
 
   function externalLink(href, label, className) {
@@ -161,9 +158,11 @@
     if (result.noMatch) {
       var empty = document.createElement('p');
       empty.textContent = result.limitation || R.NO_MATCH;
+      host.appendChild(publicLine(result));
       host.appendChild(empty);
       return;
     }
+    host.appendChild(publicLine(result));
     if (result.ambiguous || result.needsConfirm) {
       var banner = document.createElement('p');
       banner.textContent = result.candidates.length > 1
@@ -204,7 +203,7 @@
     }
     notes = saved.items;
     renderCatalog();
-    say('Saved on this browser for your account. It is not a registry record.');
+    say('Saved on this browser only. Self-report and pending are your notes, not a registry status.');
     showTab('credits');
   }
 
@@ -221,6 +220,7 @@
     var head = document.createElement('h3');
     head.textContent = result.entity.label || 'Wikidata item';
     presenceEl.appendChild(head);
+    presenceEl.appendChild(publicLine(result));
     var limit = document.createElement('p');
     limit.textContent = result.limitation || '';
     presenceEl.appendChild(limit);
@@ -233,7 +233,6 @@
     actions.appendChild(addButton('Add this item to my list', function () {
       var pack = R.evidenceFromEntity(result.entity, result.checkedAt);
       var kind = pack.evidence.iswc && !pack.evidence.isrc ? 'composition' : 'recording';
-      var documented = kind === 'recording' && (pack.evidence.isrc || pack.evidence.mbid || pack.evidence.wikidataId);
       remember({
         id: 'wd' + result.entity.id,
         title: result.entity.label,
@@ -243,18 +242,13 @@
         iswc: pack.evidence.iswc,
         mbid: pack.evidence.mbid,
         wikidataId: result.entity.id,
-        released: documented ? {
-          state: 'documented',
-          source: 'Wikidata CC0',
-          checkedAt: result.checkedAt,
-          note: 'A Wikidata recording identifier was returned. This does not prove a live store page.'
-        } : { state: 'unknown' }
+        lookupNote: 'Public Wikidata identifiers only. They are not a released, registered, or agreement status.'
       });
     }));
     presenceEl.appendChild(actions);
     creditsEl.textContent = '';
     var creditNote = document.createElement('p');
-    creditNote.textContent = 'Credits below are the fields Wikidata returned for this item. Writers and performers are not a chain of title.';
+    creditNote.textContent = 'These are public credits on Wikidata. They are not this artist\'s own rights record, not a registration, and not chain of title.';
     creditsEl.appendChild(creditNote);
     creditsEl.appendChild(fieldList((result.entity.fields || []).filter(function (item) {
       return /^(P50|P86|P123|P175|P264|P434|P435|P436|P1243|P1827|P1476)/.test(item.id);
@@ -274,8 +268,9 @@
     var heading = document.createElement('h3');
     heading.textContent = result.op === 'works' ? 'Composer or lyricist links found so far' : 'Recordings with an ISRC found so far';
     creditsEl.appendChild(heading);
+    creditsEl.appendChild(publicLine(result));
     var limit = document.createElement('p');
-    limit.textContent = 'This is the set Wikidata returned for this query, capped at 12. It is not a full discography, and it is not chain of title.';
+    limit.textContent = 'This is the public Wikidata set for this query, capped at 12. A MusicBrainz ID here is an identifier Wikidata lists, not a MusicBrainz web service result. It is not a full discography and it is not chain of title.';
     creditsEl.appendChild(limit);
     creditsEl.appendChild(conflictList(result.conflicts));
     var list = document.createElement('div');
@@ -291,7 +286,7 @@
       var bits = [];
       if (row.isrcs && row.isrcs.length) bits.push('ISRC ' + row.isrcs.join(', '));
       if (row.iswcs && row.iswcs.length) bits.push('ISWC ' + row.iswcs.join(', '));
-      if (row.mbids && row.mbids.length) bits.push('MusicBrainz ' + row.mbids[0]);
+      if (row.mbids && row.mbids.length) bits.push('MusicBrainz ID listed on Wikidata ' + row.mbids[0]);
       bits.push('Wikidata ' + row.id);
       bits.push(row.checkedAt || '');
       meta.textContent = bits.filter(Boolean).join(' · ');
@@ -311,12 +306,7 @@
           iswc: row.iswcs && row.iswcs[0],
           mbid: row.mbids && row.mbids[0],
           wikidataId: row.id,
-          released: kind === 'recording' && ((row.isrcs && row.isrcs[0]) || (row.mbids && row.mbids[0])) ? {
-            state: 'documented',
-            source: 'Wikidata CC0',
-            checkedAt: row.checkedAt,
-            note: 'A recording identifier was returned. Not a live store check.'
-          } : { state: 'unknown' }
+          lookupNote: 'Public Wikidata identifiers only. They are not a released, registered, or agreement status.'
         });
       }));
       list.appendChild(card);
@@ -328,7 +318,7 @@
   function loadEntity(row) {
     enqueue(function () {
       say('Loading the Wikidata item you chose.');
-      return post({ op: 'entity', q: row.id }, 0).then(function (result) {
+      return post({ op: 'entity', q: row.id }).then(function (result) {
         if (result.ok === false) say(result.message, true);
         else say('Loaded ' + ((result.entity && result.entity.label) || row.id) + '. Fields are what Wikidata returned.');
         renderEntity(result);
@@ -340,7 +330,7 @@
   function loadLinked(op, qid) {
     enqueue(function () {
       say(op === 'works' ? 'Asking Wikidata for composer or lyricist links found so far.' : 'Asking Wikidata for recordings with an ISRC found so far.');
-      return post({ op: op, q: qid }, 0).then(function (result) {
+      return post({ op: op, q: qid }).then(function (result) {
         if (result.ok === false) say(result.message, true);
         else if (result.noMatch) say(result.limitation || R.NO_MATCH, false);
         else say('These are the rows Wikidata returned. The list is not complete.');
@@ -359,9 +349,14 @@
       return;
     }
     enqueue(function () {
-      say('Looking up ' + seed.label + ' on Wikidata.');
+      var lead = 'Looking up ' + seed.label + ' on Wikidata.';
+      if (seed.type === 'mbid') lead = 'Asking Wikidata whether an item lists MusicBrainz artist ID ' + seed.q + '. The MusicBrainz web service is not called.';
+      if (seed.type === 'store') lead = 'Asking Wikidata whether an item lists this ' + seed.platform + ' artist ID. That store is not called.';
+      if (seed.type === 'isrc') lead = 'Asking Wikidata whether an item lists ISRC ' + seed.q + '. This is not a registration check.';
+      if (seed.type === 'iswc') lead = 'Asking Wikidata whether an item lists ISWC ' + seed.q + '. This is not a PRO or MLC filing.';
+      say(lead);
       showTab('presence');
-      return post({ q: raw }, 0).then(function (result) {
+      return post({ q: raw }).then(function (result) {
         if (result.ok === false) {
           say(result.message, true);
           renderCandidates(result, presenceEl, loadEntity);
@@ -406,7 +401,7 @@
     bar.className = 'research-meter';
     bar.setAttribute('role', 'img');
     bar.setAttribute('aria-label', title + '. ' + text);
-    ['documented', 'self-report', 'pending'].forEach(function (key) {
+    ['self-report', 'pending'].forEach(function (key) {
       if (!counts[key]) return;
       var span = document.createElement('span');
       span.className = key === 'self-report' ? 'is-self' : key === 'pending' ? 'is-pending' : 'is-documented';
@@ -421,26 +416,30 @@
     return section;
   }
 
+  function countLine(counts) {
+    return counts['self-report'] + ' self-reported on this browser, ' + counts.pending + ' marked pending on this browser, ' + counts.unknown + ' unknown';
+  }
+
   function renderMeters() {
     var summary = R.meterSummary(notes);
     metersEl.textContent = '';
     metersEl.appendChild(meterBlock(
       'Released recordings',
-      summary.released.documented + ' documented, ' + summary.released['self-report'] + ' self-reported, ' + summary.released.pending + ' pending, ' + summary.released.unknown + ' unknown',
+      countLine(summary.released),
       summary.released,
-      'Documented means a Wikidata recording identifier came back. It does not mean a store page was checked.'
+      'Your note on this browser only. A Wikidata ISRC or MusicBrainz ID is not counted as released.'
     ));
     metersEl.appendChild(meterBlock(
       'Composition registration evidence',
-      summary.registration.documented + ' documented, ' + summary.registration['self-report'] + ' self-reported, ' + summary.registration.pending + ' pending, ' + summary.registration.unknown + ' unknown',
+      countLine(summary.registration),
       summary.registration,
-      'A self-report is your note. This portal does not mark a song registered because a search missed it, and an ISWC here is not a PRO or MLC filing.'
+      'Your note on this browser only. A miss is not unregistered, and an ISWC from Wikidata is not a PRO or MLC filing.'
     ));
     metersEl.appendChild(meterBlock(
       'Publishing agreement on file',
-      summary.agreement.documented + ' documented, ' + summary.agreement['self-report'] + ' self-reported, ' + summary.agreement.pending + ' pending, ' + summary.agreement.unknown + ' unknown',
+      countLine(summary.agreement),
       summary.agreement,
-      'On file means you said so. The agreement is not uploaded here, and this is not a requirement or a clearance score.'
+      'Your note on this browser only. The agreement is not uploaded, and this count is not a requirement or a clearance score.'
     ));
     if (summary.coversLeftOut) {
       var cover = document.createElement('p');
@@ -488,8 +487,13 @@
       card.appendChild(title);
       var meta = document.createElement('p');
       meta.className = 'research-meta';
-      meta.textContent = [item.kind, item.role, item.isrc && ('ISRC ' + item.isrc), item.iswc && ('ISWC ' + item.iswc), item.wikidataId].filter(Boolean).join(' · ');
+      meta.textContent = [item.kind, item.role].filter(Boolean).join(' · ');
       card.appendChild(meta);
+      if (item.isrc || item.iswc || item.mbid || item.wikidataId) {
+        var ident = document.createElement('p');
+        ident.textContent = 'Public identifier, not a status: ' + [item.isrc && ('ISRC ' + item.isrc), item.iswc && ('ISWC ' + item.iswc), item.mbid && ('MusicBrainz ID ' + item.mbid), item.wikidataId].filter(Boolean).join(', ') + '. Typed by you or copied from Wikidata. It does not count as released, registered, or an agreement.';
+        card.appendChild(ident);
+      }
       if (item.lookupNote) {
         var looked = document.createElement('p');
         looked.textContent = item.lookupNote;

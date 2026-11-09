@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260917pl2" />
-  <link rel="stylesheet" href="research.css?v=20261109r1" />
+  <link rel="stylesheet" href="research.css?v=20261109r2" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app">
@@ -88,7 +88,7 @@
 
         <section class="panel" id="panel-presence" role="tabpanel" aria-labelledby="tab-presence" data-panel="presence">
           <h2>Artist presence</h2>
-          <p>Live results come from Wikidata (CC0), checked at the time on each field. MusicBrainz pages are links you open. Found so far means this query, not the whole internet. Profiles and follower counts are not invented here.</p>
+          <p>Live results are public Wikidata data (CC0), checked at the time on each field. A MusicBrainz ID or a store artist link is only a seed for that Wikidata search. It is not a MusicBrainz web service result and not a store API result. Found so far means this query, not the whole internet.</p>
           <div data-presence></div>
           <h3>Open these yourself</h3>
           <div data-research-links></div>
@@ -99,7 +99,7 @@
           <p>Recordings (ISRC) and compositions (ISWC) stay separate. A public credit or a Wikidata identifier is not the chain of title. A registry miss is not the same as unregistered.</p>
           <div data-credits></div>
           <h3>Catalog progress</h3>
-          <p>Three separate counts, including songs released through other distributors. They are not added into one score, and they are not a legal clearance.</p>
+          <p>Three separate counts, including songs released through other distributors. They are not added into one score. Wikidata identifiers stay off these counts. Self-report and pending are your notes on this browser, not a registry and not a clearance.</p>
           <div class="research-meters" data-meters></div>
           <p class="research-note" data-save-note>Sign in to keep this list on this browser for your account. It is not uploaded, and it is not visible to another account on this browser.</p>
           <div class="research-catalog" data-catalog></div>
@@ -170,7 +170,7 @@
         <section class="panel">
           <h2>What is connected, and what is not</h2>
           <ul>
-            <li>Working lookup: Wikidata search and identifiers (CC0), from your request, rate limited.</li>
+            <li>Working lookup: public Wikidata data (CC0) for the search you start. About one request a second and 30 searches in 10 minutes per address, remembered only in that server instance. A new instance does not share the count. Nothing is retried automatically.</li>
             <li>Link only: MusicBrainz, ASCAP repertory, BMI repertoire, Songview, The MLC, US Copyright Office, USPTO, ISRC search. You read those sites. We do not copy them.</li>
             <li>Not connected: MusicBrainz web service (their docs say commercial use of that hosted service needs their commercial plans), Apple catalog, Deezer catalog, SecondHandSongs, Spotify analytics, Suno, audio fingerprinting, SIQA registry, AudD, ACRCloud, Muso, Chartmetric, Soundcharts.</li>
           </ul>
@@ -180,8 +180,8 @@
       </div>
     </div>
   </div>
-  <script src="lib/research-portal.js?v=20261109r1"></script>
-  <script src="research.js?v=20261109r1"></script>
+  <script src="lib/research-portal.js?v=20261109r2"></script>
+  <script src="research.js?v=20261109r2"></script>
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="site.js?v=20261109research"></script>
