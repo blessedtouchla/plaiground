@@ -649,6 +649,7 @@
       loadJson('/api/admin/mail-failures').then(function (saved) {
         if (saved && saved.ok) renderMailFailures(saved.data && saved.data.failures);
       });
+      loadPublishing();
       return loadList().then(function (full) {
         if (!full || !full.ok) {
           showStatus('Signups are loaded. The rest of the desk did not load.');
@@ -703,6 +704,67 @@
     });
   }
 
+  function publishingScope(text) {
+    var raw = String(text || '').trim();
+    if (!raw || raw.toLowerCase() === 'account') return { kind: 'account' };
+    if (raw.toLowerCase().indexOf('titles:') === 0) {
+      return { kind: 'titles', titles: raw.slice(7).split(',').map(function (item) { return item.trim(); }).filter(Boolean) };
+    }
+    if (raw.toLowerCase().indexOf('ids:') === 0) {
+      return { kind: 'ids', ids: raw.slice(4).split(',').map(function (item) { return item.trim(); }).filter(Boolean) };
+    }
+    return { kind: 'titles', titles: raw.split(',').map(function (item) { return item.trim(); }).filter(Boolean) };
+  }
+
+  function loadPublishing() {
+    var host = $('[data-publishing-desk]');
+    if (!host) return Promise.resolve();
+    return loadJson('/api/admin/publishing').then(function (result) {
+      host.textContent = '';
+      if (!result || !result.ok) {
+        host.textContent = 'Publishing desk did not load.';
+        return;
+      }
+      var data = result.data || {};
+      var legal = data.legal_review && data.legal_review.dependency;
+      if (legal) {
+        var note = global.document.createElement('p');
+        note.className = 'hint';
+        note.textContent = legal;
+        host.appendChild(note);
+      }
+      var rows = data.registrations || [];
+      if (!rows.length) {
+        var empty = global.document.createElement('p');
+        empty.textContent = 'No publishing requests.';
+        host.appendChild(empty);
+        return;
+      }
+      rows.forEach(function (row) {
+        var line = global.document.createElement('p');
+        line.textContent = [row.work_title, row.album_title, row.status_label, row.eligibility, row.pro, row.publisher_share_percent != null ? ('represented ' + row.publisher_share_percent) : ''].filter(function (part) { return part != null && part !== ''; }).join(' · ');
+        host.appendChild(line);
+      });
+    });
+  }
+
+  function submitPublishing(url, body, statusEl) {
+    return global.fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        if (statusEl) statusEl.textContent = response.ok ? 'Saved.' : ((data && data.error) || 'Could not save.');
+        if (response.ok) return loadPublishing();
+        return null;
+      });
+    }).catch(function () {
+      if (statusEl) statusEl.textContent = 'Could not save.';
+    });
+  }
+
   function boot() {
     var membership = global.PlaigroundMembership;
     var ready = membership && typeof membership.whenReady === 'function'
@@ -737,6 +799,41 @@
     if (testMail && !testMail.getAttribute('data-bound')) {
       testMail.setAttribute('data-bound', '1');
       testMail.addEventListener('click', sendTestEmails);
+    }
+    var agreementForm = $('[data-publishing-agreement]');
+    if (agreementForm && !agreementForm.getAttribute('data-bound')) {
+      agreementForm.setAttribute('data-bound', '1');
+      agreementForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var data = new global.FormData(agreementForm);
+        var reviewed = data.get('reviewed') === 'on' || data.get('reviewed') === 'true';
+        submitPublishing('/api/admin/publishing', {
+          action: 'agreement',
+          user_id: data.get('user_id'),
+          reference: data.get('reference'),
+          version: data.get('version'),
+          signed_on: data.get('signed_on'),
+          catalog_scope: publishingScope(data.get('scope')),
+          reviewed: reviewed,
+        }, $('[data-publishing-agreement-status]'));
+      });
+    }
+    var statusForm = $('[data-publishing-status]');
+    if (statusForm && !statusForm.getAttribute('data-bound')) {
+      statusForm.setAttribute('data-bound', '1');
+      statusForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var data = new global.FormData(statusForm);
+        var evidence = String(data.get('evidence') || '');
+        submitPublishing('/api/admin/publishing', {
+          action: 'status',
+          id: data.get('id'),
+          status: data.get('status'),
+          reference: data.get('reference'),
+          evidence: evidence,
+          note: evidence,
+        }, $('[data-publishing-status-note]'));
+      });
     }
     if (global.document && !global.document.documentElement.getAttribute('data-roadmap-bound')) {
       global.document.documentElement.setAttribute('data-roadmap-bound', '1');

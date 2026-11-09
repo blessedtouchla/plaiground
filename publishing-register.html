@@ -65,7 +65,7 @@
         <div>
           <p class="kicker">Publishing</p>
           <h1 data-publishing-title>Register publishing</h1>
-          <p>Pick the release first. We fill the work from that catalog entry and any signed split. Only the fields BMI still needs are yours to type.</p>
+          <p>Give your PRO, IPI, writer splits, and the publisher share you want PLAIGROUND to represent. We file each composition. You do not have to distribute the recording here, and you do not register the work at your PRO yourself.</p>
         </div>
         <a class="learn" href="dashboard.html">Save and exit</a>
       </div>
@@ -85,8 +85,8 @@
 
       <section class="flow-card" data-publishing-carry hidden>
         <div class="head-row">
-          <h3>Carried over from your submission</h3>
-          <span class="live">Nothing to re-enter</span>
+          <h3>From your catalog</h3>
+          <span class="live">Optional</span>
         </div>
         <div class="carry">
           <div><small>Work title</small><span data-work-title></span></div>
@@ -94,42 +94,117 @@
           <div><small>Release date</small><span data-work-date></span></div>
           <div><small>AI disclosure</small><span data-work-ai></span></div>
         </div>
-        <p class="hint" data-work-writers>Writers and shares come from the signed split sheet for this work.</p>
+        <p class="hint" data-work-writers>Writer names can be copied from a split sheet. The publisher share is not.</p>
+      </section>
+
+      <section class="flow-card" data-publishing-work>
+        <h3>What to register</h3>
+        <p class="hint">A catalog release is optional. An album is a group of compositions. Each composition has its own writers, shares, eligibility, and credits.</p>
+        <label class="checkline"><input type="checkbox" data-pub-outside /> This work is not in my PLAIGROUND catalog</label>
+        <div class="form-grid">
+          <div class="field"><label for="pub-title">Work title</label><input id="pub-title" data-pub-title autocomplete="off" /></div>
+          <div class="field"><label for="pub-artist">Performing artist</label><input id="pub-artist" data-pub-artist autocomplete="off" /></div>
+        </div>
+        <label class="checkline"><input type="checkbox" data-pub-album /> Register an album, one request per composition</label>
+        <div data-pub-album-fields hidden>
+          <div class="field"><label for="pub-album-title">Album title</label><input id="pub-album-title" data-pub-album-title autocomplete="off" /></div>
+          <div data-pub-tracks></div>
+          <p><button class="btn btn-ghost btn-sm" type="button" data-pub-add-track>Add composition</button></p>
+        </div>
       </section>
 
       <section class="flow-card">
-        <h3>What BMI still needs</h3>
-        <p class="hint">These are the only fields not already covered by your submission. Writers who are not BMI members can be filed without an account number.</p>
-        <div class="form-grid" style="grid-template-columns:repeat(4,1fr)">
-          <div class="field"><label>Alternate or foreign title</label><input placeholder="Optional" /></div>
-          <div class="field"><label>Duration</label><input placeholder="3:41" /></div>
-          <div class="field"><label>Language of lyrics</label><input placeholder="English" /></div>
-          <div class="field"><label>ISRC</label><input placeholder="If you already have one" /></div>
+        <h3>Your PRO and IPI</h3>
+        <p class="hint">You provide these once and authorize PLAIGROUND to file. Co-writers can belong to a different PRO, or to none yet. No PRO login is stored.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="pub-pro">Your PRO</label>
+            <select id="pub-pro" data-pub-pro>
+              <option value="">Select</option>
+              <option>BMI</option>
+              <option>ASCAP</option>
+              <option>SESAC</option>
+              <option>GMR</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label for="pub-ipi">Your IPI</label><input id="pub-ipi" data-pub-ipi inputmode="numeric" autocomplete="off" /></div>
+          <div class="field"><label for="pub-pro-other">Other PRO name</label><input id="pub-pro-other" data-pub-pro-other autocomplete="off" /></div>
         </div>
       </section>
 
-      <div class="pub-bar">
-        <div><p class="kicker">Published</p><small style="color:var(--muted);display:block">Publisher of record</small>PLAIGROUND LLC</div>
-        <div><small style="color:var(--muted);display:block">Publisher share</small>100% of the publisher share</div>
-        <div><small style="color:var(--muted);display:block">Writer share</small><span class="live">Unchanged, paid to the writers</span></div>
-      </div>
+      <section class="flow-card" data-pub-single>
+        <h3>Writers and the represented publisher share</h3>
+        <p class="hint">Writer shares must total 100% of the writer half. Enter only the publisher share PLAIGROUND is authorized to represent. It is not filled in as 100%.</p>
+        <div data-writer-list>
+          <div class="form-grid" data-writer-row>
+            <div class="field"><label>Writer legal name<input data-writer-name autocomplete="name" /></label></div>
+            <div class="field"><label>Share of writer half<input data-writer-share inputmode="decimal" placeholder="50" /></label></div>
+            <div class="field"><label>PRO<select data-writer-pro><option value="">Select</option><option>BMI</option><option>ASCAP</option><option>SESAC</option><option>GMR</option><option>Other</option><option>None / not yet</option></select></label></div>
+            <div class="field"><label>IPI, if they have one<input data-writer-ipi inputmode="numeric" /></label></div>
+          </div>
+        </div>
+        <p><button class="btn btn-ghost btn-sm" type="button" data-pub-add-writer>Add writer</button></p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="pub-share">Publisher share PLAIGROUND may represent</label>
+            <input id="pub-share" data-pub-publisher-share type="number" min="0" max="100" step="0.01" placeholder="Enter the share" />
+          </div>
+          <div class="field">
+            <label for="pub-made">How the composition was made</label>
+            <select id="pub-made" data-pub-made-how>
+              <option value="">Select</option>
+              <option value="no_ai">Human, no AI in the composition</option>
+              <option value="ai_assisted">AI-assisted, a human wrote part</option>
+              <option value="fully_ai">Fully AI, prompts only</option>
+              <option value="unsure">Not sure</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint" data-pub-share-note hidden>You entered 100. That is only the share you asked PLAIGROUND to represent. It is not assumed, and it is not claimed until a reviewed agreement covers this work.</p>
+        <div class="field"><label for="pub-others">Other publishers, one per line as Name, share</label><textarea id="pub-others" data-pub-other-publishers rows="2" placeholder="Optional"></textarea></div>
+        <div class="field"><label for="pub-human">What a person wrote</label><textarea id="pub-human" data-pub-contribution rows="3" placeholder="Lyrics, melody, or other human authorship"></textarea></div>
+        <div class="form-grid">
+          <div class="field"><label for="pub-alt">Alternate or foreign title</label><input id="pub-alt" data-pub-alt placeholder="Optional" /></div>
+          <div class="field"><label for="pub-duration">Duration</label><input id="pub-duration" data-pub-duration placeholder="3:41" /></div>
+          <div class="field"><label for="pub-language">Language of lyrics</label><input id="pub-language" data-pub-language placeholder="English" /></div>
+          <div class="field"><label for="pub-isrc">ISRC</label><input id="pub-isrc" data-pub-isrc placeholder="If you already have one" /></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label for="pub-performers">Performers</label><input id="pub-performers" data-pub-performers /></div>
+          <div class="field"><label for="pub-producers">Producers</label><input id="pub-producers" data-pub-producers /></div>
+          <div class="field"><label for="pub-featured">Featured</label><input id="pub-featured" data-pub-featured /></div>
+        </div>
+      </section>
+
+      <section class="amber-card" data-publishing-agreement>
+        <h3>Reviewed publishing agreement</h3>
+        <p>No reviewed publishing agreement is connected. The checkbox does not sign one, and SignWell is only for multi-writer split sheets. This request stays at Needs agreement until staff record the reference, version, date, and catalog scope of an agreement that was already reviewed and signed outside PLAIGROUND. Nothing on this page is sent to BMI, ASCAP, SESAC, or The MLC.</p>
+      </section>
 
       <section class="amber-card">
-        <h3>Required disclaimer: AI disclosure</h3>
-        <p style="color:var(--muted-2);margin:12px 0">By submitting, you confirm the AI disclosure matches the rights attestation from submission. Full AI tracks are accepted.</p>
+        <h3>Who can be registered</h3>
+        <p style="color:var(--muted-2);margin:12px 0">Distribution can accept a Fully AI recording. Work registration cannot. BMI does not register a work made only from prompts. BMI, ASCAP, and SOCAN accept a partially AI-generated work when a human wrote part of it and that part meets the U.S. Copyright Office human-creativity threshold. If the contribution is unclear, the request stays in review.</p>
+        <p class="hint">Sources: <a href="https://www.bmi.com/special/bmi-and-ai">BMI and AI</a>, <a href="https://www.bmi.com/legal/work-registration-terms-and-conditions">BMI work registration terms</a>, <a href="https://www.ascap.com/press/2025/10/10-28-ai-registration-policies">ASCAP, BMI, and SOCAN, 28 Oct 2025</a>.</p>
         <label class="checkline">
-          <input id="confirm-human" type="checkbox" />
-          I confirm the AI disclosure is accurate and accept the terms of this registration.
+          <input id="confirm-human" data-pub-mandate type="checkbox" />
+          I authorize PLAIGROUND to prepare registration of these compositions with my PRO, using the writer splits and the publisher share I entered. This is not a publishing contract.
         </label>
       </section>
 
+      <p id="publishing-error" class="warn" data-publishing-error hidden></p>
       <div class="flow-actions">
         <a class="btn btn-ghost btn-md" href="dashboard.html">Cancel</a>
         <div>
-          <a id="submit-reg" class="btn btn-purple btn-md is-off" data-publishing-submit href="publishing-confirm.html" aria-disabled="true">Submit registration</a>
-          <p id="need-confirm" class="warn" style="margin-top:8px">Confirm the AI disclosure to continue</p>
+          <button type="button" id="submit-reg" class="btn btn-purple btn-md is-off" data-publishing-submit aria-disabled="true">Submit request</button>
+          <p id="need-confirm" class="warn" style="margin-top:8px">Authorize the filing to continue. This is not the publishing contract.</p>
         </div>
       </div>
+
+      <section class="flow-card" data-publishing-list>
+        <h3>Your requests</h3>
+        <div data-publishing-rows><p class="hint">Saved requests appear here after you send one.</p></div>
+      </section>
     </div>
   </div>
   <script>
@@ -173,6 +248,7 @@
         }).catch(function () { return null; });
       }
       function start(me, liveRows) {
+        var writer = me && me.profile && me.profile.writer;
         PlaigroundPublishingRegister.bind(document, {
           me: me,
           roster: me && me.profile && me.profile.artists,
@@ -181,6 +257,22 @@
           plan: me && me.plan,
           loadRelease: loadRelease,
         });
+        var pro = document.querySelector('[data-pub-pro]');
+        var ipi = document.querySelector('[data-pub-ipi]');
+        var other = document.querySelector('[data-pub-pro-other]');
+        if (writer && pro && !pro.value) pro.value = writer.pro || '';
+        if (writer && ipi && !ipi.value) ipi.value = writer.ipi || '';
+        if (writer && other && !other.value) other.value = writer.pro_other || '';
+        if (typeof fetch !== 'function') return;
+        fetch('/api/me/publishing', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              if (response.ok && data && PlaigroundPublishingRegister.paintRequests) {
+                PlaigroundPublishingRegister.paintRequests(document, data.registrations || []);
+              }
+            });
+          })
+          .catch(function () {});
       }
       function withMe(cb) {
         if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {

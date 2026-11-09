@@ -56,6 +56,7 @@ const personaHttp = require('../lib/persona-http');
 const stageHttp = require('../lib/stage-http');
 const releaseCredits = require('../lib/release-credits');
 const writerIpi = require('../lib/writer-ipi');
+const publishing = require('../lib/publishing');
 const {
   attachSession,
   bodyHasPassword,
@@ -126,6 +127,8 @@ const ROUTE_ACTIONS = {
   events: true,
   guide: true,
   ipi: true,
+  publishing: true,
+  'admin-publishing': true,
   'admin-events': true,
   'admin-traffic': true,
   epk: true,
@@ -252,6 +255,18 @@ function isIpi(req) {
   return queryValue(req, 'action') === 'ipi';
 }
 
+function isPublishing(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/me/publishing') return true;
+  return queryValue(req, 'action') === 'publishing';
+}
+
+function isAdminPublishing(req) {
+  const path = pathnameOf(req);
+  if (path === '/api/admin/publishing' || path === '/api/admin/publishing.csv') return true;
+  return queryValue(req, 'action') === 'admin-publishing';
+}
+
 function isGuide(req) {
   const path = pathnameOf(req);
   if (path === '/api/me/guide') return true;
@@ -305,6 +320,27 @@ function isProblem(req) {
  * (lib/admin-readonly.js, never sets a cookie) or a confirmed owner session.
  * Returns true when the caller may read; otherwise a response was sent.
  */
+async function requireStaffSession(req, res) {
+  if (adminReadonly.checkReadonly(req, res, sendJson) === 'denied') return null;
+  const session = sessionFromRequest(req);
+  if (!session) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return null;
+  }
+  const row = await findById(session.userId);
+  if (!row) {
+    sendJson(res, 401, { error: 'Sign in required.' });
+    return null;
+  }
+  if (rejectUnconfirmed(res, row)) return null;
+  if (!hasStaffProOverride(row.email)) {
+    sendJson(res, 403, { error: 'Not allowed.' });
+    return null;
+  }
+  attachSession(req, res, row.id);
+  return row;
+}
+
 async function requireStaffRead(req, res) {
   const viaToken = adminReadonly.checkReadonly(req, res, sendJson);
   if (viaToken === 'ok') return true;
@@ -1369,6 +1405,87 @@ async function personaAction(req, res, kind) {
   await personaHttp.handleBio(req, res, row, stored, body);
 }
 
+async function ownPublishing(req, res) {
+  const method = String(req.method || 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  const row = await loadUser(req, res);
+  if (!row) return;
+  try {
+    if (method === 'GET') {
+      const result = await publishing.readOwn(row, {
+        id: queryValue(req, 'id'),
+        group: queryValue(req, 'group'),
+      });
+      sendJson(res, result.status, result.body);
+      return;
+    }
+    const body = await readBody(req);
+    if (bodyHasPassword(body)) {
+      sendJson(res, 400, { error: 'Password is not accepted here.' });
+      return;
+    }
+    const result = await publishing.submitOwn(row, body);
+    sendJson(res, result.status, result.body);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Publishing intake is not available.' });
+  }
+}
+
+async function adminPublishing(req, res) {
+  const method = String(req.method || 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    sendJson(res, 405, { error: 'Method not allowed.' });
+    return;
+  }
+  if (rejectQueryPassword(req, res)) return;
+  if (!isConfigured()) {
+    notConfigured(res);
+    return;
+  }
+  try {
+    if (method === 'GET') {
+      if (!(await requireStaffRead(req, res))) return;
+      const format = queryValue(req, 'format') || (pathnameOf(req).endsWith('.csv') ? 'csv' : '');
+      const result = await publishing.staffRead({ format: format });
+      if (result.csv) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="plaiground-publishing-checklist.csv"');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(result.csv);
+        return;
+      }
+      sendJson(res, result.status, result.body);
+      return;
+    }
+    const staff = await requireStaffSession(req, res);
+    if (!staff) return;
+    const body = await readBody(req);
+    if (bodyHasPassword(body)) {
+      sendJson(res, 400, { error: 'Password is not accepted here.' });
+      return;
+    }
+    const result = await publishing.staffWrite(staff, body);
+    sendJson(res, result.status, result.body);
+  } catch (err) {
+    if (err && err.code === 'ACCOUNTS_UNCONFIGURED') {
+      notConfigured(res);
+      return;
+    }
+    sendJson(res, 503, { error: 'Publishing intake is not available.' });
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (isApply(req)) {
     await applications.handleApply(req, res);
@@ -1432,6 +1549,14 @@ module.exports = async function handler(req, res) {
   }
   if (isEvents(req)) {
     await recordProductEvent(req, res);
+    return;
+  }
+  if (isAdminPublishing(req)) {
+    await adminPublishing(req, res);
+    return;
+  }
+  if (isPublishing(req)) {
+    await ownPublishing(req, res);
     return;
   }
   if (isIpi(req)) {

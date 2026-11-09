@@ -39,6 +39,7 @@
       <a href="#submissions">Submissions</a>
       <a href="#deliveries">Deliveries</a>
       <a href="#royalties">Royalties</a>
+      <a href="#publishing">Publishing</a>
       <a href="https://app.tonegrid.pro/super/login" target="_blank" rel="noopener noreferrer">ToneGrid dashboard</a>
       <a href="https://plaiground.tonegrid.pro/admin/login" target="_blank" rel="noopener noreferrer">ToneGrid admin</a>
       <a href="dashboard.html">Dashboard</a>
@@ -474,6 +475,41 @@
           </table>
         </div>
       </div>
+      </section>
+
+      <section class="admin-section" id="publishing">
+        <div class="panel">
+          <div class="admin-section-head">
+            <h3>Publishing requests</h3>
+            <a class="btn btn-ghost btn-sm" href="/api/admin/publishing.csv">Export checklist</a>
+          </div>
+          <p class="hint">Record a reviewed agreement reference only after it was signed outside this product. Do not paste a contract. Submission to a PRO is manual and needs a reference. Acceptance and rejection need evidence.</p>
+          <div data-publishing-desk><p class="hint">Loading publishing requests.</p></div>
+          <form data-publishing-agreement>
+            <h3>Reviewed agreement reference</h3>
+            <div class="form-grid">
+              <div class="field"><label>Artist account id<input name="user_id" autocomplete="off" /></label></div>
+              <div class="field"><label>Reference<input name="reference" autocomplete="off" /></label></div>
+              <div class="field"><label>Version<input name="version" autocomplete="off" /></label></div>
+              <div class="field"><label>Signed on<input name="signed_on" placeholder="YYYY-MM-DD" autocomplete="off" /></label></div>
+            </div>
+            <div class="field"><label>Catalog scope<textarea name="scope" rows="2" placeholder="account, or titles: Song A, Song B, or ids: uuid, uuid"></textarea></label></div>
+            <label class="checkline"><input name="reviewed" type="checkbox" /> This agreement was already reviewed and signed outside PLAIGROUND</label>
+            <p><button class="btn btn-purple btn-sm" type="submit">Record reference</button></p>
+            <p class="hint" data-publishing-agreement-status></p>
+          </form>
+          <form data-publishing-status>
+            <h3>Status evidence</h3>
+            <div class="form-grid">
+              <div class="field"><label>Registration id<input name="id" autocomplete="off" /></label></div>
+              <div class="field"><label>Status<select name="status"><option value="submitted">Submitted</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="needs_information">Needs information</option><option value="under_review">Under review</option></select></label></div>
+              <div class="field"><label>Outside reference<input name="reference" autocomplete="off" /></label></div>
+            </div>
+            <div class="field"><label>Evidence or note<textarea name="evidence" rows="2"></textarea></label></div>
+            <p><button class="btn btn-purple btn-sm" type="submit">Record status</button></p>
+            <p class="hint" data-publishing-status-note></p>
+          </form>
+        </div>
       </section>
     </div>
   </div>
