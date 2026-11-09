@@ -62,7 +62,7 @@
   // The group for the current page is marked, not opened, so the full header list stays on screen.
   // Help & account catches anything unlisted. Nothing sits loose above the headers.
   var SIDE_GROUPS = [
-    { id: "profile", label: "My profile", main: ["artists", "epk", "ar"], more: ["profile", "persona", "destination", "roadmap", "my-roadmap", "already-released", "release-week"] },
+    { id: "profile", label: "My profile", main: ["artists", "research", "epk", "ar"], more: ["profile", "persona", "destination", "roadmap", "my-roadmap", "already-released", "release-week"] },
     { id: "write", label: "Create", main: ["upload", "releases", "song-helper", "song-helper-v3", "cover-art", "spark"], more: [] },
     { id: "money", label: "Money", main: ["earnings", "payouts", "analytics"], more: ["charts", "royalties"] },
     { id: "rights", label: "Rights", lead: ["publishing-register", "publishing"], main: ["splits", "split-sheet", "contracts", "contracts-review"], more: ["copyright", "qualify", "claim", "contracts-fix", "contracts-create", "contracts-sub", "rights", "transparency"] },
@@ -248,6 +248,7 @@
     }
     if (!isOwnerDesk(app) && !isOwnerDesk(side)) {
       setupAppBlogLink(side);
+      setupResearchLink(side);
       ensureSignedInRoadmap(side);
       ensureWhatsNewSide(side);
       ensureContractsSide(side);
@@ -1040,7 +1041,7 @@
   var GROUP_EXTRAS = {
     make: [{ href: "/cover-art", label: "Cover Art" }, { href: "/make-human", label: "Make it human" }, { href: "/battle", label: "Battle" }, { href: "/spark", label: "What's hot" }],
     protect: [{ href: "/contracts", label: "Contracts hub" }, { href: "/qualify", label: "Is my song ready?" }, { href: "/copyright", label: "Copyright & publishing" }, { href: "/claim", label: "Claim my human parts" }, { href: "split-sheet.html", label: "Split sheets" }, { href: "publishing.html", label: "Publishing registration" }],
-    out: [{ href: "signup.html", label: "Release a song" }],
+    out: [{ href: "signup.html", label: "Release a song" }, { href: "/research", label: "Research" }],
     grow: [{ href: "/persona.html", label: "Artist Development" }, { href: "/#get-booked-form", label: "Get booked" }, { href: "/destination", label: "Route map" }, { href: "/guide", label: "Guide" }]
   };
 
@@ -1437,6 +1438,21 @@
       if (pricing.nextSibling) nav.insertBefore(price, pricing.nextSibling);
       else nav.appendChild(price);
     }
+  }
+
+  function setupResearchLink(side) {
+    if (!side || !side.querySelector) return;
+    var nav = side.querySelector(".side-nav");
+    if (!nav || nav.querySelector('a[href="/research"], a[href="research.html"]')) return;
+    var link = document.createElement("a");
+    link.setAttribute("href", "/research");
+    link.textContent = "Research";
+    var file = "";
+    try {
+      file = String((window.location && window.location.pathname) || "").split("/").pop();
+    } catch (err) {}
+    if (file === "research" || file === "research.html") link.classList.add("on");
+    nav.appendChild(link);
   }
 
   function setupAppBlogLink(side) {

@@ -151,11 +151,25 @@ function chartsAction(req) {
   return '';
 }
 
+function researchAction(req) {
+  const query = req && req.query;
+  const fromQuery = query && query.action ? String(query.action) : '';
+  const url = String((req && req.url) || '');
+  const mark = url.indexOf('?');
+  const fromUrl = mark === -1 ? '' : (new URLSearchParams(url.slice(mark + 1)).get('action') || '');
+  return (fromQuery || fromUrl) === 'research';
+}
+
 module.exports = async function handler(req, res) {
   const chartAction = chartsAction(req);
   if (chartAction) {
     const charts = require('../lib/charts-preview');
     await charts.handle(req, res, chartAction);
+    return;
+  }
+  if (researchAction(req)) {
+    const research = require('../lib/research-lookup');
+    await research.handle(req, res);
     return;
   }
   if (req.method !== 'POST') {
