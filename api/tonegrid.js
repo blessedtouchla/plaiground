@@ -867,9 +867,8 @@ function primaryArtistName(scope, body) {
   if (found && found.name && !profileLib.isPlaceholderArtist(found.name)) return found.name;
   const named = String((body && body.name) || '').trim();
   if (named && !profileLib.isPlaceholderArtist(named)) return named.slice(0, 120);
-  const only = roster.artists && roster.artists.length === 1 ? roster.artists[0] : null;
-  if (only && only.name && !profileLib.isPlaceholderArtist(only.name)) return only.name;
-  // Never fall back to the account display name. It is not an artist.
+  // Never use the only roster artist or the account display name. A one-artist
+  // account was mailing that name for every release whose submit omitted the pick.
   return '';
 }
 
@@ -3728,6 +3727,22 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   const row = loaded.row || {};
+  const selectedArtist = {
+    name: String((body && (body.artist || body.artist_name || body.primary_artist || body.name)) || '').trim(),
+    id: String((body && (body.artist_id || body.artistId)) || '').trim(),
+  };
+  const providerArt = row && row.artist;
+  const providerArtist = {
+    name: String((providerArt && typeof providerArt === 'object' ? providerArt.name : providerArt) || (row && (row.artist_name || row.primary_artist)) || '').trim(),
+    id: String((row && (row.artist_id || row.artist_uuid)) || (providerArt && typeof providerArt === 'object' && (providerArt.uuid || providerArt.id)) || '').trim(),
+  };
+  if (artistCheck.identityConflicts(selectedArtist, providerArtist)) {
+    sendJson(res, 409, {
+      error: 'This release is saved under a different artist than the one you selected. Choose that artist again and submit so a new release is created.',
+      code: 'ARTIST_MISMATCH',
+    });
+    return;
+  }
   const hopped = await hopSubmitAssets(scope, releaseId, body, row);
   if (hopped && hopped.ok === false) {
     sendJson(res, hopped.status || 400, hopped.data || { error: uploadRequired.AUDIO_REQUIRED });
