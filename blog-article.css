@@ -1,0 +1,329 @@
+/* Visual blog template.
+   Link after site.css on paced posts. See docs/blog-visual-template.md.
+   Pattern: wide hero, short paragraphs, full-width image breaks,
+   a pull-quote, and an optional 2-up card or image row.
+   Palette stays Inter, black, purple, magenta. */
+
+.post-page .page-hero {
+  padding-bottom: 22px;
+}
+
+.post-page .page-hero h1 {
+  max-width: 18ch;
+}
+
+.post-page .page-hero .sub {
+  margin-top: 4px;
+}
+
+.post-hero,
+.post-break,
+.pull-quote,
+.post-piles,
+.post-pair {
+  width: min(1680px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  box-sizing: border-box;
+}
+
+.post-hero {
+  margin-bottom: 56px;
+}
+
+.post-hero img,
+.post-break img,
+.post-pair img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 22px;
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.post-hero img {
+  aspect-ratio: 16 / 9;
+  object-position: center center;
+}
+
+.post {
+  padding-bottom: 28px;
+}
+
+.post-col {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.post-col p {
+  color: var(--muted-2);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  margin: 0 0 1.35em;
+}
+
+.post-col .post-lede {
+  color: #fff;
+  font-size: clamp(1.4rem, 2.5vw, 1.75rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+  margin-bottom: 0.85em;
+}
+
+.post-col .post-beat {
+  color: #fff;
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.post-col h2 {
+  color: #fff;
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+  margin: 2.5em 0 0.7em;
+}
+
+.post-col h2:first-child {
+  margin-top: 0.15em;
+}
+
+.post-col strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.post-col a:not(.btn) {
+  color: var(--magenta);
+  font-weight: 600;
+}
+
+.post-col a:not(.btn):hover {
+  color: #fff;
+}
+
+.post-break {
+  margin-top: 48px;
+  margin-bottom: 56px;
+}
+
+.post-break img {
+  height: auto;
+}
+
+.post-break.tall {
+  width: min(760px, 100%);
+}
+
+.post-break.tall img {
+  aspect-ratio: 4 / 5;
+  height: auto;
+  object-position: center 62%;
+}
+
+.pull-quote {
+  margin-top: 48px;
+  margin-bottom: 56px;
+}
+
+.pull-quote p {
+  margin: 0;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 48px 44px 42px;
+  border-radius: 24px;
+  background-color: #241038;
+  background-image:
+    linear-gradient(180deg, rgba(8, 4, 18, 0.08) 0%, rgba(8, 4, 18, 0.22) 42%, rgba(8, 4, 18, 0.78) 100%),
+    var(--quote-image);
+  background-size: cover;
+  background-position: center, center 70%;
+  box-shadow: 0 22px 50px rgba(125, 60, 255, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.7rem, 4vw, 2.85rem);
+  letter-spacing: -0.04em;
+  line-height: 1.18;
+}
+
+.pull-quote p span {
+  display: block;
+  max-width: 11em;
+}
+
+.pull-quote p::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 3px;
+  margin-bottom: 18px;
+  border-radius: 99px;
+  background: var(--magenta);
+}
+
+.post-piles,
+.post-pair {
+  width: min(920px, 100%);
+  margin-top: 8px;
+  margin-bottom: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  list-style: none;
+}
+
+.post-piles li,
+.post-pair figure {
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 26px 24px 22px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+}
+
+.post-piles li:last-child {
+  background: linear-gradient(180deg, rgba(125, 60, 255, 0.22), rgba(17, 17, 17, 0.55));
+  border-color: rgba(125, 60, 255, 0.5);
+}
+
+.post-piles .eyebrow {
+  margin-bottom: 10px;
+}
+
+.post-piles p:last-child {
+  color: var(--muted-2);
+  font-size: 1.08rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.post-pair {
+  margin-top: 40px;
+  margin-bottom: 48px;
+}
+
+.post-pair figure {
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.post-pair img {
+  aspect-ratio: 4 / 5;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.tease-grid .tease-visual {
+  grid-column: 1 / -1;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(255, 60, 142, 0.28);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+}
+
+.tease-visual-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.9fr);
+  min-height: 280px;
+  color: inherit;
+}
+
+.tease-visual-link img {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  object-fit: cover;
+  object-position: center 42%;
+  display: block;
+}
+
+.tease-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 32px 28px;
+}
+
+.tease-copy .eyebrow {
+  margin-bottom: 12px;
+}
+
+.tease-visual h3 {
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  margin-bottom: 12px;
+}
+
+.tease-visual-link:hover h3 {
+  color: var(--gold);
+}
+
+@media (max-width: 980px) {
+  .tease-visual-link {
+    grid-template-columns: 1fr;
+  }
+
+  .tease-visual-link img {
+    max-height: 240px;
+  }
+}
+
+@media (max-width: 720px) {
+  .post-hero,
+  .post-break,
+  .pull-quote,
+  .post-piles,
+  .post-pair,
+  .post-col {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .post-hero {
+    margin-bottom: 36px;
+  }
+
+  .post-hero img,
+  .post-break img {
+    border-radius: 16px;
+  }
+
+  .post-col p {
+    font-size: 1.05rem;
+  }
+
+  .post-break,
+  .pull-quote {
+    margin-top: 36px;
+    margin-bottom: 40px;
+  }
+
+  .pull-quote p {
+    min-height: 240px;
+    padding: 32px 22px 26px;
+    border-radius: 18px;
+  }
+
+  .post-piles,
+  .post-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .tease-copy {
+    padding: 22px 20px 20px;
+  }
+}
