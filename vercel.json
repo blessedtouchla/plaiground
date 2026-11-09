@@ -436,6 +436,11 @@
     { "source": "/blog/editorial-policy", "destination": "/blog-editorial-policy.html" },
     { "source": "/blog/is-a-style-property", "destination": "/blog-is-a-style-property.html" },
     { "source": "/blog/who-made-it-ai-credits", "destination": "/blog-who-made-it-ai-credits.html" },
+    { "source": "/blog/music-business-superfans", "destination": "/blog-music-business-superfans.html" },
+    { "source": "/blog/old-songs-new-ears", "destination": "/blog-old-songs-new-ears.html" },
+    { "source": "/blog/spotify-ad-playbook-for-artists", "destination": "/blog-spotify-ad-playbook-for-artists.html" },
+    { "source": "/blog/network-without-looking-desperate", "destination": "/blog-network-without-looking-desperate.html" },
+    { "source": "/blog/artist-is-the-ceo", "destination": "/blog-artist-is-the-ceo.html" },
     { "source": "/blog/billion-culture-ai-own-equity-not-just-royalties", "destination": "/blog-billion-culture-ai-own-equity-not-just-royalties.html" },
     { "source": "/blog/cheat-codes-recognizable-artist-fan-participation", "destination": "/blog-cheat-codes-recognizable-artist-fan-participation.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
