@@ -19,6 +19,14 @@ function run() {
   assert.ok(html.includes('data-require-membership="true"'), 'publishing register stays signed in');
   assert.ok(html.includes('Publishing registration is open on every account.'));
   assert.ok(html.includes('data-publishing-submit'), 'submit carries the picked release');
+  assert.ok(html.includes('data-pub-publisher-share'), 'publisher share is an entered field');
+  assert.ok(html.includes('data-pub-mandate'), 'filing authorization is explicit');
+  assert.ok(html.includes('/api/me/publishing'), 'intake is saved on the server');
+  assert.ok(html.includes('https://www.bmi.com/special/bmi-and-ai'), 'eligibility cites BMI');
+  assert.ok(!html.includes('100% of the publisher share'), 'publisher share is not assumed');
+  assert.ok(!html.includes('Full AI tracks are accepted'), 'work registration does not accept prompt-only works');
+  assert.ok(!html.includes('Pending at BMI'), 'the form does not claim a BMI filing');
+  assert.ok(html.includes('class="form-grid"'), 'fields use the grid that stacks on a phone');
   assert.ok(!/ToneGrid|Tonegrid/.test(html.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
 
   const confirmHtml = fs.readFileSync(path.join(__dirname, 'publishing-confirm.html'), 'utf8');
@@ -31,6 +39,9 @@ function run() {
   assert.ok(confirmHtml.includes('data-confirm-song'));
   assert.ok(confirmHtml.includes('data-require-membership="true"'), 'publishing confirm stays signed in');
   assert.ok(!/ToneGrid|Tonegrid/.test(confirmHtml.replace(/<script\b[\s\S]*?<\/script>/gi, '')));
+  assert.ok(!confirmHtml.includes('Pending at BMI'), 'confirm does not claim pending at BMI');
+  assert.ok(!confirmHtml.includes('We sent the work to BMI'), 'confirm does not claim a society submission');
+  assert.ok(confirmHtml.includes('data-confirm-lead'));
 
   assert.ok(publishing.isDummyTitle('Your release'));
   assert.ok(!publishing.isDummyTitle('mexeu mexeu'));
@@ -197,9 +208,9 @@ function run() {
   assert.strictEqual(filedView.title, 'mexeu');
   assert.strictEqual(filedView.artist, 'mexeu mexeu');
   assert.strictEqual(filedView.filed, '25 Aug 2026');
-  assert.strictEqual(filedView.status, 'Pending at BMI');
+  assert.strictEqual(filedView.status, 'Needs agreement');
   assert.strictEqual(filedView.paid, '$0.00 · included');
-  assert.strictEqual(filedView.headline, 'mexeu is filed for publishing.');
+  assert.strictEqual(filedView.headline, 'mexeu is held: Needs agreement.');
   assert.strictEqual(filedView.songHref, 'song.html?id=' + mexeuId);
   assert.ok(!/Neon Sermon/.test(filedView.headline));
 
@@ -223,7 +234,7 @@ function run() {
   });
   assert.strictEqual(dummyView.title, '');
   assert.ok(!/Neon Sermon/.test(dummyView.headline));
-  assert.strictEqual(dummyView.headline, 'This work is filed for publishing.');
+  assert.strictEqual(dummyView.headline, 'This request is held: Needs agreement.');
 
   const confirmNodes = {
     '[data-confirm-headline]': textNode('Neon Sermon is filed for publishing.'),
@@ -249,9 +260,9 @@ function run() {
     },
   });
   assert.ok(painted);
-  assert.strictEqual(confirmNodes['[data-confirm-headline]'].textContent, 'mexeu is filed for publishing.');
+  assert.strictEqual(confirmNodes['[data-confirm-headline]'].textContent, 'mexeu is held: Needs agreement.');
   assert.strictEqual(confirmNodes['[data-confirm-artist]'].textContent, 'mexeu mexeu');
-  assert.strictEqual(confirmNodes['[data-confirm-status]'].textContent, 'Pending at BMI');
+  assert.strictEqual(confirmNodes['[data-confirm-status]'].textContent, 'Needs agreement');
   assert.strictEqual(confirmNodes['[data-confirm-filed]'].textContent, '25 Aug 2026');
   assert.strictEqual(confirmNodes['[data-confirm-paid]'].textContent, '$0.00 · included');
   assert.strictEqual(confirmNodes['[data-confirm-song]'].href, 'song.html?id=' + mexeuId);
@@ -285,8 +296,97 @@ function run() {
   assert.strictEqual(saved.title, 'Night Drive');
   assert.ok(saved.title !== 'Neon Sermon');
   assert.strictEqual(saved.filed, '2026-08-25');
-  assert.strictEqual(saved.status, 'Pending at BMI');
+  assert.strictEqual(saved.status, 'Needs agreement');
   assert.strictEqual(saved.paid, '$0.00 · included');
+
+  function intakeDoc(album) {
+    const fields = {
+      '[data-pub-publisher-share]': { value: album ? '' : '40' },
+      '[data-pub-pro]': { value: 'BMI' },
+      '[data-pub-ipi]': { value: '00123456789' },
+      '[data-pub-pro-other]': { value: '' },
+      '[data-pub-title]': { value: 'Paper Boat' },
+      '[data-pub-artist]': { value: 'Ada Night' },
+      '[data-pub-made-how]': { value: 'no_ai' },
+      '[data-pub-contribution]': { value: 'Wrote the lyrics and the melody.' },
+      '[data-pub-alt]': { value: '' },
+      '[data-pub-duration]': { value: '3:10' },
+      '[data-pub-language]': { value: 'English' },
+      '[data-pub-isrc]': { value: '' },
+      '[data-pub-performers]': { value: 'Ada Night' },
+      '[data-pub-producers]': { value: 'Bo Lane' },
+      '[data-pub-featured]': { value: '' },
+      '[data-pub-other-publishers]': { value: '' },
+      '[data-pub-album-title]': { value: 'Paper Boat Album' },
+      '[data-pub-mandate]': { checked: true, value: '' },
+    };
+    function writer(name, share, pro) {
+      const map = {
+        '[data-writer-name]': { value: name },
+        '[data-writer-share]': { value: share },
+        '[data-writer-pro]': { value: pro },
+        '[data-writer-ipi]': { value: '' },
+        '[data-writer-pro-other]': { value: '' },
+      };
+      return { querySelector: function (sel) { return map[sel] || { value: '' }; } };
+    }
+    function card(title, featured, share) {
+      const local = {
+        '[data-track-title]': { value: title },
+        '[data-pub-publisher-share]': { value: share },
+        '[data-pub-made-how]': { value: 'ai_assisted' },
+        '[data-pub-contribution]': { value: 'Wrote the topline and kept the lyric.' },
+        '[data-pub-performers]': { value: 'Ada Night' },
+        '[data-pub-producers]': { value: 'Bo Lane' },
+        '[data-pub-featured]': { value: featured },
+        '[data-pub-other-publishers]': { value: '' },
+        '[data-pub-alt]': { value: '' },
+        '[data-pub-duration]': { value: '2:40' },
+        '[data-pub-language]': { value: '' },
+        '[data-pub-isrc]': { value: '' },
+      };
+      return {
+        querySelector: function (sel) { return local[sel] || { value: '' }; },
+        querySelectorAll: function (sel) {
+          return sel === '[data-writer-row]' ? [writer(title + ' Writer', '100', 'ASCAP')] : [];
+        },
+      };
+    }
+    const cards = [card('First Light', 'Cee Guest', '25'), card('Second Light', 'Dee Guest', '40')];
+    const single = {
+      querySelector: function (sel) { return fields[sel] || { value: '' }; },
+      querySelectorAll: function (sel) {
+        return sel === '[data-writer-row]' ? [writer('Ada Night', '60', 'BMI'), writer('Bo Lane', '40', 'SESAC')] : [];
+      },
+    };
+    return {
+      querySelector: function (sel) {
+        if (sel === '[data-pub-single]') return single;
+        if (sel === '[data-pub-album]') return { checked: Boolean(album) };
+        if (sel === '[data-pub-outside]') return { checked: true };
+        return fields[sel] || null;
+      },
+      querySelectorAll: function (sel) {
+        return sel === '[data-pub-track]' && album ? cards : [];
+      },
+    };
+  }
+  const built = publishing.buildIntake(intakeDoc(false), null, {
+    storage: { getItem: function () { return 'pub-test-key-1'; }, setItem: function () {} },
+  });
+  assert.strictEqual(built.payload.publisher_share_percent, '40');
+  assert.notStrictEqual(built.payload.publisher_share_percent, '100');
+  assert.strictEqual(built.payload.release_id, '');
+  assert.strictEqual(built.payload.writers.length, 2);
+  assert.strictEqual(built.payload.writers[1].pro, 'SESAC');
+  const albumBuilt = publishing.buildIntake(intakeDoc(true), null, {
+    storage: { getItem: function () { return 'pub-album-key-1'; }, setItem: function () {} },
+  });
+  assert.strictEqual(albumBuilt.payload.works.length, 2);
+  assert.strictEqual(albumBuilt.payload.works[0].credits.featured, 'Cee Guest');
+  assert.strictEqual(albumBuilt.payload.works[1].publisher_share_percent, '40');
+  assert.strictEqual(albumBuilt.payload.works[0].writers[0].pro, 'ASCAP');
+  assert.strictEqual(albumBuilt.payload.works[1].writers[0].pro, 'ASCAP');
 
   console.log('publishing-register.page.test.js ok');
 }

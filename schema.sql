@@ -405,3 +405,99 @@ CREATE INDEX IF NOT EXISTS signup_attempts_ip_idx
 
 CREATE INDEX IF NOT EXISTS signup_attempts_email_idx
   ON signup_attempts (email_key, created_at DESC);
+
+-- Publishing intake. One row per composition. An album is a shared album_group_id
+-- plus album_title; each track keeps its own writers, shares, and credits.
+-- This table does not store a publishing contract. Agreements below record only
+-- the reference, version, date, and catalog scope of an agreement already reviewed
+-- and signed outside this product. reviewed must stay true.
+
+CREATE TABLE IF NOT EXISTS publishing_agreements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  reference text NOT NULL,
+  version text NOT NULL,
+  signed_on date NOT NULL,
+  catalog_scope jsonb NOT NULL,
+  reviewed boolean NOT NULL DEFAULT true,
+  recorded_by text NOT NULL DEFAULT '',
+  note text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT publishing_agreements_reviewed CHECK (reviewed = true)
+);
+
+CREATE INDEX IF NOT EXISTS publishing_agreements_user_idx
+  ON publishing_agreements (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS publishing_registrations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  client_key text NOT NULL DEFAULT '',
+  idempotency_key text NOT NULL DEFAULT '',
+  album_group_id uuid,
+  album_title text NOT NULL DEFAULT '',
+  track_position integer,
+  work_title text NOT NULL,
+  performing_artist text NOT NULL DEFAULT '',
+  release_id text NOT NULL DEFAULT '',
+  alternate_title text NOT NULL DEFAULT '',
+  duration text NOT NULL DEFAULT '',
+  language text NOT NULL DEFAULT '',
+  isrc text NOT NULL DEFAULT '',
+  writers jsonb NOT NULL DEFAULT '[]'::jsonb,
+  publisher_share numeric,
+  publisher_share_explicit boolean NOT NULL DEFAULT false,
+  other_publishers jsonb NOT NULL DEFAULT '[]'::jsonb,
+  pro text NOT NULL DEFAULT '',
+  ipi text NOT NULL DEFAULT '',
+  pro_other text NOT NULL DEFAULT '',
+  made_how text NOT NULL DEFAULT '',
+  human_contribution text NOT NULL DEFAULT '',
+  eligibility text NOT NULL DEFAULT '',
+  credits jsonb NOT NULL DEFAULT '{}'::jsonb,
+  status text NOT NULL,
+  agreement_id uuid,
+  external_reference text NOT NULL DEFAULT '',
+  evidence text NOT NULL DEFAULT '',
+  mandate_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT publishing_registrations_status_check CHECK (
+    status IN (
+      'request_received',
+      'needs_information',
+      'needs_agreement',
+      'under_review',
+      'submitted',
+      'accepted',
+      'rejected'
+    )
+  )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS publishing_reg_idem_idx
+  ON publishing_registrations (user_id, idempotency_key);
+
+CREATE INDEX IF NOT EXISTS publishing_reg_user_idx
+  ON publishing_registrations (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS publishing_reg_client_idx
+  ON publishing_registrations (user_id, client_key);
+
+CREATE INDEX IF NOT EXISTS publishing_reg_group_idx
+  ON publishing_registrations (album_group_id);
+
+CREATE TABLE IF NOT EXISTS publishing_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  registration_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  from_status text NOT NULL DEFAULT '',
+  to_status text NOT NULL,
+  actor text NOT NULL DEFAULT '',
+  note text NOT NULL DEFAULT '',
+  reference text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS publishing_events_reg_idx
+  ON publishing_events (registration_id, created_at);
