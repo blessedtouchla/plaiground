@@ -166,6 +166,23 @@
 .arc-words-head button{width:auto;flex:0 0 auto;min-width:0}
 
 /* Song Lab (/song-helper): wide page, bigger type, sticker buttons. Scoped so slang stays put. */
+body.song-lab .arc-index{
+  width:calc(100% - 28px);
+  max-width:1440px;
+  margin:20px auto 0;
+}
+body.song-lab .arc-index h1{
+  margin:0 0 6px;
+  font-size:clamp(1.45rem, 2.6vw, 2rem);
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+body.song-lab .arc-index p{
+  margin:0;
+  max-width:44rem;
+  color:rgba(255,255,255,.84);
+}
+body.song-lab .arc-index a{color:#F5C542}
 body.song-lab{
   font-size:19px;
   line-height:1.45;
@@ -415,6 +432,7 @@ body.song-lab .arc-tiny{
 }
 @media (min-width:720px){
   body.song-lab{font-size:20px}
+  body.song-lab .arc-index{width:calc(100% - 56px)}
   body.song-lab .arc-wrap{width:calc(100% - 56px);padding:28px 0 96px}
   body.song-lab .arc-tiles{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
   body.song-lab .arc-main > .v3-go,
@@ -424,6 +442,7 @@ body.song-lab .arc-tiny{
   body.song-lab .arc-actions .v3-mini{width:auto;min-height:48px}
 }
 @media (min-width:980px){
+  body.song-lab .arc-index{width:calc(100% - 64px)}
   body.song-lab .arc-wrap{width:calc(100% - 64px)}
   body.song-lab .arc-home{
     grid-template-columns:repeat(3,minmax(0,1fr));

@@ -75,7 +75,7 @@
     var home = el('div', 'arc-home');
     var hero = el('div', 'arc-hero');
     hero.appendChild(el('p', 'arc-kicker', 'Start here'));
-    hero.appendChild(el('h1', 'arc-marquee', 'Song Lab'));
+    hero.appendChild(el('p', 'arc-marquee', 'Song Lab'));
     hero.appendChild(el('p', 'arc-lede', 'Pick one door. You can tune the sound after.'));
     home.appendChild(hero);
     var grid = el('div', 'arc-cards');
@@ -1219,7 +1219,7 @@
     var top = el('div', 'v3-top');
     var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     var meta = el('div', 'arc-top-meta');
-    meta.appendChild(el('span', 'v3-credits', 'FREE TO PLAI'));
+    meta.appendChild(el('span', 'v3-credits', 'Join free. Get starter credits to try every tool.'));
     meta.appendChild(el('span', 'v3-points', String(S.points)));
     meta.appendChild(talkToggle());
     top.appendChild(meta);
