@@ -459,6 +459,8 @@ CREATE TABLE IF NOT EXISTS publishing_registrations (
   agreement_id uuid,
   external_reference text NOT NULL DEFAULT '',
   evidence text NOT NULL DEFAULT '',
+  match_receipt text NOT NULL DEFAULT '',
+  payment_receipt text NOT NULL DEFAULT '',
   mandate_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -470,6 +472,8 @@ CREATE TABLE IF NOT EXISTS publishing_registrations (
       'under_review',
       'submitted',
       'accepted',
+      'matched',
+      'paid',
       'rejected'
     )
   )

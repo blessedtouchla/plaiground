@@ -208,9 +208,10 @@ function run() {
   assert.strictEqual(filedView.title, 'mexeu');
   assert.strictEqual(filedView.artist, 'mexeu mexeu');
   assert.strictEqual(filedView.filed, '25 Aug 2026');
-  assert.strictEqual(filedView.status, 'Needs agreement');
+  assert.strictEqual(filedView.status, 'Draft');
   assert.strictEqual(filedView.paid, '$0.00 · included');
-  assert.strictEqual(filedView.headline, 'mexeu is held: Needs agreement.');
+  assert.strictEqual(filedView.headline, 'mexeu is a draft.');
+  assert.ok(/Nothing has been sent/i.test(filedView.lead));
   assert.strictEqual(filedView.songHref, 'song.html?id=' + mexeuId);
   assert.ok(!/Neon Sermon/.test(filedView.headline));
 
@@ -234,7 +235,7 @@ function run() {
   });
   assert.strictEqual(dummyView.title, '');
   assert.ok(!/Neon Sermon/.test(dummyView.headline));
-  assert.strictEqual(dummyView.headline, 'This request is held: Needs agreement.');
+  assert.strictEqual(dummyView.headline, 'This work is a draft.');
 
   const confirmNodes = {
     '[data-confirm-headline]': textNode('Neon Sermon is filed for publishing.'),
@@ -260,9 +261,9 @@ function run() {
     },
   });
   assert.ok(painted);
-  assert.strictEqual(confirmNodes['[data-confirm-headline]'].textContent, 'mexeu is held: Needs agreement.');
+  assert.strictEqual(confirmNodes['[data-confirm-headline]'].textContent, 'mexeu is a draft.');
   assert.strictEqual(confirmNodes['[data-confirm-artist]'].textContent, 'mexeu mexeu');
-  assert.strictEqual(confirmNodes['[data-confirm-status]'].textContent, 'Needs agreement');
+  assert.strictEqual(confirmNodes['[data-confirm-status]'].textContent, 'Draft');
   assert.strictEqual(confirmNodes['[data-confirm-filed]'].textContent, '25 Aug 2026');
   assert.strictEqual(confirmNodes['[data-confirm-paid]'].textContent, '$0.00 · included');
   assert.strictEqual(confirmNodes['[data-confirm-song]'].href, 'song.html?id=' + mexeuId);
@@ -296,7 +297,12 @@ function run() {
   assert.strictEqual(saved.title, 'Night Drive');
   assert.ok(saved.title !== 'Neon Sermon');
   assert.strictEqual(saved.filed, '2026-08-25');
-  assert.strictEqual(saved.status, 'Needs agreement');
+  assert.strictEqual(saved.status, 'Draft');
+  assert.strictEqual(publishing.displayStatus('Pending at BMI', { status: 'Pending at BMI' }), 'Draft');
+  assert.strictEqual(publishing.displayStatus('Registered with BMI', { status: 'Registered with BMI' }), 'Draft');
+  assert.strictEqual(publishing.displayStatus('Matched at The MLC'), 'Draft');
+  assert.strictEqual(publishing.displayStatus('submitted', { external_reference: 'PRO-REF-100' }), 'Submitted');
+  assert.strictEqual(publishing.displayStatus('Submitted', { status: 'Submitted' }), 'Draft');
   assert.strictEqual(saved.paid, '$0.00 · included');
 
   function intakeDoc(album) {

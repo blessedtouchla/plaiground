@@ -1707,6 +1707,18 @@ function rightsBag(row) {
   return {};
 }
 
+function selectedWouldReplace(scope, body, row) {
+  const selected = {
+    name: String((body && (body.primary_artist || body.artist_name || body.artist || body.name)) || '').trim(),
+    id: String((body && (body.artist_id || body.artistId)) || '').trim(),
+  };
+  const provider = {
+    name: artistNameOf(row),
+    id: artistIdOfRelease(row),
+  };
+  return artistCheck.submitReplacesArtist(rosterOf(scope && scope.row), selected, provider);
+}
+
 function artistNameOf(row) {
   if (!row || typeof row !== 'object') return '';
   if (typeof row.artist === 'string') return row.artist.trim();
@@ -2066,7 +2078,12 @@ async function createRelease(req, res) {
   ) {
     const leftoverId = existingIds[0];
     const loaded = await fetchReleaseRow(leftoverId);
-    if (loaded.result && loaded.result.ok && releaseBelongsToCreateBody(loaded.row, body)) {
+    if (
+      loaded.result && loaded.result.ok
+      && releaseBelongsToCreateBody(loaded.row, body)
+      && !artistConflictsCollision(loaded.row, body, artistId)
+      && !selectedWouldReplace(scope, Object.assign({}, body, { artist_id: artistId }), loaded.row)
+    ) {
       await finishContinuedRelease(leftoverId);
       return;
     }
@@ -2389,6 +2406,16 @@ async function createTrack(req, res) {
   const trackArtistName = primaryArtistName(scope, body);
   if (!trackArtistName) {
     sendJson(res, 400, { error: PICK_ARTIST_COPY, code: 'ARTIST_REQUIRED' });
+    return;
+  }
+  if (artistCheck.submitReplacesArtist(rosterOf(scope.row), {
+    name: trackArtistName,
+    id: String((body && (body.artist_id || body.artistId)) || '').trim(),
+  }, { name: '', id: '' })) {
+    sendJson(res, 409, {
+      error: 'This release is saved under a different artist than the one you selected. Choose that artist again and submit so a new release is created.',
+      code: 'ARTIST_MISMATCH',
+    });
     return;
   }
   const trackArtistFields = trackArtistName ? { primary_artist: trackArtistName, artist_name: trackArtistName } : {};
@@ -3727,16 +3754,7 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   const row = loaded.row || {};
-  const selectedArtist = {
-    name: String((body && (body.artist || body.artist_name || body.primary_artist || body.name)) || '').trim(),
-    id: String((body && (body.artist_id || body.artistId)) || '').trim(),
-  };
-  const providerArt = row && row.artist;
-  const providerArtist = {
-    name: String((providerArt && typeof providerArt === 'object' ? providerArt.name : providerArt) || (row && (row.artist_name || row.primary_artist)) || '').trim(),
-    id: String((row && (row.artist_id || row.artist_uuid)) || (providerArt && typeof providerArt === 'object' && (providerArt.uuid || providerArt.id)) || '').trim(),
-  };
-  if (artistCheck.identityConflicts(selectedArtist, providerArtist)) {
+  if (selectedWouldReplace(scope, body, row)) {
     sendJson(res, 409, {
       error: 'This release is saved under a different artist than the one you selected. Choose that artist again and submit so a new release is created.',
       code: 'ARTIST_MISMATCH',

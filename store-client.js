@@ -4149,12 +4149,7 @@
     };
     if (existingId) trackBody.track_id = existingId;
     if (!trackBody.instrumental && draft.language) trackBody.language = draft.language;
-    var chosenArtist = String(draft.name || '').trim();
-    if (chosenArtist) {
-      trackBody.primary_artist = chosenArtist;
-      trackBody.artist_name = chosenArtist;
-    }
-    if (draft.plaiground_artist_id) trackBody.plaiground_artist_id = String(draft.plaiground_artist_id);
+    Object.assign(trackBody, selectedArtistSubmitFields(draft));
     if (draft.made_how) trackBody.made_how = draft.made_how;
     if (draft.human_contribution) trackBody.human_contribution = draft.human_contribution;
     if (draft.ai_service) trackBody.ai_service = draft.ai_service;
@@ -5060,6 +5055,10 @@
       }
       if (known[0]) {
         return fetchReleaseTracks(known[0]).then(function (loaded) {
+          var payload = loaded.data || (loaded.result && loaded.result.data);
+          if (livingReleaseArtistConflicts(draft, payload)) {
+            return { failed: true, result: result, draft: draft };
+          }
           var found = (loaded.ok && loaded.tracks && loaded.tracks.length) ? loaded.tracks : [];
           var adoptedKnown = adoptLivingRelease(draft, { id: known[0], tracks: found });
           return {

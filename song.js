@@ -1031,7 +1031,10 @@
     setText('[data-song-rejection-reason]', !needsFix ? '' : (alertText || rejection || 'The store sent this release back. Fix the details and resubmit.'));
     setText('[data-song-qc-reason]', !qcRejected ? '' : (alertText || rejection || 'QC rejected this leftover.'));
 
-    var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
+    var artistCheck = global.PlaigroundArtistCheck;
+    var artist = artistCheck && typeof artistCheck.releaseDisplayName === 'function'
+      ? artistCheck.releaseDisplayName(release, draft, me && me.profile && me.profile.artists)
+      : String((release && release.artist) || (draft && draft.name) || '').trim();
     var meta = [artist, typeLabel(release.type), yearOf(release.release_date), release.genre].filter(Boolean);
     setText('[data-song-meta]', meta.join(' · '));
     var cover = '';
@@ -3020,7 +3023,10 @@
     var draft = opts.draft || lastEdit.draft || {};
     var me = opts.me || lastEdit.me;
     var analytics = opts.analytics || lastEdit.analytics || {};
-    var artist = String(release.artist || draft.name || (me && me.artist) || '').trim();
+    var artistCheck = global.PlaigroundArtistCheck;
+    var artist = artistCheck && typeof artistCheck.releaseDisplayName === 'function'
+      ? artistCheck.releaseDisplayName(release, draft, me && me.profile && me.profile.artists)
+      : String((release && release.artist) || (draft && draft.name) || '').trim();
     var step = statusStep(release, draft);
     var stats = releaseStats(release, draft, analytics);
     var rows = ((analytics.dsps) || []).map(function (row) {

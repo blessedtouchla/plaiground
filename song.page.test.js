@@ -2891,7 +2891,8 @@ function run() {
     assert.ok(page.api.downloadReleaseStatement(), 'release statement downloads at $0');
     const releasePdf = page.api.releaseStatementPdf();
     assert.ok(releasePdf.indexOf('%PDF') === 0);
-    assert.ok(releasePdf.indexOf('Fuvtu') !== -1);
+    assert.ok(releasePdf.indexOf('Title:') !== -1);
+    assert.ok(!/Artist: Fuvtu/.test(releasePdf), 'a release with no artist is not labeled with the account name');
     assert.ok(releasePdf.indexOf('PLAIGROUND QC') !== -1);
     assert.ok(releasePdf.indexOf('$0.00') !== -1);
     assert.ok(releasePdf.indexOf('Streams') !== -1);

@@ -69,6 +69,13 @@ function runModel() {
   assert.strictEqual(linked.profile.releases[0].artist, 'Vicki G');
   const again = persona.linkReleases(linked.profile);
   assert.strictEqual(again.changed, false);
+  const mixed = persona.linkReleases({
+    artists: [{ id: 'local-inter', name: 'The Iintercepterzz', tonegrid_artist_id: '22222222-2222-4222-8222-222222222222' }],
+    releases: [{ id: 'rel-herman', title: 'Nasty', plaiground_artist_id: 'local-herman', artist: '' }],
+  }, '22222222-2222-4222-8222-222222222222');
+  assert.strictEqual(mixed.profile.releases[0].artist, '');
+  assert.strictEqual(mixed.profile.releases[0].plaiground_artist_id, 'local-herman');
+  assert.ok(!mixed.profile.releases[0].tonegrid_artist_id);
 
   const stored = profile.normalizeArtist({
     name: 'Vicki G',

@@ -159,16 +159,16 @@
   }
 
   var SUBMIT_KEY = 'plaiground.publishing.submit';
-  var DEFAULT_STATUS = 'Needs agreement';
+  var DEFAULT_STATUS = 'Draft';
   var DEFAULT_PAID = '$0.00 · included';
-  var STATUS_LABEL = {
-    request_received: 'Request received',
-    needs_information: 'Needs information',
-    needs_agreement: 'Needs agreement',
-    under_review: 'Under review',
-    submitted: 'Submitted',
-    accepted: 'Accepted',
-    rejected: 'Rejected',
+  var PUBLIC_LABELS = ['Draft', 'Not covered', 'Submitted', 'Registered', 'Matched', 'Paid'];
+  var PUBLIC_EXPLAIN = {
+    Draft: 'Saved with PLAIGROUND. Nothing has been sent to a society, The MLC, SoundExchange, or YouTube.',
+    'Not covered': 'PLAIGROUND is not filing this work. No society, MLC, SoundExchange, or YouTube status is on file.',
+    Submitted: 'A receipt is on file that this work was sent. That is not acceptance, a match, or a payment.',
+    Registered: 'A receipt is on file that a registry accepted this work. The receipt is the only proof.',
+    Matched: 'A receipt is on file that a recording was matched to this work. The receipt is the only proof.',
+    Paid: 'A receipt is on file that money was paid for this work. The receipt is the only proof.',
   };
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -277,35 +277,61 @@
     return null;
   }
 
-  function displayStatus(value) {
-    var raw = trim(value);
-    if (!raw || /pending at bmi|sent to bmi/i.test(raw)) return DEFAULT_STATUS;
-    if (STATUS_LABEL[raw]) return STATUS_LABEL[raw];
-    return raw;
+  function receiptOn(row) {
+    return trim(row && (row.receipt || row.external_reference || row.evidence || row.match_receipt || row.payment_receipt));
   }
 
-  function headlineFor(title, status) {
-    var label = displayStatus(status);
-    if (label === 'Submitted' || label === 'Accepted') {
-      return title ? (title + ' is filed for publishing.') : 'This work is filed for publishing.';
+  function displayStatus(value, row) {
+    var raw = trim(value);
+    if (PUBLIC_LABELS.indexOf(raw) !== -1) {
+      if ((raw === 'Submitted' || raw === 'Registered' || raw === 'Matched' || raw === 'Paid') && row && !receiptOn(row) && !row.status_label) {
+        return DEFAULT_STATUS;
+      }
+      return raw;
     }
-    if (label === 'Rejected') {
-      return title ? (title + ' was not registered.') : 'This request was not registered.';
-    }
-    return title ? (title + ' is held: ' + label + '.') : ('This request is held: ' + label + '.');
+    var key = raw.toLowerCase().replace(/[\s-]+/g, '_');
+    if (key === 'needs_agreement' || key === 'rejected' || key === 'not_covered') return 'Not covered';
+    if (key === 'needs_information' || key === 'under_review' || key === 'request_received' || key === 'draft') return 'Draft';
+    var receipt = receiptOn(row);
+    if (!receipt) return DEFAULT_STATUS;
+    if (key === 'submitted') return 'Submitted';
+    if (key === 'accepted' || key === 'registered') return 'Registered';
+    if (key === 'matched') return 'Matched';
+    if (key === 'paid') return 'Paid';
+    return DEFAULT_STATUS;
+  }
+
+  function explainStatus(label) {
+    return PUBLIC_EXPLAIN[label] || PUBLIC_EXPLAIN.Draft;
+  }
+
+  function headlineFor(title, status, row) {
+    var label = displayStatus(status, row);
+    var name = title || 'This work';
+    if (label === 'Not covered') return name + ' is not covered.';
+    if (label === 'Submitted') return name + ' is submitted.';
+    if (label === 'Registered') return name + ' is registered.';
+    if (label === 'Matched') return name + ' is matched.';
+    if (label === 'Paid') return name + ' is paid.';
+    return name + ' is a draft.';
   }
 
   function snapshotRow(work, now) {
     var title = trim(work && work.title);
     if (isDummyTitle(title)) title = '';
-    return {
+    var snap = {
       id: trim(work && work.id),
       title: title,
       artist: trim(work && work.artist),
       filed: filedIso(work && work.filed) || filedIso(now) || filedIso(new Date()),
-      status: displayStatus(work && work.status),
+      status: displayStatus(work && work.status, work),
       paid: trim(work && work.paid) || DEFAULT_PAID,
     };
+    ['external_reference', 'evidence', 'match_receipt', 'payment_receipt'].forEach(function (key) {
+      var value = trim(work && work[key]);
+      if (value) snap[key] = value;
+    });
+    return snap;
   }
 
   function confirmView(opts) {
@@ -315,15 +341,16 @@
       var regTitle = trim(reg.work_title || reg.title);
       if (isDummyTitle(regTitle)) regTitle = '';
       var regStatus = reg.status_label || reg.status;
+      var shownReg = displayStatus(regStatus, reg);
       return {
         id: trim(reg.release_id || reg.id),
         title: regTitle,
         artist: trim(reg.performing_artist || reg.artist),
         filed: formatFiledDisplay(reg.created_at || reg.filed) || formatFiledDisplay(opts.now) || '',
-        status: displayStatus(regStatus),
+        status: shownReg,
         paid: DEFAULT_PAID,
-        lead: trim(reg.status_detail || reg.lead),
-        headline: headlineFor(regTitle, regStatus),
+        lead: trim(reg.status_detail || reg.lead) || explainStatus(shownReg),
+        headline: headlineFor(regTitle, regStatus, reg),
         songHref: trim(reg.release_id)
           ? ('song.html?id=' + encodeURIComponent(trim(reg.release_id)))
           : 'publishing-register.html',
@@ -352,15 +379,18 @@
     }
     if (isDummyTitle(title)) title = '';
     var filedRaw = (snapMatchesQuery && snap.filed) || opts.filed || '';
+    var snapRow = snapMatchesQuery ? snap : null;
+    var snapStatus = (snapMatchesQuery && snap.status) || opts.status || '';
+    var shownSnap = displayStatus(snapStatus, snapRow);
     return {
       id: wantId || (row && row.id) || (snapMatchesQuery ? trim(snap.id) : ''),
       title: title,
       artist: artist,
       filed: formatFiledDisplay(filedRaw) || formatFiledDisplay(opts.now) || '',
-      status: displayStatus((snapMatchesQuery && snap.status) || opts.status || ''),
+      status: shownSnap,
       paid: (snapMatchesQuery && trim(snap.paid)) || DEFAULT_PAID,
-      lead: trim(opts.lead || (snapMatchesQuery && snap.lead) || ''),
-      headline: headlineFor(title, (snapMatchesQuery && snap.status) || opts.status || ''),
+      lead: explainStatus(shownSnap),
+      headline: headlineFor(title, snapStatus, snapRow),
       songHref: (wantId || (row && row.id))
         ? ('song.html?id=' + encodeURIComponent(wantId || row.id))
         : 'song.html',
@@ -545,7 +575,7 @@
     list.forEach(function (row) {
       var p = doc.createElement('p');
       var title = trim(row.album_title) ? (row.album_title + ' / ' + row.work_title) : row.work_title;
-      p.textContent = title + ' · ' + displayStatus(row.status_label || row.status);
+      p.textContent = title + ' · ' + displayStatus(row.status_label || row.status, row);
       host.appendChild(p);
     });
   }
@@ -743,6 +773,10 @@
             artist: first.performing_artist,
             filed: first.created_at,
             status: first.status_label || first.status,
+            external_reference: first.external_reference,
+            evidence: first.evidence,
+            match_receipt: first.match_receipt,
+            payment_receipt: first.payment_receipt,
           }, opts.now);
           snap.lead = first.status_detail || '';
           writeSubmit(opts, snap);
