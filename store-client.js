@@ -1447,6 +1447,7 @@
   }
 
   var sessionReleaseId = '';
+  var sessionReleaseArtistName = '';
   var sessionReleaseChecked = '';
   var sessionReleaseVerified = '';
   var sessionReleaseAlive = '';
@@ -1926,13 +1927,25 @@
   }
 
   function livingReleaseArtistConflicts(draft, data) {
-    var wantId = String((draft && draft.artist_id) || '').trim();
-    var gotId = releaseArtistIdOf(data);
-    if (wantId && gotId && !sameUuid(wantId, gotId)) return true;
-    var wantName = String((draft && draft.name) || '').trim();
-    var gotName = releaseArtistNameOf(data);
-    if (wantName && gotName && !sameSongText(wantName, gotName)) return true;
+    var selected = {
+      name: String((draft && draft.name) || '').trim(),
+      id: String((draft && draft.artist_id) || '').trim(),
+    };
+    var provider = {
+      name: releaseArtistNameOf(data),
+      id: releaseArtistIdOf(data),
+    };
+    var api = artistCheckApi();
+    if (api && typeof api.identityConflicts === 'function') return api.identityConflicts(selected, provider);
+    if (selected.id && provider.id && isUuidValue(selected.id) && isUuidValue(provider.id) && !sameUuid(selected.id, provider.id)) return true;
+    if (selected.name && provider.name && !sameSongText(selected.name, provider.name)) return true;
     return false;
+  }
+
+  function sessionArtistStillMatches(draft) {
+    var name = String((draft && draft.name) || '').trim();
+    if (!sessionReleaseArtistName || !name) return true;
+    return sameSongText(sessionReleaseArtistName, name);
   }
 
   function catalogReleaseIds() {
@@ -2018,6 +2031,7 @@
         if (!want || !title || !sameSongText(title, want)) return next();
         if (isProtectedCatalogRelease(id, title)) return next();
         if (!isAdoptableStoreStatus(releaseStatusOf(data))) return next();
+        if (livingReleaseArtistConflicts(current, data)) return next();
         return {
           id: id,
           tracks: loaded.tracks || [],
@@ -2083,6 +2097,7 @@
     var next = String(id || '').trim();
     if (!next) return;
     var same = sameUuid(sessionReleaseId, next) || sameUuid(sessionReleaseChecked, next);
+    if (!same) sessionReleaseArtistName = String((readDraft().name) || '').trim();
     sessionReleaseId = next;
     sessionReleaseChecked = next;
     if (verified) {
@@ -2487,6 +2502,7 @@
     var current = draft || readDraft();
     if (!String(current.release_id || '').trim()) return current;
     sessionReleaseId = '';
+    sessionReleaseArtistName = '';
     sessionReleaseChecked = '';
     sessionReleaseVerified = '';
     sessionReleaseAlive = '';
@@ -2897,7 +2913,7 @@
     }
     var reuseSession = !(opts && opts.mintMissing)
       || (id && sessionReleaseAlive && sameUuid(id, sessionReleaseAlive));
-    if (reuseSession && id && sessionReleaseVerified && sameUuid(id, sessionReleaseVerified)) {
+    if (reuseSession && sessionArtistStillMatches(current) && id && sessionReleaseVerified && sameUuid(id, sessionReleaseVerified)) {
       return Promise.resolve({
         ok: true,
         draft: current,
@@ -2907,7 +2923,7 @@
         tracksListed: sessionReleaseTracksListed,
       });
     }
-    if (reuseSession && id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
+    if (reuseSession && sessionArtistStillMatches(current) && id && sessionReleaseId && sameUuid(id, sessionReleaseId)) {
       return Promise.resolve({
         ok: true,
         draft: current,
@@ -2917,7 +2933,7 @@
         tracksListed: sessionReleaseTracksListed,
       });
     }
-    if (reuseSession && id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
+    if (reuseSession && sessionArtistStillMatches(current) && id && sessionReleaseChecked && sameUuid(id, sessionReleaseChecked)) {
       return Promise.resolve({
         ok: true,
         draft: current,
@@ -2931,6 +2947,16 @@
     }
     return fetchReleaseTracks(id).then(function (loaded) {
       if (loaded.ok) {
+        var payload = loaded.data || (loaded.result && loaded.result.data);
+        if (livingReleaseArtistConflicts(current, payload)) {
+          detachForeignRelease(current);
+          var cleared = writeDraft({
+            release_id: '',
+            track_id: '',
+            replaced_release_id: id,
+          });
+          return createFreshRelease(cleared);
+        }
         var listed = Boolean(
           loaded.result
           && loaded.result.data
@@ -3453,6 +3479,7 @@
       title: draft.title || '',
       songTitle: draft.title || draft.songTitle || '',
     };
+    Object.assign(submitBody, selectedArtistSubmitFields(draft));
     if (Array.isArray(draft.dsps) && draft.dsps.length) {
       submitBody.dsps = typeof PlaigroundStorePick !== 'undefined' && PlaigroundStorePick.selectableSlugs
         ? PlaigroundStorePick.selectableSlugs(draft.dsps)
@@ -3513,6 +3540,7 @@
       if (nextFeature.featured_list) submitBody.featured_list = nextFeature.featured_list;
       if (nextFeature.featured_artists) submitBody.featured_artists = nextFeature.featured_artists;
       if (nextFeature.featured_tracks) submitBody.featured_tracks = nextFeature.featured_tracks;
+      Object.assign(submitBody, selectedArtistSubmitFields(next));
       if (next.credits && typeof next.credits === 'object') submitBody.credits = next.credits;
       if (Array.isArray(next.contributors) && next.contributors.length) submitBody.contributors = next.contributors;
       return postSubmitRelease(next, submitBody, date, documentId, solo).then(function (sent) {
@@ -5233,6 +5261,21 @@
 
   // A store artist id is only reused when it belongs to the artist name on this draft.
   // Never carry an id over from an old draft or the account default.
+  function selectedArtistSubmitFields(draft) {
+    var out = {};
+    var name = String((draft && (draft.name || draft.artist)) || '').trim();
+    if (name) {
+      out.artist = name;
+      out.artist_name = name;
+      out.primary_artist = name;
+    }
+    var profileId = String((draft && draft.plaiground_artist_id) || '').trim();
+    if (profileId) out.plaiground_artist_id = profileId;
+    var storeId = String((draft && draft.artist_id) || '').trim();
+    if (isUuidValue(storeId) && storeIdBoundToDraftName(storeId, draft)) out.artist_id = storeId;
+    return out;
+  }
+
   function storeIdBoundToDraftName(storeId, draft) {
     var api = artistCheckApi();
     var current = draft || {};
@@ -5609,6 +5652,13 @@
     };
   }
 
+  function boundCatalogArtistId(draft, catalogId) {
+    if (!isUuidValue(catalogId)) return '';
+    if (!String((draft && draft.name) || '').trim()) return '';
+    if (!storeIdBoundToDraftName(catalogId, draft)) return '';
+    return catalogId;
+  }
+
   function mergeCatalogIds(draft, me) {
     var catalog = catalogFromAccount(me);
     var artistId = isUuidValue(draft.artist_id) ? draft.artist_id : '';
@@ -5617,23 +5667,24 @@
     var patch = {};
     var onlyRelease = catalog.release_ids.length === 1 ? catalog.release_ids[0] : '';
     var onlyTrack = catalog.track_ids.length === 1 ? catalog.track_ids[0] : '';
+    var accountArtistId = boundCatalogArtistId(draft, catalog.artist_id);
     if (String(draft.type || '') === 'album') {
-      if (!artistId && catalog.artist_id) return writeDraft({ artist_id: catalog.artist_id });
+      if (!artistId && accountArtistId) return writeDraft({ artist_id: accountArtistId });
       return draft;
     }
     var titled = Boolean(String(draft.title || '').trim());
     if (releaseId) {
-      if (!artistId && catalog.artist_id) patch.artist_id = catalog.artist_id;
+      if (!artistId && accountArtistId) patch.artist_id = accountArtistId;
       if (!trackId && onlyTrack) patch.track_id = onlyTrack;
       return Object.keys(patch).length ? writeDraft(patch) : draft;
     }
-    if (artistId && onlyRelease && !titled && (!catalog.artist_id || sameUuid(artistId, catalog.artist_id))) {
+    if (artistId && onlyRelease && !titled && (!accountArtistId || sameUuid(artistId, accountArtistId))) {
       patch.release_id = onlyRelease;
       if (!trackId && onlyTrack) patch.track_id = onlyTrack;
       return writeDraft(patch);
     }
-    if (!artistId && !releaseId && (catalog.artist_id || onlyRelease)) {
-      if (catalog.artist_id) patch.artist_id = catalog.artist_id;
+    if (!artistId && !releaseId && (accountArtistId || onlyRelease)) {
+      if (accountArtistId) patch.artist_id = accountArtistId;
       if (onlyRelease && !titled) patch.release_id = onlyRelease;
       if (onlyTrack && !titled) patch.track_id = onlyTrack;
       return Object.keys(patch).length ? writeDraft(patch) : draft;
@@ -7589,15 +7640,18 @@
     var conflict = storeId && api && typeof api.storeIdNameConflict === 'function'
       ? api.storeIdNameConflict(rosterFromMe(), storeId, name)
       : '';
+    var bound = !storeId || storeIdBoundToDraftName(storeId, current);
+    var unbound = Boolean(storeId && name && !bound && !conflict);
     if (storeEl) {
-      storeEl.textContent = conflict
-        ? 'Store artist: ' + conflict
-        : (storeId ? 'Store artist: ' + name : 'Store artist: new artist "' + name + '" will be created');
+      if (conflict) storeEl.textContent = 'Store artist: ' + conflict;
+      else if (unbound) storeEl.textContent = 'Store artist is not ' + name + '.';
+      else if (storeId) storeEl.textContent = 'Store artist: ' + name;
+      else storeEl.textContent = name ? 'Store artist: new artist "' + name + '" will be created' : '';
       if (!name) storeEl.textContent = 'Choose or type an artist before you submit.';
     }
     if (warnEl) {
-      warnEl.hidden = !(conflict || !name);
-      warnEl.textContent = conflict
+      warnEl.hidden = !(conflict || unbound || !name);
+      warnEl.textContent = conflict || unbound
         ? 'This does not match. Tap Change and pick the artist again.'
         : (!name ? 'No artist chosen.' : '');
     }
