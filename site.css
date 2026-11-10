@@ -6040,6 +6040,16 @@ body.review-page main.page {
   font-size: 13px;
   line-height: 1.4;
   margin: 0;
+  overflow-wrap: anywhere;
+}
+.review-page .review-fact {
+  margin: 8px 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.review-page .review-fact small {
+  color: var(--muted);
+  font-size: 12px;
 }
 .review-page .review-schedule {
   margin: 0 0 32px;

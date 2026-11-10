@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research – PLAIGROUND</title>
+  <meta name="description" content="Free research portal for artist identity, open credits, and registry lookup links. Wikidata CC0 results, with MusicBrainz and registry sites opened by you. Not a clearance opinion." />
+  <link rel="canonical" href="https://www.wannaplai.com/research" />
+  <meta property="og:title" content="Research – PLAIGROUND" />
+  <meta property="og:description" content="Look up an artist or code from free sources, then open the registries yourself. No royalty estimates." />
+  <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css?v=20260917pl2" />
+  <link rel="stylesheet" href="research.css?v=20261109r2" />
+  <link rel="stylesheet" href="plai-bubble.css" />
+</head>
+<body class="app">
+  <aside class="side">
+    <nav class="side-nav">
+      <a href="/destination">Roadmap</a>
+      <p class="side-label">Create</p>
+      <a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release</a>
+      <p class="side-price">Release Plan $2.49/mo</p>
+      <a href="releases.html">Releases</a>
+      <a href="artists.html">Artist Profiles</a>
+      <a href="splits.html">Split sheets</a>
+      <p class="side-label">Act</p>
+      <a href="ar.html">A&amp;R</a>
+      <a href="epk.html">EPK</a>
+      <a class="on" href="/research">Research</a>
+      <a href="profile.html">Persona</a>
+      <p class="side-label">Money</p>
+      <a href="boosts.html">Boosts</a>
+      <a href="publishing-register.html" data-publishing-register>Publishing</a>
+      <a href="earnings.html">Earnings</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="payouts.html">Payouts</a>
+      <p class="side-label">Plai</p>
+      <button type="button" class="side-plai" data-plai-talk aria-label="Talk to Plai, pronounced PLAY">Talk to Plai</button>
+      <button type="button" class="side-plai" data-plai-text aria-label="Text to Plai, text only, microphone stays off">Text to Plai</button>
+      <p class="side-label">Account</p>
+      <a href="settings.html">Settings</a>
+      <a href="how.html">How it works</a>
+      <a href="faq.html">FAQ</a>
+      <a class="side-problem" href="problem.html" data-have-problem>Have a problem?</a>
+      <a class="nav-siqa" href="/charts" style="color:#F3CB47">SIQA Charts</a>
+    </nav>
+    <div class="pro-card">
+      <h4 data-account-plan-title>Free account</h4>
+      <p>Research lookups are free. Nothing on this page is a paid add-on.</p>
+    </div>
+  </aside>
+  <div class="app-main">
+    <div class="topbar">
+      <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
+      <a class="who" href="settings.html"><span class="avatar" data-account-avatar>PG</span> <span data-account-who>Hi there</span></a>
+    </div>
+    <div class="page">
+      <div class="page-head research-portal">
+        <p class="kicker">Free sources</p>
+        <h1>Research portal</h1>
+        <p class="research-lead">Five areas for an artist or a song: presence, credits, analytics, opportunities, and payments. The EPK stays the curated public page. This portal does not certify ownership, clearance, or earnings.</p>
+      </div>
+      <div class="research-portal">
+        <form class="panel" data-research-form>
+          <div class="field">
+            <label for="research-q">Artist, work, or code</label>
+            <input id="research-q" name="q" data-research-q autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Name, MusicBrainz artist ID, store artist link, ISRC, or ISWC" />
+          </div>
+          <p class="research-note">A name is only a starting point. Confirm the Wikidata item, or start from a MusicBrainz ID, a store artist link, an ISRC, or an ISWC. One match is still a candidate until you confirm it.</p>
+          <div class="research-actions">
+            <button class="btn btn-purple btn-sm" type="submit">Look up</button>
+          </div>
+          <p class="research-status" data-research-status role="status" aria-live="polite"></p>
+          <p data-research-type></p>
+        </form>
+
+        <div class="research-tabs" role="tablist" aria-label="Research areas">
+          <button type="button" role="tab" id="tab-presence" aria-controls="panel-presence" aria-selected="true" tabindex="0" data-tab="presence">Artist presence</button>
+          <button type="button" role="tab" id="tab-credits" aria-controls="panel-credits" aria-selected="false" tabindex="-1" data-tab="credits">Song and credits</button>
+          <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false" tabindex="-1" data-tab="analytics">Analytics</button>
+          <button type="button" role="tab" id="tab-opportunities" aria-controls="panel-opportunities" aria-selected="false" tabindex="-1" data-tab="opportunities">Opportunities</button>
+          <button type="button" role="tab" id="tab-payments" aria-controls="panel-payments" aria-selected="false" tabindex="-1" data-tab="payments">Payments and royalties</button>
+        </div>
+
+        <section class="panel" id="panel-presence" role="tabpanel" aria-labelledby="tab-presence" data-panel="presence">
+          <h2>Artist presence</h2>
+          <p>Live results are public Wikidata data (CC0), checked at the time on each field. A MusicBrainz ID or a store artist link is only a seed for that Wikidata search. It is not a MusicBrainz web service result and not a store API result. Found so far means this query, not the whole internet.</p>
+          <div data-presence></div>
+          <h3>Open these yourself</h3>
+          <div data-research-links></div>
+        </section>
+
+        <section class="panel" id="panel-credits" role="tabpanel" aria-labelledby="tab-credits" data-panel="credits" hidden>
+          <h2>Song and credits</h2>
+          <p>Recordings (ISRC) and compositions (ISWC) stay separate. A public credit or a Wikidata identifier is not the chain of title. A registry miss is not the same as unregistered.</p>
+          <div data-credits></div>
+          <h3>Catalog progress</h3>
+          <p>Three separate counts, including songs released through other distributors. They are not added into one score. Wikidata identifiers stay off these counts. Self-report and pending are your notes on this browser, not a registry and not a clearance.</p>
+          <div class="research-meters" data-meters></div>
+          <p class="research-note" data-save-note>Sign in to keep this list on this browser for your account. It is not uploaded, and it is not visible to another account on this browser.</p>
+          <div class="research-catalog" data-catalog></div>
+          <form data-add-form>
+            <h3>Add a row you already know</h3>
+            <div class="field">
+              <label for="add-title">Title</label>
+              <input id="add-title" data-add-title maxlength="200" />
+            </div>
+            <div class="field">
+              <label for="add-kind">What this row counts</label>
+              <select id="add-kind" data-add-kind>
+                <option value="recording">Recording</option>
+                <option value="composition">Composition</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="add-role">Role</label>
+              <select id="add-role" data-add-role>
+                <option value="unknown">Unknown</option>
+                <option value="original">Original</option>
+                <option value="cover">Cover</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="add-isrc">ISRC, if you have one</label>
+              <input id="add-isrc" data-add-isrc autocapitalize="characters" />
+            </div>
+            <div class="field">
+              <label for="add-iswc">ISWC, if you have one</label>
+              <input id="add-iswc" data-add-iswc autocapitalize="characters" />
+            </div>
+            <button class="btn btn-ghost btn-sm" type="submit">Add to my list</button>
+          </form>
+          <form data-paste-form>
+            <div class="field">
+              <label for="add-paste">Paste titles only</label>
+              <textarea id="add-paste" data-add-paste rows="4" placeholder="Title | ISRC or ISWC | original or cover"></textarea>
+            </div>
+            <p class="research-note">One song a line. Do not paste royalty statements, bank details, or payment reports. A code you type is not treated as a registry match.</p>
+            <button class="btn btn-ghost btn-sm" type="submit">Import titles</button>
+          </form>
+        </section>
+
+        <section class="panel" id="panel-analytics" role="tabpanel" aria-labelledby="tab-analytics" data-panel="analytics" hidden>
+          <h2>Analytics</h2>
+          <p>Not available in this free portal. There is no Spotify analytics, no Chartmetric, and no Soundcharts. Standard Spotify access is not cleared for this use, and those audience tools are paid services we have not connected.</p>
+          <p>Your PLAIGROUND account analytics stay on the Analytics page. They are your account figures, not a public estimate and not a number this research page invents.</p>
+          <p><a class="btn btn-ghost btn-sm" href="analytics.html">Open account analytics</a></p>
+          <p class="research-note">AudD, ACRCloud, Muso, and Chartmetric are not connected. This page does not ask you to buy them.</p>
+        </section>
+
+        <section class="panel" id="panel-opportunities" role="tabpanel" aria-labelledby="tab-opportunities" data-panel="opportunities" hidden>
+          <h2>Opportunities</h2>
+          <p>Not built. There is no sync brief list, no festival list, and nothing is submitted for you. A later version would show eligibility, deadlines, and fees before anyone applied. This one does not.</p>
+        </section>
+
+        <section class="panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-panel="payments" hidden>
+          <h2>Payments and royalties</h2>
+          <p>This portal does not estimate royalties and does not take statement uploads. Exact money stays in the account that was paid: your distributor, society, or MLC statements, and the Earnings and Payouts pages for this PLAIGROUND account.</p>
+          <p>A public credit is not a payment. A missing registry row is not proof that money is owed or that a song is unregistered.</p>
+          <div class="research-actions">
+            <a class="btn btn-ghost btn-sm" href="earnings.html">Earnings</a>
+            <a class="btn btn-ghost btn-sm" href="payouts.html">Payouts</a>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>What is connected, and what is not</h2>
+          <ul>
+            <li>Working lookup: public Wikidata data (CC0) for the search you start. About one request a second and 30 searches in 10 minutes per address, remembered only in that server instance. A new instance does not share the count. Nothing is retried automatically.</li>
+            <li>Link only: MusicBrainz, ASCAP repertory, BMI repertoire, Songview, The MLC, US Copyright Office, USPTO, ISRC search. You read those sites. We do not copy them.</li>
+            <li>Not connected: MusicBrainz web service (their docs say commercial use of that hosted service needs their commercial plans), Apple catalog, Deezer catalog, SecondHandSongs, Spotify analytics, Suno, audio fingerprinting, SIQA registry, AudD, ACRCloud, Muso, Chartmetric, Soundcharts.</li>
+          </ul>
+          <p class="research-note">MusicBrainz core data is CC0, and supplementary data such as tags, ratings, and annotations is not requested. No MusicBrainz database dump is downloaded. SIQA, if it were connected later, would be an attestation or editorial record, not an audio detector. A missing SIQA row would mean unknown, not human and not AI.</p>
+          <p class="research-note">The EPK is separate. <a href="epk.html">Open the EPK</a> when you want a public presentation. Publishing registration is a different page and is not submitted from here.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script src="lib/research-portal.js?v=20261109r2"></script>
+  <script src="research.js?v=20261109r2"></script>
+  <script src="membership.js"></script>
+  <script src="account.js"></script>
+  <script src="site.js?v=20261109research"></script>
+  <script src="plai-bubble.js" defer></script>
+</body>
+</html>

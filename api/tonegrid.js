@@ -77,6 +77,7 @@ const writerIpi = require('../lib/writer-ipi');
 const aiDisclosure = require('../lib/ai-disclosure');
 const uploadRequired = require('../lib/upload-required');
 const storeCredits = require('../lib/store-credits');
+const featuredArtists = require('../lib/featured-artists');
 const storeAi = require('../lib/store-ai');
 const submitVerify = require('../lib/submit-verify');
 const audioConvert = require('../lib/audio-convert');
@@ -866,9 +867,8 @@ function primaryArtistName(scope, body) {
   if (found && found.name && !profileLib.isPlaceholderArtist(found.name)) return found.name;
   const named = String((body && body.name) || '').trim();
   if (named && !profileLib.isPlaceholderArtist(named)) return named.slice(0, 120);
-  const only = roster.artists && roster.artists.length === 1 ? roster.artists[0] : null;
-  if (only && only.name && !profileLib.isPlaceholderArtist(only.name)) return only.name;
-  // Never fall back to the account display name. It is not an artist.
+  // Never use the only roster artist or the account display name. A one-artist
+  // account was mailing that name for every release whose submit omitted the pick.
   return '';
 }
 
@@ -1290,6 +1290,46 @@ function bodyHasPerformerProducer(body) {
 
 function fieldsHavePerformerProducer(fields) {
   return bodyHasPerformerProducer(fields);
+}
+
+function releaseMetaCredits(credits, body) {
+  const extra = featuredArtists.storedFields(body || {});
+  const keep = {};
+  if (extra.featured) {
+    keep.featured = extra.featured;
+    keep.featured_list = extra.featured_list || [];
+  }
+  if (Array.isArray(extra.featured_artists) && extra.featured_artists.length) {
+    keep.featured_artists = extra.featured_artists;
+  }
+  if (Array.isArray(extra.featured_tracks) && extra.featured_tracks.length) {
+    keep.featured_tracks = extra.featured_tracks;
+  }
+  if (!Object.keys(keep).length) return credits;
+  return Object.assign({}, credits || {}, keep);
+}
+
+async function stampTrackFeatured(trackId, people) {
+  const artists = featuredArtists.additionalArtists(people);
+  if (!isUuid(trackId) || !artists.length) return { ok: true, skipped: true };
+  const body = { additional_artists: artists };
+  const patched = await tonegridFetch('/tracks/' + trackId, {
+    method: 'PATCH',
+    body: body,
+    idempotencyKey: hopIdempotencyKey(
+      'track-featured',
+      'PATCH',
+      '/tracks/' + trackId,
+      JSON.stringify(body)
+    ),
+  });
+  if (patched.ok) return { ok: true };
+  if (isMissingEndpoint(patched)) return { ok: true, skipped: true };
+  return {
+    ok: false,
+    status: patched.status || 400,
+    data: { error: 'Featured artist could not be saved. Check the name and try again.' },
+  };
 }
 
 async function attachTrackWriters(trackId, songwriter, extras) {
@@ -1969,7 +2009,7 @@ async function createRelease(req, res) {
   async function attachContinuedRelease(existingId) {
     const credited = await applyReleaseCredits(existingId, hopCredits, { patch: true });
     if (!credited.ok) return { ok: false, credited: credited };
-    await persistReleaseMeta(scope.row, existingId, null, undefined, '', '', storedCredits);
+    await persistReleaseMeta(scope.row, existingId, null, undefined, '', '', releaseMetaCredits(storedCredits, body));
     return { ok: true };
   }
 
@@ -2124,7 +2164,7 @@ async function createRelease(req, res) {
       releaseId: releaseId,
     });
     const latest = await accounts.findById(scope.userId);
-    await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', storedCredits);
+    await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', releaseMetaCredits(storedCredits, body));
     try {
       await linkStoredRelease(latest || scope.row, releaseId, body, artistId);
     } catch (err) {
@@ -2320,6 +2360,11 @@ async function createTrack(req, res) {
         sendJson(res, attached.status, attached.data);
         return;
       }
+      const featuredHop = await stampTrackFeatured(continueTrackId, featuredArtists.peopleFrom(body));
+      if (!featuredHop.ok) {
+        sendJson(res, featuredHop.status, featuredHop.data);
+        return;
+      }
       await accounts.updateCatalog(scope.userId, { trackId: continueTrackId });
       sendJson(res, 200, { uuid: continueTrackId, continued: true });
       return;
@@ -2388,11 +2433,16 @@ async function createTrack(req, res) {
         sendJson(res, attached.status, attached.data);
         return;
       }
+      const featuredHop = await stampTrackFeatured(trackId, featuredArtists.peopleFrom(body));
+      if (!featuredHop.ok) {
+        sendJson(res, featuredHop.status, featuredHop.data);
+        return;
+      }
       await accounts.updateCatalog(scope.userId, { trackId });
       const latest = await accounts.findById(scope.userId);
-      await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', {
+      await persistReleaseMeta(latest || scope.row, releaseId, null, undefined, '', '', releaseMetaCredits({
         writers: [{ name: songwriter.name, first_name: songwriter.first, last_name: songwriter.last }],
-      });
+      }, body));
     }
   }
   if (!result.ok && isAlreadyExistsResult(result)) {
@@ -3677,6 +3727,22 @@ async function submitRelease(req, res, releaseId) {
     return;
   }
   const row = loaded.row || {};
+  const selectedArtist = {
+    name: String((body && (body.artist || body.artist_name || body.primary_artist || body.name)) || '').trim(),
+    id: String((body && (body.artist_id || body.artistId)) || '').trim(),
+  };
+  const providerArt = row && row.artist;
+  const providerArtist = {
+    name: String((providerArt && typeof providerArt === 'object' ? providerArt.name : providerArt) || (row && (row.artist_name || row.primary_artist)) || '').trim(),
+    id: String((row && (row.artist_id || row.artist_uuid)) || (providerArt && typeof providerArt === 'object' && (providerArt.uuid || providerArt.id)) || '').trim(),
+  };
+  if (artistCheck.identityConflicts(selectedArtist, providerArtist)) {
+    sendJson(res, 409, {
+      error: 'This release is saved under a different artist than the one you selected. Choose that artist again and submit so a new release is created.',
+      code: 'ARTIST_MISMATCH',
+    });
+    return;
+  }
   const hopped = await hopSubmitAssets(scope, releaseId, body, row);
   if (hopped && hopped.ok === false) {
     sendJson(res, hopped.status || 400, hopped.data || { error: uploadRequired.AUDIO_REQUIRED });
@@ -3707,7 +3773,7 @@ async function submitRelease(req, res, releaseId) {
     sendJson(res, labeled.status, labeled.data);
     return;
   }
-  await persistReleaseMeta(scope.row, releaseId, null, undefined, '', '', storeCredits.storedCreditFields(hopCreditsEarly));
+  await persistReleaseMeta(scope.row, releaseId, null, undefined, '', '', releaseMetaCredits(storeCredits.storedCreditFields(hopCreditsEarly), body));
   const earlyTrackIds = collectSubmitTrackIds(row, body);
   if (!leftoverSend && songwriterEarly && !songwriterEarly.error) {
     const seenEarly = {};
@@ -3810,6 +3876,11 @@ async function submitRelease(req, res, releaseId) {
       sendJson(res, writersHop.status, writersHop.data);
       return;
     }
+    const featuredHop = await stampTrackFeatured(tid, featuredArtists.peopleForTrackId(body, tid, i));
+    if (!featuredHop.ok) {
+      sendJson(res, featuredHop.status, featuredHop.data);
+      return;
+    }
     if (aiFields) {
       const tagged = await applyTrackAiDisclosure(tid, aiFields);
       if (!tagged.ok) {
@@ -3884,7 +3955,7 @@ async function submitRelease(req, res, releaseId) {
     '',
     '',
     '',
-    Object.assign({}, credits || {}, splitMeta, disclosureRecord ? { plaiground_ai_disclosure: disclosureRecord } : {})
+    Object.assign({}, credits || {}, splitMeta, releaseMetaCredits({}, body), disclosureRecord ? { plaiground_ai_disclosure: disclosureRecord } : {})
   );
   const songTitle = (body && (body.title || body.songTitle || body.song_title)) || row.title || next.title || '';
   await notifyFirstUpload(scope.row, {
@@ -4103,7 +4174,19 @@ async function updateTrack(req, res, trackId) {
     payload.explicit = explicit;
   }
   storeAi.applyTrackAiFields(payload, body);
+  const featuredPeople = featuredArtists.peopleFrom(body);
+  if (featuredPeople.length) {
+    const featuredHop = await stampTrackFeatured(id, featuredPeople);
+    if (!featuredHop.ok) {
+      sendJson(res, featuredHop.status, featuredHop.data);
+      return;
+    }
+  }
   if (!Object.keys(payload).length) {
+    if (featuredPeople.length) {
+      sendJson(res, 200, { ok: true, uuid: id });
+      return;
+    }
     sendJson(res, 400, { error: 'Provide title, language, or explicit.' });
     return;
   }

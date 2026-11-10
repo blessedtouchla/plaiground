@@ -375,3 +375,33 @@ CREATE TABLE IF NOT EXISTS stage_fans (
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (fan_key, artist_slug)
 );
+
+-- Signup and resend attempts for bot limits and owner tracing. No password.
+-- ip is kept so the owner can trace abuse; rows older than 90 days are pruned.
+CREATE TABLE IF NOT EXISTS signup_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind text NOT NULL DEFAULT 'signup',
+  outcome text NOT NULL DEFAULT '',
+  ip text NOT NULL DEFAULT '',
+  ip_key text NOT NULL DEFAULT '',
+  email_key text NOT NULL DEFAULT '',
+  country text NOT NULL DEFAULT '',
+  user_agent text NOT NULL DEFAULT '',
+  reasons text NOT NULL DEFAULT '',
+  region text NOT NULL DEFAULT '',
+  city text NOT NULL DEFAULT '',
+  time_to_submit_ms integer,
+  turnstile text NOT NULL DEFAULT '',
+  user_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS signup_attempts_user_idx
+  ON signup_attempts (user_id)
+  WHERE user_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS signup_attempts_ip_idx
+  ON signup_attempts (ip_key, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS signup_attempts_email_idx
+  ON signup_attempts (email_key, created_at DESC);

@@ -2266,6 +2266,13 @@
         release_date: String((draft && draft.release_date) || (release && release.release_date) || '').trim(),
         dsps: Array.isArray(draft && draft.dsps) ? draft.dsps : (Array.isArray(release && release.dsps) ? release.dsps : []),
         featured: String((draft && draft.featured) || (release && release.featured) || '').trim(),
+        featured_list: (function () {
+          var text = String((draft && draft.featured) || (release && release.featured) || '').trim();
+          if (global.PlaigroundFeaturedArtists && typeof global.PlaigroundFeaturedArtists.submitFields === 'function') {
+            return global.PlaigroundFeaturedArtists.submitFields({ featured: text, type: 'single' }).featured_list;
+          }
+          return text ? text.split(',').map(function (name) { return name.trim(); }).filter(Boolean) : [];
+        })(),
         label: String((draft && draft.label) || (release && (release.label || release.record_label)) || '').trim(),
         price: String((draft && draft.price) || (release && release.price) || '').trim(),
         select_preorder: Boolean(draft && draft.select_preorder),
@@ -2350,6 +2357,10 @@
           var credits = trackContributorFields(creditName);
           if (!credits) {
             return failPendingEdit(id, 'This song needs a songwriter legal first and last name.');
+          }
+          if (fields.featured) {
+            credits.featured = fields.featured;
+            credits.featured_list = String(fields.featured).split(',').map(function (part) { return part.trim(); }).filter(Boolean);
           }
           var trackId = String(fields.trackId || '').trim();
           var creditSend = trackId
@@ -2654,6 +2665,10 @@
           last_name: last,
         }];
       }
+      if (featured) {
+        body.featured = featured;
+        body.featured_list = featured.split(',').map(function (part) { return part.trim(); }).filter(Boolean);
+      }
       if (draft && draft.made_how) body.made_how = draft.made_how;
       return body;
     }
@@ -2697,6 +2712,10 @@
       trackBody.explicit = selectedExplicit();
       var leaveCredits = trackContributorFields(collectedLeaveName(draft, release, me));
       if (leaveCredits) Object.assign(trackBody, leaveCredits);
+      if (featured) {
+        trackBody.featured = featured;
+        trackBody.featured_list = featured.split(',').map(function (part) { return part.trim(); }).filter(Boolean);
+      }
       return runHop('track', sendJson('/api/tonegrid/tracks/' + encodeURIComponent(trackId), 'PUT', trackBody));
     }).then(function (result) {
       if (result && !result.ok && !result.skipped) errors.push(applyToneGridError(result, 'language', null));

@@ -166,6 +166,23 @@
 .arc-words-head button{width:auto;flex:0 0 auto;min-width:0}
 
 /* Song Lab (/song-helper): wide page, bigger type, sticker buttons. Scoped so slang stays put. */
+body.song-lab .arc-index{
+  width:calc(100% - 28px);
+  max-width:1440px;
+  margin:20px auto 0;
+}
+body.song-lab .arc-index h1{
+  margin:0 0 6px;
+  font-size:clamp(1.45rem, 2.6vw, 2rem);
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+body.song-lab .arc-index p{
+  margin:0;
+  max-width:44rem;
+  color:rgba(255,255,255,.84);
+}
+body.song-lab .arc-index a{color:#F5C542}
 body.song-lab{
   font-size:19px;
   line-height:1.45;
@@ -415,6 +432,7 @@ body.song-lab .arc-tiny{
 }
 @media (min-width:720px){
   body.song-lab{font-size:20px}
+  body.song-lab .arc-index{width:calc(100% - 56px)}
   body.song-lab .arc-wrap{width:calc(100% - 56px);padding:28px 0 96px}
   body.song-lab .arc-tiles{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
   body.song-lab .arc-main > .v3-go,
@@ -424,6 +442,7 @@ body.song-lab .arc-tiny{
   body.song-lab .arc-actions .v3-mini{width:auto;min-height:48px}
 }
 @media (min-width:980px){
+  body.song-lab .arc-index{width:calc(100% - 64px)}
   body.song-lab .arc-wrap{width:calc(100% - 64px)}
   body.song-lab .arc-home{
     grid-template-columns:repeat(3,minmax(0,1fr));
@@ -528,4 +547,32 @@ body.song-lab .arc-talk-toggle:focus-visible{
     scale:none;
     animation:none;
   }
+}
+
+/* Flip My Song: Modernize it */
+.arc-check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.arc-mod{display:block;padding:8px 12px}
+.arc-mod-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.arc-mod-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;padding-top:0}
+.arc-mod-old{opacity:.7}
+.arc-mod-new{font-weight:600}
+.arc-mod-n{opacity:.6;font-weight:400;font-size:12px;white-space:nowrap}
+.arc-mod-tag{display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:96px;font-size:12px}
+.arc-mod-badge{opacity:.8;text-align:right}
+.arc-mod-row.hook .arc-mod-badge{color:#ffd76a}
+.arc-mod-row.off .arc-mod-new{color:#ffb35c}
+.arc-mod-row mark{background:rgba(160,110,255,.35);color:inherit;border-radius:3px;padding:0 2px}
+.arc-mod-sum{font-weight:700}
+body.song-lab .arc-mod-actions{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:20px;position:static}
+body.song-lab .arc-mod-actions .v3-go{position:static;width:auto;flex:0 1 auto;margin:0}
+body.song-lab .arc-mod-actions .v3-link{position:static;margin:0}
+@media (max-width:640px){
+  .arc-mod-row{grid-template-columns:1fr;gap:4px}
+  .arc-mod-head{display:none}
+  .arc-mod-old::before{content:'Original: ';font-size:11px;opacity:.7}
+  .arc-mod-new::before{content:'Today: ';font-size:11px;opacity:.7;font-weight:400}
+  .arc-mod-tag{align-items:flex-start;min-width:0}
+  .arc-mod-badge{text-align:left}
+  body.song-lab .arc-mod-actions{flex-direction:column;align-items:stretch}
+  body.song-lab .arc-mod-actions .v3-go{width:100%}
 }
