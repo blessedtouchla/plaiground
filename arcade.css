@@ -215,6 +215,13 @@ body.song-lab .v3-credits{
   align-items:center;
   padding:8px 14px;
 }
+body.song-lab .arc-login{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  padding:0 12px;
+  font-size:15px;
+}
 body.song-lab .v3-points{
   margin:0;
   font-weight:800;

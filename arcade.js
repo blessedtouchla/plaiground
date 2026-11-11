@@ -82,6 +82,7 @@
     A.CARDS.forEach(function (c) {
       var b = btn('', 'v3-cabinet arc-card cab-' + c.id, function () {
         var keepWallet = true; S = fresh(); S.card = c.id; if (keepWallet) {}
+        if (window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('song_lab_start', { entry: 'door', surface: 'song_lab' });
         go(c.id === 'scratch' ? 's-type' : (c.id === 'fix' ? 'f-paste' : 'x-paste'));
       });
       b.appendChild(el('b', '', c.label)); b.appendChild(el('small', '', c.small)); grid.appendChild(b);
@@ -421,6 +422,7 @@
   function finish(lyrics, d, scoreBefore) {
     S.result = { lyrics: lyrics, sample: !!(d && d.sample), notice: (d && d.notice) || '', scoreBefore: scoreBefore || 0, label: A.aiLabel(S) };
     if (d && d.crisis) S.crisis = true;
+    if (window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('song_lab_completed', { sample: !!(d && d.sample) ? 'yes' : 'no', surface: 'song_lab' });
     go('reveal');
   }
 
@@ -488,7 +490,14 @@
   function saveToAccount(item, b, w) {
     var old = w.querySelector('.arc-save-note'); if (old) old.remove();
     var note = el('div', 'arc-save-note');
-    function done(html) { note.innerHTML = html; b.insertAdjacentElement('afterend', note); }
+    function done(html) {
+      note.innerHTML = html;
+      b.insertAdjacentElement('afterend', note);
+      note.addEventListener('click', function (ev) {
+        var link = ev.target && ev.target.closest ? ev.target.closest('a[href*="signup"]') : null;
+        if (link && window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('signup_start', { from: 'save_prompt', surface: 'song_lab' });
+      });
+    }
     fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (me) {
       if (me.status === 401) {
         b.textContent = 'Saved on this device';
@@ -711,6 +720,7 @@
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
     var b3 = btn('Copy both', 'v3-mini', function () { copy(tagged(r.lyrics) + '\n\nStyle prompt\n' + r.style + (fx ? '\n\nExclude\n' + (fx.exclude || []).join(', ') : ''), b3); });
     var b4 = btn('Save to my account', 'v3-mini', function () {
+      if (window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('signup_start', { from: 'save_song', surface: 'song_lab' });
       try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saving...'; } catch (e) { b4.textContent = 'Could not save'; return; } saveToAccount(list[list.length - 1], b4, w);
     });
     var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.fix.text = t; go('f-off'); });
@@ -1219,7 +1229,10 @@
     var top = el('div', 'v3-top');
     var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     var meta = el('div', 'arc-top-meta');
-    meta.appendChild(el('span', 'v3-credits', 'Join free. Get starter credits to try every tool.'));
+    var login = el('a', 'v3-link arc-login', 'Log in');
+    login.href = '/login.html';
+    meta.appendChild(login);
+    meta.appendChild(el('span', 'v3-credits', 'Free to write. Sign up only to save a song.'));
     meta.appendChild(el('span', 'v3-points', String(S.points)));
     meta.appendChild(talkToggle());
     top.appendChild(meta);
@@ -1256,5 +1269,23 @@
     if (S.note) main.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
   }
+  var seeded = false;
+  try {
+    var params = new URLSearchParams(location.search);
+    var idea = String(params.get('idea') || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 280);
+    if (idea) {
+      S = fresh();
+      S.card = 'scratch';
+      S.type = 'jam';
+      S.sub = '';
+      S.vibe = defaultVibe();
+      S.answers = { topic: idea };
+      S.qIndex = 1;
+      S.screen = 's-q';
+      S.userWords = true;
+      seeded = true;
+    }
+  } catch (err) {}
   paint();
+  if (seeded && window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('song_lab_start', { entry: 'homepage', surface: 'song_lab' });
 })();

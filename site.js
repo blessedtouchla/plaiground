@@ -1894,9 +1894,16 @@
   add('/_vercel/insights/script.js', 'vercel-insights', false);
 })();
 
-// Vercel Web Analytics: load once per page.
+// Vercel Web Analytics: queue, custom events, then the script, once per page.
 (function () {
   try {
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    if (!document.querySelector('script[src*="/funnel-analytics.js"]')) {
+      var events = document.createElement('script');
+      events.src = '/funnel-analytics.js?v=20261111funnel';
+      events.async = false;
+      (document.head || document.documentElement).appendChild(events);
+    }
     if (document.querySelector('script[src*="/_vercel/insights/script.js"]')) return;
     var s = document.createElement('script'); s.defer = true; s.src = '/_vercel/insights/script.js';
     (document.head || document.documentElement).appendChild(s);
