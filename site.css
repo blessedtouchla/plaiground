@@ -9286,3 +9286,166 @@ body:not(.app) h2 {
     scroll-snap-stop: normal;
   }
 }
+
+/* Data rows: label and value, not stat tiles. */
+.metric[hidden],
+.metric-row > [hidden],
+.account-stats > [hidden],
+.catalog-stats > [hidden] { display: none !important; }
+.account-stats,
+.catalog-stats,
+.releases-stats,
+.metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0 0 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.overview-page .account-stats,
+body.app .page .catalog-stats,
+body.app .page .releases-stats,
+body.app .page .metric-row {
+  display: flex;
+  grid-template-columns: none;
+}
+.account-stats > .row,
+.catalog-stats > div,
+.releases-stats > div,
+.metric-row > div,
+.metric-row > .metric {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+.overview-page .account-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.overview-page .account-identity h3 {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--muted-2);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.overview-page .account-plan-line {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+}
+.overview-page .account-email {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+.account-stats > .row > span,
+.catalog-stats > div > span,
+.releases-stats > div > span,
+.metric-row > div > span,
+.metric > span {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--muted-2);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overview-page .account-card .account-stats > .row {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.overview-page .account-card .account-stats > .row > b,
+.catalog-stats > div > strong,
+.releases-stats > div > strong,
+.metric-row strong,
+.metric > strong {
+  order: 2;
+  flex: 0 1 auto;
+  max-width: 58%;
+  min-width: 0;
+  margin: 0;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.catalog-stats .stat-g,
+.catalog-stats .stat-y,
+.releases-stats .stat-g,
+.releases-stats .stat-y,
+.metric-row .stat-g,
+.metric-row .stat-y,
+.metric .stat-g,
+.metric .stat-y {
+  color: #fff;
+}
+.overview-page .account-card .row.is-status::before { content: none; }
+.overview-page .account-card .account-stats > .row.is-status > b {
+  color: var(--stage-gold);
+  font-size: 15px;
+}
+.rel b,
+table.data td:first-child .rel,
+table.data td:first-child .rel b {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  body.app .page table.data:not([hidden]) {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+  }
+  body.app .page table.data td:first-child { width: 70%; }
+}
