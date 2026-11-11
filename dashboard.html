@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="plai-bubble.css" />
   <script src="lib/pwa.js"></script>
 </head>
-<body class="app">
+<body class="app overview-page">
   <aside class="side">
     <a class="logo" href="dashboard.html"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
     <nav class="side-nav">
@@ -72,29 +72,34 @@
         <p>The renewal payment did not go through. Payouts stay paused until a later successful payment.</p>
       </div>
       <div class="next-up" data-next-up hidden>
-        <p class="kicker">Next up</p>
-        <h2 data-next-up-title>Submit your first song</h2>
-        <p data-next-up-body>Upload a finished track, confirm the rights, sign the split sheet.</p>
-        <p style="margin-top:16px">
-          <a class="btn btn-purple btn-md" href="upload.html" data-next-up-link data-signed-in-upload>Submit your first song</a>
-        </p>
+        <div class="next-up-main">
+          <p class="kicker">Next up</p>
+          <h2 data-next-up-title>Submit your first song</h2>
+          <p class="next-up-note" data-next-up-body>Upload a finished track, confirm the rights, sign the split sheet.</p>
+        </div>
+        <a class="btn btn-purple btn-md" href="upload.html" data-next-up-link data-signed-in-upload>Submit your first song</a>
       </div>
       <div class="dash-top">
-        <div class="page-head" style="margin:0">
+        <div class="page-head">
           <p class="kicker">Account</p>
           <h1>Overview</h1>
           <p>The account is free. Publishing, Boosts, and payouts are open to every artist.</p>
         </div>
         <div class="account-card">
-          <div class="head-row" style="margin-bottom:8px">
-            <h3 style="letter-spacing:0.14em;font-size:11px;color:var(--muted)">Your account</h3>
-            <span style="color:var(--gold);font-weight:800;font-size:12px" data-account-plan>Free</span>
+          <div class="account-identity">
+            <h3>Your account</h3>
+            <p class="account-plan-line">
+              <span class="account-email" data-account-email></span>
+              <span class="account-plan-badge" data-account-plan="badge">Free</span>
+            </p>
           </div>
-          <div class="row"><span>Releases live</span><b data-account-releases>0</b></div>
-          <div class="row"><span>Releases pending</span><b data-account-pending>0</b></div>
-          <a class="row" href="artists.html"><span>Artist profiles</span><b data-account-artists>0</b></a>
-          <div class="row"><span>Payout method</span><b style="color:var(--gold)">Not set up</b></div>
-          <p style="margin-top:14px"><a class="learn" href="payouts.html" style="text-align:left;color:var(--gold)">Add a payout method</a></p>
+          <div class="account-stats">
+            <div class="row"><span>Releases live</span><b data-account-releases>0</b></div>
+            <div class="row"><span>Releases pending</span><b data-account-pending>0</b></div>
+            <a class="row" href="artists.html"><span>Artist profiles</span><b data-account-artists>0</b></a>
+            <div class="row is-status"><span>Payout method</span><b>Not set up</b></div>
+          </div>
+          <p class="account-action"><a class="learn" href="payouts.html">Add a payout method</a></p>
         </div>
       </div>
       <div class="release-board">

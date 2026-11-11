@@ -184,6 +184,9 @@ function run() {
         toggle() {},
       },
       setAttribute(name, value) { this[name] = value; },
+      getAttribute(name) {
+        return Object.prototype.hasOwnProperty.call(this, name) ? this[name] : null;
+      },
       appendChild(child) {
         this.children.push(child);
         return child;
@@ -216,6 +219,8 @@ function run() {
       '[data-account-releases]': makeNode({ textContent: '0' }),
       '[data-account-pending]': makeNode({ textContent: '0' }),
       '[data-account-artists]': makeNode({ textContent: '0' }),
+      '[data-account-email]': makeNode({ textContent: '' }),
+      '[data-account-plan]': Object.assign(makeNode({ textContent: 'Free' }), { 'data-account-plan': 'badge' }),
       '[data-account-who]': makeNode({ textContent: 'Hi there' }),
       '[data-account-avatar]': makeNode({ textContent: 'PG' }),
       '[data-account-artist]': makeNode({ tagName: 'INPUT', value: '' }),
@@ -323,6 +328,9 @@ function run() {
   assert.strictEqual(named['[data-account-pending]'].textContent, '0');
   assert.strictEqual(named['[data-account-artists]'].textContent, '0');
   assert.strictEqual(named['[data-next-up-title]'].textContent, 'Submit your first song');
+  assert.strictEqual(named['[data-account-plan]'].textContent, 'FREE', 'plan chip stays separate from the email');
+  assert.strictEqual(named['[data-account-email]'].textContent, 'victoriaimtanes@gmail.com');
+  assert.strictEqual(named['[data-account-email]'].title, 'victoriaimtanes@gmail.com', 'truncated email keeps a full title');
   assert.strictEqual(named['[data-account-plan-title]'].textContent, 'Your account');
   assert.strictEqual(named['[data-account-plan-price]'].textContent, 'Free');
   assert.strictEqual(named['[data-account-plan-year]'].textContent, '');
@@ -733,6 +741,10 @@ function run() {
   assert.ok(!dash.includes('Plan renews'), 'Overview must not show a Plan renews line');
   assert.ok(!dash.includes('data-plan-renews'), 'Overview must not paint a Stripe renewal date');
   const accountCard = dash.match(/<div class="account-card">[\s\S]*<div class="release-board">/);
+  assert.ok(dash.includes('overview-page'), 'Overview scopes the signed-in layout');
+  assert.ok(dash.includes('class="account-stats"'), 'account stats are a tile grid');
+  assert.ok(dash.includes('data-account-plan="badge"'), 'plan badge stays separate so a long email can truncate');
+  assert.ok(dash.includes('class="account-email" data-account-email'), 'email has its own truncating slot');
   assert.ok(accountCard, 'Overview Your account card is present');
   assert.ok(accountCard[0].includes('Releases live'), 'Your account keeps Releases live');
   assert.ok(accountCard[0].includes('Releases pending'), 'Your account keeps Releases pending');

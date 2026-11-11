@@ -8667,3 +8667,268 @@ body.flow-menu.nav-open { overflow: hidden; }
 p.starter-cta { margin: 10px 0 0; color: #F5C542; font-weight: 700; }
 p.starter-cta a { color: inherit; }
 .starter-foot { display: inline-block; margin-top: 12px; }
+
+/* Overview: tighter next-up, stat tiles, and a dock so Ask Plai cannot cover the page. */
+body.overview-page {
+  --overview-dock: calc(72px + env(safe-area-inset-bottom, 0px));
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+body.overview-page .app-main {
+  position: relative;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: var(--overview-dock);
+}
+body.overview-page .app-main::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--overview-dock);
+  height: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+body.overview-page .topbar { flex: 0 0 auto; }
+body.overview-page .page {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 28px;
+}
+@media (min-width: 981px) {
+  body.overview-page .side {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+.overview-page .next-up {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin: 0 0 22px;
+  padding: 16px 16px 16px 18px;
+  background:
+    linear-gradient(180deg, rgba(120, 47, 177, 0.18), rgba(120, 47, 177, 0) 62%),
+    #121218;
+  border: 1px solid rgba(120, 47, 177, 0.4);
+  border-radius: 18px;
+  box-shadow: inset 3px 0 0 var(--stage-purple);
+}
+.overview-page .next-up-main { min-width: 0; }
+.overview-page .next-up .kicker {
+  margin: 0;
+  color: var(--stage-gold);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.overview-page .next-up h2 {
+  margin: 4px 0 0;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+.overview-page .next-up .next-up-note {
+  margin: 8px 0 0;
+  max-width: 62ch;
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+.app.overview-page .next-up .btn-purple {
+  width: 100%;
+  min-height: 48px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(243, 203, 71, 0.22);
+}
+.overview-page .dash-top {
+  display: block;
+  margin-bottom: 28px;
+}
+.overview-page .dash-top .page-head { margin: 0 0 16px; }
+.overview-page .page-head .kicker { color: var(--stage-gold); }
+.overview-page .page-head h1 {
+  font-size: clamp(1.85rem, 4vw, 2.35rem);
+  line-height: 1.05;
+}
+.overview-page .page-head p {
+  margin-top: 8px;
+  max-width: 40rem;
+  color: var(--muted-2);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.overview-page .account-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.overview-page .account-identity { margin: 0 0 12px; }
+.overview-page .account-identity h3 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.overview-page .account-plan-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+}
+.overview-page .account-email {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overview-page .account-email:empty { display: none; }
+.overview-page .account-plan-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(243, 203, 71, 0.14);
+  color: var(--stage-gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.overview-page .account-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.overview-page .account-card .row {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 92px;
+  margin: 0;
+  padding: 14px 14px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #121218;
+  color: inherit;
+  text-decoration: none;
+}
+.overview-page .account-card .row b {
+  color: #fff;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.overview-page .account-card .row span {
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+.overview-page .account-card .row.is-status {
+  position: relative;
+  overflow: hidden;
+}
+.overview-page .account-card .row.is-status::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--stage-gold);
+}
+.overview-page .account-card .row.is-status b {
+  color: var(--stage-gold);
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.overview-page .account-card a.row:hover {
+  border-color: rgba(120, 47, 177, 0.7);
+}
+.overview-page .account-card a.row:focus-visible,
+.overview-page .next-up .btn:focus-visible,
+.overview-page .account-action .learn:focus-visible {
+  outline: 2px solid var(--stage-gold);
+  outline-offset: 3px;
+}
+.overview-page .account-action { margin: 8px 0 0; }
+.overview-page .account-action .learn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  color: var(--stage-gold);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+.overview-page .release-board,
+.overview-page .dash-shortcut {
+  background: #121218;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.overview-page .release-board h3,
+.overview-page .dash-shortcut h3 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+}
+.overview-page .dash-shortcut:hover {
+  border-color: rgba(120, 47, 177, 0.55);
+}
+.overview-page .release-board .learn,
+.overview-page .how-link .learn {
+  color: var(--muted-2);
+  font-weight: 600;
+}
+@media (min-width: 880px) {
+  .overview-page .next-up {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    padding: 18px 20px 18px 22px;
+  }
+  .app.overview-page .next-up .btn-purple { width: auto; }
+  .overview-page .account-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .overview-page .dash-shortcuts { gap: 10px; }
+  .overview-page .dash-shortcut { padding: 16px; }
+}

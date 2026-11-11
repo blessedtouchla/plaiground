@@ -244,7 +244,10 @@
     paintAvatars(accountPhoto(me), initials(display));
     $all('[data-account-email]').forEach(function (el) {
       if (el.tagName === 'INPUT') el.value = me.email || '';
-      else setText(el, me.email || '');
+      else {
+        setText(el, me.email || '');
+        if (el.setAttribute) el.setAttribute('title', me.email || '');
+      }
     });
     $all('[data-account-artist]').forEach(function (el) {
       if (el.tagName === 'INPUT') el.value = artist;
@@ -265,7 +268,11 @@
       if (el.tagName === 'INPUT') el.value = country;
       else setText(el, country);
     });
-    $all('[data-account-plan]').forEach(function (el) { setText(el, accountPlanBadge(me)); });
+    $all('[data-account-plan]').forEach(function (el) {
+      var mode = el.getAttribute ? el.getAttribute('data-account-plan') : '';
+      if (mode === 'badge') setText(el, planLabel(me && me.plan));
+      else setText(el, accountPlanBadge(me));
+    });
     var interval = String(me.billing_interval || me.interval || '').toLowerCase();
     $all('[data-account-plan-pitch]').forEach(function (el) { setText(el, planPitch(me.plan, interval)); });
     $all('[data-account-plan-price]').forEach(function (el) { setText(el, sidebarPrice(me.plan)); });
