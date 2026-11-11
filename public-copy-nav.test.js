@@ -48,12 +48,12 @@ function run() {
   assert.ok(/for artists and all music/i.test(index), 'homepage meta must be all-music');
   assert.ok(/100% of your recording royalties\. Publishing is optional, under a separate agreement/i.test(index), 'homepage promises 100% of recording royalties');
   assert.ok(index.includes('class="public-header-tools"'), 'homepage HTML pins Login outside the drawer');
-  assert.ok(/class="public-header-tools"[\s\S]*href="login.html">Log in/.test(index), 'homepage phone Login is in the header cluster');
+  assert.ok(/class="public-header-tools"[\s\S]*href="\/login">Log in/.test(index), 'homepage phone Login is in the header cluster');
   assert.ok(index.includes('public-menu-toggle'), 'homepage HTML has the public menu toggle');
-  assert.ok(/class="btn btn-gold btn-md" href="signup\.html">Join free</.test(indexHero[0]), 'homepage gold CTA is Join free');
+  assert.ok(/class="btn btn-gold btn-md" href="\/signup">Join free</.test(indexHero[0]), 'homepage gold CTA is Join free');
   assert.ok(!/<section class="hero"[\s\S]*Join for free/.test(index), 'hero does not keep a second Join for free primary');
   assert.ok(!/Put my team to work/.test(indexHero[0]), 'hero keeps a single primary');
-  assert.ok(/class="steps distro-pipe"[\s\S]*<p class="eyebrow">Distribution<\/p>[\s\S]*\$2\.49 per song[\s\S]*href="signup\.html">Distribute my song</.test(index), 'homepage store section names Distribution and the release button');
+  assert.ok(/class="steps distro-pipe"[\s\S]*<p class="eyebrow">Distribution<\/p>[\s\S]*\$2\.49 per song[\s\S]*href="\/signup">Distribute my song</.test(index), 'homepage store section names Distribution and the release button');
 
   const how = read('how-it-works.html');
   const howAppCopy = read('how.html');
@@ -227,13 +227,13 @@ function run() {
   PUBLIC_PAGES.forEach(function (file) {
     const html = read(file);
     assert.ok(/<a class="logo"[^>]*href="(?:\/index\.html|index\.html|\/)"/.test(html), file + ' top-left wordmark must be a real public homepage link');
-    assert.ok(html.includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' must rename Pricing to Plans and Pricing');
+    assert.ok(html.includes('href="/#pricing">Plans and Pricing</a>'), file + ' must rename Pricing to Plans and Pricing');
     assert.ok(!html.includes('Learn more: Basic'), file + ' does not list Basic as a plan hero');
     assert.ok(!html.includes('Learn more: Creator'), file + ' does not list Creator as a plan hero');
     assert.ok(!html.includes('Learn more: Pro'), file + ' does not list Pro as a plan hero');
-    assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must feature FAQ on the public menu');
-    assert.ok(html.includes('href="how-it-works.html">How it works</a>'), file + ' keeps How it works public');
-    assert.ok(html.includes('href="login.html">Log in</a>'), file + ' keeps Log in');
+    assert.ok(html.includes('href="/faq">FAQ</a>'), file + ' must feature FAQ on the public menu');
+    assert.ok(html.includes('href="/how-it-works">How it works</a>'), file + ' keeps How it works public');
+    assert.ok(html.includes('href="/login">Log in</a>'), file + ' keeps Log in');
     assert.ok(!/data-require-membership="true"/.test(html), file + ' stays public when logged out');
     assert.ok(html.includes('Release Now'), file + ' keeps Release Now');
     assert.ok(!/href="boost.html">Boost<\/a>/.test(html), file + ' must not put Boost on the public menu');
@@ -241,20 +241,20 @@ function run() {
     assert.ok(!/href="admin(?:\.html|\/signups)?"/.test(html), file + ' must not link the owner admin page');
     const nav = html.match(/<nav class="nav-links"[^>]*>[\s\S]*?<\/nav>/);
     assert.ok(nav, file + ' must keep the public nav');
-    assert.ok(nav[0].includes('href="royalties.html"'), file + ' must list How you get paid as its own top-level public menu item');
+    assert.ok(nav[0].includes('href="/royalties"'), file + ' must list How you get paid as its own top-level public menu item');
     assert.ok(nav[0].includes('How you get paid') || nav[0].includes('Royalties'), file + ' menu label is How you get paid or Royalties');
-    assert.ok(nav[0].includes('href="faq.html">FAQ</a>'), file + ' keeps FAQ on the public menu');
-    assert.ok(!/<details[\s\S]{0,500}href="royalties.html"/.test(nav[0]), file + ' must not nest How you get paid inside a Plans submenu');
+    assert.ok(nav[0].includes('href="/faq">FAQ</a>'), file + ' keeps FAQ on the public menu');
+    assert.ok(!/<details[\s\S]{0,500}href="\/royalties"/.test(nav[0]), file + ' must not nest How you get paid inside a Plans submenu');
     assert.ok(!/public-plans-submenu/.test(nav[0]), file + ' Pricing is not a Basic / Creator / Pro submenu');
     const productNav = nav[0].slice(nav[0].indexOf('data-nav-group="product"'), nav[0].indexOf('data-nav-group="after"'));
     assert.ok(!/royalties\.html/.test(productNav), file + ' How you get paid stays outside Product');
     assert.ok(/data-nav-group="product"[\s\S]*data-nav-group="after"[\s\S]*data-nav-group="trust"[\s\S]*data-nav-group="listen"[\s\S]*data-nav-group="stories"/.test(nav[0]), file + ' public nav sections are Product, After upload, Trust, Listen, Stories');
-    assert.ok(/data-nav-group="after"[\s\S]*href="[^"]*ar\.html"[^>]*>A&amp;R<\/a>[\s\S]*href="[^"]*epk\.html"[\s\S]*royalties\.html/.test(nav[0]), file + ' After upload is A&R, EPK, How you get paid');
-    assert.ok(/data-nav-group="trust"[\s\S]*transparency\.html[\s\S]*faq\.html/.test(nav[0]), file + ' Trust is Transparency then FAQ');
+    assert.ok(/data-nav-group="after"[\s\S]*href="\/ar"[^>]*>A&amp;R<\/a>[\s\S]*href="\/epk-maker"[\s\S]*href="\/royalties"/.test(nav[0]), file + ' After upload is A&R, EPK, How you get paid');
+    assert.ok(/data-nav-group="trust"[\s\S]*href="\/transparency"[\s\S]*href="\/faq"/.test(nav[0]), file + ' Trust is Transparency then FAQ');
     assert.ok(/data-nav-group="listen"[\s\S]*SIQA Charts/.test(nav[0]), file + ' Listen keeps SIQA Charts');
-    assert.ok(/data-nav-group="stories"[\s\S]*href="[^"]*blog\.html"[^>]*>Blog<\/a>/.test(nav[0]), file + ' Stories is Blog');
+    assert.ok(/data-nav-group="stories"[\s\S]*href="\/blog"[^>]*>Blog<\/a>/.test(nav[0]), file + ' Stories is Blog');
     assert.ok(!/href="[^"]*video-collect\.html"/.test(nav[0]) && !/href="[^"]*sync\.html"/.test(nav[0]), file + ' public nav does not add Sync or Video Collect');
-    assert.ok(nav[0].includes('href="index.html#pricing">Plans and Pricing</a>'), file + ' Plans and Pricing must stay a real compare-page link');
+    assert.ok(nav[0].includes('href="/#pricing">Plans and Pricing</a>'), file + ' Plans and Pricing must stay a real compare-page link');
     assert.ok(!nav[0].includes('Learn more: Basic') && !nav[0].includes('Learn more: Creator') && !nav[0].includes('Learn more: Pro'), file + ' Product nav does not nest Basic / Creator / Pro as plan heroes');
     const header = html.match(/<header class="nav">[\s\S]*?<\/header>/);
     assert.ok(header && /class="public-header-tools"[\s\S]*Log in/.test(header[0]), file + ' Log in stays a top header link');
@@ -294,12 +294,12 @@ function run() {
   assert.ok(!/Keep 100% of your royalties/i.test(royalties), 'do not invent keep-100% copy');
 
   const faqPaid = read('faq.html');
-  assert.ok(faqPaid.includes('href="royalties.html">How you get paid</a>'), 'FAQ links to How you get paid');
+  assert.ok(faqPaid.includes('href="/royalties">How you get paid</a>'), 'FAQ links to How you get paid');
   assert.ok(/PLAIGROUND takes no commission/i.test(faqPaid), 'FAQ commission answer matches the lock');
-  assert.ok(read('index.html').includes('href="royalties.html">How you get paid</a>'), 'Plans and Pricing landing links Get paid to the royalties page');
-  assert.ok(read('how-it-works.html').includes('href="royalties.html">How you get paid</a>'), 'How it works Get paid step links the royalties page');
-  assert.ok(read('creator.html').includes('href="royalties.html">How you get paid</a>'), 'Creator Learn more links Get paid to the royalties page');
-  assert.ok(read('basic.html').includes('href="royalties.html">How you get paid</a>'), 'Basic Learn more links the royalties page from the existing payout copy');
+  assert.ok(read('index.html').includes('href="/royalties">How you get paid</a>'), 'Plans and Pricing landing links Get paid to the royalties page');
+  assert.ok(read('how-it-works.html').includes('href="/royalties">How you get paid</a>'), 'How it works Get paid step links the royalties page');
+  assert.ok(read('creator.html').includes('href="/royalties">How you get paid</a>'), 'Creator Learn more links Get paid to the royalties page');
+  assert.ok(read('basic.html').includes('href="/royalties">How you get paid</a>'), 'Basic Learn more links the royalties page from the existing payout copy');
 
   assert.ok(index.includes('class="plans price-ladder"'), 'landing still has the public price ladder');
   assert.ok(index.includes('plan-name">Free account</div>'), 'free account is the $0 card');
@@ -331,7 +331,7 @@ function run() {
 
   const creator = read('creator.html');
   assert.ok(/superseded/i.test(creator), 'Creator Learn more is marked superseded');
-  assert.ok(creator.includes('href="index.html#pricing"'), 'Creator Learn more points at the new pricing story');
+  assert.ok(creator.includes('href="/#pricing"'), 'Creator Learn more points at the new pricing story');
   assert.ok(!/data-checkout-plan/.test(creator), 'Creator Learn more does not start the old checkout');
   assert.ok(!/The same product as/i.test(creator), 'Creator must not headline same product as Pro');
   assert.ok(!/same as Pro|same product as Pro|Creator is Pro|It is Pro|Same features as Pro|only difference from Pro|a month for Pro|Pro with a monthly cap|Pro with the monthly cap|Pro with 8|Same release tools as Pro/i.test(creator), 'Creator-facing same-as-Pro copy is banned');
@@ -366,7 +366,7 @@ function run() {
 
   const pro = read('pro.html');
   assert.ok(/superseded/i.test(pro), 'Pro Learn more is marked superseded');
-  assert.ok(pro.includes('href="index.html#pricing"'), 'Pro Learn more points at the new pricing story');
+  assert.ok(pro.includes('href="/#pricing"'), 'Pro Learn more points at the new pricing story');
   assert.ok(!/data-checkout-plan/.test(pro), 'Pro Learn more does not start the old checkout');
   assert.ok(!/Everything in Creator, plus publishing/i.test(pro), 'Pro must not sell extras Creator already has');
   assert.ok(!/The same product as Creator/.test(pro), 'Pro page is not the membership hero');
@@ -458,16 +458,16 @@ function run() {
   assert.ok(js.includes('setupAppMenu') && js.includes('setupPublicMenu'), 'site.js wires both menus');
   assert.ok(js.includes('setupBrandLogos') && js.includes('goBrandHome'), 'site.js wires the top-left PLAIGROUND wordmark as a real home link');
   assert.ok(js.includes('brandHomeHref') && js.includes('dashboard.html') && js.includes('index.html'), 'wordmark goes to Overview when signed in and the public homepage when logged out');
-  assert.ok(js.includes('return "/index.html"') || js.includes("return '/index.html'"), 'logged-out wordmark uses a root-absolute homepage so /charts/top-100 does not 404');
+  assert.ok(js.includes('return "/"') || js.includes("return '/'"), 'logged-out wordmark uses a root-absolute homepage so /charts/top-100 does not 404');
   assert.ok(js.includes('setupPublicHeaderLogin') && js.includes('public-header-tools'), 'shared public nav pins Login on the header');
   assert.ok(js.includes('is-public-bar'), 'shared public nav marks the Tesla bar');
   assert.ok(js.includes('public-header-login'), 'shared public nav reuses one header Login');
-  assert.ok(js.includes('href = "/login.html"') || js.includes('href="/login.html"'), 'pinned Login reuses the existing sign-in page at a root-absolute path');
+  assert.ok(js.includes('href="/login"') || js.includes('href="/login"'), 'pinned Login reuses the existing sign-in page at a root-absolute path');
   assert.ok(js.includes('isSignedIn'), 'pinned Login hides when already signed in');
   assert.ok(js.includes('document.body.classList.contains("app")'), 'signed-in app chrome does not get the public Login');
   assert.ok(js.includes('setupPublicPlansMenu'), 'shared public nav still folds old plan heroes');
   assert.ok(js.includes('ensureWhatsNewPublic') && js.includes('ensureWhatsNewSide'), 'What\'s new is added to the public nav and the signed-in menu');
-  assert.ok(js.includes('href: "/song-helper"') && js.includes('href: "/cover-art"') && js.includes('href: "/spark"') && js.includes('href: "/battle"'), 'What\'s new reuses Song Helper, Cover Art, What\'s hot, and Battle');
+  assert.ok(js.includes('href: "/song-helper"') && js.includes('href: "/album-cover-maker"') && js.includes('href: "/spark"') && js.includes('href: "/battle"'), 'What\'s new reuses Song Helper, Cover Art, What\'s hot, and Battle');
   assert.ok(js.includes('href: "/copyright"') && js.includes('href: "/qualify"') && js.includes('href: "/claim"') && js.includes('href: "/make-human"') && js.includes('href: "/destination"') && js.includes('href: "/guide"'), 'What\'s new also lists the rest of the new tools');
   assert.ok(js.includes('href: "/contracts"'), 'What\'s new leads with the contracts hub');
   assert.ok(js.includes('href: "/contracts/review"') && js.includes('href: "/contracts/fix"') && js.includes('href: "/contracts/create"'), 'Contracts submenu lists Review, Fix, and Create mine');
@@ -475,7 +475,7 @@ function run() {
   assert.ok(js.includes('ensureContractsPublic') && js.includes('makeNavGroup("contracts"') && js.includes('link.href = "/contracts"'), 'Contracts is a top-level menu with its hub link');
   const login = read('login.html');
   assert.ok(login.includes('id="whats-new"'), 'login page shows the What\'s new section');
-  assert.ok(login.includes('href="/song-helper">Song Helper</a>') && login.includes('href="/cover-art">Cover Art</a>') && login.includes('href="/spark">What\'s hot</a>') && login.includes('href="/battle">Battle</a>') && login.includes('href="/contracts">Contracts</a>'), 'login page reuses the homepage feature buttons');
+  assert.ok(login.includes('href="/song-helper">Song Helper</a>') && login.includes('href="/album-cover-maker">Cover Art</a>') && login.includes('href="/spark">What\'s hot</a>') && login.includes('href="/battle">Battle</a>') && login.includes('href="/contracts">Contracts</a>'), 'login page reuses the homepage feature buttons');
   assert.ok(!/—/.test(login.slice(login.indexOf('id="whats-new"'), login.indexOf('auth-panel'))), 'login What\'s new copy stays free of em dashes');
   assert.ok(js.includes('foldPublicPlanHeroes'), 'Pricing link is not a Basic / Creator / Pro nest');
   assert.ok(!js.includes('Show Basic, Creator, and Pro'), 'chevron is not labeled as three plan heroes');
@@ -549,15 +549,15 @@ function run() {
     assert.ok(html.includes('href="splits.html">Split sheets</a>'), file + ' menu item must be Split sheets');
     assert.ok(html.includes('href="artists.html">Artist Profiles</a>'), file + ' must list Artist Profiles in the signed-in menu');
     assert.ok(html.includes('href="settings.html">Settings</a>'), file + ' must keep Settings separate from Artist Profiles');
-    assert.ok(html.includes('href="faq.html">FAQ</a>'), file + ' must list FAQ in the signed-in menu');
+    assert.ok(html.includes('href="/faq">FAQ</a>'), file + ' must list FAQ in the signed-in menu');
     const sideNav = html.match(/<nav class="side-nav">[\s\S]*?<\/nav>/);
     assert.ok(sideNav, file + ' must keep a side-nav');
-    assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
+    assert.ok(/Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="\/faq">FAQ<\/a>/.test(sideNav[0]), file + ' must put How it works after Settings, above FAQ');
     assert.ok(/<p class="side-label">Create<\/p>/.test(sideNav[0]) && /<p class="side-label">Act<\/p>/.test(sideNav[0]) && /<p class="side-label">Money<\/p>/.test(sideNav[0]) && /<p class="side-label">Plai<\/p>/.test(sideNav[0]) && /<p class="side-label">Account<\/p>/.test(sideNav[0]), file + ' signed-in menu is Create / Act / Money / Plai / Account');
     assert.ok(/<a class="side-action" href="upload.html" data-new-release data-signed-in-upload>New release<\/a>\s*<p class="side-price">\$2\.49 a song<\/p>\s*<a(?: class="on")? href="releases.html">Releases<\/a>\s*<a(?: class="on")? href="artists.html">Artist Profiles<\/a>\s*<a(?: class="on")? href="splits.html">Split sheets<\/a>/.test(sideNav[0]), file + ' Create is New release, Releases, Artist Profiles, Split sheets');
     assert.ok(/<p class="side-label">Money<\/p>\s*<a(?: class="on")? href="boosts.html"[^>]*>Boosts<\/a>\s*<a[^>]*data-publishing-register[^>]*>Publishing<\/a>\s*<a(?: class="on")? href="earnings.html">Earnings<\/a>\s*<a(?: class="on")? href="analytics.html">Analytics<\/a>\s*<a(?: class="on")? href="payouts.html">Payouts<\/a>/.test(sideNav[0]), file + ' Money is Boosts, Publishing, Earnings, Analytics, Payouts');
     assert.ok(/<p class="side-label">Plai<\/p>\s*<button[^>]*data-plai-talk[^>]*>Talk to Plai<\/button>\s*<button[^>]*data-plai-text[^>]*>Text to Plai<\/button>/.test(sideNav[0]), file + ' Plai is Talk to Plai then Text to Plai');
-    assert.ok(/<p class="side-label">Account<\/p>\s*<a(?: class="on")? href="settings.html">Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="faq.html">FAQ<\/a>/.test(sideNav[0]), file + ' Account is Settings, How it works, FAQ');
+    assert.ok(/<p class="side-label">Account<\/p>\s*<a(?: class="on")? href="settings.html">Settings<\/a>\s*<a(?: class="on")? href="how.html">How it works<\/a>\s*<a(?: class="on")? href="\/faq">FAQ<\/a>/.test(sideNav[0]), file + ' Account is Settings, How it works, FAQ');
     assert.ok(!/>PLAY</.test(sideNav[0]), file + ' must not rename Plai to PLAY in the menu');
     assert.ok(!/elevenlabs/i.test(sideNav[0]), file + ' must not invent ElevenLabs');
     assert.ok(!/data-overview-menu/.test(sideNav[0]) && !/side-submenu/.test(sideNav[0]) && !/href="dashboard.html">Overview</.test(sideNav[0]), file + ' must not keep the Overview nest');
@@ -602,8 +602,8 @@ function run() {
     assert.ok(/href="\/charts"/.test(lastSide), file + ' side-nav SIQA Charts goes to /charts');
     assert.ok(/#F3CB47/.test(lastSide), file + ' side-nav SIQA Charts is gold');
   });
-  assert.ok(/href="faq.html">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
-  assert.ok(/class="on" href="faq.html">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');
+  assert.ok(/href="\/faq">FAQ<\/a>/.test(read('faq.html').match(/<nav class="side-nav">[\s\S]*?<\/nav>/)[0]), 'signed-in FAQ chrome marks the FAQ page');
+  assert.ok(/class="on" href="\/faq">FAQ<\/a>/.test(read('faq.html')), 'faq.html marks FAQ active in the signed-in menu');
   assert.ok(read('site.js').includes('setupSignedInPublicAppChrome'), 'signed-in visits to public+app FAQ swap to the app sidebar');
   assert.ok(read('contact.html').includes('data-account-who>Hi there'), 'Contact keeps the signed-in Hi there header');
   assert.ok(read('contact.html').includes('src="membership.js"') && read('contact.html').includes('src="account.js"'), 'Contact reads the live session for signed-in chrome');
@@ -663,7 +663,7 @@ function run() {
 
   const terms = read('terms.html');
   assert.ok(/src="site\.js(?:\?v=[^"]*)?"/.test(terms), 'terms.html has public nav chrome and needs the hamburger');
-  assert.ok(terms.includes('href="index.html#pricing">Pricing</a>'), 'do not overwrite terms.html public copy');
+  assert.ok(terms.includes('href="/#pricing">Pricing</a>'), 'do not overwrite terms.html public copy');
   assert.ok(terms.includes('emailplaiground@gmail.com'), 'terms.html keeps the public contact email');
   assert.ok(terms.includes('mailto:emailplaiground@gmail.com'), 'terms.html contact is a mailto link');
   assert.ok(!/Alfred/.test(terms), 'terms.html must not contain Alfred');
@@ -807,7 +807,7 @@ function isOverviewHref(href) {
 
 function isLoginHref(href) {
   const path = String(href || '').split('?')[0].split('#')[0];
-  return path === 'login.html' || path === '/login.html';
+  return path === 'login.html' || path === '/login.html' || path === '/login' || path === 'login';
 }
 
 function fireClick(node) {

@@ -177,7 +177,7 @@
 
   function boot() {
     if (!root.document || !readPending()) return;
-    var links = root.document.querySelectorAll('a[href="login.html"], a[href="login.html?"], a.login');
+    var links = root.document.querySelectorAll('a[href="login.html"], a[href="/login.html"], a[href="/login"], a[href="login.html?"], a.login');
     Array.prototype.forEach.call(links, function (link) {
       var href = link.getAttribute('href') || '';
       if (href.indexOf('login') === -1 || href.indexOf('next=') !== -1) return;

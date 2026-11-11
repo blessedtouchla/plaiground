@@ -1209,7 +1209,7 @@
         if (global.PlaigroundMembership && typeof global.PlaigroundMembership.clearSignedIn === 'function') {
           global.PlaigroundMembership.clearSignedIn();
         }
-        global.location.href = 'index.html';
+        global.location.href = '/';
       }).catch(function () {
         submit.removeAttribute('aria-busy');
         submit.disabled = false;
@@ -1223,7 +1223,7 @@
     if (!link) return;
     link.addEventListener('click', function (event) {
       event.preventDefault();
-      var dest = link.getAttribute('href') || 'index.html';
+      var dest = link.getAttribute('href') || '/';
       if (global.PlaigroundMembership && typeof global.PlaigroundMembership.clearSignedIn === 'function') {
         global.PlaigroundMembership.clearSignedIn();
       }
@@ -1238,7 +1238,7 @@
   function bounceUnfinished(result) {
     var path = String((global.location && global.location.pathname) || '');
     var file = path.split('/').pop();
-    if (file === 'confirm.html' || file === 'confirmed.html' || file === 'login.html' || file === 'signup.html') {
+    if (file === 'confirm.html' || file === 'confirmed.html' || file === 'login.html' || file === 'signup.html' || file === 'login' || file === 'signup') {
       return;
     }
     if (result && result.data && result.data.pending) {

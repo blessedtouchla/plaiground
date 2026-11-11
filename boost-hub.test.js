@@ -102,7 +102,7 @@ function run() {
 
   const after = index.match(/<section class="playground"[\s\S]*?<\/section>/);
   assert.ok(after, 'homepage playground stays');
-  assert.ok(/href="\/ar"/.test(after[0]) && /href="\/epk"/.test(after[0]) && /href="royalties\.html"/.test(after[0]), 'playground is A&R, EPK, and earnings');
+  assert.ok(/href="\/ar"/.test(after[0]) && /href="\/epk-maker"/.test(after[0]) && /href="\/royalties"/.test(after[0]), 'playground is A&R, EPK, and earnings');
   assert.ok(!/href="boosts.html"/.test(after[0]), 'logged-out homepage must not open the signed-in Boosts shell');
   assert.ok(!/href="video-collect\.html"/.test(after[0]));
   assert.ok(!/href="boost\.html"/.test(after[0]), 'playground does not lead with marketing boosts');

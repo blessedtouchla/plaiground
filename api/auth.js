@@ -245,7 +245,7 @@ async function signup(req, res) {
       sendJson(res, 409, {
         error: err.message,
         code: 'EMAIL_EXISTS',
-        login: '/login.html',
+        login: '/login',
       });
       return;
     }

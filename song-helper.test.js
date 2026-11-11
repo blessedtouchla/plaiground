@@ -1316,9 +1316,9 @@ function runPage() {
   assert.ok(html.includes('Drafts are AI-assisted.'));
   assert.ok(html.includes('name="company_website"'));
   assert.ok(html.includes('href="/ar"'));
-  assert.ok(html.includes('href="/epk"'));
-  assert.ok(html.includes('href="how-it-works.html#distribute"'));
-  assert.ok(html.includes('href="/cover-art"'));
+  assert.ok(html.includes('href="/epk-maker"'));
+  assert.ok(html.includes('href="/how-it-works#distribute"'));
+  assert.ok(html.includes('href="/album-cover-maker"'));
   assert.ok(html.includes('Make your cover'));
   assert.ok(!html.includes('noindex'));
   assert.ok(!nav.includes('song-helper'));

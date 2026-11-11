@@ -854,8 +854,8 @@ function runPages() {
   assert.ok(html.includes('id="sh-save-song"'));
   assert.ok(html.indexOf('id="sh-expand"') < html.indexOf('id="sh-save-song"'));
   assert.ok(html.includes('Your lyrics stay on this device'));
-  assert.ok(html.includes('login.html?next=/my-lyrics'));
-  assert.ok(html.includes('signup.html?next=/my-lyrics'));
+  assert.ok(html.includes('/login?next=/my-lyrics'));
+  assert.ok(html.includes('/signup?next=/my-lyrics'));
   assert.ok(js.includes('PlaigroundLyricsAccount'));
   assert.ok(read('membership.js').includes("path === '/my-lyrics'"));
   assert.ok(html.indexOf('id="sh-expand"') < html.indexOf('data-transform="flip"'));

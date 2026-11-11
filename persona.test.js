@@ -238,7 +238,7 @@ function runCopy() {
     assert.ok(week.includes(line), 'release week missing: ' + line);
   });
   assert.ok(week.includes('href="/plai.html?topic=release-week"'));
-  assert.ok(week.includes('href="/ar.html">Want help?'));
+  assert.ok(week.includes('href="/ar">Want help?'));
   assert.ok(week.includes('href="/song-helper">Make your next song</a>'));
   assert.ok(vercel.includes('"/release-week"') && vercel.includes('"/release-week.html"'));
   assert.ok(read('plai.html').includes('href="/release-week">Plan the posts for release week</a>'));

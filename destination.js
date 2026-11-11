@@ -51,7 +51,7 @@
       title: 'Cover Art',
       face: 'plai',
       status: 'live',
-      href: '/cover-art',
+      href: '/album-cover-maker',
       link: 'Cover Art',
       what: 'Cover art with themes, made for this song.',
       get: 'Artwork for the release. People check the work.',
@@ -83,7 +83,7 @@
       title: 'Persona + EPK',
       face: 'scoop',
       status: 'live',
-      href: '/epk',
+      href: '/epk-maker',
       link: 'EPK',
       what: 'A persona, a short bio, and a press kit for the act.',
       get: 'A page a blog, venue, or curator can read. People check the work.',
@@ -99,7 +99,7 @@
       title: 'Distribution',
       face: 'drop',
       status: 'live',
-      href: '/how-it-works.html#distribute',
+      href: '/how-it-works#distribute',
       link: 'Distribution',
       what: 'The release goes to the major stores.',
       get: 'Your song on the stores. People check the work.',
@@ -115,7 +115,7 @@
       title: 'How you get paid',
       face: 'plai',
       status: 'live',
-      href: '/royalties.html',
+      href: '/royalties',
       link: 'How you get paid',
       what: 'Track your release in the dashboard. PLAIGROUND does not take a cut of your royalties.',
       get: 'A clear picture of payment. People check the work.',
@@ -557,7 +557,7 @@
     if (COUNTS[plan.artistCount]) params.set('artistCount', plan.artistCount);
     var genres = packGenres(plan.genres, plan.genreOther);
     if (genres.length) params.set('genres', genres.join(','));
-    return '/signup.html?' + params.toString();
+    return '/signup?' + params.toString();
   }
 
   function signedInFromProbe(result, hinted) {
@@ -1402,7 +1402,7 @@
         }
         readMini();
         var goLabel = go.textContent;
-        var nextHref = signedIn ? '/my-roadmap?saved=1' : (go.getAttribute('href') || '/signup.html?plan=basic');
+        var nextHref = signedIn ? '/my-roadmap?saved=1' : (go.getAttribute('href') || '/signup?plan=basic');
         event.preventDefault();
         go.textContent = 'Saving…';
         go.setAttribute('aria-disabled', 'true');

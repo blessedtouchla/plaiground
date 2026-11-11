@@ -175,9 +175,9 @@ function run() {
   assert.ok(css.includes('body.charts-page:has(.charts-player:not([hidden])) .plai-bubble'), 'charts CSS also parks Plai above the mini-player');
   [rnbHtml, countryHtml, gospelHtml].forEach(function (page) {
     assert.ok(page.includes('data-charts-play') && page.includes('Back to charts'), 'genre pages share the mini-player');
-    assert.ok(/href="\/index\.html"/.test(page.match(/<a class="logo"[^>]*>/)[0]), 'genre logo still goes to the homepage');
+    assert.ok(/href="\/"/.test(page.match(/<a class="logo"[^>]*>/)[0]), 'genre logo still goes to the homepage');
   });
-  assert.ok(/href="\/index\.html"/.test(top100Html.match(/<a class="logo"[^>]*>/)[0]), 'Top 100 logo still goes to the homepage');
+  assert.ok(/href="\/"/.test(top100Html.match(/<a class="logo"[^>]*>/)[0]), 'Top 100 logo still goes to the homepage');
   assert.ok(js.includes('https://www.youtube.com/embed/'), 'embed URL is youtube.com/embed/VIDEO_ID');
   assert.ok(js.includes('modestbranding=1'), 'embed uses modestbranding=1');
   assert.ok(js.includes('rel=0'), 'embed uses rel=0');
@@ -254,10 +254,10 @@ function run() {
     assert.ok(header, file + ' keeps the public header');
     assert.ok(/<a class="logo"[^>]*href="\/(?:index\.html)?"/.test(header[0]), file + ' logo is a root-absolute homepage link');
     assert.ok(!/<a class="logo"[^>]*href="index\.html"/.test(header[0]), file + ' logo must not use a relative index.html');
-    assert.ok(/href="\/login\.html">Log in<\/a>/.test(header[0]), file + ' Log in is root-absolute');
-    assert.ok(/href="\/how-it-works\.html">How it works<\/a>/.test(header[0]), file + ' Menu How it works is root-absolute');
-    assert.ok(/href="\/index\.html#pricing">Plans and Pricing<\/a>/.test(header[0]), file + ' Menu Plans and Pricing is root-absolute');
-    assert.ok(/href="\/faq\.html">FAQ<\/a>/.test(header[0]), file + ' Menu FAQ is root-absolute');
+    assert.ok(/href="\/login">Log in<\/a>/.test(header[0]), file + ' Log in is a root-absolute pretty URL');
+    assert.ok(/href="\/how-it-works">How it works<\/a>/.test(header[0]), file + ' Menu How it works is root-absolute');
+    assert.ok(/href="\/#pricing">Plans and Pricing<\/a>/.test(header[0]), file + ' Menu Plans and Pricing is root-absolute');
+    assert.ok(/href="\/faq">FAQ<\/a>/.test(header[0]), file + ' Menu FAQ is root-absolute');
   });
 
   const dashNav = read('dashboard.html').match(/<nav class="side-nav"[^>]*>[\s\S]*?<\/nav>/);

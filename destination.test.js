@@ -112,12 +112,12 @@ function runRoutes() {
   assert.strictEqual(core.STOPS.helper.href, '/song-helper');
   assert.ok(!core.STOPS.helper.what.includes('until the writer connection is wired'));
   assert.strictEqual(core.STOPS.cover.status, 'live');
-  assert.strictEqual(core.STOPS.cover.href, '/cover-art');
+  assert.strictEqual(core.STOPS.cover.href, '/album-cover-maker');
   assert.ok(/themes/i.test(core.STOPS.cover.what));
   assert.strictEqual(core.STOPS.check.href, '/ar');
-  assert.strictEqual(core.STOPS.persona.href, '/epk');
-  assert.strictEqual(core.STOPS.distro.href, '/how-it-works.html#distribute');
-  assert.strictEqual(core.STOPS.royalties.href, '/royalties.html');
+  assert.strictEqual(core.STOPS.persona.href, '/epk-maker');
+  assert.strictEqual(core.STOPS.distro.href, '/how-it-works#distribute');
+  assert.strictEqual(core.STOPS.royalties.href, '/royalties');
   assert.strictEqual(core.STOPS.publishing.href, '/publishing.html');
   assert.strictEqual(core.STOPS.sync.href, '/#pricing');
   assert.ok(core.STOPS.sync.what.includes('No placement promise'));
@@ -317,7 +317,7 @@ function runPage() {
   assert.ok(nav.indexOf('data-nav-group="roadmap"') < nav.indexOf('data-nav-group="product"'), 'Roadmap is the first public nav item');
   assert.ok(/<h4>After upload<\/h4>[\s\S]*href="\/destination">Route map<\/a>/.test(footer), 'footer lists the route map under After upload');
   assert.ok(html.includes('id="dest-go"'));
-  assert.ok(html.includes('signup.html?plan=basic'));
+  assert.ok(html.includes('/signup?plan=basic'));
   assert.ok(html.includes('id="dest-save"'));
   assert.ok(html.includes('Sign up free to save your roadmap'));
   assert.ok(html.includes('Already have an account? <a id="dest-save-login" href="/login">Sign in</a>'));
@@ -413,7 +413,7 @@ function runPage() {
 
   const home = read('index.html');
   const hero = home.match(/<section class="hero"[\s\S]*?<\/section>/)[0];
-  assert.ok(/class="btn btn-gold btn-md" href="signup\.html">Join free</.test(hero), 'homepage primary CTA is Join free');
+  assert.ok(/class="btn btn-gold btn-md[^"]*" href="\/signup">Join free</.test(hero), 'homepage primary CTA is Join free');
   assert.ok(/href="\/destination">Build your roadmap</.test(hero), 'roadmap stays a secondary link');
   assert.ok(!/class="btn btn-gold[^"]*" href="\/destination"/.test(hero), 'roadmap is not a second gold primary');
 }

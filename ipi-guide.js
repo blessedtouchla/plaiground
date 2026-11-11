@@ -10,7 +10,7 @@
   var state = G.load(store);
   var W = window.PlaigroundWriterIpi || null;
   var account = { signedIn: false, writer: null, checked: false };
-  var LOGIN_BACK = 'login.html?next=' + encodeURIComponent('ipi-guide.html#step-' + (G.STEPS.length - 1));
+  var LOGIN_BACK = '/login?next=' + encodeURIComponent('/ipi-guide#step-' + (G.STEPS.length - 1));
   var current = G.clampStep(readHash() != null ? readHash() : state.step || 0);
 
   function readHash() {
@@ -181,7 +181,7 @@
     if (!account.signedIn) {
       var keep = el('p', 'ipg-keep');
       var join = el('a', 'ipg-keep-link', 'Sign up free to keep your IPI on your account.');
-      join.href = 'signup.html';
+      join.href = '/signup';
       keep.appendChild(join);
       keep.appendChild(document.createTextNode(' Already a member? '));
       var login = el('a', 'ipg-keep-link', 'Log in');

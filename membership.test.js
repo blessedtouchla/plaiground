@@ -169,7 +169,7 @@ function runLoginWall() {
     assert.strictEqual(unpaidPro.api.hasPaidAccess(), true);
     assert.strictEqual(unpaidPro.api.requireMembership(), true);
     assert.strictEqual(unpaidPro.location.href, 'upload.html', 'signed-in unpaid Pro stays on a gated page');
-    assert.ok(unpaidPro.location.href.indexOf('login.html') === -1);
+    assert.ok(unpaidPro.location.href.indexOf('/login') === -1);
 
     const retryThenPro = load({
       require: true,
@@ -186,7 +186,7 @@ function runLoginWall() {
       assert.strictEqual(retryThenPro.api.hasPlan(), true);
       assert.strictEqual(retryThenPro.api.requireMembership(), true);
       assert.strictEqual(retryThenPro.location.href, 'earnings.html', 'retry 200 unpaid Pro must not replace location with login.html');
-      assert.ok(retryThenPro.location.href.indexOf('login.html') === -1);
+      assert.ok(retryThenPro.location.href.indexOf('/login') === -1);
 
       const cookieStay = load({
         require: true,
@@ -201,7 +201,7 @@ function runLoginWall() {
       return cookieStay.api.whenReady().then(function () {
         assert.strictEqual(cookieStay.api.requireMembership(), true);
         assert.strictEqual(cookieStay.location.href, 'boosts.html', 'session cookie present: stay even if /api/me stays 401/503');
-        assert.ok(cookieStay.location.href.indexOf('login.html') === -1);
+        assert.ok(cookieStay.location.href.indexOf('/login') === -1);
 
         const publishingStay = load({
           requirePublishing: true,
@@ -216,7 +216,7 @@ function runLoginWall() {
         return publishingStay.api.whenReady().then(function () {
           assert.strictEqual(publishingStay.api.requirePublishingAccess(), true);
           assert.strictEqual(publishingStay.location.href, 'publishing-register.html');
-          assert.ok(publishingStay.location.href.indexOf('login.html') === -1);
+          assert.ok(publishingStay.location.href.indexOf('/login') === -1);
 
           let releaseDeferred;
           const clickBefore = load({
@@ -239,7 +239,7 @@ function runLoginWall() {
           fireClicks(clickBefore, uploadEvent);
           assert.ok(uploadEvent.prevented, 'upload click waits for /api/me');
           assert.ok(
-            clickBefore.api.destinationForSignedInUpload('upload.html').indexOf('login.html') === -1,
+            clickBefore.api.destinationForSignedInUpload('upload.html').indexOf('/login') === -1,
             'click-before-probe must not send them to login'
           );
           assert.strictEqual(clickBefore.location.href, 'dashboard.html', 'must not rewrite to login.html before accountReady');
@@ -247,7 +247,7 @@ function runLoginWall() {
           return clickBefore.api.whenReady().then(function () {
             return Promise.resolve().then(function () {
               assert.strictEqual(clickBefore.location.href, 'upload.html');
-              assert.ok(clickBefore.location.href.indexOf('login.html') === -1);
+              assert.ok(clickBefore.location.href.indexOf('/login') === -1);
               assert.strictEqual(clickBefore.api.hasPaidAccess(), true, 'staff Pro unlocks after probe without Stripe');
 
               const dumpedUrls = [
@@ -278,7 +278,7 @@ function runLoginWall() {
                   assert.strictEqual(hintOnly.api.hasPaidAccess(), true, page.href + ' unpaid Pro keeps paid access');
                   assert.strictEqual(hintOnly.api.requireMembership(), true, page.href + ' membership gate stays');
                   assert.strictEqual(hintOnly.location.href, page.href, 'signed-in unpaid Pro stays on ' + page.href);
-                  assert.ok(hintOnly.location.href.indexOf('login.html') === -1, page.href + ' must not dump to login.html');
+                  assert.ok(hintOnly.location.href.indexOf('/login') === -1, page.href + ' must not dump to login.html');
                   assert.strictEqual(hintOnly.api.isSignedIn(), true, page.href + ' cookie hydrates isSignedIn');
                   assert.strictEqual(hintOnly.api.hasLiveSession(), true, page.href + ' live session includes plaiground_signed');
 
@@ -296,7 +296,7 @@ function runLoginWall() {
                   return cookieOnly.api.whenReady().then(function () {
                     assert.strictEqual(cookieOnly.api.requireMembership(), true);
                     assert.strictEqual(cookieOnly.location.href, page.href, 'readable session hint keeps ' + page.href);
-                    assert.ok(cookieOnly.location.href.indexOf('login.html') === -1);
+                    assert.ok(cookieOnly.location.href.indexOf('/login') === -1);
                   });
                 });
               }
@@ -315,7 +315,7 @@ function runLoginWall() {
                 return albumClick.api.whenReady().then(function () {
                   return Promise.resolve().then(function () {
                     assert.strictEqual(albumClick.location.href, 'upload.html?type=album', 'Releases Upload an album stays signed in');
-                    assert.ok(albumClick.location.href.indexOf('login.html') === -1);
+                    assert.ok(albumClick.location.href.indexOf('/login') === -1);
 
                     const loggedOut401 = load({
                       require: true,
@@ -327,7 +327,7 @@ function runLoginWall() {
                       ],
                     });
                     return loggedOut401.api.whenReady().then(function () {
-                      assert.ok(loggedOut401.location.href.indexOf('login.html') !== -1, 'true logged-out 401 still goes to login');
+                      assert.ok(loggedOut401.location.href.indexOf('/login') !== -1, 'true logged-out 401 still goes to login');
                       assert.ok(loggedOut401.location.href.indexOf('next=payouts.html') !== -1, 'logged-out dump keeps a safe return path');
 
                       const loginBounce = load({
@@ -376,10 +376,10 @@ function runLoginWall() {
                             });
                             return evilLogin.api.whenReady().then(function () {
                               assert.strictEqual(evilLogin.location.href, 'dashboard.html', 'off-site next is ignored');
-                              assert.strictEqual(evilLogin.api.loginHref('https://evil.example'), 'login.html');
-                              assert.strictEqual(evilLogin.api.loginHref('//evil.example'), 'login.html');
-                              assert.strictEqual(evilLogin.api.loginHref('../login.html'), 'login.html');
-                              assert.strictEqual(returnLogin.api.loginHref('boosts.html'), 'login.html?next=boosts.html');
+                              assert.strictEqual(evilLogin.api.loginHref('https://evil.example'), '/login');
+                              assert.strictEqual(evilLogin.api.loginHref('//evil.example'), '/login');
+                              assert.strictEqual(evilLogin.api.loginHref('../login.html'), '/login');
+                              assert.strictEqual(returnLogin.api.loginHref('boosts.html'), '/login?next=boosts.html');
                               console.log('membership.test.js ok');
                             });
                           });
@@ -620,7 +620,7 @@ function run() {
     ],
   });
   return loggedOut.api.whenReady().then(function () {
-    assert.ok(loggedOut.location.href.indexOf('login.html') !== -1, 'confirmed 401 still goes to login');
+    assert.ok(loggedOut.location.href.indexOf('/login') !== -1, 'confirmed 401 still goes to login');
     assert.strictEqual(loggedOut.api.isConfirmedLoggedOut(), true);
 
     const ambiguous503 = load({
@@ -636,7 +636,7 @@ function run() {
       assert.strictEqual(ambiguous503.api.requireMembership(), true, '503 is not a confirmed logout');
       assert.strictEqual(ambiguous503.api.isConfirmedLoggedOut(), false);
       assert.strictEqual(ambiguous503.location.href, 'upload.html', 'dashboard path: stay when /api/me is 503 and JS cannot see the HttpOnly cookie');
-      assert.ok(ambiguous503.location.href.indexOf('login.html') === -1);
+      assert.ok(ambiguous503.location.href.indexOf('/login') === -1);
       assert.strictEqual(ambiguous503.api.destinationForSignedInUpload('upload.html'), 'upload.html');
 
       const noPlan = load({
@@ -646,7 +646,7 @@ function run() {
         account: { email: 'free@example.com', plan: null, status: 'active' },
       });
       return noPlan.api.whenReady().then(function () {
-        assert.ok(noPlan.location.href.indexOf('index.html?needplan=1#pricing') !== -1, 'signed-in /api/me 200 without a plan still goes to pricing');
+        assert.ok(noPlan.location.href.indexOf('/?needplan=1#pricing') !== -1, 'signed-in /api/me 200 without a plan still goes to pricing');
 
         const freeDashboard = load({
           require: true,
@@ -792,7 +792,7 @@ function continueMembershipSyncTests() {
     seedLocal: { plaigroundSignedIn: '1', plaigroundMembership: 'creator' },
   });
   assert.ok(boostTeaseIn.location.href.indexOf('boosts.html') !== -1, 'signed-in boost.html goes to signed-in boosts');
-  assert.ok(boostTeaseIn.location.href.indexOf('login.html') === -1, 'signed-in boost.html must not dump to login');
+  assert.ok(boostTeaseIn.location.href.indexOf('/login') === -1, 'signed-in boost.html must not dump to login');
 
   const boostTeaseOut = load({
     pathname: '/boost.html',
@@ -898,7 +898,7 @@ function continueMembershipSyncTests() {
           return basicPublishing.api.whenReady().then(function () {
             assert.strictEqual(basicPublishing.api.hasPaidAccess(), false);
             assert.strictEqual(basicPublishing.api.requirePublishingAccess(), false);
-            assert.ok(basicPublishing.location.href.indexOf('index.html?needplan=1#pricing') !== -1);
+            assert.ok(basicPublishing.location.href.indexOf('/?needplan=1#pricing') !== -1);
             assert.ok(basicPublishing.location.href.indexOf('pro.html') === -1);
 
             function clickEvent(sel, href) {
@@ -935,7 +935,7 @@ function continueMembershipSyncTests() {
             return publishingClick.api.whenReady().then(function () {
               return Promise.resolve().then(function () {
                 assert.strictEqual(publishingClick.location.href, 'publishing-register.html');
-                assert.ok(publishingClick.location.href.indexOf('login.html') === -1);
+                assert.ok(publishingClick.location.href.indexOf('/login') === -1);
 
                 const uploadClick = load({
                   pathname: '/how.html',
@@ -953,7 +953,7 @@ function continueMembershipSyncTests() {
                 return uploadClick.api.whenReady().then(function () {
                   return Promise.resolve().then(function () {
                     assert.strictEqual(uploadClick.location.href, 'upload.html', 'signed-in Start a submission opens upload');
-                    assert.ok(uploadClick.location.href.indexOf('login.html') === -1);
+                    assert.ok(uploadClick.location.href.indexOf('/login') === -1);
 
                     const staffPro = load({
                       requirePaid: true,

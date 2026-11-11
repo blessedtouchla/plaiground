@@ -484,7 +484,7 @@ function runPage() {
   assert.ok(!html.includes('Style prompt for Suno'));
   assert.ok(html.includes(core.CREDIT_NOTE));
   assert.ok(html.includes('href="/song-helper?from=battle"'));
-  assert.ok(html.includes('href="/cover-art"'));
+  assert.ok(html.includes('href="/album-cover-maker"'));
   assert.ok(html.includes('No slurs, hate, threats'));
   assert.ok(html.includes('Clean roast stays PG-13.'));
   assert.ok(!/\$/.test(intro));

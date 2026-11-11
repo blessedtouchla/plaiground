@@ -444,7 +444,7 @@ function runPage() {
   assert.ok(!nav.includes('cover-art'));
   assert.ok(!nav.includes('song-helper'));
   assert.ok(!songNav.includes('cover-art'));
-  assert.ok(songPage.includes('href="/cover-art"'));
+  assert.ok(songPage.includes('href="/album-cover-maker"'));
   assert.ok(!/Grok/.test(html), 'Grok stays off the page chrome');
   assert.ok(!/Powered by Grok/i.test(html + js));
   assert.ok(!/hit song|guaranteed/i.test(html + js));
@@ -488,7 +488,7 @@ function runPage() {
   assert.ok(js.includes('Still making options'));
   assert.ok(js.includes('AbortController'));
   assert.ok(js.includes("body.bill = 'release'"));
-  assert.ok(index.includes('href="/cover-art">Cover Art</a>'));
+  assert.ok(index.includes('href="/album-cover-maker">Cover Art</a>'));
   assert.ok(index.includes('href="/song-helper">Song Lab</a>'));
   assert.ok((vercel.rewrites || []).some(function (row) {
     return row.source === '/cover-art' && row.destination === '/cover-art.html';

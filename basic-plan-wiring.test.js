@@ -10,7 +10,7 @@ function read(file) {
 
 function run() {
   const index = read('index.html');
-  assert.ok(index.indexOf('href="signup.html?plan=basic"') !== -1);
+  assert.ok(index.indexOf('href="/signup?plan=basic"') !== -1);
   assert.ok(index.indexOf('data-plan="basic"') !== -1);
   assert.ok(index.indexOf('Join free') !== -1);
   assert.ok(index.indexOf('$0') !== -1);
@@ -19,10 +19,10 @@ function run() {
   assert.ok(index.indexOf('Unlimited releases') === -1);
 
   const how = read('how-it-works.html');
-  assert.ok(how.indexOf('href="signup.html?plan=basic"') !== -1);
+  assert.ok(how.indexOf('href="/signup?plan=basic"') !== -1);
 
   const basic = read('basic.html');
-  assert.ok(basic.indexOf('href="signup.html?plan=basic"') !== -1);
+  assert.ok(basic.indexOf('href="/signup?plan=basic"') !== -1);
   assert.ok(basic.indexOf('data-plan="basic"') !== -1);
   assert.ok(basic.indexOf('membership.js') !== -1);
 

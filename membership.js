@@ -9,9 +9,9 @@
   var REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
   var VALID = { basic: true, creator: true, pro: true };
   var PAID = { creator: true, pro: true };
-  var LOGIN = 'login.html';
-  var PRICING = 'index.html?needplan=1#pricing';
-  var HOLD_PRICING = 'index.html?hold=1#pricing';
+  var LOGIN = '/login';
+  var PRICING = '/?needplan=1#pricing';
+  var HOLD_PRICING = '/?hold=1#pricing';
   var PUBLISHING = 'publishing-register.html';
 
   function storageGet(storage, key) {
@@ -325,9 +325,14 @@
     if (/^\/charts\/(top-100|rnb|country|gospel)\/?$/.test(path)) {
       return path.replace(/\/$/, '');
     }
-    if (!file || file === 'login.html') return '';
+    if (!file || file === 'login.html' || file === 'login' || path === '/login' || path === '/login/') return '';
+    if (file === 'signup.html' || file === 'signup' || path === '/signup' || path === '/signup/') return '';
     var search = String((global.location && global.location.search) || '');
     var hash = String((global.location && global.location.hash) || '');
+    // .html app screens keep the relative return the login page already accepts.
+    // Pretty public paths are absolute so /blog/welcome is not reduced to "welcome".
+    if (/\.html$/i.test(file)) return safeNext(file + search + hash);
+    if (path.charAt(0) === '/' && path !== '/') return safeNext(path + search + hash);
     return safeNext(file + search + hash);
   }
 
@@ -581,7 +586,9 @@
   }
 
   function isLoginPage() {
-    return pageFile() === 'login.html';
+    var path = String((global.location && global.location.pathname) || '');
+    var file = pageFile();
+    return file === 'login.html' || file === 'login' || path === '/login' || path === '/login/';
   }
 
   function goDashboardFromLogin() {

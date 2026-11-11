@@ -1,6 +1,6 @@
 (function (global) {
   var OWNER = 'emailplaiground@gmail.com';
-  var LOGIN = 'login.html';
+  var LOGIN = '/login';
   var DENY = 'dashboard.html';
 
   function normalizeEmail(value) {

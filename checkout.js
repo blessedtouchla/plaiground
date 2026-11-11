@@ -159,7 +159,7 @@
         trigger.textContent = original;
         if (result.status === 401 && !isSwitch(trigger)) {
           var plan = trigger.getAttribute('data-checkout-plan') || '';
-          var dest = 'login.html';
+          var dest = '/login';
           if (plan) dest += '?plan=' + encodeURIComponent(plan);
           window.location.href = dest;
           return;

@@ -80,7 +80,7 @@
     var wrap = el('div', 'v3-wrap');
     var top = el('div', 'v3-top');
     var word = el('a', 'v3-word', 'PLAIGROUND');
-    word.href = 'index.html';
+    word.href = '/';
     top.appendChild(word);
     var purse = wallet();
     top.appendChild(el('span', 'v3-credits', purse.freeLeft > 0 ? 'FREE WRITE' : ('CREDITS ' + purse.credits)));

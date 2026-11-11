@@ -1751,8 +1751,8 @@
     var next = '/claim?id=' + encodeURIComponent(id);
     var signup = $('sh-claim-signup');
     var login = $('sh-claim-login');
-    if (signup) signup.setAttribute('href', 'signup.html?next=' + encodeURIComponent(next));
-    if (login) login.setAttribute('href', 'login.html?next=' + encodeURIComponent(next));
+    if (signup) signup.setAttribute('href', '/signup?next=' + encodeURIComponent(next));
+    if (login) login.setAttribute('href', '/login?next=' + encodeURIComponent(next));
     if (gate) gate.hidden = false;
   }
 

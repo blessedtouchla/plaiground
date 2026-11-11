@@ -166,4 +166,39 @@ assert.strictEqual(new Set(locs).size, locs.length, 'sitemap locs are unique');
   assert.ok(toolHits.length >= 2, file + ' should link back to tool pages');
 });
 
+assert.ok(!locs.includes('https://www.wannaplai.com/epk'), 'sitemap must not list /epk');
+assert.ok(!locs.includes('https://www.wannaplai.com/cover-art'), 'sitemap must not list /cover-art');
+[
+  'https://www.wannaplai.com/research',
+  'https://www.wannaplai.com/charts/top-100',
+  'https://www.wannaplai.com/charts/country',
+  'https://www.wannaplai.com/charts/gospel',
+  'https://www.wannaplai.com/charts/rnb',
+  'https://www.wannaplai.com/ar',
+  'https://www.wannaplai.com/spark',
+  'https://www.wannaplai.com/about',
+  'https://www.wannaplai.com/contact',
+  'https://www.wannaplai.com/royalties',
+  'https://www.wannaplai.com/rights',
+  'https://www.wannaplai.com/transparency'
+].forEach(function (loc) {
+  assert.ok(locs.includes(loc), 'sitemap missing ' + loc);
+});
+assert.ok(read('terms.html').includes('href="https://www.wannaplai.com/terms"'), 'terms canonical is the pretty URL');
+assert.ok(read('privacy.html').includes('href="https://www.wannaplai.com/privacy"'), 'privacy canonical is the pretty URL');
+assert.ok(read('how.html').includes('href="https://www.wannaplai.com/how-it-works"'), 'signed-in how.html canonical points at /how-it-works');
+assert.ok(!vercel.redirects.some(function (row) { return row.source === '/how.html'; }), 'signed-in how.html is not redirected');
+assert.ok(!vercel.redirects.some(function (row) { return row.source === '/dashboard.html'; }), 'dashboard.html is not redirected');
+assert.ok(!vercel.redirects.some(function (row) { return row.source === '/settings.html'; }), 'settings.html is not redirected');
+assert.ok(vercel.redirects.some(function (row) {
+  return row.source === '/faq.html' && row.destination === '/faq' && row.permanent === true;
+}), 'faq.html redirects to /faq');
+assert.ok(vercel.redirects.some(function (row) {
+  return row.source === '/blog/welcome/' && row.destination === '/blog/welcome' && row.permanent === true;
+}), 'trailing slash redirects to the pretty blog URL');
+assert.ok(read('dashboard.html').includes('name="robots" content="noindex, nofollow"'), 'dashboard is noindex');
+assert.ok(read('qualify.html').includes('<h1>Is my song ready?</h1>'), 'qualify has an H1');
+assert.ok(read('copyright.html').includes('<h1>Copyright and publishing</h1>'), 'copyright has an H1');
+assert.ok(!/noindex/i.test(read('song-helper.html')), 'song-helper.html stays indexable');
+
 console.log('seo-pages.test.js ok');

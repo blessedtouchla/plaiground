@@ -318,7 +318,7 @@
     '<a href="splits.html">Split sheets</a>' +
     '<a href="earnings.html">Earnings</a>' +
     '<a href="settings.html">Settings</a>' +
-    '<a href="faq.html">FAQ</a>';
+    '<a href="/faq">FAQ</a>';
   function setupFlowMenu() {
     var body = document.body;
     var top = body && document.querySelector("body > .flow-top");
@@ -423,7 +423,7 @@
   }
 
   function brandHomeHref(signedIn) {
-    if (!signedIn) return "/index.html";
+    if (!signedIn) return "/";
     var api = window.PlaigroundMembership;
     if (api && typeof api.signedInHome === "function") return rootPageHref(api.signedInHome(), "/dashboard.html");
     return "/dashboard.html";
@@ -477,7 +477,7 @@
   function makePublicLogin() {
     var login = document.createElement("a");
     login.className = "login public-header-login";
-    login.href = "/login.html";
+    login.href = "/login";
     login.textContent = "Log in";
     return login;
   }
@@ -492,8 +492,8 @@
     var login = existingPublicLogin(header);
     if (login) {
       login.classList.add("public-header-login");
-      login.setAttribute("href", "/login.html");
-      login.href = "/login.html";
+      login.setAttribute("href", "/login");
+      login.href = "/login";
     } else {
       login = makePublicLogin();
     }
@@ -509,7 +509,7 @@
     if (!document.querySelector(".starter-banner")) {
       var banner = document.createElement("a");
       banner.className = "starter-banner starter-cta";
-      banner.href = "/signup.html";
+      banner.href = "/signup";
       banner.setAttribute("data-starter-cta", "");
       banner.textContent = "Join free. Get starter credits to try every tool.";
       header.insertBefore(banner, header.firstChild);
@@ -518,7 +518,7 @@
     if (footBrand && !footBrand.querySelector(".starter-cta")) {
       var foot = document.createElement("a");
       foot.className = "starter-cta starter-foot btn btn-gold btn-sm";
-      foot.href = "/signup.html";
+      foot.href = "/signup";
       foot.setAttribute("data-starter-cta", "");
       foot.textContent = "Join free. Get starter credits to try every tool.";
       footBrand.appendChild(foot);
@@ -573,8 +573,10 @@
   }
 
   function isBlogPage() {
-    var page = hrefFile((window.location && window.location.pathname) || "");
-    return page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog";
+    var path = "";
+    try { path = String((window.location && window.location.pathname) || ""); } catch (err) {}
+    var page = hrefFile(path);
+    return page === "blog.html" || page.indexOf("blog-") === 0 || page === "blog" || path === "/blog" || path.indexOf("/blog/") === 0;
   }
 
   function linkText(el) {
@@ -680,16 +682,16 @@
     var href = el.getAttribute("href") || "";
     var file = hrefFile(href);
     var text = linkText(el);
-    if (file === "how-it-works.html") return "how";
+    if (file === "how-it-works.html" || file === "how-it-works") return "how";
     if (href.indexOf("#pricing") !== -1) return "plans";
     if (file === "basic.html") return "basic";
     if (file === "creator.html") return "creator";
     if (file === "pro.html") return "pro";
     if (file === "ar.html" || file === "ar") return "ar";
-    if (file === "epk.html" || file === "epk") return "epk";
-    if (file === "royalties.html" || /how you get paid|^royalties$/i.test(text)) return "paid";
-    if (file === "transparency.html") return "transparency";
-    if (file === "faq.html") return "faq";
+    if (file === "epk.html" || file === "epk" || file === "epk-maker") return "epk";
+    if (file === "royalties.html" || file === "royalties" || /how you get paid|^royalties$/i.test(text)) return "paid";
+    if (file === "transparency.html" || file === "transparency") return "transparency";
+    if (file === "faq.html" || file === "faq") return "faq";
     if (el.classList && el.classList.contains("nav-siqa")) return "charts";
     if (file === "charts" || file === "charts.html" || href === "/charts" || href === "/charts.html") return "charts";
     if (isBlogHref(href) || text === "Blog") return "blog";
@@ -748,12 +750,12 @@
     var on = false;
     if (key === "blog" && isBlogPage()) on = true;
     if (key === "charts" && (file === "charts" || file.indexOf("charts") === 0)) on = true;
-    if (key === "how" && file === "how-it-works.html") on = true;
-    if (key === "faq" && file === "faq.html") on = true;
-    if (key === "paid" && file === "royalties.html") on = true;
+    if (key === "how" && (file === "how-it-works.html" || file === "how-it-works")) on = true;
+    if (key === "faq" && (file === "faq.html" || file === "faq")) on = true;
+    if (key === "paid" && (file === "royalties.html" || file === "royalties")) on = true;
     if (key === "ar" && (file === "ar.html" || file === "ar")) on = true;
-    if (key === "epk" && (file === "epk.html" || file === "epk")) on = true;
-    if (key === "transparency" && file === "transparency.html") on = true;
+    if (key === "epk" && (file === "epk.html" || file === "epk" || file === "epk-maker")) on = true;
+    if (key === "transparency" && (file === "transparency.html" || file === "transparency")) on = true;
     if (key === "basic" && file === "basic.html") on = true;
     if (key === "creator" && file === "creator.html") on = true;
     if (key === "pro" && file === "pro.html") on = true;
@@ -854,7 +856,7 @@
   var WHATS_NEW_LINKS = [
     { href: "/contracts", label: "Contracts" },
     { href: "/song-helper", label: "Song Lab" },
-    { href: "/cover-art", label: "Cover Art" },
+    { href: "/album-cover-maker", label: "Cover Art" },
     { href: "/copyright", label: "Copyright & publishing" },
     { href: "/qualify", label: "Is my song ready?" },
     { href: "/claim", label: "Claim my human parts" },
@@ -1033,15 +1035,15 @@
 
   // Menu mirrors the homepage: Song Lab, What's new, then Make it / Protect it / Put it out / Grow.
   var HOME_GROUPS = [
-    { id: "make", label: "Make it", test: /cover-art|make-human|battle|spark|my-lyrics/ },
+    { id: "make", label: "Make it", test: /album-cover-maker|cover-art|make-human|battle|spark|my-lyrics/ },
     { id: "protect", label: "Protect it", test: /contracts|copyright|qualify|claim|publishing|split|transparency|rights/ },
     { id: "out", label: "Put it out", test: /how-it-works|pricing|signup|upload|(^|\/)ar(\.html)?$|epk|royalties|release-week|already-released|plans|basic|creator|pro\.html/ },
     { id: "grow", label: "Grow", test: /.*/ }
   ];
   var GROUP_EXTRAS = {
-    make: [{ href: "/cover-art", label: "Cover Art" }, { href: "/make-human", label: "Make it human" }, { href: "/battle", label: "Battle" }, { href: "/spark", label: "What's hot" }],
+    make: [{ href: "/album-cover-maker", label: "Cover Art" }, { href: "/make-human", label: "Make it human" }, { href: "/battle", label: "Battle" }, { href: "/spark", label: "What's hot" }],
     protect: [{ href: "/contracts", label: "Contracts hub" }, { href: "/qualify", label: "Is my song ready?" }, { href: "/copyright", label: "Copyright & publishing" }, { href: "/claim", label: "Claim my human parts" }, { href: "split-sheet.html", label: "Split sheets" }, { href: "publishing.html", label: "Publishing registration" }],
-    out: [{ href: "signup.html", label: "Release a song" }, { href: "/research", label: "Research" }],
+    out: [{ href: "/signup", label: "Release a song" }, { href: "/research", label: "Research" }],
     grow: [{ href: "/persona.html", label: "Artist Development" }, { href: "/#get-booked-form", label: "Get booked" }, { href: "/destination", label: "Route map" }, { href: "/guide", label: "Guide" }]
   };
 
@@ -1120,18 +1122,18 @@
     });
 
     var prefix = needsRootPublicHref() ? "/" : "";
-    var how = takeAnchor(found, "how", prefix + "how-it-works.html", "How it works");
-    var plans = takeAnchor(found, "plans", prefix + "index.html#pricing", "Plans and Pricing");
+    var how = takeAnchor(found, "how", "/how-it-works", "How it works");
+    var plans = takeAnchor(found, "plans", "/#pricing", "Plans and Pricing");
     var basic = takeAnchor(found, "basic", prefix + "basic.html", "Learn more: Basic");
     var creator = takeAnchor(found, "creator", prefix + "creator.html", "Learn more: Creator");
     var pro = takeAnchor(found, "pro", prefix + "pro.html", "Learn more: Pro");
-    var ar = takeAnchor(found, "ar", prefix + "ar.html", "A&R");
-    var epk = takeAnchor(found, "epk", prefix + "epk.html", "EPK");
-    var paid = takeAnchor(found, "paid", prefix + "royalties.html", "How you get paid", "nav-paid");
-    var transparency = takeAnchor(found, "transparency", prefix + "transparency.html", "Transparency");
-    var faq = takeAnchor(found, "faq", prefix + "faq.html", "FAQ");
+    var ar = takeAnchor(found, "ar", "/ar", "A&R");
+    var epk = takeAnchor(found, "epk", "/epk-maker", "EPK");
+    var paid = takeAnchor(found, "paid", "/royalties", "How you get paid", "nav-paid");
+    var transparency = takeAnchor(found, "transparency", "/transparency", "Transparency");
+    var faq = takeAnchor(found, "faq", "/faq", "FAQ");
     var charts = takeAnchor(found, "charts", "/charts", "SIQA Charts", "nav-siqa");
-    var blog = takeAnchor(found, "blog", prefix + "blog.html", "Blog");
+    var blog = takeAnchor(found, "blog", "/blog", "Blog");
     var roadmap = takeAnchor(found, "roadmap", "/destination", "Roadmap");
     if (charts && !charts.getAttribute("style")) charts.setAttribute("style", "color:#F3CB47");
 
@@ -1182,7 +1184,7 @@
       title: "Create",
       links: [
         { href: "/song-helper", label: "Song Lab" },
-        { href: "/cover-art", label: "Cover Art" },
+        { href: "/album-cover-maker", label: "Cover Art" },
         { href: "/battle", label: "Battle" },
         { href: "/spark", label: "What's hot" },
         { href: "/qualify", label: "Is my song ready?" },
@@ -1193,8 +1195,8 @@
       key: "release",
       title: "Release",
       links: [
-        { href: "signup.html", label: "Release now" },
-        { href: "index.html#pricing", label: "Plans and Pricing" },
+        { href: "/signup", label: "Release now" },
+        { href: "/#pricing", label: "Plans and Pricing" },
         { href: "/copyright", label: "Copyright and publishing" },
         { href: "/claim", label: "Claim my human parts" }
       ]
@@ -1203,9 +1205,9 @@
       key: "after",
       title: "After upload",
       links: [
-        { href: "ar.html", label: "A&R" },
-        { href: "epk.html", label: "EPK" },
-        { href: "royalties.html", label: "How you get paid" },
+        { href: "/ar", label: "A&R" },
+        { href: "/epk-maker", label: "EPK" },
+        { href: "/royalties", label: "How you get paid" },
         { href: "/destination", label: "Route map" }
       ]
     },
@@ -1213,13 +1215,14 @@
       key: "grow",
       title: "Grow",
       links: [
-        { href: "index.html#pricing", label: "Persona" },
-        { href: "index.html#pricing", label: "Content engine" },
-        { href: "index.html#pricing", label: "Fan growth" },
-        { href: "index.html#pricing", label: "Social Media Presence" },
+        { href: "/#pricing", label: "Persona" },
+        { href: "/#pricing", label: "Content engine" },
+        { href: "/#pricing", label: "Fan growth" },
+        { href: "/#pricing", label: "Social Media Presence" },
         { href: "/release-week", label: "Release week" },
         { href: "/#get-booked-form", label: "Get booked" },
-        { href: "/charts", label: "SIQA Charts" }
+        { href: "/charts", label: "SIQA Charts" },
+        { href: "/research", label: "Research" }
       ]
     },
     {
@@ -1319,22 +1322,22 @@
     if (/(^|\/)terms\.html$/.test(path)) return;
     var root = footerUsesRoot(footer);
     var trust = footerKeptColumn(grid, "Trust") || footerLinkColumn("Trust", [
-      { href: "transparency.html", label: "Transparency" },
-      { href: "faq.html", label: "FAQ" }
+      { href: "/transparency", label: "Transparency" },
+      { href: "/faq", label: "FAQ" }
     ], root);
     var company = footerKeptColumn(grid, "Company") || footerLinkColumn("Company", [
-      { href: "about.html", label: "About us" },
-      { href: "blog.html", label: "Blog" },
-      { href: "contact.html", label: "Contact us" }
+      { href: "/about", label: "About us" },
+      { href: "/blog", label: "Blog" },
+      { href: "/contact", label: "Contact us" }
     ], root);
     var legal = footerKeptColumn(grid, "Legal") || footerLinkColumn("Legal", [
-      { href: "terms.html", label: "Terms of Service" },
-      { href: "rights.html", label: "Rights Attestation" },
-      { href: "privacy.html", label: "Privacy" }
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/rights", label: "Rights Attestation" },
+      { href: "/privacy", label: "Privacy" }
     ], root);
     var account = footerKeptColumn(grid, "Account") || footerLinkColumn("Account", [
-      { href: "login.html", label: "Sign in" },
-      { href: "signup.html", label: "Create account" }
+      { href: "/login", label: "Sign in" },
+      { href: "/signup", label: "Create account" }
     ], root);
     var oldCols = [];
     Array.prototype.forEach.call(grid.querySelectorAll(".footer-col"), function (node) { oldCols.push(node); });
@@ -1462,7 +1465,7 @@
     var blog = findNavBlog(nav);
     if (!blog) {
       blog = document.createElement("a");
-      blog.href = "blog.html";
+      blog.href = "/blog";
       blog.textContent = "Blog";
     }
     if (isBlogPage()) blog.classList.add("on");
@@ -1602,7 +1605,15 @@
   }
 
   function isPublicPixelPage() {
-    return !!PUBLIC_PIXEL_PAGES[pixelPageFile()];
+    if (PUBLIC_PIXEL_PAGES[pixelPageFile()]) return true;
+    var path = "";
+    try { path = String((window.location && window.location.pathname) || ""); } catch (err) {}
+    if (path === "/blog" || path.indexOf("/blog/") === 0) return true;
+    var pretty = pixelPageFile();
+    return pretty === "faq" || pretty === "how-it-works" || pretty === "about" || pretty === "contact"
+      || pretty === "signup" || pretty === "login" || pretty === "terms" || pretty === "privacy"
+      || pretty === "rights" || pretty === "royalties" || pretty === "transparency" || pretty === "ar"
+      || pretty === "album-cover-maker" || pretty === "ai-lyrics-generator" || pretty === "epk-maker";
   }
 
   function pixelIdOk(value) {

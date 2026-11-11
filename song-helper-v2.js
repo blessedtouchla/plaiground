@@ -2438,8 +2438,8 @@
         var next = '/claim?id=' + encodeURIComponent(record.id);
         var signup = $('sh-v2-claim-signup');
         var login = $('sh-v2-claim-login');
-        if (signup) signup.setAttribute('href', 'signup.html?next=' + encodeURIComponent(next));
-        if (login) login.setAttribute('href', 'login.html?next=' + encodeURIComponent(next));
+        if (signup) signup.setAttribute('href', '/signup?next=' + encodeURIComponent(next));
+        if (login) login.setAttribute('href', '/login?next=' + encodeURIComponent(next));
         if (gate) gate.hidden = false;
         return;
       }

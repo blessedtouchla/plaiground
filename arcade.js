@@ -492,7 +492,7 @@
     fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (me) {
       if (me.status === 401) {
         b.textContent = 'Saved on this device';
-        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do. After you log in, import it from My lyrics.</p><p><a class="v3-mini arc-tiny" href="/signup.html?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login.html?next=/my-lyrics">Log in</a></p>');
+        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do. After you log in, import it from My lyrics.</p><p><a class="v3-mini arc-tiny" href="/signup?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login?next=/my-lyrics">Log in</a></p>');
         return;
       }
       if (!me.ok) throw new Error('me');
