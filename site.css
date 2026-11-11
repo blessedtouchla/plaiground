@@ -1,4 +1,8 @@
 :root {
+  --ask-dock: calc(84px + env(safe-area-inset-bottom, 0px));
+  --card-bg: #121218;
+  --card-line: rgba(255, 255, 255, 0.1);
+  --radius-card: 16px;
   --bg: #000000;
   --card: #111111;
   --card-2: #16161C;
@@ -8670,7 +8674,7 @@ p.starter-cta a { color: inherit; }
 
 /* Overview: tighter next-up, stat tiles, and a dock so Ask Plai cannot cover the page. */
 body.overview-page {
-  --overview-dock: calc(72px + env(safe-area-inset-bottom, 0px));
+  --overview-dock: var(--ask-dock);
   height: 100dvh;
   max-height: 100dvh;
   min-height: 0;
@@ -8931,4 +8935,180 @@ body.overview-page .page {
 @media (max-width: 560px) {
   .overview-page .dash-shortcuts { gap: 10px; }
   .overview-page .dash-shortcut { padding: 16px; }
+}
+
+/* Shared formatting pass: one card, one type scale, one dock. */
+html:has(body:not(.app)) {
+  height: 100dvh;
+  overflow: hidden;
+  background: #000;
+}
+body:not(.app) {
+  height: calc(100dvh - var(--ask-dock));
+  max-height: calc(100dvh - var(--ask-dock));
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  padding-bottom: 28px;
+}
+body.app {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+body.app .app-main {
+  position: relative;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: var(--ask-dock);
+}
+body.app .app-main::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--ask-dock);
+  height: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+body.app .topbar { flex: 0 0 auto; }
+body.app .page {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: 1080px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 24px 28px;
+}
+@media (min-width: 981px) {
+  body.app .side {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  body.app .page { padding: 28px 32px 32px; }
+}
+@media (max-width: 640px) {
+  body.app .page {
+    max-width: none;
+    padding: 18px 16px 20px;
+  }
+}
+body.app.settings-page .page,
+body.app.artists-page .page { padding-bottom: 28px; }
+body.app .page-head h1,
+body.app .page > h1,
+body:not(.app) .page-hero h1,
+body:not(.app) .faq-lead h1 {
+  font-size: clamp(1.7rem, 4.4vw, 2.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  overflow-wrap: break-word;
+}
+body.app .page-head .kicker { color: var(--stage-gold); }
+body.app .page-head p,
+body.app .hint,
+body.app .page > p {
+  color: var(--muted-2);
+  font-size: 15px;
+  line-height: 1.5;
+}
+body.app h1,
+body.app h2,
+body.app h3,
+body:not(.app) h1,
+body:not(.app) h2 {
+  overflow-wrap: break-word;
+}
+.panel,
+.flow-card,
+.release-board,
+.metric,
+.contact-card,
+.signed-card,
+.empty {
+  background: var(--card-bg);
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-card);
+}
+.empty-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-card);
+}
+.panel,
+.flow-card { padding: 18px 18px 16px; }
+.field label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted-2);
+}
+.field input,
+.field select,
+.field textarea {
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.field textarea { min-height: 96px; }
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--stage-gold);
+  box-shadow: 0 0 0 3px rgba(243, 203, 71, 0.16);
+}
+.btn:focus-visible,
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--stage-gold);
+  outline-offset: 2px;
+}
+@media (max-width: 980px) {
+  .carry,
+  .form-grid,
+  .pub-bar {
+    grid-template-columns: 1fr !important;
+  }
+  body.app .page > .head-row,
+  body.app .head-row.page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+}
+@media (max-width: 640px) {
+  .empty,
+  .empty-card { padding: 24px 16px; }
+  body.app .page .catalog-stats,
+  body.app .page .releases-stats,
+  body.app .page .metric-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  body.app .catalog-stats div,
+  body.app .releases-stats div {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+  body.app .catalog-stats div:nth-child(-n+2),
+  body.app .releases-stats div:nth-child(-n+2) { border-top: none; }
+  body.app .page table.data:not([hidden]) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.data[hidden] { display: none !important; }
+  .boost-hub-grid { grid-template-columns: 1fr; }
 }

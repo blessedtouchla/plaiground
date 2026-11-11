@@ -5,17 +5,17 @@
   try { if (window.parent && window.parent !== window) return; } catch (e) {}
   var ENDPOINT = '/api/song-helper?action=plai-ask';
   var history = [];
-  var css = '#plai-ask-btn{position:fixed;left:18px;bottom:18px;z-index:2147483000;display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#7D3CFF,#FF3C8E);color:#fff;border:2px solid #F5C542;border-radius:99px;padding:10px 16px 10px 10px;font:800 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 22px rgba(125,60,255,.5)}' +
+  var css = '#plai-ask-btn{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:auto;bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:8px;min-height:44px;background:linear-gradient(135deg,#7D3CFF,#FF3C8E);color:#fff;border:2px solid #F5C542;border-radius:99px;padding:8px 14px 8px 8px;font:800 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 8px 18px rgba(125,60,255,.32)}' +
     '#plai-ask-btn .pa-face{width:30px;height:30px;border-radius:50%;background:#F5C542;color:#000;display:grid;place-items:center;font-size:16px}' +
-    '#plai-ask-panel{position:fixed;left:18px;bottom:78px;z-index:2147483001;width:min(380px,calc(100vw - 36px));max-height:min(560px,calc(100vh - 110px));display:flex;flex-direction:column;background:#0b0b0f;color:#fff;border:2px solid #7D3CFF;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.6);font:15px/1.45 system-ui,sans-serif;overflow:hidden}' +
+    '#plai-ask-panel{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:auto;bottom:var(--ask-dock,calc(72px + env(safe-area-inset-bottom,0px)));z-index:61;width:min(380px,calc(100vw - 24px));max-height:min(520px,calc(100dvh - 140px));display:flex;flex-direction:column;background:#0b0b0f;color:#fff;border:2px solid #7D3CFF;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.6);font:15px/1.45 system-ui,sans-serif;overflow:hidden}' +
     '#plai-ask-panel[hidden]{display:none}#plai-ask-panel header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#1d1036;font-weight:800}' +
     '#plai-ask-panel header button{background:none;border:0;color:#F5C542;font-size:20px;cursor:pointer}#pa-log{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}' +
     '.pa-m{padding:8px 12px;border-radius:14px;max-width:88%;white-space:pre-wrap}.pa-u{align-self:flex-end;background:#7D3CFF}.pa-p{align-self:flex-start;background:#1d1036;border:1px solid #3a2466}' +
     '#pa-form{display:flex;gap:6px;padding:10px;border-top:1px solid #3a2466}#pa-q{flex:1;background:#141018;color:#fff;border:1px solid #3a2466;border-radius:10px;padding:8px}#pa-form button{background:#F5C542;color:#000;border:0;border-radius:10px;padding:8px 12px;font-weight:800;cursor:pointer}' +
     '.pa-chips{display:flex;flex-wrap:wrap;gap:6px}.pa-chips button{background:#141018;color:#F5C542;border:1px solid #F5C542;border-radius:99px;padding:5px 10px;font-size:13px;cursor:pointer}' +
-    'body.overview-page #plai-ask-btn{left:auto;right:max(16px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));min-height:44px;padding:8px 14px 8px 8px;box-shadow:0 8px 18px rgba(125,60,255,.32)}' +
-    'body.overview-page #plai-ask-panel{left:auto;right:max(12px,env(safe-area-inset-right,0px));bottom:var(--overview-dock,calc(72px + env(safe-area-inset-bottom,0px)));width:min(380px,calc(100vw - 24px));max-height:min(520px,calc(100dvh - 140px))}' +
-    'body.overview-page.nav-open #plai-ask-btn,body.overview-page.nav-open #plai-ask-panel{visibility:hidden;pointer-events:none}' +
+    'body.app #plai-ask-btn,body.overview-page #plai-ask-btn{left:auto;right:max(16px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px))}' +
+    'body.app #plai-ask-panel,body.overview-page #plai-ask-panel{left:auto;right:max(12px,env(safe-area-inset-right,0px));bottom:var(--ask-dock,var(--overview-dock,calc(72px + env(safe-area-inset-bottom,0px))))}' +
+    'body.nav-open #plai-ask-btn,body.nav-open #plai-ask-panel,body.app.nav-open #plai-ask-btn,body.app.nav-open #plai-ask-panel{visibility:hidden;pointer-events:none}' +
     '@media print{#plai-ask-btn,#plai-ask-panel{display:none!important}}';
   function el(tag, attrs, text) { var n = document.createElement(tag); for (var k in attrs) n.setAttribute(k, attrs[k]); if (text) n.textContent = text; return n; }
   function pageContext() {
