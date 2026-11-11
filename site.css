@@ -9112,3 +9112,177 @@ body:not(.app) h2 {
   table.data[hidden] { display: none !important; }
   .boost-hub-grid { grid-template-columns: 1fr; }
 }
+
+/* Phone rhythm: compact sections, proximity snap, fewer boxes. */
+@media (max-width: 480px) {
+  :root { --ask-dock: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  body.app .page,
+  body:not(.app) {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 6px;
+    padding-bottom: 10px;
+  }
+  body.app .page { padding: 10px 14px 12px; }
+  .app .topbar,
+  body.app .topbar {
+    min-height: 52px;
+    padding: 6px 12px;
+  }
+  .app .topbar .logo img,
+  .app .topbar .mobile-only-logo img { max-height: 32px; }
+  body.app .page-head,
+  .overview-page .dash-top .page-head { margin: 0 0 8px; }
+  body.app .page-head h1,
+  .overview-page .page-head h1,
+  body.app .page > h1,
+  body:not(.app) .faq-lead h1 {
+    font-size: 1.45rem;
+    line-height: 1.12;
+    margin-bottom: 2px;
+  }
+  body.app .page-head .kicker { margin-bottom: 2px; }
+  body.app .page-head p,
+  .overview-page .page-head p,
+  body.app .hint,
+  body.app .page > p,
+  .faq-lead p {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+  .panel,
+  .flow-card,
+  .release-board,
+  .draft-banner,
+  .amber-card,
+  .signed-card,
+  .contact-card {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px 0 12px;
+    margin: 0 0 2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .empty,
+  .empty-card {
+    padding: 14px 12px;
+    border-radius: 12px;
+    margin: 8px 0;
+  }
+  .empty h3,
+  .empty-card h3 { font-size: 1.15rem; margin-bottom: 6px; }
+  .overview-page .next-up {
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 12px;
+    border-radius: 12px;
+    scroll-snap-align: start;
+  }
+  .overview-page .next-up h2 { font-size: 1.2rem; }
+  .overview-page .next-up .next-up-note {
+    font-size: 14px;
+    line-height: 1.35;
+    margin-top: 4px;
+  }
+  .app.overview-page .next-up .btn-purple { min-height: 44px; }
+  .overview-page .dash-top { margin-bottom: 8px; }
+  .overview-page .account-identity { margin-bottom: 8px; }
+  .overview-page .account-stats,
+  .overview-page .dash-shortcuts { gap: 8px; }
+  .overview-page .account-card .row {
+    min-height: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    gap: 4px;
+  }
+  .overview-page .account-card .row b { font-size: 1.35rem; }
+  .overview-page .account-card .row.is-status b { font-size: 1rem; }
+  .overview-page .dash-shortcut { padding: 12px; border-radius: 12px; }
+  body.app .page .catalog-stats,
+  body.app .page .releases-stats { margin-bottom: 10px; border-radius: 12px; }
+  body.app .catalog-stats div,
+  body.app .releases-stats div,
+  body.app .metric { padding: 8px 8px; }
+  body.app .catalog-stats strong,
+  body.app .releases-stats strong,
+  .metric strong { font-size: 1.25rem; margin-bottom: 2px; }
+  .metric {
+    background: #121218;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 12px;
+  }
+  .boost-hub-grid { gap: 8px; }
+  .boost-hub-card {
+    padding: 12px 12px 10px 14px;
+    border-radius: 12px;
+    border-left-width: 3px;
+  }
+  .boost-hub-card h3 { margin: 0 0 4px; font-size: 1.05rem; }
+  .boost-hub-card p { font-size: 14px; line-height: 1.35; margin: 0 0 6px; }
+  .field { margin-bottom: 8px; }
+  .field label { margin-bottom: 4px; }
+  .form-grid { gap: 8px; }
+  .faq-lead { margin-bottom: 12px; padding-bottom: 10px; }
+  .faq-group { margin-bottom: 12px; }
+  .faq-item button.q {
+    min-height: 44px;
+    padding: 10px 32px 10px 0;
+    font-size: 15px;
+  }
+  .hf-panel { padding: 28px 0 !important; }
+  .hf-lab { min-height: 0 !important; }
+  .hf-five { padding: 12px 0 4px; }
+  .hf-panel h2 { font-size: 1.45rem !important; margin-bottom: 8px; }
+  .home-portal .hero {
+    min-height: calc(100svh - var(--ask-dock));
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding-top: calc(var(--nav-h) + 4px);
+    padding-bottom: 8px;
+  }
+  .home-portal .hero > .wrap { width: 100%; }
+  .home-portal .hero-logo-live { margin-bottom: 8px; }
+  .home-portal .hero-logo-live-stage { width: min(280px, 68vw); }
+  .home-portal .hero h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .home-portal .hero-ctas { gap: 8px; }
+  .hf-five-h { font-size: 1.15rem; margin-bottom: 8px; }
+  .hf-icons { gap: 8px; }
+  .hf-icons a { min-height: 64px; padding: 8px 4px; }
+  .hf-icons svg { width: 36px; height: 36px; }
+  .plans { gap: 10px; }
+  .card { padding: 14px 12px 16px; border-radius: 12px; }
+  .card ul { margin-bottom: 12px; }
+  .card li { margin-bottom: 6px; font-size: 14px; }
+  .plan-blurb { min-height: 0; margin-bottom: 10px; font-size: 14px; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .footer-brand { grid-column: 1 / -1; }
+  .footer-col a { margin-bottom: 0; padding: 8px 0; min-height: 44px; }
+  footer { padding-top: 12px; }
+  body.auth-full .auth {
+    min-height: calc(100svh - var(--ask-dock));
+    align-items: center;
+  }
+  body.auth-full .auth-panel { min-height: 0; width: 100%; }
+  body.auth-full .auth-panel { padding: 12px 16px 16px; }
+  .next-up,
+  .dash-top,
+  .release-board,
+  .panel,
+  .flow-card,
+  .empty-card,
+  .dash-shortcuts,
+  .boost-hub-grid,
+  .hf-panel,
+  .hf-five,
+  .faq-lead,
+  .faq-group,
+  .auth-card {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+}
