@@ -1,0 +1,247 @@
+/* Signed-out homepage. Arcade cabinet, updated: neon on black, pixel type, scanlines.
+   Gold is a small brand accent. Money and rights pages do not load this file. */
+body.home-portal:not(.is-member) {
+  background: #070014;
+}
+body.home-portal:not(.is-member) .hf-five,
+body.home-portal:not(.is-member) .hf-panel,
+body.home-portal:not(.is-member) .artist-dev-band,
+body.home-portal:not(.is-member) .pricing,
+body.home-portal:not(.is-member) .home-photo-band,
+body.home-portal:not(.is-member) .try-photo {
+  display: none;
+}
+body.home-portal .arcade-home {
+  display: block;
+  position: relative;
+  margin: 0;
+  padding: calc(var(--nav-h, 96px) + 12px) 16px 48px;
+  background-color: #070014;
+  background-image:
+    linear-gradient(rgba(160, 90, 255, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160, 90, 255, 0.28) 1px, transparent 1px);
+  background-size: 42px 42px, 42px 42px;
+  color: #fff;
+  overflow: hidden;
+}
+body.home-portal .arcade-home::before {
+  content: "";
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  bottom: 0;
+  height: 28vh;
+  background-image:
+    linear-gradient(rgba(180, 110, 255, 0.45) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(180, 110, 255, 0.45) 2px, transparent 2px);
+  background-size: 56px 56px;
+  transform: perspective(520px) rotateX(58deg);
+  transform-origin: center bottom;
+  pointer-events: none;
+}
+body.home-portal .arcade-home::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px);
+}
+.ax-stack {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+.ax-host {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.ax-plai {
+  width: 92px;
+  height: auto;
+  flex: 0 0 92px;
+  image-rendering: auto;
+  filter: drop-shadow(0 8px 0 #1a0530);
+}
+.ax-say {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 2px solid #ff3cad;
+  border-radius: 4px 16px 16px 4px;
+  background: rgba(10, 4, 18, 0.88);
+  box-shadow: 0 0 16px rgba(255, 60, 173, 0.28);
+}
+.ax-say h1 {
+  margin: 0;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+body.home-portal:not(.is-member) .nav-actions { display: none; }
+.ax-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+  margin-top: 8px;
+}
+.ax-wave[hidden] { display: none !important; }
+.ax-wave i {
+  display: block;
+  width: 3px;
+  height: 6px;
+  background: #3ee0ff;
+}
+.ax-hero.is-talking .ax-wave i:nth-child(2) { height: 14px; }
+.ax-hero.is-talking .ax-wave i:nth-child(3) { height: 10px; }
+.ax-choices, .ax-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ax-choice, .ax-go, .ax-level a, .ax-own button, .ax-hear {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ax-choice, .ax-go, .ax-level a {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #ff3cad;
+  background: #120814;
+  color: #fff;
+  text-align: left;
+  box-shadow: 4px 4px 0 #3a1030;
+}
+.ax-choice:focus, .ax-go:focus, .ax-level a:focus, .ax-own button:focus, .ax-hear:focus, .ax-own input:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.ax-own {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ax-own label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.ax-own input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 2px solid #7d3cff;
+  border-radius: 4px;
+  background: #0c0614;
+  color: #fff;
+  font: 16px/1.3 Inter, sans-serif;
+}
+.ax-own button, .ax-hear {
+  padding: 8px 12px;
+  border: 2px solid #3ee0ff;
+  background: transparent;
+  color: #b9f6ff;
+}
+.ax-hear {
+  margin-top: 10px;
+}
+.ax-go { margin-top: 12px; }
+.ax-go[hidden] { display: none; }
+.ax-lab, .ax-level {
+  position: relative;
+  z-index: 1;
+  margin-top: 22px;
+  padding: 14px;
+  border: 3px solid #ff3cad;
+  border-radius: 6px;
+  background: rgba(8, 2, 16, 0.92);
+  box-shadow: 0 0 18px rgba(255, 60, 173, 0.22);
+}
+.ax-level:nth-child(2) { border-color: #f5c542; box-shadow: 0 0 14px rgba(245, 197, 66, 0.18); }
+.ax-level:nth-child(3) { border-color: #3ee0ff; box-shadow: 0 0 14px rgba(62, 224, 255, 0.18); }
+.ax-level:nth-child(4) { border-color: #9b5cff; }
+body.home-portal .arcade-home .try-submit {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 4px;
+  border: 2px solid #ff3cad;
+  background: #120814;
+  color: #fff;
+  box-shadow: 4px 4px 0 #3a1030;
+}
+body.home-portal .arcade-home .try-form textarea {
+  border-radius: 4px;
+  border-color: #7d3cff;
+  background: #0c0614;
+  min-height: 72px;
+}
+body.home-portal .arcade-home .try-label {
+  color: #f5c542;
+  font-size: 14px;
+}
+body.home-portal .arcade-home .ax-say h1 {
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+.ax-lab h2, .ax-level h2 {
+  margin: 0 0 8px;
+  color: #f5c542;
+  font-family: "Press Start 2P", monospace;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+}
+.ax-lab p, .ax-level p {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.ax-levels { margin-top: 8px; }
+.ax-level a { box-shadow: 4px 4px 0 #241018; }
+@media (min-width: 800px) {
+  .ax-plai { width: 140px; flex-basis: 140px; }
+  .ax-say h1 { font-size: 1.45rem; }
+  .ax-levels { display: grid; grid-template-columns: 1fr 1fr; }
+  .ax-level { margin-top: 0; }
+  .ax-levels { margin-top: 22px; gap: 14px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ax-hero.is-talking .ax-plai {
+    animation: axTalk 0.18s steps(2) infinite;
+  }
+  .ax-hero[data-mood="thinking"] .ax-plai {
+    animation: axBob 1.2s ease-in-out infinite;
+  }
+  .ax-hero[data-mood="dancing"] .ax-plai {
+    animation: axDance 0.7s ease-in-out infinite;
+  }
+}
+@keyframes axTalk { 50% { transform: translateY(1px) scaleY(0.98); } }
+@keyframes axBob { 50% { transform: translateY(-4px); } }
+@keyframes axDance { 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ax-hero.is-talking .ax-plai,
+  .ax-hero[data-mood="thinking"] .ax-plai,
+  .ax-hero[data-mood="dancing"] .ax-plai { animation: none; }
+}

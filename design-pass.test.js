@@ -195,14 +195,13 @@ function run() {
 
   const index = read('index.html');
   const block = guest(index);
-  assert.ok(block.includes('assets/photos/studio-headphones.jpg'));
-  assert.ok(block.includes('assets/photos/vocals-session.jpg'));
-  assert.ok(/Write it\. Release it\. Protect it\. Get paid\./.test(block));
+  assert.ok(/Where are you with your music\?/.test(block));
+  assert.ok(block.includes('/for-david-fv/img/plai-hello.webp'));
+  assert.ok(block.includes('ENTER LAB'));
   assert.ok(block.includes('data-track-cta="write_song"'));
   assert.ok(block.includes('data-track-cta="release"'));
   assert.ok(block.includes('data-track-cta="publish"'));
   assert.ok(block.includes('data-track-cta="artist_profile"'));
-  assert.ok(block.includes('href="/distribution"'));
   assert.ok(block.includes('href="publishing.html"'));
   assert.ok(block.includes('href="/epk"'));
   assert.ok(/What's your song about\?/.test(block));
