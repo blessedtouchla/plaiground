@@ -26,6 +26,7 @@ body.home-portal:not(.is-member) #plai-ask-btn { display: none !important; }
   font-size: 2rem;
   line-height: 1.1;
   letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 .try-lead {
   margin: 0 0 18px;

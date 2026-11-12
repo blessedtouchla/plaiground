@@ -25,8 +25,9 @@ const arcade = read('arcade.js');
 const page = read('lib/arcade-server.js');
 const song = read('song-helper.html');
 
-assert.ok(index.includes('home-try.css?v=20261111try'));
+assert.ok(index.includes('home-try.css?v=20261112hero'));
 assert.ok(index.includes('home-try.js?v=20261111try'));
+assert.ok(/<h1 id="try-heading">Autopilot for your music career<\/h1>/.test(block));
 assert.ok(/What's your song about\?/.test(block));
 assert.ok(block.includes('id="try-it"'));
 assert.ok(block.includes('action="/song-helper"'));
