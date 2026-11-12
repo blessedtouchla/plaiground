@@ -47,8 +47,8 @@
   .arc-host-dancing .arc-host-img{animation:arcHostDance .9s ease-in-out infinite}
 }
 @keyframes arcHostIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@keyframes arcHostBob{50%{transform:translateY(-4px)}}
-@keyframes arcHostDance{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+@keyframes arcHostBob{50%{transform:translateY(-8px)}}
+@keyframes arcHostDance{25%{transform:rotate(-8deg) translateY(-4px)}75%{transform:rotate(8deg) translateY(-4px)}}
 
 /* Color all the way through: step bar, accent chips, sparkle on each finished part */
 .arc-steps{display:flex;align-items:center;gap:10px;margin:4px 0 6px}
@@ -302,7 +302,8 @@ body.song-lab .arc-more-sum::-webkit-details-marker{display:none}
 body.song-lab .arc-more .arc-hot{margin:12px 0 0}
 body.song-lab .arc-hot-word{font-size:1.8rem}
 body.song-lab .arc-gi-start{margin-top:8px}
-body.song-lab .arc-shell.has-rail{display:block}
+body.song-lab .arc-shell.has-rail{display:flex;flex-direction:column}
+body.song-lab .arc-shell.has-rail .arc-rail{order:-1}
 body.song-lab .arc-main > .v3-go,
 body.song-lab .arc-main > .v3-mini{
   width:100%;
@@ -483,10 +484,14 @@ body.song-lab .arc-tiny{
   }
   body.song-lab .arc-shell.has-rail .arc-main{grid-column:1}
   body.song-lab .arc-shell.has-rail .arc-rail{
+    order:0;
     grid-column:2;
     position:sticky;
     top:16px;
   }
+  body.song-lab .arc-host-img{width:84px;flex-basis:84px}
+}
+@media (max-width:979px){
   body.song-lab .arc-host-img{width:84px;flex-basis:84px}
 }
 @media (max-width:719px){
