@@ -4,16 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Join PLAIGROUND Free: Get Starter Credits | PLAIGROUND</title>
-  <meta name="description" content="Create a free account and get free starter credits to try every tool: Song Lab, Cover Art, EPK, Battle and more." />
+  <meta name="description" content="Create a free account to save songs and release them. Song Lab is free to write in before you join. Cover Art, EPK, and Battle are on the account." />
   <link rel="canonical" href="https://www.wannaplai.com/signup" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.wannaplai.com/signup" />
   <meta property="og:title" content="Join PLAIGROUND Free: Get Starter Credits | PLAIGROUND" />
-  <meta property="og:description" content="Create a free account and get free starter credits to try every tool: Song Lab, Cover Art, EPK, Battle and more." />
+  <meta property="og:description" content="Create a free account to save songs and release them. Song Lab is free to write in before you join. Cover Art, EPK, and Battle are on the account." />
   <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Join PLAIGROUND Free: Get Starter Credits | PLAIGROUND" />
-  <meta name="twitter:description" content="Create a free account and get free starter credits to try every tool: Song Lab, Cover Art, EPK, Battle and more." />
+  <meta name="twitter:description" content="Create a free account to save songs and release them. Song Lab is free to write in before you join. Cover Art, EPK, and Battle are on the account." />
   <meta name="twitter:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -400,6 +400,11 @@
           } catch (err) {}
           if (window.PlaigroundPixel && window.PlaigroundPixel.track) {
             window.PlaigroundPixel.track('CompleteRegistration');
+          }
+          if (window.PlaigroundAnalytics && window.PlaigroundAnalytics.track) {
+            window.PlaigroundAnalytics.track('signup_completed', { surface: 'signup' });
+          } else if (window.va) {
+            window.va('event', { name: 'signup_completed', data: { surface: 'signup' } });
           }
           window.location.href = 'confirm.html';
         }).catch(function () {

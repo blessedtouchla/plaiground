@@ -405,3 +405,14 @@ CREATE INDEX IF NOT EXISTS signup_attempts_ip_idx
 
 CREATE INDEX IF NOT EXISTS signup_attempts_email_idx
   ON signup_attempts (email_key, created_at DESC);
+
+-- Hashed IP only. Public Song Lab model-call caps. Rows older than 3 days are pruned.
+CREATE TABLE IF NOT EXISTS song_rate_hits (
+  ip_key text NOT NULL,
+  kind text NOT NULL,
+  window_ms integer NOT NULL,
+  bucket bigint NOT NULL,
+  hits integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (ip_key, kind, window_ms, bucket)
+);

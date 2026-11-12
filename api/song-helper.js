@@ -11,9 +11,12 @@
  * AI output and must not be shown as Grok.
  *
  * Cloudflare Turnstile is checked in lib/song-guard.js before a live xAI call.
- * Demo mode skips it. The in-memory limiter below is prototype-grade only. It lives on one serverless
- * instance, resets on cold start, and is not shared across instances or regions.
- * On Vercel, x-forwarded-for is set by the platform. Do not treat this as abuse-proof.
+ * It stays off unless both Turnstile keys and XAI_API_KEY are set. Demo mode skips it.
+ * The in-memory limiter below still covers the classic draft route. It lives on one
+ * serverless instance, resets on cold start, and is not shared across instances.
+ * Public Song Lab (/song-helper, the arcade actions) uses lib/song-rate.js instead:
+ * a per-IP cap in Neon when DATABASE_URL is set, with the same numbers in memory
+ * when it is not. On Vercel, x-forwarded-for is set by the platform.
  */
 
 const core = require('../lib/song-helper');
@@ -31,20 +34,11 @@ const artistDev = require('../lib/artist-dev');
 const arcadeServer = require('../lib/arcade-server');
 const epkBuilder = require('../lib/epk-builder');
 const lyricsTranscribe = require('../lib/lyrics-transcribe');
+const songRate = require('../lib/song-rate');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
   windowMs: core.RATE_WINDOW_MS,
-});
-
-const arcadeLimiter = core.createLimiter({
-  max: 30,
-  windowMs: 60 * 60 * 1000,
-});
-
-const arcadeLightLimiter = core.createLimiter({
-  max: 300,
-  windowMs: 60 * 60 * 1000,
 });
 
 const v3Limiter = core.createLimiter({
@@ -976,8 +970,7 @@ function handleV3Page(req, res) {
 }
 
 // Public Song Helper Arcade (serves /song-helper). No login and no credit lock.
-// Safety filters run inside lib/arcade-server. Per-IP hourly caps keep the AI bill sane.
-const ARCADE_AI = { 'arcade-write': 1, 'arcade-battle': 1, 'arcade-flip': 1, 'arcade-research': 1, 'arcade-news-ideas': 1, 'arcade-ideas': 1, 'arcade-section': 1, 'arcade-modernize': 1, 'arcade-modernize-line': 1 };
+// Safety filters run inside lib/arcade-server. Per-IP caps live in lib/song-rate.js.
 const arcadeUsage = { since: new Date().toISOString(), counts: {} };
 function logArcade(action, kind, ip) {
   arcadeUsage.counts[action] = (arcadeUsage.counts[action] || 0) + 1;
@@ -1008,12 +1001,12 @@ async function handleArcade(req, res, action, givenBody) {
     return;
   }
   var ip = clientIp(req);
-  var heavy = Boolean(ARCADE_AI[action]) || (action === 'arcade-fix' && !body.line);
-  if (action !== 'arcade-status') {
-    var limiter = heavy ? arcadeLimiter : arcadeLightLimiter;
-    if (!limiter.allow(ip)) {
+  var heavy = action !== 'arcade-status';
+  if (heavy) {
+    var capped = await songRate.take(ip, 'heavy');
+    if (!capped.ok) {
       logArcade(action, 'capped', ip);
-      sendJson(res, 429, { ok: false, error: heavy ? 'You hit the hourly limit of 30 songs. Take a breather and come back soon.' : 'Slow down a little. Try again in a few minutes.' });
+      sendJson(res, 429, { ok: false, error: songRate.limitMessage(capped) });
       return;
     }
   }
