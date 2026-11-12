@@ -1,0 +1,184 @@
+/* Graffiti energy for artist profiles, the public stage, and Song Lab.
+   Black stays the base. Spray and drip sit on top of the existing graffiti wordmark. */
+:is(html, body).graffiti-energy {
+  background-color: #0b0b0f;
+  background-image:
+    radial-gradient(180px 120px at 0% 18%, rgba(255, 62, 165, 0.28), transparent 70%),
+    radial-gradient(160px 140px at 100% 0%, rgba(243, 203, 71, 0.22), transparent 72%),
+    radial-gradient(220px 160px at 100% 88%, rgba(155, 92, 255, 0.28), transparent 70%),
+    radial-gradient(120px 90px at 8% 92%, rgba(62, 224, 255, 0.12), transparent 70%);
+}
+:is(html, body).graffiti-energy::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    radial-gradient(180px 120px at 0% 18%, rgba(255, 62, 165, 0.28), transparent 70%),
+    radial-gradient(160px 140px at 100% 0%, rgba(243, 203, 71, 0.22), transparent 72%),
+    radial-gradient(220px 160px at 100% 88%, rgba(155, 92, 255, 0.28), transparent 70%),
+    radial-gradient(120px 90px at 8% 92%, rgba(62, 224, 255, 0.12), transparent 70%);
+}
+:is(html, body).graffiti-energy::after {
+  content: "";
+  position: fixed;
+  width: 18px;
+  height: 42px;
+  left: 22px;
+  top: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: linear-gradient(#ff3ea5, #7a3cff);
+  border-radius: 0 0 12px 12px;
+  clip-path: polygon(30% 0, 78% 0, 62% 100%, 18% 100%);
+}
+:is(html, body).graffiti-energy .side .logo,
+:is(html, body).graffiti-energy .nav .logo,
+:is(html, body).graffiti-energy .topbar .logo {
+  position: relative;
+}
+:is(html, body).graffiti-energy .side .logo::after {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 16px;
+  margin: -6px 0 8px 28px;
+  background: linear-gradient(#f3cb47, #ff3ea5);
+  clip-path: polygon(25% 0, 80% 0, 68% 100%, 20% 100%);
+  border-radius: 0 0 8px 8px;
+  pointer-events: none;
+}
+:is(html, body).graffiti-energy .page-head h1,
+:is(html, body).graffiti-energy .sh h1,
+:is(html, body).graffiti-energy .play-head h1,
+:is(html, body).graffiti-energy .epk-live h1 {
+  color: #fff;
+  text-shadow: 2px 2px 0 #9b5cff;
+}
+:is(html, body).graffiti-energy .page-head .kicker,
+:is(html, body).graffiti-energy .sh-kicker,
+:is(html, body).graffiti-energy .play-artist {
+  color: #f3cb47;
+}
+:is(html, body).graffiti-energy .panel,
+:is(html, body).graffiti-energy .stage-tile,
+:is(html, body).graffiti-energy .sh-choice,
+:is(html, body).graffiti-energy .epk-live.is-on {
+  border-color: rgba(255, 62, 165, 0.45);
+}
+:is(html, body).graffiti-energy .epk-live.is-on {
+  position: relative;
+  z-index: 1;
+  padding-top: 96px;
+}
+:is(html, body).graffiti-energy .stage-tile,
+:is(html, body).graffiti-energy .persona-panel,
+:is(html, body).graffiti-energy #stage-board {
+  background:
+    radial-gradient(120px 60px at 0 0, rgba(155, 92, 255, 0.22), transparent 70%),
+    #120c16;
+}
+:is(html, body).graffiti-energy .stage-tile strong,
+:is(html, body).graffiti-energy .persona-panel h2,
+:is(html, body).graffiti-energy #stage-board h2 {
+  color: #f3cb47;
+}
+html.graffiti-energy body.song-helper-page,
+html.graffiti-energy body.play-page {
+  background-color: #0b0b0f;
+  background-image:
+    radial-gradient(180px 120px at 0% 18%, rgba(255, 62, 165, 0.28), transparent 70%),
+    radial-gradient(220px 160px at 100% 88%, rgba(155, 92, 255, 0.28), transparent 70%);
+}
+:is(html, body).graffiti-energy .sh h1,
+:is(html, body).graffiti-energy .page-head h1,
+:is(html, body).graffiti-energy .play-head h1 {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+}
+
+.graffiti-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  background: #07070b;
+  pointer-events: none;
+  animation: melt-fade 1.4s linear forwards;
+}
+.melt {
+  position: relative;
+  width: min(86vw, 560px);
+  height: 150px;
+}
+.melt-gold {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #f3cb47;
+  background: transparent;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 8vw, 64px);
+  letter-spacing: 0.12em;
+  line-height: 1;
+  animation: melt-gold 1.4s linear forwards;
+}
+.melt-color {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18px;
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: melt-color 1.4s linear forwards;
+}
+.melt-drip {
+  position: absolute;
+  top: 58%;
+  width: 10px;
+  height: 12px;
+  transform-origin: top center;
+  border-radius: 0 0 10px 10px;
+  background: #f3cb47;
+  animation: melt-drip 1.4s linear forwards;
+}
+.melt-drip.d1 { left: 22%; background: #f3cb47; }
+.melt-drip.d2 { left: 48%; background: #ff3ea5; animation-delay: 0.05s; }
+.melt-drip.d3 { left: 70%; background: #9b5cff; }
+@keyframes melt-gold {
+  0% { opacity: 1; transform: none; filter: none; }
+  28% { opacity: 1; transform: translateY(4px) scaleY(1.04); }
+  58% { opacity: 0; transform: translateY(22px) scaleY(1.2); filter: blur(1px); }
+  100% { opacity: 0; transform: translateY(30px); }
+}
+@keyframes melt-color {
+  0%, 36% { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(-6px); }
+  68% { opacity: 1; clip-path: inset(0 0 18% 0); transform: none; }
+  100% { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@keyframes melt-drip {
+  0% { transform: scaleY(0.2); opacity: 1; }
+  40% { transform: scaleY(2.2); }
+  100% { transform: scaleY(3.4); opacity: 0; }
+}
+@keyframes melt-fade {
+  0%, 76% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.graffiti-loader.is-hold,
+.graffiti-loader.is-hold .melt-gold,
+.graffiti-loader.is-hold .melt-color,
+.graffiti-loader.is-hold .melt-drip {
+  animation-play-state: paused;
+  animation-delay: calc(var(--melt-hold, 0.45) * -1.4s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .graffiti-loader { display: none !important; }
+}

@@ -1,0 +1,150 @@
+/* Photo-led signed-out homepage and the /lp/ ad template.
+   The try-it box stays on the first screen. Signed-in homepage keeps the old hero. */
+body.home-portal .try-home,
+body.lp-page .try-home {
+  display: grid;
+  gap: 0;
+  padding: calc(var(--nav-h, 72px) + 8px) 0 28px;
+  background: #0b0b0f;
+}
+.try-photo {
+  position: relative;
+  min-height: 168px;
+  max-height: 34vh;
+  overflow: hidden;
+}
+.try-photo img {
+  display: block;
+  width: 100%;
+  height: 34vh;
+  min-height: 168px;
+  max-height: 280px;
+  object-fit: cover;
+  object-position: center 30%;
+}
+.try-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 7, 11, 0.05) 10%, rgba(7, 7, 11, 0.94));
+  pointer-events: none;
+}
+body.home-portal .try-wrap,
+body.lp-page .try-wrap {
+  position: relative;
+  z-index: 1;
+  margin: -52px 16px 0;
+  padding: 16px 16px 4px;
+  border-radius: 20px;
+  border: 1px solid rgba(243, 203, 71, 0.5);
+  background: rgba(11, 11, 15, 0.94);
+}
+.home-photo-band {
+  display: grid;
+  background: #0b0b0f;
+  color: #fff;
+}
+.home-photo-band img {
+  display: block;
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  object-position: center 20%;
+}
+.home-photo-caption {
+  padding: 22px 20px 28px;
+}
+.home-photo-caption p {
+  margin: 0;
+  max-width: 36rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  line-height: 1.45;
+}
+body.home-portal.is-member .home-photo-band { display: none; }
+
+body.lp-page {
+  --nav-h: 64px;
+  margin: 0;
+  background: #0b0b0f;
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+.lp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 16px;
+  background: rgba(11, 11, 15, 0.92);
+  border-bottom: 1px solid rgba(243, 203, 71, 0.28);
+}
+.lp-brand img { display: block; height: 40px; width: auto; }
+.lp-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #f3cb47;
+  color: #f3cb47;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.lp-login:focus { outline: 2px solid #fff; outline-offset: 2px; }
+.lp-note {
+  margin: 0;
+  padding: 8px 20px 28px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.lp-foot {
+  padding: 8px 20px 36px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+.lp-foot a { color: #f3cb47; }
+body.lp-page .try-home { padding-top: 12px; }
+
+@media (min-width: 900px) {
+  body.home-portal .try-home,
+  body.lp-page .try-home {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: stretch;
+    min-height: calc(100vh - var(--nav-h, 72px));
+    padding-bottom: 0;
+  }
+  body.lp-page .try-home { min-height: calc(100vh - 64px); }
+  .try-photo,
+  .try-photo img {
+    height: 100%;
+    max-height: none;
+    min-height: calc(100vh - var(--nav-h, 72px));
+  }
+  .try-photo::after {
+    background: linear-gradient(90deg, rgba(7, 7, 11, 0.05), rgba(7, 7, 11, 0.72));
+  }
+  body.home-portal .try-wrap,
+  body.lp-page .try-wrap {
+    margin: 0;
+    align-self: center;
+    border: 0;
+    background: transparent;
+    padding: 28px 40px 28px 12px;
+  }
+  .home-photo-band {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: center;
+  }
+  .home-photo-band img { height: 420px; }
+}

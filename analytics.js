@@ -230,6 +230,11 @@
     var empty = isEmptyCatalog(payload);
     setHidden('[data-analytics-empty]', !empty);
     if (empty) setText('[data-analytics-empty]', emptyMessage());
+    try {
+      if (global.PlaigroundMap && typeof global.PlaigroundMap.show === 'function') {
+        global.PlaigroundMap.show(payload);
+      }
+    } catch (err) {}
   }
 
   function setStatus(text) {

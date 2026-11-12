@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>What's your song about? | PLAIGROUND</title>
+  <meta name="description" content="Describe a song in one sentence. Song Lab starts a draft with no account. Sign up only if you want to keep it." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/home-try.css?v=20261111try" />
+  <link rel="stylesheet" href="/home-photo.css?v=20261112photo" />
+</head>
+<!--
+  Ad landing template. noindex. Not in the sitemap.
+  Swap the hero photo, the lead, and the variant for a new test.
+  Variant: data-funnel-variant on the form, or ?variant= on the URL.
+  Default variant is a. Events: lp_view, try_it_submit, primary_cta.
+-->
+<body class="lp-page">
+  <header class="lp-nav">
+    <a class="lp-brand" href="/" aria-label="PLAIGROUND">
+      <img src="/assets/plaiground-logo.png" alt="PLAIGROUND" width="180" height="48" />
+    </a>
+    <a class="lp-login" href="/login.html">Log in</a>
+  </header>
+  <main>
+    <section class="try-home" data-guest-home aria-labelledby="try-heading">
+      <div class="try-photo">
+        <img src="/assets/photos/vocal-booth.jpg" alt="A singer in headphones stands at a studio microphone." width="1600" height="1067" />
+      </div>
+      <div class="try-wrap">
+        <p class="try-kicker">Song Lab</p>
+        <h1 id="try-heading">What's your song about?</h1>
+        <p class="try-lead">One sentence is enough. Song Lab writes a draft you can change. No account until you decide to save it.</p>
+        <form id="try-it" class="try-form" action="/song-helper" method="get" data-funnel-surface="lp" data-funnel-variant="a">
+          <label class="try-label" for="try-idea">What's your song about?</label>
+          <textarea id="try-idea" name="idea" maxlength="280" required rows="3" placeholder="A late train, a second chance, the thing you never said"></textarea>
+          <button class="try-submit" type="submit">Start my song</button>
+        </form>
+        <ul class="try-tiles">
+          <li>
+            <a href="/song-helper" data-track="primary_cta" data-track-cta="write_song" data-track-surface="lp" data-track-variant="a">
+              <b>Write the draft</b>
+              <span>Turn the idea into verses and a hook.</span>
+            </a>
+          </li>
+          <li>
+            <a href="/distribution" data-track="primary_cta" data-track-cta="stores" data-track-surface="lp" data-track-variant="a">
+              <b>Release it later</b>
+              <span>Spotify, Apple Music, and other stores, when the song is ready.</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+    <section class="home-photo-band" aria-label="In the studio">
+      <img src="/assets/photos/studio-headphones.jpg" alt="A musician in headphones records at a studio microphone beside a mixing desk." width="1600" height="1067" />
+      <div class="home-photo-caption">
+        <p>You bring the idea. Song Lab helps draft it. Your recording royalties stay yours. What you earn depends on the stores and the plays.</p>
+      </div>
+    </section>
+    <p class="lp-note">Sign in if you already have an account. A new account is only for saving a song or sending a release.</p>
+  </main>
+  <footer class="lp-foot">
+    <a href="/terms.html">Terms</a>
+    ·
+    <a href="/privacy.html">Privacy</a>
+    <p>© 2026 PLAIGROUND LLC</p>
+  </footer>
+  <script src="/funnel-analytics.js?v=20261112lp"></script>
+  <script src="/home-try.js?v=20261112lp"></script>
+</body>
+</html>

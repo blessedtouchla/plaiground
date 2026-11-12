@@ -10,9 +10,10 @@
     song_lab_completed: 1,
     signup_start: 1,
     signup_completed: 1,
-    primary_cta: 1
+    primary_cta: 1,
+    lp_view: 1
   };
-  var KEYS = { surface: 1, entry: 1, sample: 1, signed_in: 1, cta: 1, from: 1 };
+  var KEYS = { surface: 1, entry: 1, sample: 1, signed_in: 1, cta: 1, from: 1, variant: 1 };
   var PRIMARY_LABELS = {
     'release now': 'release_now',
     'join free': 'join_free',

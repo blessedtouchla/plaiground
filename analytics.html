@@ -16,6 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260917pl2" />
+  <link rel="stylesheet" href="analytics-map.css?v=20261112map" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
 <body class="app">
@@ -66,6 +67,16 @@
         <p class="hint" data-analytics-status hidden></p>
         <p class="hint" data-analytics-empty hidden>No plays yet. New uploads will show here when the store has numbers.</p>
       </div>
+      <section class="analytics-map-panel" data-analytics-map aria-labelledby="analytics-map-title">
+        <h2 id="analytics-map-title">Where it plays</h2>
+        <p class="hint" data-analytics-map-note>Your map lights up as your songs get played</p>
+        <div class="analytics-map-frame" data-analytics-map-frame>
+          <div class="analytics-map-stage" data-analytics-map-stage></div>
+          <p class="analytics-map-mark" data-analytics-map-mark>PLAIGROUND</p>
+          <ul class="analytics-map-stores" data-analytics-map-stores></ul>
+        </div>
+        <p class="hint" data-analytics-map-extra hidden></p>
+      </section>
       <div class="metric-row" data-analytics-metrics>
         <div class="metric"><strong data-metric="streams">0</strong><span>Total streams</span></div>
         <div class="metric"><strong class="stat-g" data-metric="revenue">$0.00</strong><span>Royalties paid</span></div>
@@ -110,6 +121,7 @@
   <script src="lib/release-status.js?v=20260910r3"></script>
   <script src="membership.js" data-require-membership="true"></script>
   <script src="account.js"></script>
+  <script src="analytics-map.js?v=20261112map"></script>
   <script src="analytics.js" defer></script>
   <script src="site.js?v=20261024acc1"></script>
   <script src="plai-bubble.js" defer></script>

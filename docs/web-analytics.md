@@ -8,9 +8,10 @@ Event properties are short tokens only. Lyrics, prompts, names, emails, and acco
 
 | Event | When it fires | Properties |
 | --- | --- | --- |
-| `try_it_submit` | Signed-out homepage prompt is submitted | `surface=homepage` |
+| `try_it_submit` | Signed-out homepage prompt is submitted, or the same box on `/lp/` | `surface=homepage`, or `surface=lp` plus `variant` |
+| `lp_view` | The noindex ad landing at `/lp/` opens | `surface=lp`, `variant` (default `a`, or the `variant` query) |
 | `song_lab_start` | Song Lab starts from a door, or from a homepage idea | `surface=song_lab`, `entry=door` or `entry=homepage` |
 | `song_lab_completed` | A Song Lab song is finished (including a labeled sample) | `surface=song_lab`, `sample=yes` or `sample=no` |
 | `signup_start` | "Save to my account", or the sign-up link that follows a save | `surface=song_lab`, `from=save_song` or `from=save_prompt` |
 | `signup_completed` | Account creation succeeds on the signup page (same moment as the existing registration pixel) | `surface=signup` |
-| `primary_cta` | Release Now, Join free, Create free account, Start releasing, Write a song free, or a homepage feature tile | `surface`, `cta` (`release_now`, `join_free`, `create_account`, `start_releasing`, `write_song`, `lyrics`, `style`, `stores`, `own`) |
+| `primary_cta` | Release Now, Join free, Create free account, Start releasing, Write a song free, or a homepage feature tile | `surface`, `cta` (`release_now`, `join_free`, `create_account`, `start_releasing`, `write_song`, `lyrics`, `style`, `stores`, `own`). On `/lp/`, `variant` is included. |

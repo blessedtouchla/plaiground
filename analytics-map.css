@@ -1,0 +1,149 @@
+/* Signed-in analytics map. Black and gold. Countries stay dark until the artist has plays there. */
+.analytics-map-panel {
+  margin: 0 0 22px;
+  padding: 16px 14px 14px;
+  border: 1px solid rgba(243, 203, 71, 0.35);
+  border-radius: 18px;
+  background:
+    radial-gradient(520px 220px at 50% 42%, rgba(243, 203, 71, 0.1), transparent 68%),
+    #07070b;
+  color: #fff;
+}
+.analytics-map-panel h2 {
+  margin: 0 0 6px;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: #f3cb47;
+}
+.analytics-map-panel .hint {
+  margin: 0 0 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.analytics-map-frame {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #07070b;
+}
+.analytics-map-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.analytics-map-ocean { fill: #07070b; }
+.analytics-map-svg .land {
+  fill: #16161e;
+  stroke: #3a3428;
+  stroke-width: 0.7;
+}
+.analytics-map-svg .land.is-lit {
+  fill: #f3cb47;
+  stroke: #fff6cc;
+  stroke-width: 1.1;
+}
+.analytics-map-mark {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 203, 71, 0.85);
+  background: rgba(7, 7, 11, 0.88);
+  color: #f3cb47;
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  box-shadow: 0 0 18px rgba(243, 203, 71, 0.35);
+}
+.analytics-map-arcs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.analytics-map-arcs .arc {
+  fill: none;
+  stroke: rgba(243, 203, 71, 0.9);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+.analytics-map-arcs .arc.is-motion {
+  stroke-dasharray: 7 9;
+  animation: analytics-map-arc 2.8s linear infinite;
+}
+.analytics-map-stores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  position: relative;
+  z-index: 2;
+}
+.analytics-map-stores li.is-extra { grid-column: 1 / -1; }
+.map-store {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #2c2c34;
+  background: #101014;
+  color: #8a8a96;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+.map-store.is-lit {
+  color: #14120b;
+  background: #f3cb47;
+  border-color: #f3cb47;
+  box-shadow: 0 0 16px rgba(243, 203, 71, 0.4);
+}
+@media (min-width: 800px) {
+  .analytics-map-stores {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .analytics-map-stores li {
+    position: absolute;
+    width: 148px;
+    pointer-events: auto;
+  }
+  .analytics-map-stores li[data-store="spotify"] { left: 3%; top: 8%; }
+  .analytics-map-stores li[data-store="apple-music"] { left: 38%; top: 5%; }
+  .analytics-map-stores li[data-store="youtube-music"] { right: 3%; top: 8%; width: 160px; }
+  .analytics-map-stores li[data-store="tiktok"] { right: 2%; top: 46%; }
+  .analytics-map-stores li[data-store="deezer"] { right: 6%; bottom: 8%; }
+  .analytics-map-stores li[data-store="amazon-music"] { left: 4%; bottom: 10%; }
+  .analytics-map-stores li.is-extra {
+    position: static;
+    width: auto;
+    margin-top: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .analytics-map-arcs .arc.is-motion {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
+@keyframes analytics-map-arc {
+  to { stroke-dashoffset: -64; }
+}

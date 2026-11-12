@@ -83,6 +83,10 @@
         if (windowRef.PlaigroundStagePublic && windowRef.PlaigroundStagePublic.paint) {
           windowRef.PlaigroundStagePublic.paint(host, result.data.epk);
         }
+        if (document.body && document.body.classList) document.body.classList.add('graffiti-energy');
+        if (windowRef.PlaigroundGraffiti && typeof windowRef.PlaigroundGraffiti.play === 'function') {
+          windowRef.PlaigroundGraffiti.play();
+        }
       })
       .catch(function () {
         host.innerHTML = '<p>This EPK is not public yet.</p>';
