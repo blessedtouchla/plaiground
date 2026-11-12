@@ -69,6 +69,9 @@ STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 TONEGRID_API_KEY=
 TONEGRID_BASE_URL=
+TOOLOST_CLIENT_ID=
+TOOLOST_CLIENT_SECRET=
+TOOLOST_REDIRECT_URI=https://www.wannaplai.com/api/toolost/callback
 DATABASE_URL=
 SESSION_SECRET=
 RESEND_API_KEY=
@@ -189,6 +192,8 @@ ToneGrid routes (no browser key):
 Browser audio and covers PUT to a private object hop first. The `/audio` and `/artwork` POSTs send only the object key. The server then pulls those bytes for the store hop. Set the five `R2_*` values on the host. Missing any of them returns a nameless error. The bucket stays private. There is no public play page.
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
+
+TooLost sandbox OAuth is a hidden staff route on the same Hobby function (`api/me.js`). `GET /api/toolost/start` redirects the owner session to `https://sandbox.toolost.com/oauth/authorize`. `GET /api/toolost/callback` is the registered redirect. Tokens are encrypted in the existing account database. Missing `TOOLOST_CLIENT_ID` or `TOOLOST_CLIENT_SECRET` returns 503. The public nav does not link these paths.
 
 Signup confirmation mail (same `api/auth.js` function; no `api/signup-confirm.js`):
 
