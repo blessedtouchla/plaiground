@@ -195,6 +195,12 @@
 
     setPose('hello');
     if (line && !line.textContent) line.textContent = GREET;
+    function pauseAttract() {
+      if (doc.documentElement && doc.documentElement.classList) {
+        doc.documentElement.classList.toggle('ax-paused', !!doc.hidden);
+      }
+    }
+    if (doc.addEventListener) doc.addEventListener('visibilitychange', pauseAttract);
   }
 
   return {

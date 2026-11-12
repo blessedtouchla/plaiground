@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="home-try.css?v=20261111try" />
   <link rel="stylesheet" href="home-photo.css?v=20261112photo" />
   <link rel="stylesheet" href="home-arcade.css?v=20261112arcade" />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Chakra+Petch:wght@500;600;700&family=Outfit:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="brand-arcade.css?v=20261020a" />
   <style id="home-arcade-hero">
     html,body.home-portal{margin:0;background:#0b0b0f}
@@ -108,57 +108,68 @@
   <main>
     <section class="try-home arcade-home" data-guest-home aria-labelledby="try-heading">
       <div class="ax-stack">
-        <div class="ax-hero" data-plai-hero data-mood="hello">
-          <div class="ax-host">
-            <img class="ax-plai" data-plai-pose src="/for-david-fv/img/plai-hello.webp" alt="Plai" width="140" height="168" />
-            <div class="ax-say">
-              <h1 id="try-heading" data-plai-line>Where are you with your music?</h1>
-              <span class="ax-wave" data-plai-wave hidden aria-hidden="true"><i></i><i></i><i></i></span>
+        <section class="cab attract-breathe ax-hero" data-plai-hero data-mood="hello" aria-label="Plai cabinet">
+          <div class="cab-marquee">
+            <span class="marquee-type title-outline">PLAIGROUND</span>
+          </div>
+          <div class="cab-hood" aria-hidden="true"></div>
+          <div class="cab-bezel">
+            <div class="cab-glass">
+              <div class="ax-host plai-talk">
+                <img class="ax-plai plai-sprite" data-plai-pose src="/for-david-fv/img/plai-hello.webp" alt="Plai" width="220" height="264" />
+                <div class="ax-say plai-bubble">
+                  <h1 id="try-heading" data-plai-line>Where are you with your music?</h1>
+                  <span class="ax-wave" data-plai-wave hidden aria-hidden="true"><i></i><i></i><i></i></span>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="ax-choices">
-            <button class="ax-choice" type="button" data-plai-answer="write">I want to write a song</button>
-            <button class="ax-choice" type="button" data-plai-answer="release">I have songs to release</button>
-            <button class="ax-choice" type="button" data-plai-answer="protect">Protect my rights and get paid</button>
-            <button class="ax-choice" type="button" data-plai-answer="artist">Build my artist profile</button>
+          <div class="cab-deck">
+            <span class="chrome-lip" aria-hidden="true"></span>
+            <div class="ax-choices">
+              <button class="ax-choice btn-arcade-ghost" type="button" data-plai-answer="write">I want to write a song</button>
+              <button class="ax-choice btn-arcade-ghost" type="button" data-plai-answer="release">I have songs to release</button>
+              <button class="ax-choice btn-arcade-ghost" type="button" data-plai-answer="protect">Protect my rights and get paid</button>
+              <button class="ax-choice btn-arcade-ghost" type="button" data-plai-answer="artist">Build my artist profile</button>
+            </div>
+            <form class="ax-own" data-plai-own>
+              <label for="plai-own">Or type your own</label>
+              <input id="plai-own" data-plai-own-text type="text" maxlength="160" placeholder="Or type your own" />
+              <button class="btn-arcade-ghost" type="submit">Send</button>
+            </form>
+            <button class="ax-hear" type="button" data-plai-hear aria-pressed="false">Hear Plai</button>
+            <a class="ax-go btn-arcade" data-plai-go data-track="primary_cta" data-track-surface="homepage" hidden href="/song-helper">Open Song Lab</a>
           </div>
-          <form class="ax-own" data-plai-own>
-            <label for="plai-own">Or type your own</label>
-            <input id="plai-own" data-plai-own-text type="text" maxlength="160" placeholder="Or type your own" />
-            <button type="submit">Send</button>
-          </form>
-          <button class="ax-hear" type="button" data-plai-hear aria-pressed="false">Hear Plai</button>
-          <a class="ax-go" data-plai-go data-track="primary_cta" data-track-surface="homepage" hidden href="/song-helper">Open Song Lab</a>
-        </div>
-        <section class="ax-lab" id="try-it-lab" aria-labelledby="enter-lab">
+        </section>
+        <section class="ax-lab lab-cab" id="try-it-lab" aria-labelledby="enter-lab">
           <h2 id="enter-lab">ENTER LAB</h2>
           <p>One sentence starts the draft in Song Lab. No account. Sign up only if you want to keep the song.</p>
           <form id="try-it" class="try-form" action="/song-helper" method="get">
             <label class="try-label" for="try-idea">What's your song about?</label>
             <textarea id="try-idea" name="idea" maxlength="280" required rows="2" placeholder="A late train, a second chance, the thing you never said"></textarea>
-            <button class="try-submit" type="submit">Open Song Lab</button>
+            <button class="try-submit btn-arcade press-start" type="submit">Open Song Lab</button>
           </form>
         </section>
         <div class="ax-levels">
-          <article class="ax-level">
+          <article class="ax-level panel-finish">
             <h2>Create</h2>
             <p>Write lyrics here, and get Suno style prompts you can paste into Suno.</p>
-            <a href="/song-helper" data-track="primary_cta" data-track-cta="write_song" data-track-surface="homepage">Enter Create</a>
+            <a class="btn-arcade-ghost" href="/song-helper" data-track="primary_cta" data-track-cta="write_song" data-track-surface="homepage">Enter Create</a>
           </article>
-          <article class="ax-level">
+          <article class="ax-level panel-finish">
             <h2>Release</h2>
             <p>Spotify and other stores get the song after you sign in and the file is ready.</p>
-            <a href="login.html?next=%2Fdistribution" data-track="primary_cta" data-track-cta="release" data-track-surface="homepage">Enter Release</a>
+            <a class="btn-arcade-ghost" href="login.html?next=%2Fdistribution" data-track="primary_cta" data-track-cta="release" data-track-surface="homepage">Enter Release</a>
           </article>
-          <article class="ax-level">
+          <article class="ax-level panel-finish">
             <h2>Rights &amp; Money</h2>
             <p>Own it and get paid. Recording royalties stay yours. Publishing and rights ask you to sign in.</p>
-            <a href="publishing.html" data-track="primary_cta" data-track-cta="publish" data-track-surface="homepage">Enter Rights</a>
+            <a class="btn-arcade-ghost" href="publishing.html" data-track="primary_cta" data-track-cta="publish" data-track-surface="homepage">Enter Rights</a>
           </article>
-          <article class="ax-level">
+          <article class="ax-level panel-finish">
             <h2>Artist</h2>
             <p>Build the public page with your bio, songs, and how to book you.</p>
-            <a href="/epk" data-track="primary_cta" data-track-cta="artist_profile" data-track-surface="homepage">Enter Artist</a>
+            <a class="btn-arcade-ghost" href="/epk" data-track="primary_cta" data-track-cta="artist_profile" data-track-surface="homepage">Enter Artist</a>
           </article>
         </div>
       </div>
