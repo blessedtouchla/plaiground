@@ -55,7 +55,7 @@
   }
   function input(value, ph, onInput, rows) {
     var t = el(rows ? 'textarea' : 'input', 'arc-input'); if (rows) t.rows = rows; t.placeholder = ph || ''; t.value = value || '';
-    t.oninput = function () { onInput(t.value); if (A.crisis(t.value) && !S.crisis) { S.crisis = true; paintCrisis(); } };
+    t.oninput = function () { onInput(t.value); if (A.crisis(t.value) && !S.crisis) { S.crisis = true; paintCrisis(); } syncHost(); };
     return t;
   }
   function plai(text) { var p = el('p', 'v3-plai arc-plai'); p.appendChild(el('b', '', 'Plai: ')); p.appendChild(document.createTextNode(text)); return p; }
@@ -1020,6 +1020,28 @@
 
   // ---------- paint ----------
   // ---------- Plai hosts: one small pose plus one short line, inline so it never covers content ----------
+  function questionNow() {
+    if (S.screen !== 's-q' || !A.questionsFor) return null;
+    var qs = A.questionsFor(S.type, S.sub) || [];
+    return qs[S.qIndex] || null;
+  }
+  function answerNow() {
+    var q = questionNow();
+    if (!q || !S.answers) return '';
+    if (q.kind === 'fields') return (q.fields || []).map(function (f) { return S.answers[f[0]] || ''; }).join(' ');
+    return S.answers[q.key] || '';
+  }
+  function isFunText(v) {
+    return /\b(funny|haha+|lol+|lmao|lmfao|laugh\w*|jokes?|silly|party|danc\w*|hype|hilarious)\b/i.test(String(v || ''));
+  }
+  // Dance only for the answer on screen. The next question goes back to thinking.
+  function funAnswer() {
+    if (S.screen === 's-basics' && (S.vibe === 'Funny' || S.vibe === 'Hype')) return true;
+    if (S.screen === 'x-vibe' && S.flip && (S.flip.vibe === 'funny' || S.flip.vibe === 'hype')) return true;
+    if (S.screen === 's-q' && isFunText(answerNow())) return true;
+    if (S.screen === 's-build' && S.mood === 'landed' && S.built && S.built.length && isFunText(S.built[S.built.length - 1])) return true;
+    return false;
+  }
   function hostPose() {
     if (S.crisis) return null;
     if (S.busy) return ['thinking', 'Writing. Give me a second.'];
@@ -1027,6 +1049,7 @@
     if (S.screen === 'reveal') {
       return S.revealHigh ? ['dancing', 'New high score. You earned that one.'] : ['dancing', 'Song done. You set the vision, I kept up.'];
     }
+    if (funAnswer()) return ['dancing', 'Fun answer. Had to dance.'];
     if (S.screen === 'home') return ['hello', "Three machines. Pick one and I'll host."];
     if (S.card === 'flip' && S.flip.vibe === 'surprise') return ['wink', 'Surprise me? Bold. I like it.'];
     if (S.mood === 'landed') { var n = S.built.length; return ['gotit', n === 1 ? 'Got it. 1 down.' : (n === 2 ? 'Two down. It is building.' : (n === 3 ? 'Three down. That has hook energy.' : n + ' down. Keep that run going.')), true]; }
@@ -1080,6 +1103,22 @@
     h.appendChild(img);
     var say = el('p', 'arc-host-say'); say.appendChild(el('b', '', 'Plai')); say.appendChild(document.createTextNode(p[1])); h.appendChild(say);
     return h;
+  }
+  function syncHost() {
+    var node = root.querySelector('.arc-host');
+    if (!node) return;
+    var p = hostPose();
+    if (!p) return;
+    var want = 'arc-host arc-host-' + p[0] + (p[2] ? ' arc-host-win' : '');
+    if (node.className === want) return;
+    node.className = want;
+    var img = node.querySelector('.arc-host-img');
+    if (img) img.src = '/for-david-fv/img/plai-' + p[0] + '.webp';
+    var say = node.querySelector('.arc-host-say');
+    if (!say) return;
+    say.textContent = '';
+    say.appendChild(el('b', '', 'Plai'));
+    say.appendChild(document.createTextNode(p[1]));
   }
 
   // ---------- Talk to Plai: she asks out loud, you answer by voice or typing ----------
