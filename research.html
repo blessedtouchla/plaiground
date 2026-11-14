@@ -14,10 +14,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20260917pl2" />
-  <link rel="stylesheet" href="research.css?v=20261109r2" />
+  <link rel="stylesheet" href="research.css?v=20261114person4" />
   <link rel="stylesheet" href="plai-bubble.css" />
 </head>
-<body class="app">
+<body class="app research-page">
   <aside class="side">
     <nav class="side-nav">
       <a href="/destination">Roadmap</a>
@@ -65,6 +65,45 @@
         <p class="research-lead">Five areas for an artist or a song: presence, credits, analytics, opportunities, and payments. The EPK stays the curated public page. This portal does not certify ownership, clearance, or earnings.</p>
       </div>
       <div class="research-portal">
+        <div class="research-tabs" role="tablist" aria-label="Research areas">
+          <button type="button" role="tab" id="tab-person" aria-controls="panel-person" aria-selected="false" tabindex="-1" data-tab="person">Search a person</button>
+          <button type="button" role="tab" id="tab-presence" aria-controls="panel-presence" aria-selected="true" tabindex="0" data-tab="presence">Artist presence</button>
+          <button type="button" role="tab" id="tab-credits" aria-controls="panel-credits" aria-selected="false" tabindex="-1" data-tab="credits">Song and credits</button>
+          <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false" tabindex="-1" data-tab="analytics">Analytics</button>
+          <button type="button" role="tab" id="tab-opportunities" aria-controls="panel-opportunities" aria-selected="false" tabindex="-1" data-tab="opportunities">Opportunities</button>
+          <button type="button" role="tab" id="tab-payments" aria-controls="panel-payments" aria-selected="false" tabindex="-1" data-tab="payments">Payments and royalties</button>
+        </div>
+
+        <section class="panel" id="panel-person" role="tabpanel" aria-labelledby="tab-person" data-panel="person" hidden>
+          <h2>Search a person</h2>
+          <p class="research-disclaimer">Public credits and registrations. Not proof of ownership, and not who gets paid. Royalty payments are private. A missing result does not mean no rights.</p>
+          <form data-person-form>
+            <div class="research-person-fields">
+              <div class="field">
+                <label for="person-first">First name</label>
+                <input id="person-first" name="first" data-person-first autocomplete="off" autocapitalize="words" required />
+              </div>
+              <div class="field">
+                <label for="person-last">Last name</label>
+                <input id="person-last" name="last" data-person-last autocomplete="off" autocapitalize="words" required />
+              </div>
+              <div class="field">
+                <label for="person-ipi">IPI, if you know it</label>
+                <input id="person-ipi" name="ipi" data-person-ipi inputmode="numeric" autocomplete="off" placeholder="9-11 digits" />
+              </div>
+              <div class="field">
+                <label for="person-artist">Known artist name</label>
+                <input id="person-artist" name="artist" data-person-artist autocomplete="off" placeholder="Stage name" />
+              </div>
+            </div>
+            <div class="research-actions">
+              <button class="btn btn-purple btn-sm" type="submit">Search</button>
+            </div>
+          </form>
+          <p class="research-note">MusicBrainz, Wikidata, and Discogs when its free API answers. BMI, ASCAP, Songview, and The MLC open in your browser with the name filled in. Nothing here is a royalty statement.</p>
+          <div data-person-results></div>
+        </section>
+
         <form class="panel" data-research-form>
           <div class="field">
             <label for="research-q">Artist, work, or code</label>
@@ -77,14 +116,6 @@
           <p class="research-status" data-research-status role="status" aria-live="polite"></p>
           <p data-research-type></p>
         </form>
-
-        <div class="research-tabs" role="tablist" aria-label="Research areas">
-          <button type="button" role="tab" id="tab-presence" aria-controls="panel-presence" aria-selected="true" tabindex="0" data-tab="presence">Artist presence</button>
-          <button type="button" role="tab" id="tab-credits" aria-controls="panel-credits" aria-selected="false" tabindex="-1" data-tab="credits">Song and credits</button>
-          <button type="button" role="tab" id="tab-analytics" aria-controls="panel-analytics" aria-selected="false" tabindex="-1" data-tab="analytics">Analytics</button>
-          <button type="button" role="tab" id="tab-opportunities" aria-controls="panel-opportunities" aria-selected="false" tabindex="-1" data-tab="opportunities">Opportunities</button>
-          <button type="button" role="tab" id="tab-payments" aria-controls="panel-payments" aria-selected="false" tabindex="-1" data-tab="payments">Payments and royalties</button>
-        </div>
 
         <section class="panel" id="panel-presence" role="tabpanel" aria-labelledby="tab-presence" data-panel="presence">
           <h2>Artist presence</h2>
@@ -170,9 +201,10 @@
         <section class="panel">
           <h2>What is connected, and what is not</h2>
           <ul>
-            <li>Working lookup: public Wikidata data (CC0) for the search you start. About one request a second and 30 searches in 10 minutes per address, remembered only in that server instance. A new instance does not share the count. Nothing is retried automatically.</li>
-            <li>Link only: MusicBrainz, ASCAP repertory, BMI repertoire, Songview, The MLC, US Copyright Office, USPTO, ISRC search. You read those sites. We do not copy them.</li>
-            <li>Not connected: MusicBrainz web service (their docs say commercial use of that hosted service needs their commercial plans), Apple catalog, Deezer catalog, SecondHandSongs, Spotify analytics, Suno, audio fingerprinting, SIQA registry, AudD, ACRCloud, Muso, Chartmetric, Soundcharts.</li>
+            <li>Working lookup: public Wikidata data (CC0) for the search you start. Search a person also reads MusicBrainz core data (CC0) and Discogs name variations when their free API answers. About one request a second and 30 searches in 10 minutes per address, remembered only in that server instance. Nothing is retried automatically.</li>
+            <li>Link only: ASCAP repertory, BMI repertoire, Songview, and The MLC, opened with the name filled in. Also US Copyright Office, USPTO, and ISRC search. You read those sites. We do not copy them. Their public search APIs are not open without an enrollment or a key.</li>
+            <li>MusicBrainz asks commercial products to arrange support for the hosted web service. This page uses it only for Search a person, at one request a second, with no paid key. Artist presence still uses a MusicBrainz ID only as a Wikidata seed.</li>
+            <li>Not connected: Apple catalog, Deezer catalog, SecondHandSongs, Spotify analytics, Suno, audio fingerprinting, SIQA registry, AudD, ACRCloud, Muso, Chartmetric, Soundcharts.</li>
           </ul>
           <p class="research-note">MusicBrainz core data is CC0, and supplementary data such as tags, ratings, and annotations is not requested. No MusicBrainz database dump is downloaded. SIQA, if it were connected later, would be an attestation or editorial record, not an audio detector. A missing SIQA row would mean unknown, not human and not AI.</p>
           <p class="research-note">The EPK is separate. <a href="epk.html">Open the EPK</a> when you want a public presentation. Publishing registration is a different page and is not submitted from here.</p>
@@ -180,8 +212,8 @@
       </div>
     </div>
   </div>
-  <script src="lib/research-portal.js?v=20261109r2"></script>
-  <script src="research.js?v=20261109r2"></script>
+  <script src="lib/research-portal.js?v=20261114person"></script>
+  <script src="research.js?v=20261114person"></script>
   <script src="membership.js"></script>
   <script src="account.js"></script>
   <script src="site.js?v=20261109research"></script>
