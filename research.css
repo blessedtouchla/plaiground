@@ -119,5 +119,6 @@ body.research-page #panel-person {
   .research-choice, .research-link, .research-row { overflow-wrap: anywhere; }
   body.research-page .page-head .research-lead { display: none; }
   body.research-page .page { padding-bottom: 136px; }
-  body.research-page #panel-person .research-actions { margin-bottom: 88px; }
+  body.research-page .research-disclaimer { margin: 0 0 12px; }
+  body.research-page #panel-person .research-actions { justify-content: flex-end; }
 }
