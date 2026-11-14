@@ -17,13 +17,13 @@
 }
 
 .siqa-video {
-  width: min(400px, calc(100% - 48px));
+  width: min(960px, calc(100% - 48px));
   margin: 0 auto 28px;
   background: #000;
 }
 
 .siqa-video-frame {
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 16 / 9;
   border-radius: 22px;
   overflow: hidden;
   background: #000;
@@ -42,6 +42,11 @@
   color: var(--muted);
   font-size: 14px;
   text-align: center;
+}
+
+.siqa-video figcaption a {
+  color: var(--magenta);
+  font-weight: 700;
 }
 
 .siqa-quotes {
@@ -211,8 +216,8 @@
   }
 
   .siqa-video {
-    width: min(220px, calc(100% - 36px));
-    margin: 8px auto 120px;
+    width: calc(100% - 32px);
+    margin: 8px auto 28px;
   }
 
   .siqa-page .siqa-cta-inner {

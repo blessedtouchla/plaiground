@@ -41,37 +41,37 @@ const banned = [
 
 const videos = {
   'siqa-daydream-interview.html': {
-    id: '1W0z9TijpFJqMOHncT0nxQyOumvjqS_P3',
+    id: 'ElACta-GPZI',
     duration: 'PT6M27S',
     uploadDate: '2026-11-12T12:37:00-08:00'
   },
   'siqa-post-four-to-five-times-a-day.html': {
-    id: '1xrBCBlY1lWlrhTVtzR7uiaA1sXW-MrPm',
+    id: '9p78NHE0Q90',
     duration: 'PT5M49S',
     uploadDate: '2026-11-12T12:09:00-08:00'
   },
   'siqa-merch-start-with-10.html': {
-    id: '1xrBCBlY1lWlrhTVtzR7uiaA1sXW-MrPm',
+    id: '9p78NHE0Q90',
     duration: 'PT5M49S',
     uploadDate: '2026-11-12T12:09:00-08:00'
   },
   'siqa-every-ai-artist-needs-a-music-video.html': {
-    id: '1LWw0PkkGtMrTxYVr5x_kYmnKgowOPoF-',
+    id: 'j9803hyCMYA',
     duration: 'PT1M11S',
     uploadDate: '2026-11-12T10:54:00-08:00'
   },
   'siqa-this-is-a-tool.html': {
-    id: '1eQAyFAuYZygE8C0sNp8VUXSlFY9q1wMn',
+    id: 'xJ4BdjSZbJA',
     duration: 'PT4M19S',
     uploadDate: '2026-11-12T10:58:00-08:00'
   },
   'siqa-ava-bently-interview.html': {
-    id: '1RhzAw6Svn84xPIIeEOxCowKkHF9DY8Pv',
+    id: 'Nle-samaNpE',
     duration: 'PT2M30S',
     uploadDate: '2026-11-13T21:12:00-08:00'
   },
   'siqa-ava-bently-acceptance-speech.html': {
-    id: '1Z2Moh1oB6gZRzrZ9DZfhxdoEeJD9nTB8',
+    id: 'JyRvo9Pu72Q',
     duration: 'PT4M19S',
     uploadDate: '2026-11-13'
   }
@@ -116,20 +116,28 @@ files.forEach(function (file) {
 Object.keys(videos).forEach(function (file) {
   const html = read(file);
   const spec = videos[file];
-  const embed = 'https://drive.google.com/file/d/' + spec.id + '/preview';
-  assert.ok(html.includes('src="' + embed + '"'), file + ' iframe');
+  const embed = 'https://www.youtube-nocookie.com/embed/' + spec.id;
+  const watch = 'https://www.youtube.com/watch?v=' + spec.id;
+  assert.ok(html.includes('src="' + embed + '?playsinline=1"'), file + ' iframe');
+  assert.ok(html.includes('playsinline'), file + ' playsinline');
+  assert.ok(html.includes('allowfullscreen'), file + ' allowfullscreen');
+  assert.ok(html.includes('href="' + watch + '"'), file + ' watch link');
+  assert.ok(html.includes('Watch on YouTube'), file + ' watch label');
+  assert.ok(!html.includes('drive.google.com'), file + ' still has Drive');
   const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(function (match) {
     return JSON.parse(match[1]);
   });
   const video = blocks.find(function (block) { return block['@type'] === 'VideoObject'; });
   assert.ok(video, file + ' VideoObject');
-  assert.ok(video.name && video.description && video.uploadDate && video.duration && video.embedUrl);
+  assert.ok(video.name && video.description && video.uploadDate && video.duration && video.embedUrl && video.contentUrl);
   assert.strictEqual(video.embedUrl, embed);
+  assert.strictEqual(video.contentUrl, watch);
   assert.strictEqual(video.duration, spec.duration);
   assert.strictEqual(video.uploadDate, spec.uploadDate);
 });
 
-assert.ok(!read('siqa-2026-highlights.html').includes('drive.google.com/file'), 'highlights has no full-cut embed');
+assert.ok(!read('siqa-2026-highlights.html').includes('drive.google.com'), 'highlights has no Drive embed');
+assert.ok(!read('siqa-2026-highlights.html').includes('youtube.com'), 'highlights stays a text page');
 assert.ok(read('siqa-2026-highlights.html').includes('VANYRA X'));
 assert.ok(read('siqa-2026-highlights.html').includes('Bijou Nicole'));
 assert.ok(read('siqa-2026-highlights.html').includes('Best AI Rock/Alt Song'));
