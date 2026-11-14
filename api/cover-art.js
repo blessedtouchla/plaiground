@@ -91,10 +91,13 @@ function readBody(req) {
 
 function clientIp(req) {
   var headers = req.headers || {};
+  var real = String(headers['x-real-ip'] || headers['X-Real-Ip'] || '').trim();
+  if (real) return real.slice(0, 80);
+  var vercel = String(headers['x-vercel-forwarded-for'] || headers['X-Vercel-Forwarded-For'] || '').split(',')[0].trim();
+  if (vercel) return vercel.slice(0, 80);
   var fwd = headers['x-forwarded-for'] || headers['X-Forwarded-For'] || '';
   if (fwd) return String(fwd).split(',')[0].trim().slice(0, 80) || 'unknown';
-  var real = headers['x-real-ip'] || headers['X-Real-Ip'] || '';
-  return String(real).trim().slice(0, 80) || 'unknown';
+  return 'unknown';
 }
 
 function honeypotFilled(body) {

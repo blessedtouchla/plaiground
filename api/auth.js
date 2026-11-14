@@ -135,13 +135,14 @@ async function signup(req, res) {
     return;
   }
 
-  const email = normalizeEmail(body && body.email);
+  const submittedEmail = body && body.email;
+  const email = normalizeEmail(submittedEmail);
   const password = body && body.password != null ? String(body.password) : '';
   const artist = String((body && (body.artist || body.artist_name)) || '').trim();
   const username = String((body && body.username) || '').trim();
   const plan = body && body.plan;
 
-  if (!isEmail(email)) {
+  if (!isEmail(submittedEmail)) {
     sendJson(res, 400, { error: 'A valid email is required.' });
     return;
   }
@@ -285,7 +286,8 @@ async function login(req, res) {
     return;
   }
 
-  const email = normalizeEmail(body && body.email);
+  const submittedEmail = body && body.email;
+  const email = normalizeEmail(submittedEmail);
   const password = body && body.password != null ? String(body.password) : '';
   const token = String((body && body.token) || '').trim();
   // Username is a community handle. Sign-in stays email.
@@ -293,7 +295,7 @@ async function login(req, res) {
     await loginWithToken(req, res, token, body);
     return;
   }
-  if (!isEmail(email) || !password) {
+  if (!isEmail(submittedEmail) || !password) {
     sendJson(res, 401, { error: 'Invalid email or password.' });
     return;
   }
@@ -606,8 +608,9 @@ async function mail(req, res) {
     return;
   }
 
-  const email = normalizeEmail(body && body.email);
-  if (!isEmail(email)) {
+  const submittedEmail = body && body.email;
+  const email = normalizeEmail(submittedEmail);
+  if (!isEmail(submittedEmail)) {
     sendJson(res, 400, { mail_sent: false, error: 'A valid email is required.' });
     return;
   }

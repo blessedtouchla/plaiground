@@ -67,10 +67,22 @@
       'Availability: ' + (f.availability.value || '-')
     ].join(' | ');
     status.textContent = 'Sending...';
-    fetch('/api/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ name: f.name.value, email: f.email.value, phone: '', package: 'Get booked', help: help, company_website: f.company_website.value })
+    var tokenWait = window.PlaigroundApply && window.PlaigroundApply.token
+      ? window.PlaigroundApply.token()
+      : fetch('/api/auth/form', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          return new Promise(function (resolve) {
+            setTimeout(function () { resolve((data && data.form_token) || ''); }, 2100);
+          });
+        })
+        .catch(function () { return ''; });
+    Promise.resolve(tokenWait).then(function (token) {
+      return fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ name: f.name.value, email: f.email.value, phone: '', package: 'Get booked', help: help, company_website: f.company_website.value, form_token: token || '' })
+      });
     }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (!res.ok) { status.textContent = (res.d && res.d.error) || 'Could not send that. Try again in a minute.'; return; }

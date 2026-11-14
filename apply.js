@@ -62,23 +62,49 @@
     modal.hidden = true;
   }
 
+  var applyToken = '';
+  var applyTokenAt = 0;
+  function loadApplyToken() {
+    return fetch('/api/auth/form', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        applyToken = (data && data.form_token) || '';
+        applyTokenAt = Date.now();
+        return applyToken;
+      })
+      .catch(function () { return ''; });
+  }
+  function readyApplyToken() {
+    var pending = applyToken ? Promise.resolve(applyToken) : loadApplyToken();
+    return pending.then(function (token) {
+      var wait = Math.max(0, 2100 - (Date.now() - applyTokenAt));
+      return new Promise(function (resolve) {
+        setTimeout(function () { resolve(token || applyToken); }, wait);
+      });
+    });
+  }
+  loadApplyToken();
+
   function onSubmit(event) {
     event.preventDefault();
     var form = event.target;
     var status = form.querySelector('[data-apply-status]');
-    var body = {
-      name: form.name.value,
-      email: form.email.value,
-      phone: form.phone.value,
-      package: form.querySelector('[name="package"]').value,
-      help: form.help.value,
-      company_website: form.company_website.value,
-    };
     status.textContent = 'Sending...';
-    fetch('/api/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
+    readyApplyToken().then(function (token) {
+      var body = {
+        name: form.name.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        package: form.querySelector('[name="package"]').value,
+        help: form.help.value,
+        company_website: form.company_website.value,
+        form_token: token,
+      };
+      return fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(body),
+      });
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (data) {
         return { ok: response.ok, data: data || {} };
@@ -104,5 +130,5 @@
     open(button.getAttribute('data-apply-package') || '');
   });
 
-  window.PlaigroundApply = { open: open, close: close };
+  window.PlaigroundApply = { open: open, close: close, token: readyApplyToken };
 })();
