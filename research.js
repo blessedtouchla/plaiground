@@ -542,6 +542,270 @@
     return 'n' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
   }
 
+  var personForm = document.querySelector('[data-person-form]');
+  var personResults = document.querySelector('[data-person-results]');
+
+  function personLink(href, label) {
+    var a = externalLink(href, label);
+    return a;
+  }
+
+  function appendMeta(parent, text) {
+    if (!text) return;
+    var meta = document.createElement('span');
+    meta.className = 'research-meta';
+    meta.textContent = text;
+    parent.appendChild(meta);
+  }
+
+  function renderLinkList(links) {
+    var box = document.createElement('div');
+    box.className = 'research-list';
+    (links || []).forEach(function (link) {
+      var a = personLink(link.href, link.label || link.href);
+      if (!a) return;
+      if (link.limitation) {
+        var small = document.createElement('small');
+        small.textContent = link.limitation;
+        a.appendChild(small);
+      }
+      if (link.source) appendMeta(a, [link.source, link.type].filter(Boolean).join(' · '));
+      box.appendChild(a);
+    });
+    return box;
+  }
+
+  function sectionTitle(text) {
+    var h = document.createElement('h3');
+    h.textContent = text;
+    return h;
+  }
+
+  function renderPersonCard(candidate) {
+    var card = document.createElement('article');
+    card.className = 'research-row research-card';
+    card.setAttribute('data-person-id', candidate.id || '');
+    var title = document.createElement('h3');
+    title.textContent = candidate.name || 'Unnamed record';
+    card.appendChild(title);
+    var badge = document.createElement('p');
+    badge.className = 'research-confidence is-' + (candidate.confidence || 'weak');
+    badge.textContent = candidate.confidenceLabel || 'Weak match';
+    card.appendChild(badge);
+    var why = document.createElement('p');
+    why.textContent = candidate.confidenceReason || '';
+    card.appendChild(why);
+    appendMeta(card, [candidate.kind, candidate.disambiguation, candidate.sortName].filter(Boolean).join(' · '));
+    if (candidate.ipis && candidate.ipis.length) {
+      var ipi = document.createElement('p');
+      ipi.textContent = 'IPI ' + candidate.ipis.join(', ');
+      card.appendChild(ipi);
+    }
+    card.appendChild(sectionTitle('Aliases and profiles'));
+    var aliasHost = document.createElement('div');
+    aliasHost.setAttribute('data-person-aliases', '');
+    card.appendChild(aliasHost);
+    card.appendChild(sectionTitle('Credits'));
+    var creditHost = document.createElement('div');
+    creditHost.setAttribute('data-person-credits', '');
+    creditHost.textContent = 'Loading the public credit sample.';
+    card.appendChild(creditHost);
+    card.appendChild(sectionTitle('Links a source published'));
+    var linkHost = document.createElement('div');
+    linkHost.setAttribute('data-person-links', '');
+    card.appendChild(linkHost);
+    card.appendChild(sectionTitle('Registries'));
+    card.appendChild(renderLinkList(candidate.registries));
+    fillAliases(aliasHost, candidate);
+    fillLinks(linkHost, candidate);
+    return card;
+  }
+
+  function fillAliases(host, candidate) {
+    host.textContent = '';
+    var aliases = candidate.aliases || [];
+    var profiles = candidate.profiles || [];
+    if (!aliases.length && !profiles.length) {
+      var empty = document.createElement('p');
+      empty.textContent = 'No alias or profile was listed by the sources that answered.';
+      host.appendChild(empty);
+      return;
+    }
+    var list = document.createElement('div');
+    list.className = 'research-list';
+    aliases.forEach(function (alias) {
+      var row = document.createElement('div');
+      row.className = 'research-row';
+      var strong = document.createElement('strong');
+      strong.textContent = alias.name || '';
+      row.appendChild(strong);
+      appendMeta(row, [alias.type, alias.source].filter(Boolean).join(' · '));
+      if (alias.href) {
+        var a = personLink(alias.href, 'Open source');
+        if (a) row.appendChild(a);
+      }
+      list.appendChild(row);
+    });
+    host.appendChild(list);
+    if (profiles.length) host.appendChild(renderLinkList(profiles));
+  }
+
+  function fillLinks(host, candidate) {
+    host.textContent = '';
+    if (!(candidate.links || []).length) {
+      var empty = document.createElement('p');
+      empty.textContent = 'No official or social link was published by these sources. None was guessed.';
+      host.appendChild(empty);
+      return;
+    }
+    host.appendChild(renderLinkList(candidate.links));
+  }
+
+  function fillCredits(host, result) {
+    host.textContent = '';
+    var note = document.createElement('p');
+    note.textContent = (result && result.note) || 'No public credit was returned for this person. That is not proof there are no credits.';
+    host.appendChild(note);
+    var credits = (result && result.credits) || [];
+    if (!credits.length) return;
+    var list = document.createElement('div');
+    list.className = 'research-list';
+    credits.forEach(function (credit) {
+      var row = document.createElement('div');
+      row.className = 'research-row';
+      var strong = document.createElement('strong');
+      strong.textContent = credit.title || '';
+      row.appendChild(strong);
+      appendMeta(row, [credit.role, credit.source].filter(Boolean).join(' · '));
+      if (credit.href) {
+        var a = personLink(credit.href, 'Open source');
+        if (a) row.appendChild(a);
+      }
+      list.appendChild(row);
+    });
+    host.appendChild(list);
+  }
+
+  function cardById(id) {
+    if (!id || !personResults) return null;
+    return personResults.querySelector('[data-person-id="' + id.replace(/"/g, '') + '"]');
+  }
+
+  function applyProfile(card, result) {
+    if (!card || !result) return;
+    if ((result.aliases && result.aliases.length) || (result.profiles && result.profiles.length)) {
+      fillAliases(card.querySelector('[data-person-aliases]'), result);
+    }
+    if (result.links && result.links.length) fillLinks(card.querySelector('[data-person-links]'), result);
+  }
+
+  function waitPace() {
+    return new Promise(function (resolve) { setTimeout(resolve, 1300); });
+  }
+
+  function postPerson(body) {
+    return post(body).then(function (result) {
+      if (result && result.status === 'rate-limit') return waitPace().then(function () { return post(body); });
+      return result;
+    });
+  }
+
+  function loadPersonDetails(candidate) {
+    var body = { mbid: candidate.mbid || '', qid: candidate.qid || '', discogsId: candidate.discogsId || '' };
+    if (!body.mbid && !body.qid && !body.discogsId) {
+      var card = cardById(candidate.id);
+      var credits = card && card.querySelector('[data-person-credits]');
+      if (credits) credits.textContent = 'No MusicBrainz, Wikidata, or Discogs id was on this row, so credits were not requested.';
+      return;
+    }
+    enqueue(function () {
+      return waitPace().then(function () {
+        return postPerson(Object.assign({ op: 'person-profile' }, body)).then(function (result) {
+          var card = cardById(candidate.id);
+          if (result && result.ok !== false) applyProfile(card, result);
+        });
+      });
+    });
+    enqueue(function () {
+      if (!body.mbid && !body.qid) {
+        var card = cardById(candidate.id);
+        var credits = card && card.querySelector('[data-person-credits]');
+        if (credits) credits.textContent = 'Discogs lists names, not the writer and producer credits. Those credits were not requested from Discogs.';
+        return Promise.resolve();
+      }
+      return waitPace().then(function () { return postPerson(Object.assign({ op: 'person-credits' }, body)); }).then(function (result) {
+        var card = cardById(candidate.id);
+        var host = card && card.querySelector('[data-person-credits]');
+        if (!host) return;
+        if (!result || result.ok === false) {
+          host.textContent = (result && result.message) || 'The credit sample did not load.';
+          return;
+        }
+        fillCredits(host, result);
+      });
+    });
+  }
+
+  function renderPerson(result) {
+    personResults.textContent = '';
+    if (!result) return;
+    var note = document.createElement('p');
+    note.textContent = (result.disclaimer || '') + ' ' + (result.limitation || '');
+    personResults.appendChild(note);
+    var sources = document.createElement('ul');
+    (result.sources || []).forEach(function (source) {
+      var item = document.createElement('li');
+      item.className = 'research-source';
+      item.textContent = source.id + ': ' + source.status + '. ' + (source.note || '');
+      sources.appendChild(item);
+    });
+    personResults.appendChild(sources);
+    if (result.ok === false) {
+      var fail = document.createElement('p');
+      fail.textContent = result.message || '';
+      personResults.appendChild(fail);
+      return;
+    }
+    if (result.noMatch) {
+      var empty = document.createElement('p');
+      empty.textContent = 'No person record came back. The registry links below use the name you typed. A miss is not proof of no rights.';
+      personResults.appendChild(empty);
+      personResults.appendChild(renderLinkList(result.registries));
+      return;
+    }
+    var list = document.createElement('div');
+    list.className = 'research-person';
+    (result.candidates || []).forEach(function (candidate) {
+      list.appendChild(renderPersonCard(candidate));
+    });
+    personResults.appendChild(list);
+    (result.candidates || []).slice(0, 3).forEach(loadPersonDetails);
+  }
+
+  if (personForm) {
+    personForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var first = personForm.querySelector('[data-person-first]').value;
+      var last = personForm.querySelector('[data-person-last]').value;
+      var ipi = personForm.querySelector('[data-person-ipi]').value;
+      var artist = personForm.querySelector('[data-person-artist]').value;
+      if (!R.trim(first) || !R.trim(last)) {
+        say('Enter a first and last name.', true);
+        return;
+      }
+      showTab('person');
+      say('Searching public sources for ' + R.trim(first) + ' ' + R.trim(last) + '. Same names stay separate.');
+      enqueue(function () {
+        return post({ op: 'person', first: first, last: last, ipi: ipi, artist: artist }).then(function (result) {
+          if (!result || result.ok === false) say((result && result.message) || 'The person search did not complete.', true);
+          else if (result.noMatch) say(result.limitation || 'No person record came back.', false);
+          else say(result.candidates.length + ' public record' + (result.candidates.length === 1 ? '' : 's') + '. Confirm the one you mean.');
+          renderPerson(result || { ok: false, message: 'The person search did not complete.' });
+        });
+      });
+    });
+  }
+
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     lookupRaw(input.value);

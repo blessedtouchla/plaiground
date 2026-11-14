@@ -4,6 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const research = require('./lib/research-portal');
+const person = require('./lib/research-person');
 const lookup = require('./lib/research-lookup');
 
 function read(rel) {
@@ -138,7 +139,12 @@ async function run() {
   assert.ok(mbidRequest.url.indexOf('https://query.wikidata.org/sparql') === 0);
   assert.ok(mbidRequest.url.indexOf('musicbrainz.org') === -1);
   assert.strictEqual(research.allowedFetchUrl(mbidRequest.url), true);
-  assert.strictEqual(research.allowedFetchUrl('https://musicbrainz.org/ws/2/artist/b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d'), false);
+  assert.strictEqual(research.allowedFetchUrl('https://musicbrainz.org/ws/2/artist/b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d?inc=aliases+url-rels+artist-rels&fmt=json'), true);
+  assert.strictEqual(research.allowedFetchUrl('https://musicbrainz.org/ws/2/artist/b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d?inc=tags+ratings'), false);
+  assert.strictEqual(research.allowedFetchUrl('https://musicbrainz.org/ws/2/recording?query=beatles'), false);
+  assert.strictEqual(research.allowedFetchUrl('https://api.discogs.com/database/search?type=artist&q=Ada'), true);
+  assert.strictEqual(research.allowedFetchUrl('https://api.discogs.com/artists/61337'), true);
+  assert.strictEqual(research.allowedFetchUrl('https://api.discogs.com/marketplace/orders'), false);
   assert.strictEqual(research.allowedFetchUrl('https://evil.example/w/api.php'), false);
 
   const notesA = memory();
@@ -202,9 +208,12 @@ async function run() {
   const server = read('lib/research-lookup.js');
   const page = read('api/youtube.js');
   const vercel = JSON.parse(read('vercel.json'));
-  ['Artist presence', 'Song and credits', 'Analytics', 'Opportunities', 'Payments and royalties'].forEach(function (label) {
+  ['Search a person', 'Artist presence', 'Song and credits', 'Analytics', 'Opportunities', 'Payments and royalties'].forEach(function (label) {
     assert.ok(html.indexOf(label) !== -1, label);
   });
+  assert.ok(html.indexOf('Not proof of ownership') !== -1);
+  assert.ok(html.indexOf('data-person-form') !== -1);
+  assert.ok(html.indexOf('research-page') !== -1);
   assert.ok(html.indexOf('The Beatles') === -1);
   assert.ok(html.indexOf('Q1299') === -1);
   assert.ok(html.indexOf('type="file"') === -1);
@@ -216,6 +225,11 @@ async function run() {
   assert.ok(client.indexOf('attempt < 1') === -1);
   assert.ok(client.indexOf('musicbrainz.org/ws') === -1);
   assert.ok(server.indexOf('musicbrainz.org/ws') === -1);
+  const personSource = read('lib/research-person.js');
+  assert.ok(personSource.indexOf('inc=aliases+url-rels+artist-rels') !== -1);
+  assert.ok(personSource.indexOf('inc=tags') === -1);
+  assert.ok(personSource.indexOf('recording-rels') === -1);
+  assert.ok(cssSafe(read('research.css')));
   assert.ok(server.indexOf('www.wikidata.org') !== -1);
   assert.ok(page.indexOf('youtubei/v1/search') !== -1);
   assert.ok(page.indexOf("=== 'research'") !== -1);
@@ -366,7 +380,240 @@ async function run() {
     console.log('live Wikidata search ok, candidates ' + live.candidates.length);
   }
 
+  const martin = person.normalizePersonSearch({
+    musicbrainz: {
+      artists: [{
+        id: '6622a50e-5206-44d0-9ad5-96047a726dcf',
+        name: 'Max Martin',
+        'sort-name': 'Martin, Max',
+        type: 'Person',
+        score: 100,
+        disambiguation: 'Swedish record producer',
+        ipis: ['00215866753'],
+        aliases: [{ name: 'Martin Karl Sandberg', type: 'Legal name' }]
+      }, {
+        id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        name: 'Max Martin',
+        type: 'Person',
+        score: 40,
+        disambiguation: 'other person'
+      }]
+    },
+    wikidata: { results: { bindings: [
+      { item: { value: 'http://www.wikidata.org/entity/Q318223' }, itemLabel: { value: 'Max Martin' }, itemDescription: { value: 'Swedish record producer and songwriter' }, mb: { value: '6622a50e-5206-44d0-9ad5-96047a726dcf' }, ipi: { value: '00215866753' }, discogs: { value: '61337' } },
+      { item: { value: 'http://www.wikidata.org/entity/Q9' }, itemLabel: { value: 'Max Martin' }, itemDescription: { value: 'Wikimedia disambiguation page' } }
+    ] } },
+    discogs: { results: [{ id: 61337, type: 'artist', title: 'Max Martin', uri: '/artist/61337-Max-Martin' }] }
+  }, person.parsePerson({ first: 'Martin', last: 'Sandberg', artist: 'Max Martin', ipi: '215866753' }), '2026-11-14T12:00:00.000Z');
+  assert.strictEqual(martin.ok, true);
+  assert.ok(martin.candidates.length >= 2);
+  assert.notStrictEqual(martin.candidates[0].id, martin.candidates[1].id);
+  const top = martin.candidates[0];
+  assert.strictEqual(top.confidence, 'high');
+  assert.ok(top.aliases.some(function (alias) { return alias.name === 'Martin Karl Sandberg' && alias.type === 'Legal name' && alias.source === 'MusicBrainz'; }));
+  assert.ok(top.profiles.some(function (profile) { return profile.href.indexOf('61337') !== -1; }));
+  assert.ok(top.registries.some(function (link) { return link.id === 'bmi' && link.href.indexOf('Max+Martin') !== -1; }));
+  assert.ok(top.registries.some(function (link) { return link.id === 'songview' && link.href.indexOf('searchFilter=SVW') !== -1; }));
+  assert.ok(top.registries.some(function (link) { return link.id === 'mlc' && link.href.indexOf('writerFullNames=Max') !== -1 && link.href.indexOf('ipiNameNumber=00215866753') !== -1; }));
+  assert.ok(!top.registries.some(function (link) { return /ascap\.com\/api|repertoire\.bmi\.com\/ws|portal\.themlc\.com\/api/i.test(link.href); }));
+  assert.ok(JSON.stringify(martin).indexOf('Q9') === -1);
+  assert.ok(/not proof of ownership/i.test(martin.disclaimer));
+  assert.ok(!/found all your|your royalties|we found/i.test(martin.disclaimer + martin.limitation));
+
+  const profile = person.normalizePersonProfile({
+    musicbrainz: {
+      id: '6622a50e-5206-44d0-9ad5-96047a726dcf',
+      name: 'Max Martin',
+      type: 'Person',
+      aliases: [{ name: 'Martin Karl Sandberg', type: 'Legal name' }],
+      relations: [
+        { type: 'performance name', direction: 'forward', artist: { id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', name: 'Stage Name' } },
+        { type: 'official homepage', url: { resource: 'https://example.com/official' } },
+        { type: 'social network', url: { resource: 'javascript:alert(1)' } },
+        { type: 'streaming', url: { resource: 'https://open.spotify.com/artist/1' } }
+      ]
+    },
+    discogs: {
+      id: 61337,
+      name: 'Max Martin',
+      realname: 'Karl Martin Sandberg',
+      namevariations: ['M. Martin'],
+      aliases: [{ id: 433829, name: 'Martin Sandberg' }],
+      urls: ['javascript:alert(1)', 'https://www.instagram.com/officialmaxmartin/'],
+      profile: 'A long biography that must not be copied.'
+    },
+    wikidata: { entities: { Q318223: {
+      labels: { en: { value: 'Max Martin' } },
+      descriptions: { en: { value: 'Swedish record producer' } },
+      aliases: { en: [{ value: 'Martin Sandberg' }] },
+      claims: {
+        P2003: [{ mainsnak: { datavalue: { value: 'officialmaxmartin' } } }],
+        P2002: [{ mainsnak: { datavalue: { value: 'not a real handle with spaces' } } }]
+      }
+    } } }
+  }, { mbid: '6622a50e-5206-44d0-9ad5-96047a726dcf', qid: 'Q318223', discogsId: '61337' }, '2026-11-14T12:00:00.000Z');
+  assert.ok(profile.aliases.some(function (alias) { return alias.type === 'performs as' && alias.name === 'Stage Name'; }));
+  assert.ok(profile.aliases.some(function (alias) { return alias.type === 'name variation' && alias.name === 'M. Martin' && alias.source === 'Discogs'; }));
+  assert.ok(profile.links.some(function (link) { return link.href === 'https://example.com/official' && link.source === 'MusicBrainz'; }));
+  assert.ok(profile.links.some(function (link) { return link.href === 'https://www.instagram.com/officialmaxmartin/' && link.source === 'Discogs'; }));
+  assert.ok(profile.links.some(function (link) { return link.href === 'https://www.instagram.com/officialmaxmartin/' && link.source === 'Wikidata'; }));
+  const profileBlob = JSON.stringify(profile);
+  assert.ok(profileBlob.indexOf('javascript:') === -1);
+  assert.ok(profileBlob.indexOf('open.spotify.com') === -1);
+  assert.ok(profileBlob.indexOf('not a real handle') === -1);
+  assert.ok(profileBlob.indexOf('long biography') === -1);
+  assert.ok(!profile.links.some(function (link) { return link.label === 'X'; }));
+
+  const credits = person.normalizePersonCredits({
+    works: {
+      'work-count': 389,
+      works: [{
+        id: '702f1cf7-de14-32e9-8a61-8c0a02dc01a1',
+        title: 'Baby One More Time',
+        relations: [
+          { type: 'composer', artist: { id: '6622a50e-5206-44d0-9ad5-96047a726dcf', name: 'Max Martin' } },
+          { type: 'lyricist', artist: { id: '6622a50e-5206-44d0-9ad5-96047a726dcf', name: 'Max Martin' } },
+          { type: 'vocal', attributes: ['guest'], artist: { id: '6622a50e-5206-44d0-9ad5-96047a726dcf', name: 'Max Martin' } },
+          { type: 'producer', artist: { id: 'cccccccc-cccc-cccc-cccc-cccccccccccc', name: 'Someone else' } }
+        ]
+      }]
+    },
+    wikidata: { results: { bindings: [
+      { item: { value: 'http://www.wikidata.org/entity/Q1' }, itemLabel: { value: 'A Song' }, role: { value: 'producer' } }
+    ] } }
+  }, { mbid: '6622a50e-5206-44d0-9ad5-96047a726dcf', qid: 'Q318223', discogsId: '' }, '2026-11-14T12:00:00.000Z');
+  assert.ok(credits.credits.some(function (row) { return row.role === 'composer' && row.source === 'MusicBrainz'; }));
+  assert.ok(credits.credits.some(function (row) { return row.role === 'featured' && row.source === 'MusicBrainz'; }));
+  assert.ok(credits.credits.some(function (row) { return row.role === 'producer' && row.source === 'Wikidata'; }));
+  assert.ok(!credits.credits.some(function (row) { return row.title === 'Baby One More Time' && row.role === 'producer'; }));
+  assert.ok(/389/.test(credits.note));
+  assert.strictEqual(credits.workCount, 389);
+
+  const ambiguous = person.normalizePersonSearch({
+    musicbrainz: { artists: [] },
+    wikidata: { results: { bindings: [
+      { item: { value: 'http://www.wikidata.org/entity/Q1' }, itemLabel: { value: 'John Smith' }, itemDescription: { value: 'one person' } },
+      { item: { value: 'http://www.wikidata.org/entity/Q2' }, itemLabel: { value: 'John Smith' }, itemDescription: { value: 'another person' } }
+    ] } },
+    discogs: { results: [] }
+  }, person.parsePerson({ first: 'John', last: 'Smith' }), '2026-11-14T12:00:00.000Z');
+  assert.strictEqual(ambiguous.candidates.length, 2);
+  assert.notStrictEqual(ambiguous.candidates[0].id, ambiguous.candidates[1].id);
+  ambiguous.candidates.forEach(function (row) { assert.strictEqual(row.confidence, 'possible'); });
+
+  const none = person.normalizePersonSearch({
+    musicbrainz: { artists: [] },
+    wikidata: { results: { bindings: [] } },
+    discogs: { results: [] },
+    errors: {}
+  }, person.parsePerson({ first: 'Zzzzz', last: 'Notapersonqx' }), '2026-11-14T12:00:00.000Z');
+  assert.strictEqual(none.noMatch, true);
+  assert.ok(/not proof/i.test(none.limitation));
+  assert.ok(none.registries.some(function (link) { return link.href.indexOf('Zzzzz') !== -1; }));
+  assert.strictEqual(person.parsePerson({ first: 'Ada', last: 'Lovelace', ipi: '12' }).ok, false);
+  assert.strictEqual(person.planSearch({ first: 'http://evil.example', last: 'Name' }), null);
+  const plan = person.planSearch({ first: 'Martin', last: 'Sandberg', artist: 'Max Martin' });
+  plan.requests.forEach(function (row) { assert.strictEqual(research.allowedFetchUrl(row.url), true); });
+  assert.ok(plan.requests.every(function (row) { return row.url.indexOf('inc=tags') === -1 && row.url.indexOf('recording-rels') === -1; }));
+
+  lookup.resetState();
+  const personCalls = [];
+  const personFetch = async function (url) {
+    personCalls.push(String(url));
+    assert.strictEqual(research.allowedFetchUrl(url), true);
+    if (String(url).indexOf('musicbrainz.org') !== -1) {
+      return jsonResponse({ artists: [{ id: '6622a50e-5206-44d0-9ad5-96047a726dcf', name: 'Max Martin', type: 'Person', score: 100, ipis: ['00215866753'] }] });
+    }
+    if (String(url).indexOf('discogs') !== -1) return jsonResponse({ message: 'no' }, 401);
+    return jsonResponse({ results: { bindings: [] } });
+  };
+  const personRes = mockRes();
+  await lookup.handle(postReq({ op: 'person', first: 'Max', last: 'Martin' }, '203.0.113.77'), personRes, {
+    fetch: personFetch,
+    now: function () { return 1000; },
+    wait: function () { return Promise.resolve(); }
+  });
+  const personBody = JSON.parse(personRes.body);
+  assert.strictEqual(personRes.statusCode, 200);
+  assert.strictEqual(personBody.candidates.length, 1);
+  assert.ok(personBody.sources.some(function (row) { return row.id === 'discogs' && row.status === 'blocked'; }));
+  assert.ok(personCalls.some(function (url) { return url.indexOf('musicbrainz.org/ws/2/artist') !== -1; }));
+  assert.ok(!personCalls.some(function (url) { return url.indexOf('ascap.com') !== -1 || url.indexOf('bmi.com') !== -1 || url.indexOf('themlc.com') !== -1; }));
+  const paced = mockRes();
+  await lookup.handle(postReq({ op: 'person', first: 'Max', last: 'Martin' }, '203.0.113.77'), paced, {
+    fetch: personFetch,
+    now: function () { return 1000; },
+    wait: function () { return Promise.resolve(); }
+  });
+  assert.strictEqual(paced.statusCode, 429);
+
+  lookup.resetState();
+  await new Promise(function (resolve) { setTimeout(resolve, 1200); });
+  const livePerson = mockRes();
+  await lookup.handle(postReq({ op: 'person', first: 'Max', last: 'Martin' }, '203.0.113.88'), livePerson, {
+    fetch: global.fetch,
+    now: Date.now
+  });
+  const livePersonBody = JSON.parse(livePerson.body);
+  if (!livePersonBody.ok) {
+    assert.ok(['rate-limit', 'offline', 'busy'].indexOf(livePersonBody.status) !== -1);
+    console.log('live person search did not complete: ' + livePersonBody.status);
+  } else {
+    assert.ok(livePersonBody.candidates.some(function (row) { return row.mbid === '6622a50e-5206-44d0-9ad5-96047a726dcf' || /Martin/.test(row.name); }));
+    const known = livePersonBody.candidates.filter(function (row) { return row.mbid === '6622a50e-5206-44d0-9ad5-96047a726dcf'; })[0];
+    if (known) {
+      assert.ok(known.aliases.some(function (alias) { return /Sandberg|Martin/.test(alias.name); }) || /Martin/.test(known.name));
+      console.log('live Max Martin confidence ' + known.confidence + ' aliases ' + known.aliases.length + ' sources ' + livePersonBody.sources.map(function (row) { return row.id + ':' + row.status; }).join(','));
+      await new Promise(function (resolve) { setTimeout(resolve, 1500); });
+      const liveProfile = mockRes();
+      await lookup.handle(postReq({ op: 'person-profile', mbid: known.mbid, qid: known.qid, discogsId: known.discogsId }, '203.0.113.88'), liveProfile, { fetch: global.fetch, now: Date.now });
+      const profileBody = JSON.parse(liveProfile.body);
+      if (profileBody.ok) {
+        const legal = (profileBody.aliases || []).filter(function (alias) { return /legal|real name|performs as|name variation/i.test(alias.type); });
+        console.log('live profile aliases ' + (profileBody.aliases || []).length + ' legal-ish ' + legal.map(function (alias) { return alias.type + ':' + alias.name; }).join('; ') + ' links ' + (profileBody.links || []).length);
+        if ((profileBody.sources || []).some(function (row) { return row.id === 'musicbrainz' && row.status === 'ok'; })) {
+          assert.ok((profileBody.aliases || []).some(function (alias) { return /Sandberg/.test(alias.name); }));
+        }
+      }
+      await new Promise(function (resolve) { setTimeout(resolve, 1500); });
+      const liveCredits = mockRes();
+      await lookup.handle(postReq({ op: 'person-credits', mbid: known.mbid, qid: known.qid }, '203.0.113.88'), liveCredits, { fetch: global.fetch, now: Date.now });
+      const creditBody = JSON.parse(liveCredits.body);
+      if (creditBody.ok) {
+        console.log('live credits ' + (creditBody.credits || []).length + ' workCount ' + creditBody.workCount + ' roles ' + (creditBody.credits || []).slice(0, 6).map(function (row) { return row.role + ':' + row.title; }).join('; '));
+        if ((creditBody.sources || []).some(function (row) { return row.status === 'ok'; })) {
+          assert.ok((creditBody.credits || []).some(function (row) { return row.role === 'composer' || row.role === 'lyricist' || row.role === 'writer' || row.role === 'producer'; }));
+        }
+      }
+    } else {
+      console.log('live person search returned ' + livePersonBody.candidates.length + ' without the known mbid');
+    }
+    await new Promise(function (resolve) { setTimeout(resolve, 4000); });
+    const liveCommon = mockRes();
+    await lookup.handle(postReq({ op: 'person', first: 'John', last: 'Smith' }, '203.0.113.88'), liveCommon, { fetch: global.fetch, now: Date.now });
+    const commonBody = JSON.parse(liveCommon.body);
+    if (commonBody.ok && !commonBody.noMatch) {
+      assert.ok(commonBody.candidates.length > 1);
+      const ids = commonBody.candidates.map(function (row) { return row.id; });
+      assert.strictEqual(ids.length, new Set(ids).size);
+      console.log('live John Smith candidates ' + commonBody.candidates.length);
+    }
+    await new Promise(function (resolve) { setTimeout(resolve, 4000); });
+    const liveNone = mockRes();
+    await lookup.handle(postReq({ op: 'person', first: 'Zzzzz', last: 'Notapersonqx' }, '203.0.113.88'), liveNone, { fetch: global.fetch, now: Date.now });
+    const noneBody = JSON.parse(liveNone.body);
+    if (noneBody.ok) {
+      assert.strictEqual(noneBody.noMatch, true);
+      assert.ok(noneBody.registries.length >= 4);
+      console.log('live empty name noMatch, registries ' + noneBody.registries.length);
+    }
+  }
+
   console.log('research-portal.test.js ok');
+}
+
+function cssSafe(css) {
+  return css.indexOf('research-page') !== -1 && css.indexOf('136px') !== -1;
 }
 
 run().catch(function (err) {
