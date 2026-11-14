@@ -3,31 +3,31 @@
   "outputDirectory": ".",
   "redirects": [
     {
-      "source": "/siqa/2026/ava-bently-acceptance-speech",
-      "destination": "/siqa/2026/ava-bentley-acceptance-speech",
+      "source": "/siqa/2026/ava-bentley-acceptance-speech",
+      "destination": "/siqa/2026/ava-bently-acceptance-speech",
       "permanent": true
     },
     {
-      "source": "/siqa/2026/ava-bently-acceptance-speech/",
-      "destination": "/siqa/2026/ava-bentley-acceptance-speech",
+      "source": "/siqa/2026/ava-bentley-acceptance-speech/",
+      "destination": "/siqa/2026/ava-bently-acceptance-speech",
       "permanent": true
     },
     {
-      "source": "/siqa/2026/ava-bently-interview",
-      "destination": "/siqa/2026/ava-bentley-interview",
+      "source": "/siqa/2026/ava-bentley-interview",
+      "destination": "/siqa/2026/ava-bently-interview",
       "permanent": true
     },
     {
-      "source": "/siqa/2026/ava-bently-interview/",
-      "destination": "/siqa/2026/ava-bentley-interview",
+      "source": "/siqa/2026/ava-bentley-interview/",
+      "destination": "/siqa/2026/ava-bently-interview",
       "permanent": true
     },
     { "source": "/siqa", "destination": "/siqa/2026", "permanent": true },
     { "source": "/siqa/", "destination": "/siqa/2026", "permanent": true },
-    { "source": "/ava", "destination": "/siqa/2026/ava-bentley-acceptance-speech", "permanent": true },
-    { "source": "/ava/", "destination": "/siqa/2026/ava-bentley-acceptance-speech", "permanent": true },
-    { "source": "/ava-interview", "destination": "/siqa/2026/ava-bentley-interview", "permanent": true },
-    { "source": "/ava-interview/", "destination": "/siqa/2026/ava-bentley-interview", "permanent": true },
+    { "source": "/ava", "destination": "/siqa/2026/ava-bently-acceptance-speech", "permanent": true },
+    { "source": "/ava/", "destination": "/siqa/2026/ava-bently-acceptance-speech", "permanent": true },
+    { "source": "/ava-interview", "destination": "/siqa/2026/ava-bently-interview", "permanent": true },
+    { "source": "/ava-interview/", "destination": "/siqa/2026/ava-bently-interview", "permanent": true },
     { "source": "/daydream", "destination": "/siqa/2026/daydream-interview", "permanent": true },
     { "source": "/daydream/", "destination": "/siqa/2026/daydream-interview", "permanent": true },
     { "source": "/post5", "destination": "/siqa/2026/post-four-to-five-times-a-day", "permanent": true },
@@ -288,10 +288,10 @@
     { "source": "/siqa/2026/every-ai-artist-needs-a-music-video/", "destination": "/siqa-every-ai-artist-needs-a-music-video.html" },
     { "source": "/siqa/2026/this-is-a-tool", "destination": "/siqa-this-is-a-tool.html" },
     { "source": "/siqa/2026/this-is-a-tool/", "destination": "/siqa-this-is-a-tool.html" },
-    { "source": "/siqa/2026/ava-bentley-interview", "destination": "/siqa-ava-bentley-interview.html" },
-    { "source": "/siqa/2026/ava-bentley-interview/", "destination": "/siqa-ava-bentley-interview.html" },
-    { "source": "/siqa/2026/ava-bentley-acceptance-speech", "destination": "/siqa-ava-bentley-acceptance-speech.html" },
-    { "source": "/siqa/2026/ava-bentley-acceptance-speech/", "destination": "/siqa-ava-bentley-acceptance-speech.html" },
+    { "source": "/siqa/2026/ava-bently-interview", "destination": "/siqa-ava-bently-interview.html" },
+    { "source": "/siqa/2026/ava-bently-interview/", "destination": "/siqa-ava-bently-interview.html" },
+    { "source": "/siqa/2026/ava-bently-acceptance-speech", "destination": "/siqa-ava-bently-acceptance-speech.html" },
+    { "source": "/siqa/2026/ava-bently-acceptance-speech/", "destination": "/siqa-ava-bently-acceptance-speech.html" },
     { "source": "/img/logo.webp", "destination": "/for-david-fv/img/logo.webp" },
     { "source": "/PLAIGROUND_one_sheet.pdf", "destination": "/for-david-fv/PLAIGROUND_one_sheet.pdf" },
     { "source": "/terms", "destination": "/terms.html" },

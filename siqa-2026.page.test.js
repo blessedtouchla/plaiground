@@ -18,8 +18,8 @@ const files = [
   'siqa-merch-start-with-10.html',
   'siqa-every-ai-artist-needs-a-music-video.html',
   'siqa-this-is-a-tool.html',
-  'siqa-ava-bentley-interview.html',
-  'siqa-ava-bentley-acceptance-speech.html'
+  'siqa-ava-bently-interview.html',
+  'siqa-ava-bently-acceptance-speech.html'
 ];
 
 const banned = [
@@ -35,8 +35,8 @@ const banned = [
   'Artists keep their ownership',
   'MonkMotion.com',
   'monkmotion.com',
-  'Ava Bently',
-  'ava-bently'
+  'Ava Bentley',
+  'ava-bentley'
 ];
 
 const videos = {
@@ -65,12 +65,12 @@ const videos = {
     duration: 'PT4M19S',
     uploadDate: '2026-11-12T10:58:00-08:00'
   },
-  'siqa-ava-bentley-interview.html': {
+  'siqa-ava-bently-interview.html': {
     id: '1RhzAw6Svn84xPIIeEOxCowKkHF9DY8Pv',
     duration: 'PT2M30S',
     uploadDate: '2026-11-13T21:12:00-08:00'
   },
-  'siqa-ava-bentley-acceptance-speech.html': {
+  'siqa-ava-bently-acceptance-speech.html': {
     id: '1Z2Moh1oB6gZRzrZ9DZfhxdoEeJD9nTB8',
     duration: 'PT4M19S',
     uploadDate: '2026-11-13'
@@ -85,8 +85,8 @@ const paths = {
   'siqa-merch-start-with-10.html': '/siqa/2026/merch-start-with-10',
   'siqa-every-ai-artist-needs-a-music-video.html': '/siqa/2026/every-ai-artist-needs-a-music-video',
   'siqa-this-is-a-tool.html': '/siqa/2026/this-is-a-tool',
-  'siqa-ava-bentley-interview.html': '/siqa/2026/ava-bentley-interview',
-  'siqa-ava-bentley-acceptance-speech.html': '/siqa/2026/ava-bentley-acceptance-speech'
+  'siqa-ava-bently-interview.html': '/siqa/2026/ava-bently-interview',
+  'siqa-ava-bently-acceptance-speech.html': '/siqa/2026/ava-bently-acceptance-speech'
 };
 
 assert.strictEqual(fs.existsSync(path.join(root, 'siqa-sony-interview.html')), false);
@@ -140,13 +140,14 @@ assert.ok(read('siqa-daydream-interview.html').includes('standing'));
 assert.ok(!read('siqa-daydream-interview.html').includes('taking ownership'));
 assert.ok(read('siqa-every-ai-artist-needs-a-music-video.html').includes('MonkMotion'));
 assert.ok(read('siqa-this-is-a-tool.html').includes("Don't quit your day jobs."));
-assert.ok(read('siqa-ava-bentley-interview.html').includes('Ava Bentley'));
-assert.ok(read('siqa-ava-bentley-interview.html').includes('instagram.com/avabentlymusic'));
-assert.ok(read('siqa-ava-bentley-interview.html').includes('standing'));
-assert.ok(read('siqa-ava-bentley-interview.html').includes('SIQA Music Awards, Fri Nov 13, 2026'));
-assert.ok(read('siqa-ava-bentley-acceptance-speech.html').includes('SIQA Music Awards, Fri Nov 13, 2026'));
-assert.ok(read('siqa-ava-bentley-acceptance-speech.html').includes('announced on stage'));
-assert.ok(read('siqa-ava-bentley-acceptance-speech.html').includes('https://www.instagram.com/reel/Dft-HF0jZRH/'));
+assert.ok(read('siqa-ava-bently-interview.html').includes('Ava Bently'));
+assert.ok(read('siqa-ava-bently-interview.html').includes('instagram.com/avabentlymusic'));
+assert.ok(read('siqa-ava-bently-interview.html').includes('standing'));
+assert.ok(read('siqa-ava-bently-interview.html').includes('SIQA Music Awards, Fri Nov 13, 2026'));
+assert.ok(read('siqa-ava-bently-acceptance-speech.html').includes('SIQA Music Awards, Fri Nov 13, 2026'));
+assert.ok(read('siqa-ava-bently-acceptance-speech.html').includes('announced on stage'));
+assert.ok(read('siqa-ava-bently-acceptance-speech.html').includes('I am Ava Bently.'));
+assert.ok(read('siqa-ava-bently-acceptance-speech.html').includes('https://www.instagram.com/reel/Dft-HF0jZRH/'));
 assert.ok(read('siqa-merch-start-with-10.html').includes('dai+drm artists keep their show money'));
 assert.ok(read('siqa-post-four-to-five-times-a-day.html').includes('one 5:49 full cut'));
 
@@ -158,13 +159,13 @@ Object.keys(paths).forEach(function (file) {
   }), 'rewrite missing ' + paths[file]);
 });
 
-assert.ok(!locs.some(function (loc) { return loc.includes('sony') || loc.includes('ava-bently'); }));
+assert.ok(!locs.some(function (loc) { return loc.includes('sony') || loc.includes('ava-bentley'); }));
 
 [
-  ['/siqa/2026/ava-bently-interview', '/siqa/2026/ava-bentley-interview'],
-  ['/siqa/2026/ava-bently-interview/', '/siqa/2026/ava-bentley-interview'],
-  ['/siqa/2026/ava-bently-acceptance-speech', '/siqa/2026/ava-bentley-acceptance-speech'],
-  ['/siqa/2026/ava-bently-acceptance-speech/', '/siqa/2026/ava-bentley-acceptance-speech']
+  ['/siqa/2026/ava-bentley-interview', '/siqa/2026/ava-bently-interview'],
+  ['/siqa/2026/ava-bentley-interview/', '/siqa/2026/ava-bently-interview'],
+  ['/siqa/2026/ava-bentley-acceptance-speech', '/siqa/2026/ava-bently-acceptance-speech'],
+  ['/siqa/2026/ava-bentley-acceptance-speech/', '/siqa/2026/ava-bently-acceptance-speech']
 ].forEach(function (pair) {
   const row = vercel.redirects.find(function (item) { return item.source === pair[0]; });
   assert.ok(row, 'missing redirect ' + pair[0]);
@@ -175,10 +176,10 @@ assert.ok(!locs.some(function (loc) { return loc.includes('sony') || loc.include
 const shorts = [
   ['/siqa', '/siqa/2026'],
   ['/siqa/', '/siqa/2026'],
-  ['/ava', '/siqa/2026/ava-bentley-acceptance-speech'],
-  ['/ava/', '/siqa/2026/ava-bentley-acceptance-speech'],
-  ['/ava-interview', '/siqa/2026/ava-bentley-interview'],
-  ['/ava-interview/', '/siqa/2026/ava-bentley-interview'],
+  ['/ava', '/siqa/2026/ava-bently-acceptance-speech'],
+  ['/ava/', '/siqa/2026/ava-bently-acceptance-speech'],
+  ['/ava-interview', '/siqa/2026/ava-bently-interview'],
+  ['/ava-interview/', '/siqa/2026/ava-bently-interview'],
   ['/daydream', '/siqa/2026/daydream-interview'],
   ['/daydream/', '/siqa/2026/daydream-interview'],
   ['/post5', '/siqa/2026/post-four-to-five-times-a-day'],
