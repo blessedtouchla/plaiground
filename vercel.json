@@ -3,6 +3,44 @@
   "outputDirectory": ".",
   "redirects": [
     {
+      "source": "/siqa/2026/ava-bently-acceptance-speech",
+      "destination": "/siqa/2026/ava-bentley-acceptance-speech",
+      "permanent": true
+    },
+    {
+      "source": "/siqa/2026/ava-bently-acceptance-speech/",
+      "destination": "/siqa/2026/ava-bentley-acceptance-speech",
+      "permanent": true
+    },
+    {
+      "source": "/siqa/2026/ava-bently-interview",
+      "destination": "/siqa/2026/ava-bentley-interview",
+      "permanent": true
+    },
+    {
+      "source": "/siqa/2026/ava-bently-interview/",
+      "destination": "/siqa/2026/ava-bentley-interview",
+      "permanent": true
+    },
+    { "source": "/siqa", "destination": "/siqa/2026", "permanent": true },
+    { "source": "/siqa/", "destination": "/siqa/2026", "permanent": true },
+    { "source": "/ava", "destination": "/siqa/2026/ava-bentley-acceptance-speech", "permanent": true },
+    { "source": "/ava/", "destination": "/siqa/2026/ava-bentley-acceptance-speech", "permanent": true },
+    { "source": "/ava-interview", "destination": "/siqa/2026/ava-bentley-interview", "permanent": true },
+    { "source": "/ava-interview/", "destination": "/siqa/2026/ava-bentley-interview", "permanent": true },
+    { "source": "/daydream", "destination": "/siqa/2026/daydream-interview", "permanent": true },
+    { "source": "/daydream/", "destination": "/siqa/2026/daydream-interview", "permanent": true },
+    { "source": "/post5", "destination": "/siqa/2026/post-four-to-five-times-a-day", "permanent": true },
+    { "source": "/post5/", "destination": "/siqa/2026/post-four-to-five-times-a-day", "permanent": true },
+    { "source": "/merch10", "destination": "/siqa/2026/merch-start-with-10", "permanent": true },
+    { "source": "/merch10/", "destination": "/siqa/2026/merch-start-with-10", "permanent": true },
+    { "source": "/musicvideo", "destination": "/siqa/2026/every-ai-artist-needs-a-music-video", "permanent": true },
+    { "source": "/musicvideo/", "destination": "/siqa/2026/every-ai-artist-needs-a-music-video", "permanent": true },
+    { "source": "/tool", "destination": "/siqa/2026/this-is-a-tool", "permanent": true },
+    { "source": "/tool/", "destination": "/siqa/2026/this-is-a-tool", "permanent": true },
+    { "source": "/siqa-highlights", "destination": "/siqa/2026/siqa-2026-highlights", "permanent": true },
+    { "source": "/siqa-highlights/", "destination": "/siqa/2026/siqa-2026-highlights", "permanent": true },
+    {
       "source": "/blog/lyrics-plus-ai-recording-is-fully-ai",
       "destination": "/blog/lyrics-plus-ai-recording",
       "permanent": true
@@ -236,6 +274,24 @@
     }
   ],
   "rewrites": [
+    { "source": "/siqa/2026", "destination": "/siqa-2026.html" },
+    { "source": "/siqa/2026/", "destination": "/siqa-2026.html" },
+    { "source": "/siqa/2026/siqa-2026-highlights", "destination": "/siqa-2026-highlights.html" },
+    { "source": "/siqa/2026/siqa-2026-highlights/", "destination": "/siqa-2026-highlights.html" },
+    { "source": "/siqa/2026/daydream-interview", "destination": "/siqa-daydream-interview.html" },
+    { "source": "/siqa/2026/daydream-interview/", "destination": "/siqa-daydream-interview.html" },
+    { "source": "/siqa/2026/post-four-to-five-times-a-day", "destination": "/siqa-post-four-to-five-times-a-day.html" },
+    { "source": "/siqa/2026/post-four-to-five-times-a-day/", "destination": "/siqa-post-four-to-five-times-a-day.html" },
+    { "source": "/siqa/2026/merch-start-with-10", "destination": "/siqa-merch-start-with-10.html" },
+    { "source": "/siqa/2026/merch-start-with-10/", "destination": "/siqa-merch-start-with-10.html" },
+    { "source": "/siqa/2026/every-ai-artist-needs-a-music-video", "destination": "/siqa-every-ai-artist-needs-a-music-video.html" },
+    { "source": "/siqa/2026/every-ai-artist-needs-a-music-video/", "destination": "/siqa-every-ai-artist-needs-a-music-video.html" },
+    { "source": "/siqa/2026/this-is-a-tool", "destination": "/siqa-this-is-a-tool.html" },
+    { "source": "/siqa/2026/this-is-a-tool/", "destination": "/siqa-this-is-a-tool.html" },
+    { "source": "/siqa/2026/ava-bentley-interview", "destination": "/siqa-ava-bentley-interview.html" },
+    { "source": "/siqa/2026/ava-bentley-interview/", "destination": "/siqa-ava-bentley-interview.html" },
+    { "source": "/siqa/2026/ava-bentley-acceptance-speech", "destination": "/siqa-ava-bentley-acceptance-speech.html" },
+    { "source": "/siqa/2026/ava-bentley-acceptance-speech/", "destination": "/siqa-ava-bentley-acceptance-speech.html" },
     { "source": "/img/logo.webp", "destination": "/for-david-fv/img/logo.webp" },
     { "source": "/PLAIGROUND_one_sheet.pdf", "destination": "/for-david-fv/PLAIGROUND_one_sheet.pdf" },
     { "source": "/terms", "destination": "/terms.html" },

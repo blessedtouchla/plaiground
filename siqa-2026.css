@@ -1,0 +1,234 @@
+/* SIQA 2026 video pages. Sits on site.css + blog-article.css. */
+
+.siqa-page .page-hero h1 {
+  max-width: 14em;
+}
+
+.siqa-page .page-hero .sub {
+  max-width: 40rem;
+}
+
+.siqa-page .page-hero .eyebrow a {
+  color: inherit;
+}
+
+.siqa-page .page-hero .eyebrow a:hover {
+  color: #fff;
+}
+
+.siqa-video {
+  width: min(400px, calc(100% - 48px));
+  margin: 0 auto 28px;
+  background: #000;
+}
+
+.siqa-video-frame {
+  aspect-ratio: 9 / 16;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.siqa-video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.siqa-video figcaption {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.siqa-quotes {
+  list-style: none;
+  margin: 0 0 1.5em;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.siqa-quotes li {
+  margin: 0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.siqa-related {
+  list-style: none;
+  margin: 0 0 1.2em;
+  padding: 0;
+}
+
+.siqa-related li {
+  margin: 0 0 12px;
+  color: var(--muted-2);
+  line-height: 1.45;
+}
+
+.siqa-page .siqa-cta-inner {
+  padding: 44px 28px 40px;
+}
+
+.siqa-page .siqa-cta-inner h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+  max-width: 16em;
+  margin: 0 0 12px;
+}
+
+.siqa-page .siqa-cta-inner p {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 15px;
+  max-width: 40em;
+  margin: 0 0 20px;
+}
+
+.siqa-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.siqa-hub-note {
+  margin-top: 28px;
+  color: var(--muted);
+  max-width: 40rem;
+}
+
+.siqa-hub .landing-tease .wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.siqa-hub .landing-tease .eyebrow,
+.siqa-hub .landing-tease h2,
+.siqa-hub .landing-tease .sub,
+.siqa-hub .siqa-hub-note,
+.siqa-hub .siqa-links {
+  width: min(640px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.siqa-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(640px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.siqa-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 96px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.siqa-link:hover,
+.siqa-link:focus-visible {
+  border-color: rgba(243, 203, 71, 0.7);
+  outline: none;
+}
+
+.siqa-link-time {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.siqa-link-title {
+  margin-top: 4px;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.siqa-link-note {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+/* Phone: keep copy above the fixed Ask Plai button (left) and Plai chip (right). */
+@media (max-width: 720px) {
+  .siqa-page .page-hero {
+    padding-top: 132px;
+    padding-bottom: 12px;
+  }
+
+  .siqa-page .page-hero h1 {
+    font-size: 2.05rem;
+  }
+
+  .siqa-page .landing-tease {
+    padding-bottom: 28px;
+  }
+
+  .siqa-page .landing-tease h2 {
+    font-size: 1.7rem;
+    margin-bottom: 8px;
+  }
+
+  .siqa-page .landing-tease .sub {
+    margin-bottom: 14px;
+  }
+
+  .siqa-hub .siqa-link {
+    min-height: 104px;
+    padding: 20px 18px;
+  }
+
+  .siqa-hub .siqa-link-title {
+    font-size: 1.45rem;
+  }
+
+  .siqa-hub .siqa-link:nth-child(2) {
+    margin-bottom: 128px;
+  }
+
+  .siqa-video {
+    width: min(220px, calc(100% - 36px));
+    margin: 8px auto 120px;
+  }
+
+  .siqa-page .siqa-cta-inner {
+    padding: 28px 4px 24px;
+  }
+
+  .siqa-cta-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .siqa-cta-row .btn {
+    width: 100%;
+  }
+
+  body.siqa-page {
+    padding-bottom: 128px;
+  }
+}
