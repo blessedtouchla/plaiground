@@ -19,7 +19,8 @@ const files = [
   'siqa-every-ai-artist-needs-a-music-video.html',
   'siqa-this-is-a-tool.html',
   'siqa-ava-bently-interview.html',
-  'siqa-ava-bently-acceptance-speech.html'
+  'siqa-ava-bently-acceptance-speech.html',
+  'siqa-sheena-taylor.html'
 ];
 
 const banned = [
@@ -74,6 +75,10 @@ const videos = {
     id: 'JyRvo9Pu72Q',
     duration: 'PT4M19S',
     uploadDate: '2026-11-13'
+  },
+  'siqa-sheena-taylor.html': {
+    id: 'X63oZ5uhmb8',
+    uploadDate: '2026-11-13'
   }
 };
 
@@ -86,7 +91,8 @@ const paths = {
   'siqa-every-ai-artist-needs-a-music-video.html': '/siqa/2026/every-ai-artist-needs-a-music-video',
   'siqa-this-is-a-tool.html': '/siqa/2026/this-is-a-tool',
   'siqa-ava-bently-interview.html': '/siqa/2026/ava-bently-interview',
-  'siqa-ava-bently-acceptance-speech.html': '/siqa/2026/ava-bently-acceptance-speech'
+  'siqa-ava-bently-acceptance-speech.html': '/siqa/2026/ava-bently-acceptance-speech',
+  'siqa-sheena-taylor.html': '/siqa/2026/sheena-taylor'
 };
 
 assert.strictEqual(fs.existsSync(path.join(root, 'siqa-sony-interview.html')), false);
@@ -129,10 +135,12 @@ Object.keys(videos).forEach(function (file) {
   });
   const video = blocks.find(function (block) { return block['@type'] === 'VideoObject'; });
   assert.ok(video, file + ' VideoObject');
-  assert.ok(video.name && video.description && video.uploadDate && video.duration && video.embedUrl && video.contentUrl);
+  assert.ok(video.name && video.description && video.uploadDate && video.embedUrl && video.contentUrl);
   assert.strictEqual(video.embedUrl, embed);
   assert.strictEqual(video.contentUrl, watch);
-  assert.strictEqual(video.duration, spec.duration);
+  if (spec.duration) {
+    assert.strictEqual(video.duration, spec.duration);
+  }
   assert.strictEqual(video.uploadDate, spec.uploadDate);
 });
 
@@ -198,6 +206,8 @@ const shorts = [
   ['/musicvideo/', '/siqa/2026/every-ai-artist-needs-a-music-video'],
   ['/tool', '/siqa/2026/this-is-a-tool'],
   ['/tool/', '/siqa/2026/this-is-a-tool'],
+  ['/sheena', '/siqa/2026/sheena-taylor'],
+  ['/sheena/', '/siqa/2026/sheena-taylor'],
   ['/siqa-highlights', '/siqa/2026/siqa-2026-highlights'],
   ['/siqa-highlights/', '/siqa/2026/siqa-2026-highlights']
 ];
@@ -214,7 +224,11 @@ assert.ok(hub.includes('class="siqa-links"'));
 shorts.filter(function (pair) { return pair[1] !== '/siqa/2026' && !pair[0].endsWith('/'); }).forEach(function (pair) {
   assert.ok(hub.includes('class="siqa-link" href="' + pair[1] + '"'), 'hub card ' + pair[1]);
 });
-assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 8);
+assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 9);
+const sheena = read('siqa-sheena-taylor.html');
+assert.ok(sheena.includes("Sheena Taylor's live performance at the SIQA Music Awards, Friday, Nov 13, 2026, at The Mayan in Los Angeles. A live band and dancers on stage, uncut from first frame to final applause."));
+assert.ok(sheena.includes('https://www.instagram.com/sheenataylormusic/'));
+assert.ok(sheena.includes('SIQA Music Awards, Fri Nov 13, 2026'));
 
 assert.ok(!read('site.js').includes('/siqa/2026'), 'main nav script unchanged');
 assert.ok(!read('index.html').includes('/siqa/2026'), 'homepage nav unchanged');
