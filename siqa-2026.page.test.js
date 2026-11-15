@@ -23,7 +23,12 @@ const files = [
   'siqa-sheena-taylor.html',
   'siqa-tammy-taylor.html',
   'siqa-olivia-b-moore.html',
-  'siqa-colourfull4life.html'
+  'siqa-colourfull4life.html',
+  'siqa-rebel-redeemed-316.html',
+  'siqa-dj-shawn-q.html',
+  'siqa-slime-dot.html',
+  'siqa-astrazit.html',
+  'siqa-aries-ivory.html'
 ];
 
 const banned = [
@@ -102,7 +107,12 @@ const paths = {
   'siqa-sheena-taylor.html': '/siqa/2026/sheena-taylor',
   'siqa-tammy-taylor.html': '/siqa/2026/tammy-taylor',
   'siqa-olivia-b-moore.html': '/siqa/2026/olivia-b-moore',
-  'siqa-colourfull4life.html': '/siqa/2026/colourfull4life'
+  'siqa-colourfull4life.html': '/siqa/2026/colourfull4life',
+  'siqa-rebel-redeemed-316.html': '/siqa/2026/rebel-redeemed-316',
+  'siqa-dj-shawn-q.html': '/siqa/2026/dj-shawn-q',
+  'siqa-slime-dot.html': '/siqa/2026/slime-dot',
+  'siqa-astrazit.html': '/siqa/2026/astrazit',
+  'siqa-aries-ivory.html': '/siqa/2026/aries-ivory'
 };
 
 assert.strictEqual(fs.existsSync(path.join(root, 'siqa-sony-interview.html')), false);
@@ -222,6 +232,16 @@ const shorts = [
   ['/olivia/', '/siqa/2026/olivia-b-moore'],
   ['/colourfull4life', '/siqa/2026/colourfull4life'],
   ['/colourfull4life/', '/siqa/2026/colourfull4life'],
+  ['/rebel-redeemed-316', '/siqa/2026/rebel-redeemed-316'],
+  ['/rebel-redeemed-316/', '/siqa/2026/rebel-redeemed-316'],
+  ['/dj-shawn-q', '/siqa/2026/dj-shawn-q'],
+  ['/dj-shawn-q/', '/siqa/2026/dj-shawn-q'],
+  ['/slime-dot', '/siqa/2026/slime-dot'],
+  ['/slime-dot/', '/siqa/2026/slime-dot'],
+  ['/astrazit', '/siqa/2026/astrazit'],
+  ['/astrazit/', '/siqa/2026/astrazit'],
+  ['/aries-ivory', '/siqa/2026/aries-ivory'],
+  ['/aries-ivory/', '/siqa/2026/aries-ivory'],
   ['/siqa-highlights', '/siqa/2026/siqa-2026-highlights'],
   ['/siqa-highlights/', '/siqa/2026/siqa-2026-highlights']
 ];
@@ -238,14 +258,19 @@ assert.ok(hub.includes('class="siqa-links"'));
 shorts.filter(function (pair) { return pair[1] !== '/siqa/2026' && !pair[0].endsWith('/'); }).forEach(function (pair) {
   assert.ok(hub.includes('class="siqa-link" href="' + pair[1] + '"'), 'hub card ' + pair[1]);
 });
-assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 12);
+assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 17);
 assert.ok(!read('siqa-sheena-taylor.html').includes('instagram.com/'));
 assert.ok(!read('siqa-tammy-taylor.html').includes('instagram.com/'));
 assert.ok(!/sat down/i.test(read('siqa-sheena-taylor.html') + read('siqa-tammy-taylor.html') + read('siqa-olivia-b-moore.html') + read('siqa-colourfull4life.html')));
 
 const reels = {
   'siqa-olivia-b-moore.html': ['DfvrZDiho5n', 'DfvrIeFvT81'],
-  'siqa-colourfull4life.html': ['Dfvq0fEN41U']
+  'siqa-colourfull4life.html': ['Dfvq0fEN41U'],
+  'siqa-rebel-redeemed-316.html': ['Dfvu_ZDuR40'],
+  'siqa-dj-shawn-q.html': ['DfvviYUPCHa'],
+  'siqa-slime-dot.html': ['Dfvv6YZNJgK'],
+  'siqa-astrazit.html': ['DfvwMm6h8oi'],
+  'siqa-aries-ivory.html': ['DfvwlaSt882']
 };
 Object.keys(reels).forEach(function (file) {
   const html = read(file);
@@ -285,6 +310,16 @@ assert.ok(!colour.includes('instagram.com/colour'));
 const colourVisible = colour.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<link[^>]*>/g, '');
 assert.ok(!colourVisible.includes('@'), 'colourfull4life has no Instagram handle');
 assert.ok(!colour.includes('&ldquo;'));
+['siqa-rebel-redeemed-316.html', 'siqa-dj-shawn-q.html', 'siqa-slime-dot.html', 'siqa-astrazit.html'].forEach(function (file) {
+  assert.ok(!read(file).includes('“'), file + ' has no quote');
+  assert.ok(!read(file).includes('&ldquo;'), file + ' has no quote entity');
+});
+const aries = read('siqa-aries-ivory.html');
+assert.ok(aries.includes('Before there was AI, I don\'t think there were any rules when it came to making music. So just because there\'s AI, I don\'t think the rules should start right now.'));
+assert.ok(aries.includes('Eric Bellinger'));
+assert.ok(aries.includes('https://www.instagram.com/ariesivorymusic/'));
+assert.ok(aries.includes('https://www.instagram.com/ericbellinger/'));
+assert.strictEqual((aries.match(/“/g) || []).length, 1, 'aries has one quote');
 
 assert.ok(!read('site.js').includes('/siqa/2026'), 'main nav script unchanged');
 assert.ok(!read('index.html').includes('/siqa/2026'), 'homepage nav unchanged');
