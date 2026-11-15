@@ -418,6 +418,8 @@
     { "source": "/already-released", "destination": "/already-released.html" },
     { "source": "/song-helper", "destination": "/api/song-helper?action=arcade-page" },
     { "source": "/song-helper/", "destination": "/api/song-helper?action=arcade-page" },
+    { "source": "/songlab", "destination": "/api/song-helper?action=arcade-page" },
+    { "source": "/songlab/", "destination": "/api/song-helper?action=arcade-page" },
     { "source": "/song-helper-classic", "destination": "/song-helper.html" },
     { "source": "/song-helper-v3", "destination": "/api/song-helper?action=v3-page" },
     { "source": "/song-helper-v3/", "destination": "/api/song-helper?action=v3-page" },
