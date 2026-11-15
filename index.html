@@ -18,7 +18,7 @@
   <meta name="twitter:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261023menu2" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <link rel="stylesheet" href="apply.css" />
@@ -26,12 +26,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="brand-arcade.css?v=20261020a" />
   <style id="home-arcade-hero">
-    html,body.home-portal{margin:0;background:#0b0b0f}
-    body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box;background:radial-gradient(1200px 520px at 50% 18%,rgba(245,197,66,.16),transparent 60%),linear-gradient(180deg,#141018 0%,#0b0b0f 100%)}
+    html,body.home-portal{margin:0;background:#000;background-image:none}
+    body.home-portal,body.home-portal .hero,body.home-portal .hf-five,body.home-portal .hf-panel,body.home-portal .hf-road,body.home-portal .hf-lab,body.home-portal .hf-trio,body.home-portal .artist-dev-band,body.home-portal .pricing{background:#000!important;background-image:none!important}
+    body.home-portal .hf-five::before,body.home-portal .hf-panel::before,body.home-portal .hero-logo-live::before,body.home-portal .hero-logo-live-shimmer,body.home-portal .hero-logo-live-note{content:none!important;display:none!important;background:none!important;box-shadow:none!important;filter:none!important}
+    body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box}
     body.home-portal .hero-logo-live{position:relative;isolation:isolate}
-    body.home-portal .hero-logo-live::before{content:"";position:absolute;inset:-18% -8%;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(245,197,66,.42),rgba(245,197,66,.14) 55%,rgba(0,0,0,.55) 80%,transparent 100%);filter:blur(28px);pointer-events:none}
-    body.home-portal .hero .sub{color:#F5C542;font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;letter-spacing:.02em;text-shadow:0 0 18px rgba(245,197,66,.35)}
-    body.home-portal .hero .hero-for{margin:-6px 0 18px;color:rgba(255,255,255,.78);font-size:.82rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+    body.home-portal .hero h1,body.home-portal .hf-five-h,body.home-portal .hf-panel h2{color:#f4f1ea!important;text-shadow:none!important;font-family:"Bodoni Moda",Georgia,serif!important;font-weight:500!important}
+    body.home-portal .hero .sub{color:#f4f1ea;font-family:"IBM Plex Sans",Inter,sans-serif;font-weight:400;letter-spacing:.01em;text-shadow:none}
+    body.home-portal .hero .hero-for,body.home-portal .hf-kicker,body.home-portal .ba-start{margin:-6px 0 18px;color:#f4f1ea;font-family:"IBM Plex Mono",ui-monospace,monospace!important;font-size:.75rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;text-shadow:none!important}
+    body.home-portal .ba-start{display:inline-flex;align-items:center;border:1px solid rgba(244,241,234,.8);border-radius:0;padding:12px 16px;min-height:44px;text-decoration:none;margin-top:18px}
+    body.home-portal .hero .btn,body.home-portal .ba-press,body.home-portal .hf-btn,body.home-portal .hf-road-picks a,body.home-portal .hf-booked-btn{border-radius:0!important;box-shadow:none!important;text-shadow:none!important;background:#000!important;background-image:none!important;color:#f4f1ea!important;border:1px solid rgba(244,241,234,.78)!important;min-height:44px}
+    body.home-portal .hf-booked-row{background:#000!important;border:1px solid rgba(244,241,234,.78)!important;border-radius:0!important;box-shadow:none!important}
+    body.home-portal .hf-booked .hf-kicker,body.home-portal .hf-booked h2{color:#f4f1ea!important;text-shadow:none!important}
+    body.home-portal .hf-kicker,body.home-portal .ba-seg i,body.home-portal .ba-seg b,body.home-portal .hf-step1{color:#f4f1ea!important;text-shadow:none!important;font-family:"IBM Plex Mono",ui-monospace,monospace!important}
+    body.home-portal .ba-seg::before,body.home-portal .ba-seg.on::before{background:#f4f1ea!important;box-shadow:none!important;border-radius:0!important}
+    body.home-portal .ba-seg:not(.on)::before{background:rgba(244,241,234,.28)!important}
+    body.home-portal .hf-road-picks a:active,body.home-portal .hero .btn:active,body.home-portal .hf-btn:active{background:#f4f1ea!important;color:#000!important}
+    @media (hover:hover){body.home-portal .hf-road-picks a:hover,body.home-portal .hero .btn:hover,body.home-portal .hf-btn:hover{background:#f4f1ea!important;color:#000!important;transform:translateY(-2px)}}
   </style>
   <style id="artist-dev-band">
     .artist-dev-band{padding:28px 0}
@@ -41,39 +52,74 @@
     .release-plan{border-color:rgba(245,197,66,.55)!important}
     @media (min-width:900px){.pricing .plans.price-ladder{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1080px;margin:0 auto}}
     .founding-tag{display:inline-block;font-size:.72rem;font-weight:700;color:#F5C542;margin:2px 0}
-    /* Homepage only: quiet gold glass instead of cartoon tiles and scanlines. */
-    body.home-portal .hf-five::before,
-    body.home-portal .hf-panel::before{content:none}
     body.home-portal .hf-icons a,
-    body.home-portal .hf-trio-row a{
-      border:1px solid rgba(243,203,71,.34)!important;
-      background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.28)),#121014!important;
-      box-shadow:0 0 0 1px rgba(243,203,71,.06) inset,0 16px 36px rgba(0,0,0,.38),0 0 22px rgba(243,203,71,.07)!important;
-      border-radius:22px!important;
-      backdrop-filter:blur(16px)
+    body.home-portal .hf-trio-row a,
+    body.home-portal .artist-dev-link{
+      display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;
+      min-height:44px;padding:20px 18px!important;text-align:left;text-decoration:none;cursor:pointer;
+      border:1px solid rgba(244,241,234,.78)!important;border-radius:0!important;background:#000!important;
+      box-shadow:none!important;color:#f4f1ea!important;backdrop-filter:none
     }
-    body.home-portal .hf-icons li:nth-child(n) a{border-color:rgba(243,203,71,.34)!important;box-shadow:0 0 0 1px rgba(243,203,71,.06) inset,0 16px 36px rgba(0,0,0,.38),0 0 22px rgba(243,203,71,.07)!important}
-    body.home-portal .hf-icons a,
-    body.home-portal .hf-trio-row a{transition:border-color .15s ease,box-shadow .15s ease}
-    body.home-portal .hf-icons a:hover,
-    body.home-portal .hf-trio-row a:hover{transform:none;border-color:rgba(243,203,71,.72)!important;box-shadow:0 0 0 1px rgba(243,203,71,.14) inset,0 18px 42px rgba(0,0,0,.45),0 0 26px rgba(243,203,71,.16)!important}
-    body.home-portal .hf-icons{gap:14px}
-    body.home-portal .hf-icons a{min-height:0;padding:22px 16px;gap:8px}
+    body.home-portal .hf-icons li:nth-child(n) a{border-color:rgba(244,241,234,.78)!important;box-shadow:none!important}
+    body.home-portal .hf-icons{gap:12px}
+    body.home-portal .hf-trio-row{gap:12px}
+    body.home-portal .hf-trio-row a{border-left-width:1px!important}
     body.home-portal .hf-icons b,
-    body.home-portal .hf-trio-row b{font-family:Inter,sans-serif;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#F3CB47}
-    body.home-portal .hf-icons b{font-size:.78rem}
+    body.home-portal .hf-trio-row b,
+    body.home-portal .artist-dev-link span{
+      font-family:"Bodoni Moda",Georgia,serif!important;font-weight:500;letter-spacing:0;text-transform:none;
+      color:#f4f1ea!important;text-shadow:none!important
+    }
+    body.home-portal .hf-icons b{font-size:1.35rem;line-height:1.05}
+    body.home-portal .hf-trio-row b{font-size:1.7rem;line-height:1.05}
     body.home-portal .hf-icons em,
-    body.home-portal .hf-trio-row em{font-style:normal;font-weight:400;letter-spacing:.01em;color:rgba(255,255,255,.72)}
-    body.home-portal .hf-trio-row{gap:16px}
-    body.home-portal .hf-trio-row a{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:28px 26px!important;text-align:left;border-left-width:1px!important}
-    body.home-portal .hf-trio-row b{font-size:1.15rem;line-height:1.2}
-    body.home-portal .hf-trio-row em{font-size:.95rem}
-    body.home-portal .artist-dev-link{border-width:1px;border-radius:22px;background:linear-gradient(180deg,rgba(243,203,71,.08),rgba(0,0,0,.2)),#0c0c0e;box-shadow:0 16px 36px rgba(0,0,0,.35),0 0 22px rgba(243,203,71,.08);font-weight:500;letter-spacing:.01em}
-    body.home-portal .artist-dev-link span{font-weight:500;letter-spacing:.18em}
+    body.home-portal .hf-trio-row em,
+    body.home-portal .artist-dev-link{font-family:"IBM Plex Sans",Inter,sans-serif;font-style:normal;font-weight:400;letter-spacing:0;color:rgba(244,241,234,.78)!important}
+    body.home-portal .tile-go{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;margin-top:8px;color:#f4f1ea}
+    body.home-portal .artist-dev-link{align-items:center;text-align:center}
+    body.home-portal .artist-dev-link span{display:block;margin:0 0 6px;font-size:1.35rem}
+    body.home-portal .artist-dev-link b{color:#f4f1ea;margin-left:0}
+    body.home-portal .hf-icons a:active,
+    body.home-portal .hf-trio-row a:active,
+    body.home-portal .artist-dev-link:active{background:#f4f1ea!important;color:#000!important;border-color:#f4f1ea!important;transform:translateY(1px)}
+    body.home-portal .hf-icons a:active b,
+    body.home-portal .hf-trio-row a:active b,
+    body.home-portal .hf-icons a:active em,
+    body.home-portal .hf-trio-row a:active em,
+    body.home-portal .hf-icons a:active .tile-go,
+    body.home-portal .hf-trio-row a:active .tile-go,
+    body.home-portal .artist-dev-link:active,
+    body.home-portal .artist-dev-link:active span,
+    body.home-portal .artist-dev-link:active b{color:#000!important}
+    body.home-portal .hf-icons a:focus-visible,
+    body.home-portal .hf-trio-row a:focus-visible,
+    body.home-portal .artist-dev-link:focus-visible{outline:1px solid #f4f1ea;outline-offset:3px}
+    @media (hover:hover){
+      body.home-portal .hf-icons a:hover,
+      body.home-portal .hf-trio-row a:hover,
+      body.home-portal .artist-dev-link:hover{background:#f4f1ea!important;color:#000!important;border-color:#f4f1ea!important;transform:translateY(-2px)}
+      body.home-portal .hf-icons a:hover b,
+      body.home-portal .hf-trio-row a:hover b,
+      body.home-portal .hf-icons a:hover em,
+      body.home-portal .hf-trio-row a:hover em,
+      body.home-portal .hf-icons a:hover .tile-go,
+      body.home-portal .hf-trio-row a:hover .tile-go,
+      body.home-portal .artist-dev-link:hover,
+      body.home-portal .artist-dev-link:hover span,
+      body.home-portal .artist-dev-link:hover b{color:#000!important}
+    }
+    body.home-portal .starter-banner{display:block;background:#000!important;color:#f4f1ea!important;border-bottom:1px solid rgba(244,241,234,.4);font-weight:500;box-shadow:none!important}
+    body.home-portal .public-header-tools .login,
+    body.home-portal .menu-toggle,
+    body.home-portal .nav-actions .btn{border-radius:0!important;background:#000!important;color:#f4f1ea!important;border:1px solid rgba(244,241,234,.78)!important;box-shadow:none!important}
+    body.home-portal .plai-bubble,
+    body.home-portal .plai-coach-float{display:none!important}
+    body.home-portal #plai-ask-btn{border-radius:0!important;background:#000!important;color:#f4f1ea!important;border:1px solid rgba(244,241,234,.78)!important;box-shadow:none!important;font-family:"IBM Plex Mono",ui-monospace,monospace!important;padding:8px 12px!important;min-height:44px}
+    body.home-portal #plai-ask-btn .pa-face{background:transparent!important;color:#f4f1ea!important;border-radius:0!important;width:auto!important;height:auto!important;font-size:13px!important}
     @media (max-width:720px){
-      body.home-portal{padding-bottom:120px}
-      body.home-portal .artist-dev-band{padding:22px 0 4px}
-      body.home-portal .artist-dev-link{padding:24px 22px 96px}
+      body.home-portal{padding-bottom:72px}
+      body.home-portal .artist-dev-band{padding:22px 0 12px}
+      body.home-portal .artist-dev-link{padding:22px 18px 28px}
     }
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
@@ -162,11 +208,11 @@
       <div class="hf-wrap">
         <h2 class="hf-five-h ba-h">We run the business. You make the music.</h2>
         <ul class="hf-icons">
-          <li><a href="/persona.html"><b>Develop</b><em>Build the artist</em></a></li>
-          <li><a href="/song-helper"><b>Make</b><em>Write with Plai</em></a></li>
-          <li><a href="/contracts"><b>Protect</b><em>Splits and rights</em></a></li>
-          <li><a href="signup.html"><b>Release</b><em>Every major store</em></a></li>
-          <li><a href="/destination"><b>Manage</b><em>Track and grow</em></a></li>
+          <li><a href="/persona.html"><b>Develop the artist</b><em>Build the artist</em><span class="tile-go">Start →</span></a></li>
+          <li><a href="/song-helper"><b>Write a song</b><em>Write with Plai</em><span class="tile-go">Start →</span></a></li>
+          <li><a href="/contracts"><b>Protect your rights</b><em>Splits and rights</em><span class="tile-go">Start →</span></a></li>
+          <li><a href="signup.html"><b>Release music</b><em>Every major store</em><span class="tile-go">Start →</span></a></li>
+          <li><a href="/destination"><b>Track the work</b><em>Track and grow</em><span class="tile-go">Start →</span></a></li>
         </ul>
       </div>
     </section>
@@ -199,9 +245,9 @@
 
     <section class="hf-panel hf-trio hf-compact" aria-label="Make it, protect it, put it out">
       <div class="hf-wrap hf-trio-row">
-        <a href="/song-helper"><b>Make it</b><em>Song Lab, Cover Art</em></a>
-        <a href="/contracts"><b>Protect it</b><em>Splits, copyright, publishing</em></a>
-        <a href="signup.html"><b>Put it out</b><em>Every major store, EPK</em></a>
+        <a href="/song-helper"><b>Make a song</b><em>Song Lab, Cover Art</em><span class="tile-go">Start →</span></a>
+        <a href="/contracts"><b>Protect your rights</b><em>Splits, copyright, publishing</em><span class="tile-go">Start →</span></a>
+        <a href="signup.html"><b>Release music</b><em>Every major store, EPK</em><span class="tile-go">Start →</span></a>
       </div>
       <p class="hf-wrap hf-own">Your music stays yours. Splits signed before release.</p>
     </section>
