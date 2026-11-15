@@ -188,15 +188,26 @@
   line-height: 1.4;
 }
 
-/* Phone: keep copy above the fixed Ask Plai button (left) and Plai chip (right). */
+/* Phone: the fixed bar includes the gold banner, so the H1 starts below it. */
 @media (max-width: 720px) {
+  body.siqa-page > header.nav {
+    height: auto;
+    min-height: var(--nav-h);
+  }
+
+  body.siqa-page > header.nav .nav-inner {
+    height: var(--nav-h);
+  }
+
   .siqa-page .page-hero {
-    padding-top: 132px;
+    padding-top: calc(var(--nav-h) + 88px);
     padding-bottom: 12px;
   }
 
   .siqa-page .page-hero h1 {
-    font-size: 2.05rem;
+    font-size: 1.7rem;
+    line-height: 1.15;
+    scroll-margin-top: calc(var(--nav-h) + 56px);
   }
 
   .siqa-page .landing-tease {
