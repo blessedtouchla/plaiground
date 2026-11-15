@@ -41,6 +41,40 @@
     .release-plan{border-color:rgba(245,197,66,.55)!important}
     @media (min-width:900px){.pricing .plans.price-ladder{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1080px;margin:0 auto}}
     .founding-tag{display:inline-block;font-size:.72rem;font-weight:700;color:#F5C542;margin:2px 0}
+    /* Homepage only: quiet gold glass instead of cartoon tiles and scanlines. */
+    body.home-portal .hf-five::before,
+    body.home-portal .hf-panel::before{content:none}
+    body.home-portal .hf-icons a,
+    body.home-portal .hf-trio-row a{
+      border:1px solid rgba(243,203,71,.34)!important;
+      background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.28)),#121014!important;
+      box-shadow:0 0 0 1px rgba(243,203,71,.06) inset,0 16px 36px rgba(0,0,0,.38),0 0 22px rgba(243,203,71,.07)!important;
+      border-radius:22px!important;
+      backdrop-filter:blur(16px)
+    }
+    body.home-portal .hf-icons li:nth-child(n) a{border-color:rgba(243,203,71,.34)!important;box-shadow:0 0 0 1px rgba(243,203,71,.06) inset,0 16px 36px rgba(0,0,0,.38),0 0 22px rgba(243,203,71,.07)!important}
+    body.home-portal .hf-icons a,
+    body.home-portal .hf-trio-row a{transition:border-color .15s ease,box-shadow .15s ease}
+    body.home-portal .hf-icons a:hover,
+    body.home-portal .hf-trio-row a:hover{transform:none;border-color:rgba(243,203,71,.72)!important;box-shadow:0 0 0 1px rgba(243,203,71,.14) inset,0 18px 42px rgba(0,0,0,.45),0 0 26px rgba(243,203,71,.16)!important}
+    body.home-portal .hf-icons{gap:14px}
+    body.home-portal .hf-icons a{min-height:0;padding:22px 16px;gap:8px}
+    body.home-portal .hf-icons b,
+    body.home-portal .hf-trio-row b{font-family:Inter,sans-serif;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#F3CB47}
+    body.home-portal .hf-icons b{font-size:.78rem}
+    body.home-portal .hf-icons em,
+    body.home-portal .hf-trio-row em{font-style:normal;font-weight:400;letter-spacing:.01em;color:rgba(255,255,255,.72)}
+    body.home-portal .hf-trio-row{gap:16px}
+    body.home-portal .hf-trio-row a{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:28px 26px!important;text-align:left;border-left-width:1px!important}
+    body.home-portal .hf-trio-row b{font-size:1.15rem;line-height:1.2}
+    body.home-portal .hf-trio-row em{font-size:.95rem}
+    body.home-portal .artist-dev-link{border-width:1px;border-radius:22px;background:linear-gradient(180deg,rgba(243,203,71,.08),rgba(0,0,0,.2)),#0c0c0e;box-shadow:0 16px 36px rgba(0,0,0,.35),0 0 22px rgba(243,203,71,.08);font-weight:500;letter-spacing:.01em}
+    body.home-portal .artist-dev-link span{font-weight:500;letter-spacing:.18em}
+    @media (max-width:720px){
+      body.home-portal{padding-bottom:120px}
+      body.home-portal .artist-dev-band{padding:22px 0 4px}
+      body.home-portal .artist-dev-link{padding:24px 22px 96px}
+    }
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PLAIGROUND", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/", "description": "Release music to Spotify and Apple Music, write with AI help, make cover art and an EPK, and sign split sheets. Join free with starter credits to try every tool.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free account with free starter credits. Tools use credits."}}</script>
@@ -128,11 +162,11 @@
       <div class="hf-wrap">
         <h2 class="hf-five-h ba-h">We run the business. You make the music.</h2>
         <ul class="hf-icons">
-          <li><a href="/persona.html"><span class="hf-ic"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#9B5CFF" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M24 10l4 8.5 9 1.2-6.6 6.2 1.7 9L24 30.6l-8.1 4.3 1.7-9L11 19.7l9-1.2z" fill="#F5C542"/></g></svg></span><b>Develop</b><em>Build the artist</em></a></li>
-          <li><a href="/song-helper"><span class="hf-ic"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#F5C542" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20 31V13l14-3v18" fill="none"/><circle cx="16" cy="31" r="4.5" fill="#FF3EA5"/><circle cx="30" cy="28" r="4.5" fill="#3EE0FF"/></g></svg></span><b>Make</b><em>Write with Plai</em></a></li>
-          <li><a href="/contracts"><span class="hf-ic"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#FF3EA5" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M24 9l12 4v9c0 8-5.5 12.5-12 15-6.5-2.5-12-7-12-15v-9z" fill="#3EE0FF"/><path d="M18.5 23l4 4 7-8" fill="none"/></g></svg></span><b>Protect</b><em>Splits and rights</em></a></li>
-          <li><a href="signup.html"><span class="hf-ic"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#9B5CFF" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M24 8c6 4 8 11 6 19h-12c-2-8 0-15 6-19z" fill="#fff"/><circle cx="24" cy="18" r="3" fill="#3EE0FF"/><path d="M18 27l-5 6 6-1M30 27l5 6-6-1" fill="#FF3EA5"/><path d="M21 31l3 5 3-5" fill="#F5C542"/></g></svg></span><b>Release</b><em>Every major store</em></a></li>
-          <li><a href="/destination"><span class="hf-ic"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#9B5CFF" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><rect x="12" y="25" width="6" height="10" fill="#FF3EA5"/><rect x="21" y="18" width="6" height="17" fill="#F5C542"/><rect x="30" y="11" width="6" height="24" fill="#4BE38A"/></g></svg></span><b>Manage</b><em>Track and grow</em></a></li>
+          <li><a href="/persona.html"><b>Develop</b><em>Build the artist</em></a></li>
+          <li><a href="/song-helper"><b>Make</b><em>Write with Plai</em></a></li>
+          <li><a href="/contracts"><b>Protect</b><em>Splits and rights</em></a></li>
+          <li><a href="signup.html"><b>Release</b><em>Every major store</em></a></li>
+          <li><a href="/destination"><b>Manage</b><em>Track and grow</em></a></li>
         </ul>
       </div>
     </section>
@@ -165,9 +199,9 @@
 
     <section class="hf-panel hf-trio hf-compact" aria-label="Make it, protect it, put it out">
       <div class="hf-wrap hf-trio-row">
-        <a href="/song-helper"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#F5C542" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20 31V13l14-3v18" fill="none"/><circle cx="16" cy="31" r="4.5" fill="#FF3EA5"/><circle cx="30" cy="28" r="4.5" fill="#3EE0FF"/></g></svg><b>Make it</b><em>Song Lab, Cover Art</em></a>
-        <a href="/contracts"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#FF3EA5" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M24 9l12 4v9c0 8-5.5 12.5-12 15-6.5-2.5-12-7-12-15v-9z" fill="#3EE0FF"/><path d="M18.5 23l4 4 7-8" fill="none"/></g></svg><b>Protect it</b><em>Splits, copyright, publishing</em></a>
-        <a href="signup.html"><svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false" class="ba-ico"><rect x="3" y="5" width="42" height="40" rx="12" fill="#1a1024"/><rect x="3" y="3" width="42" height="40" rx="12" fill="#9B5CFF" stroke="#fff" stroke-width="2.5"/><g stroke="#1a1024" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M24 8c6 4 8 11 6 19h-12c-2-8 0-15 6-19z" fill="#fff"/><circle cx="24" cy="18" r="3" fill="#3EE0FF"/><path d="M18 27l-5 6 6-1M30 27l5 6-6-1" fill="#FF3EA5"/><path d="M21 31l3 5 3-5" fill="#F5C542"/></g></svg><b>Put it out</b><em>Every major store, EPK</em></a>
+        <a href="/song-helper"><b>Make it</b><em>Song Lab, Cover Art</em></a>
+        <a href="/contracts"><b>Protect it</b><em>Splits, copyright, publishing</em></a>
+        <a href="signup.html"><b>Put it out</b><em>Every major store, EPK</em></a>
       </div>
       <p class="hf-wrap hf-own">Your music stays yours. Splits signed before release.</p>
     </section>
