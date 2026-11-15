@@ -28,7 +28,8 @@ const files = [
   'siqa-dj-shawn-q.html',
   'siqa-slime-dot.html',
   'siqa-astrazit.html',
-  'siqa-aries-ivory.html'
+  'siqa-aries-ivory.html',
+  'siqa-godfellow.html'
 ];
 
 const banned = [
@@ -112,7 +113,8 @@ const paths = {
   'siqa-dj-shawn-q.html': '/siqa/2026/dj-shawn-q',
   'siqa-slime-dot.html': '/siqa/2026/slime-dot',
   'siqa-astrazit.html': '/siqa/2026/astrazit',
-  'siqa-aries-ivory.html': '/siqa/2026/aries-ivory'
+  'siqa-aries-ivory.html': '/siqa/2026/aries-ivory',
+  'siqa-godfellow.html': '/siqa/2026/godfellow'
 };
 
 assert.strictEqual(fs.existsSync(path.join(root, 'siqa-sony-interview.html')), false);
@@ -242,6 +244,8 @@ const shorts = [
   ['/astrazit/', '/siqa/2026/astrazit'],
   ['/aries-ivory', '/siqa/2026/aries-ivory'],
   ['/aries-ivory/', '/siqa/2026/aries-ivory'],
+  ['/godfellow', '/siqa/2026/godfellow'],
+  ['/godfellow/', '/siqa/2026/godfellow'],
   ['/siqa-highlights', '/siqa/2026/siqa-2026-highlights'],
   ['/siqa-highlights/', '/siqa/2026/siqa-2026-highlights']
 ];
@@ -258,7 +262,7 @@ assert.ok(hub.includes('class="siqa-links"'));
 shorts.filter(function (pair) { return pair[1] !== '/siqa/2026' && !pair[0].endsWith('/'); }).forEach(function (pair) {
   assert.ok(hub.includes('class="siqa-link" href="' + pair[1] + '"'), 'hub card ' + pair[1]);
 });
-assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 17);
+assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 18);
 assert.ok(!read('siqa-sheena-taylor.html').includes('instagram.com/'));
 assert.ok(!read('siqa-tammy-taylor.html').includes('instagram.com/'));
 assert.ok(!/sat down/i.test(read('siqa-sheena-taylor.html') + read('siqa-tammy-taylor.html') + read('siqa-olivia-b-moore.html') + read('siqa-colourfull4life.html')));
@@ -270,7 +274,8 @@ const reels = {
   'siqa-dj-shawn-q.html': ['DfvviYUPCHa'],
   'siqa-slime-dot.html': ['Dfvv6YZNJgK'],
   'siqa-astrazit.html': ['DfvwMm6h8oi'],
-  'siqa-aries-ivory.html': ['DfvwlaSt882']
+  'siqa-aries-ivory.html': ['DfvwlaSt882'],
+  'siqa-godfellow.html': ['DfwKRkXiOBC']
 };
 Object.keys(reels).forEach(function (file) {
   const html = read(file);
@@ -320,6 +325,12 @@ assert.ok(aries.includes('Eric Bellinger'));
 assert.ok(aries.includes('https://www.instagram.com/ariesivorymusic/'));
 assert.ok(aries.includes('https://www.instagram.com/ericbellinger/'));
 assert.strictEqual((aries.match(/“/g) || []).length, 1, 'aries has one quote');
+const godfellow = read('siqa-godfellow.html');
+assert.ok(godfellow.includes('Godfellow performed at the first AI Music Awards on Friday, Nov 13, 2026, at The Mayan in Downtown Los Angeles. A dance crew and a live band were on stage with him.'));
+assert.ok(godfellow.includes('https://www.instagram.com/godfellow/'));
+assert.ok(!godfellow.includes('winner') && !godfellow.includes('nominee') && !godfellow.includes('Best '));
+assert.ok(!godfellow.includes('“') && !godfellow.includes('&ldquo;'));
+assert.ok(!godfellow.includes('.mp4'));
 
 assert.ok(!read('site.js').includes('/siqa/2026'), 'main nav script unchanged');
 assert.ok(!read('index.html').includes('/siqa/2026'), 'homepage nav unchanged');
