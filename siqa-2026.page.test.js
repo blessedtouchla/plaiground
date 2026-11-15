@@ -21,7 +21,9 @@ const files = [
   'siqa-ava-bently-interview.html',
   'siqa-ava-bently-acceptance-speech.html',
   'siqa-sheena-taylor.html',
-  'siqa-tammy-taylor.html'
+  'siqa-tammy-taylor.html',
+  'siqa-olivia-b-moore.html',
+  'siqa-colourfull4life.html'
 ];
 
 const banned = [
@@ -98,7 +100,9 @@ const paths = {
   'siqa-ava-bently-interview.html': '/siqa/2026/ava-bently-interview',
   'siqa-ava-bently-acceptance-speech.html': '/siqa/2026/ava-bently-acceptance-speech',
   'siqa-sheena-taylor.html': '/siqa/2026/sheena-taylor',
-  'siqa-tammy-taylor.html': '/siqa/2026/tammy-taylor'
+  'siqa-tammy-taylor.html': '/siqa/2026/tammy-taylor',
+  'siqa-olivia-b-moore.html': '/siqa/2026/olivia-b-moore',
+  'siqa-colourfull4life.html': '/siqa/2026/colourfull4life'
 };
 
 assert.strictEqual(fs.existsSync(path.join(root, 'siqa-sony-interview.html')), false);
@@ -214,6 +218,10 @@ const shorts = [
   ['/sheena/', '/siqa/2026/sheena-taylor'],
   ['/tammy', '/siqa/2026/tammy-taylor'],
   ['/tammy/', '/siqa/2026/tammy-taylor'],
+  ['/olivia', '/siqa/2026/olivia-b-moore'],
+  ['/olivia/', '/siqa/2026/olivia-b-moore'],
+  ['/colourfull4life', '/siqa/2026/colourfull4life'],
+  ['/colourfull4life/', '/siqa/2026/colourfull4life'],
   ['/siqa-highlights', '/siqa/2026/siqa-2026-highlights'],
   ['/siqa-highlights/', '/siqa/2026/siqa-2026-highlights']
 ];
@@ -230,10 +238,53 @@ assert.ok(hub.includes('class="siqa-links"'));
 shorts.filter(function (pair) { return pair[1] !== '/siqa/2026' && !pair[0].endsWith('/'); }).forEach(function (pair) {
   assert.ok(hub.includes('class="siqa-link" href="' + pair[1] + '"'), 'hub card ' + pair[1]);
 });
-assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 10);
+assert.strictEqual((hub.match(/class="siqa-link"/g) || []).length, 12);
 assert.ok(!read('siqa-sheena-taylor.html').includes('instagram.com/'));
 assert.ok(!read('siqa-tammy-taylor.html').includes('instagram.com/'));
-assert.ok(!/sat down/i.test(read('siqa-sheena-taylor.html') + read('siqa-tammy-taylor.html')));
+assert.ok(!/sat down/i.test(read('siqa-sheena-taylor.html') + read('siqa-tammy-taylor.html') + read('siqa-olivia-b-moore.html') + read('siqa-colourfull4life.html')));
+
+const reels = {
+  'siqa-olivia-b-moore.html': ['DfvrZDiho5n', 'DfvrIeFvT81'],
+  'siqa-colourfull4life.html': ['Dfvq0fEN41U']
+};
+Object.keys(reels).forEach(function (file) {
+  const html = read(file);
+  reels[file].forEach(function (code) {
+    const embed = 'https://www.instagram.com/reel/' + code + '/embed';
+    const watch = 'https://www.instagram.com/reel/' + code + '/';
+    assert.ok(html.includes('src="' + embed + '"'), file + ' iframe ' + code);
+    assert.ok(html.includes('href="' + watch + '"'), file + ' watch ' + code);
+  });
+  assert.ok(html.includes('Watch on Instagram'), file + ' watch label');
+  assert.ok(html.includes('allowfullscreen'), file + ' allowfullscreen');
+  assert.ok(!html.includes('youtube.com'), file + ' has no YouTube');
+  assert.ok(!html.includes('drive.google.com'), file + ' has no Drive');
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(function (match) {
+    return JSON.parse(match[1]);
+  });
+  const videosLd = blocks.filter(function (block) { return block['@type'] === 'VideoObject'; });
+  assert.strictEqual(videosLd.length, reels[file].length, file + ' VideoObject count');
+  reels[file].forEach(function (code) {
+    const video = videosLd.find(function (block) { return block.embedUrl.endsWith('/' + code + '/embed'); });
+    assert.ok(video, file + ' VideoObject ' + code);
+    assert.strictEqual(video.contentUrl, 'https://www.instagram.com/reel/' + code + '/');
+    assert.strictEqual(video.uploadDate, '2026-11-13');
+  });
+});
+const olivia = read('siqa-olivia-b-moore.html');
+assert.ok(olivia.includes('Backstage at The Mayan'));
+assert.ok(olivia.includes('https://www.instagram.com/oliviabmoore/'));
+assert.ok(olivia.includes('https://oliviabmoore.com/'));
+assert.ok(olivia.includes('No. 2 on the SIQA Top 100 AI Songs chart'));
+assert.ok(olivia.includes('AI-generated'));
+assert.ok(!olivia.includes('&ldquo;'));
+const colour = read('siqa-colourfull4life.html');
+assert.ok(colour.includes('Best AI International Song'));
+assert.ok(colour.includes('Waltz of Love C4L'));
+assert.ok(!colour.includes('instagram.com/colour'));
+const colourVisible = colour.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<link[^>]*>/g, '');
+assert.ok(!colourVisible.includes('@'), 'colourfull4life has no Instagram handle');
+assert.ok(!colour.includes('&ldquo;'));
 
 assert.ok(!read('site.js').includes('/siqa/2026'), 'main nav script unchanged');
 assert.ok(!read('index.html').includes('/siqa/2026'), 'homepage nav unchanged');

@@ -49,6 +49,23 @@
   font-weight: 700;
 }
 
+.siqa-reel {
+  width: min(420px, calc(100% - 48px));
+}
+
+.siqa-reel-frame {
+  aspect-ratio: 9 / 16;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #111;
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.siqa-reel-small {
+  width: min(280px, calc(100% - 48px));
+  margin-top: 8px;
+}
+
 .siqa-panel {
   border-radius: 22px;
   background: rgba(125, 60, 255, 0.16);
