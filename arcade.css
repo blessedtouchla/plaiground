@@ -619,7 +619,41 @@ body.song-lab .v3-plai{
 body.song-lab .arc-kicker,
 body.song-lab .arc-step,
 body.song-lab .arc-steps-n,
-body.song-lab .arc-host-say b,
+body.song-lab .arc-host-say b{
+  font-family:"IBM Plex Mono",ui-monospace,monospace!important;
+  color:#f4f1ea!important;
+  text-shadow:none!important;
+  letter-spacing:.14em;
+}
+body.song-lab .lab-nav{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 16px;background:#000;border-bottom:1px solid rgba(244,241,234,.4);
+  position:sticky;top:0;z-index:30
+}
+body.song-lab .lab-logo img{display:block;height:40px;width:auto}
+body.song-lab .lab-nav-tools{display:flex;align-items:center;gap:8px}
+body.song-lab .lab-nav-tools>a,
+body.song-lab .lab-menu summary{
+  display:inline-flex;align-items:center;min-height:44px;padding:0 12px;
+  border:1px solid rgba(244,241,234,.78);background:#000;color:#f4f1ea;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;text-decoration:none;cursor:pointer;list-style:none
+}
+body.song-lab .lab-menu{position:relative}
+body.song-lab .lab-menu summary::-webkit-details-marker{display:none}
+body.song-lab .lab-menu nav{
+  position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:#000;
+  border:1px solid rgba(244,241,234,.78);display:flex;flex-direction:column
+}
+body.song-lab .lab-menu nav a{
+  display:flex;align-items:center;min-height:44px;padding:0 14px;color:#f4f1ea;
+  text-decoration:none;border-bottom:1px solid rgba(244,241,234,.28);
+  font-family:"IBM Plex Sans",sans-serif;letter-spacing:0;text-transform:none
+}
+body.song-lab .v3-word,
+body.song-lab .arc-login,
+body.song-lab .v3-points{display:none!important}
+body.song-lab .v3-top{justify-content:flex-start}
 body.song-lab .v3-word,
 body.song-lab .v3-credits,
 body.song-lab .v3-points,
