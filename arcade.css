@@ -682,10 +682,10 @@ body.song-lab .arc-more-sum,
 body.song-lab .arc-back{
   display:inline-flex;
   align-items:center;
-  min-height:44px;
-  padding:0 14px;
+  min-height:48px;
+  padding:0 18px;
   border:1px solid #7D3CFF!important;
-  border-radius:4px!important;
+  border-radius:999px!important;
   background:transparent!important;
   color:#fff!important;
   box-shadow:none!important;
@@ -725,7 +725,7 @@ body.song-lab .arc-tiles{
   display:flex!important;
   flex-direction:column!important;
   grid-template-columns:none!important;
-  gap:8px!important;
+  gap:12px!important;
 }
 body.song-lab .arc-home{gap:22px!important}
 body.song-lab .arc-card,
@@ -735,15 +735,15 @@ body.song-lab .v3-tile,
 body.song-lab .arc-option,
 body.song-lab .v3-go{
   display:flex!important;
-  flex-direction:column!important;
-  flex-wrap:nowrap;
-  align-items:flex-start!important;
-  justify-content:center;
+  flex-direction:row!important;
+  flex-wrap:wrap;
+  align-items:center!important;
+  justify-content:space-between;
   width:100%;
-  min-height:52px!important;
-  padding:12px 16px!important;
+  min-height:60px!important;
+  padding:8px 22px!important;
   border:0!important;
-  border-radius:4px!important;
+  border-radius:999px!important;
   background:#782FB1!important;
   color:#fff!important;
   box-shadow:none!important;
@@ -762,7 +762,8 @@ body.song-lab .v3-go{
 body.song-lab .arc-card b,
 body.song-lab .arc-tile b{color:#fff!important;font-size:16px!important;font-weight:500!important;line-height:1.25!important;letter-spacing:0!important}
 body.song-lab .arc-card small,
-body.song-lab .arc-tile small{color:rgba(255,255,255,.88)!important;font-size:14px!important;font-weight:400!important;line-height:1.35!important;text-align:left;margin:2px 0 0}
+body.song-lab .arc-tile small{color:rgba(255,255,255,.88)!important;font-size:14px!important;font-weight:400!important;line-height:1.3!important;text-align:right;margin:0 0 0 12px;flex:1 1 auto}
+body.song-lab .v3-go{justify-content:center!important;text-align:center!important}
 body.song-lab .arc-chip,
 body.song-lab .arc-chip.small,
 body.song-lab .v3-mini,
@@ -770,9 +771,9 @@ body.song-lab .arc-talk-mic,
 body.song-lab .arc-tune-toggle,
 body.song-lab .arc-tiny{
   min-height:44px!important;
-  padding:10px 14px!important;
+  padding:10px 16px!important;
   border:1px solid #7D3CFF!important;
-  border-radius:4px!important;
+  border-radius:999px!important;
   background:transparent!important;
   color:#fff!important;
   box-shadow:none!important;
