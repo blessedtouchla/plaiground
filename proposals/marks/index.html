@@ -19,9 +19,24 @@
   .set li { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
   .set img { width: 64px; height: 64px; display: block; }
   .set span { font-size: 14px; font-weight: 500; letter-spacing: .02em; }
+  .compare { display: grid; gap: 36px; }
   .pairings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .col { min-width: 0; border-top: 1px solid rgba(255,255,255,.2); padding-top: 14px; }
-  .opt { margin: 0 0 12px; font-size: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .col { min-width: 0; }
+  .opt { margin: 0 0 6px; font-size: 14px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .note { margin: 0 0 14px; font-size: 14px; color: rgba(255,255,255,.62); }
+  .shapes { display: flex; flex-direction: column; gap: 12px; }
+  .shapes h3 { margin: 16px 0 0; font: 500 14px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .gbtn { position: relative; display: flex; align-items: center; justify-content: center; min-height: 56px; width: 100%; color: #fff; text-decoration: none; }
+  .gbtn span { position: relative; z-index: 1; font: 500 16px/1.2 Inter, sans-serif; padding: 14px 36px; text-align: center; }
+  .gbtn.frame span { padding-right: 72px; }
+  .gbtn svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .gbtn.frame .frame-circle { inset: auto 0 0 auto; width: 52px; height: 52px; top: 2px; }
+  .gbtn .stroke { fill: none; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .gbtn:active .stroke { fill: #fff; }
+  .gbtn:active span { color: #000; }
+  @media (hover: hover) {
+    .gbtn:hover .stroke { stroke-width: 2.4; }
+  }
   .a .titles h2 { font-family: "Clash Display", Inter, sans-serif; }
   .b .titles h2 { font-family: Satoshi, Inter, sans-serif; }
   nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
@@ -34,7 +49,8 @@
     .wrap { padding-top: 48px; }
     .logo { width: 280px; margin-bottom: 40px; }
     .set { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 20px 12px; margin-bottom: 56px; }
-    .pairings { gap: 48px; }
+    .compare { grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .pairings { gap: 28px; }
     .titles h2 { font-size: 32px; }
     nav { flex-direction: row; flex-wrap: wrap; gap: 4px 16px; }
   }
@@ -54,9 +70,13 @@
       <li><img src="home.svg" alt="" /><span>Home</span></li>
       <li><img src="manage.svg" alt="" /><span>Manage</span></li>
     </ul>
+    <div class="compare">
+    <section id="option-a">
+    <p class="opt">Option A</p>
+    <p class="note">Small mark beside the title.</p>
     <div class="pairings">
       <section class="col a">
-        <p class="opt">A · Clash + Inter</p>
+        <p class="opt">Clash + Inter</p>
         <nav aria-label="Sample nav, option A">
           <a href="#a"><img src="home.svg" alt="" />Home</a>
           <a href="#a"><img src="song-lab.svg" alt="" />Song Lab</a>
@@ -73,7 +93,7 @@
         </ul>
       </section>
       <section class="col b">
-        <p class="opt">B · Satoshi + Inter</p>
+        <p class="opt">Satoshi + Inter</p>
         <nav aria-label="Sample nav, option B">
           <a href="#b"><img src="home.svg" alt="" />Home</a>
           <a href="#b"><img src="song-lab.svg" alt="" />Song Lab</a>
@@ -89,6 +109,25 @@
           <li><img src="release.svg" alt="" /><h2>Release</h2></li>
         </ul>
       </section>
+    </div>
+    </section>
+    <section id="option-b">
+      <p class="opt">Option B</p>
+      <p class="note">The button is the shape.</p>
+      <div class="shapes">
+        <h3>Home</h3>
+        <a class="gbtn oct" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="22,1.5 298,1.5 318.5,32 298,62.5 22,62.5 1.5,32"/><polygon class="stroke" points="36,12 284,12 300,32 284,52 36,52 20,32"/></svg><span>Join free</span></a>
+        <a class="gbtn hex" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="22,1.5 298,1.5 318.5,32 298,62.5 22,62.5 1.5,32"/></svg><span>Develop</span></a>
+        <a class="gbtn dia" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="160,1.5 318.5,32 160,62.5 1.5,32"/></svg><span>Make</span></a>
+        <a class="gbtn cut" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="1.5,1.5 278,1.5 318.5,42 318.5,62.5 1.5,62.5"/></svg><span>Protect</span></a>
+        <a class="gbtn frame" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><rect class="stroke" x="1.5" y="1.5" width="300" height="61"/></svg><svg class="frame-circle" viewBox="0 0 56 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><circle class="stroke" cx="28" cy="28" r="26"/></svg><span>Release</span></a>
+        <a class="gbtn notch" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="1.5,1.5 318.5,1.5 318.5,62.5 184,62.5 160,42 136,62.5 1.5,62.5"/></svg><span>Manage</span></a>
+        <h3>Song Lab</h3>
+        <a class="gbtn hex" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="22,1.5 298,1.5 318.5,32 298,62.5 22,62.5 1.5,32"/></svg><span>Start From Scratch</span></a>
+        <a class="gbtn dia" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="160,1.5 318.5,32 160,62.5 1.5,32"/></svg><span>Fix My Song</span></a>
+        <a class="gbtn cut" href="#b"><svg viewBox="0 0 320 64" preserveAspectRatio="none" aria-hidden="true"><polygon class="stroke" points="1.5,1.5 278,1.5 318.5,42 318.5,62.5 1.5,62.5"/></svg><span>Flip My Song</span></a>
+      </div>
+    </section>
     </div>
   </main>
 </body>
