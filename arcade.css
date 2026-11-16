@@ -897,6 +897,64 @@ body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active{background:#F3C
 body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active b,
 body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active small{color:#000!important}
 body.song-lab .arc-home .arc-cards .arc-card:nth-child(3):active{background:#782FB1!important;border-color:#782FB1!important;color:#fff!important}
+
+/* Door layout: two-line pills, wider desktop row, homepage logo in the header. */
+body.song-lab .v3-word{
+  width:200px;
+  height:56px;
+  min-height:56px;
+  font-size:0!important;
+  line-height:0!important;
+  letter-spacing:0!important;
+  color:transparent!important;
+  text-indent:-9999px;
+  overflow:hidden;
+  background:url("/assets/plaiground-logo.png") left center / contain no-repeat!important;
+}
+body.song-lab .arc-home .arc-cards{align-items:stretch}
+body.song-lab .arc-home .arc-cards .arc-card{
+  display:grid!important;
+  grid-template-columns:7px minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-content:center;
+  column-gap:12px;
+  row-gap:4px;
+  min-height:96px!important;
+  padding:16px 20px!important;
+}
+body.song-lab .arc-home .arc-cards .arc-card::before{
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:center;
+  margin:0!important;
+}
+body.song-lab .arc-home .arc-cards .arc-card b{
+  grid-column:2;
+  grid-row:1;
+  align-self:end;
+}
+body.song-lab .arc-home .arc-cards .arc-card small{
+  grid-column:2;
+  grid-row:2;
+  align-self:start;
+  margin:0!important;
+  text-align:left!important;
+  width:auto;
+}
+@media (min-width:980px){
+  body.song-lab .arc-index,
+  body.song-lab .arc-wrap{
+    width:min(960px,calc(100% - 80px))!important;
+    max-width:960px!important;
+  }
+  body.song-lab .arc-home .arc-cards{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:16px!important;
+    align-items:stretch;
+  }
+  body.song-lab .arc-home .arc-cards .arc-card{min-height:112px!important;height:100%}
+}
 body.song-lab .arc-card:focus-visible,
 body.song-lab .arc-tile:focus-visible,
 body.song-lab .v3-go:focus-visible,
@@ -971,3 +1029,66 @@ body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active{background:#F3C
 body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active b,
 body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active small{color:#000!important}
 body.song-lab .arc-home .arc-cards .arc-card:nth-child(3):active{background:#782FB1!important;border-color:#782FB1!important;color:#fff!important}
+
+/* Door layout: two-line pills, wider desktop row, homepage logo in the header. */
+body.song-lab .v3-word{
+  width:200px;
+  height:56px;
+  min-height:56px;
+  font-size:0!important;
+  line-height:0!important;
+  letter-spacing:0!important;
+  color:transparent!important;
+  text-indent:-9999px;
+  overflow:hidden;
+  background:url("/assets/plaiground-logo.png") left center / contain no-repeat!important;
+}
+body.song-lab .arc-home .arc-cards{align-items:stretch}
+body.song-lab .arc-home .arc-cards .arc-card{
+  display:grid!important;
+  grid-template-columns:7px minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-content:center;
+  column-gap:12px;
+  row-gap:4px;
+  min-height:96px!important;
+  padding:16px 20px!important;
+}
+body.song-lab .arc-home .arc-cards .arc-card::before{
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:center;
+  margin:0!important;
+}
+body.song-lab .arc-home .arc-cards .arc-card b{
+  grid-column:2;
+  grid-row:1;
+  align-self:end;
+}
+body.song-lab .arc-home .arc-cards .arc-card small{
+  grid-column:2;
+  grid-row:2;
+  align-self:start;
+  margin:0!important;
+  text-align:left!important;
+  width:auto;
+}
+@media (min-width:980px){
+  body.song-lab .arc-index,
+  body.song-lab .arc-wrap{
+    width:min(960px,calc(100% - 80px))!important;
+    max-width:960px!important;
+  }
+  body.song-lab .arc-home .arc-cards{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:16px!important;
+    align-items:stretch;
+  }
+  body.song-lab .arc-home .arc-cards .arc-card{min-height:112px!important;height:100%}
+}
+body.song-lab .arc-shell,
+body.song-lab .arc-main,
+body.song-lab .arc-home,
+body.song-lab .arc-home .arc-cards{width:100%!important;max-width:none!important;align-self:stretch}
+body.song-lab .arc-home .arc-cards .arc-card{width:100%!important;max-width:none!important;justify-self:stretch}
