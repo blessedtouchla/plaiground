@@ -36,7 +36,9 @@
     body.home-portal .artist-dev-band,
     body.home-portal .pricing,
     body.home-portal footer{background:#000!important;background-image:none!important}
-    body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box}
+    body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box;padding-top:calc(var(--nav-h) + 28px)!important;padding-bottom:4px!important}
+    body.home-portal .hero-logo-live{margin-bottom:10px!important}
+    body.home-portal .hero h1{margin-bottom:8px!important}
     body.home-portal .hero::before,
     body.home-portal .hf-five::before,
     body.home-portal .hf-panel::before,
@@ -129,18 +131,19 @@
     body.home-portal .nav-actions .btn,
     body.home-portal .hf-btn,
     body.home-portal .ba-start,
-    body.home-portal .hf-booked-btn{
+    body.home-portal .hf-booked-btn,
+    body.home-portal .btn-ghost{
+      background:#000!important;
+      color:#fff!important;
+      border:1px solid rgba(255,255,255,.35)!important
+    }
+    body.home-portal .hero-ctas .btn-gold{
       background:#782FB1!important;
       color:#fff!important;
       border:0!important
     }
-    body.home-portal .btn-ghost{
-      background:transparent!important;
-      color:#fff!important;
-      border:1px solid #7D3CFF!important
-    }
     body.home-portal .hero-ctas{max-width:440px;margin-left:auto;margin-right:auto;gap:12px}
-    body.home-portal .hero-ctas .btn{display:inline-flex;align-items:center;justify-content:center;padding:0 28px;min-height:60px}
+    body.home-portal .hero-ctas .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;min-height:60px}
     body.home-portal .starter-cta,
     body.home-portal .starter-cta a,
     body.home-portal .copy,
@@ -149,12 +152,12 @@
     body.home-portal .offer-note,
     body.home-portal .learn{color:rgba(244,244,244,.62)!important;font-size:14px!important;text-shadow:none!important}
     body.home-portal a.starter-foot{
-      color:#fff!important;background:#782FB1!important;max-width:280px;
+      color:#fff!important;background:#000!important;border:1px solid rgba(255,255,255,.35)!important;max-width:280px;
       display:inline-flex;align-items:center;justify-content:center;text-align:center;
       line-height:1.3;padding:10px 14px!important;white-space:normal
     }
     body.home-portal .founding-tag{display:inline-block;font-weight:500;margin:2px 0;letter-spacing:.04em}
-    body.home-portal .hf-five{padding:64px 0 28px!important}
+    body.home-portal .hf-five{padding:36px 0 16px!important}
     body.home-portal .hf-panel.hf-compact,
     body.home-portal .hf-panel.hf-road{padding:56px 0!important;min-height:0!important}
     body.home-portal .hf-icons,
@@ -174,11 +177,11 @@
       width:100%;
       min-height:60px!important;
       height:auto;
-      padding:0 22px!important;
+      padding:0 20px 0 18px!important;
       box-sizing:border-box;
-      background:#782FB1!important;
+      background:#000!important;
       color:#fff!important;
-      border:0!important;
+      border:1px solid rgba(255,255,255,.35)!important;
       border-radius:999px!important;
       box-shadow:none!important;
       text-decoration:none!important;
@@ -215,11 +218,29 @@
       line-height:1.3!important;
       letter-spacing:0!important;
       text-align:right;
-      color:rgba(255,255,255,.88)!important
+      color:#9A9AA8!important
     }
     body.home-portal .artist-dev-band{padding:36px 0}
     body.home-portal .artist-dev-link{flex-direction:column;align-items:flex-start;justify-content:center;max-width:440px;margin:0 auto;min-height:60px!important;padding:14px 22px!important;font-size:15px;font-weight:400;line-height:1.4}
-    body.home-portal .artist-dev-link b{color:rgba(255,255,255,.88)!important;margin:0;font-weight:400}
+    body.home-portal .artist-dev-link b{color:#9A9AA8!important;margin:0;font-weight:400}
+    body.home-portal .hf-icons a::before,
+    body.home-portal .hf-trio-row a::before,
+    body.home-portal .hf-road-picks a::before,
+    body.home-portal .artist-dev-link::before,
+    body.home-portal .hero-ctas .btn-ghost::before,
+    body.home-portal .ba-start::before,
+    body.home-portal .hf-btn::before,
+    body.home-portal .hf-booked-btn::before,
+    body.home-portal .nav-actions .btn::before,
+    body.home-portal .btn-purple::before,
+    body.home-portal .public-header-login::before,
+    body.home-portal .menu-toggle::before,
+    body.home-portal #plai-ask-btn::before,
+    body.home-portal a.starter-foot::before{
+      content:"";
+      width:7px;height:7px;border-radius:999px;background:#782FB1;
+      flex:0 0 7px;display:block
+    }
     body.home-portal .hf-booked-row{display:block!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;text-align:center}
     body.home-portal .hf-own{font-size:14px!important;color:rgba(244,244,244,.62)!important}
     body.home-portal .pricing .card,
@@ -240,19 +261,20 @@
       font-size:14px!important;font-weight:400!important;text-decoration:none
     }
     body.home-portal .public-header-login,
-    body.home-portal .menu-toggle{border-radius:999px!important;padding:0 16px;box-sizing:border-box;border:1px solid #7D3CFF!important;background:transparent!important}
+    body.home-portal .menu-toggle{border-radius:999px!important;padding:0 16px;box-sizing:border-box;border:1px solid rgba(255,255,255,.35)!important;background:#000!important;gap:8px}
     body.home-portal #plai-ask-btn{
-      background:#782FB1!important;color:#fff!important;border:0!important;border-radius:999px!important;
+      background:#000!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:999px!important;
       box-shadow:none!important;min-height:44px;padding:0 16px!important;
       font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;font-weight:500!important;font-size:14px!important
     }
     body.home-portal #plai-ask-btn .pa-face{display:none!important}
-    body.home-portal #plai-ask-btn:active{background:#fff!important;color:#782FB1!important;box-shadow:none!important}
+    body.home-portal #plai-ask-btn:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;box-shadow:none!important}
     body.home-portal .plai-coach-avatar img{display:none!important}
     body.home-portal .plai-coach-float-hit{
       border-radius:999px!important;min-height:44px;min-width:44px;padding:0 16px;
-      border:1px solid #7D3CFF;background:#000;color:#fff;display:inline-flex;align-items:center;justify-content:center
+      border:1px solid rgba(255,255,255,.35);background:#000;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px
     }
+    body.home-portal .plai-coach-float-hit::before{content:"";width:7px;height:7px;border-radius:999px;background:#782FB1;flex:0 0 7px}
     body.home-portal .plai-coach-float-pop{
       background:#000!important;border:1px solid rgba(244,244,244,.4)!important;border-radius:4px!important;box-shadow:none!important;color:#f4f4f4
     }
@@ -263,7 +285,7 @@
     body.home-portal .socials a{width:44px;height:44px;justify-content:center;border-radius:999px;border-color:rgba(255,255,255,.28)}
     body.home-portal .plai-bubble-chip{
       min-height:44px;height:44px;padding:0 16px;
-      background:#782FB1!important;color:#fff!important;
+      background:#000!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;
       border-radius:999px!important;box-shadow:none!important;
       font-size:14px!important;font-weight:500!important;letter-spacing:.02em!important
     }
@@ -276,7 +298,7 @@
     body.home-portal .btn-gold:active,
     body.home-portal .btn-purple:active,
     body.home-portal .nav-actions .btn:active{
-      background:#fff!important;color:#782FB1!important;
+      background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;
       box-shadow:none!important;transform:none!important
     }
     body.home-portal .hf-icons a:active b,
@@ -285,15 +307,15 @@
     body.home-portal .hf-trio-row a:active em,
     body.home-portal .artist-dev-link:active,
     body.home-portal .artist-dev-link:active span,
-    body.home-portal .artist-dev-link:active b{color:#782FB1!important}
-    body.home-portal .btn-ghost:active{background:#782FB1!important;color:#fff!important}
+    body.home-portal .artist-dev-link:active b{color:#fff!important}
+    body.home-portal .btn-ghost:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important}
     body.home-portal .hf-icons a:focus-visible,
     body.home-portal .hf-trio-row a:focus-visible,
     body.home-portal .hf-road-picks a:focus-visible,
     body.home-portal .artist-dev-link:focus-visible,
     body.home-portal .btn:focus-visible{outline:1px solid #7D3CFF;outline-offset:3px}
     @media (max-width:719px){
-      body.home-portal{padding-bottom:88px}
+      body.home-portal{padding-bottom:140px}
       body.home-portal .hero-ctas{flex-direction:column}
       body.home-portal .hero-ctas .btn{width:100%}
     }
@@ -313,23 +335,26 @@
       body.home-portal .btn-purple:hover,
       body.home-portal .nav-actions .btn:hover,
       body.home-portal .plai-bubble-chip:hover{
-        background:#7D3CFF!important;color:#fff!important;border-color:#7D3CFF!important;
+        background:#000!important;color:#fff!important;border-color:#fff!important;
         box-shadow:none!important;transform:none!important;text-shadow:none!important
       }
+      body.home-portal .hero-ctas .btn-gold:hover{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important}
       body.home-portal .hf-icons a:hover b,
       body.home-portal .hf-trio-row a:hover b,
       body.home-portal .artist-dev-link:hover span{color:#fff!important}
       body.home-portal .hf-icons a:hover em,
       body.home-portal .hf-trio-row a:hover em,
-      body.home-portal .artist-dev-link:hover b{color:rgba(255,255,255,.88)!important}
-      body.home-portal .btn-ghost:hover{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;transform:none!important}
+      body.home-portal .artist-dev-link:hover b{color:#9A9AA8!important}
+      body.home-portal .btn-ghost:hover{background:#000!important;color:#fff!important;border-color:#fff!important;transform:none!important}
       body.home-portal .nav-links a:hover,
       body.home-portal .nav-group-toggle:hover,
       body.home-portal .footer-col a:hover,
       body.home-portal .public-header-login:hover,
       body.home-portal .menu-toggle:hover{color:#fff!important}
       body.home-portal .starter-banner:hover{background:#000!important;color:#fff!important}
-      body.home-portal #plai-ask-btn:hover{background:#7D3CFF!important;color:#fff!important;box-shadow:none!important}
+      body.home-portal #plai-ask-btn:hover,
+      body.home-portal .public-header-login:hover,
+      body.home-portal .menu-toggle:hover{background:#000!important;border-color:#fff!important;box-shadow:none!important}
     }
     body.home-portal .hf-icons a:active,
     body.home-portal .hf-trio-row a:active,
@@ -343,14 +368,15 @@
     body.home-portal #plai-ask-btn:active,
     body.home-portal .plai-bubble-chip:active,
     body.home-portal a.starter-foot:active{
-      background:#fff!important;color:#782FB1!important;border-color:#fff!important;box-shadow:none!important;transform:none!important
+      background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;box-shadow:none!important;transform:none!important
     }
+    body.home-portal .hero-ctas .btn-gold:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important}
     body.home-portal .hf-icons a:active b,
     body.home-portal .hf-icons a:active em,
     body.home-portal .hf-trio-row a:active b,
     body.home-portal .hf-trio-row a:active em,
     body.home-portal .artist-dev-link:active span,
-    body.home-portal .artist-dev-link:active b{color:#782FB1!important}
+    body.home-portal .artist-dev-link:active b{color:#fff!important}
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PLAIGROUND", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/", "description": "Release music to Spotify and Apple Music, write with AI help, make cover art and an EPK, and sign split sheets. Join free with starter credits to try every tool.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free account with free starter credits. Tools use credits."}}</script>
