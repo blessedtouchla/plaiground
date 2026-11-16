@@ -776,13 +776,12 @@ body.song-lab .arc-talk-toggle::before{
   width:7px;height:7px;margin-right:10px;
   border-radius:999px;background:#782FB1;flex:0 0 7px
 }
-body.song-lab .arc-home .arc-cards .arc-card:first-child{
-  background:#782FB1!important;
-  border-color:#782FB1!important;
-  color:#fff!important
-}
-body.song-lab .arc-home .arc-cards .arc-card:first-child::before{display:none!important}
-body.song-lab .arc-home .arc-cards .arc-card:first-child small{color:rgba(255,255,255,.78)!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1){border:1.5px solid #D03083!important;background:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1)::before{display:block!important;background:#D03083!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2){border:1.5px solid #F3CB47!important;background:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2)::before{background:#F3CB47!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3){border:1.5px solid #782FB1!important;background:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3)::before{background:#782FB1!important}
 body.song-lab .arc-chip,
 body.song-lab .arc-chip.small,
 body.song-lab .v3-mini,
@@ -891,6 +890,13 @@ body.song-lab .arc-card:active b,
 body.song-lab .arc-card:active small,
 body.song-lab .arc-tile:active b,
 body.song-lab .arc-tile:active small{color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active{background:#D03083!important;border-color:#D03083!important;color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active b,
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active small{color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active{background:#F3CB47!important;border-color:#F3CB47!important;color:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active b,
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active small{color:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3):active{background:#782FB1!important;border-color:#782FB1!important;color:#fff!important}
 body.song-lab .arc-card:focus-visible,
 body.song-lab .arc-tile:focus-visible,
 body.song-lab .v3-go:focus-visible,
@@ -920,12 +926,7 @@ body.song-lab .arc-input:focus-visible{
   body.song-lab .arc-tile:hover b{color:#fff!important}
   body.song-lab .arc-card:hover small,
   body.song-lab .arc-tile:hover small{color:#9A9AA8!important}
-  body.song-lab .arc-home .arc-cards .arc-card:first-child:hover{
-    background:#782FB1!important;
-    border-color:#782FB1!important;
-    color:#fff!important
-  }
-  body.song-lab .arc-home .arc-cards .arc-card:first-child:hover small{color:rgba(255,255,255,.78)!important}
+  body.song-lab .arc-home .arc-cards .arc-card:nth-child(n):hover{background:#000!important;color:#fff!important;border-color:#fff!important}
   body.song-lab .arc-chip:hover,
   body.song-lab .v3-mini:hover,
   body.song-lab .arc-talk-toggle:hover,
@@ -963,3 +964,10 @@ body.song-lab .arc-card:active b,
 body.song-lab .arc-card:active small,
 body.song-lab .arc-tile:active b,
 body.song-lab .arc-tile:active small{color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active{background:#D03083!important;border-color:#D03083!important;color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active b,
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active small{color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active{background:#F3CB47!important;border-color:#F3CB47!important;color:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active b,
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active small{color:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3):active{background:#782FB1!important;border-color:#782FB1!important;color:#fff!important}
