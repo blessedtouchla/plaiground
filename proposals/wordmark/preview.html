@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PLAIGROUND wordmark and type pairings</title>
+<style>
+  @font-face { font-family: "Clash Display"; src: url("fonts/clash-display-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: block; }
+  @font-face { font-family: "Clash Display"; src: url("fonts/clash-display-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: block; }
+  @font-face { font-family: Satoshi; src: url("fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: block; }
+  @font-face { font-family: Satoshi; src: url("fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: block; }
+  @font-face { font-family: Inter; src: url("fonts/inter-400.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: block; }
+  @font-face { font-family: Inter; src: url("fonts/inter-500.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: block; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #111; color: #fff; }
+  .sheet { background: #111; padding: 28px; display: grid; gap: 18px; }
+  .sheet h2 { margin: 0; font: 500 14px/1.2 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .swatch { margin: 0; }
+  .swatch img { width: 100%; height: auto; display: block; }
+  .frame { background: #000; }
+  .hero { background: #000; color: #fff; margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .hero .logo { width: min(86%, 640px); height: auto; display: block; }
+  .hero h1 { margin: 0; font-weight: 500; letter-spacing: -0.035em; line-height: 1.02; }
+  .hero .sub { margin: 14px 0 0; color: rgba(244,244,244,.74); font-weight: 400; font-size: 16px; line-height: 1.45; max-width: 28rem; }
+  .pills { width: min(100%, 440px); display: flex; flex-direction: column; gap: 12px; margin-top: 22px; }
+  .pill { min-height: 60px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 22px; text-decoration: none; font-family: Inter, sans-serif; font-weight: 500; font-size: 16px; color: #fff; box-sizing: border-box; }
+  .pill.solid { background: #782FB1; border: 0; }
+  .pill.line { background: #000; border: 1px solid rgba(255,255,255,.35); width: 100%; justify-content: center; padding: 0 20px 0 18px; }
+  .pill.line:has(em) { justify-content: flex-start; }
+  .pill .dot { width: 7px; height: 7px; border-radius: 999px; background: #782FB1; flex: 0 0 7px; }
+  .pill b { font-weight: 500; }
+  .pill em { font-style: normal; font-weight: 400; font-size: 14px; color: #9A9AA8; margin-left: auto; }
+  .a, .a h1 { font-family: "Clash Display", Inter, sans-serif; }
+  .b, .b h1 { font-family: Satoshi, Inter, sans-serif; }
+  .w390 { width: 390px; padding: 28px 24px 40px; }
+  .w390 h1 { font-size: 2.35rem; margin-top: 18px; }
+  .w1280 { width: 1280px; padding: 72px 48px 88px; }
+  .w1280 h1 { font-size: 4.25rem; margin-top: 28px; }
+  .w1280 .pills { margin-top: 28px; }
+  .row { display: flex; gap: 28px; align-items: flex-start; }
+</style>
+</head>
+<body>
+  <section class="sheet" id="logo-variants">
+    <h2>Wordmark variants</h2>
+    <div class="pair">
+      <figure class="swatch"><img src="plaiground-wide-white.svg" alt="Wide tracked PLAIGROUND, white on black" /></figure>
+      <figure class="swatch"><img src="plaiground-tight-white.svg" alt="Tight kerned PLAIGROUND, white on black" /></figure>
+    </div>
+    <div class="pair">
+      <figure class="swatch"><img src="plaiground-wide-black.svg" alt="Wide tracked PLAIGROUND, black on white" /></figure>
+      <figure class="swatch"><img src="plaiground-tight-black.svg" alt="Tight kerned PLAIGROUND, black on white" /></figure>
+    </div>
+  </section>
+
+  <div class="row">
+    <section class="hero frame a w390" id="pairing-a-390">
+      <img class="logo" src="plaiground-wide-white.svg" alt="PLAIGROUND" />
+      <h1>Autopilot for your music career</h1>
+      <p class="sub">You make the music. We handle the rest.</p>
+      <div class="pills">
+        <a class="pill solid">Join free</a>
+        <a class="pill line"><span class="dot"></span>Write a song free</a>
+        <a class="pill line"><span class="dot"></span><b>Develop</b><em>Build the artist</em></a>
+      </div>
+    </section>
+    <section class="hero frame b w390" id="pairing-b-390">
+      <img class="logo" src="plaiground-tight-white.svg" alt="PLAIGROUND" />
+      <h1>Autopilot for your music career</h1>
+      <p class="sub">You make the music. We handle the rest.</p>
+      <div class="pills">
+        <a class="pill solid">Join free</a>
+        <a class="pill line"><span class="dot"></span>Write a song free</a>
+        <a class="pill line"><span class="dot"></span><b>Make</b><em>Write with Plai</em></a>
+      </div>
+    </section>
+  </div>
+
+  <section class="hero frame a w1280" id="pairing-a-1280">
+    <img class="logo" src="plaiground-wide-white.svg" alt="PLAIGROUND" />
+    <h1>Autopilot for your music career</h1>
+    <p class="sub">You make the music. We handle the rest.</p>
+    <div class="pills">
+      <a class="pill solid">Join free</a>
+      <a class="pill line"><span class="dot"></span>Write a song free</a>
+      <a class="pill line"><span class="dot"></span><b>Develop</b><em>Build the artist</em></a>
+    </div>
+  </section>
+
+  <section class="hero frame b w1280" id="pairing-b-1280">
+    <img class="logo" src="plaiground-tight-white.svg" alt="PLAIGROUND" />
+    <h1>Autopilot for your music career</h1>
+    <p class="sub">You make the music. We handle the rest.</p>
+    <div class="pills">
+      <a class="pill solid">Join free</a>
+      <a class="pill line"><span class="dot"></span>Write a song free</a>
+      <a class="pill line"><span class="dot"></span><b>Make</b><em>Write with Plai</em></a>
+    </div>
+  </section>
+</body>
+</html>
