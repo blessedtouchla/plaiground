@@ -25,56 +25,358 @@
   <link rel="stylesheet" href="home-flow.css?v=20261020a" />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="brand-arcade.css?v=20261020a" />
-  <style id="home-arcade-hero">
-    html,body.home-portal{margin:0;background:#0b0b0f}
-    body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box;background:radial-gradient(1200px 520px at 50% 18%,rgba(245,197,66,.16),transparent 60%),linear-gradient(180deg,#141018 0%,#0b0b0f 100%)}
-    body.home-portal .hero-logo-live{position:relative;isolation:isolate}
-    body.home-portal .hero-logo-live::before{content:"";position:absolute;inset:-18% -8%;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(245,197,66,.42),rgba(245,197,66,.14) 55%,rgba(0,0,0,.55) 80%,transparent 100%);filter:blur(28px);pointer-events:none}
-    body.home-portal .hero .sub{color:#F5C542;font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;letter-spacing:.02em;text-shadow:0 0 18px rgba(245,197,66,.35)}
-    body.home-portal .hero .hero-for{margin:-6px 0 18px;color:rgba(255,255,255,.78);font-size:.82rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-  </style>
-  <style id="artist-dev-band">
-    .artist-dev-band{padding:28px 0}
-    .artist-dev-link{display:block;text-align:center;padding:18px 20px;border-radius:16px;border:1px solid rgba(245,197,66,.45);background:radial-gradient(600px 120px at 50% 0,rgba(245,197,66,.14),transparent 70%),#0f0d13;color:#fff;font-weight:700;text-decoration:none;font-size:1.1rem}
-    .artist-dev-link span{display:block;color:#F5C542;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
-    .artist-dev-link b{color:#F5C542;margin-left:6px}
-    .release-plan{border-color:rgba(245,197,66,.55)!important}
-    @media (min-width:900px){.pricing .plans.price-ladder{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1080px;margin:0 auto}}
-    .founding-tag{display:inline-block;font-size:.72rem;font-weight:700;color:#F5C542;margin:2px 0}
-    /* Homepage only: quiet gold glass instead of cartoon tiles and scanlines. */
+  <style id="home-studio">
+    html,body.home-portal{margin:0;background:#000;color:#f4f4f4;font-family:Inter,"Helvetica Neue",Arial,sans-serif}
+    body.home-portal .hero,
+    body.home-portal .hf-five,
+    body.home-portal .hf-panel,
+    body.home-portal .hf-road,
+    body.home-portal .hf-lab,
+    body.home-portal .hf-trio,
+    body.home-portal .artist-dev-band,
+    body.home-portal .pricing,
+    body.home-portal footer{background:#000!important;background-image:none!important}
+    body.home-portal .hero{width:100vw;max-width:none;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box;padding-top:calc(var(--nav-h) + 28px)!important;padding-bottom:4px!important}
+    body.home-portal .hero-logo-live{margin-bottom:10px!important}
+    body.home-portal .hero h1{margin-bottom:8px!important}
+    body.home-portal .hero::before,
     body.home-portal .hf-five::before,
-    body.home-portal .hf-panel::before{content:none}
-    body.home-portal .hf-icons a,
-    body.home-portal .hf-trio-row a{
-      border:1px solid rgba(243,203,71,.34)!important;
-      background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.28)),#121014!important;
-      box-shadow:0 0 0 1px rgba(243,203,71,.06) inset,0 16px 36px rgba(0,0,0,.38),0 0 22px rgba(243,203,71,.07)!important;
-      border-radius:22px!important;
-      backdrop-filter:blur(16px)
+    body.home-portal .hf-panel::before,
+    body.home-portal .hero-logo-live::before,
+    body.home-portal .hero-logo-live-shimmer,
+    body.home-portal .hero-logo-live-note,
+    body.home-portal .ba-plai,
+    body.home-portal .hf-booked-plai{content:none!important;display:none!important;background:none!important;box-shadow:none!important;filter:none!important;animation:none!important}
+    body.home-portal .hero-logo-live{position:relative}
+    body.home-portal .hero-logo-live-stage{animation:none!important}
+    body.home-portal .hero .wrap,
+    body.home-portal .hf-wrap{max-width:720px}
+    body.home-portal .hero h1,
+    body.home-portal .hf-five-h,
+    body.home-portal .hf-panel h2,
+    body.home-portal .pricing-head h2,
+    body.home-portal .price-sheet-title,
+    body.home-portal .hf-booked-copy h2{
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-weight:500!important;
+      letter-spacing:-.035em!important;
+      color:#f4f4f4!important;
+      text-shadow:none!important
     }
-    body.home-portal .hf-icons li:nth-child(n) a{border-color:rgba(243,203,71,.34)!important;box-shadow:0 0 0 1px rgba(243,203,71,.06) inset,0 16px 36px rgba(0,0,0,.38),0 0 22px rgba(243,203,71,.07)!important}
+    body.home-portal .hero h1{font-size:clamp(2.4rem,7vw,4.25rem);line-height:1.02;margin-bottom:14px}
+    body.home-portal .hf-five-h{font-size:clamp(1.7rem,4vw,2.35rem)!important;margin:0 0 22px}
+    body.home-portal .hero .sub,
+    body.home-portal .hf-lead,
+    body.home-portal .hf-panel p,
+    body.home-portal .footer-brand p{
+      color:rgba(244,244,244,.74)!important;
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-weight:400!important;
+      font-size:16px!important;
+      letter-spacing:0!important;
+      text-shadow:none!important
+    }
+    body.home-portal .hero .hero-for,
+    body.home-portal .hf-kicker,
+    body.home-portal .hf-step1,
+    body.home-portal .ba-seg i,
+    body.home-portal .ba-seg b,
+    body.home-portal .footer-col h4{
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-weight:500!important;
+      font-size:14px!important;
+      letter-spacing:.16em!important;
+      text-transform:uppercase!important;
+      color:rgba(244,244,244,.55)!important;
+      text-shadow:none!important
+    }
+    body.home-portal .hero .hero-for{margin:0 0 22px}
+    body.home-portal .ba-seg.on i,
+    body.home-portal .ba-seg.on b,
+    body.home-portal .hf-booked .hf-kicker,
+    body.home-portal .hf-booked-copy h2{color:#f4f4f4!important}
+    body.home-portal .ba-seg::before,
+    body.home-portal .ba-seg.on::before{height:2px!important;border:0!important;border-radius:0!important;background:rgba(255,255,255,.22)!important;box-shadow:none!important}
+    body.home-portal .ba-seg.on::before{background:#7D3CFF!important}
+    body.home-portal .ba-blink{animation:none!important}
+    body.home-portal .nav{background:#000!important;border-bottom:1px solid rgba(255,255,255,.12)!important}
+    body.home-portal .nav-links a,
+    body.home-portal .nav-group-toggle,
+    body.home-portal .public-header-login,
+    body.home-portal .menu-toggle,
+    body.home-portal .nav-siqa{
+      color:rgba(244,244,244,.78)!important;
+      font-size:14px!important;
+      min-height:44px;
+      display:inline-flex;
+      align-items:center
+    }
+    body.home-portal .btn,
+    body.home-portal .ba-press,
+    body.home-portal .ba-start,
+    body.home-portal .hf-btn,
+    body.home-portal .hf-booked-btn{
+      border-radius:999px!important;
+      box-shadow:none!important;
+      text-shadow:none!important;
+      transform:none!important;
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-weight:500!important;
+      letter-spacing:0!important;
+      min-height:60px;
+      font-size:16px!important
+    }
+    body.home-portal .btn-gold,
+    body.home-portal .btn-purple,
+    body.home-portal .nav-actions .btn,
+    body.home-portal .hf-btn,
+    body.home-portal .ba-start,
+    body.home-portal .hf-booked-btn,
+    body.home-portal .btn-ghost{
+      background:#000!important;
+      color:#fff!important;
+      border:1px solid rgba(255,255,255,.35)!important
+    }
+    body.home-portal .hero-ctas .btn-gold{
+      background:#782FB1!important;
+      color:#fff!important;
+      border:0!important
+    }
+    body.home-portal .hero-ctas{max-width:440px;margin-left:auto;margin-right:auto;gap:12px}
+    body.home-portal .hero-ctas .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 28px;min-height:60px}
+    body.home-portal .starter-cta,
+    body.home-portal .starter-cta a,
+    body.home-portal .copy,
+    body.home-portal .isrc-keep,
+    body.home-portal .founding-tag,
+    body.home-portal .offer-note,
+    body.home-portal .learn{color:rgba(244,244,244,.62)!important;font-size:14px!important;text-shadow:none!important}
+    body.home-portal a.starter-foot{
+      color:#fff!important;background:#000!important;border:1px solid rgba(255,255,255,.35)!important;max-width:280px;
+      display:inline-flex;align-items:center;justify-content:center;text-align:center;
+      line-height:1.3;padding:10px 14px!important;white-space:normal
+    }
+    body.home-portal .founding-tag{display:inline-block;font-weight:500;margin:2px 0;letter-spacing:.04em}
+    body.home-portal .hf-five{padding:36px 0 16px!important}
+    body.home-portal .hf-panel.hf-compact,
+    body.home-portal .hf-panel.hf-road{padding:56px 0!important;min-height:0!important}
+    body.home-portal .hf-icons,
+    body.home-portal .hf-trio-row,
+    body.home-portal .hf-road-picks{display:flex!important;flex-direction:column!important;gap:12px!important;max-width:440px;width:100%;margin:0 auto!important;padding:0;grid-template-columns:none!important}
+    body.home-portal .hf-icons li,
+    body.home-portal .hf-icons li:nth-child(n){grid-column:auto!important;margin:0!important;width:100%!important;transform:none!important}
     body.home-portal .hf-icons a,
-    body.home-portal .hf-trio-row a{transition:border-color .15s ease,box-shadow .15s ease}
-    body.home-portal .hf-icons a:hover,
-    body.home-portal .hf-trio-row a:hover{transform:none;border-color:rgba(243,203,71,.72)!important;box-shadow:0 0 0 1px rgba(243,203,71,.14) inset,0 18px 42px rgba(0,0,0,.45),0 0 26px rgba(243,203,71,.16)!important}
-    body.home-portal .hf-icons{gap:14px}
-    body.home-portal .hf-icons a{min-height:0;padding:22px 16px;gap:8px}
+    body.home-portal .hf-trio-row a,
+    body.home-portal .hf-road-picks a,
+    body.home-portal .artist-dev-link{
+      display:flex!important;
+      flex-direction:row!important;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      width:100%;
+      min-height:60px!important;
+      height:auto;
+      padding:0 20px 0 18px!important;
+      box-sizing:border-box;
+      background:#000!important;
+      color:#fff!important;
+      border:1px solid rgba(255,255,255,.35)!important;
+      border-radius:999px!important;
+      box-shadow:none!important;
+      text-decoration:none!important;
+      text-align:left!important;
+      backdrop-filter:none!important;
+      transform:none!important;
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important
+    }
+    body.home-portal .hf-trio-row{padding:0 20px!important;box-sizing:border-box}
+    body.home-portal .hf-road-picks a,
+    body.home-portal .hf-btn{justify-content:center;text-align:center!important}
     body.home-portal .hf-icons b,
-    body.home-portal .hf-trio-row b{font-family:Inter,sans-serif;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#F3CB47}
-    body.home-portal .hf-icons b{font-size:.78rem}
-    body.home-portal .hf-icons em,
-    body.home-portal .hf-trio-row em{font-style:normal;font-weight:400;letter-spacing:.01em;color:rgba(255,255,255,.72)}
-    body.home-portal .hf-trio-row{gap:16px}
-    body.home-portal .hf-trio-row a{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:28px 26px!important;text-align:left;border-left-width:1px!important}
-    body.home-portal .hf-trio-row b{font-size:1.15rem;line-height:1.2}
-    body.home-portal .hf-trio-row em{font-size:.95rem}
-    body.home-portal .artist-dev-link{border-width:1px;border-radius:22px;background:linear-gradient(180deg,rgba(243,203,71,.08),rgba(0,0,0,.2)),#0c0c0e;box-shadow:0 16px 36px rgba(0,0,0,.35),0 0 22px rgba(243,203,71,.08);font-weight:500;letter-spacing:.01em}
-    body.home-portal .artist-dev-link span{font-weight:500;letter-spacing:.18em}
-    @media (max-width:720px){
-      body.home-portal{padding-bottom:120px}
-      body.home-portal .artist-dev-band{padding:22px 0 4px}
-      body.home-portal .artist-dev-link{padding:24px 22px 96px}
+    body.home-portal .hf-trio-row b,
+    body.home-portal .artist-dev-link span{
+      flex:0 1 auto;
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-weight:500!important;
+      font-size:16px!important;
+      line-height:1.2!important;
+      letter-spacing:0!important;
+      text-transform:none!important;
+      color:#fff!important;
+      text-shadow:none!important;
+      margin:0!important
     }
+    body.home-portal .hf-icons em,
+    body.home-portal .hf-trio-row em{
+      flex:1 1 auto;
+      min-width:0;
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-style:normal!important;
+      font-weight:400!important;
+      font-size:14px!important;
+      line-height:1.3!important;
+      letter-spacing:0!important;
+      text-align:right;
+      color:#9A9AA8!important
+    }
+    body.home-portal .artist-dev-band{padding:36px 0}
+    body.home-portal .artist-dev-link{flex-direction:column;align-items:flex-start;justify-content:center;max-width:440px;margin:0 auto;min-height:60px!important;padding:14px 22px!important;font-size:15px;font-weight:400;line-height:1.4}
+    body.home-portal .artist-dev-link b{color:#9A9AA8!important;margin:0;font-weight:400}
+    body.home-portal .hf-icons a::before,
+    body.home-portal .hf-trio-row a::before,
+    body.home-portal .hf-road-picks a::before,
+    body.home-portal .artist-dev-link::before,
+    body.home-portal .hero-ctas .btn-ghost::before,
+    body.home-portal .ba-start::before,
+    body.home-portal .hf-btn::before,
+    body.home-portal .hf-booked-btn::before,
+    body.home-portal .nav-actions .btn::before,
+    body.home-portal .btn-purple::before,
+    body.home-portal .public-header-login::before,
+    body.home-portal .menu-toggle::before,
+    body.home-portal #plai-ask-btn::before,
+    body.home-portal a.starter-foot::before{
+      content:"";
+      width:7px;height:7px;border-radius:999px;background:#782FB1;
+      flex:0 0 7px;display:block
+    }
+    body.home-portal .hf-booked-row{display:block!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;text-align:center}
+    body.home-portal .hf-own{font-size:14px!important;color:rgba(244,244,244,.62)!important}
+    body.home-portal .pricing .card,
+    body.home-portal .release-plan{
+      background:transparent!important;
+      border:0!important;
+      border-top:1px solid rgba(255,255,255,.16)!important;
+      border-radius:0!important;
+      box-shadow:none!important
+    }
+    body.home-portal .ba-reveal,
+    body.home-portal .ba-reveal.ba-in{opacity:1!important;transform:none!important;animation:none!important}
+    body.home-portal .starter-banner{
+      display:flex!important;align-items:center;justify-content:center;
+      min-height:44px;padding:8px 16px;box-sizing:border-box;
+      background:#000!important;color:rgba(244,244,244,.72)!important;
+      border-bottom:1px solid rgba(255,255,255,.12);
+      font-size:14px!important;font-weight:400!important;text-decoration:none
+    }
+    body.home-portal .public-header-login,
+    body.home-portal .menu-toggle{border-radius:999px!important;padding:0 16px;box-sizing:border-box;border:1px solid rgba(255,255,255,.35)!important;background:#000!important;gap:8px}
+    body.home-portal #plai-ask-btn{
+      background:#000!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:999px!important;
+      box-shadow:none!important;min-height:44px;padding:0 16px!important;
+      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;font-weight:500!important;font-size:14px!important
+    }
+    body.home-portal #plai-ask-btn .pa-face{display:none!important}
+    body.home-portal #plai-ask-btn:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;box-shadow:none!important}
+    body.home-portal .plai-coach-avatar img{display:none!important}
+    body.home-portal .plai-coach-float-hit{
+      border-radius:999px!important;min-height:44px;min-width:44px;padding:0 16px;
+      border:1px solid rgba(255,255,255,.35);background:#000;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px
+    }
+    body.home-portal .plai-coach-float-hit::before{content:"";width:7px;height:7px;border-radius:999px;background:#782FB1;flex:0 0 7px}
+    body.home-portal .plai-coach-float-pop{
+      background:#000!important;border:1px solid rgba(244,244,244,.4)!important;border-radius:4px!important;box-shadow:none!important;color:#f4f4f4
+    }
+    body.home-portal .plai-coach-float-close{width:44px;height:44px;border-radius:999px;color:#f4f4f4}
+    body.home-portal .price-sheet li{border-color:rgba(255,255,255,.12)!important}
+    body.home-portal .footer-col a,
+    body.home-portal .socials a{min-height:44px;display:flex;align-items:center;font-size:14px;color:rgba(244,244,244,.72)}
+    body.home-portal .socials a{width:44px;height:44px;justify-content:center;border-radius:999px;border-color:rgba(255,255,255,.28)}
+    body.home-portal .plai-bubble-chip{
+      min-height:44px;height:44px;padding:0 16px;
+      background:#000!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;
+      border-radius:999px!important;box-shadow:none!important;
+      font-size:14px!important;font-weight:500!important;letter-spacing:.02em!important
+    }
+    body.home-portal .hf-icons a:active,
+    body.home-portal .hf-trio-row a:active,
+    body.home-portal .hf-road-picks a:active,
+    body.home-portal .artist-dev-link:active,
+    body.home-portal .hf-btn:active,
+    body.home-portal .ba-start:active,
+    body.home-portal .btn-gold:active,
+    body.home-portal .btn-purple:active,
+    body.home-portal .nav-actions .btn:active{
+      background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;
+      box-shadow:none!important;transform:none!important
+    }
+    body.home-portal .hf-icons a:active b,
+    body.home-portal .hf-icons a:active em,
+    body.home-portal .hf-trio-row a:active b,
+    body.home-portal .hf-trio-row a:active em,
+    body.home-portal .artist-dev-link:active,
+    body.home-portal .artist-dev-link:active span,
+    body.home-portal .artist-dev-link:active b{color:#fff!important}
+    body.home-portal .btn-ghost:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important}
+    body.home-portal .hf-icons a:focus-visible,
+    body.home-portal .hf-trio-row a:focus-visible,
+    body.home-portal .hf-road-picks a:focus-visible,
+    body.home-portal .artist-dev-link:focus-visible,
+    body.home-portal .btn:focus-visible{outline:1px solid #7D3CFF;outline-offset:3px}
+    @media (max-width:719px){
+      body.home-portal{padding-bottom:140px}
+      body.home-portal .hero-ctas{flex-direction:column}
+      body.home-portal .hero-ctas .btn{width:100%}
+    }
+    @media (min-width:900px){
+      .pricing .plans.price-ladder{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1080px;margin:0 auto}
+      body.home-portal .hf-trio-row{flex-direction:row!important;max-width:1080px!important;gap:16px!important;align-items:stretch}
+      body.home-portal .hf-trio-row a{flex:1 1 0;width:auto;min-height:60px!important}
+    }
+    @media (hover:hover){
+      body.home-portal .hf-icons a:hover,
+      body.home-portal .hf-trio-row a:hover,
+      body.home-portal .hf-road-picks a:hover,
+      body.home-portal .artist-dev-link:hover,
+      body.home-portal .hf-btn:hover,
+      body.home-portal .ba-start:hover,
+      body.home-portal .btn-gold:hover,
+      body.home-portal .btn-purple:hover,
+      body.home-portal .nav-actions .btn:hover,
+      body.home-portal .plai-bubble-chip:hover{
+        background:#000!important;color:#fff!important;border-color:#fff!important;
+        box-shadow:none!important;transform:none!important;text-shadow:none!important
+      }
+      body.home-portal .hero-ctas .btn-gold:hover{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important}
+      body.home-portal .hf-icons a:hover b,
+      body.home-portal .hf-trio-row a:hover b,
+      body.home-portal .artist-dev-link:hover span{color:#fff!important}
+      body.home-portal .hf-icons a:hover em,
+      body.home-portal .hf-trio-row a:hover em,
+      body.home-portal .artist-dev-link:hover b{color:#9A9AA8!important}
+      body.home-portal .btn-ghost:hover{background:#000!important;color:#fff!important;border-color:#fff!important;transform:none!important}
+      body.home-portal .nav-links a:hover,
+      body.home-portal .nav-group-toggle:hover,
+      body.home-portal .footer-col a:hover,
+      body.home-portal .public-header-login:hover,
+      body.home-portal .menu-toggle:hover{color:#fff!important}
+      body.home-portal .starter-banner:hover{background:#000!important;color:#fff!important}
+      body.home-portal #plai-ask-btn:hover,
+      body.home-portal .public-header-login:hover,
+      body.home-portal .menu-toggle:hover{background:#000!important;border-color:#fff!important;box-shadow:none!important}
+    }
+    body.home-portal .hf-icons a:active,
+    body.home-portal .hf-trio-row a:active,
+    body.home-portal .hf-road-picks a:active,
+    body.home-portal .artist-dev-link:active,
+    body.home-portal .hf-btn:active,
+    body.home-portal .ba-start:active,
+    body.home-portal .btn-gold:active,
+    body.home-portal .btn-purple:active,
+    body.home-portal .nav-actions .btn:active,
+    body.home-portal #plai-ask-btn:active,
+    body.home-portal .plai-bubble-chip:active,
+    body.home-portal a.starter-foot:active{
+      background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;box-shadow:none!important;transform:none!important
+    }
+    body.home-portal .hero-ctas .btn-gold:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important}
+    body.home-portal .hf-icons a:active b,
+    body.home-portal .hf-icons a:active em,
+    body.home-portal .hf-trio-row a:active b,
+    body.home-portal .hf-trio-row a:active em,
+    body.home-portal .artist-dev-link:active span,
+    body.home-portal .artist-dev-link:active b{color:#fff!important}
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PLAIGROUND", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/", "description": "Release music to Spotify and Apple Music, write with AI help, make cover art and an EPK, and sign split sheets. Join free with starter credits to try every tool.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free account with free starter credits. Tools use credits."}}</script>
