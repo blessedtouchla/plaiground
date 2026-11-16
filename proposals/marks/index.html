@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PLAIGROUND section marks</title>
+<style>
+  @font-face { font-family: "Clash Display"; src: url("fonts/clash-display-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: block; }
+  @font-face { font-family: Satoshi; src: url("fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: block; }
+  @font-face { font-family: Inter; src: url("fonts/inter-400.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: block; }
+  @font-face { font-family: Inter; src: url("fonts/inter-500.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: block; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; color: #fff; }
+  body { font-family: Inter, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.4; }
+  .wrap { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 48px; }
+  .logo { display: block; width: min(240px, 70%); height: auto; margin: 0 auto 28px; }
+  .kicker { margin: 0 0 14px; font-size: 14px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .set { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 8px; margin: 0 0 36px; padding: 0; list-style: none; }
+  .set li { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+  .set img { width: 64px; height: 64px; display: block; }
+  .set span { font-size: 14px; font-weight: 500; letter-spacing: .02em; }
+  .pairings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .col { min-width: 0; border-top: 1px solid rgba(255,255,255,.2); padding-top: 14px; }
+  .opt { margin: 0 0 12px; font-size: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .a .titles h2 { font-family: "Clash Display", Inter, sans-serif; }
+  .b .titles h2 { font-family: Satoshi, Inter, sans-serif; }
+  nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+  nav a, .titles li { display: flex; align-items: center; gap: 8px; min-height: 44px; color: #fff; text-decoration: none; }
+  nav img, .titles img { width: 20px; height: 20px; flex: 0 0 20px; }
+  nav a { font-weight: 500; font-size: 14px; }
+  .titles { list-style: none; margin: 0; padding: 0; }
+  .titles h2 { margin: 0; font-weight: 500; font-size: 22px; letter-spacing: -0.03em; line-height: 1.1; }
+  @media (min-width: 800px) {
+    .wrap { padding-top: 48px; }
+    .logo { width: 280px; margin-bottom: 40px; }
+    .set { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 20px 12px; margin-bottom: 56px; }
+    .pairings { gap: 48px; }
+    .titles h2 { font-size: 32px; }
+    nav { flex-direction: row; flex-wrap: wrap; gap: 4px 16px; }
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <img class="logo" src="../../assets/plaiground-logo.png" alt="PLAIGROUND" />
+    <p class="kicker">Section marks</p>
+    <ul class="set">
+      <li><img src="song-lab.svg" alt="" /><span>Song Lab</span></li>
+      <li><img src="release.svg" alt="" /><span>Release</span></li>
+      <li><img src="publishing.svg" alt="" /><span>Publishing</span></li>
+      <li><img src="research.svg" alt="" /><span>Research</span></li>
+      <li><img src="roadmap.svg" alt="" /><span>Roadmap</span></li>
+      <li><img src="siqa.svg" alt="" /><span>SIQA</span></li>
+      <li><img src="home.svg" alt="" /><span>Home</span></li>
+      <li><img src="manage.svg" alt="" /><span>Manage</span></li>
+    </ul>
+    <div class="pairings">
+      <section class="col a">
+        <p class="opt">A · Clash + Inter</p>
+        <nav aria-label="Sample nav, option A">
+          <a href="#a"><img src="home.svg" alt="" />Home</a>
+          <a href="#a"><img src="song-lab.svg" alt="" />Song Lab</a>
+          <a href="#a"><img src="release.svg" alt="" />Release</a>
+          <a href="#a"><img src="roadmap.svg" alt="" />Roadmap</a>
+        </nav>
+        <ul class="titles">
+          <li><img src="song-lab.svg" alt="" /><h2>Song Lab</h2></li>
+          <li><img src="release.svg" alt="" /><h2>Release</h2></li>
+          <li><img src="publishing.svg" alt="" /><h2>Publishing</h2></li>
+          <li><img src="research.svg" alt="" /><h2>Research</h2></li>
+          <li><img src="roadmap.svg" alt="" /><h2>Roadmap</h2></li>
+          <li><img src="siqa.svg" alt="" /><h2>SIQA</h2></li>
+        </ul>
+      </section>
+      <section class="col b">
+        <p class="opt">B · Satoshi + Inter</p>
+        <nav aria-label="Sample nav, option B">
+          <a href="#b"><img src="home.svg" alt="" />Home</a>
+          <a href="#b"><img src="song-lab.svg" alt="" />Song Lab</a>
+          <a href="#b"><img src="release.svg" alt="" />Release</a>
+          <a href="#b"><img src="roadmap.svg" alt="" />Roadmap</a>
+        </nav>
+        <ul class="titles">
+          <li><img src="manage.svg" alt="" /><h2>Manage</h2></li>
+          <li><img src="publishing.svg" alt="" /><h2>Publishing</h2></li>
+          <li><img src="research.svg" alt="" /><h2>Research</h2></li>
+          <li><img src="siqa.svg" alt="" /><h2>SIQA</h2></li>
+          <li><img src="song-lab.svg" alt="" /><h2>Song Lab</h2></li>
+          <li><img src="release.svg" alt="" /><h2>Release</h2></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
