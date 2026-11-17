@@ -543,6 +543,7 @@
     { "source": "/blog/cd-era-vs-streaming-pay", "destination": "/blog-cd-era-vs-streaming-pay.html" },
     { "source": "/blog/youtube-ai-disclosure-guide", "destination": "/blog-youtube-ai-disclosure-guide.html" },
     { "source": "/blog/your-suno-song-your-rights", "destination": "/blog-your-suno-song-your-rights.html" },
+    { "source": "/blog/suno-update-november-2026", "destination": "/blog-suno-update-november-2026.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
