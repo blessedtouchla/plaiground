@@ -362,6 +362,7 @@ function run() {
   assert.strictEqual(page.location.href, 'review.html');
   const noAiDraft = JSON.parse(page.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(noAiDraft.made_how, 'no_ai');
+  assert.strictEqual(noAiDraft.ai_used, false);
   assert.strictEqual(noAiDraft.rights_confirmed, true);
   assert.strictEqual(
     page.localStorage.getItem('plaiground.tonegrid.draft'),
@@ -388,22 +389,17 @@ function run() {
   assert.ok(again.ai.classList.contains('on'), 'missing tool does not auto-switch');
   again.toolSuno.listeners.click({ preventDefault() {} });
   again.trigger.listeners.click({ preventDefault() {} });
-  assert.notStrictEqual(again.status.textContent, 'Describe the human contribution is required.');
-  assert.strictEqual(again.location.href, 'attest.html', 'unqualified chips do not leave the page');
-  assert.ok(again.fullyAi.classList.contains('on'), 'unqualified continue switches to Fully AI');
-  assert.strictEqual(again.switched.hidden, false, 'switch explains why');
-  assert.ok(again.humanSection.classList.contains('is-lyrics-only'));
-  again.switchedBack.listeners.click({ preventDefault() {} });
-  assert.ok(again.ai.classList.contains('on'), 'Go back returns to AI assisted');
-  assert.strictEqual(again.switched.hidden, true);
-  assert.strictEqual(again.qualify.textContent, 'Some platforms accept this, but YouTube needs a human voice, instrument or melody in the final recording. Add one, or this will be sent as Fully AI.');
-  again.tags[1].listeners.click({ preventDefault() {} });
-  assert.strictEqual(again.qualify.textContent, 'Qualifies as AI-assisted');
-  assert.ok(again.qualify.classList.contains('is-ok'));
-  again.trigger.listeners.click({ preventDefault() {} });
-  assert.strictEqual(again.location.href, 'review.html');
-  assert.strictEqual(JSON.parse(again.localStorage.getItem('plaiground.store.draft')).made_how, 'ai_assisted');
-  assert.strictEqual(JSON.parse(again.localStorage.getItem('plaiground.store.draft')).ai_service, 'Suno');
+  assert.strictEqual(again.location.href, 'review.html', 'AI-assisted with a human chip and a tool continues');
+  const assistedDraft = JSON.parse(again.localStorage.getItem('plaiground.store.draft'));
+  assert.strictEqual(assistedDraft.made_how, 'ai_assisted');
+  assert.strictEqual(assistedDraft.ai_used, true);
+  assert.strictEqual(assistedDraft.ai_service, 'Suno');
+
+  const qualifyPage = load();
+  qualifyPage.ai.listeners.click({ preventDefault() {} });
+  qualifyPage.tags[1].listeners.click({ preventDefault() {} });
+  assert.strictEqual(qualifyPage.qualify.textContent, 'Qualifies as AI-assisted');
+  assert.ok(qualifyPage.qualify.classList.contains('is-ok'));
 
   const full = load();
   full.fullyAi.listeners.click({ preventDefault() {} });
@@ -427,6 +423,7 @@ function run() {
   assert.strictEqual(full.location.href, 'review.html');
   const fullDraft = JSON.parse(full.localStorage.getItem('plaiground.store.draft'));
   assert.strictEqual(fullDraft.made_how, 'fully_ai');
+  assert.strictEqual(fullDraft.ai_used, true);
   assert.strictEqual(fullDraft.rights_confirmed, true);
   assert.strictEqual(fullDraft.ai_service, 'Suno');
   assert.strictEqual(fullDraft.ai_service_other, '');
