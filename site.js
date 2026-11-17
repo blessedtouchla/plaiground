@@ -1909,3 +1909,22 @@
     (document.head || document.documentElement).appendChild(s);
   } catch (e) {}
 })();
+
+/* Small section mark beside the page title. Copy stays as written. */
+(function () {
+  var path = String((window.location && window.location.pathname) || "/");
+  var file = path.split("/").filter(Boolean).pop() || "";
+  var name = "";
+  if (path === "/" || file === "index.html") name = "home";
+  else if (/song-helper/.test(path)) name = "song-lab";
+  else if (/publishing/.test(path)) name = "publishing";
+  else if (/research/.test(path)) name = "research";
+  else if (/destination|roadmap|release-week|already-released/.test(path)) name = "roadmap";
+  else if (/charts|siqa/.test(path)) name = "siqa";
+  else if (/(^|\/)(releases|upload|signup)(\.html)?$/.test(path)) name = "release";
+  else if (/dashboard/.test(path)) name = "manage";
+  if (!name || !document.querySelector) return;
+  var h1 = document.querySelector("main h1, .page h1, .dest h1");
+  if (!h1 || h1.getAttribute("data-section-mark")) return;
+  h1.setAttribute("data-section-mark", name);
+})();

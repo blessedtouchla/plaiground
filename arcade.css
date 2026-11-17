@@ -590,6 +590,20 @@ body.song-lab .arc-mod-actions .v3-link{position:static;margin:0}
 }
 
 /* Song Lab studio notebook. Solid black, one column, filled actions. Scoped so slang stays put. */
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-500.woff2") format("woff2");
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+}
 body.song-lab{
   background:#000!important;
   background-image:none!important;
@@ -611,7 +625,7 @@ body.song-lab .arc-index h1,
 body.song-lab .arc-marquee,
 body.song-lab .v3-plai,
 body.song-lab .arc-q{
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-weight:500!important;
   letter-spacing:-.03em!important;
   color:#f4f4f4!important;
@@ -690,7 +704,7 @@ body.song-lab .arc-back{
   color:#fff!important;
   box-shadow:none!important;
   text-decoration:none!important;
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-size:15px!important;
   font-weight:500!important;
   letter-spacing:0!important;
@@ -754,7 +768,7 @@ body.song-lab .v3-go{
   scale:none!important;
   animation:none!important;
   filter:none!important;
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-weight:500!important;
   cursor:pointer;
 }
@@ -799,7 +813,7 @@ body.song-lab .arc-tiny{
   rotate:none!important;
   transform:none!important;
   translate:none!important;
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-size:15px!important;
   font-weight:500!important;
   cursor:pointer;
@@ -1092,3 +1106,284 @@ body.song-lab .arc-main,
 body.song-lab .arc-home,
 body.song-lab .arc-home .arc-cards{width:100%!important;max-width:none!important;align-self:stretch}
 body.song-lab .arc-home .arc-cards .arc-card{width:100%!important;max-width:none!important;justify-self:stretch}
+
+/* Section mark beside the Song Lab titles. The candy logo stays as it is. */
+body.song-lab .arc-index h1::before,
+body.song-lab .arc-marquee::before{
+  content:"";
+  display:inline-block;
+  width:24px;
+  height:24px;
+  margin:0 10px 0 0;
+  vertical-align:middle;
+  background-color:#D03083;
+  background-image:none;
+  -webkit-mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+  mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+}
+@media (min-width:980px){
+  body.song-lab .arc-index h1::before,
+  body.song-lab .arc-marquee::before{width:28px;height:28px}
+}
+
+/* Distinct marks on the three doors, beside the label. */
+body.song-lab .arc-home .arc-cards .arc-card{grid-template-columns:24px minmax(0,1fr)!important}
+body.song-lab .arc-home .arc-cards .arc-card::before{
+  width:24px!important;
+  height:24px!important;
+  flex:0 0 24px!important;
+  border-radius:0!important;
+  background-image:none!important;
+  -webkit-mask:var(--door-mark) center / contain no-repeat!important;
+  mask:var(--door-mark) center / contain no-repeat!important
+}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1)::before{--door-mark:url("/assets/marks/song-lab.svg");background-color:#D03083!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2)::before{--door-mark:url("/assets/marks/research.svg");background-color:#F3CB47!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3)::before{--door-mark:url("/assets/marks/roadmap.svg");background-color:#782FB1!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active::before,
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3):active::before{background-color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active::before{background-color:#000!important}
+@media (min-width:980px){
+  body.song-lab .arc-home .arc-cards .arc-card{grid-template-columns:28px minmax(0,1fr)!important}
+  body.song-lab .arc-home .arc-cards .arc-card::before{width:28px!important;height:28px!important;flex-basis:28px!important}
+}
+
+/* One column, one 8px rhythm, three type sizes. */
+body.song-lab .arc-index,
+body.song-lab .arc-wrap{
+  width:min(960px,calc(100% - 32px))!important;
+  max-width:960px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+body.song-lab .arc-index{padding:24px 0 0!important}
+body.song-lab .arc-wrap{padding:16px 0 48px!important}
+body.song-lab .arc-index h1{
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:32px!important;
+  line-height:40px!important;
+  font-weight:500!important;
+  letter-spacing:-.03em!important;
+  margin:0 0 8px!important;
+  text-wrap:balance;
+}
+body.song-lab .arc-index p,
+body.song-lab .arc-lede,
+body.song-lab .v3-credits,
+body.song-lab .arc-host-say{
+  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:24px!important;
+  font-weight:400!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  margin:0!important;
+  text-wrap:pretty;
+}
+body.song-lab .arc-index a{white-space:normal}
+body.song-lab .arc-kicker,
+body.song-lab .arc-marquee,
+body.song-lab .arc-host-say b,
+body.song-lab .arc-card small,
+body.song-lab .arc-tile small{
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:12px!important;
+  line-height:16px!important;
+  font-weight:500!important;
+  letter-spacing:.14em!important;
+  text-transform:uppercase!important;
+  margin:0!important;
+}
+body.song-lab .arc-marquee{color:#f4f4f4!important}
+body.song-lab .arc-marquee::before{display:none!important}
+body.song-lab .arc-card small,
+body.song-lab .arc-tile small{
+  letter-spacing:0!important;
+  text-transform:none!important;
+  color:#9A9AA8!important;
+}
+body.song-lab .v3-top{
+  display:grid!important;
+  grid-template-columns:auto 1fr auto auto;
+  grid-template-areas:"logo . login talk" "credits credits credits credits";
+  align-items:center;
+  gap:8px 16px;
+  margin:16px 0 24px!important;
+  padding:0 0 16px!important;
+}
+body.song-lab .v3-word{
+  grid-area:logo;
+  width:168px!important;
+  height:48px!important;
+  min-height:48px!important;
+  justify-self:start;
+}
+body.song-lab .arc-top-meta{display:contents!important;margin:0!important;width:auto!important}
+body.song-lab .arc-login{grid-area:login}
+body.song-lab .arc-talk-toggle{grid-area:talk}
+body.song-lab .v3-credits{
+  grid-area:credits;
+  display:block!important;
+  flex:none!important;
+  order:0!important;
+  width:auto!important;
+  text-align:left;
+  color:rgba(244,244,244,.72)!important;
+}
+body.song-lab .arc-login,
+body.song-lab .arc-talk-toggle,
+body.song-lab .arc-more-sum,
+body.song-lab .v3-go,
+body.song-lab .v3-mini{
+  min-height:48px!important;
+  padding:0 16px!important;
+  font-size:16px!important;
+  line-height:24px!important;
+}
+body.song-lab .arc-more{margin:0!important}
+body.song-lab .arc-more-sum{width:auto!important}
+body.song-lab .arc-hero{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:8px 16px;
+  margin:0;
+}
+body.song-lab .arc-lede,
+body.song-lab .arc-host{flex:1 0 100%}
+body.song-lab .arc-home,
+body.song-lab .arc-cards{gap:16px!important}
+body.song-lab .arc-host{margin:0!important}
+body.song-lab .arc-host-say,
+body.song-lab .arc-host-worried .arc-host-say,
+body.song-lab .arc-host-win .arc-host-say{
+  padding:0!important;
+  border:0!important;
+}
+body.song-lab .arc-card,
+body.song-lab .arc-tile{
+  min-height:96px!important;
+  padding:16px!important;
+}
+body.song-lab .arc-card b,
+body.song-lab .arc-tile b{
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:16px!important;
+  line-height:24px!important;
+  font-weight:500!important;
+  letter-spacing:0!important;
+}
+body.song-lab .arc-tiles{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+}
+body.song-lab .arc-chips{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px!important;
+  margin:8px 0!important;
+  padding:0!important;
+}
+body.song-lab .arc-chip,
+body.song-lab .arc-chip.small{
+  width:100%;
+  min-height:48px!important;
+  height:auto;
+  margin:0!important;
+  padding:8px 16px!important;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:16px!important;
+  line-height:24px!important;
+  white-space:normal;
+}
+@media (max-width:719px){
+  body.song-lab .v3-top{
+    grid-template-columns:auto auto;
+    grid-template-areas:"logo logo" "login talk" "credits credits";
+    justify-content:start;
+  }
+}
+@media (min-width:980px){
+  body.song-lab .arc-index,
+  body.song-lab .arc-wrap{width:min(960px,calc(100% - 64px))!important}
+  body.song-lab .arc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.song-lab .arc-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
+  body.song-lab .arc-home .arc-cards .arc-card{min-height:96px!important}
+}
+
+/* Quiet controls. One radius on anything that is still a button. Color stays in the mark. */
+body.song-lab .arc-login,
+body.song-lab .arc-talk-toggle,
+body.song-lab .arc-more-sum,
+body.song-lab .arc-back{
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  min-height:44px!important;
+  padding:0 8px!important;
+  color:rgba(255,255,255,.78)!important;
+  letter-spacing:.04em!important;
+  font-weight:500!important
+}
+body.song-lab .arc-login::before,
+body.song-lab .arc-talk-toggle::before,
+body.song-lab .arc-more-sum::before,
+body.song-lab .arc-back::before{display:none!important;content:none!important}
+body.song-lab .arc-home .arc-cards .arc-card,
+body.song-lab .arc-tile,
+body.song-lab .v3-go,
+body.song-lab .v3-mini,
+body.song-lab .arc-chip{
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:none!important
+}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(n){border:0!important;border-bottom:1px solid rgba(255,255,255,.16)!important;background:transparent!important}
+body.song-lab .arc-home .arc-cards .arc-card:active,
+body.song-lab .arc-tile:active,
+body.song-lab .v3-go:active{
+  background:#fff!important;
+  color:#000!important;
+  border-bottom-color:#fff!important
+}
+body.song-lab .arc-home .arc-cards .arc-card:active b,
+body.song-lab .arc-home .arc-cards .arc-card:active small,
+body.song-lab .arc-tile:active b,
+body.song-lab .arc-tile:active small{color:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(n):active::before,
+body.song-lab .arc-tile:active::before{background-color:#000!important}
+body.song-lab .arc-login:active,
+body.song-lab .arc-talk-toggle:active,
+body.song-lab .arc-more-sum:active{background:transparent!important;color:#fff!important;border:0!important}
+@media (min-width:980px){
+  body.song-lab .arc-home .arc-cards .arc-card,
+  body.song-lab .arc-home .arc-cards .arc-card:nth-child(n){
+    border:0!important;
+    border-top:1px solid rgba(255,255,255,.16)!important;
+    border-bottom:0!important;
+    padding-top:24px!important
+  }
+}
+@media (hover:hover){
+  body.song-lab .arc-home .arc-cards .arc-card:nth-child(n):hover,
+  body.song-lab .arc-tile:hover,
+  body.song-lab .v3-go:hover{
+    background:transparent!important;
+    color:#fff!important;
+    border-color:#fff!important
+  }
+  body.song-lab .arc-login:hover,
+  body.song-lab .arc-talk-toggle:hover,
+  body.song-lab .arc-more-sum:hover{
+    background:transparent!important;
+    color:#fff!important;
+    border:0!important
+  }
+}

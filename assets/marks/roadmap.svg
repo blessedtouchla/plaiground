@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" role="img" aria-label="Roadmap">
+  <title>Roadmap</title>
+  <path d="M4.5 16.5H10V8h9.5"/>
+  <circle cx="4.5" cy="16.5" r="1.85"/>
+  <circle cx="10" cy="8" r="1.85"/>
+  <circle cx="19.5" cy="8" r="1.85"/>
+</svg>

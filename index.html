@@ -57,7 +57,7 @@
     body.home-portal .pricing-head h2,
     body.home-portal .price-sheet-title,
     body.home-portal .hf-booked-copy h2{
-      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
       font-weight:500!important;
       letter-spacing:-.035em!important;
       color:#f4f4f4!important;
@@ -82,7 +82,7 @@
     body.home-portal .ba-seg i,
     body.home-portal .ba-seg b,
     body.home-portal .footer-col h4{
-      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
       font-weight:500!important;
       font-size:14px!important;
       letter-spacing:.16em!important;
@@ -106,6 +106,7 @@
     body.home-portal .menu-toggle,
     body.home-portal .nav-siqa{
       color:rgba(244,244,244,.78)!important;
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
       font-size:14px!important;
       min-height:44px;
       display:inline-flex;
@@ -120,7 +121,7 @@
       box-shadow:none!important;
       text-shadow:none!important;
       transform:none!important;
-      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
       font-weight:500!important;
       letter-spacing:0!important;
       min-height:60px;
@@ -188,7 +189,7 @@
       text-align:left!important;
       backdrop-filter:none!important;
       transform:none!important;
-      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important
     }
     body.home-portal .hf-trio-row{padding:0 20px!important;box-sizing:border-box}
     body.home-portal .hf-road-picks a,
@@ -197,7 +198,7 @@
     body.home-portal .hf-trio-row b,
     body.home-portal .artist-dev-link span{
       flex:0 1 auto;
-      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
       font-weight:500!important;
       font-size:16px!important;
       line-height:1.2!important;
@@ -281,7 +282,7 @@
     body.home-portal #plai-ask-btn{
       background:#000!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:999px!important;
       box-shadow:none!important;min-height:44px;padding:0 16px!important;
-      font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;font-weight:500!important;font-size:14px!important
+      font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;font-weight:500!important;font-size:14px!important
     }
     body.home-portal #plai-ask-btn .pa-face{display:none!important}
     body.home-portal #plai-ask-btn:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;box-shadow:none!important}
@@ -413,6 +414,166 @@
     body.home-portal .hf-icons li:nth-child(5) a:active{background:#F09416!important;border-color:#F09416!important;color:#000!important}
     body.home-portal .hf-icons li:nth-child(5) a:active b,
     body.home-portal .hf-icons li:nth-child(5) a:active em{color:#000!important}
+
+    /* Section marks sit beside the pill labels. Thin stroke, palette color, no fill. */
+    body.home-portal .hf-icons a::before,
+    body.home-portal .hf-trio-row a::before,
+    body.home-portal .hf-road-picks a::before,
+    body.home-portal .hf-btn::before,
+    body.home-portal .hero-ctas .btn-gold::before{
+      content:""!important;
+      display:block!important;
+      width:24px!important;
+      height:24px!important;
+      flex:0 0 24px!important;
+      border-radius:0!important;
+      background-image:none!important;
+      -webkit-mask:var(--pill-mark) center / contain no-repeat!important;
+      mask:var(--pill-mark) center / contain no-repeat!important
+    }
+    @media (min-width:980px){
+      body.home-portal .hf-icons a::before,
+      body.home-portal .hf-trio-row a::before,
+      body.home-portal .hf-road-picks a::before,
+      body.home-portal .hf-btn::before,
+      body.home-portal .hero-ctas .btn-gold::before{
+        width:28px!important;
+        height:28px!important;
+        flex-basis:28px!important
+      }
+    }
+    body.home-portal .hf-icons li:nth-child(1) a::before{--pill-mark:url("/assets/marks/home.svg");background-color:#D03083!important}
+    body.home-portal .hf-icons li:nth-child(2) a::before,
+    body.home-portal .hf-trio-row a:nth-child(1)::before,
+    body.home-portal .hf-btn::before{--pill-mark:url("/assets/marks/song-lab.svg");background-color:#D03083!important}
+    body.home-portal .hf-icons li:nth-child(2) a::before,
+    body.home-portal .hf-trio-row a:nth-child(1)::before{background-color:#F3CB47!important}
+    body.home-portal .hf-icons li:nth-child(3) a::before{--pill-mark:url("/assets/marks/siqa.svg");background-color:#782FB1!important}
+    body.home-portal .hf-trio-row a:nth-child(2)::before{--pill-mark:url("/assets/marks/publishing.svg");background-color:#782FB1!important}
+    body.home-portal .hf-icons li:nth-child(4) a::before,
+    body.home-portal .hf-trio-row a:nth-child(3)::before{--pill-mark:url("/assets/marks/release.svg");background-color:#61B63A!important}
+    body.home-portal .hf-icons li:nth-child(5) a::before{--pill-mark:url("/assets/marks/manage.svg");background-color:#F09416!important}
+    body.home-portal .hero-ctas .btn-gold::before{--pill-mark:url("/assets/marks/roadmap.svg");background-color:#fff!important}
+    body.home-portal .hf-road-picks a:nth-child(1)::before{--pill-mark:url("/assets/marks/song-lab.svg");background-color:#D03083!important}
+    body.home-portal .hf-road-picks a:nth-child(2)::before{--pill-mark:url("/assets/marks/publishing.svg");background-color:#F3CB47!important}
+    body.home-portal .hf-road-picks a:nth-child(3)::before{--pill-mark:url("/assets/marks/release.svg");background-color:#61B63A!important}
+    body.home-portal .hf-icons li:nth-child(1) a:active::before,
+    body.home-portal .hf-icons li:nth-child(3) a:active::before,
+    body.home-portal .hf-trio-row a:nth-child(2):active::before,
+    body.home-portal .hf-btn:active::before,
+    body.home-portal .hf-road-picks a:nth-child(1):active::before{background-color:#fff!important}
+    body.home-portal .hf-icons li:nth-child(2) a:active::before,
+    body.home-portal .hf-icons li:nth-child(4) a:active::before,
+    body.home-portal .hf-icons li:nth-child(5) a:active::before,
+    body.home-portal .hf-trio-row a:nth-child(1):active::before,
+    body.home-portal .hf-trio-row a:nth-child(3):active::before,
+    body.home-portal .hf-road-picks a:nth-child(2):active::before,
+    body.home-portal .hf-road-picks a:nth-child(3):active::before{background-color:#000!important}
+
+    /* One filled CTA. Secondary actions are text. Color stays in the mark. */
+    body.home-portal .hero-ctas .btn-gold{
+      min-height:48px!important;
+      height:48px;
+      padding:0 32px!important;
+      border:0!important;
+      border-radius:8px!important;
+      background:#782FB1!important;
+      color:#fff!important;
+      font-weight:500!important;
+      letter-spacing:.06em!important;
+      font-size:16px!important
+    }
+    body.home-portal .hero-ctas .btn-ghost,
+    body.home-portal .ba-start,
+    body.home-portal .public-header-login,
+    body.home-portal .menu-toggle,
+    body.home-portal .nav-actions .btn,
+    body.home-portal #plai-ask-btn,
+    body.home-portal a.starter-foot{
+      background:transparent!important;
+      border:0!important;
+      border-radius:0!important;
+      box-shadow:none!important;
+      min-height:44px!important;
+      height:auto;
+      padding:0 8px!important;
+      color:rgba(255,255,255,.78)!important;
+      font-weight:500!important;
+      letter-spacing:.04em!important
+    }
+    body.home-portal .hero-ctas .btn-ghost::before,
+    body.home-portal .ba-start::before,
+    body.home-portal .public-header-login::before,
+    body.home-portal .menu-toggle::before,
+    body.home-portal .nav-actions .btn::before,
+    body.home-portal #plai-ask-btn::before,
+    body.home-portal a.starter-foot::before{display:none!important;content:none!important}
+    body.home-portal .hf-icons,
+    body.home-portal .hf-road-picks{gap:0!important}
+    body.home-portal .hf-icons li:nth-child(n) a,
+    body.home-portal .hf-trio-row a,
+    body.home-portal .hf-road-picks a,
+    body.home-portal .artist-dev-link,
+    body.home-portal .hf-btn{
+      background:transparent!important;
+      border:0!important;
+      border-radius:0!important;
+      border-bottom:1px solid rgba(255,255,255,.16)!important;
+      box-shadow:none!important;
+      min-height:56px!important;
+      padding:8px 0!important;
+      letter-spacing:.02em
+    }
+    body.home-portal .hf-icons b,
+    body.home-portal .hf-trio-row b{letter-spacing:.04em!important}
+    body.home-portal .hf-icons li:nth-child(n) a:active,
+    body.home-portal .hf-trio-row a:active,
+    body.home-portal .hf-road-picks a:active,
+    body.home-portal .artist-dev-link:active,
+    body.home-portal .hf-btn:active{
+      background:#fff!important;
+      color:#000!important;
+      border-bottom-color:#fff!important
+    }
+    body.home-portal .hf-icons li:nth-child(n) a:active b,
+    body.home-portal .hf-icons li:nth-child(n) a:active em,
+    body.home-portal .hf-trio-row a:active b,
+    body.home-portal .hf-trio-row a:active em{color:#000!important}
+    body.home-portal .hf-icons li:nth-child(n) a:active::before,
+    body.home-portal .hf-trio-row a:active::before,
+    body.home-portal .hf-road-picks a:active::before,
+    body.home-portal .hf-btn:active::before{background-color:#000!important}
+    body.home-portal .hero-ctas .btn-gold:active{background:#fff!important;color:#000!important}
+    body.home-portal .hero-ctas .btn-gold:active::before{background-color:#000!important}
+    body.home-portal .hero-ctas .btn-ghost:active,
+    body.home-portal .ba-start:active,
+    body.home-portal .public-header-login:active,
+    body.home-portal .menu-toggle:active,
+    body.home-portal .nav-actions .btn:active{background:transparent!important;color:#fff!important;border:0!important}
+    @media (max-width:719px){
+      body.home-portal .hero-ctas .btn-ghost{width:auto!important}
+    }
+    @media (hover:hover){
+      body.home-portal .hf-icons li:nth-child(n) a:hover,
+      body.home-portal .hf-trio-row a:nth-child(n):hover,
+      body.home-portal .hf-road-picks a:hover,
+      body.home-portal .hf-btn:hover{
+        background:transparent!important;
+        color:#fff!important;
+        border:0!important;
+        border-bottom:1px solid #fff!important
+      }
+      body.home-portal .hero-ctas .btn-gold:hover{background:#8a3cc4!important;color:#fff!important;border:0!important}
+      body.home-portal .hero-ctas .btn-ghost:hover,
+      body.home-portal .ba-start:hover,
+      body.home-portal .public-header-login:hover,
+      body.home-portal .menu-toggle:hover,
+      body.home-portal .nav-actions .btn:hover{
+        background:transparent!important;
+        color:#fff!important;
+        border:0!important
+      }
+    }
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PLAIGROUND", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/", "description": "Release music to Spotify and Apple Music, write with AI help, make cover art and an EPK, and sign split sheets. Join free with starter credits to try every tool.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free account with free starter credits. Tools use credits."}}</script>
