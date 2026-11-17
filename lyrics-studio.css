@@ -221,7 +221,6 @@ body.song-helper-page .ly-questions summary {
     transform: none !important;
   }
   body.song-helper-page .btn-ghost:hover,
-  body.song-helper-page .sh-choice:hover,
   body.song-helper-page .sh-chip:hover,
   body.song-helper-page .sh-lab-links a:hover,
   body.song-helper-page .public-header-login:hover,
@@ -312,4 +311,107 @@ body.song-helper-page .starter-banner:hover {
 @media (min-width: 980px) {
   body.song-helper-page .sh-shell { max-width: 880px; }
   body.song-helper-page .sh { padding-top: calc(var(--nav-h) + 64px); }
+}
+
+body.song-helper-page .sh-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px !important;
+  background: #000 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, .45) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 1;
+}
+body.song-helper-page .honest-check {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(255, 255, 255, .85);
+  background: transparent;
+  position: relative;
+}
+body.song-helper-page .sh-choice.on > .honest-check::after,
+body.song-helper-page .sh-choice[aria-pressed="true"] > .honest-check::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+body.song-helper-page .sh-choice:active {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
+}
+body.song-helper-page .sh-choice:active .honest-check { border-color: #000; }
+body.song-helper-page .sh-choice:active .honest-check::after { border-color: #000; }
+body.song-helper-page .btn { min-height: 44px; }
+body.song-helper-page .sh-hook-amaze {
+  margin: 16px 0 0;
+  color: rgba(244, 244, 244, .55);
+  font-size: 14px;
+  line-height: 24px;
+}
+body.song-helper-page .sh-hook-pin {
+  position: sticky;
+  top: calc(var(--nav-h) + 8px);
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 0 0 24px;
+  padding: 12px 0;
+  background: #000;
+  border-top: 1px solid rgba(255, 255, 255, .45);
+  border-bottom: 1px solid rgba(255, 255, 255, .16);
+}
+body.song-helper-page .sh-hook-pin-kicker {
+  margin: 0;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: rgba(244, 244, 244, .55);
+  font-family: Satoshi, Inter, sans-serif;
+}
+body.song-helper-page #sh-hook-pin-text {
+  margin: 0;
+  flex: 1 1 auto;
+  color: #fff;
+  font-size: 16px;
+  line-height: 24px;
+}
+body.song-helper-page .sh-hook-unlock {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(244, 244, 244, .72);
+  font-family: Satoshi, Inter, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+body.song-helper-page .sh-hook-unlock:active { color: #000; background: #fff; }
+body.song-helper-page #sh-idea,
+body.song-helper-page #sh-hook,
+body.song-helper-page #sh-hook-pin { scroll-margin-top: calc(var(--nav-h) + 12px); }
+@media (hover: hover) {
+  body.song-helper-page .sh-choice:hover {
+    background: #000 !important;
+    color: #fff !important;
+    border-color: #fff !important;
+  }
 }

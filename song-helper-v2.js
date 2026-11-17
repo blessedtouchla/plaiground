@@ -81,6 +81,9 @@
   var seededAngle = '';
   var ideaLane = '';
   var branch = '';
+  var singer = '';
+  var hookLocked = false;
+  var lockedHook = '';
   var storyBox = false;
   var partStop = '';
   var basedOn = false;
@@ -383,6 +386,9 @@
       company_website: ($('sh-honey') && $('sh-honey').value) || '',
       revision: pendingRevision || '',
       previous: pendingPrevious || '',
+      singer: singer || '',
+      lockedHook: hookLocked ? lockedHook : '',
+      hookFirst: false,
     };
   }
 
@@ -2879,7 +2885,9 @@
     }
     var scratch = branch === 'scratch';
     var source = branch === 'source';
+    var hookOn = branch === 'hook';
     showEl('sh-idea', scratch);
+    showEl('sh-hook', hookOn && !hookLocked);
     showEl('sh-source', source);
     var ideaReady = scratch && (ideaLane === 'ideas' || ideaLane === 'own');
     showEl('sh-feeling', ideaReady);
@@ -2901,12 +2909,18 @@
     var finishedLyrics = window.SongHelperPage && window.SongHelperPage.lyricsOpen && window.SongHelperPage.lyricsOpen();
     showEl('sh-write', writeSurface || !!finishedLyrics);
     var panel = $('sh-v2');
-    if (panel) panel.hidden = !v2On;
+    if (panel) panel.hidden = hookLocked ? false : !v2On;
+    paintHookPin();
     var scratchBtn = $('sh-choice-scratch');
     var sourceBtn = $('sh-choice-source');
+    var hookBtn = $('sh-choice-hook');
     if (scratchBtn) {
       scratchBtn.classList.toggle('on', scratch);
       scratchBtn.setAttribute('aria-pressed', scratch ? 'true' : 'false');
+    }
+    if (hookBtn) {
+      hookBtn.classList.toggle('on', hookOn);
+      hookBtn.setAttribute('aria-pressed', hookOn ? 'true' : 'false');
     }
     if (sourceBtn) {
       sourceBtn.classList.toggle('on', source);
@@ -2988,8 +3002,149 @@
     snapshotFields();
   }
 
+  function revealStep(id) {
+    var el = $(id);
+    if (!el) return;
+    var nav = 72;
+    var header = document.querySelector('header.nav');
+    if (header && header.getBoundingClientRect) nav = header.getBoundingClientRect().height || nav;
+    var top = el.getBoundingClientRect().top + window.scrollY - nav - 12;
+    window.scrollTo(0, Math.max(0, top));
+  }
+
+  function paintHookPin() {
+    var pin = $('sh-hook-pin');
+    var text = $('sh-hook-pin-text');
+    var title = $('sh-v2-title');
+    if (text) text.textContent = lockedHook;
+    if (pin) pin.hidden = !hookLocked;
+    if (title) title.hidden = !!hookLocked;
+    document.querySelectorAll('#sh-hook [data-singer]').forEach(function (button) {
+      var on = button.getAttribute('data-singer') === singer;
+      button.classList.toggle('on', on);
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function hookError(message) {
+    var el = $('sh-hook-error');
+    if (!el) return;
+    el.hidden = !message;
+    el.textContent = message || '';
+  }
+
+  function hookLineFromDraft(draft) {
+    var sections = (draft && draft.sections) || [];
+    var i;
+    for (i = 0; i < sections.length; i += 1) {
+      var label = String(sections[i].label || '').toLowerCase();
+      if (label.indexOf('hook') !== -1 || label.indexOf('chorus') !== -1) {
+        var row = (sections[i].lines || [])[0];
+        if (row && String(row.text || '').trim()) return String(row.text).trim();
+      }
+    }
+    var lines = modes && modes.allLines ? modes.allLines(draft) : [];
+    return lines[0] ? String(lines[0].text || '').trim() : '';
+  }
+
+  function withLockedHook(draft) {
+    if (!draft || !lockedHook) return draft;
+    var sections = (draft.sections || []).slice();
+    var already = false;
+    sections.forEach(function (part) {
+      (part.lines || []).forEach(function (row) {
+        if (String(row && row.text || '').trim() === lockedHook) already = true;
+      });
+    });
+    if (!already) sections.unshift({ label: 'Hook', lines: [{ text: lockedHook, source: 'user' }] });
+    draft.sections = sections;
+    return draft;
+  }
+
+  async function postSong(extra) {
+    var body = payload();
+    Object.keys(extra || {}).forEach(function (key) { body[key] = extra[key]; });
+    var response = await fetch('/api/song-helper', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    var data = await response.json().catch(function () { return null; });
+    if (!data || !response.ok || data.ok === false) {
+      var err = new Error((data && data.error) || 'That draft did not come through.');
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  async function writeHook() {
+    hookError('');
+    if (!singer) {
+      hookError('Pick who is singing.');
+      return;
+    }
+    var line = $('sh-hook-line');
+    try {
+      var data = await postSong({ mode: 'write', singer: singer, hookFirst: true, lockedHook: '' });
+      var text = hookLineFromDraft(data.draft);
+      if (line && text) line.value = text;
+    } catch (err) {
+      hookError(err.message || 'The hook did not come back.');
+    }
+  }
+
+  async function lockHook() {
+    hookError('');
+    var line = $('sh-hook-line');
+    var text = line ? String(line.value || '').trim() : '';
+    if (!singer) {
+      hookError('Pick who is singing.');
+      return;
+    }
+    if (text.length < 8) {
+      hookError('Write the hook first.');
+      return;
+    }
+    hookLocked = true;
+    lockedHook = text;
+    paintBranch();
+    try {
+      var data = await postSong({ mode: 'write', singer: singer, hookFirst: false, lockedHook: text, line: text });
+      if (data.draft) data.draft = withLockedHook(data.draft);
+      var panel = $('sh-v2');
+      if (panel) panel.hidden = false;
+      renderResult(data);
+      revealStep('sh-hook-pin');
+    } catch (err) {
+      hookError(err.message || 'The song did not come back.');
+    }
+  }
+
+  function unlockHook() {
+    hookLocked = false;
+    branch = 'hook';
+    paintBranch();
+    revealStep('sh-hook');
+  }
+
+  function bindPress(button, fn) {
+    if (!button || button.getAttribute('data-press') === '1') return;
+    button.setAttribute('data-press', '1');
+    var last = 0;
+    function run(event) {
+      if (event && event.type === 'pointerup' && event.pointerType === 'mouse') return;
+      var now = Date.now();
+      if (now - last < 350) return;
+      last = now;
+      fn();
+    }
+    button.addEventListener('click', run);
+    button.addEventListener('pointerup', run);
+  }
+
   function setBranch(next) {
-    if (next !== 'scratch' && next !== 'source' && next !== 'have' && next !== 'based') return;
+    if (next !== 'scratch' && next !== 'source' && next !== 'have' && next !== 'based' && next !== 'hook') return;
     var wasStory = storyBox;
     storyBox = false;
     basedGuideOn = false;
@@ -3000,19 +3155,21 @@
       paintBranch();
       if (wasStory) persistPage();
       snapshotFields();
+      revealStep('sh-based');
       return;
     }
     basedOn = false;
     if (branch === next) {
-      if (wasStory) {
-        paintBranch();
-        persistPage();
-      }
+      paintBranch();
+      if (next === 'scratch') revealStep('sh-idea');
+      if (next === 'hook') revealStep('sh-hook');
+      if (wasStory) persistPage();
       snapshotFields();
       return;
     }
     branch = next;
-    if (next === 'scratch' && sourceModeOn()) {
+    if (next !== 'hook') hookLocked = false;
+    if ((next === 'scratch' || next === 'hook') && sourceModeOn()) {
       mode = 'write';
       paintModes();
       paintFields();
@@ -3020,6 +3177,8 @@
     paintBranch();
     if (wasStory) persistPage();
     snapshotFields();
+    if (next === 'scratch') revealStep('sh-idea');
+    if (next === 'hook') revealStep('sh-hook');
   }
 
   function setIdeaLane(next) {
@@ -4108,7 +4267,7 @@
     paintHumanMeter();
     var anyText = pageSections.some(function (row) { return String(row.text || '').trim(); });
     if (saved.open || saved.lyrics || anyText) setStoryBox(true, { keep: true, quiet: true });
-    if (pageBtn) pageBtn.addEventListener('click', function () { setStoryBox(true); });
+    if (pageBtn) bindPress(pageBtn, function () { setStoryBox(true); });
     if (addVerse) {
       addVerse.addEventListener('click', function () {
         pageSections = adoptSections(flow.addSection(pageSections, 'verse'));
@@ -5282,15 +5441,29 @@
   var scratchBtn = $('sh-choice-scratch');
   var sourceBtn = $('sh-choice-source');
   var basedBtn = $('sh-choice-based');
-  if (scratchBtn) scratchBtn.addEventListener('click', function () { setBranch('scratch'); });
-  if (basedBtn) basedBtn.addEventListener('click', function () { setBranch('based'); });
-  if (sourceBtn) sourceBtn.addEventListener('click', function () { setBranch('source'); });
+  if (scratchBtn) bindPress(scratchBtn, function () { setBranch('scratch'); });
+  if (basedBtn) bindPress(basedBtn, function () { setBranch('based'); });
+  if (sourceBtn) bindPress(sourceBtn, function () { setBranch('source'); });
+  var hookStart = $('sh-choice-hook');
+  if (hookStart) bindPress(hookStart, function () { setBranch('hook'); });
+  document.querySelectorAll('#sh-hook [data-singer]').forEach(function (button) {
+    bindPress(button, function () {
+      singer = button.getAttribute('data-singer') || '';
+      paintHookPin();
+    });
+  });
+  var hookWrite = $('sh-hook-write');
+  var hookLock = $('sh-hook-lock');
+  var hookUnlock = $('sh-hook-unlock');
+  if (hookWrite) bindPress(hookWrite, function () { writeHook(); });
+  if (hookLock) bindPress(hookLock, function () { lockHook(); });
+  if (hookUnlock) bindPress(hookUnlock, function () { unlockHook(); });
   var basedGo = $('sh-based-go');
   var basedWrite = $('sh-based-write');
   if (basedGo) basedGo.addEventListener('click', describeBased);
   if (basedWrite) basedWrite.addEventListener('click', startBasedWrite);
   var haveBtn = $('sh-choice-have');
-  if (haveBtn) haveBtn.addEventListener('click', function () { setBranch('have'); });
+  if (haveBtn) bindPress(haveBtn, function () { setBranch('have'); });
   paintBranch();
   var moodNext = $('sh-mood-next');
   if (moodNext) moodNext.addEventListener('click', function () {
