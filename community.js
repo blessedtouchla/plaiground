@@ -20,7 +20,19 @@
       who.className = 'hint';
       who.textContent = row.artist_name || 'Artist';
       var p = document.createElement('p');
-      p.textContent = (row.badges || []).join(' \u00b7 ');
+      (row.badges || []).forEach(function (badge, i) {
+        if (i) p.appendChild(document.createTextNode(' \u00b7 '));
+        var key = badge === 'Human' ? 'human' : (badge === 'AI-assisted' ? 'assisted' : (badge === 'Fully AI' ? 'full' : ''));
+        if (!key) {
+          p.appendChild(document.createTextNode(badge));
+          return;
+        }
+        var mark = document.createElement('span');
+        mark.className = 'honest-mark';
+        mark.setAttribute('data-honest', key);
+        mark.textContent = badge;
+        p.appendChild(mark);
+      });
       card.appendChild(h);
       card.appendChild(who);
       card.appendChild(p);

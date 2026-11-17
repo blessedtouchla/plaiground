@@ -55,7 +55,15 @@
     card.appendChild(el('p', 'charts-meta', 'Genre: ' + (song.genre || 'Data unavailable')));
     if (song.scope_tag === 'benchmark') card.appendChild(el('p', 'charts-tag', 'Benchmark'));
     var ai = el('p', 'charts-meta');
-    ai.textContent = 'AI label: ' + (song.ai_label || 'Unknown');
+    var aiName = song.ai_label || 'Unknown';
+    ai.appendChild(document.createTextNode('AI label: '));
+    var aiMark = el('span', '', aiName);
+    var aiKey = aiName === 'Human' ? 'human' : (aiName === 'AI-assisted' ? 'assisted' : ((aiName === 'Fully AI' || aiName === 'Full AI') ? 'full' : ''));
+    if (aiKey) {
+      aiMark.className = 'honest-mark';
+      aiMark.setAttribute('data-honest', aiKey);
+    }
+    ai.appendChild(aiMark);
     card.appendChild(ai);
     if (song.ai_note) card.appendChild(el('p', 'charts-meta', song.ai_note));
     if (song.ai_source_url) card.appendChild(sourceLine({
