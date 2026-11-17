@@ -8667,3 +8667,107 @@ body.flow-menu.nav-open { overflow: hidden; }
 p.starter-cta { margin: 10px 0 0; color: #F5C542; font-weight: 700; }
 p.starter-cta a { color: inherit; }
 .starter-foot { display: inline-block; margin-top: 12px; }
+
+/* Section marks: 20px thin white line beside titles and nav labels. */
+.nav-links [data-nav-group="roadmap"] > a::before,
+.nav-links [data-nav-group="song-helper"] > a::before,
+.nav-links a.nav-siqa::before,
+.side-nav a[href="/destination"]::before,
+.side-nav a[href="destination.html"]::before,
+.side-nav a[href="/my-roadmap"]::before,
+.side-nav a[href="my-roadmap.html"]::before,
+.side-nav a[href="/song-helper"]::before,
+.side-nav a[href="song-helper.html"]::before,
+.side-nav a[href="releases.html"]::before,
+.side-nav a[href="/releases"]::before,
+.side-nav a[href="publishing.html"]::before,
+.side-nav a[href="publishing-register.html"]::before,
+.side-nav a[href="/publishing"]::before,
+.side-nav a[href="research.html"]::before,
+.side-nav a[href="/research"]::before,
+.side-nav a[href="/charts"]::before,
+.side-nav a[href="charts.html"]::before,
+.side-nav a.nav-siqa::before,
+h1[data-section-mark]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin: 0 8px 0 0;
+  background: center / contain no-repeat;
+  vertical-align: middle;
+}
+.side-nav a[href="/destination"]::before,
+.side-nav a[href="destination.html"]::before,
+.side-nav a[href="/my-roadmap"]::before,
+.side-nav a[href="my-roadmap.html"]::before,
+.nav-links [data-nav-group="roadmap"] > a::before { background-image: url("/assets/marks/roadmap.svg"); }
+.side-nav a[href="/song-helper"]::before,
+.side-nav a[href="song-helper.html"]::before,
+.nav-links [data-nav-group="song-helper"] > a::before { background-image: url("/assets/marks/song-lab.svg"); }
+.side-nav a[href="releases.html"]::before,
+.side-nav a[href="/releases"]::before { background-image: url("/assets/marks/release.svg"); }
+.side-nav a[href="publishing.html"]::before,
+.side-nav a[href="publishing-register.html"]::before,
+.side-nav a[href="/publishing"]::before { background-image: url("/assets/marks/publishing.svg"); }
+.side-nav a[href="research.html"]::before,
+.side-nav a[href="/research"]::before { background-image: url("/assets/marks/research.svg"); }
+.side-nav a[href="/charts"]::before,
+.side-nav a[href="charts.html"]::before,
+.side-nav a.nav-siqa::before,
+.nav-links a.nav-siqa::before { background-image: url("/assets/marks/siqa.svg"); }
+h1[data-section-mark="home"]::before { background-image: url("/assets/marks/home.svg"); }
+h1[data-section-mark="song-lab"]::before { background-image: url("/assets/marks/song-lab.svg"); }
+h1[data-section-mark="release"]::before { background-image: url("/assets/marks/release.svg"); }
+h1[data-section-mark="publishing"]::before { background-image: url("/assets/marks/publishing.svg"); }
+h1[data-section-mark="research"]::before { background-image: url("/assets/marks/research.svg"); }
+h1[data-section-mark="roadmap"]::before { background-image: url("/assets/marks/roadmap.svg"); }
+h1[data-section-mark="siqa"]::before { background-image: url("/assets/marks/siqa.svg"); }
+h1[data-section-mark="manage"]::before { background-image: url("/assets/marks/manage.svg"); }
+.side-nav a::before { margin-right: 0; }
+.nav-links a[href="/song-helper"]::before,
+.nav-links a[href="/destination"]::before,
+.nav-links a[href="destination.html"]::before,
+.nav-links a[href="publishing.html"]::before,
+.nav-links a[href="publishing-register.html"]::before,
+.nav-links a[href="/research"]::before,
+.nav-links a[href="research.html"]::before,
+.nav-links a[href="/charts"]::before,
+.nav-links a[href="charts.html"]::before,
+.nav-links [data-nav-group="out"] a[href="signup.html"]::before,
+.nav-links a[href="releases.html"]::before,
+.footer-col a[href="/song-helper"]::before,
+.footer-col a[href="/destination"]::before,
+.footer-col a[href="/charts"]::before,
+.footer-col[data-footer-journey="release"] > a[href="signup.html"]::before,
+.footer-col a[href="publishing.html"]::before,
+.footer-col a[href="/research"]::before,
+.footer-col a[href="research.html"]::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin: 0 8px 0 0;
+  background: center / contain no-repeat;
+  vertical-align: middle;
+}
+.nav-links a[href="/song-helper"]::before,
+.footer-col a[href="/song-helper"]::before { background-image: url("/assets/marks/song-lab.svg"); }
+.nav-links a[href="/destination"]::before,
+.nav-links a[href="destination.html"]::before,
+.footer-col a[href="/destination"]::before { background-image: url("/assets/marks/roadmap.svg"); }
+.nav-links a[href="publishing.html"]::before,
+.nav-links a[href="publishing-register.html"]::before,
+.footer-col a[href="publishing.html"]::before { background-image: url("/assets/marks/publishing.svg"); }
+.nav-links a[href="/research"]::before,
+.nav-links a[href="research.html"]::before,
+.footer-col a[href="/research"]::before,
+.footer-col a[href="research.html"]::before { background-image: url("/assets/marks/research.svg"); }
+.nav-links a[href="/charts"]::before,
+.nav-links a[href="charts.html"]::before,
+.footer-col a[href="/charts"]::before { background-image: url("/assets/marks/siqa.svg"); }
+.nav-links [data-nav-group="out"] a[href="signup.html"]::before,
+.nav-links a[href="releases.html"]::before,
+.footer-col[data-footer-journey="release"] > a[href="signup.html"]::before { background-image: url("/assets/marks/release.svg"); }

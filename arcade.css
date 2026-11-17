@@ -1092,3 +1092,15 @@ body.song-lab .arc-main,
 body.song-lab .arc-home,
 body.song-lab .arc-home .arc-cards{width:100%!important;max-width:none!important;align-self:stretch}
 body.song-lab .arc-home .arc-cards .arc-card{width:100%!important;max-width:none!important;justify-self:stretch}
+
+/* Section mark beside the Song Lab titles. The candy logo stays as it is. */
+body.song-lab .arc-index h1::before,
+body.song-lab .arc-marquee::before{
+  content:"";
+  display:inline-block;
+  width:20px;
+  height:20px;
+  margin:0 10px 0 0;
+  vertical-align:middle;
+  background:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+}
