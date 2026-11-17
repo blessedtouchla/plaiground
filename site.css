@@ -9022,6 +9022,10 @@ body .choice[data-edit-made-how]:active span { color: #000; }
   object-fit: contain;
 }
 .blog-recap-yt {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
   margin: 12px 0 0;
   text-align: center;
 }

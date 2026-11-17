@@ -63,4 +63,4 @@ Pull-quotes are italic. Load Inter italic on the page:
 
 ## Quick recap video
 
-Optional. Copy `partials/blog-recap.html` and place it just under the H1 byline, before the body. Replace `SLUG`, `WIDTH`, and `HEIGHT`. Put `recap.mp4` and `recap.jpg` in `assets/blog/<slug>/`. The player uses the site eyebrow label, a 1px white frame, and a solid black video. No autoplay. If the post already has JSON-LD, add a VideoObject block the way `blog-cd-era-vs-streaming-pay.html` does. A YouTube URL is optional: keep the Watch on YouTube line and replace `YOUTUBE_URL`, or delete that paragraph.
+Optional. Copy `partials/blog-recap.html` and place it just under the H1 byline, before the body. Replace `SLUG`, `WIDTH`, and `HEIGHT`. Put `recap.mp4` and `recap.jpg` in `assets/blog/<slug>/`. The player uses the site eyebrow label, a 1px white frame, and a solid black video. No autoplay. If the post already has JSON-LD, add a VideoObject block the way `blog-cd-era-vs-streaming-pay.html` does. YouTube and Instagram links are optional. Keep the anchors you need and replace `YOUTUBE_URL` or `INSTAGRAM_URL`, or delete an anchor. Delete the paragraph when there is no link.
