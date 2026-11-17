@@ -1314,3 +1314,76 @@ body.song-lab .arc-chip.small{
   body.song-lab .arc-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
   body.song-lab .arc-home .arc-cards .arc-card{min-height:96px!important}
 }
+
+/* Quiet controls. One radius on anything that is still a button. Color stays in the mark. */
+body.song-lab .arc-login,
+body.song-lab .arc-talk-toggle,
+body.song-lab .arc-more-sum,
+body.song-lab .arc-back{
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  min-height:44px!important;
+  padding:0 8px!important;
+  color:rgba(255,255,255,.78)!important;
+  letter-spacing:.04em!important;
+  font-weight:500!important
+}
+body.song-lab .arc-login::before,
+body.song-lab .arc-talk-toggle::before,
+body.song-lab .arc-more-sum::before,
+body.song-lab .arc-back::before{display:none!important;content:none!important}
+body.song-lab .arc-home .arc-cards .arc-card,
+body.song-lab .arc-tile,
+body.song-lab .v3-go,
+body.song-lab .v3-mini,
+body.song-lab .arc-chip{
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:none!important
+}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(n){border:0!important;border-bottom:1px solid rgba(255,255,255,.16)!important;background:transparent!important}
+body.song-lab .arc-home .arc-cards .arc-card:active,
+body.song-lab .arc-tile:active,
+body.song-lab .v3-go:active{
+  background:#fff!important;
+  color:#000!important;
+  border-bottom-color:#fff!important
+}
+body.song-lab .arc-home .arc-cards .arc-card:active b,
+body.song-lab .arc-home .arc-cards .arc-card:active small,
+body.song-lab .arc-tile:active b,
+body.song-lab .arc-tile:active small{color:#000!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(n):active::before,
+body.song-lab .arc-tile:active::before{background-color:#000!important}
+body.song-lab .arc-login:active,
+body.song-lab .arc-talk-toggle:active,
+body.song-lab .arc-more-sum:active{background:transparent!important;color:#fff!important;border:0!important}
+@media (min-width:980px){
+  body.song-lab .arc-home .arc-cards .arc-card,
+  body.song-lab .arc-home .arc-cards .arc-card:nth-child(n){
+    border:0!important;
+    border-top:1px solid rgba(255,255,255,.16)!important;
+    border-bottom:0!important;
+    padding-top:24px!important
+  }
+}
+@media (hover:hover){
+  body.song-lab .arc-home .arc-cards .arc-card:nth-child(n):hover,
+  body.song-lab .arc-tile:hover,
+  body.song-lab .v3-go:hover{
+    background:transparent!important;
+    color:#fff!important;
+    border-color:#fff!important
+  }
+  body.song-lab .arc-login:hover,
+  body.song-lab .arc-talk-toggle:hover,
+  body.song-lab .arc-more-sum:hover{
+    background:transparent!important;
+    color:#fff!important;
+    border:0!important
+  }
+}

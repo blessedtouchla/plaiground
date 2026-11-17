@@ -469,6 +469,111 @@
     body.home-portal .hf-trio-row a:nth-child(3):active::before,
     body.home-portal .hf-road-picks a:nth-child(2):active::before,
     body.home-portal .hf-road-picks a:nth-child(3):active::before{background-color:#000!important}
+
+    /* One filled CTA. Secondary actions are text. Color stays in the mark. */
+    body.home-portal .hero-ctas .btn-gold{
+      min-height:48px!important;
+      height:48px;
+      padding:0 32px!important;
+      border:0!important;
+      border-radius:8px!important;
+      background:#782FB1!important;
+      color:#fff!important;
+      font-weight:500!important;
+      letter-spacing:.06em!important;
+      font-size:16px!important
+    }
+    body.home-portal .hero-ctas .btn-ghost,
+    body.home-portal .ba-start,
+    body.home-portal .public-header-login,
+    body.home-portal .menu-toggle,
+    body.home-portal .nav-actions .btn,
+    body.home-portal #plai-ask-btn,
+    body.home-portal a.starter-foot{
+      background:transparent!important;
+      border:0!important;
+      border-radius:0!important;
+      box-shadow:none!important;
+      min-height:44px!important;
+      height:auto;
+      padding:0 8px!important;
+      color:rgba(255,255,255,.78)!important;
+      font-weight:500!important;
+      letter-spacing:.04em!important
+    }
+    body.home-portal .hero-ctas .btn-ghost::before,
+    body.home-portal .ba-start::before,
+    body.home-portal .public-header-login::before,
+    body.home-portal .menu-toggle::before,
+    body.home-portal .nav-actions .btn::before,
+    body.home-portal #plai-ask-btn::before,
+    body.home-portal a.starter-foot::before{display:none!important;content:none!important}
+    body.home-portal .hf-icons,
+    body.home-portal .hf-road-picks{gap:0!important}
+    body.home-portal .hf-icons li:nth-child(n) a,
+    body.home-portal .hf-trio-row a,
+    body.home-portal .hf-road-picks a,
+    body.home-portal .artist-dev-link,
+    body.home-portal .hf-btn{
+      background:transparent!important;
+      border:0!important;
+      border-radius:0!important;
+      border-bottom:1px solid rgba(255,255,255,.16)!important;
+      box-shadow:none!important;
+      min-height:56px!important;
+      padding:8px 0!important;
+      letter-spacing:.02em
+    }
+    body.home-portal .hf-icons b,
+    body.home-portal .hf-trio-row b{letter-spacing:.04em!important}
+    body.home-portal .hf-icons li:nth-child(n) a:active,
+    body.home-portal .hf-trio-row a:active,
+    body.home-portal .hf-road-picks a:active,
+    body.home-portal .artist-dev-link:active,
+    body.home-portal .hf-btn:active{
+      background:#fff!important;
+      color:#000!important;
+      border-bottom-color:#fff!important
+    }
+    body.home-portal .hf-icons li:nth-child(n) a:active b,
+    body.home-portal .hf-icons li:nth-child(n) a:active em,
+    body.home-portal .hf-trio-row a:active b,
+    body.home-portal .hf-trio-row a:active em{color:#000!important}
+    body.home-portal .hf-icons li:nth-child(n) a:active::before,
+    body.home-portal .hf-trio-row a:active::before,
+    body.home-portal .hf-road-picks a:active::before,
+    body.home-portal .hf-btn:active::before{background-color:#000!important}
+    body.home-portal .hero-ctas .btn-gold:active{background:#fff!important;color:#000!important}
+    body.home-portal .hero-ctas .btn-gold:active::before{background-color:#000!important}
+    body.home-portal .hero-ctas .btn-ghost:active,
+    body.home-portal .ba-start:active,
+    body.home-portal .public-header-login:active,
+    body.home-portal .menu-toggle:active,
+    body.home-portal .nav-actions .btn:active{background:transparent!important;color:#fff!important;border:0!important}
+    @media (max-width:719px){
+      body.home-portal .hero-ctas .btn-ghost{width:auto!important}
+    }
+    @media (hover:hover){
+      body.home-portal .hf-icons li:nth-child(n) a:hover,
+      body.home-portal .hf-trio-row a:nth-child(n):hover,
+      body.home-portal .hf-road-picks a:hover,
+      body.home-portal .hf-btn:hover{
+        background:transparent!important;
+        color:#fff!important;
+        border:0!important;
+        border-bottom:1px solid #fff!important
+      }
+      body.home-portal .hero-ctas .btn-gold:hover{background:#8a3cc4!important;color:#fff!important;border:0!important}
+      body.home-portal .hero-ctas .btn-ghost:hover,
+      body.home-portal .ba-start:hover,
+      body.home-portal .public-header-login:hover,
+      body.home-portal .menu-toggle:hover,
+      body.home-portal .nav-actions .btn:hover{
+        background:transparent!important;
+        color:#fff!important;
+        border:0!important
+      }
+    }
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PLAIGROUND", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/", "description": "Release music to Spotify and Apple Music, write with AI help, make cover art and an EPK, and sign split sheets. Join free with starter credits to try every tool.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free account with free starter credits. Tools use credits."}}</script>
