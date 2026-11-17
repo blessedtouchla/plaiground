@@ -20,6 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261023menu2" />
   <link rel="stylesheet" href="song-helper.css?v=20261022acct" />
+  <link rel="stylesheet" href="lyrics-studio.css?v=20261117flow" />
   <link rel="stylesheet" href="stage.css?v=20261017stage" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "plai Song Lab", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/ai-lyrics-generator", "description": "Song Lab is an AI lyrics generator and AI songwriting helper. Write lyrics and hooks in your own voice, trade verses in Battle, and plan a human pass with Make it human. Writing a song is free. Sign up only to save it.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Writing a song is free without an account. Sign up only to save it."}}</script>
@@ -80,13 +81,16 @@
   <main class="sh">
     <div class="wrap sh-shell" id="sh-shell">
       <p class="sh-kicker">Song Lab</p>
-      <h1>Song Lab: AI lyrics generator and songwriting help</h1>
-      <p class="sh-intro">Tell me the song in your own words. I'll draft lyrics around them, then a style prompt you can copy.</p>
-      <nav class="sh-lab-links" aria-label="More in Song Lab"><a href="/make-human">Make it human</a><a href="/battle">Battle</a></nav>
-      <p class="sh-honest" data-honest="assisted">Drafts are AI-assisted. The lines you write stay yours.</p>
+      <h1>Song Lab</h1>
+      <ol class="ly-steps" aria-label="Steps">
+        <li class="on" data-ly="idea"><span>1</span> Idea</li>
+        <li data-ly="style"><span>2</span> Style</li>
+        <li data-ly="lyrics"><span>3</span> Lyrics</li>
+      </ol>
+      <p class="sh-honest" data-honest="assisted">Drafts are AI-assisted.</p>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Create from scratch, base a new song on one you love, or bring your own story. Then a title, a feeling, and the point of the song. The draft comes after.</p>
+      <nav class="sh-lab-links" aria-label="More in Song Lab"><a href="/make-human">Make it human</a><a href="/battle">Battle</a></nav>
       <nav class="sh-x-road" id="sh-x-road" aria-label="Song road" hidden>
         <ol>
           <li data-stop="mood"><span>Mood</span></li>
@@ -99,8 +103,7 @@
         </ol>
       </nav>
       <section class="sh-craft" id="sh-start">
-        <h2 class="sh-craft-title">How do you want to start?</h2>
-        <p class="sh-help">Pick one. You can switch anytime.</p>
+        <h2 class="sh-craft-title">Idea</h2>
         <div class="sh-idea-choices" role="group" aria-label="Where the song starts">
           <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false">Start from scratch</button>
           <button type="button" class="sh-choice" id="sh-choice-based" aria-pressed="false">Based on a real song</button>
@@ -779,14 +782,15 @@
     </div>
     <section aria-label="Questions">
       <div class="wrap">
-        <p class="eyebrow magenta">Questions</p>
-        <h2>Quick answers</h2>
+        <details class="ly-questions">
+        <summary>Questions</summary>
         <p class="sub" style="margin-top:16px"><strong>Who owns the lyrics I write in Song Lab?</strong> You keep ownership of your songs, subject to any publishing agreement you sign. Your answers and drafts are saved as a record of what you wrote. Only the human-written parts of a song can be protected by copyright, so keep your own words in it.</p>
         <p class="sub" style="margin-top:16px"><strong>How are human and AI lyrics labeled?</strong> Every song carries an honest label: Human, AI-assisted, or Fully AI. If AI drafted lines that you kept, the song is AI-assisted.</p>
         <p class="sub" style="margin-top:16px"><strong>Does Song Lab cost credits?</strong> Writing a song in Song Lab is free. You do not need an account to write the first one. Sign up only to save it. Optional tools on this page that still use a credit say so on the button.</p>
         <p class="sub" style="margin-top:16px"><strong>What is Battle?</strong> Battle is a rap verse trade. You drop a verse and get one verse back that answers yours with its own pictures, not a copy of your lines.</p>
         <p class="sub" style="margin-top:16px"><strong>What is Make it human?</strong> Make it human is a human pass on a song: real vocals, plus live players or a producer rebuild. A human re-record protects the new recording, but the song itself still needs human-written parts to be protected.</p>
         <p class="sub" style="margin-top:24px"><a class="learn" href="/album-cover-maker">Album cover maker</a> · <a class="learn" href="/split-sheet-template">Split sheet template</a> · <a class="learn" href="/ai-labels">AI music labels</a></p>
+        </details>
       </div>
     </section>
   </main>
@@ -892,5 +896,32 @@
   <script src="song-flow-page.js?v=20261016scene"></script>
   <script src="site.js?v=20261024acc1"></script>
   <script src="plai-bubble.js" defer></script>
+  <script>
+    (function () {
+      var shell = document.getElementById('sh-shell');
+      if (!shell || !window.MutationObserver) return;
+      function open(id) {
+        var node = document.getElementById(id);
+        return node && !node.hidden;
+      }
+      function paint() {
+        var phase = 'idea';
+        var styleStep = document.querySelector('[data-step="style"]');
+        var shapeStep = document.querySelector('[data-step="shape"]');
+        var genreStep = document.querySelector('[data-step="genre"]');
+        var draftStep = document.querySelector('[data-step="draft"]');
+        if (open('sh-cast') || open('sh-feeling') || (open('sh-write') && ((styleStep && !styleStep.hidden) || (shapeStep && !shapeStep.hidden) || (genreStep && !genreStep.hidden)))) phase = 'style';
+        if ((draftStep && !draftStep.hidden) || open('sh-expand') || open('sh-page') || open('sh-have')) phase = 'lyrics';
+        document.querySelectorAll('[data-ly]').forEach(function (el) {
+          var on = el.getAttribute('data-ly') === phase;
+          el.classList.toggle('on', on);
+          if (on) el.setAttribute('aria-current', 'step');
+          else el.removeAttribute('aria-current');
+        });
+      }
+      new MutationObserver(paint).observe(shell, { attributes: true, subtree: true, attributeFilter: ['hidden', 'class'] });
+      paint();
+    })();
+  </script>
 </body>
 </html>

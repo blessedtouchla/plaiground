@@ -1,0 +1,239 @@
+/* AI lyrics generator. Same controls, quieter surface. */
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-500.woff2") format("woff2");
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+body.song-helper-page {
+  background: #000 !important;
+  color: #f4f4f4;
+  font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+}
+body.song-helper-page h1,
+body.song-helper-page h2,
+body.song-helper-page h3,
+body.song-helper-page .btn,
+body.song-helper-page button,
+body.song-helper-page .sh-kicker,
+body.song-helper-page .ly-steps {
+  font-family: Satoshi, Inter, "Helvetica Neue", Arial, sans-serif;
+}
+body.song-helper-page .sh-kicker,
+body.song-helper-page .eyebrow,
+body.song-helper-page .sh-note {
+  color: rgba(244, 244, 244, .55) !important;
+  background: none !important;
+  letter-spacing: .14em;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+body.song-helper-page .sh h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -.03em;
+}
+body.song-helper-page .sh h1::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  background-color: #D03083;
+  -webkit-mask: url("/assets/marks/song-lab.svg") center / contain no-repeat;
+  mask: url("/assets/marks/song-lab.svg") center / contain no-repeat;
+}
+body.song-helper-page .ly-steps {
+  display: flex;
+  gap: 8px 24px;
+  margin: 0 0 16px;
+  padding: 0 0 8px;
+  list-style: none;
+  border-bottom: 1px solid rgba(255, 255, 255, .16);
+}
+body.song-helper-page .ly-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: rgba(244, 244, 244, .45);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+body.song-helper-page .ly-steps li.on { color: #fff; }
+body.song-helper-page .ly-steps span {
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+body.song-helper-page .sh-honest,
+body.song-helper-page .sh-age {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 24px;
+  color: rgba(244, 244, 244, .62);
+  font-weight: 400;
+}
+body.song-helper-page .sh-lab-links {
+  display: flex;
+  gap: 16px;
+  margin: 0 0 24px;
+}
+body.song-helper-page .starter-banner {
+  background: #000 !important;
+  color: rgba(244, 244, 244, .72) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+body.song-helper-page .sh-lab-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: rgba(244, 244, 244, .78);
+  text-decoration: none;
+}
+body.song-helper-page .sh-craft,
+body.song-helper-page .sh-log,
+body.song-helper-page .sh-note-block,
+body.song-helper-page .spark-card,
+body.song-helper-page .sh-next-card,
+body.song-helper-page #sh-social-card {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 16px 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+}
+body.song-helper-page .sh-craft-title,
+body.song-helper-page .sh-next-card h3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: .04em;
+  margin: 0 0 8px;
+}
+body.song-helper-page .sh-choice,
+body.song-helper-page .sh-chip,
+body.song-helper-page .sh-next-card {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .16) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  min-height: 48px;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+body.song-helper-page .sh-choice.on,
+body.song-helper-page .sh-chip.on {
+  background: transparent !important;
+  border-bottom-color: #fff !important;
+  box-shadow: none !important;
+}
+body.song-helper-page .sh-input,
+body.song-helper-page .sh-area,
+body.song-helper-page textarea,
+body.song-helper-page input.sh-input {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .28) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #fff;
+  min-height: 48px;
+}
+body.song-helper-page .btn {
+  transform: none !important;
+  box-shadow: none !important;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+body.song-helper-page .btn-purple {
+  background: #782FB1 !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  min-height: 48px;
+  padding: 0 32px;
+  box-shadow: none !important;
+}
+body.song-helper-page .btn-ghost,
+body.song-helper-page .nav-actions .btn,
+body.song-helper-page .public-header-login,
+body.song-helper-page .menu-toggle {
+  background: transparent !important;
+  color: rgba(244, 244, 244, .78) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-height: 44px;
+}
+body.song-helper-page .sh-choice:active,
+body.song-helper-page .sh-chip:active,
+body.song-helper-page .btn-purple:active,
+body.song-helper-page .sh-next-card:active {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
+}
+body.song-helper-page .btn-ghost:active,
+body.song-helper-page .public-header-login:active,
+body.song-helper-page .menu-toggle:active,
+body.song-helper-page .nav-actions .btn:active {
+  background: transparent !important;
+  color: #fff !important;
+}
+body.song-helper-page .ly-questions summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-family: Satoshi, Inter, sans-serif;
+}
+@media (hover: hover) {
+  body.song-helper-page .btn-purple:hover {
+    background: #8a3cc4 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  body.song-helper-page .btn-ghost:hover,
+  body.song-helper-page .sh-choice:hover,
+  body.song-helper-page .sh-chip:hover,
+  body.song-helper-page .sh-lab-links a:hover,
+  body.song-helper-page .public-header-login:hover,
+  body.song-helper-page .menu-toggle:hover,
+  body.song-helper-page .nav-actions .btn:hover {
+    background: transparent !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+@media (min-width: 980px) {
+  body.song-helper-page .sh h1::before { width: 28px; height: 28px; flex-basis: 28px; }
+}
