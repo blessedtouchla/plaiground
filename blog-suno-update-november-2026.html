@@ -24,8 +24,112 @@
   <link rel="stylesheet" href="/site.css?v=20261023seo" />
   <link rel="stylesheet" href="/blog-essay.css?v=20261106" />
   <link rel="stylesheet" href="/plai-bubble.css" />
+  <style>
+    body.suno-skim { --skim: #8ED0CB; }
+    body.suno-skim .legal-doc article { max-width: 960px; }
+    body.suno-skim .skim-quick,
+    body.suno-skim .skim-plug,
+    body.suno-skim .legal-doc article > p,
+    body.suno-skim .legal-doc article > ul,
+    body.suno-skim .legal-doc article > h2,
+    body.suno-skim .legal-doc article > h3 { max-width: 680px; }
+    body.suno-skim .skim-quick {
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 14px 16px 4px;
+      margin: 8px 0 12px;
+    }
+    body.suno-skim .skim-quick-label {
+      margin: 0 0 8px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    body.suno-skim .skim-quick ul { margin: 0; padding-left: 18px; }
+    body.suno-skim .skim-feature { margin-top: 48px; clear: both; }
+    body.suno-skim .skim-feature::after { content: ""; display: block; clear: both; }
+    body.suno-skim .skim-feature h2 { margin-top: 0; }
+    body.suno-skim .skim-num {
+      display: block;
+      color: var(--skim);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    body.suno-skim .skim-term { color: var(--skim); font-weight: 650; }
+    body.suno-skim .skim-visual {
+      float: right;
+      width: 340px;
+      margin: 2px 0 8px 28px;
+    }
+    body.suno-skim .skim-visual img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    body.suno-skim .skim-visual figcaption {
+      margin-top: 8px;
+      color: #9A9AA8;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    body.suno-skim .skim-copy p { max-width: none; }
+    body.suno-skim .skim-why {
+      margin: 4px 0 8px;
+      padding: 2px 0 2px 12px;
+      border-left: 2px solid var(--skim);
+    }
+    body.suno-skim .skim-why-label {
+      display: block;
+      margin: 0 0 4px;
+      color: var(--skim);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    body.suno-skim .skim-plug {
+      clear: both;
+      margin: 28px 0 0;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    body.suno-skim .skim-plug p { margin: 0; max-width: none; }
+    body.suno-skim .skim-steps {
+      margin: 0;
+      padding: 4px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    body.suno-skim .skim-steps p {
+      margin: 0;
+      max-width: none;
+      padding: 12px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+    body.suno-skim .skim-steps p:first-child { border-top: 0; }
+    body.suno-skim .skim-steps .skim-num {
+      display: inline;
+      margin: 0 8px 0 0;
+      letter-spacing: 0.14em;
+    }
+    @media (max-width: 800px) {
+      body.suno-skim .skim-visual {
+        float: none;
+        width: 100%;
+        margin: 0 0 16px;
+      }
+    }
+  </style>
 </head>
-<body class="essay-page">
+<body class="essay-page suno-skim">
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="/index.html" aria-label="PLAIGROUND"><img src="/assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
@@ -91,30 +195,99 @@
           <p>You do not need a new year to get a new studio. You just need a few months of honest shipping.</p>
           <p>This is a high-level look at what Suno officially added from September 17 to November 16, 2026, written for people just getting started with super intelligence (SI). A new tool can widen the room you work in. It does not, by itself, tell the world who made the song. We will go deeper on some of these features in future posts. Just before this window, on September 9, 2026, Suno introduced the v6 family: v6 and v6-wild for Pro and Premier, and v6-mini for everyone.</p>
 
-          <h2>Start a song from notes, speech, or a daily prompt</h2>
-          <p>MIDI is a file that stores notes and timing, not recorded sound, like a digital score. On November 4, 2026, Suno made it possible to start a song from a MIDI file on the Create page, by drag-and-drop or the + menu. You can ask Suno to play those notes as written, or to recast a short motif on new instruments.</p>
-          <p>On October 1, 2026, Suno opened Speech (beta) to everyone. Speech makes spoken audio from your own idea or script, with or without background music. Beta means the feature is still being improved. It is available on all plans.</p>
-          <p>On November 6, 2026, Suno launched the Daily Song Challenge: a new prompt every day under "Make a song every day" on the Homepage, on all plans, on the latest iOS and Android app. Songs are saved to your Calendar in your Library. On October 23, 2026, the iOS app (version 1.93 and up) added iPhone Duo support and AirPlay, which sends songs to a compatible speaker or TV.</p>
+          <aside class="skim-quick" aria-label="Quick version">
+            <p class="skim-quick-label">Quick version</p>
+            <ul>
+              <li><a href="#start-from-notes">Start from MIDI notes, Speech, or a daily prompt.</a></li>
+              <li><a href="#publish-an-album">Publish an album on Suno, separate from the stores.</a></li>
+              <li><a href="#share-a-workspace">Share a Workspace, or share a Custom Model.</a></li>
+              <li><a href="#from-another-app">Make a song from Claude or ChatGPT with Suno MCP.</a></li>
+              <li><a href="#studio-and-daw">Tighten Suno Studio, then meet your DAW with Suno Bridge.</a></li>
+            </ul>
+          </aside>
 
-          <h2>Publish an album on Suno itself</h2>
-          <p>On October 5, 2026, Suno added Albums. An album here is a body of work under one artist, you, not a playlist that can mix other people's songs. You can still edit a published album, and publishing it will also publish any unpublished songs in it. That is publishing inside Suno, not distribution to stores. See <a href="/distribution">wannaplai.com/distribution</a>.</p>
+          <div class="skim-feature">
+            <h2 id="start-from-notes"><span class="skim-num" aria-hidden="true">01</span>Start a song from notes, speech, or a daily prompt</h2>
+            <figure class="skim-visual">
+              <img src="/images/blog/suno-nov-2026/midi-create.jpg" width="1400" height="788" alt="Suno Create screen with a keys.mid file and a prompt to perform that MIDI as a lush classical string quartet." />
+              <figcaption>Image: Suno. Start Songs with MIDI, November 4, 2026.</figcaption>
+            </figure>
+            <div class="skim-copy">
+              <p><span class="skim-term">MIDI</span> is a file that stores notes and timing, not recorded sound, like a digital score. On November 4, 2026, Suno made it possible to start a song from a MIDI file on the Create page, by drag-and-drop or the + menu. You can ask Suno to play those notes as written, or to recast a short motif on new instruments.</p>
+              <p>On October 1, 2026, Suno opened <span class="skim-term">Speech</span> (beta) to everyone. Speech makes spoken audio from your own idea or script, with or without background music. Beta means the feature is still being improved. It is available on all plans.</p>
+              <p>On November 6, 2026, Suno launched the <span class="skim-term">Daily Song Challenge</span>: a new prompt every day under "Make a song every day" on the Homepage, on all plans, on the latest iOS and Android app. Songs are saved to your Calendar in your Library. On October 23, 2026, the iOS app (version 1.93 and up) added iPhone Duo support and AirPlay, which sends songs to a compatible speaker or TV.</p>
+              <p class="skim-why"><span class="skim-why-label">Why it matters for your release</span> A MIDI file, Speech, or a daily prompt can start the song inside Suno, and none of them tells the world who made it.</p>
+            </div>
+          </div>
 
-          <h2>Share a workspace, or share a Custom Model</h2>
-          <p>On October 15, 2026, Suno added collaboration tools. A Workspace is a shared library of songs that only the people you invite can see. Sharing one requires a Pro or Premier plan, though you can invite Free users, up to 10 collaborators. They can create, remix (make a new version of a song), and extend tracks. Only the owner can invite or remove people and delete songs.</p>
-          <p>A Custom Model is a version of Suno's music model trained on your own tracks, so new songs can lean toward your sound. Sharing a Custom Model is a Premier feature, with up to 10 people per model. Collaborators use their own credits, cannot edit, delete, or reshare the model, and keep the songs they create.</p>
+          <div class="skim-feature">
+            <h2 id="publish-an-album"><span class="skim-num" aria-hidden="true">02</span>Publish an album on Suno itself</h2>
+            <figure class="skim-visual">
+              <img src="/images/blog/suno-nov-2026/albums.jpg" width="1400" height="788" alt="Stacked album covers with the words Tell your story. Albums are here." />
+              <figcaption>Image: Suno. Albums release note, October 5, 2026.</figcaption>
+            </figure>
+            <div class="skim-copy">
+              <p>On October 5, 2026, Suno added <span class="skim-term">Albums</span>. An album here is a body of work under one artist, you, not a playlist that can mix other people's songs. You can still edit a published album, and publishing it will also publish any unpublished songs in it. That is publishing inside Suno, not distribution to stores. See <a href="/distribution">wannaplai.com/distribution</a>.</p>
+              <p class="skim-why"><span class="skim-why-label">Why it matters for your release</span> Publishing an album on Suno is still publishing inside Suno, not distribution to stores.</p>
+            </div>
+          </div>
 
-          <h2>Make a song from the app you are already in</h2>
-          <p>On October 28, 2026, Suno announced Suno MCP (beta). MCP, short for Model Context Protocol, is a way for other apps to connect to Suno. You can describe a song, start from a voice memo or a loop, or make a cover from your library inside tools such as Claude or ChatGPT, without switching tabs. Songs land in your Suno library and use your credits. Official pages describe it as available on all plans, including Free, with a sign-up for early access.</p>
+          <aside class="skim-plug">
+            <p><a href="/blog/your-suno-song-your-rights">Before you release: check your rights</a></p>
+          </aside>
 
-          <h2>Suno Studio gets tighter, then meets your DAW</h2>
-          <p>A DAW, or digital audio workstation, is the software producers use to arrange, edit, and mix a song. Suno Studio is Suno's browser-based DAW, included with Premier. A stem is one part of a song saved as its own file, such as vocals or drums.</p>
-          <p>On September 17, 2026, Suno said MIDI in Studio is more accurate. The chat bar can turn a MIDI clip into audio stems, start MIDI from a prompt, and rename clips. On October 8, Studio gained better detection of beat 1, clip stretching to match project tempo, shaped fade curves, and pop-out windows for built-in instruments and effects. On October 29, Clip Settings moved into a clearer sidebar, with Clip Info for lyrics, style tags, and stem separation. You can auto-stretch added audio to the project tempo and tune pitch in fine steps. Generated clips are not auto-stretched.</p>
-          <p>On November 13, 2026, Suno introduced Suno Bridge (beta), a separate app that generates new instrument and vocal stems and places them on the timeline in Ableton Live, a popular DAW. At launch it works with Ableton Live 12 or later, on a Mac only, and requires Premier. Official help says generations use 10 credits. Bridge uploads the project so new parts can match tempo, key, and groove, and Suno says copyright filters will block flagged uploads. Those generations do not appear in your main Suno library. You find them under Downloads in the Bridge profile menu.</p>
+          <div class="skim-feature">
+            <h2 id="share-a-workspace"><span class="skim-num" aria-hidden="true">03</span>Share a workspace, or share a Custom Model</h2>
+            <figure class="skim-visual">
+              <img src="/images/blog/suno-nov-2026/collaboration.jpg" width="1400" height="788" alt="Illustrated people arranged around one shared song, from Suno's collaboration announcement." />
+              <figcaption>Image: Suno. Collaboration on Suno, October 15, 2026.</figcaption>
+            </figure>
+            <div class="skim-copy">
+              <p>On October 15, 2026, Suno added collaboration tools. A <span class="skim-term">Workspace</span> is a shared library of songs that only the people you invite can see. Sharing one requires a Pro or Premier plan, though you can invite Free users, up to 10 collaborators. They can create, remix (make a new version of a song), and extend tracks. Only the owner can invite or remove people and delete songs.</p>
+              <p>A <span class="skim-term">Custom Model</span> is a version of Suno's music model trained on your own tracks, so new songs can lean toward your sound. Sharing a Custom Model is a Premier feature, with up to 10 people per model. Collaborators use their own credits, cannot edit, delete, or reshare the model, and keep the songs they create.</p>
+              <p class="skim-why"><span class="skim-why-label">Why it matters for your release</span> Invited people can create in a shared Workspace, and on a shared Custom Model they keep the songs they create.</p>
+            </div>
+          </div>
+
+          <div class="skim-feature">
+            <h2 id="from-another-app"><span class="skim-num" aria-hidden="true">04</span>Make a song from the app you are already in</h2>
+            <figure class="skim-visual">
+              <div class="skim-steps">
+                <p><span class="skim-num" aria-hidden="true">01</span> Voice memo or loop</p>
+                <p><span class="skim-num" aria-hidden="true">02</span> Claude or ChatGPT</p>
+                <p><span class="skim-num" aria-hidden="true">03</span> Suno library</p>
+              </div>
+              <figcaption>Step diagram for this section. Suno's MCP pages did not include a feature image.</figcaption>
+            </figure>
+            <div class="skim-copy">
+              <p>On October 28, 2026, Suno announced <span class="skim-term">Suno MCP</span> (beta). MCP, short for Model Context Protocol, is a way for other apps to connect to Suno. You can describe a song, start from a voice memo or a loop, or make a cover from your library inside tools such as Claude or ChatGPT, without switching tabs. Songs land in your Suno library and use your credits. Official pages describe it as available on all plans, including Free, with a sign-up for early access.</p>
+              <p class="skim-why"><span class="skim-why-label">Why it matters for your release</span> A song you start in Claude or ChatGPT still lands in your Suno library and uses your credits.</p>
+            </div>
+          </div>
+
+          <div class="skim-feature">
+            <h2 id="studio-and-daw"><span class="skim-num" aria-hidden="true">05</span>Suno Studio gets tighter, then meets your DAW</h2>
+            <figure class="skim-visual">
+              <img src="/images/blog/suno-nov-2026/suno-bridge.jpg" width="1400" height="788" alt="The Suno Bridge window generating keyboard stems on top of a digital audio workstation timeline." />
+              <figcaption>Image: Suno. Suno Bridge, November 13, 2026.</figcaption>
+            </figure>
+            <div class="skim-copy">
+              <p>A <span class="skim-term">DAW</span>, or digital audio workstation, is the software producers use to arrange, edit, and mix a song. <span class="skim-term">Suno Studio</span> is Suno's browser-based DAW, included with Premier. A <span class="skim-term">stem</span> is one part of a song saved as its own file, such as vocals or drums.</p>
+              <p>On September 17, 2026, Suno said MIDI in Studio is more accurate. The chat bar can turn a MIDI clip into audio stems, start MIDI from a prompt, and rename clips. On October 8, Studio gained better detection of beat 1, clip stretching to match project tempo, shaped fade curves, and pop-out windows for built-in instruments and effects. On October 29, Clip Settings moved into a clearer sidebar, with Clip Info for lyrics, style tags, and stem separation. You can auto-stretch added audio to the project tempo and tune pitch in fine steps. Generated clips are not auto-stretched.</p>
+              <p>On November 13, 2026, Suno introduced <span class="skim-term">Suno Bridge</span> (beta), a separate app that generates new instrument and vocal stems and places them on the timeline in Ableton Live, a popular DAW. At launch it works with Ableton Live 12 or later, on a Mac only, and requires Premier. Official help says generations use 10 credits. Bridge uploads the project so new parts can match tempo, key, and groove, and Suno says copyright filters will block flagged uploads. Those generations do not appear in your main Suno library. You find them under Downloads in the Bridge profile menu.</p>
+              <p class="skim-why"><span class="skim-why-label">Why it matters for your release</span> Stems from Suno Bridge do not appear in your main Suno library, and you find them under Downloads in the Bridge profile menu.</p>
+            </div>
+          </div>
+
+          <aside class="skim-plug">
+            <p><a href="/song-helper">Write the words in Song Lab</a></p>
+          </aside>
 
           <h2>What still matters when you release</h2>
           <p>In this window, Suno did not post a new Terms of Service revision. Checked November 16, 2026, the Terms still show a last revision of August 10, 2026, and an effective date of September 3, 2026.</p>
           <p>Per Suno's help pages as of Nov 13, the free plan no longer includes trial downloads. Those pages list Free at 0 downloads, Pro at 20 per month, and Premier at 60 per month, resetting on the billing date with no rollover. Commercial use of Output still requires a permitted download through an approved Suno channel. Remixes may not be used commercially, even on a paid plan.</p>
           <p>A contract right with Suno is not a U.S. copyright, and this is not legal advice. When you release, use an honest Human, AI-assisted, or Fully AI label. See <a href="/ai-labels">wannaplai.com/ai-labels</a> and <a href="/copyright">wannaplai.com/copyright</a>.</p>
+          <p class="skim-why"><span class="skim-why-label">Why it matters for your release</span> Commercial use still requires a permitted download, and a release still uses an honest Human, AI-assisted, or Fully AI label.</p>
 
           <h2>FAQ</h2>
           <h3>Did Suno change its Terms of Service in this window?</h3>
