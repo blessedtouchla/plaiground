@@ -540,6 +540,7 @@
     { "source": "/blog/who-made-it-ai-credits", "destination": "/blog-who-made-it-ai-credits.html" },
     { "source": "/blog/billion-culture-ai-own-equity-not-just-royalties", "destination": "/blog-billion-culture-ai-own-equity-not-just-royalties.html" },
     { "source": "/blog/cheat-codes-recognizable-artist-fan-participation", "destination": "/blog-cheat-codes-recognizable-artist-fan-participation.html" },
+    { "source": "/blog/cd-era-vs-streaming-pay", "destination": "/blog-cd-era-vs-streaming-pay.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
