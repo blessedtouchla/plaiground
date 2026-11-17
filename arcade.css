@@ -1,3 +1,4 @@
+@import url("honest-labels.css");
 .arc-wrap{max-width:760px;margin:0 auto;padding:16px}
 .arc-cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .arc-card,.arc-tile{display:flex;flex-direction:column;gap:6px;text-align:left;padding:18px;border-radius:16px;cursor:pointer}
@@ -1386,4 +1387,47 @@ body.song-lab .arc-more-sum:active{background:transparent!important;color:#fff!i
     color:#fff!important;
     border:0!important
   }
+  body.song-lab .arc-tile[data-honest="human"]:hover,
+  body.song-lab .v3-tile[data-honest="human"]:hover{border-bottom-color:var(--label-human)!important;background:transparent!important;color:#fff!important}
+  body.song-lab .arc-tile[data-honest="assisted"]:hover,
+  body.song-lab .v3-tile[data-honest="assisted"]:hover{border-bottom-color:var(--label-assisted)!important;background:transparent!important;color:#fff!important}
+  body.song-lab .arc-tile[data-honest="full"]:hover,
+  body.song-lab .v3-tile[data-honest="full"]:hover{border-bottom-color:var(--label-full)!important;background:transparent!important;color:#fff!important}
 }
+body.song-lab .arc-tile[data-honest],
+body.song-lab .v3-tile[data-honest]{
+  background:transparent!important;
+  color:#fff!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:none!important;
+  min-height:44px!important
+}
+body.song-lab .arc-tile[data-honest]::before,
+body.song-lab .v3-tile[data-honest]::before{display:none!important;content:none!important;background:none!important}
+body.song-lab .arc-tile[data-honest="human"],
+body.song-lab .v3-tile[data-honest="human"],
+body.song-lab .arc-tile[data-honest="human"].on,
+body.song-lab .v3-tile[data-honest="human"].on{border-bottom-color:var(--label-human)!important;background:transparent!important;color:#fff!important}
+body.song-lab .arc-tile[data-honest="assisted"],
+body.song-lab .v3-tile[data-honest="assisted"],
+body.song-lab .arc-tile[data-honest="assisted"].on,
+body.song-lab .v3-tile[data-honest="assisted"].on{border-bottom-color:var(--label-assisted)!important;background:transparent!important;color:#fff!important}
+body.song-lab .arc-tile[data-honest="full"],
+body.song-lab .v3-tile[data-honest="full"],
+body.song-lab .arc-tile[data-honest="full"].on,
+body.song-lab .v3-tile[data-honest="full"].on{border-bottom-color:var(--label-full)!important;background:transparent!important;color:#fff!important}
+body.song-lab .arc-label[data-honest]{
+  display:inline-block;
+  padding:0 0 1px;
+  margin:6px 0;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:none!important
+}
+body.song-lab .arc-label[data-honest="human"]{border-bottom:1px solid var(--label-human)!important}
+body.song-lab .arc-label[data-honest="assisted"]{border-bottom:1px solid var(--label-assisted)!important}
+body.song-lab .arc-label[data-honest="full"]{border-bottom:1px solid var(--label-full)!important}

@@ -238,6 +238,8 @@
         var line = document.querySelector('[data-review-made-caption]');
         if (caption && box && line) {
           line.textContent = caption;
+          var capKey = draft.made_how === 'no_ai' ? 'human' : (draft.made_how === 'ai_assisted' ? 'assisted' : (draft.made_how === 'fully_ai' ? 'full' : ''));
+          if (capKey) line.setAttribute('data-honest', capKey);
           box.hidden = false;
         }
       } catch (err) {}

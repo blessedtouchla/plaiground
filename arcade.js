@@ -257,6 +257,7 @@
     var grid = el('div', 'arc-tiles');
     levels.forEach(function (l) {
       var b = btn('', 'v3-tile arc-tile' + (S.aiLevel === l.id ? ' on' : ''), function () { S.aiLevel = l.id; go(S.sub === 'battle' ? 's-battle' : 's-basics'); });
+      b.setAttribute('data-honest', l.id === 'human' ? 'human' : (l.id === 'full' ? 'full' : 'assisted'));
       b.appendChild(el('b', '', l.label)); b.appendChild(el('small', '', l.small)); grid.appendChild(b);
     });
     w.appendChild(grid);
@@ -682,7 +683,11 @@
     else w.appendChild(el('p', 'arc-jump', 'Score: ' + score.toLocaleString('en-US')));
     if (high) w.appendChild(el('div', 'arc-confetti', '\u2728 \u2728 \u2728'));
     if (r.notice) w.appendChild(el('p', 'hint', r.notice));
-    w.appendChild(el('span', 'arc-label', r.label || A.aiLabel(S)));
+    var lab = el('span', 'arc-label', r.label || A.aiLabel(S));
+    var labWord = lab.textContent;
+    var labKey = labWord === 'Human' ? 'human' : (labWord === 'AI-assisted' ? 'assisted' : ((labWord === 'Fully AI' || labWord === 'Full AI') ? 'full' : ''));
+    if (labKey) lab.setAttribute('data-honest', labKey);
+    w.appendChild(lab);
     if (S.sub === 'battle') w.appendChild(chips(['You won', 'Plai won', 'Tie'], function (v) { return S.vote === v; }, function (v) { S.vote = v; }));
     if (S.card !== 'fix' && S.aiLevel !== 'human' && r.lyrics) editLyrics(w, r);
     else { var pre = el('pre', 'lyrics-preview arc-lyrics', r.lyrics || ''); w.appendChild(pre); }

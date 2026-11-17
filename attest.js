@@ -515,6 +515,9 @@
       if (caption) {
         caption.textContent = text;
         caption.hidden = !text;
+        var capKey = how === 'no_ai' ? 'human' : (how === 'ai_assisted' ? 'assisted' : (how === 'fully_ai' ? 'full' : ''));
+        if (capKey) caption.setAttribute('data-honest', capKey);
+        else caption.removeAttribute('data-honest');
       }
     }
 

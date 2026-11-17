@@ -1,3 +1,4 @@
+@import url("honest-labels.css");
 :root {
   --bg: #000000;
   --card: #111111;
@@ -8827,4 +8828,159 @@ body .btn,
 body a.btn,
 body button {
   font-family: Satoshi, Inter, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Honest labels. Color is a 1px mark. The words stay white on black. */
+.honest-mark {
+  color: #fff;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+.honest-mark[data-honest="human"] { box-shadow: inset 0 -1px 0 var(--label-human); }
+.honest-mark[data-honest="assisted"] { box-shadow: inset 0 -1px 0 var(--label-assisted); }
+.honest-mark[data-honest="full"] { box-shadow: inset 0 -1px 0 var(--label-full); }
+.honest-line { color: #fff; }
+.honest-line strong { color: #fff; background: transparent; border-radius: 0; }
+.honest-line strong:nth-of-type(1) { box-shadow: inset 0 -1px 0 var(--label-human); }
+.honest-line strong:nth-of-type(2) { box-shadow: inset 0 -1px 0 var(--label-assisted); }
+.honest-line strong:nth-of-type(3) { box-shadow: inset 0 -1px 0 var(--label-full); }
+
+.feature-lines li[data-honest] {
+  color: #fff;
+  padding-left: 14px;
+  border-left: 1px solid transparent;
+}
+.feature-lines li[data-honest]::before { content: none; }
+.feature-lines li[data-honest="human"] { border-left-color: var(--label-human); }
+.feature-lines li[data-honest="assisted"] { border-left-color: var(--label-assisted); }
+.feature-lines li[data-honest="full"] { border-left-color: var(--label-full); }
+
+.tease-grid article[data-honest] {
+  background: #000;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-left-width: 1px;
+  border-left-style: solid;
+}
+.tease-grid article[data-honest] h3 { color: #fff; }
+.tease-grid article[data-honest="human"] { border-left-color: var(--label-human); }
+.tease-grid article[data-honest="assisted"] { border-left-color: var(--label-assisted); }
+.tease-grid article[data-honest="full"] { border-left-color: var(--label-full); }
+
+.essay-card[data-honest] {
+  background: #000 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-left-width: 1px !important;
+  border-left-style: solid !important;
+}
+.essay-card[data-honest] h2 { color: #fff; }
+.essay-card[data-honest] .essay-icon { color: #fff !important; filter: none !important; }
+.essay-card[data-honest="human"] { border-left-color: var(--label-human) !important; }
+.essay-card[data-honest="assisted"] { border-left-color: var(--label-assisted) !important; }
+.essay-card[data-honest="full"] { border-left-color: var(--label-full) !important; }
+
+body .choice[data-made-how],
+body .choice[data-edit-made-how] {
+  min-height: 44px;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+}
+body .choice[data-made-how] b,
+body .choice[data-edit-made-how] b { color: #fff; }
+body .choice[data-made-how="no_ai"],
+body .choice[data-edit-made-how="no_ai"] { border-left-color: var(--label-human); }
+body .choice[data-made-how="ai_assisted"],
+body .choice[data-edit-made-how="ai_assisted"] { border-left-color: var(--label-assisted); }
+body .choice[data-made-how="fully_ai"],
+body .choice[data-edit-made-how="fully_ai"] { border-left-color: var(--label-full); }
+body .choice[data-made-how="no_ai"].on,
+body .choice[data-edit-made-how="no_ai"].on { border-color: var(--label-human); background: #000; box-shadow: none; }
+body .choice[data-made-how="ai_assisted"].on,
+body .choice[data-edit-made-how="ai_assisted"].on { border-color: var(--label-assisted); background: #000; box-shadow: none; }
+body .choice[data-made-how="fully_ai"].on,
+body .choice[data-edit-made-how="fully_ai"].on { border-color: var(--label-full); background: #000; box-shadow: none; }
+body .choice[data-made-how]:active,
+body .choice[data-edit-made-how]:active { background: #fff; color: #000; }
+body .choice[data-made-how]:active b,
+body .choice[data-made-how]:active span,
+body .choice[data-edit-made-how]:active b,
+body .choice[data-edit-made-how]:active span { color: #000; }
+
+.sh-honest[data-honest],
+[data-made-caption][data-honest],
+[data-review-made-caption][data-honest] {
+  color: #fff;
+  background: #000;
+  padding-left: 12px;
+  border-left: 1px solid transparent;
+}
+.sh-honest[data-honest="human"],
+[data-made-caption][data-honest="human"],
+[data-review-made-caption][data-honest="human"] { border-left-color: var(--label-human); }
+.sh-honest[data-honest="assisted"],
+[data-made-caption][data-honest="assisted"],
+[data-review-made-caption][data-honest="assisted"] { border-left-color: var(--label-assisted); }
+.sh-honest[data-honest="full"],
+[data-made-caption][data-honest="full"],
+[data-review-made-caption][data-honest="full"] { border-left-color: var(--label-full); }
+
+.honest-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0 0 8px;
+  padding: 0 12px;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0;
+  cursor: pointer;
+}
+.honest-choice input { accent-color: #fff; }
+.honest-choice[data-honest="human"] { border-left-color: var(--label-human); }
+.honest-choice[data-honest="assisted"] { border-left-color: var(--label-assisted); }
+.honest-choice[data-honest="full"] { border-left-color: var(--label-full); }
+.honest-choice[data-honest="human"]:has(input:checked) { border-color: var(--label-human); }
+.honest-choice[data-honest="assisted"]:has(input:checked) { border-color: var(--label-assisted); }
+.honest-choice[data-honest="full"]:has(input:checked) { border-color: var(--label-full); }
+.honest-choice:active { background: #fff; color: #000; }
+
+.artists-page .artist-class-pick {
+  min-height: 44px;
+  padding: 0 14px;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.artists-page .artist-class-pick input { accent-color: #fff; }
+.artists-page .artist-class-pick:has(input[value="human"]) { border-left-color: var(--label-human); }
+.artists-page .artist-class-pick:has(input[value="ai_infused"]) { border-left-color: var(--label-assisted); }
+.artists-page .artist-class-pick:has(input[value="fully_ai"]) { border-left-color: var(--label-full); }
+.artists-page .artist-class-pick:has(input[value="human"]:checked) { border-color: var(--label-human); color: #fff; }
+.artists-page .artist-class-pick:has(input[value="ai_infused"]:checked) { border-color: var(--label-assisted); color: #fff; }
+.artists-page .artist-class-pick:has(input[value="fully_ai"]:checked) { border-color: var(--label-full); color: #fff; }
+.artists-page .artist-class-pick:active { background: #fff; color: #000; }
+
+@media (hover: hover) and (pointer: fine) {
+  body .choice[data-made-how="no_ai"]:hover,
+  body .choice[data-edit-made-how="no_ai"]:hover,
+  .honest-choice[data-honest="human"]:hover,
+  .artists-page .artist-class-pick:has(input[value="human"]):hover { border-color: var(--label-human); background: #000; }
+  body .choice[data-made-how="ai_assisted"]:hover,
+  body .choice[data-edit-made-how="ai_assisted"]:hover,
+  .honest-choice[data-honest="assisted"]:hover,
+  .artists-page .artist-class-pick:has(input[value="ai_infused"]):hover { border-color: var(--label-assisted); background: #000; }
+  body .choice[data-made-how="fully_ai"]:hover,
+  body .choice[data-edit-made-how="fully_ai"]:hover,
+  .honest-choice[data-honest="full"]:hover,
+  .artists-page .artist-class-pick:has(input[value="fully_ai"]):hover { border-color: var(--label-full); background: #000; }
 }
