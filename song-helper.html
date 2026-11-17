@@ -20,12 +20,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="site.css?v=20261023menu2" />
   <link rel="stylesheet" href="song-helper.css?v=20261022acct" />
+  <link rel="stylesheet" href="song-lab.css?v=20261117flow" />
   <link rel="stylesheet" href="stage.css?v=20261017stage" />
   <link rel="stylesheet" href="plai-bubble.css" />
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "plai Song Lab", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/ai-lyrics-generator", "description": "Song Lab is an AI lyrics generator and AI songwriting helper. Write lyrics and hooks in your own voice, trade verses in Battle, and plan a human pass with Make it human. Writing a song is free. Sign up only to save it.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Writing a song is free without an account. Sign up only to save it."}}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Who owns the lyrics I write in Song Lab?", "acceptedAnswer": {"@type": "Answer", "text": "You keep ownership of your songs, subject to any publishing agreement you sign. Your answers and drafts are saved as a record of what you wrote. Only the human-written parts of a song can be protected by copyright, so keep your own words in it."}}, {"@type": "Question", "name": "How are human and AI lyrics labeled?", "acceptedAnswer": {"@type": "Answer", "text": "Every song carries an honest label: Human, AI-assisted, or Fully AI. If AI drafted lines that you kept, the song is AI-assisted."}}, {"@type": "Question", "name": "Does Song Lab cost credits?", "acceptedAnswer": {"@type": "Answer", "text": "Writing a song in Song Lab is free. You do not need an account to write the first one. Sign up only to save it. Optional tools on this page that still use a credit say so on the button."}}, {"@type": "Question", "name": "What is Battle?", "acceptedAnswer": {"@type": "Answer", "text": "Battle is a rap verse trade. You drop a verse and get one verse back that answers yours with its own pictures, not a copy of your lines."}}, {"@type": "Question", "name": "What is Make it human?", "acceptedAnswer": {"@type": "Answer", "text": "Make it human is a human pass on a song: real vocals, plus live players or a producer rebuild. A human re-record protects the new recording, but the song itself still needs human-written parts to be protected."}}]}</script>
 </head>
-<body class="song-helper-page">
+<body class="song-helper-page song-lab">
   <header class="nav">
     <div class="wrap nav-inner">
       <a class="logo" href="index.html" aria-label="PLAIGROUND"><img src="assets/plaiground-logo.png" alt="PLAIGROUND" /></a>
@@ -79,14 +80,15 @@
 
   <main class="sh">
     <div class="wrap sh-shell" id="sh-shell">
-      <p class="sh-kicker">Song Lab</p>
       <h1>Song Lab: AI lyrics generator and songwriting help</h1>
-      <p class="sh-intro">Tell me the song in your own words. I'll draft lyrics around them, then a style prompt you can copy.</p>
-      <nav class="sh-lab-links" aria-label="More in Song Lab"><a href="/make-human">Make it human</a><a href="/battle">Battle</a></nav>
-      <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
+      <ol class="sh-flow" aria-label="Song steps">
+        <li><span class="sh-step-name">Pick a vibe</span></li>
+        <li><span class="sh-step-name">Write or paste lyrics</span></li>
+        <li><span class="sh-step-name">Get your song shaped</span></li>
+        <li><span class="sh-step-name">Release</span></li>
+      </ol>
       <p class="sh-age">You must be 18+ to use the Song Helper.</p>
       <p class="sh-demo" id="sh-demo" hidden>Demo mode. Samples on this page are not written by AI.</p>
-      <p class="sh-path">Create from scratch, base a new song on one you love, or bring your own story. Then a title, a feeling, and the point of the song. The draft comes after.</p>
       <nav class="sh-x-road" id="sh-x-road" aria-label="Song road" hidden>
         <ol>
           <li data-stop="mood"><span>Mood</span></li>
@@ -100,7 +102,6 @@
       </nav>
       <section class="sh-craft" id="sh-start">
         <h2 class="sh-craft-title">How do you want to start?</h2>
-        <p class="sh-help">Pick one. You can switch anytime.</p>
         <div class="sh-idea-choices" role="group" aria-label="Where the song starts">
           <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false">Start from scratch</button>
           <button type="button" class="sh-choice" id="sh-choice-based" aria-pressed="false">Based on a real song</button>
@@ -777,16 +778,42 @@
         </article>
       </section>
     </div>
+    <section class="sh-below" aria-label="How Song Lab works">
+      <div class="wrap">
+        <details class="sh-fold">
+          <summary>How Song Lab works</summary>
+          <p>Super intelligence (SI) drafts around the words you write. The song label stays one of three: Human, AI-assisted, or Fully AI.</p>
+          <p class="sh-intro">Tell me the song in your own words. I'll draft lyrics around them, then a style prompt you can copy.</p>
+          <p class="sh-honest">Drafts are AI-assisted. The lines you write stay yours.</p>
+          <p class="sh-path">Create from scratch, base a new song on one you love, or bring your own story. Then a title, a feeling, and the point of the song. The draft comes after. Pick one. You can switch anytime.</p>
+          <nav class="sh-lab-links" aria-label="More in Song Lab"><a href="/make-human">Make it human</a><a href="/battle">Battle</a></nav>
+        </details>
+      </div>
+    </section>
     <section aria-label="Questions">
       <div class="wrap">
-        <p class="eyebrow magenta">Questions</p>
         <h2>Quick answers</h2>
-        <p class="sub" style="margin-top:16px"><strong>Who owns the lyrics I write in Song Lab?</strong> You keep ownership of your songs, subject to any publishing agreement you sign. Your answers and drafts are saved as a record of what you wrote. Only the human-written parts of a song can be protected by copyright, so keep your own words in it.</p>
-        <p class="sub" style="margin-top:16px"><strong>How are human and AI lyrics labeled?</strong> Every song carries an honest label: Human, AI-assisted, or Fully AI. If AI drafted lines that you kept, the song is AI-assisted.</p>
-        <p class="sub" style="margin-top:16px"><strong>Does Song Lab cost credits?</strong> Writing a song in Song Lab is free. You do not need an account to write the first one. Sign up only to save it. Optional tools on this page that still use a credit say so on the button.</p>
-        <p class="sub" style="margin-top:16px"><strong>What is Battle?</strong> Battle is a rap verse trade. You drop a verse and get one verse back that answers yours with its own pictures, not a copy of your lines.</p>
-        <p class="sub" style="margin-top:16px"><strong>What is Make it human?</strong> Make it human is a human pass on a song: real vocals, plus live players or a producer rebuild. A human re-record protects the new recording, but the song itself still needs human-written parts to be protected.</p>
-        <p class="sub" style="margin-top:24px"><a class="learn" href="/album-cover-maker">Album cover maker</a> · <a class="learn" href="/split-sheet-template">Split sheet template</a> · <a class="learn" href="/ai-labels">AI music labels</a></p>
+        <details class="sh-fold">
+          <summary>Who owns the lyrics I write in Song Lab?</summary>
+          <p class="sub"><strong>Who owns the lyrics I write in Song Lab?</strong> You keep ownership of your songs, subject to any publishing agreement you sign. Your answers and drafts are saved as a record of what you wrote. Only the human-written parts of a song can be protected by copyright, so keep your own words in it.</p>
+        </details>
+        <details class="sh-fold">
+          <summary>How are human and AI lyrics labeled?</summary>
+          <p class="sub"><strong>How are human and AI lyrics labeled?</strong> Every song carries an honest label: Human, AI-assisted, or Fully AI. If AI drafted lines that you kept, the song is AI-assisted.</p>
+        </details>
+        <details class="sh-fold">
+          <summary>Does Song Lab cost credits?</summary>
+          <p class="sub"><strong>Does Song Lab cost credits?</strong> Writing a song in Song Lab is free. You do not need an account to write the first one. Sign up only to save it. Optional tools on this page that still use a credit say so on the button.</p>
+        </details>
+        <details class="sh-fold">
+          <summary>What is Battle?</summary>
+          <p class="sub"><strong>What is Battle?</strong> Battle is a rap verse trade. You drop a verse and get one verse back that answers yours with its own pictures, not a copy of your lines.</p>
+        </details>
+        <details class="sh-fold">
+          <summary>What is Make it human?</summary>
+          <p class="sub"><strong>What is Make it human?</strong> Make it human is a human pass on a song: real vocals, plus live players or a producer rebuild. A human re-record protects the new recording, but the song itself still needs human-written parts to be protected.</p>
+        </details>
+        <p class="sub sh-related"><a class="learn" href="/album-cover-maker">Album cover maker</a><a class="learn" href="/split-sheet-template">Split sheet template</a><a class="learn" href="/ai-labels">AI music labels</a></p>
       </div>
     </section>
   </main>

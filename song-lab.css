@@ -1,0 +1,532 @@
+/* Song Lab page only. Black field, thin white lines, no gold, glow, gradient, or pills. */
+
+body.song-lab {
+  background: #000;
+  color: #fff;
+}
+
+body.song-lab .nav .starter-banner {
+  display: none;
+}
+
+body.song-lab h1[data-section-mark]::before {
+  content: none;
+  display: none;
+}
+
+body.song-lab .plai-bubble,
+body.song-lab #plai-ask-btn,
+body.song-lab #plai-ask-panel {
+  display: none !important;
+}
+
+body.song-lab .nav,
+body.song-lab footer {
+  background: #000;
+  box-shadow: none;
+}
+
+body.song-lab .menu-toggle,
+body.song-lab .public-header-tools .login,
+body.song-lab .nav-actions .login,
+body.song-lab .nav .btn,
+body.song-lab .btn,
+body.song-lab a.btn,
+body.song-lab button.btn {
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+body.song-lab .nav .btn,
+body.song-lab .menu-toggle,
+body.song-lab .public-header-tools .login,
+body.song-lab .nav-actions .login {
+  min-height: 44px;
+  border-color: #fff;
+}
+
+body.song-lab .btn:hover,
+body.song-lab a.btn:hover,
+body.song-lab button.btn:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+body.song-lab .btn-purple,
+body.song-lab a.btn-purple,
+body.song-lab button.btn-purple {
+  background: #fff;
+  color: #000;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+
+body.song-lab .btn-purple:hover,
+body.song-lab a.btn-purple:hover,
+body.song-lab .btn-gold,
+body.song-lab .btn-gold:hover {
+  background: #e8e8e8;
+  color: #000;
+  box-shadow: none;
+}
+
+body.song-lab .btn-gold {
+  background: #fff;
+  border: 1px solid #fff;
+  border-radius: 0;
+}
+
+body.song-lab .btn-ghost,
+body.song-lab a.btn-ghost,
+body.song-lab button.btn-ghost {
+  background: #000;
+  color: #fff;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+
+body.song-lab .btn-ghost:hover,
+body.song-lab a.btn-ghost:hover {
+  background: #fff;
+  color: #000;
+}
+
+body.song-lab .btn,
+body.song-lab .sh-side-actions .btn,
+body.song-lab .sh-actions .btn {
+  min-height: 48px;
+  padding: 12px 18px;
+  font-size: 16px;
+}
+
+body.song-lab a.nav-siqa {
+  color: #fff !important;
+}
+
+body.song-lab .nav-links [data-nav-group] > a::before,
+body.song-lab .nav-links a.nav-siqa::before {
+  background-color: #fff;
+}
+
+body.song-lab p.starter-cta,
+body.song-lab .starter-foot,
+body.song-lab .starter-cta {
+  color: #fff;
+  background: transparent;
+}
+
+body.song-lab .sh {
+  padding-top: calc(var(--nav-h) + 16px);
+}
+
+body.song-lab .sh-shell {
+  min-height: calc(100dvh - var(--nav-h));
+}
+
+body.song-lab .sh h1 {
+  font-size: clamp(1.45rem, 3.2vw, 2.15rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px;
+  max-width: 16em;
+}
+
+body.song-lab .sh-flow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid #fff;
+  counter-reset: song-step;
+}
+
+body.song-lab .sh-flow li {
+  counter-increment: song-step;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 64px;
+  margin: 0;
+  padding: 10px 12px 10px 0;
+  border-top: 1px solid #fff;
+}
+
+body.song-lab .sh-flow li:nth-child(odd) {
+  border-right: 1px solid #fff;
+  padding-right: 12px;
+}
+
+body.song-lab .sh-flow li:nth-child(even) {
+  padding-left: 12px;
+}
+
+body.song-lab .sh-flow li:nth-child(-n + 2) {
+  border-top: 0;
+}
+
+body.song-lab .sh-flow li::before {
+  content: counter(song-step);
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+
+body.song-lab .sh-step-name {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+body.song-lab .sh-age {
+  margin: 0 0 14px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+body.song-lab .sh-demo,
+body.song-lab .sh-banner {
+  background: #000;
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.song-lab .sh-craft,
+body.song-lab .sh-log,
+body.song-lab .sh-note-block,
+body.song-lab .spark-card,
+body.song-lab .sh-profile,
+body.song-lab .sh-hook,
+body.song-lab .sh-suno-text,
+body.song-lab .sh-prompt,
+body.song-lab .sh-record,
+body.song-lab .sh-answer,
+body.song-lab .sh-input,
+body.song-lab .sh-area,
+body.song-lab .sh-title {
+  border-radius: 0;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+body.song-lab .sh-craft {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: #000;
+}
+
+body.song-lab .sh-choice,
+body.song-lab .sh-chip,
+body.song-lab .sh-mini,
+body.song-lab .sh-x-tile,
+body.song-lab .sh-x-tile-toggle,
+body.song-lab .sh-hook,
+body.song-lab .sh-answer {
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid #fff;
+  background: #000;
+  color: #fff;
+  min-height: 48px;
+}
+
+body.song-lab .sh-choice {
+  text-align: center;
+  font-size: 16px;
+  padding: 14px 16px;
+}
+
+body.song-lab .sh-chip {
+  padding: 12px 14px;
+}
+
+body.song-lab .sh-choice:hover,
+body.song-lab .sh-choice.on,
+body.song-lab .sh-chip.on,
+body.song-lab .sh-chip:hover,
+body.song-lab .sh-x-tile:hover,
+body.song-lab .sh-hook.on,
+body.song-lab .sh-hook:hover {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+  box-shadow: none;
+}
+
+body.song-lab .sh-dot {
+  border-radius: 0;
+  width: 10px;
+  height: 10px;
+  background: transparent;
+  border: 1px solid #fff;
+}
+
+body.song-lab .sh-dot.done,
+body.song-lab .sh-dot.on {
+  background: #fff;
+  box-shadow: none;
+  transform: none;
+}
+
+body.song-lab .sh-you,
+body.song-lab .sh-line.is-user {
+  box-shadow: inset 0 -1px 0 #fff;
+  background: transparent;
+  text-decoration-color: #fff;
+  border-radius: 0;
+}
+
+body.song-lab .sh-line.is-user {
+  box-shadow: inset 2px 0 0 #fff;
+}
+
+body.song-lab .sh-note,
+body.song-lab .sh-suno-warn,
+body.song-lab .sh-meter-label,
+body.song-lab .sh-answers-title,
+body.song-lab .sh-answer b,
+body.song-lab .sh-style-note,
+body.song-lab .sh-kicker {
+  color: #fff;
+}
+
+body.song-lab .sh-style-meter {
+  border-radius: 0;
+  background: #000;
+  border: 1px solid #fff;
+  height: 6px;
+}
+
+body.song-lab .sh-style-meter span {
+  background: #fff;
+}
+
+body.song-lab .sh-meter {
+  background: #000;
+  border: 1px solid #fff;
+  border-radius: 0;
+}
+
+body.song-lab .sh-x-road li.is-done,
+body.song-lab .sh-x-road li.is-now {
+  color: #fff;
+}
+
+body.song-lab .sh-x-road li.is-done::before,
+body.song-lab .sh-x-road li.is-now::before {
+  background: #fff;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+body.song-lab .sh-x-road li::before {
+  border-radius: 0;
+}
+
+body.song-lab #sh-feeling.is-scene,
+body.song-lab #sh-feeling.is-scene[data-hue],
+body.song-lab #sh-purpose.is-scene,
+body.song-lab #sh-purpose.is-scene[data-hue],
+body.song-lab #sh-page.is-scene,
+body.song-lab #sh-page.is-scene[data-hue] {
+  background: #000;
+}
+
+body.song-lab #sh-feeling.is-scene::before,
+body.song-lab #sh-purpose.is-scene::before,
+body.song-lab #sh-page.is-scene::before {
+  content: none;
+  display: none;
+}
+
+body.song-lab .sh-x-avatar {
+  border-radius: 0;
+  background: #000;
+  border: 1px solid #fff;
+  box-shadow: none;
+  animation: none;
+}
+
+body.song-lab .sh-x-curtain {
+  background: #000;
+}
+
+body.song-lab .sh-x-record {
+  border-radius: 0;
+  background: #000;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+
+body.song-lab .sh-x-wave span,
+body.song-lab .sh-x-wave span:nth-child(2n),
+body.song-lab .sh-x-wave span:nth-child(3n) {
+  background: #fff;
+  border-radius: 0;
+}
+
+body.song-lab .sh-part.is-drop .sh-part-box {
+  outline: 1px solid #fff;
+}
+
+body.song-lab .sh-below,
+body.song-lab section[aria-label="Questions"] {
+  margin: 0;
+}
+
+body.song-lab .sh-below .wrap,
+body.song-lab section[aria-label="Questions"] .wrap {
+  max-width: 720px;
+}
+
+body.song-lab .sh-below {
+  margin-top: 8px;
+}
+
+body.song-lab section[aria-label="Questions"] h2 {
+  font-size: 1.15rem;
+  margin: 22px 0 0;
+}
+
+body.song-lab .sh-fold {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+body.song-lab .sh-below .sh-fold:first-child,
+body.song-lab section[aria-label="Questions"] .sh-fold:first-of-type {
+  border-top: 1px solid #fff;
+}
+
+body.song-lab .sh-fold summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 16px;
+  line-height: 1.3;
+  list-style: none;
+}
+
+body.song-lab .sh-fold summary::-webkit-details-marker {
+  display: none;
+}
+
+body.song-lab .sh-fold summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid #fff;
+  border-bottom: 1px solid #fff;
+  transform: rotate(45deg);
+  flex: 0 0 auto;
+  margin-top: -4px;
+}
+
+body.song-lab .sh-fold[open] summary::after {
+  transform: rotate(-135deg);
+  margin-top: 4px;
+}
+
+body.song-lab .sh-fold p {
+  color: #ddd;
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+body.song-lab .sh-lab-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+
+body.song-lab .sh-lab-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #fff;
+  border-radius: 0;
+  color: #fff;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+body.song-lab .sh-lab-links a:hover {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+body.song-lab .sh-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 16px 0 0;
+}
+
+body.song-lab .sh-related a.learn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: #fff;
+}
+
+@media (min-width: 800px) {
+  body.song-lab .sh-flow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  body.song-lab .sh-flow li,
+  body.song-lab .sh-flow li:nth-child(odd),
+  body.song-lab .sh-flow li:nth-child(even),
+  body.song-lab .sh-flow li:nth-child(-n + 2) {
+    border-top: 0;
+    border-right: 0;
+    border-left: 1px solid #fff;
+    padding: 14px 16px;
+  }
+
+  body.song-lab .sh-flow li:first-child {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  body.song-lab .sh-side-actions,
+  body.song-lab .sh-actions,
+  body.song-lab .sh-team {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.song-lab .sh-side-actions .btn,
+  body.song-lab .sh-actions .btn,
+  body.song-lab .sh-team .btn,
+  body.song-lab .sh-actions a.btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  body.song-lab .sh-chip {
+    min-height: 44px;
+  }
+}
