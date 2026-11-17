@@ -236,4 +236,80 @@ body.song-helper-page .ly-questions summary {
 }
 @media (min-width: 980px) {
   body.song-helper-page .sh h1::before { width: 28px; height: 28px; flex-basis: 28px; }
+  body.song-helper-page .sh h1 { font-size: 40px; line-height: 48px; }
+}
+
+/* Rolex measure: more air, hairlines only, no gold. */
+body.song-helper-page .sh {
+  padding: calc(var(--nav-h) + 48px) 0 96px;
+}
+body.song-helper-page .sh-shell {
+  max-width: 720px;
+}
+body.song-helper-page .sh-kicker {
+  margin: 0 0 16px !important;
+  letter-spacing: .16em !important;
+}
+body.song-helper-page .sh h1 {
+  margin: 0 0 32px !important;
+  letter-spacing: -.03em !important;
+  font-weight: 500 !important;
+}
+body.song-helper-page .ly-steps {
+  gap: 8px 40px;
+  margin: 0 0 32px !important;
+  padding: 0 0 16px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .16) !important;
+}
+body.song-helper-page .ly-steps li {
+  letter-spacing: .08em !important;
+  font-weight: 500;
+}
+body.song-helper-page .ly-steps span {
+  letter-spacing: .14em;
+}
+body.song-helper-page .sh-honest {
+  margin: 0 0 8px !important;
+}
+body.song-helper-page .sh-age {
+  margin: 0 0 24px !important;
+}
+body.song-helper-page .sh-lab-links {
+  margin: 0 0 48px !important;
+  gap: 24px;
+}
+body.song-helper-page #sh-start {
+  padding-top: 8px !important;
+}
+body.song-helper-page .sh-craft-title {
+  margin: 0 0 16px !important;
+  letter-spacing: .16em !important;
+  text-transform: uppercase;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  color: rgba(244, 244, 244, .55) !important;
+}
+body.song-helper-page .sh-choice,
+body.song-helper-page .sh-chip {
+  padding: 16px 0 !important;
+  min-height: 56px;
+  letter-spacing: .04em !important;
+}
+body.song-helper-page .sh-idea-choices {
+  gap: 0 !important;
+}
+body.song-helper-page .nav-songlab,
+body.song-helper-page .nav-siqa,
+body.song-helper-page .nav-links a[style*="F3CB47"],
+body.song-helper-page .nav-links a[style*="f3cb47"] {
+  color: rgba(244, 244, 244, .78) !important;
+}
+body.song-helper-page .starter-banner,
+body.song-helper-page .starter-banner:hover {
+  background: #000 !important;
+  color: rgba(244, 244, 244, .72) !important;
+}
+@media (min-width: 980px) {
+  body.song-helper-page .sh-shell { max-width: 880px; }
+  body.song-helper-page .sh { padding-top: calc(var(--nav-h) + 64px); }
 }
