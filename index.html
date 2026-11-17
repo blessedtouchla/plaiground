@@ -414,6 +414,61 @@
     body.home-portal .hf-icons li:nth-child(5) a:active{background:#F09416!important;border-color:#F09416!important;color:#000!important}
     body.home-portal .hf-icons li:nth-child(5) a:active b,
     body.home-portal .hf-icons li:nth-child(5) a:active em{color:#000!important}
+
+    /* Section marks sit beside the pill labels. Thin stroke, palette color, no fill. */
+    body.home-portal .hf-icons a::before,
+    body.home-portal .hf-trio-row a::before,
+    body.home-portal .hf-road-picks a::before,
+    body.home-portal .hf-btn::before,
+    body.home-portal .hero-ctas .btn-gold::before{
+      content:""!important;
+      display:block!important;
+      width:24px!important;
+      height:24px!important;
+      flex:0 0 24px!important;
+      border-radius:0!important;
+      background-image:none!important;
+      -webkit-mask:var(--pill-mark) center / contain no-repeat!important;
+      mask:var(--pill-mark) center / contain no-repeat!important
+    }
+    @media (min-width:980px){
+      body.home-portal .hf-icons a::before,
+      body.home-portal .hf-trio-row a::before,
+      body.home-portal .hf-road-picks a::before,
+      body.home-portal .hf-btn::before,
+      body.home-portal .hero-ctas .btn-gold::before{
+        width:28px!important;
+        height:28px!important;
+        flex-basis:28px!important
+      }
+    }
+    body.home-portal .hf-icons li:nth-child(1) a::before{--pill-mark:url("/assets/marks/home.svg");background-color:#D03083!important}
+    body.home-portal .hf-icons li:nth-child(2) a::before,
+    body.home-portal .hf-trio-row a:nth-child(1)::before,
+    body.home-portal .hf-btn::before{--pill-mark:url("/assets/marks/song-lab.svg");background-color:#D03083!important}
+    body.home-portal .hf-icons li:nth-child(2) a::before,
+    body.home-portal .hf-trio-row a:nth-child(1)::before{background-color:#F3CB47!important}
+    body.home-portal .hf-icons li:nth-child(3) a::before{--pill-mark:url("/assets/marks/siqa.svg");background-color:#782FB1!important}
+    body.home-portal .hf-trio-row a:nth-child(2)::before{--pill-mark:url("/assets/marks/publishing.svg");background-color:#782FB1!important}
+    body.home-portal .hf-icons li:nth-child(4) a::before,
+    body.home-portal .hf-trio-row a:nth-child(3)::before{--pill-mark:url("/assets/marks/release.svg");background-color:#61B63A!important}
+    body.home-portal .hf-icons li:nth-child(5) a::before{--pill-mark:url("/assets/marks/manage.svg");background-color:#F09416!important}
+    body.home-portal .hero-ctas .btn-gold::before{--pill-mark:url("/assets/marks/roadmap.svg");background-color:#fff!important}
+    body.home-portal .hf-road-picks a:nth-child(1)::before{--pill-mark:url("/assets/marks/song-lab.svg");background-color:#D03083!important}
+    body.home-portal .hf-road-picks a:nth-child(2)::before{--pill-mark:url("/assets/marks/publishing.svg");background-color:#F3CB47!important}
+    body.home-portal .hf-road-picks a:nth-child(3)::before{--pill-mark:url("/assets/marks/release.svg");background-color:#61B63A!important}
+    body.home-portal .hf-icons li:nth-child(1) a:active::before,
+    body.home-portal .hf-icons li:nth-child(3) a:active::before,
+    body.home-portal .hf-trio-row a:nth-child(2):active::before,
+    body.home-portal .hf-btn:active::before,
+    body.home-portal .hf-road-picks a:nth-child(1):active::before{background-color:#fff!important}
+    body.home-portal .hf-icons li:nth-child(2) a:active::before,
+    body.home-portal .hf-icons li:nth-child(4) a:active::before,
+    body.home-portal .hf-icons li:nth-child(5) a:active::before,
+    body.home-portal .hf-trio-row a:nth-child(1):active::before,
+    body.home-portal .hf-trio-row a:nth-child(3):active::before,
+    body.home-portal .hf-road-picks a:nth-child(2):active::before,
+    body.home-portal .hf-road-picks a:nth-child(3):active::before{background-color:#000!important}
   </style>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "PLAIGROUND", "url": "https://www.wannaplai.com/", "logo": "https://www.wannaplai.com/assets/plaiground-logo.png", "sameAs": ["https://www.instagram.com/plaigroundmusic/"]}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PLAIGROUND", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web", "url": "https://www.wannaplai.com/", "description": "Release music to Spotify and Apple Music, write with AI help, make cover art and an EPK, and sign split sheets. Join free with starter credits to try every tool.", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free account with free starter credits. Tools use credits."}}</script>

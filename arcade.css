@@ -1112,12 +1112,38 @@ body.song-lab .arc-index h1::before,
 body.song-lab .arc-marquee::before{
   content:"";
   display:inline-block;
-  width:20px;
-  height:20px;
+  width:24px;
+  height:24px;
   margin:0 10px 0 0;
   vertical-align:middle;
   background-color:#D03083;
   background-image:none;
   -webkit-mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
   mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+}
+@media (min-width:980px){
+  body.song-lab .arc-index h1::before,
+  body.song-lab .arc-marquee::before{width:28px;height:28px}
+}
+
+/* Distinct marks on the three doors, beside the label. */
+body.song-lab .arc-home .arc-cards .arc-card{grid-template-columns:24px minmax(0,1fr)!important}
+body.song-lab .arc-home .arc-cards .arc-card::before{
+  width:24px!important;
+  height:24px!important;
+  flex:0 0 24px!important;
+  border-radius:0!important;
+  background-image:none!important;
+  -webkit-mask:var(--door-mark) center / contain no-repeat!important;
+  mask:var(--door-mark) center / contain no-repeat!important
+}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1)::before{--door-mark:url("/assets/marks/song-lab.svg");background-color:#D03083!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2)::before{--door-mark:url("/assets/marks/research.svg");background-color:#F3CB47!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3)::before{--door-mark:url("/assets/marks/roadmap.svg");background-color:#782FB1!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(1):active::before,
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(3):active::before{background-color:#fff!important}
+body.song-lab .arc-home .arc-cards .arc-card:nth-child(2):active::before{background-color:#000!important}
+@media (min-width:980px){
+  body.song-lab .arc-home .arc-cards .arc-card{grid-template-columns:28px minmax(0,1fr)!important}
+  body.song-lab .arc-home .arc-cards .arc-card::before{width:28px!important;height:28px!important;flex-basis:28px!important}
 }

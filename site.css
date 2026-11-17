@@ -8706,9 +8706,9 @@ p.starter-cta a { color: inherit; }
 h1[data-section-mark]::before {
   content: "";
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   margin: 0 8px 0 0;
   background-color: #fff;
   background-image: none;
@@ -8764,9 +8764,9 @@ h1[data-section-mark="manage"]::before { --section-mark: url("/assets/marks/mana
 .footer-col a[href="research.html"]::before {
   content: "";
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   margin: 0 8px 0 0;
   background-color: #fff;
   background-image: none;
@@ -8792,6 +8792,29 @@ h1[data-section-mark="manage"]::before { --section-mark: url("/assets/marks/mana
 .nav-links [data-nav-group="out"] a[href="signup.html"]::before,
 .nav-links a[href="releases.html"]::before,
 .footer-col[data-footer-journey="release"] > a[href="signup.html"]::before { --section-mark: url("/assets/marks/release.svg"); background-color: #61B63A; }
+
+@media (min-width: 980px) {
+  .nav-links [data-nav-group="roadmap"] > a::before,
+  .nav-links [data-nav-group="song-helper"] > a::before,
+  .nav-links a.nav-siqa::before,
+  .nav-links a[href="/song-helper"]::before,
+  .nav-links a[href="/destination"]::before,
+  .nav-links a[href="publishing.html"]::before,
+  .nav-links a[href="/research"]::before,
+  .nav-links a[href="/charts"]::before,
+  .nav-links [data-nav-group="out"] a[href="signup.html"]::before,
+  .side-nav a[href="/destination"]::before,
+  .side-nav a[href="/song-helper"]::before,
+  .side-nav a[href="releases.html"]::before,
+  .side-nav a[href="publishing.html"]::before,
+  .side-nav a[href="research.html"]::before,
+  .side-nav a[href="/charts"]::before,
+  h1[data-section-mark]::before {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+}
 
 body :is(h1, h2, h3, h4),
 body .nav-links a,
