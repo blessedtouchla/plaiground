@@ -590,6 +590,20 @@ body.song-lab .arc-mod-actions .v3-link{position:static;margin:0}
 }
 
 /* Song Lab studio notebook. Solid black, one column, filled actions. Scoped so slang stays put. */
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-500.woff2") format("woff2");
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+}
 body.song-lab{
   background:#000!important;
   background-image:none!important;
@@ -611,7 +625,7 @@ body.song-lab .arc-index h1,
 body.song-lab .arc-marquee,
 body.song-lab .v3-plai,
 body.song-lab .arc-q{
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-weight:500!important;
   letter-spacing:-.03em!important;
   color:#f4f4f4!important;
@@ -690,7 +704,7 @@ body.song-lab .arc-back{
   color:#fff!important;
   box-shadow:none!important;
   text-decoration:none!important;
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-size:15px!important;
   font-weight:500!important;
   letter-spacing:0!important;
@@ -754,7 +768,7 @@ body.song-lab .v3-go{
   scale:none!important;
   animation:none!important;
   filter:none!important;
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-weight:500!important;
   cursor:pointer;
 }
@@ -799,7 +813,7 @@ body.song-lab .arc-tiny{
   rotate:none!important;
   transform:none!important;
   translate:none!important;
-  font-family:Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
   font-size:15px!important;
   font-weight:500!important;
   cursor:pointer;
@@ -1102,5 +1116,8 @@ body.song-lab .arc-marquee::before{
   height:20px;
   margin:0 10px 0 0;
   vertical-align:middle;
-  background:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+  background-color:#D03083;
+  background-image:none;
+  -webkit-mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+  mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
 }

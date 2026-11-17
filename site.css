@@ -26,6 +26,21 @@ html {
   max-width: 100%;
 }
 
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Satoshi;
+  src: url("/assets/fonts/satoshi-500.woff2") format("woff2");
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
@@ -8695,36 +8710,39 @@ h1[data-section-mark]::before {
   height: 20px;
   flex: 0 0 20px;
   margin: 0 8px 0 0;
-  background: center / contain no-repeat;
+  background-color: #fff;
+  background-image: none;
+  -webkit-mask: var(--section-mark) center / contain no-repeat;
+  mask: var(--section-mark) center / contain no-repeat;
   vertical-align: middle;
 }
 .side-nav a[href="/destination"]::before,
 .side-nav a[href="destination.html"]::before,
 .side-nav a[href="/my-roadmap"]::before,
 .side-nav a[href="my-roadmap.html"]::before,
-.nav-links [data-nav-group="roadmap"] > a::before { background-image: url("/assets/marks/roadmap.svg"); }
+.nav-links [data-nav-group="roadmap"] > a::before { --section-mark: url("/assets/marks/roadmap.svg"); background-color: #F09416; }
 .side-nav a[href="/song-helper"]::before,
 .side-nav a[href="song-helper.html"]::before,
-.nav-links [data-nav-group="song-helper"] > a::before { background-image: url("/assets/marks/song-lab.svg"); }
+.nav-links [data-nav-group="song-helper"] > a::before { --section-mark: url("/assets/marks/song-lab.svg"); background-color: #D03083; }
 .side-nav a[href="releases.html"]::before,
-.side-nav a[href="/releases"]::before { background-image: url("/assets/marks/release.svg"); }
+.side-nav a[href="/releases"]::before { --section-mark: url("/assets/marks/release.svg"); background-color: #61B63A; }
 .side-nav a[href="publishing.html"]::before,
 .side-nav a[href="publishing-register.html"]::before,
-.side-nav a[href="/publishing"]::before { background-image: url("/assets/marks/publishing.svg"); }
+.side-nav a[href="/publishing"]::before { --section-mark: url("/assets/marks/publishing.svg"); background-color: #F3CB47; }
 .side-nav a[href="research.html"]::before,
-.side-nav a[href="/research"]::before { background-image: url("/assets/marks/research.svg"); }
+.side-nav a[href="/research"]::before { --section-mark: url("/assets/marks/research.svg"); background-color: #782FB1; }
 .side-nav a[href="/charts"]::before,
 .side-nav a[href="charts.html"]::before,
 .side-nav a.nav-siqa::before,
-.nav-links a.nav-siqa::before { background-image: url("/assets/marks/siqa.svg"); }
-h1[data-section-mark="home"]::before { background-image: url("/assets/marks/home.svg"); }
-h1[data-section-mark="song-lab"]::before { background-image: url("/assets/marks/song-lab.svg"); }
-h1[data-section-mark="release"]::before { background-image: url("/assets/marks/release.svg"); }
-h1[data-section-mark="publishing"]::before { background-image: url("/assets/marks/publishing.svg"); }
-h1[data-section-mark="research"]::before { background-image: url("/assets/marks/research.svg"); }
-h1[data-section-mark="roadmap"]::before { background-image: url("/assets/marks/roadmap.svg"); }
-h1[data-section-mark="siqa"]::before { background-image: url("/assets/marks/siqa.svg"); }
-h1[data-section-mark="manage"]::before { background-image: url("/assets/marks/manage.svg"); }
+.nav-links a.nav-siqa::before { --section-mark: url("/assets/marks/siqa.svg"); background-color: #D03083; }
+h1[data-section-mark="home"]::before { --section-mark: url("/assets/marks/home.svg"); background-color: #fff; }
+h1[data-section-mark="song-lab"]::before { --section-mark: url("/assets/marks/song-lab.svg"); background-color: #D03083; }
+h1[data-section-mark="release"]::before { --section-mark: url("/assets/marks/release.svg"); background-color: #61B63A; }
+h1[data-section-mark="publishing"]::before { --section-mark: url("/assets/marks/publishing.svg"); background-color: #F3CB47; }
+h1[data-section-mark="research"]::before { --section-mark: url("/assets/marks/research.svg"); background-color: #782FB1; }
+h1[data-section-mark="roadmap"]::before { --section-mark: url("/assets/marks/roadmap.svg"); background-color: #F09416; }
+h1[data-section-mark="siqa"]::before { --section-mark: url("/assets/marks/siqa.svg"); background-color: #D03083; }
+h1[data-section-mark="manage"]::before { --section-mark: url("/assets/marks/manage.svg"); background-color: #F09416; }
 .side-nav a::before { margin-right: 0; }
 .nav-links a[href="/song-helper"]::before,
 .nav-links a[href="/destination"]::before,
@@ -8750,24 +8768,40 @@ h1[data-section-mark="manage"]::before { background-image: url("/assets/marks/ma
   height: 20px;
   flex: 0 0 20px;
   margin: 0 8px 0 0;
-  background: center / contain no-repeat;
+  background-color: #fff;
+  background-image: none;
+  -webkit-mask: var(--section-mark) center / contain no-repeat;
+  mask: var(--section-mark) center / contain no-repeat;
   vertical-align: middle;
 }
 .nav-links a[href="/song-helper"]::before,
-.footer-col a[href="/song-helper"]::before { background-image: url("/assets/marks/song-lab.svg"); }
+.footer-col a[href="/song-helper"]::before { --section-mark: url("/assets/marks/song-lab.svg"); background-color: #D03083; }
 .nav-links a[href="/destination"]::before,
 .nav-links a[href="destination.html"]::before,
-.footer-col a[href="/destination"]::before { background-image: url("/assets/marks/roadmap.svg"); }
+.footer-col a[href="/destination"]::before { --section-mark: url("/assets/marks/roadmap.svg"); background-color: #F09416; }
 .nav-links a[href="publishing.html"]::before,
 .nav-links a[href="publishing-register.html"]::before,
-.footer-col a[href="publishing.html"]::before { background-image: url("/assets/marks/publishing.svg"); }
+.footer-col a[href="publishing.html"]::before { --section-mark: url("/assets/marks/publishing.svg"); background-color: #F3CB47; }
 .nav-links a[href="/research"]::before,
 .nav-links a[href="research.html"]::before,
 .footer-col a[href="/research"]::before,
-.footer-col a[href="research.html"]::before { background-image: url("/assets/marks/research.svg"); }
+.footer-col a[href="research.html"]::before { --section-mark: url("/assets/marks/research.svg"); background-color: #782FB1; }
 .nav-links a[href="/charts"]::before,
 .nav-links a[href="charts.html"]::before,
-.footer-col a[href="/charts"]::before { background-image: url("/assets/marks/siqa.svg"); }
+.footer-col a[href="/charts"]::before { --section-mark: url("/assets/marks/siqa.svg"); background-color: #D03083; }
 .nav-links [data-nav-group="out"] a[href="signup.html"]::before,
 .nav-links a[href="releases.html"]::before,
-.footer-col[data-footer-journey="release"] > a[href="signup.html"]::before { background-image: url("/assets/marks/release.svg"); }
+.footer-col[data-footer-journey="release"] > a[href="signup.html"]::before { --section-mark: url("/assets/marks/release.svg"); background-color: #61B63A; }
+
+body :is(h1, h2, h3, h4),
+body .nav-links a,
+body .nav-group-toggle,
+body .nav-group-label,
+body .side-nav a,
+body .menu-toggle,
+body .public-header-login,
+body .btn,
+body a.btn,
+body button {
+  font-family: Satoshi, Inter, "Helvetica Neue", Arial, sans-serif;
+}
