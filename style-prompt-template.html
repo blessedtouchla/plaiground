@@ -35,6 +35,9 @@
 .spt-form input,.spt-form select{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#111;color:#fff;font-size:15px}
 .spt-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .btn-ghost-aiq{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.35)}
+.spt-walkthrough{width:min(100%,360px);margin:4px auto 8px;padding:0;border:0;background:none;box-shadow:none}
+.spt-walkthrough video{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:9/16;margin:0;background:#000;border:1px solid #fff;border-radius:0;box-shadow:none;object-fit:contain}
+.spt-walkthrough p{margin:12px 0 14px;text-align:center}
 @media(max-width:560px){.spt-box{padding:16px}.spt-form{grid-template-columns:1fr}.spt-ctas .btn{width:100%}}
 </style>
 </head>
@@ -72,6 +75,10 @@
     <section class="legal legal-doc" style="padding-top:8px;padding-bottom:24px">
       <div class="wrap">
         <article style="overflow-wrap:anywhere">
+<figure class="spt-walkthrough">
+  <video src="/assets/guides/style-prompt-template/recap.mp4" controls playsinline webkit-playsinline preload="metadata" poster="/assets/guides/style-prompt-template/cover.png" width="1080" height="1920"></video>
+  <p>Watch the 45-second walkthrough.</p>
+</figure>
 <p>Genre labels make AI music tools reach for the same chord loops, drum pockets and vocal phrasing every time. This template describes texture, how each part is played, and how the song changes section by section, so your track sounds like you and not like everyone else's. Fill in the highlighted brackets, paste it into your AI music tool's style box, and generate.</p>
 <div class="spt-box" id="template">
   <div class="spt-head"><h2>The template</h2><button class="btn btn-purple btn-sm" type="button" id="spt-copy-raw">Copy template</button></div>
