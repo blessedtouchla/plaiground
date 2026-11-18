@@ -8984,3 +8984,70 @@ body .choice[data-edit-made-how]:active span { color: #000; }
   .honest-choice[data-honest="full"]:hover,
   .artists-page .artist-class-pick:has(input[value="fully_ai"]):hover { border-color: var(--label-full); background: #000; }
 }
+/* Quick recap. Copy partials/blog-recap.html under the byline. Vertical frame, no autoplay. */
+.page-hero:has(+ .blog-recap-band) {
+  padding-bottom: 8px;
+}
+.blog-recap-band {
+  padding: 0 0 20px;
+}
+.blog-recap-slot {
+  width: min(100%, 720px);
+  margin: 0;
+}
+.blog-recap {
+  width: min(100%, 420px);
+  margin: 0 auto;
+}
+.blog-recap .eyebrow {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #E8E8EE;
+}
+.blog-recap video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
+  margin: 0;
+  background: #000;
+  border: 1px solid #fff;
+  border-radius: 0;
+  box-shadow: none;
+  object-fit: contain;
+}
+.blog-recap-yt {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin: 12px 0 0;
+  text-align: center;
+}
+.blog-recap-yt a {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.blog-recap-yt a:hover,
+.blog-recap-yt a:focus {
+  color: #fff;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-decoration: underline;
+}

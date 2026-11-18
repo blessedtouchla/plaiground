@@ -1,0 +1,23 @@
+<!--
+  Quick recap player for a blog post.
+  Copy the section below and place it just under the H1 byline, before the body.
+  Save the clip as assets/blog/SLUG/recap.mp4 (H.264, faststart, keep the audio, stay under about 6 MB)
+  and a poster as assets/blog/SLUG/recap.jpg from an early frame.
+  Styles live on .blog-recap in site.css. Bump that page's site.css query so the rules load.
+  The 420px cap is for a vertical frame. width and height stay the real pixel size so iPhone Safari
+  can size the poster before the file loads. playsinline keeps playback in the page.
+  If the post already has JSON-LD, add a VideoObject script. See blog-cd-era-vs-streaming-pay.html.
+  YouTube and Instagram are optional. Keep the anchors you need, replace the URLs, and delete an anchor you do not. Delete the paragraph when there is no link.
+-->
+<section class="blog-recap-band" aria-label="Watch the quick recap">
+  <div class="wrap">
+    <div class="blog-recap-slot">
+      <figure class="blog-recap">
+        <p class="eyebrow">Watch the quick recap</p>
+        <video src="/assets/blog/SLUG/recap.mp4" controls playsinline webkit-playsinline preload="metadata" poster="/assets/blog/SLUG/recap.jpg" width="WIDTH" height="HEIGHT"></video>
+        <!-- Optional. Delete an anchor, or the whole paragraph, when that URL is absent. -->
+        <p class="blog-recap-yt"><a href="YOUTUBE_URL" target="_blank" rel="noopener">Watch on YouTube</a> <a href="INSTAGRAM_URL" target="_blank" rel="noopener">Watch on Instagram</a></p>
+      </figure>
+    </div>
+  </div>
+</section>

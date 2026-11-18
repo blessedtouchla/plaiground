@@ -60,3 +60,7 @@ Add the same URL to `sitemap.xml`. Put a card at the top of `blog.html` and bump
 Pull-quotes are italic. Load Inter italic on the page:
 
 `family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600`
+
+## Quick recap video
+
+Optional. Copy `partials/blog-recap.html` and place it just under the H1 byline, before the body. Replace `SLUG`, `WIDTH`, and `HEIGHT`. Put `recap.mp4` and `recap.jpg` in `assets/blog/<slug>/`. The player uses the site eyebrow label, a 1px white frame, and a solid black video. No autoplay. If the post already has JSON-LD, add a VideoObject block the way `blog-cd-era-vs-streaming-pay.html` does. YouTube and Instagram links are optional. Keep the anchors you need and replace `YOUTUBE_URL` or `INSTAGRAM_URL`, or delete an anchor. Delete the paragraph when there is no link.
