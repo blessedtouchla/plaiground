@@ -1841,7 +1841,7 @@ function run() {
   assert.ok(html.includes('<h3>Stores</h3>'));
   assert.ok(html.includes('data-song-stores-list'));
   assert.ok(html.includes('data-song-codes'));
-  assert.ok(!/ToneGrid|InterSpace|DistroKid/i.test(html));
+  assert.ok(!/ToneGrid|InterSpace|DistroKid/i.test(html.replace(/Need to verify a featured artist with DistroKid\?/g, '')));
   assert.ok(css.includes('.song-store-links'));
   assert.ok(html.includes('lib/live-player.js'));
   assert.ok(html.includes('data-song-streams'));

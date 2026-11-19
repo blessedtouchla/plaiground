@@ -226,6 +226,18 @@
       "permanent": true
     },
     {
+      "source": "/feature-verification",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/feature-verification",
+      "permanent": true
+    },
+    {
+      "source": "/feature-verification/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/feature-verification",
+      "permanent": true
+    },
+    {
       "source": "/claim",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/claim",
@@ -453,6 +465,8 @@
     { "source": "/copyright/", "destination": "/copyright.html" },
     { "source": "/ipi-guide", "destination": "/ipi-guide.html" },
     { "source": "/ipi-guide/", "destination": "/ipi-guide.html" },
+    { "source": "/feature-verification", "destination": "/feature-verification.html" },
+    { "source": "/feature-verification/", "destination": "/feature-verification.html" },
     { "source": "/publishing/ipi-guide", "destination": "/ipi-guide.html" },
     { "source": "/qualify", "destination": "/qualify.html" },
     { "source": "/qualify/", "destination": "/qualify.html" },
@@ -544,6 +558,8 @@
     { "source": "/blog/youtube-ai-disclosure-guide", "destination": "/blog-youtube-ai-disclosure-guide.html" },
     { "source": "/blog/your-suno-song-your-rights", "destination": "/blog-your-suno-song-your-rights.html" },
     { "source": "/blog/suno-update-november-2026", "destination": "/blog-suno-update-november-2026.html" },
+    { "source": "/blog/when-the-stage-owns-the-pipe", "destination": "/blog-when-the-stage-owns-the-pipe.html" },
+    { "source": "/blog/suno-visuals-music-videos", "destination": "/blog-suno-visuals-music-videos.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
