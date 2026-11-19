@@ -52,8 +52,39 @@ async function run() {
   });
   assert.strictEqual(again.created, false);
   assert.strictEqual(again.songs.length, 1);
+  const styled = await lyrics.saveOwn('user-1', {
+    title: 'Night bus',
+    text: 'I waited in the rain\nThe light stayed on',
+    mode: 'hook',
+    mood: 'hopeful',
+    style: 'dusty Rhodes, 72 BPM',
+    label: 'Full AI',
+  });
+  assert.strictEqual(styled.created, false);
+  assert.strictEqual(styled.songs.length, 1);
+  assert.strictEqual(styled.song.style, 'dusty Rhodes, 72 BPM');
+  assert.strictEqual(styled.song.label, 'Fully AI');
+  const otherSong = await lyrics.saveOwn('user-1', {
+    title: 'Day bus',
+    text: 'The sun came up',
+    mode: 'hook',
+    mood: 'hopeful',
+    style: 'bright claps',
+    label: 'Human',
+  });
+  assert.strictEqual(otherSong.created, true);
+  const third = await lyrics.saveOwn('user-1', {
+    title: 'Night bus',
+    text: 'I waited in the rain\nThe light stayed on',
+    mode: 'hook',
+    mood: 'hopeful',
+    style: 'dusty Rhodes, 72 BPM',
+    label: 'Fully AI',
+  });
+  assert.strictEqual(third.created, false);
+  assert.strictEqual(third.songs.length, 2);
   const listed = await lyrics.listOwn('user-1');
-  assert.strictEqual(listed.songs[0].id, saved.song.id);
+  assert.ok(listed.songs.some(function (song) { return song.id === saved.song.id && song.label === 'Fully AI' && song.style === 'dusty Rhodes, 72 BPM'; }));
   const other = await lyrics.listOwn('user-2');
   assert.strictEqual(other.songs.length, 0);
 

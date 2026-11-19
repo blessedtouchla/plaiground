@@ -102,13 +102,18 @@
     if (title) title.textContent = song.title || 'Untitled';
     if (meta) {
       var bits = [];
+      if (song.label) bits.push(song.label);
       if (song.mode) bits.push(song.mode);
       if (song.mood) bits.push(song.mood);
       if (song.sparkTitle) bits.push(song.sparkTitle);
       if (song.saved_at) bits.push('Saved ' + formatWhen(song.saved_at));
       meta.textContent = bits.join(' · ');
     }
-    if (text) text.textContent = song.text || '';
+    if (text) {
+      var body = song.text || '';
+      if (song.style) body += (body ? '\n\n' : '') + 'Style prompt\n' + song.style;
+      text.textContent = body;
+    }
   }
 
   function write(body, keepId) {
