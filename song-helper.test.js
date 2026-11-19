@@ -1542,6 +1542,16 @@ function runIdeaInput() {
     ],
   }), [meal]);
   assert.deepStrictEqual(keptJoke.twists, ['The family lists every skipped chore out loud like a victory roll call']);
+  const duped = arcade.normalizeCouchCatch(JSON.stringify({
+    feeling: 'Relief',
+    details: ['Thanksgiving dinner at a restaurant', 'Thanksgiving dinner at a restaurant this year', 'We do not have to do the chores', 'thanksgiving dinner at a restaurant'],
+    title: 'Dinner',
+    twists: [keptJoke.twists[0]],
+  }), [meal]);
+  assert.strictEqual(duped.details.filter(function (d) { return /restaurant/i.test(d); }).length, 1);
+  assert.ok(/exactly 3/.test(arcade.couchCatchPrompt({ type: 'holiday' }, [meal])));
+  assert.ok(read('lib/arcade-server.js').includes('notes.twists.length < 2'));
+  assert.ok(read('arcade.css').includes('.arc-twists .arc-chip'));
   const couchSong = arcade.songPrompt({
     type: 'holiday',
     answers: {
