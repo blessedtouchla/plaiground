@@ -1514,22 +1514,32 @@ function runIdeaInput() {
   assert.strictEqual(arcade.couchShouldCatch(3, 'the holidays', false), false);
   assert.strictEqual(arcade.couchShouldCatch(4, 'the holidays', false), true);
   assert.strictEqual(arcade.couchOpener({ type: 'holiday' }), "What's going on with the holidays this year?");
-  const thinReply = arcade.couchReply('the holidays');
-  assert.strictEqual(thinReply.thin, true);
-  assert.ok(/holiday/i.test(thinReply.text));
-  assert.ok(thinReply.text.length <= arcade.COUCH_SAY_MAX);
-  assert.ok(thinReply.text.indexOf('\u2014') === -1);
+  assert.strictEqual(arcade.couchReply('the holidays').thin, true);
+  assert.strictEqual(arcade.replyIsTemplate('You said "dinner". What else around that should the song keep?'), true);
+  assert.strictEqual(arcade.replySoundsReal('No dishes, no oven at 6 AM. Who is secretly mad about the restaurant?', meal), true);
+  assert.strictEqual(arcade.twistIsComic('The holiday is at a restaurant, not the home kitchen', meal), false);
+  assert.strictEqual(arcade.twistIsComic('The family lists every skipped chore out loud like a victory roll call', meal), true);
   const caught = arcade.couchCatch([meal]);
   assert.strictEqual(caught.feeling, 'Relief');
   assert.ok(caught.details.some(function (d) { return /restaurant/i.test(d); }));
   assert.ok(caught.details.some(function (d) { return /chore/i.test(d); }));
-  assert.ok(caught.details.length >= 3 && caught.details.length <= 5);
-  assert.ok(caught.twists.length >= 2 && caught.twists.length <= 3);
-  caught.twists.forEach(function (twist) {
-    assert.ok(arcade.couchMentions(twist, meal), twist);
-    assert.ok(twist.length <= arcade.COUCH_SAY_MAX);
-  });
-  assert.ok(!/%/.test(arcade.couchReplyPrompt({ type: 'holiday' }, 'the holidays', []) + arcade.couchCatchPrompt({ type: 'holiday' }, [meal])));
+  assert.deepStrictEqual(caught.twists, []);
+  const prompt = arcade.couchReplyPrompt({ type: 'holiday' }, meal, []) + arcade.couchCatchPrompt({ type: 'holiday' }, [meal]);
+  assert.ok(/secretly mad/.test(prompt));
+  assert.ok(/victory roll call/.test(prompt));
+  assert.ok(/not a paraphrase|Never return a twist that only restates/.test(prompt));
+  assert.ok(!/%/.test(prompt));
+  assert.ok(prompt.indexOf('\u2014') === -1);
+  const keptJoke = arcade.normalizeCouchCatch(JSON.stringify({
+    feeling: 'Relief',
+    details: ['A restaurant', 'The chores'],
+    title: 'No chores',
+    twists: [
+      'The holiday is at a restaurant, not the home kitchen',
+      'The family lists every skipped chore out loud like a victory roll call',
+    ],
+  }), [meal]);
+  assert.deepStrictEqual(keptJoke.twists, ['The family lists every skipped chore out loud like a victory roll call']);
   const couchSong = arcade.songPrompt({
     type: 'holiday',
     answers: {

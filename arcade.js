@@ -430,7 +430,8 @@
     post('arcade-couch', { step: 'reply', said: latest, log: c.log }).then(function (d) {
       if (d.__stale) return;
       c.busy = false;
-      if (!d.ok || d.fallback || !d.text) { couchFallback(); return; }
+      if (!d.ok || d.fallback) { couchFallback(); return; }
+      if (d.noModel || !d.text) { pullCouch(); return; }
       c.log.push({ who: 'plai', text: A.couchSay(d.text) });
       c.plaiTurns += 1;
       paint();
@@ -449,6 +450,7 @@
       c.details = d.details || [];
       c.title = d.title || '';
       c.twists = d.twists || [];
+      c.noModel = !!d.noModel || !c.twists.length;
       c.phase = 'notes';
       c.plaiTurns += 1;
       paint();
@@ -523,7 +525,8 @@
     if (c.title) pin(c.title, 'title');
     w.appendChild(pins);
     w.appendChild(el('p', 'arc-q', 'A twist in what you said'));
-    w.appendChild(el('p', 'hint', 'Pick one, type your own, or leave it.'));
+    if (c.twists && c.twists.length) w.appendChild(el('p', 'hint', 'Pick one, type your own, or leave it.'));
+    else w.appendChild(el('p', 'hint', c.noModel ? 'No model on this call, so there is no twist from Plai. Type your own if you want one.' : 'No twist landed. Type your own if you want one.'));
     var twists = el('div', 'arc-chips arc-twists');
     (c.twists || []).forEach(function (t) {
       twists.appendChild(btn(t, 'arc-chip small' + (c.picked === t ? ' on' : ''), function () {
@@ -536,7 +539,7 @@
     var own = el('textarea', 'arc-input arc-idea arc-couch-input');
     own.rows = 2;
     own.maxLength = A.IDEA_MAX;
-    own.placeholder = 'Or type your own twist';
+    own.placeholder = (c.twists && c.twists.length) ? 'Or type your own twist' : 'Type your own twist';
     own.setAttribute('aria-label', 'Your twist');
     own.setAttribute('data-keep', 's-brief:twist');
     own.value = c.ownTwist || '';
