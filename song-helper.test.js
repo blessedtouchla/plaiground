@@ -1503,6 +1503,69 @@ function runIdeaInput() {
   assert.strictEqual(prepped.ideas[1], 'short chip');
   assert.strictEqual(arcade.clipIdea(undefined), '');
 
+  assert.strictEqual(arcade.answerIsThin('the holidays'), true);
+  assert.strictEqual(arcade.answerIsThin('it was nice I guess'), true);
+  const meal = 'Thanksgiving dinner at a restaurant this year. We do not have to do the chores. The good parts show up when we sit down.';
+  assert.strictEqual(arcade.answerIsThin(meal), false);
+  assert.strictEqual(arcade.couchShouldCatch(1, meal, false), false);
+  assert.strictEqual(arcade.couchShouldCatch(1, 'the holidays', true), true);
+  assert.strictEqual(arcade.couchShouldCatch(2, meal, false), true);
+  assert.strictEqual(arcade.couchShouldCatch(2, 'the holidays', false), false);
+  assert.strictEqual(arcade.couchShouldCatch(3, 'the holidays', false), false);
+  assert.strictEqual(arcade.couchShouldCatch(4, 'the holidays', false), true);
+  assert.strictEqual(arcade.couchOpener({ type: 'holiday' }), "What's going on with the holidays this year?");
+  assert.strictEqual(arcade.couchReply('the holidays').thin, true);
+  assert.strictEqual(arcade.replyIsTemplate('You said "dinner". What else around that should the song keep?'), true);
+  assert.strictEqual(arcade.replySoundsReal('No dishes, no oven at 6 AM. Who is secretly mad about the restaurant?', meal), true);
+  assert.strictEqual(arcade.replySoundsReal(meal + ' Who is mad about that?', meal), false);
+  assert.strictEqual(arcade.twistIsComic('The holiday is at a restaurant, not the home kitchen', meal), false);
+  assert.strictEqual(arcade.twistIsComic('We do not have to do the chores at the restaurant', meal), false);
+  assert.strictEqual(arcade.twistIsComic('The family lists every skipped chore out loud like a victory roll call', meal), true);
+  const caught = arcade.couchCatch([meal]);
+  assert.strictEqual(caught.feeling, 'Relief');
+  assert.ok(caught.details.some(function (d) { return /restaurant/i.test(d); }));
+  assert.ok(caught.details.some(function (d) { return /chore/i.test(d); }));
+  assert.deepStrictEqual(caught.twists, []);
+  const prompt = arcade.couchReplyPrompt({ type: 'holiday' }, meal, []) + arcade.couchCatchPrompt({ type: 'holiday' }, [meal]);
+  assert.ok(/broken van|who usually drives/.test(prompt));
+  assert.ok(/parking lot/.test(prompt));
+  assert.ok(/not paraphrases|only restates the fact/.test(prompt));
+  assert.ok(!/%/.test(prompt));
+  assert.ok(prompt.indexOf('\u2014') === -1);
+  const keptJoke = arcade.normalizeCouchCatch(JSON.stringify({
+    feeling: 'Relief',
+    details: ['A restaurant', 'The chores'],
+    title: 'No chores',
+    twists: [
+      'The holiday is at a restaurant, not the home kitchen',
+      'The family lists every skipped chore out loud like a victory roll call',
+    ],
+  }), [meal]);
+  assert.deepStrictEqual(keptJoke.twists, ['The family lists every skipped chore out loud like a victory roll call']);
+  const duped = arcade.normalizeCouchCatch(JSON.stringify({
+    feeling: 'Relief',
+    details: ['Thanksgiving dinner at a restaurant', 'Thanksgiving dinner at a restaurant this year', 'We do not have to do the chores', 'thanksgiving dinner at a restaurant'],
+    title: 'Dinner',
+    twists: [keptJoke.twists[0]],
+  }), [meal]);
+  assert.strictEqual(duped.details.filter(function (d) { return /restaurant/i.test(d); }).length, 1);
+  assert.ok(/exactly 3/.test(arcade.couchCatchPrompt({ type: 'holiday' }, [meal])));
+  assert.ok(read('lib/arcade-server.js').includes('notes.twists.length < 2'));
+  assert.ok(read('arcade.css').includes('.arc-twists .arc-chip'));
+  const couchSong = arcade.songPrompt({
+    type: 'holiday',
+    answers: {
+      couchFeeling: 'Relief',
+      songMoments: 'Thanksgiving dinner at a restaurant; the chores',
+      funnyTwist: 'The good part is the chores you do not have to do',
+      couchTalk: 'We ate out and skipped the chores',
+    },
+  });
+  assert.ok(couchSong.indexOf('Relief') !== -1);
+  assert.ok(couchSong.indexOf('restaurant') !== -1);
+  assert.ok(couchSong.indexOf('chores you do not have to do') !== -1);
+  assert.ok(arcade.ideasPrompt({ type: 'holiday', answers: { funnyTwist: 'The holiday is at a restaurant, not the home kitchen' } }).indexOf('restaurant') !== -1);
+
   assert.ok(page.includes("What's your idea?"));
   assert.ok(page.includes("SCREENS['s-brief']"));
   assert.ok(page.includes('A.BRIEF.forEach'));
@@ -1517,16 +1580,24 @@ function runIdeaInput() {
   assert.ok(page.includes("if (S.aiLevel === 'assist' && typedIdea()) fetchLines()"));
   assert.ok(!/if \(S\.aiLevel === 'assist'\) fetchLines\(\)/.test(page));
   assert.ok(page.indexOf("What's your idea?") < page.indexOf('Give me idea chips') || page.includes('ideaBox(S.answers.yourIdea'));
-  const briefBlock = page.slice(page.indexOf("SCREENS['s-brief']"), page.indexOf("SCREENS['s-basics']"));
+  const briefBlock = page.slice(page.indexOf('function sendCouch'), page.indexOf("SCREENS['s-basics']"));
   assert.ok(briefBlock.includes('Skip'));
   assert.ok(briefBlock.includes('One answer is enough.'));
+  assert.ok(briefBlock.includes("That's enough, show me"));
+  assert.ok(briefBlock.includes('arcade-couch'));
+  assert.ok(briefBlock.includes('couchShouldCatch'));
+  assert.ok(briefBlock.includes('The chat missed'));
   assert.ok(briefBlock.indexOf('\u2014') === -1);
+  assert.ok(!/%/.test(briefBlock));
   assert.ok(!/amazing|unleash|elevate|guaranteed/i.test(briefBlock));
 
   assert.ok(api.includes('prepareIdeaState'));
   assert.ok(api.includes('clipIdea'));
   assert.ok(server.includes('A.prepareIdeaState'));
   assert.ok(server.includes('A.clipIdea(body.idea)'));
+  assert.ok(server.includes("'arcade-couch': couch"));
+  assert.ok(server.includes('fallback: true'));
+  assert.ok(!page.includes("api/couch"));
   assert.ok(!/slice\(0,\s*120\)/.test(server.slice(server.indexOf('async function section'), server.indexOf('async function section') + 800)));
 }
 

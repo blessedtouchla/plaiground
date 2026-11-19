@@ -849,6 +849,12 @@ body.song-lab textarea.arc-idea{
   line-height:1.45;
   white-space:pre-wrap;
 }
+body.song-lab textarea.arc-couch-input{
+  min-height:4.75rem !important;
+}
+.arc-couch{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.arc-couch .arc-talk-msg{max-width:92%}
+.arc-pin.off,.arc-chip.arc-pin:not(.on){opacity:.45;text-decoration:line-through}
 body.song-lab .arc-input:focus{outline:none!important;border-color:#7D3CFF!important;box-shadow:none!important}
 body.song-lab .arc-steps-bar span{height:2px!important;border-radius:0!important;background:rgba(244,244,244,.22)!important;box-shadow:none!important;animation:none!important}
 body.song-lab .arc-steps-bar span.done,
@@ -1426,6 +1432,39 @@ body.song-lab .arc-tile[data-honest="full"],
 body.song-lab .v3-tile[data-honest="full"],
 body.song-lab .arc-tile[data-honest="full"].on,
 body.song-lab .v3-tile[data-honest="full"].on{border-bottom-color:var(--label-full)!important;background:transparent!important;color:#fff!important}
+body.song-lab .arc-twists{
+  display:flex!important;
+  flex-direction:column;
+  width:100%;
+  gap:10px!important;
+}
+body.song-lab .arc-twists .arc-chip,
+body.song-lab .arc-twists .arc-chip.small,
+body.song-lab .arc-twists .arc-chip.on{
+  display:block!important;
+  width:100%!important;
+  max-width:100%;
+  box-sizing:border-box;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:14px 16px!important;
+  border:1px solid rgba(255,255,255,.4)!important;
+  border-radius:16px!important;
+  background:#000!important;
+  color:#fff!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-align:left!important;
+  line-height:1.45!important;
+  font-size:16px!important;
+  rotate:none!important;
+  transform:none!important;
+}
+body.song-lab .arc-twists .arc-chip.on{
+  background:#782FB1!important;
+  border-color:#782FB1!important;
+}
 body.song-lab .arc-label[data-honest]{
   display:inline-block;
   padding:0 0 1px;
