@@ -774,8 +774,8 @@
       saveToAccount(r.saveItem, b4, w, r);
     });
     b4.disabled = !!r.saving || savedAccount;
-    var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.fix.text = t; go('f-off'); });
-    var b6 = btn('Flip', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'flip'; S.title = keepTitle; S.flip.text = t; go('x-genre'); });
+    var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; var keepLanguage = S.language; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.language = keepLanguage; S.fix.text = t; go('f-off'); });
+    var b6 = btn('Flip', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; var keepLanguage = S.language; S = fresh(); S.card = 'flip'; S.title = keepTitle; S.language = keepLanguage; S.flip.text = t; go('x-genre'); });
     var b7 = btn('Release', 'v3-mini', function () { copy(r.lyrics, b7); setTimeout(function () { location.href = '/upload.html'; }, 600); });
     [b1, b2, b3, b4, b5, b6, b7].forEach(function (b) { row.appendChild(b); });
     w.appendChild(row);
