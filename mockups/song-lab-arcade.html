@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Song Lab arcade mockup</title>
+<style>
+  @font-face {
+    font-family: Satoshi;
+    src: url("../assets/fonts/satoshi-500.woff2") format("woff2");
+    font-weight: 500;
+    font-display: swap;
+  }
+  :root {
+    --pink: #D03083;
+    --gold: #F3CB47;
+    --purple: #782FB1;
+    --green: #61B63A;
+    --orange: #F09416;
+    --ink: #f4f4f4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #050505; color: var(--ink); font-family: Inter, "Helvetica Neue", Arial, sans-serif; }
+  button {
+    font: inherit;
+    color: #fff;
+    background: #000;
+    border: 1px solid rgba(255,255,255,.4);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button.on { color: #000; background: var(--gold); border-color: var(--gold); }
+  button:active { background: #fff; color: #000; }
+  @media (hover: hover) {
+    button:hover { filter: brightness(1.15); }
+  }
+  .cabinet {
+    min-height: 100vh;
+    padding: 18px 16px 32px;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(120, 47, 177, .35), transparent 50%),
+      radial-gradient(80% 50% at 100% 100%, rgba(208, 48, 131, .22), transparent 45%),
+      #050505;
+  }
+  .bezel {
+    max-width: 1180px;
+    margin: 0 auto;
+    border: 1px solid rgba(243, 203, 71, .55);
+    box-shadow: 0 0 0 8px #0a0a0a, 0 0 40px rgba(208, 48, 131, .25), inset 0 0 40px rgba(120, 47, 177, .18);
+    background: #000;
+    position: relative;
+    overflow: hidden;
+  }
+  .bezel::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.04) 0 1px, transparent 1px 4px);
+    mix-blend-mode: screen;
+  }
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(243, 203, 71, .35);
+  }
+  header.top img { height: 42px; width: auto; display: block; }
+  .score {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    letter-spacing: .14em;
+    color: var(--gold);
+    text-shadow: 0 0 12px rgba(243, 203, 71, .8);
+    font-size: 13px;
+  }
+  main { position: relative; z-index: 1; padding: 20px 16px 28px; }
+  h1, h2, .door b, .kicker { font-family: Satoshi, Inter, sans-serif; font-weight: 500; }
+  h1 { margin: 0 0 8px; font-size: 40px; letter-spacing: -.03em; }
+  .lede { margin: 0 0 22px; color: rgba(244,244,244,.72); }
+  .doors { display: grid; gap: 12px; }
+  .door {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #000;
+    border: 1px solid rgba(255,255,255,.35);
+    text-align: left;
+  }
+  .door b { display: block; font-size: 20px; }
+  .door span { color: rgba(244,244,244,.65); font-size: 14px; }
+  .door i {
+    width: 14px; height: 14px; flex: 0 0 14px;
+    box-shadow: 0 0 10px currentColor;
+    background: currentColor;
+  }
+  .door:nth-child(1) i { color: var(--pink); }
+  .door:nth-child(2) i { color: var(--gold); }
+  .door:nth-child(3) i { color: var(--purple); }
+  .console {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 250px;
+    gap: 16px;
+    align-items: start;
+  }
+  .rack, .booth, .sheet {
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 12px;
+    background: rgba(0,0,0,.55);
+  }
+  .kicker {
+    margin: 10px 0 6px;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .dial {
+    width: 168px;
+    height: 168px;
+    margin: 36px auto 18px;
+    position: relative;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 18px rgba(243, 203, 71, .45), inset 0 0 24px rgba(208, 48, 131, .35);
+  }
+  .dial button {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 72px;
+    min-height: 44px;
+    margin: -22px 0 0 -36px;
+    background: transparent;
+    border: 0;
+    font-size: 12px;
+    letter-spacing: .04em;
+    transform: rotate(calc(var(--i) * 60deg)) translateY(-96px) rotate(calc(var(--i) * -60deg));
+  }
+  .dial button.on { color: var(--pink); text-shadow: 0 0 8px var(--pink); }
+  .knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 58px;
+    height: 58px;
+    margin: -29px 0 0 -29px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff, var(--purple) 42%, #111 70%);
+    box-shadow: 0 0 16px rgba(120, 47, 177, .8);
+    transform: rotate(var(--turn));
+  }
+  .knob::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 6px;
+    width: 3px;
+    height: 14px;
+    margin-left: -1.5px;
+    background: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
+  }
+  .pills, .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pills button, .opts button, .tabs button, .drawer button, .phone button, .punch button {
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+  .tag { margin: 12px 0 4px; letter-spacing: .14em; text-transform: uppercase; font-size: 11px; color: var(--orange); }
+  .line {
+    width: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid rgba(255,255,255,.18);
+    text-align: left;
+  }
+  .line.on, .line.rhyme { background: rgba(208, 48, 131, .16); box-shadow: inset 3px 0 0 var(--pink); }
+  .led {
+    width: 54px;
+    height: 10px;
+    flex: 0 0 54px;
+    background: repeating-linear-gradient(90deg, #222 0 5px, #000 5px 7px);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+    position: relative;
+  }
+  .led i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--n) * 12.5%);
+    background: repeating-linear-gradient(90deg, var(--green) 0 5px, transparent 5px 7px);
+    box-shadow: 0 0 8px var(--green);
+  }
+  .syl { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--green); width: 1.6em; }
+  .punch { margin-top: 12px; border-top: 1px solid var(--pink); padding-top: 8px; }
+  .punch button { width: 100%; text-align: left; margin-top: 6px; }
+  .phone { display: none; gap: 8px; margin-bottom: 10px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .report {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px 16px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    border: 1px solid var(--gold);
+    padding: 16px;
+    box-shadow: 0 0 18px rgba(243, 203, 71, .25);
+  }
+  .report dd { text-align: right; }
+  .report dt { color: var(--gold); }
+  .report dd { margin: 0; }
+  .drawer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 5;
+    background: #050505;
+    border-top: 2px solid var(--pink);
+    box-shadow: 0 -12px 40px rgba(208, 48, 131, .35);
+    padding: 16px;
+    display: none;
+  }
+  .drawer.show { display: block; }
+  .drawer button { display: block; width: 100%; margin-top: 8px; }
+  .toast { min-height: 24px; color: var(--green); font-size: 13px; }
+  @media (max-width: 800px) {
+    h1 { font-size: 32px; }
+    .console { display: block; }
+    .phone { display: flex; }
+    .rack, .booth { display: none; }
+    .console.show-rack .rack, .console.show-booth .booth {
+      display: block;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 6;
+      max-height: 72vh;
+      overflow: auto;
+      background: #000;
+      border-top: 2px solid var(--gold);
+      box-shadow: 0 -10px 30px rgba(243, 203, 71, .3);
+    }
+    .dial { width: 148px; height: 148px; }
+    .dial button { transform: rotate(calc(var(--i) * 60deg)) translateY(-96px) rotate(calc(var(--i) * -60deg)); }
+  }
+  @media (hover: hover) {
+    .door:hover, .line:hover { border-color: var(--gold); }
+  }
+  @media print {
+    .rack, .booth, .phone, .tabs, header.top, .drawer { display: none !important; }
+    .bezel { box-shadow: none; }
+    body { background: #fff; color: #000; }
+  }
+</style>
+</head>
+<body>
+<div class="cabinet">
+  <div class="bezel">
+    <header class="top">
+      <img src="../assets/plaiground-logo.png" alt="PLAIGROUND" />
+      <div class="score" id="score">SONG LAB · ARCADE</div>
+    </header>
+    <main>
+      <section id="screen-doors">
+        <p class="kicker">Song Lab</p>
+        <h1>Pick a door</h1>
+        <p class="lede">Three ways in. The cabinet stays the same.</p>
+        <div class="doors">
+          <button class="door" data-door="write" type="button"><span><b>Write a song</b><span>A new song from your idea.</span></span><i></i></button>
+          <button class="door" data-door="improve" type="button"><span><b>Improve my song</b><span>Paste a song and tune it.</span></span><i></i></button>
+          <button class="door" data-door="transform" type="button"><span><b>Transform my song</b><span>New genre, same heart.</span></span><i></i></button>
+        </div>
+      </section>
+
+      <section id="screen-console" hidden>
+        <div class="phone">
+          <button type="button" id="open-rack">Sound</button>
+          <button type="button" id="open-booth">Plai</button>
+          <button type="button" id="to-results">Results</button>
+        </div>
+        <div class="console" id="console">
+          <aside class="rack" id="rack">
+            <p class="kicker">Sound rack</p>
+            <div class="dial" id="dial"><div class="knob" id="knob"></div></div>
+            <p class="kicker">Era</p>
+            <div class="pills" data-group="era"></div>
+            <p class="kicker">Region slang</p>
+            <div class="pills" data-group="slang"></div>
+            <p class="kicker">Vibe</p>
+            <div class="pills" data-group="vibe"></div>
+            <p class="kicker">Structure</p>
+            <div class="pills" data-group="structure"></div>
+          </aside>
+          <section class="sheet">
+            <h2 id="song-title">Kitchen light</h2>
+            <div id="sheet"></div>
+          </section>
+          <aside class="booth" id="booth">
+            <p class="kicker">Plai</p>
+            <p>One voice. Three lines.</p>
+            <div class="opts" id="alts"></div>
+            <p class="kicker">Slang tip</p>
+            <p id="slang-tip">Plain speech. One local word, then stop.</p>
+          </aside>
+        </div>
+        <div class="tabs" style="margin-top:16px">
+          <button type="button" id="back-doors">Doors</button>
+          <button type="button" id="open-results">Results</button>
+          <button type="button" id="open-export">Export</button>
+        </div>
+      </section>
+
+      <section id="screen-results" hidden>
+        <div class="tabs" id="result-tabs"></div>
+        <div id="result-body"></div>
+        <div class="tabs">
+          <button type="button" id="results-back">Console</button>
+          <button type="button" id="results-export">Export</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="drawer" id="drawer">
+  <p class="kicker">Export</p>
+  <button type="button" id="copy-suno">Copy for Suno</button>
+  <button type="button" id="copy-clean">Copy clean lyrics</button>
+  <button type="button" id="copy-pdf">PDF lyric sheet</button>
+  <p class="toast" id="toast"></p>
+  <button type="button" id="close-drawer">Close</button>
+</div>
+<script>
+(function () {
+  var genres = ['Pop', 'Hip hop', 'R&B', 'Soul', 'Rock', 'Electronic'];
+  var groups = {
+    era: ['70s', '90s', 'Now'],
+    slang: ['Off', 'Light', 'Local'],
+    vibe: ['Chill', 'Love', 'Dark', 'Hype'],
+    structure: ['Short', 'Song', 'Long']
+  };
+  var state = { genre: 'Pop', era: 'Now', slang: 'Light', vibe: 'Love', structure: 'Song', line: -1, screen: 'doors', tab: 'lyrics' };
+  var song = [
+    { tag: 'Verse 1', lines: [
+      { text: 'The plates are still warm from Saturday night', syl: 10, rhyme: 'ight' },
+      { text: 'I left a cup beside the window light', syl: 9, rhyme: 'ight' }
+    ]},
+    { tag: 'Hook', lines: [
+      { text: 'I kept the kitchen light on', syl: 7, rhyme: 'on' },
+      { text: 'Till the whole block was gone', syl: 6, rhyme: 'on' }
+    ]},
+    { tag: 'Bridge', lines: [
+      { text: 'Say it once, then leave the room', syl: 7, rhyme: 'oom' },
+      { text: 'The kettle clicks and the house goes soon', syl: 9, rhyme: 'oom' }
+    ]}
+  ];
+  var punches = {
+    'I left a cup beside the window light': [
+      'I set the cup where the window gets light',
+      'A glass still waits in the morning light',
+      'The cup kept watch in that thin blue light'
+    ],
+    'I kept the kitchen light on': [
+      'I left the kitchen light on',
+      'The kitchen stayed lit till dawn',
+      'I kept one lamp on'
+    ],
+    'The plates are still warm from Saturday night': [
+      'The dishes still hold Saturday night',
+      'Warm plates left from Saturday night',
+      'Saturday night is still on the plates'
+    ]
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function flat() {
+    var out = [];
+    song.forEach(function (sec) { sec.lines.forEach(function (line) { out.push(line); }); });
+    return out;
+  }
+  function tagged() {
+    return song.map(function (sec) {
+      return '[' + sec.tag + ']\n' + sec.lines.map(function (l) { return l.text; }).join('\n');
+    }).join('\n');
+  }
+  function clean() {
+    return song.map(function (sec) { return sec.lines.map(function (l) { return l.text; }).join('\n'); }).join('\n\n');
+  }
+  function show(name) {
+    state.screen = name;
+    $('screen-doors').hidden = name !== 'doors';
+    $('screen-console').hidden = name !== 'console';
+    $('screen-results').hidden = name !== 'results';
+    if (name === 'results') paintResults();
+    if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+  }
+  function paintDial() {
+    var dial = $('dial');
+    var knob = $('knob');
+    dial.querySelectorAll('button').forEach(function (b) { b.remove(); });
+    genres.forEach(function (name, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = name;
+      b.style.setProperty('--i', i);
+      b.className = name === state.genre ? 'on' : '';
+      b.addEventListener('click', function () {
+        state.genre = name;
+        paintDial();
+      });
+      dial.insertBefore(b, knob);
+    });
+    knob.style.setProperty('--turn', (genres.indexOf(state.genre) * 60) + 'deg');
+  }
+  function paintPills() {
+    Object.keys(groups).forEach(function (key) {
+      var host = document.querySelector('[data-group="' + key + '"]');
+      host.textContent = '';
+      groups[key].forEach(function (name) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = name;
+        if (state[key] === name) b.className = 'on';
+        b.addEventListener('click', function () {
+          state[key] = name;
+          paintPills();
+          $('slang-tip').textContent = state.slang === 'Off' ? 'Plain speech. No costume slang.' : 'One ' + state.slang.toLowerCase() + ' word, then stop.';
+        });
+        host.appendChild(b);
+      });
+    });
+  }
+  function paintSheet() {
+    var host = $('sheet');
+    host.textContent = '';
+    var current = flat()[state.line];
+    song.forEach(function (sec) {
+      var tag = document.createElement('p');
+      tag.className = 'tag';
+      tag.textContent = '[' + sec.tag + ']';
+      host.appendChild(tag);
+      sec.lines.forEach(function (line) {
+        var idx = flat().indexOf(line);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'line' + (idx === state.line || (current && line.rhyme === current.rhyme) ? ' rhyme' : '') + (idx === state.line ? ' on' : '');
+        var n = Math.max(1, Math.min(8, line.syl));
+        b.innerHTML = '<span class="led" style="--n:' + n + '"><i></i></span><span class="syl">' + line.syl + '</span><span></span>';
+        b.querySelector('span:last-child').textContent = line.text;
+        b.addEventListener('click', function () {
+          state.line = idx;
+          paintSheet();
+        });
+        host.appendChild(b);
+        if (idx === state.line) host.appendChild(punchBox(line));
+      });
+    });
+    paintPunch();
+  }
+  function optionsFor(line) {
+    return punches[line.text] || [
+      line.text.replace(/the /i, 'our '),
+      line.text.replace(/I /i, 'We '),
+      'Hold the last word, then turn it.'
+    ];
+  }
+  function punchBox(line) {
+    var box = document.createElement('div');
+    box.className = 'punch';
+    box.id = 'punch';
+    var k = document.createElement('p');
+    k.className = 'kicker';
+    k.textContent = 'Punch in';
+    box.appendChild(k);
+    optionsFor(line).forEach(function (text) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.addEventListener('click', function () { line.text = text; paintSheet(); });
+      box.appendChild(b);
+    });
+    return box;
+  }
+  function paintPunch() {
+    var alts = $('alts');
+    var line = flat()[state.line];
+    alts.textContent = '';
+    if (!line) {
+      alts.appendChild(document.createTextNode('Tap a line.'));
+      return;
+    }
+    optionsFor(line).forEach(function (text) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.addEventListener('click', function () { line.text = text; paintSheet(); });
+      alts.appendChild(b);
+    });
+  }
+  function paintResults() {
+    var tabs = $('result-tabs');
+    tabs.textContent = '';
+    ['Lyrics', 'Sound', 'Save and release'].forEach(function (name) {
+      var id = name === 'Lyrics' ? 'lyrics' : (name === 'Sound' ? 'sound' : 'save');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = name;
+      if (state.tab === id) b.className = 'on';
+      b.addEventListener('click', function () { state.tab = id; paintResults(); });
+      tabs.appendChild(b);
+    });
+    var body = $('result-body');
+    body.textContent = '';
+    if (state.tab === 'sound') {
+      var pre = document.createElement('pre');
+      pre.textContent = state.genre + ', ' + state.era + ', ' + state.vibe.toLowerCase() + ', ' + state.structure.toLowerCase() + '. Region slang ' + state.slang.toLowerCase() + '.';
+      body.appendChild(pre);
+    } else if (state.tab === 'save') {
+      var p = document.createElement('p');
+      p.textContent = 'Label: AI-assisted. Save keeps this draft. Release opens the form.';
+      var save = document.createElement('button');
+      save.type = 'button';
+      save.textContent = 'Save to my account';
+      save.addEventListener('click', function () { $('toast').textContent = 'Saved in this mockup. No account call.'; $('drawer').classList.add('show'); });
+      body.appendChild(p);
+      body.appendChild(save);
+    } else {
+      var dl = document.createElement('dl');
+      dl.className = 'report';
+      [['Rhyme', '3 pairs'], ['Syllables', 'In pocket'], ['Hook strength', 'Strong'], ['Cliche check', 'None spotted']].forEach(function (pair) {
+        var dt = document.createElement('dt');
+        dt.textContent = pair[0];
+        var dd = document.createElement('dd');
+        dd.textContent = pair[1];
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      body.appendChild(dl);
+    }
+  }
+  function toast(text) {
+    var el = $('toast');
+    el.textContent = text;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text.indexOf('Copied') === 0 ? el.dataset.copy || '' : '').catch(function () {});
+    }
+  }
+  document.querySelectorAll('[data-door]').forEach(function (b) {
+    b.addEventListener('click', function () { show('console'); });
+  });
+  $('open-rack').addEventListener('click', function () {
+    $('console').classList.toggle('show-rack');
+    $('console').classList.remove('show-booth');
+  });
+  $('open-booth').addEventListener('click', function () {
+    $('console').classList.toggle('show-booth');
+    $('console').classList.remove('show-rack');
+  });
+  $('to-results').addEventListener('click', function () { show('results'); });
+  $('open-results').addEventListener('click', function () { show('results'); });
+  $('back-doors').addEventListener('click', function () { show('doors'); });
+  $('results-back').addEventListener('click', function () { show('console'); });
+  function openExport() { $('drawer').classList.add('show'); }
+  $('open-export').addEventListener('click', openExport);
+  $('results-export').addEventListener('click', openExport);
+  $('close-drawer').addEventListener('click', function () { $('drawer').classList.remove('show'); });
+  $('copy-suno').addEventListener('click', function () {
+    var text = tagged() + '\n\n' + state.genre + ', ' + state.vibe.toLowerCase();
+    $('toast').dataset.copy = text;
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    $('toast').textContent = 'Copied for Suno, tags included.';
+  });
+  $('copy-clean').addEventListener('click', function () {
+    var text = clean();
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    $('toast').textContent = 'Copied clean lyrics.';
+  });
+  $('copy-pdf').addEventListener('click', function () { window.print(); });
+
+  function fromHash() {
+    var hash = (location.hash || '').replace('#', '');
+    if (hash === 'console' || hash === 'punch') {
+      show('console');
+      if (hash === 'punch') { state.line = 1; paintSheet(); paintPunch(); }
+    } else if (hash === 'results') show('results');
+    else if (hash === 'export') { show('console'); openExport(); }
+    else show('doors');
+  }
+  paintDial();
+  paintPills();
+  paintSheet();
+  paintPunch();
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>
