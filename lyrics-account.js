@@ -37,6 +37,8 @@
         mood: String(song.mood || '').slice(0, 40),
         sparkTitle: String(song.sparkTitle || '').slice(0, 80),
         sparkAngle: String(song.sparkAngle || '').slice(0, 3000),
+        style: String(song.style || '').slice(0, 800),
+        label: String(song.label || '').slice(0, 40),
       };
       if (song.claim && typeof song.claim === 'object') pending.claim = song.claim;
       store.setItem(PENDING_KEY, JSON.stringify(pending));
@@ -73,7 +75,7 @@
       own = [];
     }
     var arcade = readArcade().filter(function (x) { return x && !x.accountId && String(x.lyrics || '').trim(); }).map(function (x) {
-      return { title: String(x.title || '').slice(0, 80), text: String(x.lyrics || '').slice(0, 12000), mode: String(x.card || '').slice(0, 40), mood: String(x.type || '').slice(0, 40), localAt: x.at, arcadeAt: x.at || '' };
+      return { title: String(x.title || '').slice(0, 80), text: String(x.lyrics || '').slice(0, 12000), mode: String(x.card || '').slice(0, 40), mood: String(x.type || '').slice(0, 40), style: String(x.style || '').slice(0, 800), label: String(x.label || '').slice(0, 40), localAt: x.at, arcadeAt: x.at || '' };
     });
     return own.concat(arcade);
   }

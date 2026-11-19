@@ -29,15 +29,21 @@
   function priceTag() { return 'free'; }
   function go(screen) { if (Date.now() - (S.moodAt || 0) > 80) S.mood = ''; if (S.screen !== screen) { S.history.push(S.screen); if (!(S.card === 'flip' && S.flip && S.flip.how === 'modern')) S.points += 100; } S.screen = screen; S.note = ''; paint(); window.scrollTo(0, 0); }
   function back() { S.mood = ''; S.screen = S.history.pop() || 'home'; S.note = ''; paint(); }
+  var reqGen = {};
   function post(action, extra) {
+    var token = (reqGen[action] = (reqGen[action] || 0) + 1);
     var body = Object.assign({ action: action, company_website: '', k: K, state: stateForServer() }, extra || {});
     return fetch('/api/song-helper?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Something went wrong.' }; }).then(function (d) { d.__status = r.status; return d; }); })
       .catch(function () { return { ok: false, error: 'Connection hiccup. Try again.' }; })
-      .then(function (d) { S.mood = d && d.ok ? 'gotit' : 'worried'; S.moodAt = Date.now(); return d; });
+      .then(function (d) {
+        if (reqGen[action] !== token) { d.__stale = true; return d; }
+        S.mood = d && d.ok ? 'gotit' : 'worried'; S.moodAt = Date.now(); return d;
+      });
   }
   function stateForServer() {
     return { card: S.card, type: S.type, sub: S.sub, answers: S.answers, aiLevel: S.aiLevel, vibe: S.vibe, title: S.title, length: S.length, language: S.language,
+      sound: soundForStyle(), tune: S.tune,
       explicit: S.explicit, ageOk: S.ageOk, built: S.built, ideas: S.ideas || [], research: S.research, styleOverride: S.styleOverride, flip: S.flip };
   }
   function soundForStyle() { var s = S.sound; return { genre: s.genre, sub: s.sub, instruments: s.instruments, vocal: s.vocal, custom: s.custom, tune: S.tune, fusion: S.card === 'flip' && S.flip.fusionOn ? S.flip.fusion : s.fusion }; }
@@ -55,6 +61,7 @@
   }
   function input(value, ph, onInput, rows) {
     var t = el(rows ? 'textarea' : 'input', 'arc-input'); if (rows) t.rows = rows; t.placeholder = ph || ''; t.value = value || '';
+    t.setAttribute('data-keep', S.screen + ':' + String(ph || 'field'));
     t.oninput = function () { onInput(t.value); if (A.crisis(t.value) && !S.crisis) { S.crisis = true; paintCrisis(); } syncHost(); };
     return t;
   }
@@ -146,6 +153,7 @@
   function fetchNewsIdeas() {
     S.gi.busy = true; S.gi.msg = ''; paint();
     post('arcade-news-ideas', { tile: S.gi.tile, seen: S.gi.seen }).then(function (d) {
+      if (d.__stale) return;
       S.gi.busy = false;
       if (!d.ok) { S.gi.msg = d.error || A.NO_STORIES; paint(); return; }
       S.gi.ideas = d.ideas || []; S.gi.msg = d.empty ? (d.message || A.NO_STORIES) : '';
@@ -239,6 +247,7 @@
       if (q.research) {
         S.busy = true; paint();
         post('arcade-research').then(function (d) {
+          if (d.__stale) return;
           S.busy = false;
           if (!d.ok) { S.note = d.error || 'Could not look that up.'; paint(); return; }
           S.research = d.research; S.researchNotice = d.notice || '';
@@ -284,7 +293,7 @@
       box.appendChild(chips(list, function (v) { return t[key] === v; }, function (v) { t[key] = t[key] === v ? '' : v; }, 'small'));
     };
     one('Speed', 'speed', T.speed);
-    var bpm = el('input', 'arc-input arc-tune-bpm'); bpm.type = 'number'; bpm.min = 40; bpm.max = 220; bpm.inputMode = 'numeric'; bpm.placeholder = 'BPM, if you know it'; bpm.value = t.bpm || '';
+    var bpm = el('input', 'arc-input arc-tune-bpm'); bpm.type = 'number'; bpm.min = 40; bpm.max = 220; bpm.inputMode = 'numeric'; bpm.placeholder = 'BPM, if you know it'; bpm.value = t.bpm || ''; bpm.setAttribute('data-keep', 'tune-bpm');
     bpm.onchange = function () { t.bpm = bpm.value; paint(); }; box.appendChild(bpm);
     one('Vocals', 'vocals', T.vocals);
     box.appendChild(el('p', 'arc-q', 'Voice'));
@@ -322,7 +331,7 @@
     }
     box.appendChild(btn(S.ideaBusy ? 'Thinking...' : (S.ideaList && S.ideaList.length ? 'More ideas' : 'Give me idea chips'), 'v3-mini', function () {
       S.ideaBusy = true; paint();
-      post('arcade-ideas').then(function (d) { S.ideaBusy = false; if (d.ok) { S.ideaList = (d.ideas || []).concat(S.ideas.filter(function (x) { return (d.ideas || []).indexOf(x) === -1; })); if (!S.ideas.length) S.ideas = S.ideaList.filter(function (x) { return !/\(unsure\)/i.test(x); }).slice(0, 4); } else S.note = d.error || 'No ideas right now.'; paint(); });
+      post('arcade-ideas').then(function (d) { if (d.__stale) return; S.ideaBusy = false; if (d.ok) { S.ideaList = (d.ideas || []).concat(S.ideas.filter(function (x) { return (d.ideas || []).indexOf(x) === -1; })); if (!S.ideas.length) S.ideas = S.ideaList.filter(function (x) { return !/\(unsure\)/i.test(x); }).slice(0, 4); } else S.note = d.error || 'No ideas right now.'; paint(); });
     }, S.ideaBusy));
     w.appendChild(box);
   }
@@ -357,6 +366,7 @@
   function fetchLines(one) {
     S.busy = true; paint();
     post('arcade-lines', { slot: SLOTS[S.slotIndex].split(' ')[0].toLowerCase(), left: 4 - (S.slotIndex % 4) }).then(function (d) {
+      if (d.__stale) return;
       S.busy = false;
       if (!d.ok) { S.note = d.error || 'Plai is stuck. Write your own.'; paint(); return; }
       var fresh = (window.Arcade && Arcade.dedupeLines) ? Arcade.dedupeLines(d.lines || [], S.built) : (d.lines || []);
@@ -390,7 +400,7 @@
       });
       w.appendChild(btn(S.busy ? 'Thinking...' : 'Give me a line', 'v3-mini', function () { fetchLines(true); }, S.busy));
     }
-    var own = input('', 'Or write your own line', function (v) { S.ownLine = v; });
+    var own = input(S.ownLine, 'Or write your own line', function (v) { S.ownLine = v; });
     w.appendChild(own);
     var rhymeBox = el('div', 'arc-rhymes');
     w.appendChild(btn('Rhymes', 'v3-mini', function () {
@@ -411,14 +421,16 @@
   function writeSong() {
     var human = S.aiLevel === 'human';
     if (human && !S.built.length) { S.note = 'Write at least one line first.'; paint(); return; }
+    if (human) { finish(A.humanLyrics(stateForServer()), { human: true }, 0); return; }
     var before = wallet();
-    if (!human && !spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
+    if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
     S.busy = true; S.note = 'Writing...'; paint();
     post('arcade-write').then(function (d) {
+      if (d.__stale) return;
       S.busy = false;
-      if (!d.ok) { if (!human) refund(before); S.note = d.error || 'Could not write that.'; paint(); return; }
+      if (!d.ok) { refund(before); S.note = d.error || 'Could not write that.'; paint(); return; }
       finish(d.lyrics, d, 0);
-    }).catch(function () { if (!human) refund(before); S.busy = false; S.note = 'Plai lost the words.'; paint(); });
+    }).catch(function () { refund(before); S.busy = false; S.note = 'Plai lost the words.'; paint(); });
   }
   function finish(lyrics, d, scoreBefore) {
     S.result = { lyrics: lyrics, sample: !!(d && d.sample), notice: (d && d.notice) || '', scoreBefore: scoreBefore || 0, label: A.aiLabel(S) };
@@ -451,6 +463,7 @@
       if (needUser) b.log.push({ who: 'You', text: b.bars.trim() });
       var mine = b.bars; b.bars = ''; S.busy = true; paint();
       post('arcade-battle', { round: b.round, userBars: needUser ? mine : '', history: b.log.map(function (r) { return r.who + ': ' + r.text; }).join('\n') }).then(function (d) {
+        if (d.__stale) return;
         S.busy = false;
         if (!d.ok) { if (b.log.length <= 1) { refund(before); b.charged = false; } if (needUser) { b.log.pop(); b.bars = mine; } S.note = d.error || 'Plai fumbled. Try again.'; paint(); return; }
         b.log.push({ who: 'Plai', text: d.bars }); S.notice = d.notice || '';
@@ -462,7 +475,7 @@
   };
   function endBattle() {
     var text = S.battle.log.map(function (r) { return '[' + r.who + ']\n' + r.text; }).join('\n\n');
-    S.title = S.title || 'Battle the Bot';
+    S.title = S.title || 'Three Rounds';
     finish(text, { notice: S.notice }, 0);
   }
 
@@ -488,7 +501,7 @@
   function markImported(item, id) {
     try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.forEach(function (x) { if (x.at === item.at && x.title === item.title) x.accountId = id; }); localStorage.setItem(SAVED, JSON.stringify(list)); } catch (e) {}
   }
-  function saveToAccount(item, b, w) {
+  function saveToAccount(item, b, w, result) {
     var old = w.querySelector('.arc-save-note'); if (old) old.remove();
     var note = el('div', 'arc-save-note');
     function done(html) {
@@ -502,19 +515,21 @@
     fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (me) {
       if (me.status === 401) {
         b.textContent = 'Saved on this device';
-        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do. After you log in, import it from My lyrics.</p><p><a class="v3-mini arc-tiny" href="/signup.html?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login.html?next=/my-lyrics">Log in</a></p>');
+        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do, with the style prompt and the label ' + (item.label || 'AI-assisted') + '. After you log in, import it from My lyrics.</p><p><a class="v3-mini arc-tiny" href="/signup.html?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login.html?next=/my-lyrics">Log in</a></p>');
         return;
       }
       if (!me.ok) throw new Error('me');
-      return fetch('/api/me/lyrics', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ song: { title: item.title || '', text: item.lyrics || '', mode: String(item.card || '').slice(0, 40), mood: String(item.type || '').slice(0, 40) } }) }).then(function (r) {
+      return fetch('/api/me/lyrics', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ song: { title: item.title || '', text: item.lyrics || '', mode: String(item.card || '').slice(0, 40), mood: String(item.type || '').slice(0, 40), style: item.style || '', label: item.label || '' } }) }).then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (d) {
-          if (!r.ok || !d || !d.song) { b.textContent = 'Saved on this device'; done('<p>' + ((d && d.error) ? String(d.error).replace(/</g, '&lt;') : 'The account save did not go through. Your song stays on this device.') + '</p>'); return; }
+          if (!r.ok || !d || !d.song) { b.textContent = 'Saved on this device'; done('<p>' + ((d && d.error) ? String(d.error).replace(/</g, '&lt;') : 'The account save did not go through. Your song stays on this device.') + '</p><p>Label: ' + (item.label || 'AI-assisted') + '. The style prompt is stored with it on this device.</p>'); return; }
+          item.accountId = d.song.id;
           markImported(item, d.song.id);
           b.textContent = 'Saved to your account';
+          b.disabled = true;
           done('<p><a class="v3-link" href="/my-lyrics?id=' + encodeURIComponent(d.song.id) + '">Open My lyrics</a></p>');
         });
       });
-    }).catch(function () { b.textContent = 'Saved on this device'; done('<p>The account save did not go through. Your song stays on this device.</p>'); });
+    }).catch(function () { b.textContent = 'Saved on this device'; done('<p>The account save did not go through. Your song stays on this device.</p>'); }).then(function () { if (result) { result.saving = false; if (b) b.disabled = !!(item && item.accountId); } });
   }
   // Lyrics / Prompt / Both badge next to a question.
   function qHead(text, badge) {
@@ -556,6 +571,7 @@
     S.busy = true; paint();
     var keep = f.hyphy; f.hyphy = up; f.boost = true;
     post('arcade-flip', { text: before }).then(function (d) {
+      if (d.__stale) return;
       S.busy = false; f.boost = false;
       if (!d.ok || !d.lyrics) { f.hyphy = keep; S.note = d.error || 'Could not go more hyphy. Try again.'; paint(); return; }
       var a = before.split('\n'), b = String(d.lyrics).split('\n');
@@ -631,6 +647,7 @@
         var head = el('div', 'arc-sec');
         head.appendChild(el('strong', '', t));
         head.appendChild(btn(S.secBusy === i ? 'Thinking...' : 'Change topic', 'v3-mini arc-tiny', function () { changeTopic(r, i); }, S.secBusy === i));
+        if (r.sectionIdeas && r.sectionIdeas[i]) head.appendChild(el('span', 'hint', ' New idea in this section.'));
         box.appendChild(head); return;
       }
       var row = el('div', 'arc-lrow');
@@ -646,6 +663,7 @@
     var lines = String(r.lyrics).split('\n');
     S.lineBusy = i; paint();
     post('arcade-fix', { text: r.lyrics, line: lines[i], off: [] }).then(function (d) {
+      if (d.__stale) return;
       S.lineBusy = null;
       var opts = (d.options || []).filter(function (o) { return !lines.some(function (x) { return A.nearDuplicate(o, x); }); });
       if (opts.length) { lines[i] = opts[0]; r.lyrics = lines.join('\n'); r.label = 'AI-assisted'; } else S.note = 'No fresh line right now. Try again.';
@@ -653,18 +671,30 @@
     });
   }
   function changeTopic(r, i) {
+    if (S.secBusy != null) return;
     var lines = String(r.lyrics).split('\n');
     var end = i + 1; while (end < lines.length && !/^\[.*\]$/.test(lines[end].trim())) end++;
-    var section = lines.slice(i + 1, end);
-    var pool = (S.ideaList || []).filter(function (x) { return x !== r['topic' + i]; });
-    var unused = pool.filter(function (x) { return S.ideas.indexOf(x) === -1; });
-    var idea = (unused.length ? unused : pool)[0] || 'a fresh image';
-    r['topic' + i] = idea;
+    var section = lines.slice(i + 1, end).filter(function (l) { return String(l || '').trim() && !/^\[.*\]$/.test(l.trim()); });
+    if (!section.length) { S.note = 'This section has no lines to change.'; paint(); return; }
+    var usedIdea = r.sectionIdeas && r.sectionIdeas[i];
+    var pool = (S.ideaList || []).filter(function (x) { return x && x !== usedIdea; });
+    var unused = pool.filter(function (x) { return (S.ideas || []).indexOf(x) === -1; });
+    var idea = (unused.length ? unused : pool)[0] || 'a window at dusk';
     S.secBusy = i; paint();
     post('arcade-section', { section: section.join('\n'), idea: idea, song: r.lyrics, keep: section.filter(isOwn) }).then(function (d) {
+      if (d.__stale) return;
       S.secBusy = null;
-      if (d.ok && d.lines && d.lines.length) { lines.splice.apply(lines, [i + 1, end - i - 1].concat(d.lines)); r.lyrics = lines.join('\n'); S.note = 'New topic: ' + idea; }
-      else S.note = d.error || 'Could not change that part.';
+      if (d.ok && d.lines && d.lines.length) {
+        var changed = d.lines.join('\n') !== section.join('\n');
+        if (changed) {
+          lines.splice.apply(lines, [i + 1, end - i - 1].concat(d.lines));
+          r.lyrics = lines.join('\n');
+          r.sectionIdeas = r.sectionIdeas || {};
+          r.sectionIdeas[i] = idea;
+          if (r.style && idea) r.style = String(r.style).split(idea).join('').replace(/(,\s*){2,}/g, ', ').replace(/\s{2,}/g, ' ').replace(/^[,\s]+|[,\s]+$/g, '');
+        }
+        S.note = d.notice || (changed ? 'That section has a new idea.' : 'Could not change that part.');
+      } else S.note = d.error || 'Could not change that part.';
       paint();
     });
   }
@@ -678,7 +708,7 @@
     if (high) localStorage.setItem(BEST, String(score));
     if (S.revealHigh == null || S.revealSeen !== r) { S.revealHigh = high; S.revealSeen = r; }
     w.appendChild(el('p', 'arc-kicker', high ? 'New high score!' : 'High score'));
-    w.appendChild(el('h2', 'arc-marquee', S.title || A.suggestTitle(stateForServer())));
+    w.appendChild(el('h2', 'arc-marquee', S.title || A.suggestTitle(stateForServer()) || 'Untitled'));
     if (S.card === 'fix' && r.scoreBefore) w.appendChild(el('p', 'arc-jump', 'Score ' + r.scoreBefore + ' to ' + score + (score > r.scoreBefore ? '. Look at that jump!' : '')));
     else w.appendChild(el('p', 'arc-jump', 'Score: ' + score.toLocaleString('en-US')));
     if (high) w.appendChild(el('div', 'arc-confetti', '\u2728 \u2728 \u2728'));
@@ -724,10 +754,26 @@
     var b1 = btn('Copy lyrics', 'v3-mini', function () { copy(S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : tagged(r.lyrics), b1); });
     var b2 = btn('Copy style', 'v3-mini', function () { copy(r.style, b2); });
     var b3 = btn('Copy both', 'v3-mini', function () { copy(tagged(r.lyrics) + '\n\nStyle prompt\n' + r.style + (fx ? '\n\nExclude\n' + (fx.exclude || []).join(', ') : ''), b3); });
-    var b4 = btn('Save to my account', 'v3-mini', function () {
+    var savedAccount = !!(r.saveItem && r.saveItem.accountId);
+    var b4 = btn(savedAccount ? 'Saved to your account' : (r.saving ? 'Saving...' : (r.saveItem ? 'Saved on this device' : 'Save to my account')), 'v3-mini', function () {
+      if (r.saving || (r.saveItem && r.saveItem.accountId)) return;
+      r.saving = true; b4.disabled = true; b4.textContent = 'Saving...';
       if (window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('signup_start', { from: 'save_song', surface: 'song_lab' });
-      try { var list = JSON.parse(localStorage.getItem(SAVED) || '[]'); list.push({ title: S.title, lyrics: S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics, style: r.style, label: r.label, card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() }); localStorage.setItem(SAVED, JSON.stringify(list.slice(-50))); b4.textContent = 'Saving...'; } catch (e) { b4.textContent = 'Could not save'; return; } saveToAccount(list[list.length - 1], b4, w);
+      try {
+        var list = JSON.parse(localStorage.getItem(SAVED) || '[]');
+        var lyrics = S.type === 'roast' ? r.lyrics + '\n\n' + ROAST_NOTE : r.lyrics;
+        if (!r.saveItem) {
+          r.saveItem = { title: S.title, lyrics: lyrics, style: r.style, label: r.label || A.aiLabel(S), card: S.card, type: S.type, sub: S.sub, fanSong: S.sub === 'fan', at: new Date().toISOString() };
+          list.push(r.saveItem);
+        } else {
+          r.saveItem.lyrics = lyrics; r.saveItem.style = r.style; r.saveItem.label = r.label || r.saveItem.label; r.saveItem.title = S.title;
+          list.forEach(function (x) { if (x && x.at === r.saveItem.at) { x.lyrics = r.saveItem.lyrics; x.style = r.saveItem.style; x.label = r.saveItem.label; x.title = r.saveItem.title; } });
+        }
+        localStorage.setItem(SAVED, JSON.stringify(list.slice(-50)));
+      } catch (e) { b4.textContent = 'Could not save'; r.saving = false; b4.disabled = false; return; }
+      saveToAccount(r.saveItem, b4, w, r);
     });
+    b4.disabled = !!r.saving || savedAccount;
     var b5 = btn('Fix', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'fix'; S.title = keepTitle; S.fix.text = t; go('f-off'); });
     var b6 = btn('Flip', 'v3-mini', function () { var t = r.lyrics; var keepTitle = S.title; S = fresh(); S.card = 'flip'; S.title = keepTitle; S.flip.text = t; go('x-genre'); });
     var b7 = btn('Release', 'v3-mini', function () { copy(r.lyrics, b7); setTimeout(function () { location.href = '/upload.html'; }, 600); });
@@ -786,13 +832,14 @@
   };
   function pickLine(line) {
     S.fix.picking = line; S.fix.options = []; S.busy = true; paint();
-    post('arcade-fix', { text: S.fix.text, line: line, off: S.fix.off }).then(function (d) { S.busy = false; if (!d.ok) { S.note = d.error; paint(); return; } S.fix.options = d.options || []; paint(); });
+    post('arcade-fix', { text: S.fix.text, line: line, off: S.fix.off }).then(function (d) { if (d.__stale) return; S.busy = false; if (!d.ok) { S.note = d.error; paint(); return; } S.fix.options = d.options || []; paint(); });
   }
   function fixAll(ev, only) {
     if (!only && wantsTrim() && S.screen !== 'f-trim' && !S.fix.trimAsked) { S.fix.trimAsked = true; go('f-trim'); return; }
     var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
     S.busy = true; paint();
     post('arcade-fix', { text: S.fix.text, off: only || S.fix.off }).then(function (d) {
+      if (d.__stale) return;
       S.busy = false;
       if (!d.ok) { refund(before); S.note = (d.error || 'Could not fix that.') + ''; paint(); return; }
       S.fix.before = S.fix.text; S.fix.after = d.lyrics; S.fix.notice = d.notice || ''; if (d.crisis) S.crisis = true; go('f-compare');
@@ -815,6 +862,7 @@
     if (mode === 'trim') { var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; } }
     S.busy = true; S.fix.shapeMode = mode; S.fix.level = level || ''; paint();
     post('arcade-fix', { text: S.fix.text, mode: mode, level: level || '', off: S.fix.off }).then(function (d) {
+      if (d.__stale) return;
       S.busy = false;
       if (!d.ok) { if (mode === 'trim') refund(before); S.note = d.error || 'Could not do that.'; paint(); return; }
       S.fix.shape = { items: d.items || [], before: d.wordsBefore, mode: mode, level: d.level || level, notice: d.notice || '', undone: {} };
@@ -915,6 +963,7 @@
     var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
     S.busy = true; paint();
     post('arcade-modernize', modBody()).then(function (d) {
+      if (d.__stale) return;
       S.busy = false;
       if (!d.ok) { refund(before); S.note = d.error || 'Could not modernize that.'; paint(); return; }
       f.modern = d; go('x-modern');
@@ -923,6 +972,7 @@
   function retryLine(i) {
     var f = S.flip; var p = f.modern.pairs[i]; p.busy = true; paint();
     post('arcade-modernize-line', modBody({ index: i, tried: p.line })).then(function (d) {
+      if (d.__stale) return;
       p.busy = false;
       if (d.ok && d.pair) { f.modern.pairs[i] = d.pair; f.modern.summary = window.Modernize.summary(f.modern.pairs); } else S.note = d.error || 'Could not retry that line.';
       paint();
@@ -1015,6 +1065,7 @@
     var before = wallet(); if (!spend()) { S.note = 'That takes 1 credit.'; paint(); return; }
     S.busy = true; paint();
     post('arcade-flip', { text: f.text }).then(function (d) {
+      if (d.__stale) return;
       S.busy = false;
       if (!d.ok) { refund(before); S.note = (d.error || 'Could not flip that.') + ''; paint(); return; }
       S.userWords = true; S.aiLevel = 'assist';
@@ -1087,10 +1138,19 @@
     fix: ['f-paste', 'f-off', 'f-read', 'f-compare', 'reveal'],
     flip: ['x-paste', 'x-genre', 'x-vibe', 'reveal']
   };
+  function stepList() {
+    var list = STEPS[S.card];
+    if (!list) return null;
+    if (S.card === 'scratch' && S.type) {
+      var type = A.TYPES.filter(function (x) { return x.id === S.type; })[0];
+      if (!(type && type.sub)) list = list.filter(function (id) { return id !== 's-sub'; });
+    }
+    return list;
+  }
   function stepBar() {
     // Modernize it has no steps: hide the bar whenever it is chosen.
     if (S.flip && S.flip.how === 'modern' && (S.screen === 'x-paste' || S.screen === 'x-modern')) return null;
-    var list = STEPS[S.card]; if (!list || S.screen === 'home') return null;
+    var list = stepList(); if (!list || S.screen === 'home') return null;
     var cur = S.screen === 's-battle' ? 's-build' : S.screen;
     var i = list.indexOf(cur); if (i < 0) return null;
     var wrap = el('div', 'arc-steps'); wrap.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + list.length);
@@ -1242,10 +1302,11 @@
     } else {
       var row2 = el('div', 'arc-talk-row');
       if (!TALK.noMic) row2.appendChild(btn(TALK.listening ? 'Listening...' : '\uD83C\uDFA4 Speak', 'arc-talk-mic' + (TALK.listening ? ' on' : ''), function () { if (TALK.listening) stopListen(); else listen(); paint(); }));
-      var t = el('input', 'arc-input arc-talk-type'); t.placeholder = tg.dictate ? 'Or type a line' : 'Or type your answer';
-      t.onkeydown = function (e) { if (e.key === 'Enter' && t.value.trim()) { var v = t.value; t.value = ''; heard(v); } };
+      var t = el('input', 'arc-input arc-talk-type'); t.placeholder = tg.dictate ? 'Or type a line' : 'Or type your answer'; t.setAttribute('data-keep', 'talk-type'); t.value = TALK.draft || '';
+      t.oninput = function () { TALK.draft = t.value; };
+      t.onkeydown = function (e) { if (e.key === 'Enter' && t.value.trim()) { var v = t.value; t.value = ''; TALK.draft = ''; heard(v); } };
       row2.appendChild(t);
-      row2.appendChild(btn('Send', 'v3-mini', function () { if (t.value.trim()) { var v = t.value; t.value = ''; heard(v); } }));
+      row2.appendChild(btn('Send', 'v3-mini', function () { if (t.value.trim()) { var v = t.value; t.value = ''; TALK.draft = ''; heard(v); } }));
       if (tg.dictate) row2.appendChild(btn('Done', 'v3-mini', function () { stopListen(); clickBtn('Next'); }));
       box.appendChild(row2);
     }
@@ -1268,6 +1329,10 @@
   }
 
   function paint() {
+    var keepEl = document.activeElement;
+    var keepKey = keepEl && keepEl.getAttribute && keepEl.getAttribute('data-keep');
+    var keepSel = null;
+    if (keepKey && keepEl.selectionStart != null) keepSel = { start: keepEl.selectionStart, end: keepEl.selectionEnd };
     root.innerHTML = '';
     var w = el('div', 'v3-wrap arc-wrap');
     var top = el('div', 'v3-top');
@@ -1312,6 +1377,15 @@
     talkTick(w);
     if (S.note) main.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
+    if (keepKey) {
+      var again = root.querySelector('[data-keep="' + String(keepKey).replace(/"/g, '') + '"]');
+      if (again && again.focus) {
+        try {
+          again.focus();
+          if (keepSel && again.setSelectionRange) again.setSelectionRange(Math.min(keepSel.start, again.value.length), Math.min(keepSel.end, again.value.length));
+        } catch (err) {}
+      }
+    }
   }
   var seeded = false;
   try {
