@@ -8883,7 +8883,59 @@ body button {
 .essay-card[data-honest="assisted"] { border-left-color: var(--label-assisted) !important; }
 .essay-card[data-honest="full"] { border-left-color: var(--label-full) !important; }
 
-body .choice[data-made-how],
+.honest-check {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: transparent;
+  border-radius: 0;
+  position: relative;
+  display: inline-block;
+}
+.choice[data-made-how].on > .honest-check::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.honest-choice-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+body .choice[data-made-how] {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: none;
+  cursor: pointer;
+}
+body .choice[data-made-how] b { color: #fff; margin: 0; font-size: 16px; }
+body .choice[data-made-how] .honest-choice-copy { color: #fff; font-size: 16px; }
+body .choice[data-made-how] .honest-choice-copy > span { color: var(--muted); font-size: 13px; }
+body .choice[data-made-how="no_ai"].on { border-color: var(--label-human); background: #000; box-shadow: none; }
+body .choice[data-made-how="ai_assisted"].on { border-color: var(--label-assisted); background: #000; box-shadow: none; }
+body .choice[data-made-how="fully_ai"].on { border-color: var(--label-full); background: #000; box-shadow: none; }
+body .choice[data-made-how]:active { background: #fff; color: #000; }
+body .choice[data-made-how]:active b,
+body .choice[data-made-how]:active .honest-choice-copy,
+body .choice[data-made-how]:active .honest-choice-copy span { color: #000; }
+body .choice[data-made-how]:active .honest-check { border-color: #000; }
+body .choice[data-made-how]:active .honest-check::after { border-color: #000; }
 body .choice[data-edit-made-how] {
   min-height: 44px;
   background: #000;
@@ -8892,24 +8944,14 @@ body .choice[data-edit-made-how] {
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: none;
 }
-body .choice[data-made-how] b,
 body .choice[data-edit-made-how] b { color: #fff; }
-body .choice[data-made-how="no_ai"],
 body .choice[data-edit-made-how="no_ai"] { border-left-color: var(--label-human); }
-body .choice[data-made-how="ai_assisted"],
 body .choice[data-edit-made-how="ai_assisted"] { border-left-color: var(--label-assisted); }
-body .choice[data-made-how="fully_ai"],
 body .choice[data-edit-made-how="fully_ai"] { border-left-color: var(--label-full); }
-body .choice[data-made-how="no_ai"].on,
 body .choice[data-edit-made-how="no_ai"].on { border-color: var(--label-human); background: #000; box-shadow: none; }
-body .choice[data-made-how="ai_assisted"].on,
 body .choice[data-edit-made-how="ai_assisted"].on { border-color: var(--label-assisted); background: #000; box-shadow: none; }
-body .choice[data-made-how="fully_ai"].on,
 body .choice[data-edit-made-how="fully_ai"].on { border-color: var(--label-full); background: #000; box-shadow: none; }
-body .choice[data-made-how]:active,
 body .choice[data-edit-made-how]:active { background: #fff; color: #000; }
-body .choice[data-made-how]:active b,
-body .choice[data-made-how]:active span,
 body .choice[data-edit-made-how]:active b,
 body .choice[data-edit-made-how]:active span { color: #000; }
 
@@ -8971,15 +9013,16 @@ body .choice[data-edit-made-how]:active span { color: #000; }
 .artists-page .artist-class-pick:active { background: #fff; color: #000; }
 
 @media (hover: hover) and (pointer: fine) {
-  body .choice[data-made-how="no_ai"]:hover,
+  body .choice[data-made-how]:hover { border-color: #fff; background: #000; }
+  body .choice[data-made-how="no_ai"].on:hover,
   body .choice[data-edit-made-how="no_ai"]:hover,
   .honest-choice[data-honest="human"]:hover,
   .artists-page .artist-class-pick:has(input[value="human"]):hover { border-color: var(--label-human); background: #000; }
-  body .choice[data-made-how="ai_assisted"]:hover,
+  body .choice[data-made-how="ai_assisted"].on:hover,
   body .choice[data-edit-made-how="ai_assisted"]:hover,
   .honest-choice[data-honest="assisted"]:hover,
   .artists-page .artist-class-pick:has(input[value="ai_infused"]):hover { border-color: var(--label-assisted); background: #000; }
-  body .choice[data-made-how="fully_ai"]:hover,
+  body .choice[data-made-how="fully_ai"].on:hover,
   body .choice[data-edit-made-how="fully_ai"]:hover,
   .honest-choice[data-honest="full"]:hover,
   .artists-page .artist-class-pick:has(input[value="fully_ai"]):hover { border-color: var(--label-full); background: #000; }

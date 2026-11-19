@@ -169,20 +169,20 @@
       var lyricsOn = Boolean(didLyrics && didLyrics.checked) || selectedElements().indexOf('Original lyrics') !== -1;
       var beatOn = Boolean(didBeat && didBeat.checked);
       var directedOn = Boolean(directed && directed.checked);
-      var aiBox = document.getElementById('attest-ai-use');
       var howNow = selectedHow();
+      var aiUsed = howNow === 'ai_assisted' || howNow === 'fully_ai';
       var caption = '';
       if (root.PlaigroundArtistDev && typeof root.PlaigroundArtistDev.madeCaption === 'function') {
         caption = root.PlaigroundArtistDev.madeCaption({
           made_how: howNow,
-          ai_used: Boolean(aiBox && aiBox.checked) || howNow === 'ai_assisted' || howNow === 'fully_ai',
+          ai_used: aiUsed,
           human_elements: selectedElements(),
           human_contribution: human ? String(human.value || '').trim() : '',
         });
       }
       var fields = {
         made_how: howNow,
-        ai_used: Boolean(aiBox && aiBox.checked) || howNow === 'ai_assisted' || howNow === 'fully_ai',
+        ai_used: aiUsed,
         made_caption: caption,
         human_elements: selectedElements(),
         human_contribution: human ? String(human.value || '').trim() : '',
@@ -499,33 +499,10 @@
       if (note.classList && note.classList.toggle) note.classList.toggle('is-hidden', !on);
     }
 
-    function syncAiUse() {
-      var aiBox = document.getElementById('attest-ai-use');
-      var caption = document.querySelector('[data-made-caption]');
-      var how = selectedHow();
-      if (aiBox) aiBox.checked = how === 'ai_assisted' || how === 'fully_ai';
-      var text = root.PlaigroundArtistDev && root.PlaigroundArtistDev.madeCaption
-        ? root.PlaigroundArtistDev.madeCaption({
-          made_how: how,
-          ai_used: Boolean(aiBox && aiBox.checked),
-          human_elements: selectedElements(),
-          human_contribution: human ? String(human.value || '').trim() : '',
-        })
-        : '';
-      if (caption) {
-        caption.textContent = text;
-        caption.hidden = !text;
-        var capKey = how === 'no_ai' ? 'human' : (how === 'ai_assisted' ? 'assisted' : (how === 'fully_ai' ? 'full' : ''));
-        if (capKey) caption.setAttribute('data-honest', capKey);
-        else caption.removeAttribute('data-honest');
-      }
-    }
-
     function refresh() {
       syncHumanSection();
       syncToolSection();
       syncQualify();
-      syncAiUse();
       syncSolo();
       syncRightsStatus();
       if (countEl) countEl.textContent = selectedElements().length + ' selected';
@@ -535,7 +512,9 @@
 
     function selectHow(value, opts) {
       Array.prototype.forEach.call(choices, function (el) {
-        el.classList.toggle('on', el.getAttribute('data-made-how') === value);
+        var on = el.getAttribute('data-made-how') === value;
+        el.classList.toggle('on', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
       if (!opts || !opts.keepSwitchNote) {
         showSwitched(false);
@@ -557,6 +536,11 @@
         if (event && event.preventDefault) event.preventDefault();
         selectHow(choice.getAttribute('data-made-how'));
       });
+      choice.addEventListener('keydown', function (event) {
+        if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+        if (event.preventDefault) event.preventDefault();
+        selectHow(choice.getAttribute('data-made-how'));
+      });
     });
     Array.prototype.forEach.call(tags, function (tag) {
       tag.addEventListener('click', function (event) {
@@ -576,15 +560,6 @@
       // Internal record only: when the rights box was ticked.
       writeDraft({ rights_confirmed_at: rights.checked ? new Date().toISOString() : '' });
       refresh();
-    });
-    var aiUse = document.getElementById('attest-ai-use');
-    if (aiUse) aiUse.addEventListener('change', function () {
-      if (aiUse.checked) {
-        if (selectedHow() !== 'fully_ai') selectHow('ai_assisted');
-        else refresh();
-      } else {
-        selectHow('no_ai');
-      }
     });
     var switchedBack = document.querySelector('[data-switched-back]');
     if (switchedBack) switchedBack.addEventListener('click', function (event) {
