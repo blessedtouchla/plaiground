@@ -520,9 +520,18 @@
         paint();
       }));
     }
-    if (c.feeling) pin(c.feeling, 'feeling');
-    (c.details || []).forEach(function (d, i) { pin(d, 'd' + i); });
-    if (c.title) pin(c.title, 'title');
+    var seen = [];
+    function fresh(label) {
+      var key = String(label || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!key) return false;
+      var clash = seen.some(function (have) { return have === key || have.indexOf(key) !== -1 || key.indexOf(have) !== -1; });
+      if (clash) return false;
+      seen.push(key);
+      return true;
+    }
+    if (c.feeling && fresh(c.feeling)) pin(c.feeling, 'feeling');
+    (c.details || []).forEach(function (d, i) { if (fresh(d)) pin(d, 'd' + i); });
+    if (c.title && fresh(c.title)) pin(c.title, 'title');
     w.appendChild(pins);
     w.appendChild(el('p', 'arc-q', 'A twist in what you said'));
     if (c.twists && c.twists.length) w.appendChild(el('p', 'hint', 'Pick one, type your own, or leave it.'));
