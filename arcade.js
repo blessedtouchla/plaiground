@@ -15,7 +15,7 @@
       sound: { genre: '', sub: '', instruments: [], vocal: '', custom: '', fusion: [] }, result: null, userWords: false, keptPlai: false,
       fix: { text: '', off: [], before: '', history: [], picking: null, options: [], scoreBefore: 0 },
       flip: { text: '', from: '', fromPrompt: '', showPrompt: false, target: '', fusion: [], fusionOn: false, vibe: '', level: '', keep: [] },
-      battle: { round: 1, log: [], charged: false, bars: '' }, tune: { speed: '', bpm: '', vocals: '', gender: '', tone: '', must: [], energy: '', extra: '' }, tuneOpen: false, points: 0, busy: false, note: '', notice: '', crisis: false, history: [] };
+      battle: { round: 1, log: [], charged: false, bars: '' }, tune: { speed: '', bpm: '', vocals: '', gender: '', tone: '', must: [], energy: '', extra: '' }, tuneOpen: false, points: 0, busy: false, note: '', notice: '', crisis: false, history: [], ideaAsked: false };
   }
   S = fresh();
 
@@ -60,11 +60,40 @@
     return row;
   }
   function input(value, ph, onInput, rows) {
-    var t = el(rows ? 'textarea' : 'input', 'arc-input'); if (rows) t.rows = rows; t.placeholder = ph || ''; t.value = value || '';
+    var t = el(rows ? 'textarea' : 'input', 'arc-input'); if (rows) t.rows = rows; t.maxLength = A.IDEA_MAX; t.placeholder = ph || ''; t.value = value || '';
     t.setAttribute('data-keep', S.screen + ':' + String(ph || 'field'));
     t.oninput = function () { onInput(t.value); if (A.crisis(t.value) && !S.crisis) { S.crisis = true; paintCrisis(); } syncHost(); };
     return t;
   }
+  function growIdea(t) {
+    if (!t) return;
+    t.style.height = 'auto';
+    t.style.height = Math.max(t.scrollHeight || 0, 136) + 'px';
+  }
+  function ideaBox(value, field) {
+    var label = field.q || "What's your idea?";
+    var wrap = el('div', 'arc-idea-field');
+    wrap.appendChild(el('p', 'arc-q', label));
+    var t = el('textarea', 'arc-input arc-idea');
+    t.rows = 3;
+    t.maxLength = A.IDEA_MAX;
+    t.placeholder = field.ph || '';
+    t.value = value || '';
+    t.setAttribute('aria-label', label);
+    t.setAttribute('data-keep', S.screen + ':' + field.key);
+    t.oninput = function () {
+      var v = A.clipIdea(t.value);
+      if (t.value !== v) t.value = v;
+      S.answers[field.key] = v;
+      S.userWords = true;
+      if (A.crisis(v) && !S.crisis) { S.crisis = true; paintCrisis(); }
+      growIdea(t);
+      syncHost();
+    };
+    wrap.appendChild(t);
+    return wrap;
+  }
+  function typedIdea() { return A.hasTypedIdea(stateForServer()); }
   function plai(text) { var p = el('p', 'v3-plai arc-plai'); p.appendChild(el('b', '', 'Plai: ')); p.appendChild(document.createTextNode(text)); return p; }
   function copy(text, b) { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { b.textContent = 'Copied'; }, function () { b.textContent = 'Select and copy'; }); }
   function crisisCard() {
@@ -265,7 +294,12 @@
     if (S.sub === 'battle') levels = levels.filter(function (l) { return l.id !== 'human'; });
     var grid = el('div', 'arc-tiles');
     levels.forEach(function (l) {
-      var b = btn('', 'v3-tile arc-tile' + (S.aiLevel === l.id ? ' on' : ''), function () { S.aiLevel = l.id; go(S.sub === 'battle' ? 's-battle' : 's-basics'); });
+      var b = btn('', 'v3-tile arc-tile' + (S.aiLevel === l.id ? ' on' : ''), function () {
+        S.aiLevel = l.id;
+        if (S.sub === 'battle') go('s-battle');
+        else if (l.id === 'assist') { S.ideaAsked = false; go('s-brief'); }
+        else go('s-basics');
+      });
       b.setAttribute('data-honest', l.id === 'human' ? 'human' : (l.id === 'full' ? 'full' : 'assisted'));
       b.appendChild(el('b', '', l.label)); b.appendChild(el('small', '', l.small)); grid.appendChild(b);
     });
@@ -317,24 +351,52 @@
     w.appendChild(box);
   }
 
+  function ideaField(key) { return A.BRIEF.filter(function (row) { return row.key === key; })[0]; }
   function ideaChips(w) {
     S.ideas = S.ideas || [];
+    S.answers = S.answers || {};
+    w.appendChild(ideaBox(S.answers.yourIdea, ideaField('yourIdea')));
     var box = el('div', 'flow-card arc-ideas');
     box.appendChild(el('p', 'arc-q', 'Idea chips'));
     if (S.ideaList && S.ideaList.length) {
       box.appendChild(el('p', 'hint', 'Tap the ideas you want in the song.' + (/^(tribute|roast|parody)$/.test(S.type) ? ' Facts marked (unsure) may be wrong.' : '')));
       box.appendChild(el('p', 'hint', 'Plai picked her top ' + S.ideas.length + '. Tap to swap or remove.'));
       box.appendChild(chips(S.ideaList, function (v) { return S.ideas.indexOf(v) !== -1; }, function (v) { var i = S.ideas.indexOf(v); if (i === -1) S.ideas.push(v); else S.ideas.splice(i, 1); }, 'small'));
-      var own = el('input', 'arc-input'); own.maxLength = 80; own.placeholder = 'Add your own idea';
-      own.onchange = function () { var v = String(own.value || '').trim(); if (v && S.ideaList.indexOf(v) === -1) { S.ideaList.push(v); S.ideas.push(v); } paint(); };
+      var own = el('input', 'arc-input'); own.maxLength = A.IDEA_MAX; own.placeholder = 'Add your own idea';
+      own.onchange = function () {
+        var v = A.clipIdea(own.value).trim();
+        if (v && S.ideaList.indexOf(v) === -1) { S.ideaList.push(v); S.ideas.push(v); S.userWords = true; }
+        paint();
+      };
       box.appendChild(own);
+    } else if (S.aiLevel === 'assist' && !typedIdea()) {
+      box.appendChild(el('p', 'hint', 'Type an idea above. Then I can suggest chips.'));
     }
     box.appendChild(btn(S.ideaBusy ? 'Thinking...' : (S.ideaList && S.ideaList.length ? 'More ideas' : 'Give me idea chips'), 'v3-mini', function () {
+      if (S.aiLevel === 'assist' && !typedIdea()) { S.note = 'Add an idea first. Plai uses your words.'; paint(); return; }
       S.ideaBusy = true; paint();
       post('arcade-ideas').then(function (d) { if (d.__stale) return; S.ideaBusy = false; if (d.ok) { S.ideaList = (d.ideas || []).concat(S.ideas.filter(function (x) { return (d.ideas || []).indexOf(x) === -1; })); if (!S.ideas.length) S.ideas = S.ideaList.filter(function (x) { return !/\(unsure\)/i.test(x); }).slice(0, 4); } else S.note = d.error || 'No ideas right now.'; paint(); });
     }, S.ideaBusy));
     w.appendChild(box);
   }
+  SCREENS['s-brief'] = function (w) {
+    S.answers = S.answers || {};
+    w.appendChild(plai(S.ideaAsked ? 'Skip is fine. Give me one line about the song first.' : 'Tell me a little first. Your words steer the chips and the lines.'));
+    w.appendChild(el('p', 'hint', 'One answer is enough.'));
+    A.BRIEF.forEach(function (field) {
+      if (field.key === 'yourIdea') return;
+      w.appendChild(ideaBox(S.answers[field.key], field));
+    });
+    if (S.ideaAsked) w.appendChild(ideaBox(S.answers.yourIdea, ideaField('yourIdea')));
+    w.appendChild(btn('Next', 'v3-go', function () {
+      if (!typedIdea()) { S.note = S.ideaAsked ? 'Add a line, or skip.' : 'Type an answer first, or skip.'; paint(); return; }
+      go('s-basics');
+    }));
+    w.appendChild(btn('Skip', 'v3-link', function () {
+      if (!S.ideaAsked && !typedIdea()) { S.ideaAsked = true; S.note = ''; paint(); return; }
+      go('s-basics');
+    }));
+  };
   SCREENS['s-basics'] = function (w) {
     w.appendChild(plai('Set the vibe.'));
     if (!S.title) S.title = A.suggestTitle(stateForServer());
@@ -359,11 +421,12 @@
     if (S.aiLevel === 'assist') w.appendChild(btn('Make the whole song (' + priceTag(1) + ')', 'v3-mini', function () { if (S.explicit === 'ok' && !S.ageOk) { S.note = 'Tick the 18+ box, or switch Explicit off.'; paint(); return; } writeSong(); }));
     w.appendChild(btn(S.aiLevel === 'full' ? 'Write it (' + priceTag(1) + ')' : 'Start building', 'v3-go', function () {
       if (S.explicit === 'ok' && !S.ageOk) { S.note = 'Tick the 18+ box, or switch Explicit off.'; paint(); return; }
-      if (S.aiLevel === 'full') writeSong(); else { S.slotIndex = 0; S.built = []; go('s-build'); if (S.aiLevel === 'assist') fetchLines(); }
+      if (S.aiLevel === 'full') writeSong(); else { S.slotIndex = 0; S.built = []; go('s-build'); if (S.aiLevel === 'assist' && typedIdea()) fetchLines(); }
     }));
   };
   var SLOTS = ['Chorus line 1', 'Chorus line 2', 'Chorus line 3', 'Chorus line 4', 'Verse line 1', 'Verse line 2', 'Verse line 3', 'Verse line 4'];
   function fetchLines(one) {
+    if (S.aiLevel === 'assist' && !typedIdea()) { S.busy = false; S.note = 'Add an idea first. Plai uses your words.'; paint(); return; }
     S.busy = true; paint();
     post('arcade-lines', { slot: SLOTS[S.slotIndex].split(' ')[0].toLowerCase(), left: 4 - (S.slotIndex % 4) }).then(function (d) {
       if (d.__stale) return;
@@ -376,6 +439,10 @@
   }
   SCREENS['s-build'] = function (w) {
     w.appendChild(plai(S.aiLevel === 'human' ? 'Write your next line. I count the syllables.' : 'Pick your next line.'));
+    if (S.aiLevel === 'assist' && !typedIdea()) {
+      w.appendChild(el('p', 'hint', 'Add an idea first. Then I can suggest lines.'));
+      w.appendChild(ideaBox(S.answers.yourIdea, ideaField('yourIdea')));
+    }
     var song = el('div', 'flow-card arc-built');
     S.built.forEach(function (l, i) { var p = el('p', 'arc-line'); p.appendChild(syl(l)); p.appendChild(document.createTextNode(' ' + l)); var flag = mismatch(i); if (flag) p.classList.add('amber'); song.appendChild(p); });
     if (S.built.length) w.appendChild(song);
@@ -416,7 +483,7 @@
     w.appendChild(btn('Finish now (' + priceTag(S.aiLevel === 'human' ? 0 : 1) + ')', 'v3-link', writeSong));
   };
   function mismatch(i) { var j = i >= 4 ? i - 4 : i + 4; return S.built[j] && Math.abs(A.lineSyllables(S.built[i]) - A.lineSyllables(S.built[j])) > 2; }
-  function nextSlot() { S.slotIndex += 1; S.points += 50; S.options = []; paint(); if (S.aiLevel === 'assist' && S.slotIndex < SLOTS.length) fetchLines(); }
+  function nextSlot() { S.slotIndex += 1; S.points += 50; S.options = []; paint(); if (S.aiLevel === 'assist' && typedIdea() && S.slotIndex < SLOTS.length) fetchLines(); }
 
   function writeSong() {
     var human = S.aiLevel === 'human';
@@ -1121,6 +1188,7 @@
     's-sub': ['wink', 'Good pick. Now narrow it down.'],
     's-q': ['thinking', 'Real details beat generic every time.'],
     's-ai': ['autopilot', 'Your call. You lead either way.'],
+    's-brief': ['thinking', 'Your words first. Then I suggest.'],
     's-basics': ['side', 'Set the vibe, then we roll.'],
     's-build': ['claim', 'Your story. One line at a time.'],
     's-battle': ['wink', 'Bring your best bars.'],
@@ -1134,7 +1202,7 @@
     'x-modern': ['claim', 'Old song, new day. Same melody.']
   };
   var STEPS = {
-    scratch: ['s-type', 's-sub', 's-q', 's-ai', 's-basics', 's-build', 'reveal'],
+    scratch: ['s-type', 's-sub', 's-q', 's-ai', 's-brief', 's-basics', 's-build', 'reveal'],
     fix: ['f-paste', 'f-off', 'f-read', 'f-compare', 'reveal'],
     flip: ['x-paste', 'x-genre', 'x-vibe', 'reveal']
   };
@@ -1144,6 +1212,10 @@
     if (S.card === 'scratch' && S.type) {
       var type = A.TYPES.filter(function (x) { return x.id === S.type; })[0];
       if (!(type && type.sub)) list = list.filter(function (id) { return id !== 's-sub'; });
+    }
+    if (S.card === 'scratch') {
+      var pastPen = S.screen === 's-brief' || S.screen === 's-basics' || S.screen === 's-build' || S.screen === 'reveal';
+      if (!(S.aiLevel === 'assist' && pastPen)) list = list.filter(function (id) { return id !== 's-brief'; });
     }
     return list;
   }
@@ -1377,6 +1449,7 @@
     talkTick(w);
     if (S.note) main.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
+    Array.prototype.forEach.call(root.querySelectorAll('textarea.arc-idea'), growIdea);
     if (keepKey) {
       var again = root.querySelector('[data-keep="' + String(keepKey).replace(/"/g, '') + '"]');
       if (again && again.focus) {
@@ -1390,14 +1463,14 @@
   var seeded = false;
   try {
     var params = new URLSearchParams(location.search);
-    var idea = String(params.get('idea') || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 280);
+    var idea = String(params.get('idea') || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, A.IDEA_MAX);
     if (idea) {
       S = fresh();
       S.card = 'scratch';
       S.type = 'jam';
       S.sub = '';
       S.vibe = defaultVibe();
-      S.answers = { topic: idea };
+      S.answers = { topic: idea, yourIdea: idea };
       S.qIndex = 1;
       S.screen = 's-q';
       S.userWords = true;

@@ -841,6 +841,14 @@ body.song-lab textarea.arc-input{
   min-height:48px;
 }
 body.song-lab textarea.arc-input{border:1px solid rgba(244,244,244,.28)!important;padding:12px!important}
+body.song-lab textarea.arc-idea{
+  min-height:8.5rem !important;
+  height:auto;
+  resize:none;
+  overflow:hidden;
+  line-height:1.45;
+  white-space:pre-wrap;
+}
 body.song-lab .arc-input:focus{outline:none!important;border-color:#7D3CFF!important;box-shadow:none!important}
 body.song-lab .arc-steps-bar span{height:2px!important;border-radius:0!important;background:rgba(244,244,244,.22)!important;box-shadow:none!important;animation:none!important}
 body.song-lab .arc-steps-bar span.done,

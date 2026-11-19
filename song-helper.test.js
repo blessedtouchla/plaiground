@@ -1444,7 +1444,94 @@ function runPage() {
   });
 }
 
+function runIdeaInput() {
+  const arcade = require('./lib/arcade');
+  const page = read('arcade.js');
+  const api = read('api/song-helper.js');
+  const server = read('lib/arcade-server.js');
+  const story = 'Thanksgiving dinner at a restaurant this year. No chores, just the good parts. ';
+  const long = story.repeat(24).trim();
+  assert.ok(long.length > 1500 && long.length <= arcade.IDEA_MAX, 'fixture stays inside the idea cap');
+  assert.strictEqual(arcade.IDEA_MAX, 2000);
+  assert.deepStrictEqual(arcade.BRIEF.map(function (row) { return row.q; }), [
+    "What's the song about?",
+    "What's the funny twist or angle?",
+    'Any details, names or moments to include?',
+    "What's your idea?",
+  ]);
+  assert.strictEqual(arcade.hasTypedIdea({ answers: { holiday: 'Thanksgiving' } }), false);
+  assert.strictEqual(arcade.hasTypedIdea({ answers: { songAbout: '  ' } }), false);
+  assert.strictEqual(arcade.hasTypedIdea({ answers: { funnyTwist: 'No dishes at home' } }), true);
+
+  const state = {
+    type: 'holiday',
+    vibe: 'Funny',
+    aiLevel: 'assist',
+    title: 'Table for the family',
+    answers: {
+      holiday: 'Thanksgiving',
+      songAbout: long,
+      funnyTwist: 'All the chores you do not have to do',
+      songMoments: 'The good things that come with eating out',
+    },
+  };
+  const song = arcade.songPrompt(state);
+  const ideas = arcade.ideasPrompt(state);
+  const lines = arcade.nextLinePrompt(state, 'chorus', 4);
+  [song, ideas, lines].forEach(function (prompt) {
+    assert.ok(prompt.indexOf(long) !== -1, 'long idea reaches the prompt intact');
+    assert.ok(prompt.indexOf('All the chores you do not have to do') !== -1);
+    assert.ok(prompt.indexOf('The good things that come with eating out') !== -1);
+    assert.ok(prompt.indexOf('\u2014') === -1);
+  });
+  assert.ok(/Build every chip from these words/.test(ideas));
+  assert.ok(/Use their words/.test(song));
+  const chips = arcade.sampleIdeas(state);
+  assert.ok(chips.some(function (chip) { return /restaurant/i.test(chip); }), 'sample chips use the typed idea');
+  const sectionIdea = 'x'.repeat(1500);
+  assert.ok(arcade.sectionPrompt(state, 'line one', sectionIdea, [], 'line one').indexOf(sectionIdea) !== -1);
+
+  const over = 'y'.repeat(arcade.IDEA_MAX + 400);
+  const prepped = arcade.prepareIdeaState({
+    answers: { yourIdea: over, songAbout: long, holiday: 'Thanksgiving' },
+    ideas: [over, 'short chip'],
+  });
+  assert.strictEqual(prepped.answers.yourIdea.length, arcade.IDEA_MAX);
+  assert.strictEqual(prepped.answers.songAbout, long);
+  assert.strictEqual(prepped.answers.holiday, 'Thanksgiving');
+  assert.strictEqual(prepped.ideas[0].length, arcade.IDEA_MAX);
+  assert.strictEqual(prepped.ideas[1], 'short chip');
+  assert.strictEqual(arcade.clipIdea(undefined), '');
+
+  assert.ok(page.includes("What's your idea?"));
+  assert.ok(page.includes("SCREENS['s-brief']"));
+  assert.ok(page.includes('A.BRIEF.forEach'));
+  assert.ok(page.includes('S.ideaAsked'));
+  assert.ok(page.includes('S.userWords = true'));
+  assert.ok(page.includes('own.maxLength = A.IDEA_MAX'));
+  assert.ok(page.includes('t.maxLength = A.IDEA_MAX'));
+  assert.ok(!/own\.maxLength = 80/.test(page));
+  assert.ok(!/slice\(0,\s*280\)/.test(page));
+  assert.ok(page.includes('slice(0, A.IDEA_MAX)'));
+  assert.ok(page.includes("if (S.aiLevel === 'assist' && !typedIdea())"));
+  assert.ok(page.includes("if (S.aiLevel === 'assist' && typedIdea()) fetchLines()"));
+  assert.ok(!/if \(S\.aiLevel === 'assist'\) fetchLines\(\)/.test(page));
+  assert.ok(page.indexOf("What's your idea?") < page.indexOf('Give me idea chips') || page.includes('ideaBox(S.answers.yourIdea'));
+  const briefBlock = page.slice(page.indexOf("SCREENS['s-brief']"), page.indexOf("SCREENS['s-basics']"));
+  assert.ok(briefBlock.includes('Skip'));
+  assert.ok(briefBlock.includes('One answer is enough.'));
+  assert.ok(briefBlock.indexOf('\u2014') === -1);
+  assert.ok(!/amazing|unleash|elevate|guaranteed/i.test(briefBlock));
+
+  assert.ok(api.includes('prepareIdeaState'));
+  assert.ok(api.includes('clipIdea'));
+  assert.ok(server.includes('A.prepareIdeaState'));
+  assert.ok(server.includes('A.clipIdea(body.idea)'));
+  assert.ok(!/slice\(0,\s*120\)/.test(server.slice(server.indexOf('async function section'), server.indexOf('async function section') + 800)));
+}
+
 async function run() {
+  runIdeaInput();
   runCore();
   runPacks();
   await runApi();
