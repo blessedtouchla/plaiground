@@ -68,13 +68,18 @@
     border-bottom: 1px solid rgba(243, 203, 71, .35);
   }
   header.top img { height: 42px; width: auto; display: block; }
-  .score {
+  .tokens {
     font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    letter-spacing: .14em;
+    letter-spacing: .18em;
+    text-align: right;
     color: var(--gold);
-    text-shadow: 0 0 12px rgba(243, 203, 71, .8);
-    font-size: 13px;
+    text-shadow: 0 0 12px rgba(243, 203, 71, .75);
   }
+  .tokens span { display: block; font-size: 11px; }
+  .tokens b { display: block; font-size: 28px; font-weight: 500; letter-spacing: .12em; line-height: 1; }
+  .notes { margin: 0; line-height: 1.45; color: rgba(244,244,244,.9); }
+  .focus { display: flex; gap: 8px; }
+  .focus button { flex: 1; min-height: 44px; }
   main { position: relative; z-index: 1; padding: 20px 16px 28px; }
   h1, h2, .door b, .kicker { font-family: Satoshi, Inter, sans-serif; font-weight: 500; }
   h1 { margin: 0 0 8px; font-size: 40px; letter-spacing: -.03em; }
@@ -263,7 +268,7 @@
   <div class="bezel">
     <header class="top">
       <img src="../assets/plaiground-logo.png" alt="PLAIGROUND" />
-      <div class="score" id="score">SONG LAB · ARCADE</div>
+      <div class="tokens" id="tokens"><span>TOKENS</span><b>12</b></div>
     </header>
     <main>
       <section id="screen-doors">
@@ -271,9 +276,9 @@
         <h1>Pick a door</h1>
         <p class="lede">Three ways in. The cabinet stays the same.</p>
         <div class="doors">
-          <button class="door" data-door="write" type="button"><span><b>Write a song</b><span>A new song from your idea.</span></span><i></i></button>
-          <button class="door" data-door="improve" type="button"><span><b>Improve my song</b><span>Paste a song and tune it.</span></span><i></i></button>
-          <button class="door" data-door="transform" type="button"><span><b>Transform my song</b><span>New genre, same heart.</span></span><i></i></button>
+          <button class="door" data-door="write" type="button"><span><b>Write</b><span>A new song from your idea.</span></span><i></i></button>
+          <button class="door" data-door="improve" type="button"><span><b>Improve</b><span>Paste a song and tune it.</span></span><i></i></button>
+          <button class="door" data-door="transform" type="button"><span><b>Transform</b><span>New genre, same heart.</span></span><i></i></button>
         </div>
       </section>
 
@@ -289,23 +294,20 @@
             <div class="dial" id="dial"><div class="knob" id="knob"></div></div>
             <p class="kicker">Era</p>
             <div class="pills" data-group="era"></div>
-            <p class="kicker">Region slang</p>
-            <div class="pills" data-group="slang"></div>
-            <p class="kicker">Vibe</p>
-            <div class="pills" data-group="vibe"></div>
-            <p class="kicker">Structure</p>
-            <div class="pills" data-group="structure"></div>
+            <p class="kicker">Region</p>
+            <div class="pills" data-group="region"></div>
+            <p class="kicker">Language</p>
+            <div class="pills" data-group="language"></div>
           </aside>
           <section class="sheet">
             <h2 id="song-title">Kitchen light</h2>
             <div id="sheet"></div>
           </section>
           <aside class="booth" id="booth">
-            <p class="kicker">Plai</p>
-            <p>One voice. Three lines.</p>
-            <div class="opts" id="alts"></div>
-            <p class="kicker">Slang tip</p>
-            <p id="slang-tip">Plain speech. One local word, then stop.</p>
+            <p class="kicker">Plai · producer</p>
+            <div class="focus" id="focus"></div>
+            <p class="kicker" id="note-label">Hook notes</p>
+            <p class="notes" id="notes"></p>
           </aside>
         </div>
         <div class="tabs" style="margin-top:16px">
@@ -339,11 +341,14 @@
   var genres = ['Pop', 'Hip hop', 'R&B', 'Soul', 'Rock', 'Electronic'];
   var groups = {
     era: ['70s', '90s', 'Now'],
-    slang: ['Off', 'Light', 'Local'],
-    vibe: ['Chill', 'Love', 'Dark', 'Hype'],
-    structure: ['Short', 'Song', 'Long']
+    region: ['South', 'Bay', 'UK', 'Latin'],
+    language: ['English', 'Spanish', 'Spanglish']
   };
-  var state = { genre: 'Pop', era: 'Now', slang: 'Light', vibe: 'Love', structure: 'Song', line: -1, screen: 'doors', tab: 'lyrics' };
+  var notes = {
+    hook: 'Seven syllables. Say the title once, then one picture. Do not explain it.',
+    verse: 'Name the room. Do not retell the hook. Land the pair on the same end sound.'
+  };
+  var state = { genre: 'Pop', era: 'Now', region: 'South', language: 'English', focus: 'hook', line: -1, screen: 'doors', tab: 'lyrics' };
   var song = [
     { tag: 'Verse 1', lines: [
       { text: 'The plates are still warm from Saturday night', syl: 10, rhyme: 'ight' },
@@ -428,7 +433,7 @@
         b.addEventListener('click', function () {
           state[key] = name;
           paintPills();
-          $('slang-tip').textContent = state.slang === 'Off' ? 'Plain speech. No costume slang.' : 'One ' + state.slang.toLowerCase() + ' word, then stop.';
+          paintBooth();
         });
         host.appendChild(b);
       });
@@ -459,7 +464,7 @@
         if (idx === state.line) host.appendChild(punchBox(line));
       });
     });
-    paintPunch();
+    paintBooth();
   }
   function optionsFor(line) {
     return punches[line.text] || [
@@ -485,26 +490,25 @@
     });
     return box;
   }
-  function paintPunch() {
-    var alts = $('alts');
-    var line = flat()[state.line];
-    alts.textContent = '';
-    if (!line) {
-      alts.appendChild(document.createTextNode('Tap a line.'));
-      return;
-    }
-    optionsFor(line).forEach(function (text) {
+  function paintBooth() {
+    var host = $('focus');
+    host.textContent = '';
+    ['hook', 'verse'].forEach(function (id) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.textContent = text;
-      b.addEventListener('click', function () { line.text = text; paintSheet(); });
-      alts.appendChild(b);
+      b.textContent = id === 'hook' ? 'Hook' : 'Verse';
+      if (state.focus === id) b.className = 'on';
+      b.addEventListener('click', function () { state.focus = id; paintBooth(); });
+      host.appendChild(b);
     });
+    $('note-label').textContent = (state.focus === 'hook' ? 'Hook' : 'Verse') + ' notes';
+    var place = state.region === 'Bay' ? 'the block' : (state.region === 'UK' ? 'the high street' : 'the kitchen');
+    $('notes').textContent = notes[state.focus] + ' Language: ' + state.language + '. Keep the picture in ' + place + '.';
   }
   function paintResults() {
     var tabs = $('result-tabs');
     tabs.textContent = '';
-    ['Lyrics', 'Sound', 'Save and release'].forEach(function (name) {
+    ['Lyrics', 'Sound', 'Save & release'].forEach(function (name) {
       var id = name === 'Lyrics' ? 'lyrics' : (name === 'Sound' ? 'sound' : 'save');
       var b = document.createElement('button');
       b.type = 'button';
@@ -517,7 +521,7 @@
     body.textContent = '';
     if (state.tab === 'sound') {
       var pre = document.createElement('pre');
-      pre.textContent = state.genre + ', ' + state.era + ', ' + state.vibe.toLowerCase() + ', ' + state.structure.toLowerCase() + '. Region slang ' + state.slang.toLowerCase() + '.';
+      pre.textContent = state.genre + ', era ' + state.era + ', region ' + state.region + ', language ' + state.language + '.';
       body.appendChild(pre);
     } else if (state.tab === 'save') {
       var p = document.createElement('p');
@@ -569,7 +573,7 @@
   $('results-export').addEventListener('click', openExport);
   $('close-drawer').addEventListener('click', function () { $('drawer').classList.remove('show'); });
   $('copy-suno').addEventListener('click', function () {
-    var text = tagged() + '\n\n' + state.genre + ', ' + state.vibe.toLowerCase();
+    var text = tagged() + '\n\n' + state.genre + ', ' + state.era + ', ' + state.region + ', ' + state.language;
     $('toast').dataset.copy = text;
     if (navigator.clipboard) navigator.clipboard.writeText(text);
     $('toast').textContent = 'Copied for Suno, tags included.';
@@ -585,15 +589,15 @@
     var hash = (location.hash || '').replace('#', '');
     if (hash === 'console' || hash === 'punch') {
       show('console');
-      if (hash === 'punch') { state.line = 1; paintSheet(); paintPunch(); }
+      if (hash === 'punch') { state.line = 1; paintSheet(); }
     } else if (hash === 'results') show('results');
     else if (hash === 'export') { show('console'); openExport(); }
     else show('doors');
   }
   paintDial();
   paintPills();
+  paintBooth();
   paintSheet();
-  paintPunch();
   window.addEventListener('hashchange', fromHash);
   fromHash();
 })();
