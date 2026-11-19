@@ -32,6 +32,7 @@ const reddit = require('../lib/reddit-slang');
 const sparkFeed = require('../lib/spark-feed');
 const artistDev = require('../lib/artist-dev');
 const arcadeServer = require('../lib/arcade-server');
+const arcadeLib = require('../lib/arcade');
 const epkBuilder = require('../lib/epk-builder');
 const lyricsTranscribe = require('../lib/lyrics-transcribe');
 const songRate = require('../lib/song-rate');
@@ -1015,6 +1016,8 @@ async function handleArcade(req, res, action, givenBody) {
   }
   var payload = Object.assign({}, body);
   delete payload.k;
+  if (payload.state && typeof payload.state === 'object') payload.state = arcadeLib.prepareIdeaState(payload.state);
+  if (typeof payload.idea === 'string') payload.idea = arcadeLib.clipIdea(payload.idea);
   try {
     var out = await arcadeServer.ACTIONS[action](payload);
     logArcade(action, heavy ? 'ai' : 'light', ip);
