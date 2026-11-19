@@ -105,10 +105,30 @@
       <section class="sh-craft" id="sh-start">
         <h2 class="sh-craft-title">Idea</h2>
         <div class="sh-idea-choices" role="group" aria-label="Where the song starts">
-          <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false">Start from scratch</button>
-          <button type="button" class="sh-choice" id="sh-choice-based" aria-pressed="false">Based on a real song</button>
-          <button type="button" class="sh-choice" id="sh-choice-page" aria-pressed="false">I already have lyrics or a story</button>
+          <button type="button" class="sh-choice" id="sh-choice-scratch" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>Start from scratch</span></button>
+          <button type="button" class="sh-choice" id="sh-choice-hook" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>Start from the hook</span></button>
+          <button type="button" class="sh-choice" id="sh-choice-based" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>Based on a real song</span></button>
+          <button type="button" class="sh-choice" id="sh-choice-page" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>I already have lyrics or a story</span></button>
         </div>
+      </section>
+      <section class="sh-craft" id="sh-hook" hidden>
+        <h2 class="sh-craft-title">Hook</h2>
+        <p class="sh-help">Who's singing this?</p>
+        <div class="sh-idea-choices" role="group" aria-label="Who's singing this?">
+          <button type="button" class="sh-choice" data-singer="me" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>Me</span></button>
+          <button type="button" class="sh-choice" data-singer="character" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>A character</span></button>
+          <button type="button" class="sh-choice" data-singer="table" aria-pressed="false"><span class="honest-check" aria-hidden="true"></span><span>Someone at the table</span></button>
+        </div>
+        <label class="sh-field">
+          <span>Hook</span>
+          <textarea class="sh-area" id="sh-hook-line" rows="3" maxlength="240" placeholder="The line they would say"></textarea>
+        </label>
+        <div class="sh-side-actions">
+          <button type="button" class="btn btn-ghost btn-md" id="sh-hook-write">Write the hook</button>
+          <button type="button" class="btn btn-purple btn-md" id="sh-hook-lock">Lock hook</button>
+        </div>
+        <p class="sh-hook-amaze">Words should amaze or amuse.</p>
+        <p class="sh-form-error" id="sh-hook-error" role="alert" hidden></p>
       </section>
       <section class="sh-craft" id="sh-based" hidden>
         <h2 class="sh-craft-title">Based on a real song</h2>
@@ -371,7 +391,12 @@
         <p class="sh-note" id="sh-profile-note"></p>
       </div>
       <div id="sh-v2" hidden>
-        <h2 class="sh-craft-title">Questions, then the first draft</h2>
+        <div id="sh-hook-pin" class="sh-hook-pin" hidden>
+          <p class="sh-hook-pin-kicker">Hook</p>
+          <p id="sh-hook-pin-text"></p>
+          <button type="button" class="sh-hook-unlock" id="sh-hook-unlock">Unlock</button>
+        </div>
+        <h2 class="sh-craft-title" id="sh-v2-title">Questions, then the first draft</h2>
         <p class="sh-help" id="sh-v2-blurb"></p>
         <div id="sh-v2-fields"></div>
         <div id="sh-source-notes" hidden></div>
@@ -882,14 +907,14 @@
   <script src="lib/style-design.js?v=20261009story"></script>
   <script src="lib/style-clues.js?v=20261009story"></script>
   <script src="lib/suno-style.js?v=20261009story"></script>
-  <script src="lib/song-modes.js?v=20261102t3"></script>
+  <script src="lib/song-modes.js?v=20261117hook"></script>
   <script src="lib/slang.js?v=20261009story"></script>
   <script src="lib/spark.js?v=20261014tabs"></script>
   <script src="lib/song-questions.js?v=20261009story"></script>
   <script src="song-helper.js?v=20261016scene"></script>
   <script src="lyrics-account.js?v=20261022acct"></script>
   <script src="lib/features.js?v=20261017tiles"></script>
-  <script src="song-helper-v2.js?v=20261017tiles"></script>
+  <script src="song-helper-v2.js?v=20261117hook"></script>
   <script src="/lib/artist-dev.js?v=20261019fix1"></script>
   <script src="song-helper-dev.js?v=20261014have"></script>
   <script src="apply.js"></script>
@@ -910,8 +935,9 @@
         var shapeStep = document.querySelector('[data-step="shape"]');
         var genreStep = document.querySelector('[data-step="genre"]');
         var draftStep = document.querySelector('[data-step="draft"]');
+        if (open('sh-hook')) phase = 'idea';
         if (open('sh-cast') || open('sh-feeling') || (open('sh-write') && ((styleStep && !styleStep.hidden) || (shapeStep && !shapeStep.hidden) || (genreStep && !genreStep.hidden)))) phase = 'style';
-        if ((draftStep && !draftStep.hidden) || open('sh-expand') || open('sh-page') || open('sh-have')) phase = 'lyrics';
+        if ((draftStep && !draftStep.hidden) || open('sh-expand') || open('sh-page') || open('sh-have') || (open('sh-v2') && open('sh-hook-pin'))) phase = 'lyrics';
         document.querySelectorAll('[data-ly]').forEach(function (el) {
           var on = el.getAttribute('data-ly') === phase;
           el.classList.toggle('on', on);
