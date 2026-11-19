@@ -65,10 +65,10 @@
     t.oninput = function () { onInput(t.value); if (A.crisis(t.value) && !S.crisis) { S.crisis = true; paintCrisis(); } syncHost(); };
     return t;
   }
-  function growIdea(t) {
+  function growIdea(t, min) {
     if (!t) return;
     t.style.height = 'auto';
-    t.style.height = Math.max(t.scrollHeight || 0, 136) + 'px';
+    t.style.height = Math.max(t.scrollHeight || 0, min || 136) + 'px';
   }
   function ideaBox(value, field) {
     var label = field.q || "What's your idea?";
@@ -297,7 +297,7 @@
       var b = btn('', 'v3-tile arc-tile' + (S.aiLevel === l.id ? ' on' : ''), function () {
         S.aiLevel = l.id;
         if (S.sub === 'battle') go('s-battle');
-        else if (l.id === 'assist') { S.ideaAsked = false; go('s-brief'); }
+        else if (l.id === 'assist') { S.ideaAsked = false; S.couch = null; go('s-brief'); }
         else go('s-basics');
       });
       b.setAttribute('data-honest', l.id === 'human' ? 'human' : (l.id === 'full' ? 'full' : 'assisted'));
@@ -379,9 +379,84 @@
     }, S.ideaBusy));
     w.appendChild(box);
   }
-  SCREENS['s-brief'] = function (w) {
+  function couchNow() {
+    if (!S.couch) S.couch = { plaiTurns: 0, log: [], phase: 'chat', draft: '', form: false, busy: false, feeling: '', details: [], title: '', twists: [], kept: {}, picked: '', ownTwist: '' };
+    return S.couch;
+  }
+  function couchSaid() {
+    return (couchNow().log || []).filter(function (m) { return m.who === 'you' && String(m.text || '').trim(); }).map(function (m) { return String(m.text).trim(); });
+  }
+  function rememberCouch() {
+    var said = couchSaid();
+    if (!said.length) return;
     S.answers = S.answers || {};
-    w.appendChild(plai(S.ideaAsked ? 'Skip is fine. Give me one line about the song first.' : 'Tell me a little first. Your words steer the chips and the lines.'));
+    S.answers.couchTalk = A.clipIdea(said.join('\n'));
+    if (!String(S.answers.songAbout || '').trim()) S.answers.songAbout = S.answers.couchTalk;
+    S.userWords = true;
+  }
+  function finishCouch() {
+    var c = couchNow();
+    rememberCouch();
+    if (c.kept.feeling !== false && c.feeling) S.answers.couchFeeling = c.feeling;
+    var details = (c.details || []).filter(function (d, i) { return c.kept['d' + i] !== false; });
+    if (details.length) S.answers.songMoments = A.clipIdea(details.join('; '));
+    if (c.kept.title !== false && c.title && !String(S.title || '').trim()) S.title = c.title;
+    var twist = String(c.ownTwist || '').trim() || c.picked || '';
+    if (twist) S.answers.funnyTwist = A.clipIdea(twist);
+    go('s-basics');
+  }
+  function couchFallback() {
+    var c = couchNow();
+    c.form = true;
+    c.busy = false;
+    rememberCouch();
+    paint();
+  }
+  function sendCouch(enough) {
+    var c = couchNow();
+    if (c.busy) return;
+    var text = String(c.draft || '').trim();
+    if (!enough && !text) { S.note = 'Say a little, or skip.'; paint(); return; }
+    if (text) {
+      c.log.push({ who: 'you', text: A.clipIdea(text) });
+      c.draft = '';
+      rememberCouch();
+    }
+    var said = couchSaid();
+    if (!said.length) { go('s-basics'); return; }
+    var latest = said[said.length - 1];
+    if (enough || A.couchShouldCatch(c.plaiTurns, latest, false)) { pullCouch(); return; }
+    c.busy = true; paint();
+    post('arcade-couch', { step: 'reply', said: latest, log: c.log }).then(function (d) {
+      if (d.__stale) return;
+      c.busy = false;
+      if (!d.ok || d.fallback || !d.text) { couchFallback(); return; }
+      c.log.push({ who: 'plai', text: A.couchSay(d.text) });
+      c.plaiTurns += 1;
+      paint();
+    });
+  }
+  function pullCouch() {
+    var c = couchNow();
+    var said = couchSaid();
+    if (!said.length) { go('s-basics'); return; }
+    c.busy = true; paint();
+    post('arcade-couch', { step: 'catch', said: said[said.length - 1], lines: said, log: c.log }).then(function (d) {
+      if (d.__stale) return;
+      c.busy = false;
+      if (!d.ok || d.fallback || !d.details) { couchFallback(); return; }
+      c.feeling = d.feeling || '';
+      c.details = d.details || [];
+      c.title = d.title || '';
+      c.twists = d.twists || [];
+      c.phase = 'notes';
+      c.plaiTurns += 1;
+      paint();
+    });
+  }
+  function briefForm(w) {
+    S.answers = S.answers || {};
+    w.appendChild(plai(S.ideaAsked ? 'Skip is fine. Give me one line about the song first.' : 'The chat missed. Three boxes will do.'));
     w.appendChild(el('p', 'hint', 'One answer is enough.'));
     A.BRIEF.forEach(function (field) {
       if (field.key === 'yourIdea') return;
@@ -396,6 +471,91 @@
       if (!S.ideaAsked && !typedIdea()) { S.ideaAsked = true; S.note = ''; paint(); return; }
       go('s-basics');
     }));
+  }
+  function couchChat(w) {
+    var c = couchNow();
+    if (!c.log.length) {
+      c.log.push({ who: 'plai', text: A.couchOpener(stateForServer()) });
+      c.plaiTurns = 1;
+    }
+    w.appendChild(plai('Talk it out. I will find the twist.'));
+    var log = el('div', 'arc-couch');
+    c.log.forEach(function (m) {
+      log.appendChild(el('p', 'arc-talk-msg ' + (m.who === 'you' ? 'you' : 'plai'), m.text));
+    });
+    w.appendChild(log);
+    if (c.busy) w.appendChild(el('p', 'hint', 'Listening...'));
+    var box = el('textarea', 'arc-input arc-idea arc-couch-input');
+    box.rows = 2;
+    box.maxLength = A.IDEA_MAX;
+    box.placeholder = 'Say it the way you would to a friend';
+    box.setAttribute('aria-label', 'Your answer');
+    box.setAttribute('data-keep', 's-brief:couch');
+    box.value = c.draft || '';
+    box.oninput = function () {
+      c.draft = A.clipIdea(box.value);
+      if (box.value !== c.draft) box.value = c.draft;
+      S.userWords = true;
+      growIdea(box, 76);
+    };
+    box.onkeydown = function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCouch(false); }
+    };
+    w.appendChild(box);
+    w.appendChild(btn(c.busy ? 'Listening...' : 'Send', 'v3-go', function () { sendCouch(false); }, c.busy));
+    w.appendChild(btn("That's enough, show me", 'v3-mini', function () { sendCouch(true); }, c.busy));
+    w.appendChild(btn('Skip', 'v3-link', function () { rememberCouch(); go('s-basics'); }));
+  }
+  function couchNotes(w) {
+    var c = couchNow();
+    w.appendChild(plai('Here is what I caught. Tap off anything that does not belong.'));
+    w.appendChild(el('p', 'hint', 'Nothing here is required.'));
+    var pins = el('div', 'arc-chips arc-pins');
+    function pin(label, key) {
+      var on = c.kept[key] !== false;
+      pins.appendChild(btn(label, 'arc-chip small arc-pin' + (on ? ' on' : ''), function () {
+        c.kept[key] = !(c.kept[key] !== false);
+        paint();
+      }));
+    }
+    if (c.feeling) pin(c.feeling, 'feeling');
+    (c.details || []).forEach(function (d, i) { pin(d, 'd' + i); });
+    if (c.title) pin(c.title, 'title');
+    w.appendChild(pins);
+    w.appendChild(el('p', 'arc-q', 'A twist in what you said'));
+    w.appendChild(el('p', 'hint', 'Pick one, type your own, or leave it.'));
+    var twists = el('div', 'arc-chips arc-twists');
+    (c.twists || []).forEach(function (t) {
+      twists.appendChild(btn(t, 'arc-chip small' + (c.picked === t ? ' on' : ''), function () {
+        c.picked = c.picked === t ? '' : t;
+        if (c.picked) c.ownTwist = '';
+        paint();
+      }));
+    });
+    w.appendChild(twists);
+    var own = el('textarea', 'arc-input arc-idea arc-couch-input');
+    own.rows = 2;
+    own.maxLength = A.IDEA_MAX;
+    own.placeholder = 'Or type your own twist';
+    own.setAttribute('aria-label', 'Your twist');
+    own.setAttribute('data-keep', 's-brief:twist');
+    own.value = c.ownTwist || '';
+    own.oninput = function () {
+      c.ownTwist = A.clipIdea(own.value);
+      if (own.value !== c.ownTwist) own.value = c.ownTwist;
+      if (c.ownTwist) c.picked = '';
+      S.userWords = true;
+      growIdea(own, 76);
+    };
+    w.appendChild(own);
+    w.appendChild(btn('Next', 'v3-go', finishCouch));
+    w.appendChild(btn('Skip', 'v3-link', function () { rememberCouch(); go('s-basics'); }));
+  }
+  SCREENS['s-brief'] = function (w) {
+    var c = couchNow();
+    if (c.form) { briefForm(w); return; }
+    if (c.phase === 'notes') { couchNotes(w); return; }
+    couchChat(w);
   };
   SCREENS['s-basics'] = function (w) {
     w.appendChild(plai('Set the vibe.'));
@@ -1188,7 +1348,7 @@
     's-sub': ['wink', 'Good pick. Now narrow it down.'],
     's-q': ['thinking', 'Real details beat generic every time.'],
     's-ai': ['autopilot', 'Your call. You lead either way.'],
-    's-brief': ['thinking', 'Your words first. Then I suggest.'],
+    's-brief': ['thinking', 'Tell me what is going on. I am listening.'],
     's-basics': ['side', 'Set the vibe, then we roll.'],
     's-build': ['claim', 'Your story. One line at a time.'],
     's-battle': ['wink', 'Bring your best bars.'],
@@ -1449,7 +1609,9 @@
     talkTick(w);
     if (S.note) main.appendChild(el('p', 'arc-note', S.note));
     root.appendChild(w);
-    Array.prototype.forEach.call(root.querySelectorAll('textarea.arc-idea'), growIdea);
+    Array.prototype.forEach.call(root.querySelectorAll('textarea.arc-idea'), function (t) {
+      growIdea(t, t.classList.contains('arc-couch-input') ? 76 : 136);
+    });
     if (keepKey) {
       var again = root.querySelector('[data-keep="' + String(keepKey).replace(/"/g, '') + '"]');
       if (again && again.focus) {

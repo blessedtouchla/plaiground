@@ -849,6 +849,12 @@ body.song-lab textarea.arc-idea{
   line-height:1.45;
   white-space:pre-wrap;
 }
+body.song-lab textarea.arc-couch-input{
+  min-height:4.75rem !important;
+}
+.arc-couch{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.arc-couch .arc-talk-msg{max-width:92%}
+.arc-pin.off,.arc-chip.arc-pin:not(.on){opacity:.45;text-decoration:line-through}
 body.song-lab .arc-input:focus{outline:none!important;border-color:#7D3CFF!important;box-shadow:none!important}
 body.song-lab .arc-steps-bar span{height:2px!important;border-radius:0!important;background:rgba(244,244,244,.22)!important;box-shadow:none!important;animation:none!important}
 body.song-lab .arc-steps-bar span.done,
