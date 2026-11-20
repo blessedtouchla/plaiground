@@ -1330,6 +1330,61 @@ body.song-lab .arc-chip.small{
   body.song-lab .arc-home .arc-cards .arc-card{min-height:96px!important}
 }
 
+/* Two short headers. The old intro and the second Song Lab title stay out of the way. */
+body.song-lab .arc-variants{
+  display:grid;
+  gap:32px;
+  margin:0;
+}
+body.song-lab .arc-variants .arc-kicker{
+  margin:0 0 8px!important;
+  font-size:12px!important;
+  line-height:16px!important;
+  letter-spacing:.14em!important;
+  text-transform:uppercase!important;
+}
+body.song-lab .arc-index .arc-name{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px!important;
+  font-family:Satoshi,Inter,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:32px!important;
+  line-height:40px!important;
+  font-weight:500!important;
+  letter-spacing:-.03em!important;
+  color:#f4f4f4!important;
+}
+body.song-lab .arc-index .arc-name::before{
+  content:"";
+  display:inline-block;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  background-color:#D03083;
+  -webkit-mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+  mask:url("/assets/marks/song-lab.svg") center / contain no-repeat;
+}
+body.song-lab .arc-index .arc-line{
+  margin:0!important;
+  font-size:16px!important;
+  line-height:24px!important;
+  color:rgba(244,244,244,.72)!important;
+}
+body.song-lab .arc-hero,
+body.song-lab .arc-home .arc-host{display:none!important}
+body.song-lab .arc-aside{
+  width:min(960px,calc(100% - 32px));
+  margin:0 auto 32px;
+  font-size:16px;
+  line-height:24px;
+}
+body.song-lab .arc-aside a{color:#f4f4f4}
+@media (min-width:800px){
+  body.song-lab .arc-variants{grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+  body.song-lab .arc-aside{width:min(960px,calc(100% - 64px))}
+}
+
 /* Quiet controls. One radius on anything that is still a button. Color stays in the mark. */
 body.song-lab .arc-login,
 body.song-lab .arc-talk-toggle,
