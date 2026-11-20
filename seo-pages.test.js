@@ -102,7 +102,7 @@ assert.notStrictEqual(guideTitle, templateTitle);
 assert.notStrictEqual(guideDesc, templateDesc);
 assert.notStrictEqual(guideH1, templateH1);
 assert.strictEqual(guideTitle, 'What Is a Split Sheet and Why It Matters | PLAIGROUND');
-assert.strictEqual(templateTitle, 'Split Sheet Template: Fill It Out and Get It Signed | PLAIGROUND');
+assert.strictEqual(templateTitle, 'Split Sheet Template: Fill It Out and Get It Signed');
 assert.ok(guide.includes('<link rel="canonical" href="https://www.wannaplai.com/split-sheets"'));
 assert.ok(template.includes('<link rel="canonical" href="https://www.wannaplai.com/split-sheet-template"'));
 assert.ok(guide.includes('href="/split-sheet-template"'), 'guide links to the template');

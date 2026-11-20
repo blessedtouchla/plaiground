@@ -2138,7 +2138,7 @@
       if (skipGo) skipGo.textContent = goLabel;
     }
     if (pageStatus.disabled) {
-      showError('Song Helper is turned off right now.');
+      showError('Song Lab is turned off right now.');
       return;
     }
     var body = payload();
@@ -2270,7 +2270,7 @@
   async function applyTransform(which) {
     showTransformError('');
     if (pageStatus.disabled) {
-      showTransformError('Song Helper is turned off right now.');
+      showTransformError('Song Lab is turned off right now.');
       return;
     }
     var pasted = $('sh-transform-lines') ? String($('sh-transform-lines').value || '').trim() : '';
@@ -2602,7 +2602,7 @@
     if (banner) {
       banner.hidden = !(pageStatus.demo || pageStatus.disabled);
       banner.textContent = pageStatus.disabled
-        ? 'Song Helper is turned off right now. The page still opens. Drafts stay samples.'
+        ? 'Song Lab is turned off right now. The page still opens. Drafts stay samples.'
         : 'Demo mode. Samples on this page are not written by AI.';
     }
     mountTurnstile();

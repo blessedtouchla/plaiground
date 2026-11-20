@@ -964,7 +964,7 @@ function runPages() {
   const sparkBody = sparkHtml.replace(/<footer[\s\S]*?<\/footer>/gi, '');
   assert.ok(!helperBody.includes('href="/battle"') && !sparkBody.includes('battle.html'), 'Song Helper and What\'s hot pages keep Battle in the shared footer only');
   assert.ok(index.includes('href="/spark">What\'s hot</a>'));
-  assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
+  assert.ok(index.includes('href="/song-helper">Song Lab</a>'));
   assert.ok(!index.includes('spark.html'));
   assert.ok(coverHtml.includes('Psychedelic') && coverHtml.includes('Comic book'));
   assert.ok(!sparkHtml.includes('noindex'));
@@ -1202,7 +1202,7 @@ function runReggae() {
   assert.ok(html.includes('Write, Reggae, Funny'));
   assert.ok(html.includes('lib/song-modes.js?v=20261117hook'));
   assert.ok(html.includes('song-helper-v2.js?v=20261117hook'));
-  assert.ok(html.includes('song-helper.css?v=20261017start'));
+  assert.ok(html.includes('song-helper.css?v=20261120flow'));
   assert.ok(html.includes('lib/song-pass.js?v=20261015answers'));
   assert.ok(read('song-helper-v2.js').includes('Say what happened before you name the song.'));
   assert.ok(read('song-helper-v2.js').includes('mountAnswerList'));

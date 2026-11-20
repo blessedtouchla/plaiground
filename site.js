@@ -1307,6 +1307,95 @@
     }
   }
 
+  var TRUST_CLEAN = {
+    "royalties.html": "/royalties",
+    "transparency.html": "/transparency",
+    "about.html": "/about",
+    "contact.html": "/contact",
+    "rights.html": "/rights",
+    "publishing.html": "/publishing",
+    "persona.html": "/persona",
+    "terms.html": "/terms",
+    "privacy.html": "/privacy"
+  };
+
+  function isMarketingHome() {
+    var path = "/";
+    try { path = String(window.location.pathname || "/"); } catch (err) {}
+    if (path.length > 1 && path.charAt(path.length - 1) === "/") path = path.slice(0, -1);
+    return path === "" || path === "/" || path === "/index.html" || path === "/index";
+  }
+
+  function ensureSiteIcons() {
+    if (!document.head || !document.querySelector) return;
+    if (!document.querySelector('link[rel="icon"], link[rel="shortcut icon"]')) {
+      var icon = document.createElement("link");
+      icon.rel = "icon";
+      icon.href = "/favicon.ico";
+      icon.sizes = "any";
+      document.head.appendChild(icon);
+    }
+    if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+      var apple = document.createElement("link");
+      apple.rel = "apple-touch-icon";
+      apple.href = "/apple-touch-icon.png";
+      document.head.appendChild(apple);
+    }
+  }
+
+  function footerColumn(footer, title) {
+    var found = null;
+    Array.prototype.forEach.call(footer.querySelectorAll(".footer-col"), function (node) {
+      var heading = node.querySelector("h4");
+      var label = heading ? String(heading.textContent || "").replace(/\s+/g, " ").trim() : "";
+      if (label.toLowerCase() === String(title || "").toLowerCase()) found = node;
+    });
+    return found;
+  }
+
+  function ensureFooterLink(footer, title, href, label) {
+    var col = footerColumn(footer, title);
+    if (!col) return;
+    var links = col.querySelectorAll("a");
+    var i;
+    for (i = 0; i < links.length; i += 1) {
+      if ((links[i].getAttribute("href") || "") === href) return;
+    }
+    var link = document.createElement("a");
+    link.setAttribute("href", href);
+    link.textContent = label;
+    col.appendChild(link);
+  }
+
+  function pointTrustHrefs() {
+    ensureSiteIcons();
+    if (isMarketingHome() || !document.querySelectorAll) return;
+    Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (anchor) {
+      var href = anchor.getAttribute("href") || "";
+      var hash = "";
+      var query = "";
+      var cut = href;
+      var hashAt = cut.indexOf("#");
+      if (hashAt !== -1) { hash = cut.slice(hashAt); cut = cut.slice(0, hashAt); }
+      var queryAt = cut.indexOf("?");
+      if (queryAt !== -1) { query = cut.slice(queryAt); cut = cut.slice(0, queryAt); }
+      var key = cut.replace(/^\//, "");
+      if (!TRUST_CLEAN[key]) return;
+      anchor.setAttribute("href", TRUST_CLEAN[key] + query + hash);
+    });
+    var footer = document.querySelector("footer");
+    if (!footer) return;
+    ensureFooterLink(footer, "After upload", "/royalties", "How you get paid");
+    ensureFooterLink(footer, "Trust", "/transparency", "Transparency");
+    ensureFooterLink(footer, "Trust", "/publishing", "Publishing");
+    ensureFooterLink(footer, "Trust", "/persona", "Artist development");
+    ensureFooterLink(footer, "Company", "/about", "About us");
+    ensureFooterLink(footer, "Company", "/contact", "Contact us");
+    ensureFooterLink(footer, "Legal", "/rights", "Rights Attestation");
+    ensureFooterLink(footer, "Legal", "/terms", "Terms of Service");
+    ensureFooterLink(footer, "Legal", "/privacy", "Privacy");
+  }
+
   function setupPublicFooter() {
     var footer = document.querySelector("footer");
     if (!footer || !footer.querySelector) return;
@@ -1550,6 +1639,7 @@
   setupSignedInPublicAppChrome();
   setupAppMenu();
   setupPublicMenu();
+  pointTrustHrefs();
   setupPublicSocials();
   setupBrandLogos();
   loadProblemChrome();
