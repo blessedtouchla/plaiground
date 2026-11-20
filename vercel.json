@@ -390,6 +390,11 @@
       "statusCode": 301
     },
     {
+      "source": "/blog-claudia-can-a-song-lie.html",
+      "destination": "/blog/claudia-can-a-song-lie",
+      "statusCode": 301
+    },
+    {
       "source": "/blog-cheat-codes-recognizable-artist-fan-participation.html",
       "destination": "/blog/cheat-codes-recognizable-artist-fan-participation",
       "statusCode": 301
@@ -1342,6 +1347,7 @@
     { "source": "/blog/suno-update-november-2026", "destination": "/blog-suno-update-november-2026.html" },
     { "source": "/blog/when-the-stage-owns-the-pipe", "destination": "/blog-when-the-stage-owns-the-pipe.html" },
     { "source": "/blog/suno-visuals-music-videos", "destination": "/blog-suno-visuals-music-videos.html" },
+    { "source": "/blog/claudia-can-a-song-lie", "destination": "/blog-claudia-can-a-song-lie.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
