@@ -303,6 +303,781 @@
       "source": "/platforms",
       "destination": "/faq.html#faq-platforms",
       "permanent": true
+    },
+    {
+      "source": "/about.html",
+      "destination": "/about",
+      "statusCode": 301
+    },
+    {
+      "source": "/admin.html",
+      "destination": "/admin",
+      "statusCode": 301
+    },
+    {
+      "source": "/ai-labels.html",
+      "destination": "/ai-labels",
+      "statusCode": 301
+    },
+    {
+      "source": "/already-released.html",
+      "destination": "/already-released",
+      "statusCode": 301
+    },
+    {
+      "source": "/ar.html",
+      "destination": "/ar",
+      "statusCode": 301
+    },
+    {
+      "source": "/battle.html",
+      "destination": "/battle",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-30-day-plan.html",
+      "destination": "/blog/30-day-plan",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-ai-label-required.html",
+      "destination": "/blog/ai-label-required",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-ai-persona.html",
+      "destination": "/blog/ai-persona",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-artist-bot-playbook.html",
+      "destination": "/blog/artist-bot-playbook",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-billion-culture-ai-own-equity-not-just-royalties.html",
+      "destination": "/blog/billion-culture-ai-own-equity-not-just-royalties",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-boosts.html",
+      "destination": "/blog/boosts",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-bots-do-the-drudgery.html",
+      "destination": "/blog/bots-do-the-drudgery",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-can-my-ai-song-be-published.html",
+      "destination": "/blog/can-my-ai-song-be-published",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-catalog-migration.html",
+      "destination": "/blog/catalog-migration",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-cd-era-vs-streaming-pay.html",
+      "destination": "/blog/cd-era-vs-streaming-pay",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-chart-eligibility.html",
+      "destination": "/blog/chart-eligibility",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-cheat-codes-recognizable-artist-fan-participation.html",
+      "destination": "/blog/cheat-codes-recognizable-artist-fan-participation",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-copying-machine.html",
+      "destination": "/blog/copying-machine",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-create-music-group-distrokid.html",
+      "destination": "/blog/create-music-group-distrokid",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-december-watermark.html",
+      "destination": "/blog/december-watermark",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-deezer-ai-detector-time.html",
+      "destination": "/blog/deezer-ai-detector-time",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-denmark-digital-replica-bill.html",
+      "destination": "/blog/denmark-digital-replica-bill",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-distributor-for-ai-assisted-music.html",
+      "destination": "/blog/distributor-for-ai-assisted-music",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-distrokid-ai-data-who-calls-a-song-human.html",
+      "destination": "/blog/distrokid-ai-data-who-calls-a-song-human",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-editorial-policy.html",
+      "destination": "/blog/editorial-policy",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-epk-examples.html",
+      "destination": "/blog/epk-examples",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-first-release.html",
+      "destination": "/blog/first-release",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-free-split-sheet-template.html",
+      "destination": "/blog/free-split-sheet-template",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-fusion-is-invention.html",
+      "destination": "/blog/fusion-is-invention",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-generation-is-cheap.html",
+      "destination": "/blog/generation-is-cheap",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-hear-the-chart.html",
+      "destination": "/blog/hear-the-chart",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-how-payouts-land.html",
+      "destination": "/blog/how-payouts-land",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-how-to-get-your-music-on-spotify.html",
+      "destination": "/blog/how-to-get-your-music-on-spotify",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-how-to-label-ai-music.html",
+      "destination": "/blog/how-to-label-ai-music",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-how-we-use-bots.html",
+      "destination": "/blog/how-we-use-bots",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-human-made-human-paid.html",
+      "destination": "/blog/human-made-human-paid",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-human-not-ai.html",
+      "destination": "/blog/human-not-ai",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-is-a-style-property.html",
+      "destination": "/blog/is-a-style-property",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-leave-basic.html",
+      "destination": "/blog/leave-basic",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-listed-not-paid.html",
+      "destination": "/blog/listed-not-paid",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-luminate-label.html",
+      "destination": "/blog/luminate-label",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-lyrics-plus-ai-recording.html",
+      "destination": "/blog/lyrics-plus-ai-recording",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-meet-plai.html",
+      "destination": "/blog/meet-plai",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-meet-siva.html",
+      "destination": "/blog/meet-siva",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-metadata.html",
+      "destination": "/blog/metadata",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-no-fakes.html",
+      "destination": "/blog/no-fakes",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-nobody-asked-the-singers.html",
+      "destination": "/blog/nobody-asked-the-singers",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-nobody-marketed-it.html",
+      "destination": "/blog/nobody-marketed-it",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-nothing-to-copy.html",
+      "destination": "/blog/nothing-to-copy",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-plai-plus-collab.html",
+      "destination": "/blog/plai-plus-collab",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-plainow-is-live.html",
+      "destination": "/blog/plainow-is-live",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-platos-ion-suno-mcp.html",
+      "destination": "/blog/platos-ion-suno-mcp",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-point-of-view.html",
+      "destination": "/blog/point-of-view",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-publish-ai-assisted-music.html",
+      "destination": "/blog/publish-ai-assisted-music",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-publishing-is-not-distribution.html",
+      "destination": "/blog/publishing-is-not-distribution",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-push-the-button.html",
+      "destination": "/blog/push-the-button",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-register-with-bmi-as-a-songwriter.html",
+      "destination": "/blog/register-with-bmi-as-a-songwriter",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-replica-contracts.html",
+      "destination": "/blog/replica-contracts",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-song-royalties-explained.html",
+      "destination": "/blog/song-royalties-explained",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-split-sheets.html",
+      "destination": "/blog/split-sheets",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-spotify-50m-slop.html",
+      "destination": "/blog/spotify-50m-slop",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-spotify-ai-remix-deal.html",
+      "destination": "/blog/spotify-ai-remix-deal",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-stores-treat-ai.html",
+      "destination": "/blog/stores-treat-ai",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-suno-majors-who-makes-the-rules.html",
+      "destination": "/blog/suno-majors-who-makes-the-rules",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-suno-spotify.html",
+      "destination": "/blog/suno-spotify",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-suno-style-case.html",
+      "destination": "/blog/suno-style-case",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-suno-update-november-2026.html",
+      "destination": "/blog/suno-update-november-2026",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-suno-visuals-music-videos.html",
+      "destination": "/blog/suno-visuals-music-videos",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-surviving-the-silence.html",
+      "destination": "/blog/surviving-the-silence",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-sync.html",
+      "destination": "/blog/sync",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-truth-for-artists.html",
+      "destination": "/blog/truth-for-artists",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-two-charts.html",
+      "destination": "/blog/two-charts",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-upload-flood.html",
+      "destination": "/blog/upload-flood",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-voice-is-not-a-sample.html",
+      "destination": "/blog/voice-is-not-a-sample",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-vs-distributors.html",
+      "destination": "/blog/vs-distributors",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-welcome.html",
+      "destination": "/blog/welcome",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-what-a-human-did.html",
+      "destination": "/blog/what-a-human-did",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-what-is-an-ipi-number.html",
+      "destination": "/blog/what-is-an-ipi-number",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-when-ai-music-goes-to-court-who-gets-paid.html",
+      "destination": "/blog/when-ai-music-goes-to-court-who-gets-paid",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-when-the-stage-owns-the-pipe.html",
+      "destination": "/blog/when-the-stage-owns-the-pipe",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-who-made-it-ai-credits.html",
+      "destination": "/blog/who-made-it-ai-credits",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-your-suno-song-your-rights.html",
+      "destination": "/blog/your-suno-song-your-rights",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-youtube-ai-disclosure-guide.html",
+      "destination": "/blog/youtube-ai-disclosure-guide",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-youtube-music-labels.html",
+      "destination": "/blog/youtube-music-labels",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog.html",
+      "destination": "/blog",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-country.html",
+      "destination": "/charts/country",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-gospel.html",
+      "destination": "/charts/gospel",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-preview-correct.html",
+      "destination": "/charts-preview/corrections",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-preview-method.html",
+      "destination": "/charts-preview/methodology",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-preview-song.html",
+      "destination": "/charts-preview/song",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-preview.html",
+      "destination": "/charts-preview",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-rnb.html",
+      "destination": "/charts/rnb",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts-top-100.html",
+      "destination": "/charts/top-100",
+      "statusCode": 301
+    },
+    {
+      "source": "/charts.html",
+      "destination": "/charts",
+      "statusCode": 301
+    },
+    {
+      "source": "/claim.html",
+      "destination": "/claim",
+      "statusCode": 301
+    },
+    {
+      "source": "/contact.html",
+      "destination": "/contact",
+      "statusCode": 301
+    },
+    {
+      "source": "/contracts-create.html",
+      "destination": "/contracts/create",
+      "statusCode": 301
+    },
+    {
+      "source": "/contracts-fix.html",
+      "destination": "/contracts/fix",
+      "statusCode": 301
+    },
+    {
+      "source": "/contracts-review.html",
+      "destination": "/contracts/review",
+      "statusCode": 301
+    },
+    {
+      "source": "/contracts.html",
+      "destination": "/contracts",
+      "statusCode": 301
+    },
+    {
+      "source": "/copyright.html",
+      "destination": "/copyright",
+      "statusCode": 301
+    },
+    {
+      "source": "/cover-art.html",
+      "destination": "/album-cover-maker",
+      "statusCode": 301
+    },
+    {
+      "source": "/destination.html",
+      "destination": "/destination",
+      "statusCode": 301
+    },
+    {
+      "source": "/distribution.html",
+      "destination": "/distribution",
+      "statusCode": 301
+    },
+    {
+      "source": "/epk-builder.html",
+      "destination": "/epk-builder",
+      "statusCode": 301
+    },
+    {
+      "source": "/epk.html",
+      "destination": "/epk-maker",
+      "statusCode": 301
+    },
+    {
+      "source": "/faq.html",
+      "destination": "/faq",
+      "statusCode": 301
+    },
+    {
+      "source": "/feature-verification.html",
+      "destination": "/feature-verification",
+      "statusCode": 301
+    },
+    {
+      "source": "/get-on-spotify.html",
+      "destination": "/guides/get-on-spotify",
+      "statusCode": 301
+    },
+    {
+      "source": "/guide.html",
+      "destination": "/guide",
+      "statusCode": 301
+    },
+    {
+      "source": "/how-it-works.html",
+      "destination": "/how-it-works",
+      "statusCode": 301
+    },
+    {
+      "source": "/ipi-guide.html",
+      "destination": "/ipi-guide",
+      "statusCode": 301
+    },
+    {
+      "source": "/login.html",
+      "destination": "/login",
+      "statusCode": 301
+    },
+    {
+      "source": "/make-human.html",
+      "destination": "/make-human",
+      "statusCode": 301
+    },
+    {
+      "source": "/my-lyrics.html",
+      "destination": "/my-lyrics",
+      "statusCode": 301
+    },
+    {
+      "source": "/my-roadmap.html",
+      "destination": "/my-roadmap",
+      "statusCode": 301
+    },
+    {
+      "source": "/persona.html",
+      "destination": "/persona",
+      "statusCode": 301
+    },
+    {
+      "source": "/privacy.html",
+      "destination": "/privacy",
+      "statusCode": 301
+    },
+    {
+      "source": "/publishing.html",
+      "destination": "/publishing",
+      "statusCode": 301
+    },
+    {
+      "source": "/qualify.html",
+      "destination": "/qualify",
+      "statusCode": 301
+    },
+    {
+      "source": "/release-week.html",
+      "destination": "/release-week",
+      "statusCode": 301
+    },
+    {
+      "source": "/research.html",
+      "destination": "/research",
+      "statusCode": 301
+    },
+    {
+      "source": "/rights.html",
+      "destination": "/rights",
+      "statusCode": 301
+    },
+    {
+      "source": "/roster.html",
+      "destination": "/roster",
+      "statusCode": 301
+    },
+    {
+      "source": "/royalties.html",
+      "destination": "/royalties",
+      "statusCode": 301
+    },
+    {
+      "source": "/signup.html",
+      "destination": "/signup",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-2026-highlights.html",
+      "destination": "/siqa/2026/siqa-2026-highlights",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-2026.html",
+      "destination": "/siqa/2026",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-aries-ivory.html",
+      "destination": "/siqa/2026/aries-ivory",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-astrazit.html",
+      "destination": "/siqa/2026/astrazit",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-ava-bently-acceptance-speech.html",
+      "destination": "/siqa/2026/ava-bently-acceptance-speech",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-ava-bently-interview.html",
+      "destination": "/siqa/2026/ava-bently-interview",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-colourfull4life.html",
+      "destination": "/siqa/2026/colourfull4life",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-daydream-interview.html",
+      "destination": "/siqa/2026/daydream-interview",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-dj-shawn-q.html",
+      "destination": "/siqa/2026/dj-shawn-q",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-every-ai-artist-needs-a-music-video.html",
+      "destination": "/siqa/2026/every-ai-artist-needs-a-music-video",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-godfellow.html",
+      "destination": "/siqa/2026/godfellow",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-merch-start-with-10.html",
+      "destination": "/siqa/2026/merch-start-with-10",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-olivia-b-moore.html",
+      "destination": "/siqa/2026/olivia-b-moore",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-post-four-to-five-times-a-day.html",
+      "destination": "/siqa/2026/post-four-to-five-times-a-day",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-rebel-redeemed-316.html",
+      "destination": "/siqa/2026/rebel-redeemed-316",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-sheena-taylor.html",
+      "destination": "/siqa/2026/sheena-taylor",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-slime-dot.html",
+      "destination": "/siqa/2026/slime-dot",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-tammy-taylor.html",
+      "destination": "/siqa/2026/tammy-taylor",
+      "statusCode": 301
+    },
+    {
+      "source": "/siqa-this-is-a-tool.html",
+      "destination": "/siqa/2026/this-is-a-tool",
+      "statusCode": 301
+    },
+    {
+      "source": "/slang.html",
+      "destination": "/slang",
+      "statusCode": 301
+    },
+    {
+      "source": "/song-helper.html",
+      "destination": "/ai-lyrics-generator",
+      "statusCode": 301
+    },
+    {
+      "source": "/spark.html",
+      "destination": "/spark",
+      "statusCode": 301
+    },
+    {
+      "source": "/split-sheet-template.html",
+      "destination": "/split-sheet-template",
+      "statusCode": 301
+    },
+    {
+      "source": "/split-sheets.html",
+      "destination": "/split-sheets",
+      "statusCode": 301
+    },
+    {
+      "source": "/style-prompt-template.html",
+      "destination": "/guides/style-prompt-template",
+      "statusCode": 301
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/terms",
+      "statusCode": 301
+    },
+    {
+      "source": "/transparency.html",
+      "destination": "/transparency",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path((?!api(?:/|$)|for-david-fv(?:/|$)).+)/",
+      "destination": "/:path",
+      "statusCode": 301
     }
   ],
   "rewrites": [
@@ -350,6 +1125,13 @@
     { "source": "/terms/", "destination": "/terms.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/privacy/", "destination": "/privacy.html" },
+    { "source": "/royalties", "destination": "/royalties.html" },
+    { "source": "/transparency", "destination": "/transparency.html" },
+    { "source": "/about", "destination": "/about.html" },
+    { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/rights", "destination": "/rights.html" },
+    { "source": "/publishing", "destination": "/publishing.html" },
+    { "source": "/persona", "destination": "/persona.html" },
     { "source": "/faq", "destination": "/faq.html" },
     { "source": "/faq/", "destination": "/faq.html" },
     { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },

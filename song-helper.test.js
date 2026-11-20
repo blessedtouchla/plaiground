@@ -160,7 +160,7 @@ function runCore() {
   assert.ok(/JSON only/i.test(core.SYSTEM_PROMPT));
   assert.ok(/do not add attribution/i.test(core.SYSTEM_PROMPT));
   assert.ok(!/please (add|include|insert).{0,80}grok/i.test(core.SYSTEM_PROMPT));
-  assert.strictEqual(core.PAGE_CREDIT, 'PLAIGROUND Song Helper · Written with Grok');
+  assert.strictEqual(core.PAGE_CREDIT, 'PLAIGROUND Song Lab · Written with Grok');
   assert.strictEqual(core.SUNO_CHAR_LIMIT, 3000);
 
   verbatimStrings(interview).forEach(function (text) {
@@ -1304,14 +1304,14 @@ function runPage() {
   const vercel = JSON.parse(read('vercel.json'));
   const nav = html.match(/<nav class="nav-links"[\s\S]*?<\/nav>/)[0];
 
-  assert.ok(html.includes('PLAIGROUND Song Helper'));
+  assert.ok(html.includes('Song Lab'));
   assert.ok(html.includes('Talk it through with Plai'));
   assert.ok(html.includes('Tell me your stories. Your own words become the lyrics, and every answer is saved as your record of writing it.'));
   assert.ok(read('song-flow-page.js').includes("That's enough, write my song"));
   assert.ok(read('song-flow-page.js').includes('Talk'));
   assert.ok(read('lib/song-flow.js').includes('Do not add a story they did not tell.'));
   assert.ok(!/\bSuno\b/.test(html.match(/id="sh-purpose"[\s\S]*?<\/section>/)[0]));
-  assert.ok(html.includes('You must be 18+ to use the Song Helper.'));
+  assert.ok(html.includes('You must be 18+ to use Song Lab.'));
   assert.ok(html.includes('your words'));
   assert.ok(html.includes('Drafts are AI-assisted.'));
   assert.ok(html.includes('name="company_website"'));
@@ -1341,7 +1341,7 @@ function runPage() {
   assert.ok(html.includes('lib/song-modes.js?v=20261117hook'));
   assert.ok(html.includes('lib/song-helper.js?v=20261010sounds'));
   assert.ok(html.includes('song-flow-page.js?v=20261016scene'));
-  assert.ok(html.includes('song-helper.css?v=20261017start'));
+  assert.ok(html.includes('song-helper.css?v=20261120flow'));
   assert.ok(html.includes('lib/song-flow.js?v=20261017start'));
   const pageBlock = html.slice(html.indexOf('id="sh-page"'), html.indexOf('id="sh-source"'));
   assert.ok(pageBlock.indexOf('id="sh-page-sections"') !== -1);
@@ -1433,10 +1433,10 @@ function runPage() {
   assert.ok(api.includes('https://api.x.ai/v1/chat/completions'));
   assert.ok(api.includes('Cloudflare Turnstile'));
   assert.ok(/in-memory/i.test(api));
-  assert.ok(index.includes('href="/song-helper">Song Helper</a>'));
+  assert.ok(index.includes('href="/song-helper">Song Lab</a>'));
   assert.ok(index.includes('id="playground"'));
   assert.ok((vercel.rewrites || []).some(function (row) {
-    return row.source === '/song-helper' && row.destination === '/song-helper.html';
+    return row.source === '/song-helper' && row.destination === '/api/song-helper?action=arcade-page';
   }));
   ['terms.html', 'privacy.html', 'rights.html'].forEach(function (file) {
     const body = read(file).replace(/<footer[\s\S]*?<\/footer>/gi, '');

@@ -1263,13 +1263,30 @@ body.song-helper-page .plai-bubble {
   padding-top: 4px;
 }
 
+#sh-flow-host {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
 .sh-enough {
-  position: sticky;
-  top: calc(var(--nav-h) + 8px);
-  z-index: 5;
+  position: static;
+  z-index: 1;
+  display: flex;
   width: 100%;
-  margin: 0 0 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 48px;
+  margin: 0;
+  padding: 12px 16px;
   white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
   text-align: center;
   background: #000;
 }
