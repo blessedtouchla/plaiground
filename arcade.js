@@ -1572,6 +1572,13 @@
     return b;
   }
 
+  function syncArcadeAuth(link) {
+    if (!link) return;
+    var api = window.PlaigroundMembership;
+    var on = !!(api && typeof api.isSignedIn === 'function' && api.isSignedIn());
+    link.textContent = on ? 'Account' : 'Log in';
+    link.href = on ? '/settings.html' : '/login.html?next=/song-lab';
+  }
   function paint() {
     var keepEl = document.activeElement;
     var keepKey = keepEl && keepEl.getAttribute && keepEl.getAttribute('data-keep');
@@ -1583,7 +1590,7 @@
     var word = el('a', 'v3-word', 'PLAIGROUND'); word.href = '/'; top.appendChild(word);
     var meta = el('div', 'arc-top-meta');
     var login = el('a', 'v3-link arc-login', 'Log in');
-    login.href = '/login.html';
+    syncArcadeAuth(login);
     meta.appendChild(login);
     meta.appendChild(el('span', 'v3-credits', 'Free to write. Sign up only to save a song.'));
     meta.appendChild(el('span', 'v3-points', String(S.points)));
@@ -1652,5 +1659,10 @@
     }
   } catch (err) {}
   paint();
+  if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
+    window.PlaigroundMembership.whenReady(function () {
+      syncArcadeAuth(root.querySelector('.arc-login'));
+    });
+  }
   if (seeded && window.PlaigroundAnalytics) window.PlaigroundAnalytics.track('song_lab_start', { entry: 'homepage', surface: 'song_lab' });
 })();
