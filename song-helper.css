@@ -539,6 +539,70 @@ body.song-helper-page .plai-bubble {
 .sh-craft,
 .sh-log,
 .sh-note-block,
+body.song-helper-page .hook-warm { margin: 0 0 14px; }
+body.song-helper-page .hook-ask { margin: 8px 0 6px; }
+body.song-helper-page .hook-chips,
+body.song-helper-page .hook-titles { display: flex; flex-wrap: wrap; gap: 8px; }
+body.song-helper-page .hook-chip,
+body.song-helper-page .hook-title,
+body.song-helper-page .hook-go {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+}
+body.song-helper-page .hook-chip.on,
+body.song-helper-page .hook-title.on { background: #fff; color: #111; }
+body.song-helper-page .hook-note {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+}
+body.song-helper-page .hook-label { margin: 8px 0 0; color: #F3CB47; }
+@media (hover: hover) {
+  body.song-helper-page .hook-chip:hover,
+  body.song-helper-page .hook-title:hover { border-color: #fff; }
+}
+.spark-page .hook-warm .hook-chip,
+.spark-page .hook-warm .hook-title,
+.spark-page .hook-warm .hook-go,
+.spark-page button.spark-season {
+  min-height: 44px;
+}
+.spark-page button.spark-season {
+  width: 100%;
+  text-align: left;
+  background: #111;
+  color: #f4f4f4;
+  cursor: pointer;
+}
+.spark-page button.spark-season h3 { margin: 0 0 6px; }
+@media (hover: hover) {
+  .spark-page button.spark-season:hover { border-color: #fff; }
+}
+.spark-page .spark-lanes .sh-chip.spark-tg {
+  min-height: 44px;
+}
+.spark-page .spark-lanes .sh-chip.spark-tg.on {
+  background: #000;
+  background-image: none;
+  color: #fff;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+.spark-page .spark-lanes .sh-chip.spark-tg:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
 .spark-card {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;

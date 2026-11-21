@@ -5530,6 +5530,16 @@
   var haveBtn = $('sh-choice-have');
   if (haveBtn) bindPress(haveBtn, function () { setBranch('have'); });
   paintBranch();
+  if (window.HookWarmup && $('sh-hook')) {
+    window.HookWarmup.mount($('sh-hook'), {
+      onPick: function (title) {
+        var line = $('sh-hook-line');
+        if (line) line.value = title;
+        var working = $('sh-working-title');
+        if (working) working.value = title;
+      }
+    });
+  }
   if (notebookStart === 'page' || notebookStart === 'have') setBranch('have');
   else if (notebookStart === 'based') setBranch('based');
   else if (notebookStart === 'battle') mountTrade();

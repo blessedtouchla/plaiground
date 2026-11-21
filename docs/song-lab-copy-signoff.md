@@ -82,3 +82,23 @@ These were not on the live site. Before is blank.
 - Could not save. Try again.
 
 Sample song lines (Kitchen light, Quiet burn, Loud receipt) and the sample couch chat are the mockup's demo copy. They show when live writing is off.
+
+## Thanksgiving lane and Hook warmup (approved, Nov 21, 2026)
+
+Approved by Victoria. Live.
+
+| Where | Before | After |
+|---|---|---|
+| Hook stop | No before/after questions. | Where are you before this song? |
+| Hook stop | | Where are you after? |
+| Hook chips, before | | kitchen, the car, the door, work, the table |
+| Hook chips, after | | still there, gone, on the way, home, outside |
+| Hook optional line | | or a few words |
+| Hook button | | Titles |
+| Hook fallback | | Sample reply. Live chat is off. |
+| Spark lane | No Thanksgiving lane. | Thanksgiving |
+| Card | | Their hands. One person. What their hands do at the table. |
+| Card | | On the way there. Each verse is one thing on the trip. The chorus is "so hard to wait." |
+| Card | | Who's at the table. Who sits down, and who is missing. |
+
+The lane shows from Nov 19 through Nov 27, 2026, America/Los_Angeles. `?season=thanksgiving` forces it on. `?season=off` hides it. Those controls are not printed on the page.

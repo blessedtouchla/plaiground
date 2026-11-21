@@ -2,7 +2,10 @@
   var spark = window.SparkCore;
   if (!spark || !document.getElementById('spark-app')) return;
 
+  var season = '';
+  try { season = new URLSearchParams(window.location.search).get('season') || ''; } catch (err) { season = ''; }
   var current = 'trending';
+  if (spark.thanksgivingOpen && spark.thanksgivingOpen(new Date(), season)) current = 'thanksgiving';
   var newsLane = '';
   var topic = '';
   var headline = '';
@@ -13,8 +16,14 @@
 
   function $(id) { return document.getElementById(id); }
 
+  function seasonOn() {
+    return !!(spark.thanksgivingOpen && spark.thanksgivingOpen(new Date(), season));
+  }
+
   function groups() {
-    return spark.GROUPS || [];
+    var list = (spark.GROUPS || []).slice();
+    if (seasonOn()) list.unshift({ id: 'thanksgiving', label: 'Thanksgiving', lanes: [] });
+    return list;
   }
 
   function lanes() {
@@ -46,10 +55,10 @@
     }
   }
 
-  function chip(label, on, onClick) {
+  function chip(label, on, onClick, extra) {
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'sh-chip' + (on ? ' on' : '');
+    button.className = 'sh-chip' + (on ? ' on' : '') + (extra ? ' ' + extra : '');
     button.textContent = label;
     button.setAttribute('aria-pressed', on ? 'true' : 'false');
     button.addEventListener('click', function () {
@@ -214,8 +223,51 @@
     parent.appendChild(field);
   }
 
+  function seasonCard(item) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'spark-card spark-season';
+    var title = document.createElement('h3');
+    title.textContent = item.title;
+    var detail = document.createElement('p');
+    detail.textContent = item.detail;
+    button.appendChild(title);
+    button.appendChild(detail);
+    button.addEventListener('click', function () {
+      var params = new URLSearchParams();
+      params.set('title', item.title || '');
+      params.set('topic', item.prompt || item.detail || '');
+      window.location.href = '/song-lab?' + params.toString() + '#desk';
+    });
+    return button;
+  }
+
   function paint() {
     if (!pack) return;
+    if (current === 'thanksgiving' && seasonOn()) {
+      var laneHost = $('spark-lanes');
+      laneHost.textContent = '';
+      groups().forEach(function (group) {
+        laneHost.appendChild(chip(group.label, group.id === current, function () {
+          current = group.id;
+          newsLane = '';
+          topic = '';
+          headline = '';
+          paint();
+        }, group.id === 'thanksgiving' ? 'spark-tg' : ''));
+      });
+      var banner = $('spark-banner');
+      banner.hidden = true;
+      banner.textContent = '';
+      var daily = $('spark-daily');
+      daily.textContent = '';
+      var list = $('spark-list');
+      list.textContent = '';
+      (spark.THANKSGIVING_CARDS || []).forEach(function (item) {
+        list.appendChild(seasonCard(item));
+      });
+      return;
+    }
     var laneIds = lanes();
     var topics = spark.topicsFor(pack.items || [], laneIds);
     if (topic && !topics.some(function (row) { return row.label === topic; })) {
@@ -234,7 +286,7 @@
         topic = '';
         headline = '';
         paint();
-      }));
+      }, group.id === 'thanksgiving' ? 'spark-tg' : ''));
     });
     if (current === 'news' && !pack.newsNotice) {
       var desks = document.createElement('div');
