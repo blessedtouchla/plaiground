@@ -1,0 +1,15 @@
+{
+  "idea": { "syl": 3, "vowel": "IY", "coda": "AH" },
+  "fire": { "syl": 1, "vowel": "AY", "coda": "R" },
+  "gone": { "syl": 1, "vowel": "AO", "coda": "N" },
+  "on": { "syl": 1, "vowel": "AO", "coda": "N" },
+  "room": { "syl": 1, "vowel": "UW", "coda": "M" },
+  "soon": { "syl": 1, "vowel": "UW", "coda": "N" },
+  "night": { "syl": 1, "vowel": "AY", "coda": "T" },
+  "light": { "syl": 1, "vowel": "AY", "coda": "T" },
+  "kitchen": { "syl": 2, "vowel": "IH", "coda": "N" },
+  "saturday": { "syl": 3, "vowel": "EY", "coda": "" },
+  "window": { "syl": 2, "vowel": "OW", "coda": "" },
+  "plates": { "syl": 1, "vowel": "EY", "coda": "T" },
+  "block": { "syl": 1, "vowel": "AA", "coda": "K" }
+}

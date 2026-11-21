@@ -202,6 +202,18 @@
       "permanent": true
     },
     {
+      "source": "/song-lab",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/song-lab",
+      "permanent": true
+    },
+    {
+      "source": "/song-lab/",
+      "has": [{ "type": "host", "value": "wannaplai.com" }],
+      "destination": "https://www.wannaplai.com/song-lab",
+      "permanent": true
+    },
+    {
       "source": "/my-lyrics",
       "has": [{ "type": "host", "value": "wannaplai.com" }],
       "destination": "https://www.wannaplai.com/my-lyrics",
@@ -331,7 +343,22 @@
     },
     {
       "source": "/battle.html",
-      "destination": "/battle",
+      "destination": "/ai-lyrics-generator?start=battle",
+      "statusCode": 301
+    },
+    {
+      "source": "/battle",
+      "destination": "/ai-lyrics-generator?start=battle",
+      "statusCode": 301
+    },
+    {
+      "source": "/battle/",
+      "destination": "/ai-lyrics-generator?start=battle",
+      "statusCode": 301
+    },
+    {
+      "source": "/song-helper-classic",
+      "destination": "/ai-lyrics-generator",
       "statusCode": 301
     },
     {
@@ -1223,6 +1250,11 @@
     { "source": "/release-week", "destination": "/release-week.html" },
     { "source": "/release-week/", "destination": "/release-week.html" },
     { "source": "/ai-lyrics-generator", "destination": "/song-helper.html" },
+    { "source": "/song-lab", "destination": "/song-lab.html" },
+    { "source": "/song-lab/", "destination": "/song-lab.html" },
+    { "source": "/api/couch/turn", "destination": "/api/song-helper?action=couch-turn" },
+    { "source": "/api/couch/room", "destination": "/api/song-helper?action=couch-room" },
+    { "source": "/api/couch/pick", "destination": "/api/song-helper?action=couch-pick" },
     { "source": "/album-cover-maker", "destination": "/cover-art.html" },
     { "source": "/epk-maker", "destination": "/epk.html" },
     { "source": "/split-sheet-template", "destination": "/split-sheet-template.html" },
