@@ -3144,7 +3144,11 @@
   }
 
   function setBranch(next) {
-    if (next !== 'scratch' && next !== 'source' && next !== 'have' && next !== 'based' && next !== 'hook') return;
+    if (next === 'scratch') {
+      window.location.assign('/song-lab#desk');
+      return;
+    }
+    if (next !== 'source' && next !== 'have' && next !== 'based' && next !== 'hook') return;
     var wasStory = storyBox;
     storyBox = false;
     basedGuideOn = false;
@@ -5427,6 +5431,67 @@
     },
     applySoundLayout: applySoundLayout,
   };
+  function mountTrade() {
+    var host = $('sh-start');
+    if (!host || $('sh-trade')) return;
+    var box = document.createElement('section');
+    box.id = 'sh-trade';
+    box.className = 'sh-craft';
+    var title = document.createElement('h2');
+    title.className = 'sh-craft-title';
+    title.textContent = 'Trade verses';
+    var help = document.createElement('p');
+    help.className = 'sh-help';
+    help.textContent = 'You drop a verse. The reply comes back as the next verse only. It answers you with its own pictures, not a copy of your lines.';
+    var area = document.createElement('textarea');
+    area.className = 'sh-area';
+    area.rows = 6;
+    area.maxLength = 1600;
+    area.setAttribute('aria-label', 'Your verse');
+    var send = document.createElement('button');
+    send.type = 'button';
+    send.className = 'btn btn-purple btn-md';
+    send.textContent = 'Send the verse';
+    var out = document.createElement('pre');
+    out.className = 'sh-page-clean';
+    send.addEventListener('click', function () {
+      var verse = String(area.value || '').trim();
+      if (!verse) return;
+      fetch('/api/battle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rounds: 2,
+          vibe: 'friendly',
+          starter: 'human',
+          topic: 'Trade verses',
+          voice: 'girl',
+          beat: '',
+          energy: '',
+          instruments: [],
+          variant: 0,
+          transcript: [{ role: 'human', text: verse }],
+          company_website: ''
+        })
+      }).then(function (res) { return res.json(); }).then(function (data) {
+        out.textContent = data && data.verse ? data.verse : 'The reply did not come back.';
+      }).catch(function () {
+        out.textContent = 'The reply did not come back.';
+      });
+    });
+    box.appendChild(title);
+    box.appendChild(help);
+    box.appendChild(area);
+    box.appendChild(send);
+    box.appendChild(out);
+    host.parentNode.insertBefore(box, host);
+  }
+  var notebookStart = '';
+  try { notebookStart = new URLSearchParams(window.location.search).get('start') || ''; } catch (errStart) { notebookStart = ''; }
+  if (notebookStart === 'scratch') {
+    window.location.replace('/song-lab#desk');
+    return;
+  }
   bindCraft();
   paintOwn();
   paintModes();
@@ -5465,6 +5530,9 @@
   var haveBtn = $('sh-choice-have');
   if (haveBtn) bindPress(haveBtn, function () { setBranch('have'); });
   paintBranch();
+  if (notebookStart === 'page' || notebookStart === 'have') setBranch('have');
+  else if (notebookStart === 'based') setBranch('based');
+  else if (notebookStart === 'battle') mountTrade();
   var moodNext = $('sh-mood-next');
   if (moodNext) moodNext.addEventListener('click', function () {
     if (!kind) {

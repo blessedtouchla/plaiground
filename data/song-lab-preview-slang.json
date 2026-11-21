@@ -1,0 +1,296 @@
+{
+  "preview": true,
+  "regions": {
+    "Bay": {
+      "profile": "hiphop-2000s-bay-hyphy",
+      "words": [
+        {
+          "w": "potna",
+          "def": "Partner or close friend.",
+          "tag": "Bay Area",
+          "era": "2000s",
+          "conf": "high",
+          "src": "greensdictofslang.com",
+          "nsrc": 5
+        },
+        {
+          "w": "hella",
+          "def": "Means very or a lot. Born in the East Bay, now everywhere.",
+          "tag": "Bay Area",
+          "era": "2000s",
+          "conf": "high",
+          "src": "en.wikipedia.org",
+          "nsrc": 2
+        },
+        {
+          "w": "fa sho",
+          "def": "For sure. Yes, no doubt.",
+          "tag": "Bay Area",
+          "era": "2000s",
+          "conf": "high",
+          "src": "xlr8r.com",
+          "nsrc": 3
+        },
+        {
+          "w": "the Town",
+          "def": "Oakland. Locals call it the Town.",
+          "tag": "Bay Area",
+          "era": "2000s",
+          "conf": "high",
+          "src": "ksbw.com",
+          "nsrc": 3
+        },
+        {
+          "w": "slaps",
+          "def": "When a song goes hard. If it slaps, it bangs in the whip.",
+          "tag": "Bay Area",
+          "era": "2000s",
+          "conf": "high",
+          "src": "xlr8r.com",
+          "nsrc": 4
+        }
+      ]
+    },
+    "Atlanta": {
+      "profile": "hiphop-2010s-atlanta-trap",
+      "words": [
+        {
+          "w": "no cap",
+          "def": "No lie, for real.",
+          "tag": "Atlanta",
+          "era": "2010s",
+          "conf": "high",
+          "src": "dictionary.com",
+          "nsrc": 4
+        },
+        {
+          "w": "patna nem",
+          "def": "Me and the crew.",
+          "tag": "Atlanta",
+          "era": "2010s",
+          "conf": "medium",
+          "src": "hotspotatl.com",
+          "nsrc": 2
+        },
+        {
+          "w": "the A",
+          "def": "Atlanta.",
+          "tag": "Atlanta",
+          "era": "2010s",
+          "conf": "high",
+          "src": "mentalfloss.com",
+          "nsrc": 1
+        },
+        {
+          "w": "slide",
+          "def": "Come through, or, in a street sense, go handle a problem. Default to the first.",
+          "tag": "Atlanta",
+          "era": "2010s",
+          "conf": "medium",
+          "src": "atlanta.com",
+          "nsrc": 1
+        },
+        {
+          "w": "fye",
+          "def": "Excellent, fire.",
+          "tag": "Atlanta",
+          "era": "2010s",
+          "conf": "high",
+          "src": "mentalfloss.com",
+          "nsrc": 3
+        }
+      ]
+    },
+    "East Coast": {
+      "profile": "hiphop-90s-east-coast-boom-bap",
+      "words": [
+        {
+          "w": "word",
+          "def": "Agreement, or that's the truth.",
+          "tag": "East Coast",
+          "era": "1990s",
+          "conf": "high",
+          "src": "humanities.washu.edu",
+          "nsrc": 1
+        },
+        {
+          "w": "mad",
+          "def": "Very, or a lot of.",
+          "tag": "East Coast",
+          "era": "1990s",
+          "conf": "high",
+          "src": "greensdictofslang.com",
+          "nsrc": 4
+        },
+        {
+          "w": "props",
+          "def": "Respect or credit.",
+          "tag": "East Coast",
+          "era": "1990s",
+          "conf": "medium",
+          "src": "studylib.net",
+          "nsrc": 1
+        },
+        {
+          "w": "dope",
+          "def": "Excellent, very good.",
+          "tag": "East Coast",
+          "era": "1990s",
+          "conf": "high",
+          "src": "greensdictofslang.com",
+          "nsrc": 1
+        }
+      ]
+    },
+    "UK": {
+      "profile": "hiphop-2020s-uk-drill",
+      "words": [
+        {
+          "w": "bare",
+          "def": "Very, or lots of.",
+          "tag": "UK",
+          "era": "2020s",
+          "conf": "high",
+          "src": "bbc.co.uk",
+          "nsrc": 3
+        },
+        {
+          "w": "mandem",
+          "def": "Your male friends, the crew.",
+          "tag": "UK",
+          "era": "2020s",
+          "conf": "high",
+          "src": "bbc.co.uk",
+          "nsrc": 1
+        },
+        {
+          "w": "blud",
+          "def": "Mate, close friend.",
+          "tag": "UK",
+          "era": "2020s",
+          "conf": "high",
+          "src": "bbc.co.uk",
+          "nsrc": 1
+        },
+        {
+          "w": "ends",
+          "def": "Your neighborhood.",
+          "tag": "UK",
+          "era": "2020s",
+          "conf": "high",
+          "src": "bbc.co.uk",
+          "nsrc": 2
+        },
+        {
+          "w": "peng",
+          "def": "Attractive or excellent.",
+          "tag": "UK",
+          "era": "2020s",
+          "conf": "high",
+          "src": "bbc.co.uk",
+          "nsrc": 1
+        }
+      ]
+    },
+    "Jamaica": {
+      "profile": "reggae-dancehall",
+      "words": [
+        {
+          "w": "big up",
+          "def": "Respect, a shout-out.",
+          "tag": "Jamaica",
+          "era": "1980s-2020s",
+          "conf": "medium",
+          "src": "jamaicanpatwah.com",
+          "nsrc": 2
+        },
+        {
+          "w": "massive",
+          "def": "The crowd or following.",
+          "tag": "Jamaica",
+          "era": "1980s-2020s",
+          "conf": "medium",
+          "src": "jamaicanpatwah.com",
+          "nsrc": 1
+        },
+        {
+          "w": "zeen",
+          "def": "Got it.",
+          "tag": "Jamaica",
+          "era": "1980s-2020s",
+          "conf": "medium",
+          "src": "jis.gov.jm",
+          "nsrc": 2
+        },
+        {
+          "w": "forward",
+          "def": "Play it, keep it going.",
+          "tag": "Jamaica",
+          "era": "1980s-2020s",
+          "conf": "medium",
+          "src": "jamaicanpatwah.com",
+          "nsrc": 1
+        },
+        {
+          "w": "criss",
+          "def": "Sharp, looking good.",
+          "tag": "Jamaica",
+          "era": "1980s-2020s",
+          "conf": "medium",
+          "src": "jamaicanpatwah.com",
+          "nsrc": 1
+        }
+      ]
+    },
+    "Puerto Rico": {
+      "profile": "latin-reggaeton",
+      "words": [
+        {
+          "w": "acho",
+          "def": "A Puerto Rican exclamation, like wow or come on.",
+          "tag": "Puerto Rico / Latin urban",
+          "era": "2000s-2020s",
+          "conf": "high",
+          "src": "billboard.com",
+          "nsrc": 1
+        },
+        {
+          "w": "corillo",
+          "def": "Your group of friends.",
+          "tag": "Puerto Rico / Latin urban",
+          "era": "2000s-2020s",
+          "conf": "high",
+          "src": "billboard.com",
+          "nsrc": 1
+        },
+        {
+          "w": "mera",
+          "def": "Look, hey.",
+          "tag": "Puerto Rico / Latin urban",
+          "era": "2000s-2020s",
+          "conf": "high",
+          "src": "billboard.com",
+          "nsrc": 1
+        },
+        {
+          "w": "jangueo",
+          "def": "Night out.",
+          "tag": "Puerto Rico / Latin urban",
+          "era": "2000s-2020s",
+          "conf": "medium",
+          "src": "lavozdeasturias.es",
+          "nsrc": 2
+        },
+        {
+          "w": "janguear",
+          "def": "To hang out.",
+          "tag": "Puerto Rico / Latin urban",
+          "era": "2000s-2020s",
+          "conf": "high",
+          "src": "elespanol.com",
+          "nsrc": 4
+        }
+      ]
+    }
+  }
+}

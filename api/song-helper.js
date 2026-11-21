@@ -36,6 +36,7 @@ const arcadeLib = require('../lib/arcade');
 const epkBuilder = require('../lib/epk-builder');
 const lyricsTranscribe = require('../lib/lyrics-transcribe');
 const songRate = require('../lib/song-rate');
+const couch = require('../lib/couch');
 
 const limiter = core.createLimiter({
   max: core.RATE_MAX,
@@ -1308,6 +1309,12 @@ async function handleAction(req, res, action, givenBody) {
     await handleDev(req, res, action, devBody || {});
     return;
   }
+  if (action === 'couch-turn' || action === 'couch-room' || action === 'couch-pick') {
+    var couchBody = givenBody;
+    if (!couchBody && req.method === 'POST') couchBody = await readBody(req);
+    await handleCouch(req, res, action, couchBody || {});
+    return;
+  }
   if (action === 'scout' || action === 'scoop') {
     var body = givenBody;
     if (!body) body = await readBody(req);
@@ -1319,6 +1326,32 @@ async function handleAction(req, res, action, givenBody) {
     return;
   }
   sendJson(res, 404, { ok: false, error: 'That action is not on this page.' });
+}
+
+async function handleCouch(req, res, action, body) {
+  var turns = body && Array.isArray(body.turns) ? body.turns : [];
+  var blob = turns.map(function (row) { return row && row.text ? row.text : ''; }).join('\n');
+  var filtered = guard.contentFilter(blob, { allowVoice: false });
+  if (!filtered.ok) {
+    console.log(JSON.stringify({ evt: 'couch_turn', result: 'blocked', turn: turns.length }));
+    sendJson(res, 200, { ok: true, fallback: true, live: false, label: couch.SAMPLE, reply: couch.BLOCKED, pins: {} });
+    return;
+  }
+  var out = await couch.handle(action, body, {
+    signedIn: Boolean(guard.sessionUserId(req)),
+    xaiConfigured: xai.configured(),
+    disabled: guard.disabled() || couch.disabled(),
+    chat: function (messages, maxTokens) {
+      return xai.chat({
+        messages: messages,
+        temperature: 0.75,
+        max_tokens: maxTokens || 300,
+        timeoutMs: 15000,
+      });
+    },
+  });
+  if (out.log) console.log(JSON.stringify(out.log));
+  sendJson(res, out.status || 200, out.body || { ok: false });
 }
 
 async function handler(req, res) {
@@ -1348,7 +1381,7 @@ async function handler(req, res) {
     sendJson(res, 400, { ok: false, error: 'Could not draft that.' });
     return;
   }
-  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite') {
+  if (body.action === 'ask' || body.action === 'suggest' || body.action === 'extend' || body.action === 'shorten' || body.action === 'rhymify' || body.action === 'format' || body.action === 'sounds' || body.action === 'scout' || body.action === 'scoop' || body.action === 'slang-refresh' || body.action === 'status' || body.action === 'spark' || body.action === 'slang' || body.action === 'dev-status' || body.action === 'vault-list' || body.action === 'vault-save' || body.action === 'vault-delete' || body.action === 'read-me' || body.action === 'persona-lock' || body.action === 'voice-check' || body.action === 'voice-rewrite' || body.action === 'song-breakdown' || body.action === 'song-rewrite' || body.action === 'couch-turn' || body.action === 'couch-room' || body.action === 'couch-pick') {
     await handleAction(req, res, String(body.action), body);
     return;
   }

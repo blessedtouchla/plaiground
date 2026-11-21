@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Song Lab | PLAIGROUND</title>
+  <meta name="description" content="Song Lab is an AI lyrics generator and songwriting helper. Write lyrics and hooks, trade verses in Battle, and plan a human pass. Writing a song is free." />
+  <link rel="canonical" href="https://www.wannaplai.com/song-lab" />
+  <meta property="og:title" content="Song Lab | PLAIGROUND" />
+  <meta property="og:description" content="Song Lab is an AI lyrics generator and songwriting helper. Write lyrics and hooks, trade verses in Battle, and plan a human pass. Writing a song is free." />
+  <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
+  <link rel="stylesheet" href="/song-lab.css?v=20261121notebook" />
+</head>
+<body class="song-lab-notebook">
+<header class="desk-top">
+  <a href="/" aria-label="PLAIGROUND"><img id="logo" alt="PLAIGROUND" src="/assets/plaiground-logo.png" /></a>
+  <div class="tape" id="session-tape">Session 04, late night</div>
+  <div class="cassette" id="bpm-box" aria-label="Tempo 116 BPM"><span class="reel"></span><span class="label" id="bpm">116 BPM</span><span class="reel"></span></div>
+  <div class="lcd" id="credit-box" aria-label="credits">
+    <small>credits</small>
+    <div class="readout">
+      <span class="seg" id="seg-a" data-d=""><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="f"></i><i class="g"></i></span>
+      <span class="seg" id="seg-b" data-d=""><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i><i class="f"></i><i class="g"></i></span>
+    </div>
+  </div>
+</header>
+<main>
+  <section id="screen-home">
+    <p class="age-note">Drafts are AI-assisted. You must be 18+ to use Song Lab.</p>
+    <p class="home-head">Pick a sound</p>
+    <div class="presets" id="home-presets"></div>
+    <div class="doors">
+      <button class="door" type="button" data-door="write"><b>Write</b><span>new song, your idea</span></button>
+      <button class="door" type="button" data-door="improve"><b>Improve</b><span>paste it, tune it</span></button>
+      <button class="door" type="button" data-door="transform"><b>Transform</b><span>new genre, same heart</span></button>
+      <button class="door couch-door" type="button" data-door="couch"><b>The Couch</b><span>vent first, song after</span></button>
+    </div>
+    <a class="trade-link" href="/ai-lyrics-generator?start=battle">Trade verses</a>
+  </section>
+
+  <section id="screen-desk" hidden>
+    <div class="desk">
+      <aside class="rack" id="rack">
+        <button type="button" class="rack-toggle" id="rack-toggle" aria-expanded="false"><b>Sound rack</b><span id="rack-sum"></span><b id="rack-caret">+</b></button>
+        <p class="glabel">genre</p><div class="pads" data-group="genre"></div>
+        <p class="glabel">era</p><div class="pads" data-group="era"></div>
+        <p class="glabel">region</p><div class="pads" data-group="region"></div>
+        <p class="glabel">language</p><div class="pads" data-group="language"></div>
+        <p class="glabel">tape presets</p><div class="presets" id="rack-presets"></div>
+      </aside>
+      <div class="notebook-col">
+        <div class="page" id="page">
+          <div class="page-head">
+            <div><h2 id="song-title">Kitchen light</h2><div class="topic" id="song-topic"></div></div>
+            <button type="button" class="stamp" id="stamp" aria-label="Authorship label, tap to change"></button>
+          </div>
+          <div class="legend"><span><i style="background:var(--dot-green)"></i>target</span><span><i style="background:var(--dot-gold)"></i>extra</span><span><i style="border:1.5px solid rgba(63,174,73,.6)"></i>room</span></div>
+          <div id="sheet"></div>
+        </div>
+        <div class="couch" id="couch-bar">
+          <div class="sofa"><span class="plai"></span></div>
+          <div class="talk"><span class="who"><i id="mic-led"></i>Plai, on the couch</span><span class="line1" id="dock-line"></span></div>
+          <button type="button" class="mic" id="mic" aria-label="Talkback mic"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd8ea" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button type="button" data-go="home">Doors</button>
+      <button type="button" data-go="results">Results</button>
+      <button type="button" data-go="export">Export</button>
+    </div>
+  </section>
+
+  <section id="screen-session" hidden>
+    <div class="steps-dots" id="steps-dots"></div>
+    <div class="session" id="session">
+      <div class="panel p-chat"><div class="chat" id="chat"><h3>The Couch</h3><div id="chat-log"></div><div class="reply" id="reply"></div></div></div>
+      <div class="panel p-pins"><div class="pins" id="pins"><h3>Plai caught</h3><div id="pin-list"></div></div></div>
+      <div class="panel p-map"><div class="map" id="map"></div></div>
+      <div class="panel p-pad"><h3>Rhyme Pad</h3><div class="page" id="pad"></div><div class="tabs" id="pad-actions"></div></div>
+    </div>
+  </section>
+
+  <section id="screen-results" hidden>
+    <div class="tabs" id="result-tabs" style="margin-top:0;margin-bottom:12px"></div>
+    <div id="result-body"></div>
+    <div class="tabs">
+      <button type="button" data-go="desk">Desk</button>
+      <button type="button" data-go="export">Export</button>
+    </div>
+  </section>
+</main>
+<div class="drawer" id="drawer">
+  <h3>Export</h3>
+  <button type="button" id="copy-suno">Copy for Suno</button>
+  <button type="button" id="copy-clean">Copy clean lyrics</button>
+  <button type="button" id="copy-pdf">PDF lyric sheet</button>
+  <button type="button" id="save-plai">Save to PLAIGROUND</button>
+  <p class="toast" id="toast"></p>
+  <button type="button" id="close-drawer">Close</button>
+</div>
+<script src="/lib/word-engine.js"></script>
+<script src="/lib/genre-bpm.js"></script>
+<script src="/lib/song-report.js"></script>
+<script src="/lib/song-lab-state.js"></script>
+<script src="/lib/song-lab-ui.js"></script>
+<script src="/lib/ai-disclosure.js"></script>
+<script src="/song-lab.js?v=20261121notebook2"></script>
+</body>
+</html>
