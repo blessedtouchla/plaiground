@@ -56,7 +56,7 @@ header.desk-top img { height: 44px; width: auto; display: block; }
 .lcd small { font-size: 9px; letter-spacing: .2em; color: #8fdc8a; }
 .readout { display: inline-flex; gap: 4px; }
 .seg { position: relative; width: 14px; height: 24px; display: inline-block; }
-.seg i { position: absolute; background: rgba(143, 220, 138, .12); }
+.seg i { position: absolute; background: transparent; }
 .seg i.a, .seg i.g, .seg i.d { height: 3px; left: 3px; right: 3px; border-radius: 2px; }
 .seg i.a { top: 0; } .seg i.g { top: 10.5px; } .seg i.d { bottom: 0; }
 .seg i.b, .seg i.c, .seg i.f, .seg i.e { width: 3px; border-radius: 2px; }
