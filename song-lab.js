@@ -715,6 +715,16 @@
     renderDock();
   });
   $('stamp').addEventListener('click', function () { cycleStamp($('stamp')); });
+  if (window.HookWarmup) {
+    window.HookWarmup.mount($('hook-warm-host'), {
+      onPick: function (title) {
+        song().title = title;
+        var first = song().secs && song().secs[1] && song().secs[1].lines && song().secs[1].lines[0];
+        if (first && !first.orig) first.text = title;
+        render();
+      }
+    });
+  }
   $('copy-suno').addEventListener('click', function () {
     copyText(UI.taggedLyrics(song()) + '\n\n' + UI.styleLine(state), 'Copied.');
   });
@@ -736,6 +746,9 @@
     state.chatStep = 0;
     typed = [];
     if (hash === 'punchin' || hash === 'scratch') state.line = 2;
+    if (query.get('title')) songs.kitchen.title = String(query.get('title')).slice(0, 80);
+    if (query.get('topic')) state.topic = String(query.get('topic')).slice(0, 120);
+    if ((query.get('title') || query.get('topic')) && hash !== 'home') state.screen = 'desk';
     if (query.get('genre') && Lab.GENRES.indexOf(query.get('genre')) >= 0) state.genre = query.get('genre');
     if (query.get('region') && Lab.REGIONS.indexOf(query.get('region')) >= 0) state.region = query.get('region');
     if (query.get('era') && Lab.ERAS.indexOf(query.get('era')) >= 0) state.era = query.get('era');
@@ -766,7 +779,7 @@
       }
     } else if (hash === 'results') state.screen = 'results';
     else if (hash === 'export') state.screen = 'desk';
-    else if (hash === 'desk' || hash === 'console' || hash === 'punchin' || hash === 'scratch') state.screen = 'desk';
+    else if (hash === 'desk' || hash === 'hook' || hash === 'console' || hash === 'punchin' || hash === 'scratch') state.screen = 'desk';
     else state.screen = 'home';
     if (query.get('step') !== null) step = +query.get('step');
     render();
