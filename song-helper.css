@@ -589,6 +589,20 @@ body.song-helper-page .hook-label { margin: 8px 0 0; color: #F3CB47; }
 @media (hover: hover) {
   .spark-page button.spark-season:hover { border-color: #fff; }
 }
+.spark-page .spark-lanes .sh-chip.spark-tg {
+  min-height: 44px;
+}
+.spark-page .spark-lanes .sh-chip.spark-tg.on {
+  background: #000;
+  background-image: none;
+  color: #fff;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+.spark-page .spark-lanes .sh-chip.spark-tg:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
 .spark-card {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;

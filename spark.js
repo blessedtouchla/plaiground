@@ -5,7 +5,7 @@
   var season = '';
   try { season = new URLSearchParams(window.location.search).get('season') || ''; } catch (err) { season = ''; }
   var current = 'trending';
-  if (season === 'thanksgiving') current = 'thanksgiving';
+  if (spark.thanksgivingOpen && spark.thanksgivingOpen(new Date(), season)) current = 'thanksgiving';
   var newsLane = '';
   var topic = '';
   var headline = '';
@@ -55,10 +55,10 @@
     }
   }
 
-  function chip(label, on, onClick) {
+  function chip(label, on, onClick, extra) {
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'sh-chip' + (on ? ' on' : '');
+    button.className = 'sh-chip' + (on ? ' on' : '') + (extra ? ' ' + extra : '');
     button.textContent = label;
     button.setAttribute('aria-pressed', on ? 'true' : 'false');
     button.addEventListener('click', function () {
@@ -254,11 +254,11 @@
           topic = '';
           headline = '';
           paint();
-        }));
+        }, group.id === 'thanksgiving' ? 'spark-tg' : ''));
       });
       var banner = $('spark-banner');
-      banner.hidden = false;
-      banner.textContent = spark.THANKSGIVING_NOTICE || 'Thanksgiving week. Draft copy.';
+      banner.hidden = true;
+      banner.textContent = '';
       var daily = $('spark-daily');
       daily.textContent = '';
       var list = $('spark-list');
@@ -266,10 +266,6 @@
       (spark.THANKSGIVING_CARDS || []).forEach(function (item) {
         list.appendChild(seasonCard(item));
       });
-      var note = document.createElement('p');
-      note.className = 'sh-help';
-      note.textContent = 'Open any day with ?season=thanksgiving. Hide it with ?season=off.';
-      list.appendChild(note);
       return;
     }
     var laneIds = lanes();
@@ -290,7 +286,7 @@
         topic = '';
         headline = '';
         paint();
-      }));
+      }, group.id === 'thanksgiving' ? 'spark-tg' : ''));
     });
     if (current === 'news' && !pack.newsNotice) {
       var desks = document.createElement('div');
