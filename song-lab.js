@@ -787,6 +787,15 @@
     if (hash === 'export') $('drawer').classList.add('show');
   }
 
+  function paintAuth() {
+    var link = $('desk-auth');
+    if (!link) return;
+    var api = window.PlaigroundMembership;
+    var on = !!(api && typeof api.isSignedIn === 'function' && api.isSignedIn());
+    link.textContent = on ? 'Account' : 'Log in';
+    link.setAttribute('href', on ? '/settings.html' : '/login.html?next=/song-lab');
+  }
+
   function loadCredits() {
     fetch('/api/song-helper?action=dev-status', { credentials: 'same-origin' })
       .then(function (res) { return res.json(); })
@@ -807,5 +816,9 @@
       if (table) Engine.load(table);
     }).catch(function () {});
   }).then(fromHash);
+  paintAuth();
+  if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
+    window.PlaigroundMembership.whenReady(paintAuth);
+  }
   loadCredits();
 })();

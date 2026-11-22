@@ -320,7 +320,8 @@
     if (path === '/claim' || path === '/claim/') {
       return safeNext('/claim' + String((global.location && global.location.search) || ''));
     }
-    if (path === '/song-helper' || path === '/song-helper/') return '/song-helper';
+    if (path === '/song-lab' || path === '/song-lab/') return '/song-lab';
+    if (path === '/song-helper' || path === '/song-helper/') return '/song-lab';
     if (path === '/battle' || path === '/battle/') return '/battle';
     if (/^\/charts\/(top-100|rnb|country|gospel)\/?$/.test(path)) {
       return path.replace(/\/$/, '');

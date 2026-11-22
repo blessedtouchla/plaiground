@@ -31,11 +31,19 @@ button:active { transform: translateY(1px) scale(.98); }
 
 /* Header: tape title, cassette BPM, LCD tokens */
 header.desk-top {
-  display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 18px;
+  display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 18px;
   padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,.08);
   background: linear-gradient(#1b1310, #140e0b);
 }
 header.desk-top img { height: 44px; width: auto; display: block; }
+.desk-auth {
+  min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 14px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px;
+  color: #fff; text-decoration: none; font-size: 14px; background: transparent;
+}
+@media (hover: hover) {
+  .desk-auth:hover { border-color: #fff; }
+}
 .tape {
   justify-self: center; position: relative; padding: 8px 26px 6px; color: #2b2418;
   background: var(--tape); font-family: var(--marker); font-size: 20px; letter-spacing: .02em;
@@ -300,7 +308,7 @@ main { padding: 18px 20px 24px; max-width: 1280px; margin: 0 auto; }
 /* Phone */
 @media (max-width: 480px) {
   body.song-lab-notebook { --rh: 44px; }
-  header.desk-top { grid-template-columns: auto 1fr auto; gap: 8px; padding: 8px 10px; }
+  header.desk-top { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; padding: 8px 10px; }
   header.desk-top img { height: 28px; }
   .tape { font-size: 13px; padding: 5px 12px 4px; }
   .cassette { display: none; }

@@ -63,7 +63,7 @@
   // Help & account catches anything unlisted. Nothing sits loose above the headers.
   var SIDE_GROUPS = [
     { id: "profile", label: "My profile", main: ["artists", "research", "epk", "ar"], more: ["profile", "persona", "destination", "roadmap", "my-roadmap", "already-released", "release-week"] },
-    { id: "write", label: "Create", main: ["upload", "releases", "song-helper", "song-helper-v3", "cover-art", "spark"], more: [] },
+    { id: "write", label: "Create", main: ["upload", "releases", "song-lab", "song-helper", "song-helper-v3", "cover-art", "spark"], more: [] },
     { id: "money", label: "Money", main: ["earnings", "payouts", "analytics"], more: ["charts", "royalties"] },
     { id: "rights", label: "Rights", lead: ["publishing-register", "publishing"], main: ["splits", "split-sheet", "contracts", "contracts-review"], more: ["copyright", "qualify", "claim", "contracts-fix", "contracts-create", "contracts-sub", "rights", "transparency"] },
     { id: "grow", label: "Grow", main: ["boosts", "boost"], more: [] },
@@ -415,6 +415,18 @@
     return !!(api && typeof api.isSignedIn === "function" && api.isSignedIn());
   }
 
+  function pointSongLabEntries() {
+    if (!isSignedInPublic() || !document.querySelectorAll) return;
+    Array.prototype.forEach.call(document.querySelectorAll("a[href]"), function (anchor) {
+      var href = String(anchor.getAttribute("href") || "");
+      var path = href.split("?")[0].split("#")[0];
+      var label = String(anchor.textContent || "").replace(/\s+/g, " ").trim();
+      if (label !== "Song Lab") return;
+      if (path !== "/song-helper" && path !== "song-helper" && path !== "song-helper.html") return;
+      anchor.setAttribute("href", "/song-lab");
+    });
+  }
+
   function rootPageHref(href, fallback) {
     var raw = String(href || fallback || "").trim();
     if (!raw) return fallback || "/";
@@ -523,9 +535,20 @@
       foot.textContent = "Join free. Get starter credits to try every tool.";
       footBrand.appendChild(foot);
     }
+    var account = tools.querySelector(".public-header-account");
+    if (!account) {
+      account = document.createElement("a");
+      account.className = "public-header-account";
+      account.href = "/settings.html";
+      account.textContent = "Account";
+      account.hidden = true;
+      tools.insertBefore(account, login);
+    }
     function syncSignedIn() {
       var signedIn = isSignedInPublic();
       login.hidden = !!signedIn;
+      account.hidden = !signedIn;
+      pointSongLabEntries();
       // Starter credits copy is only for signed-out visitors.
       document.querySelectorAll("[data-starter-cta]").forEach(function (el) { el.hidden = !!signedIn; });
       tools.classList.toggle("is-signed-in", signedIn);
@@ -853,7 +876,7 @@
 
   var WHATS_NEW_LINKS = [
     { href: "/contracts", label: "Contracts" },
-    { href: "/song-helper", label: "Song Lab" },
+    { href: "/song-lab", label: "Song Lab" },
     { href: "/cover-art", label: "Cover Art" },
     { href: "/copyright", label: "Copyright & publishing" },
     { href: "/qualify", label: "Is my song ready?" },
@@ -897,11 +920,11 @@
       lab.setAttribute("data-nav-group", "song-helper");
     }
     var labLink = lab.querySelector("a") || document.createElement("a");
-    labLink.setAttribute("href", "/song-helper");
+    labLink.setAttribute("href", "/song-lab");
     labLink.textContent = "Song Lab";
     labLink.className = "nav-songlab";
     labLink.setAttribute("style", "color:#F3CB47;font-weight:700");
-    if (/^\/song-helper/.test(String((window.location && window.location.pathname) || ""))) labLink.setAttribute("aria-current", "page");
+    if (/^\/song-lab(\/|$)/.test(String((window.location && window.location.pathname) || ""))) labLink.setAttribute("aria-current", "page");
     if (!labLink.parentNode) lab.appendChild(labLink);
     var road = links.querySelector('[data-nav-group="roadmap"]');
     if (road && road.parentNode === links) links.insertBefore(lab, road.nextSibling);
@@ -1055,7 +1078,7 @@
       if (a.closest && a.closest('[data-nav-group="whats-new"], [data-nav-group="song-helper"]')) return;
       var href = String(a.getAttribute("href") || "");
       var label = String(a.textContent || "").replace(/\s+/g, " ").trim();
-      if (!href || !label || /song-helper/.test(href)) return;
+      if (!href || !label || /song-helper|song-lab/.test(href)) return;
       if (href === "/charts" || /charts\.html$/.test(href)) {
         a = document.createElement("a");
         a.setAttribute("href", "https://www.plainow.com");
@@ -1181,7 +1204,7 @@
       key: "create",
       title: "Create",
       links: [
-        { href: "/song-helper", label: "Song Lab" },
+        { href: "/song-lab", label: "Song Lab" },
         { href: "/cover-art", label: "Cover Art" },
         { href: "/battle", label: "Battle" },
         { href: "/spark", label: "What's hot" },
@@ -1639,6 +1662,10 @@
   setupSignedInPublicAppChrome();
   setupAppMenu();
   setupPublicMenu();
+  pointSongLabEntries();
+  if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === "function") {
+    window.PlaigroundMembership.whenReady(pointSongLabEntries);
+  }
   pointTrustHrefs();
   setupPublicSocials();
   setupBrandLogos();

@@ -351,7 +351,8 @@ button { cursor: pointer; }
   .public-header-tools { margin-right: 18px; }
 }
 .nav-actions .login,
-.public-header-tools .login {
+.public-header-tools .login,
+.public-header-tools .public-header-account {
   font-size: 14px;
   font-weight: 500;
   color: #fff;
@@ -360,11 +361,19 @@ button { cursor: pointer; }
   border-radius: 999px;
   padding: 9px 18px;
   line-height: 1;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   white-space: nowrap;
 }
-.nav-actions .login:hover,
-.public-header-tools .login:hover { color: #fff; border-color: #fff; }
-.public-header-tools .login[hidden] { display: none; }
+@media (hover: hover) {
+  .nav-actions .login:hover,
+  .public-header-tools .login:hover,
+  .public-header-tools .public-header-account:hover { color: #fff; border-color: #fff; }
+}
+.public-header-tools .login[hidden],
+.public-header-tools .public-header-account[hidden] { display: none; }
 .menu-toggle {
   display: none;
   align-items: center;
@@ -8693,6 +8702,7 @@ p.starter-cta a { color: inherit; }
 .side-nav a[href="/my-roadmap"]::before,
 .side-nav a[href="my-roadmap.html"]::before,
 .side-nav a[href="/song-helper"]::before,
+.side-nav a[href="/song-lab"]::before,
 .side-nav a[href="song-helper.html"]::before,
 .side-nav a[href="releases.html"]::before,
 .side-nav a[href="/releases"]::before,
@@ -8723,6 +8733,7 @@ h1[data-section-mark]::before {
 .side-nav a[href="my-roadmap.html"]::before,
 .nav-links [data-nav-group="roadmap"] > a::before { --section-mark: url("/assets/marks/roadmap.svg"); background-color: #F09416; }
 .side-nav a[href="/song-helper"]::before,
+.side-nav a[href="/song-lab"]::before,
 .side-nav a[href="song-helper.html"]::before,
 .nav-links [data-nav-group="song-helper"] > a::before { --section-mark: url("/assets/marks/song-lab.svg"); background-color: #D03083; }
 .side-nav a[href="releases.html"]::before,
@@ -8746,6 +8757,7 @@ h1[data-section-mark="siqa"]::before { --section-mark: url("/assets/marks/siqa.s
 h1[data-section-mark="manage"]::before { --section-mark: url("/assets/marks/manage.svg"); background-color: #F09416; }
 .side-nav a::before { margin-right: 0; }
 .nav-links a[href="/song-helper"]::before,
+.nav-links a[href="/song-lab"]::before,
 .nav-links a[href="/destination"]::before,
 .nav-links a[href="destination.html"]::before,
 .nav-links a[href="publishing.html"]::before,
@@ -8757,6 +8769,7 @@ h1[data-section-mark="manage"]::before { --section-mark: url("/assets/marks/mana
 .nav-links [data-nav-group="out"] a[href="signup.html"]::before,
 .nav-links a[href="releases.html"]::before,
 .footer-col a[href="/song-helper"]::before,
+.footer-col a[href="/song-lab"]::before,
 .footer-col a[href="/destination"]::before,
 .footer-col a[href="/charts"]::before,
 .footer-col[data-footer-journey="release"] > a[href="signup.html"]::before,
@@ -8776,7 +8789,9 @@ h1[data-section-mark="manage"]::before { --section-mark: url("/assets/marks/mana
   vertical-align: middle;
 }
 .nav-links a[href="/song-helper"]::before,
-.footer-col a[href="/song-helper"]::before { --section-mark: url("/assets/marks/song-lab.svg"); background-color: #D03083; }
+.nav-links a[href="/song-lab"]::before,
+.footer-col a[href="/song-helper"]::before,
+.footer-col a[href="/song-lab"]::before { --section-mark: url("/assets/marks/song-lab.svg"); background-color: #D03083; }
 .nav-links a[href="/destination"]::before,
 .nav-links a[href="destination.html"]::before,
 .footer-col a[href="/destination"]::before { --section-mark: url("/assets/marks/roadmap.svg"); background-color: #F09416; }
