@@ -630,6 +630,7 @@
       $('screen-' + id).hidden = !on;
     });
     document.body.classList.toggle('on-desk', state.screen === 'desk');
+    document.body.classList.toggle('on-home', state.screen === 'home');
     $('session').classList.toggle('room', state.screen === 'room');
     $('drawer').classList.toggle('show', name === 'export' || state.screen === 'export');
   }

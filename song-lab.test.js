@@ -15,7 +15,7 @@ const css = read('song-lab.css');
 const vercel = JSON.parse(read('vercel.json'));
 const page = html + '\n' + js;
 
-assert.ok(html.includes('class="song-lab-notebook"'));
+assert.ok(html.includes('class="song-lab-notebook on-home"'));
 assert.ok(!/class="song-lab"/.test(html));
 assert.ok(html.includes('href="/song-lab.css'));
 assert.ok(!html.includes('site.css'));
@@ -38,7 +38,7 @@ const suno = page.match(/Suno/g) || [];
 assert.deepStrictEqual(suno, ['Suno']);
 assert.ok(html.includes('>Copy for Suno</button>'));
 assert.ok(js.includes("'Copied.'"));
-assert.ok(!/Udio/i.test(page + css));
+assert.ok(!/\budio\b/i.test(page + css));
 assert.ok(!/TOKENS/.test(page));
 assert.ok(html.includes('>credits</small>'));
 assert.ok(page.indexOf('—') === -1 && page.indexOf('–') === -1);
