@@ -615,7 +615,7 @@
     } else {
       row('Label', function (box) { box.appendChild(el('span', 'chip', 'tap the stamp to change it')); });
       row('Save', function (box) {
-        var button = el('button', 'undo', 'Save draft');
+        var button = el('button', 'undo', 'Save');
         button.type = 'button';
         button.addEventListener('click', saveSong);
         box.appendChild(button);
@@ -651,33 +651,184 @@
     renderPad();
     renderSteps();
     paintCredits();
+    paintSave();
     if (state.screen === 'results') renderResults();
     if (state.screen === 'export') $('drawer').classList.add('show');
+    if (bootReady) scheduleSave();
   }
 
-  function saveSong() {
+  var lyricId = '';
+  var saveBase = '';
+  var bootReady = false;
+  var saveTimer = 0;
+  var saveFlight = null;
+  var saveAgain = false;
+  var saveNote = '';
+
+  function signedInNow() {
+    if (state.signedIn) return true;
+    var api = window.PlaigroundMembership;
+    return !!(api && typeof api.isSignedIn === 'function' && api.isSignedIn());
+  }
+
+  function songPayload() {
     var stamp = Lab.STAMPS[state.stamp] || Lab.STAMPS[1];
-    var body = {
-      title: song().title,
-      text: UI.cleanLyrics(song()),
+    var current = song();
+    return {
+      title: current.title,
+      text: UI.cleanLyrics(current),
       label: stamp.label,
       mode: 'notebook',
       mood: state.genre,
-      style: UI.styleLine(state)
+      style: UI.styleLine(state),
+      notebook: {
+        genre: state.genre,
+        era: state.era,
+        region: state.region,
+        language: state.language,
+        topic: state.topic,
+        stamp: stamp.label,
+        secs: (current.secs || []).map(function (sec) {
+          return {
+            tag: sec.tag,
+            target: sec.target,
+            lines: (sec.lines || []).map(function (line) { return { text: line.text }; })
+          };
+        })
+      }
     };
-    fetch('/api/me/lyrics', {
+  }
+
+  function fingerprint() {
+    return JSON.stringify(songPayload());
+  }
+
+  function paintSave() {
+    var button = $('desk-save');
+    var note = $('desk-save-note');
+    if (!button) return;
+    button.textContent = signedInNow() ? 'Save' : 'Sign in to save';
+    if (note) note.textContent = signedInNow() ? saveNote : '';
+  }
+
+  function scheduleSave() {
+    if (!signedInNow()) return;
+    if (fingerprint() === saveBase) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { saveSong(false); }, 800);
+  }
+
+  function lineFromText(text) {
+    return { text: text, rw: { rhyme: text, flow: text, slang: null } };
+  }
+
+  function applySavedSong(row) {
+    if (!row) return;
+    lyricId = row.id || '';
+    var book = row.notebook || {};
+    var secs = Array.isArray(book.secs) && book.secs.length ? book.secs.map(function (sec) {
+      return {
+        tag: sec.tag || 'Verse 1',
+        target: sec.target || 8,
+        lines: (sec.lines || []).map(function (line) { return lineFromText(line.text || ''); }).filter(function (line) { return line.text; })
+      };
+    }).filter(function (sec) { return sec.lines.length; }) : [];
+    if (!secs.length) {
+      var chunks = String(row.text || '').split(/\n{2,}/).filter(function (part) { return part.trim(); });
+      secs = [{
+        tag: 'Verse 1',
+        target: 8,
+        lines: (chunks[0] || row.text || ' ').split('\n').map(function (text) { return lineFromText(text); }).filter(function (line) { return line.text.trim(); })
+      }];
+    }
+    songs.kitchen = { title: row.title || 'Untitled', secs: secs };
+    state.songId = 'kitchen';
+    state.screen = 'desk';
+    if (book.genre && Lab.GENRES.indexOf(book.genre) >= 0) state.genre = book.genre;
+    else if (row.mood && Lab.GENRES.indexOf(row.mood) >= 0) state.genre = row.mood;
+    if (book.era && Lab.ERAS.indexOf(book.era) >= 0) state.era = book.era;
+    if (book.region && Lab.REGIONS.indexOf(book.region) >= 0) state.region = book.region;
+    if (book.language && Lab.LANGUAGES.indexOf(book.language) >= 0) state.language = book.language;
+    if (book.topic) state.topic = String(book.topic).slice(0, 120);
+    var stampLabel = book.stamp || row.label || '';
+    var stampAt = -1;
+    Lab.STAMPS.forEach(function (stamp, index) { if (stamp.label === stampLabel) stampAt = index; });
+    if (stampAt >= 0) state.stamp = stampAt;
+    saveBase = fingerprint();
+    saveNote = 'Saved';
+    bootReady = true;
+  }
+
+  function loadSavedSong(id) {
+    if (!id) return;
+    fetch('/api/me/lyrics', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (res) { return res.json().catch(function () { return {}; }).then(function (data) { return { ok: res.ok, status: res.status, data: data }; }); })
+      .then(function (result) {
+        if (result.status === 401) {
+          state.signedIn = false;
+          saveBase = fingerprint();
+          bootReady = true;
+          paintSave();
+          return;
+        }
+        var rows = (result.data && result.data.songs) || [];
+        var row = null;
+        rows.forEach(function (item) { if (!row && item.id === id) row = item; });
+        if (!row) {
+          saveBase = fingerprint();
+          bootReady = true;
+          return;
+        }
+        state.signedIn = true;
+        applySavedSong(row);
+        render();
+      })
+      .catch(function () {
+        saveBase = fingerprint();
+        bootReady = true;
+      });
+  }
+
+  function saveSong(manual) {
+    if (!signedInNow()) {
+      if (manual) window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname + location.search + location.hash);
+      return;
+    }
+    var payload = songPayload();
+    if (!String(payload.text || '').trim()) return;
+    if (!manual && fingerprint() === saveBase) return;
+    if (saveFlight) { saveAgain = true; return; }
+    saveNote = 'Saving';
+    paintSave();
+    var body = lyricId ? { action: 'update', id: lyricId, song: payload } : payload;
+    saveFlight = fetch('/api/me/lyrics', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(body)
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
-        $('toast').textContent = res.status === 401 ? 'Sign in to save.' : (res.ok && data.ok ? 'Saved.' : 'Could not save. Try again.');
-        $('drawer').classList.add('show');
+        if (res.status === 401) {
+          state.signedIn = false;
+          saveNote = '';
+          paintSave();
+          return;
+        }
+        if (res.ok && data && data.ok && data.song) {
+          lyricId = data.song.id || lyricId;
+          saveBase = fingerprint();
+          saveNote = 'Saved';
+        } else {
+          saveNote = 'Could not save. Try again.';
+        }
+        paintSave();
       });
     }).catch(function () {
-      $('toast').textContent = 'Could not save. Try again.';
-      $('drawer').classList.add('show');
+      saveNote = 'Could not save. Try again.';
+      paintSave();
+    }).then(function () {
+      saveFlight = null;
+      if (saveAgain) { saveAgain = false; saveSong(false); }
     });
   }
 
@@ -733,10 +884,12 @@
     copyText(UI.cleanLyrics(song()), 'Clean lyrics copied.');
   });
   $('copy-pdf').addEventListener('click', function () { window.print(); });
-  $('save-plai').addEventListener('click', saveSong);
+  $('save-plai').addEventListener('click', function () { saveSong(true); });
+  $('desk-save').addEventListener('click', function () { saveSong(true); });
   $('close-drawer').addEventListener('click', function () { $('drawer').classList.remove('show'); });
 
   function fromHash() {
+    bootReady = false;
     var hash = (location.hash || '#home').slice(1);
     var query = new URLSearchParams(location.search);
     songs = Lab.cloneSongs();
@@ -783,9 +936,16 @@
     else if (hash === 'desk' || hash === 'hook' || hash === 'console' || hash === 'punchin' || hash === 'scratch') state.screen = 'desk';
     else state.screen = 'home';
     if (query.get('step') !== null) step = +query.get('step');
+    var openId = query.get('song') || '';
+    if (openId) state.screen = 'desk';
     render();
     goStep(step);
     if (hash === 'export') $('drawer').classList.add('show');
+    if (openId) loadSavedSong(openId);
+    else {
+      saveBase = fingerprint();
+      bootReady = true;
+    }
   }
 
   function paintAuth() {
@@ -795,6 +955,8 @@
     var on = !!(api && typeof api.isSignedIn === 'function' && api.isSignedIn());
     link.textContent = on ? 'Account' : 'Log in';
     link.setAttribute('href', on ? '/settings.html' : '/login.html?next=/song-lab');
+    if (on) state.signedIn = true;
+    paintSave();
   }
 
   function loadCredits() {
@@ -804,6 +966,8 @@
         state.signedIn = !!(data && data.signedIn);
         state.credits = data && data.signedIn && data.credits != null ? data.credits : null;
         paintCredits();
+        paintSave();
+        if (bootReady) scheduleSave();
       })
       .catch(function () { paintCredits(); });
   }

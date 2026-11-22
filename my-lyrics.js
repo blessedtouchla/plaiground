@@ -48,17 +48,27 @@
         var row = doc.createElement('div');
         row.className = 'ly-row';
         row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px';
-        var button = doc.createElement('button');
-        button.type = 'button';
-        button.className = 'btn btn-ghost btn-md';
         var title = song.title || 'Untitled';
         var when = formatWhen(song.saved_at);
-        button.textContent = when ? (title + ' · ' + when) : title;
-        button.setAttribute('aria-label', 'Open ' + title);
-        button.addEventListener('click', function () { showSong(song); });
+        var card = doc.createElement('div');
+        card.className = 'song-card';
+        var heading = doc.createElement('h2');
+        heading.textContent = title;
+        var meta = doc.createElement('p');
+        var bits = [];
+        if (song.label) bits.push(song.label);
+        if (when) bits.push(when);
+        meta.textContent = bits.join(' · ');
+        var edit = doc.createElement('a');
+        edit.className = 'song-edit';
+        edit.href = '/song-lab?song=' + encodeURIComponent(song.id || '');
+        edit.textContent = 'Edit';
+        card.appendChild(heading);
+        card.appendChild(meta);
+        card.appendChild(edit);
         var rename = doc.createElement('button');
         rename.type = 'button';
-        rename.className = 'btn btn-ghost btn-sm';
+        rename.className = 'song-side';
         rename.textContent = 'Rename';
         rename.addEventListener('click', function () {
           var next = global.prompt('New title', song.title || '');
@@ -67,15 +77,15 @@
         });
         var del = doc.createElement('button');
         del.type = 'button';
-        del.className = 'btn btn-ghost btn-sm';
+        del.className = 'song-side';
         del.textContent = 'Delete';
         del.addEventListener('click', function () {
           if (!global.confirm('Delete "' + title + '" from your account? This cannot be undone.')) return;
           write({ action: 'delete', id: song.id }, '');
         });
-        row.appendChild(button);
-        row.appendChild(rename);
-        row.appendChild(del);
+        card.appendChild(rename);
+        card.appendChild(del);
+        row.appendChild(card);
         list.appendChild(row);
       });
     }

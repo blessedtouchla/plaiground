@@ -6,22 +6,23 @@
 @font-face{font-family:'Permanent Marker';font-weight:400;font-display:swap;src:url('/assets/fonts/permanent-marker.woff2') format('woff2');}
 body.song-lab-notebook {
   --pink: #D03083; --gold: #F3CB47; --purple: #782FB1; --green: #61B63A; --orange: #F09416;
-  --paper: #f7f2e2; --rule: rgba(64, 120, 200, .28); --margin: rgba(214, 60, 60, .55);
-  --ink: #1f2233; --blue-ink: #1d3fbf; --tape: rgba(232, 214, 160, .92);
-  --dot-green: #3fae49; --dot-gold: #e2a90f;
-  --hand: 'Caveat', 'Bradley Hand', 'Segoe Print', cursive;
-  --marker: 'Permanent Marker', 'Marker Felt', 'Comic Sans MS', cursive;
-  --sans: "Helvetica Neue", Arial, sans-serif;
+  --paper: oklch(0.965 0.028 92); --rule: oklch(0.78 0.07 235); --margin: oklch(0.66 0.17 20);
+  --ink: oklch(0.3 0.1 265); --blue-ink: oklch(0.3 0.1 265); --tape: oklch(0.92 0.04 95 / 0.82);
+  --dot-green: oklch(0.72 0.19 142); --dot-gold: oklch(0.82 0.16 85);
+  --hand: "Kalam", "Segoe Print", cursive;
+  --marker: "Permanent Marker", "Comic Sans MS", cursive;
+  --sans: "Barlow Condensed", "Arial Narrow", sans-serif;
   --rh: 44px;
 }
 * { box-sizing: border-box; }
 html, body.song-lab-notebook { margin: 0; }
 body.song-lab-notebook {
-  font-family: var(--sans); color: #f1ece0; min-height: 100vh;
-  background:
-    radial-gradient(90% 60% at 50% 0%, rgba(255, 190, 120, .10), transparent 60%),
-    repeating-linear-gradient(92deg, rgba(255,255,255,.018) 0 2px, transparent 2px 9px),
-    linear-gradient(180deg, #2a1d16, #1a120d);
+  font-family: var(--sans); color: var(--paper); min-height: 100vh;
+  background-color: oklch(0.19 0.018 45);
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% 0%, oklch(0.55 0.1 70 / 0.28), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.45 0.12 350 / 0.12), transparent 70%),
+    repeating-linear-gradient(100deg, oklch(1 0 0 / 0.012) 0 2px, transparent 2px 9px, oklch(0 0 0 / 0.05) 9px 11px, transparent 11px 23px);
 }
 button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 button:active { transform: translateY(1px) scale(.98); }
@@ -31,9 +32,9 @@ button:active { transform: translateY(1px) scale(.98); }
 
 /* Header: tape title, cassette BPM, LCD tokens */
 header.desk-top {
-  display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 18px;
+  display: grid; grid-template-columns: auto 1fr auto auto auto auto; align-items: center; gap: 18px;
   padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,.08);
-  background: linear-gradient(#1b1310, #140e0b);
+  background: oklch(0.16 0.02 50);
 }
 header.desk-top img { height: 44px; width: auto; display: block; }
 .desk-auth {
@@ -42,8 +43,23 @@ header.desk-top img { height: 44px; width: auto; display: block; }
   color: #fff; text-decoration: none; font-size: 14px; background: transparent;
   white-space: nowrap; flex-shrink: 0;
 }
+.desk-book {
+  min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 14px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px;
+  color: #fff; text-decoration: none; font-size: 14px; background: transparent;
+}
+.savebar {
+  display: flex; align-items: center; gap: 12px; padding: 8px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.08); background: #140e0b;
+}
+#desk-save {
+  min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid #fff; background: #000; color: #fff; font-size: 15px; font-weight: 650;
+}
+#desk-save-note { font-size: 13px; color: #f3e9cf; min-height: 44px; display: inline-flex; align-items: center; }
 @media (hover: hover) {
-  .desk-auth:hover { border-color: #fff; }
+  .desk-auth:hover, .desk-book:hover { border-color: #fff; }
+  #desk-save:hover { background: #111; }
 }
 .tape {
   justify-self: center; position: relative; padding: 8px 26px 6px; color: #2b2418;
@@ -427,6 +443,8 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 @media (max-width: 480px) {
   body.song-lab-notebook { --rh: 44px; }
   header.desk-top { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; padding: 8px 10px; }
+  .desk-book { grid-column: 1 / -1; justify-self: start; }
+  .savebar { padding: 8px 10px; }
   header.desk-top img { height: 28px; }
   .tape { font-size: 13px; padding: 5px 12px 4px; }
   .cassette { display: none; }
