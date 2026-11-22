@@ -846,7 +846,7 @@
       if (!row || !row.pitch) return;
       var line = el('p', 'talkback-pitch');
       line.appendChild(el('b', null, row.speaker || ''));
-      line.appendChild(document.createTextNode(row.pitch));
+      line.appendChild(document.createTextNode(' ' + row.pitch));
       parent.appendChild(line);
     });
   }
