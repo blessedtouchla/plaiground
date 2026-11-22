@@ -9,9 +9,9 @@
   <meta property="og:title" content="Song Lab | PLAIGROUND" />
   <meta property="og:description" content="Song Lab is an AI lyrics generator and songwriting helper. Write lyrics and hooks, trade verses in Battle, and plan a human pass. Writing a song is free." />
   <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
-  <link rel="stylesheet" href="/song-lab.css?v=20261121notebook" />
+  <link rel="stylesheet" href="/song-lab.css?v=20261122bays" />
 </head>
-<body class="song-lab-notebook">
+<body class="song-lab-notebook on-home">
 <header class="desk-top">
   <a href="/" aria-label="PLAIGROUND"><img id="logo" alt="PLAIGROUND" src="/assets/plaiground-logo.png" /></a>
   <div class="tape" id="session-tape">Session 04, late night</div>
@@ -28,15 +28,40 @@
 <main>
   <section id="screen-home">
     <p class="age-note">Drafts are AI-assisted. You must be 18+ to use Song Lab.</p>
-    <p class="home-head">Pick a sound</p>
-    <div class="presets" id="home-presets"></div>
-    <div class="doors">
-      <button class="door" type="button" data-door="write"><b>Write</b><span>new song, your idea</span></button>
-      <button class="door" type="button" data-door="improve"><b>Improve</b><span>paste it, tune it</span></button>
-      <button class="door" type="button" data-door="transform"><b>Transform</b><span>new genre, same heart</span></button>
-      <button class="door couch-door" type="button" data-door="couch"><b>The Couch</b><span>vent first, song after</span></button>
+    <div class="bay-head">
+      <h1>Song Lab</h1>
+      <p>Three ways in. Pick one.</p>
     </div>
-    <a class="trade-link" href="/ai-lyrics-generator?start=battle">Trade verses</a>
+    <div class="bays">
+      <article class="bay">
+        <p class="bay-kicker">Bay 1</p>
+        <h2>Write From Scratch</h2>
+        <p>A blank page. Your words.</p>
+        <button type="button" data-door="write">Open the desk →</button>
+      </article>
+      <article class="bay">
+        <p class="bay-sign">On Air</p>
+        <h2>The Booth</h2>
+        <p>Tell it first. The song comes after.</p>
+        <button type="button" data-door="couch">Step in →</button>
+      </article>
+      <article class="bay">
+        <p class="bay-kicker">Bay 3</p>
+        <h2>Fix &amp; Polish</h2>
+        <p>Bring a song you already have.</p>
+        <button type="button" data-door="improve">Open it →</button>
+        <a class="bay-alt" href="/ai-lyrics-generator?start=based">Change the genre</a>
+      </article>
+    </div>
+    <div class="talkback">
+      <p><b>Talkback</b> Plai is on the line.</p>
+      <div class="tabs" role="group" aria-label="Talkback">
+        <button type="button" data-go="home">Doors</button>
+        <button type="button" data-go="results">Results</button>
+        <button type="button" data-go="export">Export</button>
+      </div>
+    </div>
+    <a class="bay-alt" href="/ai-lyrics-generator?start=battle">Trade verses</a>
   </section>
 
   <section id="screen-desk" hidden>
@@ -61,7 +86,7 @@
         </div>
         <div class="couch" id="couch-bar">
           <div class="sofa"><span class="plai"></span></div>
-          <div class="talk"><span class="who"><i id="mic-led"></i>Plai, on the couch</span><span class="line1" id="dock-line"></span></div>
+          <div class="talk"><span class="who"><i id="mic-led"></i>Plai, in the booth</span><span class="line1" id="dock-line"></span></div>
           <button type="button" class="mic" id="mic" aria-label="Talkback mic"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd8ea" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg></button>
         </div>
       </div>
@@ -76,7 +101,7 @@
   <section id="screen-session" hidden>
     <div class="steps-dots" id="steps-dots"></div>
     <div class="session" id="session">
-      <div class="panel p-chat"><div class="chat" id="chat"><h3>The Couch</h3><div id="chat-log"></div><div class="reply" id="reply"></div></div></div>
+      <div class="panel p-chat"><div class="chat" id="chat"><h3>The Booth</h3><div id="chat-log"></div><div class="reply" id="reply"></div></div></div>
       <div class="panel p-pins"><div class="pins" id="pins"><h3>Plai caught</h3><div id="pin-list"></div></div></div>
       <div class="panel p-map"><div class="map" id="map"></div></div>
       <div class="panel p-pad"><h3>Rhyme Pad</h3><div class="page" id="pad"></div><div class="tabs" id="pad-actions"></div></div>
@@ -109,6 +134,6 @@
 <script src="/lib/ai-disclosure.js"></script>
 <script src="/membership.js?v=20261121entry"></script>
 <script src="/lib/hook-warmup.js?v=20261121warm"></script>
-<script src="/song-lab.js?v=20261121warm"></script>
+<script src="/song-lab.js?v=20261122bays"></script>
 </body>
 </html>

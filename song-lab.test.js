@@ -15,7 +15,7 @@ const css = read('song-lab.css');
 const vercel = JSON.parse(read('vercel.json'));
 const page = html + '\n' + js;
 
-assert.ok(html.includes('class="song-lab-notebook"'));
+assert.ok(html.includes('class="song-lab-notebook on-home"'));
 assert.ok(!/class="song-lab"/.test(html));
 assert.ok(html.includes('href="/song-lab.css'));
 assert.ok(!html.includes('site.css'));

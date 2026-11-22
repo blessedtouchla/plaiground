@@ -102,3 +102,19 @@ Approved by Victoria. Live.
 | Card | | Who's at the table. Who sits down, and who is missing. |
 
 The lane shows from Nov 19 through Nov 27, 2026, America/Los_Angeles. `?season=thanksgiving` forces it on. `?season=off` hides it. Those controls are not printed on the page.
+
+## Song Lab entrance (preview draft, Nov 22, 2026)
+
+Not signed off. Draft copy for Victoria. Preview only.
+
+| Where | Copy |
+|---|---|
+| Entrance line | Three ways in. Pick one. |
+| Bay 1 | Write From Scratch. A blank page. Your words. Open the desk. |
+| Bay 2 sign | On Air |
+| Bay 2 | The Booth. Tell it first. The song comes after. Step in. |
+| Bay 3 | Fix & Polish. Bring a song you already have. Open it. |
+| Bay 3 secondary | Change the genre |
+| Talkback | Talkback. Plai is on the line. |
+| Booth room | The Booth |
+| Desk dock | Plai, in the booth |
