@@ -40,6 +40,7 @@ header.desk-top img { height: 44px; width: auto; display: block; }
   min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center;
   padding: 0 14px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px;
   color: #fff; text-decoration: none; font-size: 14px; background: transparent;
+  white-space: nowrap; flex-shrink: 0;
 }
 @media (hover: hover) {
   .desk-auth:hover { border-color: #fff; }
@@ -138,7 +139,6 @@ body.song-lab-notebook {
 }
 .lobby-brand, .lobby-aside { display: none; }
 body.song-lab-notebook.on-home {
-  display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
   background-color: var(--desk);
   background-image:
     radial-gradient(ellipse 70% 45% at 50% 0%, oklch(0.55 0.1 70 / 0.28), transparent 70%),
@@ -155,15 +155,13 @@ body.song-lab-notebook.on-home .tape,
 body.song-lab-notebook.on-home .cassette,
 body.song-lab-notebook.on-home .lcd { display: none; }
 body.song-lab-notebook.on-home .desk-auth { margin-left: auto; }
-body.song-lab-notebook.on-home main {
-  flex: 1; min-height: 0; display: flex; flex-direction: column; max-width: none; padding: 0; overflow: hidden;
-}
-body.song-lab-notebook.on-home #screen-home { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.song-lab-notebook.on-home main { max-width: none; padding: 0 0 16px; }
+body.song-lab-notebook.on-home #screen-home { display: block; }
 .lobby-eye { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-label); font-size: 11px; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; color: var(--muted); }
 .lobby-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hl-green); box-shadow: 0 0 8px var(--hl-green); }
 .lobby-title { margin: 2px 0 0; font-family: var(--font-marker); font-weight: 400; font-size: 40px; line-height: 1; color: var(--paper-lab); }
 .lobby-aside { max-width: 16rem; margin: 0; text-align: right; font-family: var(--font-hand); font-size: 18px; line-height: 1.25; color: oklch(0.965 0.028 92 / 0.7); }
-.lobby-scroll { flex: 1; min-height: 0; overflow: auto; padding: 8px 12px 12px; }
+.lobby-scroll { padding: 8px 12px 0; }
 .lobby .age-note { color: var(--muted); font-family: var(--font-label); font-size: 14px; }
 .lobby-more { margin: 14px auto 0; max-width: 64rem; }
 .lobby-more a { min-height: 44px; display: inline-flex; align-items: center; color: var(--paper-lab); font-family: var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; }
@@ -201,15 +199,15 @@ body.song-lab-notebook.on-home #screen-home { flex: 1; min-height: 0; display: f
 .bay button { width: 100%; margin-top: 4px; background: var(--glow); color: var(--ink-lab); box-shadow: 0 0 18px -2px var(--glow); }
 .bay-alt { align-self: flex-start; background: transparent; color: var(--paper-lab); border: 1px solid var(--pad-edge); }
 .talkback-bar {
-  display: flex; gap: 12px; align-items: flex-start; flex: 0 0 auto;
-  padding: 12px 14px; border-top: 4px solid var(--console-2); background: var(--console);
-  box-shadow: 0 -12px 30px oklch(0 0 0 / 0.45);
+  display: flex; gap: 12px; align-items: flex-start;
+  margin: 12px 12px 0; padding: 12px 14px; border-top: 4px solid var(--console-2); border-radius: 12px 12px 0 0;
+  background: var(--console);
 }
 .talkback-face { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; }
 .talkback-face svg { width: 48px; height: 36px; }
 .talkback-face span { font-family: var(--font-label); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .talkback-bar p { margin: 0; font-size: 15px; line-height: 1.35; color: var(--paper-lab); }
-.transport { display: flex; gap: 8px; flex: 0 0 auto; padding: 8px 12px 12px; border-top: 1px solid var(--pad-edge); background: var(--console); }
+.transport { display: flex; gap: 8px; margin: 0 12px 12px; padding: 8px 12px 12px; border-top: 1px solid var(--pad-edge); border-radius: 0 0 12px 12px; background: var(--console); }
 .transport .key {
   flex: 1; height: 56px; border: 1px solid var(--pad-edge); border-radius: 8px;
   background: linear-gradient(to bottom, var(--console-2), var(--console)); color: var(--paper-lab);
