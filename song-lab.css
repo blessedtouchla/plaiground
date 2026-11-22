@@ -31,7 +31,7 @@ button:active { transform: translateY(1px) scale(.98); }
 
 /* Header: tape title, cassette BPM, LCD tokens */
 header.desk-top {
-  display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 18px;
+  display: grid; grid-template-columns: auto 1fr auto auto auto auto; align-items: center; gap: 18px;
   padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,.08);
   background: linear-gradient(#1b1310, #140e0b);
 }
@@ -42,8 +42,23 @@ header.desk-top img { height: 44px; width: auto; display: block; }
   color: #fff; text-decoration: none; font-size: 14px; background: transparent;
   white-space: nowrap; flex-shrink: 0;
 }
+.desk-book {
+  min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 14px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px;
+  color: #fff; text-decoration: none; font-size: 14px; background: transparent;
+}
+.savebar {
+  display: flex; align-items: center; gap: 12px; padding: 8px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.08); background: #140e0b;
+}
+#desk-save {
+  min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid #fff; background: #000; color: #fff; font-size: 15px; font-weight: 650;
+}
+#desk-save-note { font-size: 13px; color: #f3e9cf; min-height: 44px; display: inline-flex; align-items: center; }
 @media (hover: hover) {
-  .desk-auth:hover { border-color: #fff; }
+  .desk-auth:hover, .desk-book:hover { border-color: #fff; }
+  #desk-save:hover { background: #111; }
 }
 .tape {
   justify-self: center; position: relative; padding: 8px 26px 6px; color: #2b2418;
@@ -427,6 +442,8 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 @media (max-width: 480px) {
   body.song-lab-notebook { --rh: 44px; }
   header.desk-top { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; padding: 8px 10px; }
+  .desk-book { grid-column: 1 / -1; justify-self: start; }
+  .savebar { padding: 8px 10px; }
   header.desk-top img { height: 28px; }
   .tape { font-size: 13px; padding: 5px 12px 4px; }
   .cassette { display: none; }

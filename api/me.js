@@ -463,6 +463,10 @@ async function ownLyrics(req, res) {
       sendJson(res, 200, await lyrics.deleteOwn(row.id, body.id));
       return;
     }
+    if (act === 'update') {
+      sendJson(res, 200, await lyrics.updateOwn(row.id, body.id, (body && body.song) || body));
+      return;
+    }
     const saved = await lyrics.saveOwn(row.id, body && (body.song || body));
     sendJson(res, 200, saved);
   } catch (err) {

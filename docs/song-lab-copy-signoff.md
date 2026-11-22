@@ -118,3 +118,21 @@ Not signed off. Draft copy for Victoria. Preview only. Em dashes from the studio
 | Bay 3 secondary | Change the genre |
 | Talkback | Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix & Polish. |
 | Transport | Doors, Results, Export |
+
+## Songbook (preview draft, Nov 22, 2026)
+
+Not signed off. Draft copy for Victoria. Preview only.
+
+| Where | Copy |
+|---|---|
+| Desk button, signed in | Save |
+| Desk button, signed out | Sign in to save |
+| Desk status | Saving |
+| Desk status | Saved |
+| Desk status, failed | Could not save. Try again. |
+| Notebook header | Songbook |
+| /my-lyrics title | Songbook |
+| /my-lyrics line | Songs you saved. Open one to keep editing. |
+| Empty songbook | No songs in the songbook yet. |
+| Empty action | Open the notebook |
+| Each song | Edit |

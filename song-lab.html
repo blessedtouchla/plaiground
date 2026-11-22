@@ -25,6 +25,7 @@
   <div class="tape" id="session-tape">Session 04, late night</div>
   <div class="cassette" id="bpm-box" aria-label="Tempo 116 BPM"><span class="reel"></span><span class="label" id="bpm">116 BPM</span><span class="reel"></span></div>
   <a class="desk-auth" id="desk-auth" href="/login.html?next=/song-lab">Log in</a>
+  <a class="desk-book" href="/my-lyrics">Songbook</a>
   <div class="lcd" id="credit-box" aria-label="credits">
     <small>credits</small>
     <div class="readout">
@@ -33,6 +34,10 @@
     </div>
   </div>
 </header>
+<div class="savebar">
+  <button type="button" id="desk-save">Save</button>
+  <span id="desk-save-note" aria-live="polite"></span>
+</div>
 <main>
   <section id="screen-home" class="lobby">
     <div class="lobby-scroll">
@@ -159,6 +164,6 @@
 <script src="/lib/ai-disclosure.js"></script>
 <script src="/membership.js?v=20261121entry"></script>
 <script src="/lib/hook-warmup.js?v=20261121warm"></script>
-<script src="/song-lab.js?v=20261122bays"></script>
+<script src="/song-lab.js?v=20261122both"></script>
 </body>
 </html>

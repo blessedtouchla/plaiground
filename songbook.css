@@ -1,0 +1,63 @@
+/* Songbook. Loaded only by my-lyrics.html.
+   Scoped to body.songbook so the rest of the site stays as it is. */
+
+@font-face{font-family:'Caveat';font-weight:400 700;font-display:swap;src:url('/assets/fonts/caveat.woff2') format('woff2');}
+@font-face{font-family:'Permanent Marker';font-weight:400;font-display:swap;src:url('/assets/fonts/permanent-marker.woff2') format('woff2');}
+
+body.songbook {
+  --paper: #f7f2e2;
+  --ink: #1f2233;
+  --hand: 'Caveat', 'Bradley Hand', cursive;
+  --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
+}
+body.songbook .app-main {
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(255, 190, 120, .10), transparent 60%),
+    repeating-linear-gradient(92deg, rgba(255,255,255,.018) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, #2a1d16, #1a120d);
+  color: #f1ece0;
+  min-height: 100vh;
+}
+body.songbook .page-head h1 {
+  font-family: var(--marker);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+body.songbook .page-head p,
+body.songbook .kicker { color: #f3e9cf; }
+body.songbook .ly-row { display: block; margin: 0 0 12px; }
+body.songbook .song-card {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.35);
+}
+body.songbook .song-card h2 {
+  margin: 0 0 4px;
+  font-family: var(--marker);
+  font-weight: 400;
+  font-size: 26px;
+}
+body.songbook .song-card p { margin: 0 0 10px; font-family: var(--hand); font-size: 20px; }
+body.songbook .song-edit,
+body.songbook .song-side {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 8px 0 0;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #2b2418;
+  background: #fffdf5;
+  color: #2b2418;
+  text-decoration: none;
+  font-size: 15px;
+}
+body.songbook .song-edit { background: #2b2418; color: #fff4dc; border-color: #2b2418; }
+@media (hover: hover) {
+  body.songbook .song-edit:hover,
+  body.songbook .song-side:hover { filter: brightness(1.08); }
+}

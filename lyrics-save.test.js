@@ -19,7 +19,8 @@ async function run() {
   assert.ok(read('api/me.js').includes("path === '/api/me/lyrics'"));
   assert.ok(read('vercel.json').includes('"/api/me/lyrics"'));
   assert.ok(read('my-lyrics.html').includes('data-require-membership="true"'));
-  assert.ok(read('my-lyrics.html').includes('href="/song-helper"'));
+  assert.ok(read('my-lyrics.html').includes('href="/song-lab"'));
+  assert.ok(read('my-lyrics.html').includes('Songbook'));
   assert.ok(!read('my-lyrics.html').includes('href="/battle"'));
 
   accounts.useMemoryStore();
@@ -87,6 +88,22 @@ async function run() {
   assert.ok(listed.songs.some(function (song) { return song.id === saved.song.id && song.label === 'Fully AI' && song.style === 'dusty Rhodes, 72 BPM'; }));
   const other = await lyrics.listOwn('user-2');
   assert.strictEqual(other.songs.length, 0);
+  const updated = await lyrics.updateOwn('user-1', saved.song.id, {
+    title: 'Night bus, revised',
+    text: 'I waited in the rain\nThe light stayed on\nOne more line',
+    mode: 'notebook',
+    mood: 'Pop',
+    label: 'AI-assisted',
+    notebook: { genre: 'Pop', era: 'Now', stamp: 'AI-assisted', secs: [{ tag: 'Verse 1', target: 8, lines: [{ text: 'I waited in the rain' }] }] },
+  });
+  assert.strictEqual(updated.created, false);
+  assert.strictEqual(updated.song.id, saved.song.id);
+  assert.strictEqual(updated.song.title, 'Night bus, revised');
+  assert.strictEqual(updated.song.notebook.genre, 'Pop');
+  assert.strictEqual(updated.songs.length, 2);
+  await assert.rejects(function () { return lyrics.updateOwn('user-2', saved.song.id, { text: 'Stolen line' }); }, function (err) {
+    return err && err.code === 'VALIDATION';
+  });
 
   const store = {};
   const previous = global.localStorage;

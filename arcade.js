@@ -754,7 +754,7 @@
     fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (me) {
       if (me.status === 401) {
         b.textContent = 'Saved on this device';
-        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do, with the style prompt and the label ' + (item.label || 'AI-assisted') + '. After you log in, import it from My lyrics.</p><p><a class="v3-mini arc-tiny" href="/signup.html?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login.html?next=/my-lyrics">Log in</a></p>');
+        done('<p><strong>Sign up free to save to your account.</strong> Your song stays on this device until you do, with the style prompt and the label ' + (item.label || 'AI-assisted') + '. After you log in, import it from Songbook.</p><p><a class="v3-mini arc-tiny" href="/signup.html?next=/my-lyrics">Sign up free</a> <a class="v3-mini arc-tiny" href="/login.html?next=/my-lyrics">Log in</a></p>');
         return;
       }
       if (!me.ok) throw new Error('me');
@@ -765,7 +765,7 @@
           markImported(item, d.song.id);
           b.textContent = 'Saved to your account';
           b.disabled = true;
-          done('<p><a class="v3-link" href="/my-lyrics?id=' + encodeURIComponent(d.song.id) + '">Open My lyrics</a></p>');
+          done('<p><a class="v3-link" href="/my-lyrics?id=' + encodeURIComponent(d.song.id) + '">Open Songbook</a></p>');
         });
       });
     }).catch(function () { b.textContent = 'Saved on this device'; done('<p>The account save did not go through. Your song stays on this device.</p>'); }).then(function () { if (result) { result.saving = false; if (b) b.disabled = !!(item && item.accountId); } });
