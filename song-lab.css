@@ -222,7 +222,21 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 .talkback-face { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; }
 .talkback-face svg { width: 48px; height: 36px; }
 .talkback-face span { font-family: var(--font-label); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.talkback-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .talkback-bar p { margin: 0; font-size: 15px; line-height: 1.35; color: var(--paper-lab); }
+.talkback-pitch b { font-family: var(--font-label); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
+.talkback-ask { display: flex; flex-direction: column; gap: 8px; }
+.talkback-ask textarea {
+  width: 100%; min-height: 44px; max-height: 96px; resize: vertical;
+  border-radius: 10px; border: 1px solid var(--pad-edge); background: var(--console-2); color: var(--paper-lab);
+  font: 16px/1.35 "Kalam", "Segoe Print", cursive; padding: 10px 12px;
+}
+.talkback-ask button {
+  min-height: 44px; min-width: 44px; width: 100%; padding: 0 14px; border: 0; border-radius: 10px;
+  background: var(--gold); color: var(--ink-lab); font-family: var(--font-label); font-size: 16px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.talkback-ask button:disabled { opacity: 0.6; }
 .transport { display: flex; gap: 8px; margin: 0 12px 12px; padding: 8px 12px 12px; border-top: 1px solid var(--pad-edge); border-radius: 0 0 12px 12px; background: var(--console); }
 .transport .key {
   flex: 1; height: 56px; border: 1px solid var(--pad-edge); border-radius: 8px;
@@ -243,7 +257,7 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 }
 @media (hover: hover) {
   .bay:hover { border-color: var(--glow); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 0 0 1px var(--glow), 0 0 30px -6px var(--glow), 0 10px 24px oklch(0 0 0 / 0.5); }
-  .bay button:hover, .transport .key:hover { filter: brightness(1.08); }
+  .bay button:hover, .transport .key:hover, .talkback-ask button:hover { filter: brightness(1.08); }
   .bay-alt:hover { border-color: var(--glow); }
 }
 @media (prefers-reduced-motion: reduce) {

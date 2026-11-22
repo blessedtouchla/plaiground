@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Kalam:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/song-lab.css?v=20261122both" />
+  <link rel="stylesheet" href="/song-lab.css?v=20261122plai" />
 </head>
 <body class="song-lab-notebook on-home">
 <header class="desk-top">
@@ -85,7 +85,14 @@
         <svg viewBox="0 0 64 44"><rect x="2" y="2" width="60" height="40" rx="6" fill="var(--gold)"/><rect x="9" y="8" width="46" height="18" rx="9" fill="var(--console)"/><circle cx="22" cy="17" r="6" fill="var(--paper)"/><circle cx="42" cy="17" r="6" fill="var(--paper)"/><path d="M22 12v10M17 17h10M42 12v10M37 17h10" stroke="var(--console)" stroke-width="2"/><path d="M20 34 Q32 40 44 34" fill="none" stroke="var(--console)" stroke-width="3" stroke-linecap="round"/></svg>
         <span>Talkback</span>
       </div>
-      <p>Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix &amp; Polish.</p>
+      <div class="talkback-copy">
+        <p id="talkback-line">Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix &amp; Polish.</p>
+        <div class="talkback-squad" id="talkback-squad" hidden></div>
+        <form class="talkback-ask" id="talkback-ask">
+          <textarea id="talkback-input" maxlength="600" placeholder="Say it how it happened." aria-label="Talk to Plai"></textarea>
+          <button type="submit">Send</button>
+        </form>
+      </div>
     </div>
     <nav class="transport" aria-label="Studio transport">
       <button type="button" class="key on" data-go="home">Doors</button>
@@ -164,6 +171,6 @@
 <script src="/lib/ai-disclosure.js"></script>
 <script src="/membership.js?v=20261121entry"></script>
 <script src="/lib/hook-warmup.js?v=20261121warm"></script>
-<script src="/song-lab.js?v=20261122both"></script>
+<script src="/song-lab.js?v=20261122plai"></script>
 </body>
 </html>

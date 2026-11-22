@@ -1373,12 +1373,13 @@ async function handleCouch(req, res, action, body) {
     signedIn: Boolean(guard.sessionUserId(req)),
     xaiConfigured: xai.configured(),
     disabled: guard.disabled() || couch.disabled(),
+    system: couch.producerPrompt(),
     chat: function (messages, maxTokens) {
       return xai.chat({
         messages: messages,
         temperature: 0.75,
-        max_tokens: maxTokens || 300,
-        timeoutMs: 15000,
+        max_tokens: maxTokens || 900,
+        timeoutMs: 25000,
       });
     },
   });

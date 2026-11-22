@@ -136,3 +136,15 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Empty songbook | No songs in the songbook yet. |
 | Empty action | Open the notebook |
 | Each song | Edit |
+
+## Plai talkback (preview draft, Nov 22, 2026)
+
+Not signed off. Draft copy for Victoria. Preview only.
+
+| Where | Copy |
+|---|---|
+| Talkback, before a reply | Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix & Polish. |
+| Talk field | Say it how it happened. |
+| Talk button | Send |
+| Squad seats shown | Vibe, Dex, 808 |
+| Authorship labels | Human, AI-assisted, Fully AI |

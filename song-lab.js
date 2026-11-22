@@ -315,6 +315,7 @@
     typed.forEach(function (row) { items.push(row); });
     items.forEach(function (row) {
       log.appendChild(el('div', 'bubble ' + (row.p ? 'plai-b' : 'me'), row.p || row.u));
+      if (row.p && row.squad && row.squad.length) paintSquad(log, row.squad);
       if (row.p && row.sample !== false && row !== Lab.CHAT[0]) showSample(log);
     });
     var reply = $('reply');
@@ -407,7 +408,8 @@
       body: JSON.stringify({ turns: history.slice(-8) })
     }).then(function (res) { return res.json(); }).then(function (data) {
       var reply = data && data.reply ? data.reply : SAMPLE;
-      typed.push({ p: reply, sample: !data || data.fallback !== false, pins: data && data.pins });
+      typed.push({ p: (data && (data.studio_message || data.reply)) || reply, sample: !data || data.fallback !== false, pins: data && data.pins, squad: data && data.squad_banter });
+      paintTalkback(data);
       state.liveCouch = !!(data && data.live);
       render();
     }).catch(function () {
@@ -837,6 +839,59 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(done).catch(done);
     } else done();
+  }
+
+  function paintSquad(parent, rows) {
+    (rows || []).forEach(function (row) {
+      if (!row || !row.pitch) return;
+      var line = el('p', 'talkback-pitch');
+      line.appendChild(el('b', null, row.speaker || ''));
+      line.appendChild(document.createTextNode(row.pitch));
+      parent.appendChild(line);
+    });
+  }
+
+  function paintTalkback(data) {
+    var line = $('talkback-line');
+    var squad = $('talkback-squad');
+    if (!line || !data) return;
+    var spoken = data.studio_message || data.reply;
+    if (spoken) line.textContent = spoken;
+    line.setAttribute('data-live', data.live ? 'true' : 'false');
+    if (!squad) return;
+    squad.textContent = '';
+    if (data.squad_banter && data.squad_banter.length) {
+      squad.hidden = false;
+      paintSquad(squad, data.squad_banter);
+    } else squad.hidden = true;
+  }
+
+  function sendTalkback(text) {
+    var message = String(text || '').trim();
+    var input = $('talkback-input');
+    var button = document.querySelector('#talkback-ask button');
+    if (!message) return;
+    if (button) button.disabled = true;
+    fetch('/api/song-helper?action=couch-turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ turns: [{ role: 'user', text: message }] })
+    }).then(function (res) { return res.json(); }).then(function (data) {
+      paintTalkback(data || { reply: SAMPLE, fallback: true, live: false });
+      if (input) input.value = '';
+    }).catch(function () {
+      paintTalkback({ reply: SAMPLE, fallback: true, live: false });
+    }).then(function () {
+      if (button) button.disabled = false;
+    });
+  }
+
+  var talkForm = $('talkback-ask');
+  if (talkForm) {
+    talkForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      sendTalkback($('talkback-input') && $('talkback-input').value);
+    });
   }
 
   document.querySelectorAll('[data-door]').forEach(function (button) {
