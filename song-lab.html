@@ -9,11 +9,19 @@
   <meta property="og:title" content="Song Lab | PLAIGROUND" />
   <meta property="og:description" content="Song Lab is an AI lyrics generator and songwriting helper. Write lyrics and hooks, trade verses in Battle, and plan a human pass. Writing a song is free." />
   <meta property="og:image" content="https://www.wannaplai.com/assets/plaiground-logo.png" />
-  <link rel="stylesheet" href="/song-lab.css?v=20261122bays" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Kalam:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/song-lab.css?v=20261122studio" />
 </head>
 <body class="song-lab-notebook on-home">
 <header class="desk-top">
   <a href="/" aria-label="PLAIGROUND"><img id="logo" alt="PLAIGROUND" src="/assets/plaiground-logo.png" /></a>
+  <div class="lobby-brand">
+    <p class="lobby-eye"><span class="lobby-dot" aria-hidden="true"></span> PLAIGROUND · Studio A</p>
+    <h1 class="lobby-title">Song Lab</h1>
+  </div>
+  <p class="lobby-aside">Pick a bay. Plai's already in the producer chair.</p>
   <div class="tape" id="session-tape">Session 04, late night</div>
   <div class="cassette" id="bpm-box" aria-label="Tempo 116 BPM"><span class="reel"></span><span class="label" id="bpm">116 BPM</span><span class="reel"></span></div>
   <a class="desk-auth" id="desk-auth" href="/login.html?next=/song-lab">Log in</a>
@@ -26,42 +34,59 @@
   </div>
 </header>
 <main>
-  <section id="screen-home">
-    <p class="age-note">Drafts are AI-assisted. You must be 18+ to use Song Lab.</p>
-    <div class="bay-head">
-      <h1>Song Lab</h1>
-      <p>Three ways in. Pick one.</p>
-    </div>
-    <div class="bays">
-      <article class="bay">
-        <p class="bay-kicker">Bay 1</p>
-        <h2>Write From Scratch</h2>
-        <p>A blank page. Your words.</p>
-        <button type="button" data-door="write">Open the desk →</button>
-      </article>
-      <article class="bay">
-        <p class="bay-sign">On Air</p>
-        <h2>The Booth</h2>
-        <p>Tell it first. The song comes after.</p>
-        <button type="button" data-door="couch">Step in →</button>
-      </article>
-      <article class="bay">
-        <p class="bay-kicker">Bay 3</p>
-        <h2>Fix &amp; Polish</h2>
-        <p>Bring a song you already have.</p>
-        <button type="button" data-door="improve">Open it →</button>
-        <a class="bay-alt" href="/ai-lyrics-generator?start=based">Change the genre</a>
-      </article>
-    </div>
-    <div class="talkback">
-      <p><b>Talkback</b> Plai is on the line.</p>
-      <div class="tabs" role="group" aria-label="Talkback">
-        <button type="button" data-go="home">Doors</button>
-        <button type="button" data-go="results">Results</button>
-        <button type="button" data-go="export">Export</button>
+  <section id="screen-home" class="lobby">
+    <div class="lobby-scroll">
+      <p class="age-note">Drafts are AI-assisted. You must be 18+ to use Song Lab.</p>
+      <div class="bays">
+        <article class="bay bay-yellow">
+          <div class="bay-top">
+            <span class="bay-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+            <span class="bay-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="bay-num">BAY 01</span>
+          </div>
+          <p class="bay-status"><i></i> Ready</p>
+          <h2>Write from Scratch</h2>
+          <p class="bay-line">Tap a sound, start writing</p>
+          <button type="button" data-door="write">Start writing <span aria-hidden="true">→</span></button>
+        </article>
+        <article class="bay bay-red">
+          <div class="bay-top">
+            <span class="bay-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/><path d="M8 22h8"/></svg></span>
+            <span class="bay-meter meter-live" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="bay-num">BAY 02</span>
+          </div>
+          <p class="bay-status"><i></i> On air</p>
+          <h2>The Booth</h2>
+          <p class="bay-line">Vent it or hype it. Plai turns it into bars</p>
+          <button type="button" data-door="couch">Start talking <span aria-hidden="true">→</span></button>
+        </article>
+        <article class="bay bay-blue">
+          <div class="bay-top">
+            <span class="bay-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+            <span class="bay-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="bay-num">BAY 03</span>
+          </div>
+          <p class="bay-status"><i></i> Ready</p>
+          <h2>Fix &amp; Polish</h2>
+          <p class="bay-line">Paste lyrics, tap a line, punch it in</p>
+          <button type="button" data-door="improve">Fix my song <span aria-hidden="true">→</span></button>
+          <a class="bay-alt" href="/ai-lyrics-generator?start=based">Change the genre</a>
+        </article>
       </div>
+      <p class="lobby-more"><a href="/ai-lyrics-generator?start=battle">Trade verses</a></p>
     </div>
-    <a class="bay-alt" href="/ai-lyrics-generator?start=battle">Trade verses</a>
+    <div class="talkback-bar">
+      <div class="talkback-face" aria-hidden="true">
+        <svg viewBox="0 0 64 44"><rect x="2" y="2" width="60" height="40" rx="6" fill="var(--gold)"/><rect x="9" y="8" width="46" height="18" rx="9" fill="var(--console)"/><circle cx="22" cy="17" r="6" fill="var(--paper)"/><circle cx="42" cy="17" r="6" fill="var(--paper)"/><path d="M22 12v10M17 17h10M42 12v10M37 17h10" stroke="var(--console)" stroke-width="2"/><path d="M20 34 Q32 40 44 34" fill="none" stroke="var(--console)" stroke-width="3" stroke-linecap="round"/></svg>
+        <span>Talkback</span>
+      </div>
+      <p>Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix &amp; Polish.</p>
+    </div>
+    <nav class="transport" aria-label="Studio transport">
+      <button type="button" class="key on" data-go="home">Doors</button>
+      <button type="button" class="key" data-go="results">Results</button>
+      <button type="button" class="key" data-go="export">Export</button>
+    </nav>
   </section>
 
   <section id="screen-desk" hidden>

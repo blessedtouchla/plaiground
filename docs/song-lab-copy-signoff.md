@@ -105,16 +105,16 @@ The lane shows from Nov 19 through Nov 27, 2026, America/Los_Angeles. `?season=t
 
 ## Song Lab entrance (preview draft, Nov 22, 2026)
 
-Not signed off. Draft copy for Victoria. Preview only.
+Not signed off. Draft copy for Victoria. Preview only. Em dashes from the studio mock are written out.
 
 | Where | Copy |
 |---|---|
-| Entrance line | Three ways in. Pick one. |
-| Bay 1 | Write From Scratch. A blank page. Your words. Open the desk. |
-| Bay 2 sign | On Air |
-| Bay 2 | The Booth. Tell it first. The song comes after. Step in. |
-| Bay 3 | Fix & Polish. Bring a song you already have. Open it. |
+| Eyebrow | PLAIGROUND · Studio A |
+| Title | Song Lab |
+| Aside | Pick a bay. Plai's already in the producer chair. |
+| Bay 1 | Write from Scratch. Tap a sound, start writing. Start writing. |
+| Bay 2 | The Booth. On air. Vent it or hype it. Plai turns it into bars. Start talking. |
+| Bay 3 | Fix & Polish. Paste lyrics, tap a line, punch it in. Fix my song. |
 | Bay 3 secondary | Change the genre |
-| Talkback | Talkback. Plai is on the line. |
-| Booth room | The Booth |
-| Desk dock | Plai, in the booth |
+| Talkback | Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix & Polish. |
+| Transport | Doors, Results, Export |
