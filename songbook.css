@@ -28,6 +28,7 @@ body.songbook .page-head h1 {
 }
 body.songbook .page-head p,
 body.songbook .kicker { color: #f3e9cf; }
+body.songbook .page { padding-bottom: 180px; }
 body.songbook .ly-row { display: block; margin: 0 0 12px; }
 body.songbook .song-card {
   background: var(--paper);
