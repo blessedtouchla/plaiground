@@ -870,10 +870,14 @@
   }
 
   function copyText(text, toast) {
-    var done = function () { $('toast').textContent = toast; };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(done);
-    } else done();
+    var note = $('toast');
+    if (note) note.textContent = toast;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        var pending = navigator.clipboard.writeText(text);
+        if (pending && pending.catch) pending.catch(function () {});
+      }
+    } catch (err) {}
   }
 
   var CHIBI_POSE = {
