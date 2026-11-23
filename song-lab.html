@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Kalam:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/song-lab.css?v=20261123first" />
+  <link rel="stylesheet" href="/song-lab.css?v=20261123banger" />
 </head>
 <body class="song-lab-notebook on-home">
 <header class="desk-top">
@@ -60,6 +60,10 @@
       <h2 class="what-title">What happened?</h2>
       <div id="chat-log"></div>
       <div class="reply" id="reply"></div>
+      <div class="banger" id="banger">
+        <button type="button" id="run-bangermaker" disabled aria-disabled="true">Run the Bangermaker</button>
+        <p class="banger-help" id="banger-help">Keep talking to Plai</p>
+      </div>
     </div>
     <div class="extras">
       <button type="button" id="extras-toggle" aria-expanded="false" aria-controls="extras-panel">Extras</button>
@@ -209,6 +213,6 @@
 <script src="/lib/ai-disclosure.js"></script>
 <script src="/membership.js?v=20261121entry"></script>
 <script src="/lib/hook-warmup.js?v=20261121warm"></script>
-<script src="/song-lab.js?v=20261123first"></script>
+<script src="/song-lab.js?v=20261123banger"></script>
 </body>
 </html>
