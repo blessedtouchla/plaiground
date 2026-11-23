@@ -1377,7 +1377,7 @@ async function handleCouch(req, res, action, body) {
     chat: function (messages, maxTokens) {
       return xai.chat({
         messages: messages,
-        temperature: 0.75,
+        temperature: 0.4,
         max_tokens: maxTokens || 900,
         timeoutMs: 25000,
       });
