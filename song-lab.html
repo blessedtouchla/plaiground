@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Kalam:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/song-lab.css?v=20261123crew" />
+  <link rel="stylesheet" href="/song-lab.css?v=20261123first" />
 </head>
 <body class="song-lab-notebook on-home">
 <header class="desk-top">
@@ -21,7 +21,7 @@
     <p class="lobby-eye"><span class="lobby-dot" aria-hidden="true"></span> PLAIGROUND · Studio A</p>
     <h1 class="lobby-title">Song Lab</h1>
   </div>
-  <p class="lobby-aside">Pick a bay. Plai's already in the producer chair.</p>
+  <p class="lobby-aside">Start with what happened.</p>
   <div class="tape" id="session-tape">Session 04, late night</div>
   <div class="cassette" id="bpm-box" aria-label="Tempo 116 BPM"><span class="reel"></span><span class="label" id="bpm">116 BPM</span><span class="reel"></span></div>
   <a class="desk-auth" id="desk-auth" href="/login.html?next=/song-lab">Log in</a>
@@ -49,14 +49,22 @@
       <button type="button" id="how-dismiss" aria-label="Dismiss how it works">Close</button>
     </div>
     <ol>
-      <li>Tell Plai your story.</li>
-      <li>Plai asks you one question back.</li>
+      <li>Tell Plai what happened.</li>
+      <li>Plai asks one question at a time, and finds the before and the after.</li>
       <li>The crew (Vibe: melody, Dex: lyric line, 808: beat) offers ideas. Tap any to add, or skip.</li>
     </ol>
   </aside>
   <section id="screen-home" class="lobby">
-    <div class="lobby-scroll">
-      <p class="age-note">Drafts are AI-assisted. You must be 18+ to use Song Lab.</p>
+    <p class="age-note">Drafts are AI-assisted. You must be 18+ to use Song Lab.</p>
+    <div class="chat start-chat" id="chat">
+      <h2 class="what-title">What happened?</h2>
+      <div id="chat-log"></div>
+      <div class="reply" id="reply"></div>
+    </div>
+    <div class="extras">
+      <button type="button" id="extras-toggle" aria-expanded="false" aria-controls="extras-panel">Extras</button>
+      <p class="extras-note">Optional. The bays and the before and after prompts are in here.</p>
+      <div id="extras-panel" hidden>
       <div class="bays">
         <article class="bay bay-yellow">
           <div class="bay-top">
@@ -94,8 +102,10 @@
         </article>
       </div>
       <p class="lobby-more"><a href="/ai-lyrics-generator?start=battle">Trade verses</a></p>
+      <div id="hook-warm-host"></div>
+      </div>
     </div>
-    <div class="talkback-bar" data-room="doors">
+    <div class="talkback-bar" data-room="doors" hidden>
       <div class="talkback-face" aria-hidden="true">
         <svg viewBox="0 0 64 44"><rect x="2" y="2" width="60" height="40" rx="6" fill="var(--gold)"/><rect x="9" y="8" width="46" height="18" rx="9" fill="var(--console)"/><circle cx="22" cy="17" r="6" fill="var(--paper)"/><circle cx="42" cy="17" r="6" fill="var(--paper)"/><path d="M22 12v10M17 17h10M42 12v10M37 17h10" stroke="var(--console)" stroke-width="2"/><path d="M20 34 Q32 40 44 34" fill="none" stroke="var(--console)" stroke-width="3" stroke-linecap="round"/></svg>
         <span>Talkback</span>
@@ -141,7 +151,6 @@
         <p class="glabel">tape presets</p><div class="presets" id="rack-presets"></div>
       </aside>
       <div class="notebook-col">
-        <div id="hook-warm-host"></div>
         <div class="page" id="page">
           <div class="page-head">
             <div><h2 id="song-title">Kitchen light</h2><div class="topic" id="song-topic"></div></div>
@@ -167,23 +176,7 @@
   <section id="screen-session" hidden>
     <div class="steps-dots" id="steps-dots"></div>
     <div class="session" id="session">
-      <div class="panel p-chat">
-        <div class="room-talk" data-room="booth">
-          <div class="talkback-bar">
-            <img class="plai-pose" src="/assets/plai/happy.webp" width="88" height="88" alt="Plai" data-pose="idle" />
-            <div class="talkback-copy">
-              <p class="talkback-line">The Booth is on. Say what is on your chest.</p>
-              <div class="talkback-squad" hidden></div>
-              <form class="talkback-ask">
-                <textarea maxlength="600" placeholder="Say it how it happened." aria-label="Talk to Plai in the booth"></textarea>
-                <button type="submit">Send</button>
-              </form>
-            </div>
-            <img class="plai-full" src="/assets/plai/plai-human-fullbody-idle.webp" alt="" data-pose="idle" />
-          </div>
-        </div>
-        <div class="chat" id="chat"><h3>The Booth</h3><div id="chat-log"></div><div class="reply" id="reply"></div></div>
-      </div>
+      <div class="panel p-chat"></div>
       <div class="panel p-pins"><div class="pins" id="pins"><h3>Plai caught</h3><div id="pin-list"></div></div></div>
       <div class="panel p-map"><div class="map" id="map"></div></div>
       <div class="panel p-pad"><h3>Rhyme Pad</h3><div class="page" id="pad"></div><div class="tabs" id="pad-actions"></div></div>
@@ -216,6 +209,6 @@
 <script src="/lib/ai-disclosure.js"></script>
 <script src="/membership.js?v=20261121entry"></script>
 <script src="/lib/hook-warmup.js?v=20261121warm"></script>
-<script src="/song-lab.js?v=20261123crew"></script>
+<script src="/song-lab.js?v=20261123first"></script>
 </body>
 </html>

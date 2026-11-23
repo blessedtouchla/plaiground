@@ -335,8 +335,9 @@
     var form = el('div', 'couch-form');
     var input = document.createElement('textarea');
     input.maxLength = 600;
-    input.placeholder = 'Type how it went...';
-    input.setAttribute('aria-label', 'Type how it went...');
+    input.id = 'what-input';
+    input.placeholder = typed.length ? 'Add a detail.' : 'Tell Plai what happened.';
+    input.setAttribute('aria-label', 'What happened?');
     var send = el('button', 'say', 'Send');
     send.type = 'button';
     if (state.boothBusy) send.disabled = true;
@@ -1102,7 +1103,13 @@
       var door = button.getAttribute('data-door');
       if (door === 'improve') { window.location.href = '/ai-lyrics-generator?start=page'; return; }
       if (door === 'transform') { window.location.href = '/ai-lyrics-generator?start=based'; return; }
-      if (door === 'couch') { state.screen = 'couch'; state.chatStep = 0; render(); goStep(0); return; }
+      if (door === 'couch') {
+        state.screen = 'home';
+        render();
+        var start = $('what-input');
+        if (start) start.focus();
+        return;
+      }
       state.screen = 'desk';
       render();
     });
@@ -1178,7 +1185,7 @@
       }
     }
     var step = 0;
-    if (hash === 'couch') { state.screen = 'couch'; state.chatStep = Lab.CHAT.filter(function (row) { return row.u; }).length; }
+    if (hash === 'couch') { state.screen = 'home'; state.chatStep = 0; }
     else if (hash === 'room' || hash === 'room-picked') {
       state.screen = 'room';
       state.chatStep = Lab.CHAT.filter(function (row) { return row.u; }).length;
@@ -1239,6 +1246,15 @@
       if (table) Engine.load(table);
     }).catch(function () {});
   }).then(fromHash);
+  var extrasToggle = $('extras-toggle');
+  var extrasPanel = $('extras-panel');
+  if (extrasToggle && extrasPanel) {
+    extrasToggle.addEventListener('click', function () {
+      var open = extrasPanel.hidden;
+      extrasPanel.hidden = !open;
+      extrasToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
   var howStrip = $('how-strip');
   var howDismiss = $('how-dismiss');
   try {

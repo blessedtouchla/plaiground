@@ -234,6 +234,13 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 .talkback-face span { font-family: var(--font-label); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .talkback-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .talkback-bar p { margin: 0; font-size: 15px; line-height: 1.35; color: var(--paper-lab); }
+.start-chat { min-height: 0; margin: 8px 12px 0; padding: 14px; }
+.what-title { margin: 0 0 8px; font-family: var(--font-marker); font-weight: 400; font-size: 32px; color: #ffd8ea; }
+.start-chat .reply { margin-top: 8px; }
+.extras { margin: 12px 12px 0; }
+.extras-toggle, #extras-toggle { min-height: 44px; width: 100%; padding: 0 14px; border: 1px solid var(--pad-edge); border-radius: 12px; background: var(--console); color: var(--paper-lab); font-family: var(--font-label); font-size: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.extras-note { margin: 8px 2px 0; font-size: 14px; color: var(--muted); }
+#extras-panel { margin-top: 12px; }
 .how-strip { margin: 8px 12px 0; padding: 8px 10px 10px; border: 1px solid var(--pad-edge); border-radius: 12px; background: var(--console); color: var(--paper-lab); }
 .how-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .how-head p { margin: 0; font-family: var(--font-label); font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
@@ -279,7 +286,7 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 }
 @media (hover: hover) {
   .bay:hover { border-color: var(--glow); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 0 0 1px var(--glow), 0 0 30px -6px var(--glow), 0 10px 24px oklch(0 0 0 / 0.5); }
-  .bay button:hover, .transport .key:hover, .talkback-ask button:hover, .reply .say:hover, .booth-retry:hover, .plai-style button:hover, .how-strip button:hover, .crew-chip:hover { filter: brightness(1.08); }
+  .bay button:hover, .transport .key:hover, .talkback-ask button:hover, .reply .say:hover, .booth-retry:hover, .plai-style button:hover, .how-strip button:hover, .crew-chip:hover, #extras-toggle:hover { filter: brightness(1.08); }
   .plai-style button.on:hover { filter: none; }
   .bay-alt:hover { border-color: var(--glow); }
 }
@@ -411,6 +418,7 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 .session.room .p-chat, .session.room .p-pins { display: none; }
 .steps-dots { display: none; }
 .chat { background: #24161d; border-radius: 12px; padding: 16px; min-height: 560px; display: flex; flex-direction: column; gap: 10px; box-shadow: inset 0 0 0 2px #3c2230; }
+.chat.start-chat { min-height: 0; margin: 8px 12px 0; }
 .chat h3, .pins h3, .map h3, .p-pad h3 { margin: 0 0 4px; font-family: var(--marker); font-weight: 400; font-size: 24px; color: #ffd8ea; }
 .bubble { max-width: 78%; padding: 10px 14px; border-radius: 16px; font-size: 16px; line-height: 1.35; animation: pop .3s ease-out; }
 .bubble.plai-b { align-self: flex-start; background: #4a2a63; color: #f3e6ff; border-bottom-left-radius: 4px; }
@@ -547,6 +555,7 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
   .session .panel, .session.room .panel { display: none !important; height: auto; overflow: visible; }
   .session .panel.on, .session.room .panel.on { display: block !important; }
   .chat, .pins { min-height: 100%; }
+  .chat.start-chat { min-height: 0; }
   .bubble { max-width: 86%; font-size: 15px; } .bubble.me { font-size: 20px; }
   .you { width: auto; }
   .nodes { gap: 6px; }
