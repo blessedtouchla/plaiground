@@ -71,5 +71,9 @@ assert.ok(read('api/song-helper.js').includes("action === 'couch-turn'"));
 assert.ok(!read('api/song-helper.js').includes('XAI_API_KEY') || read('api/song-helper.js').includes('never sent to the browser') || read('api/song-helper.js').includes('server only'));
 assert.ok(!js.includes('XAI_API_KEY'));
 assert.ok(!js.includes('api.x.ai'));
+assert.ok(html.includes('id="talkback-line"'));
+assert.ok(html.includes('id="talkback-squad"'));
+assert.ok(html.includes('Say it how it happened.'));
+assert.ok(!/kanye|dreamville/i.test(html + js + css));
 
 console.log('song-lab.test.js ok');

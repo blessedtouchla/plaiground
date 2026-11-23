@@ -10,8 +10,6 @@
   var typed = [];
   var SEGS = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
   var STEP_NAMES = ['chat', 'pinned', 'map', 'notebook'];
-  var SAMPLE = 'Sample reply. Live chat is off.';
-
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -296,50 +294,44 @@
     $('bpm-box').setAttribute('aria-label', 'Tempo ' + tempo.replace(' BPM', '') + ' BPM');
   }
 
-  function showSample(parent) {
-    parent.appendChild(el('p', 'sample-label', SAMPLE));
-  }
-
   function renderChat() {
     var log = $('chat-log');
     log.textContent = '';
-    var shown = 0;
-    var items = [];
-    Lab.CHAT.forEach(function (row) {
+    typed.forEach(function (row) {
       if (row.u) {
-        if (shown >= state.chatStep) return;
-        shown += 1;
+        log.appendChild(el('div', 'bubble me', row.u));
+        return;
       }
-      items.push(row);
-    });
-    typed.forEach(function (row) { items.push(row); });
-    items.forEach(function (row) {
-      log.appendChild(el('div', 'bubble ' + (row.p ? 'plai-b' : 'me'), row.p || row.u));
-      if (row.p && row.sample !== false && row !== Lab.CHAT[0]) showSample(log);
+      if (row.loading) {
+        log.appendChild(el('div', 'bubble plai-b', 'Listening.'));
+        return;
+      }
+      if (row.error) {
+        log.appendChild(el('div', 'bubble plai-b', row.error));
+        var retry = el('button', 'say booth-retry', 'Try again');
+        retry.type = 'button';
+        retry.addEventListener('click', function () { sendTurn('', true); });
+        log.appendChild(retry);
+        return;
+      }
+      if (!row.p) return;
+      var turn = el('div', 'plai-turn');
+      if (row.pose) {
+        var face = document.createElement('img');
+        face.className = 'plai-pose plai-pose-chat';
+        face.alt = 'Plai';
+        face.width = 64;
+        face.height = 64;
+        face.setAttribute('data-pose', row.pose || 'idle');
+        face.src = poseSrc(row.pose || 'idle');
+        turn.appendChild(face);
+      }
+      turn.appendChild(el('div', 'bubble plai-b', row.p));
+      log.appendChild(turn);
+      if (row.squad && row.squad.length) paintSquad(log, row.squad);
     });
     var reply = $('reply');
     reply.textContent = '';
-    var userLines = Lab.CHAT.filter(function (row) { return row.u; });
-    if (!typed.length && state.chatStep < userLines.length) {
-      var next = userLines[state.chatStep];
-      var say = el('button', 'say', next.u);
-      say.type = 'button';
-      say.setAttribute('aria-label', 'Send: ' + next.u);
-      say.addEventListener('click', function () {
-        state.chatStep += 1;
-        render();
-      });
-      reply.appendChild(say);
-    } else if (!typed.length) {
-      var go = el('button', 'go', "Open the writers' room");
-      go.type = 'button';
-      go.addEventListener('click', function () {
-        state.screen = 'room';
-        render();
-        goStep(2);
-      });
-      reply.appendChild(go);
-    }
     var form = el('div', 'couch-form');
     var input = document.createElement('textarea');
     input.maxLength = 600;
@@ -347,6 +339,7 @@
     input.setAttribute('aria-label', 'Type how it went...');
     var send = el('button', 'say', 'Send');
     send.type = 'button';
+    if (state.boothBusy) send.disabled = true;
     send.addEventListener('click', function () { sendTurn(input.value); });
     form.appendChild(input);
     form.appendChild(send);
@@ -356,17 +349,6 @@
 
   function renderPins() {
     var pins = { feel: [], detail: [], phrase: [], title: '', sound: '' };
-    var seen = 0;
-    Lab.CHAT.forEach(function (row) {
-      if (!row.u || seen >= state.chatStep) return;
-      seen += 1;
-      var pack = row.pins || {};
-      ['feel', 'detail', 'phrase'].forEach(function (key) {
-        if (pack[key]) pins[key] = pins[key].concat(pack[key]);
-      });
-      if (pack.title) pins.title = pack.title;
-      if (pack.sound) pins.sound = pack.sound;
-    });
     typed.forEach(function (row) {
       var pack = row.pins || {};
       ['feel', 'detail', 'phrase'].forEach(function (key) {
@@ -393,25 +375,53 @@
     if (pins.sound) pin('sound', '', [pins.sound]);
   }
 
-  function sendTurn(text) {
+  function boothHistory() {
+    return typed.filter(function (row) {
+      return row.u || (row.p && !row.loading && !row.error);
+    }).map(function (row) {
+      return { role: row.u ? 'user' : 'assistant', text: row.u || row.p };
+    }).slice(-8);
+  }
+
+  function dropBoothWait() {
+    typed = typed.filter(function (row) { return !row.loading && !row.error; });
+  }
+
+  function sendTurn(text, retry) {
+    if (state.boothBusy) return;
     var message = String(text || '').trim();
-    if (!message) return;
-    typed.push({ u: message });
-    var history = typed.filter(function (row) { return row.u; }).map(function (row) {
-      return { role: 'user', text: row.u };
-    });
+    if (!retry && !message) return;
+    dropBoothWait();
+    if (!retry) typed.push({ u: message });
+    if (retry && !typed.some(function (row) { return row.u; })) return;
+    state.boothBusy = true;
+    typed.push({ loading: true });
+    var room = document.querySelector('[data-room="booth"]');
+    if (room) paintRoom(room, { talkback: 'Listening.', active_pose: 'thinking', live: false });
     render();
     fetch('/api/song-helper?action=couch-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ turns: history.slice(-8) })
+      body: JSON.stringify({ turns: boothHistory() })
     }).then(function (res) { return res.json(); }).then(function (data) {
-      var reply = data && data.reply ? data.reply : SAMPLE;
-      typed.push({ p: reply, sample: !data || data.fallback !== false, pins: data && data.pins });
-      state.liveCouch = !!(data && data.live);
+      dropBoothWait();
+      var spoken = data && (data.talkback || data.studio_message || data.reply);
+      if (data && data.live && data.fallback === false && spoken) {
+        typed.push({ p: spoken, pins: data.pins, squad: squadRows(data), pose: data.active_pose || 'idle' });
+        paintRoom(room, data);
+        state.liveCouch = true;
+      } else {
+        typed.push({ error: "Plai didn't catch that." });
+        if (room) paintRoom(room, { talkback: "Plai didn't catch that.", active_pose: 'idle', live: false });
+        state.liveCouch = false;
+      }
+      state.boothBusy = false;
       render();
     }).catch(function () {
-      typed.push({ p: SAMPLE, sample: true });
+      dropBoothWait();
+      typed.push({ error: "Plai didn't catch that." });
+      state.boothBusy = false;
+      state.liveCouch = false;
       render();
     });
   }
@@ -839,6 +849,156 @@
     } else done();
   }
 
+  var CHIBI_POSE = {
+    idle: 'happy', thinking: 'thinking', listening: 'plai-listening', coffee: 'plai-coffee',
+    hyped: 'plai-hyped', dancing: 'dancing', autopilot: 'autopilot-wheel', wink: 'wink-thumbs-up'
+  };
+  var HUMAN_POSE = {
+    idle: 'plai-human-happy', thinking: 'plai-human-thinking', listening: 'plai-human-listening',
+    hyped: 'plai-human-hyped', coffee: 'plai-human-coffee', dancing: 'plai-human-dancing',
+    autopilot: 'plai-human-autopilot', wink: 'plai-human-wink-thumbsup'
+  };
+  var FULL_POSE = {
+    idle: 'plai-human-fullbody-idle', thinking: 'plai-human-fullbody-thinking',
+    listening: 'plai-human-fullbody-listening', hyped: 'plai-human-fullbody-hyped'
+  };
+
+  function plaiStyle() {
+    try {
+      return localStorage.getItem('plai-style') === 'human' ? 'human' : 'chibi';
+    } catch (err) {
+      return 'chibi';
+    }
+  }
+
+  function poseFile(name, kind) {
+    var key = String(name || 'idle').toLowerCase();
+    if (kind === 'full') return FULL_POSE[key] || FULL_POSE.idle;
+    var table = plaiStyle() === 'human' ? HUMAN_POSE : CHIBI_POSE;
+    return table[key] || table.idle;
+  }
+
+  function poseSrc(name, kind) {
+    return '/assets/plai/' + poseFile(name, kind) + '.webp';
+  }
+
+  function refreshPoses() {
+    var style = plaiStyle();
+    document.body.setAttribute('data-plai-style', style);
+    document.querySelectorAll('.plai-style button').forEach(function (button) {
+      var on = button.getAttribute('data-style') === style;
+      button.classList.toggle('on', on);
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.plai-pose, .plai-full').forEach(function (img) {
+      var pose = img.getAttribute('data-pose') || 'idle';
+      var kind = img.classList.contains('plai-full') ? 'full' : 'bust';
+      img.src = poseSrc(pose, kind);
+    });
+  }
+
+  function setPlaiStyle(style) {
+    var next = style === 'human' ? 'human' : 'chibi';
+    try { localStorage.setItem('plai-style', next); } catch (err) {}
+    refreshPoses();
+  }
+
+  function squadRows(data) {
+    if (!data) return [];
+    if (data.squad_banter && data.squad_banter.length) return data.squad_banter;
+    var pitches = data.squad_pitches || {};
+    return [
+      { speaker: 'Vibe', pitch: pitches.vibe },
+      { speaker: 'Dex', pitch: pitches.dex },
+      { speaker: '808', pitch: pitches['808'] }
+    ].filter(function (row) { return row.pitch; });
+  }
+
+  function paintSquad(parent, rows) {
+    (rows || []).forEach(function (row) {
+      if (!row || !row.pitch) return;
+      var line = el('p', 'talkback-pitch');
+      line.appendChild(el('b', null, row.speaker || ''));
+      line.appendChild(document.createTextNode(' ' + row.pitch));
+      parent.appendChild(line);
+    });
+  }
+
+  function paintRoom(room, data) {
+    if (!room || !data) return;
+    var line = room.querySelector('.talkback-line');
+    var squad = room.querySelector('.talkback-squad');
+    var pose = room.querySelector('.plai-pose');
+    var spoken = data.talkback || data.studio_message || data.reply;
+    if (line && spoken) {
+      line.textContent = spoken;
+      line.setAttribute('data-live', data.live ? 'true' : 'false');
+    }
+    var poseName = data.active_pose || 'idle';
+    if (pose) {
+      pose.setAttribute('data-pose', poseName);
+      pose.src = poseSrc(poseName);
+    }
+    var full = room.querySelector('.plai-full');
+    if (full) {
+      full.setAttribute('data-pose', poseName);
+      full.src = poseSrc(poseName, 'full');
+    }
+    if (!squad) return;
+    var rows = squadRows(data);
+    squad.textContent = '';
+    if (rows.length) {
+      squad.hidden = false;
+      paintSquad(squad, rows);
+    } else squad.hidden = true;
+  }
+
+  function sendTalkback(room, text, input, button) {
+    var message = String(text || '').trim();
+    if (!message || !room) return;
+    if (button) button.disabled = true;
+    var waiting = room.querySelector('.plai-pose');
+    if (waiting) {
+      waiting.src = poseSrc('thinking');
+      waiting.setAttribute('data-pose', 'thinking');
+    }
+    var waitingFull = room.querySelector('.plai-full');
+    if (waitingFull) {
+      waitingFull.src = poseSrc('thinking', 'full');
+      waitingFull.setAttribute('data-pose', 'thinking');
+    }
+    fetch('/api/song-helper?action=couch-turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ turns: [{ role: 'user', text: message }] })
+    }).then(function (res) { return res.json(); }).then(function (data) {
+      if (data && data.live && data.fallback === false && (data.talkback || data.studio_message || data.reply)) {
+        paintRoom(room, data);
+      } else {
+        paintRoom(room, { talkback: "Plai didn't catch that. Try again.", live: false, active_pose: 'idle' });
+      }
+      if (input) input.value = '';
+    }).catch(function () {
+      paintRoom(room, { talkback: "Plai didn't catch that. Try again.", live: false, active_pose: 'idle' });
+    }).then(function () {
+      if (button) button.disabled = false;
+    });
+  }
+
+  document.querySelectorAll('.talkback-ask').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var room = form.closest('[data-room]');
+      var input = form.querySelector('textarea');
+      if (room && room.getAttribute('data-room') === 'booth') {
+        sendTurn(input && input.value);
+        if (input) input.value = '';
+        return;
+      }
+      sendTalkback(room, input && input.value, input, form.querySelector('button'));
+    });
+  });
+
   document.querySelectorAll('[data-door]').forEach(function (button) {
     button.addEventListener('click', function () {
       var door = button.getAttribute('data-door');
@@ -981,6 +1141,10 @@
       if (table) Engine.load(table);
     }).catch(function () {});
   }).then(fromHash);
+  document.querySelectorAll('.plai-style button').forEach(function (button) {
+    button.addEventListener('click', function () { setPlaiStyle(button.getAttribute('data-style')); });
+  });
+  refreshPoses();
   paintAuth();
   if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
     window.PlaigroundMembership.whenReady(paintAuth);

@@ -136,3 +136,22 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Empty songbook | No songs in the songbook yet. |
 | Empty action | Open the notebook |
 | Each song | Edit |
+
+## Plai talkback (preview draft, Nov 23, 2026)
+
+Not signed off. Draft copy for Victoria. Preview only.
+
+| Where | Copy |
+|---|---|
+| Doors talkback, before a reply | Yo, welcome in. Beat in your head? Bay one. Something on your chest? The Booth's on air. Got a draft? Bring it to Fix & Polish. |
+| Write talkback, before a reply | Write from the desk. Tell Plai the line you have, or the moment you are in. |
+| Booth talkback, before a reply | The Booth is on. Say what is on your chest. |
+| Talk field | Say it how it happened. |
+| Talk button | Send |
+| Squad seats shown | Vibe, Dex, 808 |
+| Booth, while waiting | Listening. |
+| Booth, if the reply fails | Plai didn't catch that. |
+| Booth retry | Try again |
+| Write, if the reply fails | Plai didn't catch that. Try again. |
+| Authorship labels | Human, AI-assisted, Fully AI |
+| Plaier toggle | Chibi Plai | Human Plai |
