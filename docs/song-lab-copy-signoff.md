@@ -154,3 +154,4 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Booth retry | Try again |
 | Write, if the reply fails | Plai didn't catch that. Try again. |
 | Authorship labels | Human, AI-assisted, Fully AI |
+| Plaier toggle | Chibi Plai | Human Plai |

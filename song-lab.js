@@ -322,7 +322,8 @@
         face.alt = 'Plai';
         face.width = 64;
         face.height = 64;
-        face.src = poseSrc(row.pose);
+        face.setAttribute('data-pose', row.pose || 'idle');
+        face.src = poseSrc(row.pose || 'idle');
         turn.appendChild(face);
       }
       turn.appendChild(el('div', 'bubble plai-b', row.p));
@@ -848,10 +849,58 @@
     } else done();
   }
 
-  var POSE_FILE = { idle: 'happy', thinking: 'thinking', dancing: 'dancing', autopilot: 'autopilot-wheel' };
+  var CHIBI_POSE = {
+    idle: 'happy', thinking: 'thinking', listening: 'plai-listening', coffee: 'plai-coffee',
+    hyped: 'plai-hyped', dancing: 'dancing', autopilot: 'autopilot-wheel', wink: 'wink-thumbs-up'
+  };
+  var HUMAN_POSE = {
+    idle: 'plai-human-happy', thinking: 'plai-human-thinking', listening: 'plai-human-listening',
+    hyped: 'plai-human-hyped', coffee: 'plai-human-coffee', dancing: 'plai-human-dancing',
+    autopilot: 'plai-human-autopilot', wink: 'plai-human-wink-thumbsup'
+  };
+  var FULL_POSE = {
+    idle: 'plai-human-fullbody-idle', thinking: 'plai-human-fullbody-thinking',
+    listening: 'plai-human-fullbody-listening', hyped: 'plai-human-fullbody-hyped'
+  };
 
-  function poseSrc(name) {
-    return '/assets/plai/' + (POSE_FILE[name] || 'happy') + '.webp';
+  function plaiStyle() {
+    try {
+      return localStorage.getItem('plai-style') === 'human' ? 'human' : 'chibi';
+    } catch (err) {
+      return 'chibi';
+    }
+  }
+
+  function poseFile(name, kind) {
+    var key = String(name || 'idle').toLowerCase();
+    if (kind === 'full') return FULL_POSE[key] || FULL_POSE.idle;
+    var table = plaiStyle() === 'human' ? HUMAN_POSE : CHIBI_POSE;
+    return table[key] || table.idle;
+  }
+
+  function poseSrc(name, kind) {
+    return '/assets/plai/' + poseFile(name, kind) + '.webp';
+  }
+
+  function refreshPoses() {
+    var style = plaiStyle();
+    document.body.setAttribute('data-plai-style', style);
+    document.querySelectorAll('.plai-style button').forEach(function (button) {
+      var on = button.getAttribute('data-style') === style;
+      button.classList.toggle('on', on);
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.plai-pose, .plai-full').forEach(function (img) {
+      var pose = img.getAttribute('data-pose') || 'idle';
+      var kind = img.classList.contains('plai-full') ? 'full' : 'bust';
+      img.src = poseSrc(pose, kind);
+    });
+  }
+
+  function setPlaiStyle(style) {
+    var next = style === 'human' ? 'human' : 'chibi';
+    try { localStorage.setItem('plai-style', next); } catch (err) {}
+    refreshPoses();
   }
 
   function squadRows(data) {
@@ -885,10 +934,15 @@
       line.textContent = spoken;
       line.setAttribute('data-live', data.live ? 'true' : 'false');
     }
+    var poseName = data.active_pose || 'idle';
     if (pose) {
-      var poseName = data.active_pose || 'idle';
+      pose.setAttribute('data-pose', poseName);
       pose.src = poseSrc(poseName);
-      pose.setAttribute('data-pose', POSE_FILE[poseName] || 'happy');
+    }
+    var full = room.querySelector('.plai-full');
+    if (full) {
+      full.setAttribute('data-pose', poseName);
+      full.src = poseSrc(poseName, 'full');
     }
     if (!squad) return;
     var rows = squadRows(data);
@@ -907,6 +961,11 @@
     if (waiting) {
       waiting.src = poseSrc('thinking');
       waiting.setAttribute('data-pose', 'thinking');
+    }
+    var waitingFull = room.querySelector('.plai-full');
+    if (waitingFull) {
+      waitingFull.src = poseSrc('thinking', 'full');
+      waitingFull.setAttribute('data-pose', 'thinking');
     }
     fetch('/api/song-helper?action=couch-turn', {
       method: 'POST',
@@ -1082,6 +1141,10 @@
       if (table) Engine.load(table);
     }).catch(function () {});
   }).then(fromHash);
+  document.querySelectorAll('.plai-style button').forEach(function (button) {
+    button.addEventListener('click', function () { setPlaiStyle(button.getAttribute('data-style')); });
+  });
+  refreshPoses();
   paintAuth();
   if (window.PlaigroundMembership && typeof window.PlaigroundMembership.whenReady === 'function') {
     window.PlaigroundMembership.whenReady(paintAuth);
