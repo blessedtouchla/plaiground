@@ -155,3 +155,9 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Write, if the reply fails | Plai didn't catch that. Try again. |
 | Authorship labels | Human, AI-assisted, Fully AI |
 | Plaier toggle | Chibi Plai | Human Plai |
+| How it works | How it works |
+| How it works, step 1 | Tell Plai your story. |
+| How it works, step 2 | Plai asks you one question back. |
+| How it works, step 3 | The crew (Vibe: melody, Dex: lyric line, 808: beat) offers ideas. Tap any to add, or skip. |
+| How it works, dismiss | Close |
+| Crew ideas | Ideas from the crew. Tap any to add, or skip. |
