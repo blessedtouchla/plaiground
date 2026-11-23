@@ -167,3 +167,6 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Header aside | Start with what happened. |
 | How it works, dismiss | Close |
 | Crew ideas | Ideas from the crew. Tap any to add, or skip. |
+| Bangermaker button | Run the Bangermaker |
+| Bangermaker, before Plai marks the song ready | Keep talking to Plai |
+| Bangermaker confirmation | Copied. |

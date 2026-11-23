@@ -411,6 +411,7 @@
         typed.push({ p: spoken, pins: data.pins, squad: squadRows(data), pose: data.active_pose || 'idle' });
         paintRoom(room, data);
         state.liveCouch = true;
+        bangerReady = data.banger_ready === true;
       } else {
         typed.push({ error: "Plai didn't catch that." });
         if (room) paintRoom(room, { talkback: "Plai didn't catch that.", active_pose: 'idle', live: false });
@@ -663,6 +664,7 @@
     renderSteps();
     paintCredits();
     paintSave();
+    paintBanger();
     if (state.screen === 'results') renderResults();
     if (state.screen === 'export') $('drawer').classList.add('show');
     if (bootReady) scheduleSave();
@@ -850,6 +852,21 @@
       saveFlight = null;
       if (saveAgain) { saveAgain = false; saveSong(false); }
     });
+  }
+
+  var bangerReady = false;
+
+  function paintBanger() {
+    var button = $('run-bangermaker');
+    var help = $('banger-help');
+    if (!button) return;
+    button.disabled = !bangerReady;
+    button.setAttribute('aria-disabled', bangerReady ? 'false' : 'true');
+    if (help) help.hidden = !!bangerReady;
+  }
+
+  function copyDraft() {
+    copyText(UI.taggedLyrics(song()) + '\n\n' + styleWithCrew(), 'Copied.');
   }
 
   function copyText(text, toast) {
@@ -1073,6 +1090,8 @@
     }).then(function (res) { return res.json(); }).then(function (data) {
       if (data && data.live && data.fallback === false && (data.talkback || data.studio_message || data.reply)) {
         paintRoom(room, data);
+        bangerReady = data.banger_ready === true;
+        paintBanger();
       } else {
         paintRoom(room, { talkback: "Plai didn't catch that. Try again.", live: false, active_pose: 'idle' });
       }
@@ -1142,9 +1161,19 @@
       }
     });
   }
-  $('copy-suno').addEventListener('click', function () {
-    copyText(UI.taggedLyrics(song()) + '\n\n' + styleWithCrew(), 'Copied.');
-  });
+  $('copy-suno').addEventListener('click', function () { copyDraft(); });
+  var bangerButton = $('run-bangermaker');
+  if (bangerButton) {
+    bangerButton.addEventListener('click', function () {
+      if (!bangerReady) return;
+      state.screen = 'desk';
+      render();
+      var sheet = $('page') || $('sheet');
+      if (sheet && sheet.scrollIntoView) sheet.scrollIntoView({ block: 'start' });
+      copyDraft();
+      $('drawer').classList.add('show');
+    });
+  }
   $('copy-clean').addEventListener('click', function () {
     copyText(UI.cleanLyrics(song()), 'Clean lyrics copied.');
   });
