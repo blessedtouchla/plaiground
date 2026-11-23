@@ -367,6 +367,11 @@
       "statusCode": 301
     },
     {
+      "source": "/blog-ace-music-blind-test.html",
+      "destination": "/blog/ace-music-blind-test",
+      "statusCode": 301
+    },
+    {
       "source": "/blog-ai-label-required.html",
       "destination": "/blog/ai-label-required",
       "statusCode": 301
@@ -494,6 +499,11 @@
     {
       "source": "/blog-hear-the-chart.html",
       "destination": "/blog/hear-the-chart",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-hidden-ai-song-isaac-dlc.html",
+      "destination": "/blog/hidden-ai-song-isaac-dlc",
       "statusCode": 301
     },
     {
@@ -1380,6 +1390,8 @@
     { "source": "/blog/when-the-stage-owns-the-pipe", "destination": "/blog-when-the-stage-owns-the-pipe.html" },
     { "source": "/blog/suno-visuals-music-videos", "destination": "/blog-suno-visuals-music-videos.html" },
     { "source": "/blog/claudia-can-a-song-lie", "destination": "/blog-claudia-can-a-song-lie.html" },
+    { "source": "/blog/ace-music-blind-test", "destination": "/blog-ace-music-blind-test.html" },
+    { "source": "/blog/hidden-ai-song-isaac-dlc", "destination": "/blog-hidden-ai-song-isaac-dlc.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
