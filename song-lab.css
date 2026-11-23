@@ -219,6 +219,7 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
   margin: 12px 12px 0; padding: 12px 14px; border-top: 4px solid var(--console-2); border-radius: 12px 12px 0 0;
   background: var(--console);
 }
+.plai-pose { width: 88px; height: 88px; object-fit: contain; flex: 0 0 auto; background: transparent; }
 .talkback-face { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; }
 .talkback-face svg { width: 48px; height: 36px; }
 .talkback-face span { font-family: var(--font-label); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
@@ -260,8 +261,15 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
   .bay button:hover, .transport .key:hover, .talkback-ask button:hover { filter: brightness(1.08); }
   .bay-alt:hover { border-color: var(--glow); }
 }
+@media (prefers-reduced-motion: no-preference) {
+  .plai-pose { animation: plai-float 3.2s ease-in-out infinite; }
+}
+@keyframes plai-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
 @media (prefers-reduced-motion: reduce) {
-  .meter-live i { animation: none; }
+  .meter-live i, .plai-pose { animation: none; }
 }
 
 /* Desk */

@@ -408,8 +408,8 @@
       body: JSON.stringify({ turns: history.slice(-8) })
     }).then(function (res) { return res.json(); }).then(function (data) {
       var reply = data && data.reply ? data.reply : SAMPLE;
-      typed.push({ p: (data && (data.studio_message || data.reply)) || reply, sample: !data || data.fallback !== false, pins: data && data.pins, squad: data && data.squad_banter });
-      paintTalkback(data);
+      typed.push({ p: (data && (data.talkback || data.studio_message || data.reply)) || reply, sample: !data || data.fallback !== false, pins: data && data.pins, squad: squadRows(data) });
+      paintRoom(document.querySelector('[data-room="booth"]'), data);
       state.liveCouch = !!(data && data.live);
       render();
     }).catch(function () {
@@ -841,6 +841,23 @@
     } else done();
   }
 
+  var POSE_FILE = { idle: 'happy', thinking: 'thinking', dancing: 'dancing', autopilot: 'autopilot-wheel' };
+
+  function poseSrc(name) {
+    return '/assets/plai/' + (POSE_FILE[name] || 'happy') + '.webp';
+  }
+
+  function squadRows(data) {
+    if (!data) return [];
+    if (data.squad_banter && data.squad_banter.length) return data.squad_banter;
+    var pitches = data.squad_pitches || {};
+    return [
+      { speaker: 'Vibe', pitch: pitches.vibe },
+      { speaker: 'Dex', pitch: pitches.dex },
+      { speaker: '808', pitch: pitches['808'] }
+    ].filter(function (row) { return row.pitch; });
+  }
+
   function paintSquad(parent, rows) {
     (rows || []).forEach(function (row) {
       if (!row || !row.pitch) return;
@@ -851,48 +868,61 @@
     });
   }
 
-  function paintTalkback(data) {
-    var line = $('talkback-line');
-    var squad = $('talkback-squad');
-    if (!line || !data) return;
-    var spoken = data.studio_message || data.reply;
-    if (spoken) line.textContent = spoken;
-    line.setAttribute('data-live', data.live ? 'true' : 'false');
+  function paintRoom(room, data) {
+    if (!room || !data) return;
+    var line = room.querySelector('.talkback-line');
+    var squad = room.querySelector('.talkback-squad');
+    var pose = room.querySelector('.plai-pose');
+    var spoken = data.talkback || data.studio_message || data.reply;
+    if (line && spoken) {
+      line.textContent = spoken;
+      line.setAttribute('data-live', data.live ? 'true' : 'false');
+    }
+    if (pose) {
+      var poseName = data.active_pose || 'idle';
+      pose.src = poseSrc(poseName);
+      pose.setAttribute('data-pose', POSE_FILE[poseName] || 'happy');
+    }
     if (!squad) return;
+    var rows = squadRows(data);
     squad.textContent = '';
-    if (data.squad_banter && data.squad_banter.length) {
+    if (rows.length) {
       squad.hidden = false;
-      paintSquad(squad, data.squad_banter);
+      paintSquad(squad, rows);
     } else squad.hidden = true;
   }
 
-  function sendTalkback(text) {
+  function sendTalkback(room, text, input, button) {
     var message = String(text || '').trim();
-    var input = $('talkback-input');
-    var button = document.querySelector('#talkback-ask button');
-    if (!message) return;
+    if (!message || !room) return;
     if (button) button.disabled = true;
+    var waiting = room.querySelector('.plai-pose');
+    if (waiting) {
+      waiting.src = poseSrc('thinking');
+      waiting.setAttribute('data-pose', 'thinking');
+    }
     fetch('/api/song-helper?action=couch-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ turns: [{ role: 'user', text: message }] })
     }).then(function (res) { return res.json(); }).then(function (data) {
-      paintTalkback(data || { reply: SAMPLE, fallback: true, live: false });
+      paintRoom(room, data || { talkback: SAMPLE, fallback: true, live: false, active_pose: 'idle' });
       if (input) input.value = '';
     }).catch(function () {
-      paintTalkback({ reply: SAMPLE, fallback: true, live: false });
+      paintRoom(room, { talkback: SAMPLE, fallback: true, live: false, active_pose: 'idle' });
     }).then(function () {
       if (button) button.disabled = false;
     });
   }
 
-  var talkForm = $('talkback-ask');
-  if (talkForm) {
-    talkForm.addEventListener('submit', function (event) {
+  document.querySelectorAll('.talkback-ask').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
       event.preventDefault();
-      sendTalkback($('talkback-input') && $('talkback-input').value);
+      var room = form.closest('[data-room]');
+      var input = form.querySelector('textarea');
+      sendTalkback(room, input && input.value, input, form.querySelector('button'));
     });
-  }
+  });
 
   document.querySelectorAll('[data-door]').forEach(function (button) {
     button.addEventListener('click', function () {
