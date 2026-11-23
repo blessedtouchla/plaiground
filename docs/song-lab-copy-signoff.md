@@ -155,3 +155,15 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Write, if the reply fails | Plai didn't catch that. Try again. |
 | Authorship labels | Human, AI-assisted, Fully AI |
 | Plaier toggle | Chibi Plai | Human Plai |
+| How it works | How it works |
+| How it works, step 1 | Tell Plai what happened. |
+| How it works, step 2 | Plai asks one question at a time, and finds the before and the after. |
+| How it works, step 3 | The crew (Vibe: melody, Dex: lyric line, 808: beat) offers ideas. Tap any to add, or skip. |
+| Start box | What happened? |
+| Start field | Tell Plai what happened. |
+| Follow-up field | Add a detail. |
+| Extras button | Extras |
+| Extras note | Optional. The bays and the before and after prompts are in here. |
+| Header aside | Start with what happened. |
+| How it works, dismiss | Close |
+| Crew ideas | Ideas from the crew. Tap any to add, or skip. |

@@ -335,8 +335,9 @@
     var form = el('div', 'couch-form');
     var input = document.createElement('textarea');
     input.maxLength = 600;
-    input.placeholder = 'Type how it went...';
-    input.setAttribute('aria-label', 'Type how it went...');
+    input.id = 'what-input';
+    input.placeholder = typed.length ? 'Add a detail.' : 'Tell Plai what happened.';
+    input.setAttribute('aria-label', 'What happened?');
     var send = el('button', 'say', 'Send');
     send.type = 'button';
     if (state.boothBusy) send.disabled = true;
@@ -690,7 +691,7 @@
       label: stamp.label,
       mode: 'notebook',
       mood: state.genre,
-      style: UI.styleLine(state),
+      style: styleWithCrew(),
       notebook: {
         genre: state.genre,
         era: state.era,
@@ -698,6 +699,8 @@
         language: state.language,
         topic: state.topic,
         stamp: stamp.label,
+        vibe: (crewBag().vibe || []).slice(),
+        beat: (crewBag().beat || []).slice(),
         secs: (current.secs || []).map(function (sec) {
           return {
             tag: sec.tag,
@@ -751,7 +754,14 @@
         lines: (chunks[0] || row.text || ' ').split('\n').map(function (text) { return lineFromText(text); }).filter(function (line) { return line.text.trim(); })
       }];
     }
-    songs.kitchen = { title: row.title || 'Untitled', secs: secs };
+    songs.kitchen = {
+      title: row.title || 'Untitled',
+      secs: secs,
+      crew: {
+        vibe: Array.isArray(book.vibe) ? book.vibe.slice() : [],
+        beat: Array.isArray(book.beat) ? book.beat.slice() : []
+      }
+    };
     state.songId = 'kitchen';
     state.screen = 'desk';
     if (book.genre && Lab.GENRES.indexOf(book.genre) >= 0) state.genre = book.genre;
@@ -914,13 +924,102 @@
     ].filter(function (row) { return row.pitch; });
   }
 
+  function crewBag() {
+    var current = song();
+    if (!current.crew) current.crew = { vibe: [], beat: [] };
+    return current.crew;
+  }
+
+  function styleWithCrew() {
+    var bag = crewBag();
+    return [UI.styleLine(state)].concat(bag.vibe || [], bag.beat || []).filter(Boolean).join('. ');
+  }
+
+  function dexId(pitch) {
+    return 'Dex|' + pitch;
+  }
+
+  function isPicked(speaker, pitch) {
+    if (speaker === 'Dex') {
+      var id = dexId(pitch);
+      return (song().secs || []).some(function (sec) {
+        return (sec.lines || []).some(function (line) { return line.crewId === id; });
+      });
+    }
+    var list = speaker === 'Vibe' ? crewBag().vibe : crewBag().beat;
+    return list.indexOf(pitch) >= 0;
+  }
+
+  function addDexLine(pitch) {
+    var id = dexId(pitch);
+    if (isPicked('Dex', pitch)) return;
+    var row = lineFromText(pitch);
+    row.crewId = id;
+    var placed = false;
+    if (state.line >= 0) {
+      var at = flat()[state.line];
+      if (at) {
+        at.sec.lines.splice(at.j + 1, 0, row);
+        placed = true;
+      }
+    }
+    if (!placed) {
+      var secs = song().secs || [];
+      var sec = secs[secs.length - 1];
+      if (!sec) {
+        sec = { tag: 'Verse 1', target: 8, lines: [] };
+        song().secs = [sec];
+      }
+      sec.lines.push(row);
+    }
+  }
+
+  function removeDexLine(pitch) {
+    var id = dexId(pitch);
+    (song().secs || []).forEach(function (sec) {
+      sec.lines = (sec.lines || []).filter(function (line) { return line.crewId !== id; });
+    });
+  }
+
+  function toggleCrew(speaker, pitch) {
+    if (!pitch) return;
+    if (speaker === 'Dex') {
+      if (isPicked('Dex', pitch)) removeDexLine(pitch);
+      else addDexLine(pitch);
+      renderSheet();
+    } else {
+      var bag = crewBag();
+      var key = speaker === 'Vibe' ? 'vibe' : 'beat';
+      var list = bag[key];
+      var at = list.indexOf(pitch);
+      if (at >= 0) list.splice(at, 1);
+      else list.push(pitch);
+    }
+    if (bootReady) scheduleSave();
+  }
+
   function paintSquad(parent, rows) {
-    (rows || []).forEach(function (row) {
-      if (!row || !row.pitch) return;
-      var line = el('p', 'talkback-pitch');
-      line.appendChild(el('b', null, row.speaker || ''));
-      line.appendChild(document.createTextNode(' ' + row.pitch));
-      parent.appendChild(line);
+    var usable = (rows || []).filter(function (row) { return row && row.pitch && row.speaker; });
+    if (!usable.length) return;
+    parent.appendChild(el('p', 'crew-label', 'Ideas from the crew. Tap any to add, or skip.'));
+    usable.forEach(function (row) {
+      var button = el('button', 'crew-chip');
+      button.type = 'button';
+      var picked = isPicked(row.speaker, row.pitch);
+      if (picked) button.classList.add('on');
+      button.setAttribute('aria-pressed', picked ? 'true' : 'false');
+      button.appendChild(el('b', null, row.speaker));
+      button.appendChild(el('span', null, row.pitch));
+      var mark = el('i', 'crew-check', picked ? '\u2713' : '');
+      button.appendChild(mark);
+      button.addEventListener('click', function () {
+        toggleCrew(row.speaker, row.pitch);
+        var now = isPicked(row.speaker, row.pitch);
+        button.classList.toggle('on', now);
+        button.setAttribute('aria-pressed', now ? 'true' : 'false');
+        mark.textContent = now ? '\u2713' : '';
+      });
+      parent.appendChild(button);
     });
   }
 
@@ -1004,7 +1103,13 @@
       var door = button.getAttribute('data-door');
       if (door === 'improve') { window.location.href = '/ai-lyrics-generator?start=page'; return; }
       if (door === 'transform') { window.location.href = '/ai-lyrics-generator?start=based'; return; }
-      if (door === 'couch') { state.screen = 'couch'; state.chatStep = 0; render(); goStep(0); return; }
+      if (door === 'couch') {
+        state.screen = 'home';
+        render();
+        var start = $('what-input');
+        if (start) start.focus();
+        return;
+      }
       state.screen = 'desk';
       render();
     });
@@ -1038,7 +1143,7 @@
     });
   }
   $('copy-suno').addEventListener('click', function () {
-    copyText(UI.taggedLyrics(song()) + '\n\n' + UI.styleLine(state), 'Copied.');
+    copyText(UI.taggedLyrics(song()) + '\n\n' + styleWithCrew(), 'Copied.');
   });
   $('copy-clean').addEventListener('click', function () {
     copyText(UI.cleanLyrics(song()), 'Clean lyrics copied.');
@@ -1080,7 +1185,7 @@
       }
     }
     var step = 0;
-    if (hash === 'couch') { state.screen = 'couch'; state.chatStep = Lab.CHAT.filter(function (row) { return row.u; }).length; }
+    if (hash === 'couch') { state.screen = 'home'; state.chatStep = 0; }
     else if (hash === 'room' || hash === 'room-picked') {
       state.screen = 'room';
       state.chatStep = Lab.CHAT.filter(function (row) { return row.u; }).length;
@@ -1141,6 +1246,26 @@
       if (table) Engine.load(table);
     }).catch(function () {});
   }).then(fromHash);
+  var extrasToggle = $('extras-toggle');
+  var extrasPanel = $('extras-panel');
+  if (extrasToggle && extrasPanel) {
+    extrasToggle.addEventListener('click', function () {
+      var open = extrasPanel.hidden;
+      extrasPanel.hidden = !open;
+      extrasToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+  var howStrip = $('how-strip');
+  var howDismiss = $('how-dismiss');
+  try {
+    if (howStrip && localStorage.getItem('song-lab-how') === 'off') howStrip.hidden = true;
+  } catch (err) {}
+  if (howDismiss) {
+    howDismiss.addEventListener('click', function () {
+      if (howStrip) howStrip.hidden = true;
+      try { localStorage.setItem('song-lab-how', 'off'); } catch (err) {}
+    });
+  }
   document.querySelectorAll('.plai-style button').forEach(function (button) {
     button.addEventListener('click', function () { setPlaiStyle(button.getAttribute('data-style')); });
   });
