@@ -10,8 +10,6 @@
   var typed = [];
   var SEGS = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
   var STEP_NAMES = ['chat', 'pinned', 'map', 'notebook'];
-  var SAMPLE = 'Sample reply. Live chat is off.';
-
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -296,51 +294,43 @@
     $('bpm-box').setAttribute('aria-label', 'Tempo ' + tempo.replace(' BPM', '') + ' BPM');
   }
 
-  function showSample(parent) {
-    parent.appendChild(el('p', 'sample-label', SAMPLE));
-  }
-
   function renderChat() {
     var log = $('chat-log');
     log.textContent = '';
-    var shown = 0;
-    var items = [];
-    Lab.CHAT.forEach(function (row) {
+    typed.forEach(function (row) {
       if (row.u) {
-        if (shown >= state.chatStep) return;
-        shown += 1;
+        log.appendChild(el('div', 'bubble me', row.u));
+        return;
       }
-      items.push(row);
-    });
-    typed.forEach(function (row) { items.push(row); });
-    items.forEach(function (row) {
-      log.appendChild(el('div', 'bubble ' + (row.p ? 'plai-b' : 'me'), row.p || row.u));
-      if (row.p && row.squad && row.squad.length) paintSquad(log, row.squad);
-      if (row.p && row.sample !== false && row !== Lab.CHAT[0]) showSample(log);
+      if (row.loading) {
+        log.appendChild(el('div', 'bubble plai-b', 'Listening.'));
+        return;
+      }
+      if (row.error) {
+        log.appendChild(el('div', 'bubble plai-b', row.error));
+        var retry = el('button', 'say booth-retry', 'Try again');
+        retry.type = 'button';
+        retry.addEventListener('click', function () { sendTurn('', true); });
+        log.appendChild(retry);
+        return;
+      }
+      if (!row.p) return;
+      var turn = el('div', 'plai-turn');
+      if (row.pose) {
+        var face = document.createElement('img');
+        face.className = 'plai-pose plai-pose-chat';
+        face.alt = 'Plai';
+        face.width = 64;
+        face.height = 64;
+        face.src = poseSrc(row.pose);
+        turn.appendChild(face);
+      }
+      turn.appendChild(el('div', 'bubble plai-b', row.p));
+      log.appendChild(turn);
+      if (row.squad && row.squad.length) paintSquad(log, row.squad);
     });
     var reply = $('reply');
     reply.textContent = '';
-    var userLines = Lab.CHAT.filter(function (row) { return row.u; });
-    if (!typed.length && state.chatStep < userLines.length) {
-      var next = userLines[state.chatStep];
-      var say = el('button', 'say', next.u);
-      say.type = 'button';
-      say.setAttribute('aria-label', 'Send: ' + next.u);
-      say.addEventListener('click', function () {
-        state.chatStep += 1;
-        render();
-      });
-      reply.appendChild(say);
-    } else if (!typed.length) {
-      var go = el('button', 'go', "Open the writers' room");
-      go.type = 'button';
-      go.addEventListener('click', function () {
-        state.screen = 'room';
-        render();
-        goStep(2);
-      });
-      reply.appendChild(go);
-    }
     var form = el('div', 'couch-form');
     var input = document.createElement('textarea');
     input.maxLength = 600;
@@ -348,6 +338,7 @@
     input.setAttribute('aria-label', 'Type how it went...');
     var send = el('button', 'say', 'Send');
     send.type = 'button';
+    if (state.boothBusy) send.disabled = true;
     send.addEventListener('click', function () { sendTurn(input.value); });
     form.appendChild(input);
     form.appendChild(send);
@@ -357,17 +348,6 @@
 
   function renderPins() {
     var pins = { feel: [], detail: [], phrase: [], title: '', sound: '' };
-    var seen = 0;
-    Lab.CHAT.forEach(function (row) {
-      if (!row.u || seen >= state.chatStep) return;
-      seen += 1;
-      var pack = row.pins || {};
-      ['feel', 'detail', 'phrase'].forEach(function (key) {
-        if (pack[key]) pins[key] = pins[key].concat(pack[key]);
-      });
-      if (pack.title) pins.title = pack.title;
-      if (pack.sound) pins.sound = pack.sound;
-    });
     typed.forEach(function (row) {
       var pack = row.pins || {};
       ['feel', 'detail', 'phrase'].forEach(function (key) {
@@ -394,26 +374,53 @@
     if (pins.sound) pin('sound', '', [pins.sound]);
   }
 
-  function sendTurn(text) {
+  function boothHistory() {
+    return typed.filter(function (row) {
+      return row.u || (row.p && !row.loading && !row.error);
+    }).map(function (row) {
+      return { role: row.u ? 'user' : 'assistant', text: row.u || row.p };
+    }).slice(-8);
+  }
+
+  function dropBoothWait() {
+    typed = typed.filter(function (row) { return !row.loading && !row.error; });
+  }
+
+  function sendTurn(text, retry) {
+    if (state.boothBusy) return;
     var message = String(text || '').trim();
-    if (!message) return;
-    typed.push({ u: message });
-    var history = typed.filter(function (row) { return row.u; }).map(function (row) {
-      return { role: 'user', text: row.u };
-    });
+    if (!retry && !message) return;
+    dropBoothWait();
+    if (!retry) typed.push({ u: message });
+    if (retry && !typed.some(function (row) { return row.u; })) return;
+    state.boothBusy = true;
+    typed.push({ loading: true });
+    var room = document.querySelector('[data-room="booth"]');
+    if (room) paintRoom(room, { talkback: 'Listening.', active_pose: 'thinking', live: false });
     render();
     fetch('/api/song-helper?action=couch-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ turns: history.slice(-8) })
+      body: JSON.stringify({ turns: boothHistory() })
     }).then(function (res) { return res.json(); }).then(function (data) {
-      var reply = data && data.reply ? data.reply : SAMPLE;
-      typed.push({ p: (data && (data.talkback || data.studio_message || data.reply)) || reply, sample: !data || data.fallback !== false, pins: data && data.pins, squad: squadRows(data) });
-      paintRoom(document.querySelector('[data-room="booth"]'), data);
-      state.liveCouch = !!(data && data.live);
+      dropBoothWait();
+      var spoken = data && (data.talkback || data.studio_message || data.reply);
+      if (data && data.live && data.fallback === false && spoken) {
+        typed.push({ p: spoken, pins: data.pins, squad: squadRows(data), pose: data.active_pose || 'idle' });
+        paintRoom(room, data);
+        state.liveCouch = true;
+      } else {
+        typed.push({ error: "Plai didn't catch that." });
+        if (room) paintRoom(room, { talkback: "Plai didn't catch that.", active_pose: 'idle', live: false });
+        state.liveCouch = false;
+      }
+      state.boothBusy = false;
       render();
     }).catch(function () {
-      typed.push({ p: SAMPLE, sample: true });
+      dropBoothWait();
+      typed.push({ error: "Plai didn't catch that." });
+      state.boothBusy = false;
+      state.liveCouch = false;
       render();
     });
   }
@@ -906,10 +913,14 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ turns: [{ role: 'user', text: message }] })
     }).then(function (res) { return res.json(); }).then(function (data) {
-      paintRoom(room, data || { talkback: SAMPLE, fallback: true, live: false, active_pose: 'idle' });
+      if (data && data.live && data.fallback === false && (data.talkback || data.studio_message || data.reply)) {
+        paintRoom(room, data);
+      } else {
+        paintRoom(room, { talkback: "Plai didn't catch that. Try again.", live: false, active_pose: 'idle' });
+      }
       if (input) input.value = '';
     }).catch(function () {
-      paintRoom(room, { talkback: SAMPLE, fallback: true, live: false, active_pose: 'idle' });
+      paintRoom(room, { talkback: "Plai didn't catch that. Try again.", live: false, active_pose: 'idle' });
     }).then(function () {
       if (button) button.disabled = false;
     });
@@ -920,6 +931,11 @@
       event.preventDefault();
       var room = form.closest('[data-room]');
       var input = form.querySelector('textarea');
+      if (room && room.getAttribute('data-room') === 'booth') {
+        sendTurn(input && input.value);
+        if (input) input.value = '';
+        return;
+      }
       sendTalkback(room, input && input.value, input, form.querySelector('button'));
     });
   });

@@ -149,4 +149,8 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Talk field | Say it how it happened. |
 | Talk button | Send |
 | Squad seats shown | Vibe, Dex, 808 |
+| Booth, while waiting | Listening. |
+| Booth, if the reply fails | Plai didn't catch that. |
+| Booth retry | Try again |
+| Write, if the reply fails | Plai didn't catch that. Try again. |
 | Authorship labels | Human, AI-assisted, Fully AI |

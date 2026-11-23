@@ -220,6 +220,10 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
   background: var(--console);
 }
 .plai-pose { width: 88px; height: 88px; object-fit: contain; flex: 0 0 auto; background: transparent; }
+.plai-pose-chat { width: 64px; height: 64px; }
+.plai-turn { align-self: flex-start; display: flex; gap: 8px; align-items: flex-start; max-width: 100%; }
+.plai-turn .bubble { max-width: none; }
+.booth-retry { min-height: 44px; min-width: 44px; }
 .talkback-face { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; }
 .talkback-face svg { width: 48px; height: 36px; }
 .talkback-face span { font-family: var(--font-label); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
@@ -258,7 +262,7 @@ body.song-lab-notebook.on-home #screen-home { display: block; }
 }
 @media (hover: hover) {
   .bay:hover { border-color: var(--glow); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 0 0 1px var(--glow), 0 0 30px -6px var(--glow), 0 10px 24px oklch(0 0 0 / 0.5); }
-  .bay button:hover, .transport .key:hover, .talkback-ask button:hover { filter: brightness(1.08); }
+  .bay button:hover, .transport .key:hover, .talkback-ask button:hover, .reply .say:hover, .booth-retry:hover { filter: brightness(1.08); }
   .bay-alt:hover { border-color: var(--glow); }
 }
 @media (prefers-reduced-motion: no-preference) {
