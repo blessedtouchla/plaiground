@@ -1,107 +1,509 @@
 {
-  "week": "September 15th, 2026",
+  "week": "November 17th, 2026",
   "official": "https://www.thesiqa.com/charts",
   "category": "TOP 100 AI SONGS",
   "tracks": [
-    { "rank": 1, "title": "Let Me Be", "artist": "The Second Voice", "youtubeId": "1WwS3IcEzcA" },
-    { "rank": 2, "title": "RUBBERZ", "artist": "Fenix Flexin", "youtubeId": "Hl5_Lc6b3AU" },
-    { "rank": 3, "title": "GG EZ", "artist": "M.Sasuke" },
-    { "rank": 4, "title": "Banjo Boy", "artist": "Got Dem Blues" },
-    { "rank": 5, "title": "You Problem", "artist": "Dust & Harmony" },
-    { "rank": 6, "title": "Love Notes", "artist": "Olivia B Moore" },
-    { "rank": 7, "title": "Girl, I Am Anointed", "artist": "Nyqki Nicole" },
-    { "rank": 8, "title": "LET ME BE", "artist": "Jason Derulo, The Second Voice, Qing Madi" },
-    { "rank": 9, "title": "I Denounce You Satan", "artist": "Sheena Taylor" },
-    { "rank": 10, "title": "I Speak Blessings", "artist": "Delana Hope" },
-    { "rank": 11, "title": "soft girl era", "artist": "Yunna Serene" },
-    { "rank": 12, "title": "DON'T PLAY WITH ME", "artist": "Thompsxn Therapy" },
-    { "rank": 13, "title": "The Age of Alignment", "artist": "Kisa Soul" },
-    { "rank": 14, "title": "Morning Magic", "artist": "Millionaire Muses" },
-    { "rank": 15, "title": "Livin' on Borrowed Time", "artist": "Breaking Rust" },
-    { "rank": 16, "title": "i love me", "artist": "Joy Rhodes" },
-    { "rank": 17, "title": "Woman's glow", "artist": "Yunna Serene" },
-    { "rank": 18, "title": "Why did you leave?", "artist": "VencieZw." },
-    { "rank": 19, "title": "Built This Myself", "artist": "Jaxon Ryder" },
-    { "rank": 20, "title": "I'll Burn This B*tch Down", "artist": "Unbound Music" },
-    { "rank": 21, "title": "Favor Look Good On Me", "artist": "Candidly Spoken" },
-    { "rank": 22, "title": "Letter To The Woman I'm Becoming", "artist": "CoCo Expressions" },
-    { "rank": 23, "title": "God Don't Play About Me", "artist": "Aria Blu" },
-    { "rank": 24, "title": "How Was I Supposed To Know?", "artist": "Xania Monet" },
-    { "rank": 25, "title": "Stuck On You", "artist": "Velvet Funk" },
-    { "rank": 26, "title": "GAVE U RACKS", "artist": "$TARFACE, Tyga" },
-    { "rank": 27, "title": "Another Day Old", "artist": "Eddie Dalton" },
-    { "rank": 28, "title": "This Chapter", "artist": "Shavelle G" },
-    { "rank": 29, "title": "FREEZING", "artist": "$TARFACE, Tyga" },
-    { "rank": 30, "title": "Real Ones Never Break", "artist": "Marco Cartwright" },
-    { "rank": 31, "title": "Grace On Me", "artist": "Candidly Spoken" },
-    { "rank": 32, "title": "Mind", "artist": "Blaq" },
-    { "rank": 33, "title": "Already Her", "artist": "Nova Solé" },
-    { "rank": 34, "title": "That's What The Pain Taught Me", "artist": "Blu Monroe" },
-    { "rank": 35, "title": "Hot Like Ramen", "artist": "Ken Will" },
-    { "rank": 36, "title": "I Choose Good", "artist": "Millionaire Muses" },
-    { "rank": 37, "title": "All In", "artist": "Cody Ray" },
-    { "rank": 38, "title": "Unbothered Woman Energy", "artist": "Honey Veil" },
-    { "rank": 39, "title": "Find Your Rest", "artist": "Solomon Ray" },
-    { "rank": 40, "title": "Cinderella", "artist": "404 CLUB" },
-    { "rank": 41, "title": "I Love Me, LOUD", "artist": "China Styles" },
-    { "rank": 42, "title": "Let The Church Say Amen", "artist": "Damita Jo" },
-    { "rank": 43, "title": "I Pray", "artist": "Xania Monet" },
-    { "rank": 44, "title": "Running To You", "artist": "Eddie Dalton" },
-    { "rank": 45, "title": "Creep", "artist": "CR33PIA" },
-    { "rank": 46, "title": "Wish I Could Visit You In Heaven", "artist": "ChildPets Galore" },
-    { "rank": 47, "title": "Something Big", "artist": "Delana Hope" },
-    { "rank": 48, "title": "I Speak Life", "artist": "Candidly Spoken" },
-    { "rank": 49, "title": "Coconut Skin", "artist": "ZURI USIKU" },
-    { "rank": 50, "title": "I Don't Care", "artist": "Cain Walker" },
-    { "rank": 51, "title": "Which Version of Me", "artist": "SNOWBYTE" },
-    { "rank": 52, "title": "life is good", "artist": "angelbaby" },
-    { "rank": 53, "title": "Send Me", "artist": "Rebel Redeemed 316" },
-    { "rank": 54, "title": "Let Go, Let God", "artist": "Xania Monet" },
-    { "rank": 55, "title": "Beg Like You Mean It", "artist": "Cody Marrow" },
-    { "rank": 56, "title": "Goodbye Temptation", "artist": "Solomon Ray" },
-    { "rank": 57, "title": "God Wanted the Best for You", "artist": "Pete Bailey, Kesia Bailey" },
-    { "rank": 58, "title": "Queen Energy Only", "artist": "Room2Breathe" },
-    { "rank": 59, "title": "God Kept The Receipts", "artist": "Forever Luv" },
-    { "rank": 60, "title": "Woman I'll Be Next Year", "artist": "Amina Monae" },
-    { "rank": 61, "title": "Jag vet, du är inte min", "artist": "Jacub" },
-    { "rank": 62, "title": "Influence", "artist": "Aries Ivory ft. Eric Bellinger" },
-    { "rank": 63, "title": "Crown Sittin Heavy", "artist": "Blu Monroe" },
-    { "rank": 64, "title": "Take You Slow", "artist": "Cody Marrow" },
-    { "rank": 65, "title": "Ya Te Olvidé", "artist": "Kaltis" },
-    { "rank": 66, "title": "If We", "artist": "Antonin Herbeck, Julia Ross" },
-    { "rank": 67, "title": "Vibe of My Own", "artist": "Mystik Irieen" },
-    { "rank": 68, "title": "Fine", "artist": "CR33PIA" },
-    { "rank": 69, "title": "Me vs Me (Fightin' Man Blues)", "artist": "Aventhis" },
-    { "rank": 70, "title": "I Am Magnetic", "artist": "The Manifest Music Room" },
-    { "rank": 71, "title": "Mama raised a problem,not a fool (writer’s cut)", "artist": "Lone Star Lyric House" },
-    { "rank": 72, "title": "Cheap Red Wine", "artist": "Eddie Dalton" },
-    { "rank": 73, "title": "Midnight Alchemy", "artist": "My Boy Arlo" },
-    { "rank": 74, "title": "facedown", "artist": "angelbaby, Arrested Youth" },
-    { "rank": 75, "title": "Built Different", "artist": "Tiffany Nacol" },
-    { "rank": 76, "title": "He Kept Me", "artist": "Damita Jo" },
-    { "rank": 77, "title": "Love Songs", "artist": "Blaq" },
-    { "rank": 78, "title": "What I Been Missing (Revised)", "artist": "Blaq" },
-    { "rank": 79, "title": "Forever A Lover Girl", "artist": "Olivia B Moore" },
-    { "rank": 80, "title": "The Devil Missed", "artist": "Today's Creative" },
-    { "rank": 81, "title": "No Chains On Me", "artist": "Vowless" },
-    { "rank": 82, "title": "Let Them", "artist": "Millionaire Muses" },
-    { "rank": 83, "title": "His Temptation", "artist": "The Soulful Gentlemen" },
-    { "rank": 84, "title": "Running On Empty", "artist": "CR33PIA" },
-    { "rank": 85, "title": "I Chose Peace", "artist": "Aria Blu" },
-    { "rank": 86, "title": "We Decide Now", "artist": "Clare Lumina" },
-    { "rank": 87, "title": "It's La Vida Loca", "artist": "Kelly Boesch" },
-    { "rank": 88, "title": "I Don't Run", "artist": "Austin Benton" },
-    { "rank": 89, "title": "Ignite The Fire", "artist": "Vaspira Sweet" },
-    { "rank": 90, "title": "Iron Sharpens Iron", "artist": "Rebel Redeemed 316" },
-    { "rank": 91, "title": "Still Here", "artist": "Austin Benton" },
-    { "rank": 92, "title": "A Little Thing Like Love", "artist": "Kayla Kross" },
-    { "rank": 93, "title": "Sexual Therapy", "artist": "Dre Dior" },
-    { "rank": 94, "title": "Is You Cheating", "artist": "EJ Rogers" },
-    { "rank": 95, "title": "Under Your Wings", "artist": "Grace of Africa" },
-    { "rank": 96, "title": "Te Tocó", "artist": "Rashawn Lubowitz" },
-    { "rank": 97, "title": "Circus", "artist": "CR33PIA" },
-    { "rank": 98, "title": "I Got You", "artist": "Drew Meadows" },
-    { "rank": 99, "title": "Down to the River", "artist": "Rebel Redeemed 316" },
-    { "rank": 100, "title": "Explícame", "artist": "Lágrimas y Recuerdos Lounge" }
+    {
+      "rank": 1,
+      "title": "Let Me Be",
+      "artist": "The Second Voice",
+      "youtubeId": "1WwS3IcEzcA"
+    },
+    {
+      "rank": 2,
+      "title": "RUBBERZ",
+      "artist": "Fenix Flexin",
+      "youtubeId": "Hl5_Lc6b3AU"
+    },
+    {
+      "rank": 3,
+      "title": "BAD TIMES",
+      "artist": "Imael Angel"
+    },
+    {
+      "rank": 4,
+      "title": "Rise Slow",
+      "artist": "Kimo Sounds"
+    },
+    {
+      "rank": 5,
+      "title": "GG EZ",
+      "artist": "M.Sasuke"
+    },
+    {
+      "rank": 6,
+      "title": "LET ME BE",
+      "artist": "Jason Derulo, The Second Voice, Qing Madi"
+    },
+    {
+      "rank": 7,
+      "title": "Girl, I Am Anointed",
+      "artist": "Nyqki Nicole"
+    },
+    {
+      "rank": 8,
+      "title": "I Denounce You Satan",
+      "artist": "Sheena Taylor"
+    },
+    {
+      "rank": 9,
+      "title": "You Problem",
+      "artist": "Dust & Harmony"
+    },
+    {
+      "rank": 10,
+      "title": "I Speak Blessings",
+      "artist": "Delana Hope"
+    },
+    {
+      "rank": 11,
+      "title": "Love Notes",
+      "artist": "Olivia B Moore"
+    },
+    {
+      "rank": 12,
+      "title": "supposed to",
+      "artist": "Joy Rhodes"
+    },
+    {
+      "rank": 13,
+      "title": "soft girl era",
+      "artist": "Yunna Serene"
+    },
+    {
+      "rank": 14,
+      "title": "Banjo Boy",
+      "artist": "Got Dem Blues"
+    },
+    {
+      "rank": 15,
+      "title": "DON'T PLAY WITH ME",
+      "artist": "Thompsxn Therapy"
+    },
+    {
+      "rank": 16,
+      "title": "The Age of Alignment",
+      "artist": "Kisa Soul"
+    },
+    {
+      "rank": 17,
+      "title": "Luna",
+      "artist": "Zemi"
+    },
+    {
+      "rank": 18,
+      "title": "Why did you leave?",
+      "artist": "VencieZw."
+    },
+    {
+      "rank": 19,
+      "title": "Livin' on Borrowed Time",
+      "artist": "Breaking Rust"
+    },
+    {
+      "rank": 20,
+      "title": "Built This Myself",
+      "artist": "Jaxon Ryder"
+    },
+    {
+      "rank": 21,
+      "title": "i love me",
+      "artist": "Joy Rhodes"
+    },
+    {
+      "rank": 22,
+      "title": "Woman's glow",
+      "artist": "Yunna Serene"
+    },
+    {
+      "rank": 23,
+      "title": "I'll Burn This B*tch Down",
+      "artist": "Unbound Music"
+    },
+    {
+      "rank": 24,
+      "title": "Morning Magic",
+      "artist": "Millionaire Muses"
+    },
+    {
+      "rank": 25,
+      "title": "40's",
+      "artist": "Kilo Kent"
+    },
+    {
+      "rank": 26,
+      "title": "Favor Look Good On Me",
+      "artist": "Candidly Spoken"
+    },
+    {
+      "rank": 27,
+      "title": "Letter To The Woman I'm Becoming",
+      "artist": "CoCo Expressions"
+    },
+    {
+      "rank": 28,
+      "title": "You Can Get It",
+      "artist": "Kelly Boesch"
+    },
+    {
+      "rank": 29,
+      "title": "How Was I Supposed To Know?",
+      "artist": "Xania Monet"
+    },
+    {
+      "rank": 30,
+      "title": "God Don't Play About Me",
+      "artist": "Aria Blu"
+    },
+    {
+      "rank": 31,
+      "title": "trust fall",
+      "artist": "Joy Rhodes"
+    },
+    {
+      "rank": 32,
+      "title": "This Chapter",
+      "artist": "Shavelle G"
+    },
+    {
+      "rank": 33,
+      "title": "Coconut Skin",
+      "artist": "ZURI USIKU"
+    },
+    {
+      "rank": 34,
+      "title": "Already Her",
+      "artist": "Nova Solé"
+    },
+    {
+      "rank": 35,
+      "title": "Another Day Old",
+      "artist": "Eddie Dalton"
+    },
+    {
+      "rank": 36,
+      "title": "Stuck On You",
+      "artist": "Velvet Funk"
+    },
+    {
+      "rank": 37,
+      "title": "Grace On Me",
+      "artist": "Candidly Spoken"
+    },
+    {
+      "rank": 38,
+      "title": "Real Ones Never Break",
+      "artist": "Marco Cartwright"
+    },
+    {
+      "rank": 39,
+      "title": "Unbothered Woman Energy",
+      "artist": "Honey Veil"
+    },
+    {
+      "rank": 40,
+      "title": "That's What The Pain Taught Me",
+      "artist": "Blu Monroe"
+    },
+    {
+      "rank": 41,
+      "title": "I Don't Announce It",
+      "artist": "Arielle Faith"
+    },
+    {
+      "rank": 42,
+      "title": "I Love Me, LOUD",
+      "artist": "China Styles"
+    },
+    {
+      "rank": 43,
+      "title": "All In",
+      "artist": "Cody Ray"
+    },
+    {
+      "rank": 44,
+      "title": "Cinderella",
+      "artist": "404 CLUB"
+    },
+    {
+      "rank": 45,
+      "title": "Find Your Rest",
+      "artist": "Solomon Ray"
+    },
+    {
+      "rank": 46,
+      "title": "Emmanuel (Esé)",
+      "artist": "John Fadejola"
+    },
+    {
+      "rank": 47,
+      "title": "Hot Like Ramen",
+      "artist": "Ken Will"
+    },
+    {
+      "rank": 48,
+      "title": "Creep",
+      "artist": "CR33PIA"
+    },
+    {
+      "rank": 49,
+      "title": "GAVE U RACKS",
+      "artist": "$TARFACE, Tyga"
+    },
+    {
+      "rank": 50,
+      "title": "When I Stand",
+      "artist": "Owen James"
+    },
+    {
+      "rank": 51,
+      "title": "I Choose Good",
+      "artist": "Millionaire Muses"
+    },
+    {
+      "rank": 52,
+      "title": "Let The Church Say Amen",
+      "artist": "Damita Jo"
+    },
+    {
+      "rank": 53,
+      "title": "Wish I Could Visit You In Heaven",
+      "artist": "ChildPets Galore"
+    },
+    {
+      "rank": 54,
+      "title": "Something Big",
+      "artist": "Delana Hope"
+    },
+    {
+      "rank": 55,
+      "title": "I Pray",
+      "artist": "Xania Monet"
+    },
+    {
+      "rank": 56,
+      "title": "I Don't Care",
+      "artist": "Cain Walker"
+    },
+    {
+      "rank": 57,
+      "title": "After the Fall",
+      "artist": "Kimo Sounds"
+    },
+    {
+      "rank": 58,
+      "title": "Running To You",
+      "artist": "Eddie Dalton"
+    },
+    {
+      "rank": 59,
+      "title": "FREEZING",
+      "artist": "$TARFACE, Tyga"
+    },
+    {
+      "rank": 60,
+      "title": "God Wanted the Best for You",
+      "artist": "Pete Bailey, Kesia Bailey"
+    },
+    {
+      "rank": 61,
+      "title": "Send Me",
+      "artist": "Rebel Redeemed 316"
+    },
+    {
+      "rank": 62,
+      "title": "Fine",
+      "artist": "CR33PIA"
+    },
+    {
+      "rank": 63,
+      "title": "Influence",
+      "artist": "Aries Ivory ft. Eric Bellinger"
+    },
+    {
+      "rank": 64,
+      "title": "Which Version of Me",
+      "artist": "SNOWBYTE"
+    },
+    {
+      "rank": 65,
+      "title": "You Know Who I Am",
+      "artist": "Cody Ray"
+    },
+    {
+      "rank": 66,
+      "title": "Melisa I'M Drunk And Outside",
+      "artist": "Afroplugs"
+    },
+    {
+      "rank": 67,
+      "title": "Beg Like You Mean It",
+      "artist": "Cody Marrow"
+    },
+    {
+      "rank": 68,
+      "title": "Let Go, Let God",
+      "artist": "Xania Monet"
+    },
+    {
+      "rank": 69,
+      "title": "life is good",
+      "artist": "angelbaby"
+    },
+    {
+      "rank": 70,
+      "title": "No Chains On Me",
+      "artist": "Vowless"
+    },
+    {
+      "rank": 71,
+      "title": "Heavy Hands",
+      "artist": "Owen James"
+    },
+    {
+      "rank": 72,
+      "title": "Woman I'll Be Next Year",
+      "artist": "Amina Monae"
+    },
+    {
+      "rank": 73,
+      "title": "Jag vet, du är inte min",
+      "artist": "Jacub"
+    },
+    {
+      "rank": 74,
+      "title": "Take You Slow",
+      "artist": "Cody Marrow"
+    },
+    {
+      "rank": 75,
+      "title": "God Kept The Receipts",
+      "artist": "Forever Luv"
+    },
+    {
+      "rank": 76,
+      "title": "Mind",
+      "artist": "Blaq"
+    },
+    {
+      "rank": 77,
+      "title": "Queen Energy Only",
+      "artist": "Room2Breathe"
+    },
+    {
+      "rank": 78,
+      "title": "I Speak Life",
+      "artist": "Candidly Spoken"
+    },
+    {
+      "rank": 79,
+      "title": "Ya Te Olvidé",
+      "artist": "Kaltis"
+    },
+    {
+      "rank": 80,
+      "title": "Goodbye Temptation",
+      "artist": "Solomon Ray"
+    },
+    {
+      "rank": 81,
+      "title": "Midnight Alchemy",
+      "artist": "My Boy Arlo"
+    },
+    {
+      "rank": 82,
+      "title": "Ruwa",
+      "artist": "Ruwa Jin"
+    },
+    {
+      "rank": 83,
+      "title": "Crown Sittin Heavy",
+      "artist": "Blu Monroe"
+    },
+    {
+      "rank": 84,
+      "title": "Love Songs",
+      "artist": "Blaq"
+    },
+    {
+      "rank": 85,
+      "title": "What I Been Missing (Revised)",
+      "artist": "Blaq"
+    },
+    {
+      "rank": 86,
+      "title": "Cheap Red Wine",
+      "artist": "Eddie Dalton"
+    },
+    {
+      "rank": 87,
+      "title": "Mama raised a problem,not a fool (writer’s cut)",
+      "artist": "Lone Star Lyric House"
+    },
+    {
+      "rank": 88,
+      "title": "Me vs Me (Fightin' Man Blues)",
+      "artist": "Aventhis"
+    },
+    {
+      "rank": 89,
+      "title": "Still Got One",
+      "artist": "Dust & Harmony"
+    },
+    {
+      "rank": 90,
+      "title": "Running On Empty",
+      "artist": "CR33PIA"
+    },
+    {
+      "rank": 91,
+      "title": "Ignite The Fire",
+      "artist": "Vaspira Sweet"
+    },
+    {
+      "rank": 92,
+      "title": "Sexual Therapy",
+      "artist": "Dre Dior"
+    },
+    {
+      "rank": 93,
+      "title": "I Am Magnetic",
+      "artist": "The Manifest Music Room"
+    },
+    {
+      "rank": 94,
+      "title": "Built Different",
+      "artist": "Tiffany Nacol"
+    },
+    {
+      "rank": 95,
+      "title": "The Devil Missed",
+      "artist": "Today's Creative"
+    },
+    {
+      "rank": 96,
+      "title": "He Kept Me",
+      "artist": "Damita Jo"
+    },
+    {
+      "rank": 97,
+      "title": "I Don't Run",
+      "artist": "Austin Benton"
+    },
+    {
+      "rank": 98,
+      "title": "It's La Vida Loca",
+      "artist": "Kelly Boesch"
+    },
+    {
+      "rank": 99,
+      "title": "Hisss",
+      "artist": "CR33PIA"
+    },
+    {
+      "rank": 100,
+      "title": "His Temptation",
+      "artist": "The Soulful Gentlemen"
+    }
   ]
 }
