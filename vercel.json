@@ -387,6 +387,11 @@
       "statusCode": 301
     },
     {
+      "source": "/blog-banning-wholly-ai.html",
+      "destination": "/blog/banning-wholly-ai",
+      "statusCode": 301
+    },
+    {
       "source": "/blog-billion-culture-ai-own-equity-not-just-royalties.html",
       "destination": "/blog/billion-culture-ai-own-equity-not-just-royalties",
       "statusCode": 301
@@ -1393,6 +1398,7 @@
     { "source": "/blog/claudia-can-a-song-lie", "destination": "/blog-claudia-can-a-song-lie.html" },
     { "source": "/blog/ace-music-blind-test", "destination": "/blog-ace-music-blind-test.html" },
     { "source": "/blog/hidden-ai-song-isaac-dlc", "destination": "/blog-hidden-ai-song-isaac-dlc.html" },
+    { "source": "/blog/banning-wholly-ai", "destination": "/blog-banning-wholly-ai.html" },
     { "source": "/guides/style-prompt-template", "destination": "/style-prompt-template.html" }
   ],
   "headers": [
