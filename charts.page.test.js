@@ -33,7 +33,14 @@ function run() {
   );
   assert.ok(html.includes('https://www.thesiqa.com/charts'), 'official charts URL is present');
   assert.ok(html.includes('Official charts:'), 'Official charts label is present');
-  assert.ok(html.includes('Week of September 15th, 2026'), 'week line is exact');
+  assert.ok(html.includes('Week of November 17th, 2026'), 'week line is exact');
+  const sitemap = read('sitemap.xml');
+  ['/charts', '/charts/top-100', '/charts/rnb', '/charts/country', '/charts/gospel'].forEach(function (route) {
+    assert.ok(sitemap.includes('https://www.wannaplai.com' + route + '<'), 'sitemap lists ' + route);
+  });
+  const robots = read('robots.txt');
+  assert.ok(/User-agent:\s*OAI-SearchBot[\s\S]*Allow:\s*\//.test(robots), 'OAI-SearchBot is allowed');
+  assert.ok(!/User-agent:\s*OAI-SearchBot[\s\S]*Disallow:\s*\//.test(robots), 'OAI-SearchBot is not blocked');
   assert.ok(html.includes('Not affiliated · not a copy of SIQA'), 'disclaimer is exact');
   assert.ok(html.includes('assets/plaiground-logo.png'), 'uses the existing PLAIGROUND logo');
   assert.ok(!/collab/i.test(html) && !/PLAIGROUND × SIQA/.test(html), 'must not call this a collab');
@@ -47,12 +54,12 @@ function run() {
   assert.ok(visibleHero.includes('Ranked 50/50 streams + airplay vs social. Method is SIQA’s.'), 'ranking teaser is visible next to Top 100');
   assert.ok(visibleHero.includes('How it’s calculated'), 'exact button label How it’s calculated is visible');
   assert.ok(/<button[^>]*data-charts-calc-open[^>]*>How it’s calculated<\/button>/.test(visibleHero), 'How it’s calculated is an on-page button');
-  assert.ok(html.includes('week of Sept 15, 2026'), 'sheet names week of Sept 15, 2026');
+  assert.ok(html.includes('week of November 17th, 2026'), 'sheet names week of November 17th, 2026');
   assert.ok(html.includes('50% streams'), 'page source includes 50% streams');
   assert.ok(html.includes('emailplaiground@gmail.com'), 'page source includes emailplaiground@gmail.com');
   assert.ok(html.includes('thesiqa.com/charts-faq'), 'page source includes thesiqa.com/charts-faq');
   assert.ok(
-    html.includes('These are SIQA’s weekly charts (week of Sept 15, 2026 until they update).'),
+    html.includes('These are SIQA’s weekly charts (week of November 17th, 2026 until they update).'),
     'hub sheet week line is locked'
   );
   assert.ok(html.includes('href="/charts/top-100"') && html.includes('TOP 100 AI SONGS'), 'hub links to Top 100 page');
@@ -61,7 +68,7 @@ function run() {
   assert.ok(html.includes('href="/charts/gospel"') && html.includes('TOP 20 AI GOSPEL SONGS'), 'hub links to Gospel page');
   assert.ok(top100Html.includes('These are SIQA’s weekly Top 100 AI songs.'), 'Top 100 page line is exact');
   assert.ok(
-    top100Html.includes('These are SIQA’s weekly Top 100 AI songs (week of Sept 15, 2026 until they update).'),
+    top100Html.includes('These are SIQA’s weekly Top 100 AI songs (week of November 17th, 2026 until they update).'),
     'Top 100 sheet week line is locked'
   );
   assert.ok(rnbHtml.includes('These are SIQA’s weekly Top 20 AI R&B songs.'), 'R&B page has its own copy');
@@ -89,7 +96,7 @@ function run() {
   assert.ok(/#D03083/.test(css) && /#F3CB47/.test(css) && /#782FB1/.test(css), 'charts CSS uses brand pink, gold, purple');
   assert.ok(/#61B63A/.test(css) && /#F09416/.test(css) && /#08060C/.test(css), 'charts CSS uses brand green, orange, dark');
 
-  assert.strictEqual(chart.week, 'September 15th, 2026');
+  assert.strictEqual(chart.week, 'November 17th, 2026');
   assert.strictEqual(chart.official, 'https://www.thesiqa.com/charts');
   assert.strictEqual(chart.tracks.length, 100, 'Top 100 only');
   assert.strictEqual(chart.tracks[0].rank, 1);
@@ -100,12 +107,13 @@ function run() {
   assert.strictEqual(chart.tracks[1].title, 'RUBBERZ');
   assert.strictEqual(chart.tracks[1].artist, 'Fenix Flexin');
   assert.strictEqual(chart.tracks[1].youtubeId, 'Hl5_Lc6b3AU', 'Rubberz keeps its own YouTube id');
-  assert.strictEqual(chart.tracks[7].title, 'LET ME BE');
-  assert.strictEqual(chart.tracks[7].artist, 'Jason Derulo, The Second Voice, Qing Madi');
-  assert.ok(!chart.tracks[7].youtubeId, 'the Derulo LET ME BE row does not reuse the #1 video id');
+  const derulo = chart.tracks.find(function (track) { return track.title === 'LET ME BE'; });
+  assert.ok(derulo, 'the Derulo LET ME BE row is still a real SIQA entry');
+  assert.strictEqual(derulo.artist, 'Jason Derulo, The Second Voice, Qing Madi');
+  assert.ok(!derulo.youtubeId, 'the Derulo LET ME BE row does not reuse the #1 video id');
   assert.strictEqual(chart.tracks[99].rank, 100);
-  assert.strictEqual(chart.tracks[99].title, 'Explícame');
-  assert.strictEqual(chart.tracks[99].artist, 'Lágrimas y Recuerdos Lounge');
+  assert.strictEqual(chart.tracks[99].title, 'His Temptation');
+  assert.strictEqual(chart.tracks[99].artist, 'The Soulful Gentlemen');
   chart.tracks.forEach(function (track, i) {
     assert.strictEqual(track.rank, i + 1, 'ranks stay 1–100 in order');
     assert.ok(track.title && track.artist, 'track ' + track.rank + ' has title and artist');
@@ -132,17 +140,17 @@ function run() {
   assert.ok(js.includes('stopImmediatePropagation'), 'browse wins over the logo’s hard homepage jump');
 
   assert.strictEqual(chart.category, 'TOP 100 AI SONGS');
-  assert.strictEqual(rnb.week, 'September 15th, 2026');
+  assert.strictEqual(rnb.week, 'November 17th, 2026');
   assert.strictEqual(rnb.category, 'TOP 20 AI R&B SONGS');
   assert.strictEqual(rnb.tracks.length, 20);
   assert.strictEqual(rnb.tracks[0].title, 'Love Notes');
   assert.strictEqual(rnb.tracks[0].artist, 'Olivia B Moore');
   assert.strictEqual(country.category, 'TOP 20 AI COUNTRY SONGS');
   assert.strictEqual(country.tracks.length, 20);
-  assert.strictEqual(country.tracks[0].title, 'Banjo Boy');
-  assert.strictEqual(country.tracks[0].artist, 'Got Dem Blues');
-  assert.strictEqual(country.tracks[1].title, 'You Problem');
-  assert.strictEqual(country.tracks[1].artist, 'Dust & Harmony');
+  assert.strictEqual(country.tracks[0].title, 'You Problem');
+  assert.strictEqual(country.tracks[0].artist, 'Dust & Harmony');
+  assert.strictEqual(country.tracks[1].title, 'Banjo Boy');
+  assert.strictEqual(country.tracks[1].artist, 'Got Dem Blues');
   assert.strictEqual(country.tracks[2].title, "I'll Burn This B*tch Down");
   assert.strictEqual(gospel.category, 'TOP 20 AI GOSPEL SONGS');
   assert.strictEqual(gospel.tracks.length, 20);

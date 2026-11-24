@@ -1,0 +1,51 @@
+name: SIQA chart refresh
+
+on:
+  schedule:
+    # Tuesday 20:30 UTC, about 12:30 PM Pacific Standard Time, after SIQA posts.
+    - cron: '30 20 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch the live SIQA charts
+        run: node scripts/refresh-siqa-charts.js
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "No chart changes."
+            exit 0
+          fi
+          branch="charts/siqa-$(date -u +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$branch" || true
+          if git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+            git checkout -B "$branch" "origin/$branch"
+          else
+            git checkout -b "$branch"
+          fi
+          git add data/siqa-chart.json data/siqa-rnb.json data/siqa-country.json data/siqa-gospel.json charts.html charts-top-100.html charts-rnb.html charts-country.html charts-gospel.html
+          if git diff --cached --quiet; then
+            echo "No chart changes."
+            exit 0
+          fi
+          git commit -m "Refresh SIQA charts from the official list."
+          git push -u origin "$branch"
+          if gh pr view "$branch" --json url >/dev/null 2>&1; then
+            echo "Pull request already open."
+            exit 0
+          fi
+          gh pr create --base main --head "$branch" --title "Refresh SIQA charts" --body "Weekly SIQA refresh. Do not auto-merge. Check the titles against https://www.thesiqa.com/charts before merging."

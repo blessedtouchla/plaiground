@@ -3,4 +3,7 @@ Allow: /
 Disallow: /api/
 Disallow: /admin
 
+User-agent: OAI-SearchBot
+Allow: /
+
 Sitemap: https://www.wannaplai.com/sitemap.xml
