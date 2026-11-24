@@ -1231,6 +1231,7 @@
     { "source": "/api/toolost/start", "destination": "/api/me?action=toolost-start" },
     { "source": "/api/toolost/connected", "destination": "/api/me?action=toolost-connected" },
     { "source": "/api/toolost/refresh", "destination": "/api/me?action=toolost-refresh" },
+    { "source": "/api/toolost/sandbox-test-release", "destination": "/api/me?action=toolost-sandbox-release" },
     { "source": "/api/stripe/webhook", "destination": "/api/create-checkout-session?action=webhook" },
     { "source": "/charts-preview/song", "destination": "/charts-preview-song.html" },
     { "source": "/charts-preview/methodology", "destination": "/charts-preview-method.html" },

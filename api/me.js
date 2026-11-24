@@ -32,6 +32,7 @@
  * GET  /api/toolost/callback    TooLost redirect; code exchange; tokens stay server-side
  * GET  /api/toolost/connected   staff session; quiet connected page, no public nav link
  * POST /api/toolost/refresh     staff session; sandbox refresh only
+ * POST /api/toolost/sandbox-test-release  staff session; sandbox release JSON only
  *
  * Read-only token: every GET /api/admin/* above also accepts the
  * ADMIN_READONLY_TOKEN env value in the x-plai-admin-token header (or

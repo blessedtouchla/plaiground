@@ -193,7 +193,7 @@ Browser audio and covers PUT to a private object hop first. The `/audio` and `/a
 
 Set `TONEGRID_BASE_URL` on Vercel to the sandbox host with the `/api` prefix. Do not point this preview at production.
 
-TooLost sandbox OAuth is a hidden staff route on the same Hobby function (`api/me.js`). `GET /api/toolost/start` redirects the owner session to `https://sandbox.toolost.com/oauth/authorize`. `GET /api/toolost/callback` is the registered redirect. Tokens are encrypted in the existing account database. Missing `TOOLOST_CLIENT_ID` or `TOOLOST_CLIENT_SECRET` returns 503. The public nav does not link these paths.
+TooLost sandbox OAuth is a hidden staff route on the same Hobby function (`api/me.js`). `GET /api/toolost/start` redirects the owner session to `https://sandbox.toolost.com/oauth/authorize`. `GET /api/toolost/callback` is the registered redirect. Tokens are encrypted in the existing account database. Missing `TOOLOST_CLIENT_ID` or `TOOLOST_CLIENT_SECRET` returns 503. The public nav does not link these paths. `POST /api/toolost/sandbox-test-release` is the same owner gate and speaks JSON to `https://api-sandbox.toolost.com/v1` only. `plan` reads lookups and returns the hardcoded Unicorn bodies. `submit` stays idle unless the body confirm phrase is present.
 
 Signup confirmation mail (same `api/auth.js` function; no `api/signup-confirm.js`):
 
