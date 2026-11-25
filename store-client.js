@@ -8024,10 +8024,12 @@
   }
 
   function syncAlbumStepper() {
-    var draft = {};
-    try { draft = readDraft(); } catch (errStep) {}
+    var album = false;
+    try {
+      album = queryTypeAlbum() || (readDraft() && readDraft().type === 'album');
+    } catch (errStep) {}
     if (document.body && document.body.setAttribute) {
-      document.body.setAttribute('data-album-flow', draft && draft.type === 'album' ? '1' : '0');
+      document.body.setAttribute('data-album-flow', album ? '1' : '0');
     }
   }
   syncAlbumStepper();
