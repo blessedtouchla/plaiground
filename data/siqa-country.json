@@ -1,5 +1,5 @@
 {
-  "week": "November 17th, 2026",
+  "week": "November 24th, 2026",
   "official": "https://www.thesiqa.com/charts",
   "category": "TOP 20 AI COUNTRY SONGS",
   "tracks": [
@@ -15,43 +15,43 @@
     },
     {
       "rank": 3,
-      "title": "I'll Burn This B*tch Down",
-      "artist": "Unbound Music"
-    },
-    {
-      "rank": 4,
-      "title": "Tired of Being Strong",
-      "artist": "Whiskey Circuit"
-    },
-    {
-      "rank": 5,
       "title": "Tell The Devil I'm Busy",
       "artist": "JD Steel"
     },
     {
-      "rank": 6,
+      "rank": 4,
       "title": "I'm Still Me",
       "artist": "Rhett Rivers"
     },
     {
-      "rank": 7,
+      "rank": 5,
       "title": "All In",
       "artist": "Cody Ray"
     },
     {
-      "rank": 8,
+      "rank": 6,
       "title": "When I Stand",
       "artist": "Owen James"
     },
     {
-      "rank": 9,
+      "rank": 7,
       "title": "I Don't Care",
       "artist": "Cain Walker"
     },
     {
-      "rank": 10,
+      "rank": 8,
       "title": "You Know Who I Am",
       "artist": "Cody Ray"
+    },
+    {
+      "rank": 9,
+      "title": "Rules Don't Fit Me",
+      "artist": "Vowless"
+    },
+    {
+      "rank": 10,
+      "title": "Heavy Hands",
+      "artist": "Owen James"
     },
     {
       "rank": 11,
@@ -60,48 +60,48 @@
     },
     {
       "rank": 12,
-      "title": "Heavy Hands",
-      "artist": "Owen James"
-    },
-    {
-      "rank": 13,
-      "title": "Rules Don't Fit Me",
-      "artist": "Vowless"
-    },
-    {
-      "rank": 14,
-      "title": "Mama raised a problem,not a fool (writer’s cut)",
-      "artist": "Lone Star Lyric House"
-    },
-    {
-      "rank": 15,
       "title": "Still Got One",
       "artist": "Dust & Harmony"
     },
     {
-      "rank": 16,
+      "rank": 13,
+      "title": "Mama raised a problem,not a fool (writer’s cut)",
+      "artist": "Lone Star Lyric House"
+    },
+    {
+      "rank": 14,
       "title": "Built from the Pain",
       "artist": "Grit n' Soul"
     },
     {
-      "rank": 17,
+      "rank": 15,
       "title": "I See Her Different",
       "artist": "Drew Meadows"
     },
     {
-      "rank": 18,
+      "rank": 16,
       "title": "I Don't Run",
       "artist": "Austin Benton"
     },
     {
-      "rank": 19,
+      "rank": 17,
       "title": "Bless You",
       "artist": "Abel Abaddon"
     },
     {
-      "rank": 20,
+      "rank": 18,
+      "title": "I'll Burn This B*tch Down",
+      "artist": "Unbound Music"
+    },
+    {
+      "rank": 19,
       "title": "Ain't Mine To Fix",
       "artist": "Dust & Harmony"
+    },
+    {
+      "rank": 20,
+      "title": "Still Here",
+      "artist": "Austin Benton"
     }
   ]
 }
