@@ -71,7 +71,7 @@ function load(opts) {
   opts = opts || {};
   const defaultOn = Boolean(opts.defaultOn);
   const ai = makeEl({ attrs: { 'data-made-how': 'ai_assisted' } });
-  const noAi = makeEl({ attrs: { 'data-made-how': 'no_ai' }, on: 'on' });
+  const noAi = makeEl({ attrs: { 'data-made-how': 'no_ai' } });
   const fullyAi = makeEl({ attrs: { 'data-made-how': 'fully_ai' } });
   const humanSection = makeEl({ attrs: { 'data-human-section': '' } });
   const tags = TAGS.map(function (label, index) {
@@ -262,7 +262,7 @@ function load(opts) {
 function run() {
   const html = fs.readFileSync(path.join(__dirname, 'attest.html'), 'utf8');
   assert.ok(html.indexOf('attest.js') !== -1);
-  assert.ok(html.indexOf('attest.js?v=20261017name') !== -1, 'attest.html cache-busts attest.js');
+  assert.ok(html.indexOf('attest.js?v=20261019rule1') !== -1, 'attest.html cache-busts attest.js');
   assert.ok(html.indexOf('id="attest-writer-first"') !== -1 && html.indexOf('id="attest-writer-last"') !== -1, '100% songwriter first/last stay on Attest');
   assert.ok(html.indexOf('Prefills from the selected artist') !== -1);
   assert.ok(html.indexOf('lib/upload-draft-files.js') !== -1, 'attest keeps the step-1 files through the page');
@@ -293,24 +293,23 @@ function run() {
   assert.ok(!/class="tag on"/.test(html), 'chips must not be preselected in HTML');
 
   const page = load();
-  assert.ok(/class="choice on" data-made-how="no_ai"/.test(html), 'No AI used is the default choice');
+  assert.ok(!/class="choice on"/.test(html), 'no release label is selected by default');
   assert.ok(/class="choice" data-made-how="ai_assisted"/.test(html), 'AI assisted is not the default');
   assert.ok(html.indexOf('data-qualify') !== -1);
   assert.ok(attestSrc.indexOf('Qualifies as AI-assisted') !== -1);
-  assert.ok(attestSrc.indexOf('this will be sent as Fully AI') !== -1);
+  assert.ok(html.indexOf('This will be sent as Fully AI.') !== -1);
   assert.ok(html.indexOf('data-lyrics') !== -1, 'Fully AI can claim original lyrics');
   assert.ok(html.indexOf('data-switched-back') !== -1, 'auto-switch can go back');
   assert.ok(html.indexOf('Which AI tool did you use?') !== -1);
-  assert.ok(html.indexOf('Pick the app that made the recording. We send the exact name to stores for you.') !== -1);
-  assert.ok(html.indexOf('>Suno<') !== -1);
+  assert.ok(html.indexOf('Type the app that made the recording. Nothing is selected for you.') !== -1);
   assert.ok(html.indexOf('>Other<') !== -1);
-  assert.ok(html.indexOf('data-ai-service="Suno"') !== -1);
   assert.ok(html.indexOf('data-ai-service="other"') !== -1);
+  assert.ok(!html.includes('data-ai-service="Suno"'), 'no tool is named on the page');
   assert.ok(html.indexOf('placeholder="Type the AI tool name"') !== -1);
   assert.ok(!/udio|AI song app/i.test(html), 'the Udio choice is gone');
-  assert.strictEqual((html.match(/Suno/g) || []).length, 2, 'Suno appears only on its chip');
+  assert.strictEqual((html.match(/Suno/g) || []).length, 0, 'Suno is not on the attest page');
   assert.ok(html.indexOf('id="attest-ai-other"') !== -1);
-  assert.ok(page.noAi.classList.contains('on'));
+  assert.ok(!page.noAi.classList.contains('on'), 'Human is not preselected');
   assert.strictEqual(page.toolSection.hidden, true, 'No AI hides the tool picker');
   assert.ok(!page.ai.classList.contains('on'));
   assert.strictEqual(page.humanSection.hidden, true, 'No AI hides the human chips');

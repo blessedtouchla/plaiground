@@ -53,7 +53,7 @@
           <span>AI generated parts of the track, a person wrote and performed the rest</span>
         </span>
       </div>
-      <div class="choice on" data-made-how="no_ai" role="button" tabindex="0" aria-pressed="true">
+      <div class="choice" data-made-how="no_ai" role="button" tabindex="0" aria-pressed="false">
         <span class="honest-check" aria-hidden="true"></span>
         <span class="honest-choice-copy">
           <b>Human</b>
@@ -75,8 +75,7 @@
 
     <section class="flow-card" data-ai-tool hidden>
       <h3>Which AI tool did you use?</h3>
-      <p class="hint">Pick the app that made the recording. We send the exact name to stores for you.</p>
-      <div class="choice" data-ai-service="Suno"><b>Suno</b></div>
+      <p class="hint">Type the app that made the recording. Nothing is selected for you.</p>
       <div class="choice" data-ai-service="other"><b>Other</b></div>
       <div class="field" data-ai-other hidden>
         <label for="attest-ai-other">Tool name</label>
@@ -135,7 +134,7 @@
 
     <div class="flow-actions attest-actions">
       <a class="attest-back" href="upload.html">Back</a>
-      <a class="btn btn-gold btn-md" data-attest-continue href="split-sheet.html">Continue to writers and splits</a>
+      <a class="btn btn-gold btn-md" data-attest-continue href="split-sheet.html" aria-disabled="true">Continue to writers and splits</a>
     </div>
     <a class="btn btn-ghost btn-sm have-problem" href="problem.html" data-have-problem>Have a problem?</a>
     <p class="hint" id="attest-status" hidden></p>
