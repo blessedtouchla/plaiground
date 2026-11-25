@@ -6864,6 +6864,15 @@
         syncAlbumStepper();
       });
     }
+    var startNew = document.querySelector('[data-start-new]');
+    if (startNew && startNew.addEventListener) {
+      startNew.addEventListener('click', function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+        try { localStorage.removeItem('plaiground.store.parked_album'); } catch (errClear) {}
+        var note = document.querySelector('[data-resume-draft]');
+        if (note) note.hidden = true;
+      });
+    }
     defaultCreditsLanguageIfEmpty();
     var instEl = $('tg-instrumental');
     if (instEl && savedDraft.instrumental === true) paintSwitch(instEl, true);

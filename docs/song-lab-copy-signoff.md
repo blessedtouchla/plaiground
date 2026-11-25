@@ -178,6 +178,7 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Upload, saved album | Saved album: {title}. |
 | Upload, saved album with no title | A saved album is on this device. |
 | Upload button | Resume draft |
+| Upload button | Start new |
 | Attest, no label yet | Pick Human, AI-assisted, or Fully AI. |
 | Attest tool hint | Type the app that made the recording. Nothing is selected for you. |
 | Track row | Explicit |
