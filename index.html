@@ -46,9 +46,9 @@
     body.home-portal .hf-panel::before,
     body.home-portal .hero-logo-live::before,
     body.home-portal .hero-logo-live-shimmer,
-    body.home-portal .hero-logo-live-note,
+    body.home-portal .hero-logo-live-note{content:none!important;display:none!important;background:none!important;box-shadow:none!important;filter:none!important;animation:none!important}
     body.home-portal .ba-plai,
-    body.home-portal .hf-booked-plai{content:none!important;display:none!important;background:none!important;box-shadow:none!important;filter:none!important;animation:none!important}
+    body.home-portal .hf-booked-plai{display:block!important;width:auto;height:auto;max-width:140px;max-height:170px;object-fit:contain}
     body.home-portal .hero-logo-live{position:relative}
     body.home-portal .hero-logo-live-stage{animation:none!important}
     body.home-portal .hero .wrap,
@@ -288,7 +288,7 @@
     }
     body.home-portal #plai-ask-btn .pa-face{display:none!important}
     body.home-portal #plai-ask-btn:active{background:#782FB1!important;color:#fff!important;border-color:#782FB1!important;box-shadow:none!important}
-    body.home-portal .plai-coach-avatar img{display:none!important}
+    body.home-portal .plai-coach-avatar img{display:block!important;width:64px;height:64px;object-fit:cover}
     body.home-portal .plai-coach-float-hit{
       border-radius:999px!important;min-height:44px;min-width:44px;padding:0 16px;
       border:1px solid rgba(255,255,255,.35);background:#000;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px
@@ -654,7 +654,6 @@
           <a class="btn btn-gold btn-md ba-press" href="signup.html">Join free</a>
           <a class="btn btn-ghost btn-md" href="/song-helper">Write a song free</a>
         </div>
-        <p class="starter-cta" data-starter-cta>Join free. Get starter credits to try every tool.</p>
         <a class="ba-start" href="#roadmap"><span class="ba-blink">&#9654;</span> Press start</a>
       </div>
     </section>
@@ -674,7 +673,7 @@
 
     <section id="roadmap" class="hf-panel hf-road" aria-label="Build my free roadmap">
       <div class="hf-wrap">
-        <img class="ba-plai ba-plai-hello" src="/for-david-fv/img/plai-hello.webp" alt="" width="90" height="166" loading="lazy" decoding="async" />
+        <img class="ba-plai ba-plai-hello" src="/for-david-fv/img/plai-hello.webp" alt="Plai waving" width="331" height="401" loading="eager" decoding="async" />
         <p class="hf-kicker">Build my free roadmap</p>
         <h2>Your next steps, mapped.</h2>
         <p class="hf-lead">Tell us your stage and goal. Your roadmap shows exactly what to do next.</p>
@@ -690,7 +689,7 @@
 
     <section class="hf-panel hf-lab hf-compact" aria-label="Song Lab">
       <div class="hf-wrap">
-        <img class="ba-plai ba-plai-dancing" src="/for-david-fv/img/plai-dancing.webp" alt="" width="90" height="166" loading="lazy" decoding="async" />
+        <img class="ba-plai ba-plai-dancing" src="/for-david-fv/img/plai-dancing.webp" alt="Plai dancing" width="335" height="298" loading="eager" decoding="async" />
         <p class="hf-kicker">Song Lab</p>
         <h2>Your story. Your song.</h2>
         <p class="hf-lead">Write from scratch, fix a song, or flip it. You set the vision, Plai helps.</p>
@@ -715,12 +714,13 @@
 
     <section class="hf-panel hf-booked hf-compact" id="get-booked" aria-label="Get booked">
       <div class="hf-wrap hf-booked-row">
-        <img class="hf-booked-plai" src="/for-david-fv/img/plai-dancing.webp" alt="Plai dancing" width="120" height="120" loading="lazy" decoding="async" />
+        <img class="hf-booked-plai" src="/for-david-fv/img/plai-dancing.webp" alt="Plai dancing" width="335" height="298" loading="eager" decoding="async" />
         <div class="hf-booked-copy">
           <p class="hf-kicker">Grow</p>
           <h2>Get booked</h2>
           <p>Indie artist? Tell us your region, genre and budget, and we will match you with paid shows and events.</p>
           <button type="button" class="ba-start hf-booked-btn" data-get-booked>&#9654; Get booked</button>
+          <p>This is a matching request, not a confirmed booking.</p>
         </div>
       </div>
     </section>
@@ -740,6 +740,7 @@
           <article class="card">
             <div class="plan-name">Free account</div>
             <div class="price"><strong>$0</strong></div>
+            <p class="offer-note">Billed now</p>
             <p class="plan-blurb">DIY tools included.</p>
             <ul>
               <li>Disclosure</li>
@@ -763,7 +764,7 @@
               <li>Splits signed first</li>
               <li>Cancel anytime</li>
             </ul>
-            <p class="offer-note">Shown price. Not charged here.</p>
+            <p class="offer-note">Coming soon</p>
             <div class="card-cta">
               <a class="btn btn-purple btn-md btn-block" href="signup.html">Start releasing</a>
             </div>
@@ -779,7 +780,7 @@
               <li>Compliance routing</li>
               <li>Plai Research</li>
             </ul>
-            <p class="offer-note">Shown price. Not charged here.</p>
+            <p class="offer-note">Coming soon</p>
             <div class="card-cta">
               <a class="btn btn-ghost btn-md btn-block" href="contact.html">Talk to A&amp;R</a>
               <a class="learn" href="ar.html">See the pack</a>
@@ -792,6 +793,7 @@
           <li>
             <span class="price-name">Persona package</span>
             <strong>$299</strong>
+            <span class="offer-note">Coming soon</span>
             <em>Bio, look, handles, starter EPK, 30-day content plan. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Persona package">Apply free</button></em>
           </li>
         </ul>
@@ -802,56 +804,66 @@
             <li>
               <span class="price-name">Content engine</span>
               <strong>$199</strong>
+              <span class="offer-note">Coming soon</span>
               <em>Posts and ideas, ready to reuse. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Content engine">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Launch Prep</span>
               <strong>$149</strong>
+              <span class="offer-note">Coming soon</span>
               <em>One release, ready to go. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Launch Prep">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Fan growth setup</span>
               <strong>$99</strong>
+              <span class="offer-note">Coming soon</span>
               <em>Find fans and keep them. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Fan growth setup">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Founding Management</span>
               <strong>$59/mo</strong>
+              <span class="offer-note">Coming soon</span>
               <span class="founding-tag">Founding spots, by application, 10 open</span>
               <em>1 platform, a few posts a week. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Starter">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Grow</span>
               <strong>$179/mo</strong>
+              <span class="offer-note">Coming soon</span>
               <em>3 platforms, daily posts, fan growth. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Grow">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Full management</span>
               <strong>$449/mo</strong>
+              <span class="offer-note">Coming soon</span>
               <em>Everything, business side included. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Full management">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Sync</span>
               <strong>$29/mo</strong>
+              <span class="offer-note">Coming soon</span>
               <em>Or a 20% fee on the placement deal, not a royalty cut. No placement promise. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Sync">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Brand protection</span>
               <strong>$19/mo</strong>
+              <span class="offer-note">Coming soon</span>
               <em>Watch your name and songs. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Brand protection">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Coaching</span>
               <strong>$75/hr</strong>
+              <span class="offer-note">Coming soon</span>
               <em>Time with a person, by the hour. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Coaching">Apply free</button></em>
             </li>
             <li>
               <span class="price-name">Playlist pitching and creator campaigns</span>
+              <span class="offer-note">Coming soon</span>
               <em>Their rate plus a 15-20% fee. <button type="button" class="btn btn-purple btn-sm" data-apply-package="Playlist pitching and creator campaigns">Apply free</button></em>
             </li>
           </ul>
         </details>
-                <p class="offer-note">Shown prices. Checkout is not live on this page.</p>
+                <p class="offer-note">Coming soon. Checkout is not live on this page.</p>
       </div>
     </section>
 
@@ -942,7 +954,7 @@
     <details>
       <summary class="plai-coach-float-hit" aria-label="Welcome from Plai">
         <span class="avatar plai-coach-avatar is-float" aria-hidden="true">
-          <img src="assets/plai-avatar.png" alt="" width="64" height="64" loading="lazy" decoding="async" onerror="this.hidden=true" />
+          <img src="assets/plai-avatar.png" alt="" width="320" height="320" loading="eager" decoding="async" onerror="this.hidden=true" />
           <span>Plai</span>
         </span>
       </summary>

@@ -131,7 +131,8 @@
       ? window.PlaigroundLyricsAccount.readPending()
       : null;
     return fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (meRes) {
-      return meRes.json().catch(function () { return {}; }).then(function (me) {
+        return meRes.json().catch(function () { return {}; }).then(function (me) {
+        if (meRes.status === 401) return;
         var name = me && (me.artist || me.username) ? String(me.artist || me.username) : '';
         return fetch('/api/me/lyrics', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (res) {
           return res.json().catch(function () { return {}; }).then(function (data) {

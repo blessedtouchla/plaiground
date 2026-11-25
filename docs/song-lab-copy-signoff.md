@@ -183,3 +183,19 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Attest tool hint | Type the app that made the recording. Nothing is selected for you. |
 | Track row | Explicit |
 | Review, per track | Track {n} · {title} · Explicit or Not explicit · {duration} |
+
+## Punch list preview (Nov 25, 2026)
+
+Homepage Persona copy is unchanged. Price rows only gained a billing label.
+
+| Where | Line |
+|---|---|
+| Contracts and Make it human | Coming soon. Join the waitlist. |
+| Sign in | Sign in |
+| Copyright, first screen | Was this song fully human, or did you use AI? |
+| Qualify, first screen | Who wrote the lyrics? |
+| Claim, signed out | Sign in to see this record. |
+| Price rows | Billed now, or Coming soon |
+| Creative tools | You must be 18+ to use this page. |
+| Get booked | This is a matching request, not a confirmed booking. |
+| Homepage pricing and signup | Join free. Get starter credits to try every tool. |

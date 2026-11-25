@@ -1311,7 +1311,7 @@ function runPage() {
   assert.ok(read('song-flow-page.js').includes('Talk'));
   assert.ok(read('lib/song-flow.js').includes('Do not add a story they did not tell.'));
   assert.ok(!/\bSuno\b/.test(html.match(/id="sh-purpose"[\s\S]*?<\/section>/)[0]));
-  assert.ok(html.includes('You must be 18+ to use Song Lab.'));
+  assert.ok(html.includes('You must be 18+ to use this page.'));
   assert.ok(html.includes('your words'));
   assert.ok(html.includes('Drafts are AI-assisted.'));
   assert.ok(html.includes('name="company_website"'));
