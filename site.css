@@ -2437,6 +2437,22 @@ body:not(.app) > .app-main > .topbar { display: none; }
   margin-bottom: 12px;
 }
 .track-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.track-explicit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.track-explicit-label { font-size: 14px; font-weight: 600; }
+.track-explicit button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+.track-explicit button.on { background: #f3cb47; color: #111; border-color: #f3cb47; }
+.resume-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.resume-draft button { min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: inherit; font: inherit; font-weight: 600; }
 .track-row .audio-drop { margin-top: 12px; }
 .track-row .audio-bar { margin-top: 12px; }
 .btn[aria-busy="true"] {
@@ -5058,7 +5074,8 @@ button.stage-chip {
   border: 0;
   border-radius: 0;
   padding: 0;
-  color: var(--muted);
+  min-height: 44px;
+  color: #e8e8ee;
   cursor: default;
   font-family: inherit;
 }
@@ -5075,24 +5092,26 @@ button.stage-chip {
 .upload-page .st b {
   display: inline;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #e8e8ee;
 }
 .upload-page .st.on {
   background: none;
 }
 .upload-page .st.on b {
-  color: var(--stage-blue);
+  color: #ffffff;
 }
-.upload-page a.st:hover,
-.upload-page .st[role="link"]:hover {
-  outline: none;
-}
-.upload-page a.st:hover b {
-  color: var(--muted-2);
+@media (hover: hover) {
+  .upload-page a.st:hover,
+  .upload-page .st[role="link"]:hover {
+    outline: none;
+  }
+  .upload-page a.st:hover b {
+    color: #ffffff;
+  }
 }
 .upload-page .st span {
   display: none;
@@ -5260,6 +5279,23 @@ button.stage-chip {
 }
 .upload-page .st.upload-step-splits::after {
   content: none;
+}
+body[data-album-flow="1"] .upload-page .st.upload-step-splits {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border: 0;
+}
+body[data-album-flow="1"] .upload-page .st.upload-step-splits::after {
+  content: "·";
+  margin: 0 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
 }
 .upload-page .upload-type-toggle {
   display: inline-grid;
@@ -6883,6 +6919,15 @@ body.attest-page .plai-bubble-row {
 }
 .attest-page .attest-actions .btn-gold.is-incomplete {
   opacity: 1;
+}
+.attest-page .attest-actions .btn-gold[aria-disabled="true"] {
+  pointer-events: none;
+}
+body.attest-page main.page {
+  padding-bottom: calc(220px + env(safe-area-inset-bottom, 0px));
+}
+body.attest-page #attest-human {
+  scroll-margin-bottom: calc(240px + env(safe-area-inset-bottom, 0px));
 }
 .attest-page .have-problem {
   border: 0;

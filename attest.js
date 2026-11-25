@@ -212,6 +212,8 @@
     }
 
     function nextHref(fields) {
+      var draft = readDraft();
+      if (draft && draft.type === 'album') return 'split-sheet.html';
       return fields && fields.solo_owned_100 ? 'review.html' : 'split-sheet.html';
     }
 
@@ -266,6 +268,11 @@
       }
       syncCreditsPrefill();
       if (!trigger) return;
+      if (readDraft().type === 'album') {
+        trigger.setAttribute('href', 'split-sheet.html');
+        if ('textContent' in trigger) trigger.textContent = 'Continue to writers and splits';
+        return;
+      }
       if (!featured && !others) {
         trigger.setAttribute('href', 'review.html');
         if ('textContent' in trigger) trigger.textContent = 'Continue to review';
@@ -280,7 +287,7 @@
         var checked = root.PlaigroundUploadRequired.validateAttestPage(fields);
         return checked && checked.error ? checked.error : '';
       }
-      if (!fields.made_how) return 'How the song was made is required.';
+      if (!fields.made_how) return 'Pick Human, AI-assisted, or Fully AI.';
       if (fields.made_how === 'ai_assisted') {
         if (!fields.human_elements.length && !fields.human_contribution) {
           return 'Human element is required.';
@@ -506,7 +513,9 @@
       syncSolo();
       syncRightsStatus();
       if (countEl) countEl.textContent = selectedElements().length + ' selected';
-      if (trigger.classList) trigger.classList.toggle('is-incomplete', Boolean(pageError(collect())));
+      var blocked = Boolean(pageError(collect()));
+      if (trigger.classList) trigger.classList.toggle('is-incomplete', blocked);
+      if (trigger.setAttribute) trigger.setAttribute('aria-disabled', blocked ? 'true' : 'false');
       writeDraft(collect());
     }
 
@@ -645,6 +654,9 @@
       return true;
     });
 
+    if (document.body && document.body.setAttribute) {
+      document.body.setAttribute('data-album-flow', readDraft().type === 'album' ? '1' : '0');
+    }
     applyDraft(readDraft());
     keepCarriedFiles();
     refresh();

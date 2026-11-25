@@ -170,3 +170,16 @@ Not signed off. Draft copy for Victoria. Preview only.
 | Bangermaker button | Run the Bangermaker |
 | Bangermaker, before Plai marks the song ready | Keep talking to Plai |
 | Bangermaker confirmation | Copied. |
+
+## Album upload (preview, Nov 25, 2026)
+
+| Where | Copy |
+|---|---|
+| Upload, saved album | Saved album: {title}. |
+| Upload, saved album with no title | A saved album is on this device. |
+| Upload button | Resume draft |
+| Upload button | Start new |
+| Attest, no label yet | Pick Human, AI-assisted, or Fully AI. |
+| Attest tool hint | Type the app that made the recording. Nothing is selected for you. |
+| Track row | Explicit |
+| Review, per track | Track {n} · {title} · Explicit or Not explicit · {duration} |
