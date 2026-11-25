@@ -4034,6 +4034,8 @@
       var feat = featEl ? String(featEl.value || '').trim() : String(prior.featured || '').trim();
       var expOn = row.querySelector('[data-track-explicit].on');
       var explicit = expOn ? expOn.getAttribute('data-track-explicit') === 'true' : (prior.explicit === true);
+      var player = row.querySelector('[data-audio-player]');
+      var liveDuration = player && isFinite(player.duration) && player.duration > 0 ? player.duration : 0;
       var item = {
         title: titleEl ? String(titleEl.value || '').trim() : '',
         lyrics: lyricsEl ? lyricsText(lyricsEl.value) : lyricsText(prior.lyrics),
@@ -4044,7 +4046,7 @@
         position: i + 1,
         explicit: explicit,
         explicit_set: row.getAttribute('data-track-explicit-set') === '1' || prior.explicit_set === true,
-        audio_duration: Number(row.getAttribute('data-audio-duration') || prior.audio_duration || 0) || 0,
+        audio_duration: Number(row.getAttribute('data-audio-duration') || liveDuration || prior.audio_duration || 0) || 0,
       };
       if (feat) {
         var parsed = featuredFields({ type: 'single', featured: feat });
@@ -6869,6 +6871,15 @@
       startNew.addEventListener('click', function (event) {
         if (event && event.preventDefault) event.preventDefault();
         try { localStorage.removeItem('plaiground.store.parked_album'); } catch (errClear) {}
+        try {
+          sessionStorage.setItem('plaiground.upload.blank', '1');
+          sessionStorage.removeItem('plaiground.upload.live');
+        } catch (errBlank) {}
+        var creditsApi = window.PlaigroundReleaseCredits;
+        if (creditsApi && typeof creditsApi.clearWorkingDraft === 'function') creditsApi.clearWorkingDraft(window);
+        var uploadApi = window.PlaigroundUploadCredits;
+        if (uploadApi && typeof uploadApi.blankAlbumFields === 'function') uploadApi.blankAlbumFields(document);
+        clearHeldAudio();
         var note = document.querySelector('[data-resume-draft]');
         if (note) note.hidden = true;
       });

@@ -6926,6 +6926,9 @@ body.attest-page .plai-bubble-row {
 body.attest-page main.page {
   padding-bottom: calc(220px + env(safe-area-inset-bottom, 0px));
 }
+body.attest-page #attest-human {
+  scroll-margin-bottom: calc(240px + env(safe-area-inset-bottom, 0px));
+}
 .attest-page .have-problem {
   border: 0;
   background: none;
