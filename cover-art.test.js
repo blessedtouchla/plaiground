@@ -431,7 +431,7 @@ function runPage() {
   const songNav = songPage.match(/<nav class="nav-links"[\s\S]*?<\/nav>/)[0];
 
   assert.ok(html.includes('Cover Art Maker: album cover maker for music'));
-  assert.ok(html.includes('You must be 18+ to use the Song Helper.'));
+  assert.ok(html.includes('You must be 18+ to use this page.'));
   assert.ok(html.includes('Covers are AI-assisted'));
   assert.ok(html.includes('name="company_website"'));
   assert.ok(html.includes('Suggest from my song'));

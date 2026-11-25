@@ -518,23 +518,6 @@
     if (toggle && toggle.parentNode !== tools) tools.appendChild(toggle);
     if (tools.parentNode !== inner) inner.insertBefore(tools, drawer);
 
-    if (!document.querySelector(".starter-banner")) {
-      var banner = document.createElement("a");
-      banner.className = "starter-banner starter-cta";
-      banner.href = "/signup.html";
-      banner.setAttribute("data-starter-cta", "");
-      banner.textContent = "Join free. Get starter credits to try every tool.";
-      header.insertBefore(banner, header.firstChild);
-    }
-    var footBrand = document.querySelector(".footer .footer-brand, footer .footer-brand");
-    if (footBrand && !footBrand.querySelector(".starter-cta")) {
-      var foot = document.createElement("a");
-      foot.className = "starter-cta starter-foot btn btn-gold btn-sm";
-      foot.href = "/signup.html";
-      foot.setAttribute("data-starter-cta", "");
-      foot.textContent = "Join free. Get starter credits to try every tool.";
-      footBrand.appendChild(foot);
-    }
     var account = tools.querySelector(".public-header-account");
     if (!account) {
       account = document.createElement("a");

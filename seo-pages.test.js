@@ -107,8 +107,8 @@ assert.ok(guide.includes('<link rel="canonical" href="https://www.wannaplai.com/
 assert.ok(template.includes('<link rel="canonical" href="https://www.wannaplai.com/split-sheet-template"'));
 assert.ok(guide.includes('href="/split-sheet-template"'), 'guide links to the template');
 assert.ok(template.includes('href="/split-sheets"'), 'template links to the guide');
-assert.ok(guide.includes('Join free. Get starter credits to try every tool.'));
-assert.ok(template.includes('Join free. Get starter credits to try every tool.'));
+assert.ok(!guide.includes('Join free. Get starter credits to try every tool.'));
+assert.ok(!template.includes('Join free. Get starter credits to try every tool.'));
 assert.ok(!/free starter credits/i.test(guide));
 assert.ok(!/free starter credits/i.test(template));
 assert.ok(!/—|–/.test(guide + template), 'split sheet pages use a hyphen, not a dash');
