@@ -499,7 +499,10 @@ async function run() {
       assert.strictEqual(json(ok).mail_sent, true);
       assert.strictEqual(sent.length, 1);
       const body = JSON.parse(sent[0].init.body);
-      assert.deepStrictEqual(body.to, ['emailplaiground@gmail.com']);
+      assert.deepStrictEqual(body.to, [
+        'emailplaiground@gmail.com',
+        'grokgirl+wannaplai-alerts@mail.grokbot.com',
+      ]);
       assert.ok(body.text.indexOf('Earnings stay at $0.') !== -1);
       assert.ok(body.text.indexOf('ada@example.com') !== -1);
       assert.ok(body.text.indexOf('song.html?id=') === -1, 'plain ticket mail has no release link');
